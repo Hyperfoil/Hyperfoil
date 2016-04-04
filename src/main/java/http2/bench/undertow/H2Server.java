@@ -3,6 +3,8 @@ package http2.bench.undertow;
 import io.undertow.Undertow;
 import io.undertow.UndertowOptions;
 import io.undertow.util.Headers;
+import org.xnio.Options;
+import org.xnio.Sequence;
 
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
@@ -25,6 +27,7 @@ public class H2Server {
     String bindAddress = System.getProperty("bind.address", "localhost");
     SSLContext sslContext = createSSLContext();
     Undertow server = Undertow.builder()
+        .setSocketOption(Options.SSL_SUPPORTED_CIPHER_SUITES, Sequence.of("TLS-ECDHE-RSA-AES128-GCM-SHA256"))
         .setServerOption(UndertowOptions.ENABLE_HTTP2, true)
         .addHttpListener(8080, bindAddress)
         .addHttpsListener(8443, bindAddress, sslContext)

@@ -20,6 +20,7 @@ public class H2OpenSSLServer {
         .setUseAlpn(true)
         .setHost("localhost")
         .setSslEngine(SSLEngine.OPENSSL)
+        .addEnabledCipherSuite("TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256")
         .setPort(8443)
         .setPemKeyCertOptions(new PemKeyCertOptions().setKeyPath("tls/server-key.pem").setCertPath("tls/server-cert.pem")));
 

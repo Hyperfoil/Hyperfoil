@@ -15,6 +15,8 @@ import io.netty.handler.ssl.SslProvider;
 import io.netty.handler.ssl.SupportedCipherSuiteFilter;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 
+import java.util.Collections;
+
 /**
  * A HTTP/2 Server that responds to requests with a Hello World. Once started, you can test the
  * server with the example client.
@@ -30,7 +32,7 @@ public class Server {
           .sslProvider(sslProvider)
               /* NOTE: the cipher filter may not include all ciphers required by the HTTP/2 specification.
                * Please refer to the HTTP/2 specification for cipher requirements. */
-          .ciphers(Http2SecurityUtil.CIPHERS, SupportedCipherSuiteFilter.INSTANCE)
+          .ciphers(Collections.singletonList("TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"), SupportedCipherSuiteFilter.INSTANCE)
           .applicationProtocolConfig(new ApplicationProtocolConfig(
               ApplicationProtocolConfig.Protocol.ALPN,
               // NO_ADVERTISE is currently the only mode supported by both OpenSsl and JDK providers.
