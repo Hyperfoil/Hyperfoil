@@ -1,5 +1,6 @@
 package http2.bench.netty;
 
+import http2.bench.Env;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelOption;
@@ -46,7 +47,7 @@ public class Server {
       sslCtx = null;
     }
     // Configure the server.
-    EventLoopGroup group = new NioEventLoopGroup();
+    EventLoopGroup group = new NioEventLoopGroup(Env.numCore());
     try {
       ServerBootstrap b = new ServerBootstrap();
       b.option(ChannelOption.SO_BACKLOG, 1024);

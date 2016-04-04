@@ -36,6 +36,7 @@
     <jetty.alpnAgent.version>2.0.0</jetty.alpnAgent.version>
     <jetty.alpnAgent.path>${settings.localRepository}/org/mortbay/jetty/alpn/jetty-alpn-agent/${jetty.alpnAgent.version}/jetty-alpn-agent-${jetty.alpnAgent.version}.jar</jetty.alpnAgent.path>
     <tcnative.classifier>${os.detected.classifier}</tcnative.classifier>
+    <bench.core>1</bench.core>
   </properties>
 
   <dependencyManagement>
@@ -101,6 +102,7 @@
               <argument>-javaagent:${jetty.alpnAgent.path}</argument>
               <argument>-classpath</argument>
               <classpath/>
+              <argument>-Dbench.core=${bench.core}</argument>
               <argument>${main}</argument>
             </arguments>
           </configuration>

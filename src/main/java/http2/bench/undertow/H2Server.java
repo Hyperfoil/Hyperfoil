@@ -1,5 +1,6 @@
 package http2.bench.undertow;
 
+import http2.bench.Env;
 import io.undertow.Undertow;
 import io.undertow.UndertowOptions;
 import io.undertow.util.Headers;
@@ -29,6 +30,7 @@ public class H2Server {
     Undertow server = Undertow.builder()
         .setSocketOption(Options.SSL_SUPPORTED_CIPHER_SUITES, Sequence.of("TLS-ECDHE-RSA-AES128-GCM-SHA256"))
         .setServerOption(UndertowOptions.ENABLE_HTTP2, true)
+        .setServerOption(Options.WORKER_IO_THREADS, Env.numCore())
         .addHttpListener(8080, bindAddress)
         .addHttpsListener(8443, bindAddress, sslContext)
         .setHandler(exchange -> {
