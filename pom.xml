@@ -141,7 +141,7 @@
           <version>1.4.0</version>
           <configuration>
             <executable>java</executable>
-            <commandlineArgs>-javaagent:${jetty.alpnAgent.path} -jar target/http2-bench-3.3.0-SNAPSHOT.jar ${main}</commandlineArgs>
+            <commandlineArgs>-javaagent:${jetty.alpnAgent.path} -XX:+UnlockCommercialFeatures -XX:+FlightRecorder -jar target/http2-bench-3.3.0-SNAPSHOT.jar ${main}</commandlineArgs>
           </configuration>
         </plugin>
       </plugins>

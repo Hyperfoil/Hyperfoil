@@ -16,7 +16,6 @@ public class Main {
   public static class MainCmd {
   }
 
-
   public static void main(String[] args) throws Exception {
     JCommander jc = new JCommander(new MainCmd());
     VertxServer vertx = new VertxServer();
@@ -54,6 +53,38 @@ public class Main {
       if (server.help) {
         new JCommander(server).usage();
       } else {
+
+        // Integrate Java Flight Recorder
+        // kill -s USR pid to start recording
+        // kill -s INT pid to stop recording (or ctr-c)
+/*
+        AtomicReference<JavaFlightRecording> current = new AtomicReference<>();
+        SignalHandler handler = signal -> {
+          switch (signal.getName()) {
+            case "INT": {
+              JavaFlightRecording recording1 = current.getAndSet(null);
+              if (recording1 != null) {
+                System.out.println("Starting recording");
+                recording1.stop();
+              }
+              System.exit(0);
+              break;
+            }
+            case "USR2": {
+              if (current.compareAndSet(null, JavaFlightRecording.builder().
+                  withName(cmd.getClass().getSimpleName()).withOutputPath("/Users/julien/java/http2-bench/dump.jfr")
+                  .build())) {
+                System.out.println("Starting recording");
+                current.get().start();
+              }
+              break;
+            }
+          }
+        };
+        Signal.handle(new Signal("USR2"), handler);
+        Signal.handle(new Signal("INT"), handler);
+*/
+
         server.run();
       }
     }
