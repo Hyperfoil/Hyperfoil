@@ -16,12 +16,25 @@
 
 package http2.bench.netty;
 
+import com.beust.jcommander.Parameter;
+import com.beust.jcommander.Parameters;
+import http2.bench.ServerBase;
 import io.netty.handler.ssl.SslProvider;
 
-public final class H2OpenSSLServer {
+/**
+ * A HTTP/2 Server that responds to requests with a Hello World. Once started, you can test the
+ * server with the example client.
+ */
+@Parameters()
+public final class NettyServer extends ServerBase {
 
-  public static void main(String[] args) throws Exception {
-    int port = Integer.parseInt(System.getProperty("port", "8443"));
-    Server.run(SslProvider.OPENSSL, port);
+  @Parameter(names = "--open-ssl")
+  public boolean openSSL;
+
+  @Parameter(names = "--instances")
+  public int instances = 2 * Runtime.getRuntime().availableProcessors();
+
+  public void run() throws Exception {
+    Server.run(openSSL ? SslProvider.OPENSSL : SslProvider.JDK, httpsPort, instances);
   }
 }

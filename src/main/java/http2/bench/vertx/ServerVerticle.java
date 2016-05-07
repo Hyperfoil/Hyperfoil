@@ -33,7 +33,7 @@ public class ServerVerticle extends AbstractVerticle {
         .setHost("localhost")
         .setSslEngine(engine)
         .addEnabledCipherSuite("TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256")
-        .setPort(8443)
+        .setPort(config().getInteger("port"))
         .setPemKeyCertOptions(new PemKeyCertOptions().setKeyPath("tls/server-key.pem").setCertPath("tls/server-cert.pem")));
 
     FileSystem fs = vertx.fileSystem();
@@ -61,7 +61,7 @@ public class ServerVerticle extends AbstractVerticle {
           }
         });
       } else {
-        req.response().end("<html><body>Hello World</body></html>");
+        req.response().end("<html><body>Hello World / " + req.version() + "</body></html>");
       }
     });
 

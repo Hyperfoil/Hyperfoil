@@ -1,5 +1,7 @@
 package http2.bench.jetty;
 
+import com.beust.jcommander.Parameters;
+import http2.bench.ServerBase;
 import org.eclipse.jetty.alpn.server.ALPNServerConnectionFactory;
 import org.eclipse.jetty.http2.HTTP2Cipher;
 import org.eclipse.jetty.http2.server.HTTP2ServerConnectionFactory;
@@ -20,11 +22,12 @@ import java.util.UUID;
 /**
  * @author <a href="mailto:plopes@redhat.com">Paulo Lopes</a>
  */
-public class H2Server {
+@Parameters()
+public class JettyServer extends ServerBase {
 
   private static final String STORE_PASSWORD = "password";
 
-  public static void main(final String[] args) throws Exception {
+  public void run() throws Exception {
 
     File root = new File("jetty.uploads");
     root.mkdirs();
@@ -93,7 +96,7 @@ public class H2Server {
 
   private static SslConnectionFactory prepareSsl(ALPNServerConnectionFactory alpn) {
     SslContextFactory sslContextFactory = new SslContextFactory();
-    sslContextFactory.setKeyStorePath(H2Server.class.getResource("server.keystore").toExternalForm());
+    sslContextFactory.setKeyStorePath(JettyServer.class.getResource("server.keystore").toExternalForm());
     sslContextFactory.setKeyStorePassword(password("server.keystore"));
     sslContextFactory.setCipherComparator(HTTP2Cipher.COMPARATOR);
     sslContextFactory.setUseCipherSuitesOrder(true);

@@ -54,6 +54,12 @@
   <dependencies>
 
     <dependency>
+      <groupId>com.beust</groupId>
+      <artifactId>jcommander</artifactId>
+      <version>1.48</version>
+    </dependency>
+
+    <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-core</artifactId>
     </dependency>
@@ -100,6 +106,33 @@
       </extension>
     </extensions>
 
+    <plugins>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>2.3</version>
+        <executions>
+          <!-- Run shade goal on package phase -->
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <transformers>
+                <!-- add Main-Class to manifest file -->
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                  <mainClass>http2.bench.Main</mainClass>
+                </transformer>
+              </transformers>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+    </plugins>
+
     <pluginManagement>
       <plugins>
         <plugin>
@@ -108,14 +141,7 @@
           <version>1.4.0</version>
           <configuration>
             <executable>java</executable>
-            <arguments>
-              <!--<argument>-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005</argument>-->
-              <argument>-javaagent:${jetty.alpnAgent.path}</argument>
-              <argument>-classpath</argument>
-              <classpath/>
-              <argument>-Dbench.core=${bench.core}</argument>
-              <argument>${main}</argument>
-            </arguments>
+            <commandlineArgs>-javaagent:${jetty.alpnAgent.path} -jar target/http2-bench-3.3.0-SNAPSHOT.jar ${main}</commandlineArgs>
           </configuration>
         </plugin>
       </plugins>
@@ -127,7 +153,7 @@
 
     <profile>
       <properties>
-        <main>http2.bench.vertx.H2OpenSSLServer</main>
+        <main>vertx --open-ssl</main>
       </properties>
       <id>vertx-openssl</id>
       <build>
@@ -148,7 +174,7 @@
     </profile>
     <profile>
       <properties>
-        <main>http2.bench.vertx.H2Server</main>
+        <main>vertx</main>
       </properties>
       <id>vertx</id>
       <build>
@@ -170,7 +196,7 @@
 
     <profile>
       <properties>
-        <main>http2.bench.netty.H2OpenSSLServer</main>
+        <main>netty --open-ssl</main>
       </properties>
       <id>netty-openssl</id>
       <build>
@@ -191,7 +217,7 @@
     </profile>
     <profile>
       <properties>
-        <main>http2.bench.netty.H2Server</main>
+        <main>netty</main>
       </properties>
       <id>netty</id>
       <build>
@@ -212,7 +238,7 @@
     </profile>
     <profile>
       <properties>
-        <main>http2.bench.undertow.H2Server</main>
+        <main>undertow</main>
       </properties>
       <id>undertow</id>
       <build>
@@ -233,7 +259,7 @@
     </profile>
     <profile>
       <properties>
-        <main>http2.bench.jetty.H2Server</main>
+        <main>jetty</main>
       </properties>
       <id>jetty</id>
       <build>

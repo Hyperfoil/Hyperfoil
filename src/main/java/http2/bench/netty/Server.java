@@ -1,13 +1,12 @@
 package http2.bench.netty;
 
-import http2.bench.Env;
+import com.beust.jcommander.Parameter;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.handler.codec.http2.Http2SecurityUtil;
 import io.netty.handler.ssl.ApplicationProtocolConfig;
 import io.netty.handler.ssl.ApplicationProtocolNames;
 import io.netty.handler.ssl.SslContext;
@@ -24,7 +23,7 @@ import java.util.Collections;
  */
 public class Server {
 
-  static void run(SslProvider sslProvider, int port) throws Exception {
+  static void run(SslProvider sslProvider, int port, int instances) throws Exception {
     // Configure SSL.
     final SslContext sslCtx;
     if (sslProvider != null) {
@@ -47,7 +46,7 @@ public class Server {
       sslCtx = null;
     }
     // Configure the server.
-    EventLoopGroup group = new NioEventLoopGroup(Env.numCore());
+    EventLoopGroup group = new NioEventLoopGroup(instances);
     try {
       ServerBootstrap b = new ServerBootstrap();
       b.option(ChannelOption.SO_BACKLOG, 1024);
