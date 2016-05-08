@@ -97,9 +97,9 @@ public class JettyServer extends ServerBase {
   }
 
   private void handlePostNonBlocking(BiConsumer<byte[], Integer> out, HttpServletRequest hreq, HttpServletResponse hresp) throws IOException {
-    AsyncContext context = (AsyncContext) hreq.getAttribute(AsyncContext.class.getName());
-    if (context == null) {
-      context = hreq.startAsync();
+    // http://fr.slideshare.net/SimoneBordet/servlet-31-async-io
+    if (hreq.getAttribute(AsyncContext.class.getName()) == null) {
+      AsyncContext context = hreq.startAsync();
       hreq.setAttribute(AsyncContext.class.getName(), context);
       ServletInputStream in = hreq.getInputStream();
       byte[] buffer = new byte[512];
@@ -122,7 +122,8 @@ public class JettyServer extends ServerBase {
         @Override
         public void onAllDataRead() throws IOException {
           out.accept(null, -1);
-          sendResponse(hresp);
+          context.complete();
+          sendResponse((HttpServletResponse) context.getResponse());
         }
 
         @Override
