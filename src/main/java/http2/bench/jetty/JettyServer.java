@@ -1,5 +1,6 @@
 package http2.bench.jetty;
 
+import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import http2.bench.ServerBase;
 import org.eclipse.jetty.alpn.server.ALPNServerConnectionFactory;
@@ -10,6 +11,8 @@ import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
+import javax.servlet.AsyncContext;
+import javax.servlet.ReadListener;
 import javax.servlet.ServletException;
 import javax.servlet.ServletInputStream;
 import javax.servlet.http.HttpServletRequest;
@@ -26,6 +29,9 @@ import java.util.UUID;
 public class JettyServer extends ServerBase {
 
   private static final String STORE_PASSWORD = "password";
+
+  @Parameter(names = "--blocking")
+  public boolean blocking = false;
 
   public void run() throws Exception {
 
@@ -49,36 +55,87 @@ public class JettyServer extends ServerBase {
 
     server.setHandler(new AbstractHandler() {
       @Override
-      public void handle(String s, Request req, HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse) throws IOException, ServletException {
-        if (httpServletRequest.getMethod().equals("POST")) {
-          try (ServletInputStream inputStream = httpServletRequest.getInputStream()) {
-
-            File f = new File(root, UUID.randomUUID().toString());
-            try (FileOutputStream out = new FileOutputStream(f)) {
-              byte[] buffer = new byte[512];
-              while (true) {
-                int len = inputStream.readLine(buffer, 0, buffer.length);
-                if (len == -1) {
-                  break;
-                }
-                out.write(buffer, 0, len);
-              }
-            } finally {
-              f.delete();
-            }
+      public void handle(String s, Request req, HttpServletRequest hreq, HttpServletResponse hresp) throws IOException, ServletException {
+        if (hreq.getMethod().equals("POST")) {
+          File f = new File(root, UUID.randomUUID().toString());
+          if (blocking) {
+            handlePostBlocking(f, hreq, hresp);
+          } else {
+            handlePostNonBlocking(f, hreq, hresp);
           }
+        } else {
+          sendResponse(hresp);
         }
-
-
-        final Response res = req.getResponse();
-
-        res.setContentType("text/plain");
-        res.getOutputStream().write("Hello World".getBytes());
-        res.getOutputStream().close();
       }
     });
 
     server.start();
+  }
+
+  private void handlePostNonBlocking(File f, HttpServletRequest hreq, HttpServletResponse hresp) throws IOException {
+    AsyncContext context = (AsyncContext) hreq.getAttribute(AsyncContext.class.getName());
+    if (context == null) {
+      context = hreq.startAsync();
+      hreq.setAttribute(AsyncContext.class.getName(), context);
+      ServletInputStream in = hreq.getInputStream();
+      byte[] buffer = new byte[512];
+      FileOutputStream out = new FileOutputStream(f);
+      in.setReadListener(new ReadListener() {
+        @Override
+        public void onDataAvailable() throws IOException {
+          try {
+            while (in.isReady() && !in.isFinished()) {
+              int len = in.read(buffer);
+              if (len > 0) {
+                out.write(buffer, 0, len);
+              }
+            }
+          } catch (IOException e) {
+            e.printStackTrace();
+          }
+        }
+
+        @Override
+        public void onAllDataRead() throws IOException {
+          out.close();
+          f.delete();
+          sendResponse(hresp);
+        }
+
+        @Override
+        public void onError(Throwable throwable) {
+          throwable.printStackTrace();
+          try {
+            hresp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+          } catch (IOException ignore) {
+          }
+        }
+      });
+    }
+  }
+
+  private void handlePostBlocking(File f, HttpServletRequest hreq, HttpServletResponse hresp) throws IOException {
+    try (ServletInputStream in = hreq.getInputStream()) {
+      try (FileOutputStream out = new FileOutputStream(f)) {
+        byte[] buffer = new byte[512];
+        while (true) {
+          int len = in.read(buffer, 0, buffer.length);
+          if (len == -1) {
+            break;
+          }
+          out.write(buffer, 0, len);
+        }
+      } finally {
+        f.delete();
+      }
+      sendResponse(hresp);
+    }
+  }
+
+  private void sendResponse(HttpServletResponse response) throws IOException {
+    response.setContentType("text/plain");
+    response.getOutputStream().write("Hello World".getBytes());
+    response.getOutputStream().close();
   }
 
   static String password(String name) {
