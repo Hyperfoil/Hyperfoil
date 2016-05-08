@@ -1,5 +1,6 @@
 package http2.bench.vertx;
 
+import http2.bench.Backend;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import io.vertx.core.file.AsyncFile;
@@ -20,6 +21,7 @@ import java.util.UUID;
 public class ServerVerticle extends AbstractVerticle {
 
   private final SSLEngine engine;
+  private Backend backend;
 
   public ServerVerticle(SSLEngine engine) {
     this.engine = engine;
@@ -27,6 +29,9 @@ public class ServerVerticle extends AbstractVerticle {
 
   @Override
   public void start(Future<Void> startFuture) throws Exception {
+
+    backend = Backend.valueOf(context.config().getString("backend"));
+
     HttpServer server = vertx.createHttpServer(new HttpServerOptions()
         .setSsl(true)
         .setUseAlpn(true)
@@ -43,23 +48,30 @@ public class ServerVerticle extends AbstractVerticle {
 
     server.requestHandler(req -> {
       if (req.method() == HttpMethod.POST) {
-        req.pause();
-        String file = "vertx.uploads/" + UUID.randomUUID();
-        fs.open(file, new OpenOptions().setCreate(true), ar1 -> {
-          req.resume();
-          if (ar1.succeeded()) {
-            AsyncFile f = ar1.result();
-            Pump pump = Pump.pump(req, f);
-            pump.start();
-            req.endHandler(v -> {
-              f.close(ar2 -> fs.delete(file, ar3 -> {}));
-              req.response().end("<html><body>Hello World</body></html>");
-            });
-          } else {
-            ar1.cause().printStackTrace();
-            req.response().setStatusCode(500).end();
-          }
-        });
+        if (backend == Backend.DISK) {
+          req.pause();
+          String file = "vertx.uploads/" + UUID.randomUUID();
+          fs.open(file, new OpenOptions().setCreate(true), ar1 -> {
+            req.resume();
+            if (ar1.succeeded()) {
+              AsyncFile f = ar1.result();
+              Pump pump = Pump.pump(req, f);
+              pump.start();
+              req.endHandler(v -> {
+                f.close(ar2 -> fs.delete(file, ar3 -> {}));
+                req.response().end("<html><body>Hello World</body></html>");
+              });
+            } else {
+              ar1.cause().printStackTrace();
+              req.response().setStatusCode(500).end();
+            }
+          });
+        } else {
+          req.handler(buff -> {});
+          req.endHandler(v -> {
+            req.response().end("<html><body>Hello World</body></html>");
+          });
+        }
       } else {
         req.response().end("<html><body>Hello World / " + req.version() + "</body></html>");
       }

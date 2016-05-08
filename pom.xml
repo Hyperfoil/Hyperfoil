@@ -36,7 +36,7 @@
     <jetty.alpnAgent.version>2.0.0</jetty.alpnAgent.version>
     <jetty.alpnAgent.path>${settings.localRepository}/org/mortbay/jetty/alpn/jetty-alpn-agent/${jetty.alpnAgent.version}/jetty-alpn-agent-${jetty.alpnAgent.version}.jar</jetty.alpnAgent.path>
     <tcnative.classifier>${os.detected.classifier}</tcnative.classifier>
-    <bench.core>1</bench.core>
+    <args></args>
   </properties>
 
   <dependencyManagement>
@@ -141,7 +141,7 @@
           <version>1.4.0</version>
           <configuration>
             <executable>java</executable>
-            <commandlineArgs>-javaagent:${jetty.alpnAgent.path} -XX:+UnlockCommercialFeatures -XX:+FlightRecorder -jar target/http2-bench-3.3.0-SNAPSHOT.jar ${main}</commandlineArgs>
+            <commandlineArgs>-javaagent:${jetty.alpnAgent.path} -XX:+UnlockCommercialFeatures -XX:+FlightRecorder -jar target/http2-bench-3.3.0-SNAPSHOT.jar ${main} ${args}</commandlineArgs>
           </configuration>
         </plugin>
       </plugins>

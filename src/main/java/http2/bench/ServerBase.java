@@ -16,6 +16,9 @@ public abstract class ServerBase {
   @Parameter(names = "--https-port")
   public int httpsPort = 8443;
 
+  @Parameter(names = "--backend")
+  public Backend backend = Backend.NONE;
+
   public abstract void run() throws Exception;
 
 }

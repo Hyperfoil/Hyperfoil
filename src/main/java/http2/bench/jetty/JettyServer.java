@@ -21,6 +21,9 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 /**
  * @author <a href="mailto:plopes@redhat.com">Paulo Lopes</a>
@@ -57,11 +60,32 @@ public class JettyServer extends ServerBase {
       @Override
       public void handle(String s, Request req, HttpServletRequest hreq, HttpServletResponse hresp) throws IOException, ServletException {
         if (hreq.getMethod().equals("POST")) {
-          File f = new File(root, UUID.randomUUID().toString());
+          BiConsumer<byte[],Integer> dst;
+          switch (backend) {
+            case DISK:
+              File f = new File(root, UUID.randomUUID().toString());
+              FileOutputStream out = new FileOutputStream(f);
+              dst = (buf,len) -> {
+                try {
+                  if (len != -1) {
+                    out.write(buf, 0, len);
+                  } else {
+                    out.close();
+                    f.delete();
+                  }
+                } catch (IOException e) {
+                  e.printStackTrace();
+                }
+              };
+              break;
+            default:
+              dst = (buf,len) -> {};
+              break;
+          }
           if (blocking) {
-            handlePostBlocking(f, hreq, hresp);
+            handlePostBlocking(dst, hreq, hresp);
           } else {
-            handlePostNonBlocking(f, hreq, hresp);
+            handlePostNonBlocking(dst, hreq, hresp);
           }
         } else {
           sendResponse(hresp);
@@ -72,22 +96,22 @@ public class JettyServer extends ServerBase {
     server.start();
   }
 
-  private void handlePostNonBlocking(File f, HttpServletRequest hreq, HttpServletResponse hresp) throws IOException {
+  private void handlePostNonBlocking(BiConsumer<byte[], Integer> out, HttpServletRequest hreq, HttpServletResponse hresp) throws IOException {
     AsyncContext context = (AsyncContext) hreq.getAttribute(AsyncContext.class.getName());
     if (context == null) {
       context = hreq.startAsync();
       hreq.setAttribute(AsyncContext.class.getName(), context);
       ServletInputStream in = hreq.getInputStream();
       byte[] buffer = new byte[512];
-      FileOutputStream out = new FileOutputStream(f);
       in.setReadListener(new ReadListener() {
+
         @Override
         public void onDataAvailable() throws IOException {
           try {
             while (in.isReady() && !in.isFinished()) {
               int len = in.read(buffer);
               if (len > 0) {
-                out.write(buffer, 0, len);
+                out.accept(buffer, len);
               }
             }
           } catch (IOException e) {
@@ -97,8 +121,7 @@ public class JettyServer extends ServerBase {
 
         @Override
         public void onAllDataRead() throws IOException {
-          out.close();
-          f.delete();
+          out.accept(null, -1);
           sendResponse(hresp);
         }
 
@@ -114,19 +137,15 @@ public class JettyServer extends ServerBase {
     }
   }
 
-  private void handlePostBlocking(File f, HttpServletRequest hreq, HttpServletResponse hresp) throws IOException {
+  private void handlePostBlocking(BiConsumer<byte[], Integer> out, HttpServletRequest hreq, HttpServletResponse hresp) throws IOException {
     try (ServletInputStream in = hreq.getInputStream()) {
-      try (FileOutputStream out = new FileOutputStream(f)) {
-        byte[] buffer = new byte[512];
-        while (true) {
-          int len = in.read(buffer, 0, buffer.length);
-          if (len == -1) {
-            break;
-          }
-          out.write(buffer, 0, len);
+      byte[] buffer = new byte[512];
+      while (true) {
+        int len = in.read(buffer, 0, buffer.length);
+        out.accept(buffer, len);
+        if (len == -1) {
+          break;
         }
-      } finally {
-        f.delete();
       }
       sendResponse(hresp);
     }

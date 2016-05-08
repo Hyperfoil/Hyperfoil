@@ -26,7 +26,9 @@ public class VertxServer extends ServerBase {
   public void run() {
     Vertx vertx = Vertx.vertx(new VertxOptions().setInternalBlockingPoolSize(internalBlockingPoolSize));
     DeploymentOptions options = new DeploymentOptions().setInstances(instances);
-    options.setConfig(new JsonObject().put("port", httpsPort));
+    options.setConfig(new JsonObject().
+        put("port", httpsPort).
+        put("backend", backend.name()));
     vertx.deployVerticle(openSSL ? ServerVerticle.OPENSSL.class.getName() : ServerVerticle.JDK.class.getName(), options, ar -> {
       if (ar.succeeded()) {
         System.out.println("Server started");
