@@ -125,8 +125,8 @@ public class ServletServer extends GenericServlet {
         @Override
         public void onAllDataRead() throws IOException {
           out.accept(null, -1);
-          context.complete();
           sendResponse((HttpServletResponse) context.getResponse());
+          context.complete();
         }
 
         @Override
