@@ -3,6 +3,7 @@ package http2.bench.jetty;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import http2.bench.ServerBase;
+import http2.bench.servlet.ServletServer;
 import org.eclipse.jetty.alpn.server.ALPNServerConnectionFactory;
 import org.eclipse.jetty.http2.HTTP2Cipher;
 import org.eclipse.jetty.http2.server.HTTP2ServerConnectionFactory;
@@ -11,19 +12,11 @@ import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
-import javax.servlet.AsyncContext;
-import javax.servlet.ReadListener;
 import javax.servlet.ServletException;
-import javax.servlet.ServletInputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 
 /**
  * @author <a href="mailto:plopes@redhat.com">Paulo Lopes</a>
@@ -41,8 +34,6 @@ public class JettyServer extends ServerBase {
     File root = new File("jetty.uploads");
     root.mkdirs();
 
-    System.out.println("Upload root: " + root.getAbsolutePath());
-
     // create config
     final HttpConfiguration config = new HttpConfiguration();
     config.setSecureScheme("https");
@@ -56,106 +47,19 @@ public class JettyServer extends ServerBase {
     ALPNServerConnectionFactory alpn = createAlpnProtocolFactory(httpFactory);
     Server server = createServer(httpFactory, http2Factory, alpn);
 
+    ServletServer servlet = new ServletServer();
+    servlet.setRoot(root);
+    servlet.setBlocking(blocking);
+    servlet.setBackend(backend);
+
     server.setHandler(new AbstractHandler() {
       @Override
       public void handle(String s, Request req, HttpServletRequest hreq, HttpServletResponse hresp) throws IOException, ServletException {
-        if (hreq.getMethod().equals("POST")) {
-          BiConsumer<byte[],Integer> dst;
-          switch (backend) {
-            case DISK:
-              File f = new File(root, UUID.randomUUID().toString());
-              FileOutputStream out = new FileOutputStream(f);
-              dst = (buf,len) -> {
-                try {
-                  if (len != -1) {
-                    out.write(buf, 0, len);
-                  } else {
-                    out.close();
-                    f.delete();
-                  }
-                } catch (IOException e) {
-                  e.printStackTrace();
-                }
-              };
-              break;
-            default:
-              dst = (buf,len) -> {};
-              break;
-          }
-          if (blocking) {
-            handlePostBlocking(dst, hreq, hresp);
-          } else {
-            handlePostNonBlocking(dst, hreq, hresp);
-          }
-        } else {
-          sendResponse(hresp);
-        }
+        servlet.handle(hreq, hresp);
       }
     });
 
     server.start();
-  }
-
-  private void handlePostNonBlocking(BiConsumer<byte[], Integer> out, HttpServletRequest hreq, HttpServletResponse hresp) throws IOException {
-    // http://fr.slideshare.net/SimoneBordet/servlet-31-async-io
-    if (hreq.getAttribute(AsyncContext.class.getName()) == null) {
-      AsyncContext context = hreq.startAsync();
-      hreq.setAttribute(AsyncContext.class.getName(), context);
-      ServletInputStream in = hreq.getInputStream();
-      byte[] buffer = new byte[512];
-      in.setReadListener(new ReadListener() {
-
-        @Override
-        public void onDataAvailable() throws IOException {
-          try {
-            while (in.isReady() && !in.isFinished()) {
-              int len = in.read(buffer);
-              if (len > 0) {
-                out.accept(buffer, len);
-              }
-            }
-          } catch (IOException e) {
-            e.printStackTrace();
-          }
-        }
-
-        @Override
-        public void onAllDataRead() throws IOException {
-          out.accept(null, -1);
-          context.complete();
-          sendResponse((HttpServletResponse) context.getResponse());
-        }
-
-        @Override
-        public void onError(Throwable throwable) {
-          throwable.printStackTrace();
-          try {
-            hresp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-          } catch (IOException ignore) {
-          }
-        }
-      });
-    }
-  }
-
-  private void handlePostBlocking(BiConsumer<byte[], Integer> out, HttpServletRequest hreq, HttpServletResponse hresp) throws IOException {
-    try (ServletInputStream in = hreq.getInputStream()) {
-      byte[] buffer = new byte[512];
-      while (true) {
-        int len = in.read(buffer, 0, buffer.length);
-        out.accept(buffer, len);
-        if (len == -1) {
-          break;
-        }
-      }
-      sendResponse(hresp);
-    }
-  }
-
-  private void sendResponse(HttpServletResponse response) throws IOException {
-    response.setContentType("text/plain");
-    response.getOutputStream().write("Hello World".getBytes());
-    response.getOutputStream().close();
   }
 
   static String password(String name) {
