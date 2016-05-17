@@ -2,7 +2,7 @@ package http2.bench.vertx;
 
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
-import http2.bench.ServerBase;
+import http2.bench.ServerCommandBase;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
@@ -12,7 +12,7 @@ import io.vertx.core.json.JsonObject;
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
  */
 @Parameters()
-public class VertxServer extends ServerBase {
+public class VertxServerCommand extends ServerCommandBase {
 
   @Parameter(names = "--internal-blocking-pool-size", description = "Internal blocking pool size", arity = 1)
   public int internalBlockingPoolSize = VertxOptions.DEFAULT_INTERNAL_BLOCKING_POOL_SIZE;

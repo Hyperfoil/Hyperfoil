@@ -18,7 +18,7 @@ package http2.bench.netty;
 
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
-import http2.bench.ServerBase;
+import http2.bench.ServerCommandBase;
 import io.netty.handler.ssl.SslProvider;
 
 /**
@@ -26,7 +26,7 @@ import io.netty.handler.ssl.SslProvider;
  * server with the example client.
  */
 @Parameters()
-public final class NettyServer extends ServerBase {
+public final class NettyServerCommand extends ServerCommandBase {
 
   @Parameter(names = "--open-ssl")
   public boolean openSSL;

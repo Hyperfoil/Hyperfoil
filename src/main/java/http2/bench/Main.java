@@ -2,10 +2,11 @@ package http2.bench;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameters;
-import http2.bench.jetty.JettyServer;
-import http2.bench.netty.NettyServer;
-import http2.bench.undertow.UndertowServer;
-import http2.bench.vertx.VertxServer;
+import http2.bench.jetty.JettyServerCommand;
+import http2.bench.client.ClientCommand;
+import http2.bench.netty.NettyServerCommand;
+import http2.bench.undertow.UndertowServerCommand;
+import http2.bench.vertx.VertxServerCommand;
 
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
@@ -18,40 +19,45 @@ public class Main {
 
   public static void main(String[] args) throws Exception {
     JCommander jc = new JCommander(new MainCmd());
-    VertxServer vertx = new VertxServer();
-    JettyServer jetty = new JettyServer();
-    UndertowServer undertow = new UndertowServer();
-    NettyServer netty = new NettyServer();
+    VertxServerCommand vertx = new VertxServerCommand();
+    JettyServerCommand jetty = new JettyServerCommand();
+    UndertowServerCommand undertow = new UndertowServerCommand();
+    NettyServerCommand netty = new NettyServerCommand();
+    ClientCommand client = new ClientCommand();
     jc.addCommand("vertx", vertx);
     jc.addCommand("jetty", jetty);
     jc.addCommand("undertow", undertow);
     jc.addCommand("netty", netty);
+    jc.addCommand("client", client);
     jc.parse(args);
     String cmd = jc.getParsedCommand();
-    ServerBase server = null;
+    CommandBase command = null;
     if (cmd != null) {
       switch (cmd) {
+        case "client":
+          command = client;
+          break;
         case "vertx":
-          server = vertx;
+          command = vertx;
           break;
         case "jetty":
-          server = jetty;
+          command = jetty;
           break;
         case "undertow":
-          server = undertow;
+          command = undertow;
           break;
         case "netty":
-          server = netty;
+          command = netty;
           break;
         default:
           break;
       }
     }
-    if (server == null) {
+    if (command == null) {
       jc.usage();
     } else {
-      if (server.help) {
-        new JCommander(server).usage();
+      if (command.help) {
+        new JCommander(command).usage();
       } else {
 
         // Integrate Java Flight Recorder
@@ -85,7 +91,7 @@ public class Main {
         Signal.handle(new Signal("INT"), handler);
 */
 
-        server.run();
+        command.run();
       }
     }
   }

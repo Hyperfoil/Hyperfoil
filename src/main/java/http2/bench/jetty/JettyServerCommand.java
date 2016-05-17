@@ -2,7 +2,7 @@ package http2.bench.jetty;
 
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
-import http2.bench.ServerBase;
+import http2.bench.ServerCommandBase;
 import http2.bench.servlet.ServletServer;
 import org.eclipse.jetty.alpn.server.ALPNServerConnectionFactory;
 import org.eclipse.jetty.http2.HTTP2Cipher;
@@ -22,12 +22,12 @@ import java.io.IOException;
  * @author <a href="mailto:plopes@redhat.com">Paulo Lopes</a>
  */
 @Parameters()
-public class JettyServer extends ServerBase {
+public class JettyServerCommand extends ServerCommandBase {
 
   private static final String STORE_PASSWORD = "password";
 
   @Parameter(names = "--async")
-  public boolean async = true;
+  public boolean async = false;
 
   public void run() throws Exception {
 
@@ -77,7 +77,7 @@ public class JettyServer extends ServerBase {
 
   private static SslConnectionFactory prepareSsl(ALPNServerConnectionFactory alpn) {
     SslContextFactory sslContextFactory = new SslContextFactory();
-    sslContextFactory.setKeyStorePath(JettyServer.class.getResource("server.keystore").toExternalForm());
+    sslContextFactory.setKeyStorePath(JettyServerCommand.class.getResource("server.keystore").toExternalForm());
     sslContextFactory.setKeyStorePassword(password("server.keystore"));
     sslContextFactory.setCipherComparator(HTTP2Cipher.COMPARATOR);
     sslContextFactory.setUseCipherSuitesOrder(true);

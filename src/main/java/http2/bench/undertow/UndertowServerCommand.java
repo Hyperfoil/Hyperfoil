@@ -2,12 +2,13 @@ package http2.bench.undertow;
 
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
-import http2.bench.ServerBase;
+import http2.bench.ServerCommandBase;
 import http2.bench.servlet.ServletServer;
 import io.undertow.Handlers;
 import io.undertow.Undertow;
 import io.undertow.UndertowOptions;
 import io.undertow.server.HttpHandler;
+import io.undertow.server.protocol.http2.Http2UpgradeHandler;
 import io.undertow.servlet.Servlets;
 import io.undertow.servlet.api.DeploymentInfo;
 import io.undertow.servlet.api.DeploymentManager;
@@ -25,7 +26,7 @@ import java.security.KeyStore;
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
  */
 @Parameters()
-public class UndertowServer extends ServerBase {
+public class UndertowServerCommand extends ServerCommandBase {
 
   private static final char[] STORE_PASSWORD = "password".toCharArray();
 
@@ -39,7 +40,7 @@ public class UndertowServer extends ServerBase {
   public boolean servlet;
 
   @Parameter(names = "--async")
-  public boolean async = true;
+  public boolean async = false;
 
   public void run() throws Exception {
     String bindAddress = System.getProperty("bind.address", "localhost");
@@ -47,7 +48,7 @@ public class UndertowServer extends ServerBase {
     HttpHandler handler;
     if (servlet) {
       DeploymentInfo servletBuilder = Servlets.deployment()
-          .setClassLoader(UndertowServer.class.getClassLoader())
+          .setClassLoader(UndertowServerCommand.class.getClassLoader())
           .setContextPath("/")
           .setDeploymentName("test.war")
           .addServlets(Servlets.servlet("ServletServer", ServletServer.class).
@@ -59,6 +60,8 @@ public class UndertowServer extends ServerBase {
       DeploymentManager manager = Servlets.defaultContainer().addDeployment(servletBuilder);
       manager.deploy();
       handler = Handlers.path(Handlers.redirect("/")).addPrefixPath("/", manager.start());
+//      handler = new Http2UpgradeHandler(Handlers.path(Handlers.redirect("/")).addPrefixPath("/", manager.start()));
+//      handler = Handlers.path(Handlers.redirect("/")).addPrefixPath("/", manager.start(), "h2c", "h2c");;
     } else {
       handler = exchange -> {
         exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, "text/plain");
@@ -67,10 +70,11 @@ public class UndertowServer extends ServerBase {
     }
     Undertow server = Undertow.builder()
         .setSocketOption(Options.SSL_SUPPORTED_CIPHER_SUITES, Sequence.of("TLS-ECDHE-RSA-AES128-GCM-SHA256"))
+        .setSocketOption(Options.BACKLOG, 1024)
         .setServerOption(UndertowOptions.ENABLE_HTTP2, true)
         .setWorkerThreads(workerThreads)
         .setIoThreads(ioThreads)
-        .addHttpListener(httpPort, bindAddress)
+//        .addHttpListener(httpPort, bindAddress)
         .addHttpsListener(httpsPort, bindAddress, sslContext)
         .setHandler(handler).build();
     server.start();
@@ -83,7 +87,7 @@ public class UndertowServer extends ServerBase {
 
   private static SSLContext createSSLContext() throws Exception {
 
-    final InputStream stream = UndertowServer.class.getResourceAsStream("server.keystore");
+    final InputStream stream = UndertowServerCommand.class.getResourceAsStream("server.keystore");
 
     KeyStore keyStore = KeyStore.getInstance("JKS");
     try(InputStream is = stream) {
