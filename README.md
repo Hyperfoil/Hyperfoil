@@ -33,3 +33,20 @@ where $profile is:
 - `jetty`
 
 Each server has special options, `netty` and `vertx` can run without the ALPN agent when the `--open-ssl` option is set.
+
+## Stressing
+
+### POST 256 bytes
+
+````
+mkfile 1b tiny_payload
+h2load -n100000 -c200 -m10 -d tiny_payload -v  https://localhost:8443/
+````
+
+### POST 50 MB
+
+````
+mkfile 50m large_payload
+h2load -n1000 -c100 -m 1 -d large_file https://localhost:8443/
+````
+

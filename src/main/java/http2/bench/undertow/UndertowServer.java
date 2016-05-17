@@ -8,7 +8,6 @@ import io.undertow.Handlers;
 import io.undertow.Undertow;
 import io.undertow.UndertowOptions;
 import io.undertow.server.HttpHandler;
-import io.undertow.server.handlers.PathHandler;
 import io.undertow.servlet.Servlets;
 import io.undertow.servlet.api.DeploymentInfo;
 import io.undertow.servlet.api.DeploymentManager;
@@ -30,8 +29,11 @@ public class UndertowServer extends ServerBase {
 
   private static final char[] STORE_PASSWORD = "password".toCharArray();
 
-  @Parameter(names = "--worker-size")
-  public int workerSize = Runtime.getRuntime().availableProcessors();
+  @Parameter(names = "--io-threads")
+  public int ioThreads = Runtime.getRuntime().availableProcessors();
+
+  @Parameter(names = "--worker-threads")
+  public int workerThreads = 64;
 
   @Parameter(names = "--servlet")
   public boolean servlet;
@@ -66,7 +68,8 @@ public class UndertowServer extends ServerBase {
     Undertow server = Undertow.builder()
         .setSocketOption(Options.SSL_SUPPORTED_CIPHER_SUITES, Sequence.of("TLS-ECDHE-RSA-AES128-GCM-SHA256"))
         .setServerOption(UndertowOptions.ENABLE_HTTP2, true)
-        .setServerOption(Options.WORKER_IO_THREADS, workerSize)
+        .setWorkerThreads(workerThreads)
+        .setIoThreads(ioThreads)
         .addHttpListener(httpPort, bindAddress)
         .addHttpsListener(httpsPort, bindAddress, sslContext)
         .setHandler(handler).build();
