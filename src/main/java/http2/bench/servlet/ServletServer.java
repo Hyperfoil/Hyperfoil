@@ -24,7 +24,7 @@ import java.util.function.BiConsumer;
 public class ServletServer extends GenericServlet {
 
   private Backend backend;
-  private boolean blocking;
+  private boolean async;
   private File root;
 
   public Backend getBackend() {
@@ -35,12 +35,12 @@ public class ServletServer extends GenericServlet {
     this.backend = backend;
   }
 
-  public boolean isBlocking() {
-    return blocking;
+  public boolean isAsync() {
+    return async;
   }
 
-  public void setBlocking(boolean blocking) {
-    this.blocking = blocking;
+  public void setAsync(boolean async) {
+    this.async = async;
   }
 
   public File getRoot() {
@@ -56,7 +56,7 @@ public class ServletServer extends GenericServlet {
     ServletConfig cfg = getServletConfig();
     backend = Backend.valueOf(cfg.getInitParameter("backend"));
     root = new File(cfg.getInitParameter("root"));
-    blocking = Boolean.valueOf(cfg.getInitParameter("blocking"));
+    async = Boolean.valueOf(cfg.getInitParameter("async"));
     root.mkdirs();
   }
 
@@ -89,17 +89,17 @@ public class ServletServer extends GenericServlet {
           dst = (buf,len) -> {};
           break;
       }
-      if (blocking) {
-        handlePostBlocking(dst, req, resp);
+      if (async) {
+        handlePostAsync(dst, req, resp);
       } else {
-        handlePostNonBlocking(dst, req, resp);
+        handlePost(dst, req, resp);
       }
     } else {
       sendResponse(resp);
     }
   }
 
-  private void handlePostNonBlocking(BiConsumer<byte[], Integer> out, HttpServletRequest hreq, HttpServletResponse hresp) throws IOException {
+  private void handlePostAsync(BiConsumer<byte[], Integer> out, HttpServletRequest hreq, HttpServletResponse hresp) throws IOException {
     // http://fr.slideshare.net/SimoneBordet/servlet-31-async-io
     if (hreq.getAttribute(AsyncContext.class.getName()) == null) {
       AsyncContext context = hreq.startAsync();
@@ -136,7 +136,7 @@ public class ServletServer extends GenericServlet {
     }
   }
 
-  private void handlePostBlocking(BiConsumer<byte[], Integer> out, HttpServletRequest hreq, HttpServletResponse hresp) throws IOException {
+  private void handlePost(BiConsumer<byte[], Integer> out, HttpServletRequest hreq, HttpServletResponse hresp) throws IOException {
     try (ServletInputStream in = hreq.getInputStream()) {
       byte[] buffer = new byte[512];
       while (true) {

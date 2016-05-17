@@ -38,8 +38,8 @@ public class UndertowServer extends ServerBase {
   @Parameter(names = "--servlet")
   public boolean servlet;
 
-  @Parameter(names = "--blocking")
-  public boolean blocking = false;
+  @Parameter(names = "--async")
+  public boolean async = true;
 
   public void run() throws Exception {
     String bindAddress = System.getProperty("bind.address", "localhost");
@@ -54,7 +54,7 @@ public class UndertowServer extends ServerBase {
               addMapping("/").
               setAsyncSupported(true).
               addInitParam("root", "undertow.uploads").
-              addInitParam("blocking", "" + blocking).
+              addInitParam("async", "" + async).
               addInitParam("backend", backend.name()));
       DeploymentManager manager = Servlets.defaultContainer().addDeployment(servletBuilder);
       manager.deploy();

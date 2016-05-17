@@ -26,8 +26,8 @@ public class JettyServer extends ServerBase {
 
   private static final String STORE_PASSWORD = "password";
 
-  @Parameter(names = "--blocking")
-  public boolean blocking = false;
+  @Parameter(names = "--async")
+  public boolean async = true;
 
   public void run() throws Exception {
 
@@ -49,7 +49,7 @@ public class JettyServer extends ServerBase {
 
     ServletServer servlet = new ServletServer();
     servlet.setRoot(root);
-    servlet.setBlocking(blocking);
+    servlet.setAsync(async);
     servlet.setBackend(backend);
 
     server.setHandler(new AbstractHandler() {
