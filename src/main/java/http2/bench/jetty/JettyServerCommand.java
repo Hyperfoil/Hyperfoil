@@ -85,15 +85,15 @@ public class JettyServerCommand extends ServerCommandBase {
     return new SslConnectionFactory(sslContextFactory, alpn.getProtocol());
   }
 
-  private static Server createServer(HttpConnectionFactory httpConnectionFactory, HTTP2ServerConnectionFactory http2ConnectionFactory, ALPNServerConnectionFactory alpn) {
+  private Server createServer(
+      HttpConnectionFactory httpConnectionFactory,
+      HTTP2ServerConnectionFactory http2ConnectionFactory,
+      ALPNServerConnectionFactory alpn) {
     Server server = new Server(new QueuedThreadPool(200));
-
-//    server.setRequestLog(new AsyncNCSARequestLog());
-
     ServerConnector connector = new ServerConnector(server, prepareSsl(alpn), alpn, http2ConnectionFactory, httpConnectionFactory);
     connector.setPort(8443);
+    connector.setAcceptQueueSize(acceptBacklog);
     server.addConnector(connector);
-
     return server;
   }
 }

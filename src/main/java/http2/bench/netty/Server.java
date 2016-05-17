@@ -1,6 +1,5 @@
 package http2.bench.netty;
 
-import com.beust.jcommander.Parameter;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelOption;
@@ -23,7 +22,7 @@ import java.util.Collections;
  */
 public class Server {
 
-  static void run(SslProvider sslProvider, int port, int instances) throws Exception {
+  static void run(SslProvider sslProvider, int port, int instances, int backlog) throws Exception {
     // Configure SSL.
     final SslContext sslCtx;
     if (sslProvider != null) {
@@ -49,7 +48,7 @@ public class Server {
     EventLoopGroup group = new NioEventLoopGroup(instances);
     try {
       ServerBootstrap b = new ServerBootstrap();
-      b.option(ChannelOption.SO_BACKLOG, 1024);
+      b.option(ChannelOption.SO_BACKLOG, backlog);
       b.group(group)
           .channel(NioServerSocketChannel.class)
 //                .handler(new LoggingHandler(LogLevel.INFO))

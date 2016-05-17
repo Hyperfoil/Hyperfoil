@@ -16,4 +16,7 @@ public abstract class ServerCommandBase extends CommandBase {
   @Parameter(names = "--backend")
   public Backend backend = Backend.NONE;
 
+  @Parameter(names = "--backlog")
+  public int acceptBacklog = 1024;
+
 }

@@ -22,6 +22,7 @@ public class ServerVerticle extends AbstractVerticle {
 
   private final SSLEngine engine;
   private Backend backend;
+  private int acceptBacklog;
 
   public ServerVerticle(SSLEngine engine) {
     this.engine = engine;
@@ -31,12 +32,14 @@ public class ServerVerticle extends AbstractVerticle {
   public void start(Future<Void> startFuture) throws Exception {
 
     backend = Backend.valueOf(context.config().getString("backend"));
+    acceptBacklog = context.config().getInteger("acceptBacklog");
 
     HttpServer server = vertx.createHttpServer(new HttpServerOptions()
         .setSsl(true)
         .setUseAlpn(true)
         .setHost("localhost")
         .setSslEngine(engine)
+        .setAcceptBacklog(acceptBacklog)
         .addEnabledCipherSuite("TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256")
         .setPort(config().getInteger("port"))
         .setPemKeyCertOptions(new PemKeyCertOptions().setKeyPath("tls/server-key.pem").setCertPath("tls/server-cert.pem")));

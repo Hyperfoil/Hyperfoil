@@ -8,7 +8,6 @@ import io.undertow.Handlers;
 import io.undertow.Undertow;
 import io.undertow.UndertowOptions;
 import io.undertow.server.HttpHandler;
-import io.undertow.server.protocol.http2.Http2UpgradeHandler;
 import io.undertow.servlet.Servlets;
 import io.undertow.servlet.api.DeploymentInfo;
 import io.undertow.servlet.api.DeploymentManager;
@@ -60,8 +59,6 @@ public class UndertowServerCommand extends ServerCommandBase {
       DeploymentManager manager = Servlets.defaultContainer().addDeployment(servletBuilder);
       manager.deploy();
       handler = Handlers.path(Handlers.redirect("/")).addPrefixPath("/", manager.start());
-//      handler = new Http2UpgradeHandler(Handlers.path(Handlers.redirect("/")).addPrefixPath("/", manager.start()));
-//      handler = Handlers.path(Handlers.redirect("/")).addPrefixPath("/", manager.start(), "h2c", "h2c");;
     } else {
       handler = exchange -> {
         exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, "text/plain");
@@ -70,11 +67,10 @@ public class UndertowServerCommand extends ServerCommandBase {
     }
     Undertow server = Undertow.builder()
         .setSocketOption(Options.SSL_SUPPORTED_CIPHER_SUITES, Sequence.of("TLS-ECDHE-RSA-AES128-GCM-SHA256"))
-        .setSocketOption(Options.BACKLOG, 1024)
+        .setSocketOption(Options.BACKLOG, acceptBacklog)
         .setServerOption(UndertowOptions.ENABLE_HTTP2, true)
         .setWorkerThreads(workerThreads)
         .setIoThreads(ioThreads)
-//        .addHttpListener(httpPort, bindAddress)
         .addHttpsListener(httpsPort, bindAddress, sslContext)
         .setHandler(handler).build();
     server.start();

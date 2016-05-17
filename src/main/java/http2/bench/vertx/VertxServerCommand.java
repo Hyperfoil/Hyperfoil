@@ -28,6 +28,7 @@ public class VertxServerCommand extends ServerCommandBase {
     DeploymentOptions options = new DeploymentOptions().setInstances(instances);
     options.setConfig(new JsonObject().
         put("port", httpsPort).
+        put("acceptBacklog", acceptBacklog).
         put("backend", backend.name()));
     vertx.deployVerticle(openSSL ? ServerVerticle.OPENSSL.class.getName() : ServerVerticle.JDK.class.getName(), options, ar -> {
       if (ar.succeeded()) {
