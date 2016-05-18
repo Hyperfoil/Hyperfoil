@@ -53,9 +53,14 @@ public class ClientCommand extends CommandBase {
   private AtomicInteger status_other = new AtomicInteger();
   private AtomicInteger[] statuses = { status_2xx, status_3xx, status_4xx, status_5xx, status_other };
   private AtomicInteger reset = new AtomicInteger();
+  private String host;
+  private int port;
   private String path;
   private Histogram histogram = new ConcurrentHistogram(3600000000000L, 3);
   private volatile long startTime;
+  private final AtomicInteger connCount = new AtomicInteger();
+  private final EventLoopGroup workerGroup = new NioEventLoopGroup();
+  private SslContext sslCtx;
 
   @Override
   public void run() throws Exception {
@@ -65,13 +70,12 @@ public class ClientCommand extends CommandBase {
     }
 
     URI absoluteURI = new URI(uri.get(0));
-    String host = absoluteURI.getHost();
-    int port = absoluteURI.getPort();
+    host = absoluteURI.getHost();
+    port = absoluteURI.getPort();
     path = absoluteURI.getPath();
-    count.set(requests);
 
     SslProvider provider = OpenSsl.isAlpnSupported() ? SslProvider.OPENSSL : SslProvider.JDK;
-    SslContext sslCtx = SslContextBuilder.forClient()
+    sslCtx = SslContextBuilder.forClient()
         .sslProvider(provider)
                 /* NOTE: the cipher filter may not include all ciphers required by the HTTP/2 specification.
                  * Please refer to the HTTP/2 specification for cipher requirements. */
@@ -87,20 +91,44 @@ public class ClientCommand extends CommandBase {
             ApplicationProtocolNames.HTTP_1_1))
         .build();
 
-    EventLoopGroup workerGroup = new NioEventLoopGroup();
 
     startTime = System.currentTimeMillis();
-    for (int i = 0; i < clients; i++) {
-      Client client = new Client(workerGroup, sslCtx);
-      client.connect(port, host, this::onConnect);
+    System.out.println("starting benchmark...");
+    System.out.format("%d total client(s). %d total requests%n", clients, requests);
+    check();
+  }
+
+  private void check() {
+    while (count.incrementAndGet() < requests) {
+      int a = connCount.getAndUpdate(v -> v <= clients ? v + 1 : v);
+      if (a < clients) {
+        Client client = new Client(workerGroup, sslCtx);
+        client.connect(port, host, (conn, err) -> {
+          if (err == null) {
+            doRequest(conn);
+          } else {
+            connCount.decrementAndGet();
+            connectFailures.getAndIncrement();
+            check();
+          }
+        });
+      } else {
+        break;
+      }
     }
   }
 
-  private void onConnect(Connection conn, Throwable err) {
-    if (err == null) {
+  private void checkRequest(Connection conn) {
+    int val = count.getAndIncrement();
+    if (val < requests) {
+      int step1 = (10 * val) / requests;
+      int step2 = (10 * (val + 1)) / requests;
+      if (step2 > step1) {
+        System.out.format("progress: %d%% done%n", step2 * 10);
+      }
       doRequest(conn);
-    } else {
-      connectFailures.getAndIncrement();
+    } else if (val == requests) {
+      end();
     }
   }
 
@@ -122,17 +150,7 @@ public class ClientCommand extends CommandBase {
       }).endHandler(v -> {
         long endTime = System.nanoTime();
         histogram.recordValue((endTime - startTime) / 1000);
-        int step1 = (10 * count.get()) / requests;
-        int val = count.getAndDecrement();
-        if (val > 0) {
-          int step2 = (10 * count.get()) / requests;
-          if (step2 < step1) {
-            System.out.println(step2);
-          }
-          doRequest(conn);
-        } else if (val == 0) {
-          end();
-        }
+        checkRequest(conn);
       }).end(PAYLOAD);
     });
   }
