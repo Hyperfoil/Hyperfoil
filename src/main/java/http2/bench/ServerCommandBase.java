@@ -7,16 +7,16 @@ import com.beust.jcommander.Parameter;
  */
 public abstract class ServerCommandBase extends CommandBase {
 
-  @Parameter(names = "--http-port")
-  public int httpPort = 8080;
-
-  @Parameter(names = "--https-port")
-  public int httpsPort = 8443;
+  @Parameter(names = "--port")
+  public int port = 8443;
 
   @Parameter(names = "--backend")
   public Backend backend = Backend.NONE;
 
-  @Parameter(names = "--backlog")
-  public int acceptBacklog = 1024;
+  @Parameter(names = "--so-backlog")
+  public int soBacklog = 1024;
+
+  @Parameter(names = "--db-pool-size")
+  public int dbPoolSize = 32;
 
 }

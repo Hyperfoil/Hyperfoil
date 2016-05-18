@@ -19,8 +19,10 @@ import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import org.HdrHistogram.ConcurrentHistogram;
 import org.HdrHistogram.Histogram;
 
+import java.io.File;
 import java.io.PrintStream;
 import java.net.URI;
+import java.nio.file.Files;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -30,22 +32,25 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Parameters()
 public class ClientCommand extends CommandBase {
 
-  private static final ByteBuf PAYLOAD = Unpooled.copiedBuffer(new byte[512]);
-
-  @Parameter(names = "--requests")
+  @Parameter(names = {"-n","--requests"})
   public int requests = 1;
 
-  @Parameter(names = "--clients")
+  @Parameter(names = {"-c","--clients"})
   public int clients = 1;
 
   @Parameter(names = "--histogram")
   public String histogramPath = null;
 
+  @Parameter(names = {"-d", "--data"})
+  public String data = null;
+
   @Parameter
   public List<String> uri;
 
+  private ByteBuf payload;
   private AtomicInteger connectFailures = new AtomicInteger();
-  private AtomicInteger count = new AtomicInteger();
+  private AtomicInteger requestCount = new AtomicInteger();
+  private AtomicInteger doneCount = new AtomicInteger();
   private AtomicInteger status_2xx = new AtomicInteger();
   private AtomicInteger status_3xx = new AtomicInteger();
   private AtomicInteger status_4xx = new AtomicInteger();
@@ -64,6 +69,23 @@ public class ClientCommand extends CommandBase {
 
   @Override
   public void run() throws Exception {
+
+    if (data != null) {
+      try {
+        int size = Integer.parseInt(data);
+        if (size > 0) {
+          payload = Unpooled.copiedBuffer(new byte[size]);
+        }
+      } catch (NumberFormatException ignore) {
+      }
+      if (payload == null) {
+        File f = new File(data);
+        if (!f.exists() || !f.isFile()) {
+          throw new Exception("could not open file " + data);
+        }
+        payload = Unpooled.copiedBuffer(Files.readAllBytes(f.toPath()));
+      }
+    }
 
     if (uri == null || uri.size() < 1) {
       throw new Exception("no URI or input file given");
@@ -99,27 +121,37 @@ public class ClientCommand extends CommandBase {
   }
 
   private void check() {
-    while (count.incrementAndGet() < requests) {
+    if (requestCount.incrementAndGet() < requests) {
       int a = connCount.getAndUpdate(v -> v <= clients ? v + 1 : v);
       if (a < clients) {
         Client client = new Client(workerGroup, sslCtx);
         client.connect(port, host, (conn, err) -> {
           if (err == null) {
             doRequest(conn);
+            check();
           } else {
             connCount.decrementAndGet();
             connectFailures.getAndIncrement();
-            check();
+            if (!reportDone()) {
+              check();
+            }
           }
         });
-      } else {
-        break;
       }
     }
   }
 
+  private boolean reportDone() {
+    if (doneCount.incrementAndGet() == requests) {
+      end();
+      return true;
+    } else {
+      return false;
+    }
+  }
+
   private void checkRequest(Connection conn) {
-    int val = count.getAndIncrement();
+    int val = requestCount.getAndIncrement();
     if (val < requests) {
       int step1 = (10 * val) / requests;
       int step2 = (10 * (val + 1)) / requests;
@@ -127,14 +159,12 @@ public class ClientCommand extends CommandBase {
         System.out.format("progress: %d%% done%n", step2 * 10);
       }
       doRequest(conn);
-    } else if (val == requests) {
-      end();
     }
   }
 
   private void doRequest(Connection conn) {
     long startTime = System.nanoTime();
-    conn.request("POST", path, stream -> {
+    conn.request(payload != null ? "POST" : "GET", path, stream -> {
       stream
           .putHeader("content-length", "512")
           .headersHandler(frame -> {
@@ -150,8 +180,10 @@ public class ClientCommand extends CommandBase {
       }).endHandler(v -> {
         long endTime = System.nanoTime();
         histogram.recordValue((endTime - startTime) / 1000);
-        checkRequest(conn);
-      }).end(PAYLOAD);
+        if (!reportDone()) {
+          checkRequest(conn);
+        }
+      }).end(payload);
     });
   }
 

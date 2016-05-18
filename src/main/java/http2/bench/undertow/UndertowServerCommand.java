@@ -50,17 +50,18 @@ public class UndertowServerCommand extends ServerCommandBase {
             setAsyncSupported(true).
             addInitParam("root", "undertow.uploads").
             addInitParam("async", "" + async).
+            addInitParam("dbPoolSize", "" + dbPoolSize).
             addInitParam("backend", backend.name()));
     DeploymentManager manager = Servlets.defaultContainer().addDeployment(servletBuilder);
     manager.deploy();
     handler = Handlers.path(Handlers.redirect("/")).addPrefixPath("/", manager.start());
     Undertow server = Undertow.builder()
         .setSocketOption(Options.SSL_SUPPORTED_CIPHER_SUITES, Sequence.of("TLS-ECDHE-RSA-AES128-GCM-SHA256"))
-        .setSocketOption(Options.BACKLOG, acceptBacklog)
+        .setSocketOption(Options.BACKLOG, soBacklog)
         .setServerOption(UndertowOptions.ENABLE_HTTP2, true)
         .setWorkerThreads(workerThreads)
         .setIoThreads(ioThreads)
-        .addHttpsListener(httpsPort, bindAddress, sslContext)
+        .addHttpsListener(port, bindAddress, sslContext)
         .setHandler(handler).build();
     server.start();
   }

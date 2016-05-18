@@ -92,7 +92,7 @@ public class JettyServerCommand extends ServerCommandBase {
     Server server = new Server(new QueuedThreadPool(200));
     ServerConnector connector = new ServerConnector(server, prepareSsl(alpn), alpn, http2ConnectionFactory, httpConnectionFactory);
     connector.setPort(8443);
-    connector.setAcceptQueueSize(acceptBacklog);
+    connector.setAcceptQueueSize(soBacklog);
     server.addConnector(connector);
     return server;
   }

@@ -63,6 +63,7 @@ public class ServletServer extends GenericServlet {
     backend = Backend.valueOf(cfg.getInitParameter("backend"));
     root = new File(cfg.getInitParameter("root"));
     async = Boolean.valueOf(cfg.getInitParameter("async"));
+    int dbPoolSize = Integer.parseInt(cfg.getInitParameter("dbPoolSize"));
     root.mkdirs();
 
     if (backend == Backend.DB) {
@@ -73,6 +74,7 @@ public class ServletServer extends GenericServlet {
       config.addDataSourceProperty("cachePrepStmts", "true");
       config.addDataSourceProperty("prepStmtCacheSize", "250");
       config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
+      config.setMaximumPoolSize(dbPoolSize);
       ds = new HikariDataSource(config);
       try (Connection conn = ds.getConnection()) {
         try (Statement statement = conn.createStatement()) {

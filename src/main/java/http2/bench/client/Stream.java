@@ -65,7 +65,7 @@ class Stream {
     sent = true;
     encoder.writeHeaders(ctx, id, headers, 0, buff == null, ctx.newPromise());
     if (buff != null) {
-      encoder.writeData(ctx, id, Buffer.buffer(new byte[512]).getByteBuf(), 0, true, ctx.newPromise());
+      encoder.writeData(ctx, id, buff, 0, true, ctx.newPromise());
     }
     ctx.flush();
   }

@@ -27,11 +27,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public class ServerVerticle extends AbstractVerticle {
 
-  public static final AtomicBoolean dbInitialized = new AtomicBoolean();
+  private static final AtomicBoolean dbInitialized = new AtomicBoolean();
 
   private SSLEngine engine;
   private Backend backend;
-  private int acceptBacklog;
+  private int soAcceptBacklog;
+  private int dbPoolSize;
 
   public ServerVerticle() {
   }
@@ -40,13 +41,16 @@ public class ServerVerticle extends AbstractVerticle {
   public void start(Future<Void> startFuture) throws Exception {
 
     backend = Backend.valueOf(context.config().getString("backend"));
-    acceptBacklog = context.config().getInteger("acceptBacklog");
+    soAcceptBacklog = context.config().getInteger("soAcceptBacklog");
     engine = SSLEngine.valueOf(config().getString("sslEngine"));
+    dbPoolSize = config().getInteger("dbPoolSize");
 
     Future<Void> dbFuture = Future.future();
     AsyncSQLClient client;
     if (backend == Backend.DB) {
-      JsonObject postgreSQLClientConfig = new JsonObject().put("host", "localhost");
+      JsonObject postgreSQLClientConfig = new JsonObject().
+          put("host", "localhost").
+          put("maxPoolSize", dbPoolSize);
       client = PostgreSQLClient.createNonShared(vertx, postgreSQLClientConfig);
       if (dbInitialized.compareAndSet(false, true)) {
         client.getConnection(res -> {
@@ -76,7 +80,7 @@ public class ServerVerticle extends AbstractVerticle {
         .setUseAlpn(true)
         .setHost("localhost")
         .setSslEngine(engine)
-        .setAcceptBacklog(acceptBacklog)
+        .setAcceptBacklog(soAcceptBacklog)
         .addEnabledCipherSuite("TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256")
         .setPort(config().getInteger("port"))
         .setPemKeyCertOptions(new PemKeyCertOptions().setKeyPath("tls/server-key.pem").setCertPath("tls/server-cert.pem")));

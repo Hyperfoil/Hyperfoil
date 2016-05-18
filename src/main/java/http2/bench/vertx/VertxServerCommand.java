@@ -28,9 +28,10 @@ public class VertxServerCommand extends ServerCommandBase {
     Vertx vertx = Vertx.vertx(new VertxOptions().setInternalBlockingPoolSize(internalBlockingPoolSize));
     DeploymentOptions options = new DeploymentOptions().setInstances(instances);
     options.setConfig(new JsonObject().
-        put("port", httpsPort).
+        put("port", port).
         put("sslEngine", openSSL ? SSLEngine.OPENSSL.name() : SSLEngine.JDK.name()).
-        put("acceptBacklog", acceptBacklog).
+        put("soAcceptBacklog", soBacklog).
+        put("dbPoolSize", (int)Math.floor(dbPoolSize / ((double)instances))).
         put("backend", backend.name()));
     vertx.deployVerticle(ServerVerticle.class.getName(), options, ar -> {
       if (ar.succeeded()) {
