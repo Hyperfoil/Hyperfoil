@@ -7,6 +7,8 @@ public enum Backend {
 
   NONE,
 
-  DISK
+  DISK,
+
+  DB
 
 }

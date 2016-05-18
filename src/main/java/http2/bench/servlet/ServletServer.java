@@ -1,5 +1,7 @@
 package http2.bench.servlet;
 
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 import http2.bench.Backend;
 
 import javax.servlet.AsyncContext;
@@ -15,6 +17,9 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.Statement;
 import java.util.UUID;
 import java.util.function.BiConsumer;
 
@@ -26,6 +31,7 @@ public class ServletServer extends GenericServlet {
   private Backend backend;
   private boolean async;
   private File root;
+  private HikariDataSource ds;
 
   public Backend getBackend() {
     return backend;
@@ -58,6 +64,25 @@ public class ServletServer extends GenericServlet {
     root = new File(cfg.getInitParameter("root"));
     async = Boolean.valueOf(cfg.getInitParameter("async"));
     root.mkdirs();
+
+    if (backend == Backend.DB) {
+      HikariConfig config = new HikariConfig();
+      config.setJdbcUrl("jdbc:postgresql://localhost/testdb");
+      config.setUsername("vertx");
+      config.setPassword("password");
+      config.addDataSourceProperty("cachePrepStmts", "true");
+      config.addDataSourceProperty("prepStmtCacheSize", "250");
+      config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
+      ds = new HikariDataSource(config);
+      try (Connection conn = ds.getConnection()) {
+        try (Statement statement = conn.createStatement()) {
+          statement.execute("DROP TABLE IF EXISTS data_table");
+          statement.execute("CREATE TABLE IF NOT EXISTS data_table (data json)");
+        }
+      } catch (Exception e) {
+        throw new ServletException(e);
+      }
+    }
   }
 
   @Override
@@ -95,6 +120,18 @@ public class ServletServer extends GenericServlet {
         handlePost(dst, req, resp);
       }
     } else {
+      if (backend == Backend.DB) {
+        try (Connection conn = ds.getConnection()) {
+          try (PreparedStatement statement = conn.prepareStatement("INSERT INTO data_table (data) VALUES (cast(? as json))")) {
+            statement.setObject (1, "{\"some\":\"json\"}");
+            statement.executeUpdate();
+          }
+        } catch (Exception e) {
+          e.printStackTrace();
+          resp.sendError(500);
+          return;
+        }
+      }
       sendResponse(resp);
     }
   }
