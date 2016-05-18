@@ -11,7 +11,6 @@ import io.undertow.server.HttpHandler;
 import io.undertow.servlet.Servlets;
 import io.undertow.servlet.api.DeploymentInfo;
 import io.undertow.servlet.api.DeploymentManager;
-import io.undertow.util.Headers;
 import org.xnio.Options;
 import org.xnio.Sequence;
 
@@ -35,9 +34,6 @@ public class UndertowServerCommand extends ServerCommandBase {
   @Parameter(names = "--worker-threads")
   public int workerThreads = 64;
 
-  @Parameter(names = "--servlet")
-  public boolean servlet;
-
   @Parameter(names = "--async")
   public boolean async = false;
 
@@ -45,26 +41,19 @@ public class UndertowServerCommand extends ServerCommandBase {
     String bindAddress = System.getProperty("bind.address", "localhost");
     SSLContext sslContext = createSSLContext();
     HttpHandler handler;
-    if (servlet) {
-      DeploymentInfo servletBuilder = Servlets.deployment()
-          .setClassLoader(UndertowServerCommand.class.getClassLoader())
-          .setContextPath("/")
-          .setDeploymentName("test.war")
-          .addServlets(Servlets.servlet("ServletServer", ServletServer.class).
-              addMapping("/").
-              setAsyncSupported(true).
-              addInitParam("root", "undertow.uploads").
-              addInitParam("async", "" + async).
-              addInitParam("backend", backend.name()));
-      DeploymentManager manager = Servlets.defaultContainer().addDeployment(servletBuilder);
-      manager.deploy();
-      handler = Handlers.path(Handlers.redirect("/")).addPrefixPath("/", manager.start());
-    } else {
-      handler = exchange -> {
-        exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, "text/plain");
-        exchange.getResponseSender().send("Hello World");
-      };
-    }
+    DeploymentInfo servletBuilder = Servlets.deployment()
+        .setClassLoader(UndertowServerCommand.class.getClassLoader())
+        .setContextPath("/")
+        .setDeploymentName("test.war")
+        .addServlets(Servlets.servlet("ServletServer", ServletServer.class).
+            addMapping("/").
+            setAsyncSupported(true).
+            addInitParam("root", "undertow.uploads").
+            addInitParam("async", "" + async).
+            addInitParam("backend", backend.name()));
+    DeploymentManager manager = Servlets.defaultContainer().addDeployment(servletBuilder);
+    manager.deploy();
+    handler = Handlers.path(Handlers.redirect("/")).addPrefixPath("/", manager.start());
     Undertow server = Undertow.builder()
         .setSocketOption(Options.SSL_SUPPORTED_CIPHER_SUITES, Sequence.of("TLS-ECDHE-RSA-AES128-GCM-SHA256"))
         .setSocketOption(Options.BACKLOG, acceptBacklog)
