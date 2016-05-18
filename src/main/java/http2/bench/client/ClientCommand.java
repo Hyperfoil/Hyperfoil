@@ -16,6 +16,7 @@ import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslProvider;
 import io.netty.handler.ssl.SupportedCipherSuiteFilter;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
+import io.vertx.core.buffer.Buffer;
 import org.HdrHistogram.ConcurrentHistogram;
 import org.HdrHistogram.Histogram;
 
@@ -24,6 +25,7 @@ import java.io.PrintStream;
 import java.net.URI;
 import java.nio.file.Files;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -74,7 +76,12 @@ public class ClientCommand extends CommandBase {
       try {
         int size = Integer.parseInt(data);
         if (size > 0) {
-          payload = Unpooled.copiedBuffer(new byte[size]);
+          byte[] bytes = new byte[size];
+          Random r = new Random();
+          for (int i = 0;i < bytes.length;i++) {
+            bytes[i] = (byte)('A' + r.nextInt(27));
+          }
+          payload = Buffer.buffer(bytes).getByteBuf();
         }
       } catch (NumberFormatException ignore) {
       }
@@ -83,7 +90,7 @@ public class ClientCommand extends CommandBase {
         if (!f.exists() || !f.isFile()) {
           throw new Exception("could not open file " + data);
         }
-        payload = Unpooled.copiedBuffer(Files.readAllBytes(f.toPath()));
+        payload = Buffer.buffer(Files.readAllBytes(f.toPath())).getByteBuf();
       }
     }
 
@@ -121,15 +128,15 @@ public class ClientCommand extends CommandBase {
   }
 
   private void check() {
-    if (requestCount.incrementAndGet() < requests) {
-      int a = connCount.getAndUpdate(v -> v <= clients ? v + 1 : v);
-      if (a < clients) {
+    if (requestCount.get() < requests) {
+      if (connCount.getAndUpdate(v -> v <= clients ? v + 1 : v) < clients) {
         Client client = new Client(workerGroup, sslCtx);
         client.connect(port, host, (conn, err) -> {
           if (err == null) {
-            doRequest(conn);
+            checkRequest(conn);
             check();
           } else {
+            err.printStackTrace();
             connCount.decrementAndGet();
             connectFailures.getAndIncrement();
             if (!reportDone()) {
@@ -142,7 +149,8 @@ public class ClientCommand extends CommandBase {
   }
 
   private boolean reportDone() {
-    if (doneCount.incrementAndGet() == requests) {
+    int abc = doneCount.incrementAndGet();
+    if (abc == requests) {
       end();
       return true;
     } else {

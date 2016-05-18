@@ -14,11 +14,13 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.UUID;
 import java.util.function.BiConsumer;
@@ -79,7 +81,7 @@ public class ServletServer extends GenericServlet {
       try (Connection conn = ds.getConnection()) {
         try (Statement statement = conn.createStatement()) {
           statement.execute("DROP TABLE IF EXISTS data_table");
-          statement.execute("CREATE TABLE IF NOT EXISTS data_table (data json)");
+          statement.execute("CREATE TABLE IF NOT EXISTS data_table (data text)");
         }
       } catch (Exception e) {
         throw new ServletException(e);
@@ -92,26 +94,44 @@ public class ServletServer extends GenericServlet {
     handle((HttpServletRequest) sreq, (HttpServletResponse) sresp);
   }
 
+  interface Output {
+    void write(byte[] buff, int len) throws Exception;
+  }
+
   public void handle(HttpServletRequest req, HttpServletResponse resp) throws IOException {
     if (req.getMethod().equals("POST")) {
-      BiConsumer<byte[],Integer> dst;
+      Output dst;
       switch (backend) {
-        case DISK:
+        case DISK: {
           File f = new File(root, UUID.randomUUID().toString());
           FileOutputStream out = new FileOutputStream(f);
           dst = (buf,len) -> {
-            try {
-              if (len != -1) {
-                out.write(buf, 0, len);
-              } else {
-                out.close();
-                f.delete();
-              }
-            } catch (IOException e) {
-              e.printStackTrace();
+            if (len != -1) {
+              out.write(buf, 0, len);
+            } else {
+              out.close();
+              f.delete();
             }
           };
           break;
+        }
+        case DB: {
+          ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+          dst = (buf,len) -> {
+            if (len != -1) {
+              buffer.write(buf, 0, len);
+            } else {
+              buffer.close();
+              try (Connection conn = ds.getConnection()) {
+                try (PreparedStatement statement = conn.prepareStatement("INSERT INTO data_table (data) VALUES (?)")) {
+                  statement.setObject (1, buffer.toString());
+                  statement.executeUpdate();
+                }
+              }
+            }
+          };
+          break;
+        }
         default:
           dst = (buf,len) -> {};
           break;
@@ -124,9 +144,10 @@ public class ServletServer extends GenericServlet {
     } else {
       if (backend == Backend.DB) {
         try (Connection conn = ds.getConnection()) {
-          try (PreparedStatement statement = conn.prepareStatement("INSERT INTO data_table (data) VALUES (cast(? as json))")) {
-            statement.setObject (1, "{\"some\":\"json\"}");
-            statement.executeUpdate();
+          try (PreparedStatement statement = conn.prepareStatement("SELECT pg_sleep(0.015)")) {
+            try (ResultSet rs = statement.executeQuery()) {
+              // Nothing to do
+            }
           }
         } catch (Exception e) {
           e.printStackTrace();
@@ -138,7 +159,7 @@ public class ServletServer extends GenericServlet {
     }
   }
 
-  private void handlePostAsync(BiConsumer<byte[], Integer> out, HttpServletRequest hreq, HttpServletResponse hresp) throws IOException {
+  private void handlePostAsync(Output out, HttpServletRequest hreq, HttpServletResponse hresp) throws IOException {
     // http://fr.slideshare.net/SimoneBordet/servlet-31-async-io
     if (hreq.getAttribute(AsyncContext.class.getName()) == null) {
       AsyncContext context = hreq.startAsync();
@@ -153,18 +174,23 @@ public class ServletServer extends GenericServlet {
             while (in.isReady() && !in.isFinished()) {
               int len = in.read(buffer);
               if (len > 0) {
-                out.accept(buffer, len);
+                out.write(buffer, len);
               }
             }
-          } catch (IOException e) {
-            e.printStackTrace();
+          } catch (Exception e) {
+            ((HttpServletResponse)context.getResponse()).sendError(500);
+            context.complete();
           }
         }
 
         @Override
         public void onAllDataRead() throws IOException {
-          out.accept(null, -1);
-          sendResponse((HttpServletResponse) context.getResponse());
+          try {
+            out.write(null, -1);
+            sendResponse((HttpServletResponse) context.getResponse());
+          } catch (Exception e) {
+            ((HttpServletResponse)context.getResponse()).sendError(500);
+          }
           context.complete();
         }
 
@@ -175,12 +201,17 @@ public class ServletServer extends GenericServlet {
     }
   }
 
-  private void handlePost(BiConsumer<byte[], Integer> out, HttpServletRequest hreq, HttpServletResponse hresp) throws IOException {
+  private void handlePost(Output out, HttpServletRequest hreq, HttpServletResponse hresp) throws IOException {
     try (ServletInputStream in = hreq.getInputStream()) {
       byte[] buffer = new byte[512];
       while (true) {
         int len = in.read(buffer, 0, buffer.length);
-        out.accept(buffer, len);
+        try {
+          out.write(buffer, len);
+        } catch (Exception e) {
+          hresp.sendError(500);
+          return;
+        }
         if (len == -1) {
           break;
         }

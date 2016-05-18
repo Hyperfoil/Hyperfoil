@@ -60,7 +60,7 @@ public class ServerVerticle extends AbstractVerticle {
             conn.execute("DROP TABLE IF EXISTS data_table", fut1.completer());
             fut1.compose(v -> {
               Future<Void> fut2 = Future.future();
-              conn.execute("CREATE TABLE IF NOT EXISTS data_table (data json)", fut2.completer()).close();
+              conn.execute("CREATE TABLE IF NOT EXISTS data_table (data text)", fut2.completer()).close();
               return fut2;
             }).setHandler(dbFuture.completer());
           } else {
@@ -91,8 +91,8 @@ public class ServerVerticle extends AbstractVerticle {
     }
 
     server.requestHandler(req -> {
-      if (req.method() == HttpMethod.POST) {
-        if (backend == Backend.DISK) {
+      if (backend == Backend.DISK) {
+        if (req.method() == HttpMethod.POST) {
           req.pause();
           String file = "vertx.uploads/" + UUID.randomUUID();
           fs.open(file, new OpenOptions().setCreate(true), ar1 -> {
@@ -111,17 +111,34 @@ public class ServerVerticle extends AbstractVerticle {
             }
           });
         } else {
-          req.handler(buff -> {});
           req.endHandler(v -> {
             req.response().end("<html><body>Hello World</body></html>");
           });
         }
-      } else {
-        if (backend == Backend.DB) {
+      } else if (backend == Backend.DB) {
+        if (req.method() == HttpMethod.POST) {
+          req.bodyHandler(buff -> {
+            client.getConnection(res -> {
+              if (res.succeeded()) {
+                SQLConnection conn = res.result();
+                conn.queryWithParams("INSERT INTO data_table (data) VALUES (?)", new JsonArray().add(buff.toString()), ar -> {
+                  if (ar.succeeded()) {
+                    req.response().end("<html><body>OK</body></html>");
+                  } else {
+                    req.response().setStatusCode(500).end();
+                  }
+                  conn.close();
+                });
+              } else {
+                req.response().setStatusCode(500).end();
+              }
+            });
+          });
+        } else {
           client.getConnection(res -> {
             if (res.succeeded()) {
               SQLConnection conn = res.result();
-              conn.queryWithParams("INSERT INTO data_table (data) VALUES (?)", new JsonArray().add("{\"some\":\"json\"}"), ar -> {
+              conn.query("SELECT pg_sleep(0.015)", ar -> {
                 if (ar.succeeded()) {
                   req.response().end("<html><body>OK</body></html>");
                 } else {
@@ -133,9 +150,11 @@ public class ServerVerticle extends AbstractVerticle {
               req.response().setStatusCode(500).end();
             }
           });
-        } else {
-          req.response().end("<html><body>Hello World / " + req.version() + "</body></html>");
         }
+      } else {
+        req.endHandler(v -> {
+          req.response().end("<html><body>Hello World / " + req.version() + "</body></html>");
+        });
       }
     });
 

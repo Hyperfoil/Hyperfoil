@@ -53,6 +53,7 @@ public class Connection {
       }
       @Override
       public int onDataRead(ChannelHandlerContext ctx, int streamId, ByteBuf data, int padding, boolean endOfStream) throws Http2Exception {
+//        System.out.println("READ DATA " + endOfStream);
         int ack = super.onDataRead(ctx, streamId, data, padding, endOfStream);
         Stream stream = streams.get(streamId);
         if (stream != null) {
