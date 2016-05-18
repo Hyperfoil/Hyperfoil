@@ -20,12 +20,11 @@ import java.util.UUID;
  */
 public class ServerVerticle extends AbstractVerticle {
 
-  private final SSLEngine engine;
+  private SSLEngine engine;
   private Backend backend;
   private int acceptBacklog;
 
-  public ServerVerticle(SSLEngine engine) {
-    this.engine = engine;
+  public ServerVerticle() {
   }
 
   @Override
@@ -33,6 +32,7 @@ public class ServerVerticle extends AbstractVerticle {
 
     backend = Backend.valueOf(context.config().getString("backend"));
     acceptBacklog = context.config().getInteger("acceptBacklog");
+    engine = SSLEngine.valueOf(config().getString("sslEngine"));
 
     HttpServer server = vertx.createHttpServer(new HttpServerOptions()
         .setSsl(true)
@@ -87,17 +87,5 @@ public class ServerVerticle extends AbstractVerticle {
         startFuture.fail(ar.cause());
       }
     });
-  }
-
-  public static class JDK extends ServerVerticle {
-    public JDK() {
-      super(SSLEngine.JDK);
-    }
-  }
-
-  public static class OPENSSL extends ServerVerticle {
-    public OPENSSL() {
-      super(SSLEngine.OPENSSL);
-    }
   }
 }

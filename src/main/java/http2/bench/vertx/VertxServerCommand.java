@@ -7,6 +7,7 @@ import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.json.JsonObject;
+import io.vertx.core.net.SSLEngine;
 
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
@@ -28,9 +29,10 @@ public class VertxServerCommand extends ServerCommandBase {
     DeploymentOptions options = new DeploymentOptions().setInstances(instances);
     options.setConfig(new JsonObject().
         put("port", httpsPort).
+        put("sslEngine", openSSL ? SSLEngine.OPENSSL.name() : SSLEngine.JDK.name()).
         put("acceptBacklog", acceptBacklog).
         put("backend", backend.name()));
-    vertx.deployVerticle(openSSL ? ServerVerticle.OPENSSL.class.getName() : ServerVerticle.JDK.class.getName(), options, ar -> {
+    vertx.deployVerticle(ServerVerticle.class.getName(), options, ar -> {
       if (ar.succeeded()) {
         System.out.println("Server started");
       } else {
