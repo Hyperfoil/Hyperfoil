@@ -160,7 +160,7 @@ public class ClientCommand extends CommandBase {
     Histogram cp = histogram.copy();
     double elapsedSeconds = elapsed / 1000D;
     System.out.format("finished in %.2fs, %.2fs req/s%n", elapsedSeconds, requests / elapsedSeconds);
-    System.out.format("requests: %d total%n", requests);
+    System.out.format("requests: %d total, %d errored%n", requests, connectFailures.get());
     System.out.format("status codes: %d 2xx, %d 3xx, %d 4xx, %d 5xx, %d others%n", statuses[0].get(), statuses[1].get(), statuses[2].get(), statuses[3].get(), statuses[4].get());
 //    System.out.println("DONE ok=" + status_200.get() + " / reset=" + reset.get() + " / connectFailures=" + connectFailures.getAndIncrement());
     try {
