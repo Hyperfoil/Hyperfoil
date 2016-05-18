@@ -16,7 +16,10 @@ import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslProvider;
 import io.netty.handler.ssl.SupportedCipherSuiteFilter;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
+import org.HdrHistogram.ConcurrentHistogram;
+import org.HdrHistogram.Histogram;
 
+import java.io.PrintStream;
 import java.net.URI;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -35,14 +38,24 @@ public class ClientCommand extends CommandBase {
   @Parameter(names = "--clients")
   public int clients = 1;
 
+  @Parameter(names = "--histogram")
+  public String histogramPath = null;
+
   @Parameter
   public List<String> uri;
 
   private AtomicInteger connectFailures = new AtomicInteger();
   private AtomicInteger count = new AtomicInteger();
-  private AtomicInteger ok = new AtomicInteger();
+  private AtomicInteger status_2xx = new AtomicInteger();
+  private AtomicInteger status_3xx = new AtomicInteger();
+  private AtomicInteger status_4xx = new AtomicInteger();
+  private AtomicInteger status_5xx = new AtomicInteger();
+  private AtomicInteger status_other = new AtomicInteger();
+  private AtomicInteger[] statuses = { status_2xx, status_3xx, status_4xx, status_5xx, status_other };
   private AtomicInteger reset = new AtomicInteger();
   private String path;
+  private Histogram histogram = new ConcurrentHistogram(3600000000000L, 3);
+  private volatile long startTime;
 
   @Override
   public void run() throws Exception {
@@ -76,6 +89,7 @@ public class ClientCommand extends CommandBase {
 
     EventLoopGroup workerGroup = new NioEventLoopGroup();
 
+    startTime = System.currentTimeMillis();
     for (int i = 0; i < clients; i++) {
       Client client = new Client(workerGroup, sslCtx);
       client.connect(port, host, this::onConnect);
@@ -91,14 +105,23 @@ public class ClientCommand extends CommandBase {
   }
 
   private void doRequest(Connection conn) {
+    long startTime = System.nanoTime();
     conn.request("POST", path, stream -> {
       stream
           .putHeader("content-length", "512")
-          .headersHandler(headers -> {
-            ok.incrementAndGet();
+          .headersHandler(frame -> {
+            try {
+              int status = (Integer.parseInt(frame.headers.status().toString()) - 200) / 100;
+              if (status >= 0 && status < statuses.length) {
+                statuses[status].incrementAndGet();
+              }
+            } catch (NumberFormatException ignore) {
+            }
           }).resetHandler(frame -> {
         reset.incrementAndGet();
       }).endHandler(v -> {
+        long endTime = System.nanoTime();
+        histogram.recordValue((endTime - startTime) / 1000);
         int step1 = (10 * count.get()) / requests;
         int val = count.getAndDecrement();
         if (val > 0) {
@@ -108,9 +131,37 @@ public class ClientCommand extends CommandBase {
           }
           doRequest(conn);
         } else if (val == 0) {
-          System.out.println("DONE ok=" + ok.get() + " / reset=" + reset.get() + " / connectFailures=" + connectFailures.getAndIncrement());
+          end();
         }
       }).end(PAYLOAD);
     });
+  }
+
+  private void end() {
+    long elapsed = System.currentTimeMillis() - startTime;
+    Histogram cp = histogram.copy();
+    double elapsedSeconds = elapsed / 1000D;
+    System.out.format("finished in %.2fs, %.2fs req/s%n", elapsedSeconds, requests / elapsedSeconds);
+    System.out.format("requests: %d total%n", requests);
+    System.out.format("status codes: %d 2xx, %d 3xx, %d 4xx, %d 5xx, %d others%n", statuses[0].get(), statuses[1].get(), statuses[2].get(), statuses[3].get(), statuses[4].get());
+//    System.out.println("DONE ok=" + status_200.get() + " / reset=" + reset.get() + " / connectFailures=" + connectFailures.getAndIncrement());
+    try {
+      System.out.println("mean   = " + cp.getMean());
+      System.out.println("max    = " + cp.getMaxValue());
+      System.out.println("90%    = " + cp.getValueAtPercentile(0.90));
+      System.out.println("99%    = " + cp.getValueAtPercentile(0.99));
+      System.out.println("99.9%  = " + cp.getValueAtPercentile(0.999));
+      System.out.println("99.99% = " + cp.getValueAtPercentile(0.9999));
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+    if (histogramPath != null) {
+      try (PrintStream ps = new PrintStream(histogramPath)) {
+        cp.outputPercentileDistribution(ps, 1000.0);
+      } catch(Exception e) {
+        e.printStackTrace();
+      }
+    }
+    System.exit(0);
   }
 }
