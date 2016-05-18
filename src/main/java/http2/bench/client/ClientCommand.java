@@ -156,7 +156,7 @@ public class ClientCommand extends CommandBase {
       int step1 = (10 * val) / requests;
       int step2 = (10 * (val + 1)) / requests;
       if (step2 > step1) {
-        System.out.format("progress: %d%% done%n", step2 * 10);
+        System.out.format("progress: %d%% done in %.2fs%n", step2 * 10, elapsedTime());
       }
       doRequest(conn);
     }
@@ -188,9 +188,8 @@ public class ClientCommand extends CommandBase {
   }
 
   private void end() {
-    long elapsed = System.currentTimeMillis() - startTime;
+    double elapsedSeconds = elapsedTime();
     Histogram cp = histogram.copy();
-    double elapsedSeconds = elapsed / 1000D;
     System.out.format("finished in %.2fs, %.2fs req/s%n", elapsedSeconds, requests / elapsedSeconds);
     System.out.format("requests: %d total, %d errored%n", requests, connectFailures.get());
     System.out.format("status codes: %d 2xx, %d 3xx, %d 4xx, %d 5xx, %d others%n", statuses[0].get(), statuses[1].get(), statuses[2].get(), statuses[3].get(), statuses[4].get());
@@ -213,5 +212,10 @@ public class ClientCommand extends CommandBase {
       }
     }
     System.exit(0);
+  }
+
+  private double elapsedTime() {
+    long elapsed = System.currentTimeMillis() - startTime;
+    return elapsed / 1000D;
   }
 }
