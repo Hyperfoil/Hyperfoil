@@ -26,6 +26,7 @@ public class Connection {
   private final Http2ConnectionEncoder encoder;
   private final Http2ConnectionDecoder decoder;
   private final IntObjectMap<Stream> streams = new IntObjectHashMap<>();
+  private int numStreams;
 
   public Connection(ChannelHandlerContext context,
                     Http2Connection connection,
@@ -45,24 +46,21 @@ public class Connection {
           if (stream.headersHandler != null) {
             stream.headersHandler.accept(new HeadersFrame(headers, endStream));
           }
-          if (endStream && !stream.ended && stream.endHandler != null) {
-            stream.ended = true;
-            stream.endHandler.accept(null);
+          if (endStream) {
+            endStream(streamId);
           }
         }
       }
       @Override
       public int onDataRead(ChannelHandlerContext ctx, int streamId, ByteBuf data, int padding, boolean endOfStream) throws Http2Exception {
-//        System.out.println("READ DATA " + endOfStream);
         int ack = super.onDataRead(ctx, streamId, data, padding, endOfStream);
         Stream stream = streams.get(streamId);
         if (stream != null) {
           if (stream.dataHandler != null) {
             stream.dataHandler.accept(new DataFrame(endOfStream));
           }
-          if (endOfStream && !stream.ended && stream.endHandler != null) {
-            stream.ended = true;
-            stream.endHandler.accept(null);
+          if (endOfStream) {
+            endStream(streamId);
           }
         }
         return ack;
@@ -74,27 +72,27 @@ public class Connection {
           if (stream.resetHandler != null) {
             stream.resetHandler.accept(new RstFrame());
           }
-          if (stream.endHandler != null && !stream.ended ) {
-            stream.ended = true;
-            stream.endHandler.accept(null);
-          }
+          endStream(streamId);
         }
       }
-      @Override
-      public void onStreamClosed(Http2Stream stream) {
-        Stream s = streams.remove(stream.id());
-        if (s != null && s.closeHandler != null) {
-          s.closeHandler.accept(null);
+
+      private void endStream(int streamId) {
+        numStreams--;
+        Stream stream = streams.remove(streamId);
+        if (stream != null && !stream.ended && stream.endHandler != null) {
+          stream.ended = true;
+          stream.endHandler.accept(null);
         }
       }
     });
   }
 
   public int numActiveStreams() {
-    return connection.numActiveStreams();
+    return numStreams;
   }
 
   public void request(String method, String path, Consumer<Stream> handler) {
+    numStreams++;
     int id = nextStreamId();
     Stream stream = new Stream(context, encoder, id, method, path);
     streams.put(id, stream);

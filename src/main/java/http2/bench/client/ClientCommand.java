@@ -4,7 +4,6 @@ import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import http2.bench.CommandBase;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.handler.codec.http2.Http2SecurityUtil;
@@ -127,23 +126,23 @@ public class ClientCommand extends CommandBase {
     startTime = System.currentTimeMillis();
     System.out.println("starting benchmark...");
     System.out.format("%d total client(s). %d total requests%n", clients, requests);
-    check();
+    checkConnections();
   }
 
-  private void check() {
+  private void checkConnections() {
     if (requestCount.get() < requests) {
       if (connCount.getAndUpdate(v -> v <= clients ? v + 1 : v) < clients) {
         Client client = new Client(workerGroup, sslCtx);
         client.connect(port, host, (conn, err) -> {
           if (err == null) {
-            checkRequest(conn);
-            check();
+            checkRequests(conn);
+            checkConnections();
           } else {
             err.printStackTrace();
             connCount.decrementAndGet();
             connectFailures.getAndIncrement();
             if (!reportDone()) {
-              check();
+              checkConnections();
             }
           }
         });
@@ -151,25 +150,19 @@ public class ClientCommand extends CommandBase {
     }
   }
 
-  private boolean reportDone() {
-    int abc = doneCount.incrementAndGet();
-    if (abc == requests) {
-      end();
-      return true;
-    } else {
-      return false;
-    }
-  }
-
-  private void checkRequest(Connection conn) {
-    int val = requestCount.getAndIncrement();
-    if (val < requests) {
-      int step1 = (10 * val) / requests;
-      int step2 = (10 * (val + 1)) / requests;
-      if (step2 > step1) {
-        System.out.format("progress: %d%% done in %.2fs%n", step2 * 10, elapsedTime());
+  private void checkRequests(Connection conn) {
+    while (conn.numActiveStreams() < maxConcurrentStream) {
+      int val = requestCount.getAndIncrement();
+      if (val < requests) {
+        int step1 = (10 * val) / requests;
+        int step2 = (10 * (val + 1)) / requests;
+        if (step2 > step1) {
+          System.out.format("progress: %d%% done in %.2fs %d/%d %n", step2 * 10, elapsedTime(), connCount.get(), clients);
+        }
+        doRequest(conn);
+      } else {
+        break;
       }
-      doRequest(conn);
     }
   }
 
@@ -192,10 +185,20 @@ public class ClientCommand extends CommandBase {
         long endTime = System.nanoTime();
         histogram.recordValue((endTime - startTime) / 1000);
         if (!reportDone()) {
-          checkRequest(conn);
+          checkRequests(conn);
         }
       }).end(payload);
     });
+  }
+
+  private boolean reportDone() {
+    int abc = doneCount.incrementAndGet();
+    if (abc == requests) {
+      end();
+      return true;
+    } else {
+      return false;
+    }
   }
 
   private void end() {
