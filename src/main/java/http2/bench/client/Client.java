@@ -1,14 +1,15 @@
 package http2.bench.client;
 
 import io.netty.bootstrap.Bootstrap;
-import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
+import io.netty.channel.EventLoop;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http2.AbstractHttp2ConnectionHandlerBuilder;
@@ -19,7 +20,6 @@ import io.netty.handler.codec.http2.Http2ConnectionDecoder;
 import io.netty.handler.codec.http2.Http2ConnectionEncoder;
 import io.netty.handler.codec.http2.Http2ConnectionHandler;
 import io.netty.handler.codec.http2.Http2EventAdapter;
-import io.netty.handler.codec.http2.Http2Exception;
 import io.netty.handler.codec.http2.Http2Headers;
 import io.netty.handler.codec.http2.Http2Settings;
 import io.netty.handler.ssl.ApplicationProtocolNames;
@@ -27,6 +27,9 @@ import io.netty.handler.ssl.ApplicationProtocolNegotiationHandler;
 import io.netty.handler.ssl.SslContext;
 
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -51,13 +54,24 @@ class Client {
     return headers("POST", "https", path);
   }
 
+  private final int size;
+  private final int port;
   final Http2Settings settings = new Http2Settings();
   final EventLoopGroup eventLoopGroup;
   final SslContext sslContext;
+  private final ArrayList<Connection> all = new ArrayList<>();
+  private int index;
+  private int count; // The estimated count : created + creating
+  private final EventLoop scheduler;
+  private boolean shutdown;
+  private Consumer<Void> startedHandler;
 
-  public Client(EventLoopGroup eventLoopGroup, SslContext sslContext) {
+  public Client(EventLoopGroup eventLoopGroup, SslContext sslContext, int size, int port) {
     this.eventLoopGroup = eventLoopGroup;
     this.sslContext = sslContext;
+    this.size = size;
+    this.port = port;
+    this.scheduler = eventLoopGroup.next();
   }
 
   class TestClientHandler extends Http2ConnectionHandler {
@@ -92,6 +106,19 @@ class Client {
       if (!handled) {
         handled = true;
         Connection conn = new Connection(ctx, connection(), encoder(), decoder());
+        synchronized (Client.this) {
+          all.add(conn);
+        }
+        ctx.channel().closeFuture().addListener(v -> {
+          synchronized (Client.this) {
+            count--;
+            all.remove(conn);
+          }
+          if (!shutdown) {
+            checkCreateConnections(0);
+          }
+        });
+
         requestHandler.accept(conn, null);
       }
     }
@@ -142,11 +169,58 @@ class Client {
     };
   }
 
+  public void start(Consumer<Void> completionHandler) {
+    synchronized (this) {
+      if (startedHandler != null) {
+        throw new IllegalStateException();
+      }
+      startedHandler = completionHandler;
+    }
+    checkCreateConnections(0);
+  }
+
+  private synchronized void checkCreateConnections(int retry) {
+    if (retry > 100) {
+      System.out.println("DANGER - handle me");
+    }
+    if (count < size) {
+      count++;
+      connect(port, "localhost", (conn, err) -> {
+        if (err == null) {
+          Consumer<Void> handler = null;
+          synchronized (Client.this) {
+            if (count < size) {
+              checkCreateConnections(0);
+            } else {
+              if (count() == size) {
+                handler = startedHandler;
+                startedHandler = null;
+              }
+            }
+          }
+          if (handler != null) {
+            handler.accept(null);
+          }
+        } else {
+          synchronized (Client.this) {
+            count--;
+          }
+          checkCreateConnections(retry + 1);
+        }
+      });
+      scheduler.schedule(() -> {
+        checkCreateConnections(retry);
+      }, 2, TimeUnit.MILLISECONDS);
+
+    }
+  }
+
+
   public ChannelFuture connect(int port, String host, BiConsumer<Connection, Throwable> handler) {
     Bootstrap bootstrap = new Bootstrap();
     bootstrap.channel(NioSocketChannel.class);
     bootstrap.group(eventLoopGroup);
-    bootstrap.option(ChannelOption.ALLOCATOR, new PooledByteBufAllocator());
+//    bootstrap.option(ChannelOption.ALLOCATOR, new PooledByteBufAllocator());
     bootstrap.option(ChannelOption.SO_KEEPALIVE, true);
     bootstrap.option(ChannelOption.SO_REUSEADDR, true);
     bootstrap.handler(channelInitializer(handler));
@@ -157,5 +231,38 @@ class Client {
       }
     });
     return fut;
+  }
+
+  public synchronized Connection choose(int maxConcurrentStream) {
+    int size = all.size();
+    for (int i = 0; i < size; i++) {
+      Connection conn = all.get(this.index++ % all.size());
+      if (conn.numActiveStreams() < maxConcurrentStream) {
+        return conn;
+      }
+    }
+    return null;
+  }
+
+  public synchronized int count() {
+    return all.size();
+  }
+
+  public void shutdown() {
+    HashSet<Connection> list;
+    synchronized (this) {
+      if (!shutdown) {
+        shutdown = true;
+      } else {
+        return;
+      }
+      list = new HashSet<>(all);
+    }
+    for (Connection conn : list) {
+      ChannelHandlerContext ctx = conn.context;
+      ctx.writeAndFlush(Unpooled.EMPTY_BUFFER);
+      ctx.close();
+      ctx.flush();
+    }
   }
 }

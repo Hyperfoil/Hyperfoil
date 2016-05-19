@@ -1,6 +1,7 @@
 package http2.bench.microservice;
 
 import com.beust.jcommander.Parameter;
+import com.beust.jcommander.Parameters;
 import http2.bench.CommandBase;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.DeploymentOptions;
@@ -12,6 +13,7 @@ import io.vertx.core.json.JsonObject;
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
  */
+@Parameters()
 public class MicroServiceCommand extends CommandBase {
 
   @Parameter(names = "--port")

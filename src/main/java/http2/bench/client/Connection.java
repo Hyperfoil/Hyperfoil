@@ -13,6 +13,7 @@ import io.netty.handler.codec.http2.Http2Headers;
 import io.netty.util.collection.IntObjectHashMap;
 import io.netty.util.collection.IntObjectMap;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
@@ -24,28 +25,7 @@ public class Connection extends Http2EventAdapter {
 
   public static final AtomicInteger totalStreamCount = new AtomicInteger();
 
-  private static final HashSet<Connection> all = new HashSet<>();
-
-  public static int count() {
-    synchronized (Connection.class) {
-      return all.size();
-    }
-  }
-
-  public static void shutdownAll() {
-    HashSet<Connection> list;
-    synchronized (Connection.class) {
-      list = new HashSet<>(all);
-    }
-    for (Connection conn : list) {
-      ChannelHandlerContext ctx = conn.context;
-      ctx.writeAndFlush(Unpooled.EMPTY_BUFFER);
-      ctx.close();
-      ctx.flush();
-    }
-  }
-
-  private final ChannelHandlerContext context;
+  final ChannelHandlerContext context;
   private final Http2Connection connection;
   private final Http2ConnectionEncoder encoder;
   private final IntObjectMap<Stream> streams = new IntObjectHashMap<>();
@@ -60,15 +40,6 @@ public class Connection extends Http2EventAdapter {
     this.encoder = encoder;
 
     //
-    synchronized (Connection.class) {
-      all.add(this);
-    }
-    context.channel().closeFuture().addListener(v -> {
-      synchronized (Connection.class) {
-        all.remove(this);
-      }
-    });
-
     Http2EventAdapter listener = new Http2EventAdapter() {
 
       @Override
