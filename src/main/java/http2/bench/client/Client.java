@@ -2,6 +2,7 @@ package http2.bench.client;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
@@ -145,6 +146,7 @@ class Client {
     Bootstrap bootstrap = new Bootstrap();
     bootstrap.channel(NioSocketChannel.class);
     bootstrap.group(eventLoopGroup);
+    bootstrap.option(ChannelOption.ALLOCATOR, new PooledByteBufAllocator());
     bootstrap.option(ChannelOption.SO_KEEPALIVE, true);
     bootstrap.option(ChannelOption.SO_REUSEADDR, true);
     bootstrap.handler(channelInitializer(handler));
