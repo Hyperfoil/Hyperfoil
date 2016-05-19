@@ -138,7 +138,7 @@ public class ServerVerticle extends AbstractVerticle {
           client.getConnection(res -> {
             if (res.succeeded()) {
               SQLConnection conn = res.result();
-              conn.query("SELECT pg_sleep(0.015)", ar -> {
+              conn.query("SELECT pg_sleep(0.040)", ar -> {
                 if (ar.succeeded()) {
                   req.response().end("<html><body>OK</body></html>");
                 } else {

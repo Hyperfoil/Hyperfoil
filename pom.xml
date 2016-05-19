@@ -36,6 +36,7 @@
     <jetty.alpnAgent.version>2.0.0</jetty.alpnAgent.version>
     <jetty.alpnAgent.path>${settings.localRepository}/org/mortbay/jetty/alpn/jetty-alpn-agent/${jetty.alpnAgent.version}/jetty-alpn-agent-${jetty.alpnAgent.version}.jar</jetty.alpnAgent.path>
     <args></args>
+    <opts></opts>
   </properties>
 
   <dependencyManagement>
@@ -177,7 +178,7 @@
           <version>1.4.0</version>
           <configuration>
             <executable>java</executable>
-            <commandlineArgs>-javaagent:${jetty.alpnAgent.path} -XX:+UnlockCommercialFeatures -XX:+FlightRecorder -jar target/http2-bench-3.3.0-SNAPSHOT.jar ${main} ${args}</commandlineArgs>
+            <commandlineArgs>-javaagent:${jetty.alpnAgent.path} -XX:+UnlockCommercialFeatures -XX:+FlightRecorder ${opts} -jar target/http2-bench-3.3.0-SNAPSHOT.jar ${main} ${args}</commandlineArgs>
           </configuration>
         </plugin>
       </plugins>
@@ -211,6 +212,7 @@
     <profile>
       <properties>
         <main>vertx</main>
+        <opts>-XX:+UseBiasedLocking -Dio.netty.allocator.numDirectArenas=32 -Dio.netty.allocator.numHeapArenas=32 -Dvertx.disableContextTimings=true -Dvertx.disableTCCL=true -Dvertx.threadChecks=false</opts>
       </properties>
       <id>vertx</id>
       <build>

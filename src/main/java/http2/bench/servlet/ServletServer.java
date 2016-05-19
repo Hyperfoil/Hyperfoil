@@ -33,6 +33,7 @@ public class ServletServer extends GenericServlet {
   private Backend backend;
   private boolean async;
   private File root;
+  private int dbPoolSize;
   private HikariDataSource ds;
 
   public Backend getBackend() {
@@ -59,16 +60,32 @@ public class ServletServer extends GenericServlet {
     this.root = root;
   }
 
+  public int getDbPoolSize() {
+    return dbPoolSize;
+  }
+
+  public void setDbPoolSize(int dbPoolSize) {
+    this.dbPoolSize = dbPoolSize;
+  }
+
   @Override
   public void init() throws ServletException {
     ServletConfig cfg = getServletConfig();
     backend = Backend.valueOf(cfg.getInitParameter("backend"));
     root = new File(cfg.getInitParameter("root"));
     async = Boolean.valueOf(cfg.getInitParameter("async"));
-    int dbPoolSize = Integer.parseInt(cfg.getInitParameter("dbPoolSize"));
-    root.mkdirs();
+    dbPoolSize = Integer.parseInt(cfg.getInitParameter("dbPoolSize"));
+    try {
+      doInit();
+    } catch (Exception e) {
+      throw new ServletException(e);
+    }
+  }
 
-    if (backend == Backend.DB) {
+  public void doInit() throws Exception {
+    if (backend == Backend.DISK) {
+      root.mkdirs();
+    } else if (backend == Backend.DB) {
       HikariConfig config = new HikariConfig();
       config.setJdbcUrl("jdbc:postgresql://localhost/testdb");
       config.setUsername("vertx");
@@ -83,8 +100,6 @@ public class ServletServer extends GenericServlet {
           statement.execute("DROP TABLE IF EXISTS data_table");
           statement.execute("CREATE TABLE IF NOT EXISTS data_table (data text)");
         }
-      } catch (Exception e) {
-        throw new ServletException(e);
       }
     }
   }
@@ -144,7 +159,7 @@ public class ServletServer extends GenericServlet {
     } else {
       if (backend == Backend.DB) {
         try (Connection conn = ds.getConnection()) {
-          try (PreparedStatement statement = conn.prepareStatement("SELECT pg_sleep(0.015)")) {
+          try (PreparedStatement statement = conn.prepareStatement("SELECT pg_sleep(0.040)")) {
             try (ResultSet rs = statement.executeQuery()) {
               // Nothing to do
             }

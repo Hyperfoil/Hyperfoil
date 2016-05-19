@@ -51,6 +51,9 @@ public class JettyServerCommand extends ServerCommandBase {
     servlet.setRoot(root);
     servlet.setAsync(async);
     servlet.setBackend(backend);
+    servlet.setDbPoolSize(dbPoolSize);
+
+    servlet.doInit();
 
     server.setHandler(new AbstractHandler() {
       @Override
