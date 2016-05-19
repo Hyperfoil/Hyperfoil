@@ -1,8 +1,11 @@
 package http2.bench.servlet;
 
+import com.squareup.okhttp.ConnectionPool;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import feign.Feign;
 import http2.bench.Backend;
+import http2.bench.microservice.MicroService;
 
 import javax.servlet.AsyncContext;
 import javax.servlet.GenericServlet;
@@ -33,9 +36,10 @@ public class ServletServer extends GenericServlet {
   private Backend backend;
   private boolean async;
   private File root;
-  private int dbPoolSize;
+  private int poolSize;
   private HikariDataSource ds;
   private int sleepTime;
+  private MicroService microService;
 
   public Backend getBackend() {
     return backend;
@@ -61,12 +65,12 @@ public class ServletServer extends GenericServlet {
     this.root = root;
   }
 
-  public int getDbPoolSize() {
-    return dbPoolSize;
+  public int getPoolSize() {
+    return poolSize;
   }
 
-  public void setDbPoolSize(int dbPoolSize) {
-    this.dbPoolSize = dbPoolSize;
+  public void setPoolSize(int poolSize) {
+    this.poolSize = poolSize;
   }
 
   public int getSleepTime() {
@@ -83,7 +87,7 @@ public class ServletServer extends GenericServlet {
     backend = Backend.valueOf(cfg.getInitParameter("backend"));
     root = new File(cfg.getInitParameter("root"));
     async = Boolean.valueOf(cfg.getInitParameter("async"));
-    dbPoolSize = Integer.parseInt(cfg.getInitParameter("dbPoolSize"));
+    poolSize = Integer.parseInt(cfg.getInitParameter("poolSize"));
     sleepTime = Integer.parseInt(cfg.getInitParameter("sleepTime"));
     try {
       doInit();
@@ -103,7 +107,7 @@ public class ServletServer extends GenericServlet {
       config.addDataSourceProperty("cachePrepStmts", "true");
       config.addDataSourceProperty("prepStmtCacheSize", "250");
       config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
-      config.setMaximumPoolSize(dbPoolSize);
+      config.setMaximumPoolSize(poolSize);
       ds = new HikariDataSource(config);
       try (Connection conn = ds.getConnection()) {
         try (Statement statement = conn.createStatement()) {
@@ -111,6 +115,11 @@ public class ServletServer extends GenericServlet {
           statement.execute("CREATE TABLE IF NOT EXISTS data_table (data text)");
         }
       }
+    } else if (backend == Backend.MICROSERVICE) {
+      com.squareup.okhttp.OkHttpClient okHttpClient = new com.squareup.okhttp.OkHttpClient().setConnectionPool(new ConnectionPool(poolSize, 20));
+      microService = Feign.builder().client(
+          new feign.okhttp.OkHttpClient(okHttpClient)
+      ).target(MicroService.class, "http://localhost:8080");
     }
   }
 
@@ -157,6 +166,18 @@ public class ServletServer extends GenericServlet {
           };
           break;
         }
+        case MICROSERVICE: {
+          ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+          dst = (buf,len) -> {
+            if (len != -1) {
+              buffer.write(buf, 0, len);
+            } else {
+              buffer.close();
+              microService.doPost(buffer.toByteArray());
+            }
+          };
+          break;
+        }
         default:
           dst = (buf,len) -> {};
           break;
@@ -179,6 +200,8 @@ public class ServletServer extends GenericServlet {
           resp.sendError(500);
           return;
         }
+      } else if (backend == Backend.MICROSERVICE) {
+        microService.doGet();
       }
       sendResponse(resp);
     }

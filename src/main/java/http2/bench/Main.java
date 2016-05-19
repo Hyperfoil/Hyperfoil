@@ -4,6 +4,7 @@ import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameters;
 import http2.bench.jetty.JettyServerCommand;
 import http2.bench.client.ClientCommand;
+import http2.bench.microservice.MicroServiceCommand;
 import http2.bench.netty.NettyServerCommand;
 import http2.bench.undertow.UndertowServerCommand;
 import http2.bench.vertx.VertxServerCommand;
@@ -24,16 +25,21 @@ public class Main {
     UndertowServerCommand undertow = new UndertowServerCommand();
     NettyServerCommand netty = new NettyServerCommand();
     ClientCommand client = new ClientCommand();
+    MicroServiceCommand microservice = new MicroServiceCommand();
     jc.addCommand("vertx", vertx);
     jc.addCommand("jetty", jetty);
     jc.addCommand("undertow", undertow);
     jc.addCommand("netty", netty);
     jc.addCommand("client", client);
+    jc.addCommand("microservice", microservice);
     jc.parse(args);
     String cmd = jc.getParsedCommand();
     CommandBase command = null;
     if (cmd != null) {
       switch (cmd) {
+        case "microservice":
+          command = microservice;
+          break;
         case "client":
           command = client;
           break;

@@ -131,6 +131,22 @@
       <version>9.3.8.v20160314</version>
     </dependency>
 
+    <dependency>
+      <groupId>com.netflix.feign</groupId>
+      <artifactId>feign-core</artifactId>
+      <version>8.16.2</version>
+    </dependency>
+    <dependency>
+      <groupId>com.netflix.feign</groupId>
+      <artifactId>feign-okhttp</artifactId>
+      <version>8.16.2</version>
+    </dependency>
+    <dependency>
+      <groupId>com.squareup.okhttp</groupId>
+      <artifactId>okhttp</artifactId>
+      <version>2.7.5</version>
+    </dependency>
+
   </dependencies>
 
   <build>

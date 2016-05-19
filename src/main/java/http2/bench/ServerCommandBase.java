@@ -16,8 +16,8 @@ public abstract class ServerCommandBase extends CommandBase {
   @Parameter(names = "--so-backlog")
   public int soBacklog = 1024;
 
-  @Parameter(names = "--db-pool-size")
-  public int dbPoolSize = 32;
+  @Parameter(names = "--pool-size")
+  public int poolSize = 32;
 
   @Parameter(names = "--sleep-time")
   public int sleepTime = 0;

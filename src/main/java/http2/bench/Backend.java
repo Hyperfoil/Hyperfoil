@@ -9,6 +9,8 @@ public enum Backend {
 
   DISK,
 
-  DB
+  DB,
+
+  MICROSERVICE
 
 }

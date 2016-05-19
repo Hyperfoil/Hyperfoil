@@ -50,7 +50,7 @@ public class UndertowServerCommand extends ServerCommandBase {
             setAsyncSupported(true).
             addInitParam("root", "undertow.uploads").
             addInitParam("async", "" + async).
-            addInitParam("dbPoolSize", "" + dbPoolSize).
+            addInitParam("poolSize", "" + poolSize).
             addInitParam("sleepTime", "" + sleepTime).
             addInitParam("backend", backend.name()));
     DeploymentManager manager = Servlets.defaultContainer().addDeployment(servletBuilder);

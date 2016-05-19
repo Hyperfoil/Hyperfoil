@@ -151,6 +151,7 @@ class Client {
     bootstrap.channel(NioSocketChannel.class);
     bootstrap.group(eventLoopGroup);
     bootstrap.option(ChannelOption.SO_KEEPALIVE, true);
+    bootstrap.option(ChannelOption.SO_REUSEADDR, true);
     bootstrap.handler(channelInitializer(handler));
     ChannelFuture fut = bootstrap.connect(new InetSocketAddress(host, port));
     fut.addListener(v -> {

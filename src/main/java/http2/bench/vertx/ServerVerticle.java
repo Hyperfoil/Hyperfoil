@@ -7,11 +7,13 @@ import io.vertx.core.Future;
 import io.vertx.core.file.AsyncFile;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.file.OpenOptions;
+import io.vertx.core.http.HttpClient;
+import io.vertx.core.http.HttpClientOptions;
+import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.http.HttpServerRequest;
-import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.PemKeyCertOptions;
@@ -34,7 +36,7 @@ public class ServerVerticle extends AbstractVerticle {
   private SSLEngine engine;
   private Backend backend;
   private int soAcceptBacklog;
-  private int dbPoolSize;
+  private int poolSize;
   private int sleepTime;
 
   public ServerVerticle() {
@@ -46,15 +48,21 @@ public class ServerVerticle extends AbstractVerticle {
     backend = Backend.valueOf(context.config().getString("backend"));
     soAcceptBacklog = context.config().getInteger("soAcceptBacklog");
     engine = SSLEngine.valueOf(config().getString("sslEngine"));
-    dbPoolSize = config().getInteger("dbPoolSize");
+    poolSize = config().getInteger("poolSize");
     sleepTime = config().getInteger("sleepTime");
+
+
+    HttpClient httpClient = vertx.createHttpClient(new HttpClientOptions().
+        setKeepAlive(true).
+        setPipelining(true).
+        setMaxPoolSize(poolSize));
 
     Future<Void> dbFuture = Future.future();
     AsyncSQLClient client;
     if (backend == Backend.DB) {
       JsonObject postgreSQLClientConfig = new JsonObject().
           put("host", "localhost").
-          put("maxPoolSize", dbPoolSize);
+          put("maxPoolSize", poolSize);
       client = PostgreSQLClient.createNonShared(vertx, postgreSQLClientConfig);
       if (dbInitialized.compareAndSet(false, true)) {
         client.getConnection(res -> {
@@ -153,6 +161,25 @@ public class ServerVerticle extends AbstractVerticle {
             } else {
               req.response().setStatusCode(500).end();
             }
+          });
+        }
+      } else if (backend == Backend.MICROSERVICE) {
+        if (req.method() == HttpMethod.POST) {
+          req.bodyHandler(buff -> {
+            HttpClientRequest clientReq = httpClient.post(8080, "localhost", "/", clientResp -> {
+              clientResp.endHandler(v -> {
+                sendResponse(req, "<html><body>OK</body></html>");
+              });
+            });
+            clientReq.end(buff);
+          });
+        } else {
+          req.endHandler(v1 -> {
+            httpClient.getNow(8080, "localhost", "/", clientResp -> {
+              clientResp.endHandler(v2 -> {
+                sendResponse(req, "<html><body>OK</body></html>");
+              });
+            });
           });
         }
       } else {
