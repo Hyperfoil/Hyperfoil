@@ -10,6 +10,8 @@ import io.vertx.core.file.OpenOptions;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
+import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.PemKeyCertOptions;
@@ -33,6 +35,7 @@ public class ServerVerticle extends AbstractVerticle {
   private Backend backend;
   private int soAcceptBacklog;
   private int dbPoolSize;
+  private int sleepTime;
 
   public ServerVerticle() {
   }
@@ -44,6 +47,7 @@ public class ServerVerticle extends AbstractVerticle {
     soAcceptBacklog = context.config().getInteger("soAcceptBacklog");
     engine = SSLEngine.valueOf(config().getString("sslEngine"));
     dbPoolSize = config().getInteger("dbPoolSize");
+    sleepTime = config().getInteger("sleepTime");
 
     Future<Void> dbFuture = Future.future();
     AsyncSQLClient client;
@@ -103,7 +107,7 @@ public class ServerVerticle extends AbstractVerticle {
               pump.start();
               req.endHandler(v -> {
                 f.close(ar2 -> fs.delete(file, ar3 -> {}));
-                req.response().end("<html><body>Hello World</body></html>");
+                sendResponse(req, "<html><body>Hello World</body></html>");
               });
             } else {
               ar1.cause().printStackTrace();
@@ -112,7 +116,7 @@ public class ServerVerticle extends AbstractVerticle {
           });
         } else {
           req.endHandler(v -> {
-            req.response().end("<html><body>Hello World</body></html>");
+            sendResponse(req,"<html><body>Hello World</body></html>" );
           });
         }
       } else if (backend == Backend.DB) {
@@ -123,7 +127,7 @@ public class ServerVerticle extends AbstractVerticle {
                 SQLConnection conn = res.result();
                 conn.queryWithParams("INSERT INTO data_table (data) VALUES (?)", new JsonArray().add(buff.toString()), ar -> {
                   if (ar.succeeded()) {
-                    req.response().end("<html><body>OK</body></html>");
+                    sendResponse(req, "<html><body>OK</body></html>");
                   } else {
                     req.response().setStatusCode(500).end();
                   }
@@ -140,7 +144,7 @@ public class ServerVerticle extends AbstractVerticle {
               SQLConnection conn = res.result();
               conn.query("SELECT pg_sleep(0.040)", ar -> {
                 if (ar.succeeded()) {
-                  req.response().end("<html><body>OK</body></html>");
+                  sendResponse(req, "<html><body>OK</body></html>");
                 } else {
                   req.response().setStatusCode(500).end();
                 }
@@ -153,7 +157,7 @@ public class ServerVerticle extends AbstractVerticle {
         }
       } else {
         req.endHandler(v -> {
-          req.response().end("<html><body>Hello World / " + req.version() + "</body></html>");
+          sendResponse(req, "<html><body>Hello World / " + req.version() + "</body></html>");
         });
       }
     });
@@ -162,5 +166,15 @@ public class ServerVerticle extends AbstractVerticle {
     server.listen(serverInit.completer());
 
     CompositeFuture.all(dbFuture, serverInit).<Void>map(c -> null).setHandler(startFuture.completer());
+  }
+
+  private void sendResponse(HttpServerRequest req, String s) {
+    if (sleepTime > 0) {
+      vertx.setTimer(sleepTime, v -> {
+        req.response().end(s);
+      });
+    } else {
+      req.response().end(s);
+    }
   }
 }

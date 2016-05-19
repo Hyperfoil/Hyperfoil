@@ -82,9 +82,16 @@ public class Connection {
       }
       @Override
       public void onStreamClosed(Http2Stream stream) {
-        super.onStreamClosed(stream);
+        Stream s = streams.remove(stream.id());
+        if (s != null && s.closeHandler != null) {
+          s.closeHandler.accept(null);
+        }
       }
     });
+  }
+
+  public int numActiveStreams() {
+    return connection.numActiveStreams();
   }
 
   public void request(String method, String path, Consumer<Stream> handler) {

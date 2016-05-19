@@ -10,6 +10,7 @@ import javax.servlet.ReadListener;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.ServletInputStream;
+import javax.servlet.ServletOutputStream;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
@@ -23,7 +24,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.UUID;
-import java.util.function.BiConsumer;
 
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
@@ -35,6 +35,7 @@ public class ServletServer extends GenericServlet {
   private File root;
   private int dbPoolSize;
   private HikariDataSource ds;
+  private int sleepTime;
 
   public Backend getBackend() {
     return backend;
@@ -68,6 +69,14 @@ public class ServletServer extends GenericServlet {
     this.dbPoolSize = dbPoolSize;
   }
 
+  public int getSleepTime() {
+    return sleepTime;
+  }
+
+  public void setSleepTime(int sleepTime) {
+    this.sleepTime = sleepTime;
+  }
+
   @Override
   public void init() throws ServletException {
     ServletConfig cfg = getServletConfig();
@@ -75,6 +84,7 @@ public class ServletServer extends GenericServlet {
     root = new File(cfg.getInitParameter("root"));
     async = Boolean.valueOf(cfg.getInitParameter("async"));
     dbPoolSize = Integer.parseInt(cfg.getInitParameter("dbPoolSize"));
+    sleepTime = Integer.parseInt(cfg.getInitParameter("sleepTime"));
     try {
       doInit();
     } catch (Exception e) {
@@ -236,8 +246,16 @@ public class ServletServer extends GenericServlet {
   }
 
   private void sendResponse(HttpServletResponse response) throws IOException {
+    if (sleepTime > 0) {
+      try {
+        Thread.sleep(sleepTime);
+      } catch (InterruptedException ignore) {
+        Thread.currentThread().interrupt();
+      }
+    }
     response.setContentType("text/plain");
-    response.getOutputStream().write("Hello World".getBytes());
-    response.getOutputStream().close();
+    try (ServletOutputStream out = response.getOutputStream()) {
+      out.write("Hello World".getBytes());
+    }
   }
 }

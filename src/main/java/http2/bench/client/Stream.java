@@ -24,6 +24,7 @@ class Stream {
   Consumer<DataFrame> dataHandler;
   Consumer<RstFrame> resetHandler;
   Consumer<Void> endHandler;
+  Consumer<Void> closeHandler;
 
   public Stream(ChannelHandlerContext ctx, Http2ConnectionEncoder encoder, int id, String method, String path) {
     this.ctx = ctx;
@@ -55,6 +56,11 @@ class Stream {
 
   public Stream endHandler(Consumer<Void> handler) {
     endHandler = handler;
+    return this;
+  }
+
+  public Stream closeHandler(Consumer<Void> handler) {
+    closeHandler = handler;
     return this;
   }
 

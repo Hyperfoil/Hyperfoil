@@ -46,6 +46,9 @@ public class ClientCommand extends CommandBase {
   @Parameter(names = {"-d", "--data"})
   public String data = null;
 
+  @Parameter(names = {"-m", "--max-concurrent-streams"})
+  public int maxConcurrentStream = 1;
+
   @Parameter
   public List<String> uri;
 

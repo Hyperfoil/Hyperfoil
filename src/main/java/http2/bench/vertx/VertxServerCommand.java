@@ -32,6 +32,7 @@ public class VertxServerCommand extends ServerCommandBase {
         put("sslEngine", openSSL ? SSLEngine.OPENSSL.name() : SSLEngine.JDK.name()).
         put("soAcceptBacklog", soBacklog).
         put("dbPoolSize", (int)Math.floor(dbPoolSize / ((double)instances))).
+        put("sleepTime", sleepTime).
         put("backend", backend.name()));
     vertx.deployVerticle(ServerVerticle.class.getName(), options, ar -> {
       if (ar.succeeded()) {
