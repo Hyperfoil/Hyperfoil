@@ -112,12 +112,7 @@ class Client {
     public TestClientHandler build(Http2Connection conn) {
       connection(conn);
       initialSettings(settings);
-      frameListener(new Http2EventAdapter() {
-        @Override
-        public int onDataRead(ChannelHandlerContext ctx, int streamId, ByteBuf data, int padding, boolean endOfStream) throws Http2Exception {
-          return super.onDataRead(ctx, streamId, data, padding, endOfStream);
-        }
-      });
+      frameListener(new Http2EventAdapter() { /* Dunno why this is needed */ });
       return super.build();
     }
   }

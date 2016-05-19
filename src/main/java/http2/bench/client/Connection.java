@@ -1,6 +1,7 @@
 package http2.bench.client;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http2.Http2Connection;
@@ -9,22 +10,44 @@ import io.netty.handler.codec.http2.Http2ConnectionEncoder;
 import io.netty.handler.codec.http2.Http2EventAdapter;
 import io.netty.handler.codec.http2.Http2Exception;
 import io.netty.handler.codec.http2.Http2Headers;
-import io.netty.handler.codec.http2.Http2Stream;
 import io.netty.util.collection.IntObjectHashMap;
 import io.netty.util.collection.IntObjectMap;
 
+import java.util.HashSet;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
  */
-public class Connection {
+public class Connection extends Http2EventAdapter {
 
-  private final Channel channel;
+  public static final AtomicInteger totalStreamCount = new AtomicInteger();
+
+  private static final HashSet<Connection> all = new HashSet<>();
+
+  public static int count() {
+    synchronized (Connection.class) {
+      return all.size();
+    }
+  }
+
+  public static void shutdownAll() {
+    HashSet<Connection> list;
+    synchronized (Connection.class) {
+      list = new HashSet<>(all);
+    }
+    for (Connection conn : list) {
+      ChannelHandlerContext ctx = conn.context;
+      ctx.writeAndFlush(Unpooled.EMPTY_BUFFER);
+      ctx.close();
+      ctx.flush();
+    }
+  }
+
   private final ChannelHandlerContext context;
   private final Http2Connection connection;
   private final Http2ConnectionEncoder encoder;
-  private final Http2ConnectionDecoder decoder;
   private final IntObjectMap<Stream> streams = new IntObjectHashMap<>();
   private int numStreams;
 
@@ -32,13 +55,22 @@ public class Connection {
                     Http2Connection connection,
                     Http2ConnectionEncoder encoder,
                     Http2ConnectionDecoder decoder) {
-    this.channel = context.channel();
     this.context = context;
     this.connection = connection;
     this.encoder = encoder;
-    this.decoder = decoder;
 
-    decoder.frameListener(new Http2EventAdapter() {
+    //
+    synchronized (Connection.class) {
+      all.add(this);
+    }
+    context.channel().closeFuture().addListener(v -> {
+      synchronized (Connection.class) {
+        all.remove(this);
+      }
+    });
+
+    Http2EventAdapter listener = new Http2EventAdapter() {
+
       @Override
       public void onHeadersRead(ChannelHandlerContext ctx, int streamId, Http2Headers headers, int streamDependency, short weight, boolean exclusive, int padding, boolean endStream) throws Http2Exception {
         Stream stream = streams.get(streamId);
@@ -51,6 +83,7 @@ public class Connection {
           }
         }
       }
+
       @Override
       public int onDataRead(ChannelHandlerContext ctx, int streamId, ByteBuf data, int padding, boolean endOfStream) throws Http2Exception {
         int ack = super.onDataRead(ctx, streamId, data, padding, endOfStream);
@@ -65,6 +98,7 @@ public class Connection {
         }
         return ack;
       }
+
       @Override
       public void onRstStreamRead(ChannelHandlerContext ctx, int streamId, long errorCode) throws Http2Exception {
         Stream stream = streams.get(streamId);
@@ -84,7 +118,10 @@ public class Connection {
           stream.endHandler.accept(null);
         }
       }
-    });
+    };
+
+    connection.addListener(listener);
+    decoder.frameListener(listener);
   }
 
   public int numActiveStreams() {
