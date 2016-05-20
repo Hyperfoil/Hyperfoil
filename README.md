@@ -13,16 +13,14 @@ then
 Where $profile is:
 
 - `vertx`
-- `vertx-openssl`
 - `netty`
-- `netty-openssl`
 - `undertow`
 - `jetty`
 
 Or
 
 ```
-> java -javaagent:/path/to/alpn/agent -jar target/http2-bench-3.3.0-SNAPSHOT.jar $cmd
+> java -javaagent:/path/to/alpn/agent -jar target/http2-bench-3.3.0-SNAPSHOT.jar $profile
 ```
 
 where $profile is:
@@ -34,19 +32,26 @@ where $profile is:
 
 Each server has special options, `netty` and `vertx` can run without the ALPN agent when the `--open-ssl` option is set.
 
+Servers can run with diffent backend with the `--backend` option:
+
+- noop (default)
+- disk
+- db (postgres)
+- microservice
+
+A microservice can also be ran for the backend:
+
+```
+java -jar target/http2-bench-3.3.0-SNAPSHOT.jar client -r 12000 -d 30 -w 5 -c 500 -m 10 https://localhost:8443
+```
+
+This is a noop service pausing for 20ms.
+
 ## Stressing
 
-### POST 256 bytes
+Use the provided client:
 
-````
-mkfile 1b tiny_payload
-h2load -n100000 -c200 -m10 -d tiny_payload -v  https://localhost:8443/
-````
-
-### POST 50 MB
-
-````
-mkfile 50m large_payload
-h2load -n1000 -c100 -m 1 -d large_file https://localhost:8443/
-````
+```
+java -jar target/http2-bench-3.3.0-SNAPSHOT.jar client -r 12000 -d 30 -w 5 -c 500 -m 10 https://localhost:8443
+```
 
