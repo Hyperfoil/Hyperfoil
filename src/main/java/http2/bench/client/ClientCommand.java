@@ -79,7 +79,7 @@ public class ClientCommand extends CommandBase {
   private String host;
   private int port;
   private String path;
-  private Histogram histogram = new ConcurrentHistogram(3600000000000L, 3);
+  private Histogram histogram = new ConcurrentHistogram(3600000000000L, 2);
   private volatile long startTime;
   private volatile long endTime;
   private final EventLoopGroup workerGroup = new NioEventLoopGroup();
