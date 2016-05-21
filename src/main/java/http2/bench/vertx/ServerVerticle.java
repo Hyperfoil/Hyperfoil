@@ -38,6 +38,8 @@ public class ServerVerticle extends AbstractVerticle {
   private int soAcceptBacklog;
   private int poolSize;
   private int sleepTime;
+  private String msHost;
+  private int msPort;
 
   public ServerVerticle() {
   }
@@ -50,6 +52,8 @@ public class ServerVerticle extends AbstractVerticle {
     engine = SSLEngine.valueOf(config().getString("sslEngine"));
     poolSize = config().getInteger("poolSize");
     sleepTime = config().getInteger("sleepTime");
+    msHost = config().getString("msHost");
+    msPort = config().getInteger("msPort");
 
 
     HttpClient httpClient = vertx.createHttpClient(new HttpClientOptions().
@@ -166,7 +170,7 @@ public class ServerVerticle extends AbstractVerticle {
       } else if (backend == Backend.MICROSERVICE) {
         if (req.method() == HttpMethod.POST) {
           req.bodyHandler(buff -> {
-            HttpClientRequest clientReq = httpClient.post(8080, "localhost", "/", clientResp -> {
+            HttpClientRequest clientReq = httpClient.post(msPort, msHost, "/", clientResp -> {
               clientResp.endHandler(v -> {
                 sendResponse(req, "<html><body>OK</body></html>");
               });
@@ -175,7 +179,7 @@ public class ServerVerticle extends AbstractVerticle {
           });
         } else {
           req.endHandler(v1 -> {
-            httpClient.getNow(8080, "localhost", "/", clientResp -> {
+            httpClient.getNow(msPort, msHost, "/", clientResp -> {
               clientResp.endHandler(v2 -> {
                 sendResponse(req, "<html><body>OK</body></html>");
               });

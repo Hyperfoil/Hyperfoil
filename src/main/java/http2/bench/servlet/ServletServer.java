@@ -40,6 +40,8 @@ public class ServletServer extends GenericServlet {
   private HikariDataSource ds;
   private int sleepTime;
   private MicroService microService;
+  private String msHost;
+  private int msPort;
 
   public Backend getBackend() {
     return backend;
@@ -81,6 +83,22 @@ public class ServletServer extends GenericServlet {
     this.sleepTime = sleepTime;
   }
 
+  public String getMsHost() {
+    return msHost;
+  }
+
+  public void setMsHost(String msHost) {
+    this.msHost = msHost;
+  }
+
+  public int getMsPort() {
+    return msPort;
+  }
+
+  public void setMsPort(int msPort) {
+    this.msPort = msPort;
+  }
+
   @Override
   public void init() throws ServletException {
     ServletConfig cfg = getServletConfig();
@@ -89,6 +107,8 @@ public class ServletServer extends GenericServlet {
     async = Boolean.valueOf(cfg.getInitParameter("async"));
     poolSize = Integer.parseInt(cfg.getInitParameter("poolSize"));
     sleepTime = Integer.parseInt(cfg.getInitParameter("sleepTime"));
+    msHost = cfg.getInitParameter("msHost");
+    msPort = Integer.parseInt(cfg.getInitParameter("msPort"));
     try {
       doInit();
     } catch (Exception e) {
@@ -119,7 +139,7 @@ public class ServletServer extends GenericServlet {
       com.squareup.okhttp.OkHttpClient okHttpClient = new com.squareup.okhttp.OkHttpClient().setConnectionPool(new ConnectionPool(poolSize, 20));
       microService = Feign.builder().client(
           new feign.okhttp.OkHttpClient(okHttpClient)
-      ).target(MicroService.class, "http://localhost:8080");
+      ).target(MicroService.class, "http://" + msHost + ":" + msPort);
     }
   }
 

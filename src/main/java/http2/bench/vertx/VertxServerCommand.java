@@ -33,6 +33,8 @@ public class VertxServerCommand extends ServerCommandBase {
         put("soAcceptBacklog", soBacklog).
         put("poolSize", (int)Math.floor(poolSize / ((double)instances))).
         put("sleepTime", sleepTime).
+        put("msHost", msHost).
+        put("msPort", msPort).
         put("backend", backend.name()));
     vertx.deployVerticle(ServerVerticle.class.getName(), options, ar -> {
       if (ar.succeeded()) {
