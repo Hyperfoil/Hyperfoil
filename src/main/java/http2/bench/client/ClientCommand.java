@@ -166,7 +166,7 @@ public class ClientCommand extends CommandBase {
             ApplicationProtocolNames.HTTP_1_1))
         .build();
 
-    client = new Client(workerGroup, sslCtx, clientsParam, port);
+    client = new Client(workerGroup, sslCtx, clientsParam, port, host);
     System.out.println("starting benchmark...");
     System.out.format("%d total client(s)%n", clientsParam);
     start();

@@ -38,24 +38,26 @@ import java.util.function.Consumer;
  */
 class Client {
 
-  static Http2Headers headers(String method, String scheme, String path) {
-    return new DefaultHttp2Headers().method(method).scheme(scheme).path(path).authority("localhost:8443");
+  Http2Headers headers(String method, String scheme, String path) {
+    return new DefaultHttp2Headers().method(method).scheme(scheme).path(path).authority(authority);
   }
 
-  static Http2Headers GET(String scheme, String path) {
+  Http2Headers GET(String scheme, String path) {
     return headers("GET", scheme, path);
   }
 
-  static Http2Headers GET(String path) {
+  Http2Headers GET(String path) {
     return headers("GET", "https", path);
   }
 
-  static Http2Headers POST(String path) {
+  Http2Headers POST(String path) {
     return headers("POST", "https", path);
   }
 
   private final int size;
   private final int port;
+  private final String host;
+  private final String authority;
   final Http2Settings settings = new Http2Settings();
   final EventLoopGroup eventLoopGroup;
   final SslContext sslContext;
@@ -66,12 +68,14 @@ class Client {
   private boolean shutdown;
   private Consumer<Void> startedHandler;
 
-  public Client(EventLoopGroup eventLoopGroup, SslContext sslContext, int size, int port) {
+  public Client(EventLoopGroup eventLoopGroup, SslContext sslContext, int size, int port, String host) {
     this.eventLoopGroup = eventLoopGroup;
     this.sslContext = sslContext;
     this.size = size;
     this.port = port;
+    this.host = host;
     this.scheduler = eventLoopGroup.next();
+    this.authority = host + ":" + port;
   }
 
   class TestClientHandler extends Http2ConnectionHandler {
@@ -105,7 +109,7 @@ class Client {
     private void checkHandle(ChannelHandlerContext ctx) {
       if (!handled) {
         handled = true;
-        Connection conn = new Connection(ctx, connection(), encoder(), decoder());
+        Connection conn = new Connection(ctx, connection(), encoder(), decoder(), Client.this);
         synchronized (Client.this) {
           all.add(conn);
         }
@@ -185,7 +189,7 @@ class Client {
     }
     if (count < size) {
       count++;
-      connect(port, "localhost", (conn, err) -> {
+      connect(port, host, (conn, err) -> {
         if (err == null) {
           Consumer<Void> handler = null;
           synchronized (Client.this) {

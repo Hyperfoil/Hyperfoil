@@ -25,12 +25,12 @@ class Stream {
   Consumer<RstFrame> resetHandler;
   Consumer<Void> endHandler;
 
-  public Stream(ChannelHandlerContext ctx, Http2ConnectionEncoder encoder, int id, String method, String path) {
+  public Stream(Client client, ChannelHandlerContext ctx, Http2ConnectionEncoder encoder, int id, String method, String path) {
     this.ctx = ctx;
     this.encoder = encoder;
     this.id = id;
     this.method = method;
-    this.headers = Client.headers(method, "https", path);
+    this.headers = client.headers(method, "https", path);
   }
 
   public Stream putHeader(String name, String value) {

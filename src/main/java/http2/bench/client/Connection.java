@@ -23,8 +23,7 @@ import java.util.function.Consumer;
  */
 public class Connection extends Http2EventAdapter {
 
-  public static final AtomicInteger totalStreamCount = new AtomicInteger();
-
+  final Client client;
   final ChannelHandlerContext context;
   private final Http2Connection connection;
   private final Http2ConnectionEncoder encoder;
@@ -34,7 +33,9 @@ public class Connection extends Http2EventAdapter {
   public Connection(ChannelHandlerContext context,
                     Http2Connection connection,
                     Http2ConnectionEncoder encoder,
-                    Http2ConnectionDecoder decoder) {
+                    Http2ConnectionDecoder decoder,
+                    Client client) {
+    this.client = client;
     this.context = context;
     this.connection = connection;
     this.encoder = encoder;
@@ -102,7 +103,7 @@ public class Connection extends Http2EventAdapter {
   public void request(String method, String path, Consumer<Stream> handler) {
     numStreams++;
     int id = nextStreamId();
-    Stream stream = new Stream(context, encoder, id, method, path);
+    Stream stream = new Stream(client, context, encoder, id, method, path);
     streams.put(id, stream);
     handler.accept(stream);
   }
