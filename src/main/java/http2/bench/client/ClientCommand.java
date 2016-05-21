@@ -173,10 +173,16 @@ public class ClientCommand extends CommandBase {
     scheduler = workerGroup.next();
   }
 
+  private double ratio() {
+    long end = Math.min(System.currentTimeMillis(), endTime);
+    long expected = rateParam * (end - startTime) / 1000;
+    return requestCount.get() / (double)expected;
+  }
+
   private void printDetail(int count, int total) {
     if (count < total) {
       scheduler.schedule(() -> {
-        System.out.format("progress: %d%% done. total requests/responses %d/%d%n", ((count + 1) * 100) / total, requestCount.get(), responseCount.get());
+        System.out.format("progress: %d%% done. total requests/responses %d/%d, ratio %.2f%n", ((count + 1) * 100) / total, requestCount.get(), responseCount.get(), ratio());
         printDetail(count + 1, total);
       }, (endTime - startTime) / 10, TimeUnit.MILLISECONDS);
     }
@@ -286,7 +292,7 @@ public class ClientCommand extends CommandBase {
     long expectedRequests = (long)(rateParam * duration / 1000D);
     double elapsedSeconds = elapsedTime();
     Histogram cp = histogram.copy();
-    System.out.format("finished in %.2fs, %.2fs req/s%n", elapsedSeconds, responseCount.get() / elapsedSeconds);
+    System.out.format("finished in %.2fs, %.2fs req/s, %.2fs ratio%n", elapsedSeconds, responseCount.get() / elapsedSeconds,ratio());
     System.out.format("requests: %d total, %d errored, %d expected%n", responseCount.get(), connectFailures.get(), expectedRequests);
     System.out.format("status codes: %d 2xx, %d 3xx, %d 4xx, %d 5xx, %d others%n", statuses[0].get(), statuses[1].get(), statuses[2].get(), statuses[3].get(), statuses[4].get());
 //    System.out.println("DONE ok=" + status_200.get() + " / reset=" + reset.get() + " / connectFailures=" + connectFailures.getAndIncrement());
