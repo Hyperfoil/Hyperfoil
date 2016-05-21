@@ -179,10 +179,18 @@ public class ClientCommand extends CommandBase {
     return requestCount.get() / (double)expected;
   }
 
+  private long readThroughput() {
+    return client.bytesRead() / (System.currentTimeMillis() - startTime);
+  }
+
+  private long writeThroughput() {
+    return client.bytesWritten() / (System.currentTimeMillis() - startTime);
+  }
+
   private void printDetail(int count, int total) {
     if (count < total) {
       scheduler.schedule(() -> {
-        System.out.format("progress: %d%% done. total requests/responses %d/%d, ratio %.2f%n", ((count + 1) * 100) / total, requestCount.get(), responseCount.get(), ratio());
+        System.out.format("progress: %d%% done. total requests/responses %d/%d, ratio %.2f, read %d kb/s, written %d kb/s%n", ((count + 1) * 100) / total, requestCount.get(), responseCount.get(), ratio(), readThroughput(), writeThroughput());
         printDetail(count + 1, total);
       }, (endTime - startTime) / 10, TimeUnit.MILLISECONDS);
     }
@@ -200,6 +208,7 @@ public class ClientCommand extends CommandBase {
         endTime = startTime + duration;
         requestCount.set(0);
         responseCount.set(0);
+        client.resetStatistics();
         printDetail(0, 10);
         int numSlots = (int)(duration / 1000);
         int lastSlot = (int)(duration % 1000);
@@ -295,7 +304,8 @@ public class ClientCommand extends CommandBase {
     System.out.format("finished in %.2fs, %.2fs req/s, %.2fs ratio%n", elapsedSeconds, responseCount.get() / elapsedSeconds,ratio());
     System.out.format("requests: %d total, %d errored, %d expected%n", responseCount.get(), connectFailures.get(), expectedRequests);
     System.out.format("status codes: %d 2xx, %d 3xx, %d 4xx, %d 5xx, %d others%n", statuses[0].get(), statuses[1].get(), statuses[2].get(), statuses[3].get(), statuses[4].get());
-//    System.out.println("DONE ok=" + status_200.get() + " / reset=" + reset.get() + " / connectFailures=" + connectFailures.getAndIncrement());
+    System.out.format("bytes read: %d%n", client.bytesRead());
+    System.out.format("bytes written: %d%n", client.bytesWritten());
     try {
       System.out.println("mean   = " + cp.getMean());
       System.out.println("max    = " + cp.getMaxValueAsDouble());

@@ -1,14 +1,18 @@
 package http2.bench.client;
 
 import io.netty.bootstrap.Bootstrap;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufHolder;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
+import io.netty.channel.ChannelPromise;
 import io.netty.channel.EventLoop;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
@@ -30,6 +34,7 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -67,6 +72,8 @@ class Client {
   private final EventLoop scheduler;
   private boolean shutdown;
   private Consumer<Void> startedHandler;
+  private final LongAdder bytesRead = new LongAdder();
+  private final LongAdder bytesWritten = new LongAdder();
 
   public Client(EventLoopGroup eventLoopGroup, SslContext sslContext, int size, int port, String host) {
     this.eventLoopGroup = eventLoopGroup;
@@ -151,8 +158,35 @@ class Client {
 
   protected ChannelInitializer channelInitializer(BiConsumer<Connection, Throwable> handler) {
     return new ChannelInitializer<Channel>() {
+      private int sizeOf(Object msg) {
+        if (msg instanceof ByteBuf) {
+          return ((ByteBuf) msg).readableBytes();
+        } else if (msg instanceof ByteBufHolder) {
+          return ((ByteBufHolder) msg).content().readableBytes();
+        } else {
+          return 0;
+        }
+      }
       @Override
       protected void initChannel(Channel ch) throws Exception {
+        ch.pipeline().addLast(new ChannelDuplexHandler() {
+          @Override
+          public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+            int size = sizeOf(msg);
+            if (size > 0) {
+              bytesRead.add(size);
+            }
+            super.channelRead(ctx, msg);
+          }
+          @Override
+          public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
+            int size = sizeOf(msg);
+            if (size > 0) {
+              bytesWritten.add(size);
+            }
+            super.write(ctx, msg, promise);
+          }
+        });
         ch.pipeline().addLast(sslContext.newHandler(ch.alloc()));
         ch.pipeline().addLast(new ApplicationProtocolNegotiationHandler("http/1.1") {
           @Override
@@ -250,6 +284,19 @@ class Client {
 
   public synchronized int count() {
     return all.size();
+  }
+
+  public long bytesRead() {
+    return bytesRead.longValue();
+  }
+
+  public long bytesWritten() {
+    return bytesWritten.longValue();
+  }
+
+  public void resetStatistics() {
+    bytesRead.reset();
+    bytesWritten.reset();
   }
 
   public void shutdown() {
