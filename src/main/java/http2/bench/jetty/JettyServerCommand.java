@@ -97,6 +97,7 @@ public class JettyServerCommand extends ServerCommandBase {
       ALPNServerConnectionFactory alpn) {
     Server server = new Server(new QueuedThreadPool(200));
     ServerConnector connector = new ServerConnector(server, prepareSsl(alpn), alpn, http2ConnectionFactory, httpConnectionFactory);
+    connector.setHost("0.0.0.0");
     connector.setPort(8443);
     connector.setAcceptQueueSize(soBacklog);
     server.addConnector(connector);

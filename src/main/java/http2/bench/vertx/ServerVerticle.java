@@ -94,7 +94,6 @@ public class ServerVerticle extends AbstractVerticle {
     HttpServer server = vertx.createHttpServer(new HttpServerOptions()
         .setSsl(true)
         .setUseAlpn(true)
-        .setHost("localhost")
         .setSslEngine(engine)
         .setAcceptBacklog(soAcceptBacklog)
         .addEnabledCipherSuite("TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256")

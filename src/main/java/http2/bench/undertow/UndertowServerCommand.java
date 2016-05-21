@@ -38,7 +38,6 @@ public class UndertowServerCommand extends ServerCommandBase {
   public boolean async = false;
 
   public void run() throws Exception {
-    String bindAddress = System.getProperty("bind.address", "localhost");
     SSLContext sslContext = createSSLContext();
     HttpHandler handler;
     DeploymentInfo servletBuilder = Servlets.deployment()
@@ -64,7 +63,7 @@ public class UndertowServerCommand extends ServerCommandBase {
         .setServerOption(UndertowOptions.ENABLE_HTTP2, true)
         .setWorkerThreads(workerThreads)
         .setIoThreads(ioThreads)
-        .addHttpsListener(port, bindAddress, sslContext)
+        .addHttpsListener(port, "0.0.0.0", sslContext)
         .setHandler(handler).build();
     server.start();
   }
