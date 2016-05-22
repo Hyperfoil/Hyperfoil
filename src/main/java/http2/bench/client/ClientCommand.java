@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Consumer;
 
 /**
@@ -74,6 +75,7 @@ public class ClientCommand extends CommandBase {
   private AtomicInteger status_other = new AtomicInteger();
   private AtomicInteger[] statuses = { status_2xx, status_3xx, status_4xx, status_5xx, status_other };
   private AtomicInteger reset = new AtomicInteger();
+  private LongAdder missedRequests = new LongAdder();
   private long duration;
   private long warmup;
   private String host;
@@ -209,6 +211,7 @@ public class ClientCommand extends CommandBase {
         requestCount.set(0);
         responseCount.set(0);
         client.resetStatistics();
+        missedRequests.reset();
         printDetail(0, 10);
         int numSlots = (int)(duration / 1000);
         int lastSlot = (int)(duration % 1000);
@@ -236,33 +239,44 @@ public class ClientCommand extends CommandBase {
         startSlot(numSlots -1, lastSlot, doneHandler);
       });
     } else {
-      doRequestInSlot(rateParam, slotBegins + lastSlot, doneHandler);
+      doRequestInSlot((rateParam * lastSlot) / 1000, slotBegins + lastSlot, doneHandler);
     }
   }
 
-  private void doRequestInSlot(long remaining, long slotEnds, Consumer<Void> doneHandler) {
+  private void doRequestInSlot(int remainingInSlot, long slotEnds, Consumer<Void> doneHandler) {
     long now = System.currentTimeMillis();
-    if (remaining > 0) {
-      if (now > slotEnds) {
-        doneHandler.accept(null);
-      } else {
-        Connection conn = client.choose(maxConcurrentStream);
-        if (conn != null) {
-          doRequest(conn);
-        } else {
-          // Miss a request here
-        }
-        long delay = (long)(TimeUnit.MILLISECONDS.toNanos(slotEnds - now) / (double) remaining);
-        scheduler.schedule(() -> doRequestInSlot(remaining - 1, slotEnds, doneHandler), delay, TimeUnit.NANOSECONDS);
-      }
-    } else {
-      long delay = TimeUnit.MILLISECONDS.toNanos(slotEnds - now);
-      if (delay > 0) {
-        scheduler.schedule(() -> {
+    int todoPerTick = maxConcurrentStream;
+    while (true) {
+      if (remainingInSlot > 0) {
+        if (now > slotEnds) {
+          missedRequests.add(remainingInSlot);
           doneHandler.accept(null);
-        }, delay, TimeUnit.NANOSECONDS);
+          return;
+        } else {
+          if (todoPerTick-- > 0) {
+            Connection conn = client.choose(maxConcurrentStream);
+            if (conn != null) {
+              remainingInSlot--;
+              doRequest(conn);
+            } else {
+              // Miss a request here
+            }
+          } else {
+            int remaining = remainingInSlot;
+            long delay = (long)(TimeUnit.MILLISECONDS.toNanos(slotEnds - now) / ((double) remaining + 1));
+            scheduler.schedule(() -> doRequestInSlot(remaining, slotEnds, doneHandler), delay, TimeUnit.NANOSECONDS);
+            return;
+          }
+        }
       } else {
-        doneHandler.accept(null);
+        long delay = TimeUnit.MILLISECONDS.toNanos(slotEnds - now);
+        if (delay > 0) {
+          scheduler.schedule(() -> doneHandler.accept(null), delay, TimeUnit.NANOSECONDS);
+          return;
+        } else {
+          doneHandler.accept(null);
+          return;
+        }
       }
     }
   }
@@ -306,6 +320,7 @@ public class ClientCommand extends CommandBase {
     System.out.format("status codes: %d 2xx, %d 3xx, %d 4xx, %d 5xx, %d others%n", statuses[0].get(), statuses[1].get(), statuses[2].get(), statuses[3].get(), statuses[4].get());
     System.out.format("bytes read: %d%n", client.bytesRead());
     System.out.format("bytes written: %d%n", client.bytesWritten());
+    System.out.format("missed requests: %d%n", missedRequests.longValue());
     try {
       System.out.println("mean   = " + cp.getMean());
       System.out.println("max    = " + cp.getMaxValueAsDouble());
