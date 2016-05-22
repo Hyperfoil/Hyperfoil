@@ -26,6 +26,7 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.LongAdder;
@@ -87,7 +88,6 @@ public class ClientCommand extends CommandBase {
   private final EventLoopGroup workerGroup = new NioEventLoopGroup();
   private SslContext sslCtx;
   private Client client;
-  private EventLoop scheduler;
 
   private static long parseDuration(String s) {
     TimeUnit unit;
@@ -110,7 +110,7 @@ public class ClientCommand extends CommandBase {
         prefix = s;
         break;
     }
-    return unit.toMillis(Long.parseLong(prefix));
+    return unit.toNanos(Long.parseLong(prefix));
   }
 
   @Override
@@ -172,109 +172,107 @@ public class ClientCommand extends CommandBase {
     System.out.println("starting benchmark...");
     System.out.format("%d total client(s)%n", clientsParam);
     start();
-    scheduler = workerGroup.next();
   }
 
   private double ratio() {
-    long end = Math.min(System.currentTimeMillis(), endTime);
-    long expected = rateParam * (end - startTime) / 1000;
+    long end = Math.min(System.nanoTime(), endTime);
+    long expected = rateParam * (end - startTime) / 1000000000;
     return requestCount.get() / (double)expected;
   }
 
   private long readThroughput() {
-    return client.bytesRead() / (System.currentTimeMillis() - startTime);
+    return client.bytesRead() / (TimeUnit.NANOSECONDS.toSeconds((System.nanoTime() - startTime)) * 1024);
   }
 
   private long writeThroughput() {
-    return client.bytesWritten() / (System.currentTimeMillis() - startTime);
+    return client.bytesWritten() / (TimeUnit.NANOSECONDS.toSeconds((System.nanoTime() - startTime) * 1024));
   }
 
-  private void printDetail(int count, int total) {
+  private void printDetail(EventLoop scheduler, int count, int total) {
     if (count < total) {
       scheduler.schedule(() -> {
         System.out.format("progress: %d%% done. total requests/responses %d/%d, ratio %.2f, read %d kb/s, written %d kb/s%n", ((count + 1) * 100) / total, requestCount.get(), responseCount.get(), ratio(), readThroughput(), writeThroughput());
-        printDetail(count + 1, total);
-      }, (endTime - startTime) / 10, TimeUnit.MILLISECONDS);
+        printDetail(scheduler, count + 1, total);
+      }, (endTime - startTime) / 10, TimeUnit.NANOSECONDS);
     }
   }
 
   private void start() {
+    CountDownLatch latch = new CountDownLatch(1);
     client.start(v1 -> {
-      System.out.println("connection(s) created...");
-      if (warmup > 0) {
-        System.out.println("warming up...");
-      }
-      runSlots(warmup, v -> {
-        System.out.println("working on it...");
-        startTime = System.currentTimeMillis();
-        endTime = startTime + duration;
-        requestCount.set(0);
-        responseCount.set(0);
-        client.resetStatistics();
-        missedRequests.reset();
-        printDetail(0, 10);
-        int numSlots = (int)(duration / 1000);
-        int lastSlot = (int)(duration % 1000);
-        startSlot(numSlots, lastSlot, v2 -> {
-          end();
-        });
-      });
+      latch.countDown();
     });
+    try {
+      latch.await(100, TimeUnit.SECONDS);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+      return;
+    }
+    System.out.println("connection(s) created...");
+    if (warmup > 0) {
+      System.out.println("warming up...");
+    }
+    runSlots(warmup);
+    System.out.println("working on it...");
+    startTime = System.nanoTime();
+    endTime = startTime + duration;
+    requestCount.set(0);
+    responseCount.set(0);
+    client.resetStatistics();
+    missedRequests.reset();
+    printDetail(workerGroup.next(), 0, 10);
+    int numSlots = (int)(duration / 1000000000);
+    long lastSlot = (int)(duration % 1000000000);
+    startSlot(numSlots, lastSlot);
+    end();
   }
 
-  private void runSlots(long duration, Consumer<Void> doneHandler) {
+  private void runSlots(long duration) {
     if (duration > 0) {
-      int numSlots = (int)(duration / 1000);
-      int lastSlot = (int)(duration % 1000);
-      startSlot(numSlots, lastSlot, doneHandler);
-    } else {
-      doneHandler.accept(null);
+      int numSlots = (int)(duration / 1000000000);
+      long lastSlot = duration % 1000000000;
+      startSlot(numSlots, lastSlot);
     }
   }
 
-  private void startSlot(int numSlots, int lastSlot, Consumer<Void> doneHandler) {
-    long slotBegins = System.currentTimeMillis();
-    if (numSlots > 0) {
-      doRequestInSlot(rateParam, slotBegins + 1000, v -> {
-        startSlot(numSlots -1, lastSlot, doneHandler);
-      });
-    } else {
-      doRequestInSlot((rateParam * lastSlot) / 1000, slotBegins + lastSlot, doneHandler);
+  private void startSlot(int numSlots, long lastSlot) {
+    while (numSlots-- > 0) {
+      abc(rateParam, 1000000000);
     }
+    abc((int) ((rateParam * lastSlot) / 1000000000), lastSlot);
   }
 
-  private void doRequestInSlot(int remainingInSlot, long slotEnds, Consumer<Void> doneHandler) {
-    long now = System.currentTimeMillis();
-    int todoPerTick = maxConcurrentStream;
+  private void abc(int remainingInSlot, long duration) {
+    long slotBegins = System.nanoTime();
+    long slotEnds = slotBegins + duration;
+    Pacer pacer = new Pacer(rateParam);
+    pacer.setInitialStartTime(slotBegins);
+    doRequestInSlot(pacer, remainingInSlot, slotEnds);
+  }
+
+  private void doRequestInSlot(Pacer pacer, int remainingInSlot, long slotEnds) {
     while (true) {
+      long now = System.nanoTime();
       if (remainingInSlot > 0) {
         if (now > slotEnds) {
           missedRequests.add(remainingInSlot);
-          doneHandler.accept(null);
           return;
         } else {
-          if (todoPerTick-- > 0) {
-            Connection conn = client.choose(maxConcurrentStream);
-            if (conn != null) {
-              remainingInSlot--;
-              doRequest(conn);
-            } else {
-              // Miss a request here
-            }
+          Connection conn = client.choose(maxConcurrentStream);
+          if (conn != null) {
+            remainingInSlot--;
+            doRequest(conn);
+            pacer.acquire(1);
           } else {
-            int remaining = remainingInSlot;
-            long delay = (long)(TimeUnit.MILLISECONDS.toNanos(slotEnds - now) / ((double) remaining + 1));
-            scheduler.schedule(() -> doRequestInSlot(remaining, slotEnds, doneHandler), delay, TimeUnit.NANOSECONDS);
-            return;
+            // Should we sleep a little ????
           }
         }
       } else {
-        long delay = TimeUnit.MILLISECONDS.toNanos(slotEnds - now);
+        long delay = slotEnds - now;
         if (delay > 0) {
-          scheduler.schedule(() -> doneHandler.accept(null), delay, TimeUnit.NANOSECONDS);
+          Pacer.sleepNs(delay);
           return;
         } else {
-          doneHandler.accept(null);
           return;
         }
       }
@@ -343,7 +341,7 @@ public class ClientCommand extends CommandBase {
   }
 
   private double elapsedTime() {
-    long elapsed = System.currentTimeMillis() - startTime;
-    return elapsed / 1000D;
+    long elapsed = System.nanoTime() - startTime;
+    return elapsed / 1000000000D;
   }
 }
