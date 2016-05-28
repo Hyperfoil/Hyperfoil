@@ -274,7 +274,8 @@ class Client {
   public synchronized Connection choose(int maxConcurrentStream) {
     int size = all.size();
     for (int i = 0; i < size; i++) {
-      Connection conn = all.get(this.index++ % all.size());
+      index %= size;
+      Connection conn = all.get(index++);
       if (conn.numActiveStreams() < maxConcurrentStream) {
         return conn;
       }
