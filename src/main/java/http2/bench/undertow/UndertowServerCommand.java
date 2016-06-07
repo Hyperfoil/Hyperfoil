@@ -51,8 +51,8 @@ public class UndertowServerCommand extends ServerCommandBase {
             addInitParam("async", "" + async).
             addInitParam("poolSize", "" + poolSize).
             addInitParam("sleepTime", "" + sleepTime).
-            addInitParam("msHost", "" + msHost).
-            addInitParam("msPort", "" + msPort).
+            addInitParam("backendHost", "" + backendHost).
+            addInitParam("backendPort", "" + backendPort).
             addInitParam("backend", backend.name()));
     DeploymentManager manager = Servlets.defaultContainer().addDeployment(servletBuilder);
     manager.deploy();

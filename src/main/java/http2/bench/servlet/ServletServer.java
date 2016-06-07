@@ -40,8 +40,8 @@ public class ServletServer extends GenericServlet {
   private HikariDataSource ds;
   private int sleepTime;
   private MicroService microService;
-  private String msHost;
-  private int msPort;
+  private String backendHost;
+  private int backendPort;
 
   public Backend getBackend() {
     return backend;
@@ -83,20 +83,20 @@ public class ServletServer extends GenericServlet {
     this.sleepTime = sleepTime;
   }
 
-  public String getMsHost() {
-    return msHost;
+  public String getBackendHost() {
+    return backendHost;
   }
 
-  public void setMsHost(String msHost) {
-    this.msHost = msHost;
+  public void setBackendHost(String backendHost) {
+    this.backendHost = backendHost;
   }
 
-  public int getMsPort() {
-    return msPort;
+  public int getBackendPort() {
+    return backendPort;
   }
 
-  public void setMsPort(int msPort) {
-    this.msPort = msPort;
+  public void setBackendPort(int backendPort) {
+    this.backendPort = backendPort;
   }
 
   @Override
@@ -107,8 +107,8 @@ public class ServletServer extends GenericServlet {
     async = Boolean.valueOf(cfg.getInitParameter("async"));
     poolSize = Integer.parseInt(cfg.getInitParameter("poolSize"));
     sleepTime = Integer.parseInt(cfg.getInitParameter("sleepTime"));
-    msHost = cfg.getInitParameter("msHost");
-    msPort = Integer.parseInt(cfg.getInitParameter("msPort"));
+    backendHost = cfg.getInitParameter("backendHost");
+    backendPort = Integer.parseInt(cfg.getInitParameter("backendPort"));
     try {
       doInit();
     } catch (Exception e) {
@@ -121,7 +121,7 @@ public class ServletServer extends GenericServlet {
       root.mkdirs();
     } else if (backend == Backend.DB) {
       HikariConfig config = new HikariConfig();
-      config.setJdbcUrl("jdbc:postgresql://localhost/testdb");
+      config.setJdbcUrl("jdbc:postgresql://" + backendHost + "/testdb");
       config.setUsername("vertx");
       config.setPassword("password");
       config.addDataSourceProperty("cachePrepStmts", "true");
@@ -139,7 +139,7 @@ public class ServletServer extends GenericServlet {
       com.squareup.okhttp.OkHttpClient okHttpClient = new com.squareup.okhttp.OkHttpClient().setConnectionPool(new ConnectionPool(poolSize, 20));
       microService = Feign.builder().client(
           new feign.okhttp.OkHttpClient(okHttpClient)
-      ).target(MicroService.class, "http://" + msHost + ":" + msPort);
+      ).target(MicroService.class, "http://" + backendHost + ":" + backendPort);
     }
   }
 

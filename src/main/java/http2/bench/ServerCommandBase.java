@@ -22,9 +22,9 @@ public abstract class ServerCommandBase extends CommandBase {
   @Parameter(names = "--sleep-time")
   public int sleepTime = 0;
 
-  @Parameter(names = "--ms-host")
-  public String msHost = "localhost";
+  @Parameter(names = "--backend-host")
+  public String backendHost = "localhost";
 
-  @Parameter(names = "--ms-port")
-  public int msPort = 8080;
+  @Parameter(names = "--backend-port")
+  public int backendPort = 8080;
 }

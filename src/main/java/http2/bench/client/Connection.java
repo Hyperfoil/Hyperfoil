@@ -10,6 +10,7 @@ import io.netty.handler.codec.http2.Http2ConnectionEncoder;
 import io.netty.handler.codec.http2.Http2EventAdapter;
 import io.netty.handler.codec.http2.Http2Exception;
 import io.netty.handler.codec.http2.Http2Headers;
+import io.netty.handler.codec.http2.Http2Stream;
 import io.netty.util.collection.IntObjectHashMap;
 import io.netty.util.collection.IntObjectMap;
 
@@ -98,6 +99,15 @@ public class Connection extends Http2EventAdapter {
 
   public int numActiveStreams() {
     return numStreams;
+  }
+
+  public void incrementConnectionWindowSize(int increment) {
+    try {
+      Http2Stream stream = connection.connectionStream();
+      connection.local().flowController().incrementWindowSize(stream, increment);
+    } catch (Http2Exception e) {
+      e.printStackTrace();
+    }
   }
 
   public void request(String method, String path, Consumer<Stream> handler) {

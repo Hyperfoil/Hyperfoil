@@ -3,7 +3,6 @@ package http2.bench.client;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufHolder;
-import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelDuplexHandler;
@@ -236,6 +235,8 @@ class Client {
               }
             }
           }
+          // Use a very large stream window size
+          conn.incrementConnectionWindowSize(1073676288 - 65535);
           if (handler != null) {
             handler.accept(null);
           }

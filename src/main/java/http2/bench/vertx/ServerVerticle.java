@@ -16,8 +16,10 @@ import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.core.net.JdkSSLEngineOptions;
+import io.vertx.core.net.OpenSSLEngineOptions;
 import io.vertx.core.net.PemKeyCertOptions;
-import io.vertx.core.net.SSLEngine;
+import io.vertx.core.net.SSLEngineOptions;
 import io.vertx.core.streams.Pump;
 import io.vertx.ext.asyncsql.AsyncSQLClient;
 import io.vertx.ext.asyncsql.PostgreSQLClient;
@@ -33,13 +35,13 @@ public class ServerVerticle extends AbstractVerticle {
 
   private static final AtomicBoolean dbInitialized = new AtomicBoolean();
 
-  private SSLEngine engine;
+  private SSLEngineOptions engine;
   private Backend backend;
   private int soAcceptBacklog;
   private int poolSize;
   private int sleepTime;
-  private String msHost;
-  private int msPort;
+  private String backendHost;
+  private int backendPort;
 
   public ServerVerticle() {
   }
@@ -49,11 +51,11 @@ public class ServerVerticle extends AbstractVerticle {
 
     backend = Backend.valueOf(context.config().getString("backend"));
     soAcceptBacklog = context.config().getInteger("soAcceptBacklog");
-    engine = SSLEngine.valueOf(config().getString("sslEngine"));
+    engine = config().getBoolean("openSSL") ? new OpenSSLEngineOptions() : new JdkSSLEngineOptions();
     poolSize = config().getInteger("poolSize");
     sleepTime = config().getInteger("sleepTime");
-    msHost = config().getString("msHost");
-    msPort = config().getInteger("msPort");
+    backendHost = config().getString("backendHost");
+    backendPort = config().getInteger("backendPort");
 
 
     HttpClient httpClient = vertx.createHttpClient(new HttpClientOptions().
@@ -65,7 +67,7 @@ public class ServerVerticle extends AbstractVerticle {
     AsyncSQLClient client;
     if (backend == Backend.DB) {
       JsonObject postgreSQLClientConfig = new JsonObject().
-          put("host", "localhost").
+          put("host", backendHost).
           put("maxPoolSize", poolSize);
       client = PostgreSQLClient.createNonShared(vertx, postgreSQLClientConfig);
       if (dbInitialized.compareAndSet(false, true)) {
@@ -94,7 +96,7 @@ public class ServerVerticle extends AbstractVerticle {
     HttpServer server = vertx.createHttpServer(new HttpServerOptions()
         .setSsl(true)
         .setUseAlpn(true)
-        .setSslEngine(engine)
+        .setSslEngineOptions(engine)
         .setAcceptBacklog(soAcceptBacklog)
         .addEnabledCipherSuite("TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256")
         .setPort(config().getInteger("port"))
@@ -169,7 +171,7 @@ public class ServerVerticle extends AbstractVerticle {
       } else if (backend == Backend.MICROSERVICE) {
         if (req.method() == HttpMethod.POST) {
           req.bodyHandler(buff -> {
-            HttpClientRequest clientReq = httpClient.post(msPort, msHost, "/", clientResp -> {
+            HttpClientRequest clientReq = httpClient.post(backendPort, backendHost, "/", clientResp -> {
               clientResp.endHandler(v -> {
                 sendResponse(req, "<html><body>OK</body></html>");
               });
@@ -178,7 +180,7 @@ public class ServerVerticle extends AbstractVerticle {
           });
         } else {
           req.endHandler(v1 -> {
-            httpClient.getNow(msPort, msHost, "/", clientResp -> {
+            httpClient.getNow(backendPort, backendHost, "/", clientResp -> {
               clientResp.endHandler(v2 -> {
                 sendResponse(req, "<html><body>OK</body></html>");
               });
