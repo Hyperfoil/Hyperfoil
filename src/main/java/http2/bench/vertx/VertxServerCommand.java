@@ -27,6 +27,7 @@ public class VertxServerCommand extends ServerCommandBase {
     Vertx vertx = Vertx.vertx(new VertxOptions().setInternalBlockingPoolSize(internalBlockingPoolSize));
     DeploymentOptions options = new DeploymentOptions().setInstances(instances);
     options.setConfig(new JsonObject().
+        put("clearText", clearText).
         put("port", port).
         put("openSSL", openSSL).
         put("soAcceptBacklog", soBacklog).

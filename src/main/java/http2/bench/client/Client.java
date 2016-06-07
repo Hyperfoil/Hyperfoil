@@ -7,7 +7,9 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
@@ -15,9 +17,15 @@ import io.netty.channel.ChannelPromise;
 import io.netty.channel.EventLoop;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.codec.http.DefaultFullHttpRequest;
+import io.netty.handler.codec.http.HttpClientCodec;
+import io.netty.handler.codec.http.HttpClientUpgradeHandler;
+import io.netty.handler.codec.http.HttpMethod;
+import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http2.AbstractHttp2ConnectionHandlerBuilder;
 import io.netty.handler.codec.http2.DefaultHttp2Connection;
 import io.netty.handler.codec.http2.DefaultHttp2Headers;
+import io.netty.handler.codec.http2.Http2ClientUpgradeCodec;
 import io.netty.handler.codec.http2.Http2Connection;
 import io.netty.handler.codec.http2.Http2ConnectionDecoder;
 import io.netty.handler.codec.http2.Http2ConnectionEncoder;
@@ -186,22 +194,44 @@ class Client {
             super.write(ctx, msg, promise);
           }
         });
-        ch.pipeline().addLast(sslContext.newHandler(ch.alloc()));
-        ch.pipeline().addLast(new ApplicationProtocolNegotiationHandler("http/1.1") {
-          @Override
-          protected void configurePipeline(ChannelHandlerContext ctx, String protocol) {
-            if (ApplicationProtocolNames.HTTP_2.equals(protocol)) {
-              ChannelPipeline p = ctx.pipeline();
-              Http2Connection connection = new DefaultHttp2Connection(false);
-              TestClientHandlerBuilder clientHandlerBuilder = new TestClientHandlerBuilder(handler);
-              TestClientHandler clientHandler = clientHandlerBuilder.build(connection);
-              p.addLast(clientHandler);
-              return;
+
+        TestClientHandlerBuilder clientHandlerBuilder = new TestClientHandlerBuilder(handler);
+
+        if (sslContext != null) {
+          ch.pipeline().addLast(sslContext.newHandler(ch.alloc()));
+          ch.pipeline().addLast(new ApplicationProtocolNegotiationHandler("http/1.1") {
+            @Override
+            protected void configurePipeline(ChannelHandlerContext ctx, String protocol) {
+              if (ApplicationProtocolNames.HTTP_2.equals(protocol)) {
+                ChannelPipeline p = ctx.pipeline();
+                Http2Connection connection = new DefaultHttp2Connection(false);
+                TestClientHandler clientHandler = clientHandlerBuilder.build(connection);
+                p.addLast(clientHandler);
+                return;
+              }
+              ctx.close();
+              throw new IllegalStateException("unknown protocol: " + protocol);
             }
-            ctx.close();
-            throw new IllegalStateException("unknown protocol: " + protocol);
-          }
-        });
+          });
+        } else {
+          Http2Connection connection = new DefaultHttp2Connection(false);
+          TestClientHandler clientHandler = clientHandlerBuilder.build(connection);
+          HttpClientCodec sourceCodec = new HttpClientCodec();
+          Http2ClientUpgradeCodec upgradeCodec = new Http2ClientUpgradeCodec(clientHandler);
+          HttpClientUpgradeHandler upgradeHandler = new HttpClientUpgradeHandler(sourceCodec, upgradeCodec, 65536);
+          ChannelHandler upgradeRequestHandler = new ChannelInboundHandlerAdapter() {
+            @Override
+            public void channelActive(ChannelHandlerContext ctx) throws Exception {
+              DefaultFullHttpRequest upgradeRequest = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "/");
+              ctx.writeAndFlush(upgradeRequest);
+              ctx.fireChannelActive();
+              ctx.pipeline().remove(this);
+            }
+          };
+          ch.pipeline().addLast(sourceCodec,
+              upgradeHandler,
+              upgradeRequestHandler);
+        }
       }
     };
   }

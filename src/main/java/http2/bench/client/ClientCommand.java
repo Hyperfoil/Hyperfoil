@@ -149,22 +149,24 @@ public class ClientCommand extends CommandBase {
     port = absoluteURI.getPort();
     path = absoluteURI.getPath();
 
-    SslProvider provider = OpenSsl.isAlpnSupported() ? SslProvider.OPENSSL : SslProvider.JDK;
-    sslCtx = SslContextBuilder.forClient()
-        .sslProvider(provider)
+    if (absoluteURI.getScheme().equals("https")) {
+      SslProvider provider = OpenSsl.isAlpnSupported() ? SslProvider.OPENSSL : SslProvider.JDK;
+      sslCtx = SslContextBuilder.forClient()
+          .sslProvider(provider)
                 /* NOTE: the cipher filter may not include all ciphers required by the HTTP/2 specification.
                  * Please refer to the HTTP/2 specification for cipher requirements. */
-        .ciphers(Http2SecurityUtil.CIPHERS, SupportedCipherSuiteFilter.INSTANCE)
-        .trustManager(InsecureTrustManagerFactory.INSTANCE)
-        .applicationProtocolConfig(new ApplicationProtocolConfig(
-            ApplicationProtocolConfig.Protocol.ALPN,
-            // NO_ADVERTISE is currently the only mode supported by both OpenSsl and JDK providers.
-            ApplicationProtocolConfig.SelectorFailureBehavior.NO_ADVERTISE,
-            // ACCEPT is currently the only mode supported by both OpenSsl and JDK providers.
-            ApplicationProtocolConfig.SelectedListenerFailureBehavior.ACCEPT,
-            ApplicationProtocolNames.HTTP_2,
-            ApplicationProtocolNames.HTTP_1_1))
-        .build();
+          .ciphers(Http2SecurityUtil.CIPHERS, SupportedCipherSuiteFilter.INSTANCE)
+          .trustManager(InsecureTrustManagerFactory.INSTANCE)
+          .applicationProtocolConfig(new ApplicationProtocolConfig(
+              ApplicationProtocolConfig.Protocol.ALPN,
+              // NO_ADVERTISE is currently the only mode supported by both OpenSsl and JDK providers.
+              ApplicationProtocolConfig.SelectorFailureBehavior.NO_ADVERTISE,
+              // ACCEPT is currently the only mode supported by both OpenSsl and JDK providers.
+              ApplicationProtocolConfig.SelectedListenerFailureBehavior.ACCEPT,
+              ApplicationProtocolNames.HTTP_2,
+              ApplicationProtocolNames.HTTP_1_1))
+          .build();
+    }
 
     client = new Client(workerGroup, sslCtx, clientsParam, port, host);
     System.out.println("starting benchmark...");

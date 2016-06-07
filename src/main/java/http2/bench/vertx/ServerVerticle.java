@@ -42,6 +42,7 @@ public class ServerVerticle extends AbstractVerticle {
   private int sleepTime;
   private String backendHost;
   private int backendPort;
+  private boolean clearText;
 
   public ServerVerticle() {
   }
@@ -56,7 +57,7 @@ public class ServerVerticle extends AbstractVerticle {
     sleepTime = config().getInteger("sleepTime");
     backendHost = config().getString("backendHost");
     backendPort = config().getInteger("backendPort");
-
+    clearText = config().getBoolean("clearText");
 
     HttpClient httpClient = vertx.createHttpClient(new HttpClientOptions().
         setKeepAlive(true).
@@ -94,14 +95,18 @@ public class ServerVerticle extends AbstractVerticle {
       dbFuture.complete();
     }
 
-    HttpServer server = vertx.createHttpServer(new HttpServerOptions()
-        .setSsl(true)
-        .setUseAlpn(true)
-        .setSslEngineOptions(engine)
+    HttpServerOptions options = new HttpServerOptions()
         .setAcceptBacklog(soAcceptBacklog)
-        .addEnabledCipherSuite("TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256")
-        .setPort(config().getInteger("port"))
-        .setPemKeyCertOptions(new PemKeyCertOptions().setKeyPath("tls/server-key.pem").setCertPath("tls/server-cert.pem")));
+        .setPort(config().getInteger("port"));
+    if (!clearText) {
+      options.setSsl(true);
+      options.setUseAlpn(true);
+      options.setSslEngineOptions(engine);
+      options.addEnabledCipherSuite("TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256");
+      options.setPemKeyCertOptions(new PemKeyCertOptions().setKeyPath("tls/server-key.pem").setCertPath("tls/server-cert.pem"));
+    }
+
+    HttpServer server = vertx.createHttpServer(options);
 
     FileSystem fs = vertx.fileSystem();
     if (!fs.existsBlocking("vertx.uploads")) {

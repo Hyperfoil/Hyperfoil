@@ -8,6 +8,7 @@ import io.undertow.Handlers;
 import io.undertow.Undertow;
 import io.undertow.UndertowOptions;
 import io.undertow.server.HttpHandler;
+import io.undertow.server.protocol.http2.Http2UpgradeHandler;
 import io.undertow.servlet.Servlets;
 import io.undertow.servlet.api.DeploymentInfo;
 import io.undertow.servlet.api.DeploymentManager;
@@ -38,7 +39,7 @@ public class UndertowServerCommand extends ServerCommandBase {
   public boolean async = false;
 
   public void run() throws Exception {
-    SSLContext sslContext = createSSLContext();
+    SSLContext sslContext = clearText ? null : createSSLContext();
     HttpHandler handler;
     DeploymentInfo servletBuilder = Servlets.deployment()
         .setClassLoader(UndertowServerCommand.class.getClassLoader())
@@ -57,14 +58,18 @@ public class UndertowServerCommand extends ServerCommandBase {
     DeploymentManager manager = Servlets.defaultContainer().addDeployment(servletBuilder);
     manager.deploy();
     handler = Handlers.path(Handlers.redirect("/")).addPrefixPath("/", manager.start());
-    Undertow server = Undertow.builder()
+    Undertow.Builder builder = Undertow.builder()
         .setSocketOption(Options.SSL_SUPPORTED_CIPHER_SUITES, Sequence.of("TLS-ECDHE-RSA-AES128-GCM-SHA256"))
         .setSocketOption(Options.BACKLOG, soBacklog)
         .setServerOption(UndertowOptions.ENABLE_HTTP2, true)
         .setWorkerThreads(workerThreads)
-        .setIoThreads(ioThreads)
-        .addHttpsListener(port, "0.0.0.0", sslContext)
-        .setHandler(handler).build();
+        .setIoThreads(ioThreads);
+    if (clearText) {
+      builder.addHttpListener(port, "0.0.0.0").setHandler(new Http2UpgradeHandler(handler));
+    } else {
+      builder.addHttpsListener(port, "0.0.0.0", sslContext).setHandler(handler);
+    }
+    Undertow server = builder.build();
     server.start();
   }
 

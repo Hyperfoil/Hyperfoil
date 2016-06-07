@@ -7,6 +7,9 @@ import com.beust.jcommander.Parameter;
  */
 public abstract class ServerCommandBase extends CommandBase {
 
+  @Parameter(names = "--clear-text")
+  public boolean clearText;
+
   @Parameter(names = "--port")
   public int port = 8443;
 
