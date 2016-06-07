@@ -40,7 +40,7 @@ public class Pacer {
   /**
    * @return the time for the next operation
    */
-  private long expectedNextOperationNanoTime() {
+  long expectedNextOperationNanoTime() {
     return initialStartTime + (long) (unitsCompleted / throughputInUnitsPerNsec);
   }
 

@@ -30,7 +30,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.LongAdder;
-import java.util.function.Consumer;
 
 /**
  * Todo : use pool buffers wherever possible
@@ -46,8 +45,8 @@ public class ClientCommand extends CommandBase {
   @Parameter(names = {"-c","--connections"})
   public int clientsParam = 1;
 
-  @Parameter(names = "--latency")
-  public String latencyParam = null;
+  @Parameter(names = "--histogram")
+  public String histogramParam = null;
 
   @Parameter(names = {"-b", "--body"})
   public String bodyParam = null;
@@ -66,7 +65,7 @@ public class ClientCommand extends CommandBase {
 
   private ByteBuf payload;
   private String payloadLength;
-  private AtomicInteger connectFailures = new AtomicInteger();
+  private AtomicInteger connectFailureCount = new AtomicInteger();
   private AtomicInteger requestCount = new AtomicInteger();
   private AtomicInteger responseCount = new AtomicInteger();
   private AtomicInteger status_2xx = new AtomicInteger();
@@ -75,16 +74,15 @@ public class ClientCommand extends CommandBase {
   private AtomicInteger status_5xx = new AtomicInteger();
   private AtomicInteger status_other = new AtomicInteger();
   private AtomicInteger[] statuses = { status_2xx, status_3xx, status_4xx, status_5xx, status_other };
-  private AtomicInteger reset = new AtomicInteger();
+  private AtomicInteger resetCount = new AtomicInteger();
   private LongAdder missedRequests = new LongAdder();
   private long duration;
   private long warmup;
   private String host;
   private int port;
   private String path;
-  private Histogram histogram = new ConcurrentHistogram(3600000000000L, 2);
+  private Histogram histogram = new ConcurrentHistogram(TimeUnit.MINUTES.toNanos(1), 2);
   private volatile long startTime;
-  private volatile long endTime;
   private final EventLoopGroup workerGroup = new NioEventLoopGroup();
   private SslContext sslCtx;
   private Client client;
@@ -175,7 +173,7 @@ public class ClientCommand extends CommandBase {
   }
 
   private double ratio() {
-    long end = Math.min(System.nanoTime(), endTime);
+    long end = Math.min(System.nanoTime(), startTime + duration);
     long expected = rateParam * (end - startTime) / 1000000000;
     return requestCount.get() / (double)expected;
   }
@@ -193,7 +191,7 @@ public class ClientCommand extends CommandBase {
       scheduler.schedule(() -> {
         System.out.format("progress: %d%% done. total requests/responses %d/%d, ratio %.2f, read %d kb/s, written %d kb/s%n", ((count + 1) * 100) / total, requestCount.get(), responseCount.get(), ratio(), readThroughput(), writeThroughput());
         printDetail(scheduler, count + 1, total);
-      }, (endTime - startTime) / 10, TimeUnit.NANOSECONDS);
+      }, duration / 10, TimeUnit.NANOSECONDS);
     }
   }
 
@@ -215,7 +213,6 @@ public class ClientCommand extends CommandBase {
     runSlots(warmup);
     System.out.println("working on it...");
     startTime = System.nanoTime();
-    endTime = startTime + duration;
     requestCount.set(0);
     responseCount.set(0);
     client.resetStatistics();
@@ -261,8 +258,9 @@ public class ClientCommand extends CommandBase {
           Connection conn = client.choose(maxConcurrentStream);
           if (conn != null) {
             remainingInSlot--;
-            doRequest(conn);
+            long expectedStartTimeNanos = pacer.expectedNextOperationNanoTime();
             pacer.acquire(1);
+            doRequest(conn, expectedStartTimeNanos);
           } else {
             // Should we sleep a little ????
           }
@@ -279,7 +277,7 @@ public class ClientCommand extends CommandBase {
     }
   }
 
-  private void doRequest(Connection conn) {
+  private void doRequest(Connection conn, long expectedStartTimeNanos) {
     requestCount.incrementAndGet();
     long startTime = System.nanoTime();
     conn.request(payload != null ? "POST" : "GET", path, stream -> {
@@ -295,11 +293,12 @@ public class ClientCommand extends CommandBase {
             } catch (NumberFormatException ignore) {
             }
           }).resetHandler(frame -> {
-        reset.incrementAndGet();
+        resetCount.incrementAndGet();
       }).endHandler(v -> {
         responseCount.incrementAndGet();
         long endTime = System.nanoTime();
-        histogram.recordValueWithExpectedInterval((endTime - startTime) / 1000, 255);
+        long durationMillis = endTime - startTime;
+        histogram.recordValue(durationMillis);
       });
       if (payload != null) {
         stream.end(payload.duplicate());
@@ -310,28 +309,31 @@ public class ClientCommand extends CommandBase {
   }
 
   private void end() {
-    long expectedRequests = (long)(rateParam * duration / 1000D);
-    double elapsedSeconds = elapsedTime();
+    long expectedRequests = rateParam * TimeUnit.NANOSECONDS.toSeconds(duration);
+    double elapsedSeconds = TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - startTime);
     Histogram cp = histogram.copy();
+    cp.setStartTimeStamp(TimeUnit.NANOSECONDS.toMillis(startTime));
+    cp.setEndTimeStamp(TimeUnit.NANOSECONDS.toMillis(System.nanoTime()));
     System.out.format("finished in %.2fs, %.2fs req/s, %.2fs ratio%n", elapsedSeconds, responseCount.get() / elapsedSeconds,ratio());
-    System.out.format("requests: %d total, %d errored, %d expected%n", responseCount.get(), connectFailures.get(), expectedRequests);
+    System.out.format("requests: %d total, %d errored, %d expected%n", responseCount.get(), connectFailureCount.get() + resetCount.get(), expectedRequests);
     System.out.format("status codes: %d 2xx, %d 3xx, %d 4xx, %d 5xx, %d others%n", statuses[0].get(), statuses[1].get(), statuses[2].get(), statuses[3].get(), statuses[4].get());
     System.out.format("bytes read: %d%n", client.bytesRead());
     System.out.format("bytes written: %d%n", client.bytesWritten());
     System.out.format("missed requests: %d%n", missedRequests.longValue());
     try {
-      System.out.println("mean   = " + cp.getMean());
-      System.out.println("max    = " + cp.getMaxValueAsDouble());
-      System.out.println("90%    = " + cp.getValueAtPercentile(0.90));
-      System.out.println("99%    = " + cp.getValueAtPercentile(0.99));
-      System.out.println("99.9%  = " + cp.getValueAtPercentile(0.999));
-      System.out.println("99.99% = " + cp.getValueAtPercentile(0.9999));
+      System.out.println("min    = " + TimeUnit.NANOSECONDS.toMillis(cp.getMinValue()));
+      System.out.println("max    = " + TimeUnit.NANOSECONDS.toMillis(cp.getMaxValue()));
+      System.out.println("50%    = " + TimeUnit.NANOSECONDS.toMillis(cp.getValueAtPercentile(50)));
+      System.out.println("90%    = " + TimeUnit.NANOSECONDS.toMillis(cp.getValueAtPercentile(90)));
+      System.out.println("99%    = " + TimeUnit.NANOSECONDS.toMillis(cp.getValueAtPercentile(99)));
+      System.out.println("99.9%  = " + TimeUnit.NANOSECONDS.toMillis(cp.getValueAtPercentile(99.9)));
+      System.out.println("99.99% = " + TimeUnit.NANOSECONDS.toMillis(cp.getValueAtPercentile(99.99)));
     } catch (Exception e) {
       e.printStackTrace();
     }
-    if (latencyParam != null) {
-      try (PrintStream ps = new PrintStream(latencyParam)) {
-        cp.outputPercentileDistribution(ps, 1000.0);
+    if (histogramParam != null) {
+      try (PrintStream ps = new PrintStream(histogramParam)) {
+        cp.outputPercentileDistribution(ps, 1000000.0);
       } catch(Exception e) {
         e.printStackTrace();
       }
@@ -340,8 +342,4 @@ public class ClientCommand extends CommandBase {
     workerGroup.shutdownGracefully(0, 10, TimeUnit.SECONDS);
   }
 
-  private double elapsedTime() {
-    long elapsed = System.nanoTime() - startTime;
-    return elapsed / 1000000000D;
-  }
 }

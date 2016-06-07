@@ -61,6 +61,7 @@ public class ServerVerticle extends AbstractVerticle {
     HttpClient httpClient = vertx.createHttpClient(new HttpClientOptions().
         setKeepAlive(true).
         setPipelining(true).
+//        setPipeliningLimit(100).
         setMaxPoolSize(poolSize));
 
     Future<Void> dbFuture = Future.future();
