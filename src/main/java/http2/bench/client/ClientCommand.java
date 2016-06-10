@@ -17,6 +17,7 @@ import io.netty.handler.ssl.SslProvider;
 import io.netty.handler.ssl.SupportedCipherSuiteFilter;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpVersion;
 import org.HdrHistogram.ConcurrentHistogram;
 import org.HdrHistogram.Histogram;
 
@@ -39,11 +40,14 @@ import java.util.concurrent.atomic.LongAdder;
 @Parameters()
 public class ClientCommand extends CommandBase {
 
+  @Parameter(names = {"-p", "--protocol"})
+  HttpVersion protocol = HttpVersion.HTTP_2;
+
   @Parameter(names = {"-d", "--duration"})
   public String durationParam = "30s";
 
   @Parameter(names = {"-c", "--connections"})
-  public int clientsParam = 1;
+  public int connections = 1;
 
   @Parameter(names = "--histogram")
   public String histogramParam = null;
@@ -51,8 +55,8 @@ public class ClientCommand extends CommandBase {
   @Parameter(names = {"-b", "--body"})
   public String bodyParam = null;
 
-  @Parameter(names = {"-m", "--max-concurrent-streams"})
-  public int maxConcurrentStream = 1;
+  @Parameter(names = {"-l", "--limit"})
+  public int limit = 1;
 
   @Parameter
   public List<String> uriParam;
@@ -151,26 +155,33 @@ public class ClientCommand extends CommandBase {
 
     if (absoluteURI.getScheme().equals("https")) {
       SslProvider provider = OpenSsl.isAlpnSupported() ? SslProvider.OPENSSL : SslProvider.JDK;
-      sslCtx = SslContextBuilder.forClient()
+      SslContextBuilder builder = SslContextBuilder.forClient()
           .sslProvider(provider)
                 /* NOTE: the cipher filter may not include all ciphers required by the HTTP/2 specification.
                  * Please refer to the HTTP/2 specification for cipher requirements. */
           .ciphers(Http2SecurityUtil.CIPHERS, SupportedCipherSuiteFilter.INSTANCE)
-          .trustManager(InsecureTrustManagerFactory.INSTANCE)
-          .applicationProtocolConfig(new ApplicationProtocolConfig(
-              ApplicationProtocolConfig.Protocol.ALPN,
-              // NO_ADVERTISE is currently the only mode supported by both OpenSsl and JDK providers.
-              ApplicationProtocolConfig.SelectorFailureBehavior.NO_ADVERTISE,
-              // ACCEPT is currently the only mode supported by both OpenSsl and JDK providers.
-              ApplicationProtocolConfig.SelectedListenerFailureBehavior.ACCEPT,
-              ApplicationProtocolNames.HTTP_2,
-              ApplicationProtocolNames.HTTP_1_1))
+          .trustManager(InsecureTrustManagerFactory.INSTANCE);
+      if (protocol == HttpVersion.HTTP_2) {
+            builder.applicationProtocolConfig(new ApplicationProtocolConfig(
+                ApplicationProtocolConfig.Protocol.ALPN,
+                // NO_ADVERTISE is currently the only mode supported by both OpenSsl and JDK providers.
+                ApplicationProtocolConfig.SelectorFailureBehavior.NO_ADVERTISE,
+                // ACCEPT is currently the only mode supported by both OpenSsl and JDK providers.
+                ApplicationProtocolConfig.SelectedListenerFailureBehavior.ACCEPT,
+                ApplicationProtocolNames.HTTP_2,
+                ApplicationProtocolNames.HTTP_1_1));
+      }
+      sslCtx = builder
           .build();
     }
 
-    client = new Http2Client(workerGroup, sslCtx, clientsParam, port, host, maxConcurrentStream);
+    if (protocol == HttpVersion.HTTP_2) {
+      client = new Http2Client(workerGroup, sslCtx, connections, port, host, limit);
+    } else {
+      client = new Http1xClient(workerGroup, sslCtx, connections, port, host, limit);
+    }
     System.out.println("starting benchmark...");
-    System.out.format("%d total client(s)%n", clientsParam);
+    System.out.format("%d total client(s)%n", connections);
     start();
   }
 
@@ -257,14 +268,20 @@ public class ClientCommand extends CommandBase {
           missedRequests.add(remainingInSlot);
           return;
         } else {
-          HttpConnection conn = client.choose(maxConcurrentStream);
+          HttpConnection conn = client.choose();
           if (conn != null) {
             remainingInSlot--;
             long expectedStartTimeNanos = pacer.expectedNextOperationNanoTime();
             pacer.acquire(1);
             doRequest(conn, expectedStartTimeNanos);
           } else {
-            // Should we sleep a little ????
+            // Sleep a little
+/*
+            long stop = System.nanoTime() + 10;
+            while (System.nanoTime() < stop) {
+              Thread.yield();
+            }
+*/
           }
         }
       } else {

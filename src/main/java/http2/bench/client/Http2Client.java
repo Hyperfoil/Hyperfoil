@@ -1,10 +1,7 @@
 package http2.bench.client;
 
 import io.netty.bootstrap.Bootstrap;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufHolder;
 import io.netty.channel.Channel;
-import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
@@ -12,7 +9,6 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
-import io.netty.channel.ChannelPromise;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.DefaultFullHttpRequest;
@@ -35,7 +31,6 @@ import io.netty.handler.ssl.ApplicationProtocolNegotiationHandler;
 import io.netty.handler.ssl.SslContext;
 
 import java.net.InetSocketAddress;
-import java.util.concurrent.atomic.LongAdder;
 import java.util.function.BiConsumer;
 
 /**
@@ -60,14 +55,11 @@ class Http2Client extends HttpClient {
   }
 
   final Http2Settings settings = new Http2Settings();
-  private final LongAdder bytesRead = new LongAdder();
-  private final LongAdder bytesWritten = new LongAdder();
   private final String authority;
-  final int maxConcurrentStream;
+  private final StatisticsHandler statisticsHandler = new StatisticsHandler();
 
   public Http2Client(EventLoopGroup eventLoopGroup, SslContext sslContext, int size, int port, String host, int maxConcurrentStream) {
-    super(eventLoopGroup, sslContext, size, port, host);
-    this.maxConcurrentStream = maxConcurrentStream;
+    super(eventLoopGroup, sslContext, size, port, host, maxConcurrentStream);
     this.authority = host + ":" + port;
   }
 
@@ -133,41 +125,14 @@ class Http2Client extends HttpClient {
 
   protected ChannelInitializer channelInitializer(BiConsumer<HttpConnection, Throwable> handler) {
     return new ChannelInitializer<Channel>() {
-      private int sizeOf(Object msg) {
-        if (msg instanceof ByteBuf) {
-          return ((ByteBuf) msg).readableBytes();
-        } else if (msg instanceof ByteBufHolder) {
-          return ((ByteBufHolder) msg).content().readableBytes();
-        } else {
-          return 0;
-        }
-      }
       @Override
       protected void initChannel(Channel ch) throws Exception {
-        ch.pipeline().addLast(new ChannelDuplexHandler() {
-          @Override
-          public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-            int size = sizeOf(msg);
-            if (size > 0) {
-              bytesRead.add(size);
-            }
-            super.channelRead(ctx, msg);
-          }
-          @Override
-          public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
-            int size = sizeOf(msg);
-            if (size > 0) {
-              bytesWritten.add(size);
-            }
-            super.write(ctx, msg, promise);
-          }
-        });
-
+        ChannelPipeline pipeline = ch.pipeline();
         TestClientHandlerBuilder clientHandlerBuilder = new TestClientHandlerBuilder(handler);
-
         if (sslContext != null) {
-          ch.pipeline().addLast(sslContext.newHandler(ch.alloc()));
-          ch.pipeline().addLast(new ApplicationProtocolNegotiationHandler("http/1.1") {
+          pipeline.addLast(sslContext.newHandler(ch.alloc()));
+          pipeline.addLast(statisticsHandler);
+          pipeline.addLast(new ApplicationProtocolNegotiationHandler("http/1.1") {
             @Override
             protected void configurePipeline(ChannelHandlerContext ctx, String protocol) {
               if (ApplicationProtocolNames.HTTP_2.equals(protocol)) {
@@ -182,6 +147,7 @@ class Http2Client extends HttpClient {
             }
           });
         } else {
+          pipeline.addLast(statisticsHandler);
           io.netty.handler.codec.http2.Http2Connection connection = new DefaultHttp2Connection(false);
           TestClientHandler clientHandler = clientHandlerBuilder.build(connection);
           HttpClientCodec sourceCodec = new HttpClientCodec();
@@ -196,7 +162,7 @@ class Http2Client extends HttpClient {
               ctx.pipeline().remove(this);
             }
           };
-          ch.pipeline().addLast(sourceCodec,
+          pipeline.addLast(sourceCodec,
               upgradeHandler,
               upgradeRequestHandler);
         }
@@ -223,15 +189,14 @@ class Http2Client extends HttpClient {
   }
 
   public long bytesRead() {
-    return bytesRead.longValue();
+    return statisticsHandler.bytesRead();
   }
 
   public long bytesWritten() {
-    return bytesWritten.longValue();
+    return statisticsHandler.bytesWritten();
   }
 
   public void resetStatistics() {
-    bytesRead.reset();
-    bytesWritten.reset();
+    statisticsHandler.reset();
   }
 }

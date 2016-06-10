@@ -1,7 +1,6 @@
 package http2.bench.client;
 
 import io.netty.buffer.Unpooled;
-import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.EventLoop;
 import io.netty.channel.EventLoopGroup;
@@ -18,6 +17,7 @@ import java.util.function.Consumer;
  */
 abstract class HttpClient {
 
+  final int maxConcurrentStream;
   private final int size;
   private final int port;
   private final String host;
@@ -30,7 +30,8 @@ abstract class HttpClient {
   private Consumer<Void> startedHandler;
   private boolean shutdown;
 
-  public HttpClient(EventLoopGroup eventLoopGroup, SslContext sslContext, int size, int port, String host) {
+  public HttpClient(EventLoopGroup eventLoopGroup, SslContext sslContext, int size, int port, String host, int maxConcurrentStream) {
+    this.maxConcurrentStream = maxConcurrentStream;
     this.eventLoopGroup = eventLoopGroup;
     this.sslContext = sslContext;
     this.size = size;
@@ -107,7 +108,7 @@ abstract class HttpClient {
     return all.size();
   }
 
-  synchronized HttpConnection choose(int maxConcurrentStream) {
+  synchronized HttpConnection choose() {
     int size = all.size();
     for (int i = 0; i < size; i++) {
       index %= size;

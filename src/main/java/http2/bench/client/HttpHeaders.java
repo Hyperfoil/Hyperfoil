@@ -1,5 +1,6 @@
 package http2.bench.client;
 
+import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http2.Http2Headers;
 
 /**
@@ -8,6 +9,10 @@ import io.netty.handler.codec.http2.Http2Headers;
 class HttpHeaders {
 
   final int status;
+
+  public HttpHeaders(HttpResponse response) {
+    status = response.status().code();
+  }
 
   public HttpHeaders(Http2Headers headers) {
     int s = -1;
