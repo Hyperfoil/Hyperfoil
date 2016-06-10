@@ -39,10 +39,10 @@ import java.util.concurrent.atomic.LongAdder;
 @Parameters()
 public class ClientCommand extends CommandBase {
 
-  @Parameter(names = {"-d","--duration"})
+  @Parameter(names = {"-d", "--duration"})
   public String durationParam = "30s";
 
-  @Parameter(names = {"-c","--connections"})
+  @Parameter(names = {"-c", "--connections"})
   public int clientsParam = 1;
 
   @Parameter(names = "--histogram")
@@ -73,7 +73,7 @@ public class ClientCommand extends CommandBase {
   private AtomicInteger status_4xx = new AtomicInteger();
   private AtomicInteger status_5xx = new AtomicInteger();
   private AtomicInteger status_other = new AtomicInteger();
-  private AtomicInteger[] statuses = { status_2xx, status_3xx, status_4xx, status_5xx, status_other };
+  private AtomicInteger[] statuses = {status_2xx, status_3xx, status_4xx, status_5xx, status_other};
   private AtomicInteger resetCount = new AtomicInteger();
   private LongAdder missedRequests = new LongAdder();
   private long duration;
@@ -85,7 +85,7 @@ public class ClientCommand extends CommandBase {
   private volatile long startTime;
   private final EventLoopGroup workerGroup = new NioEventLoopGroup();
   private SslContext sslCtx;
-  private Client client;
+  private HttpClient client;
 
   private static long parseDuration(String s) {
     TimeUnit unit;
@@ -123,8 +123,8 @@ public class ClientCommand extends CommandBase {
         if (size > 0) {
           byte[] bytes = new byte[size];
           Random r = new Random();
-          for (int i = 0;i < bytes.length;i++) {
-            bytes[i] = (byte)('A' + r.nextInt(27));
+          for (int i = 0; i < bytes.length; i++) {
+            bytes[i] = (byte) ('A' + r.nextInt(27));
           }
           payload = Buffer.buffer(bytes).getByteBuf();
         }
@@ -168,7 +168,7 @@ public class ClientCommand extends CommandBase {
           .build();
     }
 
-    client = new Client(workerGroup, sslCtx, clientsParam, port, host);
+    client = new Http2Client(workerGroup, sslCtx, clientsParam, port, host, maxConcurrentStream);
     System.out.println("starting benchmark...");
     System.out.format("%d total client(s)%n", clientsParam);
     start();
@@ -177,7 +177,7 @@ public class ClientCommand extends CommandBase {
   private double ratio() {
     long end = Math.min(System.nanoTime(), startTime + duration);
     long expected = rateParam * (end - startTime) / 1000000000;
-    return requestCount.get() / (double)expected;
+    return requestCount.get() / (double) expected;
   }
 
   private long readThroughput() {
@@ -220,15 +220,15 @@ public class ClientCommand extends CommandBase {
     client.resetStatistics();
     missedRequests.reset();
     printDetail(workerGroup.next(), 0, 10);
-    int numSlots = (int)(duration / 1000000000);
-    long lastSlot = (int)(duration % 1000000000);
+    int numSlots = (int) (duration / 1000000000);
+    long lastSlot = (int) (duration % 1000000000);
     startSlot(numSlots, lastSlot);
     end();
   }
 
   private void runSlots(long duration) {
     if (duration > 0) {
-      int numSlots = (int)(duration / 1000000000);
+      int numSlots = (int) (duration / 1000000000);
       long lastSlot = duration % 1000000000;
       startSlot(numSlots, lastSlot);
     }
@@ -257,7 +257,7 @@ public class ClientCommand extends CommandBase {
           missedRequests.add(remainingInSlot);
           return;
         } else {
-          Connection conn = client.choose(maxConcurrentStream);
+          HttpConnection conn = client.choose(maxConcurrentStream);
           if (conn != null) {
             remainingInSlot--;
             long expectedStartTimeNanos = pacer.expectedNextOperationNanoTime();
@@ -279,7 +279,7 @@ public class ClientCommand extends CommandBase {
     }
   }
 
-  private void doRequest(Connection conn, long expectedStartTimeNanos) {
+  private void doRequest(HttpConnection conn, long expectedStartTimeNanos) {
     requestCount.incrementAndGet();
     long startTime = System.nanoTime();
     conn.request(payload != null ? "POST" : "GET", path, stream -> {
@@ -287,14 +287,11 @@ public class ClientCommand extends CommandBase {
         stream.putHeader("content-length", payloadLength);
       }
       stream.headersHandler(frame -> {
-            try {
-              int status = (Integer.parseInt(frame.headers.status().toString()) - 200) / 100;
-              if (status >= 0 && status < statuses.length) {
-                statuses[status].incrementAndGet();
-              }
-            } catch (NumberFormatException ignore) {
-            }
-          }).resetHandler(frame -> {
+        int status = frame.status();
+        if (status >= 0 && status < statuses.length) {
+          statuses[status].incrementAndGet();
+        }
+      }).resetHandler(frame -> {
         resetCount.incrementAndGet();
       }).endHandler(v -> {
         responseCount.incrementAndGet();
@@ -316,7 +313,7 @@ public class ClientCommand extends CommandBase {
     Histogram cp = histogram.copy();
     cp.setStartTimeStamp(TimeUnit.NANOSECONDS.toMillis(startTime));
     cp.setEndTimeStamp(TimeUnit.NANOSECONDS.toMillis(System.nanoTime()));
-    System.out.format("finished in %.2fs, %.2fs req/s, %.2fs ratio%n", elapsedSeconds, responseCount.get() / elapsedSeconds,ratio());
+    System.out.format("finished in %.2fs, %.2fs req/s, %.2fs ratio%n", elapsedSeconds, responseCount.get() / elapsedSeconds, ratio());
     System.out.format("requests: %d total, %d errored, %d expected%n", responseCount.get(), connectFailureCount.get() + resetCount.get(), expectedRequests);
     System.out.format("status codes: %d 2xx, %d 3xx, %d 4xx, %d 5xx, %d others%n", statuses[0].get(), statuses[1].get(), statuses[2].get(), statuses[3].get(), statuses[4].get());
     System.out.format("bytes read: %d%n", client.bytesRead());
@@ -332,7 +329,7 @@ public class ClientCommand extends CommandBase {
     if (histogramParam != null) {
       try (PrintStream ps = new PrintStream(histogramParam)) {
         cp.outputPercentileDistribution(ps, 1000000.0);
-      } catch(Exception e) {
+      } catch (Exception e) {
         e.printStackTrace();
       }
     }

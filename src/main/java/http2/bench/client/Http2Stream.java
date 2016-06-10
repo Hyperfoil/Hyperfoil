@@ -4,14 +4,13 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http2.Http2ConnectionEncoder;
 import io.netty.handler.codec.http2.Http2Headers;
-import io.vertx.core.buffer.Buffer;
 
 import java.util.function.Consumer;
 
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
  */
-class Stream {
+class Http2Stream implements HttpStream {
 
   private final ChannelHandlerContext ctx;
   private final Http2ConnectionEncoder encoder;
@@ -20,12 +19,12 @@ class Stream {
   boolean ended;
   final String method;
   final int id;
-  Consumer<HeadersFrame> headersHandler;
-  Consumer<DataFrame> dataHandler;
+  Consumer<HttpHeaders> headersHandler;
+  Consumer<ByteBuf> dataHandler;
   Consumer<RstFrame> resetHandler;
   Consumer<Void> endHandler;
 
-  public Stream(Client client, ChannelHandlerContext ctx, Http2ConnectionEncoder encoder, int id, String method, String path) {
+  public Http2Stream(Http2Client client, ChannelHandlerContext ctx, Http2ConnectionEncoder encoder, int id, String method, String path) {
     this.ctx = ctx;
     this.encoder = encoder;
     this.id = id;
@@ -33,27 +32,27 @@ class Stream {
     this.headers = client.headers(method, "https", path);
   }
 
-  public Stream putHeader(String name, String value) {
+  public Http2Stream putHeader(String name, String value) {
     headers.add(name, value);
     return this;
   }
 
-  public Stream headersHandler(Consumer<HeadersFrame> handler) {
+  public Http2Stream headersHandler(Consumer<HttpHeaders> handler) {
     headersHandler = handler;
     return this;
   }
 
-  public Stream dataHandler(Consumer<DataFrame> handler) {
+  public Http2Stream dataHandler(Consumer<ByteBuf> handler) {
     dataHandler = handler;
     return this;
   }
 
-  public Stream resetHandler(Consumer<RstFrame> handler) {
+  public Http2Stream resetHandler(Consumer<RstFrame> handler) {
     resetHandler = handler;
     return this;
   }
 
-  public Stream endHandler(Consumer<Void> handler) {
+  public Http2Stream endHandler(Consumer<Void> handler) {
     endHandler = handler;
     return this;
   }
@@ -70,7 +69,4 @@ class Stream {
     ctx.flush();
   }
 
-  public void end() {
-    end(null);
-  }
 }
