@@ -322,17 +322,13 @@ public class ClientCommand extends CommandBase {
     System.out.format("bytes read: %d%n", client.bytesRead());
     System.out.format("bytes written: %d%n", client.bytesWritten());
     System.out.format("missed requests: %d%n", missedRequests.longValue());
-    try {
-      System.out.println("min    = " + TimeUnit.NANOSECONDS.toMillis(cp.getMinValue()));
-      System.out.println("max    = " + TimeUnit.NANOSECONDS.toMillis(cp.getMaxValue()));
-      System.out.println("50%    = " + TimeUnit.NANOSECONDS.toMillis(cp.getValueAtPercentile(50)));
-      System.out.println("90%    = " + TimeUnit.NANOSECONDS.toMillis(cp.getValueAtPercentile(90)));
-      System.out.println("99%    = " + TimeUnit.NANOSECONDS.toMillis(cp.getValueAtPercentile(99)));
-      System.out.println("99.9%  = " + TimeUnit.NANOSECONDS.toMillis(cp.getValueAtPercentile(99.9)));
-      System.out.println("99.99% = " + TimeUnit.NANOSECONDS.toMillis(cp.getValueAtPercentile(99.99)));
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
+    System.out.println("min    = " + TimeUnit.NANOSECONDS.toMillis(cp.getMinValue()));
+    System.out.println("max    = " + TimeUnit.NANOSECONDS.toMillis(cp.getMaxValue()));
+    System.out.println("50%    = " + TimeUnit.NANOSECONDS.toMillis(cp.getValueAtPercentile(50)));
+    System.out.println("90%    = " + TimeUnit.NANOSECONDS.toMillis(cp.getValueAtPercentile(90)));
+    System.out.println("99%    = " + TimeUnit.NANOSECONDS.toMillis(cp.getValueAtPercentile(99)));
+    System.out.println("99.9%  = " + TimeUnit.NANOSECONDS.toMillis(cp.getValueAtPercentile(99.9)));
+    System.out.println("99.99% = " + TimeUnit.NANOSECONDS.toMillis(cp.getValueAtPercentile(99.99)));
     if (histogramParam != null) {
       try (PrintStream ps = new PrintStream(histogramParam)) {
         cp.outputPercentileDistribution(ps, 1000000.0);
