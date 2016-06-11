@@ -1,4 +1,4 @@
-package http2.bench.microservice;
+package http2.bench.backend;
 
 import io.vertx.core.Context;
 import io.vertx.core.Handler;

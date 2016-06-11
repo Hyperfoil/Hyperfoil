@@ -1,4 +1,4 @@
-package http2.bench.microservice;
+package http2.bench.backend;
 
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
@@ -18,7 +18,7 @@ import io.vertx.core.streams.Pump;
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
  */
 @Parameters()
-public class MicroServiceCommand extends CommandBase {
+public class HttpBackendCommand extends CommandBase {
 
   @Parameter(names = "--port")
   public int port = 8080;

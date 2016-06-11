@@ -2,7 +2,7 @@ package http2.bench.servlet;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-import http2.bench.Backend;
+import http2.bench.BackendType;
 import okhttp3.ConnectionPool;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -35,7 +35,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class ServletServer extends GenericServlet {
 
-  private Backend backend;
+  private BackendType backend;
   private boolean async;
   private File root;
   private int poolSize;
@@ -45,11 +45,11 @@ public class ServletServer extends GenericServlet {
   private String backendHost;
   private int backendPort;
 
-  public Backend getBackend() {
+  public BackendType getBackend() {
     return backend;
   }
 
-  public void setBackend(Backend backend) {
+  public void setBackend(BackendType backend) {
     this.backend = backend;
   }
 
@@ -104,7 +104,7 @@ public class ServletServer extends GenericServlet {
   @Override
   public void init() throws ServletException {
     ServletConfig cfg = getServletConfig();
-    backend = Backend.valueOf(cfg.getInitParameter("backend"));
+    backend = BackendType.valueOf(cfg.getInitParameter("backend"));
     root = new File(cfg.getInitParameter("root"));
     async = Boolean.valueOf(cfg.getInitParameter("async"));
     poolSize = Integer.parseInt(cfg.getInitParameter("poolSize"));
@@ -119,9 +119,9 @@ public class ServletServer extends GenericServlet {
   }
 
   public void doInit() throws Exception {
-    if (backend == Backend.DISK) {
+    if (backend == BackendType.DISK) {
       root.mkdirs();
-    } else if (backend == Backend.DB) {
+    } else if (backend == BackendType.DB) {
       HikariConfig config = new HikariConfig();
       config.setJdbcUrl("jdbc:postgresql://" + backendHost + "/testdb");
       config.setUsername("vertx");
@@ -137,7 +137,7 @@ public class ServletServer extends GenericServlet {
           statement.execute("CREATE TABLE IF NOT EXISTS data_table (data text)");
         }
       }
-    } else if (backend == Backend.MICROSERVICE) {
+    } else if (backend == BackendType.HTTP) {
       backendClient = new OkHttpClient.Builder().connectionPool(new ConnectionPool(poolSize, 1, TimeUnit.SECONDS)).build();
     }
   }
@@ -185,7 +185,7 @@ public class ServletServer extends GenericServlet {
           };
           break;
         }
-        case MICROSERVICE: {
+        case HTTP: {
           ByteArrayOutputStream buffer = new ByteArrayOutputStream();
           dst = (buf,len) -> {
             if (len != -1) {
@@ -208,7 +208,7 @@ public class ServletServer extends GenericServlet {
       }
     } else {
       byte[] body = HELLO_WORLD;
-      if (backend == Backend.DB) {
+      if (backend == BackendType.DB) {
         try (Connection conn = ds.getConnection()) {
           try (PreparedStatement statement = conn.prepareStatement("SELECT pg_sleep(0.040)")) {
             try (ResultSet rs = statement.executeQuery()) {
@@ -220,7 +220,7 @@ public class ServletServer extends GenericServlet {
           resp.sendError(500);
           return;
         }
-      } else if (backend == Backend.MICROSERVICE) {
+      } else if (backend == BackendType.HTTP) {
         Request request = new Request.Builder().url("http://" + backendHost + ":" + backendPort).build();
         try (Response response = backendClient.newCall(request).execute()) {
           body = response.body().bytes();

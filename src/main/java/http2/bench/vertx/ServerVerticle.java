@@ -1,6 +1,6 @@
 package http2.bench.vertx;
 
-import http2.bench.Backend;
+import http2.bench.BackendType;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
@@ -39,7 +39,7 @@ public class ServerVerticle extends AbstractVerticle {
   private static final AtomicBoolean dbInitialized = new AtomicBoolean();
 
   private SSLEngineOptions engine;
-  private Backend backend;
+  private BackendType backend;
   private int soAcceptBacklog;
   private int poolSize;
   private int delay;
@@ -56,7 +56,7 @@ public class ServerVerticle extends AbstractVerticle {
   @Override
   public void start(Future<Void> startFuture) throws Exception {
 
-    backend = Backend.valueOf(context.config().getString("backend"));
+    backend = BackendType.valueOf(context.config().getString("backend"));
     soAcceptBacklog = context.config().getInteger("soAcceptBacklog");
     engine = config().getBoolean("openSSL") ? new OpenSSLEngineOptions() : new JdkSSLEngineOptions();
     poolSize = config().getInteger("poolSize");
@@ -72,7 +72,7 @@ public class ServerVerticle extends AbstractVerticle {
         setMaxPoolSize(poolSize));
 
     Future<Void> dbFuture = Future.future();
-    if (backend == Backend.DB) {
+    if (backend == BackendType.DB) {
       JsonObject postgreSQLClientConfig = new JsonObject().
           put("host", backendHost).
           put("maxPoolSize", poolSize);
@@ -136,7 +136,7 @@ public class ServerVerticle extends AbstractVerticle {
   }
 
   private void handleRequest(HttpServerRequest req) {
-    if (backend == Backend.DISK) {
+    if (backend == BackendType.DISK) {
       if (req.method() == HttpMethod.POST) {
         req.pause();
         String file = "vertx.uploads/" + UUID.randomUUID();
@@ -160,7 +160,7 @@ public class ServerVerticle extends AbstractVerticle {
           sendResponse(req,"<html><body>Hello World</body></html>" );
         });
       }
-    } else if (backend == Backend.DB) {
+    } else if (backend == BackendType.DB) {
       if (req.method() == HttpMethod.POST) {
         req.bodyHandler(buff -> {
           client.getConnection(res -> {
@@ -196,7 +196,7 @@ public class ServerVerticle extends AbstractVerticle {
           }
         });
       }
-    } else if (backend == Backend.MICROSERVICE) {
+    } else if (backend == BackendType.HTTP) {
       if (req.method() == HttpMethod.POST) {
         req.bodyHandler(buff -> {
           HttpClientRequest clientReq = httpClient.post(backendPort, backendHost, "/", clientResp -> {

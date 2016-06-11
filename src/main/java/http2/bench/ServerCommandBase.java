@@ -14,7 +14,7 @@ public abstract class ServerCommandBase extends CommandBase {
   public int port = 8443;
 
   @Parameter(names = "--backend")
-  public Backend backend = Backend.NONE;
+  public BackendType backend = BackendType.NONE;
 
   @Parameter(names = "--so-backlog")
   public int soBacklog = 1024;

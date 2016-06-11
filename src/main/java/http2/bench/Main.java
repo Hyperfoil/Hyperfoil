@@ -3,8 +3,8 @@ package http2.bench;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameters;
 import http2.bench.jetty.JettyServerCommand;
-import http2.bench.client.ClientCommand;
-import http2.bench.microservice.MicroServiceCommand;
+import http2.bench.client.HttpClientCommand;
+import http2.bench.backend.HttpBackendCommand;
 import http2.bench.netty.NettyServerCommand;
 import http2.bench.undertow.UndertowServerCommand;
 import http2.bench.vertx.VertxServerCommand;
@@ -24,24 +24,24 @@ public class Main {
     JettyServerCommand jetty = new JettyServerCommand();
     UndertowServerCommand undertow = new UndertowServerCommand();
     NettyServerCommand netty = new NettyServerCommand();
-    ClientCommand client = new ClientCommand();
-    MicroServiceCommand microservice = new MicroServiceCommand();
+    HttpClientCommand httpClient = new HttpClientCommand();
+    HttpBackendCommand httpBackend = new HttpBackendCommand();
     jc.addCommand("vertx", vertx);
     jc.addCommand("jetty", jetty);
     jc.addCommand("undertow", undertow);
     jc.addCommand("netty", netty);
-    jc.addCommand("client", client);
-    jc.addCommand("microservice", microservice);
+    jc.addCommand("http-client", httpClient);
+    jc.addCommand("http-backend", httpBackend);
     jc.parse(args);
     String cmd = jc.getParsedCommand();
     CommandBase command = null;
     if (cmd != null) {
       switch (cmd) {
-        case "microservice":
-          command = microservice;
+        case "http-backend":
+          command = httpBackend;
           break;
-        case "client":
-          command = client;
+        case "http-client":
+          command = httpClient;
           break;
         case "vertx":
           command = vertx;

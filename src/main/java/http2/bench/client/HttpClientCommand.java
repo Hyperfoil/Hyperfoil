@@ -34,7 +34,7 @@ import java.util.concurrent.TimeUnit;
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
  */
 @Parameters()
-public class ClientCommand extends CommandBase {
+public class HttpClientCommand extends CommandBase {
 
   @Parameter(names = {"-p", "--protocol"})
   HttpVersion protocol = HttpVersion.HTTP_2;

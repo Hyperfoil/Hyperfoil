@@ -37,9 +37,9 @@ Servers can run with diffent backend with the `--backend` option:
 - noop (default)
 - disk
 - db (postgres)
-- microservice
+- a backend
 
-A microservice can also be ran for the backend:
+An http backend can also be ran for the backend:
 
 ```
 java -jar target/http2-bench-3.3.0-SNAPSHOT.jar client -r 12000 -d 30 -w 5 -c 500 -m 10 https://localhost:8443
