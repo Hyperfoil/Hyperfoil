@@ -8,6 +8,7 @@ import io.netty.handler.codec.http2.Http2ConnectionEncoder;
 import io.netty.handler.codec.http2.Http2EventAdapter;
 import io.netty.handler.codec.http2.Http2Exception;
 import io.netty.handler.codec.http2.Http2Headers;
+import io.netty.handler.codec.http2.Http2Settings;
 import io.netty.util.collection.IntObjectHashMap;
 import io.netty.util.collection.IntObjectMap;
 
@@ -24,6 +25,7 @@ public class Http2Connection extends Http2EventAdapter implements HttpConnection
   private final Http2ConnectionEncoder encoder;
   private final IntObjectMap<Http2Stream> streams = new IntObjectHashMap<>();
   private int numStreams;
+  private long maxStreams;
 
   public Http2Connection(ChannelHandlerContext context,
                          io.netty.handler.codec.http2.Http2Connection connection,
@@ -34,9 +36,17 @@ public class Http2Connection extends Http2EventAdapter implements HttpConnection
     this.context = context;
     this.connection = connection;
     this.encoder = encoder;
+    this.maxStreams = client.maxConcurrentStream;
 
     //
     Http2EventAdapter listener = new Http2EventAdapter() {
+
+      @Override
+      public void onSettingsRead(ChannelHandlerContext ctx, Http2Settings settings) throws Http2Exception {
+        if (settings.maxConcurrentStreams() != null) {
+          maxStreams = Math.min(client.maxConcurrentStream, settings.maxConcurrentStreams());
+        }
+      }
 
       @Override
       public void onHeadersRead(ChannelHandlerContext ctx, int streamId, Http2Headers headers, int streamDependency, short weight, boolean exclusive, int padding, boolean endStream) throws Http2Exception {
@@ -98,7 +108,7 @@ public class Http2Connection extends Http2EventAdapter implements HttpConnection
 
   @Override
   public boolean isAvailable() {
-    return numStreams < client.maxConcurrentStream;
+    return numStreams < maxStreams;
   }
 
   public void incrementConnectionWindowSize(int increment) {

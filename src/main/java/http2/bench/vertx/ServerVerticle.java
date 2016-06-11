@@ -7,6 +7,7 @@ import io.vertx.core.Future;
 import io.vertx.core.file.AsyncFile;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.file.OpenOptions;
+import io.vertx.core.http.Http2Settings;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpClientRequest;
@@ -97,6 +98,7 @@ public class ServerVerticle extends AbstractVerticle {
 
     HttpServerOptions options = new HttpServerOptions()
         .setAcceptBacklog(soAcceptBacklog)
+        .setInitialSettings(new Http2Settings())
         .setPort(config().getInteger("port"));
     if (!clearText) {
       options.setSsl(true);
