@@ -45,14 +45,27 @@ class Report {
     System.out.format("bytes read: %d%n", bytesRead);
     System.out.format("bytes written: %d%n", byteWritten);
     System.out.format("missed requests: %d%n", missedRequests);
-    System.out.println("min    = " + TimeUnit.NANOSECONDS.toMillis(histogram.getMinValue()));
-    System.out.println("max    = " + TimeUnit.NANOSECONDS.toMillis(histogram.getMaxValue()));
-    System.out.println("50%    = " + TimeUnit.NANOSECONDS.toMillis(histogram.getValueAtPercentile(50)));
-    System.out.println("90%    = " + TimeUnit.NANOSECONDS.toMillis(histogram.getValueAtPercentile(90)));
-    System.out.println("99%    = " + TimeUnit.NANOSECONDS.toMillis(histogram.getValueAtPercentile(99)));
-    System.out.println("99.9%  = " + TimeUnit.NANOSECONDS.toMillis(histogram.getValueAtPercentile(99.9)));
-    System.out.println("99.99% = " + TimeUnit.NANOSECONDS.toMillis(histogram.getValueAtPercentile(99.99)));
+    System.out.println("min    = " + getMinResponseTimeMillis());
+    System.out.println("max    = " + getMaxResponseTimeMillis());
+    System.out.println("50%    = " + getResponseTimeMillisPercentile(50));
+    System.out.println("90%    = " + getResponseTimeMillisPercentile(90));
+    System.out.println("99%    = " + getResponseTimeMillisPercentile(99));
+    System.out.println("99.9%  = " + getResponseTimeMillisPercentile(99.9));
+    System.out.println("99.99% = " + getResponseTimeMillisPercentile(99.99));
   }
+
+  long getMinResponseTimeMillis() {
+    return TimeUnit.NANOSECONDS.toMillis(histogram.getMinValue());
+  }
+
+  long getMaxResponseTimeMillis() {
+    return TimeUnit.NANOSECONDS.toMillis(histogram.getMaxValue());
+  }
+
+  long getResponseTimeMillisPercentile(double x) {
+    return TimeUnit.NANOSECONDS.toMillis(histogram.getValueAtPercentile(x));
+  }
+
 
   void save(String baseName) {
     try (PrintStream ps = new PrintStream(baseName + ".hdr")) {

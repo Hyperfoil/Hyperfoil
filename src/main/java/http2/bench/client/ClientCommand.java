@@ -19,8 +19,10 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpVersion;
 
 import java.io.File;
+import java.io.PrintStream;
 import java.net.URI;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
@@ -43,8 +45,8 @@ public class ClientCommand extends CommandBase {
   @Parameter(names = {"-c", "--connections"})
   public int connections = 1;
 
-  @Parameter(names = {"-s","--save"})
-  public String saveParam = null;
+  @Parameter(names = {"-o","--out"})
+  public String out = null;
 
   @Parameter(names = {"-b", "--body"})
   public String bodyParam = null;
@@ -150,14 +152,34 @@ public class ClientCommand extends CommandBase {
 
     System.out.println("starting benchmark...");
     System.out.format("%d total connections(s)%n", connections);
+    StringBuilder ratesChart = new StringBuilder();
+    StringBuilder histoChart = new StringBuilder();
+    double[] percentiles = { 50, 90, 99, 99.9};
     for (int rate : rates) {
       Load load = new Load(rate, duration, warmup, protocol, workerGroup, sslCtx, port, host, path, payload, maxQueue, connections);
       Report report = load.run();
       report.prettyPrint();
-      if (saveParam != null) {
-        report.save(saveParam + "_" + rates);
+      if (out != null) {
+        report.save(out + "_" + rate);
+      }
+      ratesChart.append(rate).append(",").append(report.ratio).append("\n");
+      histoChart.append(rate);
+      for (double percentile : percentiles) {
+        histoChart.append(",").append(report.getResponseTimeMillisPercentile(percentile));
+      }
+      histoChart.append(",").append(report.getMaxResponseTimeMillis());
+      histoChart.append("\n");
+    }
+
+    if (out != null) {
+      try (PrintStream ps = new PrintStream(out + "_rates.csv")) {
+        ps.print(ratesChart);
+      }
+      try (PrintStream ps = new PrintStream(out + "_histo.csv")) {
+        ps.print(histoChart);
       }
     }
+
     workerGroup.shutdownGracefully(0, 10, TimeUnit.SECONDS);
   }
 }
