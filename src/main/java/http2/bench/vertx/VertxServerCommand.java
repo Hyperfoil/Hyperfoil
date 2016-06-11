@@ -32,7 +32,7 @@ public class VertxServerCommand extends ServerCommandBase {
         put("openSSL", openSSL).
         put("soAcceptBacklog", soBacklog).
         put("poolSize", (int)Math.floor(poolSize / ((double)instances))).
-        put("sleepTime", sleepTime).
+        put("delay", delay).
         put("backendHost", backendHost).
         put("backendPort", backendPort).
         put("backend", backend.name()));

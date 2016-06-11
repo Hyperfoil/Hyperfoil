@@ -51,7 +51,7 @@ public class UndertowServerCommand extends ServerCommandBase {
             addInitParam("root", "undertow.uploads").
             addInitParam("async", "" + async).
             addInitParam("poolSize", "" + poolSize).
-            addInitParam("sleepTime", "" + sleepTime).
+            addInitParam("delay", "" + delay).
             addInitParam("backendHost", "" + backendHost).
             addInitParam("backendPort", "" + backendPort).
             addInitParam("backend", backend.name()));

@@ -52,7 +52,7 @@ public class JettyServerCommand extends ServerCommandBase {
     servlet.setAsync(async);
     servlet.setBackend(backend);
     servlet.setPoolSize(poolSize);
-    servlet.setSleepTime(sleepTime);
+    servlet.setDelay(delay);
     servlet.setBackendHost(backendHost);
     servlet.setBackendPort(backendPort);
 

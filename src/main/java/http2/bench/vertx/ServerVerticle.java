@@ -11,10 +11,12 @@ import io.vertx.core.http.Http2Settings;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpClientRequest;
+import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.JdkSSLEngineOptions;
@@ -40,10 +42,13 @@ public class ServerVerticle extends AbstractVerticle {
   private Backend backend;
   private int soAcceptBacklog;
   private int poolSize;
-  private int sleepTime;
+  private int delay;
   private String backendHost;
   private int backendPort;
   private boolean clearText;
+  private HttpClient httpClient;
+  private AsyncSQLClient client;
+  private FileSystem fs;
 
   public ServerVerticle() {
   }
@@ -55,19 +60,18 @@ public class ServerVerticle extends AbstractVerticle {
     soAcceptBacklog = context.config().getInteger("soAcceptBacklog");
     engine = config().getBoolean("openSSL") ? new OpenSSLEngineOptions() : new JdkSSLEngineOptions();
     poolSize = config().getInteger("poolSize");
-    sleepTime = config().getInteger("sleepTime");
+    delay = config().getInteger("delay");
     backendHost = config().getString("backendHost");
     backendPort = config().getInteger("backendPort");
     clearText = config().getBoolean("clearText");
 
-    HttpClient httpClient = vertx.createHttpClient(new HttpClientOptions().
+    httpClient = vertx.createHttpClient(new HttpClientOptions().
         setKeepAlive(true).
         setPipelining(true).
 //        setPipeliningLimit(100).
         setMaxPoolSize(poolSize));
 
     Future<Void> dbFuture = Future.future();
-    AsyncSQLClient client;
     if (backend == Backend.DB) {
       JsonObject postgreSQLClientConfig = new JsonObject().
           put("host", backendHost).
@@ -110,60 +114,59 @@ public class ServerVerticle extends AbstractVerticle {
 
     HttpServer server = vertx.createHttpServer(options);
 
-    FileSystem fs = vertx.fileSystem();
+    fs = vertx.fileSystem();
     if (!fs.existsBlocking("vertx.uploads")) {
       fs.mkdirsBlocking("vertx.uploads");
     }
 
     server.requestHandler(req -> {
-      if (backend == Backend.DISK) {
-        if (req.method() == HttpMethod.POST) {
-          req.pause();
-          String file = "vertx.uploads/" + UUID.randomUUID();
-          fs.open(file, new OpenOptions().setCreate(true), ar1 -> {
-            req.resume();
-            if (ar1.succeeded()) {
-              AsyncFile f = ar1.result();
-              Pump pump = Pump.pump(req, f);
-              pump.start();
-              req.endHandler(v -> {
-                f.close(ar2 -> fs.delete(file, ar3 -> {}));
-                sendResponse(req, "<html><body>Hello World</body></html>");
-              });
-            } else {
-              ar1.cause().printStackTrace();
-              req.response().setStatusCode(500).end();
-            }
-          });
-        } else {
-          req.endHandler(v -> {
-            sendResponse(req,"<html><body>Hello World</body></html>" );
-          });
-        }
-      } else if (backend == Backend.DB) {
-        if (req.method() == HttpMethod.POST) {
-          req.bodyHandler(buff -> {
-            client.getConnection(res -> {
-              if (res.succeeded()) {
-                SQLConnection conn = res.result();
-                conn.queryWithParams("INSERT INTO data_table (data) VALUES (?)", new JsonArray().add(buff.toString()), ar -> {
-                  if (ar.succeeded()) {
-                    sendResponse(req, "<html><body>OK</body></html>");
-                  } else {
-                    req.response().setStatusCode(500).end();
-                  }
-                  conn.close();
-                });
-              } else {
-                req.response().setStatusCode(500).end();
-              }
+      if (delay > 0) {
+        vertx.setTimer(delay, v -> {
+          handleRequest(req);
+        });
+      } else {
+        handleRequest(req);
+      }
+    });
+
+    Future<HttpServer> serverInit = Future.future();
+    server.listen(serverInit.completer());
+
+    CompositeFuture.all(dbFuture, serverInit).<Void>map(c -> null).setHandler(startFuture.completer());
+  }
+
+  private void handleRequest(HttpServerRequest req) {
+    if (backend == Backend.DISK) {
+      if (req.method() == HttpMethod.POST) {
+        req.pause();
+        String file = "vertx.uploads/" + UUID.randomUUID();
+        fs.open(file, new OpenOptions().setCreate(true), ar1 -> {
+          req.resume();
+          if (ar1.succeeded()) {
+            AsyncFile f = ar1.result();
+            Pump pump = Pump.pump(req, f);
+            pump.start();
+            req.endHandler(v -> {
+              f.close(ar2 -> fs.delete(file, ar3 -> {}));
+              sendResponse(req, "<html><body>Hello World</body></html>");
             });
-          });
-        } else {
+          } else {
+            ar1.cause().printStackTrace();
+            req.response().setStatusCode(500).end();
+          }
+        });
+      } else {
+        req.endHandler(v -> {
+          sendResponse(req,"<html><body>Hello World</body></html>" );
+        });
+      }
+    } else if (backend == Backend.DB) {
+      if (req.method() == HttpMethod.POST) {
+        req.bodyHandler(buff -> {
           client.getConnection(res -> {
             if (res.succeeded()) {
               SQLConnection conn = res.result();
-              conn.query("SELECT pg_sleep(0.040)", ar -> {
+              conn.queryWithParams("INSERT INTO data_table (data) VALUES (?)", new JsonArray().add(buff.toString()), ar -> {
                 if (ar.succeeded()) {
                   sendResponse(req, "<html><body>OK</body></html>");
                 } else {
@@ -175,46 +178,58 @@ public class ServerVerticle extends AbstractVerticle {
               req.response().setStatusCode(500).end();
             }
           });
-        }
-      } else if (backend == Backend.MICROSERVICE) {
-        if (req.method() == HttpMethod.POST) {
-          req.bodyHandler(buff -> {
-            HttpClientRequest clientReq = httpClient.post(backendPort, backendHost, "/", clientResp -> {
-              clientResp.endHandler(v -> {
-                sendResponse(req, "<html><body>OK</body></html>");
-              });
-            });
-            clientReq.end(buff);
-          });
-        } else {
-          req.endHandler(v1 -> {
-            httpClient.getNow(backendPort, backendHost, "/", clientResp -> {
-              clientResp.endHandler(v2 -> {
-                sendResponse(req, "<html><body>OK</body></html>");
-              });
-            });
-          });
-        }
+        });
       } else {
-        req.endHandler(v -> {
-          sendResponse(req, "<html><body>Hello World / " + req.version() + "</body></html>");
+        client.getConnection(res -> {
+          if (res.succeeded()) {
+            SQLConnection conn = res.result();
+            conn.query("SELECT pg_sleep(0.040)", ar -> {
+              if (ar.succeeded()) {
+                sendResponse(req, "<html><body>OK</body></html>");
+              } else {
+                req.response().setStatusCode(500).end();
+              }
+              conn.close();
+            });
+          } else {
+            req.response().setStatusCode(500).end();
+          }
         });
       }
+    } else if (backend == Backend.MICROSERVICE) {
+      if (req.method() == HttpMethod.POST) {
+        req.bodyHandler(buff -> {
+          HttpClientRequest clientReq = httpClient.post(backendPort, backendHost, "/", clientResp -> {
+            handleBackendResponse(clientResp, req.response());
+          });
+          clientReq.end(buff);
+        });
+      } else {
+        req.endHandler(v1 -> {
+          httpClient.getNow(backendPort, backendHost, "/", clientResp -> {
+            handleBackendResponse(clientResp, req.response());
+          });
+        });
+      }
+    } else {
+      req.endHandler(v -> {
+        sendResponse(req, "<html><body>Hello World / " + req.version() + "</body></html>");
+      });
+    }
+  }
+
+  private void handleBackendResponse(HttpClientResponse backendResp, HttpServerResponse frontendResp) {
+    frontendResp.setChunked(true);
+    frontendResp.setStatusCode(backendResp.statusCode());
+    frontendResp.headers().setAll(backendResp.headers());
+    Pump pump = Pump.pump(backendResp, frontendResp);
+    pump.start();
+    backendResp.endHandler(v -> {
+      frontendResp.end();
     });
-
-    Future<HttpServer> serverInit = Future.future();
-    server.listen(serverInit.completer());
-
-    CompositeFuture.all(dbFuture, serverInit).<Void>map(c -> null).setHandler(startFuture.completer());
   }
 
   private void sendResponse(HttpServerRequest req, String s) {
-    if (sleepTime > 0) {
-      vertx.setTimer(sleepTime, v -> {
-        req.response().end(s);
-      });
-    } else {
-      req.response().end(s);
-    }
+    req.response().end(s);
   }
 }

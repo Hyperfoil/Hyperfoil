@@ -1,11 +1,12 @@
 package http2.bench.servlet;
 
-import com.squareup.okhttp.ConnectionPool;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-import feign.Feign;
 import http2.bench.Backend;
-import http2.bench.microservice.MicroService;
+import okhttp3.ConnectionPool;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 
 import javax.servlet.AsyncContext;
 import javax.servlet.GenericServlet;
@@ -27,6 +28,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
@@ -38,8 +40,8 @@ public class ServletServer extends GenericServlet {
   private File root;
   private int poolSize;
   private HikariDataSource ds;
-  private int sleepTime;
-  private MicroService microService;
+  private int delay;
+  private OkHttpClient backendClient;
   private String backendHost;
   private int backendPort;
 
@@ -75,12 +77,12 @@ public class ServletServer extends GenericServlet {
     this.poolSize = poolSize;
   }
 
-  public int getSleepTime() {
-    return sleepTime;
+  public int getDelay() {
+    return delay;
   }
 
-  public void setSleepTime(int sleepTime) {
-    this.sleepTime = sleepTime;
+  public void setDelay(int delay) {
+    this.delay = delay;
   }
 
   public String getBackendHost() {
@@ -106,7 +108,7 @@ public class ServletServer extends GenericServlet {
     root = new File(cfg.getInitParameter("root"));
     async = Boolean.valueOf(cfg.getInitParameter("async"));
     poolSize = Integer.parseInt(cfg.getInitParameter("poolSize"));
-    sleepTime = Integer.parseInt(cfg.getInitParameter("sleepTime"));
+    delay = Integer.parseInt(cfg.getInitParameter("delay"));
     backendHost = cfg.getInitParameter("backendHost");
     backendPort = Integer.parseInt(cfg.getInitParameter("backendPort"));
     try {
@@ -136,10 +138,7 @@ public class ServletServer extends GenericServlet {
         }
       }
     } else if (backend == Backend.MICROSERVICE) {
-      com.squareup.okhttp.OkHttpClient okHttpClient = new com.squareup.okhttp.OkHttpClient().setConnectionPool(new ConnectionPool(poolSize, 20));
-      microService = Feign.builder().client(
-          new feign.okhttp.OkHttpClient(okHttpClient)
-      ).target(MicroService.class, "http://" + backendHost + ":" + backendPort);
+      backendClient = new OkHttpClient.Builder().connectionPool(new ConnectionPool(poolSize, 1, TimeUnit.SECONDS)).build();
     }
   }
 
@@ -193,7 +192,7 @@ public class ServletServer extends GenericServlet {
               buffer.write(buf, 0, len);
             } else {
               buffer.close();
-              microService.doPost(buffer.toByteArray());
+              throw new UnsupportedOperationException("todo");
             }
           };
           break;
@@ -208,6 +207,7 @@ public class ServletServer extends GenericServlet {
         handlePost(dst, req, resp);
       }
     } else {
+      byte[] body = HELLO_WORLD;
       if (backend == Backend.DB) {
         try (Connection conn = ds.getConnection()) {
           try (PreparedStatement statement = conn.prepareStatement("SELECT pg_sleep(0.040)")) {
@@ -221,9 +221,12 @@ public class ServletServer extends GenericServlet {
           return;
         }
       } else if (backend == Backend.MICROSERVICE) {
-        microService.doGet();
+        Request request = new Request.Builder().url("http://" + backendHost + ":" + backendPort).build();
+        try (Response response = backendClient.newCall(request).execute()) {
+          body = response.body().bytes();
+        }
       }
-      sendResponse(resp);
+      sendResponse(resp, body);
     }
   }
 
@@ -288,17 +291,23 @@ public class ServletServer extends GenericServlet {
     }
   }
 
+  private static final byte[] HELLO_WORLD = "Hello World".getBytes();
+
   private void sendResponse(HttpServletResponse response) throws IOException {
-    if (sleepTime > 0) {
+    sendResponse(response, HELLO_WORLD);
+  }
+
+  private void sendResponse(HttpServletResponse response, byte[] body) throws IOException {
+    if (delay > 0) {
       try {
-        Thread.sleep(sleepTime);
+        Thread.sleep(delay);
       } catch (InterruptedException ignore) {
         Thread.currentThread().interrupt();
       }
     }
     response.setContentType("text/plain");
     try (ServletOutputStream out = response.getOutputStream()) {
-      out.write("Hello World".getBytes());
+      out.write(body);
     }
   }
 }

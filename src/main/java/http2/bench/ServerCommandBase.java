@@ -22,8 +22,8 @@ public abstract class ServerCommandBase extends CommandBase {
   @Parameter(names = "--pool-size")
   public int poolSize = 32;
 
-  @Parameter(names = "--sleep-time")
-  public int sleepTime = 0;
+  @Parameter(names = "--delay")
+  public int delay = 0;
 
   @Parameter(names = "--backend-host")
   public String backendHost = "localhost";
