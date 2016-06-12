@@ -8,6 +8,7 @@ import io.vertx.core.AbstractVerticle;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
@@ -26,8 +27,8 @@ public class HttpBackendCommand extends CommandBase {
   @Parameter(names = "--length", description = "the length in bytes")
   public String length = "0";
 
-  @Parameter(names = "--chunk-size", description = "the chunk size in bytes")
-  public int chunkSize = 1024;
+//  @Parameter(names = "--chunk-size", description = "the chunk size in bytes")
+//  public int chunkSize = 1024;
 
   @Parameter(names = "--delay", description = "the delay in ms for sending the response")
   public long delay = 0;
@@ -38,11 +39,11 @@ public class HttpBackendCommand extends CommandBase {
     long length = Utils.parseSize(this.length).longValue();
     DeploymentOptions opts = new DeploymentOptions().
         setInstances(1).
-        setConfig(new JsonObject().
-            put("port", port).
-            put("delay", delay).
-            put("length", length).
-            put("chunkSize", chunkSize)
+        setConfig(new JsonObject()
+            .put("port", port)
+            .put("delay", delay)
+            .put("length", length)
+//            .put("chunkSize", chunkSize)
         );
     vertx.deployVerticle(Server.class.getName(), opts, ar -> {
       if (ar.succeeded()) {
@@ -55,17 +56,18 @@ public class HttpBackendCommand extends CommandBase {
 
   public static class Server extends AbstractVerticle {
 
-    private long length;
+    private int length;
     private int port;
     private int delay;
-    private int chunkSize;
+//    private int chunkSize;
+    private Buffer buffer;
 
     @Override
     public void start(Future<Void> startFuture) throws Exception {
       delay = config().getInteger("delay");
       port = config().getInteger("port");
-      length = config().getLong("length");
-      chunkSize = config().getInteger("chunkSize");
+      length = config().getInteger("length");
+//      chunkSize = config().getInteger("chunkSize");
       HttpServer server = vertx.createHttpServer();
       server.requestHandler(this::handle);
       server.listen(port, ar -> {
@@ -75,6 +77,13 @@ public class HttpBackendCommand extends CommandBase {
           startFuture.fail(ar.cause());
         }
       });
+      if (length > 0) {
+        byte[] bytes = new byte[length];
+        for (int i = 0;i < length;i++) {
+          bytes[i] = (byte)('A' + (i % 26));
+        }
+        buffer = Buffer.buffer(bytes);
+      }
     }
 
     protected void handle(HttpServerRequest req) {
@@ -89,7 +98,8 @@ public class HttpBackendCommand extends CommandBase {
     }
 
     private void handleResp(HttpServerResponse resp) {
-      if (length > 0) {
+      if (buffer != null) {
+/*
         resp.setChunked(true);
         SenderStream stream = new SenderStream(length, chunkSize);
         stream.endHandler(v -> {
@@ -98,6 +108,8 @@ public class HttpBackendCommand extends CommandBase {
         Pump pump = Pump.pump(stream, resp);
         pump.start();
         stream.send();
+*/
+        resp.end(buffer);
       } else {
         resp.end();
       }
