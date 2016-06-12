@@ -35,6 +35,6 @@ public final class NettyServerCommand extends ServerCommandBase {
   public int instances = 2 * Runtime.getRuntime().availableProcessors();
 
   public void run() throws Exception {
-    Server.run(openSSL ? SslProvider.OPENSSL : SslProvider.JDK, port, instances, soBacklog);
+    Server.run(clearText ? null : (openSSL ? SslProvider.OPENSSL : SslProvider.JDK), port, instances, soBacklog);
   }
 }

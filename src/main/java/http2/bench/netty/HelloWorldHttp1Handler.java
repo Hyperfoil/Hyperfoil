@@ -26,6 +26,8 @@ import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpUtil;
 
+import java.util.concurrent.TimeUnit;
+
 import static io.netty.handler.codec.http.HttpHeaderNames.CONNECTION;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_LENGTH;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
@@ -49,22 +51,18 @@ public class HelloWorldHttp1Handler extends SimpleChannelInboundHandler<FullHttp
     if (HttpUtil.is100ContinueExpected(req)) {
       ctx.write(new DefaultFullHttpResponse(HTTP_1_1, CONTINUE));
     }
-    boolean keepAlive = HttpUtil.isKeepAlive(req);
-
-    ByteBuf content = ctx.alloc().buffer();
-    content.writeBytes(HelloWorldHttp2Handler.RESPONSE_BYTES.duplicate());
-    ByteBufUtil.writeAscii(content, " - via " + req.protocolVersion() + " (" + establishApproach + ")");
-
-    FullHttpResponse response = new DefaultFullHttpResponse(HTTP_1_1, OK, content);
-    response.headers().set(CONTENT_TYPE, "text/plain; charset=UTF-8");
-    response.headers().setInt(CONTENT_LENGTH, response.content().readableBytes());
-
-    if (!keepAlive) {
-      ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
-    } else {
-      response.headers().set(CONNECTION, HttpHeaderValues.KEEP_ALIVE);
-      ctx.writeAndFlush(response);
-    }
+    ctx.executor().schedule(() -> {
+      boolean keepAlive = HttpUtil.isKeepAlive(req);
+      FullHttpResponse response = new DefaultFullHttpResponse(HTTP_1_1, OK, HelloWorldHttp2Handler.RESPONSE_BYTES.duplicate());
+      response.headers().set(CONTENT_TYPE, "text/plain; charset=UTF-8");
+      response.headers().setInt(CONTENT_LENGTH, response.content().readableBytes());
+      if (!keepAlive) {
+        ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
+      } else {
+        response.headers().set(CONNECTION, HttpHeaderValues.KEEP_ALIVE);
+        ctx.writeAndFlush(response);
+      }
+    }, 20, TimeUnit.MILLISECONDS);
   }
 
   @Override

@@ -44,7 +44,17 @@ public final class HelloWorldHttp2Handler extends Http2ConnectionHandler impleme
    */
   public static final String UPGRADE_RESPONSE_HEADER = "http-to-http2-upgrade";
 
-  static final ByteBuf RESPONSE_BYTES = unreleasableBuffer(copiedBuffer("Hello World", CharsetUtil.UTF_8));
+  static final String CONTENT_256;
+
+  static {
+    StringBuilder sb = new StringBuilder(256);
+    for (int i = 0;i < 256;i++) {
+      sb.append((char)65 + (i % 26));
+    }
+    CONTENT_256 = sb.toString();
+  }
+
+  static final ByteBuf RESPONSE_BYTES = unreleasableBuffer(copiedBuffer(CONTENT_256, CharsetUtil.UTF_8));
 
   HelloWorldHttp2Handler(Http2ConnectionDecoder decoder, Http2ConnectionEncoder encoder,
                          Http2Settings initialSettings) {
@@ -98,10 +108,7 @@ public final class HelloWorldHttp2Handler extends Http2ConnectionHandler impleme
   public void onHeadersRead(ChannelHandlerContext ctx, int streamId,
                             Http2Headers headers, int padding, boolean endOfStream) {
     if (endOfStream) {
-      ByteBuf content = ctx.alloc().buffer();
-      content.writeBytes(RESPONSE_BYTES.duplicate());
-      ByteBufUtil.writeAscii(content, " - via HTTP/2");
-      sendResponse(ctx, streamId, content);
+      sendResponse(ctx, streamId, RESPONSE_BYTES.duplicate());
     }
   }
 
