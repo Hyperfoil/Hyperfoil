@@ -125,7 +125,9 @@ public class Http2Connection extends Http2EventAdapter implements HttpConnection
     int id = nextStreamId();
     Http2Stream stream = new Http2Stream(client, context, encoder, id, method, path);
     streams.put(id, stream);
-    handler.accept(stream);
+    context.executor().execute(() -> {
+      handler.accept(stream);
+    });
   }
 
   private int nextStreamId() {
