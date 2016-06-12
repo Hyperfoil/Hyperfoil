@@ -16,13 +16,13 @@ class Report {
   final double ratio;
   final int connectFailureCount;
   final int resetCount;
-  final int missedRequests;
+  final int requestCount;
   final int[] statuses;
   final long bytesRead;
   final long byteWritten;
 
   public Report(long expectedRequests, long elapsed, Histogram histogram, int responseCount, double ratio,
-                int connectFailureCount, int resetCount, int missedRequests, int[] statuses,
+                int connectFailureCount, int resetCount, int requestCount, int[] statuses,
                 long bytesRead, long bytesWritten) {
     this.expectedRequests = expectedRequests;
     this.elapsed = elapsed;
@@ -31,7 +31,7 @@ class Report {
     this.ratio = ratio;
     this.connectFailureCount = connectFailureCount;
     this.resetCount = resetCount;
-    this.missedRequests = missedRequests;
+    this.requestCount = requestCount;
     this.statuses = statuses;
     this.bytesRead = bytesRead;
     this.byteWritten = bytesWritten;
@@ -40,11 +40,11 @@ class Report {
   void prettyPrint() {
     double elapsedSeconds = TimeUnit.NANOSECONDS.toSeconds(elapsed);
     System.out.format("finished in %.2fs, %.2fs req/s, %.2fs ratio%n", elapsedSeconds, responseCount / elapsedSeconds, ratio);
-    System.out.format("requests: %d total, %d errored, %d expected%n", responseCount, connectFailureCount + resetCount, expectedRequests);
+    System.out.format("responses: %d total, %d errored, %d expected%n", responseCount, connectFailureCount + resetCount, expectedRequests);
     System.out.format("status codes: %d 2xx, %d 3xx, %d 4xx, %d 5xx, %d others%n", statuses[0], statuses[1], statuses[2], statuses[3], statuses[4]);
     System.out.format("bytes read: %d%n", bytesRead);
     System.out.format("bytes written: %d%n", byteWritten);
-    System.out.format("missed requests: %d%n", missedRequests);
+    System.out.format("missed requests: %d%n", expectedRequests - requestCount);
     System.out.println("min    = " + getMinResponseTimeMillis());
     System.out.println("max    = " + getMaxResponseTimeMillis());
     System.out.println("50%    = " + getResponseTimeMillisPercentile(50));

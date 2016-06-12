@@ -11,7 +11,6 @@ import org.HdrHistogram.Histogram;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.LongAdder;
 import java.util.stream.Stream;
 
 /**
@@ -42,7 +41,6 @@ class Load {
   private AtomicInteger status_other = new AtomicInteger();
   private AtomicInteger[] statuses = {status_2xx, status_3xx, status_4xx, status_5xx, status_other};
   private AtomicInteger resetCount = new AtomicInteger();
-  private LongAdder missedRequests = new LongAdder();
   private Histogram histogram = new ConcurrentHistogram(TimeUnit.MINUTES.toNanos(1), 2);
   private volatile long startTime;
   private HttpClient client;
@@ -84,18 +82,15 @@ class Load {
     if (warmup > 0) {
       System.out.println("warming up...");
     }
-    runSlots(warmup);
+    runSlot(warmup);
     System.out.println("starting rate=" + rate);
     startTime = System.nanoTime();
     requestCount.set(0);
     responseCount.set(0);
     client.resetStatistics();
-    missedRequests.reset();
     printDetail(workerGroup.next());
-    int numSlots = (int) (duration / 1000000000);
-    long lastSlot = (int) (duration % 1000000000);
-    startSlot(numSlots, lastSlot);
-    return end();
+    int requestCount = runSlot(duration);
+    return end(requestCount);
   }
 
   private double ratio() {
@@ -126,60 +121,39 @@ class Load {
     }, 5, TimeUnit.SECONDS);
   }
 
-  private void runSlots(long duration) {
+  private int runSlot(long duration) {
     if (duration > 0) {
-      int numSlots = (int) (duration / 1000000000);
-      long lastSlot = duration % 1000000000;
-      startSlot(numSlots, lastSlot);
+      long slotBegins = System.nanoTime();
+      long slotEnds = slotBegins + duration;
+      Pacer pacer = new Pacer(rate);
+      pacer.setInitialStartTime(slotBegins);
+      return doRequestInSlot(pacer, slotEnds);
+    } else {
+      return 0;
     }
   }
 
-  private void startSlot(int numSlots, long lastSlot) {
-    while (numSlots-- > 0) {
-      abc(rate, 1000000000);
-    }
-    abc((int) ((rate * lastSlot) / 1000000000), lastSlot);
-  }
-
-  private void abc(int remainingInSlot, long duration) {
-    long slotBegins = System.nanoTime();
-    long slotEnds = slotBegins + duration;
-    Pacer pacer = new Pacer(rate);
-    pacer.setInitialStartTime(slotBegins);
-    doRequestInSlot(pacer, remainingInSlot, slotEnds);
-  }
-
-  private void doRequestInSlot(Pacer pacer, int remainingInSlot, long slotEnds) {
+  private int doRequestInSlot(Pacer pacer, long slotEnds) {
+    int numReq = 0;
     while (true) {
       long now = System.nanoTime();
-      if (remainingInSlot > 0) {
-        if (now > slotEnds) {
-          missedRequests.add(remainingInSlot);
-          return;
+      if (now > slotEnds) {
+        return numReq;
+      } else {
+        HttpConnection conn = client.choose();
+        if (conn != null) {
+          numReq++;
+          long expectedStartTimeNanos = pacer.expectedNextOperationNanoTime();
+          pacer.acquire(1);
+          doRequest(conn, expectedStartTimeNanos);
         } else {
-          HttpConnection conn = client.choose();
-          if (conn != null) {
-            remainingInSlot--;
-            long expectedStartTimeNanos = pacer.expectedNextOperationNanoTime();
-            pacer.acquire(1);
-            doRequest(conn, expectedStartTimeNanos);
-          } else {
-            // Sleep a little
+          // Sleep a little
 /*
           long stop = System.nanoTime() + 10;
           while (System.nanoTime() < stop) {
             Thread.yield();
           }
 */
-          }
-        }
-      } else {
-        long delay = slotEnds - now;
-        if (delay > 0) {
-          Pacer.sleepNs(delay);
-          return;
-        } else {
-          return;
         }
       }
     }
@@ -213,7 +187,7 @@ class Load {
     });
   }
 
-  private Report end() {
+  private Report end(int requestCount) {
     done = true;
     long expectedRequests = rate * TimeUnit.NANOSECONDS.toSeconds(duration);
     long elapsed = System.nanoTime() - startTime;
@@ -228,7 +202,7 @@ class Load {
         ratio(),
         connectFailureCount.get(),
         resetCount.get(),
-        missedRequests.intValue(),
+        requestCount,
         Stream.of(statuses).mapToInt(AtomicInteger::intValue).toArray(),
         client.bytesRead(),
         client.bytesWritten());
