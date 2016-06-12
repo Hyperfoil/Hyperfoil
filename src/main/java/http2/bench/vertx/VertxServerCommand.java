@@ -19,10 +19,14 @@ import io.vertx.core.spi.VertxMetricsFactory;
 import io.vertx.core.spi.metrics.HttpClientMetrics;
 import io.vertx.core.spi.metrics.VertxMetrics;
 
+import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
@@ -70,19 +74,27 @@ public class VertxServerCommand extends ServerCommandBase {
     vertx.setPeriodic(1000, timerID -> {
       StringBuilder buff = new StringBuilder();
       TreeMap<Integer, AtomicInteger> abc = new TreeMap<>();
+      ArrayList<Long> val = new ArrayList<Long>(queuedStreams.size());
       queuedStreams.forEach((conn, stream) -> {
         if (buff.length() > 0) {
           buff.append("\n");
         }
+        long l = TimeUnit.NANOSECONDS.toMillis(stream.responseTimes.stream().reduce(0L, (a, b) -> a + b));
+        if (stream.responseTimes.size() > 0) {
+          l /= stream.responseTimes.size();
+        }
+        val.add(l);
         abc.computeIfAbsent(stream.pendingResponses.get(), v -> new AtomicInteger()).incrementAndGet();
       });
       abc.forEach((pending, count) -> {
         buff.append(pending).append(": ").append(count.get()).append("\n");
       });
       String log = buff.toString();
+      long avg = val.isEmpty() ? 0 : val.stream().reduce(0L, (a, b) -> a+b) / val.size();
       vertx.executeBlocking(fut -> {
         fut.complete();
         System.out.format("pending: %d%n", queueRequests.get());
+        System.out.format("avg: %d%n", avg);
         System.out.format(log);
       }, ar -> {
 
@@ -109,6 +121,7 @@ public class VertxServerCommand extends ServerCommandBase {
 
               @Override
               public SocketMetric requestBegin(Void endpointMetric, SocketMetric socketMetric, SocketAddress localAddress, SocketAddress remoteAddress, HttpClientRequest request) {
+                socketMetric.startTimes.add(System.nanoTime());
                 return socketMetric;
               }
 
@@ -128,6 +141,12 @@ public class VertxServerCommand extends ServerCommandBase {
 
               @Override
               public void responseEnd(SocketMetric socketMetric, HttpClientResponse response) {
+                long startTime = socketMetric.startTimes.remove();
+                long elapsed = System.nanoTime() - startTime;
+                while (socketMetric.responseTimes.size() > 255) {
+                  socketMetric.responseTimes.remove();
+                }
+                socketMetric.responseTimes.add(elapsed);
                 socketMetric.responsesCount.incrementAndGet();
               }
 
@@ -171,7 +190,8 @@ public class VertxServerCommand extends ServerCommandBase {
 
   static class SocketMetric {
     static volatile int serial = 0;
-    final int id = serial++;
+    final ArrayDeque<Long> startTimes = new ArrayDeque<>(16);
+    final ArrayDeque<Long> responseTimes = new ArrayDeque<>(256);
     final AtomicInteger pendingResponses = new AtomicInteger();
     final AtomicInteger responsesCount = new AtomicInteger();
   }
