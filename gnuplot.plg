@@ -8,6 +8,7 @@ set multiplot
 # plot 'rates.csv' using 1:2 with lines axes x1y2
 
 set xtics nomirror
+set xlabel "Rate requests/sec";
 
 set yrange [0:1];
 set ylabel "Ratio";
