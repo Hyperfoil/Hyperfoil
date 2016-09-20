@@ -23,7 +23,7 @@ Or
 > java -javaagent:/path/to/alpn/agent -jar target/http2-bench-1.0.0-SNAPSHOT.jar $profile
 ```
 
-where $profile is:
+where _$profile_ is one of:
 
 - `vertx`
 - `netty`
@@ -39,10 +39,16 @@ Servers can run with diffent backend with the `--backend` option:
 - db (postgres)
 - a backend
 
+for instance:
+
+```
+java -jar target/http2-bench-1.0.0-SNAPSHOT.jar vertx --open-ssl --backend http
+```
+
 An http backend can also be ran for the backend:
 
 ```
-java -jar target/http2-bench-1.0.0-SNAPSHOT.jar client -r 12000 -d 30 -w 5 -c 500 -m 10 https://localhost:8443
+java -jar target/http2-bench-1.0.0-SNAPSHOT.jar http-backend --delay 20
 ```
 
 This is a noop service pausing for 20ms.
@@ -52,16 +58,16 @@ This is a noop service pausing for 20ms.
 Use the provided client:
 
 ```
-java -jar target/http2-bench-1.0.0-SNAPSHOT.jar client -r 12000 -d 30 -w 5 -c 500 -m 10 https://localhost:8443
+# 1000 r/s for 30 seconds using 100 connections and at most 10 requests per connection with a warmup of 5 seconds
+java -jar target/http2-bench-1.0.0-SNAPSHOT.jar http-client -w 5 -r 1000 -d 30 -c 100 -q 10 https://localhost:8443
 ```
 
 ## Charting
 
 ```
-java -jar target/http2-bench-1.0.0-SNAPSHOT.jar client -r 1000 1500 2000 2500 3000 3500 4000 4500 5000 -c 40 -q 20 -d 2 --out vertx http://192.168.0.247:8443
+java -jar target/http2-bench-1.0.0-SNAPSHOT.jar http-client -w 5 -r 1000 1500 2000 2500 3000 3500 4000 4500 5000  -d 30 -c 100 -q 10 --out vertx http://192.168.0.247:8443
 ```
 
 ```
-java -jar target/http2-bench-1.0.0-SNAPSHOT.jar client --protocol HTTP_2 -r 1000 1500 2000 2500 3000 3500 4000 4500 5000 -c 40 -q 20 -d 2 --out vertx http://192.168.0.247:8443
 gnuplot -e "out='vertx'" gnuplot.plg
 ```
