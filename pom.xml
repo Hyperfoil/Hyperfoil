@@ -27,13 +27,14 @@
   </parent>
 
   <artifactId>http2-bench</artifactId>
-  <version>3.3.1</version>
+  <version>1.0.0-SNAPSHOT</version>
 
   <name>HTTP/2 benchmark</name>
 
   <properties>
-    <stack.version>3.3.0-SNAPSHOT</stack.version>
-    <jetty.alpnAgent.version>2.0.0</jetty.alpnAgent.version>
+    <stack.version>3.3.3</stack.version>
+    <jetty.alpnAgent.version>2.0.4</jetty.alpnAgent.version>
+    <tcnative.version>1.1.33.Fork21</tcnative.version>
     <jetty.alpnAgent.path>${settings.localRepository}/org/mortbay/jetty/alpn/jetty-alpn-agent/${jetty.alpnAgent.version}/jetty-alpn-agent-${jetty.alpnAgent.version}.jar</jetty.alpnAgent.path>
     <args></args>
     <opts></opts>
@@ -78,7 +79,7 @@
     <dependency>
       <groupId>io.netty</groupId>
       <artifactId>netty-tcnative-boringssl-static</artifactId>
-      <version>1.1.33.Fork16</version>
+      <version>${tcnative.version}</version>
     </dependency>
 
     <dependency>
