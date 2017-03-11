@@ -17,6 +17,7 @@ import io.netty.handler.ssl.SupportedCipherSuiteFilter;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpVersion;
+import io.vertx.core.json.JsonObject;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -62,9 +63,13 @@ public class HttpClientCommand extends CommandBase {
   @Parameter(names = {"-w", "--warmup"})
   public String warmupParam = "0";
 
+  @Parameter(names = {"--tags"})
+  public String tagString = null;
+
   private ByteBuf payload;
   private final EventLoopGroup workerGroup = new NioEventLoopGroup();
   private SslContext sslCtx;
+  private JsonObject tags = new JsonObject();
 
   private static long parseDuration(String s) {
     TimeUnit unit;
@@ -93,8 +98,16 @@ public class HttpClientCommand extends CommandBase {
   @Override
   public void run() throws Exception {
 
+    if (tagString != null) {
+      for (String tag: tagString.split(",")) {
+        String[] components = tag.trim().split("=");
+        tags.put(components[0],components[1]);
+      }
+    }
+
     long duration = parseDuration(durationParam);
     long warmup = parseDuration(warmupParam);
+    tags.put("payloadSize",0);
 
     if (bodyParam != null) {
       try {
@@ -106,6 +119,7 @@ public class HttpClientCommand extends CommandBase {
             bytes[i] = (byte) ('A' + r.nextInt(27));
           }
           payload = Buffer.buffer(bytes).getByteBuf();
+          tags.put("payloadSize",size);
         }
       } catch (NumberFormatException ignore) {
       }
@@ -121,6 +135,7 @@ public class HttpClientCommand extends CommandBase {
     if (uriParam == null || uriParam.size() < 1) {
       throw new Exception("no URI or input file given");
     }
+    tags.put("url",uriParam.get(0));
 
     URI absoluteURI = new URI(uriParam.get(0));
     String host = absoluteURI.getHost();
@@ -149,14 +164,23 @@ public class HttpClientCommand extends CommandBase {
           .build();
     }
 
+    tags.put("rate",0);
+    tags.put("protocol",protocol.toString());
+    tags.put("maxQueue",maxQueue);
+    tags.put("connections",connections);
+
     System.out.println("starting benchmark...");
     System.out.format("%d total connections(s)%n", connections);
     StringBuilder ratesChart = new StringBuilder();
     StringBuilder histoChart = new StringBuilder();
+    StringBuilder allReport = new StringBuilder();
+    Report report = new Report(tags);
+    allReport.append(report.header());
     double[] percentiles = { 50, 90, 99, 99.9};
     for (int rate : rates) {
-      Load load = new Load(rate, duration, warmup, protocol, workerGroup, sslCtx, port, host, path, payload, maxQueue, connections);
-      Report report = load.run();
+      tags.put("rate",rate);
+      Load load = new Load(rate, duration, warmup, protocol, workerGroup, sslCtx, port, host, path, payload, maxQueue, connections, report);
+      report = load.run();
       report.prettyPrint();
       if (out != null) {
         report.save(out + "_" + rate);
@@ -168,6 +192,7 @@ public class HttpClientCommand extends CommandBase {
       }
       histoChart.append(",").append(report.getMaxResponseTimeMillis());
       histoChart.append("\n");
+      allReport.append(report.format(null));
     }
 
     if (out != null) {
@@ -176,6 +201,9 @@ public class HttpClientCommand extends CommandBase {
       }
       try (PrintStream ps = new PrintStream(out + "_histo.csv")) {
         ps.print(histoChart);
+      }
+      try (PrintStream ps = new PrintStream(out + "_report.csv")) {
+        ps.print(allReport);
       }
     }
 

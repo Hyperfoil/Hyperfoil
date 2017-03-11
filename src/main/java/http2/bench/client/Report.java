@@ -1,29 +1,60 @@
 package http2.bench.client;
 
+import io.vertx.core.json.JsonObject;
 import org.HdrHistogram.Histogram;
 
 import java.io.PrintStream;
+import java.lang.reflect.Array;
+import java.net.URL;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
  */
 class Report {
-  final long expectedRequests;
-  final long elapsed;
-  final Histogram histogram;
-  final int responseCount;
-  final double ratio;
-  final int connectFailureCount;
-  final int resetCount;
-  final int requestCount;
-  final int[] statuses;
-  final long bytesRead;
-  final long byteWritten;
+  final static String[] COLUMNS = {
+      "req_s", "responseCount", "responseErrors", "expectedRequests","ratio",
+      "bytesRead", "bytesWritten",
+      "min", "p50", "p90", "p99", "p999", "p9999", "max"
+  };
+  long expectedRequests;
+  long elapsed;
+  Histogram histogram;
+  int responseCount;
+  double ratio;
+  int connectFailureCount;
+  int resetCount;
+  int requestCount;
+  int[] statuses;
+  long bytesRead;
+  long byteWritten;
+  final String[] tagFields;
+  final JsonObject results;
 
-  public Report(long expectedRequests, long elapsed, Histogram histogram, int responseCount, double ratio,
+  public Report(JsonObject tags) {
+    this.results = tags;
+    this.tagFields = tags.fieldNames().toArray(new String[tags.fieldNames().size()]);
+    Arrays.sort(tagFields);
+  }
+
+  public void measures(long expectedRequests, long elapsed, Histogram histogram, int responseCount, double ratio,
                 int connectFailureCount, int resetCount, int requestCount, int[] statuses,
                 long bytesRead, long bytesWritten) {
+
+    double elapsedSeconds = TimeUnit.NANOSECONDS.toSeconds(elapsed);
+    this.results.put("req_s",Math.round((responseCount / elapsedSeconds)*100)/100);
+    this.results.put("expectedRequests",expectedRequests);
+    this.results.put("elapsed",elapsed);
+    this.results.put("responseCount",responseCount);
+    this.results.put("ratio",Math.round(ratio*100)/100);
+    this.results.put("connectFailureCount",connectFailureCount);
+    this.results.put("responseErrors",connectFailureCount+resetCount);
+    this.results.put("requestCount",requestCount);
+    this.results.put("bytesRead",bytesRead);
+    this.results.put("bytesWritten",bytesWritten);
+
     this.expectedRequests = expectedRequests;
     this.elapsed = elapsed;
     this.histogram = histogram;
@@ -54,6 +85,54 @@ class Report {
     System.out.println("99.99% = " + getResponseTimeMillisPercentile(99.99));
   }
 
+  String[] columns() {
+    List<String> columns = new ArrayList<>();
+    columns.addAll(Arrays.asList(COLUMNS));
+    columns.addAll(Arrays.asList(tagFields));
+    return columns.toArray(new String[columns.size()]);
+  }
+
+  String header() {
+    return Arrays.stream(columns()).collect(Collectors.joining(","))+"\n";
+  }
+
+  String format(String[] columns) {
+    if (columns == null) {
+      columns = columns();
+    }
+    List<String> row = new ArrayList<>();
+    double elapsedSeconds = TimeUnit.NANOSECONDS.toSeconds(elapsed);
+    double req_s = responseCount / elapsedSeconds;
+    for (int i=0; i < columns.length; i++) {
+      switch (columns[i]) {
+        case "min":
+          row.add(String.valueOf(getMinResponseTimeMillis()));
+          break;
+        case "max":
+          row.add(String.valueOf(getMaxResponseTimeMillis()));
+          break;
+        case "p50":
+          row.add(String.valueOf(getResponseTimeMillisPercentile(50)));
+          break;
+        case "p90":
+          row.add(String.valueOf(getResponseTimeMillisPercentile(90)));
+          break;
+        case "p99":
+          row.add(String.valueOf(getResponseTimeMillisPercentile(99)));
+          break;
+        case "p999":
+          row.add(String.valueOf(getResponseTimeMillisPercentile(99.9)));
+          break;
+        case "p9999":
+          row.add(String.valueOf(getResponseTimeMillisPercentile(99.99)));
+          break;
+        default:
+          row.add(String.valueOf(results.getValue(columns[i])));
+      }
+    }
+    return row.stream().collect(Collectors.joining(","))+"\n";
+  }
+
   long getMinResponseTimeMillis() {
     return TimeUnit.NANOSECONDS.toMillis(histogram.getMinValue());
   }
@@ -65,7 +144,6 @@ class Report {
   long getResponseTimeMillisPercentile(double x) {
     return TimeUnit.NANOSECONDS.toMillis(histogram.getValueAtPercentile(x));
   }
-
 
   void save(String baseName) {
     try (PrintStream ps = new PrintStream(baseName + ".hdr")) {

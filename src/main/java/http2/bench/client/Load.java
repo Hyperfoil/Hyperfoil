@@ -30,6 +30,7 @@ class Load {
   private final ByteBuf payload;
   private final int maxQueue;
   private final int connections;
+  private final Report report;
 
   private AtomicInteger connectFailureCount = new AtomicInteger();
   private AtomicInteger requestCount = new AtomicInteger();
@@ -47,7 +48,8 @@ class Load {
   private volatile boolean done;
 
   public Load(int rate, long duration, long warmup, HttpVersion protocol, EventLoopGroup workerGroup,
-              SslContext sslCtx, int port, String host, String path, ByteBuf payload, int maxQueue, int connections) {
+              SslContext sslCtx, int port, String host, String path, ByteBuf payload, int maxQueue, int connections,
+              Report report) {
     this.rate = rate;
     this.duration = duration;
     this.warmup = warmup;
@@ -60,6 +62,7 @@ class Load {
     this.payload = payload;
     this.maxQueue = maxQueue;
     this.connections = connections;
+    this.report = report;
   }
 
   Report run() {
@@ -194,7 +197,7 @@ class Load {
     Histogram cp = histogram.copy();
     cp.setStartTimeStamp(TimeUnit.NANOSECONDS.toMillis(startTime));
     cp.setEndTimeStamp(TimeUnit.NANOSECONDS.toMillis(System.nanoTime()));
-    Report report = new Report(
+    report.measures(
         expectedRequests,
         elapsed,
         cp,
@@ -205,7 +208,8 @@ class Load {
         requestCount,
         Stream.of(statuses).mapToInt(AtomicInteger::intValue).toArray(),
         client.bytesRead(),
-        client.bytesWritten());
+        client.bytesWritten()
+    );
     client.shutdown();
     return report;
   }
