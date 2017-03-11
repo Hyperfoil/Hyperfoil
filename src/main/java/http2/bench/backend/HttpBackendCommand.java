@@ -10,10 +10,10 @@ import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServer;
+import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.streams.Pump;
 
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
@@ -27,11 +27,11 @@ public class HttpBackendCommand extends CommandBase {
   @Parameter(names = "--length", description = "the length in bytes")
   public String length = "0";
 
-//  @Parameter(names = "--chunk-size", description = "the chunk size in bytes")
-//  public int chunkSize = 1024;
-
   @Parameter(names = "--delay", description = "the delay in ms for sending the response")
   public long delay = 0;
+
+  @Parameter(names = "--cpu", description = "cpu burn in µs")
+  public long cpu = 0;
 
   @Override
   public void run() throws Exception {
@@ -43,7 +43,7 @@ public class HttpBackendCommand extends CommandBase {
             .put("port", port)
             .put("delay", delay)
             .put("length", length)
-//            .put("chunkSize", chunkSize)
+            .put("cpu",cpu)
         );
     vertx.deployVerticle(Server.class.getName(), opts, ar -> {
       if (ar.succeeded()) {
@@ -59,15 +59,19 @@ public class HttpBackendCommand extends CommandBase {
     private int length;
     private int port;
     private int delay;
-//    private int chunkSize;
     private Buffer buffer;
+    private long cpu;
+    private long iterationsForOneMilli = 0;
 
     @Override
     public void start(Future<Void> startFuture) throws Exception {
       delay = config().getInteger("delay");
       port = config().getInteger("port");
       length = config().getInteger("length");
-//      chunkSize = config().getInteger("chunkSize");
+      cpu = config().getLong("cpu",0L);
+      if (cpu > 0) {
+        iterationsForOneMilli = Utils.calibrateBlackhole();
+      }
       HttpServer server = vertx.createHttpServer();
       server.requestHandler(this::handle);
       server.listen(port, ar -> {
@@ -92,6 +96,11 @@ public class HttpBackendCommand extends CommandBase {
         vertx.setTimer(delay, v -> {
           handleResp(resp);
         });
+        if (cpu > 0) {
+          final long target_delay = Utils.ONE_MICRO_IN_NANO*cpu;
+          long num_iters = Math.round(target_delay * 1.0 * iterationsForOneMilli / Utils.ONE_MILLI_IN_NANO);
+          Utils.blackholeCpu(num_iters);
+        }
       } else {
         handleResp(resp);
       }
