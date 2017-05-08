@@ -13,7 +13,11 @@ import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+
+import java.util.Collections;
+import java.util.List;
 
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
@@ -27,8 +31,8 @@ public class HttpBackendCommand extends CommandBase {
   @Parameter(names = "--length", description = "the length in bytes")
   public String length = "0";
 
-  @Parameter(names = "--delay", description = "the delay in ms for sending the response")
-  public long[] delay = new long[0];
+  @Parameter(names = "--delay", description = "the delay in ms for sending the response, it can be a percentile distribution, e.g 5,20,...")
+  public List<Long> delay = Collections.singletonList(0L);
 
   @Parameter(names = "--cpu", description = "cpu burn in µs")
   public long cpu = 0;
@@ -36,12 +40,16 @@ public class HttpBackendCommand extends CommandBase {
   @Override
   public void run() throws Exception {
     Vertx vertx = Vertx.vertx();
+    JsonArray distribution = new JsonArray();
+    for (long val : delay) {
+      distribution.add(val);
+    }
     long length = Utils.parseSize(this.length).longValue();
     DeploymentOptions opts = new DeploymentOptions().
         setInstances(1).
         setConfig(new JsonObject()
             .put("port", port)
-            .put("delay", delay)
+            .put("distribution", distribution)
             .put("length", length)
             .put("cpu",cpu)
         );
@@ -58,14 +66,19 @@ public class HttpBackendCommand extends CommandBase {
 
     private int length;
     private int port;
-    private int delay;
+    private Distribution distribution;
     private Buffer buffer;
     private long cpu;
     private long iterationsForOneMilli = 0;
 
     @Override
     public void start(Future<Void> startFuture) throws Exception {
-      delay = config().getInteger("delay");
+      JsonArray d = config().getJsonArray("distribution");
+      long[] vals = new long[d.size()];
+      for (int i = 0;i < vals.length;i++) {
+        vals[i] = d.getLong(i);
+      }
+      distribution = new Distribution(vals);
       port = config().getInteger("port");
       length = config().getInteger("length");
       cpu = config().getLong("cpu",0L);
@@ -92,6 +105,7 @@ public class HttpBackendCommand extends CommandBase {
 
     protected void handle(HttpServerRequest req) {
       HttpServerResponse resp = req.response();
+      long delay = distribution.next();
       if (delay > 0) {
         vertx.setTimer(delay, v -> {
           handleResp(resp);
