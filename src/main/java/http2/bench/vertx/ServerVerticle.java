@@ -222,11 +222,8 @@ public class ServerVerticle extends AbstractVerticle {
     frontendResp.setChunked(true);
     frontendResp.setStatusCode(backendResp.statusCode());
     frontendResp.headers().setAll(backendResp.headers());
-    Pump pump = Pump.pump(backendResp, frontendResp);
-    pump.start();
-    backendResp.endHandler(v -> {
-      frontendResp.end();
-    });
+    backendResp.bodyHandler(frontendResp::write);
+    backendResp.endHandler(v -> frontendResp.end());
   }
 
   private void sendResponse(HttpServerRequest req, String s) {
