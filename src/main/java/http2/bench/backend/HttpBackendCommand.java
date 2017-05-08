@@ -28,7 +28,7 @@ public class HttpBackendCommand extends CommandBase {
   public String length = "0";
 
   @Parameter(names = "--delay", description = "the delay in ms for sending the response")
-  public long delay = 0;
+  public long[] delay = new long[0];
 
   @Parameter(names = "--cpu", description = "cpu burn in µs")
   public long cpu = 0;
