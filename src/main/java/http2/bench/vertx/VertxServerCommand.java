@@ -69,6 +69,7 @@ public class VertxServerCommand extends ServerCommandBase {
 
   private Map<Object, SocketMetric> queuedStreams = new LinkedHashMap<>();
   private AtomicInteger queueRequests = new AtomicInteger();
+  private AtomicInteger connections = new AtomicInteger();
 
   private void startLogMetrics(Vertx vertx) {
     vertx.setPeriodic(1000, timerID -> {
@@ -95,6 +96,7 @@ public class VertxServerCommand extends ServerCommandBase {
         fut.complete();
         System.out.format("pending: %d%n", queueRequests.get());
         System.out.format("avg: %d%n", avg);
+        System.out.format("connections: %d%n", connections.get());
         System.out.format(log);
       }, ar -> {
 
@@ -168,8 +170,12 @@ public class VertxServerCommand extends ServerCommandBase {
                 return null;
               }
               public void closeEndpoint(String host, int port, Void endpointMetric) { }
-              public void endpointConnected(Void endpointMetric, SocketMetric socketMetric) { }
-              public void endpointDisconnected(Void endpointMetric, SocketMetric socketMetric) { }
+              public void endpointConnected(Void endpointMetric, SocketMetric socketMetric) {
+                connections.incrementAndGet();
+              }
+              public void endpointDisconnected(Void endpointMetric, SocketMetric socketMetric) {
+                connections.decrementAndGet();
+              }
               public SocketMetric responsePushed(Void endpointMetric, SocketMetric socketMetric, SocketAddress localAddress, SocketAddress remoteAddress, HttpClientRequest request) { return null; }
               public Void connected(Void endpointMetric, SocketMetric socketMetric, WebSocket webSocket) { return null; }
               public void disconnected(Void webSocketMetric) { }
