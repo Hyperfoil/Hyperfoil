@@ -51,8 +51,8 @@ public class HttpClientCommand extends CommandBase {
   @Parameter(names = {"-b", "--body"})
   public String bodyParam = null;
 
-  @Parameter(names = {"-q", "--max-queue"})
-  public int maxQueue = 1;
+  @Parameter(names = {"-q", "--concurrency"}, description = "The concurrency per connection: number of pipelined requests for HTTP/1.1, max concurrent streams for HTTP/2")
+  public int concurrency = 1;
 
   @Parameter
   public List<String> uriParam;
@@ -62,6 +62,9 @@ public class HttpClientCommand extends CommandBase {
 
   @Parameter(names = {"-w", "--warmup"})
   public String warmupParam = "0";
+
+  @Parameter(names = {"-t", "--threads"}, description = "Number of threads to use")
+  public int threads = 1;
 
   @Parameter(names = {"--tags"})
   public String tagString = null;
@@ -166,7 +169,7 @@ public class HttpClientCommand extends CommandBase {
 
     tags.put("rate",0);
     tags.put("protocol",protocol.toString());
-    tags.put("maxQueue",maxQueue);
+    tags.put("maxQueue", concurrency);
     tags.put("connections",connections);
 
     System.out.println("starting benchmark...");
@@ -178,8 +181,9 @@ public class HttpClientCommand extends CommandBase {
     allReport.append(report.header());
     double[] percentiles = { 50, 90, 99, 99.9};
     for (int rate : rates) {
-      tags.put("rate",rate);
-      Load load = new Load(rate, duration, warmup, protocol, workerGroup, sslCtx, port, host, path, payload, maxQueue, connections, report);
+      tags.put("rate", rate);
+      tags.put("threads", threads);
+      Load load = new Load(threads, rate, duration, warmup, protocol, workerGroup, sslCtx, port, host, path, payload, concurrency, connections, report);
       report = load.run();
       report.prettyPrint();
       if (out != null) {

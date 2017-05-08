@@ -11,8 +11,10 @@ import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.LastHttpContent;
 
 import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.function.Consumer;
 
 /**
@@ -21,7 +23,7 @@ import java.util.function.Consumer;
 public class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
 
   private final Http1xClient client;
-  private final ArrayDeque<HttpStreamImpl> requests = new ArrayDeque<>();
+  private final Deque<HttpStreamImpl> requests = new ConcurrentLinkedDeque<>();
   private ChannelHandlerContext ctx;
   private volatile int size;
 

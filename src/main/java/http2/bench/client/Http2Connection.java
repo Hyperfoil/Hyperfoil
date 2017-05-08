@@ -24,7 +24,7 @@ public class Http2Connection extends Http2EventAdapter implements HttpConnection
   private final io.netty.handler.codec.http2.Http2Connection connection;
   private final Http2ConnectionEncoder encoder;
   private final IntObjectMap<Http2Stream> streams = new IntObjectHashMap<>();
-  private int numStreams;
+  private volatile int numStreams;
   private long maxStreams;
 
   public Http2Connection(ChannelHandlerContext context,
@@ -122,10 +122,10 @@ public class Http2Connection extends Http2EventAdapter implements HttpConnection
 
   public void request(String method, String path, Consumer<HttpStream> handler) {
     numStreams++;
-    int id = nextStreamId();
-    Http2Stream stream = new Http2Stream(client, context, encoder, id, method, path);
-    streams.put(id, stream);
     context.executor().execute(() -> {
+      int id = nextStreamId();
+      Http2Stream stream = new Http2Stream(client, context, encoder, id, method, path);
+      streams.put(id, stream);
       handler.accept(stream);
     });
   }
