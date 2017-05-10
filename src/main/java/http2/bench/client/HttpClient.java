@@ -25,7 +25,7 @@ abstract class HttpClient {
   private final EventLoop scheduler;
   final SslContext sslContext;
   private final ArrayList<HttpConnection> all = new ArrayList<>();
-  private int index;
+  private long index;
   private int count; // The estimated count : created + creating
   private Consumer<Void> startedHandler;
   private boolean shutdown;
@@ -111,8 +111,7 @@ abstract class HttpClient {
   synchronized HttpConnection choose() {
     int size = all.size();
     for (int i = 0; i < size; i++) {
-      index %= size;
-      HttpConnection conn = all.get(index++);
+      HttpConnection conn = all.get((int) index++ % size);
       if (conn.isAvailable()) {
         return conn;
       }

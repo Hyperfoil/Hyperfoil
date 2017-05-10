@@ -103,22 +103,20 @@ class Load {
     responseCount.reset();
     client.resetStatistics();
     printDetail(workerGroup.next());
-    int requestCount;
     ExecutorService exec = Executors.newFixedThreadPool(threads);
     Worker[] workers = new Worker[threads];
     for (int i = 0; i < threads; i++) {
       workers[i] = new Worker(exec);
     }
-    List<CompletableFuture<Integer>> results = new ArrayList<>(threads);
+    List<CompletableFuture<Void>> results = new ArrayList<>(threads);
     for (Worker worker : workers) {
       results.add(worker.runSlot(duration));
     }
-    requestCount = 0;
-    for (CompletableFuture<Integer> result : results) {
-      requestCount += result.get();
+    for (CompletableFuture<Void> result : results) {
+      result.get();
     }
     exec.shutdown();
-    return end(requestCount);
+    return end(requestCount.intValue());
   }
 
   private double ratio() {
@@ -149,9 +147,21 @@ class Load {
     }, 5, TimeUnit.SECONDS);
   }
 
+  static class ScheduledRequest {
+
+    final long startTime;
+    ScheduledRequest next;
+
+    public ScheduledRequest(long startTime) {
+      this.startTime = startTime;
+    }
+  }
+
   class Worker {
 
     private final Executor exec;
+    private ScheduledRequest head;
+    private ScheduledRequest tail;
 
     public Worker(Executor exec) {
       this.exec = exec;
@@ -161,55 +171,60 @@ class Load {
       this(Runnable::run);
     }
 
-    private CompletableFuture<Integer> runSlot(long duration) {
-      CompletableFuture<Integer> result = new CompletableFuture<>();
+    private CompletableFuture<Void> runSlot(long duration) {
+      CompletableFuture<Void> result = new CompletableFuture<>();
       runSlot(duration, result::complete);
       return result;
     }
 
-    private void runSlot(long duration, Consumer<Integer> doneHandler) {
+    private void runSlot(long duration, Consumer<Void> doneHandler) {
       exec.execute(() -> {
         if (duration > 0) {
           long slotBegins = System.nanoTime();
           long slotEnds = slotBegins + duration;
           Pacer pacer = new Pacer(pacerRate);
           pacer.setInitialStartTime(slotBegins);
-          int result = doRequestInSlot(pacer, slotEnds);
+          doRequestInSlot(pacer, slotEnds);
           if (doneHandler != null) {
-            doneHandler.accept(result);
+            doneHandler.accept(null);
           }
         }
       });
     }
 
-    private int doRequestInSlot(Pacer pacer, long slotEnds) {
-      int numReq = 0;
+    private void doRequestInSlot(Pacer pacer, long slotEnds) {
       while (true) {
         long now = System.nanoTime();
         if (now > slotEnds) {
-          return numReq;
+          return;
         } else {
-          HttpConnection conn = client.choose();
-          if (conn != null) {
-            numReq++;
-            pacer.acquire(1);
-            doRequest(conn);
+          ScheduledRequest schedule = new ScheduledRequest(now);
+          if (head == null) {
+            head = tail = schedule;
           } else {
-            // Sleep a little
-/*
-          long stop = System.nanoTime() + 10;
-          while (System.nanoTime() < stop) {
-            Thread.yield();
+            tail.next = schedule;
+            tail = schedule;
           }
-*/
-          }
+          checkPending();
+          pacer.acquire(1);
         }
       }
     }
 
-    private void doRequest(HttpConnection conn) {
+    private void checkPending() {
+      HttpConnection conn;
+      while (head != null && (conn = client.choose()) != null) {
+        long startTime = head.startTime;
+        head = head.next;
+        if (head == null) {
+          tail = null;
+        }
+        doRequest(conn, startTime);
+      }
+    }
+
+    private void doRequest(HttpConnection conn, long startTime) {
       requestCount.increment();
-      long startTime = System.nanoTime();
       conn.request(payload != null ? "POST" : "GET", path, stream -> {
         if (payload != null) {
           stream.putHeader("content-length", "" + payload.readableBytes());
@@ -226,6 +241,7 @@ class Load {
           long endTime = System.nanoTime();
           long durationMillis = endTime - startTime;
           histogram.recordValue(durationMillis);
+//          checkPending();
         });
         if (payload != null) {
           stream.end(payload.duplicate());
