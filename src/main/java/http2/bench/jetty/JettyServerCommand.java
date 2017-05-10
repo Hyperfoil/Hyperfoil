@@ -2,6 +2,7 @@ package http2.bench.jetty;
 
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
+import http2.bench.Distribution;
 import http2.bench.ServerCommandBase;
 import http2.bench.servlet.ServletServer;
 import org.eclipse.jetty.alpn.server.ALPNServerConnectionFactory;
@@ -52,7 +53,7 @@ public class JettyServerCommand extends ServerCommandBase {
     servlet.setAsync(async);
     servlet.setBackend(backend);
     servlet.setPoolSize(poolSize);
-    servlet.setDelay(delay);
+    servlet.setDelay(new Distribution(delay));
     servlet.setBackendHost(backendHost);
     servlet.setBackendPort(backendPort);
 

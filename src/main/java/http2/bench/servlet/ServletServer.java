@@ -3,6 +3,8 @@ package http2.bench.servlet;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import http2.bench.BackendType;
+import http2.bench.Distribution;
+import io.vertx.core.json.JsonArray;
 import okhttp3.ConnectionPool;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -27,6 +29,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -40,7 +43,7 @@ public class ServletServer extends GenericServlet {
   private File root;
   private int poolSize;
   private HikariDataSource ds;
-  private int delay;
+  private Distribution delay;
   private OkHttpClient backendClient;
   private String backendHost;
   private int backendPort;
@@ -77,11 +80,11 @@ public class ServletServer extends GenericServlet {
     this.poolSize = poolSize;
   }
 
-  public int getDelay() {
+  public Distribution getDelay() {
     return delay;
   }
 
-  public void setDelay(int delay) {
+  public void setDelay(Distribution delay) {
     this.delay = delay;
   }
 
@@ -108,7 +111,7 @@ public class ServletServer extends GenericServlet {
     root = new File(cfg.getInitParameter("root"));
     async = Boolean.valueOf(cfg.getInitParameter("async"));
     poolSize = Integer.parseInt(cfg.getInitParameter("poolSize"));
-    delay = Integer.parseInt(cfg.getInitParameter("delay"));
+    delay = new Distribution(new JsonArray(cfg.getInitParameter("delay")));
     backendHost = cfg.getInitParameter("backendHost");
     backendPort = Integer.parseInt(cfg.getInitParameter("backendPort"));
     try {
@@ -298,9 +301,10 @@ public class ServletServer extends GenericServlet {
   }
 
   private void sendResponse(HttpServletResponse response, byte[] body) throws IOException {
-    if (delay > 0) {
+    long wait = delay.next();
+    if (wait > 0) {
       try {
-        Thread.sleep(delay);
+        Thread.sleep(wait);
       } catch (InterruptedException ignore) {
         Thread.currentThread().interrupt();
       }

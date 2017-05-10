@@ -11,6 +11,7 @@ import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.WebSocket;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.metrics.MetricsOptions;
 import io.vertx.core.metrics.impl.DummyVertxMetrics;
@@ -47,13 +48,15 @@ public class VertxServerCommand extends ServerCommandBase {
     VertxOptions options = createOptions();
     Vertx vertx = Vertx.vertx(options);
     DeploymentOptions deplOptions = new DeploymentOptions().setInstances(instances);
+    JsonArray delayParam = new JsonArray();
+    delay.forEach(delayParam::add);
     deplOptions.setConfig(new JsonObject().
         put("clearText", clearText).
         put("port", port).
         put("openSSL", openSSL).
         put("soAcceptBacklog", soBacklog).
         put("poolSize", (int)Math.floor(poolSize / ((double)instances))).
-        put("delay", delay).
+        put("delay", delayParam).
         put("backendHost", backendHost).
         put("backendPort", backendPort).
         put("backend", backend.name()));

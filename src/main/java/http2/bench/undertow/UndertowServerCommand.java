@@ -12,6 +12,7 @@ import io.undertow.server.protocol.http2.Http2UpgradeHandler;
 import io.undertow.servlet.Servlets;
 import io.undertow.servlet.api.DeploymentInfo;
 import io.undertow.servlet.api.DeploymentManager;
+import io.vertx.core.json.JsonArray;
 import org.xnio.Options;
 import org.xnio.Sequence;
 
@@ -41,6 +42,8 @@ public class UndertowServerCommand extends ServerCommandBase {
   public void run() throws Exception {
     SSLContext sslContext = clearText ? null : createSSLContext();
     HttpHandler handler;
+    JsonArray delayParam = new JsonArray();
+    delay.forEach(delayParam::add);
     DeploymentInfo servletBuilder = Servlets.deployment()
         .setClassLoader(UndertowServerCommand.class.getClassLoader())
         .setContextPath("/")
@@ -51,7 +54,7 @@ public class UndertowServerCommand extends ServerCommandBase {
             addInitParam("root", "undertow.uploads").
             addInitParam("async", "" + async).
             addInitParam("poolSize", "" + poolSize).
-            addInitParam("delay", "" + delay).
+            addInitParam("delay", "" + delayParam.encode()).
             addInitParam("backendHost", "" + backendHost).
             addInitParam("backendPort", "" + backendPort).
             addInitParam("backend", backend.name()));

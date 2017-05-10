@@ -1,6 +1,7 @@
 package http2.bench.vertx;
 
 import http2.bench.BackendType;
+import http2.bench.Distribution;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
@@ -42,7 +43,7 @@ public class ServerVerticle extends AbstractVerticle {
   private BackendType backend;
   private int soAcceptBacklog;
   private int poolSize;
-  private int delay;
+  private Distribution delay;
   private String backendHost;
   private int backendPort;
   private boolean clearText;
@@ -60,7 +61,7 @@ public class ServerVerticle extends AbstractVerticle {
     soAcceptBacklog = context.config().getInteger("soAcceptBacklog");
     engine = config().getBoolean("openSSL") ? new OpenSSLEngineOptions() : new JdkSSLEngineOptions();
     poolSize = config().getInteger("poolSize");
-    delay = config().getInteger("delay");
+    delay = new Distribution(config().getJsonArray("delay"));
     backendHost = config().getString("backendHost");
     backendPort = config().getInteger("backendPort");
     clearText = config().getBoolean("clearText");
@@ -119,15 +120,7 @@ public class ServerVerticle extends AbstractVerticle {
       fs.mkdirsBlocking("vertx.uploads");
     }
 
-    server.requestHandler(req -> {
-      if (delay > 0) {
-        vertx.setTimer(delay, v -> {
-          handleRequest(req);
-        });
-      } else {
-        handleRequest(req);
-      }
-    });
+    server.requestHandler(this::handleRequest);
 
     Future<HttpServer> serverInit = Future.future();
     server.listen(serverInit.completer());
@@ -212,9 +205,14 @@ public class ServerVerticle extends AbstractVerticle {
         });
       }
     } else {
-      req.endHandler(v -> {
+      long waitTime = delay.next();
+      if (waitTime > 0) {
+        vertx.setTimer(waitTime, v -> {
+          sendResponse(req, "<html><body>Hello World / " + req.version() + "</body></html>");
+        });
+      } else {
         sendResponse(req, "<html><body>Hello World / " + req.version() + "</body></html>");
-      });
+      }
     }
   }
 

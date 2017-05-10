@@ -1,5 +1,8 @@
-package http2.bench.backend;
+package http2.bench;
 
+import io.vertx.core.json.JsonArray;
+
+import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -7,8 +10,32 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 public class Distribution {
 
+  private static long[] convert(JsonArray array) {
+    long[] result = new long[array.size()];
+    for (int i = 0;i < result.length;i++) {
+      result[i] = array.getLong(i);
+    }
+    return result;
+  }
+
+  private static long[] convert(List<Long> array) {
+    long[] result = new long[array.size()];
+    for (int i = 0;i < result.length;i++) {
+      result[i] = array.get(i);
+    }
+    return result;
+  }
+
   private final double[] bounds;
   private final long[] percentiles;
+
+  public Distribution(JsonArray percentiles) {
+    this(convert(percentiles));
+  }
+
+  public Distribution(List<Long> percentiles) {
+    this(convert(percentiles));
+  }
 
   public Distribution(long... percentiles) {
     this.percentiles = percentiles.clone();
