@@ -32,9 +32,9 @@
   <name>HTTP/2 benchmark</name>
 
   <properties>
-    <stack.version>3.4.2-SNAPSHOT</stack.version>
+    <stack.version>3.5.0</stack.version>
     <jetty.alpnAgent.version>2.0.6</jetty.alpnAgent.version>
-    <tcnative.version>1.1.33.Fork26</tcnative.version>
+    <tcnative.version>2.0.6.Final</tcnative.version>
     <jetty.alpnAgent.path>${settings.localRepository}/org/mortbay/jetty/alpn/jetty-alpn-agent/${jetty.alpnAgent.version}/jetty-alpn-agent-${jetty.alpnAgent.version}.jar</jetty.alpnAgent.path>
     <args></args>
     <opts></opts>
