@@ -1,4 +1,4 @@
-package http2.bench.client;
+package http2.bench.client.netty;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufHolder;

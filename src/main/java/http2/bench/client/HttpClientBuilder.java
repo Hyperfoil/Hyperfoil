@@ -1,0 +1,17 @@
+package http2.bench.client;
+
+import io.vertx.core.http.HttpVersion;
+
+public interface HttpClientBuilder {
+
+  HttpClientBuilder ssl(boolean ssl);
+  HttpClientBuilder protocol(HttpVersion protocol);
+  HttpClientBuilder size(int size);
+  HttpClientBuilder port(int port);
+  HttpClientBuilder host(String host);
+  HttpClientBuilder concurrency(int maxConcurrency);
+  HttpClient build() throws Exception;
+
+  void shutdown();
+
+}

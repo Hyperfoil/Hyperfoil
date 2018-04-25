@@ -1,5 +1,6 @@
-package http2.bench.client;
+package http2.bench.client.netty;
 
+import http2.bench.client.HttpRequest;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelDuplexHandler;
@@ -10,24 +11,47 @@ import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.LastHttpContent;
 
-import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.function.IntConsumer;
 
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
  */
-public class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
+class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
 
   private final Http1xClient client;
-  private final Deque<HttpStreamImpl> requests = new ConcurrentLinkedDeque<>();
+  // Todo not use concurrent
+  private final Deque<HttpStream> inflights = new ConcurrentLinkedDeque<>();
   private ChannelHandlerContext ctx;
-  private volatile int size;
+  private AtomicInteger size = new AtomicInteger();
 
-  public Http1xConnection(Http1xClient client) {
+  private class HttpStream implements Runnable {
+
+    private final DefaultFullHttpRequest msg;
+    private final IntConsumer headersHandler;
+    private final IntConsumer resetHandler;
+    private final Consumer<Void> endHandler;
+
+    HttpStream(DefaultFullHttpRequest msg, IntConsumer headersHandler, IntConsumer resetHandler, Consumer<Void> endHandler) {
+      this.msg = msg;
+      this.headersHandler = headersHandler;
+      this.resetHandler = resetHandler;
+      this.endHandler = endHandler;
+    }
+
+    @Override
+    public void run() {
+      ctx.writeAndFlush(msg);
+      inflights.add(this);
+    }
+  }
+
+  Http1xConnection(Http1xClient client) {
     this.client = client;
   }
 
@@ -41,14 +65,14 @@ public class Http1xConnection extends ChannelDuplexHandler implements HttpConnec
   public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
     if (msg instanceof HttpResponse) {
       HttpResponse response = (HttpResponse) msg;
-      HttpStreamImpl request = requests.peek();
+      HttpStream request = inflights.peek();
       if (request.headersHandler != null) {
-        request.headersHandler.accept(new HttpHeaders(response));
+        request.headersHandler.accept(response.status().code());
       }
     }
     if (msg instanceof LastHttpContent) {
-      size--;
-      HttpStreamImpl request = requests.poll();
+      size.decrementAndGet();
+      HttpStream request = inflights.poll();
       if (request.endHandler != null) {
         request.endHandler.accept(null);
       }
@@ -56,40 +80,41 @@ public class Http1xConnection extends ChannelDuplexHandler implements HttpConnec
     super.channelRead(ctx, msg);
   }
 
-  private class HttpStreamImpl implements HttpStream {
+  private class HttpRequestImpl implements HttpRequest {
+
     private final String method;
     private final String path;
     private Map<String, String> headers;
-    private Consumer<HttpHeaders> headersHandler;
-    private Consumer<RstFrame> resetHandler;
+    private IntConsumer headersHandler;
+    private IntConsumer resetHandler;
     private Consumer<Void> endHandler;
 
-    public HttpStreamImpl(String method, String path) {
+    HttpRequestImpl(String method, String path) {
       this.method = method;
       this.path = path;
-      headers = new HashMap<>();
+      this.headers = new HashMap<>();
     }
 
     @Override
-    public HttpStream putHeader(String name, String value) {
+    public HttpRequest putHeader(String name, String value) {
       headers.put(name, value);
       return this;
     }
 
     @Override
-    public HttpStream headersHandler(Consumer<HttpHeaders> handler) {
+    public HttpRequest headersHandler(IntConsumer handler) {
       headersHandler = handler;
       return this;
     }
 
     @Override
-    public HttpStream resetHandler(Consumer<RstFrame> handler) {
+    public HttpRequest resetHandler(IntConsumer handler) {
       resetHandler = handler;
       return this;
     }
 
     @Override
-    public HttpStream endHandler(Consumer<Void> handler) {
+    public HttpRequest endHandler(Consumer<Void> handler) {
       endHandler = handler;
       return this;
     }
@@ -101,18 +126,15 @@ public class Http1xConnection extends ChannelDuplexHandler implements HttpConnec
       }
       DefaultFullHttpRequest msg = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.valueOf(method), path, buff, false);
       headers.forEach(msg.headers()::add);
-      ctx.writeAndFlush(msg);
+      ctx.executor().execute(new HttpStream(msg, headersHandler, resetHandler, endHandler));
     }
   }
 
   @Override
-  public void request(String method, String path, Consumer<HttpStream> handler) {
-    HttpStreamImpl request = new HttpStreamImpl(method, path);
-    requests.add(request);
-    size++;
-    ctx.executor().execute(() -> {
-      handler.accept(request);
-    });
+  public HttpRequest request(String method, String path) {
+    HttpRequestImpl request = new HttpRequestImpl(method, path);
+    size.incrementAndGet();
+    return request;
   }
 
   @Override
@@ -122,6 +144,6 @@ public class Http1xConnection extends ChannelDuplexHandler implements HttpConnec
 
   @Override
   public boolean isAvailable() {
-    return size < client.maxConcurrentStream;
+    return size.get() < client.maxConcurrentStream;
   }
 }

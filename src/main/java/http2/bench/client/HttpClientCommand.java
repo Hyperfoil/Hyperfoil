@@ -3,18 +3,8 @@ package http2.bench.client;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import http2.bench.CommandBase;
+import http2.bench.client.netty.NettyHttpClientBuilder;
 import io.netty.buffer.ByteBuf;
-import io.netty.channel.EventLoopGroup;
-import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.handler.codec.http2.Http2SecurityUtil;
-import io.netty.handler.ssl.ApplicationProtocolConfig;
-import io.netty.handler.ssl.ApplicationProtocolNames;
-import io.netty.handler.ssl.OpenSsl;
-import io.netty.handler.ssl.SslContext;
-import io.netty.handler.ssl.SslContextBuilder;
-import io.netty.handler.ssl.SslProvider;
-import io.netty.handler.ssl.SupportedCipherSuiteFilter;
-import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpVersion;
 import io.vertx.core.json.JsonObject;
@@ -37,7 +27,7 @@ import java.util.concurrent.TimeUnit;
 public class HttpClientCommand extends CommandBase {
 
   @Parameter(names = {"-p", "--protocol"})
-  HttpVersion protocol = HttpVersion.HTTP_2;
+  public HttpVersion protocol = HttpVersion.HTTP_2;
 
   @Parameter(names = {"-d", "--duration"})
   public String durationParam = "30s";
@@ -70,9 +60,8 @@ public class HttpClientCommand extends CommandBase {
   public String tagString = null;
 
   private ByteBuf payload;
-  private final EventLoopGroup workerGroup = new NioEventLoopGroup();
-  private SslContext sslCtx;
   private JsonObject tags = new JsonObject();
+  private HttpClientBuilder clientBuilder;
 
   private static long parseDuration(String s) {
     TimeUnit unit;
@@ -144,28 +133,15 @@ public class HttpClientCommand extends CommandBase {
     String host = absoluteURI.getHost();
     int port = absoluteURI.getPort();
     String path = absoluteURI.getPath();
+    boolean ssl = absoluteURI.getScheme().equals("https");
 
-    if (absoluteURI.getScheme().equals("https")) {
-      SslProvider provider = OpenSsl.isAlpnSupported() ? SslProvider.OPENSSL : SslProvider.JDK;
-      SslContextBuilder builder = SslContextBuilder.forClient()
-          .sslProvider(provider)
-                /* NOTE: the cipher filter may not include all ciphers required by the HTTP/2 specification.
-                 * Please refer to the HTTP/2 specification for cipher requirements. */
-          .ciphers(Http2SecurityUtil.CIPHERS, SupportedCipherSuiteFilter.INSTANCE)
-          .trustManager(InsecureTrustManagerFactory.INSTANCE);
-      if (protocol == HttpVersion.HTTP_2) {
-            builder.applicationProtocolConfig(new ApplicationProtocolConfig(
-                ApplicationProtocolConfig.Protocol.ALPN,
-                // NO_ADVERTISE is currently the only mode supported by both OpenSsl and JDK providers.
-                ApplicationProtocolConfig.SelectorFailureBehavior.NO_ADVERTISE,
-                // ACCEPT is currently the only mode supported by both OpenSsl and JDK providers.
-                ApplicationProtocolConfig.SelectedListenerFailureBehavior.ACCEPT,
-                ApplicationProtocolNames.HTTP_2,
-                ApplicationProtocolNames.HTTP_1_1));
-      }
-      sslCtx = builder
-          .build();
-    }
+    clientBuilder = new NettyHttpClientBuilder()
+        .ssl(ssl)
+        .port(port)
+        .host(host)
+        .size(connections)
+        .concurrency(concurrency)
+        .protocol(protocol);
 
     tags.put("rate",0);
     tags.put("protocol",protocol.toString());
@@ -183,7 +159,7 @@ public class HttpClientCommand extends CommandBase {
     for (int rate : rates) {
       tags.put("rate", rate);
       tags.put("threads", threads);
-      Load load = new Load(threads, rate, duration, warmup, protocol, workerGroup, sslCtx, port, host, path, payload, concurrency, connections, report);
+      Load load = new Load(threads, rate, duration, warmup, clientBuilder, path, payload, report);
       report = load.run();
       report.prettyPrint();
       if (out != null) {
@@ -210,7 +186,6 @@ public class HttpClientCommand extends CommandBase {
         ps.print(allReport);
       }
     }
-
-    workerGroup.shutdownGracefully(0, 10, TimeUnit.SECONDS);
+    clientBuilder.shutdown();
   }
 }

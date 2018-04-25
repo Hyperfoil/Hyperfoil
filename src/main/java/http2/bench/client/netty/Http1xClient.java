@@ -1,4 +1,4 @@
-package http2.bench.client;
+package http2.bench.client.netty;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
@@ -18,11 +18,11 @@ import java.util.function.BiConsumer;
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
  */
-public class Http1xClient extends HttpClient {
+class Http1xClient extends HttpClientImpl {
 
   private final StatisticsHandler statisticsHandler = new StatisticsHandler();
 
-  public Http1xClient(EventLoopGroup eventLoopGroup, SslContext sslContext, int size, int port, String host, int maxConcurrentStream) {
+  Http1xClient(EventLoopGroup eventLoopGroup, SslContext sslContext, int size, int port, String host, int maxConcurrentStream) {
     super(eventLoopGroup, sslContext, size, port, host, maxConcurrentStream);
   }
 

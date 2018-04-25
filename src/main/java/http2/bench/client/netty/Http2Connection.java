@@ -1,7 +1,7 @@
-package http2.bench.client;
+package http2.bench.client.netty;
 
+import http2.bench.client.HttpRequest;
 import io.netty.buffer.ByteBuf;
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http2.Http2ConnectionDecoder;
 import io.netty.handler.codec.http2.Http2ConnectionEncoder;
@@ -12,22 +12,24 @@ import io.netty.handler.codec.http2.Http2Settings;
 import io.netty.util.collection.IntObjectHashMap;
 import io.netty.util.collection.IntObjectMap;
 
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.function.IntConsumer;
 
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
  */
-public class Http2Connection extends Http2EventAdapter implements HttpConnection {
+class Http2Connection extends Http2EventAdapter implements HttpConnection {
 
-  final Http2Client client;
-  final ChannelHandlerContext context;
+  private final Http2Client client;
+  private final ChannelHandlerContext context;
   private final io.netty.handler.codec.http2.Http2Connection connection;
   private final Http2ConnectionEncoder encoder;
   private final IntObjectMap<Http2Stream> streams = new IntObjectHashMap<>();
-  private volatile int numStreams;
+  private AtomicInteger numStreams = new AtomicInteger();
   private long maxStreams;
 
-  public Http2Connection(ChannelHandlerContext context,
+  Http2Connection(ChannelHandlerContext context,
                          io.netty.handler.codec.http2.Http2Connection connection,
                          Http2ConnectionEncoder encoder,
                          Http2ConnectionDecoder decoder,
@@ -42,7 +44,7 @@ public class Http2Connection extends Http2EventAdapter implements HttpConnection
     Http2EventAdapter listener = new Http2EventAdapter() {
 
       @Override
-      public void onSettingsRead(ChannelHandlerContext ctx, Http2Settings settings) throws Http2Exception {
+      public void onSettingsRead(ChannelHandlerContext ctx, Http2Settings settings) {
         if (settings.maxConcurrentStreams() != null) {
           maxStreams = Math.min(client.maxConcurrentStream, settings.maxConcurrentStreams());
         }
@@ -53,7 +55,12 @@ public class Http2Connection extends Http2EventAdapter implements HttpConnection
         Http2Stream stream = streams.get(streamId);
         if (stream != null) {
           if (stream.headersHandler != null) {
-            stream.headersHandler.accept(new HttpHeaders(headers));
+            int code = -1;
+            try {
+              code = Integer.parseInt(headers.status().toString());
+            } catch (NumberFormatException ignore) {
+            }
+            stream.headersHandler.accept(code);
           }
           if (endStream) {
             endStream(streamId);
@@ -77,18 +84,18 @@ public class Http2Connection extends Http2EventAdapter implements HttpConnection
       }
 
       @Override
-      public void onRstStreamRead(ChannelHandlerContext ctx, int streamId, long errorCode) throws Http2Exception {
+      public void onRstStreamRead(ChannelHandlerContext ctx, int streamId, long errorCode) {
         Http2Stream stream = streams.get(streamId);
         if (stream != null) {
           if (stream.resetHandler != null) {
-            stream.resetHandler.accept(new RstFrame());
+            stream.resetHandler.accept(0);
           }
           endStream(streamId);
         }
       }
 
       private void endStream(int streamId) {
-        numStreams--;
+        numStreams.decrementAndGet();
         Http2Stream stream = streams.remove(streamId);
         if (stream != null && !stream.ended && stream.endHandler != null) {
           stream.ended = true;
@@ -108,7 +115,7 @@ public class Http2Connection extends Http2EventAdapter implements HttpConnection
 
   @Override
   public boolean isAvailable() {
-    return numStreams < maxStreams;
+    return numStreams.get() < maxStreams;
   }
 
   public void incrementConnectionWindowSize(int increment) {
@@ -120,14 +127,41 @@ public class Http2Connection extends Http2EventAdapter implements HttpConnection
     }
   }
 
-  public void request(String method, String path, Consumer<HttpStream> handler) {
-    numStreams++;
+  static class Http2Stream {
+
+    final Http2Headers headers;
+    final ByteBuf buff;
+    final IntConsumer headersHandler;
+    final Consumer<ByteBuf> dataHandler;
+    final IntConsumer resetHandler;
+    final Consumer<Void> endHandler;
+    boolean ended;
+
+    Http2Stream(Http2Headers headers, ByteBuf buff, IntConsumer headersHandler, Consumer<ByteBuf> dataHandler, IntConsumer resetHandler, Consumer<Void> endHandler) {
+      this.headers = headers;
+      this.buff = buff;
+      this.headersHandler = headersHandler;
+      this.dataHandler = dataHandler;
+      this.resetHandler = resetHandler;
+      this.endHandler = endHandler;
+    }
+  }
+
+  void bilto(Http2Stream stream) {
     context.executor().execute(() -> {
       int id = nextStreamId();
-      Http2Stream stream = new Http2Stream(client, context, encoder, id, method, path);
       streams.put(id, stream);
-      handler.accept(stream);
+      encoder.writeHeaders(context, id, stream.headers, 0, stream.buff == null, context.newPromise());
+      if (stream.buff != null) {
+        encoder.writeData(context, id, stream.buff, 0, true, context.newPromise());
+      }
+      context.flush();
     });
+  }
+
+  public HttpRequest request(String method, String path) {
+    numStreams.incrementAndGet();
+    return new Http2Request(client, this, method, path);
   }
 
   private int nextStreamId() {

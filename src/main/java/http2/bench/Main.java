@@ -2,12 +2,7 @@ package http2.bench;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameters;
-import http2.bench.jetty.JettyServerCommand;
 import http2.bench.client.HttpClientCommand;
-import http2.bench.backend.HttpBackendCommand;
-import http2.bench.netty.NettyServerCommand;
-import http2.bench.undertow.UndertowServerCommand;
-import http2.bench.vertx.VertxServerCommand;
 
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
@@ -20,40 +15,15 @@ public class Main {
 
   public static void main(String[] args) throws Exception {
     JCommander jc = new JCommander(new MainCmd());
-    VertxServerCommand vertx = new VertxServerCommand();
-    JettyServerCommand jetty = new JettyServerCommand();
-    UndertowServerCommand undertow = new UndertowServerCommand();
-    NettyServerCommand netty = new NettyServerCommand();
     HttpClientCommand httpClient = new HttpClientCommand();
-    HttpBackendCommand httpBackend = new HttpBackendCommand();
-    jc.addCommand("vertx", vertx);
-    jc.addCommand("jetty", jetty);
-    jc.addCommand("undertow", undertow);
-    jc.addCommand("netty", netty);
     jc.addCommand("http-client", httpClient);
-    jc.addCommand("http-backend", httpBackend);
     jc.parse(args);
     String cmd = jc.getParsedCommand();
     CommandBase command = null;
     if (cmd != null) {
       switch (cmd) {
-        case "http-backend":
-          command = httpBackend;
-          break;
         case "http-client":
           command = httpClient;
-          break;
-        case "vertx":
-          command = vertx;
-          break;
-        case "jetty":
-          command = jetty;
-          break;
-        case "undertow":
-          command = undertow;
-          break;
-        case "netty":
-          command = netty;
           break;
         default:
           break;

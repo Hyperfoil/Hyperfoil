@@ -1,4 +1,4 @@
-package http2.bench.client;
+package http2.bench.client.netty;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
@@ -36,7 +36,7 @@ import java.util.function.BiConsumer;
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
  */
-class Http2Client extends HttpClient {
+class Http2Client extends HttpClientImpl {
 
   Http2Headers headers(String method, String scheme, String path) {
     return new DefaultHttp2Headers().method(method).scheme(scheme).path(path).authority(authority);
@@ -58,7 +58,7 @@ class Http2Client extends HttpClient {
   private final String authority;
   private final StatisticsHandler statisticsHandler = new StatisticsHandler();
 
-  public Http2Client(EventLoopGroup eventLoopGroup, SslContext sslContext, int size, int port, String host, int maxConcurrentStream) {
+  Http2Client(EventLoopGroup eventLoopGroup, SslContext sslContext, int size, int port, String host, int maxConcurrentStream) {
     super(eventLoopGroup, sslContext, size, port, host, maxConcurrentStream);
     this.authority = host + ":" + port;
   }

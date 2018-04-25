@@ -2,9 +2,6 @@ package http2.bench.client;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.EventLoop;
-import io.netty.channel.EventLoopGroup;
-import io.netty.handler.ssl.SslContext;
-import io.vertx.core.http.HttpVersion;
 import org.HdrHistogram.ConcurrentHistogram;
 import org.HdrHistogram.Histogram;
 
@@ -25,20 +22,14 @@ import java.util.stream.Stream;
  */
 class Load {
 
+  private final HttpClientBuilder clientBuilder;
   private final int threads;
   private final int rate;
   private final int pacerRate;
   private final long duration;
   private final long warmup;
-  private final HttpVersion protocol;
-  private final EventLoopGroup workerGroup;
-  private final SslContext sslCtx;
-  private final int port;
-  private final String host;
   private final String path;
   private final ByteBuf payload;
-  private final int maxQueue;
-  private final int connections;
   private final Report report;
 
   private final Histogram histogram = new ConcurrentHistogram(TimeUnit.MINUTES.toNanos(1), 2);
@@ -56,33 +47,23 @@ class Load {
   private HttpClient client;
   private volatile boolean done;
 
-  public Load(int threads, int rate, long duration, long warmup, HttpVersion protocol, EventLoopGroup workerGroup,
-              SslContext sslCtx, int port, String host, String path, ByteBuf payload, int maxQueue, int connections,
+  public Load(int threads, int rate, long duration, long warmup,
+              HttpClientBuilder clientBuilder, String path, ByteBuf payload,
               Report report) {
     this.threads = threads;
     this.rate = rate;
     this.pacerRate = rate / threads;
     this.duration = duration;
     this.warmup = warmup;
-    this.protocol = protocol;
-    this.workerGroup = workerGroup;
-    this.sslCtx = sslCtx;
-    this.port = port;
-    this.host = host;
+    this.clientBuilder = clientBuilder;
     this.path = path;
     this.payload = payload;
-    this.maxQueue = maxQueue;
-    this.connections = connections;
     this.report = report;
   }
 
   Report run() throws Exception {
     CountDownLatch latch = new CountDownLatch(1);
-    if (protocol == HttpVersion.HTTP_2) {
-      client = new Http2Client(workerGroup, sslCtx, connections, port, host, maxQueue);
-    } else {
-      client = new Http1xClient(workerGroup, sslCtx, connections, port, host, maxQueue);
-    }
+    client = clientBuilder.build();
     client.start(v1 -> {
       latch.countDown();
     });
@@ -102,7 +83,7 @@ class Load {
     requestCount.reset();
     responseCount.reset();
     client.resetStatistics();
-    printDetail(workerGroup.next());
+    // printDetail(workerGroup.next());
     ExecutorService exec = Executors.newFixedThreadPool(threads);
     Worker[] workers = new Worker[threads];
     for (int i = 0; i < threads; i++) {
@@ -212,8 +193,8 @@ class Load {
     }
 
     private void checkPending() {
-      HttpConnection conn;
-      while (head != null && (conn = client.choose()) != null) {
+      HttpRequest conn;
+      while (head != null && (conn = client.request(payload != null ? "POST" : "GET", path)) != null) {
         long startTime = head.startTime;
         head = head.next;
         if (head == null) {
@@ -223,32 +204,30 @@ class Load {
       }
     }
 
-    private void doRequest(HttpConnection conn, long startTime) {
+    private void doRequest(HttpRequest request, long startTime) {
       requestCount.increment();
-      conn.request(payload != null ? "POST" : "GET", path, stream -> {
-        if (payload != null) {
-          stream.putHeader("content-length", "" + payload.readableBytes());
+      if (payload != null) {
+        request.putHeader("content-length", "" + payload.readableBytes());
+      }
+      request.headersHandler(code -> {
+        int status = (code - 200) / 100;
+        if (status >= 0 && status < statuses.length) {
+          statuses[status].increment();
         }
-        stream.headersHandler(frame -> {
-          int status = frame.status();
-          if (status >= 0 && status < statuses.length) {
-            statuses[status].increment();
-          }
-        }).resetHandler(frame -> {
-          resetCount.increment();
-        }).endHandler(v -> {
-          responseCount.increment();
-          long endTime = System.nanoTime();
-          long durationMillis = endTime - startTime;
-          histogram.recordValue(durationMillis);
+      }).resetHandler(frame -> {
+        resetCount.increment();
+      }).endHandler(v -> {
+        responseCount.increment();
+        long endTime = System.nanoTime();
+        long durationMillis = endTime - startTime;
+        histogram.recordValue(durationMillis);
 //          checkPending();
-        });
-        if (payload != null) {
-          stream.end(payload.duplicate());
-        } else {
-          stream.end();
-        }
       });
+      if (payload != null) {
+        request.end(payload.duplicate());
+      } else {
+        request.end();
+      }
     }
   }
 
