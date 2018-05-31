@@ -136,6 +136,7 @@ public class HttpClientCommand extends CommandBase {
     boolean ssl = absoluteURI.getScheme().equals("https");
 
     clientBuilder = new NettyHttpClientBuilder()
+        .threads(threads)
         .ssl(ssl)
         .port(port)
         .host(host)

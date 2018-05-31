@@ -2,6 +2,7 @@ package http2.bench.client.netty;
 
 import http2.bench.client.HttpClient;
 import http2.bench.client.HttpClientBuilder;
+import io.netty.channel.EventLoop;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.vertx.core.http.HttpVersion;
@@ -10,13 +11,23 @@ import java.util.concurrent.TimeUnit;
 
 public class NettyHttpClientBuilder implements HttpClientBuilder {
 
-  private EventLoopGroup workerGroup = new NioEventLoopGroup();;
+  private volatile EventLoopGroup workerGroup;
   private volatile HttpVersion protocol;
   private volatile int size;
   private volatile boolean ssl;
   private volatile int port;
   private volatile String host;
   private volatile int concurrency;
+  private final ThreadLocal<EventLoop> currentEventLoop = ThreadLocal.withInitial(() -> workerGroup.next());
+
+  @Override
+  public HttpClientBuilder threads(int count) {
+    if (workerGroup != null) {
+      throw new IllegalStateException();
+    }
+    workerGroup = new NioEventLoopGroup(count);
+    return this;
+  }
 
   @Override
   public HttpClientBuilder ssl(boolean ssl) {
@@ -51,7 +62,7 @@ public class NettyHttpClientBuilder implements HttpClientBuilder {
 
   @Override
   public HttpClient build() throws Exception {
-    return HttpClientImpl.create(workerGroup, protocol, ssl, size, port, host, concurrency);
+    return HttpClientImpl.create(currentEventLoop.get(), protocol, ssl, size, port, host, concurrency);
   }
 
   @Override

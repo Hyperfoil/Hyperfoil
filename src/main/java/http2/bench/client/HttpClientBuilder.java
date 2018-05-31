@@ -4,6 +4,7 @@ import io.vertx.core.http.HttpVersion;
 
 public interface HttpClientBuilder {
 
+  HttpClientBuilder threads(int count);
   HttpClientBuilder ssl(boolean ssl);
   HttpClientBuilder protocol(HttpVersion protocol);
   HttpClientBuilder size(int size);
