@@ -32,7 +32,7 @@
   <name>HTTP/2 benchmark</name>
 
   <properties>
-    <stack.version>3.5.2.CR3</stack.version>
+    <vertx.version>3.5.2.CR3</vertx.version>
     <jetty.alpnAgent.version>2.0.6</jetty.alpnAgent.version>
     <tcnative.version>2.0.6.Final</tcnative.version>
     <jetty.alpnAgent.path>${settings.localRepository}/org/mortbay/jetty/alpn/jetty-alpn-agent/${jetty.alpnAgent.version}/jetty-alpn-agent-${jetty.alpnAgent.version}.jar</jetty.alpnAgent.path>
@@ -45,7 +45,7 @@
       <dependency>
         <groupId>io.vertx</groupId>
         <artifactId>vertx-dependencies</artifactId>
-        <version>${stack.version}</version>
+        <version>${vertx.version}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
