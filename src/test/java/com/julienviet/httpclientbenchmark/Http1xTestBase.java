@@ -1,6 +1,7 @@
 package com.julienviet.httpclientbenchmark;
 
 import http2.bench.client.HttpClientCommand;
+import http2.bench.client.HttpClientProvider;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpVersion;
 import io.vertx.ext.unit.TestContext;
@@ -13,10 +14,11 @@ import org.junit.runner.RunWith;
 import java.util.Arrays;
 
 @RunWith(VertxUnitRunner.class)
-public class Http1Test {
+public abstract class Http1xTestBase {
 
   private volatile int count;
   private Vertx vertx;
+  protected HttpClientProvider provider;
 
   @Before
   public void before(TestContext ctx) {
@@ -36,6 +38,7 @@ public class Http1Test {
   @Test
   public void testNetty() throws Exception {
     HttpClientCommand cmd = new HttpClientCommand();
+    cmd.provider = provider;
     cmd.connections = 5;
     cmd.threads = 4;
     cmd.uriParam = Arrays.asList("http://localhost:8080");

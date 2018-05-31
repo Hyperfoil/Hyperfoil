@@ -3,7 +3,6 @@ package http2.bench.client;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import http2.bench.CommandBase;
-import http2.bench.client.netty.NettyHttpClientBuilder;
 import io.netty.buffer.ByteBuf;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpVersion;
@@ -25,6 +24,9 @@ import java.util.concurrent.TimeUnit;
  */
 @Parameters()
 public class HttpClientCommand extends CommandBase {
+
+  @Parameter(names = { "--provider" })
+  public HttpClientProvider provider = HttpClientProvider.netty;
 
   @Parameter(names = {"-p", "--protocol"})
   public HttpVersion protocol = HttpVersion.HTTP_2;
@@ -61,7 +63,6 @@ public class HttpClientCommand extends CommandBase {
 
   private ByteBuf payload;
   private JsonObject tags = new JsonObject();
-  private HttpClientBuilder clientBuilder;
 
   private static long parseDuration(String s) {
     TimeUnit unit;
@@ -135,7 +136,7 @@ public class HttpClientCommand extends CommandBase {
     String path = absoluteURI.getPath();
     boolean ssl = absoluteURI.getScheme().equals("https");
 
-    clientBuilder = new NettyHttpClientBuilder()
+    HttpClientBuilder clientBuilder = provider.builder()
         .threads(threads)
         .ssl(ssl)
         .port(port)
