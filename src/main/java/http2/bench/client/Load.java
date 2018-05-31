@@ -118,11 +118,12 @@ class Load {
    */
   public void printDetails() {
     double progress = (100 * (System.nanoTime() - startTime)) / (double) duration;
-    System.out.format("progress: %.2f%% done - total requests/responses %d/%d, ratio %.2f, read %d kb/s, written %d kb/s%n",
+    System.out.format("progress: %.2f%% done - total requests/responses %d/%d, ratio %.2f, read %d kb/s, written %d kb/s, inflight= %d%n",
         progress,
         requestCount.intValue(),
         responseCount.intValue(),
-        ratio(), readThroughput(), writeThroughput());
+        ratio(), readThroughput(), writeThroughput(),
+        client.inflight());
   }
 
   static class ScheduledRequest {

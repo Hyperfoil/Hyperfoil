@@ -9,6 +9,8 @@ import io.netty.channel.ChannelHandlerContext;
  */
 public interface HttpConnection {
 
+  int inflight();
+
   HttpRequest request(HttpMethod method, String path);
 
   ChannelHandlerContext context();

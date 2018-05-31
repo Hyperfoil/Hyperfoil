@@ -146,4 +146,9 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
   public boolean isAvailable() {
     return size.get() < client.maxConcurrentStream;
   }
+
+  @Override
+  public int inflight() {
+    return size.get();
+  }
 }

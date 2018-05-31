@@ -119,6 +119,11 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
     return numStreams.get() < maxStreams;
   }
 
+  @Override
+  public int inflight() {
+    return numStreams.get();
+  }
+
   public void incrementConnectionWindowSize(int increment) {
     try {
       io.netty.handler.codec.http2.Http2Stream stream = connection.connectionStream();

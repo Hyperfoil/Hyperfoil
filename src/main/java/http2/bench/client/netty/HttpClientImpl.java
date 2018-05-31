@@ -166,6 +166,15 @@ abstract class HttpClientImpl implements HttpClient {
 
   public abstract void resetStatistics();
 
+  @Override
+  public synchronized long inflight() {
+    long inflight = 0;
+    for (HttpConnection conn : all) {
+      inflight += conn.inflight();
+    }
+    return inflight;
+  }
+
   public void shutdown() {
     HashSet<HttpConnection> list;
     synchronized (this) {

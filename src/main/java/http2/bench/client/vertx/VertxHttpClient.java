@@ -49,6 +49,7 @@ public class VertxHttpClient implements HttpClient {
 
     this.vertx = builder.vertx;
     this.maxInflight = builder.concurrency * builder.size;
+    System.out.println("maxInflight = " + maxInflight);
     this.slots = new Slot[builder.threadCount];
 
     int perSlotSize = builder.size / slots.length;
@@ -59,6 +60,11 @@ public class VertxHttpClient implements HttpClient {
       }
       slots[i] = new Slot(vertx.createHttpClient(new HttpClientOptions(options).setMaxPoolSize(n)));
     }
+  }
+
+  @Override
+  public long inflight() {
+    return inflight.get();
   }
 
   @Override
