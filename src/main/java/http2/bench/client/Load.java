@@ -83,7 +83,6 @@ class Load {
     requestCount.reset();
     responseCount.reset();
     client.resetStatistics();
-    // printDetail(workerGroup.next());
     ExecutorService exec = Executors.newFixedThreadPool(threads);
     Worker[] workers = new Worker[threads];
     for (int i = 0; i < threads; i++) {
@@ -114,18 +113,16 @@ class Load {
     return client.bytesWritten() / (TimeUnit.NANOSECONDS.toSeconds((System.nanoTime() - startTime) * 1024));
   }
 
-  private void printDetail(EventLoop scheduler) {
-    scheduler.schedule(() -> {
-      if (!done) {
-        double progress = (100 * (System.nanoTime() - startTime)) / (double) duration;
-        System.out.format("progress: %.2f%% done - total requests/responses %d/%d, ratio %.2f, read %d kb/s, written %d kb/s%n",
-            progress,
-            requestCount.intValue(),
-            responseCount.intValue(),
-            ratio(), readThroughput(), writeThroughput());
-        printDetail(scheduler);
-      }
-    }, 5, TimeUnit.SECONDS);
+  /**
+   * Print details on console.
+   */
+  public void printDetails() {
+    double progress = (100 * (System.nanoTime() - startTime)) / (double) duration;
+    System.out.format("progress: %.2f%% done - total requests/responses %d/%d, ratio %.2f, read %d kb/s, written %d kb/s%n",
+        progress,
+        requestCount.intValue(),
+        responseCount.intValue(),
+        ratio(), readThroughput(), writeThroughput());
   }
 
   static class ScheduledRequest {

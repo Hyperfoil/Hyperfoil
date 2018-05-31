@@ -12,10 +12,9 @@ import java.io.File;
 import java.io.PrintStream;
 import java.net.URI;
 import java.nio.file.Files;
-import java.util.Collections;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Todo : use pool buffers wherever possible
@@ -136,6 +135,18 @@ public class HttpClientCommand extends CommandBase {
     String path = absoluteURI.getPath();
     boolean ssl = absoluteURI.getScheme().equals("https");
 
+    AtomicReference<Load> currentLoad = new AtomicReference<>();
+    Timer timer = new Timer("console-logger", true);
+    timer.schedule(new TimerTask() {
+      @Override
+      public void run() {
+        Load load = currentLoad.get();
+        if (load != null) {
+          load.printDetails();
+        }
+      }
+    }, TimeUnit.SECONDS.toMillis(5), TimeUnit.SECONDS.toMillis(5));
+
     HttpClientBuilder clientBuilder = provider.builder()
         .threads(threads)
         .ssl(ssl)
@@ -162,7 +173,9 @@ public class HttpClientCommand extends CommandBase {
       tags.put("rate", rate);
       tags.put("threads", threads);
       Load load = new Load(threads, rate, duration, warmup, clientBuilder, path, payload, report);
+      currentLoad.set(load);
       report = load.run();
+      currentLoad.set(null);
       report.prettyPrint();
       if (out != null) {
         report.save(out + "_" + rate);
@@ -189,5 +202,6 @@ public class HttpClientCommand extends CommandBase {
       }
     }
     clientBuilder.shutdown();
+    timer.cancel();
   }
 }
