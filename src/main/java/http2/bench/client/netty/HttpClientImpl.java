@@ -55,8 +55,8 @@ abstract class HttpClientImpl implements HttpClient {
 
   final int maxConcurrentStream;
   private final int size;
-  private final int port;
-  private final String host;
+  final int port;
+  final String host;
   final EventLoopGroup eventLoopGroup;
   private final EventLoop scheduler;
   final SslContext sslContext;

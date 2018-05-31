@@ -126,6 +126,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
       }
       DefaultFullHttpRequest msg = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, method.netty, path, buff, false);
       headers.forEach(msg.headers()::add);
+      msg.headers().add("Host", client.host + ":" + client.port);
       ctx.executor().execute(new HttpStream(msg, headersHandler, resetHandler, endHandler));
     }
   }
