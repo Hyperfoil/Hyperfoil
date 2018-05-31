@@ -1,5 +1,6 @@
 package http2.bench.client.netty;
 
+import http2.bench.client.HttpMethod;
 import http2.bench.client.HttpRequest;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
@@ -159,7 +160,7 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
     });
   }
 
-  public HttpRequest request(String method, String path) {
+  public HttpRequest request(HttpMethod method, String path) {
     numStreams.incrementAndGet();
     return new Http2Request(client, this, method, path);
   }

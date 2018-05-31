@@ -1,12 +1,12 @@
 package http2.bench.client.netty;
 
+import http2.bench.client.HttpMethod;
 import http2.bench.client.HttpRequest;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.DefaultFullHttpRequest;
-import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.LastHttpContent;
@@ -82,14 +82,14 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
 
   private class HttpRequestImpl implements HttpRequest {
 
-    private final String method;
+    private final HttpMethod method;
     private final String path;
     private Map<String, String> headers;
     private IntConsumer headersHandler;
     private IntConsumer resetHandler;
     private Consumer<Void> endHandler;
 
-    HttpRequestImpl(String method, String path) {
+    HttpRequestImpl(HttpMethod method, String path) {
       this.method = method;
       this.path = path;
       this.headers = new HashMap<>();
@@ -124,14 +124,14 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
       if (buff == null) {
         buff = Unpooled.EMPTY_BUFFER;
       }
-      DefaultFullHttpRequest msg = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.valueOf(method), path, buff, false);
+      DefaultFullHttpRequest msg = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, method.netty, path, buff, false);
       headers.forEach(msg.headers()::add);
       ctx.executor().execute(new HttpStream(msg, headersHandler, resetHandler, endHandler));
     }
   }
 
   @Override
-  public HttpRequest request(String method, String path) {
+  public HttpRequest request(HttpMethod method, String path) {
     HttpRequestImpl request = new HttpRequestImpl(method, path);
     size.incrementAndGet();
     return request;

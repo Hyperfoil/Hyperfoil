@@ -6,7 +6,7 @@ public interface HttpClient {
 
   void start(Consumer<Void> completionHandler);
 
-  HttpRequest request(String method, String path);
+  HttpRequest request(HttpMethod method, String path);
 
   long bytesRead();
 

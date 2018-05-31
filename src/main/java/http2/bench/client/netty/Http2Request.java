@@ -1,5 +1,6 @@
 package http2.bench.client.netty;
 
+import http2.bench.client.HttpMethod;
 import http2.bench.client.HttpRequest;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
@@ -17,16 +18,16 @@ class Http2Request implements HttpRequest {
   private final Http2Connection conn;
   private final Http2Headers headers;
   private boolean sent;
-  final String method;
+  final HttpMethod method;
   IntConsumer headersHandler;
   Consumer<ByteBuf> dataHandler;
   IntConsumer resetHandler;
   Consumer<Void> endHandler;
 
-  Http2Request(Http2Client client, Http2Connection conn, String method, String path) {
+  Http2Request(Http2Client client, Http2Connection conn, HttpMethod method, String path) {
     this.method = method;
     this.conn = conn;
-    this.headers = client.headers(method, "https", path);
+    this.headers = client.headers(method.name(), "https", path);
   }
 
   public Http2Request putHeader(String name, String value) {

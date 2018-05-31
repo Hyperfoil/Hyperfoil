@@ -194,7 +194,7 @@ class Load {
 
     private void checkPending() {
       HttpRequest conn;
-      while (head != null && (conn = client.request(payload != null ? "POST" : "GET", path)) != null) {
+      while (head != null && (conn = client.request(payload != null ? HttpMethod.POST : HttpMethod.GET, path)) != null) {
         long startTime = head.startTime;
         head = head.next;
         if (head == null) {

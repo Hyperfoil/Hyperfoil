@@ -1,5 +1,6 @@
 package http2.bench.client.netty;
 
+import http2.bench.client.HttpMethod;
 import http2.bench.client.HttpRequest;
 import io.netty.channel.ChannelHandlerContext;
 
@@ -8,7 +9,7 @@ import io.netty.channel.ChannelHandlerContext;
  */
 public interface HttpConnection {
 
-  HttpRequest request(String method, String path);
+  HttpRequest request(HttpMethod method, String path);
 
   ChannelHandlerContext context();
 

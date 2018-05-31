@@ -1,6 +1,7 @@
 package http2.bench.client.netty;
 
 import http2.bench.client.HttpClient;
+import http2.bench.client.HttpMethod;
 import http2.bench.client.HttpRequest;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
@@ -144,7 +145,7 @@ abstract class HttpClientImpl implements HttpClient {
   }
 
   @Override
-  public HttpRequest request(String method, String path) {
+  public HttpRequest request(HttpMethod method, String path) {
     HttpConnection conn = choose();
     if (conn == null) {
       return null;
