@@ -41,6 +41,9 @@ public class VertxHttpClient implements HttpClient {
   public VertxHttpClient(VertxHttpClientBuilder builder) {
 
     HttpClientOptions options = new HttpClientOptions()
+        .setSsl(builder.ssl)
+        .setTrustAll(true)
+        .setVerifyHost(false)
         .setKeepAlive(true)
         .setPipeliningLimit(builder.concurrency)
         .setPipelining(true)
