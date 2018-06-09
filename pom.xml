@@ -42,7 +42,7 @@
 
     <modules>
         <module>core</module>
-        <module>builder</module>
+        <module>html</module>
     </modules>
     
     <!-- Licenses -->
@@ -54,9 +54,7 @@
     </licenses>
   
     <properties>
-      <!--
-      <netty.version>4.0.31.Final</netty.version>
--->
+      <vertx.version>3.5.1</vertx.version>
 
       <!-- maven-compiler-plugin -->
       <maven.compiler.target>1.8</maven.compiler.target>

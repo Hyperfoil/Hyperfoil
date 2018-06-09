@@ -28,10 +28,10 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>builder</artifactId>
+    <artifactId>html</artifactId>
     <packaging>jar</packaging>
     <name>SailRocket Core</name>
-    <description>The core of SailRocket</description>
+    <description>The html module of SailRocket</description>
     <scm>
       <connection>scm:git:git://github.com/RedHatPerf/SailRocket.git</connection>
       <developerConnection>scm:git:ssh://git@github.com/RedHatPerf/SailRocket.git</developerConnection>
