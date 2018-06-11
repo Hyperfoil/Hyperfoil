@@ -30,10 +30,10 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>core</artifactId>
+    <artifactId>http</artifactId>
     <packaging>jar</packaging>
     <name>SailRocket Core</name>
-    <description>The core of SailRocket</description>
+    <description>The html module of SailRocket</description>
     <scm>
       <connection>scm:git:git://github.com/RedHatPerf/SailRocket.git</connection>
       <developerConnection>scm:git:ssh://git@github.com/RedHatPerf/SailRocket.git</developerConnection>
@@ -58,25 +58,18 @@
     </developers>
 
     <dependencies>
-
-      <dependency>
-        <groupId>io.vertx</groupId>
-        <artifactId>vertx-core</artifactId>
-        <version>${vertx.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>io.vertx</groupId>
-        <artifactId>vertx-web</artifactId>
-        <version>${vertx.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>junit</groupId>
-        <artifactId>junit</artifactId>
-        <version>4.12</version>
-        <scope>test</scope>
-      </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.12</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.sailrocket</groupId>
+            <artifactId>core</artifactId>
+            <version>0.1-SNAPSHOT</version>
+            <scope>compile</scope>
+        </dependency>
 
     </dependencies>
 
