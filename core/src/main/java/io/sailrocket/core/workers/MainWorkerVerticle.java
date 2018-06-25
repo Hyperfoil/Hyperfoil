@@ -29,10 +29,14 @@ import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.Message;
 
+import java.util.logging.Logger;
+
 public class MainWorkerVerticle extends AbstractVerticle {
 
   private final VerticleWorker verticleWorker;
   private String workerId;
+
+  private static final Logger LOG = Logger.getLogger(MainWorkerVerticle.class.getName());
 
   public MainWorkerVerticle(VerticleWorker verticleWorker) {
     this.verticleWorker = verticleWorker;
@@ -44,7 +48,7 @@ public class MainWorkerVerticle extends AbstractVerticle {
     vertx.eventBus().registerDefaultCodec(WorkerMessage.class, new WorkerMessageCodec());
     vertx.deployVerticle(this, deploymentResult -> {
       if(deploymentResult.succeeded()) {
-          System.out.println("MainWorker got id: "+deploymentID());
+          LOG.info("MainWorker got id: "+deploymentID());
           start.complete();
       }
       else
@@ -73,7 +77,7 @@ public class MainWorkerVerticle extends AbstractVerticle {
   public void stop(Future<Void> stopFuture) {
       vertx.undeploy(workerId, result -> {
           if(result.succeeded()) {
-              System.out.println("Undeployed Worker: " + workerId);
+              LOG.info("Undeployed Worker: " + workerId);
               stopFuture.complete();
           }
           else
@@ -86,9 +90,9 @@ public class MainWorkerVerticle extends AbstractVerticle {
           eventBus.send("ping", pingMessage, reply -> {
             if (reply.succeeded()) {
               PingMessage pingMessage = (PingMessage) reply.result().body();
-              System.out.println("Received local reply: "+pingMessage.getSummary());
+              LOG.info("Received local reply: "+pingMessage.getSummary());
             } else {
-              System.out.println("No reply from local receiver");
+              LOG.info("No reply from local receiver");
             }
           });
         });

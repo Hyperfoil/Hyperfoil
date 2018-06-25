@@ -25,20 +25,30 @@ import io.sailrocket.core.workers.WorkerStatus;
 import io.sailrocket.core.workers.util.WorkerMessage;
 import io.vertx.core.Future;
 
+import java.util.logging.Logger;
+
 public class HttpVerticle extends VerticleWorker {
 
     public static final String HTTP_SERVICE = "http-service";
+
+    private static final Logger LOG = Logger.getLogger(HttpVerticle.class.getName());
 
     @Override
     public void start(Future<Void> startFuture) throws Exception {
         vertx.eventBus().consumer(HTTP_SERVICE, message -> {
 
             WorkerMessage workerMessage = (WorkerMessage) message.body();
-            System.out.println("HTTP received message: "+workerMessage.toString());
+            LOG.info("HTTP received message: "+workerMessage.toString());
             //we should do some work here
             message.reply(new WorkerMessage(workerMessage.statusCode(), deploymentID()));
         });
         startFuture.complete();
+    }
+
+    private void parseWorkerMessage(WorkerMessage message) throws InterruptedException {
+        //lets just simulate that we're doing some work..
+        LOG.info("parsing: "+message.statusCode()+" and working a bit...");
+        Thread.sleep(300);
     }
 
     @Override
