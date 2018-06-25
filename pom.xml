@@ -44,6 +44,7 @@
     </scm>
 
     <modules>
+        <module>util</module>
         <module>core</module>
         <module>http</module>
         <module>exec</module>
