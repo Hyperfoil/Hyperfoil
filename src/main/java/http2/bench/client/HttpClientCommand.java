@@ -24,6 +24,8 @@ import java.util.concurrent.atomic.AtomicReference;
 @Parameters()
 public class HttpClientCommand extends CommandBase {
 
+  public long currentTime;
+
   @Parameter(names = { "--provider" })
   public HttpClientProvider provider = HttpClientProvider.netty;
 
@@ -89,7 +91,6 @@ public class HttpClientCommand extends CommandBase {
 
   @Override
   public void run() throws Exception {
-
     if (tagString != null) {
       for (String tag: tagString.split(",")) {
         String[] components = tag.trim().split("=");

@@ -14,6 +14,7 @@ public class Main {
   }
 
   public static void main(String[] args) throws Exception {
+
     JCommander jc = new JCommander(new MainCmd());
     HttpClientCommand httpClient = new HttpClientCommand();
     jc.addCommand("http-client", httpClient);
