@@ -18,6 +18,13 @@
             <version>4.12</version>
             <scope>test</scope>
         </dependency>
+        <!-- TODO:: We don't want this dependency here, this needs to more to core module but will do for now for POC-->
+        <dependency>
+            <groupId>io.sailrocket</groupId>
+            <artifactId>http2-bench</artifactId>
+            <version>0.1-SNAPSHOT</version>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
 
 

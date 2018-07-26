@@ -50,6 +50,7 @@
         <module>exec</module>
         <module>http2-bench</module>
         <module>benchmark-api</module>
+        <module>test-suite</module>
     </modules>
     
     <!-- Licenses -->

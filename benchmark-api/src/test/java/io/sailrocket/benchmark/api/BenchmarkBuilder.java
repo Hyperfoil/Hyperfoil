@@ -8,9 +8,6 @@ public class BenchmarkBuilder {
     public void BenchmarkBuilderTestCase() {
 
 
-
-
-
 //        benchmark.run();
     }
 
@@ -20,9 +17,5 @@ public class BenchmarkBuilder {
             super(name);
         }
 
-        @Override
-        void run() {
-
-        }
     }
 }
