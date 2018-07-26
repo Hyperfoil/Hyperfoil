@@ -48,6 +48,7 @@
         <module>core</module>
         <module>http</module>
         <module>exec</module>
+        <module>benchmark-api</module>
     </modules>
     
     <!-- Licenses -->
