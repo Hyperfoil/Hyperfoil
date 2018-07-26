@@ -1,7 +1,7 @@
 package io.sailrocket.benchmark.api;
 
-import http2.bench.client.HttpClientCommand;
-import http2.bench.client.HttpClientProvider;
+import io.sailrocket.core.client.HttpClientProvider;
+import io.sailrocket.core.client.HttpClientRunner;
 import io.vertx.core.http.HttpVersion;
 
 import java.util.Arrays;
@@ -49,7 +49,7 @@ public abstract class Benchmark {
 
     public void run(){
 
-        HttpClientCommand httpClient = new HttpClientCommand();
+        HttpClientRunner httpClient = new HttpClientRunner();
         httpClient.provider = HttpClientProvider.vertx;
         httpClient.connections = this.users;
         httpClient.threads = 4;

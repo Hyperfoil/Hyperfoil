@@ -48,7 +48,7 @@
         <module>core</module>
         <module>http</module>
         <module>exec</module>
-        <module>http2-bench</module>
+        <module>cli</module>
         <module>benchmark-api</module>
         <module>test-suite</module>
     </modules>
@@ -73,6 +73,12 @@
         <developer>
             <name>Ståle Pedersen</name>
             <email>spederse@redhat.com</email>
+            <organization>Red Hat</organization>
+            <organizationUrl>http://www.redhat.com</organizationUrl>
+        </developer>
+        <developer>
+            <name>John O'Hara</name>
+            <email>johara@redhat.com</email>
             <organization>Red Hat</organization>
             <organizationUrl>http://www.redhat.com</organizationUrl>
         </developer>

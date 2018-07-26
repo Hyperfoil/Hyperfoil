@@ -35,9 +35,9 @@
     <name>SailRocket Core</name>
     <description>The core of SailRocket</description>
     <scm>
-      <connection>scm:git:git://github.com/RedHatPerf/SailRocket.git</connection>
-      <developerConnection>scm:git:ssh://git@github.com/RedHatPerf/SailRocket.git</developerConnection>
-      <url>https://github.com/RedHatPerf/SailRocket/tree/master</url>
+        <connection>scm:git:git://github.com/RedHatPerf/SailRocket.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/RedHatPerf/SailRocket.git</developerConnection>
+        <url>https://github.com/RedHatPerf/SailRocket/tree/master</url>
     </scm>
 
     <!-- Licenses -->
@@ -47,7 +47,7 @@
             <url>http://www.apache.org/licenses/LICENSE-2.0</url>
         </license>
     </licenses>
-   
+
     <developers>
         <developer>
             <name>Ståle Pedersen</name>
@@ -59,24 +59,32 @@
 
     <dependencies>
 
-      <dependency>
-        <groupId>io.vertx</groupId>
-        <artifactId>vertx-core</artifactId>
-        <version>${vertx.version}</version>
-      </dependency>
+        <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-core</artifactId>
+            <version>${vertx.version}</version>
+        </dependency>
 
-      <dependency>
-        <groupId>io.vertx</groupId>
-        <artifactId>vertx-web</artifactId>
-        <version>${vertx.version}</version>
-      </dependency>
+        <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-web</artifactId>
+            <version>${vertx.version}</version>
+        </dependency>
 
-      <dependency>
-        <groupId>junit</groupId>
-        <artifactId>junit</artifactId>
-        <version>4.12</version>
-        <scope>test</scope>
-      </dependency>
+
+        <dependency>
+            <groupId>org.hdrhistogram</groupId>
+            <artifactId>HdrHistogram</artifactId>
+            <version>2.1.9</version>
+        </dependency>
+
+
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.12</version>
+            <scope>test</scope>
+        </dependency>
 
     </dependencies>
 
@@ -146,9 +154,9 @@
                 <executions>
                     <execution>
                         <id>validate</id>
-                        <phase>validate</phase>           
+                        <phase>validate</phase>
                         <configuration>
-                          <configLocation>${project.basedir}/../config/checkstyle/checkstyle.xml</configLocation>
+                            <configLocation>${project.basedir}/../config/checkstyle/checkstyle.xml</configLocation>
                             <consoleOutput>true</consoleOutput>
                             <failsOnError>true</failsOnError>
                             <linkXRef>false</linkXRef>

@@ -1,7 +1,7 @@
 package io.sailrocket;
 
-import http2.bench.client.HttpClientProvider;
 import io.sailrocket.benchmark.api.Benchmark;
+import io.sailrocket.core.client.HttpClientProvider;
 import io.vertx.core.Vertx;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;

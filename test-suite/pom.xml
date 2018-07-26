@@ -48,12 +48,6 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>io.sailrocket</groupId>
-            <artifactId>http2-bench</artifactId>
-            <version>0.1-SNAPSHOT</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>io.vertx</groupId>
             <artifactId>vertx-unit</artifactId>
             <scope>test</scope>
