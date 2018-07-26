@@ -21,7 +21,6 @@
 package io.sailrocket.http;
 
 import io.sailrocket.core.workers.VerticleWorker;
-import io.sailrocket.core.workers.WorkerStatus;
 import io.sailrocket.core.workers.util.WorkerMessage;
 import io.vertx.core.Future;
 

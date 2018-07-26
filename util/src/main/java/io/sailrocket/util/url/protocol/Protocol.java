@@ -2,10 +2,10 @@ package io.sailrocket.util.url.protocol;
 
 public interface Protocol {
 
-    public String name();
+    String name();
 
-    public boolean secure();
+    boolean secure();
 
-    public int port();
+    int port();
 
 }
