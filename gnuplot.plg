@@ -1,0 +1,40 @@
+set terminal pngcairo size 800,600 enhanced color font "Ubuntu,13"
+set output ''.out.'.png'
+set border 3
+# unset key;
+set datafile separator ","
+set multiplot
+# plot 'histo.csv' using 1:2 with lines , 'histo.csv' using 1:3 with lines, 'histo.csv' using 1:4 with lines, 'histo.csv' using 1:5 with lines
+# plot 'rates.csv' using 1:2 with lines axes x1y2
+
+set xtics nomirror
+set xlabel "Rate requests/sec";
+
+set yrange [0:1];
+set ylabel "Ratio";
+set ytics 0.1 nomirror textcolor rgb "#3182bd";
+
+set y2range [0:1000];
+set y2label "Response time (ms)";
+set y2tics 100 nomirror textcolor rgb "#E6550D";
+
+set style line 11 lc rgb '#808080' lt 1
+set border 1 back ls 11
+
+set style line 1 lc rgb '#3182bd' pt 1 ps 1 lt 1 lw 3
+
+# http://colorbrewer2.org
+# FEEDDE
+# FDBE85
+# FD8D3C
+# E6550D
+# A63603
+
+set style line 2 lc rgb '#FEEDDE' pt 6 ps 1 lt 1 lw 3
+set style line 3 lc rgb '#FDBE85' pt 6 ps 1 lt 1 lw 3
+set style line 4 lc rgb '#FD8D3C' pt 6 ps 1 lt 1 lw 3
+set style line 5 lc rgb '#E6550D' pt 6 ps 1 lt 1 lw 3
+set style line 6 lc rgb '#A63603' pt 6 ps 1 lt 1 lw 3
+
+plot ''.out.'_rates.csv' using 1:2 with lines ls 1 t 'ratio', ''.out.'_histo.csv' using 1:2 with lines ls 2 t '50%' axes x1y2, ''.out.'_histo.csv' using 1:3 with lines ls 3 t '90%'  axes x1y2, ''.out.'_histo.csv' using 1:4 with lines ls 4 t '99%'  axes x1y2, ''.out.'_histo.csv' using 1:5 with lines ls 5 t '99.9%'  axes x1y2, ''.out.'_histo.csv' using 1:6 with lines ls 6 t 'max'  axes x1y2
+unset multiplot
