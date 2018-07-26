@@ -49,6 +49,7 @@
         <module>http</module>
         <module>exec</module>
         <module>http2-bench</module>
+        <module>benchmark-api</module>
     </modules>
     
     <!-- Licenses -->
