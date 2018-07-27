@@ -20,10 +20,10 @@
 
 package io.sailrocket.api;
 
-import java.util.function.IntConsumer;
+import java.util.function.Consumer;
 
 public interface HeaderValidator {
 
-    boolean validate(IntConsumer handler);
+    boolean validate(Consumer<Header> handler);
 
 }
