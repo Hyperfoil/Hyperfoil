@@ -18,21 +18,12 @@
  * limitations under the License.
  */
 
-package io.sailrocket.http;
+package io.sailrocket.api;
 
-import io.sailrocket.core.Sequence;
+import java.util.function.Consumer;
 
-import java.util.List;
+public interface BodyValidator {
 
-public class HttpSequence implements Sequence<HttpValidator> {
+    boolean validate(Consumer<String> handler); //could use ByteBuf for better efficiency
 
-    @Override
-    public HttpProtocol protocol() {
-        return null;
-    }
-
-    @Override
-    public List<HttpValidator> validators() {
-        return null;
-    }
 }

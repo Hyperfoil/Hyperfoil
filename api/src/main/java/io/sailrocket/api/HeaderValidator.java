@@ -18,27 +18,12 @@
  * limitations under the License.
  */
 
-package io.sailrocket.http;
+package io.sailrocket.api;
 
-import io.sailrocket.core.Workload;
+import java.util.function.IntConsumer;
 
-public class HttpWorkload implements Workload<HttpSequence> {
+public interface HeaderValidator {
 
-    private String name;
-    private HttpSequence sequence;
+    boolean validate(IntConsumer handler);
 
-    HttpWorkload(String name, HttpSequence sequence) {
-        this.name = name;
-        this.sequence = sequence;
-    }
-
-    @Override
-    public String name() {
-        return name;
-    }
-
-    @Override
-    public void run(HttpSequence sequence) {
-
-    }
 }

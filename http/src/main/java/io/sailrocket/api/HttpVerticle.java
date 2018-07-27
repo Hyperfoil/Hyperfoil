@@ -18,7 +18,7 @@
  * limitations under the License.
  */
 
-package io.sailrocket.http;
+package io.sailrocket.api;
 
 import io.sailrocket.core.workers.VerticleWorker;
 import io.sailrocket.core.workers.util.WorkerMessage;

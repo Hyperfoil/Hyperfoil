@@ -23,7 +23,7 @@ package io.sailrocket.exec;
 import io.sailrocket.core.workers.MainWorkerVerticle;
 import io.sailrocket.core.workers.VerticleWorker;
 import io.sailrocket.core.workers.WorkerStatus;
-import io.sailrocket.http.HttpVerticle;
+import io.sailrocket.api.HttpVerticle;
 import io.vertx.core.Future;
 
 import java.util.logging.Logger;
