@@ -55,9 +55,20 @@
             <organization>Red Hat</organization>
             <organizationUrl>http://www.redhat.com</organizationUrl>
         </developer>
+        <developer>
+            <name>John O'Hara</name>
+            <email>johara@redhat.com</email>
+            <organization>Red Hat</organization>
+            <organizationUrl>http://www.redhat.com</organizationUrl>
+        </developer>
     </developers>
 
     <dependencies>
+
+        <dependency>
+            <groupId>io.sailrocket</groupId>
+            <artifactId>api</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>io.vertx</groupId>
@@ -84,6 +95,12 @@
             <artifactId>junit</artifactId>
             <version>4.12</version>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.sailrocket</groupId>
+            <artifactId>api</artifactId>
+            <version>0.1-SNAPSHOT</version>
+            <scope>compile</scope>
         </dependency>
 
     </dependencies>

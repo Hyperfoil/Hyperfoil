@@ -26,7 +26,7 @@
         <groupId>org.jboss</groupId>
         <artifactId>jboss-parent</artifactId>
         <version>19</version>
-        <relativePath />
+        <relativePath/>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
@@ -38,21 +38,22 @@
     <name>SailRocket</name>
     <description>SailRocket will rock your application with load</description>
     <scm>
-      <connection>scm:git:git://github.com/RedHatPerf/SailRocket.git</connection>
-      <developerConnection>scm:git:ssh://git@github.com/RedHatPerf/SailRocket.git</developerConnection>
-      <url>https://github.com/RedHatPerf/SailRocket/tree/master</url>
+        <connection>scm:git:git://github.com/RedHatPerf/SailRocket.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/RedHatPerf/SailRocket.git</developerConnection>
+        <url>https://github.com/RedHatPerf/SailRocket/tree/master</url>
     </scm>
 
     <modules>
-        <module>util</module>
-        <module>core</module>
-        <module>http</module>
-        <module>exec</module>
+        <module>api</module>
         <module>cli</module>
-        <module>benchmark-api</module>
+        <module>core</module>
+        <module>distributed</module>
+        <module>exec</module>
+        <module>http</module>
         <module>test-suite</module>
+        <module>util</module>
     </modules>
-    
+
     <!-- Licenses -->
     <licenses>
         <license>
@@ -60,15 +61,16 @@
             <url>http://www.apache.org/licenses/LICENSE-2.0</url>
         </license>
     </licenses>
-  
-    <properties>
-      <vertx.version>3.5.1</vertx.version>
 
-      <!-- maven-compiler-plugin -->
-      <maven.compiler.target>1.8</maven.compiler.target>
-      <maven.compiler.source>1.8</maven.compiler.source>
+    <properties>
+        <vertx.version>3.5.1</vertx.version>
+
+        <!-- maven-compiler-plugin -->
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <sailrocket.version>0.1-SNAPSHOT</sailrocket.version>
     </properties>
- 
+
     <developers>
         <developer>
             <name>Ståle Pedersen</name>

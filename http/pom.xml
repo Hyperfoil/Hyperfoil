@@ -32,7 +32,7 @@
 
     <artifactId>http</artifactId>
     <packaging>jar</packaging>
-    <name>SailRocket Core</name>
+    <name>SailRocket Http</name>
     <description>The html module of SailRocket</description>
     <scm>
       <connection>scm:git:git://github.com/RedHatPerf/SailRocket.git</connection>
