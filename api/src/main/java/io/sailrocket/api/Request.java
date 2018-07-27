@@ -6,4 +6,7 @@ public interface Request {
 
     Request check();
 
+    HeaderValidator headerValidator();
+
+    BodyValidator bodyValidator();
 }
