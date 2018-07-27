@@ -29,7 +29,7 @@ public class ClusterTestCase {
     private Vertx vertCluster;
 
     private final CountDownLatch responseLatch = new CountDownLatch(1);
-    private final CountDownLatch clusterLatch = new CountDownLatch(1);
+    private final CountDownLatch clusterLatch = new CountDownLatch(3);
 
     @Before
     public void before(TestContext ctx) {
@@ -49,8 +49,8 @@ public class ClusterTestCase {
             if (result.succeeded()) {
                 System.out.println("Cluster running");
                 Vertx vertx = result.result();
-                vertx.deployVerticle(RunnerVerticle.class.getName(), new DeploymentOptions().setConfig(config).setWorker(true));
-                vertx.deployVerticle(AgentControllerVerticle.class.getName(), new DeploymentOptions().setConfig(config).setWorker(false));
+                vertx.deployVerticle(RunnerVerticle.class.getName(), new DeploymentOptions().setConfig(config).setWorker(true), v -> {clusterLatch.countDown();});
+                vertx.deployVerticle(AgentControllerVerticle.class.getName(), new DeploymentOptions().setConfig(config).setWorker(false), v -> {clusterLatch.countDown();});
                 clusterLatch.countDown();
             } else {
                 System.out.println("Clusterin failed");
