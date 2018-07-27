@@ -6,6 +6,8 @@ public interface Protocol {
 
     boolean secure();
 
+    Version version();
+
     int port();
 
 }
