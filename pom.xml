@@ -49,7 +49,6 @@
         <module>core</module>
         <module>distributed</module>
         <module>exec</module>
-        <module>http</module>
         <module>test-suite</module>
     </modules>
 

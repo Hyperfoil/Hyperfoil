@@ -1,18 +1,11 @@
 package io.sailrocket.distributed;
 
-import io.sailrocket.api.Benchmark;
-import io.sailrocket.distributed.util.BenchmarkCodec;
-import io.sailrocket.distributed.util.ConcurrentHistogramCodec;
-import io.sailrocket.distributed.util.HistogramCodec;
-import io.sailrocket.distributed.util.SimpleBenchmarkCodec;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
-import org.HdrHistogram.ConcurrentHistogram;
-import org.HdrHistogram.Histogram;
 import org.asynchttpclient.AsyncHttpClient;
 import org.asynchttpclient.Response;
 import org.junit.After;

@@ -20,7 +20,7 @@
 
 package io.sailrocket.api;
 
-import io.sailrocket.core.workers.VerticleWorker;
+import io.sailrocket.distributed.VerticleWorker;
 import io.sailrocket.distributed.util.WorkerMessage;
 import io.vertx.core.Future;
 

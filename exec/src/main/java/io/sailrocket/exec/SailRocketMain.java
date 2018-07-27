@@ -20,10 +20,10 @@
 
 package io.sailrocket.exec;
 
-import io.sailrocket.core.workers.MainWorkerVerticle;
-import io.sailrocket.core.workers.VerticleWorker;
-import io.sailrocket.core.workers.WorkerStatus;
 import io.sailrocket.api.HttpVerticle;
+import io.sailrocket.distributed.MainWorkerVerticle;
+import io.sailrocket.distributed.VerticleWorker;
+import io.sailrocket.distributed.WorkerStatus;
 import io.vertx.core.Future;
 
 import java.util.logging.Logger;
