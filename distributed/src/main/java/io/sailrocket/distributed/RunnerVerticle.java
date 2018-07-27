@@ -6,6 +6,7 @@ import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Handler;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.eventbus.Message;
+import org.HdrHistogram.Histogram;
 
 public class RunnerVerticle extends AbstractVerticle {
 
@@ -14,51 +15,26 @@ public class RunnerVerticle extends AbstractVerticle {
 
     @Override
     public void start() throws Exception {
-
         eb = vertx.eventBus();
-        Handler<Message<?>> messageHandler = new RunerMessagehandler();
 
-        eb.consumer("control-feed", message -> messageHandler.handle(message));
-
-        System.out.println("Runner Ready!");
-
-    }
-
-
-    private class RunerMessagehandler<T> implements Handler<Message<T>> {
-        @Override
-        public void handle(Message<T> event) {
-
-            System.out.printf("Got message from master '%s'\n", event.body().toString());
-
+        eb.consumer("control-feed", message -> {
             if (running)
-                event.fail(1, "Benchmark is already running");
-
+                message.fail(1, "Benchmark is already running");
 
             //TODO:: benchmark control protocol
             // for now we are simply kicking off a benchmark
             // and returning the hdrHistogram when finished
-            System.out.println("Starting benchmark!");
 
-            //TODO:: start async
-            startRunner();
-
-            //TODO:: reply when done
-//            event.reply();
-
-//            event.reply("done");
-            eb.publish("response-feed", "finished benchmark!");
-
-        }
+            eb.publish("response-feed", startRunner());
+        });
     }
 
-
-    private void startRunner() {
+    //need a Histogram codec to serialize and deserialize histogram
+    private long startRunner() {
 
         Benchmark benchmark = new SimpleBenchmark("Simple benchmark");
 
-
-        benchmark.run();
+        return benchmark.run().getTotalCount();
 
     }
 

@@ -4,6 +4,7 @@ import io.netty.buffer.ByteBuf;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpVersion;
 import io.vertx.core.json.JsonObject;
+import org.HdrHistogram.Histogram;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -105,7 +106,7 @@ public class HttpClientRunner {
     return unit.toNanos(Long.parseLong(prefix));
   }
 
-  public void run() throws Exception {
+  public Histogram run() throws Exception {
     if (tagString != null) {
       for (String tag: tagString.split(",")) {
         String[] components = tag.trim().split("=");
@@ -219,5 +220,6 @@ public class HttpClientRunner {
     }
     clientBuilder.shutdown();
     timer.cancel();
+    return report.histogram;
   }
 }

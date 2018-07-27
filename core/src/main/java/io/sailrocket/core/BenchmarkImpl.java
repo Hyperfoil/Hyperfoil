@@ -4,6 +4,7 @@ import io.sailrocket.api.Benchmark;
 import io.sailrocket.core.client.HttpClientProvider;
 import io.sailrocket.core.client.HttpClientRunner;
 import io.vertx.core.http.HttpVersion;
+import org.HdrHistogram.Histogram;
 
 import java.util.Arrays;
 
@@ -13,7 +14,7 @@ public class BenchmarkImpl extends Benchmark {
     }
 
     @Override
-    public void run() {
+    public Histogram run() {
 
         HttpClientRunner httpClient = new HttpClientRunner();
         httpClient.provider = HttpClientProvider.vertx;
@@ -26,12 +27,11 @@ public class BenchmarkImpl extends Benchmark {
         httpClient.protocol = HttpVersion.HTTP_1_1;
 
         try {
-            httpClient.run();
+            return httpClient.run();
         } catch (Exception e) {
             e.printStackTrace();
+            return null;
         }
-
-
     }
 
 
