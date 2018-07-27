@@ -20,6 +20,9 @@
 
 package io.sailrocket.http;
 
+import io.sailrocket.spi.Protocol;
+import io.sailrocket.spi.Version;
+
 import java.util.Map;
 
 public class HttpProtocol implements Protocol {
@@ -33,14 +36,33 @@ public class HttpProtocol implements Protocol {
         this.headers = headers;
     }
 
-    @Override
+//    @Override
     public String baseUrl() {
         return baseUrl;
     }
 
-    @Override
+//    @Override
     public Map<String, String> headers() {
         return headers;
     }
 
+    @Override
+    public String name() {
+        return null;
+    }
+
+    @Override
+    public boolean secure() {
+        return false;
+    }
+
+    @Override
+    public Version version() {
+        return null;
+    }
+
+    @Override
+    public int port() {
+        return 0;
+    }
 }

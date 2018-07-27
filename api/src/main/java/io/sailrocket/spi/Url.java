@@ -1,8 +1,5 @@
 package io.sailrocket.spi;
 
-import io.sailrocket.util.url.protocol.Protocol;
-import io.sailrocket.util.url.protocol.Protocols;
-
 import java.net.MalformedURLException;
 import java.net.URL;
 

@@ -1,8 +1,9 @@
 package io.sailrocket.api;
 
+import java.io.Serializable;
 import java.util.Set;
 
-public abstract class Benchmark {
+public abstract class Benchmark implements Serializable {
 
     protected String name;
     protected Set<Result> resultSet;

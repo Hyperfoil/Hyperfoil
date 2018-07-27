@@ -176,7 +176,7 @@
                             <configLocation>${project.basedir}/../config/checkstyle/checkstyle.xml</configLocation>
                             <consoleOutput>true</consoleOutput>
                             <failsOnError>true</failsOnError>
-                            <linkXRef>false</linkXRef>
+                            <!--<linkXRef>false</linkXRef>-->
                             <!--
                             <useFile/>
 -->

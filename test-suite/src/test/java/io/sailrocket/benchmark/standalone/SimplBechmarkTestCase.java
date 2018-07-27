@@ -15,6 +15,7 @@ public class SimplBechmarkTestCase extends BaseBenchmarkTestCase {
 
     class SimpleBenchmark extends BenchmarkImpl {
 
+
         public SimpleBenchmark(String name) {
             super(name);
             agents("localhost").users(10).endpoint("http://localhost:8080/");
