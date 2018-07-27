@@ -20,8 +20,6 @@
 
 package io.sailrocket.http;
 
-import io.sailrocket.core.Protocol;
-
 import java.util.Map;
 
 public class HttpProtocol implements Protocol {

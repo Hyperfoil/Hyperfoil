@@ -1,4 +1,4 @@
-package io.sailrocket.util.url;
+package io.sailrocket.spi;
 
 import java.util.function.Consumer;
 

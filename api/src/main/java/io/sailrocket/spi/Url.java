@@ -1,4 +1,4 @@
-package io.sailrocket.util.url;
+package io.sailrocket.spi;
 
 import io.sailrocket.util.url.protocol.Protocol;
 import io.sailrocket.util.url.protocol.Protocols;

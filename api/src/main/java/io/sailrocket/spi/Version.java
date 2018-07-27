@@ -1,4 +1,4 @@
-package io.sailrocket.util.url.protocol;
+package io.sailrocket.spi;
 
 public enum Version {
     HTTP_1_0,

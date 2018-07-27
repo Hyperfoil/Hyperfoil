@@ -1,4 +1,4 @@
-package io.sailrocket.util.url.protocol;
+package io.sailrocket.spi;
 
 public class HttpProtocol implements Protocol {
 
