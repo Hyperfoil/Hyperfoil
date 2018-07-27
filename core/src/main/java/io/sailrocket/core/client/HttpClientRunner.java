@@ -1,6 +1,7 @@
 package io.sailrocket.core.client;
 
 import io.netty.buffer.ByteBuf;
+import io.sailrocket.core.util.Report;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpVersion;
 import io.vertx.core.json.JsonObject;
@@ -159,7 +160,7 @@ public class HttpClientRunner {
       public void run() {
         Load load = currentLoad.get();
         if (load != null) {
-          load.printDetails();
+//          load.printDetails();
         }
       }
     }, TimeUnit.SECONDS.toMillis(5), TimeUnit.SECONDS.toMillis(5));
@@ -178,8 +179,8 @@ public class HttpClientRunner {
     tags.put("maxQueue", concurrency);
     tags.put("connections",connections);
 
-    System.out.println("starting benchmark...");
-    System.out.format("%d total connections(s)%n", connections);
+//    System.out.println("starting benchmark...");
+//    System.out.format("%d total connections(s)%n", connections);
     StringBuilder ratesChart = new StringBuilder();
     StringBuilder histoChart = new StringBuilder();
     StringBuilder allReport = new StringBuilder();
@@ -193,7 +194,7 @@ public class HttpClientRunner {
       currentLoad.set(load);
       report = load.run();
       currentLoad.set(null);
-      report.prettyPrint();
+//      report.prettyPrint();
       if (out != null) {
         report.save(out + "_" + rate);
       }

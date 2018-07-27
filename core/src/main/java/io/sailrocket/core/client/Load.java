@@ -1,6 +1,7 @@
 package io.sailrocket.core.client;
 
 import io.netty.buffer.ByteBuf;
+import io.sailrocket.core.util.Report;
 import org.HdrHistogram.ConcurrentHistogram;
 import org.HdrHistogram.Histogram;
 

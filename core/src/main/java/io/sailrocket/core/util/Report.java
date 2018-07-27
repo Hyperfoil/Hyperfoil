@@ -1,4 +1,4 @@
-package io.sailrocket.core.client;
+package io.sailrocket.core.util;
 
 import io.vertx.core.json.JsonObject;
 import org.HdrHistogram.Histogram;
@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
  */
-class Report {
+public class Report {
     static final String[] COLUMNS = {
             "req_s", "responseCount", "responseErrors", "expectedRequests", "ratio",
             "bytesRead", "bytesWritten",
@@ -21,9 +21,9 @@ class Report {
     };
     long expectedRequests;
     long elapsed;
-    Histogram histogram;
+    public Histogram histogram;
     int responseCount;
-    double ratio;
+    public double ratio;
     int connectFailureCount;
     int resetCount;
     int requestCount;
@@ -68,7 +68,7 @@ class Report {
         this.byteWritten = bytesWritten;
     }
 
-    void prettyPrint() {
+    public void prettyPrint() {
         double elapsedSeconds = TimeUnit.NANOSECONDS.toSeconds(elapsed);
         System.out.format("finished in %.2fs, %.2fs req/s, %.2fs ratio%n", elapsedSeconds, responseCount / elapsedSeconds, ratio);
         System.out.format("responses: %d total, %d errored, %d expected%n", responseCount, connectFailureCount + resetCount, expectedRequests);
@@ -92,11 +92,11 @@ class Report {
         return columns.toArray(new String[columns.size()]);
     }
 
-    String header() {
+    public String header() {
         return Arrays.stream(columns()).collect(Collectors.joining(",")) + "\n";
     }
 
-    String format(String[] columns) {
+    public String format(String[] columns) {
         if (columns == null) {
             columns = columns();
         }
@@ -137,15 +137,15 @@ class Report {
         return TimeUnit.NANOSECONDS.toMillis(histogram.getMinValue());
     }
 
-    long getMaxResponseTimeMillis() {
+    public long getMaxResponseTimeMillis() {
         return TimeUnit.NANOSECONDS.toMillis(histogram.getMaxValue());
     }
 
-    long getResponseTimeMillisPercentile(double x) {
+    public long getResponseTimeMillisPercentile(double x) {
         return TimeUnit.NANOSECONDS.toMillis(histogram.getValueAtPercentile(x));
     }
 
-    void save(String baseName) {
+    public void save(String baseName) {
         try (PrintStream ps = new PrintStream(baseName + ".hdr")) {
             histogram.outputPercentileDistribution(ps, 1000000.0);
         } catch (Exception e) {

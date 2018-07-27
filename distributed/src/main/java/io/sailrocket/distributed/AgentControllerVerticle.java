@@ -5,18 +5,27 @@ import io.sailrocket.distributed.util.HistogramCodec;
 import io.sailrocket.distributed.util.SimpleBenchmarkCodec;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.eventbus.EventBus;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.impl.VertxImpl;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 import org.HdrHistogram.ConcurrentHistogram;
 import org.HdrHistogram.Histogram;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+
 public class AgentControllerVerticle extends AbstractVerticle {
 
     private EventBus eb;
 
     private RoutingContext routingContext;
+
+    private CountDownLatch resultLatch;
+
+    private Histogram collatedHistogram;
 
     @Override
     public void start() {
@@ -39,12 +48,27 @@ public class AgentControllerVerticle extends AbstractVerticle {
         //send response to calling client benchmark has finished
         eb.consumer("response-feed", message -> {
             Histogram histogram = (Histogram) message.body();
-            routingContext.response().putHeader("content-type", "application/json").end(
-                    Long.toString(
-                            histogram.getTotalCount()
-                    )
-            );
+            collatedHistogram.add(histogram);
+            resultLatch.countDown();
+            if (resultLatch.getCount() == 0)
+                sendJsonHistogram(routingContext.response(), collatedHistogram);
         });
+    }
+
+    private void sendJsonHistogram(HttpServerResponse response, Histogram histogram){
+        JsonObject jsonObject = new JsonObject();
+
+        jsonObject.put("count", histogram.getTotalCount());
+        jsonObject.put("min", TimeUnit.NANOSECONDS.toMillis(histogram.getMinValue()));
+        jsonObject.put("max", TimeUnit.NANOSECONDS.toMillis(histogram.getMaxValue()));
+        jsonObject.put("50%", TimeUnit.NANOSECONDS.toMillis(histogram.getValueAtPercentile(50)));
+        jsonObject.put("90%", TimeUnit.NANOSECONDS.toMillis(histogram.getValueAtPercentile(90)));
+        jsonObject.put("99%", TimeUnit.NANOSECONDS.toMillis(histogram.getValueAtPercentile(99)));
+        jsonObject.put("99.9%", TimeUnit.NANOSECONDS.toMillis(histogram.getValueAtPercentile(99.9)));
+        jsonObject.put("99.99%", TimeUnit.NANOSECONDS.toMillis(histogram.getValueAtPercentile(99.99)));
+
+        response.putHeader("content-type", "application/json").end(jsonObject.encode());
+
     }
 
     private void handleAgentCount(RoutingContext routingContext) {
@@ -53,15 +77,24 @@ public class AgentControllerVerticle extends AbstractVerticle {
             routingContext
                     .response()
                     .setChunked(true)
-                    .end(Integer.toString(((VertxImpl) vertx).getClusterManager().getNodes().size()));
+                    .end(Integer.toString(getNodeCount()));
         }
+    }
+
+    private int getNodeCount() {
+        return ((VertxImpl) vertx).getClusterManager().getNodes().size();
     }
 
     private void handleStartBenchmark(RoutingContext routingContext) {
         //funny cast due to codec registration
         eb.publish("control-feed", new SimpleBenchmark("test"));
 
+        collatedHistogram = new ConcurrentHistogram(5);
+
+        resultLatch = new CountDownLatch(getNodeCount() - 1);
+
         this.routingContext = routingContext;
+
     }
 
 }

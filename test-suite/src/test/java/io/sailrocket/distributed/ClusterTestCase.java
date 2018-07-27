@@ -17,6 +17,7 @@ import org.junit.runner.RunWith;
 import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.IntStream;
 
 import static org.asynchttpclient.Dsl.asyncHttpClient;
 
@@ -25,8 +26,13 @@ public class ClusterTestCase {
 
     private Vertx vertServer;
 
+    private static final int CONTROLLERS = 1;
+    private static final int AGENTS = 2;
+
+    private final int EXPECTED_COUNT = AGENTS * 5000;
+
     private final CountDownLatch responseLatch = new CountDownLatch(1);
-    private final CountDownLatch clusterLatch = new CountDownLatch(4);
+    private final CountDownLatch clusterLatch = new CountDownLatch((CONTROLLERS + AGENTS) * 2);
 
     @Before
     public void before(TestContext ctx) {
@@ -42,29 +48,10 @@ public class ClusterTestCase {
         JsonObject config = null;
 
         //configure multi node vert.x cluster
-        Vertx.clusteredVertx(opts, result -> {
-            if (result.succeeded()) {
-                Vertx vertx = result.result();
-                vertx.deployVerticle(AgentControllerVerticle.class.getName(), new DeploymentOptions().setConfig(config).setWorker(false), v -> {
-                    clusterLatch.countDown();
-                });
-                clusterLatch.countDown();
-            } else {
-                throw new RuntimeException(result.cause());
-            }
-        });
-        Vertx.clusteredVertx(opts, result -> {
-            if (result.succeeded()) {
-                Vertx vertx = result.result();
-                vertx.deployVerticle(RunnerVerticle.class.getName(), new DeploymentOptions().setConfig(config).setWorker(true), v -> {
-                    clusterLatch.countDown();
-                });
-                clusterLatch.countDown();
-            } else {
-                throw new RuntimeException(result.cause());
-            }
-        });
+        initiateController(opts, config);
 
+        //create multiple runner nodes
+        IntStream.range(0, AGENTS).forEach(id -> initiateRunner(opts, config));
 
     }
 
@@ -88,7 +75,7 @@ public class ClusterTestCase {
                     .execute()
                     .toCompletableFuture()
                     .thenApply(Response::getResponseBody)
-                    .thenAccept(response -> Assert.assertEquals("2", response))
+                    .thenAccept(response -> Assert.assertEquals(AGENTS + CONTROLLERS, Integer.parseInt(response)))
                     .join();
         }
 
@@ -100,8 +87,7 @@ public class ClusterTestCase {
                     .toCompletableFuture()
                     .thenApply(Response::getResponseBody)
                     .thenAccept(body -> {
-                        long reqCount = Long.parseLong(body);
-                        Assert.assertTrue("reqCount not in range", 4090l <= reqCount && reqCount <= 5010l);
+                        System.out.println(body);
                         responseLatch.countDown();
                     })
                     .join();
@@ -111,7 +97,35 @@ public class ClusterTestCase {
             Assert.fail("Benchmark didn't complete within 2 minutes");
         }
 
-        System.out.println("Benchmark done!");
+    }
+
+
+    private void initiateController(VertxOptions opts, JsonObject config) {
+        Vertx.clusteredVertx(opts, result -> {
+            if (result.succeeded()) {
+                Vertx vertx = result.result();
+                vertx.deployVerticle(AgentControllerVerticle.class.getName(), new DeploymentOptions().setConfig(config).setWorker(false), v -> {
+                    clusterLatch.countDown();
+                });
+                clusterLatch.countDown();
+            } else {
+                throw new RuntimeException(result.cause());
+            }
+        });
+    }
+
+    private void initiateRunner(VertxOptions opts, JsonObject config) {
+        Vertx.clusteredVertx(opts, result -> {
+            if (result.succeeded()) {
+                Vertx vertx = result.result();
+                vertx.deployVerticle(RunnerVerticle.class.getName(), new DeploymentOptions().setConfig(config).setWorker(true), v -> {
+                    clusterLatch.countDown();
+                });
+                clusterLatch.countDown();
+            } else {
+                throw new RuntimeException(result.cause());
+            }
+        });
     }
 
 }
