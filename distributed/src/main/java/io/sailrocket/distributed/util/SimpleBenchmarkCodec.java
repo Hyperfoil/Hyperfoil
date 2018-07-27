@@ -18,8 +18,8 @@
  * limitations under the License.
  */
 
-package io.sailrocket.core.workers;
+package io.sailrocket.distributed.util;
 
-public enum ResultStatus {
-    SUCESS, FAILURE
-}
+import io.sailrocket.distributed.SimpleBenchmark;
+
+public class SimpleBenchmarkCodec extends ObjectCodec<SimpleBenchmark> {}

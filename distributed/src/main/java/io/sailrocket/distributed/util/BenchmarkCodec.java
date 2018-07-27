@@ -18,25 +18,8 @@
  * limitations under the License.
  */
 
-package io.sailrocket.core.workers;
+package io.sailrocket.distributed.util;
 
-public enum WorkerStatus {
-    UNKNOWN(-1),
-    START_RAMPUP(0),
-    END_RAMPUP(1),
-    START_STEADY_STATE(2);
+import io.sailrocket.api.Benchmark;
 
-    public final int status;
-
-    WorkerStatus(int s) {
-        status = s;
-    }
-
-    public static WorkerStatus find(int s) {
-        for(WorkerStatus workerStatus : WorkerStatus.values())
-            if(workerStatus.status == s)
-                return workerStatus;
-
-        return UNKNOWN;
-    }
-}
+public class BenchmarkCodec<B extends Benchmark> extends ObjectCodec<B> {}

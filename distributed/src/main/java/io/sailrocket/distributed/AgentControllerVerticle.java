@@ -1,13 +1,18 @@
 package io.sailrocket.distributed;
 
+import io.sailrocket.api.Benchmark;
+import io.sailrocket.core.BenchmarkImpl;
+import io.sailrocket.distributed.util.BenchmarkCodec;
+import io.sailrocket.distributed.util.ConcurrentHistogramCodec;
+import io.sailrocket.distributed.util.HistogramCodec;
+import io.sailrocket.distributed.util.SimpleBenchmarkCodec;
 import io.vertx.core.AbstractVerticle;
-import io.vertx.core.Handler;
 import io.vertx.core.eventbus.EventBus;
-import io.vertx.core.eventbus.Message;
 import io.vertx.core.impl.VertxImpl;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
+import org.HdrHistogram.ConcurrentHistogram;
 import org.HdrHistogram.Histogram;
 
 public class AgentControllerVerticle extends AbstractVerticle {
@@ -29,10 +34,20 @@ public class AgentControllerVerticle extends AbstractVerticle {
         vertx.createHttpServer().requestHandler(router::accept).listen(8090);
 
         eb = vertx.eventBus();
+        eb.registerDefaultCodec(Histogram.class, new HistogramCodec());
+        eb.registerDefaultCodec(ConcurrentHistogram.class, new ConcurrentHistogramCodec());
+        eb.registerDefaultCodec(SimpleBenchmark.class, new SimpleBenchmarkCodec());
+
+
         //send response to calling client benchmark has finished
-        eb.consumer("response-feed", message ->
-                routingContext.response().putHeader("content-type", "application/json").end(message.body().toString())
-        );
+        eb.consumer("response-feed", message -> {
+            Histogram histogram = (Histogram) message.body();
+            routingContext.response().putHeader("content-type", "application/json").end(
+                    Long.toString(
+                            histogram.getTotalCount()
+                    )
+            );
+        });
     }
 
     private void handleAgentCount(RoutingContext routingContext) {
@@ -46,8 +61,10 @@ public class AgentControllerVerticle extends AbstractVerticle {
     }
 
     private void handleStartBenchmark(RoutingContext routingContext) {
-        eb.publish("control-feed", "start benchmark!");
+        //funny cast due to codec registration
+        eb.publish("control-feed", new SimpleBenchmark("test"));
 
         this.routingContext = routingContext;
     }
+
 }

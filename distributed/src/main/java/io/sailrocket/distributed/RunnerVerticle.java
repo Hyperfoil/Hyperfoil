@@ -1,11 +1,12 @@
 package io.sailrocket.distributed;
 
 import io.sailrocket.api.Benchmark;
-import io.sailrocket.core.BenchmarkImpl;
+import io.sailrocket.distributed.util.ConcurrentHistogramCodec;
+import io.sailrocket.distributed.util.HistogramCodec;
+import io.sailrocket.distributed.util.SimpleBenchmarkCodec;
 import io.vertx.core.AbstractVerticle;
-import io.vertx.core.Handler;
 import io.vertx.core.eventbus.EventBus;
-import io.vertx.core.eventbus.Message;
+import org.HdrHistogram.ConcurrentHistogram;
 import org.HdrHistogram.Histogram;
 
 public class RunnerVerticle extends AbstractVerticle {
@@ -14,40 +15,23 @@ public class RunnerVerticle extends AbstractVerticle {
     private EventBus eb;
 
     @Override
-    public void start() throws Exception {
+    public void start() {
         eb = vertx.eventBus();
+        eb.registerDefaultCodec(Histogram.class, new HistogramCodec());
+        eb.registerDefaultCodec(SimpleBenchmark.class, new SimpleBenchmarkCodec());
+        eb.registerDefaultCodec(ConcurrentHistogram.class, new ConcurrentHistogramCodec());
+
 
         eb.consumer("control-feed", message -> {
             if (running)
                 message.fail(1, "Benchmark is already running");
-
-            //TODO:: benchmark control protocol
-            // for now we are simply kicking off a benchmark
-            // and returning the hdrHistogram when finished
-
-            eb.publish("response-feed", startRunner());
+            Benchmark toRun = (Benchmark) message.body();
+            eb.publish("response-feed", startRunner(toRun));
         });
     }
 
     //need a Histogram codec to serialize and deserialize histogram
-    private long startRunner() {
-
-        Benchmark benchmark = new SimpleBenchmark("Simple benchmark");
-
-        return benchmark.run().getTotalCount();
-
+    private Histogram startRunner(Benchmark benchmark) {
+        return benchmark.run();
     }
-
-
-    //TODO:: this definition will be passed into the verticle
-    //only used for testing atm
-    class SimpleBenchmark extends BenchmarkImpl {
-
-
-        public SimpleBenchmark(String name) {
-            super(name);
-            agents("localhost").users(10).endpoint("http://localhost:8080/");
-        }
-    }
-
 }

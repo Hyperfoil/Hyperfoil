@@ -21,7 +21,7 @@
 package io.sailrocket.api;
 
 import io.sailrocket.core.workers.VerticleWorker;
-import io.sailrocket.core.workers.util.WorkerMessage;
+import io.sailrocket.distributed.util.WorkerMessage;
 import io.vertx.core.Future;
 
 import java.util.logging.Logger;

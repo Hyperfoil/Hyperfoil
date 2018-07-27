@@ -18,10 +18,10 @@
  * limitations under the License.
  */
 
-package io.sailrocket.core.workers;
+package io.sailrocket.distributed;
 
-import io.sailrocket.core.workers.util.WorkerMessage;
-import io.sailrocket.core.workers.util.WorkerMessageCodec;
+import io.sailrocket.distributed.util.WorkerMessage;
+import io.sailrocket.distributed.util.WorkerMessageCodec;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;

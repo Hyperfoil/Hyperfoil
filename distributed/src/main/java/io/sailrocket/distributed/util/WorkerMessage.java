@@ -18,9 +18,9 @@
  * limitations under the License.
  */
 
-package io.sailrocket.core.workers.util;
+package io.sailrocket.distributed.util;
 
-import io.sailrocket.core.workers.WorkerStatus;
+import io.sailrocket.distributed.WorkerStatus;
 
 public class WorkerMessage {
 

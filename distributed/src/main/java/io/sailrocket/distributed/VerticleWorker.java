@@ -18,7 +18,7 @@
  * limitations under the License.
  */
 
-package io.sailrocket.core.workers;
+package io.sailrocket.distributed;
 
 import io.vertx.core.AbstractVerticle;
 
