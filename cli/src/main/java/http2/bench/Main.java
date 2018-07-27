@@ -1,41 +1,42 @@
 package http2.bench;
 
-import com.beust.jcommander.JCommander;
-import com.beust.jcommander.Parameters;
 import http2.bench.client.HttpClientCommand;
+import org.aesh.command.AeshCommandRuntimeBuilder;
+import org.aesh.command.CommandNotFoundException;
+import org.aesh.command.CommandRuntime;
+import org.aesh.command.impl.registry.AeshCommandRegistryBuilder;
+import org.aesh.command.registry.CommandRegistry;
 
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
  */
 public class Main {
 
-  @Parameters()
-  public static class MainCmd {
-  }
-
   public static void main(String[] args) throws Exception {
 
-    JCommander jc = new JCommander(new MainCmd());
-    HttpClientCommand httpClient = new HttpClientCommand();
-    jc.addCommand("http-client", httpClient);
-    jc.parse(args);
-    String cmd = jc.getParsedCommand();
-    CommandBase command = null;
-    if (cmd != null) {
-      switch (cmd) {
-        case "http-client":
-          command = httpClient;
-          break;
-        default:
-          break;
-      }
+    CommandRegistry registry = new AeshCommandRegistryBuilder()
+            .command(HttpClientCommand.class)
+            .create();
+
+    CommandRuntime runtime = AeshCommandRuntimeBuilder
+            .builder()
+            .commandRegistry(registry)
+            .build();
+
+    StringBuilder argsBuilder = new StringBuilder("http-client").append(" ");
+    for(String arg : args)
+      argsBuilder.append(arg).append(" ");
+
+    try {
+      runtime.executeCommand(argsBuilder.toString());
     }
-    if (command == null) {
-      jc.usage();
-    } else {
-      if (command.help) {
-        new JCommander(command).usage();
-      } else {
+    catch (CommandNotFoundException e) {
+      System.out.println("Command not found: "+argsBuilder.toString());
+
+    }
+    catch (Exception e) {
+      e.printStackTrace();
+    }
 
         // Integrate Java Flight Recorder
         // kill -s USR pid to start recording
@@ -68,8 +69,5 @@ public class Main {
         Signal.handle(new Signal("INT"), handler);
 */
 
-        command.run();
-      }
-    }
   }
 }

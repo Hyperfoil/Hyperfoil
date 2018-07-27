@@ -1,11 +1,17 @@
 package http2.bench.client;
 
-import com.beust.jcommander.Parameter;
-import com.beust.jcommander.Parameters;
-import http2.bench.CommandBase;
 import io.sailrocket.core.client.HttpClientProvider;
 import io.sailrocket.core.client.HttpClientRunner;
 import io.vertx.core.http.HttpVersion;
+import org.aesh.command.Command;
+import org.aesh.command.CommandDefinition;
+import org.aesh.command.CommandResult;
+import org.aesh.command.converter.Converter;
+import org.aesh.command.converter.ConverterInvocation;
+import org.aesh.command.invocation.CommandInvocation;
+import org.aesh.command.option.Arguments;
+import org.aesh.command.option.Option;
+import org.aesh.command.validator.OptionValidatorException;
 
 import java.util.Collections;
 import java.util.List;
@@ -15,49 +21,48 @@ import java.util.List;
  *
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
  */
-@Parameters()
-public class HttpClientCommand extends CommandBase {
+@CommandDefinition(name = "http-client", description = "")
+public class HttpClientCommand implements Command {
 
-    public long currentTime;
+    @Option(name = "provider", converter = HttpClientProviderConverter.class, defaultValue = "netty")
+    public HttpClientProvider provider;
 
-    @Parameter(names = {"--provider"})
-    public HttpClientProvider provider = HttpClientProvider.netty;
+    @Option(name = "protocol", shortName = 'p', converter = HttpVersionConverter.class, defaultValue = "HTTP_2")
+    public HttpVersion protocol;
 
-    @Parameter(names = {"-p", "--protocol"})
-    public HttpVersion protocol = HttpVersion.HTTP_2;
+    @Option(name = "duration", shortName = 'd', defaultValue = "30s")
+    public String durationParam;
 
-    @Parameter(names = {"-d", "--duration"})
-    public String durationParam = "30s";
+    @Option(name = "connection", shortName = 'c', defaultValue = "1")
+    public int connections;
 
-    @Parameter(names = {"-c", "--connections"})
-    public int connections = 1;
+    @Option(name = "out", shortName = 'o')
+    public String out;
 
-    @Parameter(names = {"-o", "--out"})
-    public String out = null;
+    @Option(name = "body", shortName = 'b')
+    public String bodyParam;
 
-    @Parameter(names = {"-b", "--body"})
-    public String bodyParam = null;
+    @Option(name = "concurrency", shortName = 'q', defaultValue = "1",
+            description = "The concurrency per connection: number of pipelined requests for HTTP/1.1, max concurrent streams for HTTP/2")
+    public int concurrency;
 
-    @Parameter(names = {"-q", "--concurrency"}, description = "The concurrency per connection: number of pipelined requests for HTTP/1.1, max concurrent streams for HTTP/2")
-    public int concurrency = 1;
-
-    @Parameter
+    @Arguments
     public List<String> uriParam;
 
-    @Parameter(names = {"-r", "--rate"}, variableArity = true)
-    public List<Integer> rates = Collections.singletonList(100); // rate per second
+    @Option(name = "rate", shortName = 'r', defaultValue = "100")
+    public int rates; // rate per second
 
-    @Parameter(names = {"-w", "--warmup"})
-    public String warmupParam = "0";
+    @Option(name = "warmup", shortName = 'w', defaultValue = "0")
+    public String warmupParam;
 
-    @Parameter(names = {"-t", "--threads"}, description = "Number of threads to use")
-    public int threads = 1;
+    @Option(name = "threads", shortName = 't', defaultValue = "1", description = "Number of threads to use")
+    public int threads;
 
-    @Parameter(names = {"--tags"})
-    public String tagString = null;
+    @Option(name = "tags")
+    public String tagString;
 
     @Override
-    public void run() throws Exception {
+    public CommandResult execute(CommandInvocation commandInvocation) {
 
         HttpClientRunner httpClientRunner = new HttpClientRunner(
                 provider,
@@ -68,12 +73,45 @@ public class HttpClientCommand extends CommandBase {
                 bodyParam,
                 concurrency,
                 uriParam,
-                rates,
+                Collections.singletonList(rates),
                 warmupParam,
                 threads,
                 tagString
         );
 
-        httpClientRunner.run();
+        try {
+            httpClientRunner.run();
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+        return CommandResult.SUCCESS;
+    }
+
+    public static class HttpClientProviderConverter implements Converter<HttpClientProvider, ConverterInvocation> {
+        @Override
+        public HttpClientProvider convert(ConverterInvocation converterInvocation) throws OptionValidatorException {
+            if(converterInvocation.getInput() == null)
+                return HttpClientProvider.netty;
+            for(HttpClientProvider provider : HttpClientProvider.values()) {
+                if(provider.name().equals(converterInvocation.getInput()))
+                    return provider;
+            }
+            //just return netty
+            return HttpClientProvider.netty;
+        }
+    }
+
+    public static class HttpVersionConverter implements Converter<HttpVersion, ConverterInvocation> {
+
+        @Override
+        public HttpVersion convert(ConverterInvocation converterInvocation) throws OptionValidatorException {
+            if(converterInvocation.getInput() == null)
+                return HttpVersion.HTTP_2;
+            for(HttpVersion version : HttpVersion.values())
+                if(version.name().equals(converterInvocation.getInput()))
+                    return version;
+            return HttpVersion.HTTP_2;
+        }
     }
 }

@@ -37,9 +37,9 @@
     <dependencies>
 
         <dependency>
-            <groupId>com.beust</groupId>
-            <artifactId>jcommander</artifactId>
-            <version>1.48</version>
+            <groupId>org.aesh</groupId>
+            <artifactId>aesh</artifactId>
+            <version>1.7</version>
         </dependency>
 
         <dependency>
