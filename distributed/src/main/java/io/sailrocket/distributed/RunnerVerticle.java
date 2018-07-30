@@ -17,9 +17,10 @@ public class RunnerVerticle extends AbstractVerticle {
     @Override
     public void start() {
         eb = vertx.eventBus();
+        //TODO:: this is a code smell, not sure atm why i need to register the codec's multiple times
         eb.registerDefaultCodec(Histogram.class, new HistogramCodec());
-        eb.registerDefaultCodec(SimpleBenchmark.class, new SimpleBenchmarkCodec());
         eb.registerDefaultCodec(ConcurrentHistogram.class, new ConcurrentHistogramCodec());
+        eb.registerDefaultCodec(SimpleBenchmark.class, new SimpleBenchmarkCodec());
 
 
         eb.consumer("control-feed", message -> {
