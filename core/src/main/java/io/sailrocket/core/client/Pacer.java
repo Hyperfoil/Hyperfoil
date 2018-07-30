@@ -38,7 +38,7 @@ public class Pacer {
   }
 
   /**
-   * @return the time for the next operation
+   * @return the time for the Step operation
    */
   long expectedNextOperationNanoTime() {
     return initialStartTime + (long) (unitsCompleted / throughputInUnitsPerNsec);
@@ -81,7 +81,7 @@ public class Pacer {
   }
 
   /**
-   * Will wait for next operation time. After this the expectedNextOperationNanoTime() will move forward.
+   * Will wait for Step operation time. After this the expectedNextOperationNanoTime() will move forward.
    *
    * @param unitCount the number of unit
    */
