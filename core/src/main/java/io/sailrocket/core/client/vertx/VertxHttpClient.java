@@ -96,10 +96,17 @@ public class VertxHttpClient implements HttpClient {
       return this;
     }
     @Override
-    public HttpRequest headersHandler(IntConsumer handler) {
+    public HttpRequest statusHandler(IntConsumer handler) {
       headersHandler = handler;
       return this;
     }
+
+    @Override
+    public HttpRequest headerHandler(Consumer<Map<String, String>> handler) {
+      //TODO
+      return this;
+    }
+
     @Override
     public HttpRequest resetHandler(IntConsumer handler) {
       resetHandler = handler;

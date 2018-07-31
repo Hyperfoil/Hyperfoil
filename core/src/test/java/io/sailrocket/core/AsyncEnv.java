@@ -37,7 +37,7 @@ public abstract class AsyncEnv {
     protected CountDownLatch runLatch = new CountDownLatch(1);
 
     public AsyncEnv() {
-        workers = new ArrayList(ASYNC_THREADS);
+        workers = new ArrayList<>(ASYNC_THREADS);
     }
 
     public void run(RequestContext requestContext) throws ExecutionException, InterruptedException {

@@ -5,6 +5,7 @@ import io.sailrocket.api.HttpRequest;
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http2.Http2Headers;
 
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 
@@ -34,8 +35,14 @@ class Http2Request implements HttpRequest {
   }
 
   @Override
-  public HttpRequest headersHandler(IntConsumer handler) {
+  public HttpRequest statusHandler(IntConsumer handler) {
     headersHandler = handler;
+    return this;
+  }
+
+  @Override
+  public HttpRequest headerHandler(Consumer<Map<String, String>> handler) {
+    //TODO
     return this;
   }
 

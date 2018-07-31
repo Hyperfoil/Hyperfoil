@@ -89,7 +89,7 @@ public class Worker {
         if (requestContext.payload != null) {
             request.putHeader("content-length", "" + requestContext.payload.readableBytes());
         }
-        request.headersHandler(code -> {
+        request.statusHandler(code -> {
             int status = (code - 200) / 100;
             if (status >= 0 && status < workerStats.statuses.length) {
                 workerStats.statuses[status].increment();

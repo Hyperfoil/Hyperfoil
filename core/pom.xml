@@ -114,6 +114,12 @@
             <version>0.1-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
+        <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-unit</artifactId>
+            <version>3.4.2</version>
+            <scope>test</scope>
+        </dependency>
 
     </dependencies>
 

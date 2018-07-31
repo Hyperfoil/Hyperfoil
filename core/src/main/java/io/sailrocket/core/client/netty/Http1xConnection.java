@@ -102,8 +102,14 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
     }
 
     @Override
-    public HttpRequest headersHandler(IntConsumer handler) {
+    public HttpRequest statusHandler(IntConsumer handler) {
       headersHandler = handler;
+      return this;
+    }
+
+    @Override
+    public HttpRequest headerHandler(Consumer<Map<String, String>> handler) {
+      //TODO
       return this;
     }
 
