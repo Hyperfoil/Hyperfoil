@@ -4,5 +4,6 @@ public interface Simulation {
 
     Simulation scenario(Scenario scenario);
 
+    MixStragegy mixStrategy();
 
 }

@@ -22,8 +22,8 @@ package io.sailrocket.api;
 
 import java.util.function.Consumer;
 
-public interface BodyValidator {
+public interface Validator<T> {
 
-    boolean validate(Consumer<String> handler); //could use ByteBuf for better efficiency
+    boolean validate(Consumer<T> handler);
 
 }
