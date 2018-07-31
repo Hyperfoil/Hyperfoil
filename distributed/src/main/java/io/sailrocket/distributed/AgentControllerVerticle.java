@@ -1,13 +1,10 @@
 package io.sailrocket.distributed;
 
-import io.sailrocket.api.Benchmark;
-import io.sailrocket.distributed.util.BenchmarkCodec;
 import io.sailrocket.distributed.util.ConcurrentHistogramCodec;
 import io.sailrocket.distributed.util.HistogramCodec;
 import io.sailrocket.distributed.util.SimpleBenchmarkCodec;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.eventbus.EventBus;
-import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.impl.VertxImpl;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;

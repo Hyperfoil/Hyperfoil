@@ -6,16 +6,14 @@ public interface Step {
 
     Step endpoint(String endpoint);
 
-    Step check();
+    Step validator(Validator<?> validator);
 
-    //TODO:: collection of validators to allow configurable validation
-    Validator<Header> headerValidator();
-    Validator<String> bodyValidator();
+    Step next(Step next);
 
-    // Double Linked List of steps to create a sequence chain
-    // TODO:: look at externalising
-    CompletableFuture<Step> next();
 
-    CompletableFuture<Step> prev();
 
+    //TODO:: consider if methods below be in the "public" api, or whether we need a separate consumer api in core
+    Step getNext();
+
+    CompletableFuture<SequenceState> asyncExec(SequenceState sequenceState);
 }

@@ -1,6 +1,6 @@
 package io.sailrocket.core.client.netty;
 
-import io.sailrocket.core.client.HttpClient;
+import io.sailrocket.api.HttpClient;
 import io.sailrocket.core.client.HttpClientBuilder;
 import io.netty.channel.EventLoop;
 import io.netty.channel.EventLoopGroup;

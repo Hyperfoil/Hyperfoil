@@ -1,5 +1,6 @@
 package io.sailrocket.core.client;
 
+import io.sailrocket.api.HttpClient;
 import io.vertx.core.http.HttpVersion;
 
 public interface HttpClientBuilder {

@@ -1,7 +1,11 @@
 package io.sailrocket.api;
 
+
+import java.util.List;
+
 public interface Sequence {
 
-    Step head();
+    Sequence step(Step step);
 
+     List<Step> getSteps();
 }

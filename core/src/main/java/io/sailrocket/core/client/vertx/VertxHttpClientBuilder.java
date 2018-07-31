@@ -1,6 +1,6 @@
 package io.sailrocket.core.client.vertx;
 
-import io.sailrocket.core.client.HttpClient;
+import io.sailrocket.api.HttpClient;
 import io.sailrocket.core.client.HttpClientBuilder;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;

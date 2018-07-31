@@ -1,4 +1,4 @@
-package io.sailrocket.core.client;
+package io.sailrocket.api;
 
 public enum HttpMethod {
 

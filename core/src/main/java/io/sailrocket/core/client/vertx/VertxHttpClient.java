@@ -1,8 +1,8 @@
 package io.sailrocket.core.client.vertx;
 
-import io.sailrocket.core.client.HttpClient;
-import io.sailrocket.core.client.HttpMethod;
-import io.sailrocket.core.client.HttpRequest;
+import io.sailrocket.api.HttpClient;
+import io.sailrocket.api.HttpMethod;
+import io.sailrocket.api.HttpRequest;
 import io.netty.buffer.ByteBuf;
 import io.vertx.core.Context;
 import io.vertx.core.Future;

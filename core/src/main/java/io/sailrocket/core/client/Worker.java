@@ -1,5 +1,8 @@
 package io.sailrocket.core.client;
 
+import io.sailrocket.api.HttpMethod;
+import io.sailrocket.api.HttpRequest;
+
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
