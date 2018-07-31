@@ -1,6 +1,5 @@
 package io.sailrocket.core.impl;
 
-import io.sailrocket.api.HttpClient;
 import io.sailrocket.api.Sequence;
 import io.sailrocket.api.SequenceState;
 import io.sailrocket.api.Step;
