@@ -9,6 +9,7 @@ import io.sailrocket.core.impl.ClientSessionImpl;
 import io.sailrocket.core.impl.SequenceImpl;
 import io.sailrocket.core.impl.StepImpl;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -29,21 +30,16 @@ public class ChainableEventsTestCase {
     }
 
     @Test
+    @Ignore
     public void TestSequence() throws ExecutionException, InterruptedException {
 
-
-        SequenceImpl sequence = new SequenceImpl();
-
-        sequence.step(buildStep("/login"));
-        sequence.step(buildStep("/view"));
-        sequence.step(buildStep("/logout"));
 
         CompletableFuture<SequenceState> sequenceFuture = null;
         Queue<String> executionOrder;
 
         //build pipeline using for iterator
         executionOrder = new ConcurrentLinkedQueue<>();
-        sequenceFuture = buildPipeline(sequence, executionOrder);
+        sequenceFuture = buildPipeline(buildSequence(), executionOrder);
 
         sequenceFuture.get();
         executionOrder.add("done");
@@ -55,12 +51,23 @@ public class ChainableEventsTestCase {
     @Test
     public void TestSequenceFoolish() throws ExecutionException, InterruptedException {
 
+        CompletableFuture<SequenceState> sequenceFuture = null;
+        Queue<String> executionOrder;
 
-        SequenceImpl sequence = new SequenceImpl();
 
-        sequence.step(buildStep("/login"));
-        sequence.step(buildStep("/view"));
-        sequence.step(buildStep("/logout"));
+        //build pipeline like a fool
+        executionOrder = new ConcurrentLinkedQueue<>();
+        sequenceFuture = buildPipelineLikeFool(buildSequence(), executionOrder);
+
+        sequenceFuture.get();
+        executionOrder.add("done");
+
+        runAssertions(executionOrder);
+
+    }
+
+    @Test
+    public void TestSequenceSemiFoolish() throws ExecutionException, InterruptedException {
 
         CompletableFuture<SequenceState> sequenceFuture = null;
         Queue<String> executionOrder;
@@ -68,7 +75,7 @@ public class ChainableEventsTestCase {
 
         //build pipeline like a fool
         executionOrder = new ConcurrentLinkedQueue<>();
-        sequenceFuture = buildPipelineLikeFool(sequence, executionOrder);
+        sequenceFuture = buildPipelineSemiFoolishly(buildSequence(), executionOrder);
 
         sequenceFuture.get();
         executionOrder.add("done");
@@ -86,10 +93,28 @@ public class ChainableEventsTestCase {
         return sequenceFuture;
     }
 
+    private CompletableFuture<SequenceState> buildPipelineSemiFoolishly(SequenceImpl sequence, Queue<String> executionOrder) {
+
+        //TODO:: theres got to be a better way of doing this, this is a nasty code smell
+        CompletableFuture<SequenceState> sequenceFuture = null;
+        for (int i = 0; i < sequence.getSteps().size(); i++) {
+            if (i == 0) {
+                sequenceFuture = sequence.getSteps().get(i).asyncExec(new ClientSessionImpl(new DummyHttpClient(executionOrder, "semiFoolish")));
+            } else {
+                int finalI = i;
+                sequenceFuture = sequenceFuture.thenCompose(session -> sequence.getSteps().get(finalI).asyncExec(session));
+            }
+        }
+
+        return sequenceFuture;
+    }
+
     private CompletableFuture<SequenceState> buildPipeline(SequenceImpl sequence, Queue<String> executionOrder) {
 
         CompletableFuture<SequenceState> sequenceFuture = null;
 
+        //There appears to be an ordering issue here, the futures are not composed correctly
+        //non-determininstic behaviour building this way
         for (Step step : sequence.getSteps()) {
             if (sequenceFuture == null) {
                 sequenceFuture = step.asyncExec(new ClientSessionImpl(new DummyHttpClient(executionOrder, "normal")));
@@ -102,6 +127,14 @@ public class ChainableEventsTestCase {
     }
 
 
+    private SequenceImpl buildSequence() {
+        SequenceImpl sequence = new SequenceImpl();
+
+        sequence.step(buildStep("/login"));
+        sequence.step(buildStep("/view"));
+        sequence.step(buildStep("/logout"));
+        return sequence;
+    }
 
 
     private void runAssertions(Queue<String> executionOrder) {
@@ -136,7 +169,7 @@ public class ChainableEventsTestCase {
         @Override
         public HttpRequest request(HttpMethod method, String path) {
             executionOrder.add(path);
-            System.out.println(this.pipelineType + " - Preparing request: " + path);
+//            System.out.println(this.pipelineType + " - Preparing request: " + path);
             return null;
         }
 
