@@ -59,6 +59,7 @@ public class StepImpl implements Step {
             //TODO:: populate session values here
             this.extractors.forEach(dataExtractor -> dataExtractor.extractData(response, sequenceState));
 
+            //this is passed onto the next step
             return sequenceState;
         });
     }

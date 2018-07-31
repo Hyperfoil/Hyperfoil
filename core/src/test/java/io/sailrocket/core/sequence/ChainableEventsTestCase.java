@@ -6,6 +6,7 @@ import io.sailrocket.api.HttpRequest;
 import io.sailrocket.api.SequenceState;
 import io.sailrocket.api.Step;
 import io.sailrocket.core.impl.ClientSessionImpl;
+import io.sailrocket.core.impl.SequenceFactory;
 import io.sailrocket.core.impl.SequenceImpl;
 import io.sailrocket.core.impl.StepImpl;
 import org.junit.Assert;
@@ -14,6 +15,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -30,8 +33,26 @@ public class ChainableEventsTestCase {
     }
 
     @Test
-    @Ignore
     public void TestSequence() throws ExecutionException, InterruptedException {
+        Queue<String> executionOrder;
+
+        //build pipeline using for iterator
+        executionOrder = new ConcurrentLinkedQueue<>();
+
+        SequenceImpl sequence = buildSequence();
+        sequence.setHttpClient(new DummyHttpClient(executionOrder, "TestSequence"));
+        CompletableFuture<SequenceState> sequenceFuture =  SequenceFactory.buildSequanceFuture(sequence);
+
+        sequenceFuture.get();
+        executionOrder.add("done");
+
+        runAssertions(executionOrder);
+
+    }
+
+    @Test
+    @Ignore
+    public void TestSequenceBroke() throws ExecutionException, InterruptedException {
 
 
         CompletableFuture<SequenceState> sequenceFuture = null;
@@ -128,12 +149,16 @@ public class ChainableEventsTestCase {
 
 
     private SequenceImpl buildSequence() {
-        SequenceImpl sequence = new SequenceImpl();
+        return (SequenceImpl) SequenceFactory.buildSequence(buildSteps());
+    }
 
-        sequence.step(buildStep("/login"));
-        sequence.step(buildStep("/view"));
-        sequence.step(buildStep("/logout"));
-        return sequence;
+    private List<Step> buildSteps() {
+        List<Step> steps = new ArrayList<>();
+
+        steps.add(buildStep("/login"));
+        steps.add(buildStep("/view"));
+        steps.add(buildStep("/logout"));
+        return steps;
     }
 
 
