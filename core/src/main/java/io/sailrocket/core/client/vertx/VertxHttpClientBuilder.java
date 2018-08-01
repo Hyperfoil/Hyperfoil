@@ -65,7 +65,7 @@ public class VertxHttpClientBuilder implements HttpClientBuilder {
 
   @Override
   public HttpClient build() {
-    return new VertxHttpClient2(this);
+    return new VertxHttpClient(this);
   }
 
   @Override

@@ -35,7 +35,7 @@ import java.util.function.IntConsumer;
 /**
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
  */
-public class VertxHttpRequest2 implements HttpRequest {
+public class VertxHttpRequest implements HttpRequest {
 
     private Map<String, String> headers;
     private final HttpMethod method;
@@ -47,7 +47,7 @@ public class VertxHttpRequest2 implements HttpRequest {
     private final Slot current;
     private final Future<Void> inflight;
 
-    VertxHttpRequest2(HttpMethod method, String path, Future<Void> inflight,
+    VertxHttpRequest(HttpMethod method, String path, Future<Void> inflight,
                      Slot current) {
       this.method = method;
       this.path = path;
