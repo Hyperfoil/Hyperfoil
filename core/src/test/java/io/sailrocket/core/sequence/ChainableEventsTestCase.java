@@ -15,7 +15,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
@@ -153,12 +153,7 @@ public class ChainableEventsTestCase {
     }
 
     private List<Step> buildSteps() {
-        List<Step> steps = new ArrayList<>();
-
-        steps.add(buildStep("/login"));
-        steps.add(buildStep("/view"));
-        steps.add(buildStep("/logout"));
-        return steps;
+        return Arrays.asList(buildStep("/login"), buildStep("/view"), buildStep("/logout")) ;
     }
 
 
@@ -172,7 +167,7 @@ public class ChainableEventsTestCase {
 
 
     private Step buildStep(String path) {
-        return new StepImpl().endpoint(path);
+        return new StepImpl().path(path);
     }
 
 
@@ -194,7 +189,6 @@ public class ChainableEventsTestCase {
         @Override
         public HttpRequest request(HttpMethod method, String path) {
             executionOrder.add(path);
-//            System.out.println(this.pipelineType + " - Preparing request: " + path);
             return null;
         }
 

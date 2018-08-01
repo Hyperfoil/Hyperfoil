@@ -8,19 +8,28 @@ import io.sailrocket.api.Step;
 import io.sailrocket.api.Validator;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 public class StepImpl implements Step {
 
     private String endpoint;
+    private Map<String, String> params = new HashMap<>();
     private List<Validator<?>> validators = new ArrayList<>();
     private List<DataExtractor<?>> extractors = new ArrayList<>();
     private Step next;
 
     @Override
-    public Step endpoint(String endpoint) {
-        this.endpoint = endpoint;
+    public Step path(String path) {
+        this.endpoint = path;
+        return this;
+    }
+
+    @Override
+    public Step param(String name, String value) {
+        this.params.put(name, value);
         return this;
     }
 
