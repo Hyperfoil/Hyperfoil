@@ -20,19 +20,13 @@ public class SequenceFactory {
         return sequence;
     }
 
-    public static CompletableFuture<SequenceState> buildSequanceFuture(SequenceImpl sequence) {
-        //TODO:: there's got to be a better way of doing this, this is a nasty code smell
-        CompletableFuture<SequenceState> sequenceFuture = null;
+    public static CompletableFuture<SequenceState> buildSequenceFuture(SequenceImpl sequence) {
 
-        for (int i = 0; i < sequence.getSteps().size(); i++) {
-            if (i == 0) {
-                sequenceFuture = sequence.getSteps().get(i).asyncExec(new ClientSessionImpl(sequence.getHttpClient()));
-            } else {
-                int finalI = i;
-                sequenceFuture = sequenceFuture.thenCompose(session -> sequence.getSteps().get(finalI).asyncExec(session));
-            }
-        }
-
-        return sequenceFuture;
+        CompletableFuture<SequenceState> rootFuture = new CompletableFuture().supplyAsync(() -> new ClientSessionImpl(sequence.getHttpClient()));
+        return sequence.getSteps().stream()
+                .reduce(rootFuture
+                        , (sequenceFuture, step) -> sequenceFuture.thenCompose(sequenceState -> step.asyncExec(sequenceState))
+                        , (sequenceFuture, e) -> sequenceFuture
+                );
     }
 }

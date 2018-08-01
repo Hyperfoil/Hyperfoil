@@ -42,7 +42,7 @@ public class ChainableEventsTestCase {
 
         SequenceImpl sequence = buildSequence();
         sequence.setHttpClient(new DummyHttpClient(executionOrder, "TestSequence"));
-        CompletableFuture<SequenceState> sequenceFuture = SequenceFactory.buildSequanceFuture(sequence);
+        CompletableFuture<SequenceState> sequenceFuture = SequenceFactory.buildSequenceFuture(sequence);
 
         sequenceFuture.get();
         executionOrder.add("done");
