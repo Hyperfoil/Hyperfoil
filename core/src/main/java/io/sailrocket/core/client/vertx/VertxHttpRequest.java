@@ -40,8 +40,8 @@ public class VertxHttpRequest implements HttpRequest {
     private Map<String, String> headers;
     private final HttpMethod method;
     private final String path;
-    private IntConsumer headersHandler;
-    private Consumer<ByteBuf> dataHandler;
+    private IntConsumer statusHandler;
+    private Consumer<byte[]> dataHandler;
     private IntConsumer resetHandler;
     private Consumer<Void> endHandler;
     private final Slot current;
@@ -64,7 +64,7 @@ public class VertxHttpRequest implements HttpRequest {
     }
     @Override
     public HttpRequest statusHandler(IntConsumer handler) {
-      headersHandler = handler;
+      statusHandler = handler;
       return this;
     }
 
@@ -78,6 +78,12 @@ public class VertxHttpRequest implements HttpRequest {
     public HttpRequest resetHandler(IntConsumer handler) {
       resetHandler = handler;
       return this;
+    }
+
+    @Override
+    public HttpRequest bodyHandler(Consumer<byte[]> handler) {
+        this.dataHandler = handler;
+        return this;
     }
 
     @Override
@@ -114,14 +120,14 @@ public class VertxHttpRequest implements HttpRequest {
         fut.setHandler(ar -> {
           if (ar.succeeded()) {
             HttpClientResponse resp = ar.result();
-            headersHandler.accept(resp.statusCode());
+            statusHandler.accept(resp.statusCode());
             resp.exceptionHandler(fut::tryFail);
             resp.endHandler(doneHandler::tryComplete);
-            Consumer<ByteBuf> handler = this.dataHandler;
-            if (handler != null) {
-              resp.handler(chunk -> handler.accept(chunk.getByteBuf()));
+            if (dataHandler != null) {
+              resp.handler(chunk -> dataHandler.accept(chunk.getByteBuf().array()));
             }
-          } else {
+          }
+          else {
             doneHandler.fail(ar.cause());
           }
         });

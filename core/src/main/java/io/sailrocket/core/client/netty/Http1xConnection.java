@@ -36,11 +36,14 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
     private final IntConsumer headersHandler;
     private final IntConsumer resetHandler;
     private final Consumer<Void> endHandler;
+    private final Consumer<ByteBuf> dataHandler;
 
-    HttpStream(DefaultFullHttpRequest msg, IntConsumer headersHandler, IntConsumer resetHandler, Consumer<Void> endHandler) {
+    HttpStream(DefaultFullHttpRequest msg, IntConsumer headersHandler, IntConsumer resetHandler,
+               Consumer<ByteBuf> dataHandler, Consumer<Void> endHandler) {
       this.msg = msg;
       this.headersHandler = headersHandler;
       this.resetHandler = resetHandler;
+      this.dataHandler = dataHandler;
       this.endHandler = endHandler;
     }
 
@@ -88,6 +91,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
     private IntConsumer headersHandler;
     private IntConsumer resetHandler;
     private Consumer<Void> endHandler;
+    private Consumer<ByteBuf> dataHandler;
 
     HttpRequestImpl(HttpMethod method, String path) {
       this.method = method;
@@ -120,6 +124,12 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
     }
 
     @Override
+    public HttpRequest bodyHandler(Consumer<byte[]> handler) {
+      dataHandler = (dataHandler -> handler.accept(dataHandler.array()));
+      return null;
+    }
+
+    @Override
     public HttpRequest endHandler(Consumer<Void> handler) {
       endHandler = handler;
       return this;
@@ -133,7 +143,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
       DefaultFullHttpRequest msg = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, method.netty, path, buff, false);
       headers.forEach(msg.headers()::add);
       msg.headers().add("Host", client.host + ":" + client.port);
-      ctx.executor().execute(new HttpStream(msg, headersHandler, resetHandler, endHandler));
+      ctx.executor().execute(new HttpStream(msg, headersHandler, resetHandler, dataHandler, endHandler));
     }
   }
 

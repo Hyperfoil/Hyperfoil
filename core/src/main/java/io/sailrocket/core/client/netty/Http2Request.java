@@ -46,14 +46,15 @@ class Http2Request implements HttpRequest {
     return this;
   }
 
-  public Http2Request dataHandler(Consumer<ByteBuf> handler) {
-    dataHandler = handler;
+  @Override
+  public HttpRequest resetHandler(IntConsumer handler) {
+    resetHandler = handler;
     return this;
   }
 
   @Override
-  public HttpRequest resetHandler(IntConsumer handler) {
-    resetHandler = handler;
+  public HttpRequest bodyHandler(Consumer<byte[]> handler) {
+    dataHandler = (dataHandler -> handler.accept(dataHandler.array()));
     return this;
   }
 

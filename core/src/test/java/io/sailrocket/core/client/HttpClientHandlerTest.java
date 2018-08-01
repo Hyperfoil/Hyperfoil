@@ -37,7 +37,7 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.Assert.assertEquals;
 
 @RunWith(VertxUnitRunner.class)
-public class HttpClientHeaderTest {
+public class HttpClientHandlerTest {
 
     protected volatile int count;
     private Vertx vertx = Vertx.vertx();
@@ -47,7 +47,7 @@ public class HttpClientHeaderTest {
         count = 0;
         vertx.createHttpServer().requestHandler(req -> {
             count++;
-            req.response().putHeader("foo", "bar").end("hello from vertx");
+            req.response().putHeader("foo", "bar").end("hello from server");
         }).listen(8088, "localhost", ctx.asyncAssertSuccess());
     }
 
@@ -73,6 +73,14 @@ public class HttpClientHeaderTest {
 
         conn.statusHandler(code -> {
             assertEquals(200, code);
+        })
+                /*
+                .headerHandler( header -> {
+            assertEquals("br", header.get("foo"));
+        })
+        */
+        .bodyHandler(input -> {
+            assertEquals("hello from server", new String(input));
         }).endHandler(e -> {
             latch.countDown();
         });
@@ -80,6 +88,7 @@ public class HttpClientHeaderTest {
         conn.end();
 
         latch.await(10, TimeUnit.SECONDS);
+        Thread.sleep(50);
         assertEquals(1, count);
     }
 }
