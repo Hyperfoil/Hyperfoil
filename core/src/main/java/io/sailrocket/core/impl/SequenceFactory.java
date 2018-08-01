@@ -1,8 +1,9 @@
 package io.sailrocket.core.impl;
 
 import io.sailrocket.api.Sequence;
-import io.sailrocket.api.SequenceState;
+import io.sailrocket.core.api.SequenceContext;
 import io.sailrocket.api.Step;
+import io.sailrocket.core.api.Worker;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -20,9 +21,12 @@ public class SequenceFactory {
         return sequence;
     }
 
-    public static CompletableFuture<SequenceState> buildSequenceFuture(SequenceImpl sequence) {
+    public static CompletableFuture<SequenceContext> buildSequenceFuture(SequenceImpl sequence, Worker worker) {
 
-        CompletableFuture<SequenceState> rootFuture = new CompletableFuture().supplyAsync(() -> new ClientSessionImpl(sequence.getHttpClient()));
+        CompletableFuture<SequenceContext> rootFuture = new CompletableFuture().supplyAsync(() ->
+                new ClientSessionImpl(sequence.getHttpClient(), worker)
+        );
+
         return sequence.getSteps().stream()
                 .reduce(rootFuture
                         , (sequenceFuture, step) -> sequenceFuture.thenCompose(sequenceState -> step.asyncExec(sequenceState))

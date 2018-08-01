@@ -16,9 +16,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sailrocket.api;
+package io.sailrocket.core.impl;
 
-public interface DataExtractor<T> {
+import io.sailrocket.core.api.HttpResponse;
 
-    T extractData(HttpRequest httpRequest);
+public class HttpResponseImpl implements HttpResponse {
 }

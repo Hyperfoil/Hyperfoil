@@ -1,27 +1,23 @@
 package io.sailrocket.core.client;
 
 import io.netty.buffer.ByteBuf;
-import io.sailrocket.api.HttpClient;
+import io.sailrocket.core.api.SequenceContext;
 
 public class RequestContext {
 
-    //TODO:: just for POC
-    public HttpClient client;
+    public SequenceContext sequenceContext;
     public final String path;
     public final ByteBuf payload;
 
-    public RequestContext(HttpClientBuilder clientBuilder, String path) {
-        this(clientBuilder  , path, null);
+    public RequestContext(SequenceContext sequenceContext, String path) {
+        this(sequenceContext, path, null);
     }
 
-    public RequestContext(HttpClientBuilder clientBuilder, String path, ByteBuf payload) {
+    public RequestContext(SequenceContext sequenceContext, String path, ByteBuf payload) {
+        this.sequenceContext = sequenceContext;
         this.path = path;
         this.payload = payload;
-        try {
-            this.client = clientBuilder.build();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
+
 
 }

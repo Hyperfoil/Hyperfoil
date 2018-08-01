@@ -2,12 +2,15 @@ package io.sailrocket.core.client;
 
 import io.sailrocket.api.HttpMethod;
 import io.sailrocket.api.HttpRequest;
+import io.sailrocket.core.api.HttpResponse;
+import io.sailrocket.core.api.Worker;
+import io.sailrocket.core.impl.HttpResponseImpl;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 
-public class Worker {
+public class WorkerImpl implements Worker {
 
     private final Executor exec;
     private Load.ScheduledRequest head;
@@ -15,27 +18,26 @@ public class Worker {
 
     private int pacerRate;
     private WorkerStats workerStats;
-    private RequestContext requestContext;
 
-    public Worker(RequestContext requestContext, WorkerStats workerStats, int pacerRate, Executor exec) {
+    public WorkerImpl(WorkerStats workerStats, int pacerRate, Executor exec) {
         this.exec = exec;
         this.pacerRate = pacerRate;
         this.workerStats = workerStats;
-        this.requestContext = requestContext;
     }
 
-    public Worker(RequestContext requestContext, WorkerStats workerStats, int pacerRate) {
-        this(requestContext, workerStats, pacerRate, Runnable::run);
+    public WorkerImpl(WorkerStats workerStats, int pacerRate) {
+        this(workerStats, pacerRate, Runnable::run);
     }
 
 
-    public CompletableFuture<Void> runSlot(long duration) {
-        CompletableFuture<Void> result = new CompletableFuture<>();
-        runSlot(duration, result::complete);
+    @Override
+    public CompletableFuture<HttpResponse> runSlot(long duration, RequestContext requestContext) {
+        CompletableFuture<HttpResponse> result = new CompletableFuture<>();
+        runSlot(duration, result::complete, requestContext);
         return result;
     }
 
-    private void runSlot(long duration, Consumer<Void> doneHandler) {
+    private void runSlot(long duration, Consumer<HttpResponse> doneHandler, RequestContext requestContext) {
         exec.execute(() -> {
             if (duration > 0) {
                 long slotBegins = System.nanoTime();
@@ -45,15 +47,15 @@ public class Worker {
                 //This would allow us to configure different benchmark behaviour when the system under test is saturated
                 Pacer pacer = new Pacer(pacerRate);
                 pacer.setInitialStartTime(slotBegins);
-                doRequestInSlot(pacer, slotEnds);
+                doRequestInSlot(pacer, slotEnds, requestContext);
                 if (doneHandler != null) {
-                    doneHandler.accept(null);
+                    doneHandler.accept(new HttpResponseImpl()); //TODO:: put HttpResponse here
                 }
             }
         });
     }
 
-    private void doRequestInSlot(Pacer pacer, long slotEnds) {
+    private void doRequestInSlot(Pacer pacer, long slotEnds, RequestContext requestContext) {
         while (true) {
             long now = System.nanoTime();
             if (now > slotEnds) {
@@ -66,25 +68,25 @@ public class Worker {
                     tail.next = schedule;
                     tail = schedule;
                 }
-                checkPending();
+                checkPending(requestContext);
                 pacer.acquire(1);
             }
         }
     }
 
-    private void checkPending() {
+    private void checkPending(RequestContext requestContext) {
         HttpRequest conn;
-        while (head != null && (conn = requestContext.client.request(requestContext.payload != null ? HttpMethod.POST : HttpMethod.GET, requestContext.path)) != null) {
+        while (head != null && (conn = requestContext.sequenceContext.client().request(requestContext.payload != null ? HttpMethod.POST : HttpMethod.GET, requestContext.path)) != null) {
             long startTime = head.startTime;
             head = head.next;
             if (head == null) {
                 tail = null;
             }
-            doRequest(conn, startTime);
+            doRequest(conn, startTime,requestContext);
         }
     }
 
-    private void doRequest(HttpRequest request, long startTime) {
+    private void doRequest(HttpRequest request, long startTime, RequestContext requestContext) {
         workerStats.requestCount.increment();
         if (requestContext.payload != null) {
             request.putHeader("content-length", "" + requestContext.payload.readableBytes());

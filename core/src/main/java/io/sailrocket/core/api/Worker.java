@@ -16,9 +16,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sailrocket.api;
+package io.sailrocket.core.api;
 
-public interface DataExtractor<T> {
+import io.sailrocket.core.client.RequestContext;
 
-    T extractData(HttpRequest httpRequest);
+import java.util.concurrent.CompletableFuture;
+
+public interface Worker {
+    CompletableFuture<HttpResponse> runSlot(long duration, RequestContext requestContext);
 }

@@ -23,7 +23,7 @@ import java.util.List;
 
 /**
  * Sequences are a series of one or more {@link Step}'s that perform one logical unit of operation. Steps within a Sequence are executed in order.
- * State is shared between sequences via {@link SequenceState}. This allows sequences to pass request scoped state between {@link Step} invocations.
+ * State is shared between sequences via a SequenceState object. This allows sequences to pass request scoped state between {@link Step} invocations.
  *
  * Sequences form the basis of a timed operation.
  *
@@ -34,5 +34,5 @@ public interface Sequence {
 
     Sequence step(Step step);
 
-     List<Step> getSteps();
+     List<? extends Step> getSteps();
 }

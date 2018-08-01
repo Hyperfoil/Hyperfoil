@@ -16,8 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sailrocket.api;
+package io.sailrocket.core.api;
 
-public interface SequenceState {
-    HttpClient getClient();
+public interface HttpResponse {
 }

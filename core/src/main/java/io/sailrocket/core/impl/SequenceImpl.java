@@ -1,8 +1,10 @@
 package io.sailrocket.core.impl;
 
 import io.sailrocket.api.Sequence;
-import io.sailrocket.api.Step;
 import io.sailrocket.api.HttpClient;
+
+import io.sailrocket.api.Step;
+import io.sailrocket.core.api.AsyncStep;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,16 +14,16 @@ public class SequenceImpl implements Sequence {
     private HttpClient httpClient;
 
     //TODO:: think about branching
-    private List<Step> steps = new ArrayList<>();
+    private List<AsyncStep> steps = new ArrayList<>();
 
     @Override
     public Sequence step(Step step) {
-        this.steps.add(step);
+        this.steps.add((AsyncStep) step);
         return this;
     }
 
     @Override
-    public List<Step> getSteps() {
+    public List<AsyncStep> getSteps() {
         return steps;
     }
 

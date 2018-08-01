@@ -1,8 +1,10 @@
 package io.sailrocket.core;
 
+import io.sailrocket.core.api.HttpResponse;
 import io.sailrocket.core.client.HttpClientProvider;
 import io.sailrocket.core.client.RequestContext;
-import io.sailrocket.core.client.Worker;
+import io.sailrocket.core.api.Worker;
+import io.sailrocket.core.client.WorkerImpl;
 import io.sailrocket.core.client.WorkerStats;
 import io.vertx.core.Vertx;
 import io.vertx.ext.unit.TestContext;
@@ -41,10 +43,10 @@ public abstract class AsyncEnv {
     }
 
     public void run(RequestContext requestContext) throws ExecutionException, InterruptedException {
-        IntStream.range(0, ASYNC_THREADS).forEach(i -> workers.add(i, new Worker(requestContext, workerStats, pacerRate, exec)));
-        List<CompletableFuture<Void>> results = new ArrayList<>(ASYNC_THREADS);
-        workers.forEach(worker -> results.add(worker.runSlot(DURATION)));
-        for (CompletableFuture<Void> result : results) {
+        IntStream.range(0, ASYNC_THREADS).forEach(i -> workers.add(i, new WorkerImpl( workerStats, pacerRate, exec)));
+        List<CompletableFuture<HttpResponse>> results = new ArrayList<>(ASYNC_THREADS);
+        workers.forEach(worker -> results.add(worker.runSlot(DURATION, requestContext)));
+        for (CompletableFuture<HttpResponse> result : results) {
             result.get();
         }
         exec.shutdown();

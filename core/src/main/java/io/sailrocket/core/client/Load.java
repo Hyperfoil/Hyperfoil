@@ -1,6 +1,10 @@
 package io.sailrocket.core.client;
 
 import io.netty.buffer.ByteBuf;
+import io.sailrocket.api.HttpClient;
+import io.sailrocket.core.api.HttpResponse;
+import io.sailrocket.core.api.Worker;
+import io.sailrocket.core.impl.ClientSessionImpl;
 import io.sailrocket.core.util.Report;
 import org.HdrHistogram.Histogram;
 
@@ -44,12 +48,18 @@ class Load {
         this.duration = duration;
         this.warmup = warmup;
         this.report = report;
-        this.requestContext = new RequestContext(clientBuilder, path, payload);
+        HttpClient httpClient = null;
+        try {
+            httpClient = clientBuilder.build();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        this.requestContext = new RequestContext(new ClientSessionImpl(httpClient, null), path, payload);
     }
 
     Report run() throws Exception {
         CountDownLatch latch = new CountDownLatch(1);
-        requestContext.client.start(v1 -> {
+        requestContext.sequenceContext.client().start(v1 -> {
             latch.countDown();
         });
         try {
@@ -62,18 +72,18 @@ class Load {
         if (warmup > 0) {
             System.out.println("warming up...");
         }
-        new Worker(requestContext, workerStats, pacerRate).runSlot(warmup);
+        new WorkerImpl(workerStats, pacerRate).runSlot(warmup, requestContext);
         System.out.println("starting rate=" + rate);
         startTime = System.nanoTime();
         workerStats.requestCount.reset();
         workerStats.responseCount.reset();
-        requestContext.client.resetStatistics();
+        requestContext.sequenceContext.client().resetStatistics();
         ExecutorService exec = Executors.newFixedThreadPool(threads);
         ArrayList<Worker> workers = new ArrayList(threads);
-        IntStream.range(0, threads).forEach(i -> workers.add(i, new Worker(requestContext, workerStats, pacerRate, exec)));
-        List<CompletableFuture<Void>> results = new ArrayList<>(threads);
-        workers.forEach(worker -> results.add(worker.runSlot(duration)));
-        for (CompletableFuture<Void> result : results) {
+        IntStream.range(0, threads).forEach(i -> workers.add(i, new WorkerImpl(workerStats, pacerRate, exec)));
+        List<CompletableFuture<HttpResponse>> results = new ArrayList<>(threads);
+        workers.forEach(worker -> results.add(worker.runSlot(duration, this.requestContext)));
+        for (CompletableFuture<HttpResponse> result : results) {
             result.get();
         }
         exec.shutdown();
@@ -87,11 +97,11 @@ class Load {
     }
 
     private long readThroughput() {
-        return requestContext.client.bytesRead() / (TimeUnit.NANOSECONDS.toSeconds((System.nanoTime() - startTime)) * 1024);
+        return requestContext.sequenceContext.client().bytesRead() / (TimeUnit.NANOSECONDS.toSeconds((System.nanoTime() - startTime)) * 1024);
     }
 
     private long writeThroughput() {
-        return requestContext.client.bytesWritten() / (TimeUnit.NANOSECONDS.toSeconds((System.nanoTime() - startTime) * 1024));
+        return requestContext.sequenceContext.client().bytesWritten() / (TimeUnit.NANOSECONDS.toSeconds((System.nanoTime() - startTime) * 1024));
     }
 
     /**
@@ -104,7 +114,7 @@ class Load {
                 workerStats.requestCount.intValue(),
                 workerStats.responseCount.intValue(),
                 ratio(), readThroughput(), writeThroughput(),
-                requestContext.client.inflight());
+                requestContext.sequenceContext.client().inflight());
     }
 
     static class ScheduledRequest {
@@ -135,10 +145,10 @@ class Load {
                 workerStats.resetCount.intValue(),
                 requestCount,
                 Stream.of(workerStats.statuses).mapToInt(LongAdder::intValue).toArray(),
-                requestContext.client.bytesRead(),
-                requestContext.client.bytesWritten()
+                requestContext.sequenceContext.client().bytesRead(),
+                requestContext.sequenceContext.client().bytesWritten()
         );
-        requestContext.client.shutdown();
+        requestContext.sequenceContext.client().shutdown();
         return report;
     }
 }
