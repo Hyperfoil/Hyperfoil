@@ -39,7 +39,6 @@ public class VertxHttpClient implements HttpClient {
   private AtomicInteger currentSlot = new AtomicInteger();
   private Slot[] slots;
   private final ThreadLocal<Slot> current = ThreadLocal.withInitial(() -> slots[currentSlot.getAndIncrement() % slots.length]);
-  private final Future<Void> doneHandler = Future.future();
 
 
   public VertxHttpClient(VertxHttpClientBuilder builder) {
@@ -67,10 +66,6 @@ public class VertxHttpClient implements HttpClient {
       slots[i] = new Slot(vertx.createHttpClient(new HttpClientOptions(options).setMaxPoolSize(n)), vertx.getOrCreateContext());
     }
 
-    doneHandler.setHandler(ar -> {
-        inflight.decrementAndGet();
-    });
-
   }
 
   @Override
@@ -87,7 +82,7 @@ public class VertxHttpClient implements HttpClient {
   public HttpRequest request(HttpMethod method, String path) {
     if (inflight.get() < maxInflight) {
       inflight.incrementAndGet();
-      return new VertxHttpRequest(method, path, doneHandler, current.get());
+      return new VertxHttpRequest(method, path, inflight, current.get());
     }
     return null;
   }

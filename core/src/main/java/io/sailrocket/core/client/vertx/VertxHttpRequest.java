@@ -29,6 +29,7 @@ import io.vertx.core.http.HttpClientResponse;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 
@@ -45,9 +46,9 @@ public class VertxHttpRequest implements HttpRequest {
     private IntConsumer resetHandler;
     private Consumer<Void> endHandler;
     private final Slot current;
-    private final Future<Void> inflight;
+    private final AtomicInteger inflight;
 
-    VertxHttpRequest(HttpMethod method, String path, Future<Void> inflight,
+    VertxHttpRequest(HttpMethod method, String path, AtomicInteger inflight,
                      Slot current) {
       this.method = method;
       this.path = path;
@@ -109,31 +110,28 @@ public class VertxHttpRequest implements HttpRequest {
     private void requestHandler(HttpClientRequest request) {
         Future<HttpClientResponse> fut = Future.future();
         Future<Void> doneHandler = Future.future();
-
         doneHandler.setHandler(ar -> {
-          inflight.complete();
+          inflight.decrementAndGet();
           if (ar.succeeded()) {
             endHandler.accept(null);
           }
         });
-
         fut.setHandler(ar -> {
           if (ar.succeeded()) {
             HttpClientResponse resp = ar.result();
             statusHandler.accept(resp.statusCode());
             resp.exceptionHandler(fut::tryFail);
             resp.endHandler(doneHandler::tryComplete);
-            if (dataHandler != null) {
-              resp.handler(chunk -> dataHandler.accept(chunk.getByteBuf().array()));
+            Consumer<byte[]> handler = this.dataHandler;
+            if (handler != null) {
+              resp.handler(chunk -> handler.accept(chunk.getByteBuf().array()));
             }
-          }
-          else {
+          } else {
             doneHandler.fail(ar.cause());
           }
         });
-
         request.handler(fut::tryComplete);
         request.exceptionHandler(fut::tryFail);
-    }
+     }
 
 }

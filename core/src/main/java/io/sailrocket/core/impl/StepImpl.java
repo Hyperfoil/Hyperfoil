@@ -48,11 +48,6 @@ public class StepImpl implements AsyncStep {
     }
 
     @Override
-    public Step getNext() {
-        return this.next;
-    }
-
-    @Override
     public CompletableFuture<SequenceContext> asyncExec(SequenceContext sequenceState) {
 
         RequestContext requestContext = new RequestContext(sequenceState, this.endpoint);
