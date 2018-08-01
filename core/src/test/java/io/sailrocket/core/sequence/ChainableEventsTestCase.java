@@ -16,6 +16,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
@@ -41,7 +42,7 @@ public class ChainableEventsTestCase {
 
         SequenceImpl sequence = buildSequence();
         sequence.setHttpClient(new DummyHttpClient(executionOrder, "TestSequence"));
-        CompletableFuture<SequenceState> sequenceFuture =  SequenceFactory.buildSequanceFuture(sequence);
+        CompletableFuture<SequenceState> sequenceFuture = SequenceFactory.buildSequanceFuture(sequence);
 
         sequenceFuture.get();
         executionOrder.add("done");
@@ -61,6 +62,42 @@ public class ChainableEventsTestCase {
         //build pipeline using for iterator
         executionOrder = new ConcurrentLinkedQueue<>();
         sequenceFuture = buildPipeline(buildSequence(), executionOrder);
+
+        sequenceFuture.get();
+        executionOrder.add("done");
+
+        runAssertions(executionOrder);
+
+    }
+
+    @Test
+    @Ignore
+    public void TestSequenceIterator() throws ExecutionException, InterruptedException {
+
+
+        CompletableFuture<SequenceState> sequenceFuture = null;
+        Queue<String> executionOrder;
+
+        //build pipeline using for iterator
+        executionOrder = new ConcurrentLinkedQueue<>();
+        sequenceFuture = buildPipelineIterator(buildSequence(), executionOrder);
+
+        sequenceFuture.get();
+        executionOrder.add("done");
+
+        runAssertions(executionOrder);
+
+    }
+    @Test
+    public void TestSequenceReduce() throws ExecutionException, InterruptedException {
+
+
+        CompletableFuture<SequenceState> sequenceFuture = null;
+        Queue<String> executionOrder;
+
+        //build pipeline using for iterator
+        executionOrder = new ConcurrentLinkedQueue<>();
+        sequenceFuture = buildPipelineReduce(buildSequence(), executionOrder);
 
         sequenceFuture.get();
         executionOrder.add("done");
@@ -147,13 +184,52 @@ public class ChainableEventsTestCase {
         return sequenceFuture;
     }
 
+    private CompletableFuture<SequenceState> buildPipelineIterator(SequenceImpl sequence, Queue<String> executionOrder) {
+
+        CompletableFuture<SequenceState> sequenceFuture = null;
+
+        //There appears to be an ordering issue here, the futures are not composed correctly
+        //non-determininstic behaviour building this way
+        Iterator<Step> stepIterator = sequence.getSteps().iterator();
+        Step step = null;
+        while (stepIterator.hasNext()) {
+            step = stepIterator.next();
+            if (sequenceFuture == null) {
+                sequenceFuture = step.asyncExec(new ClientSessionImpl(new DummyHttpClient(executionOrder, "normal")));
+            } else {
+                Step finalStep = step;
+                sequenceFuture.thenCompose(session -> finalStep.asyncExec(session));
+            }
+        }
+
+        return sequenceFuture;
+    }
+
+
+    private CompletableFuture<SequenceState> buildPipelineReduce(SequenceImpl sequence, Queue<String> executionOrder) {
+
+        CompletableFuture<SequenceState> startFuture = new CompletableFuture().supplyAsync(() -> new ClientSessionImpl(new DummyHttpClient(executionOrder, "normal")));
+        return sequence.getSteps().stream()
+                .<CompletableFuture<SequenceState>>reduce(startFuture, (sequenceFuture, step) -> addStep(sequenceFuture, step), (sequenceFuture, e) -> passSequence(sequenceFuture));
+
+    }
+
+    private CompletableFuture<SequenceState> addStep(CompletableFuture<SequenceState> future, Step step){
+        return future.thenCompose(sequenceState -> step.asyncExec(sequenceState));
+    }
+
+    private CompletableFuture<SequenceState> passSequence(CompletableFuture<SequenceState> sequence){
+        return sequence;
+    }
+
+
 
     private SequenceImpl buildSequence() {
         return (SequenceImpl) SequenceFactory.buildSequence(buildSteps());
     }
 
     private List<Step> buildSteps() {
-        return Arrays.asList(buildStep("/login"), buildStep("/view"), buildStep("/logout")) ;
+        return Arrays.asList(buildStep("/login"), buildStep("/view"), buildStep("/logout"));
     }
 
 
