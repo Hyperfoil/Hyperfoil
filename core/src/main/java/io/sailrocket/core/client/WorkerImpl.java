@@ -13,8 +13,8 @@ import java.util.function.Consumer;
 public class WorkerImpl implements Worker {
 
     private final Executor exec;
-    private Load.ScheduledRequest head;
-    private Load.ScheduledRequest tail;
+    private SimulationImpl.ScheduledRequest head;
+    private SimulationImpl.ScheduledRequest tail;
 
     private int pacerRate;
     private WorkerStats workerStats;
@@ -61,7 +61,7 @@ public class WorkerImpl implements Worker {
             if (now > slotEnds) {
                 return;
             } else {
-                Load.ScheduledRequest schedule = new Load.ScheduledRequest(now);
+                SimulationImpl.ScheduledRequest schedule = new SimulationImpl.ScheduledRequest(now);
                 if (head == null) {
                     head = tail = schedule;
                 } else {

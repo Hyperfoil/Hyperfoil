@@ -1,7 +1,7 @@
 package io.sailrocket.core.client.netty;
 
 import io.sailrocket.api.HttpClient;
-import io.sailrocket.core.client.HttpClientBuilder;
+import io.sailrocket.core.client.HttpClientPool;
 import io.netty.channel.EventLoop;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -9,7 +9,7 @@ import io.vertx.core.http.HttpVersion;
 
 import java.util.concurrent.TimeUnit;
 
-public class NettyHttpClientBuilder implements HttpClientBuilder {
+public class NettyHttpClientPool implements HttpClientPool {
 
   private volatile EventLoopGroup workerGroup;
   private volatile HttpVersion protocol;
@@ -21,7 +21,7 @@ public class NettyHttpClientBuilder implements HttpClientBuilder {
   private final ThreadLocal<EventLoop> currentEventLoop = ThreadLocal.withInitial(() -> workerGroup.next());
 
   @Override
-  public HttpClientBuilder threads(int count) {
+  public HttpClientPool threads(int count) {
     if (workerGroup != null) {
       throw new IllegalStateException();
     }
@@ -30,32 +30,32 @@ public class NettyHttpClientBuilder implements HttpClientBuilder {
   }
 
   @Override
-  public HttpClientBuilder ssl(boolean ssl) {
+  public HttpClientPool ssl(boolean ssl) {
     this.ssl = ssl;
     return this;
   }
 
-  public HttpClientBuilder protocol(HttpVersion protocol) {
+  public HttpClientPool protocol(HttpVersion protocol) {
     this.protocol = protocol;
     return this;
   }
 
-  public HttpClientBuilder size(int size) {
+  public HttpClientPool size(int size) {
     this.size = size;
     return this;
   }
 
-  public HttpClientBuilder port(int port) {
+  public HttpClientPool port(int port) {
     this.port = port;
     return this;
   }
 
-  public HttpClientBuilder host(String host) {
+  public HttpClientPool host(String host) {
     this.host = host;
     return this;
   }
 
-  public HttpClientBuilder concurrency(int maxConcurrency) {
+  public HttpClientPool concurrency(int maxConcurrency) {
     this.concurrency = maxConcurrency;
     return this;
   }

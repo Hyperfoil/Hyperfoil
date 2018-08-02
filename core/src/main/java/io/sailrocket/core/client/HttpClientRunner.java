@@ -153,19 +153,19 @@ public class HttpClientRunner {
     String path = absoluteURI.getPath();
     boolean ssl = absoluteURI.getScheme().equals("https");
 
-    AtomicReference<Load> currentLoad = new AtomicReference<>();
+    AtomicReference<SimulationImpl> currentLoad = new AtomicReference<>();
     Timer timer = new Timer("console-logger", true);
     timer.schedule(new java.util.TimerTask() {
       @Override
       public void run() {
-        Load load = currentLoad.get();
-        if (load != null) {
-//          load.printDetails();
+        SimulationImpl simulationImpl = currentLoad.get();
+        if (simulationImpl != null) {
+          simulationImpl.printDetails();
         }
       }
     }, TimeUnit.SECONDS.toMillis(5), TimeUnit.SECONDS.toMillis(5));
 
-    HttpClientBuilder clientBuilder = provider.builder()
+    HttpClientPool httpClientPool = provider.builder()
         .threads(threads)
         .ssl(ssl)
         .port(port)
@@ -190,9 +190,9 @@ public class HttpClientRunner {
     for (int rate : rates) {
       tags.put("rate", rate);
       tags.put("threads", threads);
-      Load load = new Load(threads, rate, duration, warmup, clientBuilder, path, payload, report);
-      currentLoad.set(load);
-      report = load.run();
+      SimulationImpl simulationImpl = new SimulationImpl(threads, rate, duration, warmup, httpClientPool, path, payload, report);
+      currentLoad.set(simulationImpl);
+      report = simulationImpl.run();
       currentLoad.set(null);
 //      report.prettyPrint();
       if (out != null) {
@@ -219,7 +219,7 @@ public class HttpClientRunner {
         ps.print(allReport);
       }
     }
-    clientBuilder.shutdown();
+    httpClientPool.shutdown();
     timer.cancel();
     return report.histogram;
   }

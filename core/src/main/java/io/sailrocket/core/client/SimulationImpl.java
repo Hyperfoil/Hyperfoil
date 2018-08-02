@@ -2,6 +2,9 @@ package io.sailrocket.core.client;
 
 import io.netty.buffer.ByteBuf;
 import io.sailrocket.api.HttpClient;
+import io.sailrocket.api.MixStragegy;
+import io.sailrocket.api.Scenario;
+import io.sailrocket.api.Simulation;
 import io.sailrocket.core.api.HttpResponse;
 import io.sailrocket.core.api.Worker;
 import io.sailrocket.core.impl.ClientSessionImpl;
@@ -21,8 +24,9 @@ import java.util.stream.Stream;
 
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
+ * @author <a href="mailto:johara@redhat.com">John O'Hara</a>
  */
-class Load {
+class SimulationImpl implements Simulation {
 
     private final int threads;
     private final int rate;
@@ -39,9 +43,9 @@ class Load {
     private volatile boolean done;
 
 
-    public Load(int threads, int rate, long duration, long warmup,
-                HttpClientBuilder clientBuilder, String path, ByteBuf payload,
-                Report report) {
+    public SimulationImpl(int threads, int rate, long duration, long warmup,
+                          HttpClientPool clientBuilder, String path, ByteBuf payload,
+                          Report report) {
         this.threads = threads;
         this.rate = rate;
         this.pacerRate = rate / threads;
@@ -56,6 +60,19 @@ class Load {
         }
         this.requestContext = new RequestContext(new ClientSessionImpl(httpClient, null), path, payload);
     }
+
+
+    //TODO:: complete the api methods
+    @Override
+    public Simulation scenario(Scenario scenario) {
+        return null;
+    }
+
+    @Override
+    public MixStragegy mixStrategy() {
+        return null;
+    }
+
 
     Report run() throws Exception {
         CountDownLatch latch = new CountDownLatch(1);

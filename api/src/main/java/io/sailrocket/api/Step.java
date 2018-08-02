@@ -40,6 +40,6 @@ public interface Step {
 
     Step validator(Validator<?> validator);
 
-    Step next(Step next);
+    Step httpMethod(HttpMethod method);
 
 }

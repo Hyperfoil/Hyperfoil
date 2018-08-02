@@ -18,6 +18,8 @@ import java.util.concurrent.CompletableFuture;
 public class StepImpl implements AsyncStep {
 
     private String endpoint;
+    private HttpMethod httpMethod = HttpMethod.GET; //todo:: HttpMethod must be configurable
+
     private Map<String, String> params = new HashMap<>();
     private List<Validator<?>> validators = new ArrayList<>();
     private List<DataExtractor<?>> extractors = new ArrayList<>();
@@ -42,8 +44,8 @@ public class StepImpl implements AsyncStep {
     }
 
     @Override
-    public Step next(Step next) {
-        this.next = next;
+    public Step httpMethod(HttpMethod method) {
+        this.httpMethod = httpMethod;
         return this;
     }
 
@@ -60,7 +62,7 @@ public class StepImpl implements AsyncStep {
 //                throw new NoHttpClientException();
 
             //TODO:: plug this into the async client
-            HttpRequest asyncRequest = sequenceState.client().request(HttpMethod.GET, this.endpoint); //todo:: HttpMethod must be configurable
+            HttpRequest asyncRequest = sequenceState.client().request(httpMethod, this.endpoint);
 
             SequenceContext returnSession = sequenceState;
 

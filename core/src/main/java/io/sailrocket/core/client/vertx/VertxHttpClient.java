@@ -22,7 +22,6 @@ package io.sailrocket.core.client.vertx;
 import io.sailrocket.api.HttpClient;
 import io.sailrocket.api.HttpMethod;
 import io.sailrocket.api.HttpRequest;
-import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClientOptions;
 
@@ -41,7 +40,7 @@ public class VertxHttpClient implements HttpClient {
   private final ThreadLocal<Slot> current = ThreadLocal.withInitial(() -> slots[currentSlot.getAndIncrement() % slots.length]);
 
 
-  public VertxHttpClient(VertxHttpClientBuilder builder) {
+  public VertxHttpClient(VertxHttpClientPool builder) {
 
     HttpClientOptions options = new HttpClientOptions()
         .setSsl(builder.ssl)

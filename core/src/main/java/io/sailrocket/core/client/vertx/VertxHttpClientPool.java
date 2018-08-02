@@ -1,12 +1,12 @@
 package io.sailrocket.core.client.vertx;
 
 import io.sailrocket.api.HttpClient;
-import io.sailrocket.core.client.HttpClientBuilder;
+import io.sailrocket.core.client.HttpClientPool;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.http.HttpVersion;
 
-public class VertxHttpClientBuilder implements HttpClientBuilder {
+public class VertxHttpClientPool implements HttpClientPool {
 
   volatile Vertx vertx;
   volatile int threadCount;
@@ -18,7 +18,7 @@ public class VertxHttpClientBuilder implements HttpClientBuilder {
   volatile int concurrency;
 
   @Override
-  public HttpClientBuilder threads(int count) {
+  public HttpClientPool threads(int count) {
     if (vertx != null) {
       throw new IllegalStateException();
     }
@@ -28,37 +28,37 @@ public class VertxHttpClientBuilder implements HttpClientBuilder {
   }
 
   @Override
-  public HttpClientBuilder ssl(boolean ssl) {
+  public HttpClientPool ssl(boolean ssl) {
     this.ssl = ssl;
     return this;
   }
 
   @Override
-  public HttpClientBuilder protocol(HttpVersion protocol) {
+  public HttpClientPool protocol(HttpVersion protocol) {
     this.protocol = protocol;
     return this;
   }
 
   @Override
-  public HttpClientBuilder size(int size) {
+  public HttpClientPool size(int size) {
     this.size = size;
     return this;
   }
 
   @Override
-  public HttpClientBuilder port(int port) {
+  public HttpClientPool port(int port) {
     this.port = port;
     return this;
   }
 
   @Override
-  public HttpClientBuilder host(String host) {
+  public HttpClientPool host(String host) {
     this.host = host;
     return this;
   }
 
   @Override
-  public HttpClientBuilder concurrency(int maxConcurrency) {
+  public HttpClientPool concurrency(int maxConcurrency) {
     this.concurrency = maxConcurrency;
     return this;
   }

@@ -2,7 +2,7 @@ package io.sailrocket.core.step;
 
 import io.sailrocket.api.HttpClient;
 import io.sailrocket.core.AsyncEnv;
-import io.sailrocket.core.client.HttpClientBuilder;
+import io.sailrocket.core.client.HttpClientPool;
 import io.sailrocket.core.client.HttpClientProvider;
 import io.sailrocket.core.client.RequestContext;
 import io.sailrocket.core.impl.ClientSessionImpl;
@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit;
 
 public class ChainedStepTestCase extends AsyncEnv {
 
-    HttpClientBuilder clientBuilder;
+    HttpClientPool clientBuilder;
 
     public ChainedStepTestCase() {
         super();
