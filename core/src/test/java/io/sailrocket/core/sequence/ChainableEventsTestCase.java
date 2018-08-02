@@ -8,7 +8,7 @@ import io.sailrocket.core.api.SequenceContext;
 import io.sailrocket.api.Step;
 import io.sailrocket.core.api.Worker;
 import io.sailrocket.core.client.WorkerImpl;
-import io.sailrocket.core.client.WorkerStats;
+import io.sailrocket.core.client.SequenceStats;
 import io.sailrocket.core.impl.ClientSessionImpl;
 import io.sailrocket.core.impl.SequenceFactory;
 import io.sailrocket.core.impl.SequenceImpl;
@@ -46,7 +46,7 @@ public class ChainableEventsTestCase {
 
         SequenceImpl sequence = buildSequence();
         sequence.setHttpClientPool(new DummyHttpClientPool(executionOrder, "TestSequence"));
-        Worker worker = new WorkerImpl(new WorkerStats(), 1);
+        Worker worker = new WorkerImpl(new SequenceStats(), 1);
 
         CompletableFuture<SequenceContext> sequenceFuture = SequenceFactory.buildSequenceFuture(sequence, worker);
 
@@ -150,7 +150,7 @@ public class ChainableEventsTestCase {
 
     private CompletableFuture<SequenceContext> buildPipelineLikeFool(SequenceImpl sequence, Queue<String> executionOrder) {
 
-        CompletableFuture<SequenceContext> sequenceFuture = sequence.getSteps().get(0).asyncExec(new ClientSessionImpl(new DummyHttpClientPool(executionOrder, "foolish"), new WorkerImpl(new WorkerStats(), 1)));
+        CompletableFuture<SequenceContext> sequenceFuture = sequence.getSteps().get(0).asyncExec(new ClientSessionImpl(new DummyHttpClientPool(executionOrder, "foolish"), new WorkerImpl(new SequenceStats(), 1)));
         sequenceFuture = sequenceFuture.thenCompose(session -> sequence.getSteps().get(1).asyncExec(session));
         sequenceFuture = sequenceFuture.thenCompose(session -> sequence.getSteps().get(2).asyncExec(session));
 
@@ -163,7 +163,7 @@ public class ChainableEventsTestCase {
         CompletableFuture<SequenceContext> sequenceFuture = null;
         for (int i = 0; i < sequence.getSteps().size(); i++) {
             if (i == 0) {
-                sequenceFuture = sequence.getSteps().get(i).asyncExec(new ClientSessionImpl(new DummyHttpClientPool(executionOrder, "semiFoolish"), new WorkerImpl(new WorkerStats(), 1)));
+                sequenceFuture = sequence.getSteps().get(i).asyncExec(new ClientSessionImpl(new DummyHttpClientPool(executionOrder, "semiFoolish"), new WorkerImpl(new SequenceStats(), 1)));
             } else {
                 int finalI = i;
                 sequenceFuture = sequenceFuture.thenCompose(session -> sequence.getSteps().get(finalI).asyncExec(session));
@@ -181,7 +181,7 @@ public class ChainableEventsTestCase {
         //non-determininstic behaviour building this way
         for (AsyncStep step : sequence.getSteps()) {
             if (sequenceFuture == null) {
-                sequenceFuture = step.asyncExec(new ClientSessionImpl(new DummyHttpClientPool(executionOrder, "normal"), new WorkerImpl(new WorkerStats(), 1)));
+                sequenceFuture = step.asyncExec(new ClientSessionImpl(new DummyHttpClientPool(executionOrder, "normal"), new WorkerImpl(new SequenceStats(), 1)));
             } else {
                 sequenceFuture.thenCompose(session -> step.asyncExec(session));
             }
@@ -201,7 +201,7 @@ public class ChainableEventsTestCase {
         while (stepIterator.hasNext()) {
             step = stepIterator.next();
             if (sequenceFuture == null) {
-                sequenceFuture = step.asyncExec(new ClientSessionImpl(new DummyHttpClientPool(executionOrder, "normal"), new WorkerImpl(new WorkerStats(), 1)));
+                sequenceFuture = step.asyncExec(new ClientSessionImpl(new DummyHttpClientPool(executionOrder, "normal"), new WorkerImpl(new SequenceStats(), 1)));
             } else {
                 AsyncStep finalStep = step;
                 sequenceFuture.thenCompose(session -> finalStep.asyncExec(session));
@@ -214,7 +214,7 @@ public class ChainableEventsTestCase {
 
     private CompletableFuture<SequenceContext> buildPipelineReduce(SequenceImpl sequence, Queue<String> executionOrder) {
 
-        CompletableFuture<SequenceContext> startFuture = new CompletableFuture().supplyAsync(() -> new ClientSessionImpl(new DummyHttpClientPool(executionOrder, "normal"), new WorkerImpl(new WorkerStats(), 1)));
+        CompletableFuture<SequenceContext> startFuture = new CompletableFuture().supplyAsync(() -> new ClientSessionImpl(new DummyHttpClientPool(executionOrder, "normal"), new WorkerImpl(new SequenceStats(), 1)));
         return sequence.getSteps().stream()
                 .<CompletableFuture<SequenceContext>>reduce(startFuture, (sequenceFuture, step) -> addStep(sequenceFuture, step), (sequenceFuture, e) -> passSequence(sequenceFuture));
 

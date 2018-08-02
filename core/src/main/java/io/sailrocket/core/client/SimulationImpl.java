@@ -1,19 +1,21 @@
 package io.sailrocket.core.client;
 
-import io.netty.buffer.ByteBuf;
 import io.sailrocket.api.HttpClientPool;
-import io.sailrocket.api.MixStragegy;
+import io.sailrocket.api.MixStrategy;
 import io.sailrocket.api.Scenario;
 import io.sailrocket.api.Simulation;
 import io.sailrocket.core.api.HttpResponse;
 import io.sailrocket.core.api.Worker;
-import io.sailrocket.core.impl.ClientSessionImpl;
+import io.sailrocket.core.impl.SimulationContext;
 import io.sailrocket.core.util.Report;
+import io.vertx.core.json.JsonObject;
 import org.HdrHistogram.Histogram;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -33,50 +35,54 @@ class SimulationImpl implements Simulation {
     private final int pacerRate;
     private final long duration;
     private final long warmup;
-    private final Report report;
 
-    private final RequestContext requestContext;
-
-    private volatile WorkerStats workerStats = new WorkerStats();
+    private final JsonObject tags;
 
     private volatile long startTime;
     private volatile boolean done;
 
+    private Map<Scenario, SimulationContext> scenarios = new ConcurrentHashMap<>();
+    private List<MixStrategy> mixStrategies = new ArrayList<>();
+
+    private ArrayList<Worker> workers;
+
+    private HttpClientPool clientPool;
 
     public SimulationImpl(int threads, int rate, long duration, long warmup,
-                          HttpClientPoolFactory clientBuilder, String path, ByteBuf payload,
-                          Report report) {
+                          HttpClientPoolFactory clientBuilder, JsonObject tags) {
         this.threads = threads;
         this.rate = rate;
         this.pacerRate = rate / threads;
         this.duration = duration;
         this.warmup = warmup;
-        this.report = report;
+        this.tags = tags;
         HttpClientPool httpClientPool = null;
         try {
             httpClientPool = clientBuilder.build();
         } catch (Exception e) {
             e.printStackTrace();
         }
-        this.requestContext = new RequestContext(new ClientSessionImpl(httpClientPool, null), path, payload);
+        this.clientPool = httpClientPool;
     }
 
 
-    //TODO:: complete the api methods
     @Override
     public Simulation scenario(Scenario scenario) {
-        return null;
+        scenarios.put(scenario, new SimulationContext);
+        return this;
     }
 
     @Override
-    public MixStragegy mixStrategy() {
-        return null;
+    public Simulation mixStrategy(MixStrategy mixStrategy) {
+        mixStrategies.add(mixStrategy);
+        return this;
     }
 
 
-    Report run() throws Exception {
+    List<Report> run() throws Exception {
+        //Initialise HttpClientPool
         CountDownLatch latch = new CountDownLatch(1);
-        requestContext.sequenceContext.clientPool().start(v1 -> {
+        clientPool.start(v1 -> {
             latch.countDown();
         });
         try {
@@ -85,21 +91,17 @@ class SimulationImpl implements Simulation {
             e.printStackTrace();
             return null;
         }
-        System.out.println("connection(s) created...");
-        if (warmup > 0) {
-            System.out.println("warming up...");
-        }
-        new WorkerImpl(workerStats, pacerRate).runSlot(warmup, requestContext);
-        System.out.println("starting rate=" + rate);
-        startTime = System.nanoTime();
-        workerStats.requestCount.reset();
-        workerStats.responseCount.reset();
-        requestContext.sequenceContext.clientPool().resetStatistics();
+
+        //Create Simulation threadpool and worker pools
         ExecutorService exec = Executors.newFixedThreadPool(threads);
-        ArrayList<Worker> workers = new ArrayList(threads);
-        IntStream.range(0, threads).forEach(i -> workers.add(i, new WorkerImpl(workerStats, pacerRate, exec)));
+        workers = new ArrayList(threads);
+        IntStream.range(0, threads).forEach(i -> workers.add(i, new WorkerImpl(pacerRate, exec)));
         List<CompletableFuture<HttpResponse>> results = new ArrayList<>(threads);
-        workers.forEach(worker -> results.add(worker.runSlot(duration, this.requestContext)));
+
+        //TODO:: this needs to be a worker queue
+        //workers.forEach(worker -> results.add(worker.runSlot(duration, this.requestContext)));
+
+
         for (CompletableFuture<HttpResponse> result : results) {
             result.get();
         }
@@ -114,11 +116,11 @@ class SimulationImpl implements Simulation {
     }
 
     private long readThroughput() {
-        return requestContext.sequenceContext.clientPool().bytesRead() / (TimeUnit.NANOSECONDS.toSeconds((System.nanoTime() - startTime)) * 1024);
+        return clientPool.bytesRead() / (TimeUnit.NANOSECONDS.toSeconds((System.nanoTime() - startTime)) * 1024);
     }
 
     private long writeThroughput() {
-        return requestContext.sequenceContext.clientPool().bytesWritten() / (TimeUnit.NANOSECONDS.toSeconds((System.nanoTime() - startTime) * 1024));
+        return clientPool.bytesWritten() / (TimeUnit.NANOSECONDS.toSeconds((System.nanoTime() - startTime) * 1024));
     }
 
     /**
@@ -134,18 +136,8 @@ class SimulationImpl implements Simulation {
                 requestContext.sequenceContext.clientPool().inflight());
     }
 
-    static class ScheduledRequest {
 
-        final long startTime;
-        ScheduledRequest next;
-
-        public ScheduledRequest(long startTime) {
-            this.startTime = startTime;
-        }
-    }
-
-
-    private Report end(int requestCount) {
+    private List<Report> end(int requestCount) {
         done = true;
         long expectedRequests = rate * TimeUnit.NANOSECONDS.toSeconds(duration);
         long elapsed = System.nanoTime() - startTime;
@@ -162,10 +154,10 @@ class SimulationImpl implements Simulation {
                 workerStats.resetCount.intValue(),
                 requestCount,
                 Stream.of(workerStats.statuses).mapToInt(LongAdder::intValue).toArray(),
-                requestContext.sequenceContext.clientPool().bytesRead(),
-                requestContext.sequenceContext.clientPool().bytesWritten()
+                clientPool.bytesRead(),
+                clientPool.bytesWritten()
         );
-        requestContext.sequenceContext.clientPool().shutdown();
+        clientPool.shutdown();
         return report;
     }
 }

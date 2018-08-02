@@ -16,10 +16,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sailrocket.api;
+package io.sailrocket.core.client;
 
-public interface MixStragegy {
+import io.sailrocket.api.Sequence;
 
-    Scenario nextScenario();
+public class ScheduledSequence {
 
+    final long startTime;
+    ScheduledSequence next;
+    private Sequence sequence;
+
+    public ScheduledSequence(long startTime, Sequence sequence) {
+        this.startTime = startTime;
+        this.sequence = sequence;
+    }
 }

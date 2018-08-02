@@ -16,12 +16,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sailrocket.api;
+package io.sailrocket.core.impl;
 
-public interface Simulation {
+import io.sailrocket.api.Scenario;
+import io.sailrocket.api.Sequence;
 
-    Simulation scenario(Scenario scenario);
+import java.util.ArrayList;
+import java.util.List;
 
-    Simulation mixStrategy(MixStrategy mixStrategy);
+public class ScenarioImpl implements Scenario {
 
+    private List<Sequence> sequences = new ArrayList<>();
+
+    @Override
+    public Scenario sequence(Sequence sequence) {
+        sequences.add(sequence);
+        return this;
+    }
 }

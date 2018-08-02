@@ -16,9 +16,13 @@ public class SequenceImpl implements Sequence {
     //TODO:: think about branching
     private List<AsyncStep> steps = new ArrayList<>();
 
+    private StepImpl head = null;
+
     @Override
     public Sequence step(Step step) {
         this.steps.add((AsyncStep) step);
+        if (head == null)
+            head = (StepImpl) step;
         return this;
     }
 
@@ -33,5 +37,9 @@ public class SequenceImpl implements Sequence {
 
     public void setHttpClientPool(HttpClientPool httpClientPool) {
         this.httpClientPool = httpClientPool;
+    }
+
+    public StepImpl rootStep() {
+        return head;
     }
 }

@@ -3,6 +3,7 @@ package io.sailrocket.core.client;
 import io.sailrocket.api.HttpMethod;
 import io.sailrocket.api.HttpRequest;
 import io.sailrocket.core.api.HttpResponse;
+import io.sailrocket.core.api.SequenceContext;
 import io.sailrocket.core.api.Worker;
 import io.sailrocket.core.impl.HttpResponseImpl;
 
@@ -13,20 +14,18 @@ import java.util.function.Consumer;
 public class WorkerImpl implements Worker {
 
     private final Executor exec;
-    private SimulationImpl.ScheduledRequest head;
-    private SimulationImpl.ScheduledRequest tail;
+    private ScheduledSequence head;
+    private ScheduledSequence tail;
 
     private int pacerRate;
-    private WorkerStats workerStats;
 
-    public WorkerImpl(WorkerStats workerStats, int pacerRate, Executor exec) {
+    public WorkerImpl(int pacerRate, Executor exec) {
         this.exec = exec;
         this.pacerRate = pacerRate;
-        this.workerStats = workerStats;
     }
 
-    public WorkerImpl(WorkerStats workerStats, int pacerRate) {
-        this(workerStats, pacerRate, Runnable::run);
+    public WorkerImpl(int pacerRate) {
+        this(pacerRate, Runnable::run);
     }
 
 
@@ -55,13 +54,13 @@ public class WorkerImpl implements Worker {
         });
     }
 
-    private void doRequestInSlot(Pacer pacer, long slotEnds, RequestContext requestContext) {
+    private void doRequestInSlot(Pacer pacer, long slotEnds, SequenceContext sequenceContext) {
         while (true) {
             long now = System.nanoTime();
             if (now > slotEnds) {
                 return;
             } else {
-                SimulationImpl.ScheduledRequest schedule = new SimulationImpl.ScheduledRequest(now);
+                ScheduledSequence schedule = new ScheduledSequence(now, sequenceContext.sequence());
                 if (head == null) {
                     head = tail = schedule;
                 } else {
@@ -74,9 +73,9 @@ public class WorkerImpl implements Worker {
         }
     }
 
-    private void checkPending(RequestContext requestContext) {
+    private void checkPending(SequenceContext sequenceContext) {
         HttpRequest conn;
-        while (head != null && (conn = requestContext.sequenceContext.clientPool().request(requestContext.payload != null ? HttpMethod.POST : HttpMethod.GET, requestContext.path)) != null) {
+        while (head != null && (conn = sequenceContext.clientPool().request(sequenceContext.sequence().rootStep(). != null ? HttpMethod.POST : HttpMethod.GET, sequenceContext.sequence().rootStep().getEndpoint())) != null) {
             long startTime = head.startTime;
             head = head.next;
             if (head == null) {
@@ -87,23 +86,23 @@ public class WorkerImpl implements Worker {
     }
 
     private void doRequest(HttpRequest request, long startTime, RequestContext requestContext) {
-        workerStats.requestCount.increment();
+        requestContext.sequenceContext.sequenceStats().requestCount.increment();
         if (requestContext.payload != null) {
             request.putHeader("content-length", "" + requestContext.payload.readableBytes());
         }
         request.statusHandler(code -> {
             int status = (code - 200) / 100;
-            if (status >= 0 && status < workerStats.statuses.length) {
-                workerStats.statuses[status].increment();
+            if (status >= 0 && status < requestContext.sequenceContext.sequenceStats().statuses.length) {
+                requestContext.sequenceContext.sequenceStats().statuses[status].increment();
             }
         }).resetHandler(frame -> {
-            workerStats.resetCount.increment();
+            requestContext.sequenceContext.sequenceStats().resetCount.increment();
         }).endHandler(v -> {
-            workerStats.responseCount.increment();
+            requestContext.sequenceContext.sequenceStats().responseCount.increment();
             long endTime = System.nanoTime();
             long durationMillis = endTime - startTime;
             //TODO:: this needs to be asnyc to histogram verticle - we should be able to process various composite stats in realtime
-            workerStats.histogram.recordValue(durationMillis);
+            requestContext.sequenceContext.sequenceStats().histogram.recordValue(durationMillis);
 //          checkPending();
         });
         if (requestContext.payload != null) {

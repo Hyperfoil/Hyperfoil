@@ -16,12 +16,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sailrocket.api;
+package io.sailrocket.core.impl;
 
-public interface Simulation {
+import io.sailrocket.core.client.SequenceStats;
+import io.sailrocket.core.util.Report;
+import io.vertx.core.json.JsonObject;
 
-    Simulation scenario(Scenario scenario);
+public class SimulationContext {
 
-    Simulation mixStrategy(MixStrategy mixStrategy);
+    private final Report report;
+    private volatile SequenceStats sequenceStats = new SequenceStats();
 
+    public SimulationContext(JsonObject reportConfig) {
+        this.report = new Report(reportConfig);
+    }
+
+    public Report report() {
+        return report;
+    }
+
+    public SequenceStats sequenceStats() {
+        return sequenceStats;
+    }
 }

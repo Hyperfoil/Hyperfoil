@@ -18,10 +18,8 @@
  */
 package io.sailrocket.api;
 
-public interface Simulation {
+public interface MixStrategy {
 
-    Simulation scenario(Scenario scenario);
-
-    Simulation mixStrategy(MixStrategy mixStrategy);
+    Scenario nextScenario();
 
 }

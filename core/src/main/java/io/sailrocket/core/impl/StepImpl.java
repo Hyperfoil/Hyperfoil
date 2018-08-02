@@ -20,6 +20,7 @@ public class StepImpl implements AsyncStep {
     private String endpoint;
     private HttpMethod httpMethod = HttpMethod.GET; //todo:: HttpMethod must be configurable
 
+
     private Map<String, String> params = new HashMap<>();
     private List<Validator<?>> validators = new ArrayList<>();
     private List<DataExtractor<?>> extractors = new ArrayList<>();
@@ -76,6 +77,7 @@ public class StepImpl implements AsyncStep {
             return sequenceState;
         });
 
+        //TODO:: Do we want to run this in a pacer?
         CompletableFuture<SequenceContext> workerFuture = sequenceState.worker().runSlot(10, requestContext).thenCompose(v -> resultFuture);
 
         return workerFuture;

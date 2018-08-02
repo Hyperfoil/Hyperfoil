@@ -7,7 +7,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.LongAdder;
 
 //TODO:: tidy this up, just simple for POC
-public class WorkerStats {
+public class SequenceStats {
     public final Histogram histogram = new ConcurrentHistogram(TimeUnit.MINUTES.toNanos(1), 2);
     public LongAdder connectFailureCount = new LongAdder();
     public LongAdder requestCount = new LongAdder();

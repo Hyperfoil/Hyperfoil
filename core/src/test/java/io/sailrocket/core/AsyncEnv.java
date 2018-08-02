@@ -5,7 +5,7 @@ import io.sailrocket.core.client.HttpClientProvider;
 import io.sailrocket.core.client.RequestContext;
 import io.sailrocket.core.api.Worker;
 import io.sailrocket.core.client.WorkerImpl;
-import io.sailrocket.core.client.WorkerStats;
+import io.sailrocket.core.client.SequenceStats;
 import io.vertx.core.Vertx;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -32,7 +32,7 @@ public abstract class AsyncEnv {
     protected final long DURATION = TimeUnit.SECONDS.toNanos(30);
 
     protected final ExecutorService exec = Executors.newFixedThreadPool(ASYNC_THREADS);
-    protected final WorkerStats workerStats = new WorkerStats();
+    protected final SequenceStats sequenceStats = new SequenceStats();
 
     ArrayList<Worker> workers;
 
@@ -43,7 +43,7 @@ public abstract class AsyncEnv {
     }
 
     public void run(RequestContext requestContext) throws ExecutionException, InterruptedException {
-        IntStream.range(0, ASYNC_THREADS).forEach(i -> workers.add(i, new WorkerImpl( workerStats, pacerRate, exec)));
+        IntStream.range(0, ASYNC_THREADS).forEach(i -> workers.add(i, new WorkerImpl(sequenceStats, pacerRate, exec)));
         List<CompletableFuture<HttpResponse>> results = new ArrayList<>(ASYNC_THREADS);
         workers.forEach(worker -> results.add(worker.runSlot(DURATION, requestContext)));
         for (CompletableFuture<HttpResponse> result : results) {
@@ -55,25 +55,25 @@ public abstract class AsyncEnv {
 
 
     public int requestCount(){
-        return workerStats.requestCount.intValue();
+        return sequenceStats.requestCount.intValue();
     }
 
 //    private Report end(int requestCount) {
-//        long expectedRequests = rate * TimeUnit.NANOSECONDS.toSeconds(workerStats.duration);
+//        long expectedRequests = rate * TimeUnit.NANOSECONDS.toSeconds(sequenceStats.duration);
 //        long elapsed = System.nanoTime() - startTime;
-//        Histogram cp = workerStats.histogram.copy();
+//        Histogram cp = sequenceStats.histogram.copy();
 //        cp.setStartTimeStamp(TimeUnit.NANOSECONDS.toMillis(startTime));
 //        cp.setEndTimeStamp(TimeUnit.NANOSECONDS.toMillis(System.nanoTime()));
 //        report.measures(
 //                expectedRequests,
 //                elapsed,
 //                cp,
-//                workerStats.responseCount.intValue(),
+//                sequenceStats.responseCount.intValue(),
 //                ratio(),
-//                workerStats.connectFailureCount.intValue(),
-//                workerStats.resetCount.intValue(),
+//                sequenceStats.connectFailureCount.intValue(),
+//                sequenceStats.resetCount.intValue(),
 //                requestCount,
-//                Stream.of(workerStats.statuses).mapToInt(LongAdder::intValue).toArray(),
+//                Stream.of(sequenceStats.statuses).mapToInt(LongAdder::intValue).toArray(),
 //                requestContext.clientPool.bytesRead(),
 //                requestContext.clientPool.bytesWritten()
 //        );
