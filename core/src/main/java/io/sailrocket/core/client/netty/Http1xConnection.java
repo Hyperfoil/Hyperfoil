@@ -24,7 +24,7 @@ import java.util.function.IntConsumer;
  */
 class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
 
-  private final Http1xClient client;
+  private final Http1XClientPool client;
   // Todo not use concurrent
   private final Deque<HttpStream> inflights = new ConcurrentLinkedDeque<>();
   private ChannelHandlerContext ctx;
@@ -54,7 +54,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
     }
   }
 
-  Http1xConnection(Http1xClient client) {
+  Http1xConnection(Http1XClientPool client) {
     this.client = client;
   }
 

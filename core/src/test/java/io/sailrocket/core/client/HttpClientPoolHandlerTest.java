@@ -19,7 +19,7 @@
 
 package io.sailrocket.core.client;
 
-import io.sailrocket.api.HttpClient;
+import io.sailrocket.api.HttpClientPool;
 import io.sailrocket.api.HttpMethod;
 import io.sailrocket.api.HttpRequest;
 import io.vertx.core.Vertx;
@@ -37,7 +37,7 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.Assert.assertEquals;
 
 @RunWith(VertxUnitRunner.class)
-public class HttpClientHandlerTest {
+public class HttpClientPoolHandlerTest {
 
     protected volatile int count;
     private Vertx vertx = Vertx.vertx();
@@ -58,7 +58,7 @@ public class HttpClientHandlerTest {
 
     @Test
     public void simpleHeaderRequest() throws Exception {
-        HttpClient client = HttpClientProvider.vertx.builder()
+        HttpClientPool client = HttpClientProvider.vertx.builder()
                 .host("localhost")
                 .concurrency(1)
                 .port(8088)

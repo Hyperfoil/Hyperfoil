@@ -1,7 +1,7 @@
 package io.sailrocket.core.impl;
 
 import io.sailrocket.api.Sequence;
-import io.sailrocket.api.HttpClient;
+import io.sailrocket.api.HttpClientPool;
 
 import io.sailrocket.api.Step;
 import io.sailrocket.core.api.AsyncStep;
@@ -11,7 +11,7 @@ import java.util.List;
 
 public class SequenceImpl implements Sequence {
 
-    private HttpClient httpClient;
+    private HttpClientPool httpClientPool;
 
     //TODO:: think about branching
     private List<AsyncStep> steps = new ArrayList<>();
@@ -27,11 +27,11 @@ public class SequenceImpl implements Sequence {
         return steps;
     }
 
-    public HttpClient getHttpClient() {
-        return httpClient;
+    public HttpClientPool getHttpClientPool() {
+        return httpClientPool;
     }
 
-    public void setHttpClient(HttpClient httpClient) {
-        this.httpClient = httpClient;
+    public void setHttpClientPool(HttpClientPool httpClientPool) {
+        this.httpClientPool = httpClientPool;
     }
 }

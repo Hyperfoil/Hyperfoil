@@ -16,23 +16,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sailrocket.api;
+package io.sailrocket.core.client.vertx;
 
-import java.util.function.Consumer;
+import io.vertx.core.Context;
 
-public interface HttpClient {
+/**
+ * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
+ */
+public class ContextAwareClient {
 
-  void start(Consumer<Void> completionHandler);
+    final Context context;
+    final io.vertx.core.http.HttpClient client;
 
-  HttpRequest request(HttpMethod method, String path);
-
-  long inflight();
-
-  long bytesRead();
-
-  long bytesWritten();
-
-  void resetStatistics();
-
-  void shutdown();
+    ContextAwareClient(io.vertx.core.http.HttpClient client, Context context) {
+      this.client = client;
+      this.context = context;
+    }
 }

@@ -23,7 +23,7 @@ class Http2Request implements HttpRequest {
   IntConsumer resetHandler;
   Consumer<Void> endHandler;
 
-  Http2Request(Http2Client client, Http2Connection conn, HttpMethod method, String path) {
+  Http2Request(Http2ClientPool client, Http2Connection conn, HttpMethod method, String path) {
     this.method = method;
     this.conn = conn;
     this.headers = client.headers(method.name(), "https", path);

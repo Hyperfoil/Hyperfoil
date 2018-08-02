@@ -22,7 +22,7 @@ import java.util.function.IntConsumer;
  */
 class Http2Connection extends Http2EventAdapter implements HttpConnection {
 
-  private final Http2Client client;
+  private final Http2ClientPool client;
   private final ChannelHandlerContext context;
   private final io.netty.handler.codec.http2.Http2Connection connection;
   private final Http2ConnectionEncoder encoder;
@@ -34,7 +34,7 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
                          io.netty.handler.codec.http2.Http2Connection connection,
                          Http2ConnectionEncoder encoder,
                          Http2ConnectionDecoder decoder,
-                         Http2Client client) {
+                         Http2ClientPool client) {
     this.client = client;
     this.context = context;
     this.connection = connection;

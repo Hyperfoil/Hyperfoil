@@ -1,22 +1,22 @@
 package io.sailrocket.core.impl;
 
-import io.sailrocket.api.HttpClient;
+import io.sailrocket.api.HttpClientPool;
 import io.sailrocket.core.api.SequenceContext;
 import io.sailrocket.core.api.Worker;
 
 public class ClientSessionImpl implements SequenceContext {
 
-    private HttpClient httpClient;
+    private HttpClientPool httpClientPool;
     private Worker worker;
 
-    public ClientSessionImpl(HttpClient httpClient, Worker worker) {
-        this.httpClient = httpClient;
+    public ClientSessionImpl(HttpClientPool httpClientPool, Worker worker) {
+        this.httpClientPool = httpClientPool;
         this.worker = worker;
     }
 
     @Override
-    public HttpClient client() {
-        return httpClient;
+    public HttpClientPool clientPool() {
+        return httpClientPool;
     }
 
     @Override

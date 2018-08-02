@@ -1,8 +1,8 @@
 package io.sailrocket.core.step;
 
-import io.sailrocket.api.HttpClient;
+import io.sailrocket.api.HttpClientPool;
 import io.sailrocket.core.AsyncEnv;
-import io.sailrocket.core.client.HttpClientPool;
+import io.sailrocket.core.client.HttpClientPoolFactory;
 import io.sailrocket.core.client.HttpClientProvider;
 import io.sailrocket.core.client.RequestContext;
 import io.sailrocket.core.impl.ClientSessionImpl;
@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit;
 
 public class ChainedStepTestCase extends AsyncEnv {
 
-    HttpClientPool clientBuilder;
+    HttpClientPoolFactory clientBuilder;
 
     public ChainedStepTestCase() {
         super();
@@ -33,9 +33,9 @@ public class ChainedStepTestCase extends AsyncEnv {
     public void runChainedTest() {
         try {
 
-            HttpClient httpClient = clientBuilder.build();
+            HttpClientPool httpClientPool = clientBuilder.build();
 
-            run(new RequestContext(new ClientSessionImpl(httpClient, null), "/"));
+            run(new RequestContext(new ClientSessionImpl(httpClientPool, null), "/"));
 
             runLatch.await(2, TimeUnit.MINUTES);
 

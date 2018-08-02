@@ -36,7 +36,7 @@ import java.util.function.BiConsumer;
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
  */
-class Http2Client extends HttpClientImpl {
+class Http2ClientPool extends HttpClientPoolImpl {
 
   Http2Headers headers(String method, String scheme, String path) {
     return new DefaultHttp2Headers().method(method).scheme(scheme).path(path).authority(authority);
@@ -58,7 +58,7 @@ class Http2Client extends HttpClientImpl {
   private final String authority;
   private final StatisticsHandler statisticsHandler = new StatisticsHandler();
 
-  Http2Client(EventLoopGroup eventLoopGroup, SslContext sslContext, int size, int port, String host, int maxConcurrentStream) {
+  Http2ClientPool(EventLoopGroup eventLoopGroup, SslContext sslContext, int size, int port, String host, int maxConcurrentStream) {
     super(eventLoopGroup, sslContext, size, port, host, maxConcurrentStream);
     this.authority = host + ":" + port;
   }
@@ -94,7 +94,7 @@ class Http2Client extends HttpClientImpl {
     private void checkHandle(ChannelHandlerContext ctx) {
       if (!handled) {
         handled = true;
-        Http2Connection conn = new Http2Connection(ctx, connection(), encoder(), decoder(), Http2Client.this);
+        Http2Connection conn = new Http2Connection(ctx, connection(), encoder(), decoder(), Http2ClientPool.this);
         // Use a very large stream window size
         conn.incrementConnectionWindowSize(1073676288 - 65535);
         requestHandler.accept(conn, null);

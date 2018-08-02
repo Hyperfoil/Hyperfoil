@@ -74,10 +74,10 @@ public abstract class AsyncEnv {
 //                workerStats.resetCount.intValue(),
 //                requestCount,
 //                Stream.of(workerStats.statuses).mapToInt(LongAdder::intValue).toArray(),
-//                requestContext.client.bytesRead(),
-//                requestContext.client.bytesWritten()
+//                requestContext.clientPool.bytesRead(),
+//                requestContext.clientPool.bytesWritten()
 //        );
-//        requestContext.client.shutdown();
+//        requestContext.clientPool.shutdown();
 //        return report;
 //    }
 

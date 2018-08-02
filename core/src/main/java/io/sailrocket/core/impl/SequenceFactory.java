@@ -24,7 +24,7 @@ public class SequenceFactory {
     public static CompletableFuture<SequenceContext> buildSequenceFuture(SequenceImpl sequence, Worker worker) {
 
         CompletableFuture<SequenceContext> rootFuture = new CompletableFuture().supplyAsync(() ->
-                new ClientSessionImpl(sequence.getHttpClient(), worker)
+                new ClientSessionImpl(sequence.getHttpClientPool(), worker)
         );
 
         return sequence.getSteps().stream()

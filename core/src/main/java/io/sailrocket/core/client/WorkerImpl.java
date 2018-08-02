@@ -76,7 +76,7 @@ public class WorkerImpl implements Worker {
 
     private void checkPending(RequestContext requestContext) {
         HttpRequest conn;
-        while (head != null && (conn = requestContext.sequenceContext.client().request(requestContext.payload != null ? HttpMethod.POST : HttpMethod.GET, requestContext.path)) != null) {
+        while (head != null && (conn = requestContext.sequenceContext.clientPool().request(requestContext.payload != null ? HttpMethod.POST : HttpMethod.GET, requestContext.path)) != null) {
             long startTime = head.startTime;
             head = head.next;
             if (head == null) {

@@ -18,9 +18,9 @@
  */
 package io.sailrocket.core.api;
 
-import io.sailrocket.api.HttpClient;
+import io.sailrocket.api.HttpClientPool;
 
 public interface SequenceContext {
-    HttpClient client();
+    HttpClientPool clientPool();
     Worker worker();
 }

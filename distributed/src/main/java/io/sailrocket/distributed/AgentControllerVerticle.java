@@ -45,7 +45,7 @@ public class AgentControllerVerticle extends AbstractVerticle {
         eb.registerDefaultCodec(SimpleBenchmark.class, new SimpleBenchmarkCodec());
 
 
-        //send response to calling client benchmark has finished
+        //send response to calling clientPool benchmark has finished
         eb.consumer("response-feed", message -> {
             Histogram histogram = (Histogram) message.body();
             collatedHistogram.add(histogram);

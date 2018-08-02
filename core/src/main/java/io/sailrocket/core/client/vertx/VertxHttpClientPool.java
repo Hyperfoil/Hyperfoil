@@ -1,75 +1,106 @@
+/*
+ * JBoss, Home of Professional Open Source
+ * Copyright 2018 Red Hat Inc. and/or its affiliates and other contributors
+ * as indicated by the @authors tag. All rights reserved.
+ * See the copyright.txt in the distribution for a
+ * full listing of individual contributors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sailrocket.core.client.vertx;
 
-import io.sailrocket.api.HttpClient;
-import io.sailrocket.core.client.HttpClientPool;
+import io.sailrocket.api.HttpClientPool;
+import io.sailrocket.api.HttpMethod;
+import io.sailrocket.api.HttpRequest;
 import io.vertx.core.Vertx;
-import io.vertx.core.VertxOptions;
-import io.vertx.core.http.HttpVersion;
+import io.vertx.core.http.HttpClientOptions;
 
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
+
+/**
+ * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
+ */
 public class VertxHttpClientPool implements HttpClientPool {
+  private final Vertx vertx;
+  private final AtomicInteger inflight = new AtomicInteger();
+  private final int maxInflight;
+  private AtomicInteger currentSlot = new AtomicInteger();
+  private ContextAwareClient[] contextAwareClients;
+  private final ThreadLocal<ContextAwareClient> current = ThreadLocal.withInitial(() -> contextAwareClients[currentSlot.getAndIncrement() % contextAwareClients.length]);
 
-  volatile Vertx vertx;
-  volatile int threadCount;
-  volatile boolean ssl;
-  volatile HttpVersion protocol;
-  volatile int size;
-  volatile int port;
-  volatile String host;
-  volatile int concurrency;
 
-  @Override
-  public HttpClientPool threads(int count) {
-    if (vertx != null) {
-      throw new IllegalStateException();
+  public VertxHttpClientPool(VertxHttpClientPoolFactory builder) {
+
+    HttpClientOptions options = new HttpClientOptions()
+        .setSsl(builder.ssl)
+        .setTrustAll(true)
+        .setVerifyHost(false)
+        .setKeepAlive(true)
+        .setPipeliningLimit(builder.concurrency)
+        .setPipelining(true)
+        .setDefaultPort(builder.port)
+        .setDefaultHost(builder.host);
+
+    this.vertx = builder.vertx;
+    this.maxInflight = builder.concurrency * builder.size;
+    this.contextAwareClients = new ContextAwareClient[builder.threadCount];
+
+    int perSlotSize = builder.size / contextAwareClients.length;
+    for (int i = 0; i < contextAwareClients.length; i++) {
+      int n = perSlotSize;
+      if (i == 0) {
+        n += builder.size % contextAwareClients.length;
+      }
+      contextAwareClients[i] = new ContextAwareClient(vertx.createHttpClient(new HttpClientOptions(options).setMaxPoolSize(n)), vertx.getOrCreateContext());
     }
-    threadCount = count;
-    vertx = Vertx.vertx(new VertxOptions().setEventLoopPoolSize(count));
-    return this;
+
   }
 
   @Override
-  public HttpClientPool ssl(boolean ssl) {
-    this.ssl = ssl;
-    return this;
+  public long inflight() {
+    return inflight.get();
   }
 
   @Override
-  public HttpClientPool protocol(HttpVersion protocol) {
-    this.protocol = protocol;
-    return this;
+  public void start(Consumer<Void> completionHandler) {
+    completionHandler.accept(null);
   }
 
   @Override
-  public HttpClientPool size(int size) {
-    this.size = size;
-    return this;
+  public HttpRequest request(HttpMethod method, String path) {
+    if (inflight.get() < maxInflight) {
+      inflight.incrementAndGet();
+      return new VertxHttpRequest(method, path, inflight, current.get());
+    }
+    return null;
   }
 
   @Override
-  public HttpClientPool port(int port) {
-    this.port = port;
-    return this;
+  public long bytesRead() {
+    return 0;
   }
 
   @Override
-  public HttpClientPool host(String host) {
-    this.host = host;
-    return this;
+  public long bytesWritten() {
+    return 0;
   }
 
   @Override
-  public HttpClientPool concurrency(int maxConcurrency) {
-    this.concurrency = maxConcurrency;
-    return this;
-  }
-
-  @Override
-  public HttpClient build() {
-    return new VertxHttpClient(this);
+  public void resetStatistics() {
   }
 
   @Override
   public void shutdown() {
-    vertx.close();
   }
 }

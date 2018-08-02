@@ -45,11 +45,11 @@ public class VertxHttpRequest implements HttpRequest {
     private Consumer<byte[]> dataHandler;
     private IntConsumer resetHandler;
     private Consumer<Void> endHandler;
-    private final Slot current;
+    private final ContextAwareClient current;
     private final AtomicInteger inflight;
 
     VertxHttpRequest(HttpMethod method, String path, AtomicInteger inflight,
-                     Slot current) {
+                     ContextAwareClient current) {
       this.method = method;
       this.path = path;
       this.inflight = inflight;

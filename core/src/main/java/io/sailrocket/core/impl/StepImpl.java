@@ -61,8 +61,8 @@ public class StepImpl implements AsyncStep {
 //            if ( httpClient == null)
 //                throw new NoHttpClientException();
 
-            //TODO:: plug this into the async client
-            HttpRequest asyncRequest = sequenceState.client().request(httpMethod, this.endpoint);
+            //TODO:: plug this into the async clientPool
+            HttpRequest asyncRequest = sequenceState.clientPool().request(httpMethod, this.endpoint);
 
             SequenceContext returnSession = sequenceState;
 

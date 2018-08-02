@@ -1,7 +1,7 @@
 package io.sailrocket.core.client;
 
 import io.netty.buffer.ByteBuf;
-import io.sailrocket.api.HttpClient;
+import io.sailrocket.api.HttpClientPool;
 import io.sailrocket.api.MixStragegy;
 import io.sailrocket.api.Scenario;
 import io.sailrocket.api.Simulation;
@@ -44,7 +44,7 @@ class SimulationImpl implements Simulation {
 
 
     public SimulationImpl(int threads, int rate, long duration, long warmup,
-                          HttpClientPool clientBuilder, String path, ByteBuf payload,
+                          HttpClientPoolFactory clientBuilder, String path, ByteBuf payload,
                           Report report) {
         this.threads = threads;
         this.rate = rate;
@@ -52,13 +52,13 @@ class SimulationImpl implements Simulation {
         this.duration = duration;
         this.warmup = warmup;
         this.report = report;
-        HttpClient httpClient = null;
+        HttpClientPool httpClientPool = null;
         try {
-            httpClient = clientBuilder.build();
+            httpClientPool = clientBuilder.build();
         } catch (Exception e) {
             e.printStackTrace();
         }
-        this.requestContext = new RequestContext(new ClientSessionImpl(httpClient, null), path, payload);
+        this.requestContext = new RequestContext(new ClientSessionImpl(httpClientPool, null), path, payload);
     }
 
 
@@ -76,7 +76,7 @@ class SimulationImpl implements Simulation {
 
     Report run() throws Exception {
         CountDownLatch latch = new CountDownLatch(1);
-        requestContext.sequenceContext.client().start(v1 -> {
+        requestContext.sequenceContext.clientPool().start(v1 -> {
             latch.countDown();
         });
         try {
@@ -94,7 +94,7 @@ class SimulationImpl implements Simulation {
         startTime = System.nanoTime();
         workerStats.requestCount.reset();
         workerStats.responseCount.reset();
-        requestContext.sequenceContext.client().resetStatistics();
+        requestContext.sequenceContext.clientPool().resetStatistics();
         ExecutorService exec = Executors.newFixedThreadPool(threads);
         ArrayList<Worker> workers = new ArrayList(threads);
         IntStream.range(0, threads).forEach(i -> workers.add(i, new WorkerImpl(workerStats, pacerRate, exec)));
@@ -114,11 +114,11 @@ class SimulationImpl implements Simulation {
     }
 
     private long readThroughput() {
-        return requestContext.sequenceContext.client().bytesRead() / (TimeUnit.NANOSECONDS.toSeconds((System.nanoTime() - startTime)) * 1024);
+        return requestContext.sequenceContext.clientPool().bytesRead() / (TimeUnit.NANOSECONDS.toSeconds((System.nanoTime() - startTime)) * 1024);
     }
 
     private long writeThroughput() {
-        return requestContext.sequenceContext.client().bytesWritten() / (TimeUnit.NANOSECONDS.toSeconds((System.nanoTime() - startTime) * 1024));
+        return requestContext.sequenceContext.clientPool().bytesWritten() / (TimeUnit.NANOSECONDS.toSeconds((System.nanoTime() - startTime) * 1024));
     }
 
     /**
@@ -131,7 +131,7 @@ class SimulationImpl implements Simulation {
                 workerStats.requestCount.intValue(),
                 workerStats.responseCount.intValue(),
                 ratio(), readThroughput(), writeThroughput(),
-                requestContext.sequenceContext.client().inflight());
+                requestContext.sequenceContext.clientPool().inflight());
     }
 
     static class ScheduledRequest {
@@ -162,10 +162,10 @@ class SimulationImpl implements Simulation {
                 workerStats.resetCount.intValue(),
                 requestCount,
                 Stream.of(workerStats.statuses).mapToInt(LongAdder::intValue).toArray(),
-                requestContext.sequenceContext.client().bytesRead(),
-                requestContext.sequenceContext.client().bytesWritten()
+                requestContext.sequenceContext.clientPool().bytesRead(),
+                requestContext.sequenceContext.clientPool().bytesWritten()
         );
-        requestContext.sequenceContext.client().shutdown();
+        requestContext.sequenceContext.clientPool().shutdown();
         return report;
     }
 }

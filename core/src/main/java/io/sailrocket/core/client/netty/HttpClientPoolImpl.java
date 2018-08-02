@@ -7,7 +7,7 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslProvider;
 import io.netty.handler.ssl.SupportedCipherSuiteFilter;
-import io.sailrocket.api.HttpClient;
+import io.sailrocket.api.HttpClientPool;
 import io.sailrocket.api.HttpMethod;
 import io.sailrocket.api.HttpRequest;
 import io.netty.buffer.Unpooled;
@@ -27,9 +27,9 @@ import java.util.function.Consumer;
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
  */
-abstract class HttpClientImpl implements HttpClient {
+abstract class HttpClientPoolImpl implements HttpClientPool {
 
-    static HttpClient create(EventLoopGroup eventLoopGroup, HttpVersion protocol, boolean ssl, int size, int port, String host, int maxConcurrentStream) throws Exception {
+    static HttpClientPool create(EventLoopGroup eventLoopGroup, HttpVersion protocol, boolean ssl, int size, int port, String host, int maxConcurrentStream) throws Exception {
         SslContext sslContext = null;
         if (ssl) {
             SslProvider provider = OpenSsl.isAlpnSupported() ? SslProvider.OPENSSL : SslProvider.JDK;
@@ -53,9 +53,9 @@ abstract class HttpClientImpl implements HttpClient {
                     .build();
         }
         if (protocol == HttpVersion.HTTP_2) {
-            return new Http2Client(eventLoopGroup, sslContext, size, port, host, maxConcurrentStream);
+            return new Http2ClientPool(eventLoopGroup, sslContext, size, port, host, maxConcurrentStream);
         } else {
-            return new Http1xClient(eventLoopGroup, sslContext, size, port, host, maxConcurrentStream);
+            return new Http1XClientPool(eventLoopGroup, sslContext, size, port, host, maxConcurrentStream);
         }
     }
 
@@ -73,7 +73,7 @@ abstract class HttpClientImpl implements HttpClient {
     private Consumer<Void> startedHandler;
     private boolean shutdown;
 
-    HttpClientImpl(EventLoopGroup eventLoopGroup, SslContext sslContext, int size, int port, String host, int maxConcurrentStream) {
+    HttpClientPoolImpl(EventLoopGroup eventLoopGroup, SslContext sslContext, int size, int port, String host, int maxConcurrentStream) {
         this.maxConcurrentStream = maxConcurrentStream;
         this.eventLoopGroup = eventLoopGroup;
         this.sslContext = sslContext;
@@ -104,7 +104,7 @@ abstract class HttpClientImpl implements HttpClient {
             connect(port, host, (conn, err) -> {
                 if (err == null) {
                     Consumer<Void> handler = null;
-                    synchronized (HttpClientImpl.this) {
+                    synchronized (HttpClientPoolImpl.this) {
                         all.add(conn);
                         if (count < size) {
                             checkCreateConnections(0);
@@ -117,7 +117,7 @@ abstract class HttpClientImpl implements HttpClient {
                     }
 
                     conn.context().channel().closeFuture().addListener(v -> {
-                        synchronized (HttpClientImpl.this) {
+                        synchronized (HttpClientPoolImpl.this) {
                             count--;
                             all.remove(conn);
                         }
@@ -130,7 +130,7 @@ abstract class HttpClientImpl implements HttpClient {
                         handler.accept(null);
                     }
                 } else {
-                    synchronized (HttpClientImpl.this) {
+                    synchronized (HttpClientPoolImpl.this) {
                         count--;
                     }
                     checkCreateConnections(retry + 1);

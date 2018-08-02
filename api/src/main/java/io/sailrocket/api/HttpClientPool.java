@@ -16,20 +16,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sailrocket.core.client.vertx;
+package io.sailrocket.api;
 
-import io.vertx.core.Context;
+import java.util.function.Consumer;
 
-/**
- * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
- */
-public class Slot {
+public interface HttpClientPool {
 
-    final Context context;
-    final io.vertx.core.http.HttpClient client;
+  void start(Consumer<Void> completionHandler);
 
-    Slot(io.vertx.core.http.HttpClient client, Context context) {
-      this.client = client;
-      this.context = context;
-    }
+  HttpRequest request(HttpMethod method, String path);
+
+  long inflight();
+
+  long bytesRead();
+
+  long bytesWritten();
+
+  void resetStatistics();
+
+  void shutdown();
 }

@@ -165,7 +165,7 @@ public class HttpClientRunner {
       }
     }, TimeUnit.SECONDS.toMillis(5), TimeUnit.SECONDS.toMillis(5));
 
-    HttpClientPool httpClientPool = provider.builder()
+    HttpClientPoolFactory httpClientPoolFactory = provider.builder()
         .threads(threads)
         .ssl(ssl)
         .port(port)
@@ -190,7 +190,7 @@ public class HttpClientRunner {
     for (int rate : rates) {
       tags.put("rate", rate);
       tags.put("threads", threads);
-      SimulationImpl simulationImpl = new SimulationImpl(threads, rate, duration, warmup, httpClientPool, path, payload, report);
+      SimulationImpl simulationImpl = new SimulationImpl(threads, rate, duration, warmup, httpClientPoolFactory, path, payload, report);
       currentLoad.set(simulationImpl);
       report = simulationImpl.run();
       currentLoad.set(null);
@@ -219,7 +219,7 @@ public class HttpClientRunner {
         ps.print(allReport);
       }
     }
-    httpClientPool.shutdown();
+    httpClientPoolFactory.shutdown();
     timer.cancel();
     return report.histogram;
   }

@@ -1,7 +1,7 @@
 package io.sailrocket.core.client.netty;
 
-import io.sailrocket.api.HttpClient;
-import io.sailrocket.core.client.HttpClientPool;
+import io.sailrocket.api.HttpClientPool;
+import io.sailrocket.core.client.HttpClientPoolFactory;
 import io.netty.channel.EventLoop;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -9,7 +9,7 @@ import io.vertx.core.http.HttpVersion;
 
 import java.util.concurrent.TimeUnit;
 
-public class NettyHttpClientPool implements HttpClientPool {
+public class NettyHttpClientPoolFactory implements HttpClientPoolFactory {
 
   private volatile EventLoopGroup workerGroup;
   private volatile HttpVersion protocol;
@@ -21,7 +21,7 @@ public class NettyHttpClientPool implements HttpClientPool {
   private final ThreadLocal<EventLoop> currentEventLoop = ThreadLocal.withInitial(() -> workerGroup.next());
 
   @Override
-  public HttpClientPool threads(int count) {
+  public HttpClientPoolFactory threads(int count) {
     if (workerGroup != null) {
       throw new IllegalStateException();
     }
@@ -30,39 +30,39 @@ public class NettyHttpClientPool implements HttpClientPool {
   }
 
   @Override
-  public HttpClientPool ssl(boolean ssl) {
+  public HttpClientPoolFactory ssl(boolean ssl) {
     this.ssl = ssl;
     return this;
   }
 
-  public HttpClientPool protocol(HttpVersion protocol) {
+  public HttpClientPoolFactory protocol(HttpVersion protocol) {
     this.protocol = protocol;
     return this;
   }
 
-  public HttpClientPool size(int size) {
+  public HttpClientPoolFactory size(int size) {
     this.size = size;
     return this;
   }
 
-  public HttpClientPool port(int port) {
+  public HttpClientPoolFactory port(int port) {
     this.port = port;
     return this;
   }
 
-  public HttpClientPool host(String host) {
+  public HttpClientPoolFactory host(String host) {
     this.host = host;
     return this;
   }
 
-  public HttpClientPool concurrency(int maxConcurrency) {
+  public HttpClientPoolFactory concurrency(int maxConcurrency) {
     this.concurrency = maxConcurrency;
     return this;
   }
 
   @Override
-  public HttpClient build() throws Exception {
-    return HttpClientImpl.create(currentEventLoop.get(), protocol, ssl, size, port, host, concurrency);
+  public HttpClientPool build() throws Exception {
+    return HttpClientPoolImpl.create(currentEventLoop.get(), protocol, ssl, size, port, host, concurrency);
   }
 
   @Override

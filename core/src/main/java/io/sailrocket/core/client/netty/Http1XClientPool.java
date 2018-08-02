@@ -18,11 +18,11 @@ import java.util.function.BiConsumer;
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
  */
-class Http1xClient extends HttpClientImpl {
+class Http1XClientPool extends HttpClientPoolImpl {
 
   private final StatisticsHandler statisticsHandler = new StatisticsHandler();
 
-  Http1xClient(EventLoopGroup eventLoopGroup, SslContext sslContext, int size, int port, String host, int maxConcurrentStream) {
+  Http1XClientPool(EventLoopGroup eventLoopGroup, SslContext sslContext, int size, int port, String host, int maxConcurrentStream) {
     super(eventLoopGroup, sslContext, size, port, host, maxConcurrentStream);
   }
 
@@ -45,7 +45,7 @@ class Http1xClient extends HttpClientImpl {
         }
         pipeline.addLast(statisticsHandler);
         pipeline.addLast("codec", new HttpClientCodec(4096, 8192, 8192, false, false));
-        pipeline.addLast("handler", new Http1xConnection(Http1xClient.this));
+        pipeline.addLast("handler", new Http1xConnection(Http1XClientPool.this));
       }
     });
 

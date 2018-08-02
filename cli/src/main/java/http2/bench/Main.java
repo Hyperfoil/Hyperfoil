@@ -23,7 +23,7 @@ public class Main {
             .commandRegistry(registry)
             .build();
 
-    StringBuilder argsBuilder = new StringBuilder("http-client").append(" ");
+    StringBuilder argsBuilder = new StringBuilder("http-clientPool").append(" ");
     for(String arg : args)
       argsBuilder.append(arg).append(" ");
 
