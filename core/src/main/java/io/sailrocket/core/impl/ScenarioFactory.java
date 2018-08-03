@@ -36,13 +36,13 @@ public class ScenarioFactory {
         return scenario;
     }
 /*
-    public static CompletableFuture<SequenceContext> buildSequenceFuture(SequenceImpl sequence, Worker worker) {
+    public static CompletableFuture<SequenceContext> buildSequenceFuture(SequenceImpl sequenceContext, Worker worker) {
 
         CompletableFuture<SequenceContext> rootFuture = new CompletableFuture().supplyAsync(() ->
-                new ClientSessionImpl(sequence.getHttpClientPool(), worker)
+                new SequenceContextImpl(sequenceContext.getHttpClientPool(), worker)
         );
 
-        return sequence.getSteps().stream()
+        return sequenceContext.getSteps().stream()
                 .reduce(rootFuture
                         , (sequenceFuture, step) -> sequenceFuture.thenCompose(sequenceState -> step.asyncExec(sequenceState))
                         , (sequenceFuture, e) -> sequenceFuture

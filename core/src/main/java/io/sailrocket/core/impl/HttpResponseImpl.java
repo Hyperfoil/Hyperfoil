@@ -18,7 +18,7 @@
  */
 package io.sailrocket.core.impl;
 
-import io.sailrocket.core.api.HttpResponse;
+import io.sailrocket.api.HttpResponse;
 
 public class HttpResponseImpl implements HttpResponse {
 }

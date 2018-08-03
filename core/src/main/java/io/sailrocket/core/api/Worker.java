@@ -18,10 +18,14 @@
  */
 package io.sailrocket.core.api;
 
-import io.sailrocket.core.client.RequestContext;
+import io.sailrocket.api.HttpClientPool;
+import io.sailrocket.api.Sequence;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 
 public interface Worker {
-    CompletableFuture<HttpResponse> runSlot(long duration, RequestContext requestContext);
+
+    HttpClientPool clientPool();
+    CompletableFuture<Void> runSlot(long duration, Supplier<Sequence> sequenceSupplier);
 }

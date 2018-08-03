@@ -21,7 +21,7 @@ class Http2Request implements HttpRequest {
   IntConsumer headersHandler;
   Consumer<ByteBuf> dataHandler;
   IntConsumer resetHandler;
-  Consumer<Void> endHandler;
+  Consumer<io.sailrocket.api.HttpResponse> endHandler;
 
   Http2Request(Http2ClientPool client, Http2Connection conn, HttpMethod method, String path) {
     this.method = method;
@@ -58,7 +58,7 @@ class Http2Request implements HttpRequest {
     return this;
   }
 
-  public Http2Request endHandler(Consumer<Void> handler) {
+  public Http2Request endHandler(Consumer<io.sailrocket.api.HttpResponse> handler) {
     endHandler = handler;
     return this;
   }

@@ -18,7 +18,7 @@
  */
 package io.sailrocket.api;
 
-import java.util.concurrent.CompletableFuture;
+import io.netty.buffer.ByteBuf;
 
 /**
  * A step represents a single http request/response. Steps are chained together in a {@link Sequence}.
@@ -35,6 +35,8 @@ public interface Step {
      * @return this
      */
     Step path(String path);
+
+    Step payload(ByteBuf payload);
 
     Step param(String name, String value);
 

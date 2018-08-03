@@ -19,15 +19,20 @@
 package io.sailrocket.core.api;
 
 import io.sailrocket.api.HttpClientPool;
+import io.sailrocket.api.Sequence;
 import io.sailrocket.core.client.SequenceStats;
-import io.sailrocket.core.impl.SequenceImpl;
 
 public interface SequenceContext {
     //TODO:: this needs to be a single connection instead of the connection pool
+    //atm this is broken
     HttpClientPool clientPool();
+
     Worker worker();
 
-    SequenceImpl sequence();
+    Sequence sequence();
 
     SequenceStats sequenceStats();
+
+
+
 }

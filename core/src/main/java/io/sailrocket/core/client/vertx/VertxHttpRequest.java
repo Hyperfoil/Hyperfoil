@@ -22,6 +22,7 @@ package io.sailrocket.core.client.vertx;
 import io.netty.buffer.ByteBuf;
 import io.sailrocket.api.HttpMethod;
 import io.sailrocket.api.HttpRequest;
+import io.sailrocket.api.HttpResponse;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClientRequest;
@@ -44,7 +45,7 @@ public class VertxHttpRequest implements HttpRequest {
     private IntConsumer statusHandler;
     private Consumer<byte[]> dataHandler;
     private IntConsumer resetHandler;
-    private Consumer<Void> endHandler;
+    private Consumer<HttpResponse> endHandler;
     private final ContextAwareClient current;
     private final AtomicInteger inflight;
 
@@ -88,7 +89,7 @@ public class VertxHttpRequest implements HttpRequest {
     }
 
     @Override
-    public HttpRequest endHandler(Consumer<Void> handler) {
+    public HttpRequest endHandler(Consumer<HttpResponse> handler) {
       endHandler = handler;
       return this;
     }

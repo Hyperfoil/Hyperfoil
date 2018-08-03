@@ -20,5 +20,5 @@ package io.sailrocket.api;
 
 public interface DataExtractor<T> {
 
-    T extractData(HttpRequest httpRequest);
+    T extractData(HttpResponse httpRequest);
 }

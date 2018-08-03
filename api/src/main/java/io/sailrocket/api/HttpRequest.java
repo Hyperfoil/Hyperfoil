@@ -55,7 +55,7 @@ public interface HttpRequest {
 
   HttpRequest bodyHandler(Consumer<byte[]> handler);
 
-  HttpRequest endHandler(Consumer<Void> handler);
+  HttpRequest endHandler(Consumer<HttpResponse> handler);
 
   void end(ByteBuf buff);
 

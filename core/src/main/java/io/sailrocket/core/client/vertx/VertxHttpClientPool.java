@@ -81,6 +81,10 @@ public class VertxHttpClientPool implements HttpClientPool {
   public HttpRequest request(HttpMethod method, String path) {
     if (inflight.get() < maxInflight) {
       inflight.incrementAndGet();
+
+      //TODO:: this needs to return a connection in a pool
+      //atm this tightly couples requests to the connection "pool"
+      //we aren't really pooling
       return new VertxHttpRequest(method, path, inflight, current.get());
     }
     return null;

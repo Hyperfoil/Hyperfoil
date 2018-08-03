@@ -1,5 +1,6 @@
 package io.sailrocket.core.impl;
 
+import io.netty.buffer.ByteBuf;
 import io.sailrocket.api.DataExtractor;
 import io.sailrocket.api.HttpMethod;
 import io.sailrocket.api.HttpRequest;
@@ -7,7 +8,6 @@ import io.sailrocket.core.api.AsyncStep;
 import io.sailrocket.core.api.SequenceContext;
 import io.sailrocket.api.Step;
 import io.sailrocket.api.Validator;
-import io.sailrocket.core.client.RequestContext;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -18,17 +18,23 @@ import java.util.concurrent.CompletableFuture;
 public class StepImpl implements AsyncStep {
 
     private String endpoint;
-    private HttpMethod httpMethod = HttpMethod.GET; //todo:: HttpMethod must be configurable
+    private ByteBuf payload;
+    private HttpMethod httpMethod = HttpMethod.GET;
 
 
     private Map<String, String> params = new HashMap<>();
     private List<Validator<?>> validators = new ArrayList<>();
     private List<DataExtractor<?>> extractors = new ArrayList<>();
-    private Step next;
 
     @Override
     public Step path(String path) {
         this.endpoint = path;
+        return this;
+    }
+
+    @Override
+    public Step payload(ByteBuf payload) {
+        this.payload = payload;
         return this;
     }
 
@@ -46,44 +52,50 @@ public class StepImpl implements AsyncStep {
 
     @Override
     public Step httpMethod(HttpMethod method) {
-        this.httpMethod = httpMethod;
+        this.httpMethod = method;
         return this;
     }
 
     @Override
-    public CompletableFuture<SequenceContext> asyncExec(SequenceContext sequenceState) {
-
-        RequestContext requestContext = new RequestContext(sequenceState, this.endpoint);
+    public CompletableFuture<SequenceContext> asyncExec(SequenceContext sequenceContext) {
 
         //Future to handle result of http invocation
         CompletableFuture<SequenceContext> resultFuture = CompletableFuture.supplyAsync(() -> {
 
-            // TODO:: bubble exceptions out of stack
-//            if ( httpClient == null)
-//                throw new NoHttpClientException();
+            HttpRequest request = sequenceContext.clientPool().request(payload != null ? HttpMethod.POST : HttpMethod.GET, endpoint);
 
-            //TODO:: plug this into the async clientPool
-            HttpRequest asyncRequest = sequenceState.clientPool().request(httpMethod, this.endpoint);
+            if (payload != null) {
+                request.putHeader("content-length", "" + payload.readableBytes());
+            }
+            request.statusHandler(code -> {
+                int status = (code - 200) / 100;
+                if (status >= 0 && status < sequenceContext.sequenceStats().statuses.length) {
+                    sequenceContext.sequenceStats().statuses[status].increment();
+                }
+            }).resetHandler(frame -> {
+                sequenceContext.sequenceStats().resetCount.increment();
+            }).endHandler(response -> {
 
-            SequenceContext returnSession = sequenceState;
+                //TODO:: run validators
+                //validators.forEach(validator -> validator.validate());
 
-            //TODO:: run validators
-            //validators.forEach(validator -> validator.validate());
+                //TODO:: populate session values here
+                this.extractors.forEach(dataExtractor -> dataExtractor.extractData(response));
 
-            //TODO:: populate session values here
-            this.extractors.forEach(dataExtractor -> dataExtractor.extractData(asyncRequest));
+                sequenceContext.sequenceStats().responseCount.increment();
+
+            });
+            if (payload != null) {
+                request.end(payload.duplicate());
+            } else {
+                request.end();
+            }
 
             //this is passed onto the next step
-            return sequenceState;
+            return sequenceContext;
         });
 
-        //TODO:: Do we want to run this in a pacer?
-        CompletableFuture<SequenceContext> workerFuture = sequenceState.worker().runSlot(10, requestContext).thenCompose(v -> resultFuture);
-
-        return workerFuture;
+        return resultFuture;
     }
 
-    public String getEndpoint(){
-        return this.endpoint;
-    }
 }

@@ -18,16 +18,20 @@
  */
 package io.sailrocket.core.client;
 
-import io.sailrocket.api.Sequence;
+import io.sailrocket.core.api.SequenceContext;
 
 public class ScheduledSequence {
 
     final long startTime;
     ScheduledSequence next;
-    private Sequence sequence;
+    private SequenceContext sequence;
 
-    public ScheduledSequence(long startTime, Sequence sequence) {
+    public ScheduledSequence(long startTime, SequenceContext sequenceContext) {
         this.startTime = startTime;
-        this.sequence = sequence;
+        this.sequence = sequenceContext;
+    }
+
+    public SequenceContext sequenceContext() {
+        return sequence;
     }
 }

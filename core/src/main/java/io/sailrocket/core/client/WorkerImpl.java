@@ -1,15 +1,16 @@
 package io.sailrocket.core.client;
 
-import io.sailrocket.api.HttpMethod;
-import io.sailrocket.api.HttpRequest;
-import io.sailrocket.core.api.HttpResponse;
+import io.sailrocket.api.HttpClientPool;
+import io.sailrocket.api.Sequence;
 import io.sailrocket.core.api.SequenceContext;
 import io.sailrocket.core.api.Worker;
-import io.sailrocket.core.impl.HttpResponseImpl;
+import io.sailrocket.core.impl.SequenceContextImpl;
+import io.sailrocket.core.impl.SequenceImpl;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 public class WorkerImpl implements Worker {
 
@@ -17,26 +18,34 @@ public class WorkerImpl implements Worker {
     private ScheduledSequence head;
     private ScheduledSequence tail;
 
+    private HttpClientPool clientPool;
+
     private int pacerRate;
 
-    public WorkerImpl(int pacerRate, Executor exec) {
+    public WorkerImpl(int pacerRate, Executor exec,  HttpClientPool clientPool) {
         this.exec = exec;
         this.pacerRate = pacerRate;
+        this.clientPool = clientPool;
     }
 
-    public WorkerImpl(int pacerRate) {
-        this(pacerRate, Runnable::run);
+    public WorkerImpl(int pacerRate,  HttpClientPool clientPool) {
+        this(pacerRate, Runnable::run, clientPool);
     }
 
 
     @Override
-    public CompletableFuture<HttpResponse> runSlot(long duration, RequestContext requestContext) {
-        CompletableFuture<HttpResponse> result = new CompletableFuture<>();
-        runSlot(duration, result::complete, requestContext);
-        return result;
+    public HttpClientPool clientPool() {
+        return clientPool;
     }
 
-    private void runSlot(long duration, Consumer<HttpResponse> doneHandler, RequestContext requestContext) {
+    @Override
+    public CompletableFuture<Void> runSlot(long duration, Supplier<Sequence> sequenceSupplier) {
+        CompletableFuture<Void> completableFuture = new CompletableFuture<>();
+        runSlot(duration, completableFuture::complete, sequenceSupplier);
+        return completableFuture;
+    }
+
+    private void runSlot(long duration, Consumer<Void> doneHandler, Supplier<Sequence> sequenceSupplier) {
         exec.execute(() -> {
             if (duration > 0) {
                 long slotBegins = System.nanoTime();
@@ -46,70 +55,68 @@ public class WorkerImpl implements Worker {
                 //This would allow us to configure different benchmark behaviour when the system under test is saturated
                 Pacer pacer = new Pacer(pacerRate);
                 pacer.setInitialStartTime(slotBegins);
-                doRequestInSlot(pacer, slotEnds, requestContext);
+                doSequenceInSlot(pacer, slotEnds, sequenceSupplier);
                 if (doneHandler != null) {
-                    doneHandler.accept(new HttpResponseImpl()); //TODO:: put HttpResponse here
+                    doneHandler.accept(null);
                 }
             }
         });
     }
 
-    private void doRequestInSlot(Pacer pacer, long slotEnds, SequenceContext sequenceContext) {
+    private void doSequenceInSlot(Pacer pacer, long slotEnds, Supplier<Sequence> sequenceSupplier) {
+
+        //This run until the slot ends - this is the current state runtime
         while (true) {
             long now = System.nanoTime();
             if (now > slotEnds) {
                 return;
             } else {
-                ScheduledSequence schedule = new ScheduledSequence(now, sequenceContext.sequence());
+                //TODO:: Call back to simulation to get next sequenceContext
+                ScheduledSequence schedule = new ScheduledSequence(now, new SequenceContextImpl(sequenceSupplier.get(), this));
                 if (head == null) {
                     head = tail = schedule;
                 } else {
                     tail.next = schedule;
                     tail = schedule;
                 }
-                checkPending(requestContext);
+                checkPendingSequences();
                 pacer.acquire(1);
             }
         }
     }
 
-    private void checkPending(SequenceContext sequenceContext) {
-        HttpRequest conn;
-        while (head != null && (conn = sequenceContext.clientPool().request(sequenceContext.sequence().rootStep(). != null ? HttpMethod.POST : HttpMethod.GET, sequenceContext.sequence().rootStep().getEndpoint())) != null) {
+    private void checkPendingSequences() {
+        while (head != null) {
+            ScheduledSequence scheduledSequence = head;
             long startTime = head.startTime;
             head = head.next;
             if (head == null) {
                 tail = null;
             }
-            doRequest(conn, startTime,requestContext);
+            runSequence(startTime, scheduledSequence.sequenceContext());
         }
     }
 
-    private void doRequest(HttpRequest request, long startTime, RequestContext requestContext) {
-        requestContext.sequenceContext.sequenceStats().requestCount.increment();
-        if (requestContext.payload != null) {
-            request.putHeader("content-length", "" + requestContext.payload.readableBytes());
-        }
-        request.statusHandler(code -> {
-            int status = (code - 200) / 100;
-            if (status >= 0 && status < requestContext.sequenceContext.sequenceStats().statuses.length) {
-                requestContext.sequenceContext.sequenceStats().statuses[status].increment();
-            }
-        }).resetHandler(frame -> {
-            requestContext.sequenceContext.sequenceStats().resetCount.increment();
-        }).endHandler(v -> {
-            requestContext.sequenceContext.sequenceStats().responseCount.increment();
+    /*
+     * This runs a sequenceContext in a slot, sequences are not a 1-to-1 mapping to a request
+     * the request needs to be executed in the step, and the results passed to the next step, so
+     * */
+    private void runSequence(long startTime, SequenceContext sequenceContext) {
+
+        sequenceContext.sequenceStats().requestCount.increment();
+
+        CompletableFuture<SequenceContext> sequenceFuture = ((SequenceImpl) sequenceContext.sequence()).buildSequenceFuture(this, clientPool);
+
+        //TODO:: this shouldn't be blocking - need to make sure this doesn't block the worker thread
+        if (sequenceFuture.complete(sequenceContext)){
             long endTime = System.nanoTime();
             long durationMillis = endTime - startTime;
             //TODO:: this needs to be asnyc to histogram verticle - we should be able to process various composite stats in realtime
-            requestContext.sequenceContext.sequenceStats().histogram.recordValue(durationMillis);
-//          checkPending();
-        });
-        if (requestContext.payload != null) {
-            request.end(requestContext.payload.duplicate());
-        } else {
-            request.end();
+            sequenceContext.sequenceStats().histogram.recordValue(durationMillis);
+        } else { //TODO:: think about how failures are handled, and whether they impact stats
+            System.out.println("Sequence future did not complete");
         }
+
     }
 }
 

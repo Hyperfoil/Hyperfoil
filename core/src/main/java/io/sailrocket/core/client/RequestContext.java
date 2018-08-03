@@ -6,8 +6,8 @@ import io.sailrocket.core.api.SequenceContext;
 public class RequestContext {
 
     public SequenceContext sequenceContext;
-    public final String path;
-    public final ByteBuf payload;
+//    public final String path;
+//    public final ByteBuf payload;
 
     public RequestContext(SequenceContext sequenceContext, String path) {
         this(sequenceContext, path, null);
@@ -15,8 +15,8 @@ public class RequestContext {
 
     public RequestContext(SequenceContext sequenceContext, String path, ByteBuf payload) {
         this.sequenceContext = sequenceContext;
-        this.path = path;
-        this.payload = payload;
+//        this.path = path;
+//        this.payload = payload;
     }
 
 

@@ -140,10 +140,10 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
     final IntConsumer headersHandler;
     final Consumer<ByteBuf> dataHandler;
     final IntConsumer resetHandler;
-    final Consumer<Void> endHandler;
+    final Consumer<io.sailrocket.api.HttpResponse> endHandler;
     boolean ended;
 
-    Http2Stream(Http2Headers headers, ByteBuf buff, IntConsumer headersHandler, Consumer<ByteBuf> dataHandler, IntConsumer resetHandler, Consumer<Void> endHandler) {
+    Http2Stream(Http2Headers headers, ByteBuf buff, IntConsumer headersHandler, Consumer<ByteBuf> dataHandler, IntConsumer resetHandler, Consumer<io.sailrocket.api.HttpResponse> endHandler) {
       this.headers = headers;
       this.buff = buff;
       this.headersHandler = headersHandler;

@@ -33,4 +33,9 @@ public class ScenarioImpl implements Scenario {
         sequences.add(sequence);
         return this;
     }
+
+    @Override
+    public Sequence firstSequence() {
+        return sequences.get(0);
+    }
 }

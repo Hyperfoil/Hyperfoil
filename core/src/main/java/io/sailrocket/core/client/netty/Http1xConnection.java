@@ -35,11 +35,11 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
     private final DefaultFullHttpRequest msg;
     private final IntConsumer headersHandler;
     private final IntConsumer resetHandler;
-    private final Consumer<Void> endHandler;
+    private final Consumer<io.sailrocket.api.HttpResponse> endHandler;
     private final Consumer<ByteBuf> dataHandler;
 
     HttpStream(DefaultFullHttpRequest msg, IntConsumer headersHandler, IntConsumer resetHandler,
-               Consumer<ByteBuf> dataHandler, Consumer<Void> endHandler) {
+               Consumer<ByteBuf> dataHandler, Consumer<io.sailrocket.api.HttpResponse> endHandler) {
       this.msg = msg;
       this.headersHandler = headersHandler;
       this.resetHandler = resetHandler;
@@ -90,7 +90,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
     private Map<String, String> headers;
     private IntConsumer headersHandler;
     private IntConsumer resetHandler;
-    private Consumer<Void> endHandler;
+    private Consumer<io.sailrocket.api.HttpResponse> endHandler;
     private Consumer<ByteBuf> dataHandler;
 
     HttpRequestImpl(HttpMethod method, String path) {
@@ -130,7 +130,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
     }
 
     @Override
-    public HttpRequest endHandler(Consumer<Void> handler) {
+    public HttpRequest endHandler(Consumer<io.sailrocket.api.HttpResponse> handler) {
       endHandler = handler;
       return this;
     }

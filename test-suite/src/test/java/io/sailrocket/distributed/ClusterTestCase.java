@@ -11,6 +11,7 @@ import org.asynchttpclient.Response;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -61,6 +62,7 @@ public class ClusterTestCase {
     }
 
     @Test
+    @Ignore
     public void startClusteredBenchmarkTest() throws IOException, InterruptedException {
 
         //wait for cluster to bootstrap
