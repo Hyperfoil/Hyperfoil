@@ -35,6 +35,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 @RunWith(VertxUnitRunner.class)
 public class HttpClientPoolHandlerTest {
@@ -57,7 +58,8 @@ public class HttpClientPoolHandlerTest {
     }
 
     @Test
-    public void simpleHeaderRequest() throws Exception {
+    public void simpleHeaderRequest() {
+        try {
         HttpClientPool client = HttpClientProvider.vertx.builder()
                 .host("localhost")
                 .concurrency(1)
@@ -69,10 +71,11 @@ public class HttpClientPoolHandlerTest {
                 .build();
 
         HttpRequest conn = client.request(HttpMethod.GET, "/");
-        CountDownLatch latch = new CountDownLatch(1);
+        CountDownLatch latch = new CountDownLatch(3);
 
         conn.statusHandler(code -> {
             assertEquals(200, code);
+            latch.countDown();
         })
                 /*
                 .headerHandler( header -> {
@@ -81,14 +84,19 @@ public class HttpClientPoolHandlerTest {
         */
         .bodyHandler(input -> {
             assertEquals("hello from server", new String(input));
+            latch.countDown();
         }).endHandler(e -> {
             latch.countDown();
         });
 
         conn.end();
 
-        latch.await(10, TimeUnit.SECONDS);
-        Thread.sleep(50);
+        latch.await(3, TimeUnit.SECONDS);
         assertEquals(1, count);
+        assertEquals(0, latch.getCount());
+        }
+        catch (Exception e) {
+            fail("Should not throw any exceptions"+ e.getMessage());
+        }
     }
 }
