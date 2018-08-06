@@ -16,7 +16,7 @@ public class SequenceContextImpl implements SequenceContext {
     public SequenceContextImpl(Sequence sequence, Worker worker) {
         this.worker = worker;
         this.httpClientPool = worker.clientPool();
-        sequence = sequence;
+        this.sequence = sequence;
         sequenceStats = new SequenceStats();
     }
 
