@@ -24,6 +24,11 @@ import org.HdrHistogram.Histogram;
 import java.io.Serializable;
 import java.util.Set;
 
+/**
+ * A benchmark is a collection of simulation, user,
+ * SLA and scaling strategy (Ramp up, Steady State, Ramp Down, steady state variance)
+ * that are to be run against the target environment.
+ */
 public abstract class Benchmark implements Serializable {
 
     protected String name;

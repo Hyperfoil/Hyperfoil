@@ -18,6 +18,12 @@
  */
 package io.sailrocket.api;
 
+/**
+ * A scenario is a workflow that consists of a set of steps (sequences)
+ * undertaken by an end user to emulate use case logic that an end user would perform against a service.
+ * A scenario can branch depending on the outcome of the sequences contained in the Scenario.
+ * State may be shared between sequences in a scenario.
+ */
 public interface Scenario {
 
     Scenario sequence(Sequence sequence);
