@@ -1,6 +1,5 @@
 package io.sailrocket.core.impl;
 
-import io.sailrocket.api.HttpClientPool;
 import io.sailrocket.api.Sequence;
 import io.sailrocket.api.Step;
 import io.sailrocket.core.api.AsyncStep;
@@ -35,7 +34,7 @@ public class SequenceImpl implements Sequence {
         return head;
     }
 
-    public CompletableFuture<SequenceContext> buildSequenceFuture(Worker worker, HttpClientPool clientPool) {
+    public CompletableFuture<SequenceContext> buildSequenceFuture(Worker worker) {
 
         CompletableFuture<SequenceContext> rootFuture = new CompletableFuture().supplyAsync(() ->
                 new SequenceContextImpl(this, worker)

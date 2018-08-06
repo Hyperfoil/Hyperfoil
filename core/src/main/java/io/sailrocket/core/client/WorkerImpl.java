@@ -105,7 +105,7 @@ public class WorkerImpl implements Worker {
 
         sequenceContext.sequenceStats().requestCount.increment();
 
-        CompletableFuture<SequenceContext> sequenceFuture = ((SequenceImpl) sequenceContext.sequence()).buildSequenceFuture(this, clientPool);
+        CompletableFuture<SequenceContext> sequenceFuture = ((SequenceImpl) sequenceContext.sequence()).buildSequenceFuture(this);
 
         //TODO:: this shouldn't be blocking - need to make sure this doesn't block the worker thread
         if (sequenceFuture.complete(sequenceContext)){
