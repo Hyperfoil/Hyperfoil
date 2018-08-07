@@ -21,6 +21,7 @@ package io.sailrocket.core.api;
 import io.sailrocket.api.HttpClientPool;
 import io.sailrocket.api.Sequence;
 import io.sailrocket.core.client.SequenceStats;
+import io.sailrocket.core.client.ValidatorResults;
 
 public interface SequenceContext {
     //TODO:: this needs to be a single connection instead of the connection pool
@@ -33,6 +34,7 @@ public interface SequenceContext {
 
     SequenceStats sequenceStats();
 
+    ValidatorResults validatorResults();
 
 
 }

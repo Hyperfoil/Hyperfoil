@@ -1,5 +1,4 @@
 /*
- * JBoss, Home of Professional Open Source
  * Copyright 2018 Red Hat Inc. and/or its affiliates and other contributors
  * as indicated by the @authors tag. All rights reserved.
  * See the copyright.txt in the distribution for a
@@ -17,10 +16,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sailrocket.api;
+package io.sailrocket.spi;
 
-public interface Validator<T> {
+import io.sailrocket.api.Validator;
 
-    boolean validate(T value);
-
+/**
+ * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
+ */
+public interface StatusValidator extends Validator<Integer> {
 }

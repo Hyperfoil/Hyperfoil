@@ -5,6 +5,7 @@ import io.sailrocket.api.Sequence;
 import io.sailrocket.core.api.SequenceContext;
 import io.sailrocket.core.api.Worker;
 import io.sailrocket.core.client.SequenceStats;
+import io.sailrocket.core.client.ValidatorResults;
 
 public class SequenceContextImpl implements SequenceContext {
 
@@ -12,12 +13,14 @@ public class SequenceContextImpl implements SequenceContext {
     private Worker worker;
     private Sequence sequence;
     private SequenceStats sequenceStats;
+    private ValidatorResults validatorResults;
 
     public SequenceContextImpl(Sequence sequence, Worker worker) {
         this.worker = worker;
         this.httpClientPool = worker.clientPool();
         this.sequence = sequence;
         sequenceStats = new SequenceStats();
+        validatorResults = new ValidatorResults();
     }
 
     @Override
@@ -38,5 +41,10 @@ public class SequenceContextImpl implements SequenceContext {
     @Override
     public SequenceStats sequenceStats() {
         return sequenceStats;
+    }
+
+    @Override
+    public ValidatorResults validatorResults() {
+        return validatorResults;
     }
 }

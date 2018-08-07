@@ -19,6 +19,7 @@
 package io.sailrocket.api;
 
 import io.netty.buffer.ByteBuf;
+import io.sailrocket.spi.Validators;
 
 /**
  * A step represents a single http request/response. Steps are chained together in a {@link Sequence}.
@@ -40,7 +41,7 @@ public interface Step {
 
     Step param(String name, String value);
 
-    Step validator(Validator<?> validator);
+    Step validators(Validators validators);
 
     Step httpMethod(HttpMethod method);
 

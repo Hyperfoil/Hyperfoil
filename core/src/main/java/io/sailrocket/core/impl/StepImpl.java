@@ -4,10 +4,10 @@ import io.netty.buffer.ByteBuf;
 import io.sailrocket.api.DataExtractor;
 import io.sailrocket.api.HttpMethod;
 import io.sailrocket.api.HttpRequest;
+import io.sailrocket.api.Step;
 import io.sailrocket.core.api.AsyncStep;
 import io.sailrocket.core.api.SequenceContext;
-import io.sailrocket.api.Step;
-import io.sailrocket.api.Validator;
+import io.sailrocket.spi.Validators;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -23,7 +23,7 @@ public class StepImpl implements AsyncStep {
 
 
     private Map<String, String> params = new HashMap<>();
-    private List<Validator<?>> validators = new ArrayList<>();
+    private Validators validators;
     private List<DataExtractor<?>> extractors = new ArrayList<>();
 
     @Override
@@ -45,8 +45,8 @@ public class StepImpl implements AsyncStep {
     }
 
     @Override
-    public Step validator(Validator<?> validator) {
-        this.validators.add(validator);
+    public Step validators(Validators validators) {
+        this.validators = validators;
         return this;
     }
 
@@ -72,6 +72,11 @@ public class StepImpl implements AsyncStep {
                 if (status >= 0 && status < sequenceContext.sequenceStats().statuses.length) {
                     sequenceContext.sequenceStats().statuses[status].increment();
                 }
+                if(validators.hasStatusValidator())
+                   sequenceContext.validatorResults().addHeader(validators.statusValidator().validate(code));
+            }).bodyHandler( body -> {
+                if(validators.hasBodyValidator())
+                    sequenceContext.validatorResults().addBody(validators.bodyValidator().validate(new String(body)));
             }).resetHandler(frame -> {
                 sequenceContext.sequenceStats().resetCount.increment();
             }).endHandler(response -> {
