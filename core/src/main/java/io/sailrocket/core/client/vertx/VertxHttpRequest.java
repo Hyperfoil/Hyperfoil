@@ -23,6 +23,7 @@ import io.netty.buffer.ByteBuf;
 import io.sailrocket.api.HttpMethod;
 import io.sailrocket.api.HttpRequest;
 import io.sailrocket.api.HttpResponse;
+import io.sailrocket.spi.HttpHeader;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClientRequest;
@@ -48,6 +49,7 @@ public class VertxHttpRequest implements HttpRequest {
     private Consumer<HttpResponse> endHandler;
     private final ContextAwareClient current;
     private final AtomicInteger inflight;
+    private Consumer<HttpHeader> headerHandler;
 
     VertxHttpRequest(HttpMethod method, String path, AtomicInteger inflight,
                      ContextAwareClient current) {
@@ -71,8 +73,8 @@ public class VertxHttpRequest implements HttpRequest {
     }
 
     @Override
-    public HttpRequest headerHandler(Consumer<Map<String,String>> handler) {
-        //TODO
+    public HttpRequest headerHandler(Consumer<HttpHeader> handler) {
+        this.headerHandler = handler;
         return this;
     }
 
@@ -112,27 +114,30 @@ public class VertxHttpRequest implements HttpRequest {
         Future<HttpClientResponse> fut = Future.future();
         Future<Void> doneHandler = Future.future();
         doneHandler.setHandler(ar -> {
-          inflight.decrementAndGet();
-          if (ar.succeeded()) {
-            endHandler.accept(null);
-          }
+            inflight.decrementAndGet();
+            if (ar.succeeded()) {
+                endHandler.accept(null);
+            }
         });
         fut.setHandler(ar -> {
-          if (ar.succeeded()) {
-            HttpClientResponse resp = ar.result();
-            statusHandler.accept(resp.statusCode());
-            resp.exceptionHandler(fut::tryFail);
-            resp.endHandler(doneHandler::tryComplete);
-            Consumer<byte[]> handler = this.dataHandler;
-            if (handler != null) {
-              resp.handler(chunk -> handler.accept(chunk.getByteBuf().array()));
+            if (ar.succeeded()) {
+                HttpClientResponse resp = ar.result();
+                if(statusHandler != null)
+                    statusHandler.accept(resp.statusCode());
+                if(headerHandler != null) {
+                    headerHandler.accept(new HttpHeader(resp.headers()));
+                }
+                if(dataHandler != null)
+                    resp.handler(chunk -> dataHandler.accept(chunk.getByteBuf().array()));
+                resp.exceptionHandler(fut::tryFail);
+                resp.endHandler(doneHandler::tryComplete);
             }
-          } else {
-            doneHandler.fail(ar.cause());
-          }
+            else {
+                doneHandler.fail(ar.cause());
+            }
         });
         request.handler(fut::tryComplete);
         request.exceptionHandler(fut::tryFail);
-     }
+    }
 
 }

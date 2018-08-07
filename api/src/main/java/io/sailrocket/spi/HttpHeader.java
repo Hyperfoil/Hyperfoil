@@ -20,6 +20,10 @@
 
 package io.sailrocket.spi;
 
+import io.vertx.core.MultiMap;
+
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 /**
@@ -31,6 +35,15 @@ public class HttpHeader {
 
     public HttpHeader(Map<String,String> headerValues) {
         this.headerValues = headerValues;
+    }
+
+    public HttpHeader(MultiMap multiMap) {
+        Iterator<Map.Entry<String,String>> iterator = multiMap.iterator();
+        headerValues = new HashMap<>(multiMap.size());
+        while(iterator.hasNext()) {
+            Map.Entry<String, String> entry = iterator.next();
+            headerValues.put(entry.getKey(), entry.getValue());
+        }
     }
 
     public String getValue(String key) {

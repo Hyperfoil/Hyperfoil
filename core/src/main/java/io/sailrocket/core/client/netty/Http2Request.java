@@ -1,11 +1,11 @@
 package io.sailrocket.core.client.netty;
 
-import io.sailrocket.api.HttpMethod;
-import io.sailrocket.api.HttpRequest;
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http2.Http2Headers;
+import io.sailrocket.api.HttpMethod;
+import io.sailrocket.api.HttpRequest;
+import io.sailrocket.spi.HttpHeader;
 
-import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 
@@ -18,7 +18,7 @@ class Http2Request implements HttpRequest {
   private final Http2Headers headers;
   private boolean sent;
   final HttpMethod method;
-  IntConsumer headersHandler;
+  IntConsumer statusHandler;
   Consumer<ByteBuf> dataHandler;
   IntConsumer resetHandler;
   Consumer<io.sailrocket.api.HttpResponse> endHandler;
@@ -36,12 +36,12 @@ class Http2Request implements HttpRequest {
 
   @Override
   public HttpRequest statusHandler(IntConsumer handler) {
-    headersHandler = handler;
+    statusHandler = handler;
     return this;
   }
 
   @Override
-  public HttpRequest headerHandler(Consumer<Map<String, String>> handler) {
+  public HttpRequest headerHandler(Consumer<HttpHeader> handler) {
     //TODO
     return this;
   }
@@ -68,6 +68,6 @@ class Http2Request implements HttpRequest {
       throw new IllegalStateException();
     }
     sent = true;
-    conn.bilto(new Http2Connection.Http2Stream(headers, buff, headersHandler, dataHandler, resetHandler, endHandler));
+    conn.bilto(new Http2Connection.Http2Stream(headers, buff, statusHandler, dataHandler, resetHandler, endHandler));
   }
 }

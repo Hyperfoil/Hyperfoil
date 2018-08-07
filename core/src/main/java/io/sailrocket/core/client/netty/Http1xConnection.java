@@ -10,6 +10,7 @@ import io.netty.handler.codec.http.DefaultFullHttpRequest;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.LastHttpContent;
+import io.sailrocket.spi.HttpHeader;
 
 import java.util.Deque;
 import java.util.HashMap;
@@ -88,7 +89,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
     private final HttpMethod method;
     private final String path;
     private Map<String, String> headers;
-    private IntConsumer headersHandler;
+    private IntConsumer statusHandler;
     private IntConsumer resetHandler;
     private Consumer<io.sailrocket.api.HttpResponse> endHandler;
     private Consumer<ByteBuf> dataHandler;
@@ -107,12 +108,12 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
 
     @Override
     public HttpRequest statusHandler(IntConsumer handler) {
-      headersHandler = handler;
+      statusHandler = handler;
       return this;
     }
 
     @Override
-    public HttpRequest headerHandler(Consumer<Map<String, String>> handler) {
+    public HttpRequest headerHandler(Consumer<HttpHeader> handler) {
       //TODO
       return this;
     }
@@ -143,7 +144,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
       DefaultFullHttpRequest msg = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, method.netty, path, buff, false);
       headers.forEach(msg.headers()::add);
       msg.headers().add("Host", client.host + ":" + client.port);
-      ctx.executor().execute(new HttpStream(msg, headersHandler, resetHandler, dataHandler, endHandler));
+      ctx.executor().execute(new HttpStream(msg, statusHandler, resetHandler, dataHandler, endHandler));
     }
   }
 

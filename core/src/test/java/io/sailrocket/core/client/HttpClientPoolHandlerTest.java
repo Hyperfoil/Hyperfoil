@@ -71,17 +71,15 @@ public class HttpClientPoolHandlerTest {
                 .build();
 
         HttpRequest conn = client.request(HttpMethod.GET, "/");
-        CountDownLatch latch = new CountDownLatch(3);
+        CountDownLatch latch = new CountDownLatch(4);
 
         conn.statusHandler(code -> {
             assertEquals(200, code);
             latch.countDown();
+        }).headerHandler( header -> {
+            assertEquals("bar", header.getValue("foo"));
+            latch.countDown();
         })
-                /*
-                .headerHandler( header -> {
-            assertEquals("br", header.get("foo"));
-        })
-        */
         .bodyHandler(input -> {
             assertEquals("hello from server", new String(input));
             latch.countDown();
