@@ -7,6 +7,7 @@ import io.sailrocket.api.Step;
 import io.sailrocket.core.api.AsyncStep;
 import io.sailrocket.core.api.SequenceContext;
 import io.sailrocket.core.api.Worker;
+import io.sailrocket.core.client.DummyHttpRequest;
 import io.sailrocket.core.client.WorkerImpl;
 import io.sailrocket.core.impl.SequenceFactory;
 import io.sailrocket.core.impl.SequenceImpl;
@@ -14,8 +15,6 @@ import io.sailrocket.core.impl.StepImpl;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
 import java.util.Arrays;
 import java.util.List;
@@ -23,19 +22,18 @@ import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 
-@RunWith(Parameterized.class)
+//@RunWith(Parameterized.class)
 public class ChainableEventsTestCase {
 
-    @Parameterized.Parameters
-    public static Object[][] data() {
+   public static Object[][] data() {
         return new Object[100][0];
     }
 
     @Test
-    @Ignore
     public void TestSequence() throws ExecutionException, InterruptedException {
         Queue<String> executionOrder;
 
@@ -283,7 +281,7 @@ public class ChainableEventsTestCase {
         @Override
         public HttpRequest request(HttpMethod method, String path) {
             executionOrder.add(path);
-            return null;
+            return new DummyHttpRequest(method, path, new AtomicInteger(1), null);
         }
 
         @Override

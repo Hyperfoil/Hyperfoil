@@ -81,9 +81,6 @@ public class StepImpl implements AsyncStep {
                 sequenceContext.sequenceStats().resetCount.increment();
             }).endHandler(response -> {
 
-                //TODO:: run validators
-                //validators.forEach(validator -> validator.validate());
-
                 //TODO:: populate session values here
                 this.extractors.forEach(dataExtractor -> dataExtractor.extractData(response));
 

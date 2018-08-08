@@ -113,7 +113,9 @@ public class WorkerImpl implements Worker {
             long durationMillis = endTime - startTime;
             //TODO:: this needs to be asnyc to histogram verticle - we should be able to process various composite stats in realtime
             sequenceContext.sequenceStats().histogram.recordValue(durationMillis);
-        } else { //TODO:: think about how failures are handled, and whether they impact stats
+
+        }
+        else { //TODO:: think about how failures are handled, and whether they impact stats
             System.out.println("Sequence future did not complete");
         }
 
