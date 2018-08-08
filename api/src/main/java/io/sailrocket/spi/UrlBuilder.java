@@ -8,6 +8,7 @@ public class UrlBuilder {
     private int port;
     private String host;
     private String path;
+    private String url;
 
     private UrlBuilder() {
     }
@@ -37,8 +38,15 @@ public class UrlBuilder {
         return apply(clone -> clone.path = path);
     }
 
+    public UrlBuilder url(String url) {
+        return apply(clone -> clone.url = url);
+    }
+
     public Url build() {
-        return new Url(prot, host, path, port);
+        if(prot != null && port > 0 && host != null && path != null)
+            return new Url(prot, host, path, port);
+        else
+            return new Url(url);
     }
 
 }

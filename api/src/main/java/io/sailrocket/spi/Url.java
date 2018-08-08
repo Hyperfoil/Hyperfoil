@@ -1,13 +1,15 @@
 package io.sailrocket.spi;
 
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 
 public class Url {
 
-    private final Protocol protocol;
-    private final String host;
-    private final String path;
+    private Protocol protocol;
+    private String host;
+    private String path;
 
     public Url(String protocol, String host, String path, int port) {
         this.protocol = Protocols.protocol(protocol, port);
@@ -15,6 +17,17 @@ public class Url {
         this.path = path;
     }
 
+    public Url(String path) {
+        try {
+            URI uri = new URI(path);
+            this.host = uri.getHost();
+            this.path = uri.getPath();
+            this.protocol = Protocols.protocol(uri.getScheme(), uri.getPort());
+        }
+        catch(URISyntaxException e) {
+            throw new IllegalArgumentException("Method value is not a correct url"+e.getMessage());
+        }
+    }
 
     public Protocol protocol() {
         return protocol;
