@@ -28,7 +28,7 @@ import java.util.stream.Stream;
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
  * @author <a href="mailto:johara@redhat.com">John O'Hara</a>
  */
-class SimulationImpl implements Simulation {
+public class SimulationImpl implements Simulation {
 
     private final int threads;
     private final int rate;
