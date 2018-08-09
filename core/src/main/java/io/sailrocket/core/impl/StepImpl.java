@@ -8,6 +8,8 @@ import io.sailrocket.api.Step;
 import io.sailrocket.core.api.AsyncStep;
 import io.sailrocket.core.api.SequenceContext;
 import io.sailrocket.spi.Validators;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -16,6 +18,8 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 public class StepImpl implements AsyncStep {
+    private static final Logger log = LoggerFactory.getLogger(StepImpl.class);
+    private static final boolean trace = log.isTraceEnabled();
 
     private String endpoint;
     private ByteBuf payload;
@@ -58,6 +62,10 @@ public class StepImpl implements AsyncStep {
 
     @Override
     public CompletableFuture<SequenceContext> asyncExec(SequenceContext sequenceContext) {
+        if (trace) {
+            log.trace("Async step begin: request to {}", endpoint);
+        }
+
         HttpRequest request = sequenceContext.clientPool().request(payload != null ? HttpMethod.POST : HttpMethod.GET, endpoint);
 
         CompletableFuture<SequenceContext> completion = new CompletableFuture<>();
@@ -79,7 +87,9 @@ public class StepImpl implements AsyncStep {
             // TODO: what is reset handler? Not used ATM
             sequenceContext.sequenceStats().resetCount.increment();
         }).endHandler(response -> {
-
+            if (trace) {
+                log.trace("Response received: {}", response);
+            }
             //TODO:: populate session values here
             this.extractors.forEach(dataExtractor -> dataExtractor.extractData(response));
 
@@ -87,6 +97,9 @@ public class StepImpl implements AsyncStep {
             completion.complete(sequenceContext);
         });
 
+        if (trace) {
+            log.trace("Starting a request to {}", endpoint);
+        }
         sequenceContext.sequenceStats().requestCount.increment();
         if (payload != null) {
             request.end(payload.duplicate());
