@@ -20,6 +20,7 @@ package io.sailrocket.core.api;
 
 import io.sailrocket.api.HttpClientPool;
 import io.sailrocket.api.Sequence;
+import io.sailrocket.core.client.Pacer;
 import io.sailrocket.core.client.SequenceStats;
 import io.sailrocket.core.client.ValidatorResults;
 
@@ -36,5 +37,7 @@ public interface SequenceContext {
 
     ValidatorResults validatorResults();
 
+    long getStartTime();
 
+    Pacer pacer();
 }

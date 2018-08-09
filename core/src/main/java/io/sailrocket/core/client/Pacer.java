@@ -2,8 +2,13 @@ package io.sailrocket.core.client;
 
 // Copied from https://github.com/LatencyUtils/LatencyUtils/blob/master/src/examples/java/LatencyLoggingDemo.java
 // and adapted for our case
+
+/**
+ * One per actually running slot in {@link io.sailrocket.core.api.Worker}
+ */
 public class Pacer {
   private long initialStartTime;
+  private long intendedEndTime;
   private double throughputInUnitsPerNsec;
   private long unitsCompleted;
 
@@ -99,4 +104,13 @@ public class Pacer {
     while (System.nanoTime() < deadline) {
       Thread.yield();
     }
-  }}
+  }
+
+  public void setIntendedEndTime(long slotEnds) {
+    this.intendedEndTime = slotEnds;
+  }
+
+  public long getIntendedEndTime() {
+    return intendedEndTime;
+  }
+}

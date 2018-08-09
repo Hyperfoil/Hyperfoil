@@ -15,8 +15,8 @@ import java.util.function.Supplier;
 public class WorkerImpl implements Worker {
 
     private final Executor exec;
-    private ScheduledSequence head;
-    private ScheduledSequence tail;
+//    private ScheduledSequence head;
+//    private ScheduledSequence tail;
 
     private HttpClientPool clientPool;
 
@@ -55,70 +55,33 @@ public class WorkerImpl implements Worker {
                 //This would allow us to configure different benchmark behaviour when the system under test is saturated
                 Pacer pacer = new Pacer(pacerRate);
                 pacer.setInitialStartTime(slotBegins);
-                doSequenceInSlot(pacer, slotEnds, sequenceSupplier);
-                if (doneHandler != null) {
-                    doneHandler.accept(null);
-                }
+                pacer.setIntendedEndTime(slotEnds);
+                doSequenceInSlot(pacer, sequenceSupplier, doneHandler);
             }
         });
     }
 
-    private void doSequenceInSlot(Pacer pacer, long slotEnds, Supplier<Sequence> sequenceSupplier) {
-
-        //This run until the slot ends - this is the current state runtime
-        while (true) {
-            long now = System.nanoTime();
-            if (now > slotEnds) {
-                return;
-            } else {
-                //TODO:: Call back to simulation to get next sequenceContext
-                ScheduledSequence schedule = new ScheduledSequence(now, new SequenceContextImpl(sequenceSupplier.get(), this));
-                if (head == null) {
-                    head = tail = schedule;
-                } else {
-                    tail.next = schedule;
-                    tail = schedule;
-                }
-                checkPendingSequences();
-                pacer.acquire(1);
-            }
+    private void doSequenceInSlot(Pacer pacer, Supplier<Sequence> sequenceSupplier, Consumer<Void> doneHandler) {
+        long now = System.nanoTime();
+        if (now > pacer.getIntendedEndTime()) {
+            doneHandler.accept(null);
+            return;
         }
-    }
+        //TODO:: Call back to simulation to get next sequenceContext
+        SequenceContextImpl sequenceContext = new SequenceContextImpl(sequenceSupplier.get(), this, pacer, now);
 
-    private void checkPendingSequences() {
-        while (head != null) {
-            ScheduledSequence scheduledSequence = head;
-            long startTime = head.startTime;
-            head = head.next;
-            if (head == null) {
-                tail = null;
-            }
-            runSequence(startTime, scheduledSequence.sequenceContext());
-        }
-    }
-
-    /*
-     * This runs a sequenceContext in a slot, sequences are not a 1-to-1 mapping to a request
-     * the request needs to be executed in the step, and the results passed to the next step, so
-     * */
-    private void runSequence(long startTime, SequenceContext sequenceContext) {
-
-        sequenceContext.sequenceStats().requestCount.increment();
-
-        CompletableFuture<SequenceContext> sequenceFuture = ((SequenceImpl) sequenceContext.sequence()).buildSequenceFuture(this);
-
-        //TODO:: this shouldn't be blocking - need to make sure this doesn't block the worker thread
-        if (sequenceFuture.complete(sequenceContext)){
+        CompletableFuture<SequenceContext> sequenceFuture = ((SequenceImpl) sequenceContext.sequence()).buildSequenceFuture(this, sequenceContext);
+        sequenceFuture.whenComplete((ctx, t) -> {
             long endTime = System.nanoTime();
-            long durationMillis = endTime - startTime;
+            long durationMillis = endTime - sequenceContext.getStartTime();
             //TODO:: this needs to be asnyc to histogram verticle - we should be able to process various composite stats in realtime
             sequenceContext.sequenceStats().histogram.recordValue(durationMillis);
-
-        }
-        else { //TODO:: think about how failures are handled, and whether they impact stats
-            System.out.println("Sequence future did not complete");
-        }
-
+            if (t != null) {
+               t.printStackTrace();
+            }
+            sequenceContext.pacer().acquire(1);
+            doSequenceInSlot(sequenceContext.pacer(), sequenceSupplier, doneHandler);
+        });
     }
 }
 

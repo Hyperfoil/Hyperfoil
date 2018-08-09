@@ -5,11 +5,11 @@ import io.vertx.ext.unit.TestContext;
 import org.junit.Before;
 
 
-public class SimplBechmarkTestCase extends BaseBenchmarkTestCase {
+public class SimpleBechmarkTestCase extends BaseBenchmarkTestCase {
 
     @Before
     public void before(TestContext ctx) {
-        simpleBenchmark = new SimplBechmarkTestCase.SimpleBenchmark("Simple Benchmark");
+        simpleBenchmark = new SimpleBechmarkTestCase.SimpleBenchmark("Simple Benchmark");
         super.before(ctx);
     }
 

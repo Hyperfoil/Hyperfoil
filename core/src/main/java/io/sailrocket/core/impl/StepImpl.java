@@ -58,46 +58,43 @@ public class StepImpl implements AsyncStep {
 
     @Override
     public CompletableFuture<SequenceContext> asyncExec(SequenceContext sequenceContext) {
+        HttpRequest request = sequenceContext.clientPool().request(payload != null ? HttpMethod.POST : HttpMethod.GET, endpoint);
 
-        //Future to handle result of http invocation
-        CompletableFuture<SequenceContext> resultFuture = CompletableFuture.supplyAsync(() -> {
+        CompletableFuture<SequenceContext> completion = new CompletableFuture<>();
 
-            HttpRequest request = sequenceContext.clientPool().request(payload != null ? HttpMethod.POST : HttpMethod.GET, endpoint);
-
-            if (payload != null) {
-                request.putHeader("content-length", "" + payload.readableBytes());
+        if (payload != null) {
+            request.putHeader("content-length", "" + payload.readableBytes());
+        }
+        request.statusHandler(code -> {
+            int status = (code - 200) / 100;
+            if (status >= 0 && status < sequenceContext.sequenceStats().statuses.length) {
+                sequenceContext.sequenceStats().statuses[status].increment();
             }
-            request.statusHandler(code -> {
-                int status = (code - 200) / 100;
-                if (status >= 0 && status < sequenceContext.sequenceStats().statuses.length) {
-                    sequenceContext.sequenceStats().statuses[status].increment();
-                }
-                if(validators.hasStatusValidator())
-                   sequenceContext.validatorResults().addHeader(validators.statusValidator().validate(code));
-            }).bodyHandler( body -> {
-                if(validators.hasBodyValidator())
-                    sequenceContext.validatorResults().addBody(validators.bodyValidator().validate(new String(body)));
-            }).resetHandler(frame -> {
-                sequenceContext.sequenceStats().resetCount.increment();
-            }).endHandler(response -> {
+            if(validators.hasStatusValidator())
+               sequenceContext.validatorResults().addHeader(validators.statusValidator().validate(code));
+        }).bodyHandler( body -> {
+            if(validators.hasBodyValidator())
+                sequenceContext.validatorResults().addBody(validators.bodyValidator().validate(new String(body)));
+        }).resetHandler(frame -> {
+            // TODO: what is reset handler? Not used ATM
+            sequenceContext.sequenceStats().resetCount.increment();
+        }).endHandler(response -> {
 
-                //TODO:: populate session values here
-                this.extractors.forEach(dataExtractor -> dataExtractor.extractData(response));
+            //TODO:: populate session values here
+            this.extractors.forEach(dataExtractor -> dataExtractor.extractData(response));
 
-                sequenceContext.sequenceStats().responseCount.increment();
-
-            });
-            if (payload != null) {
-                request.end(payload.duplicate());
-            } else {
-                request.end();
-            }
-
-            //this is passed onto the next step
-            return sequenceContext;
+            sequenceContext.sequenceStats().responseCount.increment();
+            completion.complete(sequenceContext);
         });
 
-        return resultFuture;
+        sequenceContext.sequenceStats().requestCount.increment();
+        if (payload != null) {
+            request.end(payload.duplicate());
+        } else {
+            request.end();
+        }
+
+        return completion;
     }
 
 }
