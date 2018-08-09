@@ -48,9 +48,12 @@ public class SimulationBuilder {
     private int rate;
     //also support an endpoint for a simple benchmark
 
-    private SimulationBuilder() { }
+    private SimulationBuilder() {
+    }
 
-    public static SimulationBuilder builder() { return new SimulationBuilder(); }
+    public static SimulationBuilder builder() {
+        return new SimulationBuilder();
+    }
 
     private SimulationBuilder apply(Consumer<SimulationBuilder> consumer) {
         consumer.accept(this);

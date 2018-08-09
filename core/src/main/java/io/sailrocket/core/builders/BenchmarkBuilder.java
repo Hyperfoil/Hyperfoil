@@ -31,9 +31,12 @@ public class BenchmarkBuilder {
     private String name;
     private Simulation simulation;
 
-    private BenchmarkBuilder() {}
+    private BenchmarkBuilder() {
+    }
 
-    public static BenchmarkBuilder builder() { return new BenchmarkBuilder(); }
+    public static BenchmarkBuilder builder() {
+        return new BenchmarkBuilder();
+    }
 
     private BenchmarkBuilder apply(Consumer<BenchmarkBuilder> consumer) {
         consumer.accept(this);

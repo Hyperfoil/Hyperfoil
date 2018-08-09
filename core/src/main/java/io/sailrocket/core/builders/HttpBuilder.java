@@ -40,7 +40,9 @@ public class HttpBuilder {
         header = new HashMap<>();
     }
 
-    public static HttpBuilder builder() { return new HttpBuilder();}
+    public static HttpBuilder builder() {
+        return new HttpBuilder();
+    }
 
     private HttpBuilder apply(Consumer<HttpBuilder> consumer) {
         consumer.accept(this);
