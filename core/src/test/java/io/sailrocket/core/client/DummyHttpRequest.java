@@ -25,6 +25,7 @@ import io.sailrocket.api.HttpMethod;
 import io.sailrocket.api.HttpRequest;
 import io.sailrocket.api.HttpResponse;
 import io.sailrocket.core.client.vertx.ContextAwareClient;
+import io.sailrocket.core.impl.HttpResponseImpl;
 import io.sailrocket.spi.HttpHeader;
 import io.vertx.core.Future;
 import io.vertx.core.http.HttpClientRequest;
@@ -101,6 +102,7 @@ public class DummyHttpRequest implements HttpRequest {
 
     @Override
     public void end(ByteBuf buff) {
+        endHandler.accept(new HttpResponseImpl());
         /*
         current.context.runOnContext(v -> {
             HttpClientRequest request = current.client.request(method.vertx, path);
