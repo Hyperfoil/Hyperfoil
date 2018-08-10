@@ -93,6 +93,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
     private IntConsumer resetHandler;
     private Consumer<io.sailrocket.api.HttpResponse> endHandler;
     private Consumer<ByteBuf> dataHandler;
+    private Consumer<Throwable> exceptionHandler;
 
     HttpRequestImpl(HttpMethod method, String path) {
       this.method = method;
@@ -136,7 +137,13 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
       return this;
     }
 
-    @Override
+     @Override
+     public HttpRequest exceptionHandler(Consumer<Throwable> handler) {
+         exceptionHandler = handler;
+         return this;
+     }
+
+     @Override
     public void end(ByteBuf buff) {
       if (buff == null) {
         buff = Unpooled.EMPTY_BUFFER;

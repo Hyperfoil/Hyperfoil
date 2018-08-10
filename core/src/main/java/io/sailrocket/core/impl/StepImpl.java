@@ -78,10 +78,10 @@ public class StepImpl implements AsyncStep {
             if (status >= 0 && status < sequenceContext.sequenceStats().statuses.length) {
                 sequenceContext.sequenceStats().statuses[status].increment();
             }
-            if(validators.hasStatusValidator())
+            if (validators != null && validators.hasStatusValidator())
                sequenceContext.validatorResults().addHeader(validators.statusValidator().validate(code));
         }).bodyHandler( body -> {
-            if(validators.hasBodyValidator())
+            if (validators != null && validators.hasBodyValidator())
                 sequenceContext.validatorResults().addBody(validators.bodyValidator().validate(new String(body)));
         }).resetHandler(frame -> {
             // TODO: what is reset handler? Not used ATM
@@ -95,6 +95,11 @@ public class StepImpl implements AsyncStep {
 
             sequenceContext.sequenceStats().responseCount.increment();
             completion.complete(sequenceContext);
+        }).exceptionHandler(throwable -> {
+            if (trace) {
+                log.trace("Request to {} failed", throwable, endpoint);
+            }
+            completion.completeExceptionally(throwable);
         });
 
         if (trace) {

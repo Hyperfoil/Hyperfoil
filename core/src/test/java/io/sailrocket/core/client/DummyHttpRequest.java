@@ -40,20 +40,15 @@ import java.util.function.IntConsumer;
 /**
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
  */
-public class DummyHttpRequest implements HttpRequest {
+public class DummyHttpRequest extends AbstractHttpRequest {
 
     private Map<String, String> headers;
     private final HttpMethod method;
     private final String path;
-    private IntConsumer statusHandler;
-    private Consumer<byte[]> dataHandler;
-    private IntConsumer resetHandler;
-    private Consumer<HttpResponse> endHandler;
     private final ContextAwareClient current;
     private final AtomicInteger inflight;
-    private Consumer<HttpHeader> headerHandler;
 
-    public DummyHttpRequest(HttpMethod method, String path, AtomicInteger inflight,
+   public DummyHttpRequest(HttpMethod method, String path, AtomicInteger inflight,
                      ContextAwareClient current) {
       this.method = method;
       this.path = path;
@@ -67,36 +62,6 @@ public class DummyHttpRequest implements HttpRequest {
         headers = new HashMap<>();
       }
       headers.put(name, value);
-      return this;
-    }
-
-    @Override
-    public HttpRequest statusHandler(IntConsumer handler) {
-      statusHandler = handler;
-      return this;
-    }
-
-    @Override
-    public HttpRequest headerHandler(Consumer<HttpHeader> handler) {
-        this.headerHandler = handler;
-        return this;
-    }
-
-    @Override
-    public HttpRequest resetHandler(IntConsumer handler) {
-      resetHandler = handler;
-      return this;
-    }
-
-    @Override
-    public HttpRequest bodyHandler(Consumer<byte[]> handler) {
-        this.dataHandler = handler;
-        return this;
-    }
-
-    @Override
-    public HttpRequest endHandler(Consumer<HttpResponse> handler) {
-      endHandler = handler;
       return this;
     }
 

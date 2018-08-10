@@ -79,9 +79,8 @@ public class VertxHttpClientPool implements HttpClientPool {
 
   @Override
   public HttpRequest request(HttpMethod method, String path) {
-      // TODO: inflight is never decremented - we should to the throttling rather in HttpRequest.end() method
     //    if (inflight.get() < maxInflight) {
-//      inflight.incrementAndGet();
+      inflight.incrementAndGet();
 
       //TODO:: this needs to return a connection in a pool
       //atm this tightly couples requests to the connection "pool"

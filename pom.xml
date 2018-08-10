@@ -97,6 +97,18 @@
                 <version>${project.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>io.sailrocket</groupId>
+                <artifactId>core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.sailrocket</groupId>
+                <artifactId>distributed</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
             <!-- Netty will be logging through slf4j -->
             <dependency>
                 <groupId>org.slf4j</groupId>
@@ -138,6 +150,18 @@
             <dependency>
                 <groupId>io.vertx</groupId>
                 <artifactId>vertx-unit</artifactId>
+                <version>${vertx.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.vertx</groupId>
+                <artifactId>vertx-web</artifactId>
+                <version>${vertx.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.vertx</groupId>
+                <artifactId>vertx-hazelcast</artifactId>
                 <version>${vertx.version}</version>
             </dependency>
 

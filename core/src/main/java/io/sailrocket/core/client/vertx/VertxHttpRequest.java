@@ -22,34 +22,25 @@ package io.sailrocket.core.client.vertx;
 import io.netty.buffer.ByteBuf;
 import io.sailrocket.api.HttpMethod;
 import io.sailrocket.api.HttpRequest;
-import io.sailrocket.api.HttpResponse;
+import io.sailrocket.core.client.AbstractHttpRequest;
 import io.sailrocket.spi.HttpHeader;
-import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClientRequest;
-import io.vertx.core.http.HttpClientResponse;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
-import java.util.function.IntConsumer;
 
 /**
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
  */
-public class VertxHttpRequest implements HttpRequest {
+public class VertxHttpRequest extends AbstractHttpRequest {
 
     private Map<String, String> headers;
     private final HttpMethod method;
     private final String path;
-    private IntConsumer statusHandler;
-    private Consumer<byte[]> dataHandler;
-    private IntConsumer resetHandler;
-    private Consumer<HttpResponse> endHandler;
     private final ContextAwareClient current;
     private final AtomicInteger inflight;
-    private Consumer<HttpHeader> headerHandler;
 
     VertxHttpRequest(HttpMethod method, String path, AtomicInteger inflight,
                      ContextAwareClient current) {
@@ -64,35 +55,6 @@ public class VertxHttpRequest implements HttpRequest {
         headers = new HashMap<>();
       }
       headers.put(name, value);
-      return this;
-    }
-    @Override
-    public HttpRequest statusHandler(IntConsumer handler) {
-      statusHandler = handler;
-      return this;
-    }
-
-    @Override
-    public HttpRequest headerHandler(Consumer<HttpHeader> handler) {
-        this.headerHandler = handler;
-        return this;
-    }
-
-    @Override
-    public HttpRequest resetHandler(IntConsumer handler) {
-      resetHandler = handler;
-      return this;
-    }
-
-    @Override
-    public HttpRequest bodyHandler(Consumer<byte[]> handler) {
-        this.dataHandler = handler;
-        return this;
-    }
-
-    @Override
-    public HttpRequest endHandler(Consumer<HttpResponse> handler) {
-      endHandler = handler;
       return this;
     }
 
@@ -111,33 +73,38 @@ public class VertxHttpRequest implements HttpRequest {
     }
 
     private void requestHandler(HttpClientRequest request) {
-        Future<HttpClientResponse> fut = Future.future();
-        Future<Void> doneHandler = Future.future();
-        doneHandler.setHandler(ar -> {
-            inflight.decrementAndGet();
-            if (ar.succeeded()) {
-                endHandler.accept(null);
+        request.handler(response -> {
+            try {
+                if (statusHandler != null)
+                    statusHandler.accept(response.statusCode());
+                if (headerHandler != null)
+                    headerHandler.accept(new HttpHeader(response.headers()));
+                if (dataHandler != null)
+                    response.handler(chunk -> dataHandler.accept(chunk.getByteBuf().array()));
+            } catch (Throwable t) {
+                exceptionally(t);
+                return;
             }
-        });
-        fut.setHandler(ar -> {
-            if (ar.succeeded()) {
-                HttpClientResponse resp = ar.result();
-                if(statusHandler != null)
-                    statusHandler.accept(resp.statusCode());
-                if(headerHandler != null) {
-                    headerHandler.accept(new HttpHeader(resp.headers()));
+            response.exceptionHandler(this::exceptionally);
+            response.endHandler(nil -> {
+                inflight.decrementAndGet();
+                // TODO: use response or change interface!
+                try {
+                    endHandler.accept(null);
+                } catch (Throwable t) {
+                    if (exceptionHandler != null) {
+                        exceptionHandler.accept(t);
+                    }
                 }
-                if(dataHandler != null)
-                    resp.handler(chunk -> dataHandler.accept(chunk.getByteBuf().array()));
-                resp.exceptionHandler(fut::tryFail);
-                resp.endHandler(doneHandler::tryComplete);
-            }
-            else {
-                doneHandler.fail(ar.cause());
-            }
+            });
         });
-        request.handler(fut::tryComplete);
-        request.exceptionHandler(fut::tryFail);
+        request.exceptionHandler(this::exceptionally);
     }
 
+    private void exceptionally(Throwable t) {
+        inflight.decrementAndGet();
+        if (exceptionHandler != null) {
+            exceptionHandler.accept(t);
+        }
+    }
 }

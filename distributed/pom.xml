@@ -38,31 +38,28 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>4.11</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>io.vertx</groupId>
             <artifactId>vertx-unit</artifactId>
-            <version>RELEASE</version>
+            <scope>test</scope>
         </dependency>
+
         <dependency>
             <groupId>io.vertx</groupId>
             <artifactId>vertx-web</artifactId>
-            <version>RELEASE</version>
         </dependency>
 
         <dependency>
             <groupId>io.vertx</groupId>
             <artifactId>vertx-hazelcast</artifactId>
-            <version>RELEASE</version>
         </dependency>
 
         <dependency>
             <groupId>io.sailrocket</groupId>
             <artifactId>core</artifactId>
-            <version>0.1-SNAPSHOT</version>
         </dependency>
     </dependencies>
 

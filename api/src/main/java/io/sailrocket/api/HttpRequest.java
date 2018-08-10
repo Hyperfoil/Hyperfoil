@@ -57,6 +57,8 @@ public interface HttpRequest {
 
   HttpRequest endHandler(Consumer<HttpResponse> handler);
 
+  HttpRequest exceptionHandler(Consumer<Throwable> handler);
+
   void end(ByteBuf buff);
 
   default void end() {

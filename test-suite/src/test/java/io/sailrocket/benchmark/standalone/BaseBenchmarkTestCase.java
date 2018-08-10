@@ -13,10 +13,6 @@ import org.junit.runner.RunWith;
 
 @RunWith(VertxUnitRunner.class)
 public abstract class BaseBenchmarkTestCase {
-
-
-    protected Benchmark simpleBenchmark;
-
     protected volatile int count;
     private Vertx vertx;
     protected HttpClientProvider provider;
@@ -31,13 +27,6 @@ public abstract class BaseBenchmarkTestCase {
         }).listen(8080, "localhost", ctx.asyncAssertSuccess());
     }
 
-    @Test
-    @Ignore
-    public void runSimpleBenchmarkTest() throws Exception {
-
-        simpleBenchmark.run();
-
-    }
     @After
     public void after(TestContext ctx) {
         vertx.close(ctx.asyncAssertSuccess());
