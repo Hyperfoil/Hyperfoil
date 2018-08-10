@@ -23,7 +23,6 @@ package io.sailrocket.core.client;
 import io.netty.buffer.ByteBuf;
 import io.sailrocket.api.HttpMethod;
 import io.sailrocket.api.HttpRequest;
-import io.sailrocket.api.HttpResponse;
 import io.sailrocket.core.client.vertx.ContextAwareClient;
 import io.sailrocket.core.impl.HttpResponseImpl;
 import io.sailrocket.spi.HttpHeader;
@@ -34,8 +33,6 @@ import io.vertx.core.http.HttpClientResponse;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
-import java.util.function.IntConsumer;
 
 /**
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
