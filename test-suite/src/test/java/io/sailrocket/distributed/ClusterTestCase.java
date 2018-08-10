@@ -38,8 +38,6 @@ public class ClusterTestCase {
 
     private final int EXPECTED_COUNT = AGENTS * 5000;
 
-    private final CountDownLatch responseLatch = new CountDownLatch(1);
-
     @Before
     public void before(TestContext ctx) {
 
@@ -75,8 +73,8 @@ public class ClusterTestCase {
         return vertx;
     }
 
-    @Test
-    public void startClusteredBenchmarkTest() throws IOException, InterruptedException {
+    @Test(timeout = 120_000)
+    public void startClusteredBenchmarkTest(TestContext ctx) throws IOException, InterruptedException {
         //check expected number of nodes are running
         try (AsyncHttpClient asyncHttpClient = asyncHttpClient()) {
             asyncHttpClient
@@ -97,15 +95,10 @@ public class ClusterTestCase {
                     .thenApply(Response::getResponseBody)
                     .thenAccept(body -> {
                         System.out.println(body);
-                        responseLatch.countDown();
+                        ctx.async().complete();
                     })
                     .join();
         }
-
-        if (!responseLatch.await(2, TimeUnit.MINUTES)) {
-            Assert.fail("Benchmark didn't complete within 2 minutes");
-        }
-
     }
 
     private void initiateController(VertxOptions opts, JsonObject config, TestContext ctx, Async initAsync) {

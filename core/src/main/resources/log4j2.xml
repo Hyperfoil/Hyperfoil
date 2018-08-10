@@ -3,12 +3,15 @@
 <Configuration name="CommandLineConfig">
   <Appenders>
     <Console name="STDOUT">
-      <PatternLayout pattern="%d{HH:mm:ss,SSS} %-5p (%t) [%c{1}] %m%throwable{10}%n"/>
+      <PatternLayout pattern="%d{HH:mm:ss,SSS} %-5p (%t) [%c{1.}] %m%throwable{10}%n"/>
     </Console>
   </Appenders>
 
   <Loggers>
-    <Root level="TRACE">
+    <Logger name="io.sailrocket" level="TRACE"/>
+    <Logger name="io.netty" level="INFO"/>
+
+    <Root level="DEBUG">
       <AppenderRef ref="STDOUT" level="TRACE"/>
     </Root>
   </Loggers>
