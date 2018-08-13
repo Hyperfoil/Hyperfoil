@@ -23,13 +23,13 @@ import io.netty.buffer.ByteBuf;
 import io.sailrocket.api.HttpMethod;
 import io.sailrocket.api.HttpRequest;
 import io.sailrocket.core.client.AbstractHttpRequest;
+import io.sailrocket.core.util.AsyncSemaphore;
 import io.sailrocket.spi.HttpHeader;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClientRequest;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
@@ -40,13 +40,13 @@ public class VertxHttpRequest extends AbstractHttpRequest {
     private final HttpMethod method;
     private final String path;
     private final ContextAwareClient current;
-    private final AtomicInteger inflight;
+    private final AsyncSemaphore concurrencyLimiter;
 
-    VertxHttpRequest(HttpMethod method, String path, AtomicInteger inflight,
+    VertxHttpRequest(HttpMethod method, String path, AsyncSemaphore concurrencyLimiter,
                      ContextAwareClient current) {
       this.method = method;
       this.path = path;
-      this.inflight = inflight;
+      this.concurrencyLimiter = concurrencyLimiter;
       this.current = current;
     }
     @Override
@@ -60,16 +60,16 @@ public class VertxHttpRequest extends AbstractHttpRequest {
 
     @Override
     public void end(ByteBuf buff) {
-        current.context.runOnContext(v -> {
-            HttpClientRequest request = current.client.request(method.vertx, path);
-            requestHandler(request);
-            if (buff != null) {
-                request.end(Buffer.buffer(buff));
-            }
-            else {
-                request.end();
-            }
-        });
+        concurrencyLimiter.acquire(() ->
+            current.context.runOnContext(v -> {
+                HttpClientRequest request = current.client.request(method.vertx, path);
+                requestHandler(request);
+                if (buff != null) {
+                    request.end(Buffer.buffer(buff));
+                } else {
+                    request.end();
+                }
+        }));
     }
 
     private void requestHandler(HttpClientRequest request) {
@@ -87,7 +87,6 @@ public class VertxHttpRequest extends AbstractHttpRequest {
             }
             response.exceptionHandler(this::exceptionally);
             response.endHandler(nil -> {
-                inflight.decrementAndGet();
                 // TODO: use response or change interface!
                 try {
                     endHandler.accept(null);
@@ -95,6 +94,9 @@ public class VertxHttpRequest extends AbstractHttpRequest {
                     if (exceptionHandler != null) {
                         exceptionHandler.accept(t);
                     }
+                } finally {
+                    // This can invoke another request so we need to run handlers (e.g. record timing) first
+                    concurrencyLimiter.release();
                 }
             });
         });
@@ -102,9 +104,12 @@ public class VertxHttpRequest extends AbstractHttpRequest {
     }
 
     private void exceptionally(Throwable t) {
-        inflight.decrementAndGet();
-        if (exceptionHandler != null) {
-            exceptionHandler.accept(t);
+        try {
+            if (exceptionHandler != null) {
+                exceptionHandler.accept(t);
+            }
+        } finally {
+            concurrencyLimiter.release();
         }
     }
 }

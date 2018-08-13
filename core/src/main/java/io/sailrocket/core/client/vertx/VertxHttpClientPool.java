@@ -22,6 +22,7 @@ package io.sailrocket.core.client.vertx;
 import io.sailrocket.api.HttpClientPool;
 import io.sailrocket.api.HttpMethod;
 import io.sailrocket.api.HttpRequest;
+import io.sailrocket.core.util.AsyncSemaphore;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClientOptions;
 
@@ -33,12 +34,11 @@ import java.util.function.Consumer;
  */
 public class VertxHttpClientPool implements HttpClientPool {
   private final Vertx vertx;
-  private final AtomicInteger inflight = new AtomicInteger();
   private final int maxInflight;
   private AtomicInteger currentSlot = new AtomicInteger();
   private ContextAwareClient[] contextAwareClients;
   private final ThreadLocal<ContextAwareClient> current = ThreadLocal.withInitial(() -> contextAwareClients[currentSlot.getAndIncrement() % contextAwareClients.length]);
-
+  private final AsyncSemaphore concurrencyLimiter;
 
   public VertxHttpClientPool(VertxHttpClientPoolFactory builder) {
 
@@ -54,6 +54,7 @@ public class VertxHttpClientPool implements HttpClientPool {
 
     this.vertx = builder.vertx;
     this.maxInflight = builder.concurrency * builder.size;
+    this.concurrencyLimiter = new AsyncSemaphore(maxInflight);
     this.contextAwareClients = new ContextAwareClient[builder.threadCount];
 
     int perSlotSize = builder.size / contextAwareClients.length;
@@ -68,26 +69,16 @@ public class VertxHttpClientPool implements HttpClientPool {
   }
 
   @Override
-  public long inflight() {
-    return inflight.get();
-  }
-
-  @Override
   public void start(Consumer<Void> completionHandler) {
     completionHandler.accept(null);
   }
 
   @Override
   public HttpRequest request(HttpMethod method, String path) {
-    //    if (inflight.get() < maxInflight) {
-      inflight.incrementAndGet();
-
       //TODO:: this needs to return a connection in a pool
       //atm this tightly couples requests to the connection "pool"
       //we aren't really pooling
-      return new VertxHttpRequest(method, path, inflight, current.get());
-//    }
-//    return null;
+      return new VertxHttpRequest(method, path, concurrencyLimiter, current.get());
   }
 
   @Override

@@ -172,12 +172,7 @@ abstract class HttpClientPoolImpl implements HttpClientPool {
 
     public abstract void resetStatistics();
 
-    @Override
-    public synchronized long inflight() {
-        return all.stream().mapToInt(con -> con.inflight()).sum();
-    }
-
-    public void shutdown() {
+   public void shutdown() {
         HashSet<HttpConnection> list;
         synchronized (this) {
             if (shutdown)

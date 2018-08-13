@@ -26,8 +26,6 @@ public interface HttpClientPool {
 
   HttpRequest request(HttpMethod method, String path);
 
-  long inflight();
-
   long bytesRead();
 
   long bytesWritten();

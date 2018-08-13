@@ -284,12 +284,7 @@ public class ChainableEventsTestCase {
             return new DummyHttpRequest(method, path, new AtomicInteger(1), null);
         }
 
-        @Override
-        public long inflight() {
-            return 0;
-        }
-
-        @Override
+       @Override
         public long bytesRead() {
             return 0;
         }
