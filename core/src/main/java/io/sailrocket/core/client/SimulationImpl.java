@@ -78,8 +78,27 @@ public class SimulationImpl implements Simulation {
         return this;
     }
 
+    public JsonObject tags() {
+        return tags;
+    }
 
-    List<Report> run() throws Exception {
+    public int rate() {
+        return rate;
+    }
+
+    public long duration() {
+        return duration;
+    }
+
+    public int numOfScenarios() {
+        return scenarios.size();
+    }
+
+    public void shutdown() {
+        clientPool.shutdown();
+    }
+
+    public List<Report> run() throws Exception {
         //Initialise HttpClientPool
         CountDownLatch latch = new CountDownLatch(1);
         clientPool.start(v1 -> {

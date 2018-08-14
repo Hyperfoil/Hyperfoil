@@ -20,8 +20,8 @@
 
 package io.sailrocket.core.builders;
 
-import io.sailrocket.api.Sequence;
-import io.sailrocket.core.impl.ScenarioImpl;
+import io.sailrocket.api.Step;
+import io.sailrocket.core.impl.SequenceImpl;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,33 +30,33 @@ import java.util.function.Consumer;
 /**
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
  */
-public class ScenarioBuilder {
+public class SequenceBuilder {
 
-    private List<Sequence> sequences;
+    private List<Step> steps;
 
-    private ScenarioBuilder() {
-        sequences = new ArrayList<>();
+    private SequenceBuilder() {
+        steps = new ArrayList<>();
     }
 
-    public static ScenarioBuilder builder() {
-        return new ScenarioBuilder();
+    public static SequenceBuilder builder() {
+        return new SequenceBuilder();
     }
 
-    private ScenarioBuilder apply(Consumer<ScenarioBuilder> consumer) {
+    private SequenceBuilder apply(Consumer<SequenceBuilder> consumer) {
         consumer.accept(this);
         return this;
     }
 
-    public ScenarioBuilder sequence(Sequence sequence) {
-        return apply(clone ->  clone.sequences.add(sequence));
+    public SequenceBuilder step(Step step) {
+        return apply(clone -> clone.steps.add(step));
     }
 
-    public ScenarioImpl build() {
-        ScenarioImpl scenario = new ScenarioImpl();
-        for(Sequence sequence : sequences)
-            scenario.sequence(sequence);
+    public SequenceImpl build() {
+        SequenceImpl sequence = new SequenceImpl();
+        for(Step step : steps)
+            sequence.step(step);
 
-        return scenario;
+       return sequence;
     }
 
 }

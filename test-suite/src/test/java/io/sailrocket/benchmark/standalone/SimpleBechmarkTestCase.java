@@ -1,8 +1,10 @@
 package io.sailrocket.benchmark.standalone;
 
-import io.sailrocket.test.Benchmark;
 import io.sailrocket.core.BenchmarkImpl;
-
+import io.sailrocket.core.builders.BenchmarkBuilder;
+import io.sailrocket.core.builders.HttpBuilder;
+import io.sailrocket.core.builders.SimulationBuilder;
+import io.sailrocket.test.Benchmark;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
@@ -11,11 +13,21 @@ import org.junit.experimental.categories.Category;
 public class SimpleBechmarkTestCase extends BaseBenchmarkTestCase {
     @Test
     public void runSimpleBenchmarkTest() throws Exception {
-        BenchmarkImpl benchmark = new BenchmarkImpl("Simple Benchmark");
-        benchmark
-              .agents("localhost")
-              .users(10)
-              .endpoint("http://localhost:8080/")
-              .run();
+
+        BenchmarkImpl benchmark =
+                BenchmarkBuilder.builder()
+                        .name("Simple Benchmark")
+                        .simulation(SimulationBuilder.builder()
+                                            .http(HttpBuilder.builder().baseUrl("http://localhost:8080/").build())
+                                            .concurrency(10)
+                                            .duration("3s")
+                                            .connections(1)
+                                            .rate(100)
+                                            .build())
+                        .build();
+
+        benchmark.endpoint("/");
+
+        benchmark.run();
     }
 }

@@ -36,12 +36,14 @@ public abstract class Benchmark implements Serializable {
     protected String[] hosts;
     protected int users;
     protected String endpoint;
+    protected Simulation simulation;
 
     public Benchmark(String name) {
         this.name = name;
     }
 
     public Benchmark simulation(Simulation simulation) {
+        this.simulation = simulation;
         return this;
     }
 

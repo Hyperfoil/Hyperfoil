@@ -20,6 +20,7 @@
 package io.sailrocket.core.builders;
 
 import io.sailrocket.api.Simulation;
+import io.sailrocket.core.BenchmarkImpl;
 
 import java.util.function.Consumer;
 
@@ -43,12 +44,19 @@ public class BenchmarkBuilder {
         return this;
     }
 
-    private BenchmarkBuilder name(String name) {
+    public BenchmarkBuilder name(String name) {
         return apply(clone -> clone.name = name);
     }
 
-    private BenchmarkBuilder simulation(Simulation simulation) {
+    public BenchmarkBuilder simulation(Simulation simulation) {
         return apply(clone -> clone.simulation = simulation);
     }
 
+    public BenchmarkImpl build() {
+
+        BenchmarkImpl benchmark = new BenchmarkImpl(name);
+        benchmark.simulation(simulation);
+
+        return benchmark;
+    }
 }

@@ -116,4 +116,7 @@ public class StepImpl implements AsyncStep {
         return completion;
     }
 
+    public void params(Map<String, String> params) {
+        this.params.putAll(params);
+    }
 }

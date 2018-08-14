@@ -1,12 +1,17 @@
 package io.sailrocket.core;
 
 import io.sailrocket.api.Benchmark;
-import io.sailrocket.core.client.HttpClientProvider;
-import io.sailrocket.core.client.HttpClientRunner;
-import io.vertx.core.http.HttpVersion;
+import io.sailrocket.core.builders.ScenarioBuilder;
+import io.sailrocket.core.builders.SequenceBuilder;
+import io.sailrocket.core.builders.StepBuilder;
+import io.sailrocket.core.client.SimulationImpl;
+import io.sailrocket.core.util.Report;
 import org.HdrHistogram.Histogram;
 
-import java.util.Arrays;
+import java.io.PrintStream;
+import java.util.Timer;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class BenchmarkImpl extends Benchmark {
     public BenchmarkImpl(String name) {
@@ -16,6 +21,76 @@ public class BenchmarkImpl extends Benchmark {
     @Override
     public Histogram run() {
 
+        //if we dont have any simulations, use a simple one from the endpoint
+        if(endpoint != null && ((SimulationImpl) simulation).numOfScenarios() == 0) {
+            simulation.scenario(ScenarioBuilder.builder()
+                                        .sequence(SequenceBuilder.builder()
+                                        .step(StepBuilder.builder()
+                                                .path(endpoint)
+                                                      .build())
+                                        .build())
+            .build());
+        }
+
+        double[] percentiles = {50, 90, 99, 99.9};
+        AtomicReference<SimulationImpl> currentLoad = new AtomicReference<>();
+        Timer timer = new Timer("console-logger", true);
+        timer.schedule(new java.util.TimerTask() {
+            @Override
+            public void run() {
+                SimulationImpl simulationImpl = currentLoad.get();
+                if (simulationImpl != null) {
+                    simulationImpl.printDetails();
+                }
+            }
+        }, TimeUnit.SECONDS.toMillis(5), TimeUnit.SECONDS.toMillis(5));
+
+        StringBuilder ratesChart = new StringBuilder();
+        StringBuilder histoChart = new StringBuilder();
+        StringBuilder allReport = new StringBuilder();
+        Report report = new Report(((SimulationImpl) simulation).tags());
+        allReport.append(report.header());
+
+        currentLoad.set((SimulationImpl) simulation);
+
+        try {
+            report = ((SimulationImpl) simulation).run().get(0);
+            currentLoad.set(null);
+
+            if (name != null) {
+                report.save(name + "_" + ((SimulationImpl) simulation).rate());
+            }
+            ratesChart.append(((SimulationImpl) simulation).rate()).append(",").append(report.ratio).append("\n");
+            histoChart.append(((SimulationImpl) simulation).rate());
+            for (double percentile : percentiles) {
+                histoChart.append(",").append(report.getResponseTimeMillisPercentile(percentile));
+            }
+            histoChart.append(",").append(report.getMaxResponseTimeMillis());
+            histoChart.append("\n");
+            allReport.append(report.format(null));
+
+        if (name != null) {
+            try (PrintStream ps = new PrintStream(name + "_rates.csv")) {
+                ps.print(ratesChart);
+            }
+            try (PrintStream ps = new PrintStream(name + "_histo.csv")) {
+                ps.print(histoChart);
+            }
+            try (PrintStream ps = new PrintStream(name + "_report.csv")) {
+                ps.print(allReport);
+            }
+        }
+
+        ((SimulationImpl) simulation).shutdown();
+        timer.cancel();
+        return report.histogram;
+        }
+        catch(Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+
+    /*
         HttpClientRunner httpClient = new HttpClientRunner();
         httpClient.provider = HttpClientProvider.vertx;
         httpClient.connections = this.users;
@@ -32,6 +107,7 @@ public class BenchmarkImpl extends Benchmark {
             e.printStackTrace();
             return null;
         }
+        */
     }
 
 

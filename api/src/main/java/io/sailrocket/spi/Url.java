@@ -47,9 +47,9 @@ public class Url {
 
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append(protocol.name()).append("://").append(host).append(protocol.port());
-        if(path != null) {
-            sb.append("/").append(path);
+        sb.append(protocol.name()).append("://").append(host).append(":").append(protocol.port()).append("/");
+        if(path != null && !path.equals("/")) {
+            sb.append(path);
         }
 
         return sb.toString();

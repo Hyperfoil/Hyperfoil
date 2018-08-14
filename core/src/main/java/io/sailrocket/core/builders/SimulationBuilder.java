@@ -45,7 +45,7 @@ public class SimulationBuilder {
     private String payload = "";
     //for now just create one scenario
     private Scenario scenario;
-    private int rate;
+    private int rate = 100;
     //also support an endpoint for a simple benchmark
 
     private SimulationBuilder() {
@@ -145,10 +145,12 @@ public class SimulationBuilder {
         JsonObject tags = new JsonObject();
         tags.put("payloadSize", payload.length());
         tags.put("url", http.baseUrl().toString());
-        tags.put("rate", 0);
+        tags.put("rate", rate);
         tags.put("protocol", http.baseUrl().protocol().version().toString());
         tags.put("maxQueue", concurrency);
         tags.put("connections", connections);
+        tags.put("rate", rate);
+        tags.put("threads", threads);
 
         return tags;
     }
