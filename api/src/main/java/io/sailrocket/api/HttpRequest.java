@@ -53,16 +53,11 @@ public interface HttpRequest {
 
   HttpRequest resetHandler(IntConsumer handler);
 
-  HttpRequest bodyHandler(Consumer<byte[]> handler);
+  HttpRequest bodyHandler(Consumer<ByteBuf> handler);
 
   HttpRequest endHandler(Consumer<HttpResponse> handler);
 
   HttpRequest exceptionHandler(Consumer<Throwable> handler);
 
-  // TODO: Netty api leak?
-  void end(ByteBuf buff);
-
-  default void end() {
-    end(null);
-  }
+  void end();
 }

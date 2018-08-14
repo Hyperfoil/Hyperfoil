@@ -35,7 +35,7 @@ import java.util.Map;
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
  */
 public class VertxHttpRequest extends AbstractHttpRequest {
-
+    private final ByteBuf body;
     private Map<String, String> headers;
     private final HttpMethod method;
     private final String path;
@@ -43,11 +43,12 @@ public class VertxHttpRequest extends AbstractHttpRequest {
     private final AsyncSemaphore concurrencyLimiter;
 
     VertxHttpRequest(HttpMethod method, String path, AsyncSemaphore concurrencyLimiter,
-                     ContextAwareClient current) {
+                     ContextAwareClient current, ByteBuf body) {
       this.method = method;
       this.path = path;
       this.concurrencyLimiter = concurrencyLimiter;
       this.current = current;
+      this.body = body;
     }
     @Override
     public HttpRequest putHeader(String name, String value) {
@@ -59,13 +60,13 @@ public class VertxHttpRequest extends AbstractHttpRequest {
     }
 
     @Override
-    public void end(ByteBuf buff) {
+    public void end() {
         concurrencyLimiter.acquire(() ->
             current.context.runOnContext(v -> {
                 HttpClientRequest request = current.client.request(method.vertx, path);
                 requestHandler(request);
-                if (buff != null) {
-                    request.end(Buffer.buffer(buff));
+                if (body != null) {
+                    request.end(Buffer.buffer(body));
                 } else {
                     request.end();
                 }
@@ -80,7 +81,7 @@ public class VertxHttpRequest extends AbstractHttpRequest {
                 if (headerHandler != null)
                     headerHandler.accept(new HttpHeader(response.headers()));
                 if (dataHandler != null)
-                    response.handler(chunk -> dataHandler.accept(chunk.getByteBuf().array()));
+                    response.handler(chunk -> dataHandler.accept(chunk.getByteBuf()));
             } catch (Throwable t) {
                 exceptionally(t);
                 return;

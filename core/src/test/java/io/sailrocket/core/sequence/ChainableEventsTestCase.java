@@ -1,5 +1,6 @@
 package io.sailrocket.core.sequence;
 
+import io.netty.buffer.ByteBuf;
 import io.sailrocket.api.HttpClientPool;
 import io.sailrocket.api.HttpMethod;
 import io.sailrocket.api.HttpRequest;
@@ -279,7 +280,7 @@ public class ChainableEventsTestCase {
         }
 
         @Override
-        public HttpRequest request(HttpMethod method, String path) {
+        public HttpRequest request(HttpMethod method, String path, ByteBuf body) {
             executionOrder.add(path);
             return new DummyHttpRequest(method, path, new AtomicInteger(1), null);
         }

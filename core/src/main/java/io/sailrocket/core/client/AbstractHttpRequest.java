@@ -3,13 +3,14 @@ package io.sailrocket.core.client;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 
+import io.netty.buffer.ByteBuf;
 import io.sailrocket.api.HttpRequest;
 import io.sailrocket.api.HttpResponse;
 import io.sailrocket.spi.HttpHeader;
 
 public abstract class AbstractHttpRequest implements HttpRequest {
    protected IntConsumer statusHandler;
-   protected Consumer<byte[]> dataHandler;
+   protected Consumer<ByteBuf> dataHandler;
    protected Consumer<HttpResponse> endHandler;
    protected Consumer<HttpHeader> headerHandler;
    protected Consumer<Throwable> exceptionHandler;
@@ -34,7 +35,7 @@ public abstract class AbstractHttpRequest implements HttpRequest {
    }
 
    @Override
-   public HttpRequest bodyHandler(Consumer<byte[]> handler) {
+   public HttpRequest bodyHandler(Consumer<ByteBuf> handler) {
        this.dataHandler = handler;
        return this;
    }

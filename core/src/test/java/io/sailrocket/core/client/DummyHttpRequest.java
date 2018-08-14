@@ -20,7 +20,6 @@
 
 package io.sailrocket.core.client;
 
-import io.netty.buffer.ByteBuf;
 import io.sailrocket.api.HttpMethod;
 import io.sailrocket.api.HttpRequest;
 import io.sailrocket.core.client.vertx.ContextAwareClient;
@@ -63,7 +62,7 @@ public class DummyHttpRequest extends AbstractHttpRequest {
     }
 
     @Override
-    public void end(ByteBuf buff) {
+    public void end() {
         endHandler.accept(new HttpResponseImpl());
         /*
         current.context.runOnContext(v -> {
@@ -97,7 +96,7 @@ public class DummyHttpRequest extends AbstractHttpRequest {
                     headerHandler.accept(new HttpHeader(resp.headers()));
                 }
                 if(dataHandler != null)
-                    resp.handler(chunk -> dataHandler.accept(chunk.getByteBuf().array()));
+                    resp.handler(chunk -> dataHandler.accept(chunk.getByteBuf()));
                 resp.exceptionHandler(fut::tryFail);
                 resp.endHandler(doneHandler::tryComplete);
             }

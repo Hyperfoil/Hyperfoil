@@ -19,6 +19,7 @@
  */
 package io.sailrocket.core.client.vertx;
 
+import io.netty.buffer.ByteBuf;
 import io.sailrocket.api.HttpClientPool;
 import io.sailrocket.api.HttpMethod;
 import io.sailrocket.api.HttpRequest;
@@ -74,11 +75,11 @@ public class VertxHttpClientPool implements HttpClientPool {
   }
 
   @Override
-  public HttpRequest request(HttpMethod method, String path) {
+  public HttpRequest request(HttpMethod method, String path, ByteBuf body) {
       //TODO:: this needs to return a connection in a pool
       //atm this tightly couples requests to the connection "pool"
       //we aren't really pooling
-      return new VertxHttpRequest(method, path, concurrencyLimiter, current.get());
+      return new VertxHttpRequest(method, path, concurrencyLimiter, current.get(), body);
   }
 
   @Override

@@ -11,13 +11,13 @@ public class HttpRequestAction implements Action {
    private final HttpMethod method;
    private final Function<Session, String> pathGenerator;
    private final Function<Session, ByteBuf> bodyGenerator;
-   private final BiConsumer<Session, BiConsumer<String, String>> headerAppender;
+   private final BiConsumer<Session, HttpRequest> headerAppender;
    private final HttpResponseState handler;
 
    public HttpRequestAction(HttpMethod method,
                             Function<Session, String> pathGenerator,
                             Function<Session, ByteBuf> bodyGenerator,
-                            BiConsumer<Session, BiConsumer<String, String>> headerAppender,
+                            BiConsumer<Session, HttpRequest> headerAppender,
                             HttpResponseState handler) {
       this.method = method;
       this.pathGenerator = pathGenerator;
@@ -29,9 +29,10 @@ public class HttpRequestAction implements Action {
    @Override
    public void invoke(Session session) {
       // TODO alloc!
-      HttpRequest request = session.getHttpClientPool().request(method, pathGenerator.apply(session));
+      ByteBuf body = bodyGenerator == null ? null : bodyGenerator.apply(session);
+      HttpRequest request = session.getHttpClientPool().request(method, pathGenerator.apply(session), body);
       if (headerAppender != null) {
-         headerAppender.accept(session, request::putHeader);
+         headerAppender.accept(session, request);
       }
 
       // alloc-free below
@@ -39,10 +40,6 @@ public class HttpRequestAction implements Action {
       request.exceptionHandler(session.exceptionHandler(handler, HttpResponseState.HANDLE_EXCEPTION));
       request.bodyHandler(session.objectHandler(handler, HttpResponseState.HANDLE_BODY));
       request.endHandler(session.objectHandler(handler, HttpResponseState.HANDLE_END));
-      if (bodyGenerator == null) {
-         request.end();
-      } else {
-         request.end(bodyGenerator.apply(session));
-      }
+      request.end();
    }
 }

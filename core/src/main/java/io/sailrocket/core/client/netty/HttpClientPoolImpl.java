@@ -1,5 +1,6 @@
 package io.sailrocket.core.client.netty;
 
+import io.netty.buffer.ByteBuf;
 import io.netty.handler.ssl.ApplicationProtocolConfig;
 import io.netty.handler.ssl.ApplicationProtocolNames;
 import io.netty.handler.ssl.OpenSsl;
@@ -19,7 +20,6 @@ import io.vertx.core.http.HttpVersion;
 
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -154,12 +154,8 @@ abstract class HttpClientPoolImpl implements HttpClientPool {
     }
 
     @Override
-    public HttpRequest request(HttpMethod method, String path) {
-        try {
-            return choose().request(method, path);
-        } catch (NoSuchElementException ex) {
-            return null;
-        }
+    public HttpRequest request(HttpMethod method, String path, ByteBuf body) {
+        return choose().request(method, path, body);
     }
 
     //TODO:: delegate to a connection pool

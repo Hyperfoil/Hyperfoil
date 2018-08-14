@@ -2,6 +2,7 @@ package io.sailrocket.core.machine;
 
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 
 import org.junit.AfterClass;
@@ -11,8 +12,10 @@ import org.junit.runner.RunWith;
 
 import io.sailrocket.api.HttpClientPool;
 import io.sailrocket.api.HttpMethod;
+import io.sailrocket.api.HttpRequest;
 import io.sailrocket.core.client.HttpClientProvider;
 import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpVersion;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.unit.Async;
@@ -29,7 +32,15 @@ public class StateMachineTest {
 
    @BeforeClass
    public static void before(TestContext ctx) throws Exception {
-      httpClientPool = HttpClientProvider.vertx.builder().host("localhost").port(8080).concurrency(3).threads(3).size(100).build();
+      httpClientPool = HttpClientProvider.netty.builder().host("localhost")
+            .protocol(HttpVersion.HTTP_1_1)
+            .port(8080)
+            .concurrency(3)
+            .threads(3)
+            .size(100)
+            .build();
+      Async clientPoolAsync = ctx.async();
+      httpClientPool.start(nil -> clientPoolAsync.complete());
       vertx = Vertx.vertx();
       vertx.createHttpServer().requestHandler(req -> {
          log.info("Received request to {}, headers {}", req.uri(), req.headers());
@@ -57,9 +68,8 @@ public class StateMachineTest {
       HttpResponseState awaitFirstResponseState = new HttpResponseState("await1");
       State decrementState = new State("dec");
 
-      HttpRequestAction firstRequestAction = new HttpRequestAction(HttpMethod.GET, s -> "/", null, (session, appendHeader) -> {
-         appendHeader.accept("Authentization", (String) session.var("authToken"));
-      }, awaitFirstResponseState);
+      BiConsumer<Session, HttpRequest> addAuth = (session, appendHeader) -> appendHeader.putHeader("Authentization", (String) session.var("authToken"));
+      HttpRequestAction firstRequestAction = new HttpRequestAction(HttpMethod.GET, s -> "/", null, addAuth, awaitFirstResponseState);
       Predicate<Session> testCounter = session -> ((Integer) session.var("counter")).compareTo(0) > 0;
       Transition firstRequestTransition = new Transition(testCounter, firstRequestAction, secondRequestState, false);
       initState.addTransition(firstRequestTransition);

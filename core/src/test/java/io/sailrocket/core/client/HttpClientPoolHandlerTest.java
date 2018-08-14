@@ -70,7 +70,7 @@ public class HttpClientPoolHandlerTest {
                 .size(1)
                 .build();
 
-        HttpRequest conn = client.request(HttpMethod.GET, "/");
+        HttpRequest conn = client.request(HttpMethod.GET, "/", null);
         CountDownLatch latch = new CountDownLatch(4);
 
         conn.statusHandler(code -> {
@@ -81,7 +81,7 @@ public class HttpClientPoolHandlerTest {
             latch.countDown();
         })
         .bodyHandler(input -> {
-            assertEquals("hello from server", new String(input));
+            assertEquals("hello from server", new String(input.array()));
             latch.countDown();
         }).endHandler(e -> {
             latch.countDown();

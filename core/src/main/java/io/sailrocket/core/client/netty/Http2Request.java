@@ -12,13 +12,13 @@ class Http2Request extends AbstractHttpRequest {
 
   private final Http2Connection conn;
   private final Http2Headers headers;
+  private final ByteBuf body;
   private boolean sent;
-  final HttpMethod method;
 
-  Http2Request(Http2ClientPool client, Http2Connection conn, HttpMethod method, String path) {
-    this.method = method;
+  Http2Request(Http2ClientPool client, Http2Connection conn, HttpMethod method, String path, ByteBuf buf) {
     this.conn = conn;
     this.headers = client.headers(method.name(), "https", path);
+    this.body = buf;
   }
 
   public Http2Request putHeader(String name, String value) {
@@ -26,11 +26,11 @@ class Http2Request extends AbstractHttpRequest {
     return this;
   }
 
-  public void end(ByteBuf buff) {
+  public void end() {
     if (sent) {
       throw new IllegalStateException();
     }
     sent = true;
-    conn.bilto(new Http2Connection.Http2Stream(headers, buff, statusHandler, byteBuf -> dataHandler.accept(byteBuf.array()), resetHandler, endHandler));
+    conn.bilto(new Http2Connection.Http2Stream(headers, body, statusHandler, dataHandler, resetHandler, endHandler));
   }
 }

@@ -20,11 +20,13 @@ package io.sailrocket.api;
 
 import java.util.function.Consumer;
 
+import io.netty.buffer.ByteBuf;
+
 public interface HttpClientPool {
 
   void start(Consumer<Void> completionHandler);
 
-  HttpRequest request(HttpMethod method, String path);
+  HttpRequest request(HttpMethod method, String path, ByteBuf body);
 
   long bytesRead();
 

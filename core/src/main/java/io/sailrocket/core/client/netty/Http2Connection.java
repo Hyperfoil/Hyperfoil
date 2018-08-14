@@ -165,9 +165,9 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
     });
   }
 
-  public HttpRequest request(HttpMethod method, String path) {
+  public HttpRequest request(HttpMethod method, String path, ByteBuf body) {
     numStreams.incrementAndGet();
-    return new Http2Request(client, this, method, path);
+    return new Http2Request(client, this, method, path, body);
   }
 
   private int nextStreamId() {

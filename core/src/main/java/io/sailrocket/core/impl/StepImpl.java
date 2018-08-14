@@ -66,7 +66,12 @@ public class StepImpl implements AsyncStep {
             log.trace("Async step begin: request to {}", endpoint);
         }
 
-        HttpRequest request = sequenceContext.clientPool().request(payload != null ? HttpMethod.POST : HttpMethod.GET, endpoint);
+        HttpRequest request;
+        if (payload == null) {
+            request = sequenceContext.clientPool().request(HttpMethod.GET, endpoint, null);
+        } else {
+            request = sequenceContext.clientPool().request(HttpMethod.POST, endpoint, payload.duplicate());
+        }
 
         CompletableFuture<SequenceContext> completion = new CompletableFuture<>();
 
@@ -82,7 +87,7 @@ public class StepImpl implements AsyncStep {
                sequenceContext.validatorResults().addHeader(validators.statusValidator().validate(code));
         }).bodyHandler( body -> {
             if (validators != null && validators.hasBodyValidator())
-                sequenceContext.validatorResults().addBody(validators.bodyValidator().validate(new String(body)));
+                sequenceContext.validatorResults().addBody(validators.bodyValidator().validate(new String(body.array())));
         }).resetHandler(frame -> {
             // TODO: what is reset handler? Not used ATM
             sequenceContext.sequenceStats().resetCount.increment();
@@ -106,11 +111,7 @@ public class StepImpl implements AsyncStep {
             log.trace("Starting a request to {}", endpoint);
         }
         sequenceContext.sequenceStats().requestCount.increment();
-        if (payload != null) {
-            request.end(payload.duplicate());
-        } else {
-            request.end();
-        }
+        request.end();
 
         return completion;
     }

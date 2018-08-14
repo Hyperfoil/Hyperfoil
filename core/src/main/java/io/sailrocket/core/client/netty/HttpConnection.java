@@ -1,5 +1,6 @@
 package io.sailrocket.core.client.netty;
 
+import io.netty.buffer.ByteBuf;
 import io.sailrocket.api.HttpMethod;
 import io.sailrocket.api.HttpRequest;
 import io.netty.channel.ChannelHandlerContext;
@@ -11,7 +12,7 @@ public interface HttpConnection {
 
   int inflight();
 
-  HttpRequest request(HttpMethod method, String path);
+  HttpRequest request(HttpMethod method, String path, ByteBuf body);
 
   ChannelHandlerContext context();
 
