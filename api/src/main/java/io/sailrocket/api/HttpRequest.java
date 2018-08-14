@@ -59,6 +59,7 @@ public interface HttpRequest {
 
   HttpRequest exceptionHandler(Consumer<Throwable> handler);
 
+  // TODO: Netty api leak?
   void end(ByteBuf buff);
 
   default void end() {
