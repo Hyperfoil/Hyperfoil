@@ -38,7 +38,7 @@ public class SequenceBuilder {
         steps = new ArrayList<>();
     }
 
-    public static SequenceBuilder builder() {
+    public static SequenceBuilder sequenceBuilder() {
         return new SequenceBuilder();
     }
 
@@ -49,6 +49,10 @@ public class SequenceBuilder {
 
     public SequenceBuilder step(Step step) {
         return apply(clone -> clone.steps.add(step));
+    }
+
+    public SequenceBuilder step(StepBuilder stepBuilder) {
+        return apply(clone -> clone.steps.add(stepBuilder.build()));
     }
 
     public SequenceImpl build() {

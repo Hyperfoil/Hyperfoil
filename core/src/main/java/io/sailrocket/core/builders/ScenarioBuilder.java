@@ -38,7 +38,7 @@ public class ScenarioBuilder {
         sequences = new ArrayList<>();
     }
 
-    public static ScenarioBuilder builder() {
+    public static ScenarioBuilder scenarioBuilder() {
         return new ScenarioBuilder();
     }
 
@@ -49,6 +49,10 @@ public class ScenarioBuilder {
 
     public ScenarioBuilder sequence(Sequence sequence) {
         return apply(clone ->  clone.sequences.add(sequence));
+    }
+
+    public ScenarioBuilder sequence(SequenceBuilder sequenceBuilder) {
+        return apply(clone ->  clone.sequences.add(sequenceBuilder.build()));
     }
 
     public ScenarioImpl build() {

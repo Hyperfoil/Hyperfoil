@@ -40,7 +40,7 @@ public class HttpBuilder {
         header = new HashMap<>();
     }
 
-    public static HttpBuilder builder() {
+    public static HttpBuilder httpBuilder() {
         return new HttpBuilder();
     }
 

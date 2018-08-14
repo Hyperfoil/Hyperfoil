@@ -51,7 +51,7 @@ public class SimulationBuilder {
     private SimulationBuilder() {
     }
 
-    public static SimulationBuilder builder() {
+    public static SimulationBuilder simulationBuilder() {
         return new SimulationBuilder();
     }
 
@@ -62,6 +62,10 @@ public class SimulationBuilder {
 
     public SimulationBuilder http(HttpBase http) {
         return apply(clone -> clone.http = http);
+    }
+
+    public SimulationBuilder http(HttpBuilder httpBuilder) {
+        return apply(clone -> clone.http = httpBuilder.build());
     }
 
     public SimulationBuilder duration(String duration) {
@@ -99,6 +103,10 @@ public class SimulationBuilder {
 
     public SimulationBuilder scenario(Scenario scenario) {
         return apply(clone -> clone.scenario = scenario);
+    }
+
+    public SimulationBuilder scenario(ScenarioBuilder scenarioBuilder) {
+        return apply(clone -> clone.scenario = scenarioBuilder.build());
     }
 
     private static long parseDuration(String s) {

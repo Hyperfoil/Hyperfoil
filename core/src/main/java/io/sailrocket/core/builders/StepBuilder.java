@@ -43,7 +43,7 @@ public class StepBuilder {
     private StepBuilder() {
     }
 
-    public static StepBuilder builder() {
+    public static StepBuilder stepBuilder() {
         return new StepBuilder();
     }
 

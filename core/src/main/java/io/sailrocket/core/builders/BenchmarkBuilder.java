@@ -52,6 +52,10 @@ public class BenchmarkBuilder {
         return apply(clone -> clone.simulation = simulation);
     }
 
+    public BenchmarkBuilder simulation(SimulationBuilder simulationBuilder) {
+        return apply(clone -> clone.simulation = simulationBuilder.build());
+    }
+
     public BenchmarkImpl build() {
 
         BenchmarkImpl benchmark = new BenchmarkImpl(name);

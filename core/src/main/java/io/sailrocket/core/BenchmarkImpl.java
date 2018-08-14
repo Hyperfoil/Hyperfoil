@@ -1,9 +1,6 @@
 package io.sailrocket.core;
 
 import io.sailrocket.api.Benchmark;
-import io.sailrocket.core.builders.ScenarioBuilder;
-import io.sailrocket.core.builders.SequenceBuilder;
-import io.sailrocket.core.builders.StepBuilder;
 import io.sailrocket.core.client.SimulationImpl;
 import io.sailrocket.core.util.Report;
 import org.HdrHistogram.Histogram;
@@ -12,6 +9,10 @@ import java.io.PrintStream;
 import java.util.Timer;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+
+import static io.sailrocket.core.builders.ScenarioBuilder.scenarioBuilder;
+import static io.sailrocket.core.builders.SequenceBuilder.sequenceBuilder;
+import static io.sailrocket.core.builders.StepBuilder.stepBuilder;
 
 public class BenchmarkImpl extends Benchmark {
     public BenchmarkImpl(String name) {
@@ -23,12 +24,12 @@ public class BenchmarkImpl extends Benchmark {
 
         //if we dont have any simulations, use a simple one from the endpoint
         if(endpoint != null && ((SimulationImpl) simulation).numOfScenarios() == 0) {
-            simulation.scenario(ScenarioBuilder.builder()
-                                        .sequence(SequenceBuilder.builder()
-                                        .step(StepBuilder.builder()
+            simulation.scenario(scenarioBuilder()
+                                        .sequence(sequenceBuilder()
+                                        .step(stepBuilder()
                                                 .path(endpoint)
-                                                      .build())
-                                        .build())
+                                              )
+                                        )
             .build());
         }
 
