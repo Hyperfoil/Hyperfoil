@@ -7,8 +7,12 @@ import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 
 import io.sailrocket.api.HttpClientPool;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 
 public class Session {
+   private static final Logger log = LoggerFactory.getLogger(Session.class);
+
    private final HttpClientPool httpClientPool;
    private final ScheduledExecutorService scheduledExecutor;
 
@@ -76,11 +80,12 @@ public class Session {
       vars.put(name, value);
    }
 
-   void setState(State currentState) {
-      this.currentState = currentState;
+   void setState(State newState) {
+      log.trace("Traversing {} -> {}", this.currentState, newState);
+      this.currentState = newState;
    }
 
    public void run() {
-      while (currentState.progress(this));
+      while (currentState != null && currentState.progress(this));
    }
 }

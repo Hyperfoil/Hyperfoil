@@ -2,6 +2,7 @@ package io.sailrocket.core.machine;
 
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -48,42 +49,52 @@ public class StateMachineTest {
       // We need to call async() to prevent termination when the test method completes
       Async async = ctx.async();
 
-      State initState = new State();
-      HttpRequestAction httpRequestAction = new HttpRequestAction(HttpMethod.GET, s -> "/", null, (session, appendHeader) -> {
+      // Define states first, then link them
+      State initState = new State("init");
+      State secondRequestState = new State("req2");
+      // We'll structure the states so that we wait for the second response first
+      HttpResponseState awaitSecondResponseState = new HttpResponseState("await2");
+      HttpResponseState awaitFirstResponseState = new HttpResponseState("await1");
+      State decrementState = new State("dec");
+
+      HttpRequestAction firstRequestAction = new HttpRequestAction(HttpMethod.GET, s -> "/", null, (session, appendHeader) -> {
          appendHeader.accept("Authentization", (String) session.var("authToken"));
-      });
-      Transition requestTransition = new Transition(session -> ((Integer) session.var("counter")).compareTo(0) > 0, httpRequestAction, true);
-      initState.addTransition(requestTransition);
+      }, awaitFirstResponseState);
+      Predicate<Session> testCounter = session -> ((Integer) session.var("counter")).compareTo(0) > 0;
+      Transition firstRequestTransition = new Transition(testCounter, firstRequestAction, secondRequestState, false);
+      initState.addTransition(firstRequestTransition);
       initState.addTransition(new Transition(null, session -> {
          log.info("Test completed");
          async.complete();
-         return null;
-      }, true));
-      HttpResponseState waitForResponseState = new HttpResponseState();
-      httpRequestAction.setHandler(waitForResponseState);
+      }, null, true));
 
-      DelayAction delayAction = new DelayAction(1, TimeUnit.SECONDS);
-      Transition delayTransition = new Transition(null, delayAction, true);
-      waitForResponseState.addTransition(delayTransition);
-      State decrementState = new State();
-      delayAction.setNextState(decrementState);
+      HttpRequestAction secondRequestAction = new HttpRequestAction(HttpMethod.GET, s -> "/favicon.png", null, null, awaitSecondResponseState);
+      Transition secondRequestTransition = new Transition(null, secondRequestAction, awaitSecondResponseState, true);
+      secondRequestState.addTransition(secondRequestTransition);
+
+      awaitSecondResponseState.addTransition(new Transition(null, null, awaitFirstResponseState, true));
+
+      DelayAction delayAction = new DelayAction(1, TimeUnit.SECONDS, decrementState);
+      awaitFirstResponseState.addTransition(new Transition(null, delayAction, decrementState, true));
 
       Action decrementAction = session -> {
          // TODO: maybe we should add primitive vars to avoid boxing
          Integer counter = (Integer) session.var("counter");
          session.var("counter", counter - 1);
-         return initState;
       };
-      Transition decrementTransition = new Transition(null, decrementAction, false);
-      decrementState.addTransition(decrementTransition);
+      decrementState.addTransition(new Transition(null, decrementAction, initState, false));
 
+      // Allocating init
       Session session = new Session(httpClientPool, timedExecutor, initState);
       session.var("counter", 3);
       session.var("authToken", "blabbla");
       initState.register(session);
-      waitForResponseState.register(session);
+      secondRequestState.register(session);
+      awaitSecondResponseState.register(session);
+      awaitFirstResponseState.register(session);
       decrementState.register(session);
 
+      // Allocation-free run
       session.run();
    }
 }

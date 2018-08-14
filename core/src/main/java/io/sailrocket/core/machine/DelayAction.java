@@ -5,20 +5,16 @@ import java.util.concurrent.TimeUnit;
 public class DelayAction implements Action {
    private final long delay;
    private final TimeUnit timeUnit;
-   private State nextState;
+   private final State handler;
 
-   public DelayAction(long delay, TimeUnit timeUnit) {
+   public DelayAction(long delay, TimeUnit timeUnit, State handler) {
       this.delay = delay;
       this.timeUnit = timeUnit;
-   }
-
-   public void setNextState(State nextState) {
-      this.nextState = nextState;
+      this.handler = handler;
    }
 
    @Override
-   public State invoke(Session session) {
-      session.getScheduledExecutor().schedule(session.voidHandler(nextState, State.PROGRESS), delay, timeUnit);
-      return nextState;
+   public void invoke(Session session) {
+      session.getScheduledExecutor().schedule(session.voidHandler(handler, State.PROGRESS), delay, timeUnit);
    }
 }
