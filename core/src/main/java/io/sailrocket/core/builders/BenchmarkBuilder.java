@@ -53,7 +53,7 @@ public class BenchmarkBuilder {
     }
 
     public BenchmarkBuilder simulation(SimulationBuilder simulationBuilder) {
-        return apply(clone -> clone.simulation = simulationBuilder.build());
+        return simulation(simulationBuilder.build());
     }
 
     public BenchmarkImpl build() {

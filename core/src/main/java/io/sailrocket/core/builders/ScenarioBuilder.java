@@ -52,7 +52,7 @@ public class ScenarioBuilder {
     }
 
     public ScenarioBuilder sequence(SequenceBuilder sequenceBuilder) {
-        return apply(clone ->  clone.sequences.add(sequenceBuilder.build()));
+        return sequence(sequenceBuilder.build());
     }
 
     public ScenarioImpl build() {

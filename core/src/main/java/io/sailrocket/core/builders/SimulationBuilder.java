@@ -106,7 +106,7 @@ public class SimulationBuilder {
     }
 
     public SimulationBuilder scenario(ScenarioBuilder scenarioBuilder) {
-        return apply(clone -> clone.scenario = scenarioBuilder.build());
+        return scenario(scenarioBuilder.build());
     }
 
     private static long parseDuration(String s) {

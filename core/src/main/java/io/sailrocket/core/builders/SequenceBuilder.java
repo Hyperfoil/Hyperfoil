@@ -52,7 +52,7 @@ public class SequenceBuilder {
     }
 
     public SequenceBuilder step(StepBuilder stepBuilder) {
-        return apply(clone -> clone.steps.add(stepBuilder.build()));
+        return step(stepBuilder.build());
     }
 
     public SequenceImpl build() {
