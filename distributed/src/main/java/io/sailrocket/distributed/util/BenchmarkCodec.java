@@ -20,6 +20,6 @@
 
 package io.sailrocket.distributed.util;
 
-import io.sailrocket.api.Benchmark;
+import io.sailrocket.core.BenchmarkImpl;
 
-public class BenchmarkCodec<B extends Benchmark> extends ObjectCodec<B> {}
+public class BenchmarkCodec extends ObjectCodec<BenchmarkImpl> {}

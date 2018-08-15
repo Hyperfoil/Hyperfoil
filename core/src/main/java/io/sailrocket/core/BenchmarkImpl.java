@@ -1,6 +1,7 @@
 package io.sailrocket.core;
 
 import io.sailrocket.api.Benchmark;
+import io.sailrocket.api.BenchmarkDefinitionException;
 import io.sailrocket.api.Report;
 import io.sailrocket.core.client.SimulationImpl;
 
@@ -10,28 +11,18 @@ import java.util.Timer;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static io.sailrocket.core.builders.ScenarioBuilder.scenarioBuilder;
-import static io.sailrocket.core.builders.SequenceBuilder.sequenceBuilder;
-import static io.sailrocket.core.builders.StepBuilder.stepBuilder;
-
 public class BenchmarkImpl extends Benchmark {
     public BenchmarkImpl(String name) {
         super(name);
     }
 
     @Override
-    public Collection<Report> run() {
+    public Collection<Report> run() throws BenchmarkDefinitionException {
 
         //if we dont have any simulations, use a simple one from the endpoint
         //TODO:: this needs to be moved into the cli to build a "default" scenario
-        if(endpoint != null && ((SimulationImpl) simulation).numOfScenarios() == 0) {
-            simulation.scenario(scenarioBuilder()
-                                        .sequence(sequenceBuilder()
-                                        .step(stepBuilder()
-                                                .path(endpoint)
-                                              )
-                                        )
-            .build());
+        if(((SimulationImpl) simulation).numOfScenarios() == 0) {
+            throw new BenchmarkDefinitionException("No Scenarios have been defined");
         }
 
         double[] percentiles = {50, 90, 99, 99.9};

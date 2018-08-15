@@ -1,10 +1,12 @@
 package io.sailrocket.distributed;
 
 import io.sailrocket.api.Benchmark;
+import io.sailrocket.api.BenchmarkDefinitionException;
 import io.sailrocket.api.Report;
+import io.sailrocket.core.BenchmarkImpl;
+import io.sailrocket.distributed.util.BenchmarkCodec;
 import io.sailrocket.distributed.util.ConcurrentHistogramCodec;
 import io.sailrocket.distributed.util.HistogramCodec;
-import io.sailrocket.distributed.util.SimpleBenchmarkCodec;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.eventbus.EventBus;
 import org.HdrHistogram.ConcurrentHistogram;
@@ -23,7 +25,7 @@ public class RunnerVerticle extends AbstractVerticle {
         //TODO:: this is a code smell, not sure atm why i need to register the codec's multiple times
         eb.registerDefaultCodec(Histogram.class, new HistogramCodec());
         eb.registerDefaultCodec(ConcurrentHistogram.class, new ConcurrentHistogramCodec());
-        eb.registerDefaultCodec(SimpleBenchmark.class, new SimpleBenchmarkCodec());
+        eb.registerDefaultCodec(BenchmarkImpl.class, new BenchmarkCodec());
 
 
         eb.consumer("control-feed", message -> {
@@ -36,6 +38,12 @@ public class RunnerVerticle extends AbstractVerticle {
 
     //need a Histogram codec to serialize and deserialize histogram
     private Collection<Report> startRunner(Benchmark benchmark) {
-        return benchmark.run();
+        try {
+            return benchmark.run();
+        } catch (BenchmarkDefinitionException e) {
+            //TODO:: handle exception correctly
+            e.printStackTrace();
+            return null;
+        }
     }
 }

@@ -1,8 +1,10 @@
 package io.sailrocket.benchmark.standalone;
 
+import io.sailrocket.api.BenchmarkDefinitionException;
 import io.sailrocket.core.BenchmarkImpl;
 import io.sailrocket.core.builders.BenchmarkBuilder;
 import io.sailrocket.test.Benchmark;
+import org.junit.Assert;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
@@ -27,8 +29,13 @@ public class SimpleBechmarkTestCase extends BaseBenchmarkTestCase {
                                             )
                         .build();
 
-        benchmark.endpoint("/");
+//        benchmark.endpoint("/");
 
-        benchmark.run();
+        try {
+            benchmark.run();
+        } catch (BenchmarkDefinitionException e) {
+            e.printStackTrace();
+            Assert.fail(e.getMessage());
+        }
     }
 }

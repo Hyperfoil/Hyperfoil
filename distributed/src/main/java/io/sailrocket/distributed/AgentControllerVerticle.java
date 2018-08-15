@@ -1,8 +1,9 @@
 package io.sailrocket.distributed;
 
+import io.sailrocket.core.BenchmarkImpl;
+import io.sailrocket.distributed.util.BenchmarkCodec;
 import io.sailrocket.distributed.util.ConcurrentHistogramCodec;
 import io.sailrocket.distributed.util.HistogramCodec;
-import io.sailrocket.distributed.util.SimpleBenchmarkCodec;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.impl.VertxImpl;
@@ -13,6 +14,7 @@ import io.vertx.ext.web.handler.BodyHandler;
 import org.HdrHistogram.ConcurrentHistogram;
 import org.HdrHistogram.Histogram;
 
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -25,6 +27,7 @@ public class AgentControllerVerticle extends AbstractVerticle {
     private CountDownLatch resultLatch;
 
     private Histogram collatedHistogram;
+    private Map<String, BenchmarkImpl> benchmarks;
 
     @Override
     public void start() {
@@ -42,7 +45,7 @@ public class AgentControllerVerticle extends AbstractVerticle {
         //TODO:: this is a code smell, not sure atm why i need to register the codec's multiple times
         eb.registerDefaultCodec(Histogram.class, new HistogramCodec());
         eb.registerDefaultCodec(ConcurrentHistogram.class, new ConcurrentHistogramCodec());
-        eb.registerDefaultCodec(SimpleBenchmark.class, new SimpleBenchmarkCodec());
+        eb.registerDefaultCodec(BenchmarkImpl.class, new BenchmarkCodec());
 
 
         //send response to calling clientPool benchmark has finished
@@ -87,13 +90,18 @@ public class AgentControllerVerticle extends AbstractVerticle {
     }
 
     private void handleStartBenchmark(RoutingContext routingContext) {
-        //funny cast due to codec registration
-        eb.publish("control-feed", new SimpleBenchmark("test"));
+        BenchmarkImpl benchmark = benchmarks.get(routingContext.request().getParam("benchmark"));
+        if (benchmark != null) {
+            eb.publish("control-feed", benchmark);
 
-        collatedHistogram = new ConcurrentHistogram(5);
+            collatedHistogram = new ConcurrentHistogram(5);
 
-        resultLatch = new CountDownLatch(getNodeCount() - 1);
+            resultLatch = new CountDownLatch(getNodeCount() - 1);
 
+        } else {
+            //benchmark has not been defined yet
+            this.routingContext.response().setStatusCode(500).write("Benchmark not found").end();
+        }
         this.routingContext = routingContext;
 
     }
