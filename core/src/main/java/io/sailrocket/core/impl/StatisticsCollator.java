@@ -18,24 +18,15 @@
  */
 package io.sailrocket.core.impl;
 
-import io.sailrocket.core.client.SequenceStats;
-import io.sailrocket.core.util.Report;
-import io.vertx.core.json.JsonObject;
+import io.sailrocket.api.SequenceStatistics;
 
-public class SimulationContext {
+import java.util.function.Consumer;
 
-    private final Report report;
-    private volatile SequenceStats sequenceStats = new SequenceStats();
+public class StatisticsCollator implements Consumer<SequenceStatistics> {
 
-    public SimulationContext(JsonObject reportConfig) {
-        this.report = new Report(reportConfig);
-    }
 
-    public Report report() {
-        return report;
-    }
+    @Override
+    public void accept(SequenceStatistics sequenceStatistics) {
 
-    public SequenceStats sequenceStats() {
-        return sequenceStats;
     }
 }

@@ -34,5 +34,7 @@ public interface Sequence {
 
     Sequence step(Step step);
 
-     List<? extends Step> getSteps();
+    List<? extends Step> getSteps();
+
+    SequenceStatistics statistics();
 }

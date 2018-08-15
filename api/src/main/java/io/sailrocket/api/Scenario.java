@@ -18,6 +18,8 @@
  */
 package io.sailrocket.api;
 
+import java.util.List;
+
 /**
  * A scenario is a workflow that consists of a set of steps (sequences)
  * undertaken by an end user to emulate use case logic that an end user would perform against a service.
@@ -29,4 +31,6 @@ public interface Scenario {
     Scenario sequence(Sequence sequence);
 
     Sequence firstSequence();
+
+    List<Sequence> sequences();
 }

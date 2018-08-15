@@ -18,6 +18,8 @@
  */
 package io.sailrocket.api;
 
+import java.util.function.Consumer;
+
 /**
  * Simulation represents a collection of workflows (scenarios) against a target application.  
  *
@@ -30,5 +32,7 @@ public interface Simulation {
     Simulation scenario(Scenario scenario);
 
     Simulation mixStrategy(MixStrategy mixStrategy);
+
+    Simulation statisticsCollector(Consumer<SequenceStatistics> statisticsConsumer);
 
 }

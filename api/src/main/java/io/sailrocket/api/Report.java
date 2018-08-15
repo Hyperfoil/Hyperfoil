@@ -1,4 +1,4 @@
-package io.sailrocket.core.util;
+package io.sailrocket.api;
 
 import io.vertx.core.json.JsonObject;
 import org.HdrHistogram.Histogram;
@@ -7,6 +7,7 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -21,7 +22,6 @@ public class Report {
     };
     long expectedRequests;
     long elapsed;
-    public Histogram histogram;
     int responseCount;
     public double ratio;
     int connectFailureCount;
@@ -32,6 +32,10 @@ public class Report {
     long byteWritten;
     final String[] tagFields;
     final JsonObject results;
+
+    public Histogram histogram;
+    //Time series of results
+    private Map<Long, Histogram> timeSeriesHistogram;
 
     public Report(JsonObject tags) {
         this.results = tags;
@@ -152,4 +156,25 @@ public class Report {
             e.printStackTrace();
         }
     }
+
+    public void merge(Report reportToMerge){
+        this.expectedRequests += reportToMerge.expectedRequests;
+        this.elapsed += reportToMerge.elapsed;
+        this.histogram.add(reportToMerge.histogram);
+        this.responseCount += reportToMerge.responseCount;
+        this.connectFailureCount += reportToMerge.connectFailureCount;
+        this.resetCount += reportToMerge.resetCount;
+        this.requestCount += reportToMerge.requestCount;
+        this.bytesRead += reportToMerge.bytesRead;
+        this.byteWritten += reportToMerge.byteWritten;
+
+        this.ratio = ratio;
+
+        for( int i = 0 ; i < this.statuses.length ; i++){
+            this.statuses[i] += statuses[1];
+        }
+    }
+
+
+
 }

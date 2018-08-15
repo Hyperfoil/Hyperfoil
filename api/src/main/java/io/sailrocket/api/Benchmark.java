@@ -19,9 +19,8 @@
 package io.sailrocket.api;
 
 
-import org.HdrHistogram.Histogram;
-
 import java.io.Serializable;
+import java.util.Collection;
 import java.util.Set;
 
 /**
@@ -70,6 +69,5 @@ public abstract class Benchmark implements Serializable {
         return this;
     }
 
-
-    public abstract Histogram run();
+    public abstract Collection<Report> run();
 }

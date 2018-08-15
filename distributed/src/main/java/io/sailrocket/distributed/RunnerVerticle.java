@@ -1,6 +1,7 @@
 package io.sailrocket.distributed;
 
 import io.sailrocket.api.Benchmark;
+import io.sailrocket.api.Report;
 import io.sailrocket.distributed.util.ConcurrentHistogramCodec;
 import io.sailrocket.distributed.util.HistogramCodec;
 import io.sailrocket.distributed.util.SimpleBenchmarkCodec;
@@ -8,6 +9,8 @@ import io.vertx.core.AbstractVerticle;
 import io.vertx.core.eventbus.EventBus;
 import org.HdrHistogram.ConcurrentHistogram;
 import org.HdrHistogram.Histogram;
+
+import java.util.Collection;
 
 public class RunnerVerticle extends AbstractVerticle {
 
@@ -32,7 +35,7 @@ public class RunnerVerticle extends AbstractVerticle {
     }
 
     //need a Histogram codec to serialize and deserialize histogram
-    private Histogram startRunner(Benchmark benchmark) {
+    private Collection<Report> startRunner(Benchmark benchmark) {
         return benchmark.run();
     }
 }

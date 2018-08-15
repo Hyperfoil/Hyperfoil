@@ -4,7 +4,7 @@ import io.netty.buffer.ByteBuf;
 import io.sailrocket.core.impl.ScenarioImpl;
 import io.sailrocket.core.impl.SequenceImpl;
 import io.sailrocket.core.impl.StepImpl;
-import io.sailrocket.core.util.Report;
+import io.sailrocket.api.Report;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpVersion;
 import io.vertx.core.json.JsonObject;
@@ -197,7 +197,7 @@ public class HttpClientRunner {
             SimulationImpl simulationImpl = buildSimulation(threads, rate, duration, warmup, httpClientPoolFactory, path, payload, tags);
 //      new SimulationImpl(threads, rate, duration, warmup, httpClientPoolFactory, path, payload, tags);
             currentLoad.set(simulationImpl);
-            report = simulationImpl.run().get(0);
+            report = simulationImpl.run().stream().findFirst().get();
             currentLoad.set(null);
 //      report.prettyPrint();
             if (out != null) {

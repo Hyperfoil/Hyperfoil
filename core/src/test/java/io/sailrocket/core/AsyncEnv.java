@@ -1,10 +1,10 @@
 package io.sailrocket.core;
 
 import io.sailrocket.api.HttpClientPool;
+import io.sailrocket.api.SequenceStatistics;
 import io.sailrocket.core.api.Worker;
 import io.sailrocket.core.client.HttpClientProvider;
 import io.sailrocket.core.client.RequestContext;
-import io.sailrocket.core.client.SequenceStats;
 import io.sailrocket.core.client.WorkerImpl;
 import io.sailrocket.core.impl.SequenceImpl;
 import io.vertx.core.Vertx;
@@ -33,7 +33,7 @@ public abstract class AsyncEnv {
     protected final long DURATION = TimeUnit.SECONDS.toNanos(30);
 
     protected final ExecutorService exec = Executors.newFixedThreadPool(ASYNC_THREADS);
-    protected final SequenceStats sequenceStats = new SequenceStats();
+    protected final SequenceStatistics sequenceStats = new SequenceStatistics();
 
     protected ArrayList<Worker> workers;
 

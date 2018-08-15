@@ -2,27 +2,24 @@ package io.sailrocket.core.client;
 
 import io.sailrocket.api.HttpClientPool;
 import io.sailrocket.api.MixStrategy;
+import io.sailrocket.api.Report;
 import io.sailrocket.api.Scenario;
+import io.sailrocket.api.SequenceStatistics;
 import io.sailrocket.api.Simulation;
 import io.sailrocket.core.api.Worker;
-import io.sailrocket.core.impl.SimulationContext;
-import io.sailrocket.core.util.Report;
+import io.sailrocket.core.impl.ReportStatisticsCollector;
 import io.vertx.core.json.JsonObject;
-import org.HdrHistogram.Histogram;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.LongAdder;
-import java.util.stream.Collectors;
+import java.util.function.Consumer;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
@@ -36,12 +33,14 @@ public class SimulationImpl implements Simulation {
     private final long duration;
     private final long warmup;
 
+    private Consumer<SequenceStatistics> statisticsConsumer;
+
     private final JsonObject tags;
 
     private volatile long startTime;
     private volatile boolean done;
 
-    private Map<Scenario, SimulationContext> scenarios = new ConcurrentHashMap<>();
+    private List<Scenario> scenarios = new ArrayList<>();
     private List<MixStrategy> mixStrategies = new ArrayList<>();
 
     private ArrayList<Worker> workers;
@@ -68,13 +67,19 @@ public class SimulationImpl implements Simulation {
 
     @Override
     public Simulation scenario(Scenario scenario) {
-        scenarios.put(scenario, new SimulationContext(tags));
+        scenarios.add(scenario);
         return this;
     }
 
     @Override
     public Simulation mixStrategy(MixStrategy mixStrategy) {
         mixStrategies.add(mixStrategy);
+        return this;
+    }
+
+    @Override
+    public Simulation statisticsCollector(Consumer<SequenceStatistics> statisticsConsumer) {
+        this.statisticsConsumer = statisticsConsumer;
         return this;
     }
 
@@ -98,7 +103,7 @@ public class SimulationImpl implements Simulation {
         clientPool.shutdown();
     }
 
-    public List<Report> run() throws Exception {
+    public Collection<Report> run() throws Exception {
         //Initialise HttpClientPool
         CountDownLatch latch = new CountDownLatch(1);
         clientPool.start(v1 -> {
@@ -108,7 +113,6 @@ public class SimulationImpl implements Simulation {
             latch.await(100, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             e.printStackTrace();
-            return null;
         }
 
         //Create Simulation threadpool and worker pools
@@ -119,13 +123,22 @@ public class SimulationImpl implements Simulation {
 
         //TODO:: this needs to be a worker queue
         //TODO:: need to call back to an actual sequence selector
-        workers.forEach(worker -> completedFutures.add(worker.runSlot(duration, () -> scenarios.keySet().stream().findFirst().get().firstSequence())));
+        workers.forEach(worker -> completedFutures.add(worker.runSlot(duration, () -> scenarios.stream().findFirst().get().firstSequence())));
+
+        ReportStatisticsCollector reportStatisticsCollector = new ReportStatisticsCollector(
+                tags,
+                rate,
+                duration,
+                startTime
+        );
+
 
         for (CompletableFuture<Void> result : completedFutures) {
             result.get();
         }
         exec.shutdown();
-        return end();
+        collateStatistics();
+        return reportStatisticsCollector.reports();
     }
 
 /*
@@ -153,39 +166,13 @@ public class SimulationImpl implements Simulation {
     }
 
 
-    private List<Report> end() {
+    private void collateStatistics() {
         done = true;
 
-        List<Report> reports = scenarios.values().stream()
-                .map(context -> {
-                    long expectedRequests = rate * TimeUnit.NANOSECONDS.toSeconds(duration);
-                    long elapsed = System.nanoTime() - startTime;
-                    Histogram cp = context.sequenceStats().histogram.copy();
-                    cp.setStartTimeStamp(TimeUnit.NANOSECONDS.toMillis(startTime));
-                    cp.setEndTimeStamp(TimeUnit.NANOSECONDS.toMillis(System.nanoTime()));
-                    context.report().measures(
-                            expectedRequests,
-                            elapsed,
-                            cp,
-                            context.sequenceStats().responseCount.intValue(),
-                            ratio(context.sequenceStats()),
-                            context.sequenceStats().connectFailureCount.intValue(),
-                            context.sequenceStats().resetCount.intValue(),
-                            context.sequenceStats().resetCount.intValue(),
-                            Stream.of(context.sequenceStats().statuses).mapToInt(LongAdder::intValue).toArray(),
-                            clientPool.bytesRead(),
-                            clientPool.bytesWritten()
-                    );
-                    return context.report();
-                }).collect(Collectors.toList());
-        clientPool.shutdown();
+        scenarios.forEach(scenario -> {
+            scenario.sequences().forEach(sequence -> statisticsConsumer.accept(sequence.statistics()));
+        });
 
-        return reports;
     }
 
-    private double ratio(SequenceStats sequenceStats) {
-        long end = Math.min(System.nanoTime(), startTime + duration);
-        long expected = rate * (end - startTime) / 1000000000;
-        return sequenceStats.requestCount.doubleValue() / (double) expected;
-    }
 }

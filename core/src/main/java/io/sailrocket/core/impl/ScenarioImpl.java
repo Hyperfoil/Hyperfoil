@@ -38,4 +38,9 @@ public class ScenarioImpl implements Scenario {
     public Sequence firstSequence() {
         return sequences.get(0);
     }
+
+    @Override
+    public List<Sequence> sequences() {
+        return sequences;
+    }
 }

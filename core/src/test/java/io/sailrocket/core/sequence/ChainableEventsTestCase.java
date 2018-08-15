@@ -151,7 +151,7 @@ public class ChainableEventsTestCase {
 
     private CompletableFuture<SequenceContext> buildPipelineLikeFool(SequenceImpl sequence, Queue<String> executionOrder) {
 
- /*       CompletableFuture<SequenceContext> sequenceFuture = sequence.getSteps().get(0).asyncExec(new SequenceContextImpl(new DummyHttpClientPool(executionOrder, "foolish"), new WorkerImpl(new SequenceStats(), 1)));
+ /*       CompletableFuture<SequenceContext> sequenceFuture = sequence.getSteps().get(0).asyncExec(new SequenceContextImpl(new DummyHttpClientPool(executionOrder, "foolish"), new WorkerImpl(new SequenceStatistics(), 1)));
         sequenceFuture = sequenceFuture.thenCompose(session -> sequence.getSteps().get(1).asyncExec(session));
         sequenceFuture = sequenceFuture.thenCompose(session -> sequence.getSteps().get(2).asyncExec(session));
 
@@ -167,7 +167,7 @@ public class ChainableEventsTestCase {
         CompletableFuture<SequenceContext> sequenceFuture = null;
         for (int i = 0; i < sequence.getSteps().size(); i++) {
             if (i == 0) {
-                sequenceFuture = sequence.getSteps().get(i).asyncExec(new SequenceContextImpl(new DummyHttpClientPool(executionOrder, "semiFoolish"), new WorkerImpl(new SequenceStats(), 1)));
+                sequenceFuture = sequence.getSteps().get(i).asyncExec(new SequenceContextImpl(new DummyHttpClientPool(executionOrder, "semiFoolish"), new WorkerImpl(new SequenceStatistics(), 1)));
             } else {
                 int finalI = i;
                 sequenceFuture = sequenceFuture.thenCompose(session -> sequence.getSteps().get(finalI).asyncExec(session));
@@ -187,7 +187,7 @@ public class ChainableEventsTestCase {
         //non-determininstic behaviour building this way
         for (AsyncStep step : sequence.getSteps()) {
             if (sequenceFuture == null) {
-                sequenceFuture = step.asyncExec(new SequenceContextImpl(new DummyHttpClientPool(executionOrder, "normal"), new WorkerImpl(new SequenceStats(), 1)));
+                sequenceFuture = step.asyncExec(new SequenceContextImpl(new DummyHttpClientPool(executionOrder, "normal"), new WorkerImpl(new SequenceStatistics(), 1)));
             } else {
                 sequenceFuture.thenCompose(session -> step.asyncExec(session));
             }
@@ -223,7 +223,7 @@ public class ChainableEventsTestCase {
     private CompletableFuture<SequenceContext> buildPipelineReduce(SequenceImpl sequence, Queue<String> executionOrder) {
 
 /*
-        CompletableFuture<SequenceContext> startFuture = new CompletableFuture().supplyAsync(() -> new SequenceContextImpl(new DummyHttpClientPool(executionOrder, "normal"), new WorkerImpl(new SequenceStats(), 1)));
+        CompletableFuture<SequenceContext> startFuture = new CompletableFuture().supplyAsync(() -> new SequenceContextImpl(new DummyHttpClientPool(executionOrder, "normal"), new WorkerImpl(new SequenceStatistics(), 1)));
         return sequence.getSteps().stream()
                 .<CompletableFuture<SequenceContext>>reduce(startFuture, (sequenceFuture, step) -> addStep(sequenceFuture, step), (sequenceFuture, e) -> passSequence(sequenceFuture));
 */

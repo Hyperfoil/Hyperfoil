@@ -1,6 +1,7 @@
 package io.sailrocket.core.impl;
 
 import io.sailrocket.api.Sequence;
+import io.sailrocket.api.SequenceStatistics;
 import io.sailrocket.api.Step;
 import io.sailrocket.core.api.AsyncStep;
 import io.sailrocket.core.api.SequenceContext;
@@ -12,6 +13,8 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 public class SequenceImpl implements Sequence {
+
+    private SequenceStatistics sequenceStatistics;
 
     //TODO:: think about branching
     private List<AsyncStep> steps = new ArrayList<>();
@@ -29,6 +32,11 @@ public class SequenceImpl implements Sequence {
     @Override
     public List<AsyncStep> getSteps() {
         return steps;
+    }
+
+    @Override
+    public SequenceStatistics statistics() {
+        return sequenceStatistics;
     }
 
 //    public StepImpl rootStep() {

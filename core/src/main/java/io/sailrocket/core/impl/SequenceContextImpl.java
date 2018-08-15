@@ -2,10 +2,10 @@ package io.sailrocket.core.impl;
 
 import io.sailrocket.api.HttpClientPool;
 import io.sailrocket.api.Sequence;
+import io.sailrocket.api.SequenceStatistics;
 import io.sailrocket.core.api.SequenceContext;
 import io.sailrocket.core.api.Worker;
 import io.sailrocket.core.client.Pacer;
-import io.sailrocket.core.client.SequenceStats;
 import io.sailrocket.core.client.ValidatorResults;
 
 public class SequenceContextImpl implements SequenceContext {
@@ -15,7 +15,7 @@ public class SequenceContextImpl implements SequenceContext {
     private final Sequence sequence;
     private final Pacer pacer;
     private final long startTime;
-    private SequenceStats sequenceStats;
+    private SequenceStatistics sequenceStats;
     private ValidatorResults validatorResults;
 
     public SequenceContextImpl(Sequence sequence, Worker worker, Pacer pacer, long startTime) {
@@ -24,7 +24,7 @@ public class SequenceContextImpl implements SequenceContext {
         this.sequence = sequence;
         this.pacer = pacer;
         this.startTime = startTime;
-        sequenceStats = new SequenceStats();
+        sequenceStats = new SequenceStatistics();
         validatorResults = new ValidatorResults();
     }
 
@@ -44,7 +44,7 @@ public class SequenceContextImpl implements SequenceContext {
     }
 
     @Override
-    public SequenceStats sequenceStats() {
+    public SequenceStatistics sequenceStats() {
         return sequenceStats;
     }
 
