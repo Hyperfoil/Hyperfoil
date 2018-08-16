@@ -1,18 +1,18 @@
 package io.sailrocket.core.client;
 
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 
 import io.netty.buffer.ByteBuf;
 import io.sailrocket.api.HttpRequest;
-import io.sailrocket.api.HttpResponse;
-import io.sailrocket.spi.HttpHeader;
+import io.sailrocket.api.HttpResponseHandlers;
 
-public abstract class AbstractHttpRequest implements HttpRequest {
+public abstract class AbstractHttpRequest implements HttpRequest, HttpResponseHandlers {
    protected IntConsumer statusHandler;
    protected Consumer<ByteBuf> dataHandler;
-   protected Consumer<HttpResponse> endHandler;
-   protected Consumer<HttpHeader> headerHandler;
+   protected Runnable endHandler;
+   protected BiConsumer<String, String> headerHandler;
    protected Consumer<Throwable> exceptionHandler;
    protected IntConsumer resetHandler;
 
@@ -23,7 +23,7 @@ public abstract class AbstractHttpRequest implements HttpRequest {
    }
 
    @Override
-   public HttpRequest headerHandler(Consumer<HttpHeader> handler) {
+   public HttpRequest headerHandler(BiConsumer<String, String> handler) {
        this.headerHandler = handler;
        return this;
    }
@@ -41,7 +41,7 @@ public abstract class AbstractHttpRequest implements HttpRequest {
    }
 
    @Override
-   public HttpRequest endHandler(Consumer<HttpResponse> handler) {
+   public HttpRequest endHandler(Runnable handler) {
        endHandler = handler;
        return this;
    }
@@ -50,5 +50,35 @@ public abstract class AbstractHttpRequest implements HttpRequest {
    public HttpRequest exceptionHandler(Consumer<Throwable> handler) {
        exceptionHandler = handler;
        return this;
+   }
+
+   @Override
+   public IntConsumer statusHandler() {
+      return statusHandler;
+   }
+
+   @Override
+   public Consumer<ByteBuf> dataHandler() {
+      return dataHandler;
+   }
+
+   @Override
+   public Runnable endHandler() {
+      return endHandler;
+   }
+
+   @Override
+   public BiConsumer<String, String> headerHandler() {
+      return headerHandler;
+   }
+
+   @Override
+   public Consumer<Throwable> exceptionHandler() {
+      return exceptionHandler;
+   }
+
+   @Override
+   public IntConsumer resetHandler() {
+      return resetHandler;
    }
 }

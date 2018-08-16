@@ -35,6 +35,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 @RunWith(VertxUnitRunner.class)
@@ -76,22 +77,23 @@ public class HttpClientPoolHandlerTest {
         conn.statusHandler(code -> {
             assertEquals(200, code);
             latch.countDown();
-        }).headerHandler( header -> {
-            assertEquals("bar", header.getValue("foo"));
-            latch.countDown();
+        }).headerHandler((header, value) -> {
+            if ("foo".equals(header)) {
+                assertEquals("bar", value);
+                latch.countDown();
+            }
         })
         .bodyHandler(input -> {
             assertEquals("hello from server", new String(input.array()));
             latch.countDown();
-        }).endHandler(e -> {
+        }).endHandler(() -> {
             latch.countDown();
         });
 
         conn.end();
 
-        latch.await(3, TimeUnit.SECONDS);
+        assertTrue(latch.await(3, TimeUnit.SECONDS));
         assertEquals(1, count);
-        assertEquals(0, latch.getCount());
         }
         catch (Exception e) {
             fail("Should not throw any exceptions"+ e.getMessage());

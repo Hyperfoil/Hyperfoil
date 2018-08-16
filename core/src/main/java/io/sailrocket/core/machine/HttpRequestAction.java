@@ -6,8 +6,12 @@ import java.util.function.Function;
 import io.netty.buffer.ByteBuf;
 import io.sailrocket.api.HttpMethod;
 import io.sailrocket.api.HttpRequest;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 
 public class HttpRequestAction implements Action {
+   private static final Logger log = LoggerFactory.getLogger(HttpRequestAction.class);
+
    private final HttpMethod method;
    private final Function<Session, String> pathGenerator;
    private final Function<Session, ByteBuf> bodyGenerator;
@@ -28,9 +32,10 @@ public class HttpRequestAction implements Action {
 
    @Override
    public void invoke(Session session) {
-      // TODO alloc!
       ByteBuf body = bodyGenerator == null ? null : bodyGenerator.apply(session);
-      HttpRequest request = session.getHttpClientPool().request(method, pathGenerator.apply(session), body);
+      String path = pathGenerator.apply(session);
+      // TODO alloc!
+      HttpRequest request = session.getHttpClientPool().request(method, path, body);
       if (headerAppender != null) {
          headerAppender.accept(session, request);
       }
@@ -39,7 +44,9 @@ public class HttpRequestAction implements Action {
       request.statusHandler(session.intHandler(handler, HttpResponseState.HANDLE_STATUS));
       request.exceptionHandler(session.exceptionHandler(handler, HttpResponseState.HANDLE_EXCEPTION));
       request.bodyHandler(session.objectHandler(handler, HttpResponseState.HANDLE_BODY));
-      request.endHandler(session.objectHandler(handler, HttpResponseState.HANDLE_END));
+      request.endHandler(session.voidHandler(handler, HttpResponseState.HANDLE_END));
+
+      log.trace("HTTP {} to {}", method, path);
       request.end();
    }
 }

@@ -19,8 +19,8 @@
 package io.sailrocket.api;
 
 import io.netty.buffer.ByteBuf;
-import io.sailrocket.spi.HttpHeader;
 
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 
@@ -49,13 +49,13 @@ public interface HttpRequest {
    *
    * @return this
    */
-  HttpRequest headerHandler(Consumer<HttpHeader> handler);
+  HttpRequest headerHandler(BiConsumer<String, String> handler);
 
   HttpRequest resetHandler(IntConsumer handler);
 
   HttpRequest bodyHandler(Consumer<ByteBuf> handler);
 
-  HttpRequest endHandler(Consumer<HttpResponse> handler);
+  HttpRequest endHandler(Runnable handler);
 
   HttpRequest exceptionHandler(Consumer<Throwable> handler);
 

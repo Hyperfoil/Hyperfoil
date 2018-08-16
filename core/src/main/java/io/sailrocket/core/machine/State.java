@@ -29,7 +29,7 @@ public class State {
             return !transitions[i].isBlocking();
          }
       }
-      throw new IllegalStateException();
+      throw new IllegalStateException("In state " + name);
    }
 
    public void addTransition(Transition t) {

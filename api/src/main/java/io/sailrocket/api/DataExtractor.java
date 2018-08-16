@@ -18,7 +18,9 @@
  */
 package io.sailrocket.api;
 
-public interface DataExtractor<T> {
+import io.netty.buffer.ByteBuf;
 
-    T extractData(HttpResponse httpRequest);
+public interface DataExtractor {
+
+    void extractData(ByteBuf data, Session session);
 }

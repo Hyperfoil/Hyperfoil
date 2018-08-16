@@ -24,7 +24,6 @@ import io.sailrocket.api.HttpMethod;
 import io.sailrocket.api.HttpRequest;
 import io.sailrocket.core.client.AbstractHttpRequest;
 import io.sailrocket.core.util.AsyncSemaphore;
-import io.sailrocket.spi.HttpHeader;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClientRequest;
 
@@ -78,8 +77,11 @@ public class VertxHttpRequest extends AbstractHttpRequest {
             try {
                 if (statusHandler != null)
                     statusHandler.accept(response.statusCode());
-                if (headerHandler != null)
-                    headerHandler.accept(new HttpHeader(response.headers()));
+                if (headerHandler != null) {
+                   for (Map.Entry<String, String> header : response.headers()) {
+                      headerHandler.accept(header.getKey(), header.getValue());
+                   }
+                }
                 if (dataHandler != null)
                     response.handler(chunk -> dataHandler.accept(chunk.getByteBuf()));
             } catch (Throwable t) {
@@ -90,7 +92,7 @@ public class VertxHttpRequest extends AbstractHttpRequest {
             response.endHandler(nil -> {
                 // TODO: use response or change interface!
                 try {
-                    endHandler.accept(null);
+                    endHandler.run();
                 } catch (Throwable t) {
                     if (exceptionHandler != null) {
                         exceptionHandler.accept(t);

@@ -31,6 +31,6 @@ class Http2Request extends AbstractHttpRequest {
       throw new IllegalStateException();
     }
     sent = true;
-    conn.bilto(new Http2Connection.Http2Stream(headers, body, statusHandler, dataHandler, resetHandler, endHandler));
+    conn.bilto(new Http2Connection.Http2Stream(headers, body, this));
   }
 }

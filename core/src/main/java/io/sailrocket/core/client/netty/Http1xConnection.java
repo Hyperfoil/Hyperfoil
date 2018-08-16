@@ -1,5 +1,6 @@
 package io.sailrocket.core.client.netty;
 
+import io.netty.handler.codec.http.HttpContent;
 import io.sailrocket.api.HttpMethod;
 import io.sailrocket.api.HttpRequest;
 import io.netty.buffer.ByteBuf;
@@ -8,12 +9,12 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.DefaultFullHttpRequest;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.LastHttpContent;
+import io.sailrocket.api.HttpResponseHandlers;
 
 import java.util.Deque;
+import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
-import java.util.function.IntConsumer;
 
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
@@ -26,26 +27,18 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
   ChannelHandlerContext ctx;
   private AtomicInteger size = new AtomicInteger();
 
-  HttpStream createStream(DefaultFullHttpRequest msg, IntConsumer headersHandler, IntConsumer resetHandler,
-                          Consumer<ByteBuf> dataHandler, Consumer<io.sailrocket.api.HttpResponse> endHandler) {
-      return new HttpStream(msg, headersHandler, resetHandler, dataHandler, endHandler);
+  HttpStream createStream(DefaultFullHttpRequest msg, HttpResponseHandlers handlers) {
+      return new HttpStream(msg, handlers);
   }
 
   class HttpStream implements Runnable {
 
     private final DefaultFullHttpRequest msg;
-    private final IntConsumer headersHandler;
-    private final IntConsumer resetHandler;
-    private final Consumer<io.sailrocket.api.HttpResponse> endHandler;
-    private final Consumer<ByteBuf> dataHandler;
+    private final HttpResponseHandlers handlers;
 
-    HttpStream(DefaultFullHttpRequest msg, IntConsumer headersHandler, IntConsumer resetHandler,
-               Consumer<ByteBuf> dataHandler, Consumer<io.sailrocket.api.HttpResponse> endHandler) {
+    HttpStream(DefaultFullHttpRequest msg, HttpResponseHandlers handlers) {
       this.msg = msg;
-      this.headersHandler = headersHandler;
-      this.resetHandler = resetHandler;
-      this.dataHandler = dataHandler;
-      this.endHandler = endHandler;
+      this.handlers = handlers;
     }
 
     @Override
@@ -70,15 +63,27 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
     if (msg instanceof HttpResponse) {
       HttpResponse response = (HttpResponse) msg;
       HttpStream request = inflights.peek();
-      if (request.headersHandler != null) {
-        request.headersHandler.accept(response.status().code());
+      if (request.handlers.statusHandler() != null) {
+        request.handlers.statusHandler().accept(response.status().code());
+      }
+      if (request.handlers.headerHandler() != null) {
+        for (Map.Entry<String, String> header : response.headers()) {
+          request.handlers.headerHandler().accept(header.getKey(), header.getValue());
+        }
+      }
+    }
+    if (msg instanceof HttpContent) {
+      HttpStream request = inflights.peek();
+      if (request.handlers.dataHandler() != null) {
+        request.handlers.dataHandler().accept(((HttpContent) msg).content());
       }
     }
     if (msg instanceof LastHttpContent) {
       size.decrementAndGet();
       HttpStream request = inflights.poll();
-      if (request.endHandler != null) {
-        request.endHandler.accept(null);
+
+      if (request.handlers.endHandler() != null) {
+        request.handlers.endHandler().run();
       }
     }
     super.channelRead(ctx, msg);

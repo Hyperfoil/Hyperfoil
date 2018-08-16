@@ -28,7 +28,7 @@ public class StepImpl implements AsyncStep {
 
     private Map<String, String> params = new HashMap<>();
     private Validators validators;
-    private List<DataExtractor<?>> extractors = new ArrayList<>();
+    private List<DataExtractor> extractors = new ArrayList<>();
 
     @Override
     public Step path(String path) {
@@ -88,16 +88,15 @@ public class StepImpl implements AsyncStep {
         }).bodyHandler( body -> {
             if (validators != null && validators.hasBodyValidator())
                 sequenceContext.validatorResults().addBody(validators.bodyValidator().validate(new String(body.array())));
+            //TODO:: populate session values here
+            this.extractors.forEach(dataExtractor -> dataExtractor.extractData(body, null));
         }).resetHandler(frame -> {
             // TODO: what is reset handler? Not used ATM
             sequenceContext.sequenceStats().resetCount.increment();
-        }).endHandler(response -> {
+        }).endHandler(() -> {
             if (trace) {
-                log.trace("Response received: {}", response);
+                log.trace("Request completed.");
             }
-            //TODO:: populate session values here
-            this.extractors.forEach(dataExtractor -> dataExtractor.extractData(response));
-
             sequenceContext.sequenceStats().responseCount.increment();
             completion.complete(sequenceContext);
         }).exceptionHandler(throwable -> {

@@ -20,7 +20,7 @@ package io.sailrocket.api;
 
 public enum HttpMethod {
 
-  GET, POST;
+  GET, HEAD, POST, PUT, DELETE, OPTIONS, PATCH, TRACE, CONNECT;
 
   public final io.netty.handler.codec.http.HttpMethod netty;
   public final io.vertx.core.http.HttpMethod vertx;

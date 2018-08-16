@@ -10,7 +10,7 @@ import io.sailrocket.api.HttpClientPool;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-public class Session {
+public class Session implements io.sailrocket.api.Session {
    private static final Logger log = LoggerFactory.getLogger(Session.class);
 
    private final HttpClientPool httpClientPool;
@@ -19,7 +19,7 @@ public class Session {
    private State currentState;
    // Note: HashMap.get() is allocation-free, so we can use it for direct lookups. Replacing put() is also
    // allocation-free, so vars are OK to write as long as we have them declared.
-   private Map<String, Object> vars = new HashMap<>();
+   private Map<Object, Object> vars = new HashMap<>();
    private Map<State, Map<String, IntConsumer>> intHandlers = new HashMap<>();
    private Map<State, Map<String, Consumer<Throwable>>> exceptionHandlers = new HashMap<>();
    private Map<State, Map<String, Consumer<Object>>> objectHandlers = new HashMap<>();
@@ -72,12 +72,36 @@ public class Session {
       return voidHandlers.get(state).get(type);
    }
 
-   public Object var(String name) {
-      return vars.get(name);
+   @Override
+   public Object getObject(Object key) {
+      return vars.get(key);
    }
 
-   public void var(String name, Object value) {
-      vars.put(name, value);
+   @Override
+   public Session setObject(Object key, Object value) {
+      log.trace("{} <- {}", key, value);
+      vars.put(key, value);
+      return this;
+   }
+
+   @Override
+   public int getInt(Object key) {
+      return ((IntWrapper) vars.get(key)).value;
+   }
+
+   @Override
+   public Session setInt(Object key, int value) {
+      log.trace("{} <- {}", key, value);
+      ((IntWrapper) vars.computeIfAbsent(key, k -> new IntWrapper())).value = value;
+      return this;
+   }
+
+   @Override
+   public Session addToInt(Object key, int delta) {
+      IntWrapper wrapper = (IntWrapper) vars.get(key);
+      log.trace("{} <- {}", key, wrapper.value + delta);
+      wrapper.value += delta;
+      return this;
    }
 
    void setState(State newState) {
@@ -87,5 +111,9 @@ public class Session {
 
    public void run() {
       while (currentState != null && currentState.progress(this));
+   }
+
+   private static class IntWrapper {
+      int value;
    }
 }

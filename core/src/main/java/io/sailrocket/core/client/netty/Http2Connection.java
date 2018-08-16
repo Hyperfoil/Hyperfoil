@@ -12,10 +12,9 @@ import io.netty.handler.codec.http2.Http2Headers;
 import io.netty.handler.codec.http2.Http2Settings;
 import io.netty.util.collection.IntObjectHashMap;
 import io.netty.util.collection.IntObjectMap;
+import io.sailrocket.api.HttpResponseHandlers;
 
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
-import java.util.function.IntConsumer;
 
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
@@ -55,13 +54,13 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
       public void onHeadersRead(ChannelHandlerContext ctx, int streamId, Http2Headers headers, int streamDependency, short weight, boolean exclusive, int padding, boolean endStream) throws Http2Exception {
         Http2Stream stream = streams.get(streamId);
         if (stream != null) {
-          if (stream.headersHandler != null) {
+          if (stream.handlers.statusHandler() != null) {
             int code = -1;
             try {
               code = Integer.parseInt(headers.status().toString());
             } catch (NumberFormatException ignore) {
             }
-            stream.headersHandler.accept(code);
+            stream.handlers.statusHandler().accept(code);
           }
           if (endStream) {
             endStream(streamId);
@@ -74,8 +73,8 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
         int ack = super.onDataRead(ctx, streamId, data, padding, endOfStream);
         Http2Stream stream = streams.get(streamId);
         if (stream != null) {
-          if (stream.dataHandler != null) {
-            stream.dataHandler.accept(data);
+          if (stream.handlers.dataHandler() != null) {
+            stream.handlers.dataHandler().accept(data);
           }
           if (endOfStream) {
             endStream(streamId);
@@ -88,8 +87,8 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
       public void onRstStreamRead(ChannelHandlerContext ctx, int streamId, long errorCode) {
         Http2Stream stream = streams.get(streamId);
         if (stream != null) {
-          if (stream.resetHandler != null) {
-            stream.resetHandler.accept(0);
+          if (stream.handlers.resetHandler() != null) {
+            stream.handlers.resetHandler().accept(0);
           }
           endStream(streamId);
         }
@@ -98,9 +97,9 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
       private void endStream(int streamId) {
         numStreams.decrementAndGet();
         Http2Stream stream = streams.remove(streamId);
-        if (stream != null && !stream.ended && stream.endHandler != null) {
+        if (stream != null && !stream.ended && stream.handlers.endHandler() != null) {
           stream.ended = true;
-          stream.endHandler.accept(null);
+          stream.handlers.endHandler().run();
         }
       }
     };
@@ -137,19 +136,13 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
 
     final Http2Headers headers;
     final ByteBuf buff;
-    final IntConsumer headersHandler;
-    final Consumer<ByteBuf> dataHandler;
-    final IntConsumer resetHandler;
-    final Consumer<io.sailrocket.api.HttpResponse> endHandler;
+    final HttpResponseHandlers handlers;
     boolean ended;
 
-    Http2Stream(Http2Headers headers, ByteBuf buff, IntConsumer headersHandler, Consumer<ByteBuf> dataHandler, IntConsumer resetHandler, Consumer<io.sailrocket.api.HttpResponse> endHandler) {
+    Http2Stream(Http2Headers headers, ByteBuf buff, HttpResponseHandlers handlers) {
       this.headers = headers;
       this.buff = buff;
-      this.headersHandler = headersHandler;
-      this.dataHandler = dataHandler;
-      this.resetHandler = resetHandler;
-      this.endHandler = endHandler;
+      this.handlers = handlers;
     }
   }
 

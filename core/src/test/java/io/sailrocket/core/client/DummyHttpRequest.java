@@ -23,8 +23,6 @@ package io.sailrocket.core.client;
 import io.sailrocket.api.HttpMethod;
 import io.sailrocket.api.HttpRequest;
 import io.sailrocket.core.client.vertx.ContextAwareClient;
-import io.sailrocket.core.impl.HttpResponseImpl;
-import io.sailrocket.spi.HttpHeader;
 import io.vertx.core.Future;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
@@ -63,7 +61,7 @@ public class DummyHttpRequest extends AbstractHttpRequest {
 
     @Override
     public void end() {
-        endHandler.accept(new HttpResponseImpl());
+        endHandler.run();
         /*
         current.context.runOnContext(v -> {
             HttpClientRequest request = current.client.request(method.vertx, path);
@@ -84,7 +82,7 @@ public class DummyHttpRequest extends AbstractHttpRequest {
         doneHandler.setHandler(ar -> {
             inflight.decrementAndGet();
             if (ar.succeeded()) {
-                endHandler.accept(null);
+                endHandler.run();
             }
         });
         fut.setHandler(ar -> {
@@ -93,7 +91,9 @@ public class DummyHttpRequest extends AbstractHttpRequest {
                 if(statusHandler != null)
                     statusHandler.accept(resp.statusCode());
                 if(headerHandler != null) {
-                    headerHandler.accept(new HttpHeader(resp.headers()));
+                    for (Map.Entry<String, String> header : resp.headers()) {
+                       headerHandler.accept(header.getKey(), header.getValue());
+                    }
                 }
                 if(dataHandler != null)
                     resp.handler(chunk -> dataHandler.accept(chunk.getByteBuf()));

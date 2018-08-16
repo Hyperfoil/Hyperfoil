@@ -28,6 +28,6 @@ class Http1xRequest extends AbstractHttpRequest {
     @Override
     public void end() {
       msg.headers().add("Host", connection.client.host + ":" + connection.client.port);
-      connection.ctx.executor().execute(connection.createStream(msg, statusHandler, resetHandler, dataHandler, endHandler));
+      connection.ctx.executor().execute(connection.createStream(msg, this));
     }
 }

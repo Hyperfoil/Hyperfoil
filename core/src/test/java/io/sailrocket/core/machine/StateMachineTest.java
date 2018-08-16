@@ -1,9 +1,10 @@
 package io.sailrocket.core.machine;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.function.BiConsumer;
-import java.util.function.Predicate;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -12,23 +13,43 @@ import org.junit.runner.RunWith;
 
 import io.sailrocket.api.HttpClientPool;
 import io.sailrocket.api.HttpMethod;
-import io.sailrocket.api.HttpRequest;
 import io.sailrocket.core.client.HttpClientProvider;
+import io.sailrocket.core.extractors.ArrayRecorder;
+import io.sailrocket.core.extractors.CountRecorder;
+import io.sailrocket.core.extractors.JsonExtractor;
+import io.sailrocket.core.extractors.SimpleRecorder;
+import io.sailrocket.core.test.CrewMember;
+import io.sailrocket.core.test.Fleet;
+import io.sailrocket.core.test.Ship;
 import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.http.HttpVersion;
+import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import io.vertx.ext.web.Router;
 
 @RunWith(VertxUnitRunner.class)
 public class StateMachineTest {
    private static final Logger log = LoggerFactory.getLogger(StateMachineTest.class);
 
+   private static final Fleet FLEET = new Fleet("Československá námořní flotila")
+         .addBase("Hamburg")
+         .addShip(new Ship("Republika")
+               .dwt(10500)
+               .addCrew(new CrewMember("Captain", "Adam", "Korkorán"))
+               .addCrew(new CrewMember("Cabin boy", "Pepek", "Novák"))
+         )
+         .addShip(new Ship("Julius Fučík").dwt(7100))
+         .addShip(new Ship("Lidice").dwt(8500));
+
    private static Vertx vertx;
    private static HttpClientPool httpClientPool;
    private static ScheduledThreadPoolExecutor timedExecutor = new ScheduledThreadPoolExecutor(1);
+   private static Router router;
 
    @BeforeClass
    public static void before(TestContext ctx) throws Exception {
@@ -42,10 +63,28 @@ public class StateMachineTest {
       Async clientPoolAsync = ctx.async();
       httpClientPool.start(nil -> clientPoolAsync.complete());
       vertx = Vertx.vertx();
-      vertx.createHttpServer().requestHandler(req -> {
-         log.info("Received request to {}, headers {}", req.uri(), req.headers());
-         req.response().end();
-      }).listen(8080, "localhost", ctx.asyncAssertSuccess());
+      router = Router.router(vertx);
+      vertx.createHttpServer().requestHandler(router::accept).listen(8080, "localhost", ctx.asyncAssertSuccess());
+      router.route("/fleet").handler(routingContext -> {
+         HttpServerResponse response = routingContext.response();
+         response.end(Json.encodePrettily(FLEET));
+      });
+      router.route("/ship").handler(routingContext -> {
+         String shipName = routingContext.queryParam("name").stream().findFirst().orElse("");
+         Optional<Ship> ship = FLEET.getShips().stream().filter(s -> s.getName().equals(shipName)).findFirst();
+         if (!ship.isPresent()) {
+            routingContext.response().setStatusCode(404).end();
+            return;
+         }
+         switch (routingContext.request().method()) {
+            case GET:
+               routingContext.response().end(Json.encodePrettily(ship.get()));
+               break;
+            case DELETE:
+               routingContext.response().setStatusCode(204).setStatusMessage("Ship sunk.").end();
+               break;
+         }
+      });
    }
 
    @AfterClass
@@ -55,56 +94,109 @@ public class StateMachineTest {
       vertx.close(ctx.asyncAssertSuccess());
    }
 
+   /**
+    * Fetch a fleet (list of ships), then fetch each ship separately and if it has no crew, sink the ship.
+    *
+    * INIT -(fetch fleet)-> AWAIT-FLEET -> BEFORE-SHIP ---(no more ships)-> AWAIT-SHIPS ---(no more ships to sink)-> AWAIT-SUNK ---> null
+    *                                      ^            |                   ^            |
+    *                                      |            |                   |            |
+    *                                      -(fetch ship)-                   --(sink ship)-
+    */
    @Test
-   public void testRequest(TestContext ctx) {
+   public void testSinkEmptyShips(TestContext ctx) {
       // We need to call async() to prevent termination when the test method completes
       Async async = ctx.async();
 
       // Define states first, then link them
       State initState = new State("init");
-      State secondRequestState = new State("req2");
-      // We'll structure the states so that we wait for the second response first
-      HttpResponseState awaitSecondResponseState = new HttpResponseState("await2");
-      HttpResponseState awaitFirstResponseState = new HttpResponseState("await1");
-      State decrementState = new State("dec");
+      HttpResponseState awaitFleetState = new HttpResponseState("awaitFleet");
+      State beforeShipRequest = new State("beforeShip");
+      HttpResponseState awaitShipState = new HttpResponseState("awaitShip");
+      HttpResponseState awaitSunkState = new HttpResponseState("awaitSunk");
 
-      BiConsumer<Session, HttpRequest> addAuth = (session, appendHeader) -> appendHeader.putHeader("Authentization", (String) session.var("authToken"));
-      HttpRequestAction firstRequestAction = new HttpRequestAction(HttpMethod.GET, s -> "/", null, addAuth, awaitFirstResponseState);
-      Predicate<Session> testCounter = session -> ((Integer) session.var("counter")).compareTo(0) > 0;
-      Transition firstRequestTransition = new Transition(testCounter, firstRequestAction, secondRequestState, false);
-      initState.addTransition(firstRequestTransition);
-      initState.addTransition(new Transition(null, session -> {
+//      BiConsumer<Session, HttpRequest> addAuth = (session, appendHeader) -> appendHeader.putHeader("Authentization", (String) session.var("authToken"));
+
+      HttpRequestAction requestFleetAction = new HttpRequestAction(HttpMethod.GET, s -> "/fleet", null, null, awaitFleetState);
+      Transition requestFleetTransition = new Transition(null, requestFleetAction, awaitFleetState, true);
+      initState.addTransition(requestFleetTransition);
+
+      awaitFleetState.addDataExtractor(new JsonExtractor(".ships[].name", new ArrayRecorder<>("shipNames", () -> new String[16])));
+      awaitFleetState.addTransition(new Transition(null, s -> s.setInt("shipCount", count((String[]) s.getObject("shipNames"))), beforeShipRequest, false));
+
+      HttpRequestAction requestShipAction = new HttpRequestAction(HttpMethod.GET,
+            // TODO: avoid allocations when constructing URL
+            s -> "/ship?name=" + encode(fetchNext((String[]) s.getObject("shipNames"))), null, null, awaitShipState);
+
+      beforeShipRequest.addTransition(new Transition(s -> hasNext((String[]) s.getObject("shipNames")), requestShipAction, beforeShipRequest, false));
+      beforeShipRequest.addTransition(new Transition(s -> s.getInt("shipCount") > 0, null, awaitShipState, true));
+      beforeShipRequest.addTransition(new Transition(null, null, awaitShipState, false));
+
+      awaitShipState.addDataExtractor(new JsonExtractor(".crew[]", new CountRecorder("crewCount")));
+      awaitShipState.addDataExtractor(new JsonExtractor(".name", new SimpleRecorder("shipName")));
+
+      HttpRequestAction sinkShipAction = new HttpRequestAction(HttpMethod.DELETE, s -> "/ship?name=" + encode((String) s.getObject("shipName")), null, null, awaitSunkState);
+      ActionChain sinkChain = new ActionChain(s -> s.addToInt("shipCount", -1).addToInt("sunkCount", 1), sinkShipAction);
+      // This transition is blocking; we won't fire another sink ship request until someone (get ship response) wakes us up
+      awaitShipState.addTransition(new Transition(s -> s.getInt("shipCount") == 1 && s.getInt("crewCount") > 0, sinkChain, awaitSunkState, false));
+      awaitShipState.addTransition(new Transition(s -> s.getInt("crewCount") > 0, sinkChain, awaitShipState, true));
+      awaitShipState.addTransition(new Transition(s -> s.getInt("shipCount") < 1, null, awaitSunkState, false));
+      awaitShipState.addTransition(new Transition(null, s -> s.addToInt("shipCount", -1), awaitShipState, true));
+
+      awaitSunkState.addTransition(new Transition(s -> s.getInt("sunkCount") > 1, s -> s.addToInt("sunkCount", -1), awaitSunkState, true));
+      awaitSunkState.addTransition(new Transition(null, session -> {
          log.info("Test completed");
          async.complete();
       }, null, true));
 
-      HttpRequestAction secondRequestAction = new HttpRequestAction(HttpMethod.GET, s -> "/favicon.png", null, null, awaitSecondResponseState);
-      Transition secondRequestTransition = new Transition(null, secondRequestAction, awaitSecondResponseState, true);
-      secondRequestState.addTransition(secondRequestTransition);
-
-      awaitSecondResponseState.addTransition(new Transition(null, null, awaitFirstResponseState, true));
-
-      DelayAction delayAction = new DelayAction(1, TimeUnit.SECONDS, decrementState);
-      awaitFirstResponseState.addTransition(new Transition(null, delayAction, decrementState, true));
-
-      Action decrementAction = session -> {
-         // TODO: maybe we should add primitive vars to avoid boxing
-         Integer counter = (Integer) session.var("counter");
-         session.var("counter", counter - 1);
-      };
-      decrementState.addTransition(new Transition(null, decrementAction, initState, false));
-
       // Allocating init
       Session session = new Session(httpClientPool, timedExecutor, initState);
-      session.var("counter", 3);
-      session.var("authToken", "blabbla");
+      // These are the variables we use directly in lambdas; we need to make space for them
+      session.setObject("authToken", "blabbla");
+      session.setInt("shipCount", 0);
+      session.setInt("sunkCount", 0);
       initState.register(session);
-      secondRequestState.register(session);
-      awaitSecondResponseState.register(session);
-      awaitFirstResponseState.register(session);
-      decrementState.register(session);
+      awaitFleetState.register(session);
+      beforeShipRequest.register(session);
+      awaitShipState.register(session);
+      awaitSunkState.register(session);
 
       // Allocation-free run
       session.run();
    }
+
+   private String encode(String string) {
+      try {
+         return URLEncoder.encode(string, "UTF-8");
+      } catch (UnsupportedEncodingException e) {
+         throw new IllegalArgumentException(e);
+      }
+   }
+
+   private static int count(String[] strings) {
+      for (int i = 0; i < strings.length; ++i) {
+         if (strings[i] == null) return i;
+      }
+      return strings.length;
+   }
+
+   private static boolean hasNext(String[] strings) {
+      for (String string : strings) {
+         if (string != null) return true;
+      }
+      return false;
+   }
+
+   private static String fetchNext(String[] strings) {
+      for (int i = 0; i < strings.length; ++i) {
+         if (strings[i] != null) {
+            String tmp = strings[i];
+            strings[i] = null;
+            return tmp;
+         }
+      }
+      throw new NoSuchElementException();
+   }
+
+
+
 }
