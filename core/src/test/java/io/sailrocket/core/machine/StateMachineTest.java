@@ -145,8 +145,8 @@ public class StateMachineTest {
       HttpRequestAction sinkShipAction = new HttpRequestAction(HttpMethod.DELETE, s -> "/ship?name=" + encode((String) s.getObject("shipName")), null, null, awaitSunkState);
       ActionChain sinkChain = new ActionChain(s -> s.addToInt("shipCount", -1).addToInt("sunkCount", 1), sinkShipAction);
       // This transition is blocking; we won't fire another sink ship request until someone (get ship response) wakes us up
-      awaitShipState.addTransition(new Transition(s -> s.getInt("shipCount") == 1 && s.getInt("crewCount") > 0, sinkChain, awaitSunkState, false));
-      awaitShipState.addTransition(new Transition(s -> s.getInt("crewCount") > 0, sinkChain, awaitShipState, true));
+      awaitShipState.addTransition(new Transition(s -> s.getInt("shipCount") == 1 && s.getInt("crewCount") == 0, sinkChain, awaitSunkState, true));
+      awaitShipState.addTransition(new Transition(s -> s.getInt("crewCount") == 0, sinkChain, awaitShipState, true));
       awaitShipState.addTransition(new Transition(s -> s.getInt("shipCount") < 1, null, awaitSunkState, false));
       awaitShipState.addTransition(new Transition(null, s -> s.addToInt("shipCount", -1), awaitShipState, true));
 
