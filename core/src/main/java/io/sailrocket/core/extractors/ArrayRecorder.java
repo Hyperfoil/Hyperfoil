@@ -48,6 +48,7 @@ public class ArrayRecorder<T> implements Session.Processor, ResourceUtilizer {
 
    @Override
    public void reserve(io.sailrocket.core.machine.Session session) {
+      session.declare(var);
       session.setObject(var, arraySupplier.get());
    }
 }

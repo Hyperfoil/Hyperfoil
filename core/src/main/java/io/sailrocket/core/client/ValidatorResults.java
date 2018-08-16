@@ -20,67 +20,65 @@
 
 package io.sailrocket.core.client;
 
-import java.util.concurrent.atomic.LongAdder;
-
 /**
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
  */
 public class ValidatorResults {
 
-    private LongAdder statusValid = new LongAdder();
-    private LongAdder statusInvalid = new LongAdder();
+    private long statusValid;
+    private long statusInvalid;
 
-    private LongAdder headerValid = new LongAdder();
-    private LongAdder headerInvalid = new LongAdder();
+    private long headerValid;
+    private long headerInvalid;
 
-    private LongAdder bodyValid = new LongAdder();
-    private LongAdder bodyInvalid = new LongAdder();
+    private long bodyValid;
+    private long bodyInvalid;
 
     public ValidatorResults(){
     }
 
     public void addStatus(boolean valid) {
         if(valid)
-            statusValid.increment();
+            statusValid++;
         else
-            statusInvalid.increment();
+            statusInvalid++;
     }
 
     public void addHeader(boolean valid) {
         if(valid)
-            headerValid.increment();
+            headerValid++;
         else
-            headerInvalid.increment();
+            headerInvalid++;
     }
 
     public void addBody(boolean valid) {
         if(valid)
-            bodyValid.increment();
+            bodyValid++;
         else
-            bodyInvalid.increment();
+            bodyInvalid++;
     }
 
-    public LongAdder statusValid() {
+    public long statusValid() {
         return statusValid;
     }
 
-    public LongAdder statusInvalid() {
+    public long statusInvalid() {
         return statusInvalid;
     }
 
-    public LongAdder headerValid() {
+    public long headerValid() {
         return headerValid;
     }
 
-    public LongAdder headerInvalid() {
+    public long headerInvalid() {
         return headerInvalid;
     }
 
-    public LongAdder bodyValid() {
+    public long bodyValid() {
         return bodyValid;
     }
 
-    public LongAdder bodyInvalid() {
+    public long bodyInvalid() {
         return bodyInvalid;
     }
 }

@@ -1,10 +1,14 @@
 package io.sailrocket.core.machine;
 
+import static org.junit.Assert.assertTrue;
+
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -103,9 +107,10 @@ public class StateMachineTest {
     *                                      -(fetch ship)-                   --(sink ship)-
     */
    @Test
-   public void testSinkEmptyShips(TestContext ctx) {
+   public void testSinkEmptyShips(TestContext ctx) throws InterruptedException {
       // We need to call async() to prevent termination when the test method completes
-      Async async = ctx.async();
+      Async async = ctx.async(2);
+      CountDownLatch latch = new CountDownLatch(1);
 
       // Define states first, then link them
       State initState = new State("init");
@@ -120,8 +125,11 @@ public class StateMachineTest {
       Transition requestFleetTransition = new Transition(null, requestFleetAction, awaitFleetState, true);
       initState.addTransition(requestFleetTransition);
 
-      awaitFleetState.addDataExtractor(new JsonExtractor(".ships[].name", new ArrayRecorder<>("shipNames", () -> new String[16])));
-      awaitFleetState.addTransition(new Transition(null, s -> s.setInt("shipCount", count((String[]) s.getObject("shipNames"))), beforeShipRequest, false));
+      awaitFleetState.addBodyExtractor(new JsonExtractor(".ships[].name", new ArrayRecorder<>("shipNames", () -> new String[16])));
+      Action countShipsAction = s -> s
+            .setInt("shipCount", count((String[]) s.getObject("shipNames")))
+            .setInt("sunkCount", 0);
+      awaitFleetState.addTransition(new Transition(null, countShipsAction, beforeShipRequest, false));
 
       HttpRequestAction requestShipAction = new HttpRequestAction(HttpMethod.GET,
             // TODO: avoid allocations when constructing URL
@@ -131,8 +139,8 @@ public class StateMachineTest {
       beforeShipRequest.addTransition(new Transition(s -> s.getInt("shipCount") > 0, null, awaitShipState, true));
       beforeShipRequest.addTransition(new Transition(null, null, awaitShipState, false));
 
-      awaitShipState.addDataExtractor(new JsonExtractor(".crew[]", new CountRecorder("crewCount")));
-      awaitShipState.addDataExtractor(new JsonExtractor(".name", new SimpleRecorder("shipName")));
+      awaitShipState.addBodyExtractor(new JsonExtractor(".crew[]", new CountRecorder("crewCount")));
+      awaitShipState.addBodyExtractor(new JsonExtractor(".name", new SimpleRecorder("shipName")));
 
       HttpRequestAction sinkShipAction = new HttpRequestAction(HttpMethod.DELETE, s -> "/ship?name=" + encode((String) s.getObject("shipName")), null, null, awaitSunkState);
       ActionChain sinkChain = new ActionChain(s -> s.addToInt("shipCount", -1).addToInt("sunkCount", 1), sinkShipAction);
@@ -145,22 +153,26 @@ public class StateMachineTest {
       awaitSunkState.addTransition(new Transition(s -> s.getInt("sunkCount") > 1, s -> s.addToInt("sunkCount", -1), awaitSunkState, true));
       awaitSunkState.addTransition(new Transition(null, session -> {
          log.info("Test completed");
-         async.complete();
+         async.countDown();
+         latch.countDown();
       }, null, true));
 
       // Allocating init
       Session session = new Session(httpClientPool, timedExecutor, initState);
       // These are the variables we use directly in lambdas; we need to make space for them
-      session.setObject("authToken", "blabbla");
-      session.setInt("shipCount", 0);
-      session.setInt("sunkCount", 0);
+      session.declare("authToken");
+      session.declareInt("shipCount");
+      session.declareInt("sunkCount");
       initState.register(session);
       awaitFleetState.register(session);
       beforeShipRequest.register(session);
       awaitShipState.register(session);
       awaitSunkState.register(session);
 
-      // Allocation-free run
+      // Allocation-free runs
+      session.run();
+      assertTrue(latch.await(1, TimeUnit.MINUTES));
+      session.reset(initState);
       session.run();
    }
 
@@ -196,7 +208,4 @@ public class StateMachineTest {
       }
       throw new NoSuchElementException();
    }
-
-
-
 }

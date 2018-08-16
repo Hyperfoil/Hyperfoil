@@ -3,9 +3,13 @@ package io.sailrocket.api;
 import io.netty.buffer.ByteBuf;
 
 public interface Session {
+   Session declare(Object key);
+
    Object getObject(Object key);
 
    Session setObject(Object name, Object value);
+
+   Session declareInt(Object key);
 
    int getInt(Object key);
 

@@ -22,7 +22,7 @@ public class State {
       this.name = name;
    }
 
-   public boolean progress(Session session) {
+   boolean progress(Session session) {
       for (int i = 0; i < transitions.length; ++i) {
          if (transitions[i].test(session)) {
             session.setState(transitions[i].invoke(session));

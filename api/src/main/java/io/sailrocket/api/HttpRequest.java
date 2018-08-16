@@ -53,7 +53,7 @@ public interface HttpRequest {
 
   HttpRequest resetHandler(IntConsumer handler);
 
-  HttpRequest bodyHandler(Consumer<ByteBuf> handler);
+  HttpRequest bodyPartHandler(Consumer<ByteBuf> handler);
 
   HttpRequest endHandler(Runnable handler);
 

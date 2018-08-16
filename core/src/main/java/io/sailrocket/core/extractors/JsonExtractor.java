@@ -5,11 +5,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 import io.netty.buffer.ByteBuf;
-import io.sailrocket.api.DataExtractor;
+import io.sailrocket.api.BodyExtractor;
 import io.sailrocket.api.Session;
 import io.sailrocket.core.machine.ResourceUtilizer;
 
-public class JsonExtractor implements DataExtractor, ResourceUtilizer {
+public class JsonExtractor implements BodyExtractor, ResourceUtilizer {
    private final String path;
    private final Session.Processor processor;
    private final Selector[] selectors;
@@ -80,10 +80,20 @@ public class JsonExtractor implements DataExtractor, ResourceUtilizer {
    }
 
    @Override
+   public void beforeData(Session session) {
+      processor.before(session);
+      Context ctx = (Context) session.getObject(this);
+      ctx.reset();
+   }
+
+   @Override
    public void extractData(ByteBuf data, Session session) {
       Context ctx = (Context) session.getObject(this);
-      processor.before(session);
       ctx.parse(data, session);
+   }
+
+   @Override
+   public void afterData(Session session) {
       processor.after(session);
    }
 
@@ -97,6 +107,7 @@ public class JsonExtractor implements DataExtractor, ResourceUtilizer {
 
    @Override
    public void reserve(io.sailrocket.core.machine.Session session) {
+      session.declare(this);
       session.setObject(this, new Context());
       if (processor instanceof ResourceUtilizer) {
          ((ResourceUtilizer) processor).reserve(session);
@@ -105,18 +116,33 @@ public class JsonExtractor implements DataExtractor, ResourceUtilizer {
 
    private class Context {
       Selector.Context[] selectorContext = new Selector.Context[selectors.length];
-      int level = -1, selectorLevel = 0;
-      int selector = 0;
-      boolean inQuote = false;
-      boolean inAttrib = false;
-      int attribStart = -1;
-      int lastChar = -1;
-      int fireStart = -1;
+      int level;
+      int selectorLevel;
+      int selector;
+      boolean inQuote;
+      boolean inAttrib;
+      int attribStart;
+      int lastChar;
+      int fireStart;
 
       public Context() {
          for (int i = 0; i < selectors.length; ++i) {
             selectorContext[i] = selectors[i].newContext();
          }
+      }
+
+      public void reset() {
+         for (Selector.Context ctx : selectorContext) {
+            if (ctx != null) ctx.reset();
+         }
+         level = -1;
+         selectorLevel = 0;
+         selector = 0;
+         inQuote = false;
+         inAttrib = false;
+         attribStart = -1;
+         lastChar = -1;
+         fireStart = -1;
       }
 
       private Selector.Context current() {
@@ -269,13 +295,13 @@ public class JsonExtractor implements DataExtractor, ResourceUtilizer {
          fireStart = -1;
          --selector;
       }
-
    }
 
    private interface Selector {
       Context newContext();
 
       interface Context {
+         void reset();
       }
    }
 
@@ -314,7 +340,13 @@ public class JsonExtractor implements DataExtractor, ResourceUtilizer {
    }
 
    private class ArraySelectorContext implements Selector.Context {
-      boolean active = false;
-      int currentItem = 0;
+      boolean active;
+      int currentItem;
+
+      @Override
+      public void reset() {
+         active = false;
+         currentItem = 0;
+      }
    }
 }

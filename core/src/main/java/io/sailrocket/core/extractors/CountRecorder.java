@@ -23,6 +23,6 @@ public class CountRecorder implements Session.Processor, ResourceUtilizer {
 
    @Override
    public void reserve(io.sailrocket.core.machine.Session session) {
-      session.setInt(var, 0);
+      session.declareInt(var);
    }
 }

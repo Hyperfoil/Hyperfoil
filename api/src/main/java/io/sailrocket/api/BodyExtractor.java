@@ -20,7 +20,9 @@ package io.sailrocket.api;
 
 import io.netty.buffer.ByteBuf;
 
-public interface DataExtractor {
+public interface BodyExtractor {
 
+    default void beforeData(Session session) {}
     void extractData(ByteBuf data, Session session);
+    default void afterData(Session session) {}
 }

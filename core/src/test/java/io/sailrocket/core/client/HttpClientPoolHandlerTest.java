@@ -83,7 +83,7 @@ public class HttpClientPoolHandlerTest {
                 latch.countDown();
             }
         })
-        .bodyHandler(input -> {
+        .bodyPartHandler(input -> {
             assertEquals("hello from server", new String(input.array()));
             latch.countDown();
         }).endHandler(() -> {

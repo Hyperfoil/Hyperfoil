@@ -35,7 +35,7 @@ public abstract class AbstractHttpRequest implements HttpRequest, HttpResponseHa
    }
 
    @Override
-   public HttpRequest bodyHandler(Consumer<ByteBuf> handler) {
+   public HttpRequest bodyPartHandler(Consumer<ByteBuf> handler) {
        this.dataHandler = handler;
        return this;
    }

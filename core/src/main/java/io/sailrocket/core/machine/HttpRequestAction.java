@@ -42,8 +42,9 @@ public class HttpRequestAction implements Action {
 
       // alloc-free below
       request.statusHandler(session.intHandler(handler, HttpResponseState.HANDLE_STATUS));
+      request.headerHandler(session.biHandler(handler, HttpResponseState.HANDLE_HEADER));
       request.exceptionHandler(session.exceptionHandler(handler, HttpResponseState.HANDLE_EXCEPTION));
-      request.bodyHandler(session.objectHandler(handler, HttpResponseState.HANDLE_BODY));
+      request.bodyPartHandler(session.objectHandler(handler, HttpResponseState.HANDLE_BODY_PART));
       request.endHandler(session.voidHandler(handler, HttpResponseState.HANDLE_END));
 
       log.trace("HTTP {} to {}", method, path);

@@ -1,7 +1,7 @@
 package io.sailrocket.core.impl;
 
 import io.netty.buffer.ByteBuf;
-import io.sailrocket.api.DataExtractor;
+import io.sailrocket.api.BodyExtractor;
 import io.sailrocket.api.HttpMethod;
 import io.sailrocket.api.HttpRequest;
 import io.sailrocket.api.Step;
@@ -28,7 +28,7 @@ public class StepImpl implements AsyncStep {
 
     private Map<String, String> params = new HashMap<>();
     private Validators validators;
-    private List<DataExtractor> extractors = new ArrayList<>();
+    private List<BodyExtractor> extractors = new ArrayList<>();
 
     @Override
     public Step path(String path) {
@@ -84,12 +84,13 @@ public class StepImpl implements AsyncStep {
                 sequenceContext.sequenceStats().statuses[status].increment();
             }
             if (validators != null && validators.hasStatusValidator())
-               sequenceContext.validatorResults().addHeader(validators.statusValidator().validate(code));
-        }).bodyHandler( body -> {
+               sequenceContext.validatorResults().addStatus(validators.statusValidator().validate(null, code));
+        }).bodyPartHandler(body -> {
             if (validators != null && validators.hasBodyValidator())
-                sequenceContext.validatorResults().addBody(validators.bodyValidator().validate(new String(body.array())));
+                validators.bodyValidator().validateData(null, body);
             //TODO:: populate session values here
-            this.extractors.forEach(dataExtractor -> dataExtractor.extractData(body, null));
+            // TODO: this does not work, extractor moves readerIndex()
+            this.extractors.forEach(bodyExtractor -> bodyExtractor.extractData(body, null));
         }).resetHandler(frame -> {
             // TODO: what is reset handler? Not used ATM
             sequenceContext.sequenceStats().resetCount.increment();
@@ -97,6 +98,8 @@ public class StepImpl implements AsyncStep {
             if (trace) {
                 log.trace("Request completed.");
             }
+            if (validators != null && validators.hasBodyValidator())
+                sequenceContext.validatorResults().addBody(validators.bodyValidator().validate(null));
             sequenceContext.sequenceStats().responseCount.increment();
             completion.complete(sequenceContext);
         }).exceptionHandler(throwable -> {

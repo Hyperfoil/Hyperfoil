@@ -19,10 +19,14 @@
  */
 package io.sailrocket.spi;
 
-import io.sailrocket.api.Validator;
+import io.netty.buffer.ByteBuf;
+import io.sailrocket.api.Session;
 
 /**
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
  */
-public interface BodyValidator extends Validator<String> {
+public interface BodyValidator {
+   void beforeData(Session session);
+   void validateData(Session session, ByteBuf chunk);
+   boolean validate(Session session);
 }

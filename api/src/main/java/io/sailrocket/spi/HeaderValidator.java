@@ -19,10 +19,15 @@
  */
 package io.sailrocket.spi;
 
-import io.sailrocket.api.Validator;
+import io.sailrocket.api.Session;
 
 /**
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
  */
-public interface HeaderValidator extends Validator<HttpHeader> {
+public interface HeaderValidator {
+   void beforeHeaders(Session session);
+
+   void validateHeader(Session session, String header, String value);
+
+   boolean validate(Session session);
 }
