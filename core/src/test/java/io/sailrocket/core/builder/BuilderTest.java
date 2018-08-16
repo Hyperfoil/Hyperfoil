@@ -60,6 +60,7 @@ public class BuilderTest {
         assertEquals(1, simulation.tags().getInteger("connections").intValue());
         assertEquals(101, simulation.tags().getInteger("rate").intValue());
         assertEquals(3000000000L, simulation.duration());
+        assertEquals(1, simulation.numOfScenarios());
 
         BenchmarkImpl benchmark =
                 BenchmarkBuilder.builder()
