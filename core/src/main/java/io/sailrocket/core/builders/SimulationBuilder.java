@@ -44,6 +44,7 @@ public class SimulationBuilder {
     private long rampUp;
     private String payload = "";
     //for now just create one scenario
+    //TODO:: this needs to be a collection of scenarios, and we need to add the simulation when it is built
     private Scenario scenario;
     private int rate = 100;
     //also support an endpoint for a simple benchmark
@@ -134,7 +135,7 @@ public class SimulationBuilder {
     }
 
     public SimulationImpl build() {
-        return new SimulationImpl(threads, rate, duration, rampUp, buildClientPoolFactory(), buildTags());
+        return (SimulationImpl) new SimulationImpl(threads, rate, duration, rampUp, buildClientPoolFactory(), buildTags()).scenario(this.scenario);
     }
 
     private HttpClientPoolFactory buildClientPoolFactory() {
