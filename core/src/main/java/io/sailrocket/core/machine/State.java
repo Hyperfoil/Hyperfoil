@@ -10,10 +10,8 @@ import io.vertx.core.logging.LoggerFactory;
  * events (e.g. successful response vs. connection error).
  */
 public class State {
-   protected static final Logger log = LoggerFactory.getLogger(State.class);
-   protected static final boolean trace = log.isTraceEnabled();
-
-   static final String PROGRESS = "progress";
+   private static final Logger log = LoggerFactory.getLogger(State.class);
+   private static final boolean trace = log.isTraceEnabled();
 
    // Just for debugging purposes
    private final String name;
@@ -52,11 +50,10 @@ public class State {
       }
    }
 
-   public void register(Session session) {
+   public void reserve(Session session) {
       for (Transition t : transitions) {
-         t.register(session);
+         t.reserve(session);
       }
-      session.registerVoidHandler(this, PROGRESS, () -> session.run());
    }
 
    @Override

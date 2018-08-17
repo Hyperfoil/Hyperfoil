@@ -114,18 +114,19 @@ public class StateMachineTest {
 
       // Define states first, then link them
       State initState = new State("init");
-      HttpResponseState awaitFleetState = new HttpResponseState("awaitFleet");
+      State awaitFleetState = new State("awaitFleet");
       State beforeShipRequest = new State("beforeShip");
-      HttpResponseState awaitShipState = new HttpResponseState("awaitShip");
-      HttpResponseState awaitSunkState = new HttpResponseState("awaitSunk");
+      State awaitShipState = new State("awaitShip");
+      State awaitSunkState = new State("awaitSunk");
 
 //      BiConsumer<Session, HttpRequest> addAuth = (session, appendHeader) -> appendHeader.putHeader("Authentization", (String) session.var("authToken"));
 
-      HttpRequestAction requestFleetAction = new HttpRequestAction(HttpMethod.GET, s -> "/fleet", null, null, awaitFleetState);
+      HttpResponseHandler fleetHandler = new HttpResponseHandler();
+      HttpRequestAction requestFleetAction = new HttpRequestAction(HttpMethod.GET, s -> "/fleet", null, null, fleetHandler);
       Transition requestFleetTransition = new Transition(null, requestFleetAction, awaitFleetState, true);
       initState.addTransition(requestFleetTransition);
 
-      awaitFleetState.addBodyExtractor(new JsonExtractor(".ships[].name", new DefragProcessor(new ArrayRecorder("shipNames", MAX_SHIPS))));
+      fleetHandler.addBodyExtractor(new JsonExtractor(".ships[].name", new DefragProcessor(new ArrayRecorder("shipNames", MAX_SHIPS))));
       Action countShipsAction = s -> s
             .setInt("numberOfShips", count((String[]) s.getObject("shipNames")))
             .setInt("currentShipRequest", 0)
@@ -133,17 +134,19 @@ public class StateMachineTest {
             .setInt("numberOfSunkShips", 0);
       awaitFleetState.addTransition(new Transition(null, countShipsAction, beforeShipRequest, false));
 
+      HttpResponseHandler shipHandler = new HttpResponseHandler();
       ActionChain requestShipChain = new ActionChain(
-            new HttpRequestAction(HttpMethod.GET, StateMachineTest::currentShipQuery, null, null, awaitShipState),
+            new HttpRequestAction(HttpMethod.GET, StateMachineTest::currentShipQuery, null, null, shipHandler),
             s -> s.addToInt("currentShipRequest", 1)
       );
       beforeShipRequest.addTransition(new Transition(s -> s.getInt("currentShipRequest") < s.getInt("numberOfShips"), requestShipChain, beforeShipRequest, false));
       beforeShipRequest.addTransition(new Transition(s -> s.getInt("numberOfShips") > 0, s -> s.setInt("currentShipRequest", 0), awaitShipState, true));
       beforeShipRequest.addTransition(new Transition(null, s -> s.setInt("currentShipRequest", 0), awaitShipState, false));
 
-      awaitShipState.addBodyExtractor(new JsonExtractor(".crew[]", new CounterArrayRecorder("crewCount", "currentShipResponse", MAX_SHIPS)));
+      shipHandler.addBodyExtractor(new JsonExtractor(".crew[]", new CounterArrayRecorder("crewCount", "currentShipResponse", MAX_SHIPS)));
 
-      HttpRequestAction sinkShipAction = new HttpRequestAction(HttpMethod.DELETE, StateMachineTest::currentShipQuery, null, null, awaitSunkState);
+      HttpResponseHandler sinkHandler = new HttpResponseHandler();
+      HttpRequestAction sinkShipAction = new HttpRequestAction(HttpMethod.DELETE, StateMachineTest::currentShipQuery, null, null, sinkHandler);
       ActionChain sinkChain = new ActionChain(sinkShipAction, s -> s.addToInt("currentShipRequest", 1).addToInt("numberOfSunkShips", 1));
 
       // In order to make all other transitions to awaitShip non-blocking we'll check first if we got the response and if not, we'll wait for it first.
@@ -153,7 +156,7 @@ public class StateMachineTest {
       awaitShipState.addTransition(new Transition(s -> s.getInt("numberOfSunkShips") > 0, null, awaitSunkState, true));
       awaitShipState.addTransition(new Transition(null, null, awaitSunkState, false));
 
-      awaitSunkState.addStatusExtractor(((status, session) -> {
+      sinkHandler.addStatusExtractor(((status, session) -> {
          if (status == 204) {
             session.addToInt("numberOfSunkShips", -1);
          } else {
@@ -176,11 +179,11 @@ public class StateMachineTest {
       session.declareInt("currentShipRequest");
       session.declareInt("currentShipResponse");
       session.declareInt("numberOfSunkShips");
-      initState.register(session);
-      awaitFleetState.register(session);
-      beforeShipRequest.register(session);
-      awaitShipState.register(session);
-      awaitSunkState.register(session);
+      initState.reserve(session);
+      awaitFleetState.reserve(session);
+      beforeShipRequest.reserve(session);
+      awaitShipState.reserve(session);
+      awaitSunkState.reserve(session);
 
       // Allocation-free runs
       session.run();

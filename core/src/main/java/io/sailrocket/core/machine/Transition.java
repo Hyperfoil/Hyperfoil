@@ -38,7 +38,7 @@ class Transition {
       return blocking;
    }
 
-   public void register(Session session) {
+   public void reserve(Session session) {
       if (action instanceof ResourceUtilizer) {
          ((ResourceUtilizer) action).reserve(session);
       }

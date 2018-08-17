@@ -2,6 +2,9 @@ package io.sailrocket.core.machine;
 
 import java.lang.reflect.Array;
 import java.nio.charset.StandardCharsets;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+import java.util.function.IntConsumer;
 
 import io.netty.buffer.ByteBuf;
 import io.sailrocket.api.BodyExtractor;
@@ -10,13 +13,12 @@ import io.sailrocket.api.StatusExtractor;
 import io.sailrocket.spi.BodyValidator;
 import io.sailrocket.spi.HeaderValidator;
 import io.sailrocket.spi.StatusValidator;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 
-public class HttpResponseState extends State {
-   static final String HANDLE_STATUS = "status";
-   static final String HANDLE_HEADER = "header";
-   static final String HANDLE_EXCEPTION = "exception";
-   static final String HANDLE_BODY_PART = "body_part";
-   static final String HANDLE_END = "end";
+public class HttpResponseHandler implements ResourceUtilizer {
+   private static final Logger log = LoggerFactory.getLogger(State.class);
+   private static final boolean trace = log.isTraceEnabled();
 
    private StatusValidator[] statusValidators;
    private HeaderValidator[] headerValidators;
@@ -24,10 +26,6 @@ public class HttpResponseState extends State {
    private StatusExtractor[] statusExtractors;
    private HeaderExtractor[] headerExtractors;
    private BodyExtractor[] bodyExtractors;
-
-   public HttpResponseState(String name) {
-      super(name);
-   }
 
    private void handleStatus(Session session, int status) {
       if (trace) {
@@ -149,13 +147,9 @@ public class HttpResponseState extends State {
 
 
    @Override
-   public void register(Session session) {
-      super.register(session);
-      session.registerIntHandler(this, HANDLE_STATUS, status -> handleStatus(session, status));
-      session.registerBiHandler(this, HANDLE_EXCEPTION, (header, value) -> handleHeader(session, (String) header, (String) value));
-      session.registerExceptionHandler(this, HANDLE_EXCEPTION, throwable -> handleThrowable(session, throwable));
-      session.registerObjectHandler(this, HANDLE_BODY_PART, body -> handleBodyPart(session, (ByteBuf) body));
-      session.registerVoidHandler(this, HANDLE_END, () -> handleEnd(session));
+   public void reserve(Session session) {
+      session.declare(this);
+      session.setObject(this, new HandlerInstances(session));
       reserveAll(session, statusValidators);
       reserveAll(session, headerValidators);
       reserveAll(session, bodyValidators);
@@ -174,32 +168,32 @@ public class HttpResponseState extends State {
       }
    }
 
-   public HttpResponseState addStatusValidator(StatusValidator validator) {
+   public HttpResponseHandler addStatusValidator(StatusValidator validator) {
       statusValidators = append(statusValidators, validator, StatusValidator.class);
       return this;
    }
 
-   public HttpResponseState addHeaderValidator(HeaderValidator validator) {
+   public HttpResponseHandler addHeaderValidator(HeaderValidator validator) {
       headerValidators = append(headerValidators, validator, HeaderValidator.class);
       return this;
    }
 
-   public HttpResponseState addBodyValidator(BodyValidator validator) {
+   public HttpResponseHandler addBodyValidator(BodyValidator validator) {
       bodyValidators = append(bodyValidators, validator, BodyValidator.class);
       return this;
    }
 
-   public HttpResponseState addStatusExtractor(StatusExtractor extractor) {
+   public HttpResponseHandler addStatusExtractor(StatusExtractor extractor) {
       statusExtractors = append(statusExtractors, extractor, StatusExtractor.class);
       return this;
    }
 
-   public HttpResponseState addHeaderExtractor(HeaderExtractor extractor) {
+   public HttpResponseHandler addHeaderExtractor(HeaderExtractor extractor) {
       headerExtractors = append(headerExtractors, extractor, HeaderExtractor.class);
       return this;
    }
 
-   public HttpResponseState addBodyExtractor(BodyExtractor extractor) {
+   public HttpResponseHandler addBodyExtractor(BodyExtractor extractor) {
       bodyExtractors = append(bodyExtractors, extractor, BodyExtractor.class);
       return this;
    }
@@ -214,5 +208,21 @@ public class HttpResponseState extends State {
       }
       array[array.length - 1] = item;
       return array;
+   }
+
+   class HandlerInstances {
+      final IntConsumer handleStatus;
+      final BiConsumer<String, String> handleHeader;
+      final Consumer<Throwable> handleException;
+      final Consumer<ByteBuf> handleBodyPart;
+      final Runnable handleEnd;
+
+      private HandlerInstances(Session session) {
+         handleStatus = status -> handleStatus(session, status);
+         handleHeader = (header, value) -> handleHeader(session, header, value);
+         handleException = throwable -> handleThrowable(session, throwable);
+         handleBodyPart = body -> handleBodyPart(session, body);
+         handleEnd = () -> handleEnd(session);
+      }
    }
 }

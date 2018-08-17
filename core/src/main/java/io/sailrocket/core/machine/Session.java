@@ -3,9 +3,6 @@ package io.sailrocket.core.machine;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-import java.util.function.IntConsumer;
 
 import io.sailrocket.api.HttpClientPool;
 import io.sailrocket.api.SequenceStatistics;
@@ -24,11 +21,12 @@ public class Session implements io.sailrocket.api.Session {
    // Note: HashMap.get() is allocation-free, so we can use it for direct lookups. Replacing put() is also
    // allocation-free, so vars are OK to write as long as we have them declared.
    private final Map<Object, Object> vars = new HashMap<>();
-   private final Map<State, Map<String, Object>> handlers = new HashMap<>();
    private final RequestQueue requestQueue;
 
    private final ValidatorResults validatorResults = new ValidatorResults();
    private final SequenceStatistics statistics = new SequenceStatistics();
+
+   private final Runnable run = this::run;
 
    public Session(HttpClientPool httpClientPool, ScheduledExecutorService scheduledExecutor, State initState, int maxConcurrentRequests) {
       this.httpClientPool = httpClientPool;
@@ -43,47 +41,6 @@ public class Session implements io.sailrocket.api.Session {
 
    ScheduledExecutorService getScheduledExecutor() {
       return scheduledExecutor;
-   }
-
-   void registerIntHandler(State state, String type, IntConsumer handler) {
-      handlers.computeIfAbsent(state, s -> new HashMap<>()).put(type, handler);
-   }
-
-   void registerExceptionHandler(State state, String type, Consumer<Throwable> handler) {
-      handlers.computeIfAbsent(state, s -> new HashMap<>()).put(type, handler);
-   }
-
-   void registerObjectHandler(State state, String type, Consumer<Object> handler) {
-      handlers.computeIfAbsent(state, s -> new HashMap<>()).put(type, handler);
-   }
-
-   void registerVoidHandler(State state, String type, Runnable handler) {
-      handlers.computeIfAbsent(state, s -> new HashMap<>()).put(type, handler);
-   }
-
-   void registerBiHandler(State state, String type, BiConsumer<Object, Object> handler) {
-      handlers.computeIfAbsent(state, s -> new HashMap<>()).put(type, handler);
-   }
-
-   IntConsumer intHandler(State state, String type) {
-      // handler not registered is a bug
-      return (IntConsumer) handlers.get(state).get(type);
-   }
-
-   Consumer<Throwable> exceptionHandler(State state, String type) {
-      return (Consumer<Throwable>) handlers.get(state).get(type);
-   }
-
-   <T> Consumer<T> objectHandler(State state, String type) {
-      return (Consumer<T>) handlers.get(state).get(type);
-   }
-
-   Runnable voidHandler(State state, String type) {
-      return (Runnable) handlers.get(state).get(type);
-   }
-
-   <A, B> BiConsumer<A, B> biHandler(State state, String type) {
-      return (BiConsumer<A, B>) handlers.get(state).get(type);
    }
 
    @Override
@@ -160,6 +117,10 @@ public class Session implements io.sailrocket.api.Session {
 
    RequestQueue requestQueue() {
       return requestQueue;
+   }
+
+   Runnable progress() {
+      return run;
    }
 
    private static class IntWrapper {

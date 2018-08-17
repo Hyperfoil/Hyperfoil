@@ -17,7 +17,7 @@
  * the {@link io.sailrocket.core.machine.ResourceUtilizer} interface to register itselves.
  * <p>
  * States may need to reserve some memory as well (for handlers that contain session reference), these are cached
- * in Session upon the {@link io.sailrocket.core.machine.State#register(io.sailrocket.core.machine.Session)} call.
+ * in Session upon the {@link io.sailrocket.core.machine.State#reserve(io.sailrocket.core.machine.Session)} call.
  *
  * <h2>State machine operation</h2>
  *

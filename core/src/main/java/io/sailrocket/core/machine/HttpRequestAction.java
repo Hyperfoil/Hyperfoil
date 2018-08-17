@@ -9,7 +9,7 @@ import io.sailrocket.api.HttpRequest;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-public class HttpRequestAction implements Action {
+public class HttpRequestAction implements Action, ResourceUtilizer {
    private static final Logger log = LoggerFactory.getLogger(HttpRequestAction.class);
    private static final boolean trace = log.isTraceEnabled();
 
@@ -17,13 +17,13 @@ public class HttpRequestAction implements Action {
    private final Function<Session, String> pathGenerator;
    private final Function<Session, ByteBuf> bodyGenerator;
    private final BiConsumer<Session, HttpRequest> headerAppender;
-   private final HttpResponseState handler;
+   private final HttpResponseHandler handler;
 
    public HttpRequestAction(HttpMethod method,
                             Function<Session, String> pathGenerator,
                             Function<Session, ByteBuf> bodyGenerator,
                             BiConsumer<Session, HttpRequest> headerAppender,
-                            HttpResponseState handler) {
+                            HttpResponseHandler handler) {
       this.method = method;
       this.pathGenerator = pathGenerator;
       this.bodyGenerator = bodyGenerator;
@@ -53,16 +53,22 @@ public class HttpRequestAction implements Action {
       }
 
       // alloc-free below
-      request.statusHandler(session.intHandler(handler, HttpResponseState.HANDLE_STATUS));
-      request.headerHandler(session.biHandler(handler, HttpResponseState.HANDLE_HEADER));
-      request.exceptionHandler(session.exceptionHandler(handler, HttpResponseState.HANDLE_EXCEPTION));
-      request.bodyPartHandler(session.objectHandler(handler, HttpResponseState.HANDLE_BODY_PART));
-      request.endHandler(session.voidHandler(handler, HttpResponseState.HANDLE_END));
+      HttpResponseHandler.HandlerInstances h = (HttpResponseHandler.HandlerInstances) session.getObject(handler);
+      request.statusHandler(h.handleStatus);
+      request.headerHandler(h.handleHeader);
+      request.exceptionHandler(h.handleException);
+      request.bodyPartHandler(h.handleBodyPart);
+      request.endHandler(h.handleEnd);
 
       if (trace) {
          log.trace("HTTP {} to {}", method, path);
       }
       request.end();
       session.statistics().requestCount++;
+   }
+
+   @Override
+   public void reserve(Session session) {
+      handler.reserve(session);
    }
 }
