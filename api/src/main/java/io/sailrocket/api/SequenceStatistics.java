@@ -1,6 +1,5 @@
 package io.sailrocket.api;
 
-import org.HdrHistogram.ConcurrentHistogram;
 import org.HdrHistogram.Histogram;
 
 import java.io.ByteArrayOutputStream;

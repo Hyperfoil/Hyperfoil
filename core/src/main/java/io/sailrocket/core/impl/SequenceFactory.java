@@ -30,7 +30,7 @@ public class SequenceFactory {
 
         return sequence.getSteps().stream()
                 .reduce(rootFuture
-                        , (sequenceFuture, step) -> sequenceFuture.thenCompose(sequenceState -> step.asyncExec(sequenceState))
+                        , (sequenceFuture, step) -> sequenceFuture.thenCompose(sequenceContext -> step.asyncExec(sequenceContext))
                         , (sequenceFuture, e) -> sequenceFuture
                 );
     }

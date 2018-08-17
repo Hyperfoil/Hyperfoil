@@ -233,7 +233,7 @@ public class ChainableEventsTestCase {
     }
 
     private CompletableFuture<SequenceContext> addStep(CompletableFuture<SequenceContext> future, AsyncStep step) {
-        return future.thenCompose(sequenceState -> step.asyncExec(sequenceState));
+        return future.thenCompose(sequenceContext -> step.asyncExec(sequenceContext));
     }
 
     private CompletableFuture<SequenceContext> passSequence(CompletableFuture<SequenceContext> sequence) {

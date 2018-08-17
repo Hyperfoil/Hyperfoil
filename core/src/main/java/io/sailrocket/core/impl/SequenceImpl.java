@@ -14,7 +14,7 @@ import java.util.concurrent.CompletableFuture;
 
 public class SequenceImpl implements Sequence {
 
-    private SequenceStatistics sequenceStatistics;
+    private SequenceContext sequenceContext;
 
     //TODO:: think about branching
     private List<AsyncStep> steps = new ArrayList<>();
@@ -36,7 +36,16 @@ public class SequenceImpl implements Sequence {
 
     @Override
     public SequenceStatistics statistics() {
-        return sequenceStatistics;
+        return sequenceContext.sequenceStats();
+    }
+
+
+    public void context(SequenceContext sequenceContext) {
+        this.sequenceContext = sequenceContext;
+    }
+
+    public SequenceContext context() {
+        return sequenceContext;
     }
 
 //    public StepImpl rootStep() {

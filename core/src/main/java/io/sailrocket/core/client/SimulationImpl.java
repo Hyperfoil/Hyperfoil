@@ -155,7 +155,22 @@ public class SimulationImpl implements Simulation {
      * Print details on console.
      */
     public void printDetails() {
+
         //TODO:: print progress
+        Consumer<SequenceStatistics> printStatsConsumer = ((statistics) -> {
+            System.out.format("%s : total requests/responses %d/%d, max %.2f, min %.2f, mean %.2f",
+//                    statistics.name,
+                    statistics.requestCount,
+                    statistics.histogram.getMaxValue(),
+                    statistics.histogram.getMinValue(),
+                    statistics.histogram.getMean()
+            );
+        });
+
+        scenarios.forEach(scenario -> {
+            scenario.sequences().forEach(sequence -> printStatsConsumer.accept(sequence.statistics()));
+        });
+
 //        double progress = (100 * (System.nanoTime() - startTime)) / (double) duration;
 //        System.out.format("progress: %.2f%% done - total requests/responses %d/%d, ratio %.2f, read %d kb/s, written %d kb/s, inflight= %d%n",
 //                progress,
@@ -169,9 +184,11 @@ public class SimulationImpl implements Simulation {
     private void collateStatistics() {
         done = true;
 
-        scenarios.forEach(scenario -> {
-            scenario.sequences().forEach(sequence -> statisticsConsumer.accept(sequence.statistics()));
-        });
+        if (statisticsConsumer != null) {
+            scenarios.forEach(scenario -> {
+                scenario.sequences().forEach(sequence -> statisticsConsumer.accept(sequence.statistics()));
+            });
+        }
 
     }
 

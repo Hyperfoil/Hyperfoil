@@ -16,16 +16,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sailrocket.core.api;
+package io.sailrocket.api;
 
-import io.sailrocket.core.client.Pacer;
-import io.sailrocket.core.client.ValidatorResults;
+public interface SequenceContext {
+    //TODO:: this needs to be a single connection instead of the connection pool
+    //atm this is broken
+    HttpClientPool clientPool();
 
-public interface SequenceContext extends io.sailrocket.api.SequenceContext {
+    Sequence sequence();
 
-    Worker worker();
+    SequenceStatistics sequenceStats();
 
-    ValidatorResults validatorResults();
+    long getStartTime();
 
-    Pacer pacer();
 }
