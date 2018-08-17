@@ -4,7 +4,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -19,9 +18,9 @@ import io.sailrocket.api.HttpClientPool;
 import io.sailrocket.api.HttpMethod;
 import io.sailrocket.core.client.HttpClientProvider;
 import io.sailrocket.core.extractors.ArrayRecorder;
-import io.sailrocket.core.extractors.CountRecorder;
+import io.sailrocket.core.extractors.CounterArrayRecorder;
+import io.sailrocket.core.extractors.DefragProcessor;
 import io.sailrocket.core.extractors.JsonExtractor;
-import io.sailrocket.core.extractors.SimpleRecorder;
 import io.sailrocket.core.test.CrewMember;
 import io.sailrocket.core.test.Fleet;
 import io.sailrocket.core.test.Ship;
@@ -49,6 +48,7 @@ public class StateMachineTest {
          )
          .addShip(new Ship("Julius Fučík").dwt(7100))
          .addShip(new Ship("Lidice").dwt(8500));
+   public static final int MAX_SHIPS = 16;
 
    private static Vertx vertx;
    private static HttpClientPool httpClientPool;
@@ -106,7 +106,7 @@ public class StateMachineTest {
     *                                      |            |                   |            |
     *                                      -(fetch ship)-                   --(sink ship)-
     */
-   @Test
+   @Test(timeout = 60000000)
    public void testSinkEmptyShips(TestContext ctx) throws InterruptedException {
       // We need to call async() to prevent termination when the test method completes
       Async async = ctx.async(2);
@@ -125,32 +125,43 @@ public class StateMachineTest {
       Transition requestFleetTransition = new Transition(null, requestFleetAction, awaitFleetState, true);
       initState.addTransition(requestFleetTransition);
 
-      awaitFleetState.addBodyExtractor(new JsonExtractor(".ships[].name", new ArrayRecorder<>("shipNames", () -> new String[16])));
+      awaitFleetState.addBodyExtractor(new JsonExtractor(".ships[].name", new DefragProcessor(new ArrayRecorder("shipNames", MAX_SHIPS))));
       Action countShipsAction = s -> s
-            .setInt("shipCount", count((String[]) s.getObject("shipNames")))
-            .setInt("sunkCount", 0);
+            .setInt("numberOfShips", count((String[]) s.getObject("shipNames")))
+            .setInt("currentShipRequest", 0)
+            .setInt("currentShipResponse", 0)
+            .setInt("numberOfSunkShips", 0);
       awaitFleetState.addTransition(new Transition(null, countShipsAction, beforeShipRequest, false));
 
-      HttpRequestAction requestShipAction = new HttpRequestAction(HttpMethod.GET,
-            // TODO: avoid allocations when constructing URL
-            s -> "/ship?name=" + encode(fetchNext((String[]) s.getObject("shipNames"))), null, null, awaitShipState);
+      ActionChain requestShipChain = new ActionChain(
+            new HttpRequestAction(HttpMethod.GET, StateMachineTest::currentShipQuery, null, null, awaitShipState),
+            s -> s.addToInt("currentShipRequest", 1)
+      );
+      beforeShipRequest.addTransition(new Transition(s -> s.getInt("currentShipRequest") < s.getInt("numberOfShips"), requestShipChain, beforeShipRequest, false));
+      beforeShipRequest.addTransition(new Transition(s -> s.getInt("numberOfShips") > 0, s -> s.setInt("currentShipRequest", 0), awaitShipState, true));
+      beforeShipRequest.addTransition(new Transition(null, s -> s.setInt("currentShipRequest", 0), awaitShipState, false));
 
-      beforeShipRequest.addTransition(new Transition(s -> hasNext((String[]) s.getObject("shipNames")), requestShipAction, beforeShipRequest, false));
-      beforeShipRequest.addTransition(new Transition(s -> s.getInt("shipCount") > 0, null, awaitShipState, true));
-      beforeShipRequest.addTransition(new Transition(null, null, awaitShipState, false));
+      awaitShipState.addBodyExtractor(new JsonExtractor(".crew[]", new CounterArrayRecorder("crewCount", "currentShipResponse", MAX_SHIPS)));
 
-      awaitShipState.addBodyExtractor(new JsonExtractor(".crew[]", new CountRecorder("crewCount")));
-      awaitShipState.addBodyExtractor(new JsonExtractor(".name", new SimpleRecorder("shipName")));
+      HttpRequestAction sinkShipAction = new HttpRequestAction(HttpMethod.DELETE, StateMachineTest::currentShipQuery, null, null, awaitSunkState);
+      ActionChain sinkChain = new ActionChain(sinkShipAction, s -> s.addToInt("currentShipRequest", 1).addToInt("numberOfSunkShips", 1));
 
-      HttpRequestAction sinkShipAction = new HttpRequestAction(HttpMethod.DELETE, s -> "/ship?name=" + encode((String) s.getObject("shipName")), null, null, awaitSunkState);
-      ActionChain sinkChain = new ActionChain(s -> s.addToInt("shipCount", -1).addToInt("sunkCount", 1), sinkShipAction);
-      // This transition is blocking; we won't fire another sink ship request until someone (get ship response) wakes us up
-      awaitShipState.addTransition(new Transition(s -> s.getInt("shipCount") == 1 && s.getInt("crewCount") == 0, sinkChain, awaitSunkState, true));
-      awaitShipState.addTransition(new Transition(s -> s.getInt("crewCount") == 0, sinkChain, awaitShipState, true));
-      awaitShipState.addTransition(new Transition(s -> s.getInt("shipCount") < 1, null, awaitSunkState, false));
-      awaitShipState.addTransition(new Transition(null, s -> s.addToInt("shipCount", -1), awaitShipState, true));
+      // In order to make all other transitions to awaitShip non-blocking we'll check first if we got the response and if not, we'll wait for it first.
+      awaitShipState.addTransition(new Transition(s -> s.getInt("currentShipRequest") < s.getInt("numberOfShips") && s.getInt("currentShipRequest") >= s.getInt("currentShipResponse"), null, awaitShipState, true));
+      awaitShipState.addTransition(new Transition(s -> s.getInt("currentShipRequest") < s.getInt("numberOfShips") && currentCrewCount(s) == 0, sinkChain, awaitShipState, false));
+      awaitShipState.addTransition(new Transition(s -> s.getInt("currentShipRequest") < s.getInt("numberOfShips"), s -> s.addToInt("currentShipRequest", 1), awaitShipState, false));
+      awaitShipState.addTransition(new Transition(s -> s.getInt("numberOfSunkShips") > 0, null, awaitSunkState, true));
+      awaitShipState.addTransition(new Transition(null, null, awaitSunkState, false));
 
-      awaitSunkState.addTransition(new Transition(s -> s.getInt("sunkCount") > 1, s -> s.addToInt("sunkCount", -1), awaitSunkState, true));
+      awaitSunkState.addStatusExtractor(((status, session) -> {
+         if (status == 204) {
+            session.addToInt("numberOfSunkShips", -1);
+         } else {
+            ctx.fail("Unexpected status " + status);
+         }
+      }));
+
+      awaitSunkState.addTransition(new Transition(s -> s.getInt("numberOfSunkShips") > 0, null, awaitSunkState, true));
       awaitSunkState.addTransition(new Transition(null, session -> {
          log.info("Test completed");
          async.countDown();
@@ -158,11 +169,13 @@ public class StateMachineTest {
       }, null, true));
 
       // Allocating init
-      Session session = new Session(httpClientPool, timedExecutor, initState);
+      Session session = new Session(httpClientPool, timedExecutor, initState, 16);
       // These are the variables we use directly in lambdas; we need to make space for them
-      session.declare("authToken");
-      session.declareInt("shipCount");
-      session.declareInt("sunkCount");
+//      session.declare("authToken");
+      session.declareInt("numberOfShips");
+      session.declareInt("currentShipRequest");
+      session.declareInt("currentShipResponse");
+      session.declareInt("numberOfSunkShips");
       initState.register(session);
       awaitFleetState.register(session);
       beforeShipRequest.register(session);
@@ -172,11 +185,23 @@ public class StateMachineTest {
       // Allocation-free runs
       session.run();
       assertTrue(latch.await(1, TimeUnit.MINUTES));
+      log.trace(session.statistics());
       session.reset(initState);
       session.run();
    }
 
-   private String encode(String string) {
+   private int currentCrewCount(Session session) {
+      return ((int[]) session.getObject("crewCount"))[session.getInt("currentShipRequest")];
+   }
+
+   private static String currentShipQuery(Session s) {
+      int currentShip = s.getInt("currentShipRequest");
+      String shipName = ((String[]) s.getObject("shipNames"))[currentShip];
+      // TODO: avoid allocations when constructing URL
+      return "/ship?name=" + encode(shipName);
+   }
+
+   private static String encode(String string) {
       try {
          return URLEncoder.encode(string, "UTF-8");
       } catch (UnsupportedEncodingException e) {
@@ -189,23 +214,5 @@ public class StateMachineTest {
          if (strings[i] == null) return i;
       }
       return strings.length;
-   }
-
-   private static boolean hasNext(String[] strings) {
-      for (String string : strings) {
-         if (string != null) return true;
-      }
-      return false;
-   }
-
-   private static String fetchNext(String[] strings) {
-      for (int i = 0; i < strings.length; ++i) {
-         if (strings[i] != null) {
-            String tmp = strings[i];
-            strings[i] = null;
-            return tmp;
-         }
-      }
-      throw new NoSuchElementException();
    }
 }

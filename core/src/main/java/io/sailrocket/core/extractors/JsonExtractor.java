@@ -10,6 +10,8 @@ import io.sailrocket.api.Session;
 import io.sailrocket.core.machine.ResourceUtilizer;
 
 public class JsonExtractor implements BodyExtractor, ResourceUtilizer {
+   private static final int MAX_PARTS = 16;
+
    private final String path;
    private final Session.Processor processor;
    private final Selector[] selectors;
@@ -95,6 +97,13 @@ public class JsonExtractor implements BodyExtractor, ResourceUtilizer {
    @Override
    public void afterData(Session session) {
       processor.after(session);
+
+      Context ctx = (Context) session.getObject(this);
+      for (int i = 0; i < ctx.parts.length; ++i) {
+         if (ctx.parts[i] == null) break;
+         ctx.parts[i].release();
+         ctx.parts[i] = null;
+      }
    }
 
    @Override
@@ -121,9 +130,14 @@ public class JsonExtractor implements BodyExtractor, ResourceUtilizer {
       int selector;
       boolean inQuote;
       boolean inAttrib;
-      int attribStart;
-      int lastChar;
-      int fireStart;
+      int attribStartPart;
+      int attribStartIndex;
+      int lastCharPart;
+      int lastCharIndex;
+      int valueStartPart;
+      int valueStartIndex;
+      ByteBuf[] parts = new ByteBuf[MAX_PARTS];
+      int nextPart = 0;
 
       public Context() {
          for (int i = 0; i < selectors.length; ++i) {
@@ -140,9 +154,12 @@ public class JsonExtractor implements BodyExtractor, ResourceUtilizer {
          selector = 0;
          inQuote = false;
          inAttrib = false;
-         attribStart = -1;
-         lastChar = -1;
-         fireStart = -1;
+         attribStartPart = -1;
+         attribStartIndex = -1;
+         lastCharPart = -1;
+         lastCharIndex = -1;
+         valueStartPart = -1;
+         valueStartIndex = -1;
       }
 
       private Selector.Context current() {
@@ -180,19 +197,38 @@ public class JsonExtractor implements BodyExtractor, ResourceUtilizer {
                   break;
                case ':':
                   if (!inQuote) {
-                     if (selectorLevel == level && attribStart >= 0 && selector < selectors.length && selectors[selector] instanceof AttribSelector) {
-                        if (((AttribSelector) selectors[selector]).match(data, attribStart, lastChar)) {
+                     if (selectorLevel == level && attribStartIndex >= 0 && selector < selectors.length && selectors[selector] instanceof AttribSelector) {
+                        AttribSelector selector = (AttribSelector) selectors[this.selector];
+                        int offset = 0;
+                        boolean previousPartsMatch = true;
+                        if (attribStartPart >= 0) {
+                           int endIndex;
+                           if (lastCharPart != attribStartPart) {
+                              endIndex = parts[attribStartPart].writerIndex();
+                           } else {
+                              endIndex = lastCharIndex;
+                           }
+                           while (previousPartsMatch = selector.match(parts[attribStartPart], attribStartIndex, endIndex, offset)) {
+                              offset += endIndex - attribStartIndex;
+                              attribStartPart++;
+                              attribStartIndex = 0;
+                              if (attribStartPart >= parts.length || parts[attribStartPart] == null) {
+                                 break;
+                              }
+                           }
+                        }
+                        if (previousPartsMatch && (lastCharPart >= 0 || selector.match(data, attribStartIndex, lastCharIndex, offset))) {
                            onMatch(data);
                         }
                      }
-                     attribStart = -1;
+                     attribStartIndex = -1;
                      inAttrib = false;
                   }
                   break;
                case ',':
                   if (!inQuote) {
                      inAttrib = true;
-                     attribStart = -1;
+                     attribStartIndex = -1;
                      tryRecord(session, data);
                      if (selectorLevel == level && selector < selectors.length && current() instanceof ArraySelectorContext) {
                         ArraySelectorContext asc = (ArraySelectorContext) current();
@@ -229,12 +265,48 @@ public class JsonExtractor implements BodyExtractor, ResourceUtilizer {
                   }
                   break;
                default:
-                  lastChar = data.readerIndex();
-                  if (inAttrib && attribStart < 0) {
-                     attribStart = data.readerIndex() - 1;
+                  lastCharPart = -1;
+                  lastCharIndex = data.readerIndex();
+                  if (inAttrib && attribStartIndex < 0) {
+                     attribStartPart = -1;
+                     attribStartIndex = data.readerIndex() - 1;
                   }
             }
          }
+         if (nextPart == parts.length) {
+            parts[0].release();
+            System.arraycopy(parts, 1, parts, 0, parts.length - 1);
+            --nextPart;
+            if (attribStartPart == 0 && attribStartIndex >= 0) {
+               attribStartPart = 0;
+               attribStartIndex = 0;
+            } else if (attribStartPart > 0) {
+               --attribStartPart;
+            }
+            if (lastCharPart == 0 && lastCharIndex >= 0) {
+               lastCharPart = 0;
+               lastCharIndex = 0;
+            } else if (lastCharPart > 0) {
+               --lastCharPart;
+            }
+            if (valueStartPart == 0 && valueStartIndex >= 0) {
+               valueStartPart = 0;
+               valueStartIndex = 0;
+            } else if (valueStartPart > 0) {
+               --valueStartPart;
+            }
+         }
+         parts[nextPart] = data.retain();
+         if (attribStartPart < 0) {
+            attribStartPart = nextPart;
+         }
+         if (lastCharPart < 0) {
+            lastCharPart = nextPart;
+         }
+         if (valueStartPart < 0) {
+            valueStartPart = nextPart;
+         }
+         ++nextPart;
       }
 
       private void onMatch(ByteBuf data) {
@@ -242,58 +314,102 @@ public class JsonExtractor implements BodyExtractor, ResourceUtilizer {
          if (selector < selectors.length) {
             ++selectorLevel;
          } else {
-            fireStart = data.readerIndex();
+            valueStartPart = -1;
+            valueStartIndex = data.readerIndex();
          }
       }
 
       private void tryRecord(Session session, ByteBuf data) {
-         if (selectorLevel == level && fireStart >= 0) {
-            // fireStart is always before quotes here
-            int start = fireStart;
-            LOOP: while (start < data.writerIndex()) {
-               switch (data.getByte(start)) {
+         if (selectorLevel == level && valueStartIndex >= 0) {
+            // valueStartIndex is always before quotes here
+            ByteBuf buf = valueStartPart < 0 ? data : parts[valueStartPart];
+            LOOP: while (valueStartIndex < buf.writerIndex()) {
+               switch (buf.getByte(valueStartIndex)) {
                   case ' ':
                   case '\n':
                   case '\r':
                   case '\t':
-                     ++start;
+                     ++valueStartIndex;
+                     if (valueStartIndex >= buf.writerIndex() && valueStartPart >= 0) {
+                        valueStartPart++;
+                        if (valueStartPart >= parts.length || (buf = parts[valueStartPart]) == null) {
+                           buf = data;
+                           valueStartPart = -1;
+                        }
+                     }
                      break;
                   default:
                      break LOOP;
                }
             }
             int end = data.readerIndex() - 1;
-            LOOP: while (end > start) {
-               switch (data.getByte(end - 1)) {
+            int endPart = nextPart;
+            buf = data;
+            LOOP: while (end > valueStartIndex || valueStartPart >= 0 && endPart > valueStartPart) {
+               switch (buf.getByte(end - 1)) {
                   case ' ':
                   case '\n':
                   case '\r':
                   case '\t':
                      --end;
+                     if (end == 0) {
+                        if (valueStartPart >= 0 && endPart > valueStartPart) {
+                           endPart--;
+                           buf = parts[endPart];
+                           end = buf.writerIndex();
+                        }
+                     }
                      break;
                   default:
                      break LOOP;
                }
             }
-            if (start == end) {
+            if (valueStartIndex == end && (valueStartPart < 0 || valueStartPart == endPart)) {
                // This happens when we try to select from a 0-length array
                // - as long as there are not quotes there's nothing to record.
-               fireStart = -1;
+               valueStartIndex = -1;
                --selector;
                return;
             }
-            if (data.getByte(start) == '"' && data.getByte(end - 1) == '"') {
-               ++start;
+            // unquote
+            ByteBuf startBuf = buf(data, valueStartPart);
+            ByteBuf endBuf = buf(data, endPart);
+            if (startBuf.getByte(valueStartIndex) == '"' && endBuf.getByte(end - 1) == '"') {
+               ++valueStartIndex;
+               if (valueStartPart >= 0 && valueStartIndex > parts[valueStartPart].writerIndex()) {
+                  incrementValueStartPart();
+               }
                --end;
+               if (end == 0) {
+                  endPart--;
+                  endBuf = parts[endPart];
+                  end = endBuf.writerIndex();
+               }
             }
-            process(session, data, start, end);
+            while (valueStartPart >= 0 && valueStartPart != endPart) {
+               int valueEndIndex = endPart == valueStartPart ? end : parts[valueStartPart].writerIndex();
+               processor.process(session, parts[valueStartPart], valueStartIndex, valueEndIndex - valueStartIndex, false);
+               incrementValueStartPart();
+            }
+            processor.process(session, endBuf, valueStartIndex, end - valueStartIndex, true);
+            valueStartIndex = -1;
+            --selector;
          }
       }
 
-      private void process(Session session, ByteBuf data, int start, int end) {
-         processor.process(session, data, start, end - start);
-         fireStart = -1;
-         --selector;
+      private void incrementValueStartPart() {
+         valueStartIndex = 0;
+         valueStartPart++;
+         if (valueStartPart >= parts.length || parts[valueStartPart] == null) {
+            valueStartPart = -1;
+         }
+      }
+
+      private ByteBuf buf(ByteBuf data, int part) {
+         if (part < 0 || part >= parts.length || parts[part] == null) {
+            return data;
+         }
+         return parts[part];
       }
    }
 
@@ -312,9 +428,10 @@ public class JsonExtractor implements BodyExtractor, ResourceUtilizer {
          this.name = name;
       }
 
-      public boolean match(ByteBuf data, int start, int end) {
+      public boolean match(ByteBuf data, int start, int end, int offset) {
+         assert start <= end;
          for (int i = 0; i < name.length && i < end - start; ++i) {
-            if (name[i] != data.getByte(start + i)) return false;
+            if (name[i + offset] != data.getByte(start + i)) return false;
          }
          return true;
       }

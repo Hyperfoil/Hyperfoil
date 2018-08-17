@@ -11,6 +11,7 @@ import io.vertx.core.logging.LoggerFactory;
 
 public class HttpRequestAction implements Action {
    private static final Logger log = LoggerFactory.getLogger(HttpRequestAction.class);
+   private static final boolean trace = log.isTraceEnabled();
 
    private final HttpMethod method;
    private final Function<Session, String> pathGenerator;
@@ -31,6 +32,17 @@ public class HttpRequestAction implements Action {
    }
 
    @Override
+   public boolean prepare(Session session) {
+      RequestQueue.Request request = session.requestQueue().prepare();
+      if (request == null) {
+         return false;
+      } else {
+         request.startTime = System.nanoTime();
+         return true;
+      }
+   }
+
+   @Override
    public void invoke(Session session) {
       ByteBuf body = bodyGenerator == null ? null : bodyGenerator.apply(session);
       String path = pathGenerator.apply(session);
@@ -47,7 +59,10 @@ public class HttpRequestAction implements Action {
       request.bodyPartHandler(session.objectHandler(handler, HttpResponseState.HANDLE_BODY_PART));
       request.endHandler(session.voidHandler(handler, HttpResponseState.HANDLE_END));
 
-      log.trace("HTTP {} to {}", method, path);
+      if (trace) {
+         log.trace("HTTP {} to {}", method, path);
+      }
       request.end();
+      session.statistics().requestCount++;
    }
 }

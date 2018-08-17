@@ -19,6 +19,14 @@ class Transition {
       return condition == null || condition.test(session);
    }
 
+   boolean prepare(Session session) {
+      if (action != null) {
+         return action.prepare(session);
+      } else {
+         return true;
+      }
+   }
+
    State invoke(Session session) {
       if (action != null) {
          action.invoke(session);
@@ -28,5 +36,11 @@ class Transition {
 
    public boolean isBlocking() {
       return blocking;
+   }
+
+   public void register(Session session) {
+      if (action instanceof ResourceUtilizer) {
+         ((ResourceUtilizer) action).reserve(session);
+      }
    }
 }

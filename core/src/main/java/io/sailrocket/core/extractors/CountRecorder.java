@@ -17,8 +17,10 @@ public class CountRecorder implements Session.Processor, ResourceUtilizer {
    }
 
    @Override
-   public void process(Session session, ByteBuf data, int offset, int length) {
-      session.addToInt(var, 1);
+   public void process(Session session, ByteBuf data, int offset, int length, boolean isLastPart) {
+      if (isLastPart) {
+         session.addToInt(var, 1);
+      }
    }
 
    @Override

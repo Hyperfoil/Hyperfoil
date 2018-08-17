@@ -26,9 +26,7 @@ import org.HdrHistogram.Histogram;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Consumer;
-import java.util.stream.Stream;
 
 public class ReportStatisticsCollector implements Consumer<SequenceStatistics> {
 
@@ -59,12 +57,12 @@ public class ReportStatisticsCollector implements Consumer<SequenceStatistics> {
                 expectedRequests,
                 elapsed,
                 cp,
-                sequenceStatistics.responseCount.intValue(),
+                sequenceStatistics.responseCount,
                 ratio(sequenceStatistics),
-                sequenceStatistics.connectFailureCount.intValue(),
-                sequenceStatistics.resetCount.intValue(),
-                sequenceStatistics.resetCount.intValue(),
-                Stream.of(sequenceStatistics.statuses).mapToInt(LongAdder::intValue).toArray(),
+                sequenceStatistics.connectFailureCount,
+                sequenceStatistics.resetCount,
+                sequenceStatistics.resetCount,
+                sequenceStatistics.statuses(),
                 0, //clientPool.bytesRead(),  //TODO::get bytes from client pool
                 0  //clientPool.bytesWritten()
         );
@@ -76,7 +74,7 @@ public class ReportStatisticsCollector implements Consumer<SequenceStatistics> {
     private double ratio(SequenceStatistics sequenceStats) {
         long end = Math.min(System.nanoTime(), startTime + duration);
         long expected = rate * (end - startTime) / 1000000000;
-        return sequenceStats.requestCount.doubleValue() / (double) expected;
+        return sequenceStats.requestCount / (double) expected;
     }
 
     public Report getFirstReport(){

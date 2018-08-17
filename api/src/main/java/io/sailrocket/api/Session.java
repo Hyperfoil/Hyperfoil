@@ -28,7 +28,7 @@ public interface Session {
       default void before(Session session) {
       }
 
-      void process(Session session, ByteBuf data, int offset, int length);
+      void process(Session session, ByteBuf data, int offset, int length, boolean isLastPart);
 
       /**
        * Invoked after we record the last value from given response.

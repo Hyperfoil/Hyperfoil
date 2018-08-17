@@ -79,10 +79,7 @@ public class StepImpl implements AsyncStep {
             request.putHeader("content-length", "" + payload.readableBytes());
         }
         request.statusHandler(code -> {
-            int status = (code - 200) / 100;
-            if (status >= 0 && status < sequenceContext.sequenceStats().statuses.length) {
-                sequenceContext.sequenceStats().statuses[status].increment();
-            }
+            sequenceContext.sequenceStats().addStatus(code);
             if (validators != null && validators.hasStatusValidator())
                sequenceContext.validatorResults().addStatus(validators.statusValidator().validate(null, code));
         }).bodyPartHandler(body -> {
@@ -93,14 +90,14 @@ public class StepImpl implements AsyncStep {
             this.extractors.forEach(bodyExtractor -> bodyExtractor.extractData(body, null));
         }).resetHandler(frame -> {
             // TODO: what is reset handler? Not used ATM
-            sequenceContext.sequenceStats().resetCount.increment();
+            sequenceContext.sequenceStats().resetCount++;
         }).endHandler(() -> {
             if (trace) {
                 log.trace("Request completed.");
             }
             if (validators != null && validators.hasBodyValidator())
                 sequenceContext.validatorResults().addBody(validators.bodyValidator().validate(null));
-            sequenceContext.sequenceStats().responseCount.increment();
+            sequenceContext.sequenceStats().responseCount++;
             completion.complete(sequenceContext);
         }).exceptionHandler(throwable -> {
             if (trace) {
@@ -112,7 +109,7 @@ public class StepImpl implements AsyncStep {
         if (trace) {
             log.trace("Starting a request to {}", endpoint);
         }
-        sequenceContext.sequenceStats().requestCount.increment();
+        sequenceContext.sequenceStats().requestCount++;
         request.end();
 
         return completion;

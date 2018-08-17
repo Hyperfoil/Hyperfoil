@@ -34,5 +34,15 @@
  * </ul>
  * When the state is set to null, the execution of state machine is stopped. The session should be
  * {@link io.sailrocket.core.machine.Session#reset(State)} before starting new user scenario.
+ *
+ * <h2>Recording statistics</h2>
+ *
+ * When processing a response the original request would not be available as the handler is stateless, and we can have
+ * several requests in-flight. We need to find out a time when the request started, though, and that's why the session
+ * holds a {@link io.sailrocket.core.machine.RequestQueue}. Since all requests are sent over the same connection (ATM)
+ * and responses are received FIFO we can push the {@link io.sailrocket.core.machine.RequestQueue.Request} with
+ * the start timestamp and retrieve it when processing the response. Since this queue is bounded, this effectively
+ * limits the number of concurrent requests.
+ *
  */
 package io.sailrocket.core.machine;

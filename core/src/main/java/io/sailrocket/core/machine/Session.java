@@ -8,12 +8,14 @@ import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 
 import io.sailrocket.api.HttpClientPool;
+import io.sailrocket.api.SequenceStatistics;
 import io.sailrocket.core.client.ValidatorResults;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
 public class Session implements io.sailrocket.api.Session {
    private static final Logger log = LoggerFactory.getLogger(Session.class);
+   private static final boolean trace = log.isTraceEnabled();
 
    private final HttpClientPool httpClientPool;
    private final ScheduledExecutorService scheduledExecutor;
@@ -21,15 +23,18 @@ public class Session implements io.sailrocket.api.Session {
    private State currentState;
    // Note: HashMap.get() is allocation-free, so we can use it for direct lookups. Replacing put() is also
    // allocation-free, so vars are OK to write as long as we have them declared.
-   private Map<Object, Object> vars = new HashMap<>();
-   private Map<State, Map<String, Object>> handlers = new HashMap<>();
+   private final Map<Object, Object> vars = new HashMap<>();
+   private final Map<State, Map<String, Object>> handlers = new HashMap<>();
+   private final RequestQueue requestQueue;
 
    private final ValidatorResults validatorResults = new ValidatorResults();
+   private final SequenceStatistics statistics = new SequenceStatistics();
 
-   public Session(HttpClientPool httpClientPool, ScheduledExecutorService scheduledExecutor, State initState) {
+   public Session(HttpClientPool httpClientPool, ScheduledExecutorService scheduledExecutor, State initState, int maxConcurrentRequests) {
       this.httpClientPool = httpClientPool;
       this.scheduledExecutor = scheduledExecutor;
       this.currentState = initState;
+      this.requestQueue = new RequestQueue(maxConcurrentRequests);
    }
 
    HttpClientPool getHttpClientPool() {
@@ -94,7 +99,9 @@ public class Session implements io.sailrocket.api.Session {
 
    @Override
    public Session setObject(Object key, Object value) {
-      log.trace("{} <- {}", key, value);
+      if (trace) {
+         log.trace("{} <- {}", key, value);
+      }
       vars.put(key, value);
       return this;
    }
@@ -112,7 +119,9 @@ public class Session implements io.sailrocket.api.Session {
 
    @Override
    public Session setInt(Object key, int value) {
-      log.trace("{} <- {}", key, value);
+      if (trace) {
+         log.trace("{} <- {}", key, value);
+      }
       ((IntWrapper) vars.get(key)).value = value;
       return this;
    }
@@ -126,7 +135,9 @@ public class Session implements io.sailrocket.api.Session {
    }
 
    void setState(State newState) {
-      log.trace("Traversing {} -> {}", this.currentState, newState);
+      if (trace) {
+         log.trace("Traversing {} -> {}", this.currentState, newState);
+      }
       this.currentState = newState;
    }
 
@@ -138,8 +149,17 @@ public class Session implements io.sailrocket.api.Session {
       return validatorResults;
    }
 
+   public SequenceStatistics statistics() {
+      return statistics;
+   }
+
    void reset(State state) {
       this.currentState = state;
+      // TODO should we reset stats here?
+   }
+
+   RequestQueue requestQueue() {
+      return requestQueue;
    }
 
    private static class IntWrapper {

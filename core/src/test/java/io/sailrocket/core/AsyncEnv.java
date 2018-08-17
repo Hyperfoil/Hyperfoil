@@ -58,7 +58,7 @@ public abstract class AsyncEnv {
 
 
     public int requestCount(){
-        return sequenceStats.requestCount.intValue();
+        return sequenceStats.requestCount;
     }
 
     protected volatile int count;

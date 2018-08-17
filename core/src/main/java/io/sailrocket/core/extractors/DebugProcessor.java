@@ -1,6 +1,6 @@
 package io.sailrocket.core.extractors;
 
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 import io.netty.buffer.ByteBuf;
 import io.sailrocket.api.Session;
@@ -16,8 +16,8 @@ public class DebugProcessor implements Session.Processor {
    }
 
    @Override
-   public void process(Session session, ByteBuf data, int offset, int length) {
-      log.debug("Process: '{}'", data.toString(offset, length, Charset.forName("UTF-8")));
+   public void process(Session session, ByteBuf data, int offset, int length, boolean isLastPart) {
+      log.debug("Process (last? {}): '{}'", isLastPart, data.toString(offset, length, StandardCharsets.UTF_8));
    }
 
    @Override

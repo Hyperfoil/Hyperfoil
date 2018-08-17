@@ -1,6 +1,7 @@
 package io.sailrocket.core.machine;
 
 import java.lang.reflect.Array;
+import java.nio.charset.StandardCharsets;
 
 import io.netty.buffer.ByteBuf;
 import io.sailrocket.api.BodyExtractor;
@@ -29,7 +30,11 @@ public class HttpResponseState extends State {
    }
 
    private void handleStatus(Session session, int status) {
-      log.trace("{} Received status {}", this, status);
+      if (trace) {
+         log.trace("{} Received status {}", this, status);
+      }
+      session.statistics().addStatus(status);
+
       boolean valid = true;
       if (statusValidators != null) {
          for (StatusValidator validator : statusValidators) {
@@ -67,7 +72,9 @@ public class HttpResponseState extends State {
    }
 
    private void handleHeader(Session session, String header, String value) {
-      log.trace("{} Received header {}: {}", this, header, value);
+      if (trace) {
+         log.trace("{} Received header {}: {}", this, header, value);
+      }
       if (headerValidators != null) {
          for (HeaderValidator validator : headerValidators) {
             validator.validateHeader(session, header, value);
@@ -81,15 +88,14 @@ public class HttpResponseState extends State {
    }
 
    private void handleThrowable(Session session, Throwable throwable) {
-      log.trace("{} Received exception {}", this, throwable);
+      if (trace) {
+         log.trace("{} Received exception {}", this, throwable);
+      }
    }
 
    private void handleBodyPart(Session session, ByteBuf buf) {
-      if (log.isTraceEnabled()) {
-         // debug only
-         byte[] bytes = new byte[buf.readableBytes()];
-         buf.getBytes(buf.readerIndex(), bytes, 0, bytes.length);
-         log.trace("{} Received part:\n{}", this, new String(bytes));
+      if (trace) {
+         log.trace("{} Received part:\n{}", this, buf.toString(buf.readerIndex(), buf.readableBytes(), StandardCharsets.UTF_8));
       }
 
       int dataStartIndex = buf.readerIndex();
@@ -108,6 +114,11 @@ public class HttpResponseState extends State {
    }
 
    private void handleEnd(Session session) {
+      long endTime = System.nanoTime();
+      RequestQueue.Request request = session.requestQueue().complete();
+      session.statistics().histogram.recordValue(endTime - request.startTime);
+      session.statistics().responseCount++;
+
       boolean headersValid = true;
       if (headerValidators != null) {
          for (HeaderValidator validator : headerValidators) {
@@ -132,12 +143,14 @@ public class HttpResponseState extends State {
             extractor.afterData(session);
          }
       }
+      // if anything was blocking due to full request queue we should continue from the right place
       session.run();
    }
 
 
    @Override
    public void register(Session session) {
+      super.register(session);
       session.registerIntHandler(this, HANDLE_STATUS, status -> handleStatus(session, status));
       session.registerBiHandler(this, HANDLE_EXCEPTION, (header, value) -> handleHeader(session, (String) header, (String) value));
       session.registerExceptionHandler(this, HANDLE_EXCEPTION, throwable -> handleThrowable(session, throwable));

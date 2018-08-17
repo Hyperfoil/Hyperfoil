@@ -11,6 +11,7 @@ import io.vertx.core.logging.LoggerFactory;
  */
 public class State {
    protected static final Logger log = LoggerFactory.getLogger(State.class);
+   protected static final boolean trace = log.isTraceEnabled();
 
    static final String PROGRESS = "progress";
 
@@ -25,8 +26,18 @@ public class State {
    boolean progress(Session session) {
       for (int i = 0; i < transitions.length; ++i) {
          if (transitions[i].test(session)) {
-            session.setState(transitions[i].invoke(session));
-            return !transitions[i].isBlocking();
+            if (transitions[i].prepare(session)) {
+               if (trace) {
+                  log.trace("Following transition {}/{}", name, i);
+               }
+               session.setState(transitions[i].invoke(session));
+               return !transitions[i].isBlocking();
+            } else {
+               if (trace) {
+                  log.trace("{} blocking because of failed prepare in transition {}", name, i);
+               }
+               return false;
+            }
          }
       }
       throw new IllegalStateException("In state " + name);
@@ -42,6 +53,9 @@ public class State {
    }
 
    public void register(Session session) {
+      for (Transition t : transitions) {
+         t.register(session);
+      }
       session.registerVoidHandler(this, PROGRESS, () -> session.run());
    }
 
