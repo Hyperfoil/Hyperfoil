@@ -158,8 +158,8 @@ public class SimulationImpl implements Simulation {
 
         //TODO:: print progress
         Consumer<SequenceStatistics> printStatsConsumer = ((statistics) -> {
-            System.out.format("%s : total requests/responses %d/%d, max %.2f, min %.2f, mean %.2f",
-//                    statistics.name,
+            System.out.format("%s : total requests/responses %d, max %d, min %d, mean %.0f%n",
+                    statistics.histogram.toString(),
                     statistics.requestCount,
                     statistics.histogram.getMaxValue(),
                     statistics.histogram.getMinValue(),
