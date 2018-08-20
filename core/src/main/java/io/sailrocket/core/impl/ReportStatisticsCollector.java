@@ -24,6 +24,7 @@ import io.vertx.core.json.JsonObject;
 import org.HdrHistogram.Histogram;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -41,6 +42,7 @@ public class ReportStatisticsCollector implements Consumer<SequenceStatistics> {
         this.rate = rate;
         this.duration = duration;
         this.startTime = startTime;
+        reportMap = new HashMap<>();
     }
 
     @Override

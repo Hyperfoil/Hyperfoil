@@ -7,6 +7,7 @@ import io.sailrocket.core.client.SimulationImpl;
 
 import java.io.PrintStream;
 import java.util.Collection;
+import java.util.Optional;
 import java.util.Timer;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -53,36 +54,39 @@ public class BenchmarkImpl extends Benchmark {
 
             reports = ((SimulationImpl) simulation).run();
 
-            Report report = reports.stream().findFirst().get();
-            currentLoad.set(null);
+            Optional<Report> possibleReport = reports.stream().findFirst();
+            if(possibleReport.isPresent()) {
+                Report report = possibleReport.get();
+                currentLoad.set(null);
 
-            if (name != null) {
-                report.save(name + "_" + ((SimulationImpl) simulation).rate());
-            }
-            ratesChart.append(((SimulationImpl) simulation).rate()).append(",").append(report.ratio).append("\n");
-            histoChart.append(((SimulationImpl) simulation).rate());
-            for (double percentile : percentiles) {
-                histoChart.append(",").append(report.getResponseTimeMillisPercentile(percentile));
-            }
-            histoChart.append(",").append(report.getMaxResponseTimeMillis());
-            histoChart.append("\n");
+                if(name != null) {
+                    report.save(name + "_" + ((SimulationImpl) simulation).rate());
+                }
+                ratesChart.append(((SimulationImpl) simulation).rate()).append(",").append(report.ratio).append("\n");
+                histoChart.append(((SimulationImpl) simulation).rate());
+                for(double percentile : percentiles) {
+                    histoChart.append(",").append(report.getResponseTimeMillisPercentile(percentile));
+                }
+                histoChart.append(",").append(report.getMaxResponseTimeMillis());
+                histoChart.append("\n");
 //            allReport.append(report.format(null));
 
-        if (name != null) {
-            try (PrintStream ps = new PrintStream(name + "_rates.csv")) {
-                ps.print(ratesChart);
-            }
-            try (PrintStream ps = new PrintStream(name + "_histo.csv")) {
-                ps.print(histoChart);
-            }
-            try (PrintStream ps = new PrintStream(name + "_report.csv")) {
+                if(name != null) {
+                    try(PrintStream ps = new PrintStream(name + "_rates.csv")) {
+                        ps.print(ratesChart);
+                    }
+                    try(PrintStream ps = new PrintStream(name + "_histo.csv")) {
+                        ps.print(histoChart);
+                    }
+                    try(PrintStream ps = new PrintStream(name + "_report.csv")) {
 //                ps.print(allReport);
+                    }
+                }
             }
-        }
 
-        ((SimulationImpl) simulation).shutdown();
-        timer.cancel();
-        return reports;
+            ((SimulationImpl) simulation).shutdown();
+            timer.cancel();
+            return reports;
         }
         catch(Exception e) {
             e.printStackTrace();
