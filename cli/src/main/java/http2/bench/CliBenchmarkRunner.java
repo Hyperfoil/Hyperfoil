@@ -32,7 +32,7 @@ import java.util.function.Consumer;
  *
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
  */
-public class HttpClientRunner {
+public class CliBenchmarkRunner {
 
     public long currentTime;
 
@@ -63,21 +63,21 @@ public class HttpClientRunner {
     private ByteBuf payload;
     private JsonObject tags = new JsonObject();
 
-    public HttpClientRunner() {
+    public CliBenchmarkRunner() {
     }
 
-    public HttpClientRunner(HttpClientProvider provider,
-                            HttpVersion protocol,
-                            String durationParam,
-                            int connections,
-                            String out,
-                            String bodyParam,
-                            int concurrency,
-                            List<String> uriParam,
-                            List<Integer> rates,
-                            String warmupParam,
-                            int threads,
-                            String tagString) {
+    public CliBenchmarkRunner(HttpClientProvider provider,
+                              HttpVersion protocol,
+                              String durationParam,
+                              int connections,
+                              String out,
+                              String bodyParam,
+                              int concurrency,
+                              List<String> uriParam,
+                              List<Integer> rates,
+                              String warmupParam,
+                              int threads,
+                              String tagString) {
         this.provider = provider;
         this.protocol = protocol;
         this.durationParam = durationParam;
@@ -162,7 +162,7 @@ public class HttpClientRunner {
         String path = absoluteURI.getPath();
         boolean ssl = absoluteURI.getScheme().equals("https");
 
-        //TODO:: include in builder
+        //TODO:: define in builder
         Consumer<SequenceStatistics> printStatsConsumer = new PrintStatisticsConsumer();
 
         AtomicReference<SimulationImpl> currentLoad = new AtomicReference<>();
@@ -204,11 +204,9 @@ public class HttpClientRunner {
             tags.put("threads", threads);
             //build simple simulation with one step
             SimulationImpl simulationImpl = buildSimulation(threads, rate, duration, warmup, httpClientPoolFactory, path, payload, tags);
-//      new SimulationImpl(threads, rate, duration, warmup, httpClientPoolFactory, path, payload, tags);
             currentLoad.set(simulationImpl);
             report = simulationImpl.run().stream().findFirst().get();
             currentLoad.set(null);
-//      report.prettyPrint();
             if (out != null) {
                 report.save(out + "_" + rate);
             }

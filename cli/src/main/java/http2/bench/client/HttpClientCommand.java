@@ -1,7 +1,7 @@
 package http2.bench.client;
 
 import io.sailrocket.core.client.HttpClientProvider;
-import http2.bench.HttpClientRunner;
+import http2.bench.CliBenchmarkRunner;
 import io.vertx.core.http.HttpVersion;
 import org.aesh.command.Command;
 import org.aesh.command.CommandDefinition;
@@ -64,7 +64,7 @@ public class HttpClientCommand implements Command {
     @Override
     public CommandResult execute(CommandInvocation commandInvocation) {
 
-        HttpClientRunner httpClientRunner = new HttpClientRunner(
+        CliBenchmarkRunner cliBenchmarkRunner = new CliBenchmarkRunner(
                 provider,
                 protocol,
                 durationParam,
@@ -80,7 +80,7 @@ public class HttpClientCommand implements Command {
         );
 
         try {
-            httpClientRunner.run();
+            cliBenchmarkRunner.run();
         }
         catch (Exception e) {
             e.printStackTrace();

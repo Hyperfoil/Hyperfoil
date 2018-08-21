@@ -5,8 +5,6 @@ import io.sailrocket.api.Sequence;
 import io.sailrocket.core.api.SequenceContext;
 import io.sailrocket.core.api.Worker;
 import io.sailrocket.core.client.Pacer;
-import io.sailrocket.core.impl.SequenceContextImpl;
-import io.sailrocket.core.impl.SequenceImpl;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;

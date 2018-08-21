@@ -22,11 +22,9 @@ import io.sailrocket.api.SequenceStatistics;
 
 import java.util.function.Consumer;
 
-public class StatisticsCollator implements Consumer<SequenceStatistics> {
-
-
+public class DistributedStatisticsCollector implements Consumer<SequenceStatistics> {
     @Override
-    public void accept(SequenceStatistics sequenceStatistics) {
-
+    public void accept(SequenceStatistics statistics) {
+        //TODO:: collate distributed statistics
     }
 }
