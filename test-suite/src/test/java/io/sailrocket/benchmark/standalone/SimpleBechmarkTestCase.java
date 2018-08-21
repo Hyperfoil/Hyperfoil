@@ -5,11 +5,9 @@ import io.sailrocket.api.Report;
 import io.sailrocket.core.BenchmarkImpl;
 import io.sailrocket.core.builders.BenchmarkBuilder;
 import io.sailrocket.core.impl.SimulationImpl;
-import io.sailrocket.test.Benchmark;
 import org.HdrHistogram.Histogram;
 import org.junit.Assert;
 import org.junit.Test;
-import org.junit.experimental.categories.Category;
 
 import java.util.Collection;
 
@@ -22,7 +20,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
 
-@Category(Benchmark.class)
+//@Category(Benchmark.class)
 public class SimpleBechmarkTestCase extends BaseBenchmarkTestCase {
     @Test
     public void runSimpleBenchmarkTest() throws Exception {
