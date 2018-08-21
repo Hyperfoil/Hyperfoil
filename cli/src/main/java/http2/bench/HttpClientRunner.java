@@ -1,10 +1,15 @@
-package io.sailrocket.core.client;
+package http2.bench;
 
 import io.netty.buffer.ByteBuf;
+import io.sailrocket.api.Report;
+import io.sailrocket.api.SequenceStatistics;
+import io.sailrocket.core.client.HttpClientPoolFactory;
+import io.sailrocket.core.client.HttpClientProvider;
 import io.sailrocket.core.impl.ScenarioImpl;
 import io.sailrocket.core.impl.SequenceImpl;
+import io.sailrocket.core.impl.SimulationImpl;
 import io.sailrocket.core.impl.StepImpl;
-import io.sailrocket.api.Report;
+import io.sailrocket.core.impl.statistics.PrintStatisticsConsumer;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpVersion;
 import io.vertx.core.json.JsonObject;
@@ -20,6 +25,7 @@ import java.util.Random;
 import java.util.Timer;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 /**
  * Todo : use pool buffers wherever possible
@@ -156,6 +162,9 @@ public class HttpClientRunner {
         String path = absoluteURI.getPath();
         boolean ssl = absoluteURI.getScheme().equals("https");
 
+        //TODO:: include in builder
+        Consumer<SequenceStatistics> printStatsConsumer = new PrintStatisticsConsumer();
+
         AtomicReference<SimulationImpl> currentLoad = new AtomicReference<>();
         Timer timer = new Timer("console-logger", true);
         timer.schedule(new java.util.TimerTask() {
@@ -163,7 +172,7 @@ public class HttpClientRunner {
             public void run() {
                 SimulationImpl simulationImpl = currentLoad.get();
                 if (simulationImpl != null) {
-                    simulationImpl.printDetails();
+                    simulationImpl.printDetails(printStatsConsumer);
                 }
             }
         }, TimeUnit.SECONDS.toMillis(5), TimeUnit.SECONDS.toMillis(5));

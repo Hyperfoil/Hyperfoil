@@ -16,17 +16,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sailrocket.core.impl;
+package io.sailrocket.core.impl.statistics;
 
 import io.sailrocket.api.SequenceStatistics;
 
 import java.util.function.Consumer;
 
-public class StatisticsCollator implements Consumer<SequenceStatistics> {
-
-
+public class PrintStatisticsConsumer implements Consumer<SequenceStatistics> {
     @Override
-    public void accept(SequenceStatistics sequenceStatistics) {
+    public void accept(SequenceStatistics statistics) {
+        System.out.format("%s : total requests/responses %d, max %d, min %d, mean %.0f%n",
+                statistics.histogram.toString(),
+                statistics.requestCount,
+                statistics.histogram.getMaxValue(),
+                statistics.histogram.getMinValue(),
+                statistics.histogram.getMean()
+        );
 
     }
 }

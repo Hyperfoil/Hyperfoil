@@ -5,7 +5,7 @@ import io.sailrocket.api.SequenceStatistics;
 import io.sailrocket.core.api.Worker;
 import io.sailrocket.core.client.HttpClientProvider;
 import io.sailrocket.core.client.RequestContext;
-import io.sailrocket.core.client.WorkerImpl;
+import io.sailrocket.core.impl.WorkerImpl;
 import io.sailrocket.core.impl.SequenceImpl;
 import io.vertx.core.Vertx;
 import io.vertx.ext.unit.TestContext;

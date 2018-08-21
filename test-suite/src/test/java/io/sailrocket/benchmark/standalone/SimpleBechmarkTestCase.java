@@ -3,7 +3,7 @@ package io.sailrocket.benchmark.standalone;
 import io.sailrocket.api.BenchmarkDefinitionException;
 import io.sailrocket.core.BenchmarkImpl;
 import io.sailrocket.core.builders.BenchmarkBuilder;
-import io.sailrocket.core.client.SimulationImpl;
+import io.sailrocket.core.impl.SimulationImpl;
 import io.sailrocket.test.Benchmark;
 import org.junit.Assert;
 import org.junit.Test;

@@ -23,7 +23,7 @@ package io.sailrocket.core.builders;
 import io.sailrocket.api.Scenario;
 import io.sailrocket.core.client.HttpClientPoolFactory;
 import io.sailrocket.core.client.HttpClientProvider;
-import io.sailrocket.core.client.SimulationImpl;
+import io.sailrocket.core.impl.SimulationImpl;
 import io.sailrocket.spi.HttpBase;
 import io.vertx.core.json.JsonObject;
 

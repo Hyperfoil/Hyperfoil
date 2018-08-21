@@ -1,7 +1,7 @@
 package http2.bench.client;
 
 import io.sailrocket.core.client.HttpClientProvider;
-import io.sailrocket.core.client.HttpClientRunner;
+import http2.bench.HttpClientRunner;
 import io.vertx.core.http.HttpVersion;
 import org.aesh.command.Command;
 import org.aesh.command.CommandDefinition;

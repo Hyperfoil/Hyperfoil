@@ -3,7 +3,7 @@ package io.sailrocket.core;
 import io.sailrocket.api.Benchmark;
 import io.sailrocket.api.BenchmarkDefinitionException;
 import io.sailrocket.api.Report;
-import io.sailrocket.core.client.SimulationImpl;
+import io.sailrocket.core.impl.SimulationImpl;
 
 import java.io.PrintStream;
 import java.util.Collection;

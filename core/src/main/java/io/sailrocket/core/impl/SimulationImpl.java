@@ -1,4 +1,4 @@
-package io.sailrocket.core.client;
+package io.sailrocket.core.impl;
 
 import io.sailrocket.api.HttpClientPool;
 import io.sailrocket.api.MixStrategy;
@@ -7,7 +7,8 @@ import io.sailrocket.api.Scenario;
 import io.sailrocket.api.SequenceStatistics;
 import io.sailrocket.api.Simulation;
 import io.sailrocket.core.api.Worker;
-import io.sailrocket.core.impl.ReportStatisticsCollector;
+import io.sailrocket.core.client.HttpClientPoolFactory;
+import io.sailrocket.core.impl.statistics.ReportStatisticsCollector;
 import io.vertx.core.json.JsonObject;
 
 import java.util.ArrayList;
@@ -154,30 +155,12 @@ public class SimulationImpl implements Simulation {
     /**
      * Print details on console.
      */
-    public void printDetails() {
-
-        //TODO:: print progress
-        Consumer<SequenceStatistics> printStatsConsumer = ((statistics) -> {
-            System.out.format("%s : total requests/responses %d, max %d, min %d, mean %.0f%n",
-                    statistics.histogram.toString(),
-                    statistics.requestCount,
-                    statistics.histogram.getMaxValue(),
-                    statistics.histogram.getMinValue(),
-                    statistics.histogram.getMean()
-            );
-        });
+    public void printDetails(Consumer<SequenceStatistics> printStatsConsumer) {
 
         scenarios.forEach(scenario -> {
             scenario.sequences().forEach(sequence -> printStatsConsumer.accept(sequence.statistics()));
         });
 
-//        double progress = (100 * (System.nanoTime() - startTime)) / (double) duration;
-//        System.out.format("progress: %.2f%% done - total requests/responses %d/%d, ratio %.2f, read %d kb/s, written %d kb/s, inflight= %d%n",
-//                progress,
-//                workerStats.requestCount.intValue(),
-//                workerStats.responseCount.intValue(),
-//                ratio(), readThroughput(), writeThroughput(),
-//                requestContext.sequenceContext.clientPool().inflight());
     }
 
 

@@ -1,4 +1,4 @@
-package io.sailrocket.core.impl;
+package io.sailrocket.core.client;
 
 public class NoHttpClientException extends Throwable {
 }

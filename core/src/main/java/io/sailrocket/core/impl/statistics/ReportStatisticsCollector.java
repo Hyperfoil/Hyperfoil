@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sailrocket.core.impl;
+package io.sailrocket.core.impl.statistics;
 
 import io.sailrocket.api.Report;
 import io.sailrocket.api.SequenceStatistics;

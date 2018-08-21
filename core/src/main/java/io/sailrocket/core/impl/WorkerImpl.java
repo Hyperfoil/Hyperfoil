@@ -1,9 +1,10 @@
-package io.sailrocket.core.client;
+package io.sailrocket.core.impl;
 
 import io.sailrocket.api.HttpClientPool;
 import io.sailrocket.api.Sequence;
 import io.sailrocket.core.api.SequenceContext;
 import io.sailrocket.core.api.Worker;
+import io.sailrocket.core.client.Pacer;
 import io.sailrocket.core.impl.SequenceContextImpl;
 import io.sailrocket.core.impl.SequenceImpl;
 

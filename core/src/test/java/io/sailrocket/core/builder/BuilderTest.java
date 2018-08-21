@@ -22,7 +22,7 @@ package io.sailrocket.core.builder;
 
 import io.sailrocket.core.BenchmarkImpl;
 import io.sailrocket.core.builders.BenchmarkBuilder;
-import io.sailrocket.core.client.SimulationImpl;
+import io.sailrocket.core.impl.SimulationImpl;
 import org.junit.Test;
 
 import static io.sailrocket.core.builders.HttpBuilder.httpBuilder;
