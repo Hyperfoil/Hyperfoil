@@ -5,7 +5,6 @@ import io.sailrocket.api.SequenceStatistics;
 import io.sailrocket.api.Step;
 import io.sailrocket.core.api.AsyncStep;
 import io.sailrocket.core.api.SequenceContext;
-import io.sailrocket.core.api.Worker;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -14,18 +13,15 @@ import java.util.concurrent.CompletableFuture;
 
 public class SequenceImpl implements Sequence {
 
+    private SequenceStatistics statistics = new SequenceStatistics();
     private SequenceContext sequenceContext;
 
     //TODO:: think about branching
     private List<AsyncStep> steps = new ArrayList<>();
 
-//    private StepImpl head = null;
-
     @Override
     public Sequence step(Step step) {
         this.steps.add((AsyncStep) step);
-//        if (head == null)
-//            head = (StepImpl) step;
         return this;
     }
 
@@ -36,12 +32,12 @@ public class SequenceImpl implements Sequence {
 
     @Override
     public SequenceStatistics statistics() {
-        return sequenceContext.sequenceStats();
+        return statistics;
     }
-
 
     public void context(SequenceContext sequenceContext) {
         this.sequenceContext = sequenceContext;
+        this.sequenceContext.sequenceStats(this.statistics);
     }
 
     public SequenceContext context() {
@@ -52,12 +48,12 @@ public class SequenceImpl implements Sequence {
 //        return head;
 //    }
 
-    public CompletableFuture<SequenceContext> buildSequenceFuture(Worker worker, SequenceContext context) {
+    public CompletableFuture<SequenceContext> buildSequenceFuture() {
         Iterator<AsyncStep> iterator = steps.iterator();
         if (!iterator.hasNext()) {
-            return CompletableFuture.completedFuture(context);
+            return CompletableFuture.completedFuture(this.sequenceContext);
         }
-        CompletableFuture<SequenceContext> chainedFuture = iterator.next().asyncExec(context);
+        CompletableFuture<SequenceContext> chainedFuture = iterator.next().asyncExec(this.sequenceContext);
         while (iterator.hasNext()) {
             AsyncStep step = iterator.next();
             chainedFuture = chainedFuture.thenCompose(step::asyncExec);

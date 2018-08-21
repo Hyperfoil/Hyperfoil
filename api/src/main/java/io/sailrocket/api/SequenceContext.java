@@ -27,6 +27,8 @@ public interface SequenceContext {
 
     SequenceStatistics sequenceStats();
 
+    void sequenceStats(SequenceStatistics statistics);
+
     long getStartTime();
 
 }

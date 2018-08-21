@@ -21,11 +21,10 @@ public class SequenceFactory {
         return sequence;
     }
 
-    //TODO:: remove, needed for test atm
     public static CompletableFuture<SequenceContext> buildSequenceFuture(SequenceImpl sequence, Worker worker) {
 
         CompletableFuture<SequenceContext> rootFuture = new CompletableFuture().supplyAsync(() ->
-                new SequenceContextImpl(sequence, worker, null, 0)
+                new SequenceContextImpl(sequence, worker, null, 0, sequence.statistics())
         );
 
         return sequence.getSteps().stream()

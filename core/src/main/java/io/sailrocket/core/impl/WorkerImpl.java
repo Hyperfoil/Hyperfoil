@@ -67,19 +67,19 @@ public class WorkerImpl implements Worker {
             return;
         }
         //TODO:: Call back to simulation to get next sequenceContext
-        SequenceContextImpl sequenceContext = new SequenceContextImpl(sequenceSupplier.get(), this, pacer, now);
+        SequenceContextImpl sequenceContext = new SequenceContextImpl(sequenceSupplier.get(), this, pacer, now, sequenceSupplier.get().statistics());
 
-        CompletableFuture<SequenceContext> sequenceFuture = ((SequenceImpl) sequenceContext.sequence()).buildSequenceFuture(this, sequenceContext);
-        sequenceFuture.whenComplete((ctx, t) -> {
+        CompletableFuture<SequenceContext> sequenceFuture = ((SequenceImpl) sequenceContext.sequence()).buildSequenceFuture();
+        sequenceFuture.whenComplete((context, t) -> {
             long endTime = System.nanoTime();
-            long durationMillis = endTime - sequenceContext.getStartTime();
+            long durationMillis = endTime - context.getStartTime();
             //TODO:: this needs to be asnyc to histogram verticle - we should be able to process various composite stats in realtime
-            sequenceContext.sequenceStats().histogram.recordValue(durationMillis);
+            context.sequenceStats().histogram.recordValue(durationMillis);
             if (t != null) {
                t.printStackTrace();
             }
-            sequenceContext.pacer().acquire(1);
-            doSequenceInSlot(sequenceContext.pacer(), sequenceSupplier, doneHandler);
+            context.pacer().acquire(1);
+            doSequenceInSlot(context.pacer(), sequenceSupplier, doneHandler);
         });
     }
 }

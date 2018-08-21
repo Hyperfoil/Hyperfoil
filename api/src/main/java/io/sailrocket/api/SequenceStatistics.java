@@ -1,5 +1,6 @@
 package io.sailrocket.api;
 
+import org.HdrHistogram.ConcurrentHistogram;
 import org.HdrHistogram.Histogram;
 
 import java.io.ByteArrayOutputStream;
@@ -10,7 +11,7 @@ import java.util.concurrent.TimeUnit;
 
 //TODO:: tidy this up, just simple for POC
 public class SequenceStatistics {
-    public final Histogram histogram = new Histogram(TimeUnit.MINUTES.toNanos(1), 2);
+    public final Histogram histogram = new ConcurrentHistogram(TimeUnit.MINUTES.toNanos(1), 2);
     public int connectFailureCount;
     public int requestCount;
     public int responseCount;

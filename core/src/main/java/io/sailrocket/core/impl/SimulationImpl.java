@@ -34,7 +34,7 @@ public class SimulationImpl implements Simulation {
     private final long duration;
     private final long warmup;
 
-    private Consumer<SequenceStatistics> statisticsConsumer;
+    private ReportStatisticsCollector statisticsConsumer;
 
     private final JsonObject tags;
 
@@ -75,12 +75,6 @@ public class SimulationImpl implements Simulation {
     @Override
     public Simulation mixStrategy(MixStrategy mixStrategy) {
         mixStrategies.add(mixStrategy);
-        return this;
-    }
-
-    @Override
-    public Simulation statisticsCollector(Consumer<SequenceStatistics> statisticsConsumer) {
-        this.statisticsConsumer = statisticsConsumer;
         return this;
     }
 
@@ -126,7 +120,7 @@ public class SimulationImpl implements Simulation {
         //TODO:: need to call back to an actual sequence selector
         workers.forEach(worker -> completedFutures.add(worker.runSlot(duration, () -> scenarios.stream().findFirst().get().firstSequence())));
 
-        ReportStatisticsCollector reportStatisticsCollector = new ReportStatisticsCollector(
+        this.statisticsConsumer = new ReportStatisticsCollector(
                 tags,
                 rate,
                 duration,
@@ -139,20 +133,10 @@ public class SimulationImpl implements Simulation {
         }
         exec.shutdown();
         collateStatistics();
-        return reportStatisticsCollector.reports();
+        return this.statisticsConsumer.reports();
     }
 
-/*
-
-    private long readThroughput() {
-        return clientPool.bytesRead() / (TimeUnit.NANOSECONDS.toSeconds((System.nanoTime() - startTime)) * 1024);
-    }
-
-    private long writeThroughput() {
-        return clientPool.bytesWritten() / (TimeUnit.NANOSECONDS.toSeconds((System.nanoTime() - startTime) * 1024));
-    }*/
-
-    /**
+   /**
      * Print details on console.
      */
     public void printDetails(Consumer<SequenceStatistics> printStatsConsumer) {

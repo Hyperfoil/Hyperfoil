@@ -19,13 +19,17 @@ public class SequenceContextImpl implements SequenceContext {
     private ValidatorResults validatorResults;
 
     public SequenceContextImpl(Sequence sequence, Worker worker, Pacer pacer, long startTime) {
+        this(sequence, worker, pacer, startTime, new SequenceStatistics());
+    }
+
+    public SequenceContextImpl(Sequence sequence, Worker worker, Pacer pacer, long startTime, SequenceStatistics statistics) {
         this.worker = worker;
         this.httpClientPool = worker.clientPool();
         this.sequence = sequence;
         ((SequenceImpl) this.sequence).context(this);
         this.pacer = pacer;
         this.startTime = startTime;
-        sequenceStats = new SequenceStatistics();
+        sequenceStats = statistics;
         validatorResults = new ValidatorResults();
     }
 
@@ -47,6 +51,11 @@ public class SequenceContextImpl implements SequenceContext {
     @Override
     public SequenceStatistics sequenceStats() {
         return sequenceStats;
+    }
+
+    @Override
+    public void sequenceStats(SequenceStatistics statistics) {
+        this.sequenceStats = statistics;
     }
 
     @Override
