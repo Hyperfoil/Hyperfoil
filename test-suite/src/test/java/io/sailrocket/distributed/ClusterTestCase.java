@@ -1,5 +1,6 @@
 package io.sailrocket.distributed;
 
+import io.sailrocket.test.Benchmark;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Verticle;
 import io.vertx.core.Vertx;
@@ -14,6 +15,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 
 import java.io.IOException;
@@ -24,7 +26,7 @@ import java.util.stream.IntStream;
 import static org.asynchttpclient.Dsl.asyncHttpClient;
 
 @RunWith(VertxUnitRunner.class)
-//@Category(Benchmark.class)
+@Category(Benchmark.class)
 public class ClusterTestCase {
 
     private Collection<Vertx> servers = new ArrayList<>();
