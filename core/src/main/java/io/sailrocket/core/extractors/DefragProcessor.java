@@ -7,7 +7,7 @@ import io.sailrocket.core.machine.ResourceUtilizer;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-public class DefragProcessor implements Session.Processor, ResourceUtilizer {
+public class DefragProcessor implements Session.Processor, ResourceUtilizer, Session.ResourceKey<DefragProcessor.Context> {
    private static final Logger log = LoggerFactory.getLogger(DefragProcessor.class);
 
    private final Session.Processor delegate;
@@ -23,7 +23,7 @@ public class DefragProcessor implements Session.Processor, ResourceUtilizer {
 
    @Override
    public void process(Session session, ByteBuf data, int offset, int length, boolean isLastPart) {
-      Context ctx = (Context) session.getObject(this);
+      Context ctx = session.getResource(this);
       if (isLastPart && !ctx.isBuffering()) {
          delegate.process(session, data, offset, length, true);
          return;
@@ -45,13 +45,13 @@ public class DefragProcessor implements Session.Processor, ResourceUtilizer {
       // Note: contrary to the recommended pattern the Context won't reserve all objects ahead, the CompositeByteBuf
       // will be allocated only if needed (and only once). This is necessary since we don't know the type of allocator
       // that is used for the received buffers ahead.
-      session.setObject(this, new Context());
+      session.declareResource(this, new Context());
       if (delegate instanceof ResourceUtilizer) {
          ((ResourceUtilizer) delegate).reserve(session);
       }
    }
 
-   private static class Context {
+   static class Context implements Session.Resource {
       CompositeByteBuf composite = null;
 
       public boolean isBuffering() {

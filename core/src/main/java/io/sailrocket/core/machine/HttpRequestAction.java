@@ -53,7 +53,7 @@ public class HttpRequestAction implements Action, ResourceUtilizer {
       }
 
       // alloc-free below
-      HttpResponseHandler.HandlerInstances h = (HttpResponseHandler.HandlerInstances) session.getObject(handler);
+      HttpResponseHandler.HandlerInstances h = session.getResource(handler);
       request.statusHandler(h.handleStatus);
       request.headerHandler(h.handleHeader);
       request.exceptionHandler(h.handleException);

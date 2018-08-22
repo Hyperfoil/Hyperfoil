@@ -1,6 +1,8 @@
 package io.sailrocket.core.machine;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -20,7 +22,9 @@ public class Session implements io.sailrocket.api.Session {
    private State currentState;
    // Note: HashMap.get() is allocation-free, so we can use it for direct lookups. Replacing put() is also
    // allocation-free, so vars are OK to write as long as we have them declared.
-   private final Map<Object, Object> vars = new HashMap<>();
+   private final Map<Object, Var> vars = new HashMap<>();
+   private final Map<ResourceKey, Resource> resources = new HashMap<>();
+   private final List<Var> allVars = new ArrayList<>();
    private final RequestQueue requestQueue;
 
    private final ValidatorResults validatorResults = new ValidatorResults();
@@ -43,15 +47,20 @@ public class Session implements io.sailrocket.api.Session {
       return scheduledExecutor;
    }
 
+   public void registerVar(Var var) {
+      allVars.add(var);
+   }
+
    @Override
    public Session declare(Object key) {
-      vars.put(key, null);
+      ObjectVar var = new ObjectVar(this);
+      vars.put(key, var);
       return this;
    }
 
    @Override
    public Object getObject(Object key) {
-      return vars.get(key);
+      return ((ObjectVar) requireSet(key, vars.get(key))).get();
    }
 
    @Override
@@ -59,19 +68,26 @@ public class Session implements io.sailrocket.api.Session {
       if (trace) {
          log.trace("{} <- {}", key, value);
       }
-      vars.put(key, value);
+      ObjectVar wrapper = (ObjectVar) vars.get(key);
+      wrapper.value = value;
+      wrapper.set = true;
       return this;
    }
 
    @Override
    public Session declareInt(Object key) {
-      vars.put(key, new IntWrapper());
+      IntVar var = new IntVar(this);
+      vars.put(key, var);
       return this;
    }
 
    @Override
    public int getInt(Object key) {
-      return ((IntWrapper) vars.get(key)).value;
+      IntVar var = (IntVar) vars.get(key);
+      if (!var.isSet()) {
+         throw new IllegalStateException("Variable " + key + " was not set yet!");
+      }
+      return var.get();
    }
 
    @Override
@@ -79,16 +95,53 @@ public class Session implements io.sailrocket.api.Session {
       if (trace) {
          log.trace("{} <- {}", key, value);
       }
-      ((IntWrapper) vars.get(key)).value = value;
+      ((IntVar) vars.get(key)).set(value);
       return this;
    }
 
    @Override
    public Session addToInt(Object key, int delta) {
-      IntWrapper wrapper = (IntWrapper) vars.get(key);
-      log.trace("{} <- {}", key, wrapper.value + delta);
-      wrapper.value += delta;
+      IntVar wrapper = (IntVar) vars.get(key);
+      if (!wrapper.isSet()) {
+         throw new IllegalStateException("Variable " + key + " was not set yet!");
+      }
+      log.trace("{} <- {}", key, wrapper.get() + delta);
+      wrapper.set(wrapper.get() + delta);
       return this;
+   }
+
+   @Override
+   public boolean isSet(Object key) {
+      return vars.get(key).isSet();
+   }
+
+   @Override
+   public Object activate(Object key) {
+      ObjectVar var = (ObjectVar) vars.get(key);
+      var.set = true;
+      return var.get();
+   }
+
+   @Override
+   public void deactivate(Object key) {
+      vars.get(key).unset();
+   }
+
+   @Override
+   public <R extends Resource> void declareResource(ResourceKey<R> key, R resource) {
+      resources.put(key, resource);
+   }
+
+   @Override
+   public <R extends Resource> R getResource(ResourceKey<R> key) {
+      return (R) resources.get(key);
+   }
+
+   private <W extends Var> W requireSet(Object key, W wrapper) {
+      if (!wrapper.isSet()) {
+         throw new IllegalStateException("Variable " + key + " was not set yet!");
+      }
+      return wrapper;
    }
 
    void setState(State newState) {
@@ -112,6 +165,9 @@ public class Session implements io.sailrocket.api.Session {
 
    void reset(State state) {
       this.currentState = state;
+      for (int i = 0; i < allVars.size(); ++i) {
+         allVars.get(i).unset();
+      }
       // TODO should we reset stats here?
    }
 
@@ -121,9 +177,5 @@ public class Session implements io.sailrocket.api.Session {
 
    Runnable progress() {
       return run;
-   }
-
-   private static class IntWrapper {
-      int value;
    }
 }

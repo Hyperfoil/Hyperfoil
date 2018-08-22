@@ -9,7 +9,7 @@ import io.sailrocket.api.BodyExtractor;
 import io.sailrocket.api.Session;
 import io.sailrocket.core.machine.ResourceUtilizer;
 
-public class JsonExtractor implements BodyExtractor, ResourceUtilizer {
+public class JsonExtractor implements BodyExtractor, ResourceUtilizer, Session.ResourceKey<JsonExtractor.Context> {
    private static final int MAX_PARTS = 16;
 
    private final String path;
@@ -84,13 +84,13 @@ public class JsonExtractor implements BodyExtractor, ResourceUtilizer {
    @Override
    public void beforeData(Session session) {
       processor.before(session);
-      Context ctx = (Context) session.getObject(this);
+      Context ctx = session.getResource(this);
       ctx.reset();
    }
 
    @Override
    public void extractData(ByteBuf data, Session session) {
-      Context ctx = (Context) session.getObject(this);
+      Context ctx = session.getResource(this);
       ctx.parse(data, session);
    }
 
@@ -98,7 +98,7 @@ public class JsonExtractor implements BodyExtractor, ResourceUtilizer {
    public void afterData(Session session) {
       processor.after(session);
 
-      Context ctx = (Context) session.getObject(this);
+      Context ctx = session.getResource(this);
       for (int i = 0; i < ctx.parts.length; ++i) {
          if (ctx.parts[i] == null) break;
          ctx.parts[i].release();
@@ -116,14 +116,13 @@ public class JsonExtractor implements BodyExtractor, ResourceUtilizer {
 
    @Override
    public void reserve(io.sailrocket.core.machine.Session session) {
-      session.declare(this);
-      session.setObject(this, new Context());
+      session.declareResource(this, new Context());
       if (processor instanceof ResourceUtilizer) {
          ((ResourceUtilizer) processor).reserve(session);
       }
    }
 
-   private class Context {
+   class Context implements Session.Resource {
       Selector.Context[] selectorContext = new Selector.Context[selectors.length];
       int level;
       int selectorLevel;

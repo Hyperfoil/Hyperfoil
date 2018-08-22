@@ -16,7 +16,7 @@ import io.sailrocket.spi.StatusValidator;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-public class HttpResponseHandler implements ResourceUtilizer {
+public class HttpResponseHandler implements ResourceUtilizer, io.sailrocket.api.Session.ResourceKey<HttpResponseHandler.HandlerInstances> {
    private static final Logger log = LoggerFactory.getLogger(State.class);
    private static final boolean trace = log.isTraceEnabled();
 
@@ -148,8 +148,7 @@ public class HttpResponseHandler implements ResourceUtilizer {
 
    @Override
    public void reserve(Session session) {
-      session.declare(this);
-      session.setObject(this, new HandlerInstances(session));
+      session.declareResource(this, new HandlerInstances(session));
       reserveAll(session, statusValidators);
       reserveAll(session, headerValidators);
       reserveAll(session, bodyValidators);
@@ -210,7 +209,7 @@ public class HttpResponseHandler implements ResourceUtilizer {
       return array;
    }
 
-   class HandlerInstances {
+   class HandlerInstances implements io.sailrocket.api.Session.Resource {
       final IntConsumer handleStatus;
       final BiConsumer<String, String> handleHeader;
       final Consumer<Throwable> handleException;

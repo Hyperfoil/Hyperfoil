@@ -12,7 +12,7 @@ import io.sailrocket.spi.BodyValidator;
  * Simple pattern (no regexp) search based on Rabin-Karp algorithm.
  * Does not handle the intricacies of UTF-8 mapping same strings to different bytes.
  */
-public class SearchValidator implements BodyValidator, ResourceUtilizer {
+public class SearchValidator implements BodyValidator, ResourceUtilizer, Session.ResourceKey<SearchValidator.Context> {
    private final byte[] text;
    private final int hash;
    private final int coef;
@@ -36,7 +36,7 @@ public class SearchValidator implements BodyValidator, ResourceUtilizer {
 
    @Override
    public void validateData(Session session, ByteBuf data) {
-      Context ctx = (Context) session.getObject(this);
+      Context ctx = session.getResource(this);
       ctx.add(data);
       initHash(ctx, data);
       test(ctx, data);
@@ -70,13 +70,13 @@ public class SearchValidator implements BodyValidator, ResourceUtilizer {
 
    @Override
    public void beforeData(Session session) {
-      Context ctx = (Context) session.getObject(this);
+      Context ctx = session.getResource(this);
       ctx.reset();
    }
 
    @Override
    public boolean validate(Session session) {
-      Context ctx = (Context) session.getObject(this);
+      Context ctx = session.getResource(this);
       boolean match = this.match.test(ctx.matches);
       ctx.reset();
       return match;
@@ -84,11 +84,10 @@ public class SearchValidator implements BodyValidator, ResourceUtilizer {
 
    @Override
    public void reserve(io.sailrocket.core.machine.Session session) {
-      session.declare(this);
-      session.setObject(this, new Context());
+      session.declareResource(this, new Context());
    }
 
-   private class Context {
+   class Context implements Session.Resource {
       int hashedBytes;
       int currentHash;
       int matches;

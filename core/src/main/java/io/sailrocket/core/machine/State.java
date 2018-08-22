@@ -15,6 +15,7 @@ public class State {
 
    // Just for debugging purposes
    private final String name;
+   private VarReference[] varReferences;
    private Transition[] transitions;
 
    public State(String name) {
@@ -22,14 +23,25 @@ public class State {
    }
 
    boolean progress(Session session) {
+      if (varReferences != null) {
+         for (VarReference ref : varReferences) {
+            if (!ref.isSet(session)) {
+               log.trace("State {} cannot follow any transition because it's blocked by missing var reference {}", name, ref);
+               return false;
+            }
+         }
+      }
       for (int i = 0; i < transitions.length; ++i) {
          if (transitions[i].test(session)) {
+            if (trace) {
+               log.trace("Preparing transition {}/{}", name, i);
+            }
             if (transitions[i].prepare(session)) {
                if (trace) {
                   log.trace("Following transition {}/{}", name, i);
                }
                session.setState(transitions[i].invoke(session));
-               return !transitions[i].isBlocking();
+               return true;
             } else {
                if (trace) {
                   log.trace("{} blocking because of failed prepare in transition {}", name, i);
@@ -39,6 +51,15 @@ public class State {
          }
       }
       throw new IllegalStateException("In state " + name);
+   }
+
+   public void addDependency(VarReference ref) {
+      if (varReferences == null) {
+         varReferences = new VarReference[] { ref };
+      } else {
+         varReferences = Arrays.copyOf(varReferences, varReferences.length + 1);
+         varReferences[varReferences.length - 1] = ref;
+      }
    }
 
    public void addTransition(Transition t) {

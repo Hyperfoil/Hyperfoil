@@ -9,6 +9,9 @@ public class ActionChain implements Action, ResourceUtilizer {
 
    @Override
    public boolean prepare(Session session) {
+      if (!session.isSet(this)) {
+         session.setInt(this, 0);
+      }
       for (int i = session.getInt(this); i < actions.length; ++i) {
          if (!actions[i].prepare(session)) {
             session.setInt(this, i);

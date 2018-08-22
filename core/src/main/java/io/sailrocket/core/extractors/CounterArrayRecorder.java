@@ -2,6 +2,7 @@ package io.sailrocket.core.extractors;
 
 import io.netty.buffer.ByteBuf;
 import io.sailrocket.api.Session;
+import io.sailrocket.core.machine.IntVar;
 import io.sailrocket.core.machine.ResourceUtilizer;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -21,16 +22,16 @@ public class CounterArrayRecorder implements Session.Processor, ResourceUtilizer
    @Override
    public void before(Session session) {
       int index = getIndex(session);
-      int[] array = (int[]) session.getObject(arrayVar);
-      array[index] = 0;
+      IntVar[] array = (IntVar[]) session.activate(arrayVar);
+      array[index].set(0);
    }
 
    @Override
    public void process(Session session, ByteBuf buf, int offset, int length, boolean isLastPart) {
       if (isLastPart) {
          int index = getIndex(session);
-         int[] array = (int[]) session.getObject(arrayVar);
-         array[index]++;
+         IntVar[] array = (IntVar[]) session.getObject(arrayVar);
+         array[index].set(array[index].get() + 1);
       }
    }
 
@@ -50,7 +51,8 @@ public class CounterArrayRecorder implements Session.Processor, ResourceUtilizer
    @Override
    public void reserve(io.sailrocket.core.machine.Session session) {
       session.declare(arrayVar);
-      session.setObject(arrayVar, new int[numCounters]);
+      session.setObject(arrayVar, IntVar.newArray(session, numCounters));
+      session.deactivate(arrayVar);;
       session.declareInt(indexVar);
    }
 }
