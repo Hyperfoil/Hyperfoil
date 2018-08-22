@@ -1,0 +1,32 @@
+benchmark:
+  name: simple benchmark
+  simulations:
+    sequences:
+      sequence:
+        name: test sequence
+        steps:
+          step:
+            name: login
+            path: /foo
+            method: get
+  phases:
+    phase:
+      name: ramp up
+      concurrency: 10
+      connections: 5
+      duration: 3s
+      rate: 100
+    phase:
+      name: steady state
+      concurrency: 10
+      connections: 5
+      duration: 6s
+      rate: 100
+      measure: true
+    phase:
+      name: ramp down
+      concurrency: 10
+      connections: 5
+      duration: 3s
+      rate: 100
+      measure: true
