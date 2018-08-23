@@ -2,11 +2,11 @@ package io.sailrocket.core.machine;
 
 import java.util.concurrent.TimeUnit;
 
-public class DelayAction implements Action {
+public class DelayStep implements Step {
    private final long delay;
    private final TimeUnit timeUnit;
 
-   public DelayAction(long delay, TimeUnit timeUnit) {
+   public DelayStep(long delay, TimeUnit timeUnit) {
       this.delay = delay;
       this.timeUnit = timeUnit;
    }

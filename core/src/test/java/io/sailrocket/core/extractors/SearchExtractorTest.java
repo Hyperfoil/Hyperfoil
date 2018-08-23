@@ -59,7 +59,7 @@ public class SearchExtractorTest {
    }
 
    private void runExtractor(SearchExtractor extractor, ExpectProcessor processor, String... text) {
-      Session session = new Session(null, null, null, 1);
+      Session session = new Session(null, null, 1, 1);
       extractor.reserve(session);
       extractor.beforeData(session);
 

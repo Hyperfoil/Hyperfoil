@@ -125,5 +125,10 @@ public class ChainableEventsTestCase {
         public void shutdown() {
             //no-op
         }
+
+       @Override
+       public void submit(Runnable task) {
+          task.run();
+       }
     }
 }

@@ -38,6 +38,10 @@ class RequestQueue {
       return slot;
    }
 
+   Request peek() {
+      return queue[readerIndex & mask];
+   }
+
    Request complete() {
       log.trace("Complete: {}/{}", writerIndex, readerIndex);
       assert readerIndex != writerIndex;
@@ -51,6 +55,7 @@ class RequestQueue {
    }
 
    static class Request {
-      public long startTime;
+      long startTime;
+      SequenceInstance sequence;
    }
 }

@@ -9,8 +9,8 @@ import io.sailrocket.api.HttpRequest;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-public class HttpRequestAction implements Action, ResourceUtilizer {
-   private static final Logger log = LoggerFactory.getLogger(HttpRequestAction.class);
+public class HttpRequestStep implements Step, ResourceUtilizer {
+   private static final Logger log = LoggerFactory.getLogger(HttpRequestStep.class);
    private static final boolean trace = log.isTraceEnabled();
 
    private final HttpMethod method;
@@ -19,11 +19,11 @@ public class HttpRequestAction implements Action, ResourceUtilizer {
    private final BiConsumer<Session, HttpRequest> headerAppender;
    private final HttpResponseHandler handler;
 
-   public HttpRequestAction(HttpMethod method,
-                            Function<Session, String> pathGenerator,
-                            Function<Session, ByteBuf> bodyGenerator,
-                            BiConsumer<Session, HttpRequest> headerAppender,
-                            HttpResponseHandler handler) {
+   public HttpRequestStep(HttpMethod method,
+                          Function<Session, String> pathGenerator,
+                          Function<Session, ByteBuf> bodyGenerator,
+                          BiConsumer<Session, HttpRequest> headerAppender,
+                          HttpResponseHandler handler) {
       this.method = method;
       this.pathGenerator = pathGenerator;
       this.bodyGenerator = bodyGenerator;
@@ -38,6 +38,7 @@ public class HttpRequestAction implements Action, ResourceUtilizer {
          return false;
       } else {
          request.startTime = System.nanoTime();
+         request.sequence = session.currentSequence();
          return true;
       }
    }

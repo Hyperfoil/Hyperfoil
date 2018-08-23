@@ -183,4 +183,9 @@ abstract class HttpClientPoolImpl implements HttpClientPool {
         });
     }
 
+   @Override
+   public void submit(Runnable task) {
+      eventLoopGroup.submit(task);
+   }
+
 }

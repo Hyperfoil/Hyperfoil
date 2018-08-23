@@ -61,7 +61,7 @@ public class SearchValidatorTest {
    }
 
    private Session runValidator(SearchValidator validator, String... text) {
-      Session session = new Session(null, null, null, 1);
+      Session session = new Session(null, null, 1, 1);
       validator.reserve(session);
       validator.beforeData(session);
 

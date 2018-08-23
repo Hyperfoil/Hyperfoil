@@ -99,4 +99,9 @@ public class VertxHttpClientPool implements HttpClientPool {
   @Override
   public void shutdown() {
   }
+
+   @Override
+   public void submit(Runnable task) {
+      vertx.runOnContext(event -> task.run());
+   }
 }

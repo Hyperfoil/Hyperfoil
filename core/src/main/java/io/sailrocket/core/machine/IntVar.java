@@ -35,4 +35,9 @@ public class IntVar implements Session.Var {
       this.value = value;
       this.set = true;
    }
+
+   public void add(int delta) {
+      assert set;
+      this.value += delta;
+   }
 }

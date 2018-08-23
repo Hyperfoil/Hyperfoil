@@ -17,7 +17,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
 public class HttpResponseHandler implements ResourceUtilizer, io.sailrocket.api.Session.ResourceKey<HttpResponseHandler.HandlerInstances> {
-   private static final Logger log = LoggerFactory.getLogger(State.class);
+   private static final Logger log = LoggerFactory.getLogger(HttpResponseHandler.class);
    private static final boolean trace = log.isTraceEnabled();
 
    private StatusValidator[] statusValidators;
@@ -31,6 +31,8 @@ public class HttpResponseHandler implements ResourceUtilizer, io.sailrocket.api.
       if (trace) {
          log.trace("{} Received status {}", this, status);
       }
+      RequestQueue.Request request = session.requestQueue().peek();
+      session.currentSequence(request.sequence);
       session.statistics().addStatus(status);
 
       boolean valid = true;
@@ -141,6 +143,7 @@ public class HttpResponseHandler implements ResourceUtilizer, io.sailrocket.api.
             extractor.afterData(session);
          }
       }
+      session.currentSequence(null);
       // if anything was blocking due to full request queue we should continue from the right place
       session.run();
    }

@@ -7,21 +7,19 @@ import io.sailrocket.core.machine.ResourceUtilizer;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-public class CounterArrayRecorder implements Session.Processor, ResourceUtilizer {
-   private static final Logger log = LoggerFactory.getLogger(CounterArrayRecorder.class);
+public class SequenceScopedCountRecorder implements Session.Processor, ResourceUtilizer {
+   private static final Logger log = LoggerFactory.getLogger(SequenceScopedCountRecorder.class);
    private final String arrayVar;
-   private final String indexVar;
    private final int numCounters;
 
-   public CounterArrayRecorder(String arrayVar, String indexVar, int numCounters) {
+   public SequenceScopedCountRecorder(String arrayVar, int numCounters) {
       this.arrayVar = arrayVar;
-      this.indexVar = indexVar;
       this.numCounters = numCounters;
    }
 
    @Override
    public void before(Session session) {
-      int index = getIndex(session);
+      int index = getIndex((io.sailrocket.core.machine.Session) session);
       IntVar[] array = (IntVar[]) session.activate(arrayVar);
       array[index].set(0);
    }
@@ -29,21 +27,16 @@ public class CounterArrayRecorder implements Session.Processor, ResourceUtilizer
    @Override
    public void process(Session session, ByteBuf buf, int offset, int length, boolean isLastPart) {
       if (isLastPart) {
-         int index = getIndex(session);
+         int index = getIndex((io.sailrocket.core.machine.Session) session);
          IntVar[] array = (IntVar[]) session.getObject(arrayVar);
-         array[index].set(array[index].get() + 1);
+         array[index].add(1);
       }
    }
 
-   @Override
-   public void after(Session session) {
-      session.addToInt(indexVar, 1);
-   }
-
-   private int getIndex(Session session) {
-      int index = session.getInt(indexVar);
+   private int getIndex(io.sailrocket.core.machine.Session session) {
+      int index = session.currentSequence().index();
       if (index < 0 || index >= numCounters) {
-         log.warn("Index in {} ({}) out of bounds, {} has max {} counters", indexVar, index, arrayVar, numCounters);
+         log.warn("Index in {} out of bounds, {} has max {} counters", index, arrayVar, numCounters);
       }
       return index;
    }
@@ -52,7 +45,6 @@ public class CounterArrayRecorder implements Session.Processor, ResourceUtilizer
    public void reserve(io.sailrocket.core.machine.Session session) {
       session.declare(arrayVar);
       session.setObject(arrayVar, IntVar.newArray(session, numCounters));
-      session.deactivate(arrayVar);;
-      session.declareInt(indexVar);
+      session.deactivate(arrayVar);
    }
 }

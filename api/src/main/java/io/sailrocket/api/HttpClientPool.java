@@ -35,4 +35,6 @@ public interface HttpClientPool {
   void resetStatistics();
 
   void shutdown();
+
+  void submit(Runnable task);
 }

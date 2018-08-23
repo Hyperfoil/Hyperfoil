@@ -8,8 +8,8 @@
   </Appenders>
 
   <Loggers>
-    <Logger name="io.sailrocket" level="INFO"/>
-    <Logger name="io.vertx" level="INFO"/>
+    <Logger name="io.sailrocket" level="TRACE"/>
+    <Logger name="io.vertx" level="TRACE"/>
     <Logger name="io.netty" level="INFO"/>
 
     <Root level="DEBUG">
