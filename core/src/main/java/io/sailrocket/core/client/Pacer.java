@@ -6,6 +6,7 @@ package io.sailrocket.core.client;
 /**
  * One per actually running slot in {@link io.sailrocket.core.api.Worker}
  */
+@Deprecated
 public class Pacer {
   private long initialStartTime;
   private long intendedEndTime;

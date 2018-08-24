@@ -10,6 +10,7 @@ import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+@Deprecated
 public class WorkerImpl implements Worker {
 
     private final Executor exec;

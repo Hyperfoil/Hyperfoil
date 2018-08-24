@@ -24,6 +24,7 @@ import io.sailrocket.api.Sequence;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
+@Deprecated
 public interface Worker {
 
     HttpClientPool clientPool();

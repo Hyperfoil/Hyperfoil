@@ -24,6 +24,7 @@ import io.sailrocket.api.Statistics;
 import io.sailrocket.core.client.Pacer;
 import io.sailrocket.api.ValidatorResults;
 
+@Deprecated
 public interface SequenceContext {
 
     Worker worker();

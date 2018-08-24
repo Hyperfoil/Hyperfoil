@@ -8,6 +8,7 @@ import io.sailrocket.core.api.Worker;
 import io.sailrocket.core.client.Pacer;
 import io.sailrocket.api.ValidatorResults;
 
+@Deprecated
 public class SequenceContextImpl implements SequenceContext {
 
     private final HttpClientPool httpClientPool;

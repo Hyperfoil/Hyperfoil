@@ -4,6 +4,7 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 
+@Deprecated
 public class AsyncSemaphore {
    private static final AtomicIntegerFieldUpdater updater = AtomicIntegerFieldUpdater.newUpdater(AsyncSemaphore.class, "currentPermits");
 

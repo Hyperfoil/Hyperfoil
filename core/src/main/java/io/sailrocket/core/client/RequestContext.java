@@ -3,6 +3,7 @@ package io.sailrocket.core.client;
 import io.netty.buffer.ByteBuf;
 import io.sailrocket.core.api.SequenceContext;
 
+@Deprecated
 public class RequestContext {
 
     public SequenceContext sequenceContext;
