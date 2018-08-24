@@ -28,4 +28,5 @@ public interface Worker {
 
     HttpClientPool clientPool();
     CompletableFuture<Void> runSlot(long duration, Supplier<Sequence> sequenceSupplier);
+
 }

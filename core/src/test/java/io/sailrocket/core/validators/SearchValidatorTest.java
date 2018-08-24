@@ -8,7 +8,8 @@ import org.junit.Test;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import io.sailrocket.core.machine.Session;
+import io.sailrocket.api.Session;
+import io.sailrocket.core.session.SessionFactory;
 
 public class SearchValidatorTest {
    @Test
@@ -61,7 +62,7 @@ public class SearchValidatorTest {
    }
 
    private Session runValidator(SearchValidator validator, String... text) {
-      Session session = new Session(null, null, 1, 1);
+      Session session = SessionFactory.forTesting();
       validator.reserve(session);
       validator.beforeData(session);
 

@@ -188,4 +188,9 @@ abstract class HttpClientPoolImpl implements HttpClientPool {
       eventLoopGroup.submit(task);
    }
 
+   @Override
+   public void schedule(Runnable task, long delay, TimeUnit timeUnit) {
+      eventLoopGroup.schedule(task, delay, timeUnit);
+   }
+
 }

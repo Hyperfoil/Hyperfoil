@@ -20,8 +20,9 @@
 
 package io.sailrocket.core.builders;
 
+import io.sailrocket.api.Sequence;
 import io.sailrocket.api.Step;
-import io.sailrocket.core.impl.SequenceImpl;
+import io.sailrocket.core.session.SequenceImpl;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -55,12 +56,8 @@ public class SequenceBuilder {
         return step(stepBuilder.build());
     }
 
-    public SequenceImpl build() {
-        SequenceImpl sequence = new SequenceImpl();
-        for(Step step : steps)
-            sequence.step(step);
-
-       return sequence;
+    public Sequence build() {
+        return new SequenceImpl(null, steps.toArray(new Step[0]));
     }
 
 }

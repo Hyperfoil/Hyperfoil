@@ -4,23 +4,20 @@ import io.sailrocket.api.HttpClientPool;
 import io.sailrocket.api.MixStrategy;
 import io.sailrocket.api.Report;
 import io.sailrocket.api.Scenario;
-import io.sailrocket.api.SequenceStatistics;
+import io.sailrocket.api.Session;
+import io.sailrocket.api.Statistics;
 import io.sailrocket.api.Simulation;
-import io.sailrocket.core.api.Worker;
 import io.sailrocket.core.client.HttpClientPoolFactory;
 import io.sailrocket.core.impl.statistics.ReportStatisticsCollector;
+import io.sailrocket.core.session.SessionFactory;
 import io.vertx.core.json.JsonObject;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import java.util.stream.IntStream;
 
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
@@ -44,7 +41,7 @@ public class SimulationImpl implements Simulation {
     private List<Scenario> scenarios = new ArrayList<>();
     private List<MixStrategy> mixStrategies = new ArrayList<>();
 
-    private ArrayList<Worker> workers;
+    private ArrayList<Session> sessions;
 
     private HttpClientPool clientPool;
 
@@ -110,15 +107,19 @@ public class SimulationImpl implements Simulation {
             e.printStackTrace();
         }
 
-        //Create Simulation threadpool and worker pools
-        ExecutorService exec = Executors.newFixedThreadPool(threads);
-        workers = new ArrayList(threads);
-        IntStream.range(0, threads).forEach(i -> workers.add(i, new WorkerImpl(pacerRate, exec, clientPool)));
-        List<CompletableFuture<Void>> completedFutures = new ArrayList<>(threads);
 
-        //TODO:: this needs to be a worker queue
-        //TODO:: need to call back to an actual sequence selector
-        workers.forEach(worker -> completedFutures.add(worker.runSlot(duration, () -> scenarios.stream().findFirst().get().firstSequence())));
+        Scenario scenario = scenarios.stream().findFirst().get();
+        sessions = new ArrayList(threads);
+        long deadline = System.currentTimeMillis() + TimeUnit.NANOSECONDS.toMillis(duration);
+        for (int i = 0; i < threads; ++i) {
+            // TODO: the concurrency must be set in the scenario
+            Session session = SessionFactory.create(clientPool, 16, 16, () -> System.currentTimeMillis() >= deadline, scenario);
+            sessions.add(session);
+        }
+        for (Session session : sessions) {
+            session.proceed();
+        }
+        Thread.sleep(TimeUnit.NANOSECONDS.toMillis(duration));
 
         this.statisticsConsumer = new ReportStatisticsCollector(
                 tags,
@@ -128,10 +129,6 @@ public class SimulationImpl implements Simulation {
         );
 
 
-        for (CompletableFuture<Void> result : completedFutures) {
-            result.get();
-        }
-        exec.shutdown();
         collateStatistics();
         return this.statisticsConsumer.reports();
     }
@@ -139,11 +136,9 @@ public class SimulationImpl implements Simulation {
    /**
      * Print details on console.
      */
-    public void printDetails(Consumer<SequenceStatistics> printStatsConsumer) {
+    public void printDetails(Consumer<Statistics> printStatsConsumer) {
 
-        scenarios.forEach(scenario -> {
-            scenario.sequences().forEach(sequence -> printStatsConsumer.accept(sequence.statistics()));
-        });
+        sessions.forEach(session -> printStatsConsumer.accept(session.statistics()));
 
     }
 
@@ -152,9 +147,9 @@ public class SimulationImpl implements Simulation {
         done = true;
 
         if (statisticsConsumer != null) {
-            scenarios.forEach(scenario -> {
-                scenario.sequences().forEach(sequence -> statisticsConsumer.accept(sequence.statistics()));
-            });
+            for (Session session : sessions) {
+                statisticsConsumer.accept(session.statistics());
+            }
         }
 
     }

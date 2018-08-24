@@ -20,16 +20,19 @@
 
 package io.sailrocket.core.builder;
 
+import io.sailrocket.api.HttpMethod;
 import io.sailrocket.core.BenchmarkImpl;
 import io.sailrocket.core.builders.BenchmarkBuilder;
 import io.sailrocket.core.impl.SimulationImpl;
+import io.sailrocket.core.steps.AwaitVarStep;
+import io.sailrocket.core.steps.HttpRequestStep;
+
 import org.junit.Test;
 
 import static io.sailrocket.core.builders.HttpBuilder.httpBuilder;
 import static io.sailrocket.core.builders.ScenarioBuilder.scenarioBuilder;
 import static io.sailrocket.core.builders.SequenceBuilder.sequenceBuilder;
 import static io.sailrocket.core.builders.SimulationBuilder.simulationBuilder;
-import static io.sailrocket.core.builders.StepBuilder.stepBuilder;
 import static org.junit.Assert.assertEquals;
 
 /**
@@ -47,10 +50,12 @@ public class BuilderTest {
                 .duration("3s")
                 .rate(101)
                 .scenario(scenarioBuilder()
-                        .sequence(sequenceBuilder()
-                                .step(stepBuilder()
-                                        .path("foo")
+                        .initialSequence(sequenceBuilder()
+                                .step(HttpRequestStep.builder(HttpMethod.GET)
+                                      .path("foo")
+                                      .handler().onCompletion(s -> s.setObject("foo", "done")).endHandler()
                                 )
+                                .step(new AwaitVarStep("foo"))
                         )
                 )
                 .build();

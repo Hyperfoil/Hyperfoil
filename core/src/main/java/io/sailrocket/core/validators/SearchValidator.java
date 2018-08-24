@@ -5,7 +5,7 @@ import java.util.function.IntPredicate;
 
 import io.netty.buffer.ByteBuf;
 import io.sailrocket.api.Session;
-import io.sailrocket.core.machine.ResourceUtilizer;
+import io.sailrocket.core.api.ResourceUtilizer;
 import io.sailrocket.spi.BodyValidator;
 
 /**
@@ -83,7 +83,7 @@ public class SearchValidator implements BodyValidator, ResourceUtilizer, Session
    }
 
    @Override
-   public void reserve(io.sailrocket.core.machine.Session session) {
+   public void reserve(Session session) {
       session.declareResource(this, new Context());
    }
 

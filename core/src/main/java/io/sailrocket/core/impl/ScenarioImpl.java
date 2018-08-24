@@ -21,26 +21,36 @@ package io.sailrocket.core.impl;
 import io.sailrocket.api.Scenario;
 import io.sailrocket.api.Sequence;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public class ScenarioImpl implements Scenario {
+    private final Sequence[] initialSequences;
+    private final Sequence[] sequences;
+    private final String[] objectVars;
+    private final String[] intVars;
 
-    private List<Sequence> sequences = new ArrayList<>();
+   public ScenarioImpl(Sequence[] initialSequences, Sequence[] sequences, String[] objectVars, String[] intVars) {
+      this.initialSequences = initialSequences;
+      this.sequences = sequences;
+      this.objectVars = objectVars;
+      this.intVars = intVars;
+   }
 
     @Override
-    public Scenario sequence(Sequence sequence) {
-        sequences.add(sequence);
-        return this;
+    public Sequence[] initialSequences() {
+        return initialSequences;
     }
 
     @Override
-    public Sequence firstSequence() {
-        return sequences.get(0);
-    }
-
-    @Override
-    public List<Sequence> sequences() {
+    public Sequence[] sequences() {
         return sequences;
+    }
+
+    @Override
+    public String[] objectVars() {
+       return objectVars;
+    }
+
+    @Override
+    public String[] intVars() {
+       return intVars;
     }
 }

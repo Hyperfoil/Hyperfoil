@@ -18,13 +18,13 @@
  */
 package io.sailrocket.core.impl.statistics;
 
-import io.sailrocket.api.SequenceStatistics;
+import io.sailrocket.api.Statistics;
 
 import java.util.function.Consumer;
 
-public class DistributedStatisticsCollector implements Consumer<SequenceStatistics> {
+public class DistributedStatisticsCollector implements Consumer<Statistics> {
     @Override
-    public void accept(SequenceStatistics statistics) {
+    public void accept(Statistics statistics) {
         //TODO:: collate distributed statistics
     }
 }

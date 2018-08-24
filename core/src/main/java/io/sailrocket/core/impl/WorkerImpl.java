@@ -2,7 +2,6 @@ package io.sailrocket.core.impl;
 
 import io.sailrocket.api.HttpClientPool;
 import io.sailrocket.api.Sequence;
-import io.sailrocket.core.api.SequenceContext;
 import io.sailrocket.core.api.Worker;
 import io.sailrocket.core.client.Pacer;
 
@@ -67,20 +66,20 @@ public class WorkerImpl implements Worker {
             return;
         }
         //TODO:: Call back to simulation to get next sequenceContext
-        SequenceContextImpl sequenceContext = new SequenceContextImpl(sequenceSupplier.get(), this, pacer, now, sequenceSupplier.get().statistics());
+//        SequenceContextImpl sequenceContext = new SequenceContextImpl(sequenceSupplier.get(), this, pacer, now, sequenceSupplier.get().statistics());
 
-        CompletableFuture<SequenceContext> sequenceFuture = ((SequenceImpl) sequenceContext.sequence()).buildSequenceFuture();
-        sequenceFuture.whenComplete((context, t) -> {
-            long endTime = System.nanoTime();
-            long durationMillis = endTime - context.getStartTime();
-            //TODO:: this needs to be asnyc to histogram verticle - we should be able to process various composite stats in realtime
-            context.sequenceStats().histogram.recordValue(durationMillis);
-            if (t != null) {
-               t.printStackTrace();
-            }
-            context.pacer().acquire(1);
-            doSequenceInSlot(context.pacer(), sequenceSupplier, doneHandler);
-        });
+//        CompletableFuture<SequenceContext> sequenceFuture = ((SequenceImpl) sequenceContext.sequence()).buildSequenceFuture();
+//        sequenceFuture.whenComplete((context, t) -> {
+//            long endTime = System.nanoTime();
+//            long durationMillis = endTime - context.getStartTime();
+//            TODO:: this needs to be asnyc to histogram verticle - we should be able to process various composite stats in realtime
+//            context.sequenceStats().histogram.recordValue(durationMillis);
+//            if (t != null) {
+//               t.printStackTrace();
+//            }
+//            context.pacer().acquire(1);
+//            doSequenceInSlot(context.pacer(), sequenceSupplier, doneHandler);
+//        });
     }
 }
 

@@ -1,10 +1,13 @@
 package io.sailrocket.benchmark.standalone;
 
 import io.sailrocket.api.BenchmarkDefinitionException;
+import io.sailrocket.api.HttpMethod;
 import io.sailrocket.api.Report;
 import io.sailrocket.core.BenchmarkImpl;
 import io.sailrocket.core.builders.BenchmarkBuilder;
 import io.sailrocket.core.impl.SimulationImpl;
+import io.sailrocket.core.steps.AwaitVarStep;
+import io.sailrocket.core.steps.HttpRequestStep;
 import io.sailrocket.test.Benchmark;
 import org.HdrHistogram.Histogram;
 import org.junit.Assert;
@@ -17,7 +20,6 @@ import static io.sailrocket.core.builders.HttpBuilder.httpBuilder;
 import static io.sailrocket.core.builders.ScenarioBuilder.scenarioBuilder;
 import static io.sailrocket.core.builders.SequenceBuilder.sequenceBuilder;
 import static io.sailrocket.core.builders.SimulationBuilder.simulationBuilder;
-import static io.sailrocket.core.builders.StepBuilder.stepBuilder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
@@ -34,10 +36,12 @@ public class SimpleBechmarkTestCase extends BaseBenchmarkTestCase {
                 .duration("10s")
                 .rate(101)
                 .scenario(scenarioBuilder()
-                        .sequence(sequenceBuilder()
-                                .step(stepBuilder()
+                        .initialSequence(sequenceBuilder()
+                                .step(HttpRequestStep.builder(HttpMethod.GET)
                                         .path("foo")
+                                        .handler().onCompletion(s -> s.setObject("foo", "done")).endHandler()
                                 )
+                                .step(new AwaitVarStep("foo"))
                         )
                 )
                 .build();

@@ -19,7 +19,7 @@
 package io.sailrocket.core.impl.statistics;
 
 import io.sailrocket.api.Report;
-import io.sailrocket.api.SequenceStatistics;
+import io.sailrocket.api.Statistics;
 import io.vertx.core.json.JsonObject;
 import org.HdrHistogram.Histogram;
 
@@ -29,9 +29,9 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
-public class ReportStatisticsCollector implements Consumer<SequenceStatistics> {
+public class ReportStatisticsCollector implements Consumer<Statistics> {
 
-    private Map<SequenceStatistics, Report> reportMap;
+    private Map<Statistics, Report> reportMap;
     JsonObject tags;
     private long rate;
     private long duration;
@@ -46,34 +46,34 @@ public class ReportStatisticsCollector implements Consumer<SequenceStatistics> {
     }
 
     @Override
-    public void accept(SequenceStatistics sequenceStatistics) {
+    public void accept(Statistics statistics) {
 
         Report statisticsReport = new Report(tags);
 
         long expectedRequests = rate * TimeUnit.NANOSECONDS.toSeconds(duration);
         long elapsed = System.nanoTime() - startTime;
-        Histogram cp = sequenceStatistics.histogram.copy();
+        Histogram cp = statistics.histogram.copy();
         cp.setStartTimeStamp(TimeUnit.NANOSECONDS.toMillis(startTime));
         cp.setEndTimeStamp(TimeUnit.NANOSECONDS.toMillis(System.nanoTime()));
         statisticsReport.measures(
                 expectedRequests,
                 elapsed,
                 cp,
-                sequenceStatistics.responseCount,
-                ratio(sequenceStatistics),
-                sequenceStatistics.connectFailureCount,
-                sequenceStatistics.resetCount,
-                sequenceStatistics.resetCount,
-                sequenceStatistics.statuses(),
+                statistics.responseCount,
+                ratio(statistics),
+                statistics.connectFailureCount,
+                statistics.resetCount,
+                statistics.resetCount,
+                statistics.statuses(),
                 0, //clientPool.bytesRead(),  //TODO::get bytes from client pool
                 0  //clientPool.bytesWritten()
         );
 
-        reportMap.putIfAbsent(sequenceStatistics, statisticsReport);
+        reportMap.putIfAbsent(statistics, statisticsReport);
     }
 
     //TODO: move this calc
-    private double ratio(SequenceStatistics sequenceStats) {
+    private double ratio(Statistics sequenceStats) {
         long end = Math.min(System.nanoTime(), startTime + duration);
         long expected = rate * (end - startTime) / 1000000000;
         return sequenceStats.requestCount / (double) expected;

@@ -18,6 +18,7 @@
  */
 package io.sailrocket.api;
 
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import io.netty.buffer.ByteBuf;
@@ -37,4 +38,6 @@ public interface HttpClientPool {
   void shutdown();
 
   void submit(Runnable task);
+
+  void schedule(Runnable task, long delay, TimeUnit timeUnit);
 }

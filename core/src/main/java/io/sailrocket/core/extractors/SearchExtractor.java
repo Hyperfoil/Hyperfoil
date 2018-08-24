@@ -5,7 +5,7 @@ import java.nio.charset.StandardCharsets;
 import io.netty.buffer.ByteBuf;
 import io.sailrocket.api.BodyExtractor;
 import io.sailrocket.api.Session;
-import io.sailrocket.core.machine.ResourceUtilizer;
+import io.sailrocket.core.api.ResourceUtilizer;
 
 /**
  * Simple pattern (no regexp) search based on Rabin-Karp algorithm.
@@ -144,7 +144,7 @@ public class SearchExtractor implements BodyExtractor, ResourceUtilizer, Session
    }
 
    @Override
-   public void reserve(io.sailrocket.core.machine.Session session) {
+   public void reserve(Session session) {
       session.declareResource(this, new Context());
    }
 

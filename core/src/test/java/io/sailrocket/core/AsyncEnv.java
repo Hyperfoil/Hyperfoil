@@ -1,12 +1,12 @@
 package io.sailrocket.core;
 
 import io.sailrocket.api.HttpClientPool;
-import io.sailrocket.api.SequenceStatistics;
+import io.sailrocket.api.Statistics;
 import io.sailrocket.core.api.Worker;
 import io.sailrocket.core.client.HttpClientProvider;
 import io.sailrocket.core.client.RequestContext;
 import io.sailrocket.core.impl.WorkerImpl;
-import io.sailrocket.core.impl.SequenceImpl;
+import io.sailrocket.core.session.SequenceImpl;
 import io.vertx.core.Vertx;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -33,7 +33,7 @@ public abstract class AsyncEnv {
     protected final long DURATION = TimeUnit.SECONDS.toNanos(30);
 
     protected final ExecutorService exec = Executors.newFixedThreadPool(ASYNC_THREADS);
-    protected final SequenceStatistics sequenceStats = new SequenceStatistics();
+    protected final Statistics sequenceStats = new Statistics();
 
     protected ArrayList<Worker> workers;
 
@@ -48,7 +48,7 @@ public abstract class AsyncEnv {
     public void run(RequestContext requestContext) throws ExecutionException, InterruptedException {
         IntStream.range(0, ASYNC_THREADS).forEach(i -> workers.add(i, new WorkerImpl(pacerRate, exec, clientPool)));
         List<CompletableFuture<Void>> results = new ArrayList<>(ASYNC_THREADS);
-        workers.forEach(worker -> results.add(worker.runSlot(DURATION, () -> new SequenceImpl())));
+        workers.forEach(worker -> results.add(worker.runSlot(DURATION, () -> new SequenceImpl("foo"))));
         for (CompletableFuture<Void> result : results) {
             result.get();
         }

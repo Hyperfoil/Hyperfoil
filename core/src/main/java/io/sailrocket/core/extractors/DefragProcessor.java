@@ -3,7 +3,7 @@ package io.sailrocket.core.extractors;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.CompositeByteBuf;
 import io.sailrocket.api.Session;
-import io.sailrocket.core.machine.ResourceUtilizer;
+import io.sailrocket.core.api.ResourceUtilizer;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
@@ -40,7 +40,7 @@ public class DefragProcessor implements Session.Processor, ResourceUtilizer, Ses
    }
 
    @Override
-   public void reserve(io.sailrocket.core.machine.Session session) {
+   public void reserve(Session session) {
       session.declare(this);
       // Note: contrary to the recommended pattern the Context won't reserve all objects ahead, the CompositeByteBuf
       // will be allocated only if needed (and only once). This is necessary since we don't know the type of allocator

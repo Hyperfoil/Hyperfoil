@@ -7,7 +7,7 @@ import java.util.Arrays;
 import io.netty.buffer.ByteBuf;
 import io.sailrocket.api.BodyExtractor;
 import io.sailrocket.api.Session;
-import io.sailrocket.core.machine.ResourceUtilizer;
+import io.sailrocket.core.api.ResourceUtilizer;
 
 public class JsonExtractor implements BodyExtractor, ResourceUtilizer, Session.ResourceKey<JsonExtractor.Context> {
    private static final int MAX_PARTS = 16;
@@ -115,7 +115,7 @@ public class JsonExtractor implements BodyExtractor, ResourceUtilizer, Session.R
    }
 
    @Override
-   public void reserve(io.sailrocket.core.machine.Session session) {
+   public void reserve(Session session) {
       session.declareResource(this, new Context());
       if (processor instanceof ResourceUtilizer) {
          ((ResourceUtilizer) processor).reserve(session);

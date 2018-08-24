@@ -3,7 +3,7 @@ package io.sailrocket.core;
 import io.sailrocket.api.Benchmark;
 import io.sailrocket.api.BenchmarkDefinitionException;
 import io.sailrocket.api.Report;
-import io.sailrocket.api.SequenceStatistics;
+import io.sailrocket.api.Statistics;
 import io.sailrocket.core.impl.SimulationImpl;
 import io.sailrocket.core.impl.statistics.PrintStatisticsConsumer;
 
@@ -26,7 +26,7 @@ public class BenchmarkImpl extends Benchmark {
         }
 
         //TODO:: define in builder
-        Consumer<SequenceStatistics> printStatsConsumer = new PrintStatisticsConsumer();
+        Consumer<Statistics> printStatsConsumer = new PrintStatisticsConsumer();
 
         AtomicReference<SimulationImpl> currentLoad = new AtomicReference<>();
         Timer timer = new Timer("console-logger", true);

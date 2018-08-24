@@ -4,8 +4,8 @@ import java.nio.charset.StandardCharsets;
 
 import io.netty.buffer.ByteBuf;
 import io.sailrocket.api.Session;
-import io.sailrocket.core.machine.ObjectVar;
-import io.sailrocket.core.machine.ResourceUtilizer;
+import io.sailrocket.core.session.ObjectVar;
+import io.sailrocket.core.api.ResourceUtilizer;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
@@ -40,7 +40,7 @@ public class ArrayRecorder implements Session.Processor, ResourceUtilizer {
    }
 
    @Override
-   public void reserve(io.sailrocket.core.machine.Session session) {
+   public void reserve(Session session) {
       session.declare(var);
       session.setObject(var, ObjectVar.newArray(session, maxSize));
       session.deactivate(var);

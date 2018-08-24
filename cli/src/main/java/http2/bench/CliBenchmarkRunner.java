@@ -1,15 +1,17 @@
 package http2.bench;
 
 import io.netty.buffer.ByteBuf;
+import io.sailrocket.api.HttpMethod;
 import io.sailrocket.api.Report;
-import io.sailrocket.api.SequenceStatistics;
+import io.sailrocket.api.Statistics;
+import io.sailrocket.core.builders.ScenarioBuilder;
 import io.sailrocket.core.client.HttpClientPoolFactory;
 import io.sailrocket.core.client.HttpClientProvider;
-import io.sailrocket.core.impl.ScenarioImpl;
-import io.sailrocket.core.impl.SequenceImpl;
 import io.sailrocket.core.impl.SimulationImpl;
-import io.sailrocket.core.impl.StepImpl;
 import io.sailrocket.core.impl.statistics.PrintStatisticsConsumer;
+import io.sailrocket.core.steps.AwaitVarStep;
+import io.sailrocket.core.steps.HttpRequestStep;
+import io.sailrocket.core.session.SequenceImpl;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpVersion;
 import io.vertx.core.json.JsonObject;
@@ -163,7 +165,7 @@ public class CliBenchmarkRunner {
         boolean ssl = absoluteURI.getScheme().equals("https");
 
         //TODO:: define in builder
-        Consumer<SequenceStatistics> printStatsConsumer = new PrintStatisticsConsumer();
+        Consumer<Statistics> printStatsConsumer = new PrintStatisticsConsumer();
 
         AtomicReference<SimulationImpl> currentLoad = new AtomicReference<>();
         Timer timer = new Timer("console-logger", true);
@@ -243,10 +245,14 @@ public class CliBenchmarkRunner {
         SimulationImpl simulation = new SimulationImpl(threads, rate, duration, warmup, clientBuilder, tags);
 
         simulation.scenario(
-                new ScenarioImpl().sequence(
-                        new SequenceImpl().step(
-                                new StepImpl().path(path))
-                )
+              ScenarioBuilder.scenarioBuilder().initialSequence(
+                        new SequenceImpl("test")
+                              .step(HttpRequestStep.builder(HttpMethod.GET)
+                                    .path(path)
+                                    .handler().onCompletion(s -> s.setObject(path, "done")).endHandler()
+                                    .build())
+                              .step(new AwaitVarStep(path))
+              ).build()
         );
 
         return simulation;

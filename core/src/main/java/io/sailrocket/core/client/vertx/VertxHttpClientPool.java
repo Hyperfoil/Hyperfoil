@@ -27,6 +27,7 @@ import io.sailrocket.core.util.AsyncSemaphore;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClientOptions;
 
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
@@ -103,5 +104,10 @@ public class VertxHttpClientPool implements HttpClientPool {
    @Override
    public void submit(Runnable task) {
       vertx.runOnContext(event -> task.run());
+   }
+
+   @Override
+   public void schedule(Runnable task, long delay, TimeUnit timeUnit) {
+      vertx.setTimer(timeUnit.toMillis(delay), event -> task.run());
    }
 }

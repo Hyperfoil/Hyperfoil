@@ -1,0 +1,125 @@
+package io.sailrocket.core.steps;
+
+import java.util.function.BiConsumer;
+import java.util.function.Function;
+
+import io.netty.buffer.ByteBuf;
+import io.sailrocket.api.HttpMethod;
+import io.sailrocket.api.HttpRequest;
+import io.sailrocket.api.RequestQueue;
+import io.sailrocket.api.Step;
+import io.sailrocket.api.Session;
+import io.sailrocket.core.builders.StepBuilder;
+import io.sailrocket.core.api.ResourceUtilizer;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
+
+public class HttpRequestStep implements Step, ResourceUtilizer {
+   private static final Logger log = LoggerFactory.getLogger(HttpRequestStep.class);
+   private static final boolean trace = log.isTraceEnabled();
+
+   private final HttpMethod method;
+   private final Function<Session, String> pathGenerator;
+   private final Function<Session, ByteBuf> bodyGenerator;
+   private final BiConsumer<Session, HttpRequest> headerAppender;
+   private final HttpResponseHandler handler;
+
+   public static Builder builder(HttpMethod method) {
+      return new Builder(method);
+   }
+
+   public HttpRequestStep(HttpMethod method,
+                          Function<Session, String> pathGenerator,
+                          Function<Session, ByteBuf> bodyGenerator,
+                          BiConsumer<Session, HttpRequest> headerAppender,
+                          HttpResponseHandler handler) {
+      this.method = method;
+      this.pathGenerator = pathGenerator;
+      this.bodyGenerator = bodyGenerator;
+      this.headerAppender = headerAppender;
+      this.handler = handler;
+   }
+
+   @Override
+   public boolean prepare(Session session) {
+      RequestQueue.Request request = session.requestQueue().prepare();
+      if (request == null) {
+         return false;
+      } else {
+         request.startTime = System.nanoTime();
+         request.sequence = session.currentSequence();
+         return true;
+      }
+   }
+
+   @Override
+   public void invoke(Session session) {
+      ByteBuf body = bodyGenerator == null ? null : bodyGenerator.apply(session);
+      String path = pathGenerator.apply(session);
+      // TODO alloc!
+      HttpRequest request = session.httpClientPool().request(method, path, body);
+      if (headerAppender != null) {
+         headerAppender.accept(session, request);
+      }
+
+      // alloc-free below
+      HttpResponseHandler.HandlerInstances h = session.getResource(handler);
+      request.statusHandler(h.handleStatus);
+      request.headerHandler(h.handleHeader);
+      request.exceptionHandler(h.handleException);
+      request.bodyPartHandler(h.handleBodyPart);
+      request.endHandler(h.handleEnd);
+
+      if (trace) {
+         log.trace("HTTP {} to {}", method, path);
+      }
+      request.end();
+      session.statistics().requestCount++;
+   }
+
+   @Override
+   public void reserve(Session session) {
+      handler.reserve(session);
+   }
+
+   public static class Builder implements StepBuilder {
+      private HttpMethod method;
+      private Function<Session, String> pathGenerator;
+      private Function<Session, ByteBuf> bodyGenerator;
+      private BiConsumer<Session, HttpRequest> headerAppender;
+      private HttpResponseHandler.Builder handler = new HttpResponseHandler.Builder(this);
+
+      private Builder(HttpMethod method) {
+         this.method = method;
+      }
+
+      public Builder path(String path) {
+         this.pathGenerator = s -> path;
+         return this;
+      }
+
+      public Builder pathGenerator(Function<Session, String> pathGenerator) {
+         this.pathGenerator = pathGenerator;
+         return this;
+      }
+
+      public Builder bodyGenerator(Function<Session, ByteBuf> bodyGenerator) {
+         this.bodyGenerator = bodyGenerator;
+         return this;
+      }
+
+      public Builder headerAppender(BiConsumer<Session, HttpRequest> headerAppender) {
+         this.headerAppender = headerAppender;
+         return this;
+      }
+
+      public HttpResponseHandler.Builder handler() {
+         return handler;
+      }
+
+      @Override
+      public Step build() {
+         return new HttpRequestStep(method, pathGenerator, bodyGenerator, headerAppender, handler.build());
+      }
+   }
+}

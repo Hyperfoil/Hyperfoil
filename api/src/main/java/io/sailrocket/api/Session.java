@@ -3,6 +3,16 @@ package io.sailrocket.api;
 import io.netty.buffer.ByteBuf;
 
 public interface Session {
+   /// Common utility objects
+   HttpClientPool httpClientPool();
+
+   ValidatorResults validatorResults();
+
+   Statistics statistics();
+
+   RequestQueue requestQueue();
+
+   /// Variable-related methods
    Session declare(Object key);
 
    Object getObject(Object key);
@@ -26,9 +36,22 @@ public interface Session {
 
    void deactivate(Object key);
 
+   // Resources
    <R extends Session.Resource> void declareResource(ResourceKey<R> key, R resource);
 
    <R extends Session.Resource> R getResource(ResourceKey<R> key);
+
+   // Sequence related methods
+   void currentSequence(SequenceInstance current);
+
+   SequenceInstance currentSequence();
+
+   /**
+    * Run anything that can be executed.
+    */
+   void proceed();
+
+   void reset();
 
    interface Processor {
       /**

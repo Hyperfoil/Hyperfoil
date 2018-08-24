@@ -18,14 +18,25 @@
  */
 package io.sailrocket.core.api;
 
+import io.sailrocket.api.HttpClientPool;
+import io.sailrocket.api.Sequence;
+import io.sailrocket.api.Statistics;
 import io.sailrocket.core.client.Pacer;
-import io.sailrocket.core.client.ValidatorResults;
+import io.sailrocket.api.ValidatorResults;
 
-public interface SequenceContext extends io.sailrocket.api.SequenceContext {
+public interface SequenceContext {
 
     Worker worker();
 
     ValidatorResults validatorResults();
 
     Pacer pacer();
+
+    //TODO:: this needs to be a single connection instead of the connection pool
+    //atm this is broken
+    HttpClientPool clientPool();Sequence sequence();Statistics sequenceStats();
+
+    void sequenceStats(Statistics statistics);
+
+    long getStartTime();
 }

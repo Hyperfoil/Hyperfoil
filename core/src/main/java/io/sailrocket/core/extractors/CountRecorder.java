@@ -2,7 +2,7 @@ package io.sailrocket.core.extractors;
 
 import io.netty.buffer.ByteBuf;
 import io.sailrocket.api.Session;
-import io.sailrocket.core.machine.ResourceUtilizer;
+import io.sailrocket.core.api.ResourceUtilizer;
 
 public class CountRecorder implements Session.Processor, ResourceUtilizer {
    private final String var;
@@ -24,7 +24,7 @@ public class CountRecorder implements Session.Processor, ResourceUtilizer {
    }
 
    @Override
-   public void reserve(io.sailrocket.core.machine.Session session) {
+   public void reserve(Session session) {
       session.declareInt(var);
    }
 }

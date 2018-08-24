@@ -24,7 +24,7 @@ import io.sailrocket.api.Sequence;
 import io.sailrocket.core.impl.ScenarioImpl;
 
 import java.util.ArrayList;
-import java.util.List;
+import java.util.Collection;
 import java.util.function.Consumer;
 
 /**
@@ -32,10 +32,12 @@ import java.util.function.Consumer;
  */
 public class ScenarioBuilder {
 
-    private List<Sequence> sequences;
+    private Collection<Sequence> initialSequences = new ArrayList<>();
+    private Collection<Sequence> sequences = new ArrayList<>();
+    private Collection<String> objectVars = new ArrayList<>();
+    private Collection<String> intVars = new ArrayList<>();
 
     private ScenarioBuilder() {
-        sequences = new ArrayList<>();
     }
 
     public static ScenarioBuilder scenarioBuilder() {
@@ -47,6 +49,17 @@ public class ScenarioBuilder {
         return this;
     }
 
+    public ScenarioBuilder initialSequence(Sequence sequence) {
+        return apply(clone -> {
+            clone.initialSequences.add(sequence);
+            clone.sequences.add(sequence);
+        });
+    }
+
+    public ScenarioBuilder initialSequence(SequenceBuilder builder) {
+        return initialSequence(builder.build());
+    }
+
     public ScenarioBuilder sequence(Sequence sequence) {
         return apply(clone ->  clone.sequences.add(sequence));
     }
@@ -55,12 +68,25 @@ public class ScenarioBuilder {
         return sequence(sequenceBuilder.build());
     }
 
-    public ScenarioImpl build() {
-        ScenarioImpl scenario = new ScenarioImpl();
-        for(Sequence sequence : sequences)
-            scenario.sequence(sequence);
+    public ScenarioBuilder objectVar(String var) {
+        objectVars.add(var);
+        return this;
+    }
 
-        return scenario;
+    public ScenarioBuilder intVar(String var) {
+        intVars.add(var);
+        return this;
+    }
+
+    public ScenarioImpl build() {
+        if (initialSequences.isEmpty()) {
+            throw new IllegalArgumentException("No initial sequences.");
+        }
+        return new ScenarioImpl(
+              initialSequences.toArray(new Sequence[0]),
+              sequences.toArray(new Sequence[0]),
+              objectVars.toArray(new String[0]),
+              intVars.toArray(new String[0]));
     }
 
 }
