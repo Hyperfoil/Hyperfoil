@@ -137,8 +137,11 @@ public class SimulationImpl implements Simulation {
      * Print details on console.
      */
     public void printDetails(Consumer<Statistics> printStatsConsumer) {
-
-        sessions.forEach(session -> printStatsConsumer.accept(session.statistics()));
+        for (Session session : sessions) {
+            for (Statistics statistics : session.statistics()) {
+                printStatsConsumer.accept(statistics);
+            }
+        }
 
     }
 
@@ -148,7 +151,9 @@ public class SimulationImpl implements Simulation {
 
         if (statisticsConsumer != null) {
             for (Session session : sessions) {
-                statisticsConsumer.accept(session.statistics());
+                for (Statistics statistics : session.statistics()) {
+                    statisticsConsumer.accept(statistics);
+                }
             }
         }
 

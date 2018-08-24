@@ -8,7 +8,9 @@ public interface Session {
 
    ValidatorResults validatorResults();
 
-   Statistics statistics();
+   Statistics statistics(int sequenceId);
+
+   Statistics[] statistics();
 
    RequestQueue requestQueue();
 

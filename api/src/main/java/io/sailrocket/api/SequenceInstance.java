@@ -9,6 +9,7 @@ public class SequenceInstance {
    private static final boolean trace = log.isTraceEnabled();
 
    private String name;
+   private int sourceId;
    private int index;
    private Step[] steps;
    private int currentStep = 0;
@@ -41,8 +42,9 @@ public class SequenceInstance {
       return progressed;
    }
 
-   public SequenceInstance reset(String name, int index, Step[] steps) {
+   public SequenceInstance reset(String name, int sourceId, int index, Step[] steps) {
       this.name = name;
+      this.sourceId = sourceId;
       this.index = index;
       this.steps = steps;
       this.currentStep = 0;
@@ -60,5 +62,9 @@ public class SequenceInstance {
    @Override
    public String toString() {
       return name + "(" + currentStep + "/" + steps.length + ")";
+   }
+
+   public Statistics statistics(Session session) {
+      return session.statistics(sourceId);
    }
 }

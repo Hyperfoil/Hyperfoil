@@ -11,6 +11,7 @@ import io.sailrocket.core.api.ResourceUtilizer;
 public class SequenceImpl implements Sequence {
    // debug only
    private final String name;
+   private int id;
    private Step[] steps;
 
    public SequenceImpl(String name) {
@@ -20,6 +21,16 @@ public class SequenceImpl implements Sequence {
    public SequenceImpl(String name, Step[] steps) {
       this.name = name;
       this.steps = steps;
+   }
+
+   @Override
+   public void id(int id) {
+      this.id = id;
+   }
+
+   @Override
+   public int id() {
+      return id;
    }
 
    @Override
@@ -34,10 +45,10 @@ public class SequenceImpl implements Sequence {
    }
 
    @Override
-   public void instantiate(Session session, int id) {
+   public void instantiate(Session session, int index) {
       SessionImpl impl = (SessionImpl) session;
       SequenceInstance instance = impl.acquireSequence();
-      instance.reset(name, id, steps);
+      instance.reset(name, id, index, steps);
       impl.enableSequence(instance);
    }
 

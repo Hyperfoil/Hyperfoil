@@ -36,7 +36,7 @@ class SessionImpl implements Session, Runnable {
    private final BooleanSupplier termination;
 
    private final ValidatorResults validatorResults = new ValidatorResults();
-   private final Statistics statistics = new Statistics();
+   private final Statistics[] statistics;
 
    private Scenario scenario;
 
@@ -48,8 +48,12 @@ class SessionImpl implements Session, Runnable {
       this.termination = termination;
       this.scenario = scenario;
 
-      for (Sequence sequence : scenario.sequences()) {
+      Sequence[] sequences = scenario.sequences();
+      statistics = new Statistics[sequences.length];
+      for (int i = 0; i < sequences.length; i++) {
+         Sequence sequence = sequences[i];
          sequence.reserve(this);
+         statistics[i] = new Statistics();
       }
       for (String var : scenario.objectVars()) {
          declare(var);
@@ -227,7 +231,12 @@ class SessionImpl implements Session, Runnable {
    }
 
    @Override
-   public Statistics statistics() {
+   public Statistics statistics(int sequenceId) {
+      return statistics[sequenceId];
+   }
+
+   @Override
+   public Statistics[] statistics() {
       return statistics;
    }
 

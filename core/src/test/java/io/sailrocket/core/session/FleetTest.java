@@ -14,6 +14,7 @@ import org.junit.runner.RunWith;
 import io.sailrocket.api.HttpClientPool;
 import io.sailrocket.api.HttpMethod;
 import io.sailrocket.api.Session;
+import io.sailrocket.api.Statistics;
 import io.sailrocket.core.builders.ScenarioBuilder;
 import io.sailrocket.core.client.HttpClientProvider;
 import io.sailrocket.core.extractors.ArrayRecorder;
@@ -162,7 +163,9 @@ public class FleetTest {
       finalSequence.step(s -> {
          log.info("Test completed");
          async.countDown();
-         log.trace(s.statistics());
+         for (Statistics stats : s.statistics()) {
+            log.trace(stats);
+         }
       });
 
       // Allocating init

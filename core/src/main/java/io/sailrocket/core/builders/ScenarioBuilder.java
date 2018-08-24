@@ -52,6 +52,7 @@ public class ScenarioBuilder {
     public ScenarioBuilder initialSequence(Sequence sequence) {
         return apply(clone -> {
             clone.initialSequences.add(sequence);
+            sequence.id(clone.sequences.size());
             clone.sequences.add(sequence);
         });
     }
@@ -61,7 +62,10 @@ public class ScenarioBuilder {
     }
 
     public ScenarioBuilder sequence(Sequence sequence) {
-        return apply(clone ->  clone.sequences.add(sequence));
+        return apply(clone -> {
+            sequence.id(clone.sequences.size());
+            clone.sequences.add(sequence);
+        });
     }
 
     public ScenarioBuilder sequence(SequenceBuilder sequenceBuilder) {

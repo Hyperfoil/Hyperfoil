@@ -12,6 +12,7 @@ import io.sailrocket.api.BodyExtractor;
 import io.sailrocket.api.HeaderExtractor;
 import io.sailrocket.api.RequestQueue;
 import io.sailrocket.api.Session;
+import io.sailrocket.api.Statistics;
 import io.sailrocket.api.StatusExtractor;
 import io.sailrocket.core.api.ResourceUtilizer;
 import io.sailrocket.spi.BodyValidator;
@@ -54,7 +55,7 @@ public class HttpResponseHandler implements ResourceUtilizer, Session.ResourceKe
       }
       RequestQueue.Request request = session.requestQueue().peek();
       session.currentSequence(request.sequence);
-      session.statistics().addStatus(status);
+      request.sequence.statistics(session).addStatus(status);
 
       boolean valid = true;
       if (statusValidators != null) {
@@ -137,8 +138,9 @@ public class HttpResponseHandler implements ResourceUtilizer, Session.ResourceKe
    private void handleEnd(Session session) {
       long endTime = System.nanoTime();
       RequestQueue.Request request = session.requestQueue().complete();
-      session.statistics().histogram.recordValue(endTime - request.startTime);
-      session.statistics().responseCount++;
+      Statistics statistics = session.currentSequence().statistics(session);
+      statistics.histogram.recordValue(endTime - request.startTime);
+      statistics.responseCount++;
 
       boolean headersValid = true;
       if (headerValidators != null) {

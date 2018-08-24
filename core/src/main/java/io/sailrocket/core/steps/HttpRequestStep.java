@@ -74,7 +74,7 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
          log.trace("HTTP {} to {}", method, path);
       }
       request.end();
-      session.statistics().requestCount++;
+      session.currentSequence().statistics(session).requestCount++;
    }
 
    @Override

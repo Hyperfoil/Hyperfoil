@@ -28,6 +28,10 @@ package io.sailrocket.api;
  *
  */
 public interface Sequence {
+    void id(int size);
+
+    int id();
+
     Sequence step(Step step);
 
     void instantiate(Session session, int id);
