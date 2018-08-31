@@ -1,0 +1,113 @@
+name: complex benchmark
+hosts:
+  client1: benchuser@benchclient1.perf.lab.eng.rdu.redhat.com:22
+  client2: benchuser@benchclient2.perf.lab.eng.rdu.redhat.com:22
+  client3: benchuser@benchclient3.perf.lab.eng.rdu.redhat.com:22
+
+simulation:
+  sequences:
+    - registerInvalid:
+    - registerValid:
+    - login:
+    - logout:
+    - unregister:
+    - viewUser:
+    - updateUser:
+    - addVehicle:
+    - viewVehicle:
+    - viewQuote:
+    - deleteVehicle:
+    - acceptQuote:
+    - acceptQuoteWebSocket:
+    - viewInsurance:
+  scenarios:
+    - invalidRegistration:
+        sequences:
+          - registerInvalid
+    - registerValid:
+        sequences:
+          - registerValid
+    - unregister:
+        sequences:
+          - login
+          - unregister
+    - viewUser:
+        sequences:
+          - login
+          - viewUser
+          - logout
+    - updateUser:
+        sequences:
+          - login
+          - viewUser
+          - updateUser
+          - logout
+    - viewQuote:
+        sequences:
+          - login
+          - addVehicle
+          - viewQuote
+          - logout
+    - deleteVehicle:
+        sequences:
+          - login
+          - deleteVehicle
+          - logout
+    - acceptQuote:
+        sequences:
+          - login
+          - acceptQuote
+          - viewVehicle
+          - logout
+    - acceptQuoteWebSocket:
+        sequences:
+          - login
+          - acceptQuoteWebSocket
+          - viewVehicle
+          - logout
+    - viewInsurance:
+        sequences:
+          - login
+          - viewVehicle
+          - viewInsurance
+          - logout
+
+phases:
+  - rampUp:
+      concurrency: 10
+      connections: 5
+      duration: 3s
+      rate: 100
+      measure: false
+  - steadyState:
+      concurrency: 10
+      connections: 5
+      duration: 6s
+      rate: 100
+      measure: true
+  - rampDown:
+      concurrency: 10
+      connections: 5
+      duration: 3s
+      rate: 100
+      measure: false
+
+sla:
+  - meanBelow1s:
+      type: mean
+      limit:  1_000
+  - 90thCentileBelow2s:
+      type: centile
+      value: 90
+      limit:  2_000
+
+state:
+  - users:
+      supplier: CSV
+      location: users.csv
+  - vehicles:
+      supplier: REST
+      location:
+  - makes:
+      supplier: REST
+      location:

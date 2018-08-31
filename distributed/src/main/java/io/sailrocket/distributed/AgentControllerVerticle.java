@@ -90,8 +90,10 @@ public class AgentControllerVerticle extends AbstractVerticle {
     }
 
     private void handleStartBenchmark(RoutingContext routingContext) {
-        BenchmarkImpl benchmark = benchmarks.get(routingContext.request().getParam("benchmark"));
-        if (benchmark != null) {
+        String benchmarkName = routingContext.request().getParam("benchmark");
+        if (benchmarkName != null && benchmarks.containsKey(benchmarkName)) {
+            BenchmarkImpl benchmark = benchmarks.get(routingContext.request().getParam("benchmark"));
+
             eb.publish("control-feed", benchmark);
 
             collatedHistogram = new ConcurrentHistogram(5);
@@ -100,7 +102,8 @@ public class AgentControllerVerticle extends AbstractVerticle {
 
         } else {
             //benchmark has not been defined yet
-            this.routingContext.response().setStatusCode(500).write("Benchmark not found").end();
+            String msg = "Benchmark not found";
+            routingContext.response().setStatusCode(500).setChunked(true).write(msg).end();
         }
         this.routingContext = routingContext;
 

@@ -19,6 +19,7 @@
  */
 package io.sailrocket.core.builders;
 
+import io.sailrocket.api.Host;
 import io.sailrocket.api.Simulation;
 import io.sailrocket.core.BenchmarkImpl;
 
@@ -31,6 +32,7 @@ public class BenchmarkBuilder {
 
     private String name;
     private Simulation simulation;
+    private Host hosts;
 
     private BenchmarkBuilder() {
     }
@@ -54,6 +56,12 @@ public class BenchmarkBuilder {
 
     public BenchmarkBuilder simulation(SimulationBuilder simulationBuilder) {
         return simulation(simulationBuilder.build());
+    }
+
+
+    public BenchmarkBuilder host(String host){
+//        host =host;
+        return this;
     }
 
     public BenchmarkImpl build() {

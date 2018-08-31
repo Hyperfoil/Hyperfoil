@@ -1,0 +1,31 @@
+name: simple benchmark
+simulation:
+  sequences:
+    - testSequence:
+      - login:
+          path: /foo
+          method: get
+  scenarios:
+    - testScenario:
+        sequences:
+          - testScenario
+
+phases:
+  - rampUp:
+      concurrency: 10
+      connections: 5
+      duration: 3s
+      rate: 100
+      measure: false
+  - steadyState:
+      concurrency: 10
+      connections: 5
+      duration: 6s
+      rate: 100
+      measure: true
+  - rampDown:
+      concurrency: 10
+      connections: 5
+      duration: 3s
+      rate: 100
+      measure: false

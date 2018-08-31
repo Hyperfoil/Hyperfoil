@@ -73,6 +73,7 @@
         <junit.version>4.12</junit.version>
         <log4j2.version>2.11.1</log4j2.version>
         <slf4j.version>1.7.12</slf4j.version>
+        <snakeYaml.version>1.22</snakeYaml.version>
     </properties>
 
     <developers>
@@ -164,6 +165,12 @@
                 <groupId>io.vertx</groupId>
                 <artifactId>vertx-infinispan</artifactId>
                 <version>${vertx.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.yaml</groupId>
+                <artifactId>snakeyaml</artifactId>
+                <version>${snakeYaml.version}</version>
             </dependency>
 
             <dependency>

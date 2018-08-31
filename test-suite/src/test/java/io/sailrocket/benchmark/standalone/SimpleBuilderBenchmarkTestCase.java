@@ -25,7 +25,7 @@ import static org.junit.Assert.assertNotEquals;
 
 
 @Category(Benchmark.class)
-public class SimpleBechmarkTestCase extends BaseBenchmarkTestCase {
+public class SimpleBuilderBenchmarkTestCase extends BaseBenchmarkTestCase {
     @Test
     public void runSimpleBenchmarkTest() throws Exception {
 
