@@ -20,15 +20,20 @@
 
 package io.sailrocket.core.builders;
 
-import io.sailrocket.api.Scenario;
+import io.sailrocket.api.Phase;
 import io.sailrocket.core.client.HttpClientPoolFactory;
 import io.sailrocket.core.client.HttpClientProvider;
 import io.sailrocket.core.impl.SimulationImpl;
 import io.sailrocket.spi.HttpBase;
 import io.vertx.core.json.JsonObject;
 
-import java.util.concurrent.TimeUnit;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 /**
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
@@ -36,17 +41,12 @@ import java.util.function.Consumer;
 public class SimulationBuilder {
 
     private HttpBase http;
-    private long duration;
     private int connections = 1;
     private int concurrency = 1;
     private int threads = 1;
-    private long rampDown;
-    private long rampUp;
-    private String payload = "";
-    //for now just create one scenario
-    //TODO:: this needs to be a collection of scenarios, and we need to add the simulation when it is built
-    private Scenario scenario;
-    private int rate = 100;
+    private Map<String, PhaseBuilder> phaseBuilders = new HashMap<>();
+    private Set<PhaseBuilder> activeBuilders = new LinkedHashSet<>();
+    private Map<String, Phase> phases = new HashMap<>();
     //also support an endpoint for a simple benchmark
 
     private SimulationBuilder() {
@@ -69,10 +69,6 @@ public class SimulationBuilder {
         return apply(clone -> clone.http = httpBuilder.build());
     }
 
-    public SimulationBuilder duration(String duration) {
-        return apply(clone -> clone.duration = parseDuration(duration));
-    }
-
     public SimulationBuilder connections(int connections) {
         return apply(clone -> clone.connections = connections);
     }
@@ -85,57 +81,28 @@ public class SimulationBuilder {
         return apply(clone -> clone.threads = threads);
     }
 
-    public SimulationBuilder rampUp(String duration) {
-        return apply(clone -> clone.rampUp = parseDuration(duration));
-    }
-
-    public SimulationBuilder rampDown(String duration) {
-        return apply(clone -> clone.rampDown = parseDuration(duration));
-    }
-
-    public SimulationBuilder payload(String payload) {
-        return apply(clone -> clone.payload = payload);
-    }
-
-    public SimulationBuilder rate(int rate) {
-        return apply(clone -> clone.rate = rate);
-    }
-
-
-    public SimulationBuilder scenario(Scenario scenario) {
-        return apply(clone -> clone.scenario = scenario);
-    }
-
-    public SimulationBuilder scenario(ScenarioBuilder scenarioBuilder) {
-        return scenario(scenarioBuilder.build());
-    }
-
-    private static long parseDuration(String s) {
-        TimeUnit unit;
-        String prefix;
-        switch (s.charAt(s.length() - 1)) {
-            case 's':
-                unit = TimeUnit.SECONDS;
-                prefix = s.substring(0, s.length() - 1);
-                break;
-            case 'm':
-                unit = TimeUnit.MINUTES;
-                prefix = s.substring(0, s.length() - 1);
-                break;
-            case 'h':
-                unit = TimeUnit.HOURS;
-                prefix = s.substring(0, s.length() - 1);
-                break;
-            default:
-                unit = TimeUnit.SECONDS;
-                prefix = s;
-                break;
-        }
-        return unit.toNanos(Long.parseLong(prefix));
+    public PhaseBuilder.Discriminator addPhase(String name) {
+        return new PhaseBuilder.Discriminator(this, name);
     }
 
     public SimulationImpl build() {
-        return (SimulationImpl) new SimulationImpl(threads, rate, duration, rampUp, buildClientPoolFactory(), buildTags()).scenario(this.scenario);
+        for (PhaseBuilder builder : this.phaseBuilders.values()) {
+            // phase might be created by its dependency
+            if (phases.containsKey(builder.name)) continue;
+            if (!activeBuilders.add(builder)) {
+                throw new IllegalArgumentException("Phase builder '" + builder.name + "' already active");
+            }
+            try {
+                phases.put(builder.name, builder.build());
+            } finally {
+                activeBuilders.remove(builder);
+            }
+        }
+        assert activeBuilders.isEmpty();
+        Collection<Phase> phases = this.phases.values();
+        // prevent re-use of phases
+        this.phases = new HashMap<>();
+        return new SimulationImpl(buildClientPoolFactory(), phases, buildTags());
     }
 
     private HttpClientPoolFactory buildClientPoolFactory() {
@@ -152,17 +119,42 @@ public class SimulationBuilder {
 
     private JsonObject buildTags() {
         JsonObject tags = new JsonObject();
-        tags.put("payloadSize", payload.length());
         tags.put("url", http.baseUrl().toString());
-        tags.put("rate", rate);
         tags.put("protocol", http.baseUrl().protocol().version().toString());
         tags.put("maxQueue", concurrency);
         tags.put("connections", connections);
-        tags.put("rate", rate);
         tags.put("threads", threads);
 
         return tags;
     }
 
+    Collection<Phase> getPhases(Collection<String> phases) {
+        return phases.stream().map(name -> {
+            Phase phase = this.phases.get(name);
+            if (phase != null) {
+                return phase;
+            }
+            PhaseBuilder builder = phaseBuilders.get(name);
+            if (builder == null) {
+                throw new IllegalArgumentException("There's no phase '" + name + "'");
+            }
+            if (!activeBuilders.add(builder)) {
+                throw new IllegalArgumentException("Recursion in phase dependencies requesting '" + name + "', chain is " + activeBuilders);
+            }
+            try {
+                phase = builder.build();
+            } finally {
+                activeBuilders.remove(builder);
+            }
+            this.phases.put(builder.name, phase);
+            return phase;
+        }).collect(Collectors.toList());
+    }
 
+    void addPhase(String name, PhaseBuilder phaseBuilder) {
+        if (phaseBuilders.containsKey(name)) {
+            throw new IllegalArgumentException("Phase '" + name + "' already defined.");
+        }
+        phaseBuilders.put(name, phaseBuilder);
+    }
 }

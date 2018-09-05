@@ -47,9 +47,9 @@ public class BuilderTest {
                 .http(httpBuilder().baseUrl("http://localhost:8080"))
                 .concurrency(10)
                 .connections(1)
-                .duration("3s")
-                .rate(101)
-                .scenario(scenarioBuilder()
+                .addPhase("foo").always(1)
+                  .duration("3s")
+                  .scenario(scenarioBuilder()
                         .initialSequence(sequenceBuilder()
                                 .step(HttpRequestStep.builder(HttpMethod.GET)
                                       .path("foo")
@@ -57,15 +57,16 @@ public class BuilderTest {
                                 )
                                 .step(new AwaitVarStep("foo"))
                         )
-                )
+                  )
+                  .endPhase()
                 .build();
 
         assertEquals("http://localhost:8080/", simulation.tags().getString("url"));
         assertEquals(10, simulation.tags().getInteger("maxQueue").intValue());
         assertEquals(1, simulation.tags().getInteger("connections").intValue());
         assertEquals(101, simulation.tags().getInteger("rate").intValue());
-        assertEquals(3000000000L, simulation.duration());
-        assertEquals(1, simulation.numOfScenarios());
+       assertEquals(1, simulation.phases().size());
+        assertEquals(3000000000L, simulation.phases().stream().findFirst().get().duration());
 
         BenchmarkImpl benchmark =
                 BenchmarkBuilder.builder()

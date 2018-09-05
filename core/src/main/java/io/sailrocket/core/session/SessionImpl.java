@@ -4,11 +4,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BooleanSupplier;
 
 import io.sailrocket.api.HttpClientPool;
+import io.sailrocket.api.Phase;
 import io.sailrocket.api.RequestQueue;
-import io.sailrocket.api.Scenario;
 import io.sailrocket.api.Sequence;
 import io.sailrocket.api.SequenceInstance;
 import io.sailrocket.api.Session;
@@ -31,37 +30,34 @@ class SessionImpl implements Session, Runnable {
    private final RequestQueueImpl requestQueue;
    private final Pool<SequenceInstance> sequencePool;
    private final SequenceInstance[] runningSequences;
+   private final Phase phase;
    private int lastRunningSequence = -1;
    private SequenceInstance currentSequence;
-   private final BooleanSupplier termination;
 
    private final ValidatorResults validatorResults = new ValidatorResults();
    private final Statistics[] statistics;
 
-   private Scenario scenario;
-
-   public SessionImpl(HttpClientPool httpClientPool, int maxConcurrency, int maxScheduledSequences, BooleanSupplier termination, Scenario scenario) {
+   public SessionImpl(HttpClientPool httpClientPool, Phase phase) {
       this.httpClientPool = httpClientPool;
-      this.requestQueue = new RequestQueueImpl(maxConcurrency);
-      this.sequencePool = new Pool<>(maxConcurrency, SequenceInstance::new);
-      this.runningSequences = new SequenceInstance[maxScheduledSequences];
-      this.termination = termination;
-      this.scenario = scenario;
+      this.requestQueue = new RequestQueueImpl(phase.scenario().maxRequests());
+      this.sequencePool = new Pool<>(phase.scenario().maxSequences(), SequenceInstance::new);
+      this.runningSequences = new SequenceInstance[phase.scenario().maxSequences()];
+      this.phase = phase;
 
-      Sequence[] sequences = scenario.sequences();
+      Sequence[] sequences = phase.scenario().sequences();
       statistics = new Statistics[sequences.length];
       for (int i = 0; i < sequences.length; i++) {
          Sequence sequence = sequences[i];
          sequence.reserve(this);
          statistics[i] = new Statistics();
       }
-      for (String var : scenario.objectVars()) {
+      for (String var : phase.scenario().objectVars()) {
          declare(var);
       }
-      for (String var : scenario.intVars()) {
+      for (String var : phase.scenario().intVars()) {
          declareInt(var);
       }
-      for (Sequence sequence : scenario.initialSequences()) {
+      for (Sequence sequence : phase.scenario().initialSequences()) {
          sequence.instantiate(this, 0);
       }
    }
@@ -169,44 +165,37 @@ class SessionImpl implements Session, Runnable {
    }
 
    public void run() {
-      for (;;) {
-         while (lastRunningSequence >= 0) {
-            boolean progressed = false;
-            for (int i = 0; i <= lastRunningSequence; ++i) {
-               currentSequence(runningSequences[i]);
-               if (runningSequences[i].progress(this)) {
-                  progressed = true;
-                  if (runningSequences[i].isCompleted()) {
-                     sequencePool.release(runningSequences[i]);
-                     if (i == lastRunningSequence) {
-                        runningSequences[i] = null;
-                     } else {
-                        runningSequences[i] = runningSequences[lastRunningSequence];
-                        runningSequences[lastRunningSequence] = null;
-                     }
-                     --lastRunningSequence;
-                  }
+      while (lastRunningSequence >= 0) {
+         boolean progressed = false;
+         for (int i = 0; i <= lastRunningSequence; ++i) {
+            if (phase.status() == Phase.Status.TERMINATING) {
+               if (trace) {
+                  log.trace("Phase is terminating");
                }
-               currentSequence(null);
-            }
-            if (!progressed) {
+               phase.notifyTerminated(this);
                return;
             }
-         }
-         if (termination.getAsBoolean()) {
-            if (trace) {
-               log.trace("Termination has fired.");
+            currentSequence(runningSequences[i]);
+            if (runningSequences[i].progress(this)) {
+               progressed = true;
+               if (runningSequences[i].isCompleted()) {
+                  sequencePool.release(runningSequences[i]);
+                  if (i == lastRunningSequence) {
+                     runningSequences[i] = null;
+                  } else {
+                     runningSequences[i] = runningSequences[lastRunningSequence];
+                     runningSequences[lastRunningSequence] = null;
+                  }
+                  --lastRunningSequence;
+               }
             }
+            currentSequence(null);
+         }
+         if (!progressed) {
             return;
          }
-         reset();
-         if (trace) {
-            log.trace("Commencing new execution of the scenario.");
-         }
-         for (Sequence sequence : scenario.initialSequences()) {
-            sequence.instantiate(this, 0);
-         }
       }
+      phase.notifyFinished(this);
    }
 
    @Override
@@ -247,6 +236,12 @@ class SessionImpl implements Session, Runnable {
          allVars.get(i).unset();
       }
       // TODO should we reset stats here?
+      if (trace) {
+         log.trace("Commencing new execution of the scenario.");
+      }
+      for (Sequence sequence : phase.scenario().initialSequences()) {
+         sequence.instantiate(this, 0);
+      }
    }
 
    @Override
@@ -259,8 +254,11 @@ class SessionImpl implements Session, Runnable {
    }
 
    public void enableSequence(SequenceInstance instance) {
+      if (lastRunningSequence >= runningSequences.length - 1) {
+         throw new IllegalStateException("Maximum number of scheduled sequences exceeded!");
+      }
       lastRunningSequence++;
-      assert lastRunningSequence < runningSequences.length && runningSequences[lastRunningSequence] == null;
+      assert runningSequences[lastRunningSequence] == null;
       runningSequences[lastRunningSequence] = instance;
    }
 }

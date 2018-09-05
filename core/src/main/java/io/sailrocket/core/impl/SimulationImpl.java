@@ -1,9 +1,8 @@
 package io.sailrocket.core.impl;
 
 import io.sailrocket.api.HttpClientPool;
-import io.sailrocket.api.MixStrategy;
+import io.sailrocket.api.Phase;
 import io.sailrocket.api.Report;
-import io.sailrocket.api.Scenario;
 import io.sailrocket.api.Session;
 import io.sailrocket.api.Statistics;
 import io.sailrocket.api.Simulation;
@@ -14,9 +13,12 @@ import io.vertx.core.json.JsonObject;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
+import java.util.Collections;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
 /**
@@ -24,34 +26,20 @@ import java.util.function.Consumer;
  * @author <a href="mailto:johara@redhat.com">John O'Hara</a>
  */
 public class SimulationImpl implements Simulation {
-
-    private final int threads;
-    private final int rate;
-    private final int pacerRate;
-    private final long duration;
-    private final long warmup;
-
-    private ReportStatisticsCollector statisticsConsumer;
-
+    private final Collection<Phase> phases;
     private final JsonObject tags;
 
-    private volatile long startTime;
-    private volatile boolean done;
-
-    private List<Scenario> scenarios = new ArrayList<>();
-    private List<MixStrategy> mixStrategies = new ArrayList<>();
-
-    private ArrayList<Session> sessions;
-
+    private ReportStatisticsCollector statisticsConsumer;
     private HttpClientPool clientPool;
+    private Collection<Session> sessions = Collections.synchronizedList(new ArrayList<>());
 
-    public SimulationImpl(int threads, int rate, long duration, long warmup,
-                          HttpClientPoolFactory clientBuilder, JsonObject tags) {
-        this.threads = threads;
-        this.rate = rate;
-        this.pacerRate = rate / threads;
-        this.duration = duration;
-        this.warmup = warmup;
+    private long startTime;
+    private long nextPhaseStart;
+    private long nextPhaseFinish;
+    private long nextPhaseTerminate;
+
+    public SimulationImpl(HttpClientPoolFactory clientBuilder, Collection<Phase> phases, JsonObject tags) {
+        this.phases = phases;
         this.tags = tags;
         HttpClientPool httpClientPool = null;
         try {
@@ -62,33 +50,8 @@ public class SimulationImpl implements Simulation {
         this.clientPool = httpClientPool;
     }
 
-
-    @Override
-    public Simulation scenario(Scenario scenario) {
-        scenarios.add(scenario);
-        return this;
-    }
-
-    @Override
-    public Simulation mixStrategy(MixStrategy mixStrategy) {
-        mixStrategies.add(mixStrategy);
-        return this;
-    }
-
     public JsonObject tags() {
         return tags;
-    }
-
-    public int rate() {
-        return rate;
-    }
-
-    public long duration() {
-        return duration;
-    }
-
-    public int numOfScenarios() {
-        return scenarios.size();
     }
 
     public void shutdown() {
@@ -101,31 +64,65 @@ public class SimulationImpl implements Simulation {
         clientPool.start(v1 -> {
             latch.countDown();
         });
+
+        Lock statusLock = new ReentrantLock();
+        Condition statusCondition = statusLock.newCondition();
+        for (Phase phase : phases) {
+            phase.setComponents(new ConcurrentPoolImpl<>(() -> {
+                Session session = SessionFactory.create(clientPool, phase);
+                sessions.add(session);
+                return session;
+            }), statusLock, statusCondition);
+            phase.reserveSessions();
+        }
+
         try {
             latch.await(100, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
 
-
-        Scenario scenario = scenarios.stream().findFirst().get();
-        sessions = new ArrayList(threads);
-        long deadline = System.currentTimeMillis() + TimeUnit.NANOSECONDS.toMillis(duration);
-        for (int i = 0; i < threads; ++i) {
-            // TODO: the concurrency must be set in the scenario
-            Session session = SessionFactory.create(clientPool, 16, 16, () -> System.currentTimeMillis() >= deadline, scenario);
-            sessions.add(session);
+        long now = System.currentTimeMillis();
+        this.startTime = now;
+        while (phases.stream().anyMatch(phase -> phase.status() != Phase.Status.TERMINATED)) {
+            now = System.currentTimeMillis();
+            for (Phase phase : phases) {
+                if (phase.status() == Phase.Status.RUNNING && phase.absoluteStartTime() + phase.duration() <= now) {
+                    phase.finish();
+                }
+                if (phase.status() == Phase.Status.FINISHED && phase.maxDuration() >= 0 && phase.absoluteStartTime() + phase.maxDuration() <= now) {
+                    phase.terminate();
+                }
+            }
+            Phase[] availablePhases = getAvailablePhases();
+            for (Phase phase : availablePhases) {
+                phase.start(clientPool);
+            }
+            nextPhaseStart = phases.stream()
+                  .filter(phase -> phase.status() == Phase.Status.NOT_STARTED && phase.startTime() >= 0)
+                  .mapToLong(phase -> this.startTime + phase.startTime()).min().orElse(Long.MAX_VALUE);
+            nextPhaseFinish = phases.stream()
+                  .filter(phase -> phase.status() == Phase.Status.RUNNING)
+                  .mapToLong(phase -> phase.absoluteStartTime() + phase.duration()).min().orElse(Long.MAX_VALUE);
+            nextPhaseTerminate = phases.stream()
+                  .filter(phase -> (phase.status() == Phase.Status.RUNNING || phase.status() == Phase.Status.FINISHED) && phase.maxDuration() >= 0)
+                  .mapToLong(phase -> phase.absoluteStartTime() + phase.maxDuration()).min().orElse(Long.MAX_VALUE);
+            long delay = Math.min(Math.min(nextPhaseStart, nextPhaseFinish), nextPhaseTerminate) - System.currentTimeMillis();
+            if (delay > 0) {
+                statusLock.lock();
+                try {
+                    statusCondition.await(delay, TimeUnit.MILLISECONDS);
+                } finally {
+                    statusLock.unlock();
+                }
+            }
         }
-        for (Session session : sessions) {
-            session.proceed();
-        }
-        Thread.sleep(TimeUnit.NANOSECONDS.toMillis(duration));
 
         this.statisticsConsumer = new ReportStatisticsCollector(
                 tags,
-                rate,
-                duration,
-                startTime
+                0,
+                0,
+              this.startTime
         );
 
 
@@ -133,7 +130,16 @@ public class SimulationImpl implements Simulation {
         return this.statisticsConsumer.reports();
     }
 
-   /**
+    private Phase[] getAvailablePhases() {
+        return phases.stream().filter(phase -> phase.status() == Phase.Status.NOT_STARTED &&
+            startTime + phase.startTime() <= System.currentTimeMillis() &&
+            phase.startAfter().stream().allMatch(dep -> dep.status().isFinished()) &&
+            phase.startAfterStrict().stream().allMatch(dep -> dep.status() == Phase.Status.TERMINATED))
+              .toArray(Phase[]::new);
+    }
+
+
+    /**
      * Print details on console.
      */
     public void printDetails(Consumer<Statistics> printStatsConsumer) {
@@ -142,13 +148,9 @@ public class SimulationImpl implements Simulation {
                 printStatsConsumer.accept(statistics);
             }
         }
-
     }
 
-
     private void collateStatistics() {
-        done = true;
-
         if (statisticsConsumer != null) {
             for (Session session : sessions) {
                 for (Statistics statistics : session.statistics()) {
@@ -156,7 +158,11 @@ public class SimulationImpl implements Simulation {
                 }
             }
         }
+    }
 
+    @Override
+    public Collection<Phase> phases() {
+        return phases;
     }
 
 }

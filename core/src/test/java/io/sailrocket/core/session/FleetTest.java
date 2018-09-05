@@ -2,9 +2,11 @@ package io.sailrocket.core.session;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -13,6 +15,7 @@ import org.junit.runner.RunWith;
 
 import io.sailrocket.api.HttpClientPool;
 import io.sailrocket.api.HttpMethod;
+import io.sailrocket.api.Phase;
 import io.sailrocket.api.Session;
 import io.sailrocket.api.Statistics;
 import io.sailrocket.core.builders.ScenarioBuilder;
@@ -21,6 +24,7 @@ import io.sailrocket.core.extractors.ArrayRecorder;
 import io.sailrocket.core.extractors.SequenceScopedCountRecorder;
 import io.sailrocket.core.extractors.DefragProcessor;
 import io.sailrocket.core.extractors.JsonExtractor;
+import io.sailrocket.core.impl.ConcurrentPoolImpl;
 import io.sailrocket.core.steps.AwaitConditionStep;
 import io.sailrocket.core.steps.BreakSequenceStep;
 import io.sailrocket.core.steps.ForeachStep;
@@ -168,11 +172,11 @@ public class FleetTest {
          }
       });
 
-      // Allocating init
-      Session session = SessionFactory.create(httpClientPool, 16, 18, () -> async.count() <= 0, scenarioBuilder.build());
-
-      // Allocation-free runs
-      session.proceed();
+      Phase phase = new Phase.Sequentially("test", scenarioBuilder.build(), 0, Collections.emptyList(), Collections.emptyList(), Long.MAX_VALUE, -1, 2);
+      ReentrantLock statusLock = new ReentrantLock();
+      phase.setComponents(new ConcurrentPoolImpl<>(() -> SessionFactory.create(httpClientPool, phase)), statusLock, statusLock.newCondition());
+      phase.reserveSessions();
+      phase.start(httpClientPool);
    }
 
    private int currentCrewCount(Session session) {

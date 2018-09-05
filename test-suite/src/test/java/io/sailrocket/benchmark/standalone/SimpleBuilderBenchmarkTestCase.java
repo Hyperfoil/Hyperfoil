@@ -33,9 +33,9 @@ public class SimpleBuilderBenchmarkTestCase extends BaseBenchmarkTestCase {
                 .http(httpBuilder().baseUrl("http://localhost:8080"))
                 .concurrency(10)
                 .connections(10)
-                .duration("10s")
-                .rate(101)
-                .scenario(scenarioBuilder()
+                .addPhase("foo").always(1)
+                    .duration("10s")
+                    .scenario(scenarioBuilder()
                         .initialSequence(sequenceBuilder()
                                 .step(HttpRequestStep.builder(HttpMethod.GET)
                                         .path("foo")
@@ -43,14 +43,14 @@ public class SimpleBuilderBenchmarkTestCase extends BaseBenchmarkTestCase {
                                 )
                                 .step(new AwaitVarStep("foo"))
                         )
-                )
+                    )
+                .endPhase()
                 .build();
 
         assertEquals("http://localhost:8080/", simulation.tags().getString("url"));
         assertEquals(10, simulation.tags().getInteger("maxQueue").intValue());
         assertEquals(10, simulation.tags().getInteger("connections").intValue());
-        assertEquals(101, simulation.tags().getInteger("rate").intValue());
-        assertEquals(10000000000L, simulation.duration());
+        assertEquals(10_000L, simulation.phases().stream().findFirst().get().duration());
 
         BenchmarkImpl benchmark =
                 BenchmarkBuilder.builder()

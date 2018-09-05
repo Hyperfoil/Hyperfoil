@@ -53,4 +53,16 @@ public class ScenarioImpl implements Scenario {
     public String[] intVars() {
        return intVars;
     }
+
+   @Override
+   public int maxRequests() {
+      // TODO
+      return 16;
+   }
+
+   @Override
+   public int maxSequences() {
+      // TODO
+      return 16;
+   }
 }

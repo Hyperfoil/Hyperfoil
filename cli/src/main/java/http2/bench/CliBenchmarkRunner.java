@@ -2,11 +2,13 @@ package http2.bench;
 
 import io.netty.buffer.ByteBuf;
 import io.sailrocket.api.HttpMethod;
+import io.sailrocket.api.Phase;
 import io.sailrocket.api.Report;
 import io.sailrocket.api.Statistics;
 import io.sailrocket.core.builders.ScenarioBuilder;
 import io.sailrocket.core.client.HttpClientPoolFactory;
 import io.sailrocket.core.client.HttpClientProvider;
+import io.sailrocket.core.impl.ScenarioImpl;
 import io.sailrocket.core.impl.SimulationImpl;
 import io.sailrocket.core.impl.statistics.PrintStatisticsConsumer;
 import io.sailrocket.core.steps.AwaitVarStep;
@@ -242,18 +244,16 @@ public class CliBenchmarkRunner {
                                            HttpClientPoolFactory clientBuilder, String path,
                                            ByteBuf payload, JsonObject tags) { //TODO:: incorporate payload
 
-        SimulationImpl simulation = new SimulationImpl(threads, rate, duration, warmup, clientBuilder, tags);
-
-        simulation.scenario(
-              ScenarioBuilder.scenarioBuilder().initialSequence(
-                        new SequenceImpl("test")
-                              .step(HttpRequestStep.builder(HttpMethod.GET)
-                                    .path(path)
-                                    .handler().onCompletion(s -> s.setObject(path, "done")).endHandler()
-                                    .build())
-                              .step(new AwaitVarStep(path))
-              ).build()
-        );
+        ScenarioImpl scenario = ScenarioBuilder.scenarioBuilder().initialSequence(
+              new SequenceImpl("test")
+                    .step(HttpRequestStep.builder(HttpMethod.GET)
+                          .path(path)
+                          .handler().onCompletion(s -> s.setObject(path, "done")).endHandler()
+                          .build())
+                    .step(new AwaitVarStep(path))
+        ).build();
+        Phase.AtOnce phase = new Phase.AtOnce("test", scenario, 0, Collections.emptyList(), Collections.emptyList(), 0, -1, 1);
+        SimulationImpl simulation = new SimulationImpl(clientBuilder, Collections.singleton(phase), tags);
 
         return simulation;
 

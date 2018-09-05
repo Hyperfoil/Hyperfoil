@@ -43,7 +43,7 @@ public class ScenariosConfigurationBuilder extends AbstractConfigurationBuilder<
 
         callSubBuilders(configuration, scenarioBuilder);
 
-        target.scenario(scenarioBuilder);
+        target.addPhase("test").atOnce(1).scenario(scenarioBuilder);
 
     }
 }

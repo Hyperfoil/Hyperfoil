@@ -18,6 +18,7 @@
  */
 package io.sailrocket.api;
 
+@Deprecated
 public interface MixStrategy {
 
     Scenario nextScenario();

@@ -35,4 +35,14 @@ public interface Scenario {
     String[] objectVars();
 
     String[] intVars();
+
+   /**
+    * @return Maximum number of concurrent requests.
+    */
+    int maxRequests();
+
+   /**
+    * @return Maximum number of concurrently existing sequences.
+    */
+    int maxSequences();
 }

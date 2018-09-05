@@ -18,17 +18,15 @@
  */
 package io.sailrocket.api;
 
+import java.util.Collection;
+
 /**
- * Simulation represents a collection of workflows (scenarios) against a target application.  
+ * Simulation represents a collection of workflows ({@link Scenario} scenarios) against a target application.  
  *
- * A Simulation can have an even mix or used defined mix of scenarios
- * State is not shared between scenarios in a simulation,
- * and scenarios can be run independently and concurrently with other scenarios within a simulation.
+ * The execution of each scenario is determined by {@link Phase}.
+ * Phases can run concurrently or have dependencies to other phases.
  */
 public interface Simulation {
 
-    Simulation scenario(Scenario scenario);
-
-    Simulation mixStrategy(MixStrategy mixStrategy);
-
+    Collection<Phase> phases();
 }

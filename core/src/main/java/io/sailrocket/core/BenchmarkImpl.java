@@ -21,8 +21,8 @@ public class BenchmarkImpl extends Benchmark {
     @Override
     public Collection<Report> run() throws BenchmarkDefinitionException {
 
-        if (((SimulationImpl) simulation).numOfScenarios() == 0) {
-            throw new BenchmarkDefinitionException("No Scenarios have been defined");
+        if (simulation.phases().isEmpty()) {
+            throw new BenchmarkDefinitionException("No phases/scenarios have been defined");
         }
 
         //TODO:: define in builder
