@@ -45,4 +45,6 @@ public interface Scenario {
     * @return Maximum number of concurrently existing sequences.
     */
     int maxSequences();
+
+    Sequence sequence(String name);
 }

@@ -32,9 +32,9 @@ public interface Sequence {
 
     int id();
 
-    Sequence step(Step step);
-
     void instantiate(Session session, int id);
 
     void reserve(Session session);
+
+    String name();
 }

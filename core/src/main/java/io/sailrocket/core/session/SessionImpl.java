@@ -143,8 +143,9 @@ class SessionImpl implements Session, Runnable {
    }
 
    @Override
-   public void deactivate(Object key) {
+   public Session unset(Object key) {
       vars.get(key).unset();
+      return this;
    }
 
    @Override
@@ -191,7 +192,7 @@ class SessionImpl implements Session, Runnable {
             }
             currentSequence(null);
          }
-         if (!progressed) {
+         if (!progressed && lastRunningSequence >= 0) {
             return;
          }
       }
@@ -242,6 +243,25 @@ class SessionImpl implements Session, Runnable {
       for (Sequence sequence : phase.scenario().initialSequences()) {
          sequence.instantiate(this, 0);
       }
+   }
+
+   @Override
+   public void nextSequence(String name) {
+      phase.scenario().sequence(name).instantiate(this, 0);
+   }
+
+   @Override
+   public void stop() {
+      for (int i = 0; i <= lastRunningSequence; ++i) {
+         sequencePool.release(runningSequences[i]);
+      }
+      lastRunningSequence = -1;
+   }
+
+   @Override
+   public void fail(Throwable t) {
+      stop();
+      phase.fail(t);
    }
 
    @Override

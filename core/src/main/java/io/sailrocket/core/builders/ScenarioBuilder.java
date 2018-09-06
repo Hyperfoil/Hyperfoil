@@ -20,6 +20,7 @@
 
 package io.sailrocket.core.builders;
 
+import io.sailrocket.api.Scenario;
 import io.sailrocket.api.Sequence;
 import io.sailrocket.core.impl.ScenarioImpl;
 
@@ -32,10 +33,11 @@ import java.util.function.Consumer;
  */
 public class ScenarioBuilder {
 
-    private Collection<Sequence> initialSequences = new ArrayList<>();
-    private Collection<Sequence> sequences = new ArrayList<>();
+    private Collection<SequenceBuilder> initialSequences = new ArrayList<>();
+    private Collection<SequenceBuilder> sequences = new ArrayList<>();
     private Collection<String> objectVars = new ArrayList<>();
     private Collection<String> intVars = new ArrayList<>();
+    private Scenario scenario;
 
     private ScenarioBuilder() {
     }
@@ -45,11 +47,12 @@ public class ScenarioBuilder {
     }
 
     private ScenarioBuilder apply(Consumer<ScenarioBuilder> consumer) {
+        assert scenario == null;
         consumer.accept(this);
         return this;
     }
 
-    public ScenarioBuilder initialSequence(Sequence sequence) {
+    public ScenarioBuilder initialSequence(SequenceBuilder sequence) {
         return apply(clone -> {
             clone.initialSequences.add(sequence);
             sequence.id(clone.sequences.size());
@@ -57,38 +60,35 @@ public class ScenarioBuilder {
         });
     }
 
-    public ScenarioBuilder initialSequence(SequenceBuilder builder) {
-        return initialSequence(builder.build());
-    }
-
-    public ScenarioBuilder sequence(Sequence sequence) {
+    public ScenarioBuilder sequence(SequenceBuilder sequence) {
         return apply(clone -> {
             sequence.id(clone.sequences.size());
             clone.sequences.add(sequence);
         });
     }
 
-    public ScenarioBuilder sequence(SequenceBuilder sequenceBuilder) {
-        return sequence(sequenceBuilder.build());
-    }
-
     public ScenarioBuilder objectVar(String var) {
+        assert scenario == null;
         objectVars.add(var);
         return this;
     }
 
     public ScenarioBuilder intVar(String var) {
+        assert scenario == null;
         intVars.add(var);
         return this;
     }
 
-    public ScenarioImpl build() {
+    public Scenario build() {
+        if (scenario != null) {
+            return scenario;
+        }
         if (initialSequences.isEmpty()) {
             throw new IllegalArgumentException("No initial sequences.");
         }
-        return new ScenarioImpl(
-              initialSequences.toArray(new Sequence[0]),
-              sequences.toArray(new Sequence[0]),
+        return scenario = new ScenarioImpl(
+              initialSequences.stream().map(SequenceBuilder::build).toArray(Sequence[]::new),
+              sequences.stream().map(SequenceBuilder::build).toArray(Sequence[]::new),
               objectVars.toArray(new String[0]),
               intVars.toArray(new String[0]));
     }

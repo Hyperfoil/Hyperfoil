@@ -34,9 +34,12 @@ public interface Session {
 
    boolean isSet(Object key);
 
+   /**
+    * Make variable set without changing it's (pre-allocated) value.
+    */
    Object activate(Object key);
 
-   void deactivate(Object key);
+   Session unset(Object key);
 
    // Resources
    <R extends Session.Resource> void declareResource(ResourceKey<R> key, R resource);
@@ -54,6 +57,12 @@ public interface Session {
    void proceed();
 
    void reset();
+
+   void nextSequence(String name);
+
+   void stop();
+
+   void fail(Throwable t);
 
    interface Processor {
       /**

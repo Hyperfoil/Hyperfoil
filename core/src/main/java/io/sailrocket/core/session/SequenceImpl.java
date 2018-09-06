@@ -1,7 +1,5 @@
 package io.sailrocket.core.session;
 
-import java.util.Arrays;
-
 import io.sailrocket.api.Sequence;
 import io.sailrocket.api.SequenceInstance;
 import io.sailrocket.api.Session;
@@ -12,7 +10,7 @@ public class SequenceImpl implements Sequence {
    // debug only
    private final String name;
    private int id;
-   private Step[] steps;
+   private final Step[] steps;
 
    public SequenceImpl(String name) {
       this(name, null);
@@ -34,17 +32,6 @@ public class SequenceImpl implements Sequence {
    }
 
    @Override
-   public Sequence step(Step step) {
-      if (steps == null) {
-         steps = new Step[] {step};
-      } else {
-         steps = Arrays.copyOf(steps, steps.length + 1);
-         steps[steps.length - 1] = step;
-      }
-      return this;
-   }
-
-   @Override
    public void instantiate(Session session, int index) {
       SessionImpl impl = (SessionImpl) session;
       SequenceInstance instance = impl.acquireSequence();
@@ -59,5 +46,10 @@ public class SequenceImpl implements Sequence {
             ((ResourceUtilizer) a).reserve(session);
          }
       }
+   }
+
+   @Override
+   public String name() {
+      return name;
    }
 }

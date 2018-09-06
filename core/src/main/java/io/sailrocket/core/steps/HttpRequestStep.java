@@ -9,7 +9,8 @@ import io.sailrocket.api.HttpRequest;
 import io.sailrocket.api.RequestQueue;
 import io.sailrocket.api.Step;
 import io.sailrocket.api.Session;
-import io.sailrocket.core.builders.StepBuilder;
+import io.sailrocket.core.builders.BaseStepBuilder;
+import io.sailrocket.core.builders.SequenceBuilder;
 import io.sailrocket.core.api.ResourceUtilizer;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -23,10 +24,6 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
    private final Function<Session, ByteBuf> bodyGenerator;
    private final BiConsumer<Session, HttpRequest> headerAppender;
    private final HttpResponseHandler handler;
-
-   public static Builder builder(HttpMethod method) {
-      return new Builder(method);
-   }
 
    public HttpRequestStep(HttpMethod method,
                           Function<Session, String> pathGenerator,
@@ -82,14 +79,15 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
       handler.reserve(session);
    }
 
-   public static class Builder implements StepBuilder {
+   public static class Builder extends BaseStepBuilder {
       private HttpMethod method;
       private Function<Session, String> pathGenerator;
       private Function<Session, ByteBuf> bodyGenerator;
       private BiConsumer<Session, HttpRequest> headerAppender;
       private HttpResponseHandler.Builder handler = new HttpResponseHandler.Builder(this);
 
-      private Builder(HttpMethod method) {
+      public Builder(SequenceBuilder parent, HttpMethod method) {
+         super(parent);
          this.method = method;
       }
 

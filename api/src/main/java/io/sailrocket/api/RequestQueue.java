@@ -7,6 +7,8 @@ public interface RequestQueue {
 
    Request complete();
 
+   boolean isFull();
+
    class Request {
       public long startTime;
       public SequenceInstance sequence;

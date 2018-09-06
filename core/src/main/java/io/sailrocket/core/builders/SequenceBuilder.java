@@ -33,31 +33,50 @@ import java.util.function.Consumer;
  */
 public class SequenceBuilder {
 
-    private List<Step> steps;
+    private final String name;
+    private List<StepBuilder> steps;
+    private int id;
+    private Sequence sequence;
 
-    private SequenceBuilder() {
+    private SequenceBuilder(String name) {
+        this.name = name;
         steps = new ArrayList<>();
     }
 
     public static SequenceBuilder sequenceBuilder() {
-        return new SequenceBuilder();
+        return new SequenceBuilder(null);
+    }
+
+    public static SequenceBuilder sequenceBuilder(String name) {
+        return new SequenceBuilder(name);
     }
 
     private SequenceBuilder apply(Consumer<SequenceBuilder> consumer) {
+        assert sequence == null;
         consumer.accept(this);
         return this;
     }
 
+    public StepBuilder.Discriminator step() {
+        return new StepBuilder.Discriminator(this);
+    }
+
     public SequenceBuilder step(Step step) {
-        return apply(clone -> clone.steps.add(step));
+        return apply(clone -> clone.steps.add(() -> step));
     }
 
     public SequenceBuilder step(StepBuilder stepBuilder) {
-        return step(stepBuilder.build());
+        return apply(clone -> clone.steps.add(stepBuilder));
     }
 
     public Sequence build() {
-        return new SequenceImpl(null, steps.toArray(new Step[0]));
+        if (sequence != null) {
+            return sequence;
+        }
+        return sequence = new SequenceImpl(name, steps.stream().map(StepBuilder::build).toArray(Step[]::new));
     }
 
+    void id(int id) {
+        this.id = id;
+    }
 }

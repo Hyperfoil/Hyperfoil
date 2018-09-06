@@ -2,50 +2,34 @@ package io.sailrocket.core.session;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
-import java.util.Collections;
 import java.util.Optional;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.locks.ReentrantLock;
 
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import io.sailrocket.api.HttpClientPool;
 import io.sailrocket.api.HttpMethod;
-import io.sailrocket.api.Phase;
 import io.sailrocket.api.Session;
 import io.sailrocket.api.Statistics;
 import io.sailrocket.core.builders.ScenarioBuilder;
-import io.sailrocket.core.client.HttpClientProvider;
+import io.sailrocket.core.builders.SequenceBuilder;
 import io.sailrocket.core.extractors.ArrayRecorder;
 import io.sailrocket.core.extractors.SequenceScopedCountRecorder;
 import io.sailrocket.core.extractors.DefragProcessor;
 import io.sailrocket.core.extractors.JsonExtractor;
-import io.sailrocket.core.impl.ConcurrentPoolImpl;
 import io.sailrocket.core.steps.AwaitConditionStep;
 import io.sailrocket.core.steps.BreakSequenceStep;
 import io.sailrocket.core.steps.ForeachStep;
-import io.sailrocket.core.steps.HttpRequestStep;
 import io.sailrocket.core.test.CrewMember;
 import io.sailrocket.core.test.Fleet;
 import io.sailrocket.core.test.Ship;
-import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServerResponse;
-import io.vertx.core.http.HttpVersion;
 import io.vertx.core.json.Json;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
-import io.vertx.ext.web.Router;
 
 @RunWith(VertxUnitRunner.class)
-public class FleetTest {
-   private static final Logger log = LoggerFactory.getLogger(FleetTest.class);
+public class FleetTest extends BaseScenarioTest {
 
    private static final Fleet FLEET = new Fleet("Československá námořní flotila")
          .addBase("Hamburg")
@@ -58,25 +42,8 @@ public class FleetTest {
          .addShip(new Ship("Lidice").dwt(8500));
    public static final int MAX_SHIPS = 16;
 
-   private static Vertx vertx;
-   private static HttpClientPool httpClientPool;
-   private static ScheduledThreadPoolExecutor timedExecutor = new ScheduledThreadPoolExecutor(1);
-   private static Router router;
-
-   @BeforeClass
-   public static void before(TestContext ctx) throws Exception {
-      httpClientPool = HttpClientProvider.netty.builder().host("localhost")
-            .protocol(HttpVersion.HTTP_1_1)
-            .port(8080)
-            .concurrency(3)
-            .threads(3)
-            .size(100)
-            .build();
-      Async clientPoolAsync = ctx.async();
-      httpClientPool.start(nil -> clientPoolAsync.complete());
-      vertx = Vertx.vertx();
-      router = Router.router(vertx);
-      vertx.createHttpServer().requestHandler(router::accept).listen(8080, "localhost", ctx.asyncAssertSuccess());
+   @Override
+   protected void initRouter() {
       router.route("/fleet").handler(routingContext -> {
          HttpServerResponse response = routingContext.response();
          response.end(Json.encodePrettily(FLEET));
@@ -99,13 +66,6 @@ public class FleetTest {
       });
    }
 
-   @AfterClass
-   public static void cleanup(TestContext ctx) {
-      timedExecutor.shutdownNow();
-      httpClientPool.shutdown();
-      vertx.close(ctx.asyncAssertSuccess());
-   }
-
    /**
     * Fetch a fleet (list of ships), then fetch each ship separately and if it has no crew, sink the ship.
     */
@@ -113,43 +73,36 @@ public class FleetTest {
    public void testSinkEmptyShips(TestContext ctx) throws InterruptedException {
       // We need to call async() to prevent termination when the test method completes
       Async async = ctx.async(2);
-      CountDownLatch latch = new CountDownLatch(1);
-
-//      BiConsumer<Session, HttpRequest> addAuth = (session, appendHeader) -> appendHeader.putHeader("Authentization", (String) session.var("authToken"));
 
       ScenarioBuilder scenarioBuilder = ScenarioBuilder.scenarioBuilder();
-      SequenceImpl fleetSequence = new SequenceImpl("fleet");
-      SequenceImpl shipSequence = new SequenceImpl("ship");
-      SequenceImpl finalSequence = new SequenceImpl("final");
+      SequenceBuilder fleetSequence = SequenceBuilder.sequenceBuilder("fleet");
+      SequenceBuilder shipSequence = SequenceBuilder.sequenceBuilder("ship");
+      SequenceBuilder finalSequence = SequenceBuilder.sequenceBuilder("final");
       scenarioBuilder.initialSequence(fleetSequence).initialSequence(finalSequence);
       scenarioBuilder.sequence(shipSequence);
 
       scenarioBuilder.intVar("numberOfSunkShips");
       fleetSequence.step(s -> s.setInt("numberOfSunkShips", 0));
 
-      fleetSequence.step(
-            HttpRequestStep.builder(HttpMethod.GET).path("/fleet")
+      fleetSequence.step().httpRequest(HttpMethod.GET).path("/fleet")
             .handler()
                .bodyExtractor(new JsonExtractor(".ships[].name", new DefragProcessor(new ArrayRecorder("shipNames", MAX_SHIPS))))
-            .endHandler()
-            .build());
+            .endHandler().endStep();
 
-      fleetSequence.step(new ForeachStep("shipNames", "numberOfShips", shipSequence));
+      // Passing the ForeachStep as lambda-builder makes shipSequence.build() be evaluated at the end
+      fleetSequence.step(() -> new ForeachStep("shipNames", "numberOfShips", shipSequence.build()));
 
       /// Ship sequence
-      shipSequence.step(
-         HttpRequestStep.builder(HttpMethod.GET).pathGenerator(FleetTest::currentShipQuery)
+      shipSequence.step().httpRequest(HttpMethod.GET).pathGenerator(FleetTest::currentShipQuery)
          .handler()
             .bodyExtractor(new JsonExtractor(".crew[]", new SequenceScopedCountRecorder("crewCount", MAX_SHIPS)))
-         .endHandler()
-         .build());
+         .endHandler().endStep();
 
       BreakSequenceStep breakSequenceStep = new BreakSequenceStep(s -> currentCrewCount(s) > 0, s -> s.addToInt("numberOfShips", -1));
       breakSequenceStep.addDependency(new SequenceScopedVarReference("crewCount"));
       shipSequence.step(breakSequenceStep);
 
-      shipSequence.step(
-         HttpRequestStep.builder(HttpMethod.DELETE).pathGenerator(FleetTest::currentShipQuery)
+      shipSequence.step().httpRequest(HttpMethod.DELETE).pathGenerator(FleetTest::currentShipQuery)
          .handler()
             .statusExtractor(((status, session) -> {
                if (status == 204) {
@@ -158,25 +111,20 @@ public class FleetTest {
                   ctx.fail("Unexpected status " + status);
                }
             }))
-         .endHandler()
-         .build());
+         .endHandler().endStep();
       shipSequence.step(s -> s.addToInt("numberOfSunkShips", 1).addToInt("numberOfShips", -1));
 
       finalSequence.step(new AwaitConditionStep(s -> s.isSet("numberOfShips") && s.getInt("numberOfShips") <= 0));
       finalSequence.step(new AwaitConditionStep(s -> s.getInt("numberOfSunkShips") <= 0));
       finalSequence.step(s -> {
          log.info("Test completed");
-         async.countDown();
          for (Statistics stats : s.statistics()) {
             log.trace(stats);
          }
+         async.countDown();
       });
 
-      Phase phase = new Phase.Sequentially("test", scenarioBuilder.build(), 0, Collections.emptyList(), Collections.emptyList(), Long.MAX_VALUE, -1, 2);
-      ReentrantLock statusLock = new ReentrantLock();
-      phase.setComponents(new ConcurrentPoolImpl<>(() -> SessionFactory.create(httpClientPool, phase)), statusLock, statusLock.newCondition());
-      phase.reserveSessions();
-      phase.start(httpClientPool);
+      runScenario(scenarioBuilder.build(), 2);
    }
 
    private int currentCrewCount(Session session) {

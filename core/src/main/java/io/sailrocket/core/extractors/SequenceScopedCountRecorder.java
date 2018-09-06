@@ -45,6 +45,6 @@ public class SequenceScopedCountRecorder implements Session.Processor, ResourceU
    public void reserve(Session session) {
       session.declare(arrayVar);
       session.setObject(arrayVar, IntVar.newArray(session, numCounters));
-      session.deactivate(arrayVar);
+      session.unset(arrayVar);
    }
 }

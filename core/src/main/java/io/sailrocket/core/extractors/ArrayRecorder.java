@@ -43,6 +43,6 @@ public class ArrayRecorder implements Session.Processor, ResourceUtilizer {
    public void reserve(Session session) {
       session.declare(var);
       session.setObject(var, ObjectVar.newArray(session, maxSize));
-      session.deactivate(var);
+      session.unset(var);
    }
 }

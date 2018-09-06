@@ -21,6 +21,7 @@ public abstract class Phase {
    protected volatile Status status = Status.NOT_STARTED;
    protected long absoluteStartTime;
    protected AtomicInteger activeSessions = new AtomicInteger(0);
+   private Throwable error;
 
    protected Phase(String name, Scenario scenario, long startTime, Collection<Phase> startAfter, Collection<Phase> startAfterStrict, long duration, long maxDuration) {
       this.name = name;
@@ -105,7 +106,6 @@ public abstract class Phase {
    }
 
    public void terminate() {
-      assert status == Status.FINISHED;
       status = Status.TERMINATING;
       if (activeSessions.get() == 0) {
          status = Status.TERMINATED;
@@ -143,6 +143,15 @@ public abstract class Phase {
       } finally {
          statusLock.unlock();
       }
+   }
+
+   public void fail(Throwable error) {
+      this.error = error;
+      terminate();
+   }
+
+   public Throwable getError() {
+      return error;
    }
 
    public enum Status {
@@ -229,12 +238,11 @@ public abstract class Phase {
          long now = System.currentTimeMillis();
          long delta = now - startTime;
          int required = (int) (delta * initialUsersPerSec + (targetUsersPerSec - initialUsersPerSec) * delta / duration) / 1000;
-         if (required - startedUsers > 0) {
-            for (int i = required - startedUsers; i > 0; --i) {
-               sessions.acquire().proceed();
-            }
-            startedUsers = required;
+         for (int i = required - startedUsers; i > 0; --i) {
+            activeSessions.incrementAndGet();
+            sessions.acquire().proceed();
          }
+         startedUsers = Math.max(startedUsers, required);
          long nextDelta = 1000 * (startedUsers + 1) * duration / (targetUsersPerSec + initialUsersPerSec * (duration - 1));
          clientPool.schedule(() -> proceed(clientPool), nextDelta - delta, TimeUnit.MILLISECONDS);
       }
@@ -266,11 +274,11 @@ public abstract class Phase {
          long now = System.currentTimeMillis();
          long delta = now - startTime;
          int required = (int) (delta * usersPerSec / 1000);
-         if (required - startedUsers > 0) {
-            // schedule
-
-            startedUsers = required;
+         for (int i = required - startedUsers; i > 0; --i) {
+            activeSessions.incrementAndGet();
+            sessions.acquire().proceed();
          }
+         startedUsers = Math.max(startedUsers, required);
          long nextDelta = 1000 * (startedUsers + 1) / usersPerSec;
          clientPool.schedule(() -> proceed(clientPool), nextDelta - delta, TimeUnit.MILLISECONDS);
       }
@@ -299,6 +307,7 @@ public abstract class Phase {
 
       @Override
       protected void proceed(HttpClientPool clientPool) {
+         activeSessions.incrementAndGet();
          sessions.acquire().proceed();
       }
 

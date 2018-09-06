@@ -21,11 +21,25 @@ public class SequenceInstance {
          if (trace) {
             log.trace("Preparing step {}", step);
          }
-         if (step.prepare(session)) {
+         boolean prepare;
+         try {
+            prepare = step.prepare(session);
+         } catch (Throwable t) {
+            log.error("Failure preparing step {}", t, step);
+            session.fail(t);
+            return false;
+         }
+         if (prepare) {
             if (trace) {
                log.trace("Invoking step {}", step);
             }
-            step.invoke(session);
+            try {
+               step.invoke(session);
+            } catch (Throwable t) {
+               log.error("Failure invoking step {}", t, step);
+               session.fail(t);
+               return false;
+            }
             if (session.currentSequence() != null) {
                ++currentStep;
             } else {

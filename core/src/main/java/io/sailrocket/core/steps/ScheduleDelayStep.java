@@ -1,0 +1,92 @@
+package io.sailrocket.core.steps;
+
+import java.util.concurrent.TimeUnit;
+
+import io.sailrocket.api.Step;
+import io.sailrocket.api.Session;
+import io.sailrocket.core.api.ResourceUtilizer;
+import io.sailrocket.core.builders.BaseStepBuilder;
+import io.sailrocket.core.builders.SequenceBuilder;
+
+public class ScheduleDelayStep implements Step, ResourceUtilizer {
+   private final Object key;
+   private final Type type;
+   private final long duration;
+   private final TimeUnit timeUnit;
+
+   public ScheduleDelayStep(Object key, Type type, long duration, TimeUnit timeUnit) {
+      this.key = key;
+      this.type = type;
+      this.duration = duration;
+      this.timeUnit = timeUnit;
+   }
+
+   @Override
+   public void invoke(Session session) {
+      Timestamp blockedUntil = (Timestamp) session.getObject(key);
+      long now = System.currentTimeMillis();
+      long baseTimestamp;
+      switch (type) {
+         case FROM_LAST:
+            if (blockedUntil.timestamp != Long.MAX_VALUE) {
+               baseTimestamp = blockedUntil.timestamp;
+               break;
+            }
+            // bo break;
+         case FROM_NOW:
+            baseTimestamp = now;
+            break;
+         default:
+            throw new IllegalStateException();
+      }
+      blockedUntil.timestamp = baseTimestamp + timeUnit.toMillis(duration);
+      long delay = blockedUntil.timestamp - now;
+      if (delay > 0) {
+         session.httpClientPool().schedule((Runnable) session, delay, TimeUnit.MILLISECONDS);
+      }
+   }
+
+   @Override
+   public void reserve(Session session) {
+      session.declare(key);
+      session.setObject(key, new Timestamp());
+   }
+
+   public enum Type {
+      FROM_LAST,
+      FROM_NOW,
+   }
+
+   static class Timestamp {
+      long timestamp = Long.MAX_VALUE;
+   }
+
+   public static class Builder extends BaseStepBuilder {
+      private final Object key;
+      private final long duration;
+      private final TimeUnit timeUnit;
+      private Type type = Type.FROM_NOW;
+
+      public Builder(SequenceBuilder parent, Object key, long duration, TimeUnit timeUnit) {
+         super(parent);
+         this.key = key;
+         this.duration = duration;
+         this.timeUnit = timeUnit;
+      }
+
+      public Builder fromNow() {
+         type = Type.FROM_NOW;
+         return this;
+      }
+
+      public Builder fromLast() {
+         type = Type.FROM_LAST;
+         return this;
+      }
+
+      @Override
+      public ScheduleDelayStep build() {
+         return new ScheduleDelayStep(key, type, duration, timeUnit);
+      }
+   }
+}

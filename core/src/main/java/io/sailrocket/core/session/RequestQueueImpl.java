@@ -57,4 +57,9 @@ class RequestQueueImpl implements io.sailrocket.api.RequestQueue {
       return slot;
    }
 
+   @Override
+   public boolean isFull() {
+      return readerIndex == writerIndex;
+   }
+
 }

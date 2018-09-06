@@ -18,6 +18,11 @@
  */
 package io.sailrocket.core.impl;
 
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import io.sailrocket.api.Scenario;
 import io.sailrocket.api.Sequence;
 
@@ -26,13 +31,15 @@ public class ScenarioImpl implements Scenario {
     private final Sequence[] sequences;
     private final String[] objectVars;
     private final String[] intVars;
+    private final Map<String, Sequence> sequenceMap;
 
-   public ScenarioImpl(Sequence[] initialSequences, Sequence[] sequences, String[] objectVars, String[] intVars) {
-      this.initialSequences = initialSequences;
-      this.sequences = sequences;
-      this.objectVars = objectVars;
-      this.intVars = intVars;
-   }
+    public ScenarioImpl(Sequence[] initialSequences, Sequence[] sequences, String[] objectVars, String[] intVars) {
+        this.initialSequences = initialSequences;
+        this.sequences = sequences;
+        this.objectVars = objectVars;
+        this.intVars = intVars;
+        sequenceMap = Stream.of(sequences).collect(Collectors.toMap(s -> s.name(), Function.identity()));
+    }
 
     @Override
     public Sequence[] initialSequences() {
@@ -54,15 +61,25 @@ public class ScenarioImpl implements Scenario {
        return intVars;
     }
 
-   @Override
-   public int maxRequests() {
-      // TODO
-      return 16;
-   }
+    @Override
+    public int maxRequests() {
+        // TODO
+        return 16;
+    }
 
-   @Override
-   public int maxSequences() {
-      // TODO
-      return 16;
-   }
+    @Override
+    public int maxSequences() {
+        // TODO
+        return 16;
+    }
+
+    @Override
+    public Sequence sequence(String name) {
+        Sequence sequence = sequenceMap.get(name);
+        if (sequence == null) {
+            throw new IllegalArgumentException("Unknown sequence '" + name + "'");
+        }
+        return sequence;
+    }
 }
+

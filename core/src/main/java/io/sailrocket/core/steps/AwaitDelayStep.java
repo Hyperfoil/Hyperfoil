@@ -1,0 +1,23 @@
+package io.sailrocket.core.steps;
+
+import io.sailrocket.api.Session;
+import io.sailrocket.api.Step;
+
+public class AwaitDelayStep implements Step {
+   private final Object key;
+
+   public AwaitDelayStep(Object key) {
+      this.key = key;
+   }
+
+   @Override
+   public boolean prepare(Session session) {
+      ScheduleDelayStep.Timestamp blockedUntil = (ScheduleDelayStep.Timestamp) session.getObject(key);
+      return System.currentTimeMillis() >= blockedUntil.timestamp;
+   }
+
+   @Override
+   public void invoke(Session session) {
+      // noop
+   }
+}

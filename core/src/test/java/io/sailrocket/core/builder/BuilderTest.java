@@ -24,8 +24,6 @@ import io.sailrocket.api.HttpMethod;
 import io.sailrocket.core.BenchmarkImpl;
 import io.sailrocket.core.builders.BenchmarkBuilder;
 import io.sailrocket.core.impl.SimulationImpl;
-import io.sailrocket.core.steps.AwaitVarStep;
-import io.sailrocket.core.steps.HttpRequestStep;
 
 import org.junit.Test;
 
@@ -48,24 +46,23 @@ public class BuilderTest {
                 .concurrency(10)
                 .connections(1)
                 .addPhase("foo").always(1)
-                  .duration("3s")
-                  .scenario(scenarioBuilder()
+                    .duration("3s")
+                    .scenario(scenarioBuilder()
                         .initialSequence(sequenceBuilder()
-                                .step(HttpRequestStep.builder(HttpMethod.GET)
-                                      .path("foo")
-                                      .handler().onCompletion(s -> s.setObject("foo", "done")).endHandler()
-                                )
-                                .step(new AwaitVarStep("foo"))
+                                .step().httpRequest(HttpMethod.GET)
+                                        .path("foo")
+                                        .endStep()
+                                .step().awaitAllResponses()
                         )
-                  )
-                  .endPhase()
+                    )
+                    .endPhase()
                 .build();
 
         assertEquals("http://localhost:8080/", simulation.tags().getString("url"));
         assertEquals(10, simulation.tags().getInteger("maxQueue").intValue());
         assertEquals(1, simulation.tags().getInteger("connections").intValue());
         assertEquals(101, simulation.tags().getInteger("rate").intValue());
-       assertEquals(1, simulation.phases().size());
+        assertEquals(1, simulation.phases().size());
         assertEquals(3000000000L, simulation.phases().stream().findFirst().get().duration());
 
         BenchmarkImpl benchmark =

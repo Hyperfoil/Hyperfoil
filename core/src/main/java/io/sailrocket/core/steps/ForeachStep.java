@@ -1,16 +1,16 @@
 package io.sailrocket.core.steps;
 
+import io.sailrocket.api.Sequence;
 import io.sailrocket.api.Session;
 import io.sailrocket.core.api.ResourceUtilizer;
-import io.sailrocket.core.session.SequenceImpl;
 import io.sailrocket.core.session.SimpleVarReference;
 
 public class ForeachStep extends BaseStep implements ResourceUtilizer {
    private final String dataVar;
    private final String counterVar;
-   private final SequenceImpl template;
+   private final Sequence template;
 
-   public ForeachStep(String dataVar, String counterVar, SequenceImpl template) {
+   public ForeachStep(String dataVar, String counterVar, Sequence template) {
       this.dataVar = dataVar;
       this.counterVar = counterVar;
       this.template = template;
