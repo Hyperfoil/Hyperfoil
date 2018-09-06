@@ -48,7 +48,7 @@ public abstract class AsyncEnv {
     public void run(RequestContext requestContext) throws ExecutionException, InterruptedException {
         IntStream.range(0, ASYNC_THREADS).forEach(i -> workers.add(i, new WorkerImpl(pacerRate, exec, clientPool)));
         List<CompletableFuture<Void>> results = new ArrayList<>(ASYNC_THREADS);
-        workers.forEach(worker -> results.add(worker.runSlot(DURATION, () -> new SequenceImpl("foo"))));
+        workers.forEach(worker -> results.add(worker.runSlot(DURATION, () -> new SequenceImpl("foo", 0, null))));
         for (CompletableFuture<Void> result : results) {
             result.get();
         }

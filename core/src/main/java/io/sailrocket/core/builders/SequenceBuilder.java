@@ -73,7 +73,7 @@ public class SequenceBuilder {
         if (sequence != null) {
             return sequence;
         }
-        return sequence = new SequenceImpl(name, steps.stream().map(StepBuilder::build).toArray(Step[]::new));
+        return sequence = new SequenceImpl(name, id, steps.stream().map(StepBuilder::build).toArray(Step[]::new));
     }
 
     void id(int id) {

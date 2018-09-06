@@ -7,28 +7,14 @@ import io.sailrocket.api.Step;
 import io.sailrocket.core.api.ResourceUtilizer;
 
 public class SequenceImpl implements Sequence {
-   // debug only
    private final String name;
-   private int id;
+   private final int id;
    private final Step[] steps;
 
-   public SequenceImpl(String name) {
-      this(name, null);
-   }
-
-   public SequenceImpl(String name, Step[] steps) {
+   public SequenceImpl(String name, int id, Step[] steps) {
       this.name = name;
-      this.steps = steps;
-   }
-
-   @Override
-   public void id(int id) {
       this.id = id;
-   }
-
-   @Override
-   public int id() {
-      return id;
+      this.steps = steps;
    }
 
    @Override
