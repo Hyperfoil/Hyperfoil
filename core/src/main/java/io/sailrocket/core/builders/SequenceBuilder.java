@@ -57,8 +57,8 @@ public class SequenceBuilder {
         return this;
     }
 
-    public StepBuilder.Discriminator step() {
-        return new StepBuilder.Discriminator(this);
+    public StepDiscriminator step() {
+        return new StepDiscriminator(this);
     }
 
     public SequenceBuilder step(Step step) {

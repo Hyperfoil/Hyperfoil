@@ -35,7 +35,7 @@ public class PacingTest extends BaseScenarioTest {
       sequence
             .step().httpRequest(HttpMethod.GET).path("/test").endStep()
             .step().awaitAllResponses()
-            .step().thinkTime(500, TimeUnit.MILLISECONDS)
+            .step().thinkTime(500, TimeUnit.MILLISECONDS).endStep()
             .step().loop("counter", 5, "loop");
 
       runScenario(scenarioBuilder.build(), 1);
