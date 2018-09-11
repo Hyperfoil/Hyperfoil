@@ -131,6 +131,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
    public static class RampPerSec extends PhaseBuilder {
       private final int initialUsersPerSec;
       private final int targetUsersPerSec;
+      private int maxSessionsEstimate;
 
       protected RampPerSec(SimulationBuilder parent, String name, int initialUsersPerSec, int targetUsersPerSec) {
          super(parent, name);
@@ -138,23 +139,38 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
          this.targetUsersPerSec = targetUsersPerSec;
       }
 
+      public RampPerSec maxSessionsEstimate(int maxSessionsEstimate) {
+         this.maxSessionsEstimate = maxSessionsEstimate;
+         return this;
+      }
+
       @Override
       public Phase build() {
-         return new Phase.RampPerSec(name, scenario, startTime, parent.getPhases(startAfter), parent.getPhases(startAfterStrict), duration, maxDuration, initialUsersPerSec, targetUsersPerSec);
+         return new Phase.RampPerSec(name, scenario, startTime, parent.getPhases(startAfter),
+               parent.getPhases(startAfterStrict), duration, maxDuration, initialUsersPerSec, targetUsersPerSec,
+               maxSessionsEstimate <= 0 ? Math.max(initialUsersPerSec, targetUsersPerSec) : maxSessionsEstimate);
       }
    }
 
    public static class ConstantPerSec extends PhaseBuilder {
       private final int usersPerSec;
+      private int maxSessionsEstimate;
 
       protected ConstantPerSec(SimulationBuilder parent, String name, int usersPerSec) {
          super(parent, name);
          this.usersPerSec = usersPerSec;
       }
 
+      public ConstantPerSec maxSessionsEstimate(int maxSessionsEstimate) {
+         this.maxSessionsEstimate = maxSessionsEstimate;
+         return this;
+      }
+
       @Override
       public Phase build() {
-         return new Phase.ConstantPerSec(name, scenario, startTime, parent.getPhases(startAfter), parent.getPhases(startAfterStrict), duration, maxDuration, usersPerSec);
+         return new Phase.ConstantPerSec(name, scenario, startTime, parent.getPhases(startAfter),
+               parent.getPhases(startAfterStrict), duration, maxDuration, usersPerSec,
+               maxSessionsEstimate <= 0 ? usersPerSec : maxSessionsEstimate);
       }
    }
 

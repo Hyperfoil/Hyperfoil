@@ -171,8 +171,7 @@ public class TwoScenariosTest extends BaseScenarioTest {
                .scenario(rigScenario)
                .endPhase()
             .addPhase("furl").constantPerSec(2) // intentionally less to trigger maxDuration
-               .duration(5000)
-               .maxDuration(10000)
+               .duration(5000) // no max duration, should not need it
                .scenario(furlScenario)
                .endPhase()
             .build();

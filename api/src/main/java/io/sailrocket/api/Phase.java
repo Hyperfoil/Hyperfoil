@@ -111,12 +111,18 @@ public abstract class Phase {
       assert status == Status.RUNNING;
       status = Status.FINISHED;
       log.debug("{} changing status to FINISHED", name);
+      if (activeSessions.compareAndSet(0, Integer.MIN_VALUE)) {
+         // It is possible that we will activate another session after setting status to TERMINATED but such session
+         // should check the status again as its first action and terminate
+         status = Status.TERMINATED;
+         log.debug("{} changing status to TERMINATED", name);
+      }
    }
 
    public void terminate() {
       status = Status.TERMINATING;
       log.debug("{} changing status to TERMINATING", name);
-      if (activeSessions.get() == 0) {
+      if (activeSessions.compareAndSet(0, Integer.MIN_VALUE)) {
          status = Status.TERMINATED;
          log.debug("{} changing status to TERMINATED", name);
       }
@@ -240,12 +246,14 @@ public abstract class Phase {
    public static class RampPerSec extends Phase {
       private final int initialUsersPerSec;
       private final int targetUsersPerSec;
+      private final int maxSessionsEstimate;
       private int startedUsers = 0;
 
-      public RampPerSec(String name, Scenario scenario, long startTime, Collection<Phase> startAfter, Collection<Phase> startAfterStrict, long duration, long maxDuration, int initialUsersPerSec, int targetUsersPerSec) {
+      public RampPerSec(String name, Scenario scenario, long startTime, Collection<Phase> startAfter, Collection<Phase> startAfterStrict, long duration, long maxDuration, int initialUsersPerSec, int targetUsersPerSec, int maxSessionsEstimate) {
          super(name, scenario, startTime, startAfter, startAfterStrict, duration, maxDuration);
          this.initialUsersPerSec = initialUsersPerSec;
          this.targetUsersPerSec = targetUsersPerSec;
+         this.maxSessionsEstimate = maxSessionsEstimate;
       }
 
       @Override
@@ -258,6 +266,10 @@ public abstract class Phase {
          int required = (int) (delta * initialUsersPerSec + (targetUsersPerSec - initialUsersPerSec) * delta / duration) / 1000;
          for (int i = required - startedUsers; i > 0; --i) {
             int numActive = activeSessions.incrementAndGet();
+            if (numActive < 0) {
+               // finished
+               return;
+            }
             if (trace) {
                log.trace("{} has {} active sessions", name, numActive);
             }
@@ -276,8 +288,7 @@ public abstract class Phase {
 
       @Override
       public void reserveSessions() {
-         // TODO
-         sessions.reserve(Math.max(initialUsersPerSec, targetUsersPerSec) * 10);
+         sessions.reserve(maxSessionsEstimate);
       }
 
       @Override
@@ -290,11 +301,13 @@ public abstract class Phase {
 
    public static class ConstantPerSec extends Phase {
       private final int usersPerSec;
+      private final int maxSessionsEstimate;
       private int startedUsers = 0;
 
-      public ConstantPerSec(String name, Scenario scenario, long startTime, Collection<Phase> startAfter, Collection<Phase> startAfterStrict, long duration, long maxDuration, int usersPerSec) {
+      public ConstantPerSec(String name, Scenario scenario, long startTime, Collection<Phase> startAfter, Collection<Phase> startAfterStrict, long duration, long maxDuration, int usersPerSec, int maxSessionsEstimate) {
          super(name, scenario, startTime, startAfter, startAfterStrict, duration, maxDuration);
          this.usersPerSec = usersPerSec;
+         this.maxSessionsEstimate = maxSessionsEstimate;
       }
 
       @Override
@@ -307,6 +320,10 @@ public abstract class Phase {
          int required = (int) (delta * usersPerSec / 1000);
          for (int i = required - startedUsers; i > 0; --i) {
             int numActive = activeSessions.incrementAndGet();
+            if (numActive < 0) {
+               // finished
+               return;
+            }
             if (trace) {
                log.trace("{} has {} active sessions", name, numActive);
             }
@@ -325,8 +342,7 @@ public abstract class Phase {
 
       @Override
       public void reserveSessions() {
-         // TODO
-         sessions.reserve(usersPerSec * 10);
+         sessions.reserve(maxSessionsEstimate);
       }
 
       @Override
@@ -348,6 +364,7 @@ public abstract class Phase {
 
       @Override
       protected void proceed(HttpClientPool clientPool) {
+         assert activeSessions.get() == 0;
          int numActive = activeSessions.incrementAndGet();
          if (trace) {
             log.trace("{} has {} active sessions", name, numActive);
