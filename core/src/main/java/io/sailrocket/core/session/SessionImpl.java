@@ -36,13 +36,15 @@ class SessionImpl implements Session, Runnable {
 
    private final ValidatorResults validatorResults = new ValidatorResults();
    private final Statistics[] statistics;
+   private final int uniqueId;
 
-   public SessionImpl(HttpClientPool httpClientPool, Phase phase) {
+   public SessionImpl(HttpClientPool httpClientPool, Phase phase, int uniqueId) {
       this.httpClientPool = httpClientPool;
       this.requestQueue = new RequestQueueImpl(phase.scenario().maxRequests());
       this.sequencePool = new Pool<>(phase.scenario().maxSequences(), SequenceInstance::new);
       this.runningSequences = new SequenceInstance[phase.scenario().maxSequences()];
       this.phase = phase;
+      this.uniqueId = uniqueId;
 
       Sequence[] sequences = phase.scenario().sequences();
       statistics = new Statistics[sequences.length];
@@ -60,6 +62,11 @@ class SessionImpl implements Session, Runnable {
       for (Sequence sequence : phase.scenario().initialSequences()) {
          sequence.instantiate(this, 0);
       }
+   }
+
+   @Override
+   public int uniqueId() {
+      return uniqueId;
    }
 
    @Override
@@ -86,7 +93,7 @@ class SessionImpl implements Session, Runnable {
    @Override
    public Session setObject(Object key, Object value) {
       if (trace) {
-         log.trace("{} <- {}", key, value);
+         log.trace("#{} {} <- {}", uniqueId, key, value);
       }
       ObjectVar wrapper = (ObjectVar) vars.get(key);
       wrapper.value = value;
@@ -113,7 +120,7 @@ class SessionImpl implements Session, Runnable {
    @Override
    public Session setInt(Object key, int value) {
       if (trace) {
-         log.trace("{} <- {}", key, value);
+         log.trace("#{} {} <- {}", uniqueId, key, value);
       }
       ((IntVar) vars.get(key)).set(value);
       return this;
@@ -125,7 +132,7 @@ class SessionImpl implements Session, Runnable {
       if (!wrapper.isSet()) {
          throw new IllegalStateException("Variable " + key + " was not set yet!");
       }
-      log.trace("{} <- {}", key, wrapper.get() + delta);
+      log.trace("#{} {} <- {}", uniqueId, key, wrapper.get() + delta);
       wrapper.set(wrapper.get() + delta);
       return this;
    }
@@ -166,19 +173,23 @@ class SessionImpl implements Session, Runnable {
    }
 
    public void run() {
+      int lastProgressedSequence = -1;
       while (lastRunningSequence >= 0) {
          boolean progressed = false;
          for (int i = 0; i <= lastRunningSequence; ++i) {
             if (phase.status() == Phase.Status.TERMINATING) {
                if (trace) {
-                  log.trace("Phase is terminating");
+                  log.trace("#{} Phase {} is terminating", uniqueId, phase.name());
                }
                phase.notifyTerminated(this);
                return;
+            } else if (lastProgressedSequence == i) {
+               break;
             }
             currentSequence(runningSequences[i]);
             if (runningSequences[i].progress(this)) {
                progressed = true;
+               lastProgressedSequence = i;
                if (runningSequences[i].isCompleted()) {
                   sequencePool.release(runningSequences[i]);
                   if (i == lastRunningSequence) {
@@ -188,11 +199,13 @@ class SessionImpl implements Session, Runnable {
                      runningSequences[lastRunningSequence] = null;
                   }
                   --lastRunningSequence;
+                  lastProgressedSequence = -1;
                }
             }
             currentSequence(null);
          }
          if (!progressed && lastRunningSequence >= 0) {
+            log.trace("#{} ({}) no progress, not finished.", uniqueId, phase.name());
             return;
          }
       }
@@ -201,7 +214,7 @@ class SessionImpl implements Session, Runnable {
 
    @Override
    public void currentSequence(SequenceInstance current) {
-      log.trace("Changing sequence {} -> {}", currentSequence, current);
+      log.trace("#{} Changing sequence {} -> {}", uniqueId, currentSequence, current);
       assert current == null || currentSequence == null;
       currentSequence = current;
    }
@@ -238,7 +251,7 @@ class SessionImpl implements Session, Runnable {
       }
       // TODO should we reset stats here?
       if (trace) {
-         log.trace("Commencing new execution of the scenario.");
+         log.trace("#{} Commencing new execution of {}", uniqueId, phase.name());
       }
       for (Sequence sequence : phase.scenario().initialSequences()) {
          sequence.instantiate(this, 0);
@@ -254,6 +267,7 @@ class SessionImpl implements Session, Runnable {
    public void stop() {
       for (int i = 0; i <= lastRunningSequence; ++i) {
          sequencePool.release(runningSequences[i]);
+         runningSequences[i] = null;
       }
       lastRunningSequence = -1;
    }

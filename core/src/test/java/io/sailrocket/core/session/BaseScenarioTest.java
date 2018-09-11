@@ -38,7 +38,7 @@ public abstract class BaseScenarioTest {
       }
       ReentrantLock statusLock = new ReentrantLock();
       Condition statusCondition = statusLock.newCondition();
-      Session session = SessionFactory.create(httpClientPool, phase);
+      Session session = SessionFactory.create(httpClientPool, phase, 0);
       phase.setComponents(new ConcurrentPoolImpl<>(() -> session), statusLock, statusCondition);
       phase.reserveSessions();
       phase.start(httpClientPool);

@@ -35,7 +35,7 @@ public class BenchmarkImpl extends Benchmark {
             public void run() {
                 SimulationImpl simulationImpl = currentLoad.get();
                 if (simulationImpl != null) {
-                    simulationImpl.printDetails(printStatsConsumer);
+                    simulationImpl.visitStatistics(printStatsConsumer);
                 }
             }
         }, TimeUnit.SECONDS.toMillis(5), TimeUnit.SECONDS.toMillis(5));

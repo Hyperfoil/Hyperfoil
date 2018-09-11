@@ -1,14 +1,20 @@
 package io.sailrocket.core.steps;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import io.sailrocket.api.Step;
 import io.sailrocket.api.Session;
 import io.sailrocket.core.api.ResourceUtilizer;
+import io.sailrocket.core.builders.BaseSequenceBuilder;
 import io.sailrocket.core.builders.BaseStepBuilder;
-import io.sailrocket.core.builders.SequenceBuilder;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 
 public class ScheduleDelayStep implements Step, ResourceUtilizer {
+   private static final Logger log = LoggerFactory.getLogger(ScheduleDelayStep.class);
+
    private final Object key;
    private final Type type;
    private final long duration;
@@ -42,6 +48,7 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
       blockedUntil.timestamp = baseTimestamp + timeUnit.toMillis(duration);
       long delay = blockedUntil.timestamp - now;
       if (delay > 0) {
+         log.trace("Scheduling #{} to run in {}", session.uniqueId(), delay);
          session.httpClientPool().schedule((Runnable) session, delay, TimeUnit.MILLISECONDS);
       }
    }
@@ -67,7 +74,7 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
       private final TimeUnit timeUnit;
       private Type type = Type.FROM_NOW;
 
-      public Builder(SequenceBuilder parent, Object key, long duration, TimeUnit timeUnit) {
+      public Builder(BaseSequenceBuilder parent, Object key, long duration, TimeUnit timeUnit) {
          super(parent);
          this.key = key;
          this.duration = duration;
@@ -85,8 +92,8 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
       }
 
       @Override
-      public ScheduleDelayStep build() {
-         return new ScheduleDelayStep(key, type, duration, timeUnit);
+      public List<Step> build() {
+         return Collections.singletonList(new ScheduleDelayStep(key, type, duration, timeUnit));
       }
    }
 }

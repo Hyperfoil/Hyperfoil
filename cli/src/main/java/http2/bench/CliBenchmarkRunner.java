@@ -174,7 +174,7 @@ public class CliBenchmarkRunner {
             public void run() {
                 SimulationImpl simulationImpl = currentLoad.get();
                 if (simulationImpl != null) {
-                    simulationImpl.printDetails(printStatsConsumer);
+                    simulationImpl.visitStatistics(printStatsConsumer);
                 }
             }
         }, TimeUnit.SECONDS.toMillis(5), TimeUnit.SECONDS.toMillis(5));
@@ -248,6 +248,7 @@ public class CliBenchmarkRunner {
                             .path(path)
                             .endStep()
                     .step().awaitAllResponses()
+                    .end()
         ).build();
         Phase.AtOnce phase = new Phase.AtOnce("test", scenario, 0, Collections.emptyList(), Collections.emptyList(), 0, -1, 1);
         SimulationImpl simulation = new SimulationImpl(clientBuilder, Collections.singleton(phase), tags);

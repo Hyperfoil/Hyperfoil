@@ -9,8 +9,8 @@ import io.sailrocket.api.Session;
 import io.sailrocket.core.impl.ScenarioImpl;
 
 public final class SessionFactory {
-   public static Session create(HttpClientPool httpClientPool, Phase phase) {
-      return new SessionImpl(httpClientPool, phase);
+   public static Session create(HttpClientPool httpClientPool, Phase phase, int uniqueId) {
+      return new SessionImpl(httpClientPool, phase, uniqueId);
    }
 
    public static Session forTesting() {
@@ -24,7 +24,7 @@ public final class SessionFactory {
          public void reserveSessions() {
          }
       };
-      return new SessionImpl(null, dummyPhase);
+      return new SessionImpl(null, dummyPhase, 0);
    }
 
    private SessionFactory() {

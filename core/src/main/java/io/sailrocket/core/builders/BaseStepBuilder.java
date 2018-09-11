@@ -1,14 +1,14 @@
 package io.sailrocket.core.builders;
 
 public abstract class BaseStepBuilder implements StepBuilder {
-   private final SequenceBuilder parent;
+   private final BaseSequenceBuilder parent;
 
-   protected BaseStepBuilder(SequenceBuilder parent) {
+   protected BaseStepBuilder(BaseSequenceBuilder parent) {
       this.parent = parent;
       parent.step(this);
    }
 
-   public SequenceBuilder endStep() {
+   public BaseSequenceBuilder endStep() {
       return parent;
    }
 }

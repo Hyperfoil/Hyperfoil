@@ -1,7 +1,9 @@
 package io.sailrocket.core.builders;
 
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 import io.sailrocket.api.HttpMethod;
 import io.sailrocket.api.Session;
@@ -11,15 +13,17 @@ import io.sailrocket.core.steps.AwaitDelayStep;
 import io.sailrocket.core.steps.BreakSequenceStep;
 import io.sailrocket.core.steps.HttpRequestStep;
 import io.sailrocket.core.steps.LoopStep;
+import io.sailrocket.core.steps.PollStep;
 import io.sailrocket.core.steps.ScheduleDelayStep;
+import io.sailrocket.core.steps.StopwatchBeginStep;
 
 /**
  * Helper class to gather well-known step builders
  */
 public class StepDiscriminator {
-   private final SequenceBuilder parent;
+   private final BaseSequenceBuilder parent;
 
-   StepDiscriminator(SequenceBuilder parent) {
+   StepDiscriminator(BaseSequenceBuilder parent) {
       this.parent = parent;
    }
 
@@ -29,19 +33,16 @@ public class StepDiscriminator {
       return new BreakSequenceStep.Builder(parent, condition);
    }
 
-   public SequenceBuilder nextSequence(String name) {
-      parent.step(s -> s.nextSequence(name));
-      return parent;
+   public BaseSequenceBuilder nextSequence(String name) {
+      return parent.step(s -> s.nextSequence(name));
    }
 
-   public SequenceBuilder loop(String counterVar, int repeats, String loopedSequence) {
-      parent.step(new LoopStep(counterVar, repeats, loopedSequence));
-      return parent;
+   public BaseSequenceBuilder loop(String counterVar, int repeats, String loopedSequence) {
+      return parent.step(new LoopStep(counterVar, repeats, loopedSequence));
    }
 
-   public SequenceBuilder stop() {
-      parent.step(Session::stop);
-      return parent;
+   public BaseSequenceBuilder stop() {
+      return parent.step(Session::stop);
    }
 
    // requests
@@ -50,9 +51,8 @@ public class StepDiscriminator {
       return new HttpRequestStep.Builder(parent, method);
    }
 
-   public SequenceBuilder awaitAllResponses() {
-      parent.step(new AwaitAllResponsesStep());
-      return parent;
+   public BaseSequenceBuilder awaitAllResponses() {
+      return parent.step(new AwaitAllResponsesStep());
    }
 
    // timing
@@ -61,9 +61,8 @@ public class StepDiscriminator {
       return new ScheduleDelayStep.Builder(parent, key, duration, timeUnit);
    }
 
-   public SequenceBuilder awaitDelay(String key) {
-      parent.step(new AwaitDelayStep(key));
-      return parent;
+   public BaseSequenceBuilder awaitDelay(String key) {
+      return parent.step(new AwaitDelayStep(key));
    }
 
    public ScheduleDelayStep.Builder thinkTime(long duration, TimeUnit timeUnit) {
@@ -76,11 +75,21 @@ public class StepDiscriminator {
       return delayBuilder;
    }
 
-   // general
-
-   public SequenceBuilder awaitCondition(Predicate<Session> condition) {
-      parent.step(new AwaitConditionStep(condition));
-      return parent;
+   public StopwatchBeginStep.Builder stopwatch() {
+      return new StopwatchBeginStep.Builder(parent);
    }
 
+   // general
+
+   public BaseSequenceBuilder awaitCondition(Predicate<Session> condition) {
+      return parent.step(new AwaitConditionStep(condition));
+   }
+
+   public <T> PollStep.Builder<T> poll(Function<Session, T> provider, String intoVar) {
+      return new PollStep.Builder<>(parent, provider, intoVar);
+   }
+
+   public <T> PollStep.Builder<T> poll(Supplier<T> supplier, String intoVar) {
+      return new PollStep.Builder<>(parent, session -> supplier.get(), intoVar);
+   }
 }

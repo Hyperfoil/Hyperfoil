@@ -1,12 +1,14 @@
 package io.sailrocket.core.steps;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import io.sailrocket.api.Session;
 import io.sailrocket.api.Step;
+import io.sailrocket.core.builders.BaseSequenceBuilder;
 import io.sailrocket.core.builders.BaseStepBuilder;
-import io.sailrocket.core.builders.SequenceBuilder;
 
 public class BreakSequenceStep extends BaseStep {
    private final Predicate<Session> condition;
@@ -31,7 +33,7 @@ public class BreakSequenceStep extends BaseStep {
       private final Predicate<Session> condition;
       private Consumer<Session> onBreak;
 
-      public Builder(SequenceBuilder parent, Predicate<Session> condition) {
+      public Builder(BaseSequenceBuilder parent, Predicate<Session> condition) {
          super(parent);
          this.condition = condition;
       }
@@ -42,8 +44,8 @@ public class BreakSequenceStep extends BaseStep {
       }
 
       @Override
-      public Step build() {
-         return new BreakSequenceStep(condition, onBreak);
+      public List<Step> build() {
+         return Collections.singletonList(new BreakSequenceStep(condition, onBreak));
       }
    }
 }

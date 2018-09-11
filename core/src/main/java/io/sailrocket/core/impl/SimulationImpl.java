@@ -10,10 +10,11 @@ import io.sailrocket.core.client.HttpClientPoolFactory;
 import io.sailrocket.core.impl.statistics.ReportStatisticsCollector;
 import io.sailrocket.core.session.SessionFactory;
 import io.vertx.core.json.JsonObject;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
@@ -26,12 +27,13 @@ import java.util.function.Consumer;
  * @author <a href="mailto:johara@redhat.com">John O'Hara</a>
  */
 public class SimulationImpl implements Simulation {
+    private static final Logger log = LoggerFactory.getLogger(SimulationImpl.class);
+
     private final Collection<Phase> phases;
     private final JsonObject tags;
 
-    private ReportStatisticsCollector statisticsConsumer;
     private HttpClientPool clientPool;
-    private Collection<Session> sessions = Collections.synchronizedList(new ArrayList<>());
+    private Collection<Session> sessions = new ArrayList<>();
 
     private long startTime;
     private long nextPhaseStart;
@@ -69,8 +71,11 @@ public class SimulationImpl implements Simulation {
         Condition statusCondition = statusLock.newCondition();
         for (Phase phase : phases) {
             phase.setComponents(new ConcurrentPoolImpl<>(() -> {
-                Session session = SessionFactory.create(clientPool, phase);
-                sessions.add(session);
+                Session session;
+                synchronized (sessions) {
+                    session = SessionFactory.create(clientPool, phase, sessions.size());
+                    sessions.add(session);
+                }
                 return session;
             }), statusLock, statusCondition);
             phase.reserveSessions();
@@ -84,7 +89,7 @@ public class SimulationImpl implements Simulation {
 
         long now = System.currentTimeMillis();
         this.startTime = now;
-        while (phases.stream().anyMatch(phase -> phase.status() != Phase.Status.TERMINATED)) {
+        do {
             now = System.currentTimeMillis();
             for (Phase phase : phases) {
                 if (phase.status() == Phase.Status.RUNNING && phase.absoluteStartTime() + phase.duration() <= now) {
@@ -108,6 +113,9 @@ public class SimulationImpl implements Simulation {
                   .filter(phase -> (phase.status() == Phase.Status.RUNNING || phase.status() == Phase.Status.FINISHED) && phase.maxDuration() >= 0)
                   .mapToLong(phase -> phase.absoluteStartTime() + phase.maxDuration()).min().orElse(Long.MAX_VALUE);
             long delay = Math.min(Math.min(nextPhaseStart, nextPhaseFinish), nextPhaseTerminate) - System.currentTimeMillis();
+
+            delay = Math.min(delay, 1000);
+            log.debug("Wait {} ms", delay);
             if (delay > 0) {
                 statusLock.lock();
                 try {
@@ -116,18 +124,11 @@ public class SimulationImpl implements Simulation {
                     statusLock.unlock();
                 }
             }
-        }
+        } while (phases.stream().anyMatch(phase -> phase.status() != Phase.Status.TERMINATED));
 
-        this.statisticsConsumer = new ReportStatisticsCollector(
-                tags,
-                0,
-                0,
-              this.startTime
-        );
-
-
-        collateStatistics();
-        return this.statisticsConsumer.reports();
+        ReportStatisticsCollector statisticsConsumer = new ReportStatisticsCollector(tags, 0, 0, startTime);
+        visitStatistics(statisticsConsumer);
+        return statisticsConsumer.reports();
     }
 
     private Phase[] getAvailablePhases() {
@@ -138,23 +139,11 @@ public class SimulationImpl implements Simulation {
               .toArray(Phase[]::new);
     }
 
-
-    /**
-     * Print details on console.
-     */
-    public void printDetails(Consumer<Statistics> printStatsConsumer) {
-        for (Session session : sessions) {
-            for (Statistics statistics : session.statistics()) {
-                printStatsConsumer.accept(statistics);
-            }
-        }
-    }
-
-    private void collateStatistics() {
-        if (statisticsConsumer != null) {
+    public void visitStatistics(Consumer<Statistics> consumer) {
+        synchronized (sessions) {
             for (Session session : sessions) {
                 for (Statistics statistics : session.statistics()) {
-                    statisticsConsumer.accept(statistics);
+                    consumer.accept(statistics);
                 }
             }
         }

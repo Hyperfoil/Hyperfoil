@@ -53,6 +53,7 @@ public class BuilderTest {
                                         .path("foo")
                                         .endStep()
                                 .step().awaitAllResponses()
+                                .end()
                         )
                     )
                     .endPhase()

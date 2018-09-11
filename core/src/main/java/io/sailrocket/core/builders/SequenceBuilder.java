@@ -24,23 +24,18 @@ import io.sailrocket.api.Sequence;
 import io.sailrocket.api.Step;
 import io.sailrocket.core.session.SequenceImpl;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Consumer;
-
 /**
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
  */
-public class SequenceBuilder {
+public class SequenceBuilder extends BaseSequenceBuilder {
 
     private final String name;
-    private List<StepBuilder> steps;
     private int id;
     private Sequence sequence;
 
     private SequenceBuilder(String name) {
+        super(null);
         this.name = name;
-        steps = new ArrayList<>();
     }
 
     public static SequenceBuilder sequenceBuilder() {
@@ -51,32 +46,19 @@ public class SequenceBuilder {
         return new SequenceBuilder(name);
     }
 
-    private SequenceBuilder apply(Consumer<SequenceBuilder> consumer) {
-        assert sequence == null;
-        consumer.accept(this);
-        return this;
-    }
-
-    public StepDiscriminator step() {
-        return new StepDiscriminator(this);
-    }
-
-    public SequenceBuilder step(Step step) {
-        return apply(clone -> clone.steps.add(() -> step));
-    }
-
-    public SequenceBuilder step(StepBuilder stepBuilder) {
-        return apply(clone -> clone.steps.add(stepBuilder));
-    }
-
     public Sequence build() {
         if (sequence != null) {
             return sequence;
         }
-        return sequence = new SequenceImpl(name, id, steps.stream().map(StepBuilder::build).toArray(Step[]::new));
+        return sequence = new SequenceImpl(name, id, steps.stream().flatMap(builder -> builder.build().stream()).toArray(Step[]::new));
     }
 
     void id(int id) {
         this.id = id;
+    }
+
+    @Override
+    public SequenceBuilder end() {
+        return this;
     }
 }

@@ -3,6 +3,11 @@ package io.sailrocket.api;
 import io.netty.buffer.ByteBuf;
 
 public interface Session {
+   /**
+    * @return Integer >= 0 that's unique across whole simulation
+    */
+   int uniqueId();
+
    /// Common utility objects
    HttpClientPool httpClientPool();
 

@@ -1,5 +1,7 @@
 package io.sailrocket.core.steps;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
@@ -9,8 +11,8 @@ import io.sailrocket.api.HttpRequest;
 import io.sailrocket.api.RequestQueue;
 import io.sailrocket.api.Step;
 import io.sailrocket.api.Session;
+import io.sailrocket.core.builders.BaseSequenceBuilder;
 import io.sailrocket.core.builders.BaseStepBuilder;
-import io.sailrocket.core.builders.SequenceBuilder;
 import io.sailrocket.core.api.ResourceUtilizer;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -86,7 +88,7 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
       private BiConsumer<Session, HttpRequest> headerAppender;
       private HttpResponseHandler.Builder handler = new HttpResponseHandler.Builder(this);
 
-      public Builder(SequenceBuilder parent, HttpMethod method) {
+      public Builder(BaseSequenceBuilder parent, HttpMethod method) {
          super(parent);
          this.method = method;
       }
@@ -116,8 +118,8 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
       }
 
       @Override
-      public Step build() {
-         return new HttpRequestStep(method, pathGenerator, bodyGenerator, headerAppender, handler.build());
+      public List<Step> build() {
+         return Collections.singletonList(new HttpRequestStep(method, pathGenerator, bodyGenerator, headerAppender, handler.build()));
       }
    }
 }

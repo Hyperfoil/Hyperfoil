@@ -19,24 +19,24 @@ public class SequenceInstance {
       while (currentStep < steps.length) {
          Step step = steps[currentStep];
          if (trace) {
-            log.trace("Preparing step {}", step);
+            log.trace("#{} {} preparing step {}", session.uniqueId(), name, step);
          }
          boolean prepare;
          try {
             prepare = step.prepare(session);
          } catch (Throwable t) {
-            log.error("Failure preparing step {}", t, step);
+            log.error("#{} {} failure preparing step {}", t, session.uniqueId(), name, step);
             session.fail(t);
             return false;
          }
          if (prepare) {
             if (trace) {
-               log.trace("Invoking step {}", step);
+               log.trace("#{} {} invoking step {}", session.uniqueId(), name, step);
             }
             try {
                step.invoke(session);
             } catch (Throwable t) {
-               log.error("Failure invoking step {}", t, step);
+               log.error("{} {} failure invoking step {}", t, session.uniqueId(), name, step);
                session.fail(t);
                return false;
             }
@@ -48,7 +48,7 @@ public class SequenceInstance {
             progressed = true;
          } else {
             if (trace) {
-               log.trace("Blocking because of failed prepare");
+               log.trace("#{} {} blocking because of failed prepare", session.uniqueId(), name);
             }
             return progressed;
          }

@@ -6,7 +6,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
+
 public abstract class Phase {
+   protected static final Logger log = LoggerFactory.getLogger(Phase.class);
+   protected static final boolean trace = log.isTraceEnabled();
+
    protected final String name;
    protected final Scenario scenario;
    protected final long startTime;
@@ -97,18 +103,22 @@ public abstract class Phase {
       assert status == Status.NOT_STARTED;
       status = Status.RUNNING;
       absoluteStartTime = System.currentTimeMillis();
+      log.debug("{} changing status to RUNNING", name);
       proceed(clientPool);
    }
 
    public void finish() {
       assert status == Status.RUNNING;
       status = Status.FINISHED;
+      log.debug("{} changing status to FINISHED", name);
    }
 
    public void terminate() {
       status = Status.TERMINATING;
+      log.debug("{} changing status to TERMINATING", name);
       if (activeSessions.get() == 0) {
          status = Status.TERMINATED;
+         log.debug("{} changing status to TERMINATED", name);
       }
    }
 
@@ -122,13 +132,17 @@ public abstract class Phase {
    public abstract void reserveSessions();
 
    public void notifyFinished(Session session) {
-      if (activeSessions.decrementAndGet() == 0) {
+      int numActive = activeSessions.decrementAndGet();
+      log.trace("{} has {} active sessions", name, numActive);
+      if (numActive == 0) {
          setTerminated();
       }
    }
 
    public void notifyTerminated(Session session) {
-      if (activeSessions.decrementAndGet() == 0) {
+      int numActive = activeSessions.decrementAndGet();
+      log.trace("{} has {} active sessions", name, numActive);
+      if (numActive == 0) {
          setTerminated();
       }
    }
@@ -138,6 +152,7 @@ public abstract class Phase {
       try {
          if (status.isFinished()) {
             status = Status.TERMINATED;
+            log.debug("{} changing status to TERMINATED", name);
             statusCondition.signal();
          }
       } finally {
@@ -235,15 +250,27 @@ public abstract class Phase {
 
       @Override
       protected void proceed(HttpClientPool clientPool) {
+         if (status.isFinished()) {
+            return;
+         }
          long now = System.currentTimeMillis();
-         long delta = now - startTime;
+         long delta = now - absoluteStartTime;
          int required = (int) (delta * initialUsersPerSec + (targetUsersPerSec - initialUsersPerSec) * delta / duration) / 1000;
          for (int i = required - startedUsers; i > 0; --i) {
-            activeSessions.incrementAndGet();
-            sessions.acquire().proceed();
+            int numActive = activeSessions.incrementAndGet();
+            if (trace) {
+               log.trace("{} has {} active sessions", name, numActive);
+            }
+            Session session = sessions.acquire();
+            session.proceed();
          }
          startedUsers = Math.max(startedUsers, required);
-         long nextDelta = 1000 * (startedUsers + 1) * duration / (targetUsersPerSec + initialUsersPerSec * (duration - 1));
+         long denominator = targetUsersPerSec + initialUsersPerSec * (duration - 1);
+         // rounding up, not down as default integer division
+         long nextDelta = (1000 * (startedUsers + 1) * duration + denominator - 1)/ denominator;
+         if (trace) {
+            log.trace("{}: {} after start, {} started, next user in {} ms", name, delta, startedUsers, nextDelta - delta);
+         }
          clientPool.schedule(() -> proceed(clientPool), nextDelta - delta, TimeUnit.MILLISECONDS);
       }
 
@@ -255,6 +282,7 @@ public abstract class Phase {
 
       @Override
       public void notifyFinished(Session session) {
+         session.reset();
          sessions.release(session);
          super.notifyFinished(session);
       }
@@ -271,15 +299,27 @@ public abstract class Phase {
 
       @Override
       protected void proceed(HttpClientPool clientPool) {
+         if (status.isFinished()) {
+            return;
+         }
          long now = System.currentTimeMillis();
-         long delta = now - startTime;
+         long delta = now - absoluteStartTime;
          int required = (int) (delta * usersPerSec / 1000);
          for (int i = required - startedUsers; i > 0; --i) {
-            activeSessions.incrementAndGet();
-            sessions.acquire().proceed();
+            int numActive = activeSessions.incrementAndGet();
+            if (trace) {
+               log.trace("{} has {} active sessions", name, numActive);
+            }
+            Session session = sessions.acquire();
+            session.proceed();
          }
          startedUsers = Math.max(startedUsers, required);
-         long nextDelta = 1000 * (startedUsers + 1) / usersPerSec;
+         // mathematically, the formula below should be 1000 * (startedUsers + 1) / usersPerSec but while
+         // integer division is rounding down, we're trying to round up
+         long nextDelta = (1000 * (startedUsers + 1) + usersPerSec - 1)/ usersPerSec;
+         if (trace) {
+            log.trace("{}: {} after start, {} started, next user in {} ms", name, delta, startedUsers, nextDelta - delta);
+         }
          clientPool.schedule(() -> proceed(clientPool), nextDelta - delta, TimeUnit.MILLISECONDS);
       }
 
@@ -291,6 +331,7 @@ public abstract class Phase {
 
       @Override
       public void notifyFinished(Session session) {
+         session.reset();
          sessions.release(session);
          super.notifyFinished(session);
       }
@@ -307,7 +348,10 @@ public abstract class Phase {
 
       @Override
       protected void proceed(HttpClientPool clientPool) {
-         activeSessions.incrementAndGet();
+         int numActive = activeSessions.incrementAndGet();
+         if (trace) {
+            log.trace("{} has {} active sessions", name, numActive);
+         }
          sessions.acquire().proceed();
       }
 
@@ -320,6 +364,7 @@ public abstract class Phase {
       public void notifyFinished(Session session) {
          if (++counter >= repeats) {
             status = Status.TERMINATING;
+            log.debug("{} changing status to TERMINATING", name);
             super.notifyFinished(session);
          } else {
             session.reset();

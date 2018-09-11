@@ -20,11 +20,13 @@
 
 package io.sailrocket.core.builders;
 
+import java.util.List;
+
 import io.sailrocket.api.Step;
 
 /**
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
  */
 public interface StepBuilder {
-   Step build();
+   List<Step> build();
 }

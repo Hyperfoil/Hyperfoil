@@ -2,6 +2,8 @@ package io.sailrocket.core.session;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.Optional;
 
 import org.junit.Test;
@@ -90,7 +92,7 @@ public class FleetTest extends BaseScenarioTest {
             .endHandler().endStep();
 
       // Passing the ForeachStep as lambda-builder makes shipSequence.build() be evaluated at the end
-      fleetSequence.step(() -> new ForeachStep("shipNames", "numberOfShips", shipSequence.build()));
+      fleetSequence.step(() -> Collections.singletonList(new ForeachStep("shipNames", "numberOfShips", shipSequence.build())));
 
       /// Ship sequence
       shipSequence.step().httpRequest(HttpMethod.GET).pathGenerator(FleetTest::currentShipQuery)
@@ -139,7 +141,7 @@ public class FleetTest extends BaseScenarioTest {
 
    private static String encode(String string) {
       try {
-         return URLEncoder.encode(string, "UTF-8");
+         return URLEncoder.encode(string, StandardCharsets.UTF_8.name());
       } catch (UnsupportedEncodingException e) {
          throw new IllegalArgumentException(e);
       }

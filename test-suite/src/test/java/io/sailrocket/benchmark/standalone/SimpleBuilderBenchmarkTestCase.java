@@ -39,6 +39,7 @@ public class SimpleBuilderBenchmarkTestCase extends BaseBenchmarkTestCase {
                                         .path("foo")
                                         .endStep()
                                 .step().awaitAllResponses()
+                                .end()
                         )
                     )
                 .endPhase()
