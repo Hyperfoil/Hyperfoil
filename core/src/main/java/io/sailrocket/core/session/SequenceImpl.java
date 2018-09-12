@@ -22,6 +22,11 @@ public class SequenceImpl implements Sequence {
    }
 
    @Override
+   public int id() {
+      return id;
+   }
+
+   @Override
    public void instantiate(Session session, int index) {
       SessionImpl impl = (SessionImpl) session;
       SequenceInstance instance = impl.acquireSequence();

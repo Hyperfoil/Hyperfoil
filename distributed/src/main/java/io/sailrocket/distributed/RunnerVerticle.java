@@ -12,7 +12,7 @@ import io.vertx.core.eventbus.EventBus;
 import org.HdrHistogram.ConcurrentHistogram;
 import org.HdrHistogram.Histogram;
 
-import java.util.Collection;
+import java.util.Map;
 
 public class RunnerVerticle extends AbstractVerticle {
 
@@ -37,7 +37,7 @@ public class RunnerVerticle extends AbstractVerticle {
     }
 
     //need a Histogram codec to serialize and deserialize histogram
-    private Collection<Report> startRunner(Benchmark benchmark) {
+    private Map<String, Report> startRunner(Benchmark benchmark) {
         try {
             return benchmark.run();
         } catch (BenchmarkDefinitionException e) {

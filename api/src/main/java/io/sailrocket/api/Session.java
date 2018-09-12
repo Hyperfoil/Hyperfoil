@@ -11,6 +11,8 @@ public interface Session {
    /// Common utility objects
    HttpClientPool httpClientPool();
 
+   Phase phase();
+
    ValidatorResults validatorResults();
 
    Statistics statistics(int sequenceId);

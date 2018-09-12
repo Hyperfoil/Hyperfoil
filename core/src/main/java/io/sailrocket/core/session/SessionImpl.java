@@ -74,6 +74,11 @@ class SessionImpl implements Session, Runnable {
       return httpClientPool;
    }
 
+   @Override
+   public Phase phase() {
+      return phase;
+   }
+
    void registerVar(Var var) {
       allVars.add(var);
    }

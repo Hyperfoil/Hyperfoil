@@ -19,6 +19,8 @@
 package io.sailrocket.api;
 
 import java.util.Collection;
+import java.util.Map;
+import java.util.function.Consumer;
 
 /**
  * Simulation represents a collection of workflows ({@link Scenario} scenarios) against a target application.  
@@ -29,4 +31,10 @@ import java.util.Collection;
 public interface Simulation {
 
     Collection<Phase> phases();
+
+    Map<String, Report> run() throws Exception;
+
+    void shutdown();
+
+    void visitSessions(Consumer<Session> consumer);
 }

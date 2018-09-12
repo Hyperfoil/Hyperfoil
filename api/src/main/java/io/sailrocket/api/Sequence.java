@@ -29,6 +29,8 @@ package io.sailrocket.api;
  */
 public interface Sequence {
 
+    int id();
+
     void instantiate(Session session, int id);
 
     void reserve(Session session);

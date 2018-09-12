@@ -3,15 +3,11 @@ package io.sailrocket.core;
 import io.sailrocket.api.Benchmark;
 import io.sailrocket.api.BenchmarkDefinitionException;
 import io.sailrocket.api.Report;
-import io.sailrocket.api.Statistics;
-import io.sailrocket.core.impl.SimulationImpl;
 import io.sailrocket.core.impl.statistics.PrintStatisticsConsumer;
 
-import java.util.Collection;
+import java.util.Map;
 import java.util.Timer;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
 
 public class BenchmarkImpl extends Benchmark {
     public BenchmarkImpl(String name) {
@@ -19,44 +15,34 @@ public class BenchmarkImpl extends Benchmark {
     }
 
     @Override
-    public Collection<Report> run() throws BenchmarkDefinitionException {
+    public Map<String, Report> run() throws BenchmarkDefinitionException {
 
         if (simulation.phases().isEmpty()) {
             throw new BenchmarkDefinitionException("No phases/scenarios have been defined");
         }
 
         //TODO:: define in builder
-        Consumer<Statistics> printStatsConsumer = new PrintStatisticsConsumer();
+        PrintStatisticsConsumer printStatsConsumer = new PrintStatisticsConsumer(simulation);
 
-        AtomicReference<SimulationImpl> currentLoad = new AtomicReference<>();
         Timer timer = new Timer("console-logger", true);
         timer.schedule(new java.util.TimerTask() {
             @Override
             public void run() {
-                SimulationImpl simulationImpl = currentLoad.get();
-                if (simulationImpl != null) {
-                    simulationImpl.visitStatistics(printStatsConsumer);
-                }
+                System.out.println("Statistics: ");
+                simulation.visitSessions(printStatsConsumer);
+                printStatsConsumer.print();
             }
-        }, TimeUnit.SECONDS.toMillis(5), TimeUnit.SECONDS.toMillis(5));
+        }, TimeUnit.SECONDS.toMillis(3), TimeUnit.SECONDS.toMillis(3));
 
-        currentLoad.set((SimulationImpl) simulation);
-
-
-        Collection<Report> reports = null;
+        Map<String, Report> reports;
         try {
-
-            reports = ((SimulationImpl) simulation).run();
-
-            ((SimulationImpl) simulation).shutdown();
+            reports = simulation.run();
+            simulation.shutdown();
             timer.cancel();
             return reports;
         } catch (Exception e) {
             e.printStackTrace();
             return null;
         }
-
     }
-
-
 }

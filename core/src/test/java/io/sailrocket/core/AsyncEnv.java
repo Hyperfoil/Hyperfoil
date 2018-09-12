@@ -56,11 +56,6 @@ public abstract class AsyncEnv {
         runLatch.countDown();
     }
 
-
-    public int requestCount(){
-        return sequenceStats.requestCount;
-    }
-
     protected volatile int count;
     private Vertx vertx;
     protected HttpClientProvider provider;

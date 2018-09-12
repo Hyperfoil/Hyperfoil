@@ -12,7 +12,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
-import java.util.Collection;
+import java.util.Map;
 
 import static io.sailrocket.core.builders.HttpBuilder.httpBuilder;
 import static io.sailrocket.core.builders.ScenarioBuilder.scenarioBuilder;
@@ -57,9 +57,9 @@ public class SimpleBuilderBenchmarkTestCase extends BaseBenchmarkTestCase {
                         .build();
 
         try {
-            Collection<Report> reports = benchmark.run();
+            Map<String, Report> reports = benchmark.run();
             assertNotEquals(0, reports.size());
-            Histogram histogram = reports.stream().findFirst().get().histogram;
+            Histogram histogram = reports.values().stream().findFirst().get().histogram;
             assertNotEquals(0, histogram.getTotalCount());
             assertNotEquals(1, histogram.getTotalCount());
         } catch (BenchmarkDefinitionException e) {

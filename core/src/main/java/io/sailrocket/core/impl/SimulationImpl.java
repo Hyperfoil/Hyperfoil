@@ -4,7 +4,6 @@ import io.sailrocket.api.HttpClientPool;
 import io.sailrocket.api.Phase;
 import io.sailrocket.api.Report;
 import io.sailrocket.api.Session;
-import io.sailrocket.api.Statistics;
 import io.sailrocket.api.Simulation;
 import io.sailrocket.core.client.HttpClientPoolFactory;
 import io.sailrocket.core.impl.statistics.ReportStatisticsCollector;
@@ -15,6 +14,8 @@ import io.vertx.core.logging.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
@@ -33,7 +34,7 @@ public class SimulationImpl implements Simulation {
     private final JsonObject tags;
 
     private HttpClientPool clientPool;
-    private Collection<Session> sessions = new ArrayList<>();
+    private List<Session> sessions = new ArrayList<>();
 
     private long startTime;
     private long nextPhaseStart;
@@ -56,11 +57,13 @@ public class SimulationImpl implements Simulation {
         return tags;
     }
 
+    @Override
     public void shutdown() {
         clientPool.shutdown();
     }
 
-    public Collection<Report> run() throws Exception {
+    @Override
+    public Map<String, Report> run() throws Exception {
         //Initialise HttpClientPool
         CountDownLatch latch = new CountDownLatch(1);
         clientPool.start(v1 -> {
@@ -126,8 +129,8 @@ public class SimulationImpl implements Simulation {
             }
         } while (phases.stream().anyMatch(phase -> phase.status() != Phase.Status.TERMINATED));
 
-        ReportStatisticsCollector statisticsConsumer = new ReportStatisticsCollector(tags, 0, 0, startTime);
-        visitStatistics(statisticsConsumer);
+        ReportStatisticsCollector statisticsConsumer = new ReportStatisticsCollector(this, tags);
+        visitSessions(statisticsConsumer);
         return statisticsConsumer.reports();
     }
 
@@ -139,12 +142,11 @@ public class SimulationImpl implements Simulation {
               .toArray(Phase[]::new);
     }
 
-    public void visitStatistics(Consumer<Statistics> consumer) {
+    public void visitSessions(Consumer<Session> consumer) {
         synchronized (sessions) {
-            for (Session session : sessions) {
-                for (Statistics statistics : session.statistics()) {
-                    consumer.accept(statistics);
-                }
+            for (int i = 0; i < sessions.size(); i++) {
+                Session session = sessions.get(i);
+                consumer.accept(session);
             }
         }
     }

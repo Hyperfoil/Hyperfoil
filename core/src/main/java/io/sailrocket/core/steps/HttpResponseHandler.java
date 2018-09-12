@@ -139,8 +139,8 @@ public class HttpResponseHandler implements ResourceUtilizer, Session.ResourceKe
       long endTime = System.nanoTime();
       RequestQueue.Request request = session.requestQueue().complete();
       Statistics statistics = session.currentSequence().statistics(session);
-      statistics.histogram.recordValue(endTime - request.startTime);
-      statistics.responseCount++;
+      statistics.recordValue(endTime - request.startTime);
+      statistics.incrementResponses();
 
       boolean headersValid = true;
       if (headerValidators != null) {

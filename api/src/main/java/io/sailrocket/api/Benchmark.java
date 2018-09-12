@@ -20,7 +20,7 @@ package io.sailrocket.api;
 
 
 import java.io.Serializable;
-import java.util.Collection;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -67,7 +67,7 @@ public abstract class Benchmark implements Serializable {
         return this;
     }
 
-    public abstract Collection<Report> run() throws BenchmarkDefinitionException;
+    public abstract Map<String, Report> run() throws BenchmarkDefinitionException;
 
     public String getName() {
         return name;

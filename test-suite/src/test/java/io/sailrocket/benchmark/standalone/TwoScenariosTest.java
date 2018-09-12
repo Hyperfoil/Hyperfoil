@@ -1,4 +1,4 @@
-package io.sailrocket.core.session;
+package io.sailrocket.benchmark.standalone;
 
 import static io.sailrocket.core.builders.HttpBuilder.httpBuilder;
 import static io.sailrocket.core.builders.ScenarioBuilder.scenarioBuilder;
@@ -11,7 +11,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 
 import io.sailrocket.api.BenchmarkDefinitionException;
@@ -22,13 +25,33 @@ import io.sailrocket.core.builders.BenchmarkBuilder;
 import io.sailrocket.core.builders.ScenarioBuilder;
 import io.sailrocket.core.builders.SequenceBuilder;
 import io.sailrocket.core.util.RandomConcurrentSet;
+import io.sailrocket.test.Benchmark;
+import io.vertx.core.Vertx;
+import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import io.vertx.ext.web.Router;
 
 @RunWith(VertxUnitRunner.class)
-public class TwoScenariosTest extends BaseScenarioTest {
+@Category(Benchmark.class)
+public class TwoScenariosTest {
+   protected Vertx vertx;
+   protected Router router;
+
    private ConcurrentMap<String, SailsState> serverState = new ConcurrentHashMap<>();
 
-   @Override
+   @Before
+   public void before(TestContext ctx) {
+      vertx = Vertx.vertx();
+      router = Router.router(vertx);
+      initRouter();
+      vertx.createHttpServer().requestHandler(router::accept).listen(8080, "localhost", ctx.asyncAssertSuccess());
+   }
+
+   @After
+   public void after(TestContext ctx) {
+      vertx.close(ctx.asyncAssertSuccess());
+   }
+
    protected void initRouter() {
       router.route("/board").handler(ctx -> ctx.response().end("Ahoy!"));
       router.route("/rig").handler(ctx -> {

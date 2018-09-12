@@ -18,24 +18,23 @@
  */
 package io.sailrocket.core.impl.statistics;
 
-import io.sailrocket.api.Statistics;
-import org.HdrHistogram.Histogram;
+import io.sailrocket.api.Simulation;
 
-import java.util.function.Consumer;
+public class PrintStatisticsConsumer extends StatisticsAggregator {
+    public PrintStatisticsConsumer(Simulation simulation) {
+        super(simulation);
+    }
 
-public class PrintStatisticsConsumer implements Consumer<Statistics> {
-    @Override
-    public void accept(Statistics statistics) {
-        Histogram histogramCopy = statistics.histogram.copy();
-        System.out.format("%s : total requests/responses %d, max %.2f, min %.2f, mean %.2f, 90th centile: %.2f%n",
-                statistics.histogram.toString(),
-                statistics.requestCount,
-                histogramCopy.getMaxValue() / 1_000_000.0,
-                histogramCopy.getMinValue() / 1_000_000.0,
-                histogramCopy.getMean() / 1_000_000.0,
-                histogramCopy.getValueAtPercentile(99.0) / 1_000_000.0
-
-        );
-
+    public void print() {
+        visitStatistics(((phase, sequence, snapshot) -> {
+            System.out.format("%s/%s : total requests/responses %d, max %.2f, min %.2f, mean %.2f, 90th centile: %.2f%n",
+                  phase.name(), sequence.name(),
+                  snapshot.requestCount,
+                  snapshot.histogram.getMaxValue() / 1_000_000.0,
+                  snapshot.histogram.getMinValue() / 1_000_000.0,
+                  snapshot.histogram.getMean() / 1_000_000.0,
+                  snapshot.histogram.getValueAtPercentile(99.0) / 1_000_000.0
+            );
+        }));
     }
 }

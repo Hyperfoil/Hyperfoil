@@ -5,7 +5,6 @@ import io.sailrocket.api.HttpMethod;
 import io.sailrocket.api.Phase;
 import io.sailrocket.api.Report;
 import io.sailrocket.api.Scenario;
-import io.sailrocket.api.Statistics;
 import io.sailrocket.core.builders.ScenarioBuilder;
 import io.sailrocket.core.builders.SequenceBuilder;
 import io.sailrocket.core.client.HttpClientPoolFactory;
@@ -15,7 +14,6 @@ import io.sailrocket.core.impl.statistics.PrintStatisticsConsumer;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpVersion;
 import io.vertx.core.json.JsonObject;
-import org.HdrHistogram.Histogram;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -23,11 +21,10 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Timer;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
 
 /**
  * Todo : use pool buffers wherever possible
@@ -118,7 +115,7 @@ public class CliBenchmarkRunner {
         return unit.toNanos(Long.parseLong(prefix));
     }
 
-    public Histogram run() throws Exception {
+    public void run() throws Exception {
         if (tagString != null) {
             for (String tag : tagString.split(",")) {
                 String[] components = tag.trim().split("=");
@@ -164,21 +161,6 @@ public class CliBenchmarkRunner {
         String path = absoluteURI.getPath();
         boolean ssl = absoluteURI.getScheme().equals("https");
 
-        //TODO:: define in builder
-        Consumer<Statistics> printStatsConsumer = new PrintStatisticsConsumer();
-
-        AtomicReference<SimulationImpl> currentLoad = new AtomicReference<>();
-        Timer timer = new Timer("console-logger", true);
-        timer.schedule(new java.util.TimerTask() {
-            @Override
-            public void run() {
-                SimulationImpl simulationImpl = currentLoad.get();
-                if (simulationImpl != null) {
-                    simulationImpl.visitStatistics(printStatsConsumer);
-                }
-            }
-        }, TimeUnit.SECONDS.toMillis(5), TimeUnit.SECONDS.toMillis(5));
-
         HttpClientPoolFactory httpClientPoolFactory = provider.builder()
                 .threads(threads)
                 .ssl(ssl)
@@ -198,28 +180,41 @@ public class CliBenchmarkRunner {
         StringBuilder ratesChart = new StringBuilder();
         StringBuilder histoChart = new StringBuilder();
         StringBuilder allReport = new StringBuilder();
-        Report report = new Report(tags);
-        allReport.append(report.header());
+        allReport.append(new Report(tags).header());
         double[] percentiles = {50, 90, 99, 99.9};
         for (int rate : rates) {
             tags.put("rate", rate);
             tags.put("threads", threads);
             //build simple simulation with one step
             SimulationImpl simulationImpl = buildSimulation(threads, rate, duration, warmup, httpClientPoolFactory, path, payload, tags);
-            currentLoad.set(simulationImpl);
-            report = simulationImpl.run().stream().findFirst().get();
-            currentLoad.set(null);
-            if (out != null) {
-                report.save(out + "_" + rate);
+
+            PrintStatisticsConsumer printStatsConsumer = new PrintStatisticsConsumer(simulationImpl);
+            Timer timer = new Timer("console-logger", true);
+            timer.schedule(new java.util.TimerTask() {
+                @Override
+                public void run() {
+                    simulationImpl.visitSessions(printStatsConsumer);
+                    printStatsConsumer.print();
+                }
+            }, TimeUnit.SECONDS.toMillis(5), TimeUnit.SECONDS.toMillis(5));
+
+            for (Map.Entry<String, Report> reportEntry : simulationImpl.run().entrySet()) {
+                String reportName = reportEntry.getKey(); // TODO
+                Report report = reportEntry.getValue();
+                if (out != null) {
+                    report.save(out + "_" + rate);
+                }
+                ratesChart.append(rate).append(",").append(report.ratio).append("\n");
+                histoChart.append(rate);
+                for (double percentile : percentiles) {
+                    histoChart.append(",").append(report.getResponseTimeMillisPercentile(percentile));
+                }
+                histoChart.append(",").append(report.getMaxResponseTimeMillis());
+                histoChart.append("\n");
+                allReport.append(report.format(null));
             }
-            ratesChart.append(rate).append(",").append(report.ratio).append("\n");
-            histoChart.append(rate);
-            for (double percentile : percentiles) {
-                histoChart.append(",").append(report.getResponseTimeMillisPercentile(percentile));
-            }
-            histoChart.append(",").append(report.getMaxResponseTimeMillis());
-            histoChart.append("\n");
-            allReport.append(report.format(null));
+
+            timer.cancel();
         }
 
         if (out != null) {
@@ -234,8 +229,6 @@ public class CliBenchmarkRunner {
             }
         }
         httpClientPoolFactory.shutdown();
-        timer.cancel();
-        return report.histogram;
     }
 
     private SimulationImpl buildSimulation(int threads, int rate, long duration, long warmup,

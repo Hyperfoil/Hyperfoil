@@ -18,72 +18,45 @@
  */
 package io.sailrocket.core.impl.statistics;
 
+import io.sailrocket.api.Phase;
 import io.sailrocket.api.Report;
-import io.sailrocket.api.Statistics;
+import io.sailrocket.api.Sequence;
+import io.sailrocket.api.Simulation;
+import io.sailrocket.api.StatisticsSnapshot;
 import io.vertx.core.json.JsonObject;
-import org.HdrHistogram.Histogram;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 
-public class ReportStatisticsCollector implements Consumer<Statistics> {
+public class ReportStatisticsCollector extends StatisticsAggregator {
+    private JsonObject tags;
 
-    private Map<Statistics, Report> reportMap;
-    JsonObject tags;
-    private long rate;
-    private long duration;
-    private long startTime;
-
-    public ReportStatisticsCollector(JsonObject tags, long rate, long duration, long startTime) {
+    public ReportStatisticsCollector(Simulation simulation, JsonObject tags) {
+        super(simulation);
         this.tags = tags;
-        this.rate = rate;
-        this.duration = duration;
-        this.startTime = startTime;
-        reportMap = new HashMap<>();
     }
 
-    @Override
-    public void accept(Statistics statistics) {
+    public Map<String, Report> reports() {
+        Map<String, Report> reportMap = new HashMap<>();
+        visitStatistics((phase, sequence, snapshot) -> addReport(reportMap, phase, sequence, snapshot));
+        return reportMap;
+    }
 
-        Report statisticsReport = new Report(tags);
-
-        long expectedRequests = rate * TimeUnit.NANOSECONDS.toSeconds(duration);
-        long elapsed = System.nanoTime() - startTime;
-        Histogram cp = statistics.histogram.copy();
-        cp.setStartTimeStamp(TimeUnit.NANOSECONDS.toMillis(startTime));
-        cp.setEndTimeStamp(TimeUnit.NANOSECONDS.toMillis(System.nanoTime()));
-        statisticsReport.measures(
-                expectedRequests,
-                elapsed,
-                cp,
-                statistics.responseCount,
-                ratio(statistics),
-                statistics.connectFailureCount,
-                statistics.resetCount,
-                statistics.resetCount,
-                statistics.statuses(),
-                0, //clientPool.bytesRead(),  //TODO::get bytes from client pool
-                0  //clientPool.bytesWritten()
+    private void addReport(Map<String, Report> reportMap, Phase phase, Sequence sequence, StatisticsSnapshot snapshot) {
+        Report report = new Report(tags);
+        report.measures(
+              0,
+              0,
+              snapshot.histogram,
+              snapshot.responseCount,
+              0,
+              snapshot.connectFailureCount,
+              snapshot.resetCount,
+              snapshot.requestCount,
+              snapshot.statuses(),
+              0, //clientPool.bytesRead(),  //TODO::get bytes from client pool
+              0  //clientPool.bytesWritten()
         );
-
-        reportMap.putIfAbsent(statistics, statisticsReport);
-    }
-
-    //TODO: move this calc
-    private double ratio(Statistics sequenceStats) {
-        long end = Math.min(System.nanoTime(), startTime + duration);
-        long expected = rate * (end - startTime) / 1000000000;
-        return sequenceStats.requestCount / (double) expected;
-    }
-
-    public Report getFirstReport(){
-        return reportMap.values().stream().findFirst().get();
-    }
-
-    public Collection<Report> reports() {
-        return reportMap.values();
+        reportMap.put(phase.name() + "/" + sequence.name(), report);
     }
 }
