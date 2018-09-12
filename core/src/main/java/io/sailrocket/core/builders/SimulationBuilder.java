@@ -20,20 +20,20 @@
 
 package io.sailrocket.core.builders;
 
+import io.sailrocket.api.BenchmarkDefinitionException;
 import io.sailrocket.api.Phase;
+import io.sailrocket.api.Simulation;
 import io.sailrocket.core.client.HttpClientPoolFactory;
 import io.sailrocket.core.client.HttpClientProvider;
 import io.sailrocket.core.impl.SimulationImpl;
 import io.sailrocket.spi.HttpBase;
 import io.vertx.core.json.JsonObject;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 /**
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
@@ -45,9 +45,6 @@ public class SimulationBuilder {
     private int concurrency = 1;
     private int threads = 1;
     private Map<String, PhaseBuilder> phaseBuilders = new HashMap<>();
-    private Set<PhaseBuilder> activeBuilders = new LinkedHashSet<>();
-    private Map<String, Phase> phases = new HashMap<>();
-    //also support an endpoint for a simple benchmark
 
     private SimulationBuilder() {
     }
@@ -85,23 +82,21 @@ public class SimulationBuilder {
         return new PhaseBuilder.Discriminator(this, name);
     }
 
-    public SimulationImpl build() {
-        for (PhaseBuilder builder : this.phaseBuilders.values()) {
-            // phase might be created by its dependency
-            if (phases.containsKey(builder.name)) continue;
-            if (!activeBuilders.add(builder)) {
-                throw new IllegalArgumentException("Phase builder '" + builder.name + "' already active");
+    public Simulation build() {
+        Collection<Phase> phases = new ArrayList<>();
+        for (PhaseBuilder<?> builder : this.phaseBuilders.values()) {
+            for (String dep : builder.startAfter) {
+                if (!phaseBuilders.containsKey(dep)) {
+                    throw new BenchmarkDefinitionException("Phase " + dep + " not defined");
+                }
             }
-            try {
-                phases.put(builder.name, builder.build());
-            } finally {
-                activeBuilders.remove(builder);
+            for (String dep : builder.startAfterStrict) {
+                if (!phaseBuilders.containsKey(dep)) {
+                    throw new BenchmarkDefinitionException("Phase " + dep + " not defined");
+                }
             }
+            phases.add(builder.build());
         }
-        assert activeBuilders.isEmpty();
-        Collection<Phase> phases = this.phases.values();
-        // prevent re-use of phases
-        this.phases = new HashMap<>();
         return new SimulationImpl(buildClientPoolFactory(), phases, buildTags());
     }
 
@@ -126,29 +121,6 @@ public class SimulationBuilder {
         tags.put("threads", threads);
 
         return tags;
-    }
-
-    Collection<Phase> getPhases(Collection<String> phases) {
-        return phases.stream().map(name -> {
-            Phase phase = this.phases.get(name);
-            if (phase != null) {
-                return phase;
-            }
-            PhaseBuilder builder = phaseBuilders.get(name);
-            if (builder == null) {
-                throw new IllegalArgumentException("There's no phase '" + name + "'");
-            }
-            if (!activeBuilders.add(builder)) {
-                throw new IllegalArgumentException("Recursion in phase dependencies requesting '" + name + "', chain is " + activeBuilders);
-            }
-            try {
-                phase = builder.build();
-            } finally {
-                activeBuilders.remove(builder);
-            }
-            this.phases.put(builder.name, phase);
-            return phase;
-        }).collect(Collectors.toList());
     }
 
     void addPhase(String name, PhaseBuilder phaseBuilder) {

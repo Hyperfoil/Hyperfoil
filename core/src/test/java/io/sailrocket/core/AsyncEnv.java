@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
 @RunWith(VertxUnitRunner.class)
+@Deprecated
 public abstract class AsyncEnv {
 
     protected static final int ASYNC_THREADS = 4;

@@ -7,7 +7,9 @@ import java.util.Map;
 
 import io.sailrocket.api.HttpClientPool;
 import io.sailrocket.api.Phase;
+import io.sailrocket.core.api.PhaseInstance;
 import io.sailrocket.api.RequestQueue;
+import io.sailrocket.api.Scenario;
 import io.sailrocket.api.Sequence;
 import io.sailrocket.api.SequenceInstance;
 import io.sailrocket.api.Session;
@@ -30,7 +32,7 @@ class SessionImpl implements Session, Runnable {
    private final RequestQueueImpl requestQueue;
    private final Pool<SequenceInstance> sequencePool;
    private final SequenceInstance[] runningSequences;
-   private final Phase phase;
+   private final PhaseInstance phase;
    private int lastRunningSequence = -1;
    private SequenceInstance currentSequence;
 
@@ -38,28 +40,29 @@ class SessionImpl implements Session, Runnable {
    private final Statistics[] statistics;
    private final int uniqueId;
 
-   public SessionImpl(HttpClientPool httpClientPool, Phase phase, int uniqueId) {
+   public SessionImpl(HttpClientPool httpClientPool, PhaseInstance phase, int uniqueId) {
+      Scenario scenario = phase.definition().scenario();
       this.httpClientPool = httpClientPool;
-      this.requestQueue = new RequestQueueImpl(phase.scenario().maxRequests());
-      this.sequencePool = new Pool<>(phase.scenario().maxSequences(), SequenceInstance::new);
-      this.runningSequences = new SequenceInstance[phase.scenario().maxSequences()];
+      this.requestQueue = new RequestQueueImpl(scenario.maxRequests());
+      this.sequencePool = new Pool<>(scenario.maxSequences(), SequenceInstance::new);
+      this.runningSequences = new SequenceInstance[scenario.maxSequences()];
       this.phase = phase;
       this.uniqueId = uniqueId;
 
-      Sequence[] sequences = phase.scenario().sequences();
+      Sequence[] sequences = scenario.sequences();
       statistics = new Statistics[sequences.length];
       for (int i = 0; i < sequences.length; i++) {
          Sequence sequence = sequences[i];
          sequence.reserve(this);
          statistics[i] = new Statistics();
       }
-      for (String var : phase.scenario().objectVars()) {
+      for (String var : scenario.objectVars()) {
          declare(var);
       }
-      for (String var : phase.scenario().intVars()) {
+      for (String var : scenario.intVars()) {
          declareInt(var);
       }
-      for (Sequence sequence : phase.scenario().initialSequences()) {
+      for (Sequence sequence : scenario.initialSequences()) {
          sequence.instantiate(this, 0);
       }
    }
@@ -76,7 +79,7 @@ class SessionImpl implements Session, Runnable {
 
    @Override
    public Phase phase() {
-      return phase;
+      return phase.definition();
    }
 
    void registerVar(Var var) {
@@ -182,9 +185,9 @@ class SessionImpl implements Session, Runnable {
       while (lastRunningSequence >= 0) {
          boolean progressed = false;
          for (int i = 0; i <= lastRunningSequence; ++i) {
-            if (phase.status() == Phase.Status.TERMINATING) {
+            if (phase.status() == PhaseInstance.Status.TERMINATING) {
                if (trace) {
-                  log.trace("#{} Phase {} is terminating", uniqueId, phase.name());
+                  log.trace("#{} Phase {} is terminating", uniqueId, phase.definition().name());
                }
                phase.notifyTerminated(this);
                return;
@@ -210,7 +213,7 @@ class SessionImpl implements Session, Runnable {
             currentSequence(null);
          }
          if (!progressed && lastRunningSequence >= 0) {
-            log.trace("#{} ({}) no progress, not finished.", uniqueId, phase.name());
+            log.trace("#{} ({}) no progress, not finished.", uniqueId, phase.definition().name());
             return;
          }
       }
@@ -256,16 +259,16 @@ class SessionImpl implements Session, Runnable {
       }
       // TODO should we reset stats here?
       if (trace) {
-         log.trace("#{} Commencing new execution of {}", uniqueId, phase.name());
+         log.trace("#{} Commencing new execution of {}", uniqueId, phase.definition().name());
       }
-      for (Sequence sequence : phase.scenario().initialSequences()) {
+      for (Sequence sequence : phase.definition().scenario().initialSequences()) {
          sequence.instantiate(this, 0);
       }
    }
 
    @Override
    public void nextSequence(String name) {
-      phase.scenario().sequence(name).instantiate(this, 0);
+      phase.definition().scenario().sequence(name).instantiate(this, 0);
    }
 
    @Override

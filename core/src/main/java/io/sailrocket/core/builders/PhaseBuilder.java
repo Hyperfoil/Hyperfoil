@@ -109,8 +109,8 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
       }
 
       @Override
-      public Phase build() {
-         return new Phase.AtOnce(name, scenario, startTime, parent.getPhases(startAfter), parent.getPhases(startAfterStrict), duration, maxDuration, users);
+      public Phase.AtOnce build() {
+         return new Phase.AtOnce(name, scenario, startTime, startAfter, startAfterStrict, duration, maxDuration, users);
       }
    }
 
@@ -123,12 +123,12 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
       }
 
       @Override
-      public Phase build() {
-         return new Phase.Always(name, scenario, startTime, parent.getPhases(startAfter), parent.getPhases(startAfterStrict), duration, maxDuration, users);
+      public Phase.Always build() {
+         return new Phase.Always(name, scenario, startTime, startAfter, startAfterStrict, duration, maxDuration, users);
       }
    }
 
-   public static class RampPerSec extends PhaseBuilder {
+   public static class RampPerSec extends PhaseBuilder<RampPerSec> {
       private final int initialUsersPerSec;
       private final int targetUsersPerSec;
       private int maxSessionsEstimate;
@@ -145,14 +145,14 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
       }
 
       @Override
-      public Phase build() {
-         return new Phase.RampPerSec(name, scenario, startTime, parent.getPhases(startAfter),
-               parent.getPhases(startAfterStrict), duration, maxDuration, initialUsersPerSec, targetUsersPerSec,
+      public Phase.RampPerSec build() {
+         return new Phase.RampPerSec(name, scenario, startTime, startAfter, startAfterStrict,
+               duration, maxDuration, initialUsersPerSec, targetUsersPerSec,
                maxSessionsEstimate <= 0 ? Math.max(initialUsersPerSec, targetUsersPerSec) : maxSessionsEstimate);
       }
    }
 
-   public static class ConstantPerSec extends PhaseBuilder {
+   public static class ConstantPerSec extends PhaseBuilder<ConstantPerSec> {
       private final int usersPerSec;
       private int maxSessionsEstimate;
 
@@ -167,9 +167,9 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
       }
 
       @Override
-      public Phase build() {
-         return new Phase.ConstantPerSec(name, scenario, startTime, parent.getPhases(startAfter),
-               parent.getPhases(startAfterStrict), duration, maxDuration, usersPerSec,
+      public Phase.ConstantPerSec build() {
+         return new Phase.ConstantPerSec(name, scenario, startTime, startAfter,
+               startAfterStrict, duration, maxDuration, usersPerSec,
                maxSessionsEstimate <= 0 ? usersPerSec : maxSessionsEstimate);
       }
    }

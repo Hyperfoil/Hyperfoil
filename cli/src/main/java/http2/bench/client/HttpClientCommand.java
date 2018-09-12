@@ -1,7 +1,6 @@
 package http2.bench.client;
 
 import io.sailrocket.core.client.HttpClientProvider;
-import http2.bench.CliBenchmarkRunner;
 import io.vertx.core.http.HttpVersion;
 import org.aesh.command.Command;
 import org.aesh.command.CommandDefinition;
@@ -13,7 +12,6 @@ import org.aesh.command.option.Arguments;
 import org.aesh.command.option.Option;
 import org.aesh.command.validator.OptionValidatorException;
 
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -63,28 +61,6 @@ public class HttpClientCommand implements Command {
 
     @Override
     public CommandResult execute(CommandInvocation commandInvocation) {
-
-        CliBenchmarkRunner cliBenchmarkRunner = new CliBenchmarkRunner(
-                provider,
-                protocol,
-                durationParam,
-                connections,
-                out,
-                bodyParam,
-                concurrency,
-                uriParam,
-                Collections.singletonList(rates),
-                warmupParam,
-                threads,
-                tagString
-        );
-
-        try {
-            cliBenchmarkRunner.run();
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-        }
         return CommandResult.SUCCESS;
     }
 

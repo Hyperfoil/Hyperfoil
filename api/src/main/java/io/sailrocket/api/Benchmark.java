@@ -34,7 +34,6 @@ public abstract class Benchmark implements Serializable {
     protected Set<Result> resultSet;
     protected String[] hosts;
     protected SLA[] slas;
-//    protected Phase[] phases;
     protected int users;
     protected Simulation simulation;
 
@@ -67,7 +66,7 @@ public abstract class Benchmark implements Serializable {
         return this;
     }
 
-    public abstract Map<String, Report> run() throws BenchmarkDefinitionException;
+    public abstract Map<String, Report> run();
 
     public String getName() {
         return name;

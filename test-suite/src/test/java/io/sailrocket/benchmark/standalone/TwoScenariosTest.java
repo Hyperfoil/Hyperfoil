@@ -17,7 +17,6 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 
-import io.sailrocket.api.BenchmarkDefinitionException;
 import io.sailrocket.api.HttpMethod;
 import io.sailrocket.api.Simulation;
 import io.sailrocket.core.BenchmarkImpl;
@@ -74,7 +73,7 @@ public class TwoScenariosTest {
    }
 
    @Test
-   public void testRandomDecision() throws BenchmarkDefinitionException {
+   public void testRandomDecision() {
       // We have two options when simulating 'some users rigging and sailing ships'
       // * shared state of all ships (requires synchronization)
       // ** one option is to pick id from pool at the beginning

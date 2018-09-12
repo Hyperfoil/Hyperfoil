@@ -23,17 +23,13 @@ import io.sailrocket.api.Report;
 import io.sailrocket.api.Sequence;
 import io.sailrocket.api.Simulation;
 import io.sailrocket.api.StatisticsSnapshot;
-import io.vertx.core.json.JsonObject;
 
 import java.util.HashMap;
 import java.util.Map;
 
 public class ReportStatisticsCollector extends StatisticsAggregator {
-    private JsonObject tags;
-
-    public ReportStatisticsCollector(Simulation simulation, JsonObject tags) {
+    public ReportStatisticsCollector(Simulation simulation) {
         super(simulation);
-        this.tags = tags;
     }
 
     public Map<String, Report> reports() {
@@ -43,7 +39,7 @@ public class ReportStatisticsCollector extends StatisticsAggregator {
     }
 
     private void addReport(Map<String, Report> reportMap, Phase phase, Sequence sequence, StatisticsSnapshot snapshot) {
-        Report report = new Report(tags);
+        Report report = new Report(simulation.tags());
         report.measures(
               0,
               0,

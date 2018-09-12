@@ -10,10 +10,12 @@ import org.junit.Before;
 
 import io.sailrocket.api.HttpClientPool;
 import io.sailrocket.api.Phase;
+import io.sailrocket.core.api.PhaseInstance;
 import io.sailrocket.api.Scenario;
 import io.sailrocket.api.Session;
 import io.sailrocket.core.client.HttpClientProvider;
 import io.sailrocket.core.impl.ConcurrentPoolImpl;
+import io.sailrocket.core.impl.PhaseInstanceImpl;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpVersion;
 import io.vertx.core.logging.Logger;
@@ -30,11 +32,11 @@ public abstract class BaseScenarioTest {
    protected Router router;
 
    public void runScenario(Scenario scenario, int repeats) {
-      Phase phase;
+      PhaseInstance phase;
       if (repeats <= 0) {
-         phase = new Phase.Always("test", scenario, 0, Collections.emptyList(), Collections.emptyList(), Long.MAX_VALUE, -1, 1);
+         phase = new PhaseInstanceImpl.Always(new Phase.Always("test", scenario, 0, Collections.emptyList(), Collections.emptyList(), Long.MAX_VALUE, -1, 1));
       } else {
-         phase = new Phase.Sequentially("test", scenario, 0, Collections.emptyList(), Collections.emptyList(), Long.MAX_VALUE, -1, repeats);
+         phase = new PhaseInstanceImpl.Sequentially(new Phase.Sequentially("test", scenario, 0, Collections.emptyList(), Collections.emptyList(), Long.MAX_VALUE, -1, repeats));
       }
       ReentrantLock statusLock = new ReentrantLock();
       Condition statusCondition = statusLock.newCondition();
@@ -44,7 +46,7 @@ public abstract class BaseScenarioTest {
       phase.start(httpClientPool);
       statusLock.lock();
       try {
-         while (phase.status() != Phase.Status.TERMINATED) {
+         while (phase.status() != PhaseInstance.Status.TERMINATED) {
             try {
                if (!statusCondition.await(30, TimeUnit.SECONDS)) {
                   throw new AssertionError();

@@ -21,9 +21,9 @@
 package io.sailrocket.core.builder;
 
 import io.sailrocket.api.HttpMethod;
+import io.sailrocket.api.Simulation;
 import io.sailrocket.core.BenchmarkImpl;
 import io.sailrocket.core.builders.BenchmarkBuilder;
-import io.sailrocket.core.impl.SimulationImpl;
 
 import org.junit.Test;
 
@@ -41,7 +41,7 @@ public class BuilderTest {
     @Test
     public void testBuilders() {
 
-        SimulationImpl simulation = simulationBuilder()
+        Simulation simulation = simulationBuilder()
                 .http(httpBuilder().baseUrl("http://localhost:8080"))
                 .concurrency(10)
                 .connections(1)

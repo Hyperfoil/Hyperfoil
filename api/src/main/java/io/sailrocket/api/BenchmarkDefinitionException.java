@@ -18,7 +18,7 @@
  */
 package io.sailrocket.api;
 
-public class BenchmarkDefinitionException extends Throwable {
+public class BenchmarkDefinitionException extends RuntimeException {
     public BenchmarkDefinitionException(String msg) {
         super(msg);
     }

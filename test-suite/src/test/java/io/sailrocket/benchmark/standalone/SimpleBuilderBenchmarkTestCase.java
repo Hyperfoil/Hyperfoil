@@ -3,9 +3,9 @@ package io.sailrocket.benchmark.standalone;
 import io.sailrocket.api.BenchmarkDefinitionException;
 import io.sailrocket.api.HttpMethod;
 import io.sailrocket.api.Report;
+import io.sailrocket.api.Simulation;
 import io.sailrocket.core.BenchmarkImpl;
 import io.sailrocket.core.builders.BenchmarkBuilder;
-import io.sailrocket.core.impl.SimulationImpl;
 import io.sailrocket.test.Benchmark;
 import org.HdrHistogram.Histogram;
 import org.junit.Assert;
@@ -27,7 +27,7 @@ public class SimpleBuilderBenchmarkTestCase extends BaseBenchmarkTestCase {
     @Test
     public void runSimpleBenchmarkTest() {
 
-        SimulationImpl simulation = simulationBuilder()
+        Simulation simulation = simulationBuilder()
                 .http(httpBuilder().baseUrl("http://localhost:8080"))
                 .concurrency(10)
                 .connections(10)

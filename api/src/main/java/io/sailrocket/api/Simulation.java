@@ -19,8 +19,8 @@
 package io.sailrocket.api;
 
 import java.util.Collection;
-import java.util.Map;
-import java.util.function.Consumer;
+
+import io.vertx.core.json.JsonObject;
 
 /**
  * Simulation represents a collection of workflows ({@link Scenario} scenarios) against a target application.  
@@ -32,9 +32,5 @@ public interface Simulation {
 
     Collection<Phase> phases();
 
-    Map<String, Report> run() throws Exception;
-
-    void shutdown();
-
-    void visitSessions(Consumer<Session> consumer);
+    JsonObject tags();
 }
