@@ -62,9 +62,8 @@ public class BuilderTest {
         assertEquals("http://localhost:8080/", simulation.tags().getString("url"));
         assertEquals(10, simulation.tags().getInteger("maxQueue").intValue());
         assertEquals(1, simulation.tags().getInteger("connections").intValue());
-        assertEquals(101, simulation.tags().getInteger("rate").intValue());
         assertEquals(1, simulation.phases().size());
-        assertEquals(3000000000L, simulation.phases().stream().findFirst().get().duration());
+        assertEquals(3000L, simulation.phases().stream().findFirst().get().duration());
 
         BenchmarkImpl benchmark =
                 BenchmarkBuilder.builder()
