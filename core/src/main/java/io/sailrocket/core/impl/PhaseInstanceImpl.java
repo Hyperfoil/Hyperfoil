@@ -1,5 +1,14 @@
 package io.sailrocket.core.impl;
 
+import io.sailrocket.api.BenchmarkDefinitionException;
+import io.sailrocket.api.ConcurrentPool;
+import io.sailrocket.api.HttpClientPool;
+import io.sailrocket.api.Phase;
+import io.sailrocket.api.Session;
+import io.sailrocket.core.api.PhaseInstance;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -7,15 +16,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.function.Function;
-
-import io.sailrocket.api.BenchmarkDefinitionException;
-import io.sailrocket.api.ConcurrentPool;
-import io.sailrocket.api.HttpClientPool;
-import io.sailrocket.api.Phase;
-import io.sailrocket.core.api.PhaseInstance;
-import io.sailrocket.api.Session;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 
 public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstance {
    protected static final Logger log = LoggerFactory.getLogger(PhaseInstanceImpl.class);
@@ -110,7 +110,9 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
    public void notifyFinished(Session session) {
       int numActive = activeSessions.decrementAndGet();
       log.trace("{} has {} active sessions", def.name, numActive);
-      if (numActive == 0) {
+      if (numActive < 0)
+         log.error("{} has {} active sessions", def.name, numActive);
+      if (numActive <= 0) {
          setTerminated();
       }
    }
@@ -119,7 +121,9 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
    public void notifyTerminated(Session session) {
       int numActive = activeSessions.decrementAndGet();
       log.trace("{} has {} active sessions", def.name, numActive);
-      if (numActive == 0) {
+      if (numActive < 0)
+         log.error("{} has {} active sessions", def.name, numActive);
+      if (numActive <= 0) {
          setTerminated();
       }
    }
@@ -191,6 +195,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       @Override
       public void notifyFinished(Session session) {
          if (status.isFinished()) {
+            log.trace("notifyFinished session #{}", session.uniqueId());
             super.notifyFinished(session);
          } else {
             session.reset();
@@ -245,6 +250,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       public void notifyFinished(Session session) {
          session.reset();
          sessions.release(session);
+         log.trace("notifyFinished session #{}", session.uniqueId());
          super.notifyFinished(session);
       }
    }
@@ -295,6 +301,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       public void notifyFinished(Session session) {
          session.reset();
          sessions.release(session);
+         log.trace("notifyFinished session #{}", session.uniqueId());
          super.notifyFinished(session);
       }
    }

@@ -1,13 +1,7 @@
 package io.sailrocket.core.session;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import io.sailrocket.api.HttpClientPool;
 import io.sailrocket.api.Phase;
-import io.sailrocket.core.api.PhaseInstance;
 import io.sailrocket.api.RequestQueue;
 import io.sailrocket.api.Scenario;
 import io.sailrocket.api.Sequence;
@@ -15,8 +9,14 @@ import io.sailrocket.api.SequenceInstance;
 import io.sailrocket.api.Session;
 import io.sailrocket.api.Statistics;
 import io.sailrocket.api.ValidatorResults;
+import io.sailrocket.core.api.PhaseInstance;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 class SessionImpl implements Session, Runnable {
    private static final Logger log = LoggerFactory.getLogger(SessionImpl.class);
@@ -181,6 +181,11 @@ class SessionImpl implements Session, Runnable {
    }
 
    public void run() {
+      if (phase.status() == PhaseInstance.Status.TERMINATED ) {
+         log.trace("called run on terminated session #{}", uniqueId);
+         return;
+      }
+      log.trace("run session #{}", uniqueId);
       int lastProgressedSequence = -1;
       while (lastRunningSequence >= 0) {
          boolean progressed = false;
@@ -217,6 +222,7 @@ class SessionImpl implements Session, Runnable {
             return;
          }
       }
+      log.trace("notifyFinished session #{}", uniqueId);
       phase.notifyFinished(this);
    }
 

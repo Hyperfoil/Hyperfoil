@@ -1,18 +1,10 @@
 package io.sailrocket.core.session;
 
-import java.util.Collections;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.ReentrantLock;
-
-import org.junit.After;
-import org.junit.Before;
-
 import io.sailrocket.api.HttpClientPool;
 import io.sailrocket.api.Phase;
-import io.sailrocket.core.api.PhaseInstance;
 import io.sailrocket.api.Scenario;
 import io.sailrocket.api.Session;
+import io.sailrocket.core.api.PhaseInstance;
 import io.sailrocket.core.client.HttpClientProvider;
 import io.sailrocket.core.impl.ConcurrentPoolImpl;
 import io.sailrocket.core.impl.PhaseInstanceImpl;
@@ -23,6 +15,13 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.web.Router;
+import org.junit.After;
+import org.junit.Before;
+
+import java.util.Collections;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 
 public abstract class BaseScenarioTest {
    protected final Logger log = LoggerFactory.getLogger(getClass());
@@ -49,7 +48,7 @@ public abstract class BaseScenarioTest {
          while (phase.status() != PhaseInstance.Status.TERMINATED) {
             try {
                if (!statusCondition.await(30, TimeUnit.SECONDS)) {
-                  throw new AssertionError();
+                  throw new AssertionError("statusCondition timeout");
                }
             } catch (InterruptedException e) {
                throw new AssertionError(e);

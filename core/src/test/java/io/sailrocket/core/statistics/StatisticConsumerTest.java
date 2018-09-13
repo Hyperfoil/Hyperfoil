@@ -20,7 +20,7 @@ package io.sailrocket.core.statistics;
 
 import org.junit.Test;
 
-public class StatisticConsumaerTest {
+public class StatisticConsumerTest {
 
     @Test
     public void validateStasticsTest(){
