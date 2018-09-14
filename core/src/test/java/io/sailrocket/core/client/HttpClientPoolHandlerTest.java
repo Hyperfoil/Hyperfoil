@@ -61,7 +61,7 @@ public class HttpClientPoolHandlerTest {
     @Test
     public void simpleHeaderRequest() {
         try {
-        HttpClientPool client = HttpClientProvider.vertx.builder()
+        HttpClientPool client = HttpClientProvider.netty.builder()
                 .host("localhost")
                 .concurrency(1)
                 .port(8088)

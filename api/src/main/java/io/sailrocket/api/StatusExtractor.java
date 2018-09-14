@@ -1,5 +1,7 @@
 package io.sailrocket.api;
 
-public interface StatusExtractor {
+import java.io.Serializable;
+
+public interface StatusExtractor extends Serializable {
    void setStatus(int status, Session session);
 }

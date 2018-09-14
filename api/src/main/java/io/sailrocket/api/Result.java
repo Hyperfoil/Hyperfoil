@@ -18,5 +18,5 @@
  */
 package io.sailrocket.api;
 
-public interface Result {
+public interface Result extends Simulation {
 }

@@ -97,7 +97,7 @@ abstract class HttpClientPoolImpl implements HttpClientPool {
 
         //TODO:: configurable
         if (retry > 100) {
-            System.out.println("DANGER - handle me");
+            throw new IllegalStateException();
         }
         if (count < size) {
             count++;
@@ -181,6 +181,7 @@ abstract class HttpClientPoolImpl implements HttpClientPool {
             conn.context().close();
             conn.context().flush();
         });
+        eventLoopGroup.shutdownGracefully(0, 10, TimeUnit.SECONDS);
     }
 
    @Override

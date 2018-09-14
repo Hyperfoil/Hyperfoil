@@ -18,7 +18,7 @@
  */
 package io.sailrocket.core.builder;
 
-import io.sailrocket.core.BenchmarkImpl;
+import io.sailrocket.api.Benchmark;
 import io.sailrocket.core.parser.ConfigurationNotDefinedException;
 import io.sailrocket.core.parser.ConfigurationParser;
 import io.sailrocket.core.parser.ConfigurationParserException;
@@ -36,29 +36,29 @@ public class YamlBuilderTestCase {
     @Ignore
     public void ComplexYamlBuilderTest() {
 
-        BenchmarkImpl benchmark = buildBenchmark(this.getClass().getClassLoader().getResourceAsStream("scenarios/complex.yaml"));
+        Benchmark benchmark = buildBenchmark(this.getClass().getClassLoader().getResourceAsStream("scenarios/complex.yaml"));
 
-        Assert.assertEquals("complex benchmark", benchmark.getName());
+        Assert.assertEquals("complex benchmark", benchmark.name());
     }
 
     @Test
     @Ignore
     public void SimpleYamlBuilderTest() {
 
-        BenchmarkImpl benchmark = buildBenchmark(this.getClass().getClassLoader().getResourceAsStream("scenarios/simple.yaml"));
+        Benchmark benchmark = buildBenchmark(this.getClass().getClassLoader().getResourceAsStream("scenarios/simple.yaml"));
 
-        Assert.assertEquals("simple benchmark", benchmark.getName());
+        Assert.assertEquals("simple benchmark", benchmark.name());
 
 
     }
 
-    private BenchmarkImpl buildBenchmark(InputStream inputStream){
+    private Benchmark buildBenchmark(InputStream inputStream){
         if (inputStream == null)
             fail("Could not find benchmark configuration");
 
 
         try {
-            BenchmarkImpl benchmark = new ConfigurationParser().buildBenchmark(inputStream);
+            Benchmark benchmark = new ConfigurationParser().buildBenchmark(inputStream);
 
             Assert.assertNotNull(benchmark);
 

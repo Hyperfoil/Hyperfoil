@@ -13,8 +13,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstance {
@@ -25,8 +24,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
 
    protected D def;
    protected ConcurrentPool<Session> sessions;
-   protected Lock statusLock;
-   protected Condition statusCondition;
+   protected BiConsumer<String, PhaseInstance.Status> phaseChangeHandler;
    // Reads are done without locks
    protected volatile Status status = Status.NOT_STARTED;
    protected long absoluteStartTime;
@@ -72,6 +70,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       status = Status.RUNNING;
       absoluteStartTime = System.currentTimeMillis();
       log.debug("{} changing status to RUNNING", def.name);
+      phaseChangeHandler.accept(def.name, status);
       proceed(clientPool);
    }
 
@@ -80,11 +79,13 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       assert status == Status.RUNNING;
       status = Status.FINISHED;
       log.debug("{} changing status to FINISHED", def.name);
+      phaseChangeHandler.accept(def.name, status);
       if (activeSessions.compareAndSet(0, Integer.MIN_VALUE)) {
          // It is possible that we will activate another session after setting status to TERMINATED but such session
          // should check the status again as its first action and terminate
          status = Status.TERMINATED;
          log.debug("{} changing status to TERMINATED", def.name);
+         phaseChangeHandler.accept(def.name, status);
       }
    }
 
@@ -95,15 +96,15 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       if (activeSessions.compareAndSet(0, Integer.MIN_VALUE)) {
          status = Status.TERMINATED;
          log.debug("{} changing status to TERMINATED", def.name);
+         phaseChangeHandler.accept(def.name, status);
       }
    }
 
    // TODO better name
    @Override
-   public void setComponents(ConcurrentPool<Session> sessions, Lock statusLock, Condition statusCondition) {
+   public void setComponents(ConcurrentPool<Session> sessions, BiConsumer<String, Status> phaseChangeHandler) {
       this.sessions = sessions;
-      this.statusLock = statusLock;
-      this.statusCondition = statusCondition;
+      this.phaseChangeHandler = phaseChangeHandler;
    }
 
    @Override
@@ -130,15 +131,10 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
 
    @Override
    public void setTerminated() {
-      statusLock.lock();
-      try {
-         if (status.isFinished()) {
-            status = Status.TERMINATED;
-            log.debug("{} changing status to TERMINATED", def.name);
-            statusCondition.signal();
-         }
-      } finally {
-         statusLock.unlock();
+      if (status.isFinished()) {
+         status = Status.TERMINATED;
+         log.debug("{} changing status to TERMINATED", def.name);
+         phaseChangeHandler.accept(def.name, status);
       }
    }
 

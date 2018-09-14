@@ -18,9 +18,11 @@
  */
 package io.sailrocket.api;
 
+import java.io.Serializable;
 import java.util.Collection;
+import java.util.Map;
 
-import io.vertx.core.json.JsonObject;
+import io.sailrocket.spi.HttpClientPoolFactory;
 
 /**
  * Simulation represents a collection of workflows ({@link Scenario} scenarios) against a target application.  
@@ -28,9 +30,13 @@ import io.vertx.core.json.JsonObject;
  * The execution of each scenario is determined by {@link Phase}.
  * Phases can run concurrently or have dependencies to other phases.
  */
-public interface Simulation {
+public interface Simulation extends Serializable {
 
     Collection<Phase> phases();
 
-    JsonObject tags();
+    Map<String, Object> tags();
+
+    HttpClientPoolFactory httpClientPoolFactory();
+
+    long statisticsCollectionPeriod();
 }

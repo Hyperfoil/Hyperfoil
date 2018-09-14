@@ -18,5 +18,7 @@
  */
 package io.sailrocket.api;
 
-public interface SLA {
+import java.io.Serializable;
+
+public interface SLA extends Serializable {
 }

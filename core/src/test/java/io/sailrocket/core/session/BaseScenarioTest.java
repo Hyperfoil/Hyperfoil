@@ -19,9 +19,8 @@ import org.junit.After;
 import org.junit.Before;
 
 import java.util.Collections;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.ReentrantLock;
 
 public abstract class BaseScenarioTest {
    protected final Logger log = LoggerFactory.getLogger(getClass());
@@ -37,25 +36,21 @@ public abstract class BaseScenarioTest {
       } else {
          phase = new PhaseInstanceImpl.Sequentially(new Phase.Sequentially("test", scenario, 0, Collections.emptyList(), Collections.emptyList(), Long.MAX_VALUE, -1, repeats));
       }
-      ReentrantLock statusLock = new ReentrantLock();
-      Condition statusCondition = statusLock.newCondition();
+      CountDownLatch latch = new CountDownLatch(1);
       Session session = SessionFactory.create(httpClientPool, phase, 0);
-      phase.setComponents(new ConcurrentPoolImpl<>(() -> session), statusLock, statusCondition);
+      phase.setComponents(new ConcurrentPoolImpl<>(() -> session), (p, status) -> {
+         if (status == PhaseInstance.Status.TERMINATED) {
+            latch.countDown();;
+         }
+      });
       phase.reserveSessions();
       phase.start(httpClientPool);
-      statusLock.lock();
       try {
-         while (phase.status() != PhaseInstance.Status.TERMINATED) {
-            try {
-               if (!statusCondition.await(30, TimeUnit.SECONDS)) {
-                  throw new AssertionError("statusCondition timeout");
-               }
-            } catch (InterruptedException e) {
-               throw new AssertionError(e);
-            }
+         if (!latch.await(30, TimeUnit.SECONDS)) {
+            throw new AssertionError("statusCondition timeout");
          }
-      } finally {
-         statusLock.unlock();
+      } catch (InterruptedException e) {
+         throw new AssertionError(e);
       }
       if (phase.getError() != null) {
          throw new AssertionError(phase.getError());

@@ -4,14 +4,9 @@ import io.sailrocket.api.HttpClientPool;
 import io.sailrocket.api.Simulation;
 import io.sailrocket.core.api.PhaseInstance;
 import io.sailrocket.api.Phase;
-import io.sailrocket.api.Report;
 import io.sailrocket.api.Session;
 import io.sailrocket.core.api.SimulationRunner;
-import io.sailrocket.core.client.HttpClientPoolFactory;
-import io.sailrocket.core.impl.statistics.ReportStatisticsCollector;
 import io.sailrocket.core.session.SessionFactory;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -19,8 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /**
@@ -28,26 +22,17 @@ import java.util.function.Consumer;
  * @author <a href="mailto:johara@redhat.com">John O'Hara</a>
  */
 public class SimulationRunnerImpl implements SimulationRunner {
-    private static final Logger log = LoggerFactory.getLogger(SimulationRunnerImpl.class);
+    protected final Simulation simulation;
+    protected final Map<String, PhaseInstance> instances = new HashMap<>();
 
-    private final Simulation simulation;
-    private final Map<String, PhaseInstance> instances = new HashMap<>();
-    private final ReentrantLock statusLock = new ReentrantLock();
-    private final Condition statusCondition = statusLock.newCondition();
+    protected HttpClientPool clientPool;
+    protected List<Session> sessions = new ArrayList<>();
 
-    private HttpClientPool clientPool;
-    private List<Session> sessions = new ArrayList<>();
-
-    private long startTime;
-    private long nextPhaseStart;
-    private long nextPhaseFinish;
-    private long nextPhaseTerminate;
-
-    public SimulationRunnerImpl(HttpClientPoolFactory clientBuilder, Simulation simulation) {
+    public SimulationRunnerImpl(Simulation simulation) {
         this.simulation = simulation;
         HttpClientPool httpClientPool = null;
         try {
-            httpClientPool = clientBuilder.build();
+            httpClientPool = simulation.httpClientPoolFactory().build();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -55,7 +40,7 @@ public class SimulationRunnerImpl implements SimulationRunner {
     }
 
     @Override
-    public void init() throws Exception {
+    public void init(BiConsumer<String, PhaseInstance.Status> phaseChangeHandler) {
         //Initialise HttpClientPool
         CountDownLatch latch = new CountDownLatch(1);
         clientPool.start(v1 -> {
@@ -72,7 +57,7 @@ public class SimulationRunnerImpl implements SimulationRunner {
                     sessions.add(session);
                 }
                 return session;
-            }), statusLock, statusCondition);
+            }), phaseChangeHandler);
             phase.reserveSessions();
         }
 
@@ -81,60 +66,6 @@ public class SimulationRunnerImpl implements SimulationRunner {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-    }
-
-    @Override
-    public Map<String, Report> run() throws Exception {
-        long now = System.currentTimeMillis();
-        this.startTime = now;
-        do {
-            now = System.currentTimeMillis();
-            for (PhaseInstance phase : instances.values()) {
-                if (phase.status() == PhaseInstance.Status.RUNNING && phase.absoluteStartTime() + phase.definition().duration() <= now) {
-                    phase.finish();
-                }
-                if (phase.status() == PhaseInstance.Status.FINISHED && phase.definition().maxDuration() >= 0 && phase.absoluteStartTime() + phase.definition().maxDuration() <= now) {
-                    phase.terminate();
-                }
-            }
-            PhaseInstance[] availablePhases = getAvailablePhases();
-            for (PhaseInstance phase : availablePhases) {
-                phase.start(clientPool);
-            }
-            nextPhaseStart = instances.values().stream()
-                  .filter(phase -> phase.status() == PhaseInstance.Status.NOT_STARTED && phase.definition().startTime() >= 0)
-                  .mapToLong(phase -> this.startTime + phase.definition().startTime()).min().orElse(Long.MAX_VALUE);
-            nextPhaseFinish = instances.values().stream()
-                  .filter(phase -> phase.status() == PhaseInstance.Status.RUNNING)
-                  .mapToLong(phase -> phase.absoluteStartTime() + phase.definition().duration()).min().orElse(Long.MAX_VALUE);
-            nextPhaseTerminate = instances.values().stream()
-                  .filter(phase -> (phase.status() == PhaseInstance.Status.RUNNING || phase.status() == PhaseInstance.Status.FINISHED) && phase.definition().maxDuration() >= 0)
-                  .mapToLong(phase -> phase.absoluteStartTime() + phase.definition().maxDuration()).min().orElse(Long.MAX_VALUE);
-            long delay = Math.min(Math.min(nextPhaseStart, nextPhaseFinish), nextPhaseTerminate) - System.currentTimeMillis();
-
-            delay = Math.min(delay, 1000);
-            log.debug("Wait {} ms", delay);
-            if (delay > 0) {
-                statusLock.lock();
-                try {
-                    statusCondition.await(delay, TimeUnit.MILLISECONDS);
-                } finally {
-                    statusLock.unlock();
-                }
-            }
-        } while (instances.values().stream().anyMatch(phase -> phase.status() != PhaseInstance.Status.TERMINATED));
-
-        ReportStatisticsCollector statisticsConsumer = new ReportStatisticsCollector(simulation);
-        visitSessions(statisticsConsumer);
-        return statisticsConsumer.reports();
-    }
-
-    private PhaseInstance[] getAvailablePhases() {
-        return instances.values().stream().filter(phase -> phase.status() == PhaseInstance.Status.NOT_STARTED &&
-            startTime + phase.definition().startTime() <= System.currentTimeMillis() &&
-            phase.definition().startAfter().stream().allMatch(dep -> instances.get(dep).status().isFinished()) &&
-            phase.definition().startAfterStrict().stream().allMatch(dep -> instances.get(dep).status() == PhaseInstance.Status.TERMINATED))
-              .toArray(PhaseInstance[]::new);
     }
 
     @Override
@@ -149,5 +80,20 @@ public class SimulationRunnerImpl implements SimulationRunner {
                 consumer.accept(session);
             }
         }
+    }
+
+    @Override
+    public void startPhase(String phase) {
+        instances.get(phase).start(clientPool);
+    }
+
+    @Override
+    public void finishPhase(String phase) {
+        instances.get(phase).finish();
+    }
+
+    @Override
+    public void terminatePhase(String phase) {
+        instances.get(phase).terminate();
     }
 }

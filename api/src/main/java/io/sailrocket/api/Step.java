@@ -1,6 +1,8 @@
 package io.sailrocket.api;
 
-public interface Step {
+import java.io.Serializable;
+
+public interface Step extends Serializable {
    /**
     * @return false if the step cannot be invoked and the progress must be blocked.
     */

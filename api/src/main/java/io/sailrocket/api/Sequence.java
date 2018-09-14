@@ -18,6 +18,8 @@
  */
 package io.sailrocket.api;
 
+import java.io.Serializable;
+
 /**
  * Sequences are a series of one or more {@link Step}'s that perform one logical unit of operation. Steps within a Sequence are executed in order.
  * State is shared between sequences via the {@link Session}. This allows sequences to pass request scoped state between {@link Step} invocations.
@@ -27,7 +29,7 @@ package io.sailrocket.api;
  * @author John O'Hara
  *
  */
-public interface Sequence {
+public interface Sequence extends Serializable {
 
     int id();
 

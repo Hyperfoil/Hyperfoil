@@ -28,20 +28,23 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class ReportStatisticsCollector extends StatisticsAggregator {
+    private final StatisticsConsumer addReport = this::addReport;
+    private Map<String, Report> reportMap;
+
     public ReportStatisticsCollector(Simulation simulation) {
         super(simulation);
     }
 
     public Map<String, Report> reports() {
-        Map<String, Report> reportMap = new HashMap<>();
-        visitStatistics((phase, sequence, snapshot) -> addReport(reportMap, phase, sequence, snapshot));
+        reportMap = new HashMap<>();
+        visitStatistics(addReport);
         return reportMap;
     }
 
-    private void addReport(Map<String, Report> reportMap, Phase phase, Sequence sequence, StatisticsSnapshot snapshot) {
+    private boolean addReport(Phase phase, Sequence sequence, StatisticsSnapshot snapshot) {
         Report report = new Report(simulation.tags());
         report.measures(
-              0,
+              snapshot.requestCount,
               0,
               snapshot.histogram,
               snapshot.responseCount,
@@ -54,5 +57,6 @@ public class ReportStatisticsCollector extends StatisticsAggregator {
               0  //clientPool.bytesWritten()
         );
         reportMap.put(phase.name() + "/" + sequence.name(), report);
+        return true;
     }
 }

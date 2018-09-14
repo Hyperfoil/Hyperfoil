@@ -99,7 +99,7 @@ public class ObjectCodec<T> implements MessageCodec<T, T> {
     public String name() {
         // Each codec must have a unique name.
         // This is used to identify a codec when sending a message and for unregistering codecs.
-        return this.getClass().getSimpleName();
+        return this.getClass().getName();
     }
 
     @Override

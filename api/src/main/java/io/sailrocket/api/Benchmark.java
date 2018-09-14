@@ -18,61 +18,32 @@
  */
 package io.sailrocket.api;
 
-
 import java.io.Serializable;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * A benchmark is a collection of simulation, user,
  * SLA and scaling strategy (Ramp up, Steady State, Ramp Down, steady state variance)
  * that are to be run against the target environment.
  */
-public abstract class Benchmark implements Serializable {
+public class Benchmark implements Serializable {
 
-    protected String name;
-    protected Set<Result> resultSet;
-    protected String[] hosts;
-    protected SLA[] slas;
-    protected int users;
-    protected Simulation simulation;
+    protected final String name;
+    protected final Simulation simulation;
+    protected final Host[] hosts;
+    protected final SLA[] slas;
 
-    public Benchmark() {}
-
-    public Benchmark(String name) {
+    public Benchmark(String name, Simulation simulation, Host[] hosts, SLA[] slas) {
         this.name = name;
-    }
-
-    public Benchmark simulation(Simulation simulation) {
         this.simulation = simulation;
-        return this;
-    }
-
-    public Benchmark scale(ScalingStrategy scalingStrategy) {
-        return this;
-    }
-
-    public Benchmark sla(SLA sla) {
-        return this;
-    }
-
-    public Benchmark agents(String... hosts) {
         this.hosts = hosts;
-        return this;
+        this.slas = slas;
     }
 
-    public Benchmark users(int users) {
-        this.users = users;
-        return this;
+    public Simulation simulation() {
+        return simulation;
     }
 
-    public abstract Map<String, Report> run();
-
-    public String getName() {
+    public String name() {
         return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
     }
 }

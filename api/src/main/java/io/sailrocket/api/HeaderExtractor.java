@@ -1,6 +1,8 @@
 package io.sailrocket.api;
 
-public interface HeaderExtractor {
+import java.io.Serializable;
+
+public interface HeaderExtractor extends Serializable {
    default void beforeHeaders(Session session) {
    }
 

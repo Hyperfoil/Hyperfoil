@@ -1,29 +1,25 @@
 package io.sailrocket.core.client.vertx;
 
 import io.sailrocket.api.HttpClientPool;
-import io.sailrocket.core.client.HttpClientPoolFactory;
+import io.sailrocket.spi.HttpClientPoolFactory;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.http.HttpVersion;
 
+@Deprecated
 public class VertxHttpClientPoolFactory implements HttpClientPoolFactory {
 
-  volatile Vertx vertx;
-  volatile int threadCount;
-  volatile boolean ssl;
-  volatile HttpVersion protocol;
-  volatile int size;
-  volatile int port;
-  volatile String host;
-  volatile int concurrency;
+  int threadCount;
+  boolean ssl;
+  HttpVersion protocol;
+  int size;
+  int port;
+  String host;
+  int concurrency;
 
   @Override
   public HttpClientPoolFactory threads(int count) {
-    if (vertx != null) {
-      throw new IllegalStateException();
-    }
     threadCount = count;
-    vertx = Vertx.vertx(new VertxOptions().setEventLoopPoolSize(count));
     return this;
   }
 
@@ -65,11 +61,7 @@ public class VertxHttpClientPoolFactory implements HttpClientPoolFactory {
 
   @Override
   public HttpClientPool build() {
-    return new VertxHttpClientPool(this);
-  }
-
-  @Override
-  public void shutdown() {
-    vertx.close();
+    Vertx vertx = Vertx.vertx(new VertxOptions().setEventLoopPoolSize(threadCount));
+    return new VertxHttpClientPool(vertx, this.concurrency, this.size, this.threadCount, this.port, this.host, this.ssl);
   }
 }

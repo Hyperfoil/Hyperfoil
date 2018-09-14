@@ -1,7 +1,6 @@
 package io.sailrocket.core.api;
 
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
+import java.util.function.BiConsumer;
 
 import io.sailrocket.api.ConcurrentPool;
 import io.sailrocket.api.HttpClientPool;
@@ -24,7 +23,7 @@ public interface PhaseInstance {
    void terminate();
 
    // TODO better name
-   void setComponents(ConcurrentPool<Session> sessions, Lock statusLock, Condition statusCondition);
+   void setComponents(ConcurrentPool<Session> sessions, BiConsumer<String, Status> phaseChangeHandler);
 
    void reserveSessions();
 

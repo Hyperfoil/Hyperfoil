@@ -1,9 +1,11 @@
-package io.sailrocket.core.client;
+package io.sailrocket.spi;
+
+import java.io.Serializable;
 
 import io.sailrocket.api.HttpClientPool;
 import io.vertx.core.http.HttpVersion;
 
-public interface HttpClientPoolFactory {
+public interface HttpClientPoolFactory extends Serializable {
 
   HttpClientPoolFactory threads(int count);
   HttpClientPoolFactory ssl(boolean ssl);
@@ -13,7 +15,4 @@ public interface HttpClientPoolFactory {
   HttpClientPoolFactory host(String host);
   HttpClientPoolFactory concurrency(int maxConcurrency);
   HttpClientPool build() throws Exception;
-
-  void shutdown();
-
 }

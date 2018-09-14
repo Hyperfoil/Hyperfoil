@@ -23,11 +23,10 @@ package io.sailrocket.core.builders;
 import io.sailrocket.api.BenchmarkDefinitionException;
 import io.sailrocket.api.Phase;
 import io.sailrocket.api.Simulation;
-import io.sailrocket.core.client.HttpClientPoolFactory;
+import io.sailrocket.spi.HttpClientPoolFactory;
 import io.sailrocket.core.client.HttpClientProvider;
 import io.sailrocket.core.impl.SimulationImpl;
 import io.sailrocket.spi.HttpBase;
-import io.vertx.core.json.JsonObject;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -45,6 +44,7 @@ public class SimulationBuilder {
     private int concurrency = 1;
     private int threads = 1;
     private Map<String, PhaseBuilder> phaseBuilders = new HashMap<>();
+    private long statisticsCollectionPeriod = 1000;
 
     private SimulationBuilder() {
     }
@@ -97,11 +97,11 @@ public class SimulationBuilder {
             }
             phases.add(builder.build());
         }
-        return new SimulationImpl(buildClientPoolFactory(), phases, buildTags());
+        return new SimulationImpl(buildClientPoolFactory(), phases, buildTags(), statisticsCollectionPeriod);
     }
 
     private HttpClientPoolFactory buildClientPoolFactory() {
-        return HttpClientProvider.vertx.builder()
+        return HttpClientProvider.netty.builder()
                        .threads(threads)
                        .ssl(http.baseUrl().protocol().secure())
                        .port(http.baseUrl().protocol().port())
@@ -112,8 +112,8 @@ public class SimulationBuilder {
                        //.protocol(http.baseUrl().protocol().version());
     }
 
-    private JsonObject buildTags() {
-        JsonObject tags = new JsonObject();
+    private Map<String, Object> buildTags() {
+        Map<String, Object> tags = new HashMap<>();
         tags.put("url", http.baseUrl().toString());
         tags.put("protocol", http.baseUrl().protocol().version().toString());
         tags.put("maxQueue", concurrency);

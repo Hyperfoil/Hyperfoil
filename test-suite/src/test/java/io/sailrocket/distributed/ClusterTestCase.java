@@ -1,6 +1,8 @@
 package io.sailrocket.distributed;
 
+import io.sailrocket.core.builders.BenchmarkBuilder;
 import io.sailrocket.test.Benchmark;
+import io.sailrocket.test.TestBenchmarks;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Verticle;
 import io.vertx.core.Vertx;
@@ -11,18 +13,22 @@ import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.asynchttpclient.AsyncHttpClient;
 import org.asynchttpclient.Response;
+import org.asynchttpclient.request.body.multipart.ByteArrayPart;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.stream.IntStream;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.asynchttpclient.Dsl.asyncHttpClient;
 
 @RunWith(VertxUnitRunner.class)
@@ -72,30 +78,69 @@ public class ClusterTestCase {
     }
 
     @Test(timeout = 120_000)
-    public void startClusteredBenchmarkTest(TestContext ctx) throws IOException, InterruptedException {
+    public void startClusteredBenchmarkTest() throws IOException, InterruptedException {
         //check expected number of nodes are running
         try (AsyncHttpClient asyncHttpClient = asyncHttpClient()) {
-            asyncHttpClient
-                    .prepareGet("http://localhost:8090/agents")
-                    .execute()
-                    .toCompletableFuture()
-                    .thenApply(Response::getResponseBody)
-                    .thenAccept(response -> Assert.assertEquals(AGENTS + CONTROLLERS, Integer.parseInt(response)))
-                    .join();
-        }
+            while (!asyncHttpClient
+                  .prepareGet("http://localhost:8090/agents")
+                  .execute()
+                  .toCompletableFuture()
+                  .thenApply(Response::getResponseBody)
+                  .thenApply(response -> AGENTS == Integer.parseInt(response))
+                  .join()) {
+                Thread.sleep(1000);
+            }
 
-        //start benchmark running
-        try (AsyncHttpClient asyncHttpClient = asyncHttpClient()) {
             asyncHttpClient
-                    .prepareGet("http://localhost:8090/start")
-                    .execute()
-                    .toCompletableFuture()
-                    .thenApply(Response::getResponseBody)
-                    .thenAccept(body -> {
-                        System.out.println(body);
-                        ctx.async().complete();
-                    })
-                    .join();
+                  .preparePost("http://localhost:8090/upload?benchmark=foo")
+                  .setBody(serialize(BenchmarkBuilder.builder()
+                        .name("foo")
+                        .simulation(TestBenchmarks.testSimulation())
+                        .build()))
+                  .execute()
+                  .toCompletableFuture()
+                  .thenAccept(response -> {
+                      assertThat(response.getStatusCode()).isEqualTo(200);
+                  })
+                  .join();
+
+            //start benchmark running
+            asyncHttpClient
+                  .prepareGet("http://localhost:8090/start?benchmark=foo")
+                  .execute()
+                  .toCompletableFuture()
+                  .thenAccept(response -> {
+                      assertThat(response.getStatusCode()).isEqualTo(202);
+                  })
+                  .join();
+
+            while (!asyncHttpClient
+                  .prepareGet("http://localhost:8090/status")
+                  .execute()
+                  .toCompletableFuture()
+                  .thenApply(response -> {
+                      assertThat(response.getStatusCode()).isEqualTo(200);
+                      String responseBody = response.getResponseBody();
+                      JsonObject status = new JsonObject(responseBody);
+                      assertThat(status.getString("benchmark")).isEqualTo("foo");
+                      System.out.println(status.encodePrettily());
+                      return status.getString("terminated") != null;
+                  }).join()) {
+                Thread.sleep(1000);
+            }
+        }
+    }
+
+    private byte[] serialize(Serializable object) {
+        try {
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            try (ObjectOutputStream objectOutputStream = new ObjectOutputStream(byteArrayOutputStream)){
+                objectOutputStream.writeObject(object);
+            }
+            byteArrayOutputStream.flush();
+            return byteArrayOutputStream.toByteArray();
+        } catch (IOException e) {
+            throw new AssertionError(e);
         }
     }
 
@@ -104,7 +149,7 @@ public class ClusterTestCase {
     }
 
     private void initiateRunner(VertxOptions opts, JsonObject config, TestContext ctx, Async initAsync) {
-        initiateClustered(opts, RunnerVerticle.class, new DeploymentOptions().setConfig(config).setWorker(true), ctx, initAsync);
+        initiateClustered(opts, AgentVerticle.class, new DeploymentOptions().setConfig(config).setWorker(true), ctx, initAsync);
     }
 
     private void initiateClustered(VertxOptions opts, Class<? extends Verticle> verticleClass, DeploymentOptions options, TestContext ctx, Async initAsync) {

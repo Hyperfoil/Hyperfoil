@@ -19,13 +19,15 @@
  */
 package io.sailrocket.spi;
 
+import java.io.Serializable;
+
 import io.netty.buffer.ByteBuf;
 import io.sailrocket.api.Session;
 
 /**
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
  */
-public interface BodyValidator {
+public interface BodyValidator extends Serializable {
    void beforeData(Session session);
    void validateData(Session session, ByteBuf chunk);
    boolean validate(Session session);

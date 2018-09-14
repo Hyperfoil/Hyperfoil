@@ -35,6 +35,7 @@ public class PrintStatisticsConsumer extends StatisticsAggregator {
                   snapshot.histogram.getMean() / 1_000_000.0,
                   snapshot.histogram.getValueAtPercentile(99.0) / 1_000_000.0
             );
+            return true;
         }));
     }
 }

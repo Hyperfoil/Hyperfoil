@@ -95,7 +95,7 @@ public class PhaseChangeMessage {
       JsonObject contentJson = new JsonObject(jsonStr);
 
       // Get fields
-      String senderId = contentJson.getString("resultCode");
+      String senderId = contentJson.getString("senderId");
       String phase = contentJson.getString("phase");
       PhaseInstance.Status status = PhaseInstance.Status.valueOf(contentJson.getString("status"));
 

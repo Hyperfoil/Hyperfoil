@@ -1,11 +1,12 @@
 package io.sailrocket.api;
 
+import java.io.Serializable;
 import java.util.Collection;
 
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-public abstract class Phase {
+public abstract class Phase implements Serializable {
    protected static final Logger log = LoggerFactory.getLogger(Phase.class);
    protected static final boolean trace = log.isTraceEnabled();
 

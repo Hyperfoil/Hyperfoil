@@ -18,11 +18,13 @@
  */
 package io.sailrocket.spi;
 
+import java.io.Serializable;
+
 import io.sailrocket.api.Session;
 
 /**
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
  */
-public interface StatusValidator {
+public interface StatusValidator extends Serializable {
    boolean validate(Session session, int status);
 }

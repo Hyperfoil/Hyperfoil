@@ -18,7 +18,7 @@
  */
 package io.sailrocket.core.parser;
 
-import io.sailrocket.core.BenchmarkImpl;
+import io.sailrocket.api.Benchmark;
 import io.sailrocket.core.builders.BenchmarkBuilder;
 import io.sailrocket.core.parser.builders.AbstractConfigurationBuilder;
 import io.sailrocket.core.parser.builders.HostsConfigurationBuilder;
@@ -43,7 +43,7 @@ public class ConfigurationParser extends AbstractConfigurationBuilder<Map, Bench
         subBuilders.put(StateConfigurationBuilder.key, StateConfigurationBuilder.instance());
     }
 
-    public BenchmarkImpl buildBenchmark(InputStream configurationStream) throws ConfigurationNotDefinedException, ConfigurationParserException {
+    public Benchmark buildBenchmark(InputStream configurationStream) throws ConfigurationNotDefinedException, ConfigurationParserException {
 
         if (configurationStream == null)
             throw new ConfigurationNotDefinedException();

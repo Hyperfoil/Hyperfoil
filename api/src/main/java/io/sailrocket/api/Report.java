@@ -1,9 +1,9 @@
 package io.sailrocket.api;
 
-import io.vertx.core.json.JsonObject;
 import org.HdrHistogram.Histogram;
 
 import java.io.PrintStream;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
  */
-public class Report {
+public class Report implements Serializable {
     static final String[] COLUMNS = {
             "req_s", "responseCount", "responseErrors", "expectedRequests", "ratio",
             "bytesRead", "bytesWritten",
@@ -23,7 +23,7 @@ public class Report {
     long expectedRequests;
     long elapsed;
     int responseCount;
-    public double ratio;
+    double ratio;
     int connectFailureCount;
     int resetCount;
     int requestCount;
@@ -31,15 +31,13 @@ public class Report {
     long bytesRead;
     long byteWritten;
     final String[] tagFields;
-    final JsonObject results;
+    final Map<String, Object> results;
 
     public Histogram histogram;
-    //Time series of results
-    private Map<Long, Histogram> timeSeriesHistogram;
 
-    public Report(JsonObject tags) {
+    public Report(Map<String, Object> tags) {
         this.results = tags;
-        this.tagFields = tags.fieldNames().toArray(new String[tags.fieldNames().size()]);
+        this.tagFields = tags.keySet().toArray(new String[0]);
         Arrays.sort(tagFields);
     }
 
@@ -131,7 +129,7 @@ public class Report {
                     row.add(String.valueOf(getResponseTimeMillisPercentile(99.99)));
                     break;
                 default:
-                    row.add(String.valueOf(results.getValue(columns[i])));
+                    row.add(String.valueOf(results.get(columns[i])));
             }
         }
         return row.stream().collect(Collectors.joining(",")) + "\n";

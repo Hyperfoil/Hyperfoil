@@ -38,12 +38,15 @@ public class StatisticsAggregator implements Consumer<Session> {
            Sequence[] sequences = phase.scenario().sequences();
            assert entry.getValue().length == sequences.length;
            for (int i = 0; i < sequences.length; ++i) {
-               consumer.accept(phase, sequences[i], entry.getValue()[i]);
+              StatisticsSnapshot snapshot = entry.getValue()[i];
+              if (consumer.accept(phase, sequences[i], snapshot)) {
+                 snapshot.reset();
+              }
            }
        }
    }
 
    interface StatisticsConsumer {
-       void accept(Phase phase, Sequence sequence, StatisticsSnapshot snapshot);
+       boolean accept(Phase phase, Sequence sequence, StatisticsSnapshot snapshot);
    }
 }

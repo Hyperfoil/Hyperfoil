@@ -20,6 +20,7 @@
 
 package io.sailrocket.distributed;
 
+@Deprecated
 public enum WorkerStatus {
     UNKNOWN(-1),
     START_RAMPUP(0),

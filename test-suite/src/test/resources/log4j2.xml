@@ -9,11 +9,13 @@
 
   <Loggers>
     <Logger name="io.sailrocket" level="TRACE"/>
+    <Logger name="org.jgroups" level="INFO"/>
+    <Logger name="org.infinispan" level="INFO"/>
     <Logger name="io.vertx" level="INFO"/>
     <Logger name="io.netty" level="INFO"/>
 
-    <Root level="DEBUG">
-      <AppenderRef ref="STDOUT" level="TRACE"/>
+    <Root level="INFO">
+      <AppenderRef ref="STDOUT" level="INFO"/>
     </Root>
   </Loggers>
 </Configuration>

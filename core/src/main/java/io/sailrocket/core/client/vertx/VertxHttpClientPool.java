@@ -42,28 +42,28 @@ public class VertxHttpClientPool implements HttpClientPool {
   private final ThreadLocal<ContextAwareClient> current = ThreadLocal.withInitial(() -> contextAwareClients[currentSlot.getAndIncrement() % contextAwareClients.length]);
   private final AsyncSemaphore concurrencyLimiter;
 
-  public VertxHttpClientPool(VertxHttpClientPoolFactory builder) {
+  public VertxHttpClientPool(Vertx vertx, int concurrency, int size, int threadCount, int port, String host, boolean ssl) {
 
     HttpClientOptions options = new HttpClientOptions()
-        .setSsl(builder.ssl)
+        .setSsl(ssl)
         .setTrustAll(true)
         .setVerifyHost(false)
         .setKeepAlive(true)
-        .setPipeliningLimit(builder.concurrency)
+        .setPipeliningLimit(concurrency)
         .setPipelining(true)
-        .setDefaultPort(builder.port)
-        .setDefaultHost(builder.host);
+        .setDefaultPort(port)
+        .setDefaultHost(host);
 
-    this.vertx = builder.vertx;
-    this.maxInflight = builder.concurrency * builder.size;
+    this.vertx = vertx;
+    this.maxInflight = concurrency * size;
     this.concurrencyLimiter = new AsyncSemaphore(maxInflight);
-    this.contextAwareClients = new ContextAwareClient[builder.threadCount];
+    this.contextAwareClients = new ContextAwareClient[threadCount];
 
-    int perSlotSize = builder.size / contextAwareClients.length;
+    int perSlotSize = size / contextAwareClients.length;
     for (int i = 0; i < contextAwareClients.length; i++) {
       int n = perSlotSize;
       if (i == 0) {
-        n += builder.size % contextAwareClients.length;
+        n += size % contextAwareClients.length;
       }
       contextAwareClients[i] = new ContextAwareClient(vertx.createHttpClient(new HttpClientOptions(options).setMaxPoolSize(n)), vertx.getOrCreateContext());
     }
@@ -99,6 +99,7 @@ public class VertxHttpClientPool implements HttpClientPool {
 
   @Override
   public void shutdown() {
+    vertx.close();
   }
 
    @Override

@@ -19,12 +19,14 @@
  */
 package io.sailrocket.spi;
 
+import java.io.Serializable;
+
 import io.sailrocket.api.Session;
 
 /**
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
  */
-public interface HeaderValidator {
+public interface HeaderValidator extends Serializable {
    void beforeHeaders(Session session);
 
    void validateHeader(Session session, String header, String value);

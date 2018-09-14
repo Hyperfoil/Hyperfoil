@@ -19,10 +19,13 @@
  */
 package io.sailrocket.core.builders;
 
+import io.sailrocket.api.Benchmark;
 import io.sailrocket.api.Host;
+import io.sailrocket.api.Result;
+import io.sailrocket.api.SLA;
 import io.sailrocket.api.Simulation;
-import io.sailrocket.core.BenchmarkImpl;
 
+import java.util.Set;
 import java.util.function.Consumer;
 
 /**
@@ -32,7 +35,8 @@ public class BenchmarkBuilder {
 
     private String name;
     private Simulation simulation;
-    private Host hosts;
+    private Host[] hosts;
+    private SLA[] slas;
 
     private BenchmarkBuilder() {
     }
@@ -58,17 +62,11 @@ public class BenchmarkBuilder {
         return simulation(simulationBuilder.build());
     }
 
-
     public BenchmarkBuilder host(String host){
-//        host =host;
         return this;
     }
 
-    public BenchmarkImpl build() {
-
-        BenchmarkImpl benchmark = new BenchmarkImpl(name);
-        benchmark.simulation(simulation);
-
-        return benchmark;
+    public Benchmark build() {
+        return new Benchmark(name, simulation, hosts, slas);
     }
 }

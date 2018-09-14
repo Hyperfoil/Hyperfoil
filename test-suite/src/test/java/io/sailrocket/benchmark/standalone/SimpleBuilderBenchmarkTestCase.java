@@ -1,12 +1,13 @@
 package io.sailrocket.benchmark.standalone;
 
+import io.sailrocket.api.Benchmark;
 import io.sailrocket.api.BenchmarkDefinitionException;
-import io.sailrocket.api.HttpMethod;
 import io.sailrocket.api.Report;
 import io.sailrocket.api.Simulation;
-import io.sailrocket.core.BenchmarkImpl;
 import io.sailrocket.core.builders.BenchmarkBuilder;
-import io.sailrocket.test.Benchmark;
+import io.sailrocket.core.impl.LocalSimulationRunner;
+import io.sailrocket.test.TestBenchmarks;
+
 import org.HdrHistogram.Histogram;
 import org.junit.Assert;
 import org.junit.Test;
@@ -14,50 +15,30 @@ import org.junit.experimental.categories.Category;
 
 import java.util.Map;
 
-import static io.sailrocket.core.builders.HttpBuilder.httpBuilder;
-import static io.sailrocket.core.builders.ScenarioBuilder.scenarioBuilder;
-import static io.sailrocket.core.builders.SequenceBuilder.sequenceBuilder;
-import static io.sailrocket.core.builders.SimulationBuilder.simulationBuilder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
 
-@Category(Benchmark.class)
+@Category(io.sailrocket.test.Benchmark.class)
 public class SimpleBuilderBenchmarkTestCase extends BaseBenchmarkTestCase {
     @Test
     public void runSimpleBenchmarkTest() {
 
-        Simulation simulation = simulationBuilder()
-                .http(httpBuilder().baseUrl("http://localhost:8080"))
-                .concurrency(10)
-                .connections(10)
-                .addPhase("foo").always(1)
-                    .duration("10s")
-                    .scenario(scenarioBuilder()
-                        .initialSequence(sequenceBuilder()
-                                .step().httpRequest(HttpMethod.GET)
-                                        .path("foo")
-                                        .endStep()
-                                .step().awaitAllResponses()
-                                .end()
-                        )
-                    )
-                .endPhase()
-                .build();
+        Simulation simulation = TestBenchmarks.testSimulation();
 
-        assertEquals("http://localhost:8080/", simulation.tags().getString("url"));
-        assertEquals(10, simulation.tags().getInteger("maxQueue").intValue());
-        assertEquals(10, simulation.tags().getInteger("connections").intValue());
+        assertEquals("http://localhost:8080/", simulation.tags().get("url"));
+        assertEquals(10, simulation.tags().get("maxQueue"));
+        assertEquals(10, simulation.tags().get("connections"));
         assertEquals(10_000L, simulation.phases().stream().findFirst().get().duration());
 
-        BenchmarkImpl benchmark =
+        Benchmark benchmark =
                 BenchmarkBuilder.builder()
                         .name("Test Benchmark")
                         .simulation(simulation)
                         .build();
 
         try {
-            Map<String, Report> reports = benchmark.run();
+            Map<String, Report> reports = new LocalSimulationRunner(benchmark).run();
             assertNotEquals(0, reports.size());
             Histogram histogram = reports.values().stream().findFirst().get().histogram;
             assertNotEquals(0, histogram.getTotalCount());

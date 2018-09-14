@@ -14,6 +14,8 @@ import io.sailrocket.api.Session;
 import io.sailrocket.core.builders.BaseSequenceBuilder;
 import io.sailrocket.core.builders.BaseStepBuilder;
 import io.sailrocket.core.api.ResourceUtilizer;
+import io.sailrocket.function.SerializableBiConsumer;
+import io.sailrocket.function.SerializableFunction;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
@@ -28,9 +30,9 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
    private final HttpResponseHandler handler;
 
    public HttpRequestStep(HttpMethod method,
-                          Function<Session, String> pathGenerator,
-                          Function<Session, ByteBuf> bodyGenerator,
-                          BiConsumer<Session, HttpRequest> headerAppender,
+                          SerializableFunction<Session, String> pathGenerator,
+                          SerializableFunction<Session, ByteBuf> bodyGenerator,
+                          SerializableBiConsumer<Session, HttpRequest> headerAppender,
                           HttpResponseHandler handler) {
       this.method = method;
       this.pathGenerator = pathGenerator;
@@ -83,9 +85,9 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
 
    public static class Builder extends BaseStepBuilder {
       private HttpMethod method;
-      private Function<Session, String> pathGenerator;
-      private Function<Session, ByteBuf> bodyGenerator;
-      private BiConsumer<Session, HttpRequest> headerAppender;
+      private SerializableFunction<Session, String> pathGenerator;
+      private SerializableFunction<Session, ByteBuf> bodyGenerator;
+      private SerializableBiConsumer<Session, HttpRequest> headerAppender;
       private HttpResponseHandler.Builder handler = new HttpResponseHandler.Builder(this);
 
       public Builder(BaseSequenceBuilder parent, HttpMethod method) {
@@ -98,17 +100,17 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
          return this;
       }
 
-      public Builder pathGenerator(Function<Session, String> pathGenerator) {
+      public Builder pathGenerator(SerializableFunction<Session, String> pathGenerator) {
          this.pathGenerator = pathGenerator;
          return this;
       }
 
-      public Builder bodyGenerator(Function<Session, ByteBuf> bodyGenerator) {
+      public Builder bodyGenerator(SerializableFunction<Session, ByteBuf> bodyGenerator) {
          this.bodyGenerator = bodyGenerator;
          return this;
       }
 
-      public Builder headerAppender(BiConsumer<Session, HttpRequest> headerAppender) {
+      public Builder headerAppender(SerializableBiConsumer<Session, HttpRequest> headerAppender) {
          this.headerAppender = headerAppender;
          return this;
       }

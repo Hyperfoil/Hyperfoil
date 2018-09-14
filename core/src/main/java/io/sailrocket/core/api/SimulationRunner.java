@@ -1,17 +1,21 @@
 package io.sailrocket.core.api;
 
-import java.util.Map;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-import io.sailrocket.api.Report;
 import io.sailrocket.api.Session;
 
 public interface SimulationRunner {
-   void init() throws Exception;
 
-   Map<String, Report> run() throws Exception;
-
-   void shutdown();
+   void init(BiConsumer<String, PhaseInstance.Status> phaseChangeHook);
 
    void visitSessions(Consumer<Session> consumer);
+
+   void startPhase(String phase);
+
+   void finishPhase(String phase);
+
+   void terminatePhase(String phase);
+
+   void shutdown();
 }

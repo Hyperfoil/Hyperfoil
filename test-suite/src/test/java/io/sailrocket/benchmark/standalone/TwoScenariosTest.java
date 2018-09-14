@@ -19,19 +19,19 @@ import org.junit.runner.RunWith;
 
 import io.sailrocket.api.HttpMethod;
 import io.sailrocket.api.Simulation;
-import io.sailrocket.core.BenchmarkImpl;
+import io.sailrocket.api.Benchmark;
 import io.sailrocket.core.builders.BenchmarkBuilder;
 import io.sailrocket.core.builders.ScenarioBuilder;
 import io.sailrocket.core.builders.SequenceBuilder;
+import io.sailrocket.core.impl.LocalSimulationRunner;
 import io.sailrocket.core.util.RandomConcurrentSet;
-import io.sailrocket.test.Benchmark;
 import io.vertx.core.Vertx;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.ext.web.Router;
 
 @RunWith(VertxUnitRunner.class)
-@Category(Benchmark.class)
+@Category(io.sailrocket.test.Benchmark.class)
 public class TwoScenariosTest {
    protected Vertx vertx;
    protected Router router;
@@ -198,12 +198,12 @@ public class TwoScenariosTest {
                .endPhase()
             .build();
 
-      BenchmarkImpl benchmark = BenchmarkBuilder.builder()
+      Benchmark benchmark = BenchmarkBuilder.builder()
             .name("Test Benchmark")
             .simulation(simulation)
             .build();
 
-      benchmark.run();
+      new LocalSimulationRunner(benchmark).run();
    }
 
    private static String encode(String string) {

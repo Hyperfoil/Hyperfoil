@@ -18,13 +18,15 @@
  */
 package io.sailrocket.api;
 
+import java.io.Serializable;
+
 /**
  * A scenario is a workflow that consists of a set of {@link Sequence sequences}
  * undertaken by an end user to emulate use case logic that an end user would perform against a service.
  * A scenario can branch depending on the outcome of the sequences contained in the Scenario.
  * State may be shared between sequences in a scenario through the {@link Session}.
  */
-public interface Scenario {
+public interface Scenario extends Serializable {
    /**
     * Since this method is part of the 0-alloc loop it should not allocate the iterator.
     */

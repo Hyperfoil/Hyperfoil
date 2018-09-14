@@ -1,5 +1,6 @@
 package io.sailrocket.core.steps;
 
+import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,7 +22,7 @@ import io.sailrocket.spi.StatusValidator;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-public class HttpResponseHandler implements ResourceUtilizer, Session.ResourceKey<HttpResponseHandler.HandlerInstances> {
+public class HttpResponseHandler implements ResourceUtilizer, Session.ResourceKey<HttpResponseHandler.HandlerInstances>, Serializable {
    private static final Logger log = LoggerFactory.getLogger(HttpResponseHandler.class);
    private static final boolean trace = log.isTraceEnabled();
 

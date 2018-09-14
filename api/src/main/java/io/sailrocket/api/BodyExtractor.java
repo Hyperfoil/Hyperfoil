@@ -18,9 +18,11 @@
  */
 package io.sailrocket.api;
 
+import java.io.Serializable;
+
 import io.netty.buffer.ByteBuf;
 
-public interface BodyExtractor {
+public interface BodyExtractor extends Serializable {
 
     default void beforeData(Session session) {}
     void extractData(ByteBuf data, Session session);

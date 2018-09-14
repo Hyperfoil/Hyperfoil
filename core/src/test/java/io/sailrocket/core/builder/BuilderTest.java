@@ -20,9 +20,9 @@
 
 package io.sailrocket.core.builder;
 
+import io.sailrocket.api.Benchmark;
 import io.sailrocket.api.HttpMethod;
 import io.sailrocket.api.Simulation;
-import io.sailrocket.core.BenchmarkImpl;
 import io.sailrocket.core.builders.BenchmarkBuilder;
 
 import org.junit.Test;
@@ -59,13 +59,13 @@ public class BuilderTest {
                     .endPhase()
                 .build();
 
-        assertEquals("http://localhost:8080/", simulation.tags().getString("url"));
-        assertEquals(10, simulation.tags().getInteger("maxQueue").intValue());
-        assertEquals(1, simulation.tags().getInteger("connections").intValue());
+        assertEquals("http://localhost:8080/", simulation.tags().get("url"));
+        assertEquals(10, simulation.tags().get("maxQueue"));
+        assertEquals(1, simulation.tags().get("connections"));
         assertEquals(1, simulation.phases().size());
         assertEquals(3000L, simulation.phases().stream().findFirst().get().duration());
 
-        BenchmarkImpl benchmark =
+        Benchmark benchmark =
                 BenchmarkBuilder.builder()
                         .name("Test Benchmark")
                         .simulation(simulation)
