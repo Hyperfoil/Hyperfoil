@@ -11,6 +11,7 @@ import io.sailrocket.core.steps.AwaitAllResponsesStep;
 import io.sailrocket.core.steps.AwaitConditionStep;
 import io.sailrocket.core.steps.AwaitDelayStep;
 import io.sailrocket.core.steps.BreakSequenceStep;
+import io.sailrocket.core.steps.ForeachStep;
 import io.sailrocket.core.steps.HttpRequestStep;
 import io.sailrocket.core.steps.LoopStep;
 import io.sailrocket.core.steps.PollStep;
@@ -39,6 +40,10 @@ public class StepDiscriminator {
 
    public BaseSequenceBuilder loop(String counterVar, int repeats, String loopedSequence) {
       return parent.step(new LoopStep(counterVar, repeats, loopedSequence));
+   }
+
+   public ForeachStep.Builder foreach(String dataVar, String counterVar) {
+      return new ForeachStep.Builder(parent, dataVar, counterVar);
    }
 
    public BaseSequenceBuilder stop() {

@@ -20,51 +20,62 @@
 
 package io.sailrocket.core.builders;
 
+import io.sailrocket.api.BenchmarkDefinitionException;
 import io.sailrocket.api.Scenario;
 import io.sailrocket.api.Sequence;
 import io.sailrocket.core.impl.ScenarioImpl;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.function.Consumer;
 
 /**
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
  */
 public class ScenarioBuilder {
 
+    private final PhaseBuilder<?> phaseBuilder;
     private Collection<SequenceBuilder> initialSequences = new ArrayList<>();
     private Collection<SequenceBuilder> sequences = new ArrayList<>();
     private Collection<String> objectVars = new ArrayList<>();
     private Collection<String> intVars = new ArrayList<>();
     private Scenario scenario;
 
-    private ScenarioBuilder() {
+    ScenarioBuilder(PhaseBuilder<?> phaseBuilder) {
+        this.phaseBuilder = phaseBuilder;
     }
 
-    public static ScenarioBuilder scenarioBuilder() {
-        return new ScenarioBuilder();
+    public PhaseBuilder endScenario() {
+        return phaseBuilder;
     }
 
-    private ScenarioBuilder apply(Consumer<ScenarioBuilder> consumer) {
-        assert scenario == null;
-        consumer.accept(this);
+    ScenarioBuilder initialSequence(SequenceBuilder sequence) {
+        initialSequences.add(sequence);
+        sequence.id(sequences.size());
+        sequences.add(sequence);
         return this;
     }
 
-    public ScenarioBuilder initialSequence(SequenceBuilder sequence) {
-        return apply(clone -> {
-            clone.initialSequences.add(sequence);
-            sequence.id(clone.sequences.size());
-            clone.sequences.add(sequence);
-        });
+    public SequenceBuilder initialSequence(String name) {
+        SequenceBuilder builder = new SequenceBuilder(this, name);
+        initialSequence(builder);
+        return builder;
     }
 
-    public ScenarioBuilder sequence(SequenceBuilder sequence) {
-        return apply(clone -> {
-            sequence.id(clone.sequences.size());
-            clone.sequences.add(sequence);
-        });
+    ScenarioBuilder sequence(SequenceBuilder sequence) {
+        sequence.id(sequences.size());
+        sequences.add(sequence);
+        return this;
+    }
+
+    public SequenceBuilder sequence(String name) {
+        SequenceBuilder builder = new SequenceBuilder(this, name);
+        sequence(builder);
+        return builder;
+    }
+
+    public SequenceBuilder findSequence(String name) {
+        return sequences.stream().filter(sb -> name.equals(sb.name())).findFirst()
+              .orElseThrow(() -> new BenchmarkDefinitionException("No sequence " + name + " in phase " + endScenario().name));
     }
 
     public ScenarioBuilder objectVar(String var) {

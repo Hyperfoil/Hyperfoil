@@ -24,18 +24,15 @@ public class SimpleBuilderBenchmarkTestCase extends BaseBenchmarkTestCase {
     @Test
     public void runSimpleBenchmarkTest() {
 
-        Simulation simulation = TestBenchmarks.testSimulation();
+        BenchmarkBuilder builder = BenchmarkBuilder.builder().name("Test Benchmark");
+        TestBenchmarks.addTestSimulation(builder);
+        Benchmark benchmark = builder.build();
+        Simulation simulation = benchmark.simulation();
 
         assertEquals("http://localhost:8080/", simulation.tags().get("url"));
         assertEquals(10, simulation.tags().get("maxQueue"));
         assertEquals(10, simulation.tags().get("connections"));
         assertEquals(10_000L, simulation.phases().stream().findFirst().get().duration());
-
-        Benchmark benchmark =
-                BenchmarkBuilder.builder()
-                        .name("Test Benchmark")
-                        .simulation(simulation)
-                        .build();
 
         try {
             Map<String, Report> reports = new LocalSimulationRunner(benchmark).run();

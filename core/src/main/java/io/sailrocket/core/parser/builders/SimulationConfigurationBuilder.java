@@ -19,7 +19,6 @@
 package io.sailrocket.core.parser.builders;
 
 import io.sailrocket.core.builders.BenchmarkBuilder;
-import io.sailrocket.core.builders.SimulationBuilder;
 import io.sailrocket.core.parser.ConfigurationParserException;
 
 import java.util.Map;
@@ -40,10 +39,10 @@ public class SimulationConfigurationBuilder extends AbstractConfigurationBuilder
     @Override
     public void build(Map configuration, BenchmarkBuilder target) throws ConfigurationParserException {
 
-        SimulationBuilder simulationBuilder = SimulationBuilder.simulationBuilder();
-
-        callSubBuilders(configuration, simulationBuilder);
-
-        target.simulation(simulationBuilder);
+//        SimulationBuilder simulationBuilder = SimulationBuilder.simulationBuilder();
+//
+//        callSubBuilders(configuration, simulationBuilder);
+//
+//        target.simulation(simulationBuilder);
     }
 }

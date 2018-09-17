@@ -19,6 +19,8 @@
 
 package io.sailrocket.core.client;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import io.sailrocket.api.HttpClientPool;
 import io.sailrocket.api.HttpMethod;
 import io.sailrocket.api.HttpRequest;
@@ -33,10 +35,6 @@ import org.junit.runner.RunWith;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 @RunWith(VertxUnitRunner.class)
 public class HttpClientPoolHandlerTest {
@@ -59,8 +57,7 @@ public class HttpClientPoolHandlerTest {
     }
 
     @Test
-    public void simpleHeaderRequest() {
-        try {
+    public void simpleHeaderRequest() throws Exception {
         HttpClientPool client = HttpClientProvider.netty.builder()
                 .host("localhost")
                 .concurrency(1)
@@ -71,20 +68,26 @@ public class HttpClientPoolHandlerTest {
                 .size(1)
                 .build();
 
+        CountDownLatch startLatch = new CountDownLatch(1);
+        client.start(nil -> startLatch.countDown());
+        assertThat(startLatch.await(10, TimeUnit.SECONDS)).isTrue();
+
         HttpRequest conn = client.request(HttpMethod.GET, "/", null);
         CountDownLatch latch = new CountDownLatch(4);
 
         conn.statusHandler(code -> {
-            assertEquals(200, code);
+            assertThat(code).isEqualTo(200);
             latch.countDown();
         }).headerHandler((header, value) -> {
             if ("foo".equals(header)) {
-                assertEquals("bar", value);
+                assertThat(value).isEqualTo("bar");
                 latch.countDown();
             }
         })
         .bodyPartHandler(input -> {
-            assertEquals("hello from server", new String(input.array()));
+            byte[] bytes = new byte[input.readableBytes()];
+            input.readBytes(bytes, 0, bytes.length);
+            assertThat(new String(bytes)).isEqualTo("hello from server");
             latch.countDown();
         }).endHandler(() -> {
             latch.countDown();
@@ -92,11 +95,7 @@ public class HttpClientPoolHandlerTest {
 
         conn.end();
 
-        assertTrue(latch.await(3, TimeUnit.SECONDS));
-        assertEquals(1, count);
-        }
-        catch (Exception e) {
-            fail("Should not throw any exceptions"+ e.getMessage());
-        }
+        assertThat(latch.await(3, TimeUnit.SECONDS)).isTrue();
+        assertThat(count).isEqualTo(1);
     }
 }

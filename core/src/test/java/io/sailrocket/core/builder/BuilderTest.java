@@ -28,9 +28,6 @@ import io.sailrocket.core.builders.BenchmarkBuilder;
 import org.junit.Test;
 
 import static io.sailrocket.core.builders.HttpBuilder.httpBuilder;
-import static io.sailrocket.core.builders.ScenarioBuilder.scenarioBuilder;
-import static io.sailrocket.core.builders.SequenceBuilder.sequenceBuilder;
-import static io.sailrocket.core.builders.SimulationBuilder.simulationBuilder;
 import static org.junit.Assert.assertEquals;
 
 /**
@@ -41,23 +38,29 @@ public class BuilderTest {
     @Test
     public void testBuilders() {
 
-        Simulation simulation = simulationBuilder()
-                .http(httpBuilder().baseUrl("http://localhost:8080"))
-                .concurrency(10)
-                .connections(1)
-                .addPhase("foo").always(1)
-                    .duration("3s")
-                    .scenario(scenarioBuilder()
-                        .initialSequence(sequenceBuilder()
-                                .step().httpRequest(HttpMethod.GET)
-                                        .path("foo")
-                                        .endStep()
-                                .step().awaitAllResponses()
-                                .end()
-                        )
-                    )
-                    .endPhase()
-                .build();
+        Benchmark benchmark =
+              BenchmarkBuilder.builder()
+                    .name("Test Benchmark")
+                    .simulation()
+                        .http(httpBuilder().baseUrl("http://localhost:8080"))
+                        .concurrency(10)
+                        .connections(1)
+                        .addPhase("foo").always(1)
+                            .duration("3s")
+                            .scenario()
+                                .initialSequence("foo")
+                                    .step().httpRequest(HttpMethod.GET)
+                                            .path("foo")
+                                            .endStep()
+                                    .step().awaitAllResponses()
+                                    .end()
+                                .endSequence()
+                            .endScenario()
+                        .endPhase()
+                    .endSimulation()
+                    .build();
+
+        Simulation simulation = benchmark.simulation();
 
         assertEquals("http://localhost:8080/", simulation.tags().get("url"));
         assertEquals(10, simulation.tags().get("maxQueue"));
@@ -65,10 +68,6 @@ public class BuilderTest {
         assertEquals(1, simulation.phases().size());
         assertEquals(3000L, simulation.phases().stream().findFirst().get().duration());
 
-        Benchmark benchmark =
-                BenchmarkBuilder.builder()
-                        .name("Test Benchmark")
-                        .simulation(simulation)
-                        .build();
+
     }
 }

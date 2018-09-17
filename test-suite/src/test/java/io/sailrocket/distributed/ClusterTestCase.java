@@ -1,6 +1,5 @@
 package io.sailrocket.distributed;
 
-import io.sailrocket.core.builders.BenchmarkBuilder;
 import io.sailrocket.test.Benchmark;
 import io.sailrocket.test.TestBenchmarks;
 import io.vertx.core.DeploymentOptions;
@@ -13,7 +12,6 @@ import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.asynchttpclient.AsyncHttpClient;
 import org.asynchttpclient.Response;
-import org.asynchttpclient.request.body.multipart.ByteArrayPart;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -92,11 +90,8 @@ public class ClusterTestCase {
             }
 
             asyncHttpClient
-                  .preparePost("http://localhost:8090/upload?benchmark=foo")
-                  .setBody(serialize(BenchmarkBuilder.builder()
-                        .name("foo")
-                        .simulation(TestBenchmarks.testSimulation())
-                        .build()))
+                  .preparePost("http://localhost:8090/upload")
+                  .setBody(serialize(TestBenchmarks.testBenchmark()))
                   .execute()
                   .toCompletableFuture()
                   .thenAccept(response -> {

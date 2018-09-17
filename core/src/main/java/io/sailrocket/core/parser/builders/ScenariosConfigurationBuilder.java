@@ -18,7 +18,6 @@
  */
 package io.sailrocket.core.parser.builders;
 
-import io.sailrocket.core.builders.ScenarioBuilder;
 import io.sailrocket.core.builders.SimulationBuilder;
 import io.sailrocket.core.parser.ConfigurationParserException;
 
@@ -39,11 +38,11 @@ public class ScenariosConfigurationBuilder extends AbstractConfigurationBuilder<
     @Override
     public void build(Map configuration, SimulationBuilder target) throws ConfigurationParserException {
 
-        ScenarioBuilder scenarioBuilder = ScenarioBuilder.scenarioBuilder();
-
-        callSubBuilders(configuration, scenarioBuilder);
-
-        target.addPhase("test").atOnce(1).scenario(scenarioBuilder);
+//       ScenarioBuilder scenarioBuilder = new ScenarioBuilder(null);
+//
+//        callSubBuilders(configuration, scenarioBuilder);
+//
+//        target.addPhase("test").atOnce(1).scenario(scenarioBuilder);
 
     }
 }

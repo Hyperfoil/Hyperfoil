@@ -31,4 +31,8 @@ public abstract class BaseSequenceBuilder {
    public SequenceBuilder end() {
       return parent.end();
    }
+
+   public ScenarioBuilder endSequence() {
+      return end().endSequence();
+   }
 }

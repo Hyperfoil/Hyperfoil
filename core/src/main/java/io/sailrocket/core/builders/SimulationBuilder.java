@@ -39,6 +39,7 @@ import java.util.function.Consumer;
  */
 public class SimulationBuilder {
 
+    private final BenchmarkBuilder benchmarkBuilder;
     private HttpBase http;
     private int connections = 1;
     private int concurrency = 1;
@@ -46,11 +47,12 @@ public class SimulationBuilder {
     private Map<String, PhaseBuilder> phaseBuilders = new HashMap<>();
     private long statisticsCollectionPeriod = 1000;
 
-    private SimulationBuilder() {
+    SimulationBuilder(BenchmarkBuilder benchmarkBuilder) {
+        this.benchmarkBuilder = benchmarkBuilder;
     }
 
-    public static SimulationBuilder simulationBuilder() {
-        return new SimulationBuilder();
+    public BenchmarkBuilder endSimulation() {
+        return benchmarkBuilder;
     }
 
     private SimulationBuilder apply(Consumer<SimulationBuilder> consumer) {

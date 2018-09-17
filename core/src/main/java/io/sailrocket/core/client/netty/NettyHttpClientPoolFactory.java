@@ -2,12 +2,9 @@ package io.sailrocket.core.client.netty;
 
 import io.sailrocket.api.HttpClientPool;
 import io.sailrocket.spi.HttpClientPoolFactory;
-import io.netty.channel.EventLoop;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.vertx.core.http.HttpVersion;
-
-import java.util.concurrent.TimeUnit;
 
 public class NettyHttpClientPoolFactory implements HttpClientPoolFactory {
 
@@ -59,6 +56,6 @@ public class NettyHttpClientPoolFactory implements HttpClientPoolFactory {
   @Override
   public HttpClientPool build() throws Exception {
     EventLoopGroup workerGroup = new NioEventLoopGroup(this.threads);
-    return HttpClientPoolImpl.create(workerGroup, protocol, ssl, size, port, host, concurrency);
+    return HttpClientPoolImpl.create(workerGroup.next(), protocol, ssl, size, port, host, concurrency);
   }
 }

@@ -46,7 +46,7 @@
  * <p>
  * Initially all variables are in undefined state; reading such variable is considered an error. The unset/set state
  * forms the basis of data-dependencies mentioned earlier: when a step requires the variable to be defined, you should
- * declare that with {@link io.sailrocket.core.steps.BaseStep#addDependency(VarReference)}.
+ * declare that with {@link io.sailrocket.core.steps.DependencyStep#addDependency(VarReference)}.
  * <p>
  * It is possible to find out if the variable is set calling {@link io.sailrocket.core.session.SessionImpl#isSet(java.lang.Object)}.
  * <p>

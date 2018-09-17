@@ -1,20 +1,28 @@
 package io.sailrocket.core.steps;
 
+import java.util.Collections;
+import java.util.List;
+
+import io.sailrocket.api.BenchmarkDefinitionException;
 import io.sailrocket.api.Sequence;
 import io.sailrocket.api.Session;
+import io.sailrocket.api.Step;
+import io.sailrocket.api.VarReference;
 import io.sailrocket.core.api.ResourceUtilizer;
+import io.sailrocket.core.builders.BaseSequenceBuilder;
+import io.sailrocket.core.builders.DependencyStepBuilder;
 import io.sailrocket.core.session.SimpleVarReference;
 
-public class ForeachStep extends BaseStep implements ResourceUtilizer {
+public class ForeachStep extends DependencyStep implements ResourceUtilizer {
    private final String dataVar;
    private final String counterVar;
    private final Sequence template;
 
-   public ForeachStep(String dataVar, String counterVar, Sequence template) {
+   public ForeachStep(VarReference[] dependencies, String dataVar, String counterVar, Sequence template) {
+      super(dependencies);
       this.dataVar = dataVar;
       this.counterVar = counterVar;
       this.template = template;
-      addDependency(new SimpleVarReference(dataVar));
    }
 
    @Override
@@ -38,5 +46,32 @@ public class ForeachStep extends BaseStep implements ResourceUtilizer {
    @Override
    public void reserve(Session session) {
       session.declareInt(counterVar);
+   }
+
+   public static class Builder extends DependencyStepBuilder {
+      private String dataVar;
+      private String counterVar;
+      private String sequenceTemplate;
+
+      public Builder(BaseSequenceBuilder parent, String dataVar, String counterVar) {
+         super(parent);
+         this.dataVar = dataVar;
+         this.counterVar = counterVar;
+         dependency(new SimpleVarReference(dataVar));
+      }
+
+      public Builder sequence(String sequenceTemplate) {
+         this.sequenceTemplate = sequenceTemplate;
+         return this;
+      }
+
+      @Override
+      public List<Step> build() {
+         if (sequenceTemplate == null) {
+            throw new BenchmarkDefinitionException("Template sequence must be defined");
+         }
+         Sequence sequence = parent.end().endSequence().findSequence(sequenceTemplate).build();
+         return Collections.singletonList(new ForeachStep(dependencies(), dataVar, counterVar, sequence));
+      }
    }
 }

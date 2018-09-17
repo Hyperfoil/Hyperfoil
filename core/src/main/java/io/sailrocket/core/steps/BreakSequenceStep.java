@@ -7,14 +7,16 @@ import java.util.function.Predicate;
 
 import io.sailrocket.api.Session;
 import io.sailrocket.api.Step;
+import io.sailrocket.api.VarReference;
 import io.sailrocket.core.builders.BaseSequenceBuilder;
-import io.sailrocket.core.builders.BaseStepBuilder;
+import io.sailrocket.core.builders.DependencyStepBuilder;
 
-public class BreakSequenceStep extends BaseStep {
+public class BreakSequenceStep extends DependencyStep {
    private final Predicate<Session> condition;
    private final Consumer<Session> onBreak;
 
-   public BreakSequenceStep(Predicate<Session> condition, Consumer<Session> onBreak) {
+   public BreakSequenceStep(VarReference[] dependencies, Predicate<Session> condition, Consumer<Session> onBreak) {
+      super(dependencies);
       this.condition = condition;
       this.onBreak = onBreak;
    }
@@ -29,7 +31,7 @@ public class BreakSequenceStep extends BaseStep {
       }
    }
 
-   public static class Builder extends BaseStepBuilder {
+   public static class Builder extends DependencyStepBuilder {
       private final Predicate<Session> condition;
       private Consumer<Session> onBreak;
 
@@ -38,14 +40,14 @@ public class BreakSequenceStep extends BaseStep {
          this.condition = condition;
       }
 
-      public BaseStepBuilder onBreak(Consumer<Session> onBreak) {
+      public DependencyStepBuilder onBreak(Consumer<Session> onBreak) {
          this.onBreak = onBreak;
          return this;
       }
 
       @Override
       public List<Step> build() {
-         return Collections.singletonList(new BreakSequenceStep(condition, onBreak));
+         return Collections.singletonList(new BreakSequenceStep(dependencies(), condition, onBreak));
       }
    }
 }

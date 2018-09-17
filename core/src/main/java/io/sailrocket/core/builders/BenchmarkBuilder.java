@@ -21,12 +21,10 @@ package io.sailrocket.core.builders;
 
 import io.sailrocket.api.Benchmark;
 import io.sailrocket.api.Host;
-import io.sailrocket.api.Result;
 import io.sailrocket.api.SLA;
-import io.sailrocket.api.Simulation;
 
-import java.util.Set;
-import java.util.function.Consumer;
+import java.util.ArrayList;
+import java.util.Collection;
 
 /**
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
@@ -34,9 +32,9 @@ import java.util.function.Consumer;
 public class BenchmarkBuilder {
 
     private String name;
-    private Simulation simulation;
+    private SimulationBuilder simulation;
     private Host[] hosts;
-    private SLA[] slas;
+    private Collection<SLABuilder> slas = new ArrayList<>();
 
     private BenchmarkBuilder() {
     }
@@ -45,21 +43,13 @@ public class BenchmarkBuilder {
         return new BenchmarkBuilder();
     }
 
-    private BenchmarkBuilder apply(Consumer<BenchmarkBuilder> consumer) {
-        consumer.accept(this);
+    public BenchmarkBuilder name(String name) {
+        this.name = name;
         return this;
     }
 
-    public BenchmarkBuilder name(String name) {
-        return apply(clone -> clone.name = name);
-    }
-
-    public BenchmarkBuilder simulation(Simulation simulation) {
-        return apply(clone -> clone.simulation = simulation);
-    }
-
-    public BenchmarkBuilder simulation(SimulationBuilder simulationBuilder) {
-        return simulation(simulationBuilder.build());
+    public SimulationBuilder simulation() {
+        return simulation = new SimulationBuilder(this);
     }
 
     public BenchmarkBuilder host(String host){
@@ -67,6 +57,10 @@ public class BenchmarkBuilder {
     }
 
     public Benchmark build() {
-        return new Benchmark(name, simulation, hosts, slas);
+        return new Benchmark(name, simulation.build(), hosts, slas.stream().map(SLABuilder::build).toArray(SLA[]::new));
+    }
+
+    void addSLA(SLABuilder sla) {
+        slas.add(sla);
     }
 }

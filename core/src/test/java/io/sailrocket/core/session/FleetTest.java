@@ -3,7 +3,6 @@ package io.sailrocket.core.session;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
 import java.util.Optional;
 
 import org.junit.Test;
@@ -12,15 +11,13 @@ import org.junit.runner.RunWith;
 import io.sailrocket.api.HttpMethod;
 import io.sailrocket.api.Session;
 import io.sailrocket.api.Statistics;
+import io.sailrocket.core.builders.BenchmarkBuilder;
 import io.sailrocket.core.builders.ScenarioBuilder;
-import io.sailrocket.core.builders.SequenceBuilder;
 import io.sailrocket.core.extractors.ArrayRecorder;
 import io.sailrocket.core.extractors.SequenceScopedCountRecorder;
 import io.sailrocket.core.extractors.DefragProcessor;
 import io.sailrocket.core.extractors.JsonExtractor;
 import io.sailrocket.core.steps.AwaitConditionStep;
-import io.sailrocket.core.steps.BreakSequenceStep;
-import io.sailrocket.core.steps.ForeachStep;
 import io.sailrocket.core.test.CrewMember;
 import io.sailrocket.core.test.Fleet;
 import io.sailrocket.core.test.Ship;
@@ -76,57 +73,53 @@ public class FleetTest extends BaseScenarioTest {
       // We need to call async() to prevent termination when the test method completes
       Async async = ctx.async(2);
 
-      ScenarioBuilder scenarioBuilder = ScenarioBuilder.scenarioBuilder();
-      SequenceBuilder fleetSequence = SequenceBuilder.sequenceBuilder("fleet");
-      SequenceBuilder shipSequence = SequenceBuilder.sequenceBuilder("ship");
-      SequenceBuilder finalSequence = SequenceBuilder.sequenceBuilder("final");
-      scenarioBuilder.initialSequence(fleetSequence).initialSequence(finalSequence);
-      scenarioBuilder.sequence(shipSequence);
+      ScenarioBuilder scenario = BenchmarkBuilder.builder().simulation().addPhase("test").atOnce(1).scenario()
+            .intVar("numberOfSunkShips")
+            .initialSequence("fleet")
+               .step(s -> s.setInt("numberOfSunkShips", 0))
+               .step().httpRequest(HttpMethod.GET).path("/fleet")
+                  .handler()
+                     .bodyExtractor(new JsonExtractor(".ships[].name", new DefragProcessor(new ArrayRecorder("shipNames", MAX_SHIPS))))
+                  .endHandler()
+               .endStep()
+               .step().foreach("shipNames", "numberOfShips").sequence("ship").endStep()
+            .endSequence()
+            .sequence("ship")
+               .step().httpRequest(HttpMethod.GET).pathGenerator(FleetTest::currentShipQuery)
+                  .handler()
+                     .bodyExtractor(new JsonExtractor(".crew[]", new SequenceScopedCountRecorder("crewCount", MAX_SHIPS)))
+                  .endHandler()
+               .endStep()
+               .step().breakSequence(s -> currentCrewCount(s) > 0)
+                  .onBreak(s -> s.addToInt("numberOfShips", -1))
+                  .dependency(new SequenceScopedVarReference("crewCount"))
+               .endStep()
+               .step().httpRequest(HttpMethod.DELETE).pathGenerator(FleetTest::currentShipQuery)
+                  .handler()
+                     .statusExtractor(((status, session) -> {
+                        if (status == 204) {
+                           session.addToInt("numberOfSunkShips", -1);
+                        } else {
+                           ctx.fail("Unexpected status " + status);
+                        }
+                     }))
+                  .endHandler()
+               .endStep()
+               .step(s -> s.addToInt("numberOfSunkShips", 1).addToInt("numberOfShips", -1))
+            .endSequence()
+            .initialSequence("final")
+               .step(new AwaitConditionStep(s -> s.isSet("numberOfShips") && s.getInt("numberOfShips") <= 0))
+               .step(new AwaitConditionStep(s -> s.getInt("numberOfSunkShips") <= 0))
+               .step(s -> {
+                  log.info("Test completed");
+                  for (Statistics stats : s.statistics()) {
+                     log.trace(stats);
+                  }
+                  async.countDown();
+               })
+            .endSequence();
 
-      scenarioBuilder.intVar("numberOfSunkShips");
-      fleetSequence.step(s -> s.setInt("numberOfSunkShips", 0));
-
-      fleetSequence.step().httpRequest(HttpMethod.GET).path("/fleet")
-            .handler()
-               .bodyExtractor(new JsonExtractor(".ships[].name", new DefragProcessor(new ArrayRecorder("shipNames", MAX_SHIPS))))
-            .endHandler().endStep();
-
-      // Passing the ForeachStep as lambda-builder makes shipSequence.build() be evaluated at the end
-      fleetSequence.step(() -> Collections.singletonList(new ForeachStep("shipNames", "numberOfShips", shipSequence.build())));
-
-      /// Ship sequence
-      shipSequence.step().httpRequest(HttpMethod.GET).pathGenerator(FleetTest::currentShipQuery)
-         .handler()
-            .bodyExtractor(new JsonExtractor(".crew[]", new SequenceScopedCountRecorder("crewCount", MAX_SHIPS)))
-         .endHandler().endStep();
-
-      BreakSequenceStep breakSequenceStep = new BreakSequenceStep(s -> currentCrewCount(s) > 0, s -> s.addToInt("numberOfShips", -1));
-      breakSequenceStep.addDependency(new SequenceScopedVarReference("crewCount"));
-      shipSequence.step(breakSequenceStep);
-
-      shipSequence.step().httpRequest(HttpMethod.DELETE).pathGenerator(FleetTest::currentShipQuery)
-         .handler()
-            .statusExtractor(((status, session) -> {
-               if (status == 204) {
-                  session.addToInt("numberOfSunkShips", -1);
-               } else {
-                  ctx.fail("Unexpected status " + status);
-               }
-            }))
-         .endHandler().endStep();
-      shipSequence.step(s -> s.addToInt("numberOfSunkShips", 1).addToInt("numberOfShips", -1));
-
-      finalSequence.step(new AwaitConditionStep(s -> s.isSet("numberOfShips") && s.getInt("numberOfShips") <= 0));
-      finalSequence.step(new AwaitConditionStep(s -> s.getInt("numberOfSunkShips") <= 0));
-      finalSequence.step(s -> {
-         log.info("Test completed");
-         for (Statistics stats : s.statistics()) {
-            log.trace(stats);
-         }
-         async.countDown();
-      });
-
-      runScenario(scenarioBuilder.build(), 2);
+      runScenario(scenario.build(), 2);
    }
 
    private int currentCrewCount(Session session) {

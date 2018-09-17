@@ -20,6 +20,8 @@
 
 package io.sailrocket.core.builders;
 
+import java.util.Objects;
+
 import io.sailrocket.api.Sequence;
 import io.sailrocket.api.Step;
 import io.sailrocket.core.session.SequenceImpl;
@@ -28,22 +30,15 @@ import io.sailrocket.core.session.SequenceImpl;
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
  */
 public class SequenceBuilder extends BaseSequenceBuilder {
-
+    private final ScenarioBuilder scenario;
     private final String name;
     private int id;
     private Sequence sequence;
 
-    private SequenceBuilder(String name) {
+    SequenceBuilder(ScenarioBuilder scenario, String name) {
         super(null);
-        this.name = name;
-    }
-
-    public static SequenceBuilder sequenceBuilder() {
-        return new SequenceBuilder(null);
-    }
-
-    public static SequenceBuilder sequenceBuilder(String name) {
-        return new SequenceBuilder(name);
+        this.scenario = scenario;
+        this.name = Objects.requireNonNull(name);
     }
 
     public Sequence build() {
@@ -57,8 +52,25 @@ public class SequenceBuilder extends BaseSequenceBuilder {
         this.id = id;
     }
 
+    public SequenceBuilder sla(SLABuilder sla) {
+        endSequence().endScenario().endPhase().endSimulation().addSLA(sla);
+        return this;
+    }
+
+    public SLABuilder sla() {
+        return new SLABuilder(this);
+    }
+
     @Override
     public SequenceBuilder end() {
         return this;
+    }
+
+    public ScenarioBuilder endSequence() {
+        return scenario;
+    }
+
+    public String name() {
+        return name;
     }
 }

@@ -1,9 +1,6 @@
 package io.sailrocket.benchmark.standalone;
 
 import static io.sailrocket.core.builders.HttpBuilder.httpBuilder;
-import static io.sailrocket.core.builders.ScenarioBuilder.scenarioBuilder;
-import static io.sailrocket.core.builders.SequenceBuilder.sequenceBuilder;
-import static io.sailrocket.core.builders.SimulationBuilder.simulationBuilder;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -18,11 +15,7 @@ import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 
 import io.sailrocket.api.HttpMethod;
-import io.sailrocket.api.Simulation;
-import io.sailrocket.api.Benchmark;
 import io.sailrocket.core.builders.BenchmarkBuilder;
-import io.sailrocket.core.builders.ScenarioBuilder;
-import io.sailrocket.core.builders.SequenceBuilder;
 import io.sailrocket.core.impl.LocalSimulationRunner;
 import io.sailrocket.core.util.RandomConcurrentSet;
 import io.vertx.core.Vertx;
@@ -95,115 +88,90 @@ public class TwoScenariosTest {
       ships.put(new ShipInfo("Santiago", SailsState.FURLED));
       ships.put(new ShipInfo("Victoria", SailsState.FURLED));
 
-      ScenarioBuilder rigScenario = scenarioBuilder();
-      {
-         SequenceBuilder selectShip = sequenceBuilder("select-ship")
-               .step().stopwatch()
-                  .step().poll(ships::fetch, "ship")
-                     .filter(ship -> ship.sailsState == SailsState.FURLED, ships::put)
-                  .endStep()
-                  .end()
-               .step().nextSequence("board")
-               .end();
-
-         SequenceBuilder board = sequenceBuilder("board")
-               .step().httpRequest(HttpMethod.GET).path("/board").endStep()
-               .step().awaitAllResponses()
-               .step().nextSequence("rig")
-               .end();
-
-         SequenceBuilder rig = sequenceBuilder("rig")
-               .step().httpRequest(HttpMethod.GET).pathGenerator(s -> "/rig?ship=" + encode(((ShipInfo) s.getObject("ship")).name))
-                  .handler().statusValidator(((session, status) -> {
-                     if (status == 200) {
-                        ((ShipInfo) session.getObject("ship")).sailsState = SailsState.RIGGED;
-                        return true;
-                     }
-                     return false;
-                  })).endHandler()
-               .endStep()
-               .step().awaitAllResponses()
-               .step().nextSequence("disembark")
-               .end();
-
-         SequenceBuilder disembark = sequenceBuilder("disembark")
-               .step().httpRequest(HttpMethod.GET).path("/disembark").endStep()
-               .step().awaitAllResponses()
-               .step(s -> ships.put((ShipInfo) s.getObject("ship")))
-               .end();
-
-         rigScenario
-               .initialSequence(selectShip)
-               .sequence(board)
-               .sequence(rig)
-               .sequence(disembark);
-      }
-
-      ScenarioBuilder furlScenario = scenarioBuilder();
-      {
-         SequenceBuilder selectShip = sequenceBuilder("select-ship")
-               .step().stopwatch()
-                  .step().poll(ships::fetch, "ship")
-                     .filter(ship -> ship.sailsState == SailsState.RIGGED, ships::put)
-                  .endStep()
-                  .end()
-               .step().nextSequence("board")
-               .end();
-
-         SequenceBuilder board = sequenceBuilder("board")
-               .step().httpRequest(HttpMethod.GET).path("/board").endStep()
-               .step().awaitAllResponses()
-               .step().nextSequence("furl")
-               .end();
-
-         SequenceBuilder furl = sequenceBuilder("furl")
-               .step().httpRequest(HttpMethod.GET).pathGenerator(s -> "/furl?ship=" + encode(((ShipInfo) s.getObject("ship")).name))
-                  .handler().statusValidator((session, status) -> {
-                     if (status == 200) {
-                        ((ShipInfo) session.getObject("ship")).sailsState = SailsState.RIGGED;
-                        return true;
-                     }
-                     return false;
-                  }).endHandler()
-               .endStep()
-               .step().awaitAllResponses()
-               .step().nextSequence("disembark")
-               .end();
-
-         SequenceBuilder disembark = sequenceBuilder("disembark")
-               .step().httpRequest(HttpMethod.GET).path("/disembark").endStep()
-               .step().awaitAllResponses()
-               .step(s -> ships.put((ShipInfo) s.getObject("ship")))
-               .end();
-
-         furlScenario
-               .initialSequence(selectShip)
-               .sequence(board)
-               .sequence(furl)
-               .sequence(disembark);
-      }
-
-      Simulation simulation = simulationBuilder()
+      BenchmarkBuilder benchmark = BenchmarkBuilder.builder()
+         .name("Test Benchmark")
+         .simulation()
             .http(httpBuilder().baseUrl("http://localhost:8080"))
             .concurrency(10)
             .connections(10)
             .addPhase("rig").constantPerSec(3)
                .duration(5000)
                .maxDuration(10000)
-               .scenario(rigScenario)
-               .endPhase()
+               .scenario()
+                  .initialSequence("select-ship")
+                     .step().stopwatch()
+                        .step().poll(ships::fetch, "ship")
+                        .filter(ship -> ship.sailsState == SailsState.FURLED, ships::put)
+                        .endStep()
+                     .end()
+                     .step().nextSequence("board")
+                  .endSequence()
+                  .sequence("board")
+                     .step().httpRequest(HttpMethod.GET).path("/board").endStep()
+                     .step().awaitAllResponses()
+                     .step().nextSequence("rig")
+                  .endSequence()
+                  .sequence("rig")
+                     .step().httpRequest(HttpMethod.GET)
+                        .pathGenerator(s -> "/rig?ship=" + encode(((ShipInfo) s.getObject("ship")).name))
+                        .handler().statusValidator(((session, status) -> {
+                           if (status == 200) {
+                              ((ShipInfo) session.getObject("ship")).sailsState = SailsState.RIGGED;
+                              return true;
+                           }
+                           return false;
+                        })).endHandler()
+                     .endStep()
+                     .step().awaitAllResponses()
+                     .step().nextSequence("disembark")
+                  .endSequence()
+                  .sequence("disembark")
+                     .step().httpRequest(HttpMethod.GET).path("/disembark").endStep()
+                     .step().awaitAllResponses()
+                     .step(s -> ships.put((ShipInfo) s.getObject("ship")))
+                  .endSequence()
+               .endScenario()
+            .endPhase()
             .addPhase("furl").constantPerSec(2) // intentionally less to trigger maxDuration
                .duration(5000) // no max duration, should not need it
-               .scenario(furlScenario)
-               .endPhase()
-            .build();
+               .scenario()
+                  .sequence("select-ship")
+                     .step().stopwatch()
+                        .step().poll(ships::fetch, "ship")
+                        .filter(ship -> ship.sailsState == SailsState.RIGGED, ships::put)
+                        .endStep()
+                     .end()
+                     .step().nextSequence("board")
+                  .endSequence()
+                  .sequence("board")
+                     .step().httpRequest(HttpMethod.GET).path("/board").endStep()
+                     .step().awaitAllResponses()
+                     .step().nextSequence("furl")
+                  .endSequence()
+                  .sequence("furl")
+                     .step().httpRequest(HttpMethod.GET)
+                        .pathGenerator(s -> "/furl?ship=" + encode(((ShipInfo) s.getObject("ship")).name))
+                        .handler().statusValidator((session, status) -> {
+                           if (status == 200) {
+                              ((ShipInfo) session.getObject("ship")).sailsState = SailsState.RIGGED;
+                              return true;
+                           }
+                           return false;
+                        }).endHandler()
+                     .endStep()
+                     .step().awaitAllResponses()
+                     .step().nextSequence("disembark")
+                  .endSequence()
+                  .sequence("disembark")
+                     .step().httpRequest(HttpMethod.GET).path("/disembark").endStep()
+                     .step().awaitAllResponses()
+                     .step(s -> ships.put((ShipInfo) s.getObject("ship")))
+                  .endSequence()
+               .endScenario()
+            .endPhase()
+         .endSimulation();
 
-      Benchmark benchmark = BenchmarkBuilder.builder()
-            .name("Test Benchmark")
-            .simulation(simulation)
-            .build();
-
-      new LocalSimulationRunner(benchmark).run();
+      new LocalSimulationRunner(benchmark.build()).run();
    }
 
    private static String encode(String string) {

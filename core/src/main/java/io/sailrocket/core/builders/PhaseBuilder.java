@@ -4,13 +4,13 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 
+import io.sailrocket.api.BenchmarkDefinitionException;
 import io.sailrocket.api.Phase;
-import io.sailrocket.api.Scenario;
 
 public abstract class PhaseBuilder<PB extends PhaseBuilder> {
    protected final String name;
    protected final SimulationBuilder parent;
-   protected Scenario scenario;
+   protected ScenarioBuilder scenario;
    protected long startTime = -1;
    protected Collection<String> startAfter = new ArrayList<>();
    protected Collection<String> startAfterStrict = new ArrayList<>();
@@ -27,14 +27,12 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
       return parent;
    }
 
-   public PB scenario(Scenario scenario) {
-      this.scenario = scenario;
-      return (PB) this;
-   }
-
-   public PB scenario(ScenarioBuilder builder) {
-      this.scenario = builder.build();
-      return (PB) this;
+   public ScenarioBuilder scenario() {
+      if (scenario != null) {
+         throw new BenchmarkDefinitionException("Scenario already set!");
+      }
+      scenario = new ScenarioBuilder(this);
+      return scenario;
    }
 
    public PB startTime(long startTime) {
@@ -110,7 +108,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
 
       @Override
       public Phase.AtOnce build() {
-         return new Phase.AtOnce(name, scenario, startTime, startAfter, startAfterStrict, duration, maxDuration, users);
+         return new Phase.AtOnce(name, scenario.build(), startTime, startAfter, startAfterStrict, duration, maxDuration, users);
       }
    }
 
@@ -124,7 +122,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
 
       @Override
       public Phase.Always build() {
-         return new Phase.Always(name, scenario, startTime, startAfter, startAfterStrict, duration, maxDuration, users);
+         return new Phase.Always(name, scenario.build(), startTime, startAfter, startAfterStrict, duration, maxDuration, users);
       }
    }
 
@@ -146,7 +144,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
 
       @Override
       public Phase.RampPerSec build() {
-         return new Phase.RampPerSec(name, scenario, startTime, startAfter, startAfterStrict,
+         return new Phase.RampPerSec(name, scenario.build(), startTime, startAfter, startAfterStrict,
                duration, maxDuration, initialUsersPerSec, targetUsersPerSec,
                maxSessionsEstimate <= 0 ? Math.max(initialUsersPerSec, targetUsersPerSec) : maxSessionsEstimate);
       }
@@ -168,7 +166,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
 
       @Override
       public Phase.ConstantPerSec build() {
-         return new Phase.ConstantPerSec(name, scenario, startTime, startAfter,
+         return new Phase.ConstantPerSec(name, scenario.build(), startTime, startAfter,
                startAfterStrict, duration, maxDuration, usersPerSec,
                maxSessionsEstimate <= 0 ? usersPerSec : maxSessionsEstimate);
       }

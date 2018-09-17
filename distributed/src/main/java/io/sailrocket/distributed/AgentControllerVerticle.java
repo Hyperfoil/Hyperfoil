@@ -138,12 +138,12 @@ public class AgentControllerVerticle extends AbstractVerticle {
     }
 
     private void handleUploadBenchmark(RoutingContext routingContext) {
-        String benchmark = routingContext.queryParam("benchmark").stream().findFirst().orElse("default");
 
         // TODO: allow this only for MIME:application/java-serialized-object
-       byte[] bytes = routingContext.getBody().getBytes();
-       try (ObjectInputStream input = new ObjectInputStream(new ByteArrayInputStream(bytes))) {
-            benchmarks.put(benchmark, (Benchmark) input.readObject());
+        byte[] bytes = routingContext.getBody().getBytes();
+        try (ObjectInputStream input = new ObjectInputStream(new ByteArrayInputStream(bytes))) {
+            Benchmark benchmark = (Benchmark) input.readObject();
+            benchmarks.put(benchmark.name(), benchmark);
             routingContext.response().setStatusCode(200).end();
         } catch (IOException | ClassNotFoundException | ClassCastException e) {
             log.error("Failed to decode benchmark", e);
