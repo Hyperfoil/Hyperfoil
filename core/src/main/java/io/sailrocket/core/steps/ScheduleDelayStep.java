@@ -49,7 +49,7 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
       long delay = blockedUntil.timestamp - now;
       if (delay > 0) {
          log.trace("Scheduling #{} to run in {}", session.uniqueId(), delay);
-         session.httpClientPool().schedule((Runnable) session, delay, TimeUnit.MILLISECONDS);
+         session.executor().schedule((Runnable) session, delay, TimeUnit.MILLISECONDS);
       }
    }
 

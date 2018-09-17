@@ -174,7 +174,7 @@ public class HttpResponseHandler implements ResourceUtilizer, Session.ResourceKe
       }
       session.currentSequence(null);
       // if anything was blocking due to full request queue we should continue from the right place
-      session.proceed();
+      session.proceed(session.executor());
    }
 
 

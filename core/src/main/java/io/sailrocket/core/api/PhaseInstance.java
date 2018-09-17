@@ -2,8 +2,8 @@ package io.sailrocket.core.api;
 
 import java.util.function.BiConsumer;
 
+import io.netty.util.concurrent.EventExecutorGroup;
 import io.sailrocket.api.ConcurrentPool;
-import io.sailrocket.api.HttpClientPool;
 import io.sailrocket.api.Phase;
 import io.sailrocket.api.Session;
 
@@ -12,11 +12,11 @@ public interface PhaseInstance {
 
    Status status();
 
-   void proceed(HttpClientPool clientPool);
+   void proceed(EventExecutorGroup executorGroup);
 
    long absoluteStartTime();
 
-   void start(HttpClientPool clientPool);
+   void start(EventExecutorGroup executorGroup);
 
    void finish();
 

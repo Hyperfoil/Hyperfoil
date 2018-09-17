@@ -58,7 +58,7 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
       ByteBuf body = bodyGenerator == null ? null : bodyGenerator.apply(session);
       String path = pathGenerator.apply(session);
       // TODO alloc!
-      HttpRequest request = session.httpClientPool().request(method, path, body);
+      HttpRequest request = session.httpClientPool().request(session.executor(), method, path, body);
       if (headerAppender != null) {
          headerAppender.accept(session, request);
       }

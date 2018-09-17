@@ -1,5 +1,6 @@
 package io.sailrocket.core.session;
 
+import io.netty.util.concurrent.EventExecutor;
 import io.sailrocket.api.HttpClientPool;
 import io.sailrocket.api.Phase;
 import io.sailrocket.api.RequestQueue;
@@ -35,6 +36,8 @@ class SessionImpl implements Session, Runnable {
    private final PhaseInstance phase;
    private int lastRunningSequence = -1;
    private SequenceInstance currentSequence;
+
+   private EventExecutor executor;
 
    private final ValidatorResults validatorResults = new ValidatorResults();
    private final Statistics[] statistics;
@@ -75,6 +78,11 @@ class SessionImpl implements Session, Runnable {
    @Override
    public HttpClientPool httpClientPool() {
       return httpClientPool;
+   }
+
+   @Override
+   public EventExecutor executor() {
+      return executor;
    }
 
    @Override
@@ -238,8 +246,10 @@ class SessionImpl implements Session, Runnable {
    }
 
    @Override
-   public void proceed() {
-      httpClientPool.submit(this);
+   public void proceed(EventExecutor executor) {
+      assert this.executor == null || this.executor == executor;
+      this.executor = executor;
+      executor.submit(this);
    }
 
    @Override
@@ -263,10 +273,7 @@ class SessionImpl implements Session, Runnable {
       for (int i = 0; i < allVars.size(); ++i) {
          allVars.get(i).unset();
       }
-      // TODO should we reset stats here?
-      if (trace) {
-         log.trace("#{} Commencing new execution of {}", uniqueId, phase.definition().name());
-      }
+      executor = null;
       for (Sequence sequence : phase.definition().scenario().initialSequences()) {
          sequence.instantiate(this, 0);
       }

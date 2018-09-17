@@ -3,8 +3,9 @@ package io.sailrocket.core.session;
 import io.sailrocket.api.HttpClientPool;
 import io.sailrocket.api.Phase;
 import io.sailrocket.api.Scenario;
-import io.sailrocket.api.Session;
 import io.sailrocket.core.api.PhaseInstance;
+import io.sailrocket.core.builders.BenchmarkBuilder;
+import io.sailrocket.core.builders.ScenarioBuilder;
 import io.sailrocket.core.client.HttpClientProvider;
 import io.sailrocket.core.impl.ConcurrentPoolImpl;
 import io.sailrocket.core.impl.PhaseInstanceImpl;
@@ -23,28 +24,37 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 public abstract class BaseScenarioTest {
+   public static final int CLIENT_THREADS = 3;
    protected final Logger log = LoggerFactory.getLogger(getClass());
 
    protected Vertx vertx;
    protected HttpClientPool httpClientPool;
    protected Router router;
 
-   public void runScenario(Scenario scenario, int repeats) {
+   protected void runScenario(Scenario scenario, int repeats) {
       PhaseInstance phase;
       if (repeats <= 0) {
          phase = new PhaseInstanceImpl.Always(new Phase.Always("test", scenario, 0, Collections.emptyList(), Collections.emptyList(), Long.MAX_VALUE, -1, 1));
       } else {
          phase = new PhaseInstanceImpl.Sequentially(new Phase.Sequentially("test", scenario, 0, Collections.emptyList(), Collections.emptyList(), Long.MAX_VALUE, -1, repeats));
       }
+      runScenario(phase);
+   }
+
+   protected void runScenarioOnceParallel(Scenario scenario, int concurrency) {
+      PhaseInstance phase = new PhaseInstanceImpl.AtOnce(new Phase.AtOnce("test", scenario, 0, Collections.emptyList(), Collections.emptyList(), Long.MAX_VALUE, -1, concurrency));
+      runScenario(phase);
+   }
+
+   protected void runScenario(PhaseInstance phase) {
       CountDownLatch latch = new CountDownLatch(1);
-      Session session = SessionFactory.create(httpClientPool, phase, 0);
-      phase.setComponents(new ConcurrentPoolImpl<>(() -> session), (p, status) -> {
+      phase.setComponents(new ConcurrentPoolImpl<>(() -> SessionFactory.create(httpClientPool, phase, 0)), (p, status) -> {
          if (status == PhaseInstance.Status.TERMINATED) {
             latch.countDown();;
          }
       });
       phase.reserveSessions();
-      phase.start(httpClientPool);
+      phase.start(httpClientPool.executors());
       try {
          if (!latch.await(30, TimeUnit.SECONDS)) {
             throw new AssertionError("statusCondition timeout");
@@ -63,7 +73,7 @@ public abstract class BaseScenarioTest {
             .protocol(HttpVersion.HTTP_1_1)
             .port(8080)
             .concurrency(3)
-            .threads(3)
+            .threads(CLIENT_THREADS)
             .size(100)
             .build();
       Async clientPoolAsync = ctx.async();
@@ -80,5 +90,9 @@ public abstract class BaseScenarioTest {
    public void after(TestContext ctx) {
       httpClientPool.shutdown();
       vertx.close(ctx.asyncAssertSuccess());
+   }
+
+   protected ScenarioBuilder scenarioBuilder() {
+      return BenchmarkBuilder.builder().simulation().addPhase("test").atOnce(1).scenario();
    }
 }

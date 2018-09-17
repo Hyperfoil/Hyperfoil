@@ -1,6 +1,7 @@
 package io.sailrocket.api;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.util.concurrent.EventExecutor;
 
 public interface Session {
    /**
@@ -10,6 +11,8 @@ public interface Session {
 
    /// Common utility objects
    HttpClientPool httpClientPool();
+
+   EventExecutor executor();
 
    Phase phase();
 
@@ -60,8 +63,9 @@ public interface Session {
 
    /**
     * Run anything that can be executed.
+    * @param executor
     */
-   void proceed();
+   void proceed(EventExecutor executor);
 
    void reset();
 

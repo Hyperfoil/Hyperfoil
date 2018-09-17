@@ -7,7 +7,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import io.sailrocket.api.HttpMethod;
-import io.sailrocket.core.builders.BenchmarkBuilder;
 import io.sailrocket.core.builders.ScenarioBuilder;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 
@@ -69,7 +68,4 @@ public class PacingTest extends BaseScenarioTest {
       runScenario(scenarioBuilder.build(), 1);
    }
 
-   private ScenarioBuilder scenarioBuilder() {
-      return BenchmarkBuilder.builder().simulation().addPhase("test").atOnce(1).scenario();
-   }
 }

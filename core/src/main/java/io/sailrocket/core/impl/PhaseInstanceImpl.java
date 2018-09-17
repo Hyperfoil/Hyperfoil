@@ -1,8 +1,9 @@
 package io.sailrocket.core.impl;
 
+import io.netty.util.concurrent.EventExecutor;
+import io.netty.util.concurrent.EventExecutorGroup;
 import io.sailrocket.api.BenchmarkDefinitionException;
 import io.sailrocket.api.ConcurrentPool;
-import io.sailrocket.api.HttpClientPool;
 import io.sailrocket.api.Phase;
 import io.sailrocket.api.Session;
 import io.sailrocket.core.api.PhaseInstance;
@@ -65,13 +66,13 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
    }
 
    @Override
-   public void start(HttpClientPool clientPool) {
+   public void start(EventExecutorGroup executorGroup) {
       assert status == Status.NOT_STARTED;
       status = Status.RUNNING;
       absoluteStartTime = System.currentTimeMillis();
       log.debug("{} changing status to RUNNING", def.name);
       phaseChangeHandler.accept(def.name, status);
-      proceed(clientPool);
+      proceed(executorGroup);
    }
 
    @Override
@@ -155,12 +156,13 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       }
 
       @Override
-      public void proceed(HttpClientPool clientPool) {
+      public void proceed(EventExecutorGroup executorGroup) {
          assert activeSessions.get() == 0;
          activeSessions.set(def.users);
          for (int i = 0; i < def.users; ++i) {
-            sessions.acquire().proceed();
+            sessions.acquire().proceed(executorGroup.next());
          }
+         finish();
       }
 
       @Override
@@ -175,11 +177,11 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       }
 
       @Override
-      public void proceed(HttpClientPool clientPool) {
+      public void proceed(EventExecutorGroup executorGroup) {
          assert activeSessions.get() == 0;
          activeSessions.set(def.users);
          for (int i = 0; i < def.users; ++i) {
-            sessions.acquire().proceed();
+            sessions.acquire().proceed(executorGroup.next());
          }
       }
 
@@ -194,8 +196,9 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
             log.trace("notifyFinished session #{}", session.uniqueId());
             super.notifyFinished(session);
          } else {
+            EventExecutor executor = session.executor();
             session.reset();
-            session.proceed();
+            session.proceed(executor);
          }
       }
    }
@@ -208,7 +211,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       }
 
       @Override
-      public void proceed(HttpClientPool clientPool) {
+      public void proceed(EventExecutorGroup executorGroup) {
          if (status.isFinished()) {
             return;
          }
@@ -225,7 +228,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
                log.trace("{} has {} active sessions", def.name, numActive);
             }
             Session session = sessions.acquire();
-            session.proceed();
+            session.proceed(executorGroup.next());
          }
          startedUsers = Math.max(startedUsers, required);
          long denominator = def.targetUsersPerSec + def.initialUsersPerSec * (def.duration - 1);
@@ -234,7 +237,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
          if (trace) {
             log.trace("{}: {} after start, {} started, next user in {} ms", def.name, delta, startedUsers, nextDelta - delta);
          }
-         clientPool.schedule(() -> proceed(clientPool), nextDelta - delta, TimeUnit.MILLISECONDS);
+         executorGroup.schedule(() -> proceed(executorGroup), nextDelta - delta, TimeUnit.MILLISECONDS);
       }
 
       @Override
@@ -259,7 +262,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       }
 
       @Override
-      public void proceed(HttpClientPool clientPool) {
+      public void proceed(EventExecutorGroup executorGroup) {
          if (status.isFinished()) {
             return;
          }
@@ -276,7 +279,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
                log.trace("{} has {} active sessions", def.name, numActive);
             }
             Session session = sessions.acquire();
-            session.proceed();
+            session.proceed(executorGroup.next());
          }
          startedUsers = Math.max(startedUsers, required);
          // mathematically, the formula below should be 1000 * (startedUsers + 1) / usersPerSec but while
@@ -285,7 +288,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
          if (trace) {
             log.trace("{}: {} after start, {} started, next user in {} ms", def.name, delta, startedUsers, nextDelta - delta);
          }
-         clientPool.schedule(() -> proceed(clientPool), nextDelta - delta, TimeUnit.MILLISECONDS);
+         executorGroup.schedule(() -> proceed(executorGroup), nextDelta - delta, TimeUnit.MILLISECONDS);
       }
 
       @Override
@@ -310,13 +313,13 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       }
 
       @Override
-      public void proceed(HttpClientPool clientPool) {
+      public void proceed(EventExecutorGroup executorGroup) {
          assert activeSessions.get() == 0;
          int numActive = activeSessions.incrementAndGet();
          if (trace) {
             log.trace("{} has {} active sessions", def.name, numActive);
          }
-         sessions.acquire().proceed();
+         sessions.acquire().proceed(executorGroup.next());
       }
 
       @Override
@@ -331,8 +334,9 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
             log.debug("{} changing status to TERMINATING", def.name);
             super.notifyFinished(session);
          } else {
+            EventExecutor executor = session.executor();
             session.reset();
-            session.proceed();
+            session.proceed(executor);
          }
       }
    }

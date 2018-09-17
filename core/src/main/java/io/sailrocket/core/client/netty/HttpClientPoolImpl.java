@@ -8,6 +8,8 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslProvider;
 import io.netty.handler.ssl.SupportedCipherSuiteFilter;
+import io.netty.util.concurrent.EventExecutor;
+import io.netty.util.concurrent.EventExecutorGroup;
 import io.sailrocket.api.HttpClientPool;
 import io.sailrocket.api.HttpMethod;
 import io.sailrocket.api.HttpRequest;
@@ -20,6 +22,7 @@ import io.vertx.core.http.HttpVersion;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -154,16 +157,19 @@ abstract class HttpClientPoolImpl implements HttpClientPool {
     }
 
     @Override
-    public HttpRequest request(HttpMethod method, String path, ByteBuf body) {
-        return choose().request(method, path, body);
+    public HttpRequest request(EventExecutor executor, HttpMethod method, String path, ByteBuf body) {
+        return choose(executor).request(method, path, body);
     }
 
     //TODO:: delegate to a connection pool
-    private synchronized HttpConnection choose() {
-        return all.stream()
-                .filter(con -> con.isAvailable())
-                .findFirst()
-                .get();
+    private synchronized HttpConnection choose(EventExecutor executor) {
+        for (int i = 0; i < all.size(); i++) {
+            HttpConnection con = all.get(i);
+            if (con.isAvailable() && con.context().executor() == executor) {
+                return con;
+            }
+        }
+        throw new NoSuchElementException();
     }
 
     public abstract void resetStatistics();
@@ -184,14 +190,9 @@ abstract class HttpClientPoolImpl implements HttpClientPool {
         eventLoopGroup.shutdownGracefully(0, 10, TimeUnit.SECONDS);
     }
 
-   @Override
-   public void submit(Runnable task) {
-      eventLoopGroup.submit(task);
-   }
-
-   @Override
-   public void schedule(Runnable task, long delay, TimeUnit timeUnit) {
-      eventLoopGroup.schedule(task, delay, timeUnit);
-   }
+    @Override
+    public EventExecutorGroup executors() {
+        return eventLoopGroup;
+    }
 
 }

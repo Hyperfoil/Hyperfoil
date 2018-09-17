@@ -18,16 +18,17 @@
  */
 package io.sailrocket.api;
 
-import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.util.concurrent.EventExecutor;
+import io.netty.util.concurrent.EventExecutorGroup;
 
 public interface HttpClientPool {
 
   void start(Consumer<Void> completionHandler);
 
-  HttpRequest request(HttpMethod method, String path, ByteBuf body);
+  HttpRequest request(EventExecutor executor, HttpMethod method, String path, ByteBuf body);
 
   long bytesRead();
 
@@ -37,7 +38,5 @@ public interface HttpClientPool {
 
   void shutdown();
 
-  void submit(Runnable task);
-
-  void schedule(Runnable task, long delay, TimeUnit timeUnit);
+  EventExecutorGroup executors();
 }

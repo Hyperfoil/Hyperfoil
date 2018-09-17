@@ -72,7 +72,7 @@ public class HttpClientPoolHandlerTest {
         client.start(nil -> startLatch.countDown());
         assertThat(startLatch.await(10, TimeUnit.SECONDS)).isTrue();
 
-        HttpRequest conn = client.request(HttpMethod.GET, "/", null);
+        HttpRequest conn = client.request(client.executors().next(), HttpMethod.GET, "/", null);
         CountDownLatch latch = new CountDownLatch(4);
 
         conn.statusHandler(code -> {

@@ -2,6 +2,7 @@ package io.sailrocket.core.session;
 
 import java.util.Collections;
 
+import io.netty.util.concurrent.EventExecutorGroup;
 import io.sailrocket.api.HttpClientPool;
 import io.sailrocket.api.Phase;
 import io.sailrocket.core.api.PhaseInstance;
@@ -19,7 +20,7 @@ public final class SessionFactory {
       ScenarioImpl dummyScenario = new ScenarioImpl(new Sequence[0], new Sequence[0], new String[0], new String[0]);
       PhaseInstance phase = new PhaseInstanceImpl(new Phase("dummy", dummyScenario, 0, Collections.emptyList(), Collections.emptyList(), 0, -1) {}) {
          @Override
-         public void proceed(HttpClientPool clientPool) {
+         public void proceed(EventExecutorGroup executorGroup) {
          }
 
          @Override

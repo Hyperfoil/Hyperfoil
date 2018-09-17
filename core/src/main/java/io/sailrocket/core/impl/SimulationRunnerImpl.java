@@ -84,7 +84,7 @@ public class SimulationRunnerImpl implements SimulationRunner {
 
     @Override
     public void startPhase(String phase) {
-        instances.get(phase).start(clientPool);
+        instances.get(phase).start(clientPool.executors());
     }
 
     @Override

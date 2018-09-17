@@ -56,6 +56,6 @@ public class NettyHttpClientPoolFactory implements HttpClientPoolFactory {
   @Override
   public HttpClientPool build() throws Exception {
     EventLoopGroup workerGroup = new NioEventLoopGroup(this.threads);
-    return HttpClientPoolImpl.create(workerGroup.next(), protocol, ssl, size, port, host, concurrency);
+    return HttpClientPoolImpl.create(workerGroup, protocol, ssl, size, port, host, concurrency);
   }
 }

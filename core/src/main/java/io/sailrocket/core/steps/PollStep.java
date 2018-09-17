@@ -44,7 +44,7 @@ public class PollStep<T> implements Step, ResourceUtilizer {
          if (object == null) {
             // Note: it's possible that we'll try to poll earlier
             log.trace("Did not fetch object, scheduling #{} in {}", session.uniqueId(), periodMs);
-            session.httpClientPool().schedule((Runnable) session, periodMs, TimeUnit.MILLISECONDS);
+            session.executor().schedule((Runnable) session, periodMs, TimeUnit.MILLISECONDS);
             return false;
          } else if (filter.test(session, object)) {
             session.setObject(var, object);
@@ -55,7 +55,7 @@ public class PollStep<T> implements Step, ResourceUtilizer {
       }
       // We did not have an accepting match
       log.trace("Not accepted, scheduling #{} in {}", session.uniqueId(), periodMs);
-      session.httpClientPool().schedule((Runnable) session, periodMs, TimeUnit.MILLISECONDS);
+      session.executor().schedule((Runnable) session, periodMs, TimeUnit.MILLISECONDS);
       return false;
    }
 
