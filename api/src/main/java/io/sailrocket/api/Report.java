@@ -59,7 +59,7 @@ public class Report implements Serializable {
 
         this.expectedRequests = expectedRequests;
         this.elapsed = elapsed;
-        this.histogram = histogram;
+        this.histogram = histogram.copy();
         this.responseCount = responseCount;
         this.ratio = ratio;
         this.connectFailureCount = connectFailureCount;

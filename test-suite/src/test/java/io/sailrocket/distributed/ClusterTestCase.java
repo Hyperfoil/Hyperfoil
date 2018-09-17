@@ -101,7 +101,7 @@ public class ClusterTestCase {
 
             //start benchmark running
             asyncHttpClient
-                  .prepareGet("http://localhost:8090/start?benchmark=foo")
+                  .prepareGet("http://localhost:8090/start?benchmark=test")
                   .execute()
                   .toCompletableFuture()
                   .thenAccept(response -> {
@@ -117,7 +117,7 @@ public class ClusterTestCase {
                       assertThat(response.getStatusCode()).isEqualTo(200);
                       String responseBody = response.getResponseBody();
                       JsonObject status = new JsonObject(responseBody);
-                      assertThat(status.getString("benchmark")).isEqualTo("foo");
+                      assertThat(status.getString("benchmark")).isEqualTo("test");
                       System.out.println(status.encodePrettily());
                       return status.getString("terminated") != null;
                   }).join()) {

@@ -66,7 +66,7 @@ public class TwoScenariosTest {
    }
 
    @Test
-   public void testRandomDecision() {
+   public void testTwoScenarios() {
       // We have two options when simulating 'some users rigging and sailing ships'
       // * shared state of all ships (requires synchronization)
       // ** one option is to pick id from pool at the beginning
@@ -135,7 +135,7 @@ public class TwoScenariosTest {
             .addPhase("furl").constantPerSec(2) // intentionally less to trigger maxDuration
                .duration(5000) // no max duration, should not need it
                .scenario()
-                  .sequence("select-ship")
+                  .initialSequence("select-ship")
                      .step().stopwatch()
                         .step().poll(ships::fetch, "ship")
                         .filter(ship -> ship.sailsState == SailsState.RIGGED, ships::put)

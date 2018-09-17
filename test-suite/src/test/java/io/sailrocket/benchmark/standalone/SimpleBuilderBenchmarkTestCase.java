@@ -32,7 +32,7 @@ public class SimpleBuilderBenchmarkTestCase extends BaseBenchmarkTestCase {
         assertEquals("http://localhost:8080/", simulation.tags().get("url"));
         assertEquals(10, simulation.tags().get("maxQueue"));
         assertEquals(10, simulation.tags().get("connections"));
-        assertEquals(10_000L, simulation.phases().stream().findFirst().get().duration());
+        assertEquals(5_000L, simulation.phases().stream().findFirst().get().duration());
 
         try {
             Map<String, Report> reports = new LocalSimulationRunner(benchmark).run();

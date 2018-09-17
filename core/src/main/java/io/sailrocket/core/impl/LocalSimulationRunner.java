@@ -32,14 +32,14 @@ public class LocalSimulationRunner extends SimulationRunnerImpl {
       PrintStatisticsConsumer printStatsConsumer = new PrintStatisticsConsumer(simulation);
 
       Timer timer = new Timer("console-logger", true);
-      timer.schedule(new java.util.TimerTask() {
-         @Override
-         public void run() {
-            System.out.println("Statistics: ");
-            visitSessions(printStatsConsumer);
-            printStatsConsumer.print();
-         }
-      }, TimeUnit.SECONDS.toMillis(3), TimeUnit.SECONDS.toMillis(3));
+//      timer.schedule(new java.util.TimerTask() {
+//         @Override
+//         public void run() {
+//            System.out.println("Statistics: ");
+//            visitSessions(printStatsConsumer);
+//            printStatsConsumer.print();
+//         }
+//      }, TimeUnit.SECONDS.toMillis(3), TimeUnit.SECONDS.toMillis(3));
 
       Map<String, Report> reports;
       try {
