@@ -6,6 +6,8 @@ import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Verticle;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
+import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
@@ -33,6 +35,7 @@ import static org.asynchttpclient.Dsl.asyncHttpClient;
 @Category(Benchmark.class)
 public class ClusterTestCase {
 
+    public static final String BASE_URL = "http://localhost:8090";
     private Collection<Vertx> servers = new ArrayList<>();
 
     private static final int CONTROLLERS = 1;
@@ -77,10 +80,10 @@ public class ClusterTestCase {
 
     @Test(timeout = 120_000)
     public void startClusteredBenchmarkTest() throws IOException, InterruptedException {
-        //check expected number of nodes are running
         try (AsyncHttpClient asyncHttpClient = asyncHttpClient()) {
+            //check expected number of nodes are running
             while (!asyncHttpClient
-                  .prepareGet("http://localhost:8090/agents")
+                  .prepareGet(BASE_URL + "/agents")
                   .execute()
                   .toCompletableFuture()
                   .thenApply(Response::getResponseBody)
@@ -89,28 +92,43 @@ public class ClusterTestCase {
                 Thread.sleep(1000);
             }
 
+            // upload benchmark
             asyncHttpClient
-                  .preparePost("http://localhost:8090/upload")
+                  .preparePost(BASE_URL + "/benchmark")
+                  .setHeader(HttpHeaders.CONTENT_TYPE, "application/java-serialized-object")
                   .setBody(serialize(TestBenchmarks.testBenchmark(AGENTS)))
                   .execute()
                   .toCompletableFuture()
                   .thenAccept(response -> {
+                      assertThat(response.getStatusCode()).isEqualTo(204);
+                      assertThat(response.getHeader(HttpHeaders.LOCATION)).isEqualTo(BASE_URL + "/benchmark/test");
+                  })
+                  .join();
+
+            // list benchmarks
+            asyncHttpClient
+                  .prepareGet(BASE_URL + "/benchmark")
+                  .execute()
+                  .toCompletableFuture()
+                  .thenAccept(response -> {
                       assertThat(response.getStatusCode()).isEqualTo(200);
+                      assertThat(new JsonArray(response.getResponseBody()).contains("test")).isTrue();
                   })
                   .join();
 
             //start benchmark running
-            asyncHttpClient
-                  .prepareGet("http://localhost:8090/start?benchmark=test")
+            String runLocation = asyncHttpClient
+                  .prepareGet(BASE_URL + "/benchmark/test/start")
                   .execute()
                   .toCompletableFuture()
-                  .thenAccept(response -> {
+                  .thenApply(response -> {
                       assertThat(response.getStatusCode()).isEqualTo(202);
+                      return response.getHeader(HttpHeaders.LOCATION);
                   })
                   .join();
 
             while (!asyncHttpClient
-                  .prepareGet("http://localhost:8090/status")
+                  .prepareGet(runLocation)
                   .execute()
                   .toCompletableFuture()
                   .thenApply(response -> {

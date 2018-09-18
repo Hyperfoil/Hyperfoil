@@ -11,53 +11,31 @@ import io.sailrocket.distributed.util.PhaseControlMessage;
 import io.sailrocket.distributed.util.ReportMessage;
 import io.sailrocket.distributed.util.SimulationCodec;
 import io.vertx.core.AbstractVerticle;
+import io.vertx.core.Future;
 import io.vertx.core.eventbus.EventBus;
-import io.vertx.core.json.JsonArray;
-import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import io.vertx.ext.web.Router;
-import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.BodyHandler;
 
-import org.HdrHistogram.Histogram;
-
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class AgentControllerVerticle extends AbstractVerticle {
     private static final Logger log = LoggerFactory.getLogger(AgentControllerVerticle.class);
 
     private EventBus eb;
+    private ControllerRestServer server;
+    private AtomicInteger runIds = new AtomicInteger();
 
-    private Map<String, Benchmark> benchmarks = new HashMap<>();
-    private Map<String, AgentInfo> agents = new HashMap<>();
-    private Map<String, ControllerPhase> phases = new HashMap<>();
+    Map<String, AgentInfo> agents = new HashMap<>();
 
-    private long startTime = Long.MIN_VALUE;
-    private long terminateTime = Long.MIN_VALUE;
-    private Benchmark benchmark;
-    private StatisticsStore statisticsStore;
+    Run run;
 
     @Override
     public void start() {
-        //create http api for controlling and monitoring agent
-        Router router = Router.router(vertx);
-
-        router.route().handler(BodyHandler.create());
-        router.post("/upload").handler(this::handleUploadBenchmark);
-        router.get("/start").handler(this::handleStartBenchmark);
-        router.get("/agents").handler(this::handleAgentCount);
-        router.get("/status").handler(this::handleStatus);
-        router.get("/terminate").handler(this::handleTerminate);
-
-        vertx.createHttpServer().requestHandler(router::accept).listen(8090);
+        server = new ControllerRestServer(this);
         vertx.exceptionHandler(throwable -> log.error("Uncaught error: ", throwable));
 
         eb = vertx.eventBus();
@@ -92,8 +70,13 @@ public class AgentControllerVerticle extends AbstractVerticle {
             ReportMessage reportMessage = (ReportMessage) message.body();
             log.trace("Received stats from {}: {}/{} ({} requests)",
                   reportMessage.address, reportMessage.phase, reportMessage.sequence, reportMessage.statistics.requestCount);
-            statisticsStore.record(reportMessage.address, reportMessage.phase, reportMessage.sequence, reportMessage.statistics);
+            run.statisticsStore.record(reportMessage.address, reportMessage.phase, reportMessage.sequence, reportMessage.statistics);
         });
+    }
+
+    @Override
+    public void stop(Future<Void> stopFuture) throws Exception {
+        server.stop(stopFuture);
     }
 
     private void tryProgressStatus(String phase) {
@@ -107,7 +90,7 @@ public class AgentControllerVerticle extends AbstractVerticle {
                 minStatus = status;
             }
         }
-        ControllerPhase controllerPhase = phases.get(phase);
+        ControllerPhase controllerPhase = run.phases.get(phase);
         switch (minStatus) {
             case RUNNING:
                 controllerPhase.status(ControllerPhase.Status.RUNNING);
@@ -121,120 +104,37 @@ public class AgentControllerVerticle extends AbstractVerticle {
         }
     }
 
-//        routingContext.response().putHeader("content-type", "application/json").end(formatJsonHistogram(collatedHistogram));
+    String startBenchmark(Benchmark benchmark) {
+        this.run = new Run(String.format("%04X", runIds.getAndIncrement()), benchmark);
 
-    private String formatJsonHistogram(Histogram histogram) {
-        JsonObject jsonObject = new JsonObject();
-
-        jsonObject.put("count", histogram.getTotalCount());
-        jsonObject.put("min", TimeUnit.NANOSECONDS.toMillis(histogram.getMinValue()));
-        jsonObject.put("max", TimeUnit.NANOSECONDS.toMillis(histogram.getMaxValue()));
-        jsonObject.put("50%", TimeUnit.NANOSECONDS.toMillis(histogram.getValueAtPercentile(50)));
-        jsonObject.put("90%", TimeUnit.NANOSECONDS.toMillis(histogram.getValueAtPercentile(90)));
-        jsonObject.put("99%", TimeUnit.NANOSECONDS.toMillis(histogram.getValueAtPercentile(99)));
-        jsonObject.put("99.9%", TimeUnit.NANOSECONDS.toMillis(histogram.getValueAtPercentile(99.9)));
-        jsonObject.put("99.99%", TimeUnit.NANOSECONDS.toMillis(histogram.getValueAtPercentile(99.99)));
-
-        return jsonObject.encode();
-    }
-
-    private void handleUploadBenchmark(RoutingContext routingContext) {
-
-        // TODO: allow this only for MIME:application/java-serialized-object
-        byte[] bytes = routingContext.getBody().getBytes();
-        try (ObjectInputStream input = new ObjectInputStream(new ByteArrayInputStream(bytes))) {
-            Benchmark benchmark = (Benchmark) input.readObject();
-            benchmarks.put(benchmark.name(), benchmark);
-            routingContext.response().setStatusCode(200).end();
-        } catch (IOException | ClassNotFoundException | ClassCastException e) {
-            log.error("Failed to decode benchmark", e);
-            routingContext.response().setStatusCode(400).end("Cannot decode benchmark.");
-        }
-    }
-
-    private void handleAgentCount(RoutingContext routingContext) {
-        //        return ((VertxImpl) vertx).getClusterManager().getNodes().size();
-        routingContext.response().end(Integer.toString(agents.size()));
-    }
-
-    private void handleStartBenchmark(RoutingContext routingContext) {
-        String benchmarkName = routingContext.request().getParam("benchmark");
-        if (benchmarkName != null && benchmarks.containsKey(benchmarkName)) {
-            benchmark = benchmarks.get(routingContext.request().getParam("benchmark"));
-
-            for (AgentInfo agent : agents.values()) {
-                if (agent.status != AgentInfo.Status.REGISTERED) {
-                    log.error("Already initializing {}, status is {}!", agent.address, agent.status);
-                } else {
-                    agent.status = AgentInfo.Status.INITIALIZING;
-                    eb.send(agent.address, benchmark.simulation(), reply -> {
-                        if (reply.succeeded()) {
-                            agent.status = AgentInfo.Status.INITIALIZED;
-                            if (agents.values().stream().allMatch(a -> a.status == AgentInfo.Status.INITIALIZED)) {
-                                startSimulation();
-                            }
-                        } else {
-                            agent.status = AgentInfo.Status.FAILED;
-                            log.error("Agent {} failed to initialize", reply.cause(), agent.address);
-                        }
-                    });
-                }
-            }
-            routingContext.response().setStatusCode(202).end("Initializing agents...");
-        } else {
-            //benchmark has not been defined yet
-            String msg = "Benchmark not found";
-            routingContext.response().setStatusCode(500).end(msg);
-        }
-    }
-
-    private void handleStatus(RoutingContext routingContext) {
-        JsonObject body = new JsonObject();
-       SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.S");
-        if (benchmark != null) {
-            body.put("benchmark", benchmark.name());
-        }
-        if (startTime > Long.MIN_VALUE) {
-            body.put("started", simpleDateFormat.format(new Date(startTime)));
-        }
-        if (terminateTime > Long.MIN_VALUE) {
-            body.put("terminated", simpleDateFormat.format(new Date(terminateTime)));
-        }
-        JsonArray jsonPhases = new JsonArray();
-        body.put("phases", jsonPhases);
-        for (ControllerPhase phase : phases.values()) {
-            JsonObject jsonPhase = new JsonObject();
-            jsonPhases.add(jsonPhase);
-            jsonPhase.put("name", phase.definition().name);
-            jsonPhase.put("status", phase.status());
-            if (phase.absoluteStartTime() > Long.MIN_VALUE) {
-                jsonPhase.put("started", simpleDateFormat.format(new Date(phase.absoluteStartTime())));
-            }
-        }
-        JsonArray jsonAgents = new JsonArray();
-        body.put("agents", jsonAgents);
         for (AgentInfo agent : agents.values()) {
-            JsonObject jsonAgent = new JsonObject();
-            jsonAgents.add(jsonAgent);
-            jsonAgent.put("address", agent.address);
-            jsonAgent.put("status", agent.status);
+            if (agent.status != AgentInfo.Status.REGISTERED) {
+                log.error("Already initializing {}, status is {}!", agent.address, agent.status);
+            } else {
+                agent.status = AgentInfo.Status.INITIALIZING;
+                eb.send(agent.address, benchmark.simulation(), reply -> {
+                    if (reply.succeeded()) {
+                        agent.status = AgentInfo.Status.INITIALIZED;
+                        if (agents.values().stream().allMatch(a -> a.status == AgentInfo.Status.INITIALIZED)) {
+                            startSimulation();
+                        }
+                    } else {
+                        agent.status = AgentInfo.Status.FAILED;
+                        log.error("Agent {} failed to initialize", reply.cause(), agent.address);
+                    }
+                });
+            }
         }
-        String status = body.encodePrettily();
-        routingContext.response().end(status);
-    }
-
-    private void handleTerminate(RoutingContext routingContext) {
-        // TODO
-        routingContext.response().setStatusCode(202).end("TODO not implemented");
+        return run.id;
     }
 
     private void startSimulation() {
-        assert startTime == Long.MIN_VALUE;
-        startTime = System.currentTimeMillis();
-        for (Phase phase : benchmark.simulation().phases()) {
-            phases.put(phase.name(), new ControllerPhase(phase));
+        assert run.startTime == Long.MIN_VALUE;
+        run.startTime = System.currentTimeMillis();
+        for (Phase phase : run.benchmark.simulation().phases()) {
+            run.phases.put(phase.name(), new ControllerPhase(phase));
         }
-        statisticsStore = new StatisticsStore(benchmark, failure -> {
+        run.statisticsStore = new StatisticsStore(run.benchmark, failure -> {
             Sequence sequence = failure.sla().sequence();
             System.out.println("Failed verify SLA(s) for " + sequence.phase() + "/" + sequence.name());
         });
@@ -243,7 +143,7 @@ public class AgentControllerVerticle extends AbstractVerticle {
 
     private void runSimulation() {
         long now = System.currentTimeMillis();
-        for (ControllerPhase phase : phases.values()) {
+        for (ControllerPhase phase : run.phases.values()) {
             if (phase.status() == ControllerPhase.Status.RUNNING && phase.absoluteStartTime() + phase.definition().duration() <= now) {
                 eb.publish(Feeds.CONTROL, new PhaseControlMessage(PhaseControlMessage.Command.FINISH, null, phase.definition().name));
                 phase.status(ControllerPhase.Status.FINISHING);
@@ -253,28 +153,19 @@ public class AgentControllerVerticle extends AbstractVerticle {
                 phase.status(ControllerPhase.Status.TERMINATING);
             }
         }
-        ControllerPhase[] availablePhases = getAvailablePhases();
+        ControllerPhase[] availablePhases = run.getAvailablePhases();
         for (ControllerPhase phase : availablePhases) {
             eb.publish(Feeds.CONTROL, new PhaseControlMessage(PhaseControlMessage.Command.RUN, null, phase.definition().name));
             phase.absoluteStartTime(now);
             phase.status(ControllerPhase.Status.STARTING);
         }
 
-        if (phases.values().stream().allMatch(phase -> phase.status() == ControllerPhase.Status.TERMINATED)) {
+        if (run.phases.values().stream().allMatch(phase -> phase.status() == ControllerPhase.Status.TERMINATED)) {
             stopSimulation();
             return;
         }
 
-        long nextPhaseStart = phases.values().stream()
-              .filter(phase -> phase.status() == ControllerPhase.Status.NOT_STARTED && phase.definition().startTime() >= 0)
-              .mapToLong(phase -> this.startTime + phase.definition().startTime()).min().orElse(Long.MAX_VALUE);
-        long nextPhaseFinish = phases.values().stream()
-              .filter(phase -> phase.status() == ControllerPhase.Status.RUNNING)
-              .mapToLong(phase -> phase.absoluteStartTime() + phase.definition().duration()).min().orElse(Long.MAX_VALUE);
-        long nextPhaseTerminate = phases.values().stream()
-              .filter(phase -> (phase.status() == ControllerPhase.Status.RUNNING || phase.status() == ControllerPhase.Status.FINISHED) && phase.definition().maxDuration() >= 0)
-              .mapToLong(phase -> phase.absoluteStartTime() + phase.definition().maxDuration()).min().orElse(Long.MAX_VALUE);
-        long delay = Math.min(Math.min(nextPhaseStart, nextPhaseFinish), nextPhaseTerminate) - System.currentTimeMillis();
+        long delay = run.nextTimestamp() - System.currentTimeMillis();
 
         delay = Math.min(delay, 1000);
         log.debug("Wait {} ms", delay);
@@ -282,17 +173,31 @@ public class AgentControllerVerticle extends AbstractVerticle {
     }
 
     private void stopSimulation() {
-        terminateTime = System.currentTimeMillis();
-        statisticsStore.benchmarkCompleted();
+        run.terminateTime = System.currentTimeMillis();
+        run.statisticsStore.benchmarkCompleted();
         // TODO stop agents?
     }
 
-    private ControllerPhase[] getAvailablePhases() {
-        return phases.values().stream().filter(phase -> phase.status() == ControllerPhase.Status.NOT_STARTED &&
-              startTime + phase.definition().startTime() <= System.currentTimeMillis() &&
-              phase.definition().startAfter().stream().allMatch(dep -> phases.get(dep).status().isFinished()) &&
-              phase.definition().startAfterStrict().stream().allMatch(dep -> phases.get(dep).status() == ControllerPhase.Status.TERMINATED))
-              .toArray(ControllerPhase[]::new);
+    public Run run(String runId) {
+        if (runId != null && run != null && runId.equals(run.id)) {
+            return run;
+        } else {
+            return null;
+        }
     }
 
+    public Collection<Run> runs() {
+        return run != null ? Collections.singleton(run) : Collections.emptyList();
+    }
+
+    public boolean kill(String runId) {
+        if (runId != null && run != null && runId.equals(run.id)) {
+            for (String phase : run.phases.keySet()) {
+                eb.publish(Feeds.CONTROL, new PhaseControlMessage(PhaseControlMessage.Command.TERMINATE, null, phase));
+            }
+            return true;
+        } else {
+            return false;
+        }
+    }
 }

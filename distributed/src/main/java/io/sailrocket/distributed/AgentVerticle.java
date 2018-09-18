@@ -3,7 +3,6 @@ package io.sailrocket.distributed;
 import io.sailrocket.api.Simulation;
 import io.sailrocket.core.impl.SimulationImpl;
 import io.sailrocket.core.impl.SimulationRunnerImpl;
-import io.sailrocket.core.impl.statistics.ReportStatisticsCollector;
 import io.sailrocket.distributed.util.PhaseChangeMessage;
 import io.sailrocket.distributed.util.PhaseControlMessage;
 import io.sailrocket.distributed.util.ReportMessage;
