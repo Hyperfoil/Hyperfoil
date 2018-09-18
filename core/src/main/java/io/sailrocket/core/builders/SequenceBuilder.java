@@ -45,7 +45,8 @@ public class SequenceBuilder extends BaseSequenceBuilder {
         if (sequence != null) {
             return sequence;
         }
-        return sequence = new SequenceImpl(name, id, steps.stream().flatMap(builder -> builder.build().stream()).toArray(Step[]::new));
+        String phase = endSequence().endScenario().name;
+        return sequence = new SequenceImpl(phase, this.name, id, steps.stream().flatMap(builder -> builder.build().stream()).toArray(Step[]::new));
     }
 
     void id(int id) {

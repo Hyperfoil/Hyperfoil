@@ -2,9 +2,10 @@ package io.sailrocket.distributed;
 
 import io.sailrocket.api.Benchmark;
 import io.sailrocket.api.Phase;
-import io.sailrocket.api.Report;
+import io.sailrocket.api.Sequence;
 import io.sailrocket.core.api.PhaseInstance;
 import io.sailrocket.core.impl.SimulationImpl;
+import io.sailrocket.core.impl.statistics.StatisticsStore;
 import io.sailrocket.distributed.util.PhaseChangeMessage;
 import io.sailrocket.distributed.util.PhaseControlMessage;
 import io.sailrocket.distributed.util.ReportMessage;
@@ -42,6 +43,7 @@ public class AgentControllerVerticle extends AbstractVerticle {
     private long startTime = Long.MIN_VALUE;
     private long terminateTime = Long.MIN_VALUE;
     private Benchmark benchmark;
+    private StatisticsStore statisticsStore;
 
     @Override
     public void start() {
@@ -88,10 +90,9 @@ public class AgentControllerVerticle extends AbstractVerticle {
 
         eb.consumer(Feeds.STATS, message -> {
             ReportMessage reportMessage = (ReportMessage) message.body();
-            for (Map.Entry<String, Report> entry : reportMessage.reports().entrySet()) {
-               System.out.println(entry.getKey());
-               entry.getValue().prettyPrint();
-            }
+            log.trace("Received stats from {}: {}/{} ({} requests)",
+                  reportMessage.address, reportMessage.phase, reportMessage.sequence, reportMessage.statistics.requestCount);
+            statisticsStore.record(reportMessage.address, reportMessage.phase, reportMessage.sequence, reportMessage.statistics);
         });
     }
 
@@ -170,12 +171,7 @@ public class AgentControllerVerticle extends AbstractVerticle {
                         if (reply.succeeded()) {
                             agent.status = AgentInfo.Status.INITIALIZED;
                             if (agents.values().stream().allMatch(a -> a.status == AgentInfo.Status.INITIALIZED)) {
-                                assert startTime == Long.MIN_VALUE;
-                                startTime = System.currentTimeMillis();
-                                for (Phase phase : benchmark.simulation().phases()) {
-                                    phases.put(phase.name(), new ControllerPhase(phase));
-                                }
-                                runSimulation();
+                                startSimulation();
                             }
                         } else {
                             agent.status = AgentInfo.Status.FAILED;
@@ -232,6 +228,19 @@ public class AgentControllerVerticle extends AbstractVerticle {
         routingContext.response().setStatusCode(202).end("TODO not implemented");
     }
 
+    private void startSimulation() {
+        assert startTime == Long.MIN_VALUE;
+        startTime = System.currentTimeMillis();
+        for (Phase phase : benchmark.simulation().phases()) {
+            phases.put(phase.name(), new ControllerPhase(phase));
+        }
+        statisticsStore = new StatisticsStore(benchmark, failure -> {
+            Sequence sequence = failure.sla().sequence();
+            System.out.println("Failed verify SLA(s) for " + sequence.phase() + "/" + sequence.name());
+        });
+        runSimulation();
+    }
+
     private void runSimulation() {
         long now = System.currentTimeMillis();
         for (ControllerPhase phase : phases.values()) {
@@ -252,8 +261,7 @@ public class AgentControllerVerticle extends AbstractVerticle {
         }
 
         if (phases.values().stream().allMatch(phase -> phase.status() == ControllerPhase.Status.TERMINATED)) {
-            terminateTime = now;
-            // TODO reset agents, benchmark and so on...
+            stopSimulation();
             return;
         }
 
@@ -271,6 +279,12 @@ public class AgentControllerVerticle extends AbstractVerticle {
         delay = Math.min(delay, 1000);
         log.debug("Wait {} ms", delay);
         vertx.setTimer(delay, timerId -> runSimulation());
+    }
+
+    private void stopSimulation() {
+        terminateTime = System.currentTimeMillis();
+        statisticsStore.benchmarkCompleted();
+        // TODO stop agents?
     }
 
     private ControllerPhase[] getAvailablePhases() {

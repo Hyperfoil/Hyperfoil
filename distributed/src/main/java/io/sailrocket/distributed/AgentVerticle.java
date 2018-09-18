@@ -83,10 +83,10 @@ public class AgentVerticle extends AbstractVerticle {
         }
         runner = new SimulationRunnerImpl(simulation);
         runner.init((phase, status) -> eb.send(Feeds.RESPONSE, new PhaseChangeMessage(address, phase, status)));
-        ReportStatisticsCollector reportStatisticsCollector = new ReportStatisticsCollector(simulation);
+        ReportSender reportSender = new ReportSender(simulation, eb, address);
         statsTimerId = vertx.setPeriodic(simulation.statisticsCollectionPeriod(), timerId -> {
-           runner.visitSessions(reportStatisticsCollector);
-           eb.send(Feeds.STATS, new ReportMessage(address, reportStatisticsCollector.reports()));
+            runner.visitSessions(reportSender);
+            reportSender.send();
         });
         return true;
     }

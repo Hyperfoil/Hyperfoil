@@ -27,12 +27,13 @@ import io.sailrocket.api.StatisticsSnapshot;
 import java.util.HashMap;
 import java.util.Map;
 
-public class ReportStatisticsCollector extends StatisticsAggregator {
+@Deprecated
+public class ReportStatisticsCollector extends StatisticsCollector {
     private final StatisticsConsumer addReport = this::addReport;
     private Map<String, Report> reportMap;
 
     public ReportStatisticsCollector(Simulation simulation) {
-        super(simulation);
+        super(simulation, true);
     }
 
     public Map<String, Report> reports() {
@@ -57,6 +58,6 @@ public class ReportStatisticsCollector extends StatisticsAggregator {
               0  //clientPool.bytesWritten()
         );
         reportMap.put(phase.name() + "/" + sequence.name(), report);
-        return true;
+        return false;
     }
 }

@@ -7,8 +7,8 @@ import io.sailrocket.api.SLA;
 
 public class SLABuilder {
    private final SequenceBuilder parent;
-   private long period = -1;
-   private double errorRate = 1;
+   private long window = -1;
+   private double errorRate = 1.01; // 101% of errors allowed
    private long meanResponseTime = Long.MAX_VALUE;
    private final Collection<SLA.PercentileLimit> limits = new ArrayList<>();
    private SLA sla;
@@ -22,7 +22,7 @@ public class SLABuilder {
       if (sla != null) {
          return sla;
       }
-      return sla = new SLA(parent.build(), period, errorRate, meanResponseTime, limits);
+      return sla = new SLA(parent.build(), window, errorRate, meanResponseTime, limits);
    }
 
    public SequenceBuilder endSLA() {
@@ -31,11 +31,11 @@ public class SLABuilder {
 
    /**
     * Period over which the stats should be collected, in milliseconds.
-    * @param period
+    * @param window
     * @return
     */
-   public SLABuilder period(long period) {
-      this.period = period;
+   public SLABuilder window(long window) {
+      this.window = window;
       return this;
    }
 

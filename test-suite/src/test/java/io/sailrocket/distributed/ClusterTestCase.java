@@ -91,7 +91,7 @@ public class ClusterTestCase {
 
             asyncHttpClient
                   .preparePost("http://localhost:8090/upload")
-                  .setBody(serialize(TestBenchmarks.testBenchmark()))
+                  .setBody(serialize(TestBenchmarks.testBenchmark(AGENTS)))
                   .execute()
                   .toCompletableFuture()
                   .thenAccept(response -> {

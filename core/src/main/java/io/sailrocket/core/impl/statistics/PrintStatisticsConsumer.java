@@ -20,9 +20,9 @@ package io.sailrocket.core.impl.statistics;
 
 import io.sailrocket.api.Simulation;
 
-public class PrintStatisticsConsumer extends StatisticsAggregator {
+public class PrintStatisticsConsumer extends StatisticsCollector {
     public PrintStatisticsConsumer(Simulation simulation) {
-        super(simulation);
+        super(simulation, true);
     }
 
     public void print() {
@@ -35,7 +35,7 @@ public class PrintStatisticsConsumer extends StatisticsAggregator {
                   snapshot.histogram.getMean() / 1_000_000.0,
                   snapshot.histogram.getValueAtPercentile(99.0) / 1_000_000.0
             );
-            return true;
+            return false;
         }));
     }
 }

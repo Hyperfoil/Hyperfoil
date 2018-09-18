@@ -29,13 +29,13 @@ public class Benchmark implements Serializable {
 
     protected final String name;
     protected final Simulation simulation;
-    protected final Host[] hosts;
+    protected final Host[] agents;
     protected final SLA[] slas;
 
-    public Benchmark(String name, Simulation simulation, Host[] hosts, SLA[] slas) {
+    public Benchmark(String name, Simulation simulation, Host[] agents, SLA[] slas) {
         this.name = name;
         this.simulation = simulation;
-        this.hosts = hosts;
+        this.agents = agents;
         this.slas = slas;
     }
 
@@ -45,5 +45,13 @@ public class Benchmark implements Serializable {
 
     public String name() {
         return name;
+    }
+
+    public SLA[] slas() {
+        return slas;
+    }
+
+    public Host[] agents() {
+        return agents;
     }
 }

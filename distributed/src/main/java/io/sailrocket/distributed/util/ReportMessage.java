@@ -4,18 +4,19 @@ import java.io.Serializable;
 import java.util.Map;
 
 import io.sailrocket.api.Report;
+import io.sailrocket.api.StatisticsSnapshot;
 
 public class ReportMessage implements Serializable {
-   private final String address;
-   private final Map<String, Report> reports;
+   public final String address;
+   public final String phase;
+   public final String sequence;
+   public final StatisticsSnapshot statistics;
 
-   public ReportMessage(String address, Map<String, Report> reports) {
+   public ReportMessage(String address, String phase, String sequence, StatisticsSnapshot statistics) {
       this.address = address;
-      this.reports = reports;
-   }
-
-   public Map<String, Report> reports() {
-      return reports;
+      this.phase = phase;
+      this.sequence = sequence;
+      this.statistics = statistics;
    }
 
    public static class Codec extends ObjectCodec<ReportMessage> {}

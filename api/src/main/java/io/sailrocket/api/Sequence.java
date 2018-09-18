@@ -38,4 +38,6 @@ public interface Sequence extends Serializable {
     void reserve(Session session);
 
     String name();
+
+    String phase();
 }

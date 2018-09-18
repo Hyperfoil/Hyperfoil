@@ -11,11 +11,13 @@ import io.vertx.core.logging.LoggerFactory;
 public class SequenceImpl implements Sequence {
    private static final Logger log = LoggerFactory.getLogger(SequenceImpl.class);
 
+   private final String phase;
    private final String name;
    private final int id;
    private final Step[] steps;
 
-   public SequenceImpl(String name, int id, Step[] steps) {
+   public SequenceImpl(String phase, String name, int id, Step[] steps) {
+      this.phase = phase;
       this.name = name;
       this.id = id;
       this.steps = steps;
@@ -50,5 +52,10 @@ public class SequenceImpl implements Sequence {
    @Override
    public String name() {
       return name;
+   }
+
+   @Override
+   public String phase() {
+      return phase;
    }
 }

@@ -24,14 +24,14 @@ import java.util.Collections;
 
 public class SLA implements Serializable {
    private final Sequence sequence;
-   private final long period;
+   private final long window;
    private final double errorRate;
    private final long meanResponseTime;
    private final Collection<PercentileLimit> limits;
 
-   public SLA(Sequence sequence, long period, double errorRate, long meanResponseTime, Collection<PercentileLimit> limits) {
+   public SLA(Sequence sequence, long window, double errorRate, long meanResponseTime, Collection<PercentileLimit> limits) {
       this.sequence = sequence;
-      this.period = period;
+      this.window = window;
       this.meanResponseTime = meanResponseTime;
       this.errorRate = errorRate;
       this.limits = limits;
@@ -41,8 +41,8 @@ public class SLA implements Serializable {
       return sequence;
    }
 
-   public long period() {
-      return period;
+   public long window() {
+      return window;
    }
 
    public double errorRate() {
@@ -55,6 +55,29 @@ public class SLA implements Serializable {
 
    public Collection<PercentileLimit> percentileLimits() {
       return Collections.unmodifiableCollection(limits);
+   }
+
+   public SLA.Failure validate(StatisticsSnapshot statistics) {
+      boolean actualErrorRate = (double) statistics.errors() / statistics.requestCount >= errorRate;
+      if (actualErrorRate) {
+         return new SLA.Failure(this, statistics.clone(),
+               String.format("Error rate exceeded: required %.3f, actual %.3f", errorRate, actualErrorRate));
+      }
+      if (meanResponseTime < Long.MAX_VALUE) {
+         double mean = statistics.histogram.getMean();
+         if (mean >= meanResponseTime) {
+            return new SLA.Failure(this, statistics.clone(),
+                  String.format("Mean response time exceeded: required %d, actual %f", meanResponseTime, mean));
+         }
+      }
+      for (SLA.PercentileLimit limit : limits) {
+         long value = statistics.histogram.getValueAtPercentile(limit.percentile());
+         if (value >= limit.responseTime()) {
+            return new SLA.Failure(this, statistics.clone(),
+                  String.format("Response time at percentile %f exceeded: required %d, actual %d", limit.percentile, limit.responseTime, value));
+         }
+      }
+      return null;
    }
 
    public static class PercentileLimit implements Serializable {
@@ -75,6 +98,26 @@ public class SLA implements Serializable {
        */
       public long responseTime() {
          return  responseTime;
+      }
+   }
+
+   public static class Failure {
+      private final SLA sla;
+      private final StatisticsSnapshot statistics;
+      private final String message;
+
+      public Failure(SLA sla, StatisticsSnapshot statistics, String message) {
+         this.sla = sla;
+         this.statistics = statistics;
+         this.message = message;
+      }
+
+      public SLA sla() {
+         return sla;
+      }
+
+      public StatisticsSnapshot statistics() {
+         return statistics;
       }
    }
 }

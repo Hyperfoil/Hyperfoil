@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
  */
+@Deprecated
 public class Report implements Serializable {
     static final String[] COLUMNS = {
             "req_s", "responseCount", "responseErrors", "expectedRequests", "ratio",

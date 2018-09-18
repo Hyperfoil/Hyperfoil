@@ -33,7 +33,7 @@ public class BenchmarkBuilder {
 
     private String name;
     private SimulationBuilder simulation;
-    private Host[] hosts;
+    private Collection<Host> agents = new ArrayList<>();
     private Collection<SLABuilder> slas = new ArrayList<>();
 
     private BenchmarkBuilder() {
@@ -52,12 +52,13 @@ public class BenchmarkBuilder {
         return simulation = new SimulationBuilder(this);
     }
 
-    public BenchmarkBuilder host(String host){
+    public BenchmarkBuilder addAgent(String hostname, String username, int port){
+        agents.add(new Host(hostname, username, port));
         return this;
     }
 
     public Benchmark build() {
-        return new Benchmark(name, simulation.build(), hosts, slas.stream().map(SLABuilder::build).toArray(SLA[]::new));
+        return new Benchmark(name, simulation.build(), agents.toArray(new Host[0]), slas.stream().map(SLABuilder::build).toArray(SLA[]::new));
     }
 
     void addSLA(SLABuilder sla) {

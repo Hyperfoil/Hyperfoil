@@ -18,9 +18,16 @@
  */
 package io.sailrocket.api;
 
-public class Host {
+import java.io.Serializable;
 
-    private String hostname;
-    private String username;
-    private String port;
+public class Host implements Serializable {
+    private final String hostname;
+    private final String username;
+    private final int port;
+
+    public Host(String hostname, String username, int port) {
+        this.hostname = hostname;
+        this.username = username;
+        this.port = port;
+    }
 }
