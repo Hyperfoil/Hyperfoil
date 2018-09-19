@@ -2,7 +2,7 @@ package io.sailrocket.core.client.netty;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http2.Http2Headers;
-import io.sailrocket.api.HttpMethod;
+import io.sailrocket.api.http.HttpMethod;
 import io.sailrocket.core.client.AbstractHttpRequest;
 
 /**

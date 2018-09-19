@@ -1,15 +1,15 @@
 package io.sailrocket.core.client.netty;
 
 import io.netty.handler.codec.http.HttpContent;
-import io.sailrocket.api.HttpMethod;
-import io.sailrocket.api.HttpRequest;
+import io.sailrocket.api.http.HttpMethod;
+import io.sailrocket.api.http.HttpRequest;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.DefaultFullHttpRequest;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.LastHttpContent;
-import io.sailrocket.api.HttpResponseHandlers;
+import io.sailrocket.api.http.HttpResponseHandlers;
 
 import java.util.Deque;
 import java.util.Map;

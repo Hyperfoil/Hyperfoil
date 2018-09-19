@@ -3,8 +3,8 @@ package io.sailrocket.core.session;
 import java.lang.reflect.Array;
 import java.util.List;
 
-import io.sailrocket.api.VarReference;
-import io.sailrocket.api.Session;
+import io.sailrocket.api.session.VarReference;
+import io.sailrocket.api.session.Session;
 
 public class SequenceScopedVarReference implements VarReference {
    private final String var;
@@ -32,8 +32,8 @@ public class SequenceScopedVarReference implements VarReference {
    }
 
    private boolean checkVar(int index, Object o) {
-      if (o instanceof io.sailrocket.api.Session.Var) {
-         return ((io.sailrocket.api.Session.Var) o).isSet();
+      if (o instanceof Session.Var) {
+         return ((Session.Var) o).isSet();
       } else {
          throw new IllegalStateException("Collection in " + var + "[" + index + "] does not contain settable variable: " + o);
       }

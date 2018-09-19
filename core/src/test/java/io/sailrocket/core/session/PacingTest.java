@@ -6,7 +6,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import io.sailrocket.api.HttpMethod;
+import io.sailrocket.api.http.HttpMethod;
 import io.sailrocket.core.builders.ScenarioBuilder;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 

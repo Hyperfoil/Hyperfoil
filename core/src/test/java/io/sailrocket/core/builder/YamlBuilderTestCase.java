@@ -18,7 +18,7 @@
  */
 package io.sailrocket.core.builder;
 
-import io.sailrocket.api.Benchmark;
+import io.sailrocket.api.config.Benchmark;
 import io.sailrocket.core.parser.ConfigurationNotDefinedException;
 import io.sailrocket.core.parser.ConfigurationParser;
 import io.sailrocket.core.parser.ConfigurationParserException;

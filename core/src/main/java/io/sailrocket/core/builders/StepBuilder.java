@@ -22,7 +22,7 @@ package io.sailrocket.core.builders;
 
 import java.util.List;
 
-import io.sailrocket.api.Step;
+import io.sailrocket.api.config.Step;
 
 /**
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>

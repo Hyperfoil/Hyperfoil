@@ -3,7 +3,7 @@ package io.sailrocket.core.api;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-import io.sailrocket.api.Session;
+import io.sailrocket.api.session.Session;
 
 public interface SimulationRunner {
 

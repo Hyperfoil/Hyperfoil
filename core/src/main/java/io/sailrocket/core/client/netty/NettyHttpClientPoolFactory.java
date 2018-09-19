@@ -1,7 +1,7 @@
 package io.sailrocket.core.client.netty;
 
-import io.sailrocket.api.HttpClientPool;
-import io.sailrocket.spi.HttpClientPoolFactory;
+import io.sailrocket.api.connection.HttpClientPool;
+import io.sailrocket.api.connection.HttpClientPoolFactory;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.vertx.core.http.HttpVersion;

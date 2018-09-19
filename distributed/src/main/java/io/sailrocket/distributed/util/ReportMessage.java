@@ -1,10 +1,8 @@
 package io.sailrocket.distributed.util;
 
 import java.io.Serializable;
-import java.util.Map;
 
-import io.sailrocket.api.Report;
-import io.sailrocket.api.StatisticsSnapshot;
+import io.sailrocket.api.statistics.StatisticsSnapshot;
 
 public class ReportMessage implements Serializable {
    public final String address;

@@ -5,8 +5,8 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.DefaultFullHttpRequest;
 import io.netty.handler.codec.http.HttpVersion;
-import io.sailrocket.api.HttpMethod;
-import io.sailrocket.api.HttpRequest;
+import io.sailrocket.api.http.HttpMethod;
+import io.sailrocket.api.http.HttpRequest;
 import io.sailrocket.core.client.AbstractHttpRequest;
 
 class Http1xRequest extends AbstractHttpRequest {

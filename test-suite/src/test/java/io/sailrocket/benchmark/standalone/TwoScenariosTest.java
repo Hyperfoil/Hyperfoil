@@ -14,7 +14,7 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 
-import io.sailrocket.api.HttpMethod;
+import io.sailrocket.api.http.HttpMethod;
 import io.sailrocket.core.builders.BenchmarkBuilder;
 import io.sailrocket.core.impl.LocalSimulationRunner;
 import io.sailrocket.core.util.RandomConcurrentSet;

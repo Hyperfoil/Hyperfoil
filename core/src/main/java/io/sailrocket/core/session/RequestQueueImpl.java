@@ -1,9 +1,10 @@
 package io.sailrocket.core.session;
 
+import io.sailrocket.api.collection.RequestQueue;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-class RequestQueueImpl implements io.sailrocket.api.RequestQueue {
+class RequestQueueImpl implements RequestQueue {
    private static final Logger log = LoggerFactory.getLogger(RequestQueueImpl.class);
 
    private final Request[] queue;

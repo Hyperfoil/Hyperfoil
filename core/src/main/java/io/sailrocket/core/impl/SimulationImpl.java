@@ -3,9 +3,9 @@ package io.sailrocket.core.impl;
 import java.util.Collection;
 import java.util.Map;
 
-import io.sailrocket.api.Phase;
-import io.sailrocket.api.Simulation;
-import io.sailrocket.spi.HttpClientPoolFactory;
+import io.sailrocket.api.config.Phase;
+import io.sailrocket.api.config.Simulation;
+import io.sailrocket.api.connection.HttpClientPoolFactory;
 
 public class SimulationImpl implements Simulation {
    private final HttpClientPoolFactory httpClientPoolFactory;

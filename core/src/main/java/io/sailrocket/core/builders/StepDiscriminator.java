@@ -5,8 +5,8 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-import io.sailrocket.api.HttpMethod;
-import io.sailrocket.api.Session;
+import io.sailrocket.api.http.HttpMethod;
+import io.sailrocket.api.session.Session;
 import io.sailrocket.core.steps.AwaitAllResponsesStep;
 import io.sailrocket.core.steps.AwaitConditionStep;
 import io.sailrocket.core.steps.AwaitDelayStep;

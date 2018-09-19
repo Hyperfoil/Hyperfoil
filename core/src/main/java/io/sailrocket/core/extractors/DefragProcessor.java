@@ -2,7 +2,7 @@ package io.sailrocket.core.extractors;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.CompositeByteBuf;
-import io.sailrocket.api.Session;
+import io.sailrocket.api.session.Session;
 import io.sailrocket.core.api.ResourceUtilizer;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;

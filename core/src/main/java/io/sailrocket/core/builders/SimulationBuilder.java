@@ -20,13 +20,13 @@
 
 package io.sailrocket.core.builders;
 
-import io.sailrocket.api.BenchmarkDefinitionException;
-import io.sailrocket.api.Phase;
-import io.sailrocket.api.Simulation;
-import io.sailrocket.spi.HttpClientPoolFactory;
+import io.sailrocket.api.config.BenchmarkDefinitionException;
+import io.sailrocket.api.config.Phase;
+import io.sailrocket.api.config.Simulation;
+import io.sailrocket.api.connection.HttpClientPoolFactory;
 import io.sailrocket.core.client.HttpClientProvider;
 import io.sailrocket.core.impl.SimulationImpl;
-import io.sailrocket.spi.HttpBase;
+import io.sailrocket.core.builders.connection.HttpBase;
 
 import java.util.ArrayList;
 import java.util.Collection;

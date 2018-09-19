@@ -18,7 +18,7 @@
  */
 package io.sailrocket.core.impl.statistics;
 
-import io.sailrocket.api.Simulation;
+import io.sailrocket.api.config.Simulation;
 
 public class PrintStatisticsConsumer extends StatisticsCollector {
     public PrintStatisticsConsumer(Simulation simulation) {

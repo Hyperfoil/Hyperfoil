@@ -2,8 +2,8 @@ package io.sailrocket.core.steps;
 
 import java.util.function.Predicate;
 
-import io.sailrocket.api.Step;
-import io.sailrocket.api.Session;
+import io.sailrocket.api.config.Step;
+import io.sailrocket.api.session.Session;
 
 public class AwaitConditionStep implements Step {
    private final Predicate<Session> condition;

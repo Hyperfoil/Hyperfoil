@@ -20,8 +20,8 @@
 
 package io.sailrocket.core.client;
 
-import io.sailrocket.api.HttpMethod;
-import io.sailrocket.api.HttpRequest;
+import io.sailrocket.api.http.HttpMethod;
+import io.sailrocket.api.http.HttpRequest;
 import io.sailrocket.core.client.vertx.ContextAwareClient;
 import io.vertx.core.Future;
 import io.vertx.core.http.HttpClientRequest;

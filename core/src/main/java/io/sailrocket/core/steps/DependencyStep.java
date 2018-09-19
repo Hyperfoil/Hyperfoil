@@ -1,8 +1,8 @@
 package io.sailrocket.core.steps;
 
-import io.sailrocket.api.Step;
-import io.sailrocket.api.VarReference;
-import io.sailrocket.api.Session;
+import io.sailrocket.api.config.Step;
+import io.sailrocket.api.session.VarReference;
+import io.sailrocket.api.session.Session;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 

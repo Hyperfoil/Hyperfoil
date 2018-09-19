@@ -3,7 +3,7 @@ package io.sailrocket.core.builders;
 import java.util.ArrayList;
 import java.util.Collection;
 
-import io.sailrocket.api.SLA;
+import io.sailrocket.api.config.SLA;
 
 public class SLABuilder {
    private final SequenceBuilder parent;

@@ -5,8 +5,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 import io.netty.buffer.ByteBuf;
-import io.sailrocket.api.BodyExtractor;
-import io.sailrocket.api.Session;
+import io.sailrocket.api.http.BodyExtractor;
+import io.sailrocket.api.session.Session;
 import io.sailrocket.core.api.ResourceUtilizer;
 
 public class JsonExtractor implements BodyExtractor, ResourceUtilizer, Session.ResourceKey<JsonExtractor.Context> {

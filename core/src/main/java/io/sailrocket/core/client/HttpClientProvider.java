@@ -2,7 +2,7 @@ package io.sailrocket.core.client;
 
 
 import io.sailrocket.core.client.netty.NettyHttpClientPoolFactory;
-import io.sailrocket.spi.HttpClientPoolFactory;
+import io.sailrocket.api.connection.HttpClientPoolFactory;
 
 public enum HttpClientProvider {
 

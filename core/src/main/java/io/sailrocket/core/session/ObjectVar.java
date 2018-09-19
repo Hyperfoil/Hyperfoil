@@ -1,6 +1,6 @@
 package io.sailrocket.core.session;
 
-import io.sailrocket.api.Session;
+import io.sailrocket.api.session.Session;
 
 public class ObjectVar implements Session.Var {
    boolean set;

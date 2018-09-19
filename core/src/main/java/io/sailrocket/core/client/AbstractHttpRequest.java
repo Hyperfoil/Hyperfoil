@@ -5,8 +5,8 @@ import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 
 import io.netty.buffer.ByteBuf;
-import io.sailrocket.api.HttpRequest;
-import io.sailrocket.api.HttpResponseHandlers;
+import io.sailrocket.api.http.HttpRequest;
+import io.sailrocket.api.http.HttpResponseHandlers;
 
 public abstract class AbstractHttpRequest implements HttpRequest, HttpResponseHandlers {
    protected IntConsumer statusHandler;

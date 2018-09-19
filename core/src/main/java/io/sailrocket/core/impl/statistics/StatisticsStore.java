@@ -18,11 +18,11 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.sailrocket.api.Benchmark;
-import io.sailrocket.api.Phase;
-import io.sailrocket.api.SLA;
-import io.sailrocket.api.Sequence;
-import io.sailrocket.api.StatisticsSnapshot;
+import io.sailrocket.api.config.Benchmark;
+import io.sailrocket.api.config.Phase;
+import io.sailrocket.api.config.SLA;
+import io.sailrocket.api.config.Sequence;
+import io.sailrocket.api.statistics.StatisticsSnapshot;
 import io.sailrocket.api.statistics.StatisticsSummary;
 
 public class StatisticsStore {

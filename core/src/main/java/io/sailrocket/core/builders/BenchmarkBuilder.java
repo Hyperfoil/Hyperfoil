@@ -19,9 +19,9 @@
  */
 package io.sailrocket.core.builders;
 
-import io.sailrocket.api.Benchmark;
-import io.sailrocket.api.Host;
-import io.sailrocket.api.SLA;
+import io.sailrocket.api.config.Benchmark;
+import io.sailrocket.api.config.Host;
+import io.sailrocket.api.config.SLA;
 
 import java.util.ArrayList;
 import java.util.Collection;

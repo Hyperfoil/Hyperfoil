@@ -4,9 +4,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.function.IntPredicate;
 
 import io.netty.buffer.ByteBuf;
-import io.sailrocket.api.Session;
+import io.sailrocket.api.session.Session;
 import io.sailrocket.core.api.ResourceUtilizer;
-import io.sailrocket.spi.BodyValidator;
+import io.sailrocket.api.http.BodyValidator;
 
 /**
  * Simple pattern (no regexp) search based on Rabin-Karp algorithm.

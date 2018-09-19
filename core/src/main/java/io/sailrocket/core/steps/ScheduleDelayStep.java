@@ -4,8 +4,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import io.sailrocket.api.Step;
-import io.sailrocket.api.Session;
+import io.sailrocket.api.config.Step;
+import io.sailrocket.api.session.Session;
 import io.sailrocket.core.api.ResourceUtilizer;
 import io.sailrocket.core.builders.BaseSequenceBuilder;
 import io.sailrocket.core.builders.BaseStepBuilder;

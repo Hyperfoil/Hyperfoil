@@ -1,9 +1,9 @@
 package io.sailrocket.core.session;
 
-import io.sailrocket.api.Sequence;
-import io.sailrocket.api.SequenceInstance;
-import io.sailrocket.api.Session;
-import io.sailrocket.api.Step;
+import io.sailrocket.api.config.Sequence;
+import io.sailrocket.api.session.SequenceInstance;
+import io.sailrocket.api.session.Session;
+import io.sailrocket.api.config.Step;
 import io.sailrocket.core.api.ResourceUtilizer;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;

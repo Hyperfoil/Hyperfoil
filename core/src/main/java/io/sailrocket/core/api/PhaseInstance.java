@@ -3,9 +3,9 @@ package io.sailrocket.core.api;
 import java.util.function.BiConsumer;
 
 import io.netty.util.concurrent.EventExecutorGroup;
-import io.sailrocket.api.ConcurrentPool;
-import io.sailrocket.api.Phase;
-import io.sailrocket.api.Session;
+import io.sailrocket.api.collection.ConcurrentPool;
+import io.sailrocket.api.config.Phase;
+import io.sailrocket.api.session.Session;
 
 public interface PhaseInstance {
    Phase definition();

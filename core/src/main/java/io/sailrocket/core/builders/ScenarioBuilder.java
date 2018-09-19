@@ -20,9 +20,9 @@
 
 package io.sailrocket.core.builders;
 
-import io.sailrocket.api.BenchmarkDefinitionException;
-import io.sailrocket.api.Scenario;
-import io.sailrocket.api.Sequence;
+import io.sailrocket.api.config.BenchmarkDefinitionException;
+import io.sailrocket.api.config.Scenario;
+import io.sailrocket.api.config.Sequence;
 import io.sailrocket.core.impl.ScenarioImpl;
 
 import java.util.ArrayList;

@@ -1,6 +1,6 @@
 package io.sailrocket.distributed;
 
-import io.sailrocket.api.Phase;
+import io.sailrocket.api.config.Phase;
 
 public class ControllerPhase {
    private final Phase definition;

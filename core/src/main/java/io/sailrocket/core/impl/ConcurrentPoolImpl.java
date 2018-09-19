@@ -5,7 +5,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Supplier;
 
-import io.sailrocket.api.ConcurrentPool;
+import io.sailrocket.api.collection.ConcurrentPool;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 

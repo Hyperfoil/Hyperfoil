@@ -6,11 +6,11 @@ import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 import io.netty.buffer.ByteBuf;
-import io.sailrocket.api.HttpMethod;
-import io.sailrocket.api.HttpRequest;
-import io.sailrocket.api.RequestQueue;
-import io.sailrocket.api.Step;
-import io.sailrocket.api.Session;
+import io.sailrocket.api.http.HttpMethod;
+import io.sailrocket.api.http.HttpRequest;
+import io.sailrocket.api.collection.RequestQueue;
+import io.sailrocket.api.config.Step;
+import io.sailrocket.api.session.Session;
 import io.sailrocket.core.builders.BaseSequenceBuilder;
 import io.sailrocket.core.builders.BaseStepBuilder;
 import io.sailrocket.core.api.ResourceUtilizer;

@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import io.sailrocket.api.Step;
+import io.sailrocket.api.config.Step;
 
 public abstract class BaseSequenceBuilder {
    protected final BaseSequenceBuilder parent;

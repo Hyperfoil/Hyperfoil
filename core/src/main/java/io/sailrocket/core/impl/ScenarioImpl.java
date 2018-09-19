@@ -23,8 +23,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.sailrocket.api.Scenario;
-import io.sailrocket.api.Sequence;
+import io.sailrocket.api.config.Scenario;
+import io.sailrocket.api.config.Sequence;
 
 public class ScenarioImpl implements Scenario {
     private final Sequence[] initialSequences;

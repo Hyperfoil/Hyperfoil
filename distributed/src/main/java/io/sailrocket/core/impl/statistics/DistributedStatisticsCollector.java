@@ -18,7 +18,7 @@
  */
 package io.sailrocket.core.impl.statistics;
 
-import io.sailrocket.api.Statistics;
+import io.sailrocket.api.statistics.Statistics;
 
 import java.util.function.Consumer;
 

@@ -3,11 +3,11 @@ package io.sailrocket.core.session;
 import java.util.Collections;
 
 import io.netty.util.concurrent.EventExecutorGroup;
-import io.sailrocket.api.HttpClientPool;
-import io.sailrocket.api.Phase;
+import io.sailrocket.api.connection.HttpClientPool;
+import io.sailrocket.api.config.Phase;
 import io.sailrocket.core.api.PhaseInstance;
-import io.sailrocket.api.Sequence;
-import io.sailrocket.api.Session;
+import io.sailrocket.api.config.Sequence;
+import io.sailrocket.api.session.Session;
 import io.sailrocket.core.impl.PhaseInstanceImpl;
 import io.sailrocket.core.impl.ScenarioImpl;
 

@@ -3,7 +3,7 @@ package io.sailrocket.distributed;
 import java.util.HashMap;
 import java.util.Map;
 
-import io.sailrocket.api.Benchmark;
+import io.sailrocket.api.config.Benchmark;
 import io.sailrocket.core.impl.statistics.StatisticsStore;
 
 class Run {

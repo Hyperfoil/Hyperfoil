@@ -3,7 +3,7 @@ package io.sailrocket.core.builders;
 import java.util.ArrayList;
 import java.util.Collection;
 
-import io.sailrocket.api.VarReference;
+import io.sailrocket.api.session.VarReference;
 
 public abstract class DependencyStepBuilder extends BaseStepBuilder {
    private Collection<VarReference> dependencies = new ArrayList<>();

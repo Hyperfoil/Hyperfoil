@@ -3,7 +3,7 @@ package io.sailrocket.core.extractors;
 import java.nio.charset.StandardCharsets;
 
 import io.netty.buffer.ByteBuf;
-import io.sailrocket.api.Session;
+import io.sailrocket.api.session.Session;
 import io.sailrocket.core.api.ResourceUtilizer;
 
 public class SimpleRecorder implements Session.Processor, ResourceUtilizer {

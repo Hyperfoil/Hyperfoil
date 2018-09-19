@@ -20,8 +20,8 @@
 
 package io.sailrocket.core.builders;
 
-import io.sailrocket.spi.HttpBase;
-import io.sailrocket.spi.HttpHeader;
+import io.sailrocket.core.builders.connection.HttpBase;
+import io.sailrocket.core.builders.connection.HttpHeader;
 
 import java.util.HashMap;
 import java.util.Map;

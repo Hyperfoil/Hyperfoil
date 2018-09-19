@@ -3,11 +3,11 @@ package io.sailrocket.core.steps;
 import java.util.Collections;
 import java.util.List;
 
-import io.sailrocket.api.BenchmarkDefinitionException;
-import io.sailrocket.api.Sequence;
-import io.sailrocket.api.Session;
-import io.sailrocket.api.Step;
-import io.sailrocket.api.VarReference;
+import io.sailrocket.api.config.BenchmarkDefinitionException;
+import io.sailrocket.api.config.Sequence;
+import io.sailrocket.api.session.Session;
+import io.sailrocket.api.config.Step;
+import io.sailrocket.api.session.VarReference;
 import io.sailrocket.core.api.ResourceUtilizer;
 import io.sailrocket.core.builders.BaseSequenceBuilder;
 import io.sailrocket.core.builders.DependencyStepBuilder;
@@ -28,11 +28,11 @@ public class ForeachStep extends DependencyStep implements ResourceUtilizer {
    @Override
    public void invoke(Session session) {
       Object value = session.getObject(dataVar);
-      if (!(value instanceof io.sailrocket.api.Session.Var[])) {
+      if (!(value instanceof Session.Var[])) {
          throw new IllegalStateException("Variable " + dataVar + " does not contain var array: " + value);
       }
       // Java array polymorphism is useful at times...
-      io.sailrocket.api.Session.Var[] array = (io.sailrocket.api.Session.Var[]) value;
+      Session.Var[] array = (Session.Var[]) value;
       int i = 0;
       for (; i < array.length; i++) {
          if (!array[i].isSet()) break;

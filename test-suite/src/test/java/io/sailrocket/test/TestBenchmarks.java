@@ -4,7 +4,8 @@ import static io.sailrocket.core.builders.HttpBuilder.httpBuilder;
 
 import java.util.concurrent.TimeUnit;
 
-import io.sailrocket.api.HttpMethod;
+import io.sailrocket.api.http.HttpMethod;
+import io.sailrocket.api.config.Benchmark;
 import io.sailrocket.core.builders.BenchmarkBuilder;
 import io.sailrocket.core.builders.SimulationBuilder;
 
@@ -33,7 +34,7 @@ public class TestBenchmarks {
             .endPhase();
    }
 
-   public static io.sailrocket.api.Benchmark testBenchmark(int agents) {
+   public static Benchmark testBenchmark(int agents) {
       BenchmarkBuilder benchmarkBuilder = BenchmarkBuilder.builder().name("test");
       for (int i = 0; i < agents; ++i) {
          benchmarkBuilder.addAgent("agent" + i, "agent", 12345);

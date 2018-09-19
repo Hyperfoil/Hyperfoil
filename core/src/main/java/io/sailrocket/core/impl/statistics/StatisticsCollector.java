@@ -4,12 +4,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
-import io.sailrocket.api.Phase;
-import io.sailrocket.api.Sequence;
-import io.sailrocket.api.Session;
-import io.sailrocket.api.Simulation;
-import io.sailrocket.api.Statistics;
-import io.sailrocket.api.StatisticsSnapshot;
+import io.sailrocket.api.config.Phase;
+import io.sailrocket.api.config.Sequence;
+import io.sailrocket.api.session.Session;
+import io.sailrocket.api.config.Simulation;
+import io.sailrocket.api.statistics.Statistics;
+import io.sailrocket.api.statistics.StatisticsSnapshot;
 
 public class StatisticsCollector implements Consumer<Session> {
    protected final Simulation simulation;

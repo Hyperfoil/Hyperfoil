@@ -8,7 +8,7 @@ import java.util.Set;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import io.sailrocket.api.Scenario;
+import io.sailrocket.api.config.Scenario;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 
 @RunWith(VertxUnitRunner.class)

@@ -8,9 +8,9 @@ import java.util.Optional;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import io.sailrocket.api.HttpMethod;
-import io.sailrocket.api.Session;
-import io.sailrocket.api.Statistics;
+import io.sailrocket.api.http.HttpMethod;
+import io.sailrocket.api.session.Session;
+import io.sailrocket.api.statistics.Statistics;
 import io.sailrocket.core.builders.ScenarioBuilder;
 import io.sailrocket.core.extractors.ArrayRecorder;
 import io.sailrocket.core.extractors.SequenceScopedCountRecorder;

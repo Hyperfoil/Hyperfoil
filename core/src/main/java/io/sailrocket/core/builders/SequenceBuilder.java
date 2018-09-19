@@ -22,8 +22,8 @@ package io.sailrocket.core.builders;
 
 import java.util.Objects;
 
-import io.sailrocket.api.Sequence;
-import io.sailrocket.api.Step;
+import io.sailrocket.api.config.Sequence;
+import io.sailrocket.api.config.Step;
 import io.sailrocket.core.session.SequenceImpl;
 
 /**

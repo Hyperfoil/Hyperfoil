@@ -1,7 +1,7 @@
 package io.sailrocket.core.extractors;
 
 import io.netty.buffer.ByteBuf;
-import io.sailrocket.api.Session;
+import io.sailrocket.api.session.Session;
 import io.sailrocket.core.api.ResourceUtilizer;
 
 public class CountRecorder implements Session.Processor, ResourceUtilizer {

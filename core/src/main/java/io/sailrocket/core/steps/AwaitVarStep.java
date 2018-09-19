@@ -1,7 +1,7 @@
 package io.sailrocket.core.steps;
 
-import io.sailrocket.api.Session;
-import io.sailrocket.api.VarReference;
+import io.sailrocket.api.session.Session;
+import io.sailrocket.api.session.VarReference;
 import io.sailrocket.core.api.ResourceUtilizer;
 import io.sailrocket.core.session.SimpleVarReference;
 

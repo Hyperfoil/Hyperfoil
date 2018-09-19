@@ -2,7 +2,7 @@ package io.sailrocket.distributed.util;
 
 import java.io.Serializable;
 
-import io.sailrocket.api.Simulation;
+import io.sailrocket.api.config.Simulation;
 
 public class PhaseControlMessage implements Serializable {
    private final Command command;

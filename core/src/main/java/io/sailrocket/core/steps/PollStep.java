@@ -10,8 +10,8 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import io.sailrocket.api.Session;
-import io.sailrocket.api.Step;
+import io.sailrocket.api.session.Session;
+import io.sailrocket.api.config.Step;
 import io.sailrocket.core.api.ResourceUtilizer;
 import io.sailrocket.core.builders.BaseSequenceBuilder;
 import io.sailrocket.core.builders.BaseStepBuilder;

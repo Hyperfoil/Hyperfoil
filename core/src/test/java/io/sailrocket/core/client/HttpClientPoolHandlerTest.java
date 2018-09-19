@@ -21,9 +21,9 @@ package io.sailrocket.core.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.sailrocket.api.HttpClientPool;
-import io.sailrocket.api.HttpMethod;
-import io.sailrocket.api.HttpRequest;
+import io.sailrocket.api.connection.HttpClientPool;
+import io.sailrocket.api.http.HttpMethod;
+import io.sailrocket.api.http.HttpRequest;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpVersion;
 import io.vertx.ext.unit.TestContext;

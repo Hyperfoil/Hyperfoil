@@ -18,7 +18,7 @@
  */
 package io.sailrocket.core.parser;
 
-import io.sailrocket.api.Benchmark;
+import io.sailrocket.api.config.Benchmark;
 import io.sailrocket.core.builders.BenchmarkBuilder;
 import io.sailrocket.core.parser.builders.AbstractConfigurationBuilder;
 import io.sailrocket.core.parser.builders.HostsConfigurationBuilder;

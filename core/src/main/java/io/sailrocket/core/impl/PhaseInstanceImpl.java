@@ -2,10 +2,10 @@ package io.sailrocket.core.impl;
 
 import io.netty.util.concurrent.EventExecutor;
 import io.netty.util.concurrent.EventExecutorGroup;
-import io.sailrocket.api.BenchmarkDefinitionException;
-import io.sailrocket.api.ConcurrentPool;
-import io.sailrocket.api.Phase;
-import io.sailrocket.api.Session;
+import io.sailrocket.api.config.BenchmarkDefinitionException;
+import io.sailrocket.api.collection.ConcurrentPool;
+import io.sailrocket.api.config.Phase;
+import io.sailrocket.api.session.Session;
 import io.sailrocket.core.api.PhaseInstance;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;

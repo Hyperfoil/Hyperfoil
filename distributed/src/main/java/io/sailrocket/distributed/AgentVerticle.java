@@ -1,6 +1,6 @@
 package io.sailrocket.distributed;
 
-import io.sailrocket.api.Simulation;
+import io.sailrocket.api.config.Simulation;
 import io.sailrocket.core.impl.SimulationImpl;
 import io.sailrocket.core.impl.SimulationRunnerImpl;
 import io.sailrocket.distributed.util.PhaseChangeMessage;

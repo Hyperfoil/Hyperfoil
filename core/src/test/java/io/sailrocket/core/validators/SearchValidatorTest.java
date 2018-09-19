@@ -8,7 +8,7 @@ import org.junit.Test;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import io.sailrocket.api.Session;
+import io.sailrocket.api.session.Session;
 import io.sailrocket.core.session.SessionFactory;
 
 public class SearchValidatorTest {

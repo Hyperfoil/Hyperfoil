@@ -15,19 +15,19 @@
  * <p>
  * Any memory required by validators/extractors must be known ahead and these should implement
  * the {@link io.sailrocket.core.api.ResourceUtilizer} interface to register itselves. The reservation is invoked
- * once when the session is created through {@link io.sailrocket.core.session.SequenceImpl#reserve(io.sailrocket.api.Session)}
- * which in turn calls this on all {@link io.sailrocket.api.Step steps} and these call the
- * {@link io.sailrocket.api.Session.Processor processors} or any other handlers.
+ * once when the session is created through {@link io.sailrocket.core.session.SequenceImpl#reserve(Session)}
+ * which in turn calls this on all {@link io.sailrocket.api.config.Step steps} and these call the
+ * {@link io.sailrocket.api.session.Session.Processor processors} or any other handlers.
  *
  * <h2>Execution</h2>
  *
- * After the session is constructed or reset you should create {@link io.sailrocket.api.SequenceInstance sequence instances}
+ * After the session is constructed or reset you should create {@link io.sailrocket.api.session.SequenceInstance sequence instances}
  * from the {@link io.sailrocket.core.session.SequenceImpl templates} and subsequently
  * {@link io.sailrocket.core.session.SessionImpl#enableSequence(SequenceInstance) enable}
  * them in the session. Upon {@link io.sailrocket.core.session.SessionImpl#run()} the session tries to invoke all enabled
  * sequence instances; some of the enabled sequences may be blocked because of missing data dependency.
  * <p>
- * The sequence consists of several {@link io.sailrocket.api.Step steps}, each of which may have some
+ * The sequence consists of several {@link io.sailrocket.api.config.Step steps}, each of which may have some
  * data dependency. Therefore the sequence may be blocked in the middle. Other enabled sequence may be still invoked
  * as soon as its dependencies are satisfied. Each step can enable further sequences.
  * <p>
@@ -39,7 +39,7 @@
  *
  * <h2>Variables</h2>
  *
- * The {@link io.sailrocket.api.Session} is provided as a parameter to most calls and stores all state of the scenario.
+ * The {@link io.sailrocket.api.session.Session} is provided as a parameter to most calls and stores all state of the scenario.
  * The state is operated using {@link io.sailrocket.core.session.SessionImpl#getObject(java.lang.Object)} and
  * {@link io.sailrocket.core.session.SessionImpl#setObject(java.lang.Object, java.lang.Object)} methods or their integer
  * counterparts.
@@ -51,9 +51,9 @@
  * It is possible to find out if the variable is set calling {@link io.sailrocket.core.session.SessionImpl#isSet(java.lang.Object)}.
  * <p>
  * Simple variables are scalar, these are useful for scenario-scoped data. Other variables are scoped for particular
- * {@link io.sailrocket.api.SequenceInstance}; these should be implemented as arrays (or collections) with
+ * {@link io.sailrocket.api.session.SequenceInstance}; these should be implemented as arrays (or collections) with
  * a limited size equal to the number of instances. When a Step/Processor needs to address sequence-scoped data
- * it fetches its index through {@link io.sailrocket.core.session.SessionImpl#currentSequence()}.{@link io.sailrocket.api.SequenceInstance#index() index()}.
+ * it fetches its index through {@link io.sailrocket.core.session.SessionImpl#currentSequence()}.{@link io.sailrocket.api.session.SequenceInstance#index() index()}.
  * <p>
  * The choice of index is up to the Step that creates the new sequences. Two concurrently enabled sequences may share
  * the same index, but in that case these should not use the same variable names for sequence-scoped data.
@@ -70,10 +70,11 @@
  * <h2>Threading model</h2>
  *
  * There's no internal synchronization of anything; we rely on the event-loop model. It is expected that at any moment
- * the {@link io.sailrocket.api.Session} will be accessed (read or write) by at most one thread. It does not need to be
+ * the {@link io.sailrocket.api.session.Session} will be accessed (read or write) by at most one thread. It does not need to be
  * a single thread, therefore the use of thread-locals is strongly discouraged.
  */
 package io.sailrocket.core.session;
 
-import io.sailrocket.api.SequenceInstance;
-import io.sailrocket.api.VarReference;
+import io.sailrocket.api.session.SequenceInstance;
+import io.sailrocket.api.session.VarReference;
+import io.sailrocket.api.session.Session;

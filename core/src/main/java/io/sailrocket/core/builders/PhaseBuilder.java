@@ -4,8 +4,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 
-import io.sailrocket.api.BenchmarkDefinitionException;
-import io.sailrocket.api.Phase;
+import io.sailrocket.api.config.BenchmarkDefinitionException;
+import io.sailrocket.api.config.Phase;
 
 public abstract class PhaseBuilder<PB extends PhaseBuilder> {
    protected final String name;

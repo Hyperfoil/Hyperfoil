@@ -1,7 +1,7 @@
 package io.sailrocket.core.steps;
 
-import io.sailrocket.api.Session;
-import io.sailrocket.api.Step;
+import io.sailrocket.api.session.Session;
+import io.sailrocket.api.config.Step;
 
 public class AwaitAllResponsesStep implements Step {
    @Override

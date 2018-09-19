@@ -7,7 +7,7 @@ import java.util.LinkedList;
 import java.util.function.Predicate;
 
 import io.netty.buffer.ByteBuf;
-import io.sailrocket.api.Session;
+import io.sailrocket.api.session.Session;
 
 public class ExpectProcessor implements Session.Processor {
    int beforeCalled;

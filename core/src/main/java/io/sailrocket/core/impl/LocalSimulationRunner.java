@@ -7,9 +7,8 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import io.sailrocket.api.Benchmark;
-import io.sailrocket.api.BenchmarkDefinitionException;
-import io.sailrocket.api.Report;
+import io.sailrocket.api.config.Benchmark;
+import io.sailrocket.api.config.BenchmarkDefinitionException;
 import io.sailrocket.core.api.PhaseInstance;
 import io.sailrocket.core.impl.statistics.PrintStatisticsConsumer;
 import io.sailrocket.core.impl.statistics.ReportStatisticsCollector;

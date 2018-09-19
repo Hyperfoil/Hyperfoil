@@ -9,16 +9,16 @@ import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 
 import io.netty.buffer.ByteBuf;
-import io.sailrocket.api.BodyExtractor;
-import io.sailrocket.api.HeaderExtractor;
-import io.sailrocket.api.RequestQueue;
-import io.sailrocket.api.Session;
-import io.sailrocket.api.Statistics;
-import io.sailrocket.api.StatusExtractor;
+import io.sailrocket.api.http.BodyExtractor;
+import io.sailrocket.api.http.HeaderExtractor;
+import io.sailrocket.api.collection.RequestQueue;
+import io.sailrocket.api.session.Session;
+import io.sailrocket.api.statistics.Statistics;
+import io.sailrocket.api.http.StatusExtractor;
 import io.sailrocket.core.api.ResourceUtilizer;
-import io.sailrocket.spi.BodyValidator;
-import io.sailrocket.spi.HeaderValidator;
-import io.sailrocket.spi.StatusValidator;
+import io.sailrocket.api.http.BodyValidator;
+import io.sailrocket.api.http.HeaderValidator;
+import io.sailrocket.api.http.StatusValidator;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 

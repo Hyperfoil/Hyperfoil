@@ -1,9 +1,9 @@
 package io.sailrocket.distributed;
 
-import io.sailrocket.api.Phase;
-import io.sailrocket.api.Sequence;
-import io.sailrocket.api.Simulation;
-import io.sailrocket.api.StatisticsSnapshot;
+import io.sailrocket.api.config.Phase;
+import io.sailrocket.api.config.Sequence;
+import io.sailrocket.api.config.Simulation;
+import io.sailrocket.api.statistics.StatisticsSnapshot;
 import io.sailrocket.core.impl.statistics.StatisticsCollector;
 import io.sailrocket.distributed.util.ReportMessage;
 import io.vertx.core.eventbus.EventBus;
