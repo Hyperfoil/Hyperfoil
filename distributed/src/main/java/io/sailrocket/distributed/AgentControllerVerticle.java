@@ -16,6 +16,7 @@ import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -28,6 +29,7 @@ public class AgentControllerVerticle extends AbstractVerticle {
     private EventBus eb;
     private ControllerRestServer server;
     private AtomicInteger runIds = new AtomicInteger();
+    private String runDir = "/tmp/SailRocket";
 
     Map<String, AgentInfo> agents = new HashMap<>();
 
@@ -175,6 +177,15 @@ public class AgentControllerVerticle extends AbstractVerticle {
     private void stopSimulation() {
         run.terminateTime = System.currentTimeMillis();
         run.statisticsStore.benchmarkCompleted();
+        vertx.executeBlocking(future -> {
+            try {
+                run.statisticsStore.persist(runDir + "/" + run.id + "/stats");
+            } catch (IOException e) {
+                log.error("Failed to persist statistics", e);
+                future.fail(e);
+            }
+            future.complete();
+        }, null);
         // TODO stop agents?
     }
 

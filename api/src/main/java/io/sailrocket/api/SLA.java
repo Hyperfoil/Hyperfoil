@@ -119,5 +119,9 @@ public class SLA implements Serializable {
       public StatisticsSnapshot statistics() {
          return statistics;
       }
+
+      public String message() {
+         return message;
+      }
    }
 }

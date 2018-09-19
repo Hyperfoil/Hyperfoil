@@ -1,5 +1,7 @@
 package io.sailrocket.api.statistics;
 
+import java.io.PrintWriter;
+
 public class StatisticsSummary {
    public final long startTime;
    public final long endTime;
@@ -35,5 +37,45 @@ public class StatisticsSummary {
       this.status_5xx = status_5xx;
       this.status_other = status_other;
       this.resetCount = resetCount;
+   }
+
+   public static void printHeader(PrintWriter writer, double[] percentiles) {
+      writer.print("Requests,Responses,Mean,Min,");
+      for (double p : percentiles) {
+         writer.print('p');
+         writer.print(p * 100);
+         writer.print(',');
+      }
+      writer.print("Max,ConnFailure,Reset,2xx,3xx,4xx,5xx,Other");
+   }
+
+   public void printTo(PrintWriter writer) {
+      writer.print(requestCount);
+      writer.print(',');
+      writer.print(responseCount);
+      writer.print(',');
+      writer.print(meanResponseTime);
+      writer.print(',');
+      writer.print(minResponseTime);
+      writer.print(',');
+      for (long prt : percentileResponseTime) {
+         writer.print(prt);
+         writer.print(',');
+      }
+      writer.print(maxResponseTime);
+      writer.print(',');
+      writer.print(connectFailureCount);
+      writer.print(',');
+      writer.print(resetCount);
+      writer.print(',');
+      writer.print(status_2xx);
+      writer.print(',');
+      writer.print(status_3xx);
+      writer.print(',');
+      writer.print(status_4xx);
+      writer.print(',');
+      writer.print(status_5xx);
+      writer.print(',');
+      writer.print(status_other);
    }
 }
