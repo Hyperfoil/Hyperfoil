@@ -1,15 +1,15 @@
 package io.sailrocket.core.session;
 
 import io.netty.util.concurrent.EventExecutor;
-import io.sailrocket.api.connection.HttpClientPool;
 import io.sailrocket.api.config.Phase;
-import io.sailrocket.api.collection.RequestQueue;
 import io.sailrocket.api.config.Scenario;
 import io.sailrocket.api.config.Sequence;
+import io.sailrocket.api.collection.RequestQueue;
+import io.sailrocket.api.connection.HttpClientPool;
+import io.sailrocket.api.http.ValidatorResults;
 import io.sailrocket.api.session.SequenceInstance;
 import io.sailrocket.api.session.Session;
 import io.sailrocket.api.statistics.Statistics;
-import io.sailrocket.api.http.ValidatorResults;
 import io.sailrocket.core.api.PhaseInstance;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;

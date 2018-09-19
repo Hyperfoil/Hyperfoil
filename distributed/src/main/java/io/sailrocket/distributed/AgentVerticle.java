@@ -1,7 +1,6 @@
 package io.sailrocket.distributed;
 
 import io.sailrocket.api.config.Simulation;
-import io.sailrocket.core.impl.SimulationImpl;
 import io.sailrocket.core.impl.SimulationRunnerImpl;
 import io.sailrocket.distributed.util.PhaseChangeMessage;
 import io.sailrocket.distributed.util.PhaseControlMessage;
@@ -29,7 +28,7 @@ public class AgentVerticle extends AbstractVerticle {
         address = deploymentID();
         eb.registerDefaultCodec(PhaseControlMessage.class, new PhaseControlMessage.Codec());
         eb.registerDefaultCodec(PhaseChangeMessage.class, new PhaseChangeMessage.Codec());
-        eb.registerDefaultCodec(SimulationImpl.class, new SimulationCodec());
+        eb.registerDefaultCodec(Simulation.class, new SimulationCodec());
         eb.registerDefaultCodec(ReportMessage.class, new ReportMessage.Codec());
 
         eb.consumer(address, message -> {

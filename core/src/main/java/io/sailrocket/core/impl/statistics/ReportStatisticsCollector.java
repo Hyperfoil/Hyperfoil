@@ -19,9 +19,9 @@
 package io.sailrocket.core.impl.statistics;
 
 import io.sailrocket.api.config.Phase;
+import io.sailrocket.api.config.Simulation;
 import io.sailrocket.core.impl.Report;
 import io.sailrocket.api.config.Sequence;
-import io.sailrocket.api.config.Simulation;
 import io.sailrocket.api.statistics.StatisticsSnapshot;
 
 import java.util.HashMap;

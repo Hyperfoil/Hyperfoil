@@ -6,8 +6,8 @@ import java.util.function.Consumer;
 
 import io.sailrocket.api.config.Phase;
 import io.sailrocket.api.config.Sequence;
-import io.sailrocket.api.session.Session;
 import io.sailrocket.api.config.Simulation;
+import io.sailrocket.api.session.Session;
 import io.sailrocket.api.statistics.Statistics;
 import io.sailrocket.api.statistics.StatisticsSnapshot;
 

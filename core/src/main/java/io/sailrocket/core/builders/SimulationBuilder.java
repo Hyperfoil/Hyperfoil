@@ -22,10 +22,9 @@ package io.sailrocket.core.builders;
 
 import io.sailrocket.api.config.BenchmarkDefinitionException;
 import io.sailrocket.api.config.Phase;
-import io.sailrocket.api.config.Simulation;
 import io.sailrocket.api.connection.HttpClientPoolFactory;
 import io.sailrocket.core.client.HttpClientProvider;
-import io.sailrocket.core.impl.SimulationImpl;
+import io.sailrocket.api.config.Simulation;
 import io.sailrocket.core.builders.connection.HttpBase;
 
 import java.util.ArrayList;
@@ -99,7 +98,7 @@ public class SimulationBuilder {
             }
             phases.add(builder.build());
         }
-        return new SimulationImpl(buildClientPoolFactory(), phases, buildTags(), statisticsCollectionPeriod);
+        return new Simulation(buildClientPoolFactory(), phases, buildTags(), statisticsCollectionPeriod);
     }
 
     private HttpClientPoolFactory buildClientPoolFactory() {

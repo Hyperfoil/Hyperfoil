@@ -1,6 +1,6 @@
 package io.sailrocket.distributed.util;
 
-import io.sailrocket.core.impl.SimulationImpl;
+import io.sailrocket.api.config.Simulation;
 
-public class SimulationCodec extends ObjectCodec<SimulationImpl> {
+public class SimulationCodec extends ObjectCodec<Simulation> {
 }

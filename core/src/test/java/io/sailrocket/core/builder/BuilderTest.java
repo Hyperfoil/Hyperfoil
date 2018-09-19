@@ -21,8 +21,8 @@
 package io.sailrocket.core.builder;
 
 import io.sailrocket.api.config.Benchmark;
-import io.sailrocket.api.http.HttpMethod;
 import io.sailrocket.api.config.Simulation;
+import io.sailrocket.api.http.HttpMethod;
 import io.sailrocket.core.builders.BenchmarkBuilder;
 
 import org.junit.Test;

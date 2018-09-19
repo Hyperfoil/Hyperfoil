@@ -3,8 +3,8 @@ package io.sailrocket.distributed;
 import io.sailrocket.api.config.Benchmark;
 import io.sailrocket.api.config.Phase;
 import io.sailrocket.api.config.Sequence;
+import io.sailrocket.api.config.Simulation;
 import io.sailrocket.core.api.PhaseInstance;
-import io.sailrocket.core.impl.SimulationImpl;
 import io.sailrocket.core.impl.statistics.StatisticsStore;
 import io.sailrocket.distributed.util.PhaseChangeMessage;
 import io.sailrocket.distributed.util.PhaseControlMessage;
@@ -42,7 +42,7 @@ public class AgentControllerVerticle extends AbstractVerticle {
 
         eb = vertx.eventBus();
         //TODO:: this is a code smell, not sure atm why i need to register the codec's multiple times
-        eb.registerDefaultCodec(SimulationImpl.class, new SimulationCodec());
+        eb.registerDefaultCodec(Simulation.class, new SimulationCodec());
         eb.registerDefaultCodec(PhaseChangeMessage.class, new PhaseChangeMessage.Codec());
         eb.registerDefaultCodec(PhaseControlMessage.class, new PhaseControlMessage.Codec());
         eb.registerDefaultCodec(ReportMessage.class, new ReportMessage.Codec());

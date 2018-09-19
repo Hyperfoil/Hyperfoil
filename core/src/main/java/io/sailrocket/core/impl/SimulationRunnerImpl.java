@@ -1,10 +1,10 @@
 package io.sailrocket.core.impl;
 
-import io.sailrocket.api.connection.HttpClientPool;
-import io.sailrocket.api.config.Simulation;
-import io.sailrocket.core.api.PhaseInstance;
 import io.sailrocket.api.config.Phase;
+import io.sailrocket.api.config.Simulation;
+import io.sailrocket.api.connection.HttpClientPool;
 import io.sailrocket.api.session.Session;
+import io.sailrocket.core.api.PhaseInstance;
 import io.sailrocket.core.api.SimulationRunner;
 import io.sailrocket.core.session.SessionFactory;
 

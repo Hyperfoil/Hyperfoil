@@ -1,8 +1,8 @@
 package io.sailrocket.core.session;
 
+import io.sailrocket.api.config.Scenario;
 import io.sailrocket.api.connection.HttpClientPool;
 import io.sailrocket.api.config.Phase;
-import io.sailrocket.api.config.Scenario;
 import io.sailrocket.core.api.PhaseInstance;
 import io.sailrocket.core.builders.BenchmarkBuilder;
 import io.sailrocket.core.builders.ScenarioBuilder;

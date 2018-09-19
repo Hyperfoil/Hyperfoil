@@ -2,8 +2,8 @@ package io.sailrocket.benchmark.standalone;
 
 import io.sailrocket.api.config.Benchmark;
 import io.sailrocket.api.config.BenchmarkDefinitionException;
-import io.sailrocket.core.impl.Report;
 import io.sailrocket.api.config.Simulation;
+import io.sailrocket.core.impl.Report;
 import io.sailrocket.core.builders.BenchmarkBuilder;
 import io.sailrocket.core.impl.LocalSimulationRunner;
 import io.sailrocket.test.TestBenchmarks;

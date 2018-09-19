@@ -19,36 +19,58 @@
 package io.sailrocket.api.config;
 
 import java.io.Serializable;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import io.sailrocket.api.session.Session;
+public class Scenario implements Serializable {
+    private final Sequence[] initialSequences;
+    private final Sequence[] sequences;
+    private final String[] objectVars;
+    private final String[] intVars;
+    private final Map<String, Sequence> sequenceMap;
 
-/**
- * A scenario is a workflow that consists of a set of {@link Sequence sequences}
- * undertaken by an end user to emulate use case logic that an end user would perform against a service.
- * A scenario can branch depending on the outcome of the sequences contained in the Scenario.
- * State may be shared between sequences in a scenario through the {@link Session}.
- */
-public interface Scenario extends Serializable {
-   /**
-    * Since this method is part of the 0-alloc loop it should not allocate the iterator.
-    */
-    Sequence[] initialSequences();
+    public Scenario(Sequence[] initialSequences, Sequence[] sequences, String[] objectVars, String[] intVars) {
+        this.initialSequences = initialSequences;
+        this.sequences = sequences;
+        this.objectVars = objectVars;
+        this.intVars = intVars;
+        sequenceMap = Stream.of(sequences).collect(Collectors.toMap(s -> s.name(), Function.identity()));
+    }
 
-    Sequence[] sequences();
+    public Sequence[] initialSequences() {
+        return initialSequences;
+    }
 
-    String[] objectVars();
+    public Sequence[] sequences() {
+        return sequences;
+    }
 
-    String[] intVars();
+    public String[] objectVars() {
+       return objectVars;
+    }
 
-   /**
-    * @return Maximum number of concurrent requests.
-    */
-    int maxRequests();
+    public String[] intVars() {
+       return intVars;
+    }
 
-   /**
-    * @return Maximum number of concurrently existing sequences.
-    */
-    int maxSequences();
+    public int maxRequests() {
+        // TODO
+        return 16;
+    }
 
-    Sequence sequence(String name);
+    public int maxSequences() {
+        // TODO
+        return 16;
+    }
+
+    public Sequence sequence(String name) {
+        Sequence sequence = sequenceMap.get(name);
+        if (sequence == null) {
+            throw new IllegalArgumentException("Unknown sequence '" + name + "'");
+        }
+        return sequence;
+    }
 }
+

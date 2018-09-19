@@ -21,9 +21,8 @@
 package io.sailrocket.core.builders;
 
 import io.sailrocket.api.config.BenchmarkDefinitionException;
-import io.sailrocket.api.config.Scenario;
 import io.sailrocket.api.config.Sequence;
-import io.sailrocket.core.impl.ScenarioImpl;
+import io.sailrocket.api.config.Scenario;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -97,7 +96,7 @@ public class ScenarioBuilder {
         if (initialSequences.isEmpty()) {
             throw new IllegalArgumentException("No initial sequences.");
         }
-        return scenario = new ScenarioImpl(
+        return scenario = new Scenario(
               initialSequences.stream().map(SequenceBuilder::build).toArray(Sequence[]::new),
               sequences.stream().map(SequenceBuilder::build).toArray(Sequence[]::new),
               objectVars.toArray(new String[0]),
