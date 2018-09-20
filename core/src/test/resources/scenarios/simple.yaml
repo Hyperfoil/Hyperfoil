@@ -1,31 +1,35 @@
 name: simple benchmark
 simulation:
-  sequences:
-    - testSequence:
-      - login:
-          path: /foo
-          method: get
-  scenarios:
-    - testScenario:
+  phases:
+  - !rampPerSec rampUp:
+      initialUsersPerSec: 1
+      targetUsersPerSec: 100
+      duration: 3s
+      scenario: &scenario
+        initialSequences:
+        - testSequence:
+          - sla:
+              meanResponseTime: 1s
+          - httpRequest:
+              method: GET
+              path: /foo
+          - awaitAllResponses
+          - scheduleDelay:
+              key: k
+              fromNow:
+              duration: 5s
         sequences:
-          - testScenario
-
-phases:
-  - rampUp:
-      concurrency: 10
-      connections: 5
-      duration: 3s
-      rate: 100
-      measure: false
-  - steadyState:
-      concurrency: 10
-      connections: 5
+  - !constantPerSec steadyState:
+      usersPerSec: 100
+      startAfter: rampUp
       duration: 6s
-      rate: 100
-      measure: true
-  - rampDown:
-      concurrency: 10
-      connections: 5
+      scenario: *scenario
+  - !rampPerSec rampDown:
+      initialUsersPerSec: 100
+      targetUsersPerSec: 1
+      startAfter:
+        - rampUp # not needed, just to test list...
+        - steadyState
       duration: 3s
-      rate: 100
-      measure: false
+      scenario: *scenario
+

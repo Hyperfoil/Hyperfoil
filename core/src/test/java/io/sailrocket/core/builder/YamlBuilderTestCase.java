@@ -20,7 +20,7 @@ package io.sailrocket.core.builder;
 
 import io.sailrocket.api.config.Benchmark;
 import io.sailrocket.core.parser.ConfigurationNotDefinedException;
-import io.sailrocket.core.parser.ConfigurationParser;
+import io.sailrocket.core.parser.BenchmarkParser;
 import io.sailrocket.core.parser.ConfigurationParserException;
 import org.junit.Assert;
 import org.junit.Ignore;
@@ -58,7 +58,7 @@ public class YamlBuilderTestCase {
 
 
         try {
-            Benchmark benchmark = new ConfigurationParser().buildBenchmark(inputStream);
+            Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(inputStream);
 
             Assert.assertNotNull(benchmark);
 

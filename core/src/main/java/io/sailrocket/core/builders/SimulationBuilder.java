@@ -39,7 +39,7 @@ import java.util.function.Consumer;
 public class SimulationBuilder {
 
     private final BenchmarkBuilder benchmarkBuilder;
-    private HttpBase http;
+    private HttpBuilder http = new HttpBuilder();
     private int connections = 1;
     private int concurrency = 1;
     private int threads = 1;
@@ -59,12 +59,12 @@ public class SimulationBuilder {
         return this;
     }
 
-    public SimulationBuilder http(HttpBase http) {
-        return apply(clone -> clone.http = http);
+    public HttpBuilder http() {
+        return http;
     }
 
     public SimulationBuilder http(HttpBuilder httpBuilder) {
-        return apply(clone -> clone.http = httpBuilder.build());
+        return apply(clone -> clone.http = httpBuilder);
     }
 
     public SimulationBuilder connections(int connections) {
@@ -102,6 +102,7 @@ public class SimulationBuilder {
     }
 
     private HttpClientPoolFactory buildClientPoolFactory() {
+        HttpBase http = this.http.build();
         return HttpClientProvider.netty.builder()
                        .threads(threads)
                        .ssl(http.baseUrl().protocol().secure())
@@ -115,6 +116,7 @@ public class SimulationBuilder {
 
     private Map<String, Object> buildTags() {
         Map<String, Object> tags = new HashMap<>();
+        HttpBase http = this.http.build();
         tags.put("url", http.baseUrl().toString());
         tags.put("protocol", http.baseUrl().protocol().version().toString());
         tags.put("maxQueue", concurrency);
@@ -129,5 +131,10 @@ public class SimulationBuilder {
             throw new IllegalArgumentException("Phase '" + name + "' already defined.");
         }
         phaseBuilders.put(name, phaseBuilder);
+    }
+
+    public SimulationBuilder statisticsCollectionPeriod(long statisticsCollectionPeriod) {
+        this.statisticsCollectionPeriod = statisticsCollectionPeriod;
+        return this;
     }
 }

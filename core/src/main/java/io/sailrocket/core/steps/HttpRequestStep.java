@@ -95,6 +95,11 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
          this.method = method;
       }
 
+      public Builder method(HttpMethod method) {
+         this.method = method;
+         return this;
+      }
+
       public Builder path(String path) {
          this.pathGenerator = s -> path;
          return this;

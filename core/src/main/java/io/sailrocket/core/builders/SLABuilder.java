@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 
 import io.sailrocket.api.config.SLA;
+import io.sailrocket.core.util.Util;
 
 public class SLABuilder {
    private final SequenceBuilder parent;
@@ -39,6 +40,10 @@ public class SLABuilder {
       return this;
    }
 
+   public SLABuilder window(String window) {
+      return window(Util.parseToMillis(window));
+   }
+
    public SLABuilder errorRate(double errorRate) {
       this.errorRate = errorRate;
       return this;
@@ -47,6 +52,10 @@ public class SLABuilder {
    public SLABuilder meanResponseTime(long meanResponseTime) {
       this.meanResponseTime = meanResponseTime;
       return this;
+   }
+
+   public SLABuilder meanResponseTime(String meanResponseTime) {
+      return meanResponseTime(Util.parseToNanos(meanResponseTime));
    }
 
    public SLABuilder addPercentileLimit(double percentile, long responseTime) {

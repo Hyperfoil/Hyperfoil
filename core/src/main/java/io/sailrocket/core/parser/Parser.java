@@ -16,26 +16,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sailrocket.core.parser.builders;
+package io.sailrocket.core.parser;
 
-import io.sailrocket.core.builders.BenchmarkBuilder;
-import io.sailrocket.core.parser.ConfigurationParserException;
+import java.util.Iterator;
 
-import java.util.Map;
+import org.yaml.snakeyaml.events.Event;
 
-public class StateConfigurationBuilder extends AbstractConfigurationBuilder<Map, BenchmarkBuilder> {
-
-    public static String key = "state";
-
-    StateConfigurationBuilder() {
-    }
-
-    public static StateConfigurationBuilder instance(){
-        return new StateConfigurationBuilder();
-    }
-
-    @Override
-    public void build(Map configuration, BenchmarkBuilder target) throws ConfigurationParserException {
-        throw new RuntimeException("not yet implemented");
-    }
+interface Parser<T> {
+    void parse(Iterator<Event> events, T target) throws ConfigurationParserException;
 }

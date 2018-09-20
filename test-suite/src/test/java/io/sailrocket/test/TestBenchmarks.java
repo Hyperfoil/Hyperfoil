@@ -37,7 +37,7 @@ public class TestBenchmarks {
    public static Benchmark testBenchmark(int agents) {
       BenchmarkBuilder benchmarkBuilder = BenchmarkBuilder.builder().name("test");
       for (int i = 0; i < agents; ++i) {
-         benchmarkBuilder.addAgent("agent" + i, "agent", 12345);
+         benchmarkBuilder.addAgent("agent" + i, "localhost:12345");
       }
       addTestSimulation(benchmarkBuilder);
       return benchmarkBuilder.build();

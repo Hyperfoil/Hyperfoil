@@ -18,6 +18,8 @@
  */
 package io.sailrocket.core.parser;
 
+import org.yaml.snakeyaml.events.Event;
+
 public class ConfigurationParserException extends Exception {
     public ConfigurationParserException(String msg) {
         super(msg);
@@ -25,5 +27,13 @@ public class ConfigurationParserException extends Exception {
 
     public ConfigurationParserException(String msg, Exception e) {
         super(msg, e);
+    }
+
+    public ConfigurationParserException(Event event, String msg) {
+        this(event, msg, null);
+    }
+
+    public ConfigurationParserException(Event event, String msg, Throwable cause) {
+        super("Line " + event.getStartMark().getLine() + ", column " + event.getStartMark().getColumn() + ": " + msg, cause);
     }
 }

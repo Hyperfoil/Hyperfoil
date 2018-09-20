@@ -2,10 +2,10 @@ package io.sailrocket.core.builders;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.concurrent.TimeUnit;
 
 import io.sailrocket.api.config.BenchmarkDefinitionException;
 import io.sailrocket.api.config.Phase;
+import io.sailrocket.core.util.Util;
 
 public abstract class PhaseBuilder<PB extends PhaseBuilder> {
    protected final String name;
@@ -41,7 +41,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
    }
 
    public PB startTime(String startTime) {
-      return startTime(parseDuration(startTime));
+      return startTime(Util.parseToMillis(startTime));
    }
 
    public PB startAfter(String phase) {
@@ -60,7 +60,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
    }
 
    public PB duration(String duration) {
-      return duration(parseDuration(duration));
+      return duration(Util.parseToMillis(duration));
    }
 
    public PB maxDuration(long maxDuration) {
@@ -69,41 +69,22 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
    }
 
    public PB maxDuration(String duration) {
-      return maxDuration(parseDuration(duration));
+      return maxDuration(Util.parseToMillis(duration));
    }
 
    public abstract Phase build();
 
-   private static long parseDuration(String s) {
-      TimeUnit unit;
-      String prefix;
-      switch (s.charAt(s.length() - 1)) {
-         case 's':
-            unit = TimeUnit.SECONDS;
-            prefix = s.substring(0, s.length() - 1);
-            break;
-         case 'm':
-            unit = TimeUnit.MINUTES;
-            prefix = s.substring(0, s.length() - 1);
-            break;
-         case 'h':
-            unit = TimeUnit.HOURS;
-            prefix = s.substring(0, s.length() - 1);
-            break;
-         default:
-            unit = TimeUnit.SECONDS;
-            prefix = s;
-            break;
-      }
-      return unit.toMillis(Long.parseLong(prefix));
-   }
-
    public static class AtOnce extends PhaseBuilder<AtOnce> {
-      private final int users;
+      private int users;
 
       protected AtOnce(SimulationBuilder parent, String name, int users) {
          super(parent, name);
          this.users = users;
+      }
+
+      public AtOnce users(int users) {
+         this.users = users;
+         return this;
       }
 
       @Override
@@ -113,7 +94,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
    }
 
    public static class Always extends PhaseBuilder<Always> {
-      private final int users;
+      private int users;
 
       protected Always(SimulationBuilder parent, String name, int users) {
          super(parent, name);
@@ -124,11 +105,16 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
       public Phase.Always build() {
          return new Phase.Always(name, scenario.build(), startTime, startAfter, startAfterStrict, duration, maxDuration, users);
       }
+
+      public Always users(int users) {
+         this.users = users;
+         return this;
+      }
    }
 
    public static class RampPerSec extends PhaseBuilder<RampPerSec> {
-      private final int initialUsersPerSec;
-      private final int targetUsersPerSec;
+      private int initialUsersPerSec;
+      private int targetUsersPerSec;
       private int maxSessionsEstimate;
 
       protected RampPerSec(SimulationBuilder parent, String name, int initialUsersPerSec, int targetUsersPerSec) {
@@ -148,10 +134,20 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
                duration, maxDuration, initialUsersPerSec, targetUsersPerSec,
                maxSessionsEstimate <= 0 ? Math.max(initialUsersPerSec, targetUsersPerSec) : maxSessionsEstimate);
       }
+
+      public RampPerSec initialUsersPerSec(int initialUsersPerSec) {
+         this.initialUsersPerSec = initialUsersPerSec;
+         return this;
+      }
+
+      public RampPerSec targetUsersPerSec(int targetUsersPerSec) {
+         this.targetUsersPerSec = targetUsersPerSec;
+         return this;
+      }
    }
 
    public static class ConstantPerSec extends PhaseBuilder<ConstantPerSec> {
-      private final int usersPerSec;
+      private int usersPerSec;
       private int maxSessionsEstimate;
 
       protected ConstantPerSec(SimulationBuilder parent, String name, int usersPerSec) {
@@ -169,6 +165,11 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
          return new Phase.ConstantPerSec(name, scenario.build(), startTime, startAfter,
                startAfterStrict, duration, maxDuration, usersPerSec,
                maxSessionsEstimate <= 0 ? usersPerSec : maxSessionsEstimate);
+      }
+
+      public ConstantPerSec usersPerSec(int usersPerSec) {
+         this.usersPerSec = usersPerSec;
+         return this;
       }
    }
 

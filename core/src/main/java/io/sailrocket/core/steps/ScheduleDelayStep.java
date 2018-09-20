@@ -9,6 +9,7 @@ import io.sailrocket.api.session.Session;
 import io.sailrocket.core.api.ResourceUtilizer;
 import io.sailrocket.core.builders.BaseSequenceBuilder;
 import io.sailrocket.core.builders.BaseStepBuilder;
+import io.sailrocket.core.util.Util;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
@@ -69,9 +70,9 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
    }
 
    public static class Builder extends BaseStepBuilder {
-      private final Object key;
-      private final long duration;
-      private final TimeUnit timeUnit;
+      private Object key;
+      private long duration;
+      private TimeUnit timeUnit;
       private Type type = Type.FROM_NOW;
 
       public Builder(BaseSequenceBuilder parent, Object key, long duration, TimeUnit timeUnit) {
@@ -79,6 +80,17 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
          this.key = key;
          this.duration = duration;
          this.timeUnit = timeUnit;
+      }
+
+      public Builder key(String key) {
+         this.key = key;
+         return this;
+      }
+
+      public Builder duration(String duration) {
+         this.duration = Util.parseToMillis(duration);
+         this.timeUnit = TimeUnit.MILLISECONDS;
+         return this;
       }
 
       public Builder fromNow() {
@@ -94,6 +106,11 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
       @Override
       public List<Step> build() {
          return Collections.singletonList(new ScheduleDelayStep(key, type, duration, timeUnit));
+      }
+
+      public Builder type(Type type) {
+         this.type = type;
+         return this;
       }
    }
 }

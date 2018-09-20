@@ -36,7 +36,7 @@ public class HttpBuilder {
     private String baseUrl;
     private int httpStatus;
 
-    private HttpBuilder() {
+    public HttpBuilder() {
         header = new HashMap<>();
     }
 

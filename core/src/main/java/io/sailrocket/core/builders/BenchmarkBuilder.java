@@ -52,8 +52,8 @@ public class BenchmarkBuilder {
         return simulation = new SimulationBuilder(this);
     }
 
-    public BenchmarkBuilder addAgent(String hostname, String username, int port){
-        agents.add(new Host(hostname, username, port));
+    public BenchmarkBuilder addAgent(String name, String hostname, String username, int port){
+        agents.add(new Host(name, hostname, username, port));
         return this;
     }
 
@@ -63,5 +63,10 @@ public class BenchmarkBuilder {
 
     void addSLA(SLABuilder sla) {
         slas.add(sla);
+    }
+
+    public BenchmarkBuilder addAgent(String name, String usernameHostPort) {
+        agents.add(Host.parse(name, usernameHostPort));
+        return this;
     }
 }

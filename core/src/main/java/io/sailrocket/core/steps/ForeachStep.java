@@ -60,6 +60,16 @@ public class ForeachStep extends DependencyStep implements ResourceUtilizer {
          dependency(new SimpleVarReference(dataVar));
       }
 
+      public Builder dataVar(String dataVar) {
+         this.dataVar = dataVar;
+         return this;
+      }
+
+      public Builder counterVar(String counterVar) {
+         this.counterVar = counterVar;
+         return this;
+      }
+
       public Builder sequence(String sequenceTemplate) {
          this.sequenceTemplate = sequenceTemplate;
          return this;
@@ -72,6 +82,11 @@ public class ForeachStep extends DependencyStep implements ResourceUtilizer {
          }
          Sequence sequence = parent.end().endSequence().findSequence(sequenceTemplate).build();
          return Collections.singletonList(new ForeachStep(dependencies(), dataVar, counterVar, sequence));
+      }
+
+      public Builder sequenceTemplate(String sequenceTemplate) {
+         this.sequenceTemplate = sequenceTemplate;
+         return this;
       }
    }
 }

@@ -21,13 +21,24 @@ package io.sailrocket.api.config;
 import java.io.Serializable;
 
 public class Host implements Serializable {
+    private final String name;
     private final String hostname;
     private final String username;
     private final int port;
 
-    public Host(String hostname, String username, int port) {
+    public Host(String name, String hostname, String username, int port) {
+        this.name = name;
         this.hostname = hostname;
         this.username = username;
         this.port = port;
+    }
+
+    public static Host parse(String name, String usernameHostPort) {
+        int atIndex = usernameHostPort.indexOf('@');
+        int colonIndex = usernameHostPort.lastIndexOf(':');
+        String hostname = usernameHostPort.substring(atIndex + 1, colonIndex >= 0 ? colonIndex - 1 : usernameHostPort.length());
+        String username = atIndex >= 0 ? usernameHostPort.substring(0, atIndex) : null;
+        int port = colonIndex >= 0 ? Integer.parseInt(usernameHostPort.substring(colonIndex)) : -1;
+        return new Host(name, hostname, username, port);
     }
 }
