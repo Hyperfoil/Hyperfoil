@@ -3,7 +3,6 @@ package io.sailrocket.core.parser;
 import java.lang.reflect.Array;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -19,7 +18,7 @@ import io.sailrocket.core.builders.BaseSequenceBuilder;
 import io.sailrocket.core.builders.SequenceBuilder;
 import io.sailrocket.core.builders.StepDiscriminator;
 
-class StepParser extends BaseParser<BaseSequenceBuilder> {
+class StepParser implements Parser<BaseSequenceBuilder> {
    private static final Map<String, Method> STEPS = Stream.of(StepDiscriminator.class.getDeclaredMethods())
          .collect(Collectors.toMap(Method::getName, Function.identity(), StepParser::selectMethod));
    private static final StepParser INSTANCE = new StepParser();
@@ -52,25 +51,25 @@ class StepParser extends BaseParser<BaseSequenceBuilder> {
    }
 
    @Override
-   public void parse(Iterator<Event> events, BaseSequenceBuilder target) throws ConfigurationParserException {
-      ScalarEvent stepEvent = expectEvent(events, ScalarEvent.class);
+   public void parse(Context ctx, BaseSequenceBuilder target) throws ConfigurationParserException {
+      ScalarEvent stepEvent = ctx.expectEvent(ScalarEvent.class);
       if ("sla".equals(stepEvent.getValue())) {
          if (target instanceof SequenceBuilder) {
-            SLAParser.instance().parse(events, ((SequenceBuilder) target).sla());
+            SLAParser.instance().parse(ctx, ((SequenceBuilder) target).sla());
          } else {
             throw new ConfigurationParserException(stepEvent, "SLAs are allowed only as the top-level sequence element.");
          }
-         expectEvent(events, MappingEndEvent.class);
+         ctx.expectEvent(MappingEndEvent.class);
          return;
       }
       Method step = STEPS.get(stepEvent.getValue());
       if (step == null) {
          throw new ConfigurationParserException(stepEvent, "Unknown step '" + stepEvent.getValue() + "'");
       }
-      if (!events.hasNext()) {
-         throw noMoreEvents(ScalarEvent.class, MappingStartEvent.class, MappingEndEvent.class, SequenceStartEvent.class);
+      if (!ctx.hasNext()) {
+         throw ctx.noMoreEvents(ScalarEvent.class, MappingStartEvent.class, MappingEndEvent.class, SequenceStartEvent.class);
       }
-      Event event = events.next();
+      Event event = ctx.next();
       if (event instanceof MappingEndEvent) {
          // end of list item -> no arg step
          try {
@@ -90,7 +89,7 @@ class StepParser extends BaseParser<BaseSequenceBuilder> {
          } catch (IllegalAccessException | InvocationTargetException e) {
             throw cannotCreate(stepEvent, e);
          }
-         expectEvent(events, MappingEndEvent.class);
+         ctx.expectEvent(MappingEndEvent.class);
       } else if (event instanceof MappingStartEvent) {
          Object[] args = new Object[step.getParameterCount()];
          Class<?>[] parameterTypes = step.getParameterTypes();
@@ -103,14 +102,14 @@ class StepParser extends BaseParser<BaseSequenceBuilder> {
          } catch (IllegalAccessException | InvocationTargetException e) {
             throw cannotCreate(stepEvent, e);
          }
-         while (events.hasNext()) {
-            event = events.next();
+         while (ctx.hasNext()) {
+            event = ctx.next();
             if (event instanceof MappingEndEvent) {
                break;
             } else if (event instanceof ScalarEvent) {
                Method setter = findMethod(event, builder, ((ScalarEvent) event).getValue());
                Object[] setterArgs;
-               ScalarEvent paramEvent = expectEvent(events, ScalarEvent.class);
+               ScalarEvent paramEvent = ctx.expectEvent(ScalarEvent.class);
                if (setter.getParameterCount() == 0) {
                   if (paramEvent.getValue() != null && !paramEvent.getValue().isEmpty()) {
                      new ConfigurationParserException(paramEvent, "Setter " + setter.getName() + " has no args, keep the mapping empty.");
@@ -125,11 +124,11 @@ class StepParser extends BaseParser<BaseSequenceBuilder> {
                   throw new ConfigurationParserException(event, "Cannot run setter " + setter, e);
                }
             } else {
-               throw unexpectedEvent(event);
+               throw ctx.unexpectedEvent(event);
             }
          }
          // this is end of list item, not the matching to start
-         expectEvent(events, MappingEndEvent.class);
+         ctx.expectEvent(MappingEndEvent.class);
       } else if (event instanceof SequenceStartEvent) {
          Object builder;
          try {
@@ -140,8 +139,8 @@ class StepParser extends BaseParser<BaseSequenceBuilder> {
          if (!(builder instanceof BaseSequenceBuilder)) {
             throw new ConfigurationParserException(event, "Builder on step " + stepEvent.getValue() + " does not allow nested steps.");
          }
-         parseListHeadless(events, ((BaseSequenceBuilder) builder), StepParser.instance()::parse, StepParser.instance()::parseSingle);
-         expectEvent(events, MappingEndEvent.class);
+         ctx.parseListHeadless(((BaseSequenceBuilder) builder), StepParser.instance()::parse, StepParser.instance()::parseSingle);
+         ctx.expectEvent(MappingEndEvent.class);
       }
    }
 

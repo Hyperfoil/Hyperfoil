@@ -18,16 +18,14 @@
  */
 package io.sailrocket.core.parser;
 
-import java.util.Iterator;
 import java.util.function.BiConsumer;
 
-import org.yaml.snakeyaml.events.Event;
 import org.yaml.snakeyaml.events.ScalarEvent;
 
 class PropertyParser {
     private PropertyParser() {}
 
-    static class String<T> extends BaseParser<T> {
+    static class String<T> implements Parser<T> {
         private final BiConsumer<T, java.lang.String> consumer;
 
         String(BiConsumer<T, java.lang.String> consumer) {
@@ -35,13 +33,13 @@ class PropertyParser {
         }
 
         @Override
-        public void parse(Iterator<Event> events, T target) throws ConfigurationParserException {
-            ScalarEvent event = expectEvent(events, ScalarEvent.class);
+        public void parse(Context ctx, T target) throws ConfigurationParserException {
+            ScalarEvent event = ctx.expectEvent(ScalarEvent.class);
             consumer.accept(target, event.getValue());
         }
     }
 
-    static class Int<T> extends BaseParser<T> {
+    static class Int<T> implements Parser<T> {
         private final BiConsumer<T, Integer> consumer;
 
         Int(BiConsumer<T, Integer> consumer) {
@@ -49,8 +47,8 @@ class PropertyParser {
         }
 
         @Override
-        public void parse(Iterator<Event> events, T target) throws ConfigurationParserException {
-            ScalarEvent event = expectEvent(events, ScalarEvent.class);
+        public void parse(Context ctx, T target) throws ConfigurationParserException {
+            ScalarEvent event = ctx.expectEvent(ScalarEvent.class);
             try {
                 consumer.accept(target, Integer.parseInt(event.getValue()));
             } catch (NumberFormatException e) {
@@ -59,7 +57,7 @@ class PropertyParser {
         }
     }
 
-    static class Long<T> extends BaseParser<T> {
+    static class Long<T> implements Parser<T> {
         private final BiConsumer<T, java.lang.Long> consumer;
 
         Long(BiConsumer<T, java.lang.Long> consumer) {
@@ -67,8 +65,8 @@ class PropertyParser {
         }
 
         @Override
-        public void parse(Iterator<Event> events, T target) throws ConfigurationParserException {
-            ScalarEvent event = expectEvent(events, ScalarEvent.class);
+        public void parse(Context ctx, T target) throws ConfigurationParserException {
+            ScalarEvent event = ctx.expectEvent(ScalarEvent.class);
             try {
                 consumer.accept(target, java.lang.Long.parseLong(event.getValue()));
             } catch (NumberFormatException e) {
@@ -77,7 +75,7 @@ class PropertyParser {
         }
     }
 
-    static class Double<T> extends BaseParser<T> {
+    static class Double<T> implements Parser<T> {
         private final BiConsumer<T, java.lang.Double> consumer;
 
         Double(BiConsumer<T, java.lang.Double> consumer) {
@@ -85,8 +83,8 @@ class PropertyParser {
         }
 
         @Override
-        public void parse(Iterator<Event> events, T target) throws ConfigurationParserException {
-            ScalarEvent event = expectEvent(events, ScalarEvent.class);
+        public void parse(Context ctx, T target) throws ConfigurationParserException {
+            ScalarEvent event = ctx.expectEvent(ScalarEvent.class);
             try {
                 consumer.accept(target, java.lang.Double.parseDouble(event.getValue()));
             } catch (NumberFormatException e) {

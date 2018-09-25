@@ -20,9 +20,6 @@ package io.sailrocket.core.parser;
 
 import io.sailrocket.core.builders.SLABuilder;
 
-import java.util.Iterator;
-
-import org.yaml.snakeyaml.events.Event;
 import org.yaml.snakeyaml.events.MappingEndEvent;
 import org.yaml.snakeyaml.events.MappingStartEvent;
 
@@ -41,9 +38,9 @@ class SLAParser extends AbstractParser<SLABuilder, SLABuilder> {
     }
 
     @Override
-    public void parse(Iterator<Event> events, SLABuilder target) throws ConfigurationParserException {
-        expectEvent(events, MappingStartEvent.class);
-        callSubBuilders(events, target, MappingEndEvent.class);
+    public void parse(Context ctx, SLABuilder target) throws ConfigurationParserException {
+        ctx.expectEvent(MappingStartEvent.class);
+        callSubBuilders(ctx, target, MappingEndEvent.class);
     }
 }
 

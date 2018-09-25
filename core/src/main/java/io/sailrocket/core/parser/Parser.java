@@ -18,10 +18,6 @@
  */
 package io.sailrocket.core.parser;
 
-import java.util.Iterator;
-
-import org.yaml.snakeyaml.events.Event;
-
 interface Parser<T> {
-    void parse(Iterator<Event> events, T target) throws ConfigurationParserException;
+    void parse(Context ctx, T target) throws ConfigurationParserException;
 }

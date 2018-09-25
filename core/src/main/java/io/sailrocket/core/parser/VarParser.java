@@ -1,14 +1,12 @@
 package io.sailrocket.core.parser;
 
-import java.util.Iterator;
 import java.util.function.BiConsumer;
 
-import org.yaml.snakeyaml.events.Event;
 import org.yaml.snakeyaml.events.ScalarEvent;
 
 import io.sailrocket.core.builders.ScenarioBuilder;
 
-public class VarParser extends BaseParser<ScenarioBuilder> {
+public class VarParser implements Parser<ScenarioBuilder> {
    private final BiConsumer<ScenarioBuilder, String> consumer;
 
    public VarParser(BiConsumer<ScenarioBuilder, String> consumer) {
@@ -16,12 +14,12 @@ public class VarParser extends BaseParser<ScenarioBuilder> {
    }
 
    @Override
-   public void parse(Iterator<Event> events, ScenarioBuilder target) throws ConfigurationParserException {
-      parseList(events, target, this::parseVar);
+   public void parse(Context ctx, ScenarioBuilder target) throws ConfigurationParserException {
+      ctx.parseList(target, this::parseVar);
    }
 
-   private void parseVar(Iterator<Event> events, ScenarioBuilder target) throws ConfigurationParserException {
-      ScalarEvent event = expectEvent(events, ScalarEvent.class);
+   private void parseVar(Context ctx, ScenarioBuilder target) throws ConfigurationParserException {
+      ScalarEvent event = ctx.expectEvent(ScalarEvent.class);
       consumer.accept(target, event.getValue());
    }
 }

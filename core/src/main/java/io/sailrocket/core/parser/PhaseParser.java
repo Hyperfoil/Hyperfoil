@@ -1,8 +1,5 @@
 package io.sailrocket.core.parser;
 
-import java.util.Iterator;
-
-import org.yaml.snakeyaml.events.Event;
 import org.yaml.snakeyaml.events.MappingEndEvent;
 import org.yaml.snakeyaml.events.MappingStartEvent;
 
@@ -19,9 +16,9 @@ abstract class PhaseParser extends AbstractParser<PhaseBuilder.Discriminator, Ph
    }
 
    @Override
-   public void parse(Iterator<Event> events, PhaseBuilder.Discriminator target) throws ConfigurationParserException {
-      expectEvent(events, MappingStartEvent.class);
-      callSubBuilders(events, type(target), MappingEndEvent.class);
+   public void parse(Context ctx, PhaseBuilder.Discriminator target) throws ConfigurationParserException {
+      ctx.expectEvent(MappingStartEvent.class);
+      callSubBuilders(ctx, type(target), MappingEndEvent.class);
    }
 
    protected abstract PhaseBuilder type(PhaseBuilder.Discriminator discriminator);

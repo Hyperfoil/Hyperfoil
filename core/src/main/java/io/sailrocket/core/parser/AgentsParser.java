@@ -20,28 +20,26 @@ package io.sailrocket.core.parser;
 
 import io.sailrocket.core.builders.BenchmarkBuilder;
 
-import java.util.Iterator;
-
 import org.yaml.snakeyaml.events.Event;
 import org.yaml.snakeyaml.events.MappingEndEvent;
 import org.yaml.snakeyaml.events.MappingStartEvent;
 import org.yaml.snakeyaml.events.ScalarEvent;
 
-class AgentsParser extends BaseParser<BenchmarkBuilder> {
+class AgentsParser implements Parser<BenchmarkBuilder> {
 
     @Override
-    public void parse(Iterator<Event> events, BenchmarkBuilder builder) throws ConfigurationParserException {
-        expectEvent(events, MappingStartEvent.class);
-        while (events.hasNext()) {
-            Event next = events.next();
+    public void parse(Context ctx, BenchmarkBuilder builder) throws ConfigurationParserException {
+        ctx.expectEvent(MappingStartEvent.class);
+        while (ctx.hasNext()) {
+            Event next = ctx.next();
             if (next instanceof MappingEndEvent) {
                 break;
             } else if (next instanceof ScalarEvent) {
                 String name = ((ScalarEvent) next).getValue();
-                ScalarEvent event = expectEvent(events, ScalarEvent.class);
+                ScalarEvent event = ctx.expectEvent(ScalarEvent.class);
                 builder.addAgent(name, event.getValue());
             } else {
-                throw unexpectedEvent(next);
+                throw ctx.unexpectedEvent(next);
             }
         }
     }

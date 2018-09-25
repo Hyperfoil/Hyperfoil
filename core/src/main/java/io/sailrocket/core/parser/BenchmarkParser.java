@@ -58,25 +58,26 @@ public class BenchmarkParser extends AbstractParser<BenchmarkBuilder, BenchmarkB
 
         Iterator<Event> events = yaml.parse(new InputStreamReader(configurationStream)).iterator();
         events = new DebugIterator<>(events);
+        Context ctx = new Context(events);
 
-        expectEvent(events, StreamStartEvent.class);
-        expectEvent(events, DocumentStartEvent.class);
+        ctx.expectEvent(StreamStartEvent.class);
+        ctx.expectEvent(DocumentStartEvent.class);
 
         //instantiate new benchmark builder
         BenchmarkBuilder benchmarkBuilder = BenchmarkBuilder.builder();
-        parse(events, benchmarkBuilder);
+        parse(ctx, benchmarkBuilder);
 
-        expectEvent(events, DocumentEndEvent.class);
-        expectEvent(events, StreamEndEvent.class);
+        ctx.expectEvent(DocumentEndEvent.class);
+        ctx.expectEvent(StreamEndEvent.class);
 
         return benchmarkBuilder.build();
     }
 
     @Override
-    public void parse(Iterator<Event> events, BenchmarkBuilder target) throws ConfigurationParserException {
-        expectEvent(events, MappingStartEvent.class);
+    public void parse(Context ctx, BenchmarkBuilder target) throws ConfigurationParserException {
+        ctx.expectEvent(MappingStartEvent.class);
         //populate benchmark model
-        callSubBuilders(events, target, MappingEndEvent.class);
+        callSubBuilders(ctx, target, MappingEndEvent.class);
     }
 
     private static class DebugIterator<T> implements Iterator<T> {

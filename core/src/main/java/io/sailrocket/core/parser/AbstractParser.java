@@ -19,19 +19,18 @@
 package io.sailrocket.core.parser;
 
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 
 import org.yaml.snakeyaml.events.Event;
 import org.yaml.snakeyaml.events.ScalarEvent;
 
-abstract class AbstractParser<T, S> extends BaseParser<T> {
+abstract class AbstractParser<T, S> implements Parser<T> {
 
     protected Map<String, Parser<S>> subBuilders = new HashMap<>();
 
-    protected void callSubBuilders(Iterator<Event> events, S target, Class<? extends Event> terminatingEvent) throws ConfigurationParserException {
-        while (events.hasNext()) {
-            Event next = events.next();
+    protected void callSubBuilders(Context ctx, S target, Class<? extends Event> terminatingEvent) throws ConfigurationParserException {
+        while (ctx.hasNext()) {
+            Event next = ctx.next();
             if (terminatingEvent.isInstance(next)) {
                 return;
             } else if (next instanceof ScalarEvent) {
@@ -40,11 +39,11 @@ abstract class AbstractParser<T, S> extends BaseParser<T> {
                 if (builder == null) {
                     throw new ConfigurationParserException(event, "Invalid configuration label: " + event.getValue() + ", expected one of " + subBuilders.keySet());
                 }
-                builder.parse(events, target);
+                builder.parse(ctx, target);
             } else {
-                throw unexpectedEvent(next);
+                throw ctx.unexpectedEvent(next);
             }
         }
-        throw noMoreEvents(terminatingEvent);
+        throw ctx.noMoreEvents(terminatingEvent);
     }
 }

@@ -18,9 +18,7 @@
  */
 package io.sailrocket.core.parser;
 
-import java.util.Iterator;
 
-import org.yaml.snakeyaml.events.Event;
 import org.yaml.snakeyaml.events.MappingEndEvent;
 import org.yaml.snakeyaml.events.ScalarEvent;
 
@@ -37,12 +35,12 @@ class PhasesParser extends AbstractParser<SimulationBuilder, PhaseBuilder.Discri
     }
 
     @Override
-    public void parse(Iterator<Event> events, SimulationBuilder target) throws ConfigurationParserException {
-        parseList(events, target, this::parsePhase);
+    public void parse(Context ctx, SimulationBuilder target) throws ConfigurationParserException {
+        ctx.parseList(target, this::parsePhase);
     }
 
-    private void parsePhase(Iterator<Event> events, SimulationBuilder target) throws ConfigurationParserException {
-        ScalarEvent event = expectEvent(events, ScalarEvent.class);
+    private void parsePhase(Context ctx, SimulationBuilder target) throws ConfigurationParserException {
+        ScalarEvent event = ctx.expectEvent(ScalarEvent.class);
         if (event.getTag() == null) {
             throw new ConfigurationParserException(event, "Phases must be tagged by the type; use one of: " + subBuilders.keySet());
         }
@@ -51,7 +49,7 @@ class PhasesParser extends AbstractParser<SimulationBuilder, PhaseBuilder.Discri
             throw new ConfigurationParserException(event, "Unknown phase type: " + event.getTag() + ", expected one of " + subBuilders.keySet());
         }
         String name = event.getValue();
-        phaseBuilder.parse(events, target.addPhase(name));
-        expectEvent(events, MappingEndEvent.class);
+        phaseBuilder.parse(ctx, target.addPhase(name));
+        ctx.expectEvent(MappingEndEvent.class);
     }
 }

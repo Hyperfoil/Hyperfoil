@@ -1,8 +1,5 @@
 package io.sailrocket.core.parser;
 
-import java.util.Iterator;
-
-import org.yaml.snakeyaml.events.Event;
 import org.yaml.snakeyaml.events.MappingEndEvent;
 
 import io.sailrocket.core.builders.HttpBuilder;
@@ -14,7 +11,7 @@ public class HttpParser extends AbstractParser<SimulationBuilder, HttpBuilder> {
    }
 
    @Override
-   public void parse(Iterator<Event> events, SimulationBuilder target) throws ConfigurationParserException {
-      callSubBuilders(events, target.http(), MappingEndEvent.class);
+   public void parse(Context ctx, SimulationBuilder target) throws ConfigurationParserException {
+      callSubBuilders(ctx, target.http(), MappingEndEvent.class);
    }
 }

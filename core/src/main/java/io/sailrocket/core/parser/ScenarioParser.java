@@ -21,8 +21,6 @@ package io.sailrocket.core.parser;
 import io.sailrocket.core.builders.PhaseBuilder;
 import io.sailrocket.core.builders.ScenarioBuilder;
 
-import java.util.Iterator;
-
 import org.yaml.snakeyaml.events.AliasEvent;
 import org.yaml.snakeyaml.events.Event;
 import org.yaml.snakeyaml.events.MappingEndEvent;
@@ -38,20 +36,20 @@ class ScenarioParser extends AbstractParser<PhaseBuilder, ScenarioBuilder> {
     }
 
     @Override
-    public void parse(Iterator<Event> events, PhaseBuilder target) throws ConfigurationParserException {
-        if (!events.hasNext()) {
-            throw noMoreEvents(MappingStartEvent.class, AliasEvent.class);
+    public void parse(Context ctx, PhaseBuilder target) throws ConfigurationParserException {
+        if (!ctx.hasNext()) {
+            throw ctx.noMoreEvents(MappingStartEvent.class, AliasEvent.class);
         }
-        Event event = events.next();
+        Event event = ctx.next();
         if (event instanceof MappingStartEvent) {
             if (((MappingStartEvent) event).getAnchor() != null) {
                 // TODO
             }
-            callSubBuilders(events, target.scenario(), MappingEndEvent.class);
+            callSubBuilders(ctx, target.scenario(), MappingEndEvent.class);
         } else if (event instanceof AliasEvent){
             // TODO
         } else {
-            throw unexpectedEvent(event);
+            throw ctx.unexpectedEvent(event);
         }
     }
 }

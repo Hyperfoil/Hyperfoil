@@ -21,15 +21,13 @@ package io.sailrocket.core.parser;
 import io.sailrocket.core.builders.ScenarioBuilder;
 import io.sailrocket.core.builders.SequenceBuilder;
 
-import java.util.Iterator;
 import java.util.function.BiFunction;
 
-import org.yaml.snakeyaml.events.Event;
 import org.yaml.snakeyaml.events.MappingEndEvent;
 import org.yaml.snakeyaml.events.ScalarEvent;
 import org.yaml.snakeyaml.events.SequenceStartEvent;
 
-class SequenceParser extends BaseParser<ScenarioBuilder> {
+class SequenceParser implements Parser<ScenarioBuilder> {
     private final BiFunction<ScenarioBuilder, String, SequenceBuilder> builderFunction;
 
     SequenceParser(BiFunction<ScenarioBuilder, String, SequenceBuilder> builderFunction) {
@@ -37,20 +35,20 @@ class SequenceParser extends BaseParser<ScenarioBuilder> {
     }
 
     @Override
-    public void parse(Iterator<Event> events, ScenarioBuilder target) throws ConfigurationParserException {
-        parseList(events, target, this::parseSequence);
+    public void parse(Context ctx, ScenarioBuilder target) throws ConfigurationParserException {
+        ctx.parseList(target, this::parseSequence);
     }
 
-    private void parseSequence(Iterator<Event> events, ScenarioBuilder target) throws ConfigurationParserException {
-        ScalarEvent event = expectEvent(events, ScalarEvent.class);
+    private void parseSequence(Context ctx, ScenarioBuilder target) throws ConfigurationParserException {
+        ScalarEvent event = ctx.expectEvent(ScalarEvent.class);
         SequenceBuilder sequenceBuilder = builderFunction.apply(target, event.getValue());
-        expectEvent(events, SequenceStartEvent.class);
-        parseListHeadless(events, sequenceBuilder, this::parseSequenceItem, (event1, sequenceBuilder1) -> parseSingleItem(event1, sequenceBuilder1));
-        expectEvent(events, MappingEndEvent.class);
+        ctx.expectEvent(SequenceStartEvent.class);
+        ctx.parseListHeadless(sequenceBuilder, this::parseSequenceItem, (event1, sequenceBuilder1) -> parseSingleItem(event1, sequenceBuilder1));
+        ctx.expectEvent(MappingEndEvent.class);
     }
 
-    private void parseSequenceItem(Iterator<Event> events, SequenceBuilder sequenceBuilder) throws ConfigurationParserException {
-        StepParser.instance().parse(events, sequenceBuilder);
+    private void parseSequenceItem(Context ctx, SequenceBuilder sequenceBuilder) throws ConfigurationParserException {
+        StepParser.instance().parse(ctx, sequenceBuilder);
     }
 
     private void parseSingleItem(ScalarEvent event, SequenceBuilder sequenceBuilder) throws ConfigurationParserException {
