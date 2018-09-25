@@ -103,4 +103,10 @@ public class ScenarioBuilder {
               intVars.toArray(new String[0]));
     }
 
+    public void readFrom(ScenarioBuilder other) {
+        this.initialSequences = other.initialSequences;
+        this.sequences = other.sequences;
+        this.intVars = other.intVars;
+        this.objectVars = other.objectVars;
+    }
 }

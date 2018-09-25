@@ -42,12 +42,20 @@ class ScenarioParser extends AbstractParser<PhaseBuilder, ScenarioBuilder> {
         }
         Event event = ctx.next();
         if (event instanceof MappingStartEvent) {
-            if (((MappingStartEvent) event).getAnchor() != null) {
-                // TODO
+            ScenarioBuilder scenario = target.scenario();
+            String anchor = ((MappingStartEvent) event).getAnchor();
+            if (anchor != null) {
+                ctx.setAnchor(event, anchor, scenario);
             }
-            callSubBuilders(ctx, target.scenario(), MappingEndEvent.class);
+            callSubBuilders(ctx, scenario, MappingEndEvent.class);
         } else if (event instanceof AliasEvent){
-            // TODO
+            String anchor = ((AliasEvent) event).getAnchor();
+            Object scenario = ctx.getAnchor(event, anchor);
+            if (scenario instanceof ScenarioBuilder) {
+                target.scenario().readFrom((ScenarioBuilder) scenario);
+            } else {
+                throw new ConfigurationParserException("Aliased anchor '" + anchor + "' is not a scenario: " + scenario);
+            }
         } else {
             throw ctx.unexpectedEvent(event);
         }

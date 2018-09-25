@@ -38,6 +38,7 @@ import java.util.Iterator;
 
 public class BenchmarkParser extends AbstractParser<BenchmarkBuilder, BenchmarkBuilder> {
     private static final BenchmarkParser INSTANCE = new BenchmarkParser();
+    private static final boolean DEBUG_PARSER = Boolean.getBoolean("io.sailrocket.parser.debug");
 
     public static BenchmarkParser instance() {
         return INSTANCE;
@@ -57,7 +58,9 @@ public class BenchmarkParser extends AbstractParser<BenchmarkBuilder, BenchmarkB
         Yaml yaml = new Yaml();
 
         Iterator<Event> events = yaml.parse(new InputStreamReader(configurationStream)).iterator();
-        events = new DebugIterator<>(events);
+        if (DEBUG_PARSER) {
+            events = new DebugIterator<>(events);
+        }
         Context ctx = new Context(events);
 
         ctx.expectEvent(StreamStartEvent.class);

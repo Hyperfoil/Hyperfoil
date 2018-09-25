@@ -1,5 +1,7 @@
 name: simple benchmark
 simulation:
+  http:
+    baseUrl: http://localhost:8080
   phases:
   - !rampPerSec rampUp:
       initialUsersPerSec: 1

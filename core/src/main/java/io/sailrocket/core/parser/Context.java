@@ -54,7 +54,7 @@ public class Context {
          throw new ConfigurationParserException(event, "There's no anchor for " + alias + ", available are "
                + anchors.keySet().stream().sorted().collect(Collectors.toList()));
       }
-      return anchor;
+      return anchor.object;
    }
 
    protected <E extends Event> E expectEvent(Class<E> eventClazz) throws ConfigurationParserException {
