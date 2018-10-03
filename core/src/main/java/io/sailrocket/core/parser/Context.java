@@ -44,9 +44,17 @@ class Context {
    }
 
    Event peek() {
-      peeked = events.next();
+      if (peeked == null) {
+         peeked = events.next();
+      }
       return peeked;
    }
+
+   void consumePeeked(Event event) {
+      Event peekedEvent = next();
+      assert peekedEvent == event;
+   }
+
 
    void setAnchor(Event event, String anchor, Object object) throws ConfigurationParserException {
       Objects.requireNonNull(anchor);
@@ -81,8 +89,8 @@ class Context {
    }
 
    <E extends Event> E expectEvent(Class<E> eventClazz) throws ConfigurationParserException {
-      if (events.hasNext()) {
-         Event event = events.next();
+      if (hasNext()) {
+         Event event = next();
          if (!eventClazz.isInstance(event)) {
             throw new ConfigurationParserException(event, "Expected " + eventClazz + ", got " + event);
          }
@@ -102,44 +110,33 @@ class Context {
    }
 
    <LI> void parseList(LI target, Parser<LI> consumer) throws ConfigurationParserException {
-      parseList(target, consumer, (event, t) -> {
-         throw new ConfigurationParserException(event, "Expected mapping, got " + event.getValue());
-      });
-   }
-
-   <LI> void parseList(LI target, Parser<LI> consumer, SingleListItemParser<LI> singleConsumer) throws ConfigurationParserException {
-      if (!events.hasNext()) {
+      if (!hasNext()) {
          throw noMoreEvents(SequenceStartEvent.class, ScalarEvent.class);
       }
-      Event event = events.next();
+      Event event = next();
       if (event instanceof SequenceStartEvent) {
-         parseListHeadless(target, consumer, singleConsumer);
+         while (hasNext()) {
+            Event itemEvent = peek();
+            if (itemEvent instanceof SequenceEndEvent) {
+               consumePeeked(itemEvent);
+               break;
+            } else {
+               consumer.parse(this, target);
+            }
+         }
       } else if (event instanceof ScalarEvent) {
          // if the value is null/empty we can consider this an empty list
          String value = ((ScalarEvent) event).getValue();
          if (value != null && !value.isEmpty()) {
             throw new ConfigurationParserException(event, "Expected a sequence, got " + value);
          }
-      }
-   }
-
-   <LI> void parseListHeadless(LI target, Parser<LI> consumer, SingleListItemParser<LI> singleConsumer) throws ConfigurationParserException {
-      while (events.hasNext()) {
-         Event next = events.next();
-         if (next instanceof SequenceEndEvent) {
-            break;
-         } else if (next instanceof MappingStartEvent) {
-            consumer.parse(this, target);
-         } else if (next instanceof ScalarEvent) {
-            singleConsumer.accept((ScalarEvent) next, target);
-         } else {
-            throw unexpectedEvent(next);
-         }
+      } else {
+         throw unexpectedEvent(event);
       }
    }
 
    <A extends Rewritable<A>> void parseAliased(Class<A> aliasType, A target, Parser<A> parser) throws ConfigurationParserException {
-      Event event = next();
+      Event event = peek();
       try {
          if (event instanceof MappingStartEvent) {
             String anchor = ((MappingStartEvent) event).getAnchor();
@@ -151,6 +148,7 @@ class Context {
             String anchor = ((AliasEvent) event).getAnchor();
             A aliased = getAnchor(event, anchor, aliasType);
             target.readFrom(aliased);
+            consumePeeked(event);
          } else {
             throw unexpectedEvent(event);
          }
@@ -158,7 +156,6 @@ class Context {
          throw new ConfigurationParserException(event, "Error in benchmark builders", e);
       }
    }
-
 
    void pushVar(Object var) {
       vars.push(var);
@@ -178,10 +175,6 @@ class Context {
          throw new IllegalStateException("On the top of the stack is " + top);
       }
       return (T) top;
-   }
-
-   interface SingleListItemParser<LI> {
-      void accept(ScalarEvent event, LI target) throws ConfigurationParserException;
    }
 
    private static class Anchor {

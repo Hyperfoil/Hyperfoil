@@ -1,5 +1,7 @@
 package io.sailrocket.core.parser;
 
+import org.yaml.snakeyaml.events.MappingEndEvent;
+import org.yaml.snakeyaml.events.MappingStartEvent;
 import org.yaml.snakeyaml.events.ScalarEvent;
 
 import io.sailrocket.core.builders.ScenarioBuilder;
@@ -17,6 +19,7 @@ class OrderedSequenceParser implements Parser<ScenarioBuilder> {
    }
 
    private void parseSequence(Context ctx, ScenarioBuilder target) throws ConfigurationParserException {
+      ctx.expectEvent(MappingStartEvent.class);
       ScalarEvent sequenceNameEvent = ctx.expectEvent(ScalarEvent.class);
       SequenceBuilder lastBuilder = ctx.popVar(SequenceBuilder.class);
       SequenceBuilder sequenceBuilder;
@@ -30,5 +33,6 @@ class OrderedSequenceParser implements Parser<ScenarioBuilder> {
          lastBuilder.step().nextSequence(sequenceNameEvent.getValue());
       }
       ctx.pushVar(sequenceBuilder);
+      ctx.expectEvent(MappingEndEvent.class);
    }
 }

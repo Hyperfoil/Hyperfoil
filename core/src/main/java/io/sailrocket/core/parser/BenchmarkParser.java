@@ -78,9 +78,7 @@ public class BenchmarkParser extends AbstractParser<BenchmarkBuilder, BenchmarkB
 
     @Override
     public void parse(Context ctx, BenchmarkBuilder target) throws ConfigurationParserException {
-        ctx.expectEvent(MappingStartEvent.class);
-        //populate benchmark model
-        callSubBuilders(ctx, target, MappingEndEvent.class);
+        callSubBuilders(ctx, target);
     }
 
     private static class DebugIterator<T> implements Iterator<T> {

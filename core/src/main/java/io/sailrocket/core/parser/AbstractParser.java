@@ -22,16 +22,19 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.yaml.snakeyaml.events.Event;
+import org.yaml.snakeyaml.events.MappingEndEvent;
+import org.yaml.snakeyaml.events.MappingStartEvent;
 import org.yaml.snakeyaml.events.ScalarEvent;
 
 abstract class AbstractParser<T, S> implements Parser<T> {
 
     protected Map<String, Parser<S>> subBuilders = new HashMap<>();
 
-    protected void callSubBuilders(Context ctx, S target, Class<? extends Event> terminatingEvent) throws ConfigurationParserException {
+    protected void callSubBuilders(Context ctx, S target) throws ConfigurationParserException {
+        ctx.expectEvent(MappingStartEvent.class);
         while (ctx.hasNext()) {
             Event next = ctx.next();
-            if (terminatingEvent.isInstance(next)) {
+            if (MappingEndEvent.class.isInstance(next)) {
                 return;
             } else if (next instanceof ScalarEvent) {
                 ScalarEvent event = (ScalarEvent) next;
@@ -44,6 +47,6 @@ abstract class AbstractParser<T, S> implements Parser<T> {
                 throw ctx.unexpectedEvent(next);
             }
         }
-        throw ctx.noMoreEvents(terminatingEvent);
+        throw ctx.noMoreEvents((Class<? extends Event>)MappingEndEvent.class);
     }
 }

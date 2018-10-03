@@ -21,9 +21,6 @@ package io.sailrocket.core.parser;
 import io.sailrocket.core.builders.BenchmarkBuilder;
 import io.sailrocket.core.builders.SimulationBuilder;
 
-import org.yaml.snakeyaml.events.MappingEndEvent;
-import org.yaml.snakeyaml.events.MappingStartEvent;
-
 class SimulationParser extends AbstractParser<BenchmarkBuilder, SimulationBuilder> {
 
     SimulationParser() {
@@ -37,8 +34,6 @@ class SimulationParser extends AbstractParser<BenchmarkBuilder, SimulationBuilde
 
     @Override
     public void parse(Context ctx, BenchmarkBuilder target) throws ConfigurationParserException {
-        SimulationBuilder simulationBuilder = target.simulation();
-        ctx.expectEvent(MappingStartEvent.class);
-        callSubBuilders(ctx, simulationBuilder, MappingEndEvent.class);
+        callSubBuilders(ctx, target.simulation());
     }
 }

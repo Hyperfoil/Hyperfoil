@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.yaml.snakeyaml.events.MappingEndEvent;
+import org.yaml.snakeyaml.events.MappingStartEvent;
 import org.yaml.snakeyaml.events.ScalarEvent;
 
 import io.sailrocket.core.builders.PhaseBuilder;
@@ -32,6 +33,7 @@ class PhaseForkParser implements Parser<io.sailrocket.core.builders.PhaseBuilder
    }
 
    private void parseFork(Context ctx, PhaseBuilder phaseBuilder) throws ConfigurationParserException {
+      ctx.expectEvent(MappingStartEvent.class);
       ScalarEvent forkNameEvent = ctx.expectEvent(ScalarEvent.class);
       ForkBuilder forkBuilder = new ForkBuilder(phaseBuilder.fork(phaseBuilder.name() + "/" + forkNameEvent.getValue()));
       ctx.peekVar(List.class).add(forkBuilder);
@@ -50,7 +52,7 @@ class PhaseForkParser implements Parser<io.sailrocket.core.builders.PhaseBuilder
 
       @Override
       public void parse(Context ctx, ForkBuilder target) throws ConfigurationParserException {
-         callSubBuilders(ctx, target, MappingEndEvent.class);
+         callSubBuilders(ctx, target);
       }
    }
 

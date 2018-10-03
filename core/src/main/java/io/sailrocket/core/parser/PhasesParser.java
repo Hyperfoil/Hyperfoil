@@ -20,6 +20,7 @@ package io.sailrocket.core.parser;
 
 
 import org.yaml.snakeyaml.events.MappingEndEvent;
+import org.yaml.snakeyaml.events.MappingStartEvent;
 import org.yaml.snakeyaml.events.ScalarEvent;
 
 import io.sailrocket.core.builders.PhaseBuilder;
@@ -40,6 +41,7 @@ class PhasesParser extends AbstractParser<SimulationBuilder, PhaseBuilder.Discri
     }
 
     private void parsePhase(Context ctx, SimulationBuilder target) throws ConfigurationParserException {
+        ctx.expectEvent(MappingStartEvent.class);
         ScalarEvent event = ctx.expectEvent(ScalarEvent.class);
         if (event.getTag() == null) {
             throw new ConfigurationParserException(event, "Phases must be tagged by the type; use one of: " + subBuilders.keySet());

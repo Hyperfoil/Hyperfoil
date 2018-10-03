@@ -22,7 +22,6 @@ import io.sailrocket.core.builders.PhaseBuilder;
 import io.sailrocket.core.builders.ScenarioBuilder;
 
 import org.yaml.snakeyaml.events.AliasEvent;
-import org.yaml.snakeyaml.events.MappingEndEvent;
 import org.yaml.snakeyaml.events.MappingStartEvent;
 
 class ScenarioParser extends AbstractParser<PhaseBuilder, ScenarioBuilder> {
@@ -45,6 +44,6 @@ class ScenarioParser extends AbstractParser<PhaseBuilder, ScenarioBuilder> {
         if (!ctx.hasNext()) {
             throw ctx.noMoreEvents(MappingStartEvent.class, AliasEvent.class);
         }
-        ctx.parseAliased(ScenarioBuilder.class, target.scenario(), (ctx2, scenario) -> callSubBuilders(ctx2, scenario, MappingEndEvent.class));
+        ctx.parseAliased(ScenarioBuilder.class, target.scenario(), this::callSubBuilders);
     }
 }
