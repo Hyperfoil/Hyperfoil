@@ -49,6 +49,9 @@ public class AgentVerticle extends AbstractVerticle {
                 case FINISH:
                     runner.finishPhase(controlMessage.phase());
                     break;
+                case TRY_TERMINATE:
+                    runner.tryTerminatePhase(controlMessage.phase());
+                    break;
                 case TERMINATE:
                     runner.terminatePhase(controlMessage.phase());
                     break;

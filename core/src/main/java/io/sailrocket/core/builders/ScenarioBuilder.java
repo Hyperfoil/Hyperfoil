@@ -30,7 +30,7 @@ import java.util.Collection;
 /**
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
  */
-public class ScenarioBuilder {
+public class ScenarioBuilder implements Rewritable<ScenarioBuilder> {
 
     private final PhaseBuilder<?> phaseBuilder;
     private Collection<SequenceBuilder> initialSequences = new ArrayList<>();
@@ -103,6 +103,7 @@ public class ScenarioBuilder {
               intVars.toArray(new String[0]));
     }
 
+    @Override
     public void readFrom(ScenarioBuilder other) {
         this.initialSequences = other.initialSequences;
         this.sequences = other.sequences;

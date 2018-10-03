@@ -14,6 +14,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
    protected long startTime = -1;
    protected Collection<String> startAfter = new ArrayList<>();
    protected Collection<String> startAfterStrict = new ArrayList<>();
+   protected Collection<String> terminateAfterStrict = new ArrayList<>();
    protected long duration = -1;
    protected long maxDuration = -1;
 
@@ -27,9 +28,13 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
       return parent;
    }
 
+   public String name() {
+      return name;
+   }
+
    public ScenarioBuilder scenario() {
       if (scenario != null) {
-         throw new BenchmarkDefinitionException("Scenario already set!");
+         throw new BenchmarkDefinitionException("Scenario for " + name + " already set!");
       }
       scenario = new ScenarioBuilder(this);
       return scenario;
@@ -74,6 +79,30 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
 
    public abstract Phase build();
 
+   public abstract PhaseBuilder<PB> fork(String name);
+
+   public void copyScenarioTo(ScenarioBuilder builder) {
+      builder.readFrom(scenario);
+   }
+
+   public void slice(PB source, double ratio) {
+      // slicing basic timing is just a copy
+      startTime = source.startTime;
+      startAfter = new ArrayList<>(source.startAfter);
+      startAfterStrict = new ArrayList<>(source.startAfterStrict);
+      duration = source.duration;
+      maxDuration = source.maxDuration;
+   }
+
+   protected int sliceValue(int value, double ratio) {
+      double sliced = value * ratio;
+      long rounded = Math.round(sliced);
+      if (Math.abs(rounded - sliced) > 0.0001) {
+         throw new BenchmarkDefinitionException("Cannot slice phase " + name + " cleanly: " + value + " * " + ratio + " is not an integer.");
+      }
+      return (int) rounded;
+   }
+
    public static class AtOnce extends PhaseBuilder<AtOnce> {
       private int users;
 
@@ -89,7 +118,18 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
 
       @Override
       public Phase.AtOnce build() {
-         return new Phase.AtOnce(name, scenario.build(), startTime, startAfter, startAfterStrict, duration, maxDuration, users);
+         return new Phase.AtOnce(name, scenario.build(), startTime, startAfter, startAfterStrict, terminateAfterStrict, duration, maxDuration, users);
+      }
+
+      @Override
+      public PhaseBuilder<AtOnce> fork(String name) {
+         return new AtOnce(parent, name, -1);
+      }
+
+      @Override
+      public void slice(AtOnce source, double ratio) {
+         super.slice(source, ratio);
+         users = sliceValue(source.users, ratio);
       }
    }
 
@@ -103,7 +143,19 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
 
       @Override
       public Phase.Always build() {
-         return new Phase.Always(name, scenario.build(), startTime, startAfter, startAfterStrict, duration, maxDuration, users);
+         return new Phase.Always(name, scenario.build(), startTime, startAfter, startAfterStrict,
+               terminateAfterStrict, duration, maxDuration, users);
+      }
+
+      @Override
+      public PhaseBuilder<Always> fork(String name) {
+         return new Always(parent, name, -1);
+      }
+
+      @Override
+      public void slice(Always source, double ratio) {
+         super.slice(source, ratio);
+         users = sliceValue(source.users, ratio);
       }
 
       public Always users(int users) {
@@ -113,11 +165,11 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
    }
 
    public static class RampPerSec extends PhaseBuilder<RampPerSec> {
-      private int initialUsersPerSec;
-      private int targetUsersPerSec;
+      private double initialUsersPerSec;
+      private double targetUsersPerSec;
       private int maxSessionsEstimate;
 
-      protected RampPerSec(SimulationBuilder parent, String name, int initialUsersPerSec, int targetUsersPerSec) {
+      protected RampPerSec(SimulationBuilder parent, String name, double initialUsersPerSec, double targetUsersPerSec) {
          super(parent, name);
          this.initialUsersPerSec = initialUsersPerSec;
          this.targetUsersPerSec = targetUsersPerSec;
@@ -131,8 +183,21 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
       @Override
       public Phase.RampPerSec build() {
          return new Phase.RampPerSec(name, scenario.build(), startTime, startAfter, startAfterStrict,
-               duration, maxDuration, initialUsersPerSec, targetUsersPerSec,
-               maxSessionsEstimate <= 0 ? Math.max(initialUsersPerSec, targetUsersPerSec) : maxSessionsEstimate);
+               terminateAfterStrict, duration, maxDuration, initialUsersPerSec, targetUsersPerSec,
+               maxSessionsEstimate <= 0 ? (int) Math.ceil(Math.max(initialUsersPerSec, targetUsersPerSec)) : maxSessionsEstimate);
+      }
+
+      @Override
+      public PhaseBuilder<RampPerSec> fork(String name) {
+         return new RampPerSec(parent, name, -1, -1);
+      }
+
+      @Override
+      public void slice(RampPerSec source, double ratio) {
+         super.slice(source, ratio);
+         initialUsersPerSec = source.initialUsersPerSec * ratio;
+         targetUsersPerSec = source.targetUsersPerSec * ratio;
+         maxSessionsEstimate = sliceValue(source.maxSessionsEstimate, ratio);
       }
 
       public RampPerSec initialUsersPerSec(int initialUsersPerSec) {
@@ -147,10 +212,10 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
    }
 
    public static class ConstantPerSec extends PhaseBuilder<ConstantPerSec> {
-      private int usersPerSec;
+      private double usersPerSec;
       private int maxSessionsEstimate;
 
-      protected ConstantPerSec(SimulationBuilder parent, String name, int usersPerSec) {
+      protected ConstantPerSec(SimulationBuilder parent, String name, double usersPerSec) {
          super(parent, name);
          this.usersPerSec = usersPerSec;
       }
@@ -162,14 +227,42 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
 
       @Override
       public Phase.ConstantPerSec build() {
-         return new Phase.ConstantPerSec(name, scenario.build(), startTime, startAfter,
-               startAfterStrict, duration, maxDuration, usersPerSec,
-               maxSessionsEstimate <= 0 ? usersPerSec : maxSessionsEstimate);
+         return new Phase.ConstantPerSec(name, scenario.build(), startTime, startAfter, startAfterStrict,
+               terminateAfterStrict, duration, maxDuration, usersPerSec,
+               maxSessionsEstimate <= 0 ? (int) Math.ceil(usersPerSec) : maxSessionsEstimate);
+      }
+
+      @Override
+      public PhaseBuilder<ConstantPerSec> fork(String name) {
+         return new ConstantPerSec(parent, name, -1);
+      }
+
+      @Override
+      public void slice(ConstantPerSec source, double ratio) {
+         super.slice(source, ratio);
+         usersPerSec = source.usersPerSec * ratio;
+         maxSessionsEstimate = sliceValue(source.maxSessionsEstimate, ratio);
       }
 
       public ConstantPerSec usersPerSec(int usersPerSec) {
          this.usersPerSec = usersPerSec;
          return this;
+      }
+   }
+
+   public static class Noop extends PhaseBuilder<Noop> {
+      protected Noop(SimulationBuilder parent, String name) {
+         super(parent, name);
+      }
+
+      @Override
+      public Phase build() {
+         return new Phase.Noop(name, startAfter, startAfterStrict, terminateAfterStrict);
+      }
+
+      @Override
+      public PhaseBuilder<Noop> fork(String name) {
+         throw new UnsupportedOperationException();
       }
    }
 

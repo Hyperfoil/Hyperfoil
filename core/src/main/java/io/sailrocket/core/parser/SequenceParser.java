@@ -23,6 +23,8 @@ import io.sailrocket.core.builders.SequenceBuilder;
 
 import java.util.function.BiFunction;
 
+import org.yaml.snakeyaml.events.AliasEvent;
+import org.yaml.snakeyaml.events.Event;
 import org.yaml.snakeyaml.events.MappingEndEvent;
 import org.yaml.snakeyaml.events.ScalarEvent;
 import org.yaml.snakeyaml.events.SequenceStartEvent;
@@ -40,18 +42,32 @@ class SequenceParser implements Parser<ScenarioBuilder> {
     }
 
     private void parseSequence(Context ctx, ScenarioBuilder target) throws ConfigurationParserException {
-        ScalarEvent event = ctx.expectEvent(ScalarEvent.class);
-        SequenceBuilder sequenceBuilder = builderFunction.apply(target, event.getValue());
-        ctx.expectEvent(SequenceStartEvent.class);
-        ctx.parseListHeadless(sequenceBuilder, this::parseSequenceItem, (event1, sequenceBuilder1) -> parseSingleItem(event1, sequenceBuilder1));
+        ScalarEvent sequenceNameEvent = ctx.expectEvent(ScalarEvent.class);
+        SequenceBuilder sequenceBuilder = builderFunction.apply(target, sequenceNameEvent.getValue());
+        parseSequence(ctx, sequenceBuilder);
+    }
+
+    static void parseSequence(Context ctx, SequenceBuilder sequenceBuilder) throws ConfigurationParserException {
+        Event event = ctx.next();
+        if (event instanceof SequenceStartEvent) {
+            String anchor = ((SequenceStartEvent) event).getAnchor();
+            if (anchor != null) {
+                ctx.setAnchor(event, anchor, sequenceBuilder);
+            }
+            ctx.parseListHeadless(sequenceBuilder, StepParser.instance(), StepParser.instance()::parseSingle);
+        } else if (event instanceof ScalarEvent) {
+            String value = ((ScalarEvent) event).getValue();
+            if (value == null || value.isEmpty()) {
+                throw new ConfigurationParserException(event, "The sequence must not be empty.");
+            } else {
+                throw new ConfigurationParserException(event, "Expected sequence of steps but got " + value);
+            }
+        } else if (event instanceof AliasEvent) {
+            String anchor = ((AliasEvent) event).getAnchor();
+            SequenceBuilder sequence = ctx.getAnchor(event, anchor, SequenceBuilder.class);
+            sequenceBuilder.readFrom(sequence);
+        }
         ctx.expectEvent(MappingEndEvent.class);
     }
 
-    private void parseSequenceItem(Context ctx, SequenceBuilder sequenceBuilder) throws ConfigurationParserException {
-        StepParser.instance().parse(ctx, sequenceBuilder);
-    }
-
-    private void parseSingleItem(ScalarEvent event, SequenceBuilder sequenceBuilder) throws ConfigurationParserException {
-        StepParser.instance().parseSingle(event, sequenceBuilder);
-    }
 }

@@ -20,6 +20,8 @@ public interface PhaseInstance {
 
    void finish();
 
+   void tryTerminate();
+
    void terminate();
 
    // TODO better name

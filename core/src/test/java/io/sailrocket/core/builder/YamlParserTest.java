@@ -23,33 +23,27 @@ import io.sailrocket.core.parser.ConfigurationNotDefinedException;
 import io.sailrocket.core.parser.BenchmarkParser;
 import io.sailrocket.core.parser.ConfigurationParserException;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.InputStream;
 
 import static org.junit.Assert.fail;
 
-public class YamlBuilderTestCase {
-
+public class YamlParserTest {
     @Test
-    @Ignore
-    public void ComplexYamlBuilderTest() {
-
-        Benchmark benchmark = buildBenchmark(this.getClass().getClassLoader().getResourceAsStream("scenarios/complex.yaml"));
-
-        Assert.assertEquals("complex benchmark", benchmark.name());
+    public void testSimpleYaml() {
+        Benchmark benchmark = buildBenchmark("scenarios/simple.yaml");
+        Assert.assertEquals("simple benchmark", benchmark.name());
     }
 
     @Test
-    @Ignore
-    public void SimpleYamlBuilderTest() {
+    public void testComplexYaml() {
+        Benchmark benchmark = buildBenchmark("scenarios/complex.yaml");
+        Assert.assertEquals("complex benchmark", benchmark.name());
+    }
 
-        Benchmark benchmark = buildBenchmark(this.getClass().getClassLoader().getResourceAsStream("scenarios/simple.yaml"));
-
-        Assert.assertEquals("simple benchmark", benchmark.name());
-
-
+    private Benchmark buildBenchmark(String s) {
+        return buildBenchmark(this.getClass().getClassLoader().getResourceAsStream(s));
     }
 
     private Benchmark buildBenchmark(InputStream inputStream){

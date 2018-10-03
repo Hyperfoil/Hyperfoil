@@ -30,6 +30,7 @@ import io.sailrocket.core.builders.connection.HttpBase;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
@@ -136,5 +137,14 @@ public class SimulationBuilder {
     public SimulationBuilder statisticsCollectionPeriod(long statisticsCollectionPeriod) {
         this.statisticsCollectionPeriod = statisticsCollectionPeriod;
         return this;
+    }
+
+    public void proxify(PhaseBuilder phase, List<String> forks) {
+        PhaseBuilder prev = phaseBuilders.remove(phase.name);
+        assert prev == phase;
+        PhaseBuilder.Noop noop = new PhaseBuilder.Noop(this, phase.name);
+        noop.startAfter = forks;
+        noop.startAfterStrict.clear();
+        noop.terminateAfterStrict = forks;
     }
 }

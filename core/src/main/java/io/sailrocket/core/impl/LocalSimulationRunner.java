@@ -62,8 +62,12 @@ public class LocalSimulationRunner extends SimulationRunnerImpl {
             if (phase.status() == PhaseInstance.Status.RUNNING && phase.absoluteStartTime() + phase.definition().duration() <= now) {
                finishPhase(phase.definition().name());
             }
-            if (phase.status() == PhaseInstance.Status.FINISHED && phase.definition().maxDuration() >= 0 && phase.absoluteStartTime() + phase.definition().maxDuration() <= now) {
-               terminatePhase(phase.definition().name());
+            if (phase.status() == PhaseInstance.Status.FINISHED) {
+               if (phase.definition().maxDuration() >= 0 && phase.absoluteStartTime() + phase.definition().maxDuration() <= now) {
+                  terminatePhase(phase.definition().name());
+               } else if (phase.definition().terminateAfterStrict().stream().map(instances::get).allMatch(p -> p.status() == PhaseInstance.Status.TERMINATED)) {
+                  tryTerminatePhase(phase.definition().name());
+               }
             }
          }
          PhaseInstance[] availablePhases = getAvailablePhases();

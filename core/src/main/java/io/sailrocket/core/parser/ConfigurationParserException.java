@@ -34,6 +34,10 @@ public class ConfigurationParserException extends Exception {
     }
 
     public ConfigurationParserException(Event event, String msg, Throwable cause) {
-        super("Line " + event.getStartMark().getLine() + ", column " + event.getStartMark().getColumn() + ": " + msg, cause);
+        super(location(event) + ": " + msg, cause);
+    }
+
+    static String location(Event event) {
+        return "line " + (event.getStartMark().getLine() + 1) + ", column " + (event.getStartMark().getColumn() + 1);
     }
 }

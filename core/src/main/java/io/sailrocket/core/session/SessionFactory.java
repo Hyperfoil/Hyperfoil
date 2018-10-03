@@ -18,7 +18,7 @@ public final class SessionFactory {
 
    public static Session forTesting() {
       Scenario dummyScenario = new Scenario(new Sequence[0], new Sequence[0], new String[0], new String[0]);
-      PhaseInstance phase = new PhaseInstanceImpl(new Phase("dummy", dummyScenario, 0, Collections.emptyList(), Collections.emptyList(), 0, -1) {}) {
+      PhaseInstance phase = new PhaseInstanceImpl(new Phase("dummy", dummyScenario, 0, Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), 0, -1) {}) {
          @Override
          public void proceed(EventExecutorGroup executorGroup) {
          }

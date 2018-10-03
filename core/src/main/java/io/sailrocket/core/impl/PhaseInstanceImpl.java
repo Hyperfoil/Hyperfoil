@@ -44,6 +44,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       constructors.put(Phase.RampPerSec.class, (Function<Phase.RampPerSec, PhaseInstance>) RampPerSec::new);
       constructors.put(Phase.ConstantPerSec.class, (Function<Phase.ConstantPerSec, PhaseInstance>) ConstantPerSec::new);
       constructors.put(Phase.Sequentially.class, (Function<Phase.Sequentially, PhaseInstance>) Sequentially::new);
+      constructors.put(Phase.Noop.class, (Function<Phase.Noop, PhaseInstance>) Noop::new);
    }
 
    protected PhaseInstanceImpl(D def) {
@@ -81,9 +82,11 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       status = Status.FINISHED;
       log.debug("{} changing status to FINISHED", def.name);
       phaseChangeHandler.accept(def.name, status);
+   }
+
+   @Override
+   public void tryTerminate() {
       if (activeSessions.compareAndSet(0, Integer.MIN_VALUE)) {
-         // It is possible that we will activate another session after setting status to TERMINATED but such session
-         // should check the status again as its first action and terminate
          status = Status.TERMINATED;
          log.debug("{} changing status to TERMINATED", def.name);
          phaseChangeHandler.accept(def.name, status);
@@ -231,9 +234,9 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
             session.proceed(executorGroup.next());
          }
          startedUsers = Math.max(startedUsers, required);
-         long denominator = def.targetUsersPerSec + def.initialUsersPerSec * (def.duration - 1);
+         double denominator = def.targetUsersPerSec + def.initialUsersPerSec * (def.duration - 1);
          // rounding up, not down as default integer division
-         long nextDelta = (1000 * (startedUsers + 1) * def.duration + denominator - 1)/ denominator;
+         long nextDelta = (long) ((1000 * (startedUsers + 1) * def.duration + denominator - 1)/ denominator);
          if (trace) {
             log.trace("{}: {} after start, {} started, next user in {} ms", def.name, delta, startedUsers, nextDelta - delta);
          }
@@ -284,7 +287,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
          startedUsers = Math.max(startedUsers, required);
          // mathematically, the formula below should be 1000 * (startedUsers + 1) / usersPerSec but while
          // integer division is rounding down, we're trying to round up
-         long nextDelta = (1000 * (startedUsers + 1) + def.usersPerSec - 1)/ def.usersPerSec;
+         long nextDelta = (long) ((1000 * (startedUsers + 1) + def.usersPerSec - 1)/ def.usersPerSec);
          if (trace) {
             log.trace("{}: {} after start, {} started, next user in {} ms", def.name, delta, startedUsers, nextDelta - delta);
          }
@@ -338,6 +341,20 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
             session.reset();
             session.proceed(executor);
          }
+      }
+   }
+
+   public static class Noop extends PhaseInstanceImpl<Phase.Noop> {
+      protected Noop(Phase.Noop def) {
+         super(def);
+      }
+
+      @Override
+      public void proceed(EventExecutorGroup executorGroup) {
+      }
+
+      @Override
+      public void reserveSessions() {
       }
    }
 }

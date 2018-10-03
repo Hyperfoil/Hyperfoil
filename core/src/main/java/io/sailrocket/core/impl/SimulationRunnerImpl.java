@@ -93,6 +93,11 @@ public class SimulationRunnerImpl implements SimulationRunner {
     }
 
     @Override
+    public void tryTerminatePhase(String phase) {
+        instances.get(phase).tryTerminate();
+    }
+
+    @Override
     public void terminatePhase(String phase) {
         instances.get(phase).terminate();
     }

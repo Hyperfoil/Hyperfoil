@@ -6,7 +6,7 @@ import java.util.List;
 
 import io.sailrocket.api.config.Step;
 
-public abstract class BaseSequenceBuilder {
+public abstract class BaseSequenceBuilder implements Rewritable<BaseSequenceBuilder> {
    protected final BaseSequenceBuilder parent;
    protected final List<StepBuilder> steps = new ArrayList<>();
 
@@ -34,5 +34,11 @@ public abstract class BaseSequenceBuilder {
 
    public ScenarioBuilder endSequence() {
       return end().endSequence();
+   }
+
+   @Override
+   public void readFrom(BaseSequenceBuilder other) {
+      assert steps.isEmpty();
+      steps.addAll(other.steps);
    }
 }

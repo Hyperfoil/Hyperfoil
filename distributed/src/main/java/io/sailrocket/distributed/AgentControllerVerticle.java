@@ -153,6 +153,8 @@ public class AgentControllerVerticle extends AbstractVerticle {
             if (phase.status() == ControllerPhase.Status.FINISHED && phase.definition().maxDuration() >= 0 && phase.absoluteStartTime() + phase.definition().maxDuration() <= now) {
                 eb.publish(Feeds.CONTROL, new PhaseControlMessage(PhaseControlMessage.Command.TERMINATE, null, phase.definition().name));
                 phase.status(ControllerPhase.Status.TERMINATING);
+            } else if (phase.definition().terminateAfterStrict().stream().map(run.phases::get).allMatch(p -> p.status() == ControllerPhase.Status.TERMINATED)) {
+                eb.publish(Feeds.CONTROL, new PhaseControlMessage(PhaseControlMessage.Command.TRY_TERMINATE, null, phase.definition().name));
             }
         }
         ControllerPhase[] availablePhases = run.getAvailablePhases();

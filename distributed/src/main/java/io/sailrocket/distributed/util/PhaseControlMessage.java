@@ -24,6 +24,7 @@ public class PhaseControlMessage implements Serializable {
    public enum Command {
       RUN,
       FINISH,
+      TRY_TERMINATE,
       TERMINATE
    }
 

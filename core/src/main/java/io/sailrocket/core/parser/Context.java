@@ -4,28 +4,36 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Stack;
 import java.util.stream.Collectors;
 
+import org.yaml.snakeyaml.events.AliasEvent;
 import org.yaml.snakeyaml.events.Event;
 import org.yaml.snakeyaml.events.MappingStartEvent;
 import org.yaml.snakeyaml.events.ScalarEvent;
 import org.yaml.snakeyaml.events.SequenceEndEvent;
 import org.yaml.snakeyaml.events.SequenceStartEvent;
 
-public class Context {
+import io.sailrocket.api.config.BenchmarkDefinitionException;
+import io.sailrocket.core.builders.Rewritable;
+
+
+class Context {
    private final Map<String, Anchor> anchors = new HashMap<>();
    private final Iterator<Event> events;
    private Event peeked;
+   private final Stack<Object> vars = new Stack<>();
 
-   public Context(Iterator<Event> events) {
+   Context(Iterator<Event> events) {
       this.events = events;
    }
 
-   public boolean hasNext() {
+   boolean hasNext() {
       return events.hasNext();
    }
 
-   public Event next() {
+   Event next() {
       if (peeked == null) {
          return events.next();
       } else {
@@ -35,29 +43,44 @@ public class Context {
       }
    }
 
-   public Event peek() {
+   Event peek() {
       peeked = events.next();
       return peeked;
    }
 
-   public void setAnchor(Event event, String anchor, Object object) throws ConfigurationParserException {
-      Anchor prev = anchors.putIfAbsent(anchor, new Anchor(event, object));
+   void setAnchor(Event event, String anchor, Object object) throws ConfigurationParserException {
+      Objects.requireNonNull(anchor);
+      Objects.requireNonNull(object);
+      Anchor prev = anchors.putIfAbsent(anchor + ":" + object.getClass().getName(), new Anchor(event, object));
       if (prev != null) {
-         throw new ConfigurationParserException(event, "Anchor " + anchor + " already defined on line "
-               + prev.source.getStartMark().getLine() + ", column " + prev.source.getStartMark().getColumn());
+         throw new ConfigurationParserException(event, "Anchor " + anchor + " already defined on " + ConfigurationParserException.location(prev.source));
       }
    }
 
-   public Object getAnchor(Event event, String alias) throws ConfigurationParserException {
-      Anchor anchor = anchors.get(alias);
+   <T> T getAnchor(Event event, String alias, Class<T> clazz) throws ConfigurationParserException {
+      Objects.requireNonNull(alias);
+      Anchor anchor = anchors.get(alias + ":" + clazz.getName());
       if (anchor == null) {
+         String prefix = alias + ":";
+         for (String key : anchors.keySet()) {
+            if (key.startsWith(prefix)) {
+               Anchor similar = anchors.get(key);
+               throw new ConfigurationParserException(event, "There is no anchor for " + alias + " with type " + clazz +
+                     " but there is another anchor " + key + " on " + ConfigurationParserException.location(similar.source));
+            }
+         }
          throw new ConfigurationParserException(event, "There's no anchor for " + alias + ", available are "
                + anchors.keySet().stream().sorted().collect(Collectors.toList()));
       }
-      return anchor.object;
+      if (!clazz.isInstance(anchor.object)) {
+         throw new ConfigurationParserException(event, alias + " is anchored to unexpected type "
+               + anchor.object.getClass() + " while we expect " + clazz + "; anchor is defined on "
+               + ConfigurationParserException.location(anchor.source));
+      }
+      return (T) anchor.object;
    }
 
-   protected <E extends Event> E expectEvent(Class<E> eventClazz) throws ConfigurationParserException {
+   <E extends Event> E expectEvent(Class<E> eventClazz) throws ConfigurationParserException {
       if (events.hasNext()) {
          Event event = events.next();
          if (!eventClazz.isInstance(event)) {
@@ -70,21 +93,21 @@ public class Context {
    }
 
    @SafeVarargs
-   protected final ConfigurationParserException noMoreEvents(Class<? extends Event>... eventClazzes) {
+   final ConfigurationParserException noMoreEvents(Class<? extends Event>... eventClazzes) {
       return new ConfigurationParserException("Expected one of " + Arrays.toString(eventClazzes) + " but there are no more events.");
    }
 
-   protected ConfigurationParserException unexpectedEvent(Event event) {
+   ConfigurationParserException unexpectedEvent(Event event) {
       return new ConfigurationParserException(event, "Unexpected event " + event);
    }
 
-   protected <LI> void parseList(LI target, ListItemParser<LI> consumer) throws ConfigurationParserException {
+   <LI> void parseList(LI target, Parser<LI> consumer) throws ConfigurationParserException {
       parseList(target, consumer, (event, t) -> {
          throw new ConfigurationParserException(event, "Expected mapping, got " + event.getValue());
       });
    }
 
-   protected <LI> void parseList(LI target, ListItemParser<LI> consumer, SingleListItemParser<LI> singleConsumer) throws ConfigurationParserException {
+   <LI> void parseList(LI target, Parser<LI> consumer, SingleListItemParser<LI> singleConsumer) throws ConfigurationParserException {
       if (!events.hasNext()) {
          throw noMoreEvents(SequenceStartEvent.class, ScalarEvent.class);
       }
@@ -100,13 +123,13 @@ public class Context {
       }
    }
 
-   protected <LI> void parseListHeadless(LI target, ListItemParser<LI> consumer, SingleListItemParser<LI> singleConsumer) throws ConfigurationParserException {
+   <LI> void parseListHeadless(LI target, Parser<LI> consumer, SingleListItemParser<LI> singleConsumer) throws ConfigurationParserException {
       while (events.hasNext()) {
          Event next = events.next();
          if (next instanceof SequenceEndEvent) {
             break;
          } else if (next instanceof MappingStartEvent) {
-            consumer.accept(this, target);
+            consumer.parse(this, target);
          } else if (next instanceof ScalarEvent) {
             singleConsumer.accept((ScalarEvent) next, target);
          } else {
@@ -115,11 +138,49 @@ public class Context {
       }
    }
 
-   protected interface ListItemParser<LI> {
-      void accept(Context ctx, LI target) throws ConfigurationParserException;
+   <A extends Rewritable<A>> void parseAliased(Class<A> aliasType, A target, Parser<A> parser) throws ConfigurationParserException {
+      Event event = next();
+      try {
+         if (event instanceof MappingStartEvent) {
+            String anchor = ((MappingStartEvent) event).getAnchor();
+            if (anchor != null) {
+               setAnchor(event, anchor, target);
+            }
+            parser.parse(this, target);
+         } else if (event instanceof AliasEvent) {
+            String anchor = ((AliasEvent) event).getAnchor();
+            A aliased = getAnchor(event, anchor, aliasType);
+            target.readFrom(aliased);
+         } else {
+            throw unexpectedEvent(event);
+         }
+      } catch (BenchmarkDefinitionException e) {
+         throw new ConfigurationParserException(event, "Error in benchmark builders", e);
+      }
    }
 
-   protected interface SingleListItemParser<LI> {
+
+   void pushVar(Object var) {
+      vars.push(var);
+   }
+
+   <T> T popVar(Class<T> clazz) {
+      Object top = vars.peek();
+      if (clazz != null && top != null && !clazz.isInstance(top)) {
+         throw new IllegalStateException("On the top of the stack is " + top);
+      }
+      return (T) vars.pop();
+   }
+
+   <T> T peekVar(Class<T> clazz) {
+      Object top = vars.peek();
+      if (clazz != null && top != null && !clazz.isInstance(top)) {
+         throw new IllegalStateException("On the top of the stack is " + top);
+      }
+      return (T) top;
+   }
+
+   interface SingleListItemParser<LI> {
       void accept(ScalarEvent event, LI target) throws ConfigurationParserException;
    }
 

@@ -12,7 +12,8 @@ abstract class PhaseParser extends AbstractParser<PhaseBuilder.Discriminator, Ph
       subBuilders.put("startAfterStrict", new StartAfterParser(PhaseBuilder::startAfterStrict));
       subBuilders.put("duration", new PropertyParser.String<>(PhaseBuilder::duration));
       subBuilders.put("maxDuration", new PropertyParser.String<>(PhaseBuilder::maxDuration));
-      subBuilders.put("scenario", new ScenarioParser());
+      subBuilders.put("scenario", ScenarioParser.instance());
+      subBuilders.put("forks", new PhaseForkParser());
    }
 
    @Override
@@ -49,6 +50,7 @@ abstract class PhaseParser extends AbstractParser<PhaseBuilder.Discriminator, Ph
       public RampPerSec() {
          subBuilders.put("initialUsersPerSec", new PropertyParser.Int<>((builder1, users1) -> ((PhaseBuilder.RampPerSec) builder1).initialUsersPerSec(users1)));
          subBuilders.put("targetUsersPerSec", new PropertyParser.Int<>((builder, users) -> ((PhaseBuilder.RampPerSec) builder).targetUsersPerSec(users)));
+         subBuilders.put("maxSessionsEstimate", new PropertyParser.Int<>((builder, sessions) -> ((PhaseBuilder.RampPerSec) builder).maxSessionsEstimate(sessions)));
       }
 
       @Override
@@ -60,6 +62,7 @@ abstract class PhaseParser extends AbstractParser<PhaseBuilder.Discriminator, Ph
    public static class ConstantPerSec extends PhaseParser {
       public ConstantPerSec() {
          subBuilders.put("usersPerSec", new PropertyParser.Int<>((builder, users) -> ((PhaseBuilder.ConstantPerSec) builder).usersPerSec(users)));
+         subBuilders.put("maxSessionsEstimate", new PropertyParser.Int<>((builder, sessions) -> ((PhaseBuilder.ConstantPerSec) builder).maxSessionsEstimate(sessions)));
       }
 
       @Override

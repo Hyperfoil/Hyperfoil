@@ -15,6 +15,8 @@ public interface SimulationRunner {
 
    void finishPhase(String phase);
 
+   void tryTerminatePhase(String phase);
+
    void terminatePhase(String phase);
 
    void shutdown();

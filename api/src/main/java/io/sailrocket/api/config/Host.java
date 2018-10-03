@@ -38,7 +38,7 @@ public class Host implements Serializable {
         int colonIndex = usernameHostPort.lastIndexOf(':');
         String hostname = usernameHostPort.substring(atIndex + 1, colonIndex >= 0 ? colonIndex - 1 : usernameHostPort.length());
         String username = atIndex >= 0 ? usernameHostPort.substring(0, atIndex) : null;
-        int port = colonIndex >= 0 ? Integer.parseInt(usernameHostPort.substring(colonIndex)) : -1;
+        int port = colonIndex >= 0 ? Integer.parseInt(usernameHostPort.substring(colonIndex + 1)) : -1;
         return new Host(name, hostname, username, port);
     }
 }

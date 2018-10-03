@@ -5,109 +5,139 @@ hosts:
   client3: benchuser@benchclient3.perf.lab.eng.rdu.redhat.com:22
 
 simulation:
-  sequences:
-    - registerInvalid:
-    - registerValid:
-    - login:
-    - logout:
-    - unregister:
-    - viewUser:
-    - updateUser:
-    - addVehicle:
-    - viewVehicle:
-    - viewQuote:
-    - deleteVehicle:
-    - acceptQuote:
-    - acceptQuoteWebSocket:
-    - viewInsurance:
-  scenarios:
-    - invalidRegistration:
-        sequences:
-          - registerInvalid
-    - registerValid:
-        sequences:
-          - registerValid
-    - unregister:
-        sequences:
-          - login
-          - unregister
-    - viewUser:
-        sequences:
-          - login
-          - viewUser
-          - logout
-    - updateUser:
-        sequences:
-          - login
-          - viewUser
-          - updateUser
-          - logout
-    - viewQuote:
-        sequences:
-          - login
-          - addVehicle
-          - viewQuote
-          - logout
-    - deleteVehicle:
-        sequences:
-          - login
-          - deleteVehicle
-          - logout
-    - acceptQuote:
-        sequences:
-          - login
-          - acceptQuote
-          - viewVehicle
-          - logout
-    - acceptQuoteWebSocket:
-        sequences:
-          - login
-          - acceptQuoteWebSocket
-          - viewVehicle
-          - logout
-    - viewInsurance:
-        sequences:
-          - login
-          - viewVehicle
-          - viewInsurance
-          - logout
-
-phases:
-  - rampUp:
-      concurrency: 10
-      connections: 5
+  http:
+    baseUrl: http://localhost:8080
+  phases:
+  - !rampPerSec rampUp: # When forks are in this should create a no-op phase that will be started after all the forks
+      initialUsersPerSec: 1
+      targetUsersPerSec: 100
       duration: 3s
-      rate: 100
-      measure: false
-  - steadyState:
-      concurrency: 10
-      connections: 5
+      # Forks don't have its own hierarchy, these just split the users into new phases. For
+      forks:
+      - invalidRegistration: &invalidRegistration
+          weight: 0.2
+          scenario:
+            initialSequences:
+            - registerInvalid:
+              - thinkTime:
+                 duration: 1s
+              # TODO
+      - validRegistration: &validRegistration
+          weight: 0.8
+          scenario:
+            initialSequences:
+            - registerInvalid:
+              - thinkTime:
+                 duration: 1s
+              # TODO
+      - unregister: &unregister
+          weight: 0.1
+          scenario:
+            # ordered sequences is just a syntax-sugar, this has no counterpart in programmatic configuration
+            orderedSequences:
+            - login: &login
+              - thinkTime:
+                 duration: 1s
+              #TODO
+            - unregister: &unregister
+              - thinkTime:
+                 duration: 1s
+      - viewUser: &viewUser
+          weight: 1
+          scenario:
+            orderedSequences:
+            - login: *login
+            - viewUser: &viewUser # the anchor stores type, too, so we can overload the `viewUser` for both forked scenario and sequence
+              - thinkTime:
+                 duration: 1s
+            - logout: &logout
+              - thinkTime:
+                 duration: 1s
+  - !constantPerSec steadyState:
+      usersPerSec: 100
+      startAfter: rampUp
       duration: 6s
-      rate: 100
-      measure: true
-  - rampDown:
-      concurrency: 10
-      connections: 5
-      duration: 3s
-      rate: 100
-      measure: false
+      forks:
+      - invalidRegistration: *invalidRegistration
+      - validRegistration: *validRegistration
+      - unregister: *unregister
+      - viewUser: *viewUser
 
-sla:
-  - meanBelow1s:
-      type: mean
-      limit:  1_000
-  - 90thCentileBelow2s:
-      type: centile
-      value: 90
-      limit:  2_000
+#  sequences:
+#    - registerInvalid:
+#    - registerValid:
+#    - login:
+#    - logout:
+#    - unregister:
+#    - viewUser:
+#    - updateUser:
+#    - addVehicle:
+#    - viewVehicle:
+#    - viewQuote:
+#    - deleteVehicle:
+#    - acceptQuote:
+#    - acceptQuoteWebSocket:
+#    - viewInsurance:
+#  scenarios:
+#    - invalidRegistration:
+#        sequences:
+#          - registerInvalid
+#    - registerValid:
+#        sequences:
+#          - registerValid
+#    - unregister:
+#        sequences:
+#          - login
+#          - unregister
+#    - viewUser:
+#        sequences:
+#          - login
+#          - viewUser
+#          - logout
+#    - updateUser:
+#        sequences:
+#          - login
+#          - viewUser
+#          - updateUser
+#          - logout
+#    - viewQuote:
+#        sequences:
+#          - login
+#          - addVehicle
+#          - viewQuote
+#          - logout
+#    - deleteVehicle:
+#        sequences:
+#          - login
+#          - deleteVehicle
+#          - logout
+#    - acceptQuote:
+#        sequences:
+#          - login
+#          - acceptQuote
+#          - viewVehicle
+#          - logout
+#    - acceptQuoteWebSocket:
+#        sequences:
+#          - login
+#          - acceptQuoteWebSocket
+#          - viewVehicle
+#          - logout
+#    - viewInsurance:
+#        sequences:
+#          - login
+#          - viewVehicle
+#          - viewInsurance
+#          - logout
 
-state:
-  - users:
-      supplier: CSV
-      location: users.csv
-  - vehicles:
-      supplier: REST
-      location:
-  - makes:
-      supplier: REST
-      location:
+
+#state:
+#  - users:
+#      supplier: CSV
+#      location: users.csv
+#  - vehicles:
+#      supplier: REST
+#      location:
+#  - makes:
+#      supplier: REST
+#      location:
