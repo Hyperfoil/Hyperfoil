@@ -2,21 +2,31 @@ package io.sailrocket.core.builders;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import io.sailrocket.api.config.BenchmarkDefinitionException;
 import io.sailrocket.api.config.Phase;
 import io.sailrocket.core.util.Util;
 
+/**
+ * The builder creates a matrix of phases (not just single phase); we allow multiple iterations of a phase
+ * (with increasing number of users) and multiple forks (different scenarios, but same configuration).
+ */
 public abstract class PhaseBuilder<PB extends PhaseBuilder> {
    protected final String name;
    protected final SimulationBuilder parent;
-   protected ScenarioBuilder scenario;
    protected long startTime = -1;
-   protected Collection<String> startAfter = new ArrayList<>();
-   protected Collection<String> startAfterStrict = new ArrayList<>();
-   protected Collection<String> terminateAfterStrict = new ArrayList<>();
+   protected Collection<PhaseReference> startAfter = new ArrayList<>();
+   protected Collection<PhaseReference> startAfterStrict = new ArrayList<>();
+   protected Collection<PhaseReference> terminateAfterStrict = new ArrayList<>();
    protected long duration = -1;
    protected long maxDuration = -1;
+   protected int maxIterations = 1;
+   protected List<PhaseForkBuilder> forks = new ArrayList<>();
 
    protected PhaseBuilder(SimulationBuilder parent, String name) {
       this.name = name;
@@ -33,15 +43,30 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
    }
 
    public ScenarioBuilder scenario() {
-      if (scenario != null) {
+      if (forks.isEmpty()) {
+         PhaseForkBuilder fork = new PhaseForkBuilder(this, null);
+         forks.add(fork);
+         return fork.scenario;
+      } else if (forks.size() == 1 && forks.get(0).name == null){
          throw new BenchmarkDefinitionException("Scenario for " + name + " already set!");
+      } else {
+         throw new BenchmarkDefinitionException("Scenario is forked; you need to specify another fork.");
       }
-      scenario = new ScenarioBuilder(this);
-      return scenario;
+   }
+
+   public PhaseForkBuilder fork(String name) {
+      if (forks.size() == 1 && forks.get(0).name == null) {
+         throw new BenchmarkDefinitionException("Scenario for " + name + " already set!");
+      } else {
+         PhaseForkBuilder fork = new PhaseForkBuilder(this, name);
+         forks.add(fork);
+         return fork;
+      }
    }
 
    public PB startTime(long startTime) {
       this.startTime = startTime;
+      // noinspection unchecked
       return (PB) this;
    }
 
@@ -50,17 +75,32 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
    }
 
    public PB startAfter(String phase) {
+      this.startAfter.add(new PhaseReference(phase, RelativeIteration.NONE, null));
+      // noinspection unchecked
+      return (PB) this;
+   }
+
+   public PB startAfter(PhaseReference phase) {
       this.startAfter.add(phase);
+      // noinspection unchecked
       return (PB) this;
    }
 
    public PB startAfterStrict(String phase) {
+      this.startAfterStrict.add(new PhaseReference(phase, RelativeIteration.NONE, null));
+      // noinspection unchecked
+      return (PB) this;
+   }
+
+   public PB startAfterStrict(PhaseReference phase) {
       this.startAfterStrict.add(phase);
+      // noinspection unchecked
       return (PB) this;
    }
 
    public PB duration(long duration) {
       this.duration = duration;
+      // noinspection unchecked
       return (PB) this;
    }
 
@@ -70,6 +110,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
 
    public PB maxDuration(long maxDuration) {
       this.maxDuration = maxDuration;
+      // noinspection unchecked
       return (PB) this;
    }
 
@@ -77,24 +118,50 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
       return maxDuration(Util.parseToMillis(duration));
    }
 
-   public abstract Phase build();
-
-   public abstract PhaseBuilder<PB> fork(String name);
-
-   public void copyScenarioTo(ScenarioBuilder builder) {
-      builder.readFrom(scenario);
+   public PB maxIterations(int iterations) {
+      this.maxIterations = iterations;
+      // noinspection unchecked
+      return (PB) this;
    }
 
-   public void slice(PB source, double ratio) {
-      // slicing basic timing is just a copy
-      startTime = source.startTime;
-      startAfter = new ArrayList<>(source.startAfter);
-      startAfterStrict = new ArrayList<>(source.startAfterStrict);
-      duration = source.duration;
-      maxDuration = source.maxDuration;
+   public Collection<Phase> build() {
+      // normalize fork weights first
+      if (forks.isEmpty()) {
+         throw new BenchmarkDefinitionException("Scenario for " + name + " is not defined.");
+      } else if (forks.size() == 1 && forks.get(0).name != null) {
+         throw new BenchmarkDefinitionException(name + " has single fork: define scenario directly.");
+      }
+      double sumWeight = forks.stream().mapToDouble(f -> f.weight).sum();
+      forks.forEach(f -> f.weight /= sumWeight);
+
+      // create matrix of iteration|fork phases
+      List<Phase> phases = IntStream.range(0, maxIterations)
+            .mapToObj(iteration -> forks.stream().map(f -> buildPhase(iteration, f)))
+            .flatMap(Function.identity()).collect(Collectors.toList());
+      if (maxIterations > 1) {
+         if (forks.size() > 1) {
+            // add phase covering forks in each iteration
+            IntStream.range(0, maxIterations).mapToObj(iteration -> {
+               String iterationName = formatIteration(name, iteration);
+               List<String> forks = this.forks.stream().map(f -> iterationName + "/" + f.name).collect(Collectors.toList());
+               return new Phase.Noop(iterationName, forks, Collections.emptyList(), forks);
+            }).forEach(phases::add);
+         }
+         // Referencing phase with iterations with RelativeIteration.NONE means that it starts after all its iterations
+         List<String> lastIteration = Collections.singletonList(formatIteration(name, maxIterations - 1));
+         phases.add(new Phase.Noop(name, lastIteration, Collections.emptyList(), lastIteration));
+      } else if (forks.size() > 1) {
+         // add phase covering forks
+         List<String> forks = this.forks.stream().map(f -> name + "/" + f.name).collect(Collectors.toList());
+         phases.add(new Phase.Noop(name, forks, Collections.emptyList(), forks));
+      }
+      return phases;
    }
 
-   protected int sliceValue(int value, double ratio) {
+
+   protected abstract Phase buildPhase(int iteration, PhaseForkBuilder f);
+
+   int sliceValue(int value, double ratio) {
       double sliced = value * ratio;
       long rounded = Math.round(sliced);
       if (Math.abs(rounded - sliced) > 0.0001) {
@@ -103,10 +170,77 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
       return (int) rounded;
    }
 
+   String iterationName(int iteration, String forkName) {
+      if (maxIterations == 1) {
+         assert iteration == 0;
+         if (forkName == null) {
+            return name;
+         } else {
+            return name + "/" + forkName;
+         }
+      } else {
+         String iterationName = formatIteration(name, iteration);
+         if (forkName == null) {
+            return iterationName;
+         } else {
+            return iterationName + "/" + forkName;
+         }
+      }
+   }
+
+   private String formatIteration(String name, int iteration) {
+      return String.format("%s/%03d", name, iteration);
+   }
+
+   long iterationStartTime(int iteration) {
+      return iteration == 0 ? startTime : 0;
+   }
+
+   // Identifier for phase + fork, omitting iteration
+   String sharedResources(PhaseForkBuilder fork) {
+      if (fork == null || fork.name == null) {
+         return name;
+      } else {
+         return name + "/" + fork;
+      }
+   }
+
+   Collection<String> iterationReferences(Collection<PhaseReference> refs, int iteration, boolean addSelfPrevious) {
+      Collection<String> names = new ArrayList<>();
+      for (PhaseReference ref : refs) {
+         switch (ref.iteration) {
+            case NONE:
+               names.add(ref.phase);
+               break;
+            case PREVIOUS:
+               if (maxIterations <= 1) {
+                  throw new BenchmarkDefinitionException(name + " referencing previous iteration of " + ref.phase + " but this phase has no iterations.");
+               }
+               if (iteration > 0) {
+                  names.add(formatIteration(ref.phase, iteration - 1));
+               }
+               break;
+            case SAME:
+               if (maxIterations <= 1) {
+                  throw new BenchmarkDefinitionException(name + " referencing previous iteration of " + ref.phase + " but this phase has no iterations.");
+               }
+               names.add(formatIteration(ref.phase, iteration));
+               break;
+            default:
+               throw new IllegalArgumentException();
+         }
+      }
+      if (addSelfPrevious && iteration > 0) {
+         names.add(formatIteration(name, iteration - 1));
+      }
+      return names;
+   }
+
    public static class AtOnce extends PhaseBuilder<AtOnce> {
       private int users;
+      private int usersIncrement;
 
-      protected AtOnce(SimulationBuilder parent, String name, int users) {
+      AtOnce(SimulationBuilder parent, String name, int users) {
          super(parent, name);
          this.users = users;
       }
@@ -116,60 +250,58 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
          return this;
       }
 
-      @Override
-      public Phase.AtOnce build() {
-         return new Phase.AtOnce(name, scenario.build(), startTime, startAfter, startAfterStrict, terminateAfterStrict, duration, maxDuration, users);
+      public AtOnce users(int base, int increment) {
+         this.users = base;
+         this.usersIncrement = increment;
+         return this;
       }
 
       @Override
-      public PhaseBuilder<AtOnce> fork(String name) {
-         return new AtOnce(parent, name, -1);
-      }
-
-      @Override
-      public void slice(AtOnce source, double ratio) {
-         super.slice(source, ratio);
-         users = sliceValue(source.users, ratio);
+      public Phase.AtOnce buildPhase(int i, PhaseForkBuilder f) {
+         return new Phase.AtOnce(iterationName(i, f.name), f.scenario.build(), iterationStartTime(i),
+               iterationReferences(startAfter, i, false), iterationReferences(startAfterStrict, i, true),
+               iterationReferences(terminateAfterStrict, i, false), duration, maxDuration, sharedResources(f),
+               sliceValue(users + usersIncrement * i, f.weight));
       }
    }
 
    public static class Always extends PhaseBuilder<Always> {
       private int users;
+      private int usersIncrement;
 
-      protected Always(SimulationBuilder parent, String name, int users) {
+      Always(SimulationBuilder parent, String name, int users) {
          super(parent, name);
          this.users = users;
       }
 
       @Override
-      public Phase.Always build() {
-         return new Phase.Always(name, scenario.build(), startTime, startAfter, startAfterStrict,
-               terminateAfterStrict, duration, maxDuration, users);
-      }
-
-      @Override
-      public PhaseBuilder<Always> fork(String name) {
-         return new Always(parent, name, -1);
-      }
-
-      @Override
-      public void slice(Always source, double ratio) {
-         super.slice(source, ratio);
-         users = sliceValue(source.users, ratio);
+      public Phase.Always buildPhase(int i, PhaseForkBuilder f) {
+         return new Phase.Always(iterationName(i, f.name), f.scenario.build(), iterationStartTime(i),
+               iterationReferences(startAfter, i, false), iterationReferences(startAfterStrict, i, true),
+               iterationReferences(terminateAfterStrict, i, false), duration, maxDuration, sharedResources(f),
+               sliceValue(users + usersIncrement * i, f.weight));
       }
 
       public Always users(int users) {
          this.users = users;
          return this;
       }
+
+      public Always users(int base, int increment) {
+         this.users = base;
+         this.usersIncrement = increment;
+         return this;
+      }
    }
 
    public static class RampPerSec extends PhaseBuilder<RampPerSec> {
       private double initialUsersPerSec;
+      private double initialUsersPerSecIncrement;
       private double targetUsersPerSec;
+      private double targetUsersPerSecIncrement;
       private int maxSessionsEstimate;
 
-      protected RampPerSec(SimulationBuilder parent, String name, double initialUsersPerSec, double targetUsersPerSec) {
+      RampPerSec(SimulationBuilder parent, String name, double initialUsersPerSec, double targetUsersPerSec) {
          super(parent, name);
          this.initialUsersPerSec = initialUsersPerSec;
          this.targetUsersPerSec = targetUsersPerSec;
@@ -181,41 +313,53 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
       }
 
       @Override
-      public Phase.RampPerSec build() {
-         return new Phase.RampPerSec(name, scenario.build(), startTime, startAfter, startAfterStrict,
-               terminateAfterStrict, duration, maxDuration, initialUsersPerSec, targetUsersPerSec,
-               maxSessionsEstimate <= 0 ? (int) Math.ceil(Math.max(initialUsersPerSec, targetUsersPerSec)) : maxSessionsEstimate);
+      public Phase.RampPerSec buildPhase(int i, PhaseForkBuilder f) {
+         int maxSessionsEstimate;
+         if (this.maxSessionsEstimate > 0) {
+             maxSessionsEstimate = sliceValue(this.maxSessionsEstimate, f.weight);
+         } else {
+            double maxInitialUsers = initialUsersPerSec + initialUsersPerSecIncrement * (maxIterations - 1);
+            double maxTargetUsers = targetUsersPerSec + targetUsersPerSecIncrement * (maxIterations - 1);
+            maxSessionsEstimate = (int) Math.ceil(f.weight * Math.max(maxInitialUsers, maxTargetUsers));
+         }
+         return new Phase.RampPerSec(iterationName(i, f.name), f.scenario.build(),
+               iterationStartTime(i), iterationReferences(startAfter, i, false),
+               iterationReferences(startAfterStrict, i, true), iterationReferences(terminateAfterStrict, i, false),
+               duration, maxDuration, (initialUsersPerSec + initialUsersPerSecIncrement * i) * f.weight,
+               (targetUsersPerSec + targetUsersPerSecIncrement * i) * f.weight, sharedResources(f), maxSessionsEstimate);
       }
 
-      @Override
-      public PhaseBuilder<RampPerSec> fork(String name) {
-         return new RampPerSec(parent, name, -1, -1);
-      }
-
-      @Override
-      public void slice(RampPerSec source, double ratio) {
-         super.slice(source, ratio);
-         initialUsersPerSec = source.initialUsersPerSec * ratio;
-         targetUsersPerSec = source.targetUsersPerSec * ratio;
-         maxSessionsEstimate = sliceValue(source.maxSessionsEstimate, ratio);
-      }
-
-      public RampPerSec initialUsersPerSec(int initialUsersPerSec) {
+      public RampPerSec initialUsersPerSec(double initialUsersPerSec) {
          this.initialUsersPerSec = initialUsersPerSec;
+         this.initialUsersPerSecIncrement = 0;
          return this;
       }
 
-      public RampPerSec targetUsersPerSec(int targetUsersPerSec) {
+      public RampPerSec initialUsersPerSec(double base, double increment) {
+         this.initialUsersPerSec = base;
+         this.initialUsersPerSecIncrement = increment;
+         return this;
+      }
+
+      public RampPerSec targetUsersPerSec(double targetUsersPerSec) {
          this.targetUsersPerSec = targetUsersPerSec;
+         this.targetUsersPerSecIncrement = 0;
+         return this;
+      }
+
+      public RampPerSec targetUsersPerSec(double base, double increment) {
+         this.targetUsersPerSec = base;
+         this.targetUsersPerSecIncrement = increment;
          return this;
       }
    }
 
    public static class ConstantPerSec extends PhaseBuilder<ConstantPerSec> {
       private double usersPerSec;
+      private double usersPerSecIncrement;
       private int maxSessionsEstimate;
 
-      protected ConstantPerSec(SimulationBuilder parent, String name, double usersPerSec) {
+      ConstantPerSec(SimulationBuilder parent, String name, double usersPerSec) {
          super(parent, name);
          this.usersPerSec = usersPerSec;
       }
@@ -226,43 +370,28 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
       }
 
       @Override
-      public Phase.ConstantPerSec build() {
-         return new Phase.ConstantPerSec(name, scenario.build(), startTime, startAfter, startAfterStrict,
-               terminateAfterStrict, duration, maxDuration, usersPerSec,
-               maxSessionsEstimate <= 0 ? (int) Math.ceil(usersPerSec) : maxSessionsEstimate);
+      public Phase.ConstantPerSec buildPhase(int i, PhaseForkBuilder f) {
+         int maxSessionsEstimate;
+         if (this.maxSessionsEstimate <= 0) {
+            maxSessionsEstimate = (int) Math.ceil(f.weight * (usersPerSec + usersPerSecIncrement * (maxIterations - 1)));
+         } else {
+            maxSessionsEstimate = sliceValue(this.maxSessionsEstimate, f.weight);
+         }
+         return new Phase.ConstantPerSec(iterationName(i, f.name), f.scenario.build(), iterationStartTime(i),
+               iterationReferences(startAfter, i, false), iterationReferences(startAfterStrict, i, true),
+               iterationReferences(terminateAfterStrict, i, false), duration, maxDuration,
+               sharedResources(f), (usersPerSec + usersPerSecIncrement * i) * f.weight, maxSessionsEstimate);
       }
 
-      @Override
-      public PhaseBuilder<ConstantPerSec> fork(String name) {
-         return new ConstantPerSec(parent, name, -1);
-      }
-
-      @Override
-      public void slice(ConstantPerSec source, double ratio) {
-         super.slice(source, ratio);
-         usersPerSec = source.usersPerSec * ratio;
-         maxSessionsEstimate = sliceValue(source.maxSessionsEstimate, ratio);
-      }
-
-      public ConstantPerSec usersPerSec(int usersPerSec) {
+      public ConstantPerSec usersPerSec(double usersPerSec) {
          this.usersPerSec = usersPerSec;
          return this;
       }
-   }
 
-   public static class Noop extends PhaseBuilder<Noop> {
-      protected Noop(SimulationBuilder parent, String name) {
-         super(parent, name);
-      }
-
-      @Override
-      public Phase build() {
-         return new Phase.Noop(name, startAfter, startAfterStrict, terminateAfterStrict);
-      }
-
-      @Override
-      public PhaseBuilder<Noop> fork(String name) {
-         throw new UnsupportedOperationException();
+      public ConstantPerSec usersPerSec(double base, double increment) {
+         this.usersPerSec = base;
+         this.usersPerSecIncrement = increment;
+         return this;
       }
    }
 
@@ -270,7 +399,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
       private final SimulationBuilder parent;
       private final String name;
 
-      public Discriminator(SimulationBuilder parent, String name) {
+      Discriminator(SimulationBuilder parent, String name) {
          this.parent = parent;
          this.name = name;
       }

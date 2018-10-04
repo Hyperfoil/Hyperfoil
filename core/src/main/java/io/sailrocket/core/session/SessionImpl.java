@@ -33,7 +33,7 @@ class SessionImpl implements Session, Runnable {
    private final RequestQueueImpl requestQueue;
    private final Pool<SequenceInstance> sequencePool;
    private final SequenceInstance[] runningSequences;
-   private final PhaseInstance phase;
+   private PhaseInstance phase;
    private int lastRunningSequence = -1;
    private SequenceInstance currentSequence;
 
@@ -43,13 +43,11 @@ class SessionImpl implements Session, Runnable {
    private final Statistics[] statistics;
    private final int uniqueId;
 
-   public SessionImpl(HttpClientPool httpClientPool, PhaseInstance phase, int uniqueId) {
-      Scenario scenario = phase.definition().scenario();
+   public SessionImpl(HttpClientPool httpClientPool, Scenario scenario, int uniqueId) {
       this.httpClientPool = httpClientPool;
       this.requestQueue = new RequestQueueImpl(scenario.maxRequests());
       this.sequencePool = new Pool<>(scenario.maxSequences(), SequenceInstance::new);
       this.runningSequences = new SequenceInstance[scenario.maxSequences()];
-      this.phase = phase;
       this.uniqueId = uniqueId;
 
       Sequence[] sequences = scenario.sequences();
@@ -277,6 +275,15 @@ class SessionImpl implements Session, Runnable {
       for (Sequence sequence : phase.definition().scenario().initialSequences()) {
          sequence.instantiate(this, 0);
       }
+   }
+
+   public void resetPhase(PhaseInstance newPhase) {
+      // I dislike having non-final phase but it helps not reallocating the resources...
+      assert phase == null || newPhase.definition().scenario() == phase.definition().scenario();
+      assert phase == null || newPhase.definition().sharedResources.equals(phase.definition().sharedResources);
+      assert phase == null || phase.status() == PhaseInstance.Status.TERMINATED;
+      assert phase == null || newPhase.status() == PhaseInstance.Status.NOT_STARTED;
+      phase = newPhase;
    }
 
    @Override

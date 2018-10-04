@@ -36,7 +36,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Iterator;
 
-public class BenchmarkParser extends AbstractParser<BenchmarkBuilder, BenchmarkBuilder> {
+public class BenchmarkParser extends AbstractMappingParser<BenchmarkBuilder> {
     private static final BenchmarkParser INSTANCE = new BenchmarkParser();
     private static final boolean DEBUG_PARSER = Boolean.getBoolean("io.sailrocket.parser.debug");
 
@@ -45,9 +45,9 @@ public class BenchmarkParser extends AbstractParser<BenchmarkBuilder, BenchmarkB
     }
 
     private BenchmarkParser() {
-        subBuilders.put("name", new PropertyParser.String<>(BenchmarkBuilder::name));
-        subBuilders.put("hosts", new AgentsParser());
-        subBuilders.put("simulation", new SimulationParser());
+        register("name", new PropertyParser.String<>(BenchmarkBuilder::name));
+        register("hosts", new AgentsParser());
+        register("simulation", new Adapter<>(BenchmarkBuilder::simulation, new SimulationParser()));
     }
 
     public Benchmark buildBenchmark(InputStream configurationStream) throws ConfigurationNotDefinedException, ConfigurationParserException {
@@ -74,11 +74,6 @@ public class BenchmarkParser extends AbstractParser<BenchmarkBuilder, BenchmarkB
         ctx.expectEvent(StreamEndEvent.class);
 
         return benchmarkBuilder.build();
-    }
-
-    @Override
-    public void parse(Context ctx, BenchmarkBuilder target) throws ConfigurationParserException {
-        callSubBuilders(ctx, target);
     }
 
     private static class DebugIterator<T> implements Iterator<T> {

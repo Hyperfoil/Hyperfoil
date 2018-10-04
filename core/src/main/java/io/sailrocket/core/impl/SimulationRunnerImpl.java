@@ -27,6 +27,7 @@ public class SimulationRunnerImpl implements SimulationRunner {
 
     protected HttpClientPool clientPool;
     protected List<Session> sessions = new ArrayList<>();
+    protected Map<String, ConcurrentPoolImpl<Session>> sessionPools = new HashMap<>();
 
     public SimulationRunnerImpl(Simulation simulation) {
         this.simulation = simulation;
@@ -50,14 +51,21 @@ public class SimulationRunnerImpl implements SimulationRunner {
         for (Phase def : simulation.phases()) {
             PhaseInstance phase = PhaseInstanceImpl.newInstance(def);
             instances.put(def.name(), phase);
-            phase.setComponents(new ConcurrentPoolImpl<>(() -> {
-                Session session;
-                synchronized (sessions) {
-                    session = SessionFactory.create(clientPool, phase, sessions.size());
-                    sessions.add(session);
-                }
-                return session;
-            }), phaseChangeHandler);
+            ConcurrentPoolImpl<Session> pool;
+            if (def.sharedResources == null) {
+                pool = null;
+            } else if ((pool = sessionPools.get(def.sharedResources)) == null) {
+                pool = new ConcurrentPoolImpl<>(() -> {
+                    Session session;
+                    synchronized (this.sessions) {
+                        session = SessionFactory.create(clientPool, phase.definition().scenario, sessions.size());
+                        sessions.add(session);
+                    }
+                    return session;
+                });
+                sessionPools.put(def.sharedResources, pool);
+            }
+            phase.setComponents(pool, phaseChangeHandler);
             phase.reserveSessions();
         }
 

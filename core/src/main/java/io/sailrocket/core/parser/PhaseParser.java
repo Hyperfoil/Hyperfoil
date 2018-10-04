@@ -4,13 +4,14 @@ import io.sailrocket.core.builders.PhaseBuilder;
 
 abstract class PhaseParser extends AbstractParser<PhaseBuilder.Discriminator, PhaseBuilder> {
    protected PhaseParser() {
-      subBuilders.put("startTime", new PropertyParser.String<>(PhaseBuilder::duration));
-      subBuilders.put("startAfter", new StartAfterParser(PhaseBuilder::startAfter));
-      subBuilders.put("startAfterStrict", new StartAfterParser(PhaseBuilder::startAfterStrict));
-      subBuilders.put("duration", new PropertyParser.String<>(PhaseBuilder::duration));
-      subBuilders.put("maxDuration", new PropertyParser.String<>(PhaseBuilder::maxDuration));
-      subBuilders.put("scenario", ScenarioParser.instance());
-      subBuilders.put("forks", new PhaseForkParser());
+      register("startTime", new PropertyParser.String<>(PhaseBuilder::duration));
+      register("startAfter", new StartAfterParser(PhaseBuilder::startAfter));
+      register("startAfterStrict", new StartAfterParser(PhaseBuilder::startAfterStrict));
+      register("duration", new PropertyParser.String<>(PhaseBuilder::duration));
+      register("maxDuration", new PropertyParser.String<>(PhaseBuilder::maxDuration));
+      register("maxIterations", new PropertyParser.Int<>(PhaseBuilder::maxIterations));
+      register("scenario", new Adapter<>(PhaseBuilder::scenario, new ScenarioParser()));
+      register("forks", new PhaseForkParser());
    }
 
    @Override
@@ -22,7 +23,7 @@ abstract class PhaseParser extends AbstractParser<PhaseBuilder.Discriminator, Ph
 
    public static class AtOnce extends PhaseParser {
       public AtOnce() {
-         subBuilders.put("users", new PropertyParser.Int<>((builder, users) -> ((PhaseBuilder.AtOnce) builder).users(users)));
+         register("users", new IncrementPropertyParser.Int<>((builder, base, inc) -> ((PhaseBuilder.AtOnce) builder).users(base, inc)));
       }
 
       @Override
@@ -33,7 +34,7 @@ abstract class PhaseParser extends AbstractParser<PhaseBuilder.Discriminator, Ph
 
    public static class Always extends PhaseParser {
       public Always() {
-         subBuilders.put("users", new PropertyParser.Int<>((builder, users) -> ((PhaseBuilder.Always) builder).users(users)));
+         register("users", new IncrementPropertyParser.Int<>((builder, base, inc) -> ((PhaseBuilder.Always) builder).users(base, inc)));
       }
 
       @Override
@@ -44,9 +45,9 @@ abstract class PhaseParser extends AbstractParser<PhaseBuilder.Discriminator, Ph
 
    public static class RampPerSec extends PhaseParser {
       public RampPerSec() {
-         subBuilders.put("initialUsersPerSec", new PropertyParser.Int<>((builder1, users1) -> ((PhaseBuilder.RampPerSec) builder1).initialUsersPerSec(users1)));
-         subBuilders.put("targetUsersPerSec", new PropertyParser.Int<>((builder, users) -> ((PhaseBuilder.RampPerSec) builder).targetUsersPerSec(users)));
-         subBuilders.put("maxSessionsEstimate", new PropertyParser.Int<>((builder, sessions) -> ((PhaseBuilder.RampPerSec) builder).maxSessionsEstimate(sessions)));
+         register("initialUsersPerSec", new IncrementPropertyParser.Double<>((builder, base, inc) -> ((PhaseBuilder.RampPerSec) builder).initialUsersPerSec(base, inc)));
+         register("targetUsersPerSec", new IncrementPropertyParser.Double<>((builder, base, inc) -> ((PhaseBuilder.RampPerSec) builder).targetUsersPerSec(base, inc)));
+         register("maxSessionsEstimate", new PropertyParser.Int<>((builder, sessions) -> ((PhaseBuilder.RampPerSec) builder).maxSessionsEstimate(sessions)));
       }
 
       @Override
@@ -57,8 +58,8 @@ abstract class PhaseParser extends AbstractParser<PhaseBuilder.Discriminator, Ph
 
    public static class ConstantPerSec extends PhaseParser {
       public ConstantPerSec() {
-         subBuilders.put("usersPerSec", new PropertyParser.Int<>((builder, users) -> ((PhaseBuilder.ConstantPerSec) builder).usersPerSec(users)));
-         subBuilders.put("maxSessionsEstimate", new PropertyParser.Int<>((builder, sessions) -> ((PhaseBuilder.ConstantPerSec) builder).maxSessionsEstimate(sessions)));
+         register("usersPerSec", new IncrementPropertyParser.Double<>((builder, base, inc) -> ((PhaseBuilder.ConstantPerSec) builder).usersPerSec(base, inc)));
+         register("maxSessionsEstimate", new PropertyParser.Int<>((builder, sessions) -> ((PhaseBuilder.ConstantPerSec) builder).maxSessionsEstimate(sessions)));
       }
 
       @Override

@@ -27,7 +27,6 @@ import org.yaml.snakeyaml.events.MappingStartEvent;
 import org.yaml.snakeyaml.events.ScalarEvent;
 
 abstract class AbstractParser<T, S> implements Parser<T> {
-
     protected Map<String, Parser<S>> subBuilders = new HashMap<>();
 
     protected void callSubBuilders(Context ctx, S target) throws ConfigurationParserException {
@@ -47,6 +46,11 @@ abstract class AbstractParser<T, S> implements Parser<T> {
                 throw ctx.unexpectedEvent(next);
             }
         }
-        throw ctx.noMoreEvents((Class<? extends Event>)MappingEndEvent.class);
+        throw ctx.noMoreEvents(MappingEndEvent.class);
+    }
+
+    protected void register(String property, Parser<S> parser) {
+        Parser<S> prev = subBuilders.put(property, parser);
+        assert prev == null;
     }
 }

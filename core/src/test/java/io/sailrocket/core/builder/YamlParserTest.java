@@ -42,6 +42,12 @@ public class YamlParserTest {
         Assert.assertEquals("complex benchmark", benchmark.name());
     }
 
+    @Test
+    public void testIterationYaml() {
+        Benchmark benchmark = buildBenchmark("scenarios/iteration.yaml");
+        Assert.assertEquals("iteration benchmark", benchmark.name());
+    }
+
     private Benchmark buildBenchmark(String s) {
         return buildBenchmark(this.getClass().getClassLoader().getResourceAsStream(s));
     }

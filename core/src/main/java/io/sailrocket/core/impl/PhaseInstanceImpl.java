@@ -7,6 +7,7 @@ import io.sailrocket.api.collection.ConcurrentPool;
 import io.sailrocket.api.config.Phase;
 import io.sailrocket.api.session.Session;
 import io.sailrocket.core.api.PhaseInstance;
+import io.sailrocket.core.session.SessionFactory;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
@@ -68,6 +69,8 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
 
    @Override
    public void start(EventExecutorGroup executorGroup) {
+      sessions.forEach(session -> SessionFactory.resetPhase(session, this));
+
       assert status == Status.NOT_STARTED;
       status = Status.RUNNING;
       absoluteStartTime = System.currentTimeMillis();

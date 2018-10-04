@@ -18,32 +18,25 @@
  */
 package io.sailrocket.core.parser;
 
-import io.sailrocket.core.builders.PhaseBuilder;
 import io.sailrocket.core.builders.ScenarioBuilder;
 
 import org.yaml.snakeyaml.events.AliasEvent;
 import org.yaml.snakeyaml.events.MappingStartEvent;
 
-class ScenarioParser extends AbstractParser<PhaseBuilder, ScenarioBuilder> {
-    private static final ScenarioParser INSTANCE = new ScenarioParser();
-
-    public static ScenarioParser instance() {
-        return INSTANCE;
-    }
-
-    private ScenarioParser() {
-        this.subBuilders.put("initialSequences", new SequenceParser(ScenarioBuilder::initialSequence));
-        this.subBuilders.put("sequences", new SequenceParser(ScenarioBuilder::sequence));
-        this.subBuilders.put("orderedSequences", new OrderedSequenceParser());
-        this.subBuilders.put("intVars", new VarParser(ScenarioBuilder::intVar));
-        this.subBuilders.put("objectVars", new VarParser(ScenarioBuilder::objectVar));
+class ScenarioParser extends AbstractParser<ScenarioBuilder, ScenarioBuilder> {
+    ScenarioParser() {
+        register("initialSequences", new SequenceParser(ScenarioBuilder::initialSequence));
+        register("sequences", new SequenceParser(ScenarioBuilder::sequence));
+        register("orderedSequences", new OrderedSequenceParser());
+        register("intVars", new VarParser(ScenarioBuilder::intVar));
+        register("objectVars", new VarParser(ScenarioBuilder::objectVar));
     }
 
     @Override
-    public void parse(Context ctx, PhaseBuilder target) throws ConfigurationParserException {
+    public void parse(Context ctx, ScenarioBuilder target) throws ConfigurationParserException {
         if (!ctx.hasNext()) {
             throw ctx.noMoreEvents(MappingStartEvent.class, AliasEvent.class);
         }
-        ctx.parseAliased(ScenarioBuilder.class, target.scenario(), this::callSubBuilders);
+        ctx.parseAliased(ScenarioBuilder.class, target, this::callSubBuilders);
     }
 }

@@ -12,7 +12,6 @@ simulation:
       initialUsersPerSec: 1
       targetUsersPerSec: 100
       duration: 3s
-      # Forks don't have its own hierarchy, these just split the users into new phases. For
       forks:
       - invalidRegistration: &invalidRegistration
           weight: 0.2

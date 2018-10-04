@@ -34,21 +34,21 @@ public abstract class BaseScenarioTest {
    protected void runScenario(Scenario scenario, int repeats) {
       PhaseInstance phase;
       if (repeats <= 0) {
-         phase = new PhaseInstanceImpl.Always(new Phase.Always("test", scenario, 0, Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Long.MAX_VALUE, -1, 1));
+         phase = new PhaseInstanceImpl.Always(new Phase.Always("test", scenario, 0, Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Long.MAX_VALUE, -1, "test", 1));
       } else {
-         phase = new PhaseInstanceImpl.Sequentially(new Phase.Sequentially("test", scenario, 0, Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Long.MAX_VALUE, -1, repeats));
+         phase = new PhaseInstanceImpl.Sequentially(new Phase.Sequentially("test", scenario, 0, Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Long.MAX_VALUE, -1, "test", repeats));
       }
       runScenario(phase);
    }
 
    protected void runScenarioOnceParallel(Scenario scenario, int concurrency) {
-      PhaseInstance phase = new PhaseInstanceImpl.AtOnce(new Phase.AtOnce("test", scenario, 0, Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Long.MAX_VALUE, -1, concurrency));
+      PhaseInstance phase = new PhaseInstanceImpl.AtOnce(new Phase.AtOnce("test", scenario, 0, Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Long.MAX_VALUE, -1, "test", concurrency));
       runScenario(phase);
    }
 
    protected void runScenario(PhaseInstance phase) {
       CountDownLatch latch = new CountDownLatch(1);
-      phase.setComponents(new ConcurrentPoolImpl<>(() -> SessionFactory.create(httpClientPool, phase, 0)), (p, status) -> {
+      phase.setComponents(new ConcurrentPoolImpl<>(() -> SessionFactory.create(httpClientPool, phase.definition().scenario, 0)), (p, status) -> {
          if (status == PhaseInstance.Status.TERMINATED) {
             latch.countDown();;
          }

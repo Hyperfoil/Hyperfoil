@@ -29,10 +29,10 @@ import io.sailrocket.core.builders.SimulationBuilder;
 class PhasesParser extends AbstractParser<SimulationBuilder, PhaseBuilder.Discriminator> {
 
     PhasesParser() {
-        subBuilders.put("!atOnce", new PhaseParser.AtOnce());
-        subBuilders.put("!always", new PhaseParser.Always());
-        subBuilders.put("!rampPerSec", new PhaseParser.RampPerSec());
-        subBuilders.put("!constantPerSec", new PhaseParser.ConstantPerSec());
+        register("!atOnce", new PhaseParser.AtOnce());
+        register("!always", new PhaseParser.Always());
+        register("!rampPerSec", new PhaseParser.RampPerSec());
+        register("!constantPerSec", new PhaseParser.ConstantPerSec());
     }
 
     @Override

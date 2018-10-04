@@ -3,6 +3,7 @@ package io.sailrocket.core.impl;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import io.sailrocket.api.collection.ConcurrentPool;
@@ -44,9 +45,23 @@ public class ConcurrentPoolImpl<T> implements ConcurrentPool<T> {
 
    @Override
    public void reserve(int capacity) {
-      primaryQueue = new ArrayBlockingQueue<>(capacity);
-      for (int i = 0; i < capacity; ++i) {
+      if (primaryQueue == null || primaryQueue.size() < capacity) {
+         primaryQueue = new ArrayBlockingQueue<>(capacity);
+      }
+      while (primaryQueue.size() < capacity) {
          primaryQueue.add(supplier.get());
       }
+   }
+
+   @Override
+   public void forEach(Consumer<T> consumer) {
+      if (primaryQueue.remainingCapacity() < secondaryQueue.size()) {
+         BlockingQueue<T> newQueue = new ArrayBlockingQueue<>(primaryQueue.size() + secondaryQueue.size());
+         primaryQueue.drainTo(newQueue);
+         primaryQueue = newQueue;
+      }
+      secondaryQueue.drainTo(primaryQueue, primaryQueue.remainingCapacity());
+      assert secondaryQueue.isEmpty();
+      primaryQueue.forEach(consumer);
    }
 }

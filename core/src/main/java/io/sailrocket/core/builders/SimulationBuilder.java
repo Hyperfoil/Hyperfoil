@@ -27,12 +27,12 @@ import io.sailrocket.core.client.HttpClientProvider;
 import io.sailrocket.api.config.Simulation;
 import io.sailrocket.core.builders.connection.HttpBase;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 /**
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
@@ -44,7 +44,7 @@ public class SimulationBuilder {
     private int connections = 1;
     private int concurrency = 1;
     private int threads = 1;
-    private Map<String, PhaseBuilder> phaseBuilders = new HashMap<>();
+    private Map<String, PhaseBuilder<?>> phaseBuilders = new HashMap<>();
     private long statisticsCollectionPeriod = 1000;
 
     SimulationBuilder(BenchmarkBuilder benchmarkBuilder) {
@@ -85,21 +85,26 @@ public class SimulationBuilder {
     }
 
     public Simulation build() {
-        Collection<Phase> phases = new ArrayList<>();
-        for (PhaseBuilder<?> builder : this.phaseBuilders.values()) {
-            for (String dep : builder.startAfter) {
-                if (!phaseBuilders.containsKey(dep)) {
-                    throw new BenchmarkDefinitionException("Phase " + dep + " not defined");
-                }
-            }
-            for (String dep : builder.startAfterStrict) {
-                if (!phaseBuilders.containsKey(dep)) {
-                    throw new BenchmarkDefinitionException("Phase " + dep + " not defined");
-                }
-            }
-            phases.add(builder.build());
+        Collection<Phase> phases = phaseBuilders.values().stream()
+              .flatMap(builder -> builder.build().stream()).collect(Collectors.toList());
+        Set<String> phaseNames = phases.stream().map(Phase::name).collect(Collectors.toSet());
+        for (Phase phase : phases) {
+            checkDependencies(phase, phase.startAfter, phaseNames);
+            checkDependencies(phase, phase.startAfterStrict, phaseNames);
+            checkDependencies(phase, phase.terminateAfterStrict, phaseNames);
         }
         return new Simulation(buildClientPoolFactory(), phases, buildTags(), statisticsCollectionPeriod);
+    }
+
+    private void checkDependencies(Phase phase, Collection<String> references, Set<String> phaseNames) {
+        for (String dep : references) {
+            if (!phaseNames.contains(dep)) {
+                String suggestion = phaseNames.stream()
+                      .filter(name -> name.toLowerCase().startsWith(phase.name.toLowerCase())).findAny()
+                      .map(name -> " Did you mean " + name + "?").orElse("");
+                throw new BenchmarkDefinitionException("Phase " + dep + " referenced from " + phase.name() + " is not defined." + suggestion);
+            }
+        }
     }
 
     private HttpClientPoolFactory buildClientPoolFactory() {
@@ -137,14 +142,5 @@ public class SimulationBuilder {
     public SimulationBuilder statisticsCollectionPeriod(long statisticsCollectionPeriod) {
         this.statisticsCollectionPeriod = statisticsCollectionPeriod;
         return this;
-    }
-
-    public void proxify(PhaseBuilder phase, List<String> forks) {
-        PhaseBuilder prev = phaseBuilders.remove(phase.name);
-        assert prev == phase;
-        PhaseBuilder.Noop noop = new PhaseBuilder.Noop(this, phase.name);
-        noop.startAfter = forks;
-        noop.startAfterStrict.clear();
-        noop.terminateAfterStrict = forks;
     }
 }

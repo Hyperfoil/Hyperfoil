@@ -18,22 +18,15 @@
  */
 package io.sailrocket.core.parser;
 
-import io.sailrocket.core.builders.BenchmarkBuilder;
 import io.sailrocket.core.builders.SimulationBuilder;
 
-class SimulationParser extends AbstractParser<BenchmarkBuilder, SimulationBuilder> {
-
+class SimulationParser extends AbstractMappingParser<SimulationBuilder> {
     SimulationParser() {
-        subBuilders.put("concurrency", new PropertyParser.Int<>(SimulationBuilder::concurrency));
-        subBuilders.put("connections", new PropertyParser.Int<>(SimulationBuilder::connections));
-        subBuilders.put("http", new HttpParser());
-        subBuilders.put("phases", new PhasesParser());
-        subBuilders.put("threads", new PropertyParser.Int<>(SimulationBuilder::threads));
-        subBuilders.put("statisticsCollectionPeriod", new PropertyParser.Int<>(SimulationBuilder::statisticsCollectionPeriod));
-    }
-
-    @Override
-    public void parse(Context ctx, BenchmarkBuilder target) throws ConfigurationParserException {
-        callSubBuilders(ctx, target.simulation());
+        register("concurrency", new PropertyParser.Int<>(SimulationBuilder::concurrency));
+        register("connections", new PropertyParser.Int<>(SimulationBuilder::connections));
+        register("http", new Adapter<>(SimulationBuilder::http, new HttpParser()));
+        register("phases", new PhasesParser());
+        register("threads", new PropertyParser.Int<>(SimulationBuilder::threads));
+        register("statisticsCollectionPeriod", new PropertyParser.Int<>(SimulationBuilder::statisticsCollectionPeriod));
     }
 }

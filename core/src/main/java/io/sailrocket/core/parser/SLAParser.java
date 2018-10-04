@@ -20,23 +20,18 @@ package io.sailrocket.core.parser;
 
 import io.sailrocket.core.builders.SLABuilder;
 
-class SLAParser extends AbstractParser<SLABuilder, SLABuilder> {
+class SLAParser extends AbstractMappingParser<SLABuilder> {
     private static final SLAParser INSTANCE = new SLAParser();
 
     SLAParser() {
-        subBuilders.put("window", new PropertyParser.String<>(SLABuilder::window));
-        subBuilders.put("errorRate", new PropertyParser.Double<>(SLABuilder::errorRate));
-        subBuilders.put("meanResponseTime", new PropertyParser.String<>(SLABuilder::meanResponseTime));
-        subBuilders.put("limits", new PercentileLimitsParser());
+        register("window", new PropertyParser.String<>(SLABuilder::window));
+        register("errorRate", new PropertyParser.Double<>(SLABuilder::errorRate));
+        register("meanResponseTime", new PropertyParser.String<>(SLABuilder::meanResponseTime));
+        register("limits", new PercentileLimitsParser());
     }
 
-    public static SLAParser instance(){
+    static SLAParser instance(){
         return INSTANCE;
-    }
-
-    @Override
-    public void parse(Context ctx, SLABuilder target) throws ConfigurationParserException {
-        callSubBuilders(ctx, target);
     }
 }
 
