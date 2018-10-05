@@ -17,7 +17,7 @@ import java.util.Set;
 
 import io.sailrocket.api.config.Benchmark;
 import io.sailrocket.core.parser.BenchmarkParser;
-import io.sailrocket.core.parser.ConfigurationParserException;
+import io.sailrocket.core.parser.ParserException;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
@@ -94,7 +94,7 @@ public class ControllerRestServer {
          routingContext.response().setStatusCode(204)
                .putHeader(HttpHeaders.LOCATION, baseURL + "/benchmark/" + benchmark.name()).end();
 
-      } catch (IOException | ClassNotFoundException | ClassCastException | ConfigurationParserException e) {
+      } catch (IOException | ClassNotFoundException | ClassCastException | ParserException e) {
          log.error("Failed to read benchmark", e);
          routingContext.response().setStatusCode(400).end("Cannot read benchmark.");
       }

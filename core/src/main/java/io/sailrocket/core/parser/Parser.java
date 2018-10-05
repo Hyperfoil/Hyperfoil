@@ -19,5 +19,5 @@
 package io.sailrocket.core.parser;
 
 interface Parser<T> {
-    void parse(Context ctx, T target) throws ConfigurationParserException;
+    void parse(Context ctx, T target) throws ParserException;
 }

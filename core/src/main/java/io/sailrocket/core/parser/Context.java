@@ -56,16 +56,16 @@ class Context {
    }
 
 
-   void setAnchor(Event event, String anchor, Object object) throws ConfigurationParserException {
+   void setAnchor(Event event, String anchor, Object object) throws ParserException {
       Objects.requireNonNull(anchor);
       Objects.requireNonNull(object);
       Anchor prev = anchors.putIfAbsent(anchor + ":" + object.getClass().getName(), new Anchor(event, object));
       if (prev != null) {
-         throw new ConfigurationParserException(event, "Anchor " + anchor + " already defined on " + ConfigurationParserException.location(prev.source));
+         throw new ParserException(event, "Anchor " + anchor + " already defined on " + ParserException.location(prev.source));
       }
    }
 
-   <T> T getAnchor(Event event, String alias, Class<T> clazz) throws ConfigurationParserException {
+   <T> T getAnchor(Event event, String alias, Class<T> clazz) throws ParserException {
       Objects.requireNonNull(alias);
       Anchor anchor = anchors.get(alias + ":" + clazz.getName());
       if (anchor == null) {
@@ -73,27 +73,29 @@ class Context {
          for (String key : anchors.keySet()) {
             if (key.startsWith(prefix)) {
                Anchor similar = anchors.get(key);
-               throw new ConfigurationParserException(event, "There is no anchor for " + alias + " with type " + clazz +
-                     " but there is another anchor " + key + " on " + ConfigurationParserException.location(similar.source));
+               throw new ParserException(event, "There is no anchor for " + alias + " with type " + clazz +
+                     " but there is another anchor " + key + " on " + ParserException.location(similar.source));
             }
          }
-         throw new ConfigurationParserException(event, "There's no anchor for " + alias + ", available are "
+         throw new ParserException(event, "There's no anchor for " + alias + ", available are "
                + anchors.keySet().stream().sorted().collect(Collectors.toList()));
       }
       if (!clazz.isInstance(anchor.object)) {
-         throw new ConfigurationParserException(event, alias + " is anchored to unexpected type "
+         throw new ParserException(event, alias + " is anchored to unexpected type "
                + anchor.object.getClass() + " while we expect " + clazz + "; anchor is defined on "
-               + ConfigurationParserException.location(anchor.source));
+               + ParserException.location(anchor.source));
       }
+      // noinspection unchecked
       return (T) anchor.object;
    }
 
-   <E extends Event> E expectEvent(Class<E> eventClazz) throws ConfigurationParserException {
+   <E extends Event> E expectEvent(Class<E> eventClazz) throws ParserException {
       if (hasNext()) {
          Event event = next();
          if (!eventClazz.isInstance(event)) {
-            throw new ConfigurationParserException(event, "Expected " + eventClazz + ", got " + event);
+            throw new ParserException(event, "Expected " + eventClazz + ", got " + event);
          }
+         // noinspection unchecked
          return (E) event;
       } else {
          throw noMoreEvents(eventClazz);
@@ -101,15 +103,15 @@ class Context {
    }
 
    @SafeVarargs
-   final ConfigurationParserException noMoreEvents(Class<? extends Event>... eventClazzes) {
-      return new ConfigurationParserException("Expected one of " + Arrays.toString(eventClazzes) + " but there are no more events.");
+   final ParserException noMoreEvents(Class<? extends Event>... eventClazzes) {
+      return new ParserException("Expected one of " + Arrays.toString(eventClazzes) + " but there are no more events.");
    }
 
-   ConfigurationParserException unexpectedEvent(Event event) {
-      return new ConfigurationParserException(event, "Unexpected event " + event);
+   ParserException unexpectedEvent(Event event) {
+      return new ParserException(event, "Unexpected event " + event);
    }
 
-   <LI> void parseList(LI target, Parser<LI> consumer) throws ConfigurationParserException {
+   <LI> void parseList(LI target, Parser<LI> consumer) throws ParserException {
       if (!hasNext()) {
          throw noMoreEvents(SequenceStartEvent.class, ScalarEvent.class);
       }
@@ -128,14 +130,14 @@ class Context {
          // if the value is null/empty we can consider this an empty list
          String value = ((ScalarEvent) event).getValue();
          if (value != null && !value.isEmpty()) {
-            throw new ConfigurationParserException(event, "Expected a sequence, got " + value);
+            throw new ParserException(event, "Expected a sequence, got " + value);
          }
       } else {
          throw unexpectedEvent(event);
       }
    }
 
-   <A extends Rewritable<A>> void parseAliased(Class<A> aliasType, A target, Parser<A> parser) throws ConfigurationParserException {
+   <A extends Rewritable<A>> void parseAliased(Class<A> aliasType, A target, Parser<A> parser) throws ParserException {
       Event event = peek();
       try {
          if (event instanceof MappingStartEvent) {
@@ -153,7 +155,7 @@ class Context {
             throw unexpectedEvent(event);
          }
       } catch (BenchmarkDefinitionException e) {
-         throw new ConfigurationParserException(event, "Error in benchmark builders", e);
+         throw new ParserException(event, "Error in benchmark builders", e);
       }
    }
 
@@ -166,6 +168,7 @@ class Context {
       if (clazz != null && top != null && !clazz.isInstance(top)) {
          throw new IllegalStateException("On the top of the stack is " + top);
       }
+      // noinspection unchecked
       return (T) vars.pop();
    }
 
@@ -174,6 +177,7 @@ class Context {
       if (clazz != null && top != null && !clazz.isInstance(top)) {
          throw new IllegalStateException("On the top of the stack is " + top);
       }
+      // noinspection unchecked
       return (T) top;
    }
 

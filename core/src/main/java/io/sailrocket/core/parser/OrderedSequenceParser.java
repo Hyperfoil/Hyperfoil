@@ -12,13 +12,13 @@ import io.sailrocket.core.builders.SequenceBuilder;
  */
 class OrderedSequenceParser implements Parser<ScenarioBuilder> {
    @Override
-   public void parse(Context ctx, ScenarioBuilder target) throws ConfigurationParserException {
+   public void parse(Context ctx, ScenarioBuilder target) throws ParserException {
       ctx.pushVar(null);
       ctx.parseList(target, this::parseSequence);
       ctx.popVar(null);
    }
 
-   private void parseSequence(Context ctx, ScenarioBuilder target) throws ConfigurationParserException {
+   private void parseSequence(Context ctx, ScenarioBuilder target) throws ParserException {
       ctx.expectEvent(MappingStartEvent.class);
       ScalarEvent sequenceNameEvent = ctx.expectEvent(ScalarEvent.class);
       SequenceBuilder lastBuilder = ctx.popVar(SequenceBuilder.class);

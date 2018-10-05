@@ -38,11 +38,11 @@ class SequenceParser implements Parser<ScenarioBuilder> {
     }
 
     @Override
-    public void parse(Context ctx, ScenarioBuilder target) throws ConfigurationParserException {
+    public void parse(Context ctx, ScenarioBuilder target) throws ParserException {
         ctx.parseList(target, this::parseSequence);
     }
 
-    private void parseSequence(Context ctx, ScenarioBuilder target) throws ConfigurationParserException {
+    private void parseSequence(Context ctx, ScenarioBuilder target) throws ParserException {
         ctx.expectEvent(MappingStartEvent.class);
         ScalarEvent sequenceNameEvent = ctx.expectEvent(ScalarEvent.class);
         SequenceBuilder sequenceBuilder = builderFunction.apply(target, sequenceNameEvent.getValue());
@@ -50,7 +50,7 @@ class SequenceParser implements Parser<ScenarioBuilder> {
         ctx.expectEvent(MappingEndEvent.class);
     }
 
-    static void parseSequence(Context ctx, SequenceBuilder sequenceBuilder) throws ConfigurationParserException {
+    static void parseSequence(Context ctx, SequenceBuilder sequenceBuilder) throws ParserException {
         Event event = ctx.peek();
         if (event instanceof SequenceStartEvent) {
             String anchor = ((SequenceStartEvent) event).getAnchor();
@@ -61,9 +61,9 @@ class SequenceParser implements Parser<ScenarioBuilder> {
         } else if (event instanceof ScalarEvent) {
             String value = ((ScalarEvent) event).getValue();
             if (value == null || value.isEmpty()) {
-                throw new ConfigurationParserException(event, "The sequence must not be empty.");
+                throw new ParserException(event, "The sequence must not be empty.");
             } else {
-                throw new ConfigurationParserException(event, "Expected sequence of steps but got " + value);
+                throw new ParserException(event, "Expected sequence of steps but got " + value);
             }
         } else if (event instanceof AliasEvent) {
             String anchor = ((AliasEvent) event).getAnchor();

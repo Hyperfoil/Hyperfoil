@@ -17,11 +17,11 @@ import io.sailrocket.core.builders.PhaseForkBuilder;
  */
 class PhaseForkParser implements Parser<io.sailrocket.core.builders.PhaseBuilder> {
    @Override
-   public void parse(Context ctx, PhaseBuilder target) throws ConfigurationParserException {
+   public void parse(Context ctx, PhaseBuilder target) throws ParserException {
       ctx.parseList(target, this::parseFork);
    }
 
-   private void parseFork(Context ctx, PhaseBuilder phaseBuilder) throws ConfigurationParserException {
+   private void parseFork(Context ctx, PhaseBuilder phaseBuilder) throws ParserException {
       ctx.expectEvent(MappingStartEvent.class);
       ScalarEvent forkNameEvent = ctx.expectEvent(ScalarEvent.class);
       PhaseForkBuilder forkBuilder = phaseBuilder.fork(forkNameEvent.getValue());

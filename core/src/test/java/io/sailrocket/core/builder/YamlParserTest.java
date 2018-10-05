@@ -20,7 +20,7 @@ package io.sailrocket.core.builder;
 
 import io.sailrocket.api.config.Benchmark;
 import io.sailrocket.core.parser.BenchmarkParser;
-import io.sailrocket.core.parser.ConfigurationParserException;
+import io.sailrocket.core.parser.ParserException;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -71,7 +71,7 @@ public class YamlParserTest {
             Assert.assertNotNull(benchmark);
 
             return benchmark;
-        } catch (ConfigurationParserException | IOException e) {
+        } catch (ParserException | IOException e) {
             e.printStackTrace();
             fail("Error occurred during parsing");
         }

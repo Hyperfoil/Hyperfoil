@@ -33,7 +33,7 @@ class PropertyParser {
         }
 
         @Override
-        public void parse(Context ctx, T target) throws ConfigurationParserException {
+        public void parse(Context ctx, T target) throws ParserException {
             ScalarEvent event = ctx.expectEvent(ScalarEvent.class);
             consumer.accept(target, event.getValue());
         }
@@ -47,12 +47,12 @@ class PropertyParser {
         }
 
         @Override
-        public void parse(Context ctx, T target) throws ConfigurationParserException {
+        public void parse(Context ctx, T target) throws ParserException {
             ScalarEvent event = ctx.expectEvent(ScalarEvent.class);
             try {
                 consumer.accept(target, Integer.parseInt(event.getValue()));
             } catch (NumberFormatException e) {
-                throw new ConfigurationParserException(event, "Failed to parse as integer: " + event.getValue());
+                throw new ParserException(event, "Failed to parse as integer: " + event.getValue());
             }
         }
     }
@@ -65,12 +65,12 @@ class PropertyParser {
         }
 
         @Override
-        public void parse(Context ctx, T target) throws ConfigurationParserException {
+        public void parse(Context ctx, T target) throws ParserException {
             ScalarEvent event = ctx.expectEvent(ScalarEvent.class);
             try {
                 consumer.accept(target, java.lang.Long.parseLong(event.getValue()));
             } catch (NumberFormatException e) {
-                throw new ConfigurationParserException(event, "Failed to parse as long: " + event.getValue());
+                throw new ParserException(event, "Failed to parse as long: " + event.getValue());
             }
         }
     }
@@ -83,12 +83,12 @@ class PropertyParser {
         }
 
         @Override
-        public void parse(Context ctx, T target) throws ConfigurationParserException {
+        public void parse(Context ctx, T target) throws ParserException {
             ScalarEvent event = ctx.expectEvent(ScalarEvent.class);
             try {
                 consumer.accept(target, java.lang.Double.parseDouble(event.getValue()));
             } catch (NumberFormatException e) {
-                throw new ConfigurationParserException(event, "Failed to parse as long: " + event.getValue());
+                throw new ParserException(event, "Failed to parse as long: " + event.getValue());
             }
         }
     }

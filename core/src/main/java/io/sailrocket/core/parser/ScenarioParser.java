@@ -33,7 +33,7 @@ class ScenarioParser extends AbstractParser<ScenarioBuilder, ScenarioBuilder> {
     }
 
     @Override
-    public void parse(Context ctx, ScenarioBuilder target) throws ConfigurationParserException {
+    public void parse(Context ctx, ScenarioBuilder target) throws ParserException {
         if (!ctx.hasNext()) {
             throw ctx.noMoreEvents(MappingStartEvent.class, AliasEvent.class);
         }

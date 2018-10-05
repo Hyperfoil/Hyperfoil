@@ -6,13 +6,13 @@ import org.yaml.snakeyaml.events.ScalarEvent;
 
 import io.sailrocket.core.builders.SLABuilder;
 
-public class PercentileLimitsParser implements Parser<SLABuilder> {
+class PercentileLimitsParser implements Parser<SLABuilder> {
    @Override
-   public void parse(Context ctx, SLABuilder target) throws ConfigurationParserException {
+   public void parse(Context ctx, SLABuilder target) throws ParserException {
       ctx.parseList(target, this::parseLimit);
    }
 
-   public void parseLimit(Context ctx, SLABuilder builder) throws ConfigurationParserException {
+   private void parseLimit(Context ctx, SLABuilder builder) throws ParserException {
       ctx.expectEvent(MappingStartEvent.class);
       ScalarEvent percentile = ctx.expectEvent(ScalarEvent.class);
       ScalarEvent responseTime = ctx.expectEvent(ScalarEvent.class);

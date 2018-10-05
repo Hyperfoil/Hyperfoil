@@ -20,20 +20,20 @@ package io.sailrocket.core.parser;
 
 import org.yaml.snakeyaml.events.Event;
 
-public class ConfigurationParserException extends Exception {
-    public ConfigurationParserException(String msg) {
+public class ParserException extends Exception {
+    public ParserException(String msg) {
         super(msg);
     }
 
-    public ConfigurationParserException(String msg, Exception e) {
+    public ParserException(String msg, Exception e) {
         super(msg, e);
     }
 
-    public ConfigurationParserException(Event event, String msg) {
+    public ParserException(Event event, String msg) {
         this(event, msg, null);
     }
 
-    public ConfigurationParserException(Event event, String msg, Throwable cause) {
+    public ParserException(Event event, String msg, Throwable cause) {
         super(location(event) + ": " + msg, cause);
     }
 

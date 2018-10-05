@@ -36,19 +36,19 @@ class PhasesParser extends AbstractParser<SimulationBuilder, PhaseBuilder.Discri
     }
 
     @Override
-    public void parse(Context ctx, SimulationBuilder target) throws ConfigurationParserException {
+    public void parse(Context ctx, SimulationBuilder target) throws ParserException {
         ctx.parseList(target, this::parsePhase);
     }
 
-    private void parsePhase(Context ctx, SimulationBuilder target) throws ConfigurationParserException {
+    private void parsePhase(Context ctx, SimulationBuilder target) throws ParserException {
         ctx.expectEvent(MappingStartEvent.class);
         ScalarEvent event = ctx.expectEvent(ScalarEvent.class);
         if (event.getTag() == null) {
-            throw new ConfigurationParserException(event, "Phases must be tagged by the type; use one of: " + subBuilders.keySet());
+            throw new ParserException(event, "Phases must be tagged by the type; use one of: " + subBuilders.keySet());
         }
         Parser<PhaseBuilder.Discriminator> phaseBuilder = subBuilders.get(event.getTag());
         if (phaseBuilder == null) {
-            throw new ConfigurationParserException(event, "Unknown phase type: " + event.getTag() + ", expected one of " + subBuilders.keySet());
+            throw new ParserException(event, "Unknown phase type: " + event.getTag() + ", expected one of " + subBuilders.keySet());
         }
         String name = event.getValue();
         phaseBuilder.parse(ctx, target.addPhase(name));

@@ -3,7 +3,7 @@ package io.sailrocket.core.parser;
 import io.sailrocket.core.builders.PhaseBuilder;
 
 abstract class PhaseParser extends AbstractParser<PhaseBuilder.Discriminator, PhaseBuilder> {
-   protected PhaseParser() {
+   PhaseParser() {
       register("startTime", new PropertyParser.String<>(PhaseBuilder::duration));
       register("startAfter", new StartAfterParser(PhaseBuilder::startAfter));
       register("startAfterStrict", new StartAfterParser(PhaseBuilder::startAfterStrict));
@@ -15,14 +15,14 @@ abstract class PhaseParser extends AbstractParser<PhaseBuilder.Discriminator, Ph
    }
 
    @Override
-   public void parse(Context ctx, PhaseBuilder.Discriminator target) throws ConfigurationParserException {
+   public void parse(Context ctx, PhaseBuilder.Discriminator target) throws ParserException {
       callSubBuilders(ctx, type(target));
    }
 
    protected abstract PhaseBuilder type(PhaseBuilder.Discriminator discriminator);
 
-   public static class AtOnce extends PhaseParser {
-      public AtOnce() {
+   static class AtOnce extends PhaseParser {
+      AtOnce() {
          register("users", new IncrementPropertyParser.Int<>((builder, base, inc) -> ((PhaseBuilder.AtOnce) builder).users(base, inc)));
       }
 
@@ -32,8 +32,8 @@ abstract class PhaseParser extends AbstractParser<PhaseBuilder.Discriminator, Ph
       }
    }
 
-   public static class Always extends PhaseParser {
-      public Always() {
+   static class Always extends PhaseParser {
+      Always() {
          register("users", new IncrementPropertyParser.Int<>((builder, base, inc) -> ((PhaseBuilder.Always) builder).users(base, inc)));
       }
 
@@ -43,8 +43,8 @@ abstract class PhaseParser extends AbstractParser<PhaseBuilder.Discriminator, Ph
       }
    }
 
-   public static class RampPerSec extends PhaseParser {
-      public RampPerSec() {
+   static class RampPerSec extends PhaseParser {
+      RampPerSec() {
          register("initialUsersPerSec", new IncrementPropertyParser.Double<>((builder, base, inc) -> ((PhaseBuilder.RampPerSec) builder).initialUsersPerSec(base, inc)));
          register("targetUsersPerSec", new IncrementPropertyParser.Double<>((builder, base, inc) -> ((PhaseBuilder.RampPerSec) builder).targetUsersPerSec(base, inc)));
          register("maxSessionsEstimate", new PropertyParser.Int<>((builder, sessions) -> ((PhaseBuilder.RampPerSec) builder).maxSessionsEstimate(sessions)));
@@ -56,8 +56,8 @@ abstract class PhaseParser extends AbstractParser<PhaseBuilder.Discriminator, Ph
       }
    }
 
-   public static class ConstantPerSec extends PhaseParser {
-      public ConstantPerSec() {
+   static class ConstantPerSec extends PhaseParser {
+      ConstantPerSec() {
          register("usersPerSec", new IncrementPropertyParser.Double<>((builder, base, inc) -> ((PhaseBuilder.ConstantPerSec) builder).usersPerSec(base, inc)));
          register("maxSessionsEstimate", new PropertyParser.Int<>((builder, sessions) -> ((PhaseBuilder.ConstantPerSec) builder).maxSessionsEstimate(sessions)));
       }

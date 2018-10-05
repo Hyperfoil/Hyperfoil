@@ -7,8 +7,8 @@ import org.yaml.snakeyaml.events.MappingStartEvent;
 import org.yaml.snakeyaml.events.ScalarEvent;
 
 class IncrementPropertyParser<T, V> implements Parser<T> {
-   final IncrementPropertyConsumer<T, V> consumer;
-   final Function<String, V> conversion;
+   private final IncrementPropertyConsumer<T, V> consumer;
+   private final Function<String, V> conversion;
 
    IncrementPropertyParser(IncrementPropertyConsumer<T, V> consumer, Function<String, V> conversion) {
       this.consumer = consumer;
@@ -16,7 +16,7 @@ class IncrementPropertyParser<T, V> implements Parser<T> {
    }
 
    @Override
-   public void parse(Context ctx, T target) throws ConfigurationParserException {
+   public void parse(Context ctx, T target) throws ParserException {
       Event event = ctx.peek();
       if (event instanceof ScalarEvent) {
          consumer.accept(target, conversion.apply(((ScalarEvent) event).getValue()), conversion.apply(null));

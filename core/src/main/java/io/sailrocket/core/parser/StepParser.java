@@ -51,13 +51,13 @@ class StepParser implements Parser<BaseSequenceBuilder> {
    }
 
    @Override
-   public void parse(Context ctx, BaseSequenceBuilder target) throws ConfigurationParserException {
+   public void parse(Context ctx, BaseSequenceBuilder target) throws ParserException {
       Event firstEvent = ctx.next();
       if (firstEvent instanceof ScalarEvent) {
          ScalarEvent stepEvent = (ScalarEvent) firstEvent;
          Method step = STEPS.get(stepEvent.getValue());
          if (step == null) {
-            throw new ConfigurationParserException(stepEvent, "Unknown step '" + stepEvent.getValue() + "'");
+            throw new ParserException(stepEvent, "Unknown step '" + stepEvent.getValue() + "'");
          }
          try {
             step.invoke(target.step());
@@ -74,14 +74,14 @@ class StepParser implements Parser<BaseSequenceBuilder> {
          if (target instanceof SequenceBuilder) {
             SLAParser.instance().parse(ctx, ((SequenceBuilder) target).sla());
          } else {
-            throw new ConfigurationParserException(stepEvent, "SLAs are allowed only as the top-level sequence element.");
+            throw new ParserException(stepEvent, "SLAs are allowed only as the top-level sequence element.");
          }
          ctx.expectEvent(MappingEndEvent.class);
          return;
       }
       Method step = STEPS.get(stepEvent.getValue());
       if (step == null) {
-         throw new ConfigurationParserException(stepEvent, "Unknown step '" + stepEvent.getValue() + "'");
+         throw new ParserException(stepEvent, "Unknown step '" + stepEvent.getValue() + "'");
       }
       if (!ctx.hasNext()) {
          throw ctx.noMoreEvents(ScalarEvent.class, MappingStartEvent.class, MappingEndEvent.class, SequenceStartEvent.class);
@@ -99,7 +99,7 @@ class StepParser implements Parser<BaseSequenceBuilder> {
          // - step : param syntax
          String value = ((ScalarEvent) defEvent).getValue();
          if (step.getParameterCount() != 1) {
-            throw new ConfigurationParserException(defEvent, "Step '" + stepEvent.getValue() + "' does not have single parameter.");
+            throw new ParserException(defEvent, "Step '" + stepEvent.getValue() + "' does not have single parameter.");
          }
          Object param = convert(defEvent, value, step.getParameterTypes()[0]);
          try {
@@ -131,7 +131,7 @@ class StepParser implements Parser<BaseSequenceBuilder> {
                ScalarEvent paramEvent = ctx.expectEvent(ScalarEvent.class);
                if (setter.getParameterCount() == 0) {
                   if (paramEvent.getValue() != null && !paramEvent.getValue().isEmpty()) {
-                     new ConfigurationParserException(paramEvent, "Setter " + setter.getName() + " has no args, keep the mapping empty.");
+                     throw new ParserException(paramEvent, "Setter " + setter.getName() + " has no args, keep the mapping empty.");
                   }
                   setterArgs = new Object[0];
                } else {
@@ -140,7 +140,7 @@ class StepParser implements Parser<BaseSequenceBuilder> {
                try {
                   setter.invoke(builder, setterArgs);
                } catch (IllegalAccessException | InvocationTargetException e) {
-                  throw new ConfigurationParserException(defEvent, "Cannot run setter " + setter, e);
+                  throw new ParserException(defEvent, "Cannot run setter " + setter, e);
                }
             } else {
                throw ctx.unexpectedEvent(defEvent);
@@ -154,20 +154,20 @@ class StepParser implements Parser<BaseSequenceBuilder> {
             throw cannotCreate(stepEvent, e);
          }
          if (!(builder instanceof BaseSequenceBuilder)) {
-            throw new ConfigurationParserException(defEvent, "Builder on step " + stepEvent.getValue() + " does not allow nested steps.");
+            throw new ParserException(defEvent, "Builder on step " + stepEvent.getValue() + " does not allow nested steps.");
          }
-         ctx.parseList((BaseSequenceBuilder) builder, StepParser.instance()::parse);
+         ctx.parseList((BaseSequenceBuilder) builder, StepParser.instance());
       }
       ctx.expectEvent(MappingEndEvent.class);
    }
 
-   private Method findMethod(Event event, Object target, String setter) throws ConfigurationParserException {
+   private Method findMethod(Event event, Object target, String setter) throws ParserException {
       return Stream.of(target.getClass().getMethods())
             .filter(m -> setter.equals(m.getName()) && m.getParameterCount() <= 1).findFirst()
-            .orElseThrow(() -> new ConfigurationParserException(event, "Cannot find setter " + setter + " on " + target));
+            .orElseThrow(() -> new ParserException(event, "Cannot find setter " + setter + " on " + target));
    }
 
-   private Object convert(Event event, String str, Class<?> type) throws ConfigurationParserException {
+   private Object convert(Event event, String str, Class<?> type) throws ParserException {
       if (type == String.class) {
          return str;
       } else if (type == boolean.class) {
@@ -179,9 +179,10 @@ class StepParser implements Parser<BaseSequenceBuilder> {
       } else if (type == double.class) {
          return Double.parseDouble(str);
       } else if (type.isEnum()) {
+         // noinspection unchecked
          return Enum.valueOf((Class<Enum>) type, str);
       } else {
-         throw new ConfigurationParserException(event, "Cannot convert " + str + " to " + type);
+         throw new ParserException(event, "Cannot convert " + str + " to " + type);
       }
    }
 
@@ -189,8 +190,8 @@ class StepParser implements Parser<BaseSequenceBuilder> {
       return Array.get(Array.newInstance(clazz, 1), 0);
    }
 
-   private ConfigurationParserException cannotCreate(ScalarEvent event, Exception exception) {
-      return new ConfigurationParserException(event, "Cannot create step '" + event.getValue() + "'", exception);
+   private ParserException cannotCreate(ScalarEvent event, Exception exception) {
+      return new ParserException(event, "Cannot create step '" + event.getValue() + "'", exception);
    }
 
 }

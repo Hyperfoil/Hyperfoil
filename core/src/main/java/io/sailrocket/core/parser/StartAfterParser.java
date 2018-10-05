@@ -19,7 +19,7 @@ class StartAfterParser implements Parser<PhaseBuilder> {
    }
 
    @Override
-   public void parse(Context ctx, PhaseBuilder target) throws ConfigurationParserException {
+   public void parse(Context ctx, PhaseBuilder target) throws ParserException {
       if (!ctx.hasNext()) {
          throw ctx.noMoreEvents(ScalarEvent.class, SequenceStartEvent.class, MappingStartEvent.class);
       }
@@ -31,7 +31,7 @@ class StartAfterParser implements Parser<PhaseBuilder> {
       parseItem(ctx, target);
    }
 
-   private void parseItem(Context ctx, PhaseBuilder target) throws ConfigurationParserException {
+   private void parseItem(Context ctx, PhaseBuilder target) throws ParserException {
       Event event = ctx.peek();
       if (event instanceof ScalarEvent) {
          consumer.accept(target, new PhaseReference(((ScalarEvent) event).getValue(), RelativeIteration.NONE, null));

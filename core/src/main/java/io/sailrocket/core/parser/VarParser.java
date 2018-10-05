@@ -8,19 +8,19 @@ import org.yaml.snakeyaml.events.ScalarEvent;
 
 import io.sailrocket.core.builders.ScenarioBuilder;
 
-public class VarParser implements Parser<ScenarioBuilder> {
+class VarParser implements Parser<ScenarioBuilder> {
    private final BiConsumer<ScenarioBuilder, String> consumer;
 
-   public VarParser(BiConsumer<ScenarioBuilder, String> consumer) {
+   VarParser(BiConsumer<ScenarioBuilder, String> consumer) {
       this.consumer = consumer;
    }
 
    @Override
-   public void parse(Context ctx, ScenarioBuilder target) throws ConfigurationParserException {
+   public void parse(Context ctx, ScenarioBuilder target) throws ParserException {
       ctx.parseList(target, this::parseVar);
    }
 
-   private void parseVar(Context ctx, ScenarioBuilder target) throws ConfigurationParserException {
+   private void parseVar(Context ctx, ScenarioBuilder target) throws ParserException {
       ctx.expectEvent(MappingStartEvent.class);
       ScalarEvent event = ctx.expectEvent(ScalarEvent.class);
       consumer.accept(target, event.getValue());

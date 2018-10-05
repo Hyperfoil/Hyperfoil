@@ -27,9 +27,9 @@ import org.yaml.snakeyaml.events.MappingStartEvent;
 import org.yaml.snakeyaml.events.ScalarEvent;
 
 abstract class AbstractParser<T, S> implements Parser<T> {
-    protected Map<String, Parser<S>> subBuilders = new HashMap<>();
+    Map<String, Parser<S>> subBuilders = new HashMap<>();
 
-    protected void callSubBuilders(Context ctx, S target) throws ConfigurationParserException {
+    void callSubBuilders(Context ctx, S target) throws ParserException {
         ctx.expectEvent(MappingStartEvent.class);
         while (ctx.hasNext()) {
             Event next = ctx.next();
@@ -39,7 +39,7 @@ abstract class AbstractParser<T, S> implements Parser<T> {
                 ScalarEvent event = (ScalarEvent) next;
                 Parser<S> builder = subBuilders.get(event.getValue());
                 if (builder == null) {
-                    throw new ConfigurationParserException(event, "Invalid configuration label: " + event.getValue() + ", expected one of " + subBuilders.keySet());
+                    throw new ParserException(event, "Invalid configuration label: " + event.getValue() + ", expected one of " + subBuilders.keySet());
                 }
                 builder.parse(ctx, target);
             } else {

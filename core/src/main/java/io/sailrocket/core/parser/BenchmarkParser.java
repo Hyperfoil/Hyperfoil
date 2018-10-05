@@ -50,7 +50,7 @@ public class BenchmarkParser extends AbstractMappingParser<BenchmarkBuilder> {
     }
 
 
-    public Benchmark buildBenchmark(String source) throws ConfigurationParserException {
+    public Benchmark buildBenchmark(String source) throws ParserException {
         Yaml yaml = new Yaml();
 
         Iterator<Event> events = yaml.parse(new StringReader(source)).iterator();

@@ -28,7 +28,7 @@ import org.yaml.snakeyaml.events.ScalarEvent;
 class AgentsParser implements Parser<BenchmarkBuilder> {
 
     @Override
-    public void parse(Context ctx, BenchmarkBuilder builder) throws ConfigurationParserException {
+    public void parse(Context ctx, BenchmarkBuilder builder) throws ParserException {
         ctx.expectEvent(MappingStartEvent.class);
         while (ctx.hasNext()) {
             Event next = ctx.next();
