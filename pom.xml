@@ -48,7 +48,6 @@
         <module>cli</module>
         <module>core</module>
         <module>distributed</module>
-        <module>exec</module>
         <module>test-suite</module>
     </modules>
 
