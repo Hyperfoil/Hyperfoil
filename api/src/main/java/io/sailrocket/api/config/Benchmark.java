@@ -28,12 +28,14 @@ import java.io.Serializable;
 public class Benchmark implements Serializable {
 
     protected final String name;
+    protected final String originalSource;
     protected final Simulation simulation;
     protected final Host[] agents;
     protected final SLA[] slas;
 
-    public Benchmark(String name, Simulation simulation, Host[] agents, SLA[] slas) {
+    public Benchmark(String name, String originalSource, Simulation simulation, Host[] agents, SLA[] slas) {
         this.name = name;
+        this.originalSource = originalSource;
         this.simulation = simulation;
         this.agents = agents;
         this.slas = slas;
@@ -53,5 +55,13 @@ public class Benchmark implements Serializable {
 
     public Host[] agents() {
         return agents;
+    }
+
+    /**
+     *  As the transformation from YAML is one-way (due to forks and iterations)
+     *  here we store the original source (be it YAML or JSON)
+     */
+    public String source() {
+        return originalSource;
     }
 }

@@ -19,13 +19,15 @@
 package io.sailrocket.core.builder;
 
 import io.sailrocket.api.config.Benchmark;
-import io.sailrocket.core.parser.ConfigurationNotDefinedException;
 import io.sailrocket.core.parser.BenchmarkParser;
 import io.sailrocket.core.parser.ConfigurationParserException;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 
 import static org.junit.Assert.fail;
 
@@ -56,18 +58,20 @@ public class YamlParserTest {
         if (inputStream == null)
             fail("Could not find benchmark configuration");
 
-
         try {
-            Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(inputStream);
+            ByteArrayOutputStream result = new ByteArrayOutputStream();
+            byte[] buffer = new byte[1024];
+            int length;
+            while ((length = inputStream.read(buffer)) != -1) {
+                result.write(buffer, 0, length);
+            }
+            String source = result.toString(StandardCharsets.UTF_8.name());
+            Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(source);
 
             Assert.assertNotNull(benchmark);
 
             return benchmark;
-
-        } catch (ConfigurationNotDefinedException e) {
-            e.printStackTrace();
-            fail("Configuration not defined");
-        } catch (ConfigurationParserException e) {
+        } catch (ConfigurationParserException | IOException e) {
             e.printStackTrace();
             fail("Error occurred during parsing");
         }

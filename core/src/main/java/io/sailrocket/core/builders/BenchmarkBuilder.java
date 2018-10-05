@@ -31,16 +31,18 @@ import java.util.Collection;
  */
 public class BenchmarkBuilder {
 
+    private final String originalSource;
     private String name;
     private SimulationBuilder simulation;
     private Collection<Host> agents = new ArrayList<>();
     private Collection<SLABuilder> slas = new ArrayList<>();
 
-    private BenchmarkBuilder() {
+    public BenchmarkBuilder(String originalSource) {
+        this.originalSource = originalSource;
     }
 
     public static BenchmarkBuilder builder() {
-        return new BenchmarkBuilder();
+        return new BenchmarkBuilder(null);
     }
 
     public BenchmarkBuilder name(String name) {
@@ -58,7 +60,7 @@ public class BenchmarkBuilder {
     }
 
     public Benchmark build() {
-        return new Benchmark(name, simulation.build(), agents.toArray(new Host[0]), slas.stream().map(SLABuilder::build).toArray(SLA[]::new));
+        return new Benchmark(name, originalSource, simulation.build(), agents.toArray(new Host[0]), slas.stream().map(SLABuilder::build).toArray(SLA[]::new));
     }
 
     void addSLA(SLABuilder sla) {

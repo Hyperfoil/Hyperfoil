@@ -5,12 +5,19 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import io.sailrocket.api.config.Benchmark;
+import io.sailrocket.core.parser.BenchmarkParser;
+import io.sailrocket.core.parser.ConfigurationParserException;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
@@ -25,7 +32,9 @@ import io.vertx.ext.web.handler.BodyHandler;
 
 public class ControllerRestServer {
    private static final Logger log = LoggerFactory.getLogger(ControllerRestServer.class);
-   public static final String APPLICATION_JAVA_SERIALIZED_OBJECT = "application/java-serialized-object";
+   private static final String MIME_TYPE_SERIALIZED = "application/java-serialized-object";
+   private static final Set<String> MIME_TYPE_YAML = new HashSet<>(
+         Arrays.asList("text/vnd.yaml", "text/yaml", "text/x-yaml", "application/x-yaml"));
 
    private final String baseURL = "http://localhost:8090";
    private final AgentControllerVerticle controller;
@@ -55,19 +64,39 @@ public class ControllerRestServer {
    }
 
    private void handlePostBenchmark(RoutingContext routingContext) {
-      if (routingContext.request().getHeader(HttpHeaders.CONTENT_TYPE).equals(APPLICATION_JAVA_SERIALIZED_OBJECT)) {
-         byte[] bytes = routingContext.getBody().getBytes();
-         try (ObjectInputStream input = new ObjectInputStream(new ByteArrayInputStream(bytes))) {
-            Benchmark benchmark = (Benchmark) input.readObject();
-            benchmarks.put(benchmark.name(), benchmark);
-            routingContext.response().setStatusCode(204)
-                  .putHeader(HttpHeaders.LOCATION, baseURL + "/benchmark/" + benchmark.name()).end();
-         } catch (IOException | ClassNotFoundException | ClassCastException e) {
-            log.error("Failed to decode benchmark", e);
-            routingContext.response().setStatusCode(400).end("Cannot decode benchmark.");
+      String contentType = routingContext.request().getHeader(HttpHeaders.CONTENT_TYPE).trim();
+      Charset charset = StandardCharsets.UTF_8;
+      int semicolonIndex = contentType.indexOf(';');
+      if (semicolonIndex >= 0) {
+         String tmp = contentType.substring(semicolonIndex + 1).trim();
+         if (tmp.startsWith("charset=")) {
+            charset = Charset.forName(tmp.substring(8));
          }
-      } else {
-         routingContext.response().setStatusCode(406).setStatusMessage("Unsupported Content-Type.");
+         contentType = contentType.substring(0, semicolonIndex).trim();
+      }
+
+      try {
+         Benchmark benchmark;
+         if (contentType.equals(MIME_TYPE_SERIALIZED)) {
+            byte[] bytes = routingContext.getBody().getBytes();
+            try (ObjectInputStream input = new ObjectInputStream(new ByteArrayInputStream(bytes))) {
+               benchmark = (Benchmark) input.readObject();
+            }
+         } else if (MIME_TYPE_YAML.contains(contentType)) {
+            String source = routingContext.getBodyAsString(charset.name());
+            benchmark = BenchmarkParser.instance().buildBenchmark(source);
+         } else {
+            routingContext.response().setStatusCode(406).setStatusMessage("Unsupported Content-Type.");
+            return;
+         }
+
+         benchmarks.put(benchmark.name(), benchmark);
+         routingContext.response().setStatusCode(204)
+               .putHeader(HttpHeaders.LOCATION, baseURL + "/benchmark/" + benchmark.name()).end();
+
+      } catch (IOException | ClassNotFoundException | ClassCastException | ConfigurationParserException e) {
+         log.error("Failed to read benchmark", e);
+         routingContext.response().setStatusCode(400).end("Cannot read benchmark.");
       }
    }
 
@@ -82,7 +111,15 @@ public class ControllerRestServer {
       Benchmark benchmark = benchmarks.get(name);
       if (benchmark == null) {
          routingContext.response().setStatusCode(404).setStatusMessage("No benchmark '" + name + "'").end();
-      } else if (routingContext.request().getHeader(HttpHeaders.ACCEPT).equals(APPLICATION_JAVA_SERIALIZED_OBJECT)){
+         return;
+      }
+
+      String acceptHeader = routingContext.request().getHeader(HttpHeaders.ACCEPT);
+      int semicolonIndex = acceptHeader.indexOf(';');
+      if (semicolonIndex >= 0) {
+         acceptHeader = acceptHeader.substring(0, semicolonIndex).trim();
+      }
+      if (acceptHeader.equals(MIME_TYPE_SERIALIZED)) {
          ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
          try (ObjectOutputStream outputStream = new ObjectOutputStream(byteArrayOutputStream)) {
             outputStream.writeObject(benchmark);
@@ -91,8 +128,16 @@ public class ControllerRestServer {
             return;
          }
          routingContext.response().setStatusCode(200)
-               .putHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JAVA_SERIALIZED_OBJECT)
+               .putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_SERIALIZED)
                .end(Buffer.buffer(byteArrayOutputStream.toByteArray()));
+      } else if (MIME_TYPE_YAML.contains(acceptHeader)) {
+         if (benchmark.source() == null) {
+            routingContext.response().setStatusCode(406).setStatusMessage("Benchmark does not preserve the original source.");
+         } else {
+            routingContext.response().setStatusCode(200)
+                  .putHeader(HttpHeaders.CONTENT_TYPE, "text/vnd.yaml; charset=UTF-8")
+                  .end(benchmark.source());
+         }
       } else {
          routingContext.response().setStatusCode(406).setStatusMessage("Unsupported type in Accept.").end();
       }

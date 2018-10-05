@@ -32,8 +32,7 @@ import org.yaml.snakeyaml.events.SequenceStartEvent;
 import org.yaml.snakeyaml.events.StreamEndEvent;
 import org.yaml.snakeyaml.events.StreamStartEvent;
 
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.StringReader;
 import java.util.Iterator;
 
 public class BenchmarkParser extends AbstractMappingParser<BenchmarkBuilder> {
@@ -50,14 +49,11 @@ public class BenchmarkParser extends AbstractMappingParser<BenchmarkBuilder> {
         register("simulation", new Adapter<>(BenchmarkBuilder::simulation, new SimulationParser()));
     }
 
-    public Benchmark buildBenchmark(InputStream configurationStream) throws ConfigurationNotDefinedException, ConfigurationParserException {
 
-        if (configurationStream == null)
-            throw new ConfigurationNotDefinedException();
-
+    public Benchmark buildBenchmark(String source) throws ConfigurationParserException {
         Yaml yaml = new Yaml();
 
-        Iterator<Event> events = yaml.parse(new InputStreamReader(configurationStream)).iterator();
+        Iterator<Event> events = yaml.parse(new StringReader(source)).iterator();
         if (DEBUG_PARSER) {
             events = new DebugIterator<>(events);
         }
@@ -67,7 +63,7 @@ public class BenchmarkParser extends AbstractMappingParser<BenchmarkBuilder> {
         ctx.expectEvent(DocumentStartEvent.class);
 
         //instantiate new benchmark builder
-        BenchmarkBuilder benchmarkBuilder = BenchmarkBuilder.builder();
+        BenchmarkBuilder benchmarkBuilder = new BenchmarkBuilder(source);
         parse(ctx, benchmarkBuilder);
 
         ctx.expectEvent(DocumentEndEvent.class);
