@@ -1,6 +1,7 @@
 package io.sailrocket.core.steps;
 
 import java.io.Serializable;
+import java.lang.reflect.Array;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -269,17 +270,23 @@ public class HttpResponseHandler implements ResourceUtilizer, Session.ResourceKe
       }
 
       public HttpResponseHandler build() {
-         return new HttpResponseHandler(toArray(statusValidators, new StatusValidator[0]),
-               toArray(headerValidators, new HeaderValidator[0]),
-               toArray(bodyValidators, new BodyValidator[0]),
-               toArray(statusExtractors, new StatusExtractor[0]),
-               toArray(headerExtractors, new HeaderExtractor[0]),
-               toArray(bodyExtractors, new BodyExtractor[0]),
-               toArray(completionHandlers, new Consumer[0]));
+         return new HttpResponseHandler(toArray(statusValidators, StatusValidator.class),
+               toArray(headerValidators, HeaderValidator.class),
+               toArray(bodyValidators, BodyValidator.class),
+               toArray(statusExtractors, StatusExtractor.class),
+               toArray(headerExtractors, HeaderExtractor.class),
+               toArray(bodyExtractors, BodyExtractor.class),
+               toArray(completionHandlers, Consumer.class));
       }
 
-      private static <T> T[] toArray(List<T> list, T[] a) {
-         return list.isEmpty() ? null : list.toArray(a);
+      private static <T> T[] toArray(List<T> list, Class<?> component) {
+         if (list.isEmpty()) {
+            return null;
+         } else {
+            @SuppressWarnings("unchecked")
+            T[] empty = (T[]) Array.newInstance(component, list.size());
+            return list.toArray(empty);
+         }
       }
 
    }

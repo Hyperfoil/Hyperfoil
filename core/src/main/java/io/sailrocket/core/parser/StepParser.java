@@ -179,11 +179,15 @@ class StepParser implements Parser<BaseSequenceBuilder> {
       } else if (type == double.class) {
          return Double.parseDouble(str);
       } else if (type.isEnum()) {
-         // noinspection unchecked
-         return Enum.valueOf((Class<Enum>) type, str);
+         return parseEnum(str, type);
       } else {
          throw new ParserException(event, "Cannot convert " + str + " to " + type);
       }
+   }
+
+   @SuppressWarnings("unchecked")
+   private Enum parseEnum(String str, Class<?> type) {
+      return Enum.valueOf( (Class<Enum>) type, str);
    }
 
    private Object defaultValue(Class<?> clazz) {

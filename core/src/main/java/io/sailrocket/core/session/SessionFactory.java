@@ -23,7 +23,9 @@ public final class SessionFactory {
    public static Session forTesting() {
       Scenario dummyScenario = new Scenario(new Sequence[0], new Sequence[0], new String[0], new String[0]);
       SessionImpl session = new SessionImpl(null, dummyScenario, 0);
-      session.resetPhase(new PhaseInstanceImpl(new Phase("dummy", dummyScenario, 0, Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), 0, -1, null) {}) {
+      Phase dummyPhase = new Phase("dummy", dummyScenario, 0, Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), 0, -1, null) {
+      };
+      session.resetPhase(new PhaseInstanceImpl<Phase>(dummyPhase) {
          @Override
          public void proceed(EventExecutorGroup executorGroup) {
          }

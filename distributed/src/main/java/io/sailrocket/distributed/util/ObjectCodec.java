@@ -66,14 +66,13 @@ public class ObjectCodec<T> implements MessageCodec<T, T> {
 
         ObjectInput in = null;
         ByteArrayInputStream bis = new ByteArrayInputStream(byteArrayMessageCodec.decodeFromWire(position, buffer));
-        T object = null;
 
         try {
             in = new ObjectInputStream(bis);
-            object = (T) in.readObject();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (ClassNotFoundException e) {
+            @SuppressWarnings("unchecked")
+            T object = (T) in.readObject();
+            return object;
+        } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
         } finally {
             try {
@@ -84,11 +83,10 @@ public class ObjectCodec<T> implements MessageCodec<T, T> {
                 // ignore close exception
             }
         }
-        return object;
-
+        return null;
     }
 
-    @Override
+   @Override
     public T transform(T object) {
         // If a message is sent *locally* across the event bus.
         // This example sends message just as is

@@ -85,8 +85,9 @@ class Context {
                + anchor.object.getClass() + " while we expect " + clazz + "; anchor is defined on "
                + ParserException.location(anchor.source));
       }
-      // noinspection unchecked
-      return (T) anchor.object;
+      @SuppressWarnings("unchecked")
+      T object = (T) anchor.object;
+      return object;
    }
 
    <E extends Event> E expectEvent(Class<E> eventClazz) throws ParserException {
@@ -95,8 +96,9 @@ class Context {
          if (!eventClazz.isInstance(event)) {
             throw new ParserException(event, "Expected " + eventClazz + ", got " + event);
          }
-         // noinspection unchecked
-         return (E) event;
+         @SuppressWarnings("unchecked")
+         E expectedEvent = (E) event;
+         return expectedEvent;
       } else {
          throw noMoreEvents(eventClazz);
       }
@@ -168,8 +170,9 @@ class Context {
       if (clazz != null && top != null && !clazz.isInstance(top)) {
          throw new IllegalStateException("On the top of the stack is " + top);
       }
-      // noinspection unchecked
-      return (T) vars.pop();
+      @SuppressWarnings("unchecked")
+      T popped = (T) vars.pop();
+      return popped;
    }
 
    <T> T peekVar(Class<T> clazz) {
@@ -177,8 +180,9 @@ class Context {
       if (clazz != null && top != null && !clazz.isInstance(top)) {
          throw new IllegalStateException("On the top of the stack is " + top);
       }
-      // noinspection unchecked
-      return (T) top;
+      @SuppressWarnings("unchecked")
+      T peeked = (T) top;
+      return peeked;
    }
 
    private static class Anchor {

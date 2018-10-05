@@ -20,7 +20,7 @@ import java.util.List;
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
  */
 @CommandDefinition(name = "http-clientPool", description = "")
-public class HttpClientCommand implements Command {
+public class HttpClientCommand implements Command<CommandInvocation> {
 
     @Option(name = "provider", converter = HttpClientProviderConverter.class, defaultValue = "netty")
     public HttpClientProvider provider;

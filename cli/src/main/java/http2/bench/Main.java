@@ -5,6 +5,8 @@ import org.aesh.command.AeshCommandRuntimeBuilder;
 import org.aesh.command.CommandNotFoundException;
 import org.aesh.command.CommandRuntime;
 import org.aesh.command.impl.registry.AeshCommandRegistryBuilder;
+import org.aesh.command.invocation.CommandInvocation;
+import org.aesh.command.parser.CommandLineParserException;
 import org.aesh.command.registry.CommandRegistry;
 
 /**
@@ -14,13 +16,9 @@ public class Main {
 
   public static void main(String[] args) throws Exception {
 
-    CommandRegistry registry = new AeshCommandRegistryBuilder()
-            .command(HttpClientCommand.class)
-            .create();
-
     CommandRuntime runtime = AeshCommandRuntimeBuilder
             .builder()
-            .commandRegistry(registry)
+            .commandRegistry(httpClientCommandRegistry())
             .build();
 
     StringBuilder argsBuilder = new StringBuilder("http-clientPool").append(" ");
@@ -69,5 +67,12 @@ public class Main {
         Signal.handle(new Signal("INT"), handler);
 */
 
+  }
+
+  @SuppressWarnings("unchecked")
+  private static CommandRegistry<HttpClientCommand, CommandInvocation> httpClientCommandRegistry() throws CommandLineParserException {
+    return new AeshCommandRegistryBuilder()
+            .command(HttpClientCommand.class)
+            .create();
   }
 }

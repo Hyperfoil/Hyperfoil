@@ -174,6 +174,7 @@ class SessionImpl implements Session, Runnable {
       resources.put(key, resource);
    }
 
+   @SuppressWarnings("unchecked")
    @Override
    public <R extends Resource> R getResource(ResourceKey<R> key) {
       return (R) resources.get(key);

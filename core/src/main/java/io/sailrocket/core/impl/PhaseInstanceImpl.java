@@ -34,6 +34,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
    private Throwable error;
 
    public static PhaseInstance newInstance(Phase def) {
+      @SuppressWarnings("unchecked")
       Function<Phase, PhaseInstance> ctor = (Function<Phase, PhaseInstance>) constructors.get(def.getClass());
       if (ctor == null) throw new BenchmarkDefinitionException("Unknown phase type: " + def);
       return ctor.apply(def);

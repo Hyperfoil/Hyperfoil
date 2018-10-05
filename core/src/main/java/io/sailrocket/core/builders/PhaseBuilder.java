@@ -54,6 +54,11 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
       }
    }
 
+   @SuppressWarnings("unchecked")
+   private PB self() {
+      return (PB) this;
+   }
+
    public PhaseForkBuilder fork(String name) {
       if (forks.size() == 1 && forks.get(0).name == null) {
          throw new BenchmarkDefinitionException("Scenario for " + name + " already set!");
@@ -66,8 +71,8 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
 
    public PB startTime(long startTime) {
       this.startTime = startTime;
-      // noinspection unchecked
-      return (PB) this;
+      return self();
+
    }
 
    public PB startTime(String startTime) {
@@ -76,32 +81,27 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
 
    public PB startAfter(String phase) {
       this.startAfter.add(new PhaseReference(phase, RelativeIteration.NONE, null));
-      // noinspection unchecked
-      return (PB) this;
+      return self();
    }
 
    public PB startAfter(PhaseReference phase) {
       this.startAfter.add(phase);
-      // noinspection unchecked
-      return (PB) this;
+      return self();
    }
 
    public PB startAfterStrict(String phase) {
       this.startAfterStrict.add(new PhaseReference(phase, RelativeIteration.NONE, null));
-      // noinspection unchecked
-      return (PB) this;
+      return self();
    }
 
    public PB startAfterStrict(PhaseReference phase) {
       this.startAfterStrict.add(phase);
-      // noinspection unchecked
-      return (PB) this;
+      return self();
    }
 
    public PB duration(long duration) {
       this.duration = duration;
-      // noinspection unchecked
-      return (PB) this;
+      return self();
    }
 
    public PB duration(String duration) {
@@ -110,8 +110,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
 
    public PB maxDuration(long maxDuration) {
       this.maxDuration = maxDuration;
-      // noinspection unchecked
-      return (PB) this;
+      return self();
    }
 
    public PB maxDuration(String duration) {
@@ -120,8 +119,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
 
    public PB maxIterations(int iterations) {
       this.maxIterations = iterations;
-      // noinspection unchecked
-      return (PB) this;
+      return self();
    }
 
    public Collection<Phase> build() {

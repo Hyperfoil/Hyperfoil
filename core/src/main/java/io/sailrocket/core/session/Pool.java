@@ -15,13 +15,14 @@ class Pool<T> {
       }
    }
 
-   public T acquire() {
+   T acquire() {
       int i = index + 1;
       while (i != index && elements[i & mask] == null) ++i;
       if (elements[i & mask] == null) {
          return null;
       } else {
          index = i;
+         @SuppressWarnings("unchecked")
          T object = (T) elements[i];
          elements[i] = null;
          return object;
@@ -40,7 +41,7 @@ class Pool<T> {
       }
    }
 
-   public void checkFull() {
+   void checkFull() {
       for (Object o : elements) {
          assert o != null;
       }
