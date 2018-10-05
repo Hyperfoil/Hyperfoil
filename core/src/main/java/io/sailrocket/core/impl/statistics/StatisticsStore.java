@@ -6,6 +6,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.PrintWriter;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -59,8 +60,8 @@ public class StatisticsStore {
       data.record(address, stats);
    }
 
-   public void persist(String dir) throws IOException {
-      File statsDir = new File(dir);
+   public void persist(Path dir) throws IOException {
+      File statsDir = dir.toFile();
       if (!statsDir.mkdirs()) {
          throw new IOException("Cannot create directory " + dir);
       }

@@ -6,17 +6,23 @@ import io.sailrocket.api.config.Sequence;
 import io.sailrocket.api.config.Simulation;
 import io.sailrocket.core.api.PhaseInstance;
 import io.sailrocket.core.impl.statistics.StatisticsStore;
+import io.sailrocket.distributed.util.PersistenceUtil;
 import io.sailrocket.distributed.util.PhaseChangeMessage;
 import io.sailrocket.distributed.util.PhaseControlMessage;
 import io.sailrocket.distributed.util.ReportMessage;
 import io.sailrocket.distributed.util.SimulationCodec;
 import io.vertx.core.AbstractVerticle;
+import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
+import io.vertx.core.Handler;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -25,18 +31,33 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class AgentControllerVerticle extends AbstractVerticle {
     private static final Logger log = LoggerFactory.getLogger(AgentControllerVerticle.class);
+    private static final Path ROOT_DIR = getConfiguredPath(Properties.ROOT_DIR, Paths.get(System.getProperty("java.io.tmpdir"), "sailrocket"));
+    private static final Path RUN_DIR = getConfiguredPath(Properties.RUN_DIR, ROOT_DIR.resolve("run"));
+    private static final Path BENCHMARK_DIR = getConfiguredPath(Properties.BENCHMARK_DIR, ROOT_DIR.resolve("benchmark"));
 
     private EventBus eb;
     private ControllerRestServer server;
     private AtomicInteger runIds = new AtomicInteger();
-    private String runDir = "/tmp/SailRocket";
+    private Map<String, Benchmark> benchmarks = new HashMap<>();
 
     Map<String, AgentInfo> agents = new HashMap<>();
-
     Run run;
 
+    private static Path getConfiguredPath(String property, Path def) {
+        String path = System.getProperty(property);
+        if (path != null) {
+            return Paths.get(path);
+        }
+        path = System.getenv(property.replaceAll("\\.", "_").toUpperCase());
+        if (path != null) {
+            return Paths.get(path);
+        }
+        return def;
+    }
+
     @Override
-    public void start() {
+    public void start(Future<Void> future) {
+        log.info("Starting in directory {}...", RUN_DIR);
         server = new ControllerRestServer(this);
         vertx.exceptionHandler(throwable -> log.error("Uncaught error: ", throwable));
 
@@ -74,6 +95,9 @@ public class AgentControllerVerticle extends AbstractVerticle {
                   reportMessage.address, reportMessage.phase, reportMessage.sequence, reportMessage.statistics.requestCount);
             run.statisticsStore.record(reportMessage.address, reportMessage.phase, reportMessage.sequence, reportMessage.statistics);
         });
+
+        BENCHMARK_DIR.toFile().mkdirs();
+        loadBenchmarks(event -> future.complete());
     }
 
     @Override
@@ -182,12 +206,15 @@ public class AgentControllerVerticle extends AbstractVerticle {
     private void stopSimulation() {
         run.terminateTime = System.currentTimeMillis();
         vertx.executeBlocking(future -> {
+            Path runDir = RUN_DIR.resolve(run.id);
+            runDir.toFile().mkdirs();
             try {
-                run.statisticsStore.persist(runDir + "/" + run.id + "/stats");
+                run.statisticsStore.persist(runDir.resolve("stats"));
             } catch (IOException e) {
                 log.error("Failed to persist statistics", e);
                 future.fail(e);
             }
+            PersistenceUtil.store(run.benchmark, runDir);
             future.complete();
         }, null);
         // TODO stop agents?
@@ -218,5 +245,37 @@ public class AgentControllerVerticle extends AbstractVerticle {
         for (String phase : run.phases.keySet()) {
             eb.publish(Feeds.CONTROL, new PhaseControlMessage(PhaseControlMessage.Command.TERMINATE, null, phase));
         }
+    }
+
+    public void addBenchmark(Benchmark benchmark, Handler<AsyncResult<Void>> handler) {
+        benchmarks.put(benchmark.name(), benchmark);
+        vertx.executeBlocking(future -> {
+            PersistenceUtil.store(benchmark, BENCHMARK_DIR);
+            future.complete();
+        }, handler);
+    }
+
+    public Collection<String> getBenchmarks() {
+        return benchmarks.keySet();
+    }
+
+    public Benchmark getBenchmark(String name) {
+        return benchmarks.get(name);
+    }
+
+    private void loadBenchmarks(Handler<AsyncResult<Void>> handler) {
+        vertx.executeBlocking(future -> {
+            try {
+                Files.list(BENCHMARK_DIR).forEach(file -> {
+                    Benchmark benchmark = PersistenceUtil.load(file);
+                    if (benchmark != null) {
+                        benchmarks.put(benchmark.name(), benchmark);
+                    }
+                });
+            } catch (IOException e) {
+                log.error(e, "Failed to list benchmark dir {}", BENCHMARK_DIR);
+            }
+            future.complete();
+        }, handler);
     }
 }
