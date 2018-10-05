@@ -1,6 +1,7 @@
 package io.sailrocket.distributed;
 
 import io.sailrocket.api.config.Simulation;
+import io.sailrocket.core.api.PhaseInstance;
 import io.sailrocket.core.impl.SimulationRunnerImpl;
 import io.sailrocket.distributed.util.PhaseChangeMessage;
 import io.sailrocket.distributed.util.PhaseControlMessage;
@@ -20,7 +21,7 @@ public class AgentVerticle extends AbstractVerticle {
     private String address;
     private EventBus eb;
     private SimulationRunnerImpl runner;
-    private long statsTimerId;
+    private long statsTimerId = -1;
 
     @Override
     public void start() {
@@ -83,8 +84,19 @@ public class AgentVerticle extends AbstractVerticle {
             return false;
         }
         runner = new SimulationRunnerImpl(simulation);
-        runner.init((phase, status) -> eb.send(Feeds.RESPONSE, new PhaseChangeMessage(address, phase, status)));
         ReportSender reportSender = new ReportSender(simulation, eb, address);
+
+        runner.init((phase, status) -> {
+            if (status == PhaseInstance.Status.TERMINATED) {
+                // collect stats one last time before acknowledging termination
+                if (statsTimerId >= 0) {
+                    vertx.cancelTimer(statsTimerId);
+                }
+                runner.visitSessions(reportSender);
+                reportSender.send();
+            }
+            eb.send(Feeds.RESPONSE, new PhaseChangeMessage(address, phase, status));
+        });
         statsTimerId = vertx.setPeriodic(simulation.statisticsCollectionPeriod(), timerId -> {
             runner.visitSessions(reportSender);
             reportSender.send();

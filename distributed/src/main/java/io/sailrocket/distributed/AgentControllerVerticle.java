@@ -101,6 +101,9 @@ public class AgentControllerVerticle extends AbstractVerticle {
                 controllerPhase.status(ControllerPhase.Status.FINISHED);
                 break;
             case TERMINATED:
+                if (!run.statisticsStore.validateSlas(phase)) {
+                    killCurrentRun();
+                }
                 controllerPhase.status(ControllerPhase.Status.TERMINATED);
                 break;
         }
@@ -178,7 +181,6 @@ public class AgentControllerVerticle extends AbstractVerticle {
 
     private void stopSimulation() {
         run.terminateTime = System.currentTimeMillis();
-        run.statisticsStore.benchmarkCompleted();
         vertx.executeBlocking(future -> {
             try {
                 run.statisticsStore.persist(runDir + "/" + run.id + "/stats");
@@ -205,12 +207,16 @@ public class AgentControllerVerticle extends AbstractVerticle {
 
     public boolean kill(String runId) {
         if (runId != null && run != null && runId.equals(run.id)) {
-            for (String phase : run.phases.keySet()) {
-                eb.publish(Feeds.CONTROL, new PhaseControlMessage(PhaseControlMessage.Command.TERMINATE, null, phase));
-            }
+            killCurrentRun();
             return true;
         } else {
             return false;
+        }
+    }
+
+    private void killCurrentRun() {
+        for (String phase : run.phases.keySet()) {
+            eb.publish(Feeds.CONTROL, new PhaseControlMessage(PhaseControlMessage.Command.TERMINATE, null, phase));
         }
     }
 }

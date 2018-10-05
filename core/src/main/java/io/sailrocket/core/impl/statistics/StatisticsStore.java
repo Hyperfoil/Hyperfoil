@@ -59,12 +59,6 @@ public class StatisticsStore {
       data.record(address, stats);
    }
 
-   public void benchmarkCompleted() {
-      for (Data data : data.values()) {
-         data.validateTotalSlas();
-      }
-   }
-
    public void persist(String dir) throws IOException {
       File statsDir = new File(dir);
       if (!statsDir.mkdirs()) {
@@ -158,6 +152,15 @@ public class StatisticsStore {
             }
          }
       }
+   }
+
+   public boolean validateSlas(String phase) {
+      for (Map.Entry<PhaseSeq, Data> entry : data.entrySet()) {
+         if (entry.getKey().phase.equals(phase)) {
+            entry.getValue().validateTotalSlas();
+         }
+      }
+      return failures.isEmpty();
    }
 
    private static final class Window {
