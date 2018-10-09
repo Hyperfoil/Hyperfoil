@@ -49,6 +49,7 @@
         <module>core</module>
         <module>distributed</module>
         <module>test-suite</module>
+        <module>distribution</module>
     </modules>
 
     <!-- Licenses -->
@@ -73,6 +74,8 @@
         <log4j2.version>2.11.1</log4j2.version>
         <slf4j.version>1.7.12</slf4j.version>
         <snakeYaml.version>1.22</snakeYaml.version>
+
+        <module.skipCopyDependencies>false</module.skipCopyDependencies>
     </properties>
 
     <developers>
@@ -95,6 +98,12 @@
             <dependency>
                 <groupId>io.sailrocket</groupId>
                 <artifactId>api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.sailrocket</groupId>
+                <artifactId>cli</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -188,6 +197,13 @@
     </dependencyManagement>
 
     <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+            </plugin>
+        </plugins>
+
         <pluginManagement>
             <plugins>
                 <plugin>
@@ -262,6 +278,31 @@
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>exec-maven-plugin</artifactId>
                     <version>1.6.0</version>
+                    <configuration>
+                        <skip>true</skip>
+                        <executable>false</executable>
+                    </configuration>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-dependency-plugin</artifactId>
+                    <version>3.0.2</version>
+                    <executions>
+                        <execution>
+                            <id>copy-dependencies</id>
+                            <phase>package</phase>
+                            <goals>
+                                <goal>copy-dependencies</goal>
+                            </goals>
+                            <configuration>
+                                <skip>${module.skipCopyDependencies}</skip>
+                                <includeScope>runtime</includeScope>
+                                <excludeScope>test</excludeScope>
+                                <silent>true</silent>
+                            </configuration>
+                        </execution>
+                    </executions>
                 </plugin>
             </plugins>
         </pluginManagement>

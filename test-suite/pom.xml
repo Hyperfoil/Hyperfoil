@@ -21,6 +21,7 @@
         <vertx.version>3.5.2.CR3</vertx.version>
 
         <junit.excluded.categories>io.sailrocket.test.Benchmark</junit.excluded.categories>
+        <module.skipCopyDependencies>true</module.skipCopyDependencies>
     </properties>
 
     <dependencyManagement>

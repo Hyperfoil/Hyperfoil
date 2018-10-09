@@ -25,12 +25,8 @@ public class AgentVerticle extends AbstractVerticle {
 
     @Override
     public void start() {
-        eb = vertx.eventBus();
         address = deploymentID();
-        eb.registerDefaultCodec(PhaseControlMessage.class, new PhaseControlMessage.Codec());
-        eb.registerDefaultCodec(PhaseChangeMessage.class, new PhaseChangeMessage.Codec());
-        eb.registerDefaultCodec(Simulation.class, new SimulationCodec());
-        eb.registerDefaultCodec(ReportMessage.class, new ReportMessage.Codec());
+        eb = vertx.eventBus();
 
         eb.consumer(address, message -> {
             Simulation simulation = (Simulation) message.body();

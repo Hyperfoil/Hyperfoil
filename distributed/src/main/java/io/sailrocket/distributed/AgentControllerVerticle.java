@@ -62,11 +62,6 @@ public class AgentControllerVerticle extends AbstractVerticle {
         vertx.exceptionHandler(throwable -> log.error("Uncaught error: ", throwable));
 
         eb = vertx.eventBus();
-        //TODO:: this is a code smell, not sure atm why i need to register the codec's multiple times
-        eb.registerDefaultCodec(Simulation.class, new SimulationCodec());
-        eb.registerDefaultCodec(PhaseChangeMessage.class, new PhaseChangeMessage.Codec());
-        eb.registerDefaultCodec(PhaseControlMessage.class, new PhaseControlMessage.Codec());
-        eb.registerDefaultCodec(ReportMessage.class, new ReportMessage.Codec());
 
         eb.consumer(Feeds.DISCOVERY, message -> {
             String address = (String) message.body();

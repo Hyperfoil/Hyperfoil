@@ -170,6 +170,8 @@ public class ClusterTestCase {
             if (result.succeeded()) {
                 Vertx vertx = result.result();
                 servers.add(vertx);
+                // Codecs can be registered just once per vertx node so we can't register them in verticles
+                Codecs.register(vertx);
                 vertx.deployVerticle(verticleClass.getName(), options, v -> {
                     if (v.succeeded()) {
                         initAsync.countDown();

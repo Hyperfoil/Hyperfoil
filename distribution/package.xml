@@ -1,0 +1,43 @@
+<project name="sailrocket-package" basedir="." default="package">
+    <property name="root.dir" value=".." />
+    <property name="dist.dir" value="${project.build.directory}/distribution" />
+
+    <target name="package" depends="clean, all" />
+
+    <target name="clean">
+        <delete dir="${dist.dir}" />
+    </target>
+
+    <target name="all">
+        <mkdir dir="${dist.dir}/bin"/>
+        <mkdir dir="${dist.dir}/lib"/>
+
+        <copy-module module="api"/>
+        <copy-module module="cli"/>
+        <copy-module module="core"/>
+        <copy-module module="distributed"/>
+
+        <copy todir="${dist.dir}/bin" failonerror="true">
+            <fileset dir="src/main/resources/">
+                <include name="*.sh"/>
+            </fileset>
+        </copy>
+
+        <chmod perm="755">
+            <fileset dir="${dist.dir}/bin">
+                <include name="**/*.sh" />
+            </fileset>
+        </chmod>
+    </target>
+
+    <macrodef name="copy-module">
+        <attribute name="module" />
+        <sequential>
+            <copy todir="${dist.dir}/lib" failonerror="true" flatten="true">
+                <file file="${io.sailrocket:@{module}:jar}" />
+                <fileset dir="${root.dir}/@{module}/target/dependency"/>
+            </copy>
+        </sequential>
+    </macrodef>
+
+</project>
