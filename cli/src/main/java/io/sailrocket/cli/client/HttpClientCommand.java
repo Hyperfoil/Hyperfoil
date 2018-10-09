@@ -1,6 +1,25 @@
-package http2.bench.client;
+/*
+ * Copyright 2018 Red Hat Inc. and/or its affiliates and other contributors
+ * as indicated by the @authors tag. All rights reserved.
+ * See the copyright.txt in the distribution for a
+ * full listing of individual contributors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
 
-import io.sailrocket.core.client.HttpClientProvider;
+package io.sailrocket.cli.client;
+
 import io.vertx.core.http.HttpVersion;
 import org.aesh.command.Command;
 import org.aesh.command.CommandDefinition;
@@ -21,9 +40,6 @@ import java.util.List;
  */
 @CommandDefinition(name = "http-clientPool", description = "")
 public class HttpClientCommand implements Command<CommandInvocation> {
-
-    @Option(name = "provider", converter = HttpClientProviderConverter.class, defaultValue = "netty")
-    public HttpClientProvider provider;
 
     @Option(name = "protocol", shortName = 'p', converter = HttpVersionConverter.class, defaultValue = "HTTP_2")
     public HttpVersion protocol;
@@ -62,20 +78,6 @@ public class HttpClientCommand implements Command<CommandInvocation> {
     @Override
     public CommandResult execute(CommandInvocation commandInvocation) {
         return CommandResult.SUCCESS;
-    }
-
-    public static class HttpClientProviderConverter implements Converter<HttpClientProvider, ConverterInvocation> {
-        @Override
-        public HttpClientProvider convert(ConverterInvocation converterInvocation) throws OptionValidatorException {
-            if(converterInvocation.getInput() == null)
-                return HttpClientProvider.netty;
-            for(HttpClientProvider provider : HttpClientProvider.values()) {
-                if(provider.name().equals(converterInvocation.getInput()))
-                    return provider;
-            }
-            //just return netty
-            return HttpClientProvider.netty;
-        }
     }
 
     public static class HttpVersionConverter implements Converter<HttpVersion, ConverterInvocation> {

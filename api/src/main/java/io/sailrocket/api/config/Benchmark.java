@@ -19,6 +19,7 @@
 package io.sailrocket.api.config;
 
 import java.io.Serializable;
+import java.util.Arrays;
 
 /**
  * A benchmark is a collection of simulation, user,
@@ -63,5 +64,16 @@ public class Benchmark implements Serializable {
      */
     public String source() {
         return originalSource;
+    }
+
+    @Override
+    public String toString() {
+        return "Benchmark{" +
+                       "name='" + name + '\'' +
+                       ", originalSource='" + originalSource + '\'' +
+                       ", simulation=" + simulation +
+                       ", agents=" + Arrays.toString(agents) +
+                       ", slas=" + Arrays.toString(slas) +
+                       '}';
     }
 }

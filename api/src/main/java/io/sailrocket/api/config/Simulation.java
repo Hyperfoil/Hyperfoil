@@ -1,10 +1,10 @@
 package io.sailrocket.api.config;
 
+import io.sailrocket.api.connection.HttpClientPoolFactory;
+
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Map;
-
-import io.sailrocket.api.connection.HttpClientPoolFactory;
 
 public class Simulation implements Serializable {
    private final HttpClientPoolFactory httpClientPoolFactory;
@@ -33,5 +33,15 @@ public class Simulation implements Serializable {
 
    public long statisticsCollectionPeriod() {
       return statisticsCollectionPeriod;
+   }
+
+   @Override
+   public String toString() {
+      return "Simulation{" +
+                     "httpClientPoolFactory=" + httpClientPoolFactory +
+                     ", phases=" + phases +
+                     ", tags=" + tags +
+                     ", statisticsCollectionPeriod=" + statisticsCollectionPeriod +
+                     '}';
    }
 }
