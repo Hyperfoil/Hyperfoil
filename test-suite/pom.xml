@@ -64,7 +64,7 @@
 
         <dependency>
             <groupId>io.sailrocket</groupId>
-            <artifactId>distributed</artifactId>
+            <artifactId>clustering</artifactId>
             <scope>test</scope>
         </dependency>
 

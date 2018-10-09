@@ -1,11 +1,11 @@
-package io.sailrocket.distributed;
+package io.sailrocket.clustering;
 
 import io.sailrocket.api.config.Phase;
 import io.sailrocket.api.config.Sequence;
 import io.sailrocket.api.config.Simulation;
 import io.sailrocket.api.statistics.StatisticsSnapshot;
 import io.sailrocket.core.impl.statistics.StatisticsCollector;
-import io.sailrocket.distributed.util.ReportMessage;
+import io.sailrocket.clustering.util.ReportMessage;
 import io.vertx.core.eventbus.EventBus;
 
 public class ReportSender extends StatisticsCollector {

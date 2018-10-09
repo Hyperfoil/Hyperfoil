@@ -1,4 +1,4 @@
-package io.sailrocket.distributed;
+package io.sailrocket.clustering;
 
 interface Properties {
    String BENCHMARK_DIR = "io.sailrocket.benchmarkdir";

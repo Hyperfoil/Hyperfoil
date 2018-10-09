@@ -1,4 +1,4 @@
-package io.sailrocket.distributed;
+package io.sailrocket.clustering;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -13,7 +13,7 @@ import java.util.Set;
 import io.sailrocket.api.config.Benchmark;
 import io.sailrocket.core.parser.BenchmarkParser;
 import io.sailrocket.core.parser.ParserException;
-import io.sailrocket.distributed.util.PersistenceUtil;
+import io.sailrocket.clustering.util.PersistenceUtil;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;

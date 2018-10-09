@@ -1,4 +1,4 @@
-package io.sailrocket.distributed.util;
+package io.sailrocket.clustering.util;
 
 import io.sailrocket.api.config.Simulation;
 

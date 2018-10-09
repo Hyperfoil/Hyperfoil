@@ -18,7 +18,7 @@
  * limitations under the License.
  */
 
-package io.sailrocket.distributed.util;
+package io.sailrocket.clustering.util;
 
 import io.sailrocket.core.api.PhaseInstance;
 import io.vertx.core.buffer.Buffer;

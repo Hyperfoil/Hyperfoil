@@ -9,9 +9,9 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>distributed</artifactId>
+    <artifactId>clustering</artifactId>
 
-    <name>SailRocket distributed</name>
+    <name>SailRocket clustering</name>
     <url>https://github.com/RedHatPerf/SailRocket</url>
 
     <properties>

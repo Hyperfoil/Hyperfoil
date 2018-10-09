@@ -1,4 +1,4 @@
-package io.sailrocket.distributed;
+package io.sailrocket.clustering;
 
 import java.util.HashMap;
 import java.util.Map;

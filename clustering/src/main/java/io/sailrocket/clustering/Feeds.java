@@ -1,4 +1,4 @@
-package io.sailrocket.distributed;
+package io.sailrocket.clustering;
 
 public final class Feeds {
    public static final String DISCOVERY = "discovery-feed";

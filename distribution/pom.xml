@@ -33,7 +33,7 @@
 
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>distributed</artifactId>
+            <artifactId>clustering</artifactId>
         </dependency>
     </dependencies>
 

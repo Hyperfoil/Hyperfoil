@@ -1,4 +1,4 @@
-package io.sailrocket.distributed;
+package io.sailrocket.clustering;
 
 import io.sailrocket.test.Benchmark;
 import io.sailrocket.test.TestBenchmarks;

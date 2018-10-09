@@ -1,4 +1,4 @@
-package io.sailrocket.distributed.util;
+package io.sailrocket.clustering.util;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

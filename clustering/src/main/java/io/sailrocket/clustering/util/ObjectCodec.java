@@ -18,7 +18,7 @@
  * limitations under the License.
  */
 
-package io.sailrocket.distributed.util;
+package io.sailrocket.clustering.util;
 
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.eventbus.MessageCodec;

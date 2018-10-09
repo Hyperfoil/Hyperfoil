@@ -47,7 +47,7 @@
         <module>api</module>
         <module>cli</module>
         <module>core</module>
-        <module>distributed</module>
+        <module>clustering</module>
         <module>test-suite</module>
         <module>distribution</module>
     </modules>
@@ -115,7 +115,7 @@
 
             <dependency>
                 <groupId>io.sailrocket</groupId>
-                <artifactId>distributed</artifactId>
+                <artifactId>clustering</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

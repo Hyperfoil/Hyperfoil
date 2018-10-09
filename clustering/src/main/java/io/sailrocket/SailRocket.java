@@ -1,8 +1,8 @@
 package io.sailrocket;
 
-import io.sailrocket.distributed.AgentControllerVerticle;
-import io.sailrocket.distributed.AgentVerticle;
-import io.sailrocket.distributed.Codecs;
+import io.sailrocket.clustering.AgentControllerVerticle;
+import io.sailrocket.clustering.AgentVerticle;
+import io.sailrocket.clustering.Codecs;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Handler;
 import io.vertx.core.Verticle;

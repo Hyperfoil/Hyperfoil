@@ -1,4 +1,4 @@
-package io.sailrocket.distributed;
+package io.sailrocket.clustering;
 
 import io.vertx.core.Vertx;
 import io.vertx.ext.unit.TestContext;

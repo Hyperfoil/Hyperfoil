@@ -1,12 +1,10 @@
-package io.sailrocket.distributed;
+package io.sailrocket.clustering;
 
 import io.sailrocket.api.config.Simulation;
 import io.sailrocket.core.api.PhaseInstance;
 import io.sailrocket.core.impl.SimulationRunnerImpl;
-import io.sailrocket.distributed.util.PhaseChangeMessage;
-import io.sailrocket.distributed.util.PhaseControlMessage;
-import io.sailrocket.distributed.util.ReportMessage;
-import io.sailrocket.distributed.util.SimulationCodec;
+import io.sailrocket.clustering.util.PhaseChangeMessage;
+import io.sailrocket.clustering.util.PhaseControlMessage;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.eventbus.ReplyException;
