@@ -11,6 +11,7 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.HttpClientCodec;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslHandler;
+import io.sailrocket.api.connection.HttpConnectionPool;
 
 import java.net.InetSocketAddress;
 import java.util.function.BiConsumer;
@@ -20,14 +21,12 @@ import java.util.function.BiConsumer;
  */
 class Http1XClientPool extends HttpClientPoolImpl {
 
-  private final StatisticsHandler statisticsHandler = new StatisticsHandler();
-
   Http1XClientPool(EventLoopGroup eventLoopGroup, SslContext sslContext, int size, int port, String host, int maxConcurrentStream) {
     super(eventLoopGroup, sslContext, size, port, host, maxConcurrentStream);
   }
 
   @Override
-  void connect(int port, String host, BiConsumer<HttpConnection, Throwable> handler) {
+  void connect(HttpConnectionPool pool, BiConsumer<HttpConnection, Throwable> handler) {
 
     Bootstrap bootstrap = new Bootstrap();
     bootstrap.channel(NioSocketChannel.class);
@@ -43,9 +42,10 @@ class Http1XClientPool extends HttpClientPoolImpl {
           SslHandler sslHandler = sslContext.newHandler(ch.alloc(), host, port);
           ch.pipeline().addLast(sslHandler);
         }
-        pipeline.addLast(statisticsHandler);
+        Http1xConnection connection = new Http1xConnection(Http1XClientPool.this, pool);
+        pipeline.addLast(new Http1xRawBytesHandler(connection));
         pipeline.addLast("codec", new HttpClientCodec(4096, 8192, 8192, false, false));
-        pipeline.addLast("handler", new Http1xConnection(Http1XClientPool.this));
+        pipeline.addLast("handler", connection);
       }
     });
 
@@ -57,17 +57,5 @@ class Http1XClientPool extends HttpClientPoolImpl {
         handler.accept(null, v.cause());
       }
     });
-  }
-
-  public long bytesRead() {
-    return statisticsHandler.bytesRead();
-  }
-
-  public long bytesWritten() {
-    return statisticsHandler.bytesWritten();
-  }
-
-  public void resetStatistics() {
-    statisticsHandler.reset();
   }
 }

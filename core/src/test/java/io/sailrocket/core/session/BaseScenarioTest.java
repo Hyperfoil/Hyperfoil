@@ -3,6 +3,7 @@ package io.sailrocket.core.session;
 import io.sailrocket.api.config.Scenario;
 import io.sailrocket.api.connection.HttpClientPool;
 import io.sailrocket.api.config.Phase;
+import io.sailrocket.api.session.Session;
 import io.sailrocket.core.api.PhaseInstance;
 import io.sailrocket.core.builders.BenchmarkBuilder;
 import io.sailrocket.core.builders.ScenarioBuilder;
@@ -19,7 +20,9 @@ import io.vertx.ext.web.Router;
 import org.junit.After;
 import org.junit.Before;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -48,7 +51,13 @@ public abstract class BaseScenarioTest {
 
    protected void runScenario(PhaseInstance phase) {
       CountDownLatch latch = new CountDownLatch(1);
-      phase.setComponents(new ConcurrentPoolImpl<>(() -> SessionFactory.create(httpClientPool, phase.definition().scenario, 0)), (p, status) -> {
+      List<Session> sessionList = Collections.synchronizedList(new ArrayList<>());
+      phase.setComponents(new ConcurrentPoolImpl<>(() -> {
+         Session session = SessionFactory.create(phase.definition().scenario, 0);
+         sessionList.add(session);
+         session.attach(httpClientPool.next());
+         return session;
+      }), sessionList, (p, status) -> {
          if (status == PhaseInstance.Status.TERMINATED) {
             latch.countDown();;
          }
@@ -77,11 +86,11 @@ public abstract class BaseScenarioTest {
             .size(100)
             .build();
       Async clientPoolAsync = ctx.async();
-      httpClientPool.start(nil -> clientPoolAsync.complete());
       vertx = Vertx.vertx();
       router = Router.router(vertx);
       initRouter();
       vertx.createHttpServer().requestHandler(router::accept).listen(8080, "localhost", ctx.asyncAssertSuccess());
+      httpClientPool.start(clientPoolAsync::complete);
    }
 
    protected abstract void initRouter();

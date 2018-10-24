@@ -24,6 +24,7 @@ public class ExecutorsTest extends BaseScenarioTest {
                   Thread.sleep(100);
                } catch (InterruptedException e) {
                }
+               return true;
             })
             .endSequence().build();
 

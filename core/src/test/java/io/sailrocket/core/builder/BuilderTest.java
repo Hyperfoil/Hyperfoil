@@ -27,7 +27,6 @@ import io.sailrocket.core.builders.BenchmarkBuilder;
 
 import org.junit.Test;
 
-import static io.sailrocket.core.builders.HttpBuilder.httpBuilder;
 import static org.junit.Assert.assertEquals;
 
 /**
@@ -42,7 +41,7 @@ public class BuilderTest {
               BenchmarkBuilder.builder()
                     .name("Test Benchmark")
                     .simulation()
-                        .http(httpBuilder().baseUrl("http://localhost:8080"))
+                        .http().baseUrl("http://localhost:8080").endHttp()
                         .concurrency(10)
                         .connections(1)
                         .addPhase("foo").always(1)

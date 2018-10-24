@@ -3,6 +3,7 @@ package io.sailrocket.core.impl;
 import io.sailrocket.api.config.Phase;
 import io.sailrocket.api.config.Simulation;
 import io.sailrocket.api.connection.HttpClientPool;
+import io.sailrocket.api.connection.HttpConnectionPool;
 import io.sailrocket.api.session.Session;
 import io.sailrocket.core.api.PhaseInstance;
 import io.sailrocket.core.api.SimulationRunner;
@@ -27,7 +28,7 @@ public class SimulationRunnerImpl implements SimulationRunner {
 
     protected HttpClientPool clientPool;
     protected List<Session> sessions = new ArrayList<>();
-    protected Map<String, ConcurrentPoolImpl<Session>> sessionPools = new HashMap<>();
+    protected Map<String, SharedResources> sharedResources = new HashMap<>();
 
     public SimulationRunnerImpl(Simulation simulation) {
         this.simulation = simulation;
@@ -44,28 +45,35 @@ public class SimulationRunnerImpl implements SimulationRunner {
     public void init(BiConsumer<String, PhaseInstance.Status> phaseChangeHandler) {
         //Initialise HttpClientPool
         CountDownLatch latch = new CountDownLatch(1);
-        clientPool.start(v1 -> {
-            latch.countDown();
-        });
+        clientPool.start(latch::countDown);
 
         for (Phase def : simulation.phases()) {
             PhaseInstance phase = PhaseInstanceImpl.newInstance(def);
             instances.put(def.name(), phase);
-            ConcurrentPoolImpl<Session> pool;
+            SharedResources sharedResources;
             if (def.sharedResources == null) {
-                pool = null;
-            } else if ((pool = sessionPools.get(def.sharedResources)) == null) {
-                pool = new ConcurrentPoolImpl<>(() -> {
+                // Noop phases don't use any resources
+                sharedResources = SharedResources.NONE;
+            } else if ((sharedResources = this.sharedResources.get(def.sharedResources)) == null) {
+                sharedResources = new SharedResources();
+                List<Session> phaseSessions = sharedResources.sessions = new ArrayList<>();
+                sharedResources.sessionPool = new ConcurrentPoolImpl<>(() -> {
                     Session session;
                     synchronized (this.sessions) {
-                        session = SessionFactory.create(clientPool, phase.definition().scenario, sessions.size());
-                        sessions.add(session);
+                        session = SessionFactory.create(phase.definition().scenario, this.sessions.size());
+                        this.sessions.add(session);
                     }
+                    // We probably don't need to synchronize
+                    synchronized (phaseSessions) {
+                        phaseSessions.add(session);
+                    }
+                    HttpConnectionPool httpConnectionPool = clientPool.next();
+                    session.attach(httpConnectionPool);
                     return session;
                 });
-                sessionPools.put(def.sharedResources, pool);
+                this.sharedResources.put(def.sharedResources, sharedResources);
             }
-            phase.setComponents(pool, phaseChangeHandler);
+            phase.setComponents(sharedResources.sessionPool, sharedResources.sessions, phaseChangeHandler);
             phase.reserveSessions();
         }
 
@@ -108,5 +116,12 @@ public class SimulationRunnerImpl implements SimulationRunner {
     @Override
     public void terminatePhase(String phase) {
         instances.get(phase).terminate();
+    }
+
+    private static class SharedResources {
+        static final SharedResources NONE = new SharedResources();
+
+        ConcurrentPoolImpl<Session> sessionPool;
+        List<Session> sessions;
     }
 }

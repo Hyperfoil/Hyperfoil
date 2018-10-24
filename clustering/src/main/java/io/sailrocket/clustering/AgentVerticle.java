@@ -73,6 +73,11 @@ public class AgentVerticle extends AbstractVerticle {
         });
     }
 
+    @Override
+    public void stop() {
+        runner.shutdown();
+    }
+
     private boolean initSimulation(Simulation simulation) {
         if (runner != null) {
             return false;

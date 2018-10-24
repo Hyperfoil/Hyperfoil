@@ -22,7 +22,7 @@ import io.sailrocket.api.config.Simulation;
 
 public class PrintStatisticsConsumer extends StatisticsCollector {
     public PrintStatisticsConsumer(Simulation simulation) {
-        super(simulation, true);
+        super(simulation);
     }
 
     public void print() {
@@ -35,7 +35,6 @@ public class PrintStatisticsConsumer extends StatisticsCollector {
                   snapshot.histogram.getMean() / 1_000_000.0,
                   snapshot.histogram.getValueAtPercentile(99.0) / 1_000_000.0
             );
-            return false;
         }));
     }
 }

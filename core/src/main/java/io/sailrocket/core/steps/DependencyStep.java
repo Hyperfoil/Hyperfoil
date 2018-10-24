@@ -17,7 +17,7 @@ public abstract class DependencyStep implements Step {
    }
 
    @Override
-   public boolean prepare(Session session) {
+   public boolean invoke(Session session) {
       if (dependencies != null) {
          for (VarReference ref : dependencies) {
             if (!ref.isSet(session)) {

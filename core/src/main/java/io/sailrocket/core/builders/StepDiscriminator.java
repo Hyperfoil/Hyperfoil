@@ -35,7 +35,10 @@ public class StepDiscriminator {
    }
 
    public BaseSequenceBuilder nextSequence(String name) {
-      return parent.step(s -> s.nextSequence(name));
+      return parent.step(s -> {
+         s.nextSequence(name);
+         return true;
+      });
    }
 
    public BaseSequenceBuilder loop(String counterVar, int repeats, String loopedSequence) {
@@ -47,7 +50,10 @@ public class StepDiscriminator {
    }
 
    public BaseSequenceBuilder stop() {
-      return parent.step(Session::stop);
+      return parent.step(s -> {
+         s.stop();
+         return true;
+      });
    }
 
    // requests

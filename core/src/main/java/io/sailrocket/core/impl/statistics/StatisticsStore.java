@@ -62,7 +62,7 @@ public class StatisticsStore {
 
    public void persist(Path dir) throws IOException {
       File statsDir = dir.toFile();
-      if (!statsDir.mkdirs()) {
+      if (!statsDir.exists() && !statsDir.mkdirs()) {
          throw new IOException("Cannot create directory " + dir);
       }
       PhaseSeq[] phaseSeqs = data.keySet().toArray(new PhaseSeq[0]);

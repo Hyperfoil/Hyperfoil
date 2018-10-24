@@ -5,12 +5,7 @@ import io.sailrocket.api.config.Step;
 
 public class AwaitAllResponsesStep implements Step {
    @Override
-   public boolean prepare(Session session) {
+   public boolean invoke(Session session) {
       return session.requestQueue().isFull();
-   }
-
-   @Override
-   public void invoke(Session session) {
-      // noop
    }
 }

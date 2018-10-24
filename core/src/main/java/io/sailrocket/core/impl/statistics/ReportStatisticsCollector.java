@@ -29,11 +29,11 @@ import java.util.Map;
 
 @Deprecated
 public class ReportStatisticsCollector extends StatisticsCollector {
-    private final StatisticsConsumer addReport = this::addReport;
+    private final StatisticsConsumer addReport = (phase, sequence, snapshot) -> addReport(phase, sequence, snapshot);
     private Map<String, Report> reportMap;
 
     public ReportStatisticsCollector(Simulation simulation) {
-        super(simulation, true);
+        super(simulation);
     }
 
     public Map<String, Report> reports() {
@@ -42,12 +42,12 @@ public class ReportStatisticsCollector extends StatisticsCollector {
         return reportMap;
     }
 
-    private boolean addReport(Phase phase, Sequence sequence, StatisticsSnapshot snapshot) {
+    private void addReport(Phase phase, Sequence sequence, StatisticsSnapshot snapshot) {
         Report report = new Report(simulation.tags());
         report.measures(
               snapshot.requestCount,
               0,
-              snapshot.histogram,
+              snapshot.histogram.copy(),
               snapshot.responseCount,
               0,
               snapshot.connectFailureCount,
@@ -58,6 +58,5 @@ public class ReportStatisticsCollector extends StatisticsCollector {
               0  //clientPool.bytesWritten()
         );
         reportMap.put(phase.name() + "/" + sequence.name(), report);
-        return false;
     }
 }

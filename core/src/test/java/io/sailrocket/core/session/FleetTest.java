@@ -75,7 +75,10 @@ public class FleetTest extends BaseScenarioTest {
       ScenarioBuilder scenario = scenarioBuilder()
             .intVar("numberOfSunkShips")
             .initialSequence("fleet")
-               .step(s -> s.setInt("numberOfSunkShips", 0))
+               .step(s -> {
+                  s.setInt("numberOfSunkShips", 0);
+                  return true;
+               })
                .step().httpRequest(HttpMethod.GET).path("/fleet")
                   .handler()
                      .bodyExtractor(new JsonExtractor(".ships[].name", new DefragProcessor(new ArrayRecorder("shipNames", MAX_SHIPS))))
@@ -104,7 +107,10 @@ public class FleetTest extends BaseScenarioTest {
                      }))
                   .endHandler()
                .endStep()
-               .step(s -> s.addToInt("numberOfSunkShips", 1).addToInt("numberOfShips", -1))
+               .step(s -> {
+                  s.addToInt("numberOfSunkShips", 1).addToInt("numberOfShips", -1);
+                  return true;
+               })
             .endSequence()
             .initialSequence("final")
                .step(new AwaitConditionStep(s -> s.isSet("numberOfShips") && s.getInt("numberOfShips") <= 0))
@@ -115,6 +121,7 @@ public class FleetTest extends BaseScenarioTest {
                      log.trace(stats);
                   }
                   async.countDown();
+                  return true;
                })
             .endSequence();
 

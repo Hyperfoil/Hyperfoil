@@ -1,5 +1,7 @@
 package io.sailrocket.core.client.netty;
 
+import io.netty.handler.codec.http2.Http2Stream;
+import io.sailrocket.api.connection.Connection;
 import io.sailrocket.api.http.HttpMethod;
 import io.sailrocket.api.http.HttpRequest;
 import io.netty.buffer.ByteBuf;
@@ -14,8 +16,6 @@ import io.netty.util.collection.IntObjectHashMap;
 import io.netty.util.collection.IntObjectMap;
 import io.sailrocket.api.http.HttpResponseHandlers;
 
-import java.util.concurrent.atomic.AtomicInteger;
-
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
  */
@@ -26,7 +26,7 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
   private final io.netty.handler.codec.http2.Http2Connection connection;
   private final Http2ConnectionEncoder encoder;
   private final IntObjectMap<Http2Stream> streams = new IntObjectHashMap<>();
-  private AtomicInteger numStreams = new AtomicInteger();
+  private int numStreams;
   private long maxStreams;
 
   Http2Connection(ChannelHandlerContext context,
@@ -95,11 +95,23 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
       }
 
       private void endStream(int streamId) {
-        numStreams.decrementAndGet();
+        numStreams--;
         Http2Stream stream = streams.remove(streamId);
-        if (stream != null && !stream.ended && stream.handlers.endHandler() != null) {
-          stream.ended = true;
-          stream.handlers.endHandler().run();
+        if (stream != null) {
+          if (stream.handlers.endHandler() != null) {
+            stream.handlers.endHandler().run();
+          }
+          stream.handlers.setCompleted();
+        }
+      }
+
+      @Override
+      public void onStreamClosed(io.netty.handler.codec.http2.Http2Stream stream) {
+        for (Http2Stream s : streams.values()) {
+          if (!s.handlers.isCompleted()) {
+            s.handlers.exceptionHandler().accept(Connection.CLOSED_EXCEPTION);
+            s.handlers.setCompleted();
+          }
         }
       }
     };
@@ -115,12 +127,7 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
 
   @Override
   public boolean isAvailable() {
-    return numStreams.get() < maxStreams;
-  }
-
-  @Override
-  public int inflight() {
-    return numStreams.get();
+    return numStreams < maxStreams;
   }
 
   public void incrementConnectionWindowSize(int increment) {
@@ -132,12 +139,16 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
     }
   }
 
-  static class Http2Stream {
+   @Override
+   public void close() {
+      context.close();
+   }
+
+   static class Http2Stream {
 
     final Http2Headers headers;
     final ByteBuf buff;
     final HttpResponseHandlers handlers;
-    boolean ended;
 
     Http2Stream(Http2Headers headers, ByteBuf buff, HttpResponseHandlers handlers) {
       this.headers = headers;
@@ -159,11 +170,24 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
   }
 
   public HttpRequest request(HttpMethod method, String path, ByteBuf body) {
-    numStreams.incrementAndGet();
+    numStreams++;
     return new Http2Request(client, this, method, path, body);
   }
 
-  private int nextStreamId() {
+   @Override
+   public HttpResponseHandlers currentResponseHandlers(int streamId) {
+      return streams.get(streamId).handlers;
+   }
+
+   private int nextStreamId() {
     return connection.local().incrementAndGetNextStreamId();
   }
+
+   @Override
+   public String toString() {
+      return "Http2Connection{" +
+            context.channel().localAddress() + " -> " + context.channel().remoteAddress() +
+            ", streams=" + streams +
+            '}';
+   }
 }

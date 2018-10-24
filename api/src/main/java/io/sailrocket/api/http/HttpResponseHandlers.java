@@ -18,4 +18,10 @@ public interface HttpResponseHandlers {
    Consumer<Throwable> exceptionHandler();
 
    IntConsumer resetHandler();
+
+   Consumer<ByteBuf> rawBytesHandler();
+
+   boolean isCompleted();
+
+   void setCompleted();
 }

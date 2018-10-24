@@ -1,6 +1,6 @@
 package io.sailrocket.core.client.netty;
 
-import io.netty.buffer.ByteBuf;
+import io.netty.channel.EventLoop;
 import io.netty.handler.ssl.ApplicationProtocolConfig;
 import io.netty.handler.ssl.ApplicationProtocolNames;
 import io.netty.handler.ssl.OpenSsl;
@@ -11,28 +11,38 @@ import io.netty.handler.ssl.SupportedCipherSuiteFilter;
 import io.netty.util.concurrent.EventExecutor;
 import io.netty.util.concurrent.EventExecutorGroup;
 import io.sailrocket.api.connection.HttpClientPool;
-import io.sailrocket.api.http.HttpMethod;
-import io.sailrocket.api.http.HttpRequest;
-import io.netty.buffer.Unpooled;
-import io.netty.channel.EventLoop;
+import io.sailrocket.api.connection.HttpConnectionPool;
 import io.netty.channel.EventLoopGroup;
 import io.netty.handler.codec.http2.Http2SecurityUtil;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.vertx.core.http.HttpVersion;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.NoSuchElementException;
+import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
+import java.util.function.Supplier;
+import java.util.stream.StreamSupport;
 
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
  */
 abstract class HttpClientPoolImpl implements HttpClientPool {
+   private static final Logger log = LoggerFactory.getLogger(HttpClientPoolImpl.class);
 
-    static HttpClientPool create(EventLoopGroup eventLoopGroup, HttpVersion protocol, boolean ssl, int size, int port, String host, int maxConcurrentStream) throws Exception {
+   final int maxConcurrentStream;
+   final int port;
+   final String host;
+   final EventLoopGroup eventLoopGroup;
+   final SslContext sslContext;
+   private final HttpConnectionPoolImpl[] children;
+   private final AtomicInteger idx = new AtomicInteger();
+   private final Supplier<HttpConnectionPool> nextSupplier;
+
+
+   static HttpClientPool create(EventLoopGroup eventLoopGroup, HttpVersion protocol, boolean ssl, int size, int port, String host, int maxConcurrentStream) throws Exception {
         SslContext sslContext = null;
         if (ssl) {
             SslProvider provider = OpenSsl.isAlpnSupported() ? SslProvider.OPENSSL : SslProvider.JDK;
@@ -62,137 +72,67 @@ abstract class HttpClientPoolImpl implements HttpClientPool {
         }
     }
 
-    final int maxConcurrentStream;
-    private final int size;
-    final int port;
-    final String host;
-    final EventLoopGroup eventLoopGroup;
-    private final EventLoop scheduler;
-    final SslContext sslContext;
-    //TODO: replace with fast connection pool
-    private final ArrayList<HttpConnection> all = new ArrayList<>();
-    private long index;
-    private int count; // The estimated count : created + creating
-    private Consumer<Void> startedHandler;
-    private boolean shutdown;
-
     HttpClientPoolImpl(EventLoopGroup eventLoopGroup, SslContext sslContext, int size, int port, String host, int maxConcurrentStream) {
         this.maxConcurrentStream = maxConcurrentStream;
         this.eventLoopGroup = eventLoopGroup;
         this.sslContext = sslContext;
-        this.size = size;
         this.port = port;
         this.host = host;
-        this.scheduler = eventLoopGroup.next();
-    }
 
-    public void start(Consumer<Void> completionHandler) {
-        synchronized (this) {
-            if (startedHandler != null) {
-                throw new IllegalStateException();
-            }
-            startedHandler = completionHandler;
+        int numExecutors = (int) StreamSupport.stream(eventLoopGroup.spliterator(), false).count();
+        this.children = new HttpConnectionPoolImpl[numExecutors];
+        if (size < numExecutors) {
+            log.warn("Connection pool size ({}) too small: the event loop has {} executors. Setting connection pool size to {}",
+                  size, numExecutors, numExecutors);
+            size = numExecutors;
         }
-        checkCreateConnections(0);
-    }
-
-    private synchronized void checkCreateConnections(int retry) {
-
-        //TODO:: configurable
-        if (retry > 100) {
-            throw new IllegalStateException();
+        Iterator<EventExecutor> iterator = eventLoopGroup.iterator();
+        for (int i = 0; i < numExecutors; ++i) {
+            assert iterator.hasNext();
+            int childSize = (i + 1) * size / numExecutors - i * size / numExecutors;
+            children[i] = new HttpConnectionPoolImpl(this, (EventLoop) iterator.next(), childSize);
         }
-        if (count < size) {
-            count++;
-            connect(port, host, (conn, err) -> {
-                if (err == null) {
-                    Consumer<Void> handler = null;
-                    synchronized (HttpClientPoolImpl.this) {
-                        all.add(conn);
-                        if (count < size) {
-                            checkCreateConnections(0);
-                        } else {
-                            if (count() == size) {
-                                handler = startedHandler;
-                                startedHandler = null;
-                            }
-                        }
-                    }
 
-                    conn.context().channel().closeFuture().addListener(v -> {
-                        synchronized (HttpClientPoolImpl.this) {
-                            count--;
-                            all.remove(conn);
-                        }
-                        if (!shutdown) {
-                            checkCreateConnections(0);
-                        }
-                    });
-
-                    if (handler != null) {
-                        handler.accept(null);
-                    }
-                } else {
-                    synchronized (HttpClientPoolImpl.this) {
-                        count--;
-                    }
-                    checkCreateConnections(retry + 1);
-                }
-            });
-            scheduler.schedule(() -> {
-                checkCreateConnections(retry);
-            }, 2, TimeUnit.MILLISECONDS);
-
+        if (Integer.bitCount(children.length) == 1) {
+           int shift = 32 - Integer.numberOfLeadingZeros(children.length - 1);
+           int mask = (1 << shift) - 1;
+           nextSupplier = () -> children[idx.getAndIncrement() & mask];
+        } else {
+           nextSupplier = () -> children[idx.getAndIncrement() % children.length];
         }
-    }
-
-    abstract void connect(int port, String host, BiConsumer<HttpConnection, Throwable> handler);
-
-    public abstract long bytesRead();
-
-    public abstract long bytesWritten();
-
-    synchronized int count() {
-        return all.size();
     }
 
     @Override
-    public HttpRequest request(EventExecutor executor, HttpMethod method, String path, ByteBuf body) {
-        return choose(executor).request(method, path, body);
+    public void start(Runnable completionHandler) {
+       AtomicInteger countDown = new AtomicInteger(children.length);
+       for (HttpConnectionPoolImpl child : children) {
+          child.start(() -> {
+             if (countDown.decrementAndGet() == 0) {
+                completionHandler.run();
+             }
+          });
+       }
     }
 
-    //TODO:: delegate to a connection pool
-    private synchronized HttpConnection choose(EventExecutor executor) {
-        for (int i = 0; i < all.size(); i++) {
-            HttpConnection con = all.get(i);
-            if (con.isAvailable() && con.context().executor() == executor) {
-                return con;
-            }
-        }
-        throw new NoSuchElementException();
+    @Override
+    public void shutdown() {
+       for (HttpConnectionPoolImpl child : children) {
+          child.shutdown();
+       }
+       eventLoopGroup.shutdownGracefully(0, 10, TimeUnit.SECONDS);
     }
 
-    public abstract void resetStatistics();
+    abstract void connect(final HttpConnectionPool pool, BiConsumer<HttpConnection, Throwable> handler);
 
-   public void shutdown() {
-        HashSet<HttpConnection> list;
-        synchronized (this) {
-            if (shutdown)
-                return;
-            shutdown = true;
-            list = new HashSet<>(all);
-        }
-        list.forEach(conn -> {
-            conn.context().writeAndFlush(Unpooled.EMPTY_BUFFER);
-            conn.context().close();
-            conn.context().flush();
-        });
-        eventLoopGroup.shutdownGracefully(0, 10, TimeUnit.SECONDS);
-    }
 
     @Override
     public EventExecutorGroup executors() {
         return eventLoopGroup;
+    }
+
+    @Override
+    public HttpConnectionPool next() {
+       return nextSupplier.get();
     }
 
 }

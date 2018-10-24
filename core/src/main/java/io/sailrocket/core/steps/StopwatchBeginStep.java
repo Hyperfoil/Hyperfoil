@@ -18,12 +18,13 @@ public class StopwatchBeginStep implements Step, ResourceUtilizer {
    }
 
    @Override
-   public void invoke(Session session) {
+   public boolean invoke(Session session) {
       // Setting timestamp only when it's set allows looping into stopwatch
       if (!session.isSet(key)) {
          StartTime startTime = (StartTime) session.activate(key);
          startTime.timestamp = System.nanoTime();
       }
+      return true;
    }
 
    @Override

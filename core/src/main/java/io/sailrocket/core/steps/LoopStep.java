@@ -16,14 +16,15 @@ public class LoopStep implements Step, ResourceUtilizer {
    }
 
    @Override
-   public void invoke(Session session) {
+   public boolean invoke(Session session) {
       if (!session.isSet(counterVar)) {
          session.setInt(counterVar, 1);
          session.nextSequence(loopedSequence);
-      } else if (session.getInt(counterVar) < 5) {
+      } else if (session.getInt(counterVar) < repeats) {
          session.addToInt(counterVar, 1);
          session.nextSequence(loopedSequence);
       }
+      return true;
    }
 
    @Override

@@ -2,7 +2,7 @@ package io.sailrocket.api.session;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.util.concurrent.EventExecutor;
-import io.sailrocket.api.connection.HttpClientPool;
+import io.sailrocket.api.connection.HttpConnectionPool;
 import io.sailrocket.api.statistics.Statistics;
 import io.sailrocket.api.http.ValidatorResults;
 import io.sailrocket.api.collection.RequestQueue;
@@ -15,7 +15,7 @@ public interface Session {
    int uniqueId();
 
    /// Common utility objects
-   HttpClientPool httpClientPool();
+   HttpConnectionPool httpConnectionPool();
 
    EventExecutor executor();
 
@@ -66,11 +66,14 @@ public interface Session {
 
    SequenceInstance currentSequence();
 
+   void attach(HttpConnectionPool httpConnectionPool);
+
+   void start();
+
    /**
     * Run anything that can be executed.
-    * @param executor
     */
-   void proceed(EventExecutor executor);
+   void proceed();
 
    void reset();
 
@@ -79,6 +82,8 @@ public interface Session {
    void stop();
 
    void fail(Throwable t);
+
+   boolean isActive();
 
    interface Processor {
       /**

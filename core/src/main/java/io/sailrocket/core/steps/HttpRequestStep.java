@@ -2,6 +2,7 @@ package io.sailrocket.core.steps;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
@@ -14,6 +15,7 @@ import io.sailrocket.api.session.Session;
 import io.sailrocket.core.builders.BaseSequenceBuilder;
 import io.sailrocket.core.builders.BaseStepBuilder;
 import io.sailrocket.core.api.ResourceUtilizer;
+import io.sailrocket.core.util.Util;
 import io.sailrocket.function.SerializableBiConsumer;
 import io.sailrocket.function.SerializableFunction;
 import io.vertx.core.logging.Logger;
@@ -27,55 +29,73 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
    private final Function<Session, String> pathGenerator;
    private final Function<Session, ByteBuf> bodyGenerator;
    private final BiConsumer<Session, HttpRequest> headerAppender;
+   private final long timeout;
    private final HttpResponseHandler handler;
 
    public HttpRequestStep(HttpMethod method,
                           SerializableFunction<Session, String> pathGenerator,
                           SerializableFunction<Session, ByteBuf> bodyGenerator,
                           SerializableBiConsumer<Session, HttpRequest> headerAppender,
-                          HttpResponseHandler handler) {
+                          long timeout, HttpResponseHandler handler) {
       this.method = method;
       this.pathGenerator = pathGenerator;
       this.bodyGenerator = bodyGenerator;
       this.headerAppender = headerAppender;
+      this.timeout = timeout;
       this.handler = handler;
    }
 
    @Override
-   public boolean prepare(Session session) {
-      RequestQueue.Request request = session.requestQueue().prepare();
-      if (request == null) {
-         return false;
-      } else {
-         request.startTime = System.nanoTime();
-         request.sequence = session.currentSequence();
-         return true;
-      }
-   }
+   public boolean invoke(Session session) {
+      HttpResponseHandler.HandlerInstances h = session.getResource(handler);
 
-   @Override
-   public void invoke(Session session) {
+      if (session.requestQueue().isDepleted()) {
+         log.warn("Request queue too small; increase it to prevent blocking.");
+         return false;
+      }
+
       ByteBuf body = bodyGenerator == null ? null : bodyGenerator.apply(session);
       String path = pathGenerator.apply(session);
+
       // TODO alloc!
-      HttpRequest request = session.httpClientPool().request(session.executor(), method, path, body);
+      HttpRequest httpRequest = session.httpConnectionPool().request(method, path, body);
+      if (httpRequest == null) {
+         // TODO: we should probably record being blocked due to insufficient connections
+         log.warn("No HTTP connection in pool, waiting...");
+         session.httpConnectionPool().registerWaitingSession(session);
+         return false;
+      }
+
+      RequestQueue.Request request = session.requestQueue().prepare();
+      if (request == null) {
+         throw new IllegalStateException();
+      }
+      request.startTime = System.nanoTime();
+      request.sequence = session.currentSequence();
+      request.exceptionHandler = h.handleException;
+      request.request = httpRequest;
+      if (timeout > 0) {
+         // TODO alloc!
+         request.timeoutFuture = session.executor().schedule(request, timeout, TimeUnit.MILLISECONDS);
+      }
       if (headerAppender != null) {
-         headerAppender.accept(session, request);
+         headerAppender.accept(session, httpRequest);
       }
 
       // alloc-free below
-      HttpResponseHandler.HandlerInstances h = session.getResource(handler);
-      request.statusHandler(h.handleStatus);
-      request.headerHandler(h.handleHeader);
-      request.exceptionHandler(h.handleException);
-      request.bodyPartHandler(h.handleBodyPart);
-      request.endHandler(h.handleEnd);
+      httpRequest.statusHandler(h.handleStatus);
+      httpRequest.headerHandler(h.handleHeader);
+      httpRequest.exceptionHandler(h.handleException);
+      httpRequest.bodyPartHandler(h.handleBodyPart);
+      httpRequest.endHandler(h.handleEnd);
+      httpRequest.rawBytesHandler(h.handleRawBytes);
 
       if (trace) {
          log.trace("HTTP {} to {}", method, path);
       }
-      request.end();
+      httpRequest.end();
       session.currentSequence().statistics(session).incrementRequests();
+      return true;
    }
 
    @Override
@@ -88,6 +108,7 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
       private SerializableFunction<Session, String> pathGenerator;
       private SerializableFunction<Session, ByteBuf> bodyGenerator;
       private SerializableBiConsumer<Session, HttpRequest> headerAppender;
+      private long timeout;
       private HttpResponseHandler.Builder handler = new HttpResponseHandler.Builder(this);
 
       public Builder(BaseSequenceBuilder parent, HttpMethod method) {
@@ -120,13 +141,23 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
          return this;
       }
 
+      public Builder timeout(long timeout, TimeUnit timeUnit) {
+         this.timeout = timeUnit.toMillis(timeout);
+         return this;
+      }
+
+      public Builder timeout(String timeout) {
+         this.timeout = Util.parseToMillis(timeout);
+         return this;
+      }
+
       public HttpResponseHandler.Builder handler() {
          return handler;
       }
 
       @Override
       public List<Step> build() {
-         return Collections.singletonList(new HttpRequestStep(method, pathGenerator, bodyGenerator, headerAppender, handler.build()));
+         return Collections.singletonList(new HttpRequestStep(method, pathGenerator, bodyGenerator, headerAppender, timeout, handler.build()));
       }
    }
 }

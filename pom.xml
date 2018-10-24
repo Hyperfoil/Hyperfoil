@@ -75,6 +75,7 @@
         <slf4j.version>1.7.12</slf4j.version>
         <snakeYaml.version>1.22</snakeYaml.version>
 
+        <exec.skip>true</exec.skip>
         <module.skipCopyDependencies>false</module.skipCopyDependencies>
     </properties>
 
@@ -279,7 +280,7 @@
                     <artifactId>exec-maven-plugin</artifactId>
                     <version>1.6.0</version>
                     <configuration>
-                        <skip>true</skip>
+                        <skip>${exec.skip}</skip>
                         <executable>false</executable>
                     </configuration>
                 </plugin>

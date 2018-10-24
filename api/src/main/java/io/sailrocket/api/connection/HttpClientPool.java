@@ -18,27 +18,15 @@
  */
 package io.sailrocket.api.connection;
 
-import java.util.function.Consumer;
-
-import io.netty.buffer.ByteBuf;
-import io.netty.util.concurrent.EventExecutor;
 import io.netty.util.concurrent.EventExecutorGroup;
-import io.sailrocket.api.http.HttpMethod;
-import io.sailrocket.api.http.HttpRequest;
 
 public interface HttpClientPool {
 
-  void start(Consumer<Void> completionHandler);
+    void start(Runnable completionHandler);
 
-  HttpRequest request(EventExecutor executor, HttpMethod method, String path, ByteBuf body);
+    void shutdown();
 
-  long bytesRead();
+    EventExecutorGroup executors();
 
-  long bytesWritten();
-
-  void resetStatistics();
-
-  void shutdown();
-
-  EventExecutorGroup executors();
+    HttpConnectionPool next();
 }

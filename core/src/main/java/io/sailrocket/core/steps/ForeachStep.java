@@ -26,7 +26,10 @@ public class ForeachStep extends DependencyStep implements ResourceUtilizer {
    }
 
    @Override
-   public void invoke(Session session) {
+   public boolean invoke(Session session) {
+      if (!super.invoke(session)) {
+         return false;
+      }
       Object value = session.getObject(dataVar);
       if (!(value instanceof Session.Var[])) {
          throw new IllegalStateException("Variable " + dataVar + " does not contain var array: " + value);
@@ -41,6 +44,7 @@ public class ForeachStep extends DependencyStep implements ResourceUtilizer {
       if (counterVar != null) {
          session.setInt(counterVar, i);
       }
+      return true;
    }
 
    @Override

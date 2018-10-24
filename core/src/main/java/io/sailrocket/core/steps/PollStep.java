@@ -38,7 +38,7 @@ public class PollStep<T> implements Step, ResourceUtilizer {
    }
 
    @Override
-   public boolean prepare(Session session) {
+   public boolean invoke(Session session) {
       for (int i = 0; i < maxRetries; ++i) {
          T object = provider.apply(session);
          if (object == null) {
@@ -57,11 +57,6 @@ public class PollStep<T> implements Step, ResourceUtilizer {
       log.trace("Not accepted, scheduling #{} in {}", session.uniqueId(), periodMs);
       session.executor().schedule((Runnable) session, periodMs, TimeUnit.MILLISECONDS);
       return false;
-   }
-
-   @Override
-   public void invoke(Session session) {
-      // noop
    }
 
    @Override

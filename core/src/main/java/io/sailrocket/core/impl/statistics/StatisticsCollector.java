@@ -13,12 +13,10 @@ import io.sailrocket.api.statistics.StatisticsSnapshot;
 
 public class StatisticsCollector implements Consumer<Session> {
    protected final Simulation simulation;
-   protected final boolean resetBefore;
    protected Map<Phase, StatisticsSnapshot[]> aggregated = new HashMap<>();
 
-   public StatisticsCollector(Simulation simulation, boolean resetBefore) {
+   public StatisticsCollector(Simulation simulation) {
       this.simulation = simulation;
-      this.resetBefore = resetBefore;
       for (Phase phase : simulation.phases()) {
          StatisticsSnapshot[] snapshots = aggregated.computeIfAbsent(phase, name -> new StatisticsSnapshot[phase.scenario().sequences().length]);
          for (Sequence sequence : phase.scenario().sequences()) {
@@ -33,11 +31,7 @@ public class StatisticsCollector implements Consumer<Session> {
       for (Sequence sequence : session.phase().scenario().sequences()) {
          Statistics statistics = session.statistics(sequence.id());
          StatisticsSnapshot snapshot = snapshots[sequence.id()];
-         if (resetBefore) {
-            statistics.moveIntervalTo(snapshot);
-         } else {
-            statistics.addIntervalTo(snapshot);
-         }
+         statistics.addIntervalTo(snapshot);
       }
    }
 
@@ -48,14 +42,13 @@ public class StatisticsCollector implements Consumer<Session> {
            assert entry.getValue().length == sequences.length;
            for (int i = 0; i < sequences.length; ++i) {
               StatisticsSnapshot snapshot = entry.getValue()[i];
-              if (consumer.accept(phase, sequences[i], snapshot)) {
-                 snapshot.reset();
-              }
+              consumer.accept(phase, sequences[i], snapshot);
+              snapshot.reset();
            }
        }
    }
 
    public interface StatisticsConsumer {
-       boolean accept(Phase phase, Sequence sequence, StatisticsSnapshot snapshot);
+       void accept(Phase phase, Sequence sequence, StatisticsSnapshot snapshot);
    }
 }

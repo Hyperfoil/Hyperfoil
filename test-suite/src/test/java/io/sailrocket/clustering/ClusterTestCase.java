@@ -50,6 +50,11 @@ public class ClusterTestCase {
         //dummy http server to test against
 
         standalone().createHttpServer().requestHandler(req -> {
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException e) {
+                e.printStackTrace();  // TODO: Customise this generated block
+            }
             req.response().end("test");
         }).listen(8080, "localhost", ar -> {
             if (ar.succeeded()) initAsync.countDown();
@@ -68,8 +73,8 @@ public class ClusterTestCase {
     }
 
     @After
-    public void teardown() {
-        servers.forEach(Vertx::close);
+    public void teardown(TestContext ctx) {
+        servers.forEach(vertx -> vertx.close(ctx.asyncAssertSuccess()));
     }
 
     Vertx standalone() {

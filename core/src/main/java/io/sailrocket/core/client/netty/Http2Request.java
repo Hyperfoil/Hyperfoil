@@ -2,6 +2,7 @@ package io.sailrocket.core.client.netty;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http2.Http2Headers;
+import io.sailrocket.api.connection.Connection;
 import io.sailrocket.api.http.HttpMethod;
 import io.sailrocket.core.client.AbstractHttpRequest;
 
@@ -33,4 +34,9 @@ class Http2Request extends AbstractHttpRequest {
     sent = true;
     conn.bilto(new Http2Connection.Http2Stream(headers, body, this));
   }
+
+   @Override
+   public Connection connection() {
+      return conn;
+   }
 }

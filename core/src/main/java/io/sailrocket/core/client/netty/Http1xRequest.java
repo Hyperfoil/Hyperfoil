@@ -1,10 +1,10 @@
 package io.sailrocket.core.client.netty;
 
-
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.DefaultFullHttpRequest;
 import io.netty.handler.codec.http.HttpVersion;
+import io.sailrocket.api.connection.Connection;
 import io.sailrocket.api.http.HttpMethod;
 import io.sailrocket.api.http.HttpRequest;
 import io.sailrocket.core.client.AbstractHttpRequest;
@@ -30,4 +30,9 @@ class Http1xRequest extends AbstractHttpRequest {
       msg.headers().add("Host", connection.client.host + ":" + connection.client.port);
       connection.ctx.executor().execute(connection.createStream(msg, this));
     }
+
+   @Override
+   public Connection connection() {
+      return connection;
+   }
 }

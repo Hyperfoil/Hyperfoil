@@ -1,6 +1,8 @@
 package io.sailrocket.api.statistics;
 
 import java.io.Serializable;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.DoubleStream;
 
@@ -20,6 +22,8 @@ public class StatisticsSnapshot implements Serializable {
    public int status_5xx;
    public int status_other;
    public int resetCount;
+   public int timeouts;
+   public final Map<String, CustomValue> custom = new HashMap<>();
 
    public int[] statuses() {
       return new int[] { status_2xx, status_3xx, status_4xx, status_5xx, status_other };
@@ -36,6 +40,12 @@ public class StatisticsSnapshot implements Serializable {
       status_5xx = 0;
       status_other = 0;
       resetCount = 0;
+      timeouts = 0;
+      for (CustomValue value : custom.values()) {
+         if (value != null) {
+            value.reset();
+         }
+      }
    }
 
    public StatisticsSnapshot clone() {
@@ -55,6 +65,21 @@ public class StatisticsSnapshot implements Serializable {
       target.status_5xx = status_5xx;
       target.status_other = status_other;
       target.resetCount = resetCount;
+      target.timeouts = timeouts;
+      for (String key : custom.keySet()) {
+         CustomValue a = custom.get(key);
+         CustomValue b = target.custom.get(key);
+         if (a == null) {
+            if (b != null) {
+               b.reset();
+            }
+         } else if (b == null) {
+            target.custom.put(key, a.clone());
+         } else {
+            b.reset();
+            b.add(a);
+         }
+      }
    }
 
    public void addInto(StatisticsSnapshot target) {
@@ -68,6 +93,18 @@ public class StatisticsSnapshot implements Serializable {
       target.status_5xx += status_5xx;
       target.status_other += status_other;
       target.resetCount += resetCount;
+      target.timeouts += timeouts;
+      for (String key : custom.keySet()) {
+         CustomValue a = custom.get(key);
+         CustomValue b = target.custom.get(key);
+         if (a == null) {
+            // noop
+         } else if (b == null) {
+            target.custom.put(key, a.clone());
+         } else {
+            b.add(a);
+         }
+      }
    }
 
    public void subtractFrom(StatisticsSnapshot target) {
@@ -81,6 +118,21 @@ public class StatisticsSnapshot implements Serializable {
       target.status_5xx -= status_5xx;
       target.status_other -= status_other;
       target.resetCount -= resetCount;
+      target.timeouts -= timeouts;
+      for (String key : custom.keySet()) {
+         CustomValue a = custom.get(key);
+         CustomValue b = target.custom.get(key);
+         if (a == null) {
+            // noop
+         } else if (b == null) {
+            b = a.clone();
+            b.reset();
+            b.substract(a);
+            target.custom.put(key, b);
+         } else {
+            b.substract(a);
+         }
+      }
    }
 
    public StatisticsSummary summary(double[] percentiles) {
@@ -88,11 +140,11 @@ public class StatisticsSnapshot implements Serializable {
       return new StatisticsSummary(histogram.getStartTimeStamp(), histogram.getEndTimeStamp(),
             histogram.getMinValue(), (long) histogram.getMean(), histogram.getMaxValue(),
             percentileValues, connectFailureCount, requestCount, responseCount,
-            status_2xx, status_3xx, status_4xx, status_5xx, status_other, resetCount);
+            status_2xx, status_3xx, status_4xx, status_5xx, status_other, resetCount, timeouts);
    }
 
    public long errors() {
       // TODO
-      return status_4xx + status_5xx + connectFailureCount + resetCount;
+      return status_4xx + status_5xx + connectFailureCount + resetCount + timeouts;
    }
 }

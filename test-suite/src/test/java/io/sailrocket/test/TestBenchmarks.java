@@ -1,7 +1,5 @@
 package io.sailrocket.test;
 
-import static io.sailrocket.core.builders.HttpBuilder.httpBuilder;
-
 import java.util.concurrent.TimeUnit;
 
 import io.sailrocket.api.http.HttpMethod;
@@ -12,7 +10,7 @@ import io.sailrocket.core.builders.SimulationBuilder;
 public class TestBenchmarks {
    public static SimulationBuilder addTestSimulation(BenchmarkBuilder builder) {
       return builder.simulation()
-            .http(httpBuilder().baseUrl("http://localhost:8080"))
+            .http().baseUrl("http://localhost:8080").endHttp()
             .concurrency(10)
             .connections(10)
             .addPhase("test").always(1)

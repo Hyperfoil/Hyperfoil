@@ -21,39 +21,24 @@ public class SequenceInstance {
       while (currentStep < steps.length) {
          Step step = steps[currentStep];
          if (trace) {
-            log.trace("#{} {} preparing step {}", session.uniqueId(), name, step);
+            log.trace("#{} {} invoking step {}", session.uniqueId(), name, step);
          }
-         boolean prepare;
          try {
-            prepare = step.prepare(session);
+            if (!step.invoke(session)) {
+               log.trace("#{} {} step {} is blocked", session.uniqueId(), name, step);
+               return progressed;
+            }
          } catch (Throwable t) {
-            log.error("#{} {} failure preparing step {}", t, session.uniqueId(), name, step);
+            log.error("{} {} failure invoking step {}", t, session.uniqueId(), name, step);
             session.fail(t);
             return false;
          }
-         if (prepare) {
-            if (trace) {
-               log.trace("#{} {} invoking step {}", session.uniqueId(), name, step);
-            }
-            try {
-               step.invoke(session);
-            } catch (Throwable t) {
-               log.error("{} {} failure invoking step {}", t, session.uniqueId(), name, step);
-               session.fail(t);
-               return false;
-            }
-            if (session.currentSequence() != null) {
-               ++currentStep;
-            } else {
-               currentStep = steps.length;
-            }
-            progressed = true;
+         if (session.currentSequence() != null) {
+            ++currentStep;
          } else {
-            if (trace) {
-               log.trace("#{} {} blocking because of failed prepare", session.uniqueId(), name);
-            }
-            return progressed;
+            currentStep = steps.length;
          }
+         progressed = true;
       }
       return progressed;
    }

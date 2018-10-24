@@ -14,11 +14,6 @@ public class AwaitVarStep extends DependencyStep implements ResourceUtilizer {
    }
 
    @Override
-   public void invoke(Session session) {
-      // noop
-   }
-
-   @Override
    public void reserve(Session session) {
       session.declare(var);
    }

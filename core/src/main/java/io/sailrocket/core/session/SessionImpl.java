@@ -5,7 +5,8 @@ import io.sailrocket.api.config.Phase;
 import io.sailrocket.api.config.Scenario;
 import io.sailrocket.api.config.Sequence;
 import io.sailrocket.api.collection.RequestQueue;
-import io.sailrocket.api.connection.HttpClientPool;
+import io.sailrocket.api.connection.Connection;
+import io.sailrocket.api.connection.HttpConnectionPool;
 import io.sailrocket.api.http.ValidatorResults;
 import io.sailrocket.api.session.SequenceInstance;
 import io.sailrocket.api.session.Session;
@@ -23,8 +24,6 @@ class SessionImpl implements Session, Runnable {
    private static final Logger log = LoggerFactory.getLogger(SessionImpl.class);
    private static final boolean trace = log.isTraceEnabled();
 
-   private final HttpClientPool httpClientPool;
-
    // Note: HashMap.get() is allocation-free, so we can use it for direct lookups. Replacing put() is also
    // allocation-free, so vars are OK to write as long as we have them declared.
    private final Map<Object, Var> vars = new HashMap<>();
@@ -37,15 +36,15 @@ class SessionImpl implements Session, Runnable {
    private int lastRunningSequence = -1;
    private SequenceInstance currentSequence;
 
+   private HttpConnectionPool httpConnectionPool;
    private EventExecutor executor;
 
    private final ValidatorResults validatorResults = new ValidatorResults();
    private final Statistics[] statistics;
    private final int uniqueId;
 
-   public SessionImpl(HttpClientPool httpClientPool, Scenario scenario, int uniqueId) {
-      this.httpClientPool = httpClientPool;
-      this.requestQueue = new RequestQueueImpl(scenario.maxRequests());
+   public SessionImpl(Scenario scenario, int uniqueId) {
+      this.requestQueue = new RequestQueueImpl(this, scenario.maxRequests());
       this.sequencePool = new Pool<>(scenario.maxSequences(), SequenceInstance::new);
       this.runningSequences = new SequenceInstance[scenario.maxSequences()];
       this.uniqueId = uniqueId;
@@ -63,9 +62,6 @@ class SessionImpl implements Session, Runnable {
       for (String var : scenario.intVars()) {
          declareInt(var);
       }
-      for (Sequence sequence : scenario.initialSequences()) {
-         sequence.instantiate(this, 0);
-      }
    }
 
    @Override
@@ -74,8 +70,8 @@ class SessionImpl implements Session, Runnable {
    }
 
    @Override
-   public HttpClientPool httpClientPool() {
-      return httpClientPool;
+   public HttpConnectionPool httpConnectionPool() {
+      return httpConnectionPool;
    }
 
    @Override
@@ -192,7 +188,7 @@ class SessionImpl implements Session, Runnable {
          log.trace("called run on terminated session #{}", uniqueId);
          return;
       }
-      log.trace("run session #{}", uniqueId);
+      log.trace("#{} Run ({} runnning sequences)", uniqueId, lastRunningSequence + 1);
       int lastProgressedSequence = -1;
       while (lastRunningSequence >= 0) {
          boolean progressed = false;
@@ -200,6 +196,21 @@ class SessionImpl implements Session, Runnable {
             if (phase.status() == PhaseInstance.Status.TERMINATING) {
                if (trace) {
                   log.trace("#{} Phase {} is terminating", uniqueId, phase.definition().name());
+               }
+               for (int j = 0; j <= lastRunningSequence; ++j) {
+                  sequencePool.release(runningSequences[j]);
+                  lastRunningSequence = -1;
+               }
+               // We need to close all connections used to ongoing requests, despite these might
+               // carry requests from independent phases/sessions
+               while (!requestQueue.isFull()) {
+                  RequestQueue.Request request = requestQueue.complete();
+                  Connection connection = request.request.connection();
+                  connection.close();
+               }
+               reset();
+               if (trace) {
+                  log.trace("#{} Session terminated", uniqueId);
                }
                phase.notifyTerminated(this);
                return;
@@ -229,7 +240,8 @@ class SessionImpl implements Session, Runnable {
             return;
          }
       }
-      log.trace("notifyFinished session #{}", uniqueId);
+      log.trace("#{} Session finished", uniqueId);
+      reset();
       phase.notifyFinished(this);
    }
 
@@ -245,9 +257,23 @@ class SessionImpl implements Session, Runnable {
    }
 
    @Override
-   public void proceed(EventExecutor executor) {
-      assert this.executor == null || this.executor == executor;
-      this.executor = executor;
+   public void attach(HttpConnectionPool httpConnectionPool) {
+      assert this.executor == null;
+      this.executor = httpConnectionPool.executor();
+      this.httpConnectionPool = httpConnectionPool;
+   }
+
+   @Override
+   public void start() {
+      log.trace("#{} Session starting", uniqueId);
+      for (Sequence sequence : phase.definition().scenario().initialSequences()) {
+         sequence.instantiate(this, 0);
+      }
+      proceed();
+   }
+
+   @Override
+   public void proceed() {
       executor.submit(this);
    }
 
@@ -271,10 +297,6 @@ class SessionImpl implements Session, Runnable {
       sequencePool.checkFull();
       for (int i = 0; i < allVars.size(); ++i) {
          allVars.get(i).unset();
-      }
-      executor = null;
-      for (Sequence sequence : phase.definition().scenario().initialSequences()) {
-         sequence.instantiate(this, 0);
       }
    }
 
@@ -305,6 +327,11 @@ class SessionImpl implements Session, Runnable {
    public void fail(Throwable t) {
       stop();
       phase.fail(t);
+   }
+
+   @Override
+   public boolean isActive() {
+      return lastRunningSequence >= 0;
    }
 
    @Override

@@ -1,7 +1,5 @@
 package io.sailrocket.benchmark.standalone;
 
-import static io.sailrocket.core.builders.HttpBuilder.httpBuilder;
-
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -91,7 +89,7 @@ public class TwoScenariosTest {
       BenchmarkBuilder benchmark = BenchmarkBuilder.builder()
          .name("Test Benchmark")
          .simulation()
-            .http(httpBuilder().baseUrl("http://localhost:8080"))
+            .http().baseUrl("http://localhost:8080").endHttp()
             .concurrency(10)
             .connections(10)
             .addPhase("rig").constantPerSec(3)
@@ -128,7 +126,10 @@ public class TwoScenariosTest {
                   .sequence("disembark")
                      .step().httpRequest(HttpMethod.GET).path("/disembark").endStep()
                      .step().awaitAllResponses()
-                     .step(s -> ships.put((ShipInfo) s.getObject("ship")))
+                     .step(s -> {
+                        ships.put((ShipInfo) s.getObject("ship"));
+                        return true;
+                     })
                   .endSequence()
                .endScenario()
             .endPhase()
@@ -165,7 +166,10 @@ public class TwoScenariosTest {
                   .sequence("disembark")
                      .step().httpRequest(HttpMethod.GET).path("/disembark").endStep()
                      .step().awaitAllResponses()
-                     .step(s -> ships.put((ShipInfo) s.getObject("ship")))
+                     .step(s -> {
+                        ships.put((ShipInfo) s.getObject("ship"));
+                        return true;
+                     })
                   .endSequence()
                .endScenario()
             .endPhase()

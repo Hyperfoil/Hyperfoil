@@ -29,6 +29,8 @@ import io.netty.handler.codec.http2.Http2Settings;
 import io.netty.handler.ssl.ApplicationProtocolNames;
 import io.netty.handler.ssl.ApplicationProtocolNegotiationHandler;
 import io.netty.handler.ssl.SslContext;
+import io.netty.util.internal.StringUtil;
+import io.sailrocket.api.connection.HttpConnectionPool;
 
 import java.net.InetSocketAddress;
 import java.util.function.BiConsumer;
@@ -56,7 +58,6 @@ class Http2ClientPool extends HttpClientPoolImpl {
 
   final Http2Settings settings = new Http2Settings();
   private final String authority;
-  private final StatisticsHandler statisticsHandler = new StatisticsHandler();
 
   Http2ClientPool(EventLoopGroup eventLoopGroup, SslContext sslContext, int size, int port, String host, int maxConcurrentStream) {
     super(eventLoopGroup, sslContext, size, port, host, maxConcurrentStream);
@@ -97,6 +98,7 @@ class Http2ClientPool extends HttpClientPoolImpl {
         Http2Connection conn = new Http2Connection(ctx, connection(), encoder(), decoder(), Http2ClientPool.this);
         // Use a very large stream window size
         conn.incrementConnectionWindowSize(1073676288 - 65535);
+        ctx.pipeline().addBefore(generateName(TestClientHandler.class), null, new Http2StatisticsHandler(conn));
         requestHandler.accept(conn, null);
       }
     }
@@ -131,7 +133,6 @@ class Http2ClientPool extends HttpClientPoolImpl {
         TestClientHandlerBuilder clientHandlerBuilder = new TestClientHandlerBuilder(handler);
         if (sslContext != null) {
           pipeline.addLast(sslContext.newHandler(ch.alloc()));
-          pipeline.addLast(statisticsHandler);
           pipeline.addLast(new ApplicationProtocolNegotiationHandler("http/1.1") {
             @Override
             protected void configurePipeline(ChannelHandlerContext ctx, String protocol) {
@@ -147,7 +148,6 @@ class Http2ClientPool extends HttpClientPoolImpl {
             }
           });
         } else {
-          pipeline.addLast(statisticsHandler);
           io.netty.handler.codec.http2.Http2Connection connection = new DefaultHttp2Connection(false);
           TestClientHandler clientHandler = clientHandlerBuilder.build(connection);
           HttpClientCodec sourceCodec = new HttpClientCodec();
@@ -170,9 +170,11 @@ class Http2ClientPool extends HttpClientPoolImpl {
     };
   }
 
+  private String generateName(Class<? extends ChannelHandler> handlerType) {
+      return StringUtil.simpleClassName(handlerType) + "#0";
+  }
 
-
-  public void connect(int port, String host, BiConsumer<HttpConnection, Throwable> handler) {
+  public void connect(final HttpConnectionPool pool, BiConsumer<HttpConnection, Throwable> handler) {
     Bootstrap bootstrap = new Bootstrap();
     bootstrap.channel(NioSocketChannel.class);
     bootstrap.group(eventLoopGroup);
@@ -186,17 +188,5 @@ class Http2ClientPool extends HttpClientPoolImpl {
         handler.accept(null, v.cause());
       }
     });
-  }
-
-  public long bytesRead() {
-    return statisticsHandler.bytesRead();
-  }
-
-  public long bytesWritten() {
-    return statisticsHandler.bytesWritten();
-  }
-
-  public void resetStatistics() {
-    statisticsHandler.reset();
   }
 }

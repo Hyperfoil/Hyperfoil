@@ -11,13 +11,8 @@ public class AwaitDelayStep implements Step {
    }
 
    @Override
-   public boolean prepare(Session session) {
+   public boolean invoke(Session session) {
       ScheduleDelayStep.Timestamp blockedUntil = (ScheduleDelayStep.Timestamp) session.getObject(key);
       return System.currentTimeMillis() >= blockedUntil.timestamp;
-   }
-
-   @Override
-   public void invoke(Session session) {
-      // noop
    }
 }

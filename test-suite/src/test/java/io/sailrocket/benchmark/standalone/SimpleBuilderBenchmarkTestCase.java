@@ -6,6 +6,7 @@ import io.sailrocket.api.config.Simulation;
 import io.sailrocket.core.impl.Report;
 import io.sailrocket.core.builders.BenchmarkBuilder;
 import io.sailrocket.core.impl.LocalSimulationRunner;
+import io.sailrocket.core.impl.statistics.ReportStatisticsCollector;
 import io.sailrocket.test.TestBenchmarks;
 
 import org.HdrHistogram.Histogram;
@@ -35,7 +36,11 @@ public class SimpleBuilderBenchmarkTestCase extends BaseBenchmarkTestCase {
         assertEquals(5_000L, simulation.phases().stream().findFirst().get().duration());
 
         try {
-            Map<String, Report> reports = new LocalSimulationRunner(benchmark).run();
+            LocalSimulationRunner runner = new LocalSimulationRunner(benchmark);
+            runner.run();
+            ReportStatisticsCollector statisticsConsumer = new ReportStatisticsCollector(simulation);
+            runner.visitSessions(statisticsConsumer);
+            Map<String, Report> reports = statisticsConsumer.reports();
             assertNotEquals(0, reports.size());
             Histogram histogram = reports.values().stream().findFirst().get().histogram;
             assertNotEquals(0, histogram.getTotalCount());

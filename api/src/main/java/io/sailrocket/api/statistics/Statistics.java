@@ -1,5 +1,7 @@
 package io.sailrocket.api.statistics;
 
+import java.util.function.Supplier;
+
 import org.HdrHistogram.SingleWriterRecorder;
 import org.HdrHistogram.WriterReaderPhaser;
 
@@ -46,6 +48,24 @@ public class Statistics {
       }
    }
 
+   public void incrementTimeouts() {
+      long criticalValueAtEnter = recordingPhaser.writerCriticalSectionEnter();
+      try {
+         active.timeouts++;
+      } finally {
+         recordingPhaser.writerCriticalSectionExit(criticalValueAtEnter);
+      }
+   }
+
+   public void incrementResets() {
+      long criticalValueAtEnter = recordingPhaser.writerCriticalSectionEnter();
+      try {
+         active.resetCount++;
+      } finally {
+         recordingPhaser.writerCriticalSectionExit(criticalValueAtEnter);
+      }
+   }
+
    public void addStatus(int code) {
       long criticalValueAtEnter = recordingPhaser.writerCriticalSectionEnter();
       try {
@@ -70,6 +90,20 @@ public class Statistics {
       }
    }
 
+   public <T extends CustomValue> T getCustom(String key, Supplier<T> identitySupplier) {
+      long criticalValueAtEnter = recordingPhaser.writerCriticalSectionEnter();
+      try {
+         CustomValue custom = active.custom.get(key);
+         if (custom == null) {
+            custom = identitySupplier.get();
+            active.custom.put(key, custom);
+         }
+         return (T) custom;
+      } finally {
+         recordingPhaser.writerCriticalSectionExit(criticalValueAtEnter);
+      }
+   }
+
    public synchronized void moveIntervalTo(StatisticsSnapshot target) {
       performIntervalSample();
       inactive.copyInto(target);
@@ -78,6 +112,18 @@ public class Statistics {
    public synchronized void addIntervalTo(StatisticsSnapshot target) {
       performIntervalSample();
       inactive.addInto(target);
+   }
+
+   public synchronized void start(long now) {
+      // we can modify start timestamp because writers are not accessing that
+      // and readers are blocked by synchronized section
+      active.histogram.setStartTimeStamp(now);
+   }
+
+   public synchronized void end(long now) {
+      // we can modify end timestamp because writers are not accessing that
+      // and readers are blocked by synchronized section
+      active.histogram.setEndTimeStamp(now);
    }
 
    private void performIntervalSample() {

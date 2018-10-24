@@ -15,6 +15,8 @@ public abstract class AbstractHttpRequest implements HttpRequest, HttpResponseHa
    protected BiConsumer<String, String> headerHandler;
    protected Consumer<Throwable> exceptionHandler;
    protected IntConsumer resetHandler;
+   protected Consumer<ByteBuf> rawBytesHandler;
+   protected boolean completed;
 
    @Override
    public HttpRequest statusHandler(IntConsumer handler) {
@@ -53,6 +55,12 @@ public abstract class AbstractHttpRequest implements HttpRequest, HttpResponseHa
    }
 
    @Override
+   public HttpRequest rawBytesHandler(Consumer<ByteBuf> handler) {
+       rawBytesHandler = handler;
+       return this;
+   }
+
+   @Override
    public IntConsumer statusHandler() {
       return statusHandler;
    }
@@ -80,5 +88,20 @@ public abstract class AbstractHttpRequest implements HttpRequest, HttpResponseHa
    @Override
    public IntConsumer resetHandler() {
       return resetHandler;
+   }
+
+   @Override
+   public Consumer<ByteBuf> rawBytesHandler() {
+      return rawBytesHandler;
+   }
+
+   @Override
+   public boolean isCompleted() {
+      return completed;
+   }
+
+   @Override
+   public void setCompleted() {
+      completed = true;
    }
 }

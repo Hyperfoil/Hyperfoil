@@ -22,13 +22,17 @@ public class BreakSequenceStep extends DependencyStep {
    }
 
    @Override
-   public void invoke(Session session) {
+   public boolean invoke(Session session) {
+      if (!super.invoke(session)) {
+         return false;
+      }
       if (condition.test(session)) {
          if (onBreak != null) {
             onBreak.accept(session);
          }
          session.currentSequence(null);
       }
+      return true;
    }
 
    public static class Builder extends DependencyStepBuilder {

@@ -1,7 +1,5 @@
 package io.sailrocket.core.impl;
 
-import java.util.Map;
-import java.util.Timer;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -10,11 +8,11 @@ import java.util.concurrent.locks.ReentrantLock;
 import io.sailrocket.api.config.Benchmark;
 import io.sailrocket.api.config.BenchmarkDefinitionException;
 import io.sailrocket.core.api.PhaseInstance;
-import io.sailrocket.core.impl.statistics.PrintStatisticsConsumer;
-import io.sailrocket.core.impl.statistics.ReportStatisticsCollector;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 
-// maybe this should be just a test class
 public class LocalSimulationRunner extends SimulationRunnerImpl {
+   private Logger log = LoggerFactory.getLogger(LocalSimulationRunner.class);
    private Lock statusLock = new ReentrantLock();
    private Condition statusCondition = statusLock.newCondition();
    private long startTime;
@@ -23,37 +21,20 @@ public class LocalSimulationRunner extends SimulationRunnerImpl {
       super(benchmark.simulation());
    }
 
-   public Map<String, Report> run() {
+   public void run() {
       if (simulation.phases().isEmpty()) {
          throw new BenchmarkDefinitionException("No phases/scenarios have been defined");
       }
 
-      PrintStatisticsConsumer printStatsConsumer = new PrintStatisticsConsumer(simulation);
-
-      Timer timer = new Timer("console-logger", true);
-//      timer.schedule(new java.util.TimerTask() {
-//         @Override
-//         public void run() {
-//            System.out.println("Statistics: ");
-//            visitSessions(printStatsConsumer);
-//            printStatsConsumer.print();
-//         }
-//      }, TimeUnit.SECONDS.toMillis(3), TimeUnit.SECONDS.toMillis(3));
-
-      Map<String, Report> reports;
       try {
          init(this::phaseChanged);
-         reports = exec();
+         exec();
+      } finally {
          shutdown();
-         timer.cancel();
-         return reports;
-      } catch (Exception e) {
-         e.printStackTrace();
-         return null;
       }
    }
 
-   private Map<String, Report> exec() {
+   private void exec() {
       long now = System.currentTimeMillis();
       this.startTime = now;
       do {
@@ -97,10 +78,6 @@ public class LocalSimulationRunner extends SimulationRunnerImpl {
             }
          }
       } while (instances.values().stream().anyMatch(phase -> phase.status() != PhaseInstance.Status.TERMINATED));
-
-      ReportStatisticsCollector statisticsConsumer = new ReportStatisticsCollector(simulation);
-      visitSessions(statisticsConsumer);
-      return statisticsConsumer.reports();
    }
 
    private void phaseChanged(String phase, PhaseInstance.Status status) {

@@ -40,7 +40,7 @@ import java.util.stream.Collectors;
 public class SimulationBuilder {
 
     private final BenchmarkBuilder benchmarkBuilder;
-    private HttpBuilder http = new HttpBuilder();
+    private HttpBuilder http;
     private int connections = 1;
     private int concurrency = 1;
     private int threads = 1;
@@ -61,11 +61,10 @@ public class SimulationBuilder {
     }
 
     public HttpBuilder http() {
+        if (http == null) {
+            http = new HttpBuilder(this);
+        }
         return http;
-    }
-
-    public SimulationBuilder http(HttpBuilder httpBuilder) {
-        return apply(clone -> clone.http = httpBuilder);
     }
 
     public SimulationBuilder connections(int connections) {
@@ -108,6 +107,10 @@ public class SimulationBuilder {
     }
 
     private HttpClientPoolFactory buildClientPoolFactory() {
+        if (http == null) {
+            // TODO this should be optional
+            throw new BenchmarkDefinitionException("HTTP settings must be defined");
+        }
         HttpBase http = this.http.build();
         return HttpClientProvider.netty.builder()
                        .threads(threads)

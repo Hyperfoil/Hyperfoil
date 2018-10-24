@@ -29,7 +29,7 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
    }
 
    @Override
-   public void invoke(Session session) {
+   public boolean invoke(Session session) {
       Timestamp blockedUntil = (Timestamp) session.getObject(key);
       long now = System.currentTimeMillis();
       long baseTimestamp;
@@ -52,6 +52,7 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
          log.trace("Scheduling #{} to run in {}", session.uniqueId(), delay);
          session.executor().schedule((Runnable) session, delay, TimeUnit.MILLISECONDS);
       }
+      return true;
    }
 
    @Override

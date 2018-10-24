@@ -19,12 +19,13 @@
 package io.sailrocket.api.http;
 
 import io.netty.buffer.ByteBuf;
+import io.sailrocket.api.connection.Request;
 
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 
-public interface HttpRequest {
+public interface HttpRequest extends Request {
 
   /**
    * Adds a key value pair to the request header
@@ -60,4 +61,7 @@ public interface HttpRequest {
   HttpRequest exceptionHandler(Consumer<Throwable> handler);
 
   void end();
+
+  HttpRequest rawBytesHandler(Consumer<ByteBuf> handler);
+
 }

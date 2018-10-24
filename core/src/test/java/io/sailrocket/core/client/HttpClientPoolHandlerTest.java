@@ -22,6 +22,7 @@ package io.sailrocket.core.client;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.sailrocket.api.connection.HttpClientPool;
+import io.sailrocket.api.connection.HttpConnectionPool;
 import io.sailrocket.api.http.HttpMethod;
 import io.sailrocket.api.http.HttpRequest;
 import io.vertx.core.Vertx;
@@ -69,33 +70,38 @@ public class HttpClientPoolHandlerTest {
                 .build();
 
         CountDownLatch startLatch = new CountDownLatch(1);
-        client.start(nil -> startLatch.countDown());
+        client.start(startLatch::countDown);
         assertThat(startLatch.await(10, TimeUnit.SECONDS)).isTrue();
 
-        HttpRequest conn = client.request(client.executors().next(), HttpMethod.GET, "/", null);
+
         CountDownLatch latch = new CountDownLatch(4);
+        HttpConnectionPool pool = client.next();
+        pool.executor().execute(() -> {
+              HttpRequest conn = pool.request(HttpMethod.GET, "/", null);
 
-        conn.statusHandler(code -> {
-            assertThat(code).isEqualTo(200);
-            latch.countDown();
-        }).headerHandler((header, value) -> {
-            if ("foo".equals(header)) {
-                assertThat(value).isEqualTo("bar");
-                latch.countDown();
-            }
-        })
-        .bodyPartHandler(input -> {
-            byte[] bytes = new byte[input.readableBytes()];
-            input.readBytes(bytes, 0, bytes.length);
-            assertThat(new String(bytes)).isEqualTo("hello from server");
-            latch.countDown();
-        }).endHandler(() -> {
-            latch.countDown();
+              conn.statusHandler(code -> {
+                  assertThat(code).isEqualTo(200);
+                  latch.countDown();
+              }).headerHandler((header, value) -> {
+                  if ("foo".equals(header)) {
+                      assertThat(value).isEqualTo("bar");
+                      latch.countDown();
+                  }
+              }).bodyPartHandler(input -> {
+                        byte[] bytes = new byte[input.readableBytes()];
+                        input.readBytes(bytes, 0, bytes.length);
+                        assertThat(new String(bytes)).isEqualTo("hello from server");
+                        latch.countDown();
+                    }).endHandler(() -> {
+                  latch.countDown();
+              });
+
+              conn.end();
         });
-
-        conn.end();
 
         assertThat(latch.await(3, TimeUnit.SECONDS)).isTrue();
         assertThat(count).isEqualTo(1);
+
+        client.shutdown();
     }
 }

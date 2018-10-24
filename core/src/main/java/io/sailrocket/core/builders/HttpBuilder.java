@@ -21,10 +21,7 @@
 package io.sailrocket.core.builders;
 
 import io.sailrocket.core.builders.connection.HttpBase;
-import io.sailrocket.core.builders.connection.HttpHeader;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.function.Consumer;
 
 /**
@@ -32,16 +29,12 @@ import java.util.function.Consumer;
  */
 public class HttpBuilder {
 
-    private Map<String,String> header;
+    private final SimulationBuilder parent;
     private String baseUrl;
     private int httpStatus;
 
-    public HttpBuilder() {
-        header = new HashMap<>();
-    }
-
-    public static HttpBuilder httpBuilder() {
-        return new HttpBuilder();
+    HttpBuilder(SimulationBuilder parent) {
+        this.parent = parent;
     }
 
     private HttpBuilder apply(Consumer<HttpBuilder> consumer) {
@@ -57,12 +50,12 @@ public class HttpBuilder {
         return apply(clone -> clone.httpStatus = status);
     }
 
-    public HttpBuilder acceptHeader(String key, String value) {
-        return apply(clone -> clone.header.put(key, value));
+    public HttpBase build() {
+        return new HttpBase(null, baseUrl, httpStatus);
     }
 
-    public HttpBase build() {
-        return new HttpBase(new HttpHeader(header), baseUrl, httpStatus);
+    public SimulationBuilder endHttp() {
+        return parent;
     }
 
 }

@@ -13,12 +13,7 @@ public class AwaitConditionStep implements Step {
    }
 
    @Override
-   public boolean prepare(Session session) {
+   public boolean invoke(Session session) {
       return condition.test(session);
-   }
-
-   @Override
-   public void invoke(Session session) {
-      // noop
    }
 }

@@ -12,11 +12,12 @@ public class StopwatchEndStep implements Step {
    }
 
    @Override
-   public void invoke(Session session) {
+   public boolean invoke(Session session) {
       long now = System.nanoTime();
       StopwatchBeginStep.StartTime startTime = (StopwatchBeginStep.StartTime) session.getObject(key);
       Statistics statistics = session.currentSequence().statistics(session);
       statistics.recordValue(now - startTime.timestamp);
       // TODO: record any request/response counts?
+      return true;
    }
 }
