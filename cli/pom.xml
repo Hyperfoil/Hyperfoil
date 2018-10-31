@@ -82,4 +82,51 @@
 
     </build>
 
+    <profiles>
+        <profile>
+            <id>wrk</id>
+            <properties>
+                <wrk.args>--help</wrk.args>
+                <io.sailrocket.debug />
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <skip>false</skip>
+                            <executable>java</executable>
+                            <arguments>
+                                <argument>-cp</argument>
+                                <classpath />
+                                <argument>-Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.Log4j2LogDelegateFactory</argument>
+                                <argument>${io.sailrocket.debug}</argument>
+                                <argument>io.sailrocket.Wrk</argument>
+                                <argument>${wrk.args}</argument>
+                            </arguments>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <profile>
+            <id>debug</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <properties>
+                <io.sailrocket.debug>-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005</io.sailrocket.debug>
+            </properties>
+        </profile>
+    </profiles>
+
 </project>

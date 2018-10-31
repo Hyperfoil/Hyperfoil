@@ -6,17 +6,15 @@ public class HttpsProtocol implements Protocol {
     private final Version version;
 
     public HttpsProtocol() {
-        this.port = 443;
-        this.version = Version.HTTP_1_1;
+        this(-1, Version.HTTP_1_1);
     }
 
     public HttpsProtocol(int port) {
-        this.port = port;
-        this.version = Version.HTTP_1_1;
+        this(port, Version.HTTP_1_1);
     }
 
     public HttpsProtocol(int port, Version version) {
-        this.port = port;
+        this.port = port >= 0 ? port : 443;
         this.version = version;
     }
 

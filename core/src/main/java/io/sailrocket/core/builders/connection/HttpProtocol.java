@@ -6,17 +6,15 @@ public class HttpProtocol implements Protocol {
     private final Version version;
 
     public HttpProtocol() {
-        this.port = 80;
-        this.version = Version.HTTP_1_1;
+        this(-1, Version.HTTP_1_1);
     }
 
     public HttpProtocol(int port) {
-        this.port = port;
-        this.version = Version.HTTP_1_1;
+        this(port, Version.HTTP_1_1);
     }
 
     public HttpProtocol(int port, Version version) {
-        this.port = port;
+        this.port = port >= 0 ? port : 80;
         this.version = version;
     }
 

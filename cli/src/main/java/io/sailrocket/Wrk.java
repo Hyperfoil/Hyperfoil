@@ -43,11 +43,16 @@ public class Wrk {
             .build();
 
       StringBuilder sb = new StringBuilder("wrk ");
-      for (String arg : args) {
-         if (arg.indexOf(' ') >= 0) {
-            sb.append('"').append(arg).append("\" ");
-         } else {
-            sb.append(arg).append(' ');
+      if (args.length == 1) {
+         // When executed from mvn exec:exec -Pwrk -Dwrk.args="..." we don't want to quote the args
+         sb.append(args[0]);
+      } else {
+         for (String arg : args) {
+            if (arg.indexOf(' ') >= 0) {
+               sb.append('"').append(arg).append("\" ");
+            } else {
+               sb.append(arg).append(' ');
+            }
          }
       }
       try {
@@ -106,7 +111,7 @@ public class Wrk {
             System.exit(1);
             return null;
          }
-         String baseUrl = uri.getScheme() + "://" + uri.getHost() + ":" + uri.getPort();
+         String baseUrl = uri.getScheme() + "://" + uri.getHost() + (uri.getPort() >=0 ? ":" + uri.getPort() : "");
          path = uri.getPath();
          if (uri.getQuery() != null) {
             path = path + "?" + uri.getQuery();
