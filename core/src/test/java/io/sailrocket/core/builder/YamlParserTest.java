@@ -19,8 +19,10 @@
 package io.sailrocket.core.builder;
 
 import io.sailrocket.api.config.Benchmark;
+import io.sailrocket.api.config.Phase;
 import io.sailrocket.core.parser.BenchmarkParser;
 import io.sailrocket.core.parser.ParserException;
+
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -29,25 +31,49 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.data.Percentage.withPercentage;
 import static org.junit.Assert.fail;
 
 public class YamlParserTest {
     @Test
     public void testSimpleYaml() {
         Benchmark benchmark = buildBenchmark("scenarios/simple.yaml");
-        Assert.assertEquals("simple benchmark", benchmark.name());
+        assertThat(benchmark.name()).isEqualTo("simple benchmark");
     }
 
     @Test
     public void testComplexYaml() {
         Benchmark benchmark = buildBenchmark("scenarios/complex.yaml");
-        Assert.assertEquals("complex benchmark", benchmark.name());
+        assertThat(benchmark.name()).isEqualTo("complex benchmark");
+        assertThat(benchmark.agents().length).isEqualTo(3);
+
+        double sumWeights = 0.2 + 0.8 + 0.1 + 1;
+        assertThat(phase(benchmark, "steadyState/invalidRegistration", Phase.ConstantPerSec.class).usersPerSec)
+              .isCloseTo(100.0 / 3 / sumWeights * 0.2, withPercentage(1));
+        assertThat(phase(benchmark, "steadyState/validRegistration", Phase.ConstantPerSec.class).usersPerSec)
+              .isCloseTo(100.0 / 3 / sumWeights * 0.8, withPercentage(1));
+        assertThat(phase(benchmark, "steadyState/unregister", Phase.ConstantPerSec.class).usersPerSec)
+              .isCloseTo(100.0 / 3 / sumWeights * 0.1, withPercentage(1));
+        assertThat(phase(benchmark, "steadyState/viewUser", Phase.ConstantPerSec.class).usersPerSec)
+              .isCloseTo(100.0 / 3 / sumWeights * 1.0, withPercentage(1));
+        assertThat(benchmark.simulation().phases().stream()
+              .filter(p -> p instanceof Phase.ConstantPerSec)
+              .mapToDouble(p -> ((Phase.ConstantPerSec) p).usersPerSec)
+              .sum()).isCloseTo(100.0 / 3, withPercentage(1));
+    }
+
+    private <T extends Phase> T phase(Benchmark benchmark, String name, Class<T> type) {
+        Phase phase = benchmark.simulation().phases().stream()
+              .filter(p -> p.name().equals(name)).findFirst().get();
+        assertThat(phase).isInstanceOf(type);
+        return (T) phase;
     }
 
     @Test
     public void testIterationYaml() {
         Benchmark benchmark = buildBenchmark("scenarios/iteration.yaml");
-        Assert.assertEquals("iteration benchmark", benchmark.name());
+        assertThat(benchmark.name()).isEqualTo("iteration benchmark");
     }
 
     private Benchmark buildBenchmark(String s) {

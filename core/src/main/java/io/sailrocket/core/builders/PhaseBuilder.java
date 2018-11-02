@@ -168,6 +168,10 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
       return (int) rounded;
    }
 
+   int numAgents() {
+      return parent.endSimulation().numAgents();
+   }
+
    String iterationName(int iteration, String forkName) {
       if (maxIterations == 1) {
          assert iteration == 0;
@@ -259,7 +263,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
          return new Phase.AtOnce(iterationName(i, f.name), f.scenario.build(), iterationStartTime(i),
                iterationReferences(startAfter, i, false), iterationReferences(startAfterStrict, i, true),
                iterationReferences(terminateAfterStrict, i, false), duration, maxDuration, sharedResources(f),
-               sliceValue(users + usersIncrement * i, f.weight));
+               sliceValue(users + usersIncrement * i, f.weight / numAgents()));
       }
    }
 
@@ -277,7 +281,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
          return new Phase.Always(iterationName(i, f.name), f.scenario.build(), iterationStartTime(i),
                iterationReferences(startAfter, i, false), iterationReferences(startAfterStrict, i, true),
                iterationReferences(terminateAfterStrict, i, false), duration, maxDuration, sharedResources(f),
-               sliceValue(users + usersIncrement * i, f.weight));
+               sliceValue(users + usersIncrement * i, f.weight / numAgents()));
       }
 
       public Always users(int users) {
@@ -314,17 +318,19 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
       public Phase.RampPerSec buildPhase(int i, PhaseForkBuilder f) {
          int maxSessionsEstimate;
          if (this.maxSessionsEstimate > 0) {
-             maxSessionsEstimate = sliceValue(this.maxSessionsEstimate, f.weight);
+             maxSessionsEstimate = sliceValue(this.maxSessionsEstimate, f.weight / numAgents());
          } else {
             double maxInitialUsers = initialUsersPerSec + initialUsersPerSecIncrement * (maxIterations - 1);
             double maxTargetUsers = targetUsersPerSec + targetUsersPerSecIncrement * (maxIterations - 1);
-            maxSessionsEstimate = (int) Math.ceil(f.weight * Math.max(maxInitialUsers, maxTargetUsers));
+            maxSessionsEstimate = (int) Math.ceil(Math.max(maxInitialUsers, maxTargetUsers) * f.weight / numAgents());
          }
          return new Phase.RampPerSec(iterationName(i, f.name), f.scenario.build(),
                iterationStartTime(i), iterationReferences(startAfter, i, false),
                iterationReferences(startAfterStrict, i, true), iterationReferences(terminateAfterStrict, i, false),
-               duration, maxDuration, (initialUsersPerSec + initialUsersPerSecIncrement * i) * f.weight,
-               (targetUsersPerSec + targetUsersPerSecIncrement * i) * f.weight, sharedResources(f), maxSessionsEstimate);
+               duration, maxDuration,
+               (initialUsersPerSec + initialUsersPerSecIncrement * i) * f.weight / numAgents(),
+               (targetUsersPerSec + targetUsersPerSecIncrement * i) * f.weight / numAgents(),
+               sharedResources(f), maxSessionsEstimate);
       }
 
       public RampPerSec initialUsersPerSec(double initialUsersPerSec) {
@@ -371,14 +377,14 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
       public Phase.ConstantPerSec buildPhase(int i, PhaseForkBuilder f) {
          int maxSessionsEstimate;
          if (this.maxSessionsEstimate <= 0) {
-            maxSessionsEstimate = (int) Math.ceil(f.weight * (usersPerSec + usersPerSecIncrement * (maxIterations - 1)));
+            maxSessionsEstimate = (int) Math.ceil(f.weight / numAgents() * (usersPerSec + usersPerSecIncrement * (maxIterations - 1)));
          } else {
-            maxSessionsEstimate = sliceValue(this.maxSessionsEstimate, f.weight);
+            maxSessionsEstimate = sliceValue(this.maxSessionsEstimate, f.weight / numAgents());
          }
          return new Phase.ConstantPerSec(iterationName(i, f.name), f.scenario.build(), iterationStartTime(i),
                iterationReferences(startAfter, i, false), iterationReferences(startAfterStrict, i, true),
                iterationReferences(terminateAfterStrict, i, false), duration, maxDuration,
-               sharedResources(f), (usersPerSec + usersPerSecIncrement * i) * f.weight, maxSessionsEstimate);
+               sharedResources(f), (usersPerSec + usersPerSecIncrement * i) * f.weight / numAgents(), maxSessionsEstimate);
       }
 
       public ConstantPerSec usersPerSec(double usersPerSec) {

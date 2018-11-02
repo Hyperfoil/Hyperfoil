@@ -71,4 +71,8 @@ public class BenchmarkBuilder {
         agents.add(Host.parse(name, usernameHostPort));
         return this;
     }
+
+    int numAgents() {
+        return agents.size();
+    }
 }
