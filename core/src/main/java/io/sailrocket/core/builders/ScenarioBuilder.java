@@ -110,4 +110,8 @@ public class ScenarioBuilder implements Rewritable<ScenarioBuilder> {
         this.intVars = other.intVars;
         this.objectVars = other.objectVars;
     }
+
+    Collection<SequenceBuilder> sequences() {
+        return sequences;
+    }
 }

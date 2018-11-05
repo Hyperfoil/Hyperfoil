@@ -144,7 +144,12 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
       context.close();
    }
 
-   static class Http2Stream {
+  @Override
+  public String address() {
+    return client.address();
+  }
+
+  static class Http2Stream {
 
     final Http2Headers headers;
     final ByteBuf buff;

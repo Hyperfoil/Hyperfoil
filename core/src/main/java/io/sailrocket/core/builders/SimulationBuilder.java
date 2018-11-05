@@ -40,7 +40,7 @@ import java.util.stream.Collectors;
 public class SimulationBuilder {
 
     private final BenchmarkBuilder benchmarkBuilder;
-    private HttpBuilder http;
+    private final HttpBuilder http = new HttpBuilder(this);
     private int connections = 1;
     private int concurrency = 1;
     private int threads = 1;
@@ -61,9 +61,6 @@ public class SimulationBuilder {
     }
 
     public HttpBuilder http() {
-        if (http == null) {
-            http = new HttpBuilder(this);
-        }
         return http;
     }
 
@@ -84,6 +81,17 @@ public class SimulationBuilder {
     }
 
     public Simulation build() {
+        HttpBase http = this.http.build();
+        HttpClientPoolFactory httpClientPoolFactory = HttpClientProvider.netty.builder()
+              .threads(threads)
+              .ssl(http.baseUrl().protocol().secure())
+              .port(http.baseUrl().protocol().port())
+              .host(http.baseUrl().host())
+              .version(http.baseUrl().protocol().version())
+              .size(connections)
+              .concurrency(concurrency);
+
+
         Collection<Phase> phases = phaseBuilders.values().stream()
               .flatMap(builder -> builder.build().stream()).collect(Collectors.toList());
         Set<String> phaseNames = phases.stream().map(Phase::name).collect(Collectors.toSet());
@@ -92,7 +100,7 @@ public class SimulationBuilder {
             checkDependencies(phase, phase.startAfterStrict, phaseNames);
             checkDependencies(phase, phase.terminateAfterStrict, phaseNames);
         }
-        return new Simulation(buildClientPoolFactory(), phases, buildTags(), statisticsCollectionPeriod);
+        return new Simulation(httpClientPoolFactory, phases, buildTags(), statisticsCollectionPeriod);
     }
 
     private void checkDependencies(Phase phase, Collection<String> references, Set<String> phaseNames) {
@@ -104,23 +112,6 @@ public class SimulationBuilder {
                 throw new BenchmarkDefinitionException("Phase " + dep + " referenced from " + phase.name() + " is not defined." + suggestion);
             }
         }
-    }
-
-    private HttpClientPoolFactory buildClientPoolFactory() {
-        if (http == null) {
-            // TODO this should be optional
-            throw new BenchmarkDefinitionException("HTTP settings must be defined");
-        }
-        HttpBase http = this.http.build();
-        return HttpClientProvider.netty.builder()
-                       .threads(threads)
-                       .ssl(http.baseUrl().protocol().secure())
-                       .port(http.baseUrl().protocol().port())
-                       .host(http.baseUrl().host())
-                       .size(connections)
-                       .concurrency(concurrency);
-                       //TODO: need a way to specify protocol
-                       //.protocol(http.baseUrl().protocol().version());
     }
 
     private Map<String, Object> buildTags() {
@@ -145,5 +136,9 @@ public class SimulationBuilder {
     public SimulationBuilder statisticsCollectionPeriod(long statisticsCollectionPeriod) {
         this.statisticsCollectionPeriod = statisticsCollectionPeriod;
         return this;
+    }
+
+    Collection<PhaseBuilder<?>> phases() {
+        return phaseBuilders.values();
     }
 }

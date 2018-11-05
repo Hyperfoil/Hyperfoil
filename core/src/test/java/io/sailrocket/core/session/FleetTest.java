@@ -125,7 +125,7 @@ public class FleetTest extends BaseScenarioTest {
                })
             .endSequence();
 
-      runScenario(scenario.build(), 2);
+      runScenario(scenario, 2);
    }
 
    private int currentCrewCount(Session session) {

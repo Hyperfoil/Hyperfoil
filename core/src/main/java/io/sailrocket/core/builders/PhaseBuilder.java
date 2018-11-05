@@ -169,7 +169,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
    }
 
    int numAgents() {
-      return parent.endSimulation().numAgents();
+      return Math.max(parent.endSimulation().numAgents(), 1);
    }
 
    String iterationName(int iteration, String forkName) {

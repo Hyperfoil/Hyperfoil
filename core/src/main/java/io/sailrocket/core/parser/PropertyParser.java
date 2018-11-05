@@ -92,4 +92,26 @@ class PropertyParser {
             }
         }
     }
+
+    static class Boolean<T> implements Parser<T> {
+        private final BiConsumer<T, java.lang.Boolean> consumer;
+
+        Boolean(BiConsumer<T, java.lang.Boolean> consumer) {
+            this.consumer = consumer;
+        }
+
+        @Override
+        public void parse(Context ctx, T target) throws ParserException {
+            ScalarEvent event = ctx.expectEvent(ScalarEvent.class);
+            boolean value;
+            if (event.getValue().equalsIgnoreCase("true")) {
+                value = true;
+            } else if (event.getValue().equalsIgnoreCase("false")) {
+                value = false;
+            } else {
+                throw new ParserException("Failed to parse as boolean: " + event.getValue());
+            }
+            consumer.accept(target, value);
+        }
+    }
 }

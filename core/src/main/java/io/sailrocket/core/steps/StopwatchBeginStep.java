@@ -2,6 +2,7 @@ package io.sailrocket.core.steps;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import io.sailrocket.api.session.Session;
@@ -52,6 +53,14 @@ public class StopwatchBeginStep implements Step, ResourceUtilizer {
          steps.addAll(this.steps.stream().flatMap(stepBuilder -> stepBuilder.build().stream()).collect(Collectors.toList()));
          steps.add(new StopwatchEndStep(key));
          return steps;
+      }
+
+      @Override
+      public <T extends StepBuilder> void forEach(Class<T> type, Consumer<T> consumer) {
+         for (StepBuilder step : steps) {
+            step.forEach(type, consumer);
+         }
+         StepBuilder.super.forEach(type, consumer);
       }
    }
 }

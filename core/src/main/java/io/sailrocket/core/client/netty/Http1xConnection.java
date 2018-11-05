@@ -134,6 +134,11 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    }
 
    @Override
+   public String address() {
+      return client.address();
+   }
+
+   @Override
    public String toString() {
       return "Http1xConnection{" +
             ctx.channel().localAddress() + " -> " + ctx.channel().remoteAddress() +

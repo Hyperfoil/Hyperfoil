@@ -21,6 +21,7 @@
 package io.sailrocket.core.builders;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 import io.sailrocket.api.config.Step;
 
@@ -29,4 +30,10 @@ import io.sailrocket.api.config.Step;
  */
 public interface StepBuilder {
    List<Step> build();
+
+   default <T extends StepBuilder> void forEach(Class<T> type, Consumer<T> consumer) {
+      if (type.isInstance(this)) {
+         consumer.accept((T) this);
+      }
+   }
 }

@@ -25,8 +25,8 @@ import io.sailrocket.api.connection.HttpClientPool;
 import io.sailrocket.api.connection.HttpConnectionPool;
 import io.sailrocket.api.http.HttpMethod;
 import io.sailrocket.api.http.HttpRequest;
+import io.sailrocket.api.http.HttpVersion;
 import io.vertx.core.Vertx;
-import io.vertx.core.http.HttpVersion;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.junit.After;
@@ -63,7 +63,7 @@ public class HttpClientPoolHandlerTest {
                 .host("localhost")
                 .concurrency(1)
                 .port(8088)
-                .protocol(HttpVersion.HTTP_1_1)
+                .version(HttpVersion.HTTP_1_1)
                 .threads(1)
                 .ssl(false)
                 .size(1)

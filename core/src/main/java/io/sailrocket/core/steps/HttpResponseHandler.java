@@ -121,7 +121,7 @@ public class HttpResponseHandler implements ResourceUtilizer, Session.ResourceKe
       }
       if (headerExtractors != null) {
          for (HeaderExtractor extractor : headerExtractors) {
-            extractor.extractHeader(header, value, session);
+            extractor.extractHeader(request, header, value, session);
          }
       }
    }

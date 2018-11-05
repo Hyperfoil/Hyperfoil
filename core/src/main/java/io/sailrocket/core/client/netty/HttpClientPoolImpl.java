@@ -15,7 +15,7 @@ import io.sailrocket.api.connection.HttpConnectionPool;
 import io.netty.channel.EventLoopGroup;
 import io.netty.handler.codec.http2.Http2SecurityUtil;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
-import io.vertx.core.http.HttpVersion;
+import io.sailrocket.api.http.HttpVersion;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
@@ -35,6 +35,7 @@ abstract class HttpClientPoolImpl implements HttpClientPool {
    final int maxConcurrentStream;
    final int port;
    final String host;
+   final String address;
    final EventLoopGroup eventLoopGroup;
    final SslContext sslContext;
    private final HttpConnectionPoolImpl[] children;
@@ -42,7 +43,7 @@ abstract class HttpClientPoolImpl implements HttpClientPool {
    private final Supplier<HttpConnectionPool> nextSupplier;
 
 
-   static HttpClientPool create(EventLoopGroup eventLoopGroup, HttpVersion protocol, boolean ssl, int size, int port, String host, int maxConcurrentStream) throws Exception {
+   static HttpClientPool create(EventLoopGroup eventLoopGroup, HttpVersion version, boolean ssl, int size, int port, String host, int maxConcurrentStream) throws Exception {
         SslContext sslContext = null;
         if (ssl) {
             SslProvider provider = OpenSsl.isAlpnSupported() ? SslProvider.OPENSSL : SslProvider.JDK;
@@ -52,7 +53,7 @@ abstract class HttpClientPoolImpl implements HttpClientPool {
                      * Please refer to the HTTP/2 specification for cipher requirements. */
                     .ciphers(Http2SecurityUtil.CIPHERS, SupportedCipherSuiteFilter.INSTANCE)
                     .trustManager(InsecureTrustManagerFactory.INSTANCE);
-            if (protocol == HttpVersion.HTTP_2) {
+            if (version == HttpVersion.HTTP_2_0) {
                 builder.applicationProtocolConfig(new ApplicationProtocolConfig(
                         ApplicationProtocolConfig.Protocol.ALPN,
                         // NO_ADVERTISE is currently the only mode supported by both OpenSsl and JDK providers.
@@ -65,7 +66,7 @@ abstract class HttpClientPoolImpl implements HttpClientPool {
             sslContext = builder
                     .build();
         }
-        if (protocol == HttpVersion.HTTP_2) {
+        if (version == HttpVersion.HTTP_2_0) {
             return new Http2ClientPool(eventLoopGroup, sslContext, size, port, host, maxConcurrentStream);
         } else {
             return new Http1XClientPool(eventLoopGroup, sslContext, size, port, host, maxConcurrentStream);
@@ -78,6 +79,7 @@ abstract class HttpClientPoolImpl implements HttpClientPool {
         this.sslContext = sslContext;
         this.port = port;
         this.host = host;
+        this.address = (sslContext == null ? "http://" : "https://") + host + ":" + port;
 
         int numExecutors = (int) StreamSupport.stream(eventLoopGroup.spliterator(), false).count();
         this.children = new HttpConnectionPoolImpl[numExecutors];
@@ -134,5 +136,10 @@ abstract class HttpClientPoolImpl implements HttpClientPool {
     public HttpConnectionPool next() {
        return nextSupplier.get();
     }
+
+   @Override
+   public String address() {
+      return address;
+   }
 
 }

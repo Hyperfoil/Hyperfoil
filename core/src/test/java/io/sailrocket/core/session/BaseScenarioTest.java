@@ -1,8 +1,8 @@
 package io.sailrocket.core.session;
 
-import io.sailrocket.api.config.Scenario;
 import io.sailrocket.api.connection.HttpClientPool;
 import io.sailrocket.api.config.Phase;
+import io.sailrocket.api.http.HttpVersion;
 import io.sailrocket.api.session.Session;
 import io.sailrocket.core.api.PhaseInstance;
 import io.sailrocket.core.builders.BenchmarkBuilder;
@@ -11,7 +11,6 @@ import io.sailrocket.core.client.HttpClientProvider;
 import io.sailrocket.core.impl.ConcurrentPoolImpl;
 import io.sailrocket.core.impl.PhaseInstanceImpl;
 import io.vertx.core.Vertx;
-import io.vertx.core.http.HttpVersion;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.unit.Async;
@@ -34,22 +33,26 @@ public abstract class BaseScenarioTest {
    protected HttpClientPool httpClientPool;
    protected Router router;
 
-   protected void runScenario(Scenario scenario, int repeats) {
+   protected List<Session> runScenario(ScenarioBuilder scenarioBuilder, int repeats) {
+      // trigger any cross-definition effects
+      scenarioBuilder.endScenario().endPhase().endSimulation().build();
       PhaseInstance phase;
       if (repeats <= 0) {
-         phase = new PhaseInstanceImpl.Always(new Phase.Always("test", scenario, 0, Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Long.MAX_VALUE, -1, "test", 1));
+         phase = new PhaseInstanceImpl.Always(new Phase.Always("test", scenarioBuilder.build(), 0, Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Long.MAX_VALUE, -1, "test", 1));
       } else {
-         phase = new PhaseInstanceImpl.Sequentially(new Phase.Sequentially("test", scenario, 0, Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Long.MAX_VALUE, -1, "test", repeats));
+         phase = new PhaseInstanceImpl.Sequentially(new Phase.Sequentially("test", scenarioBuilder.build(), 0, Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Long.MAX_VALUE, -1, "test", repeats));
       }
-      runScenario(phase);
+      return runScenario(phase);
    }
 
-   protected void runScenarioOnceParallel(Scenario scenario, int concurrency) {
-      PhaseInstance phase = new PhaseInstanceImpl.AtOnce(new Phase.AtOnce("test", scenario, 0, Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Long.MAX_VALUE, -1, "test", concurrency));
-      runScenario(phase);
+   protected List<Session> runScenarioOnceParallel(ScenarioBuilder scenarioBuilder, int concurrency) {
+      // trigger any cross-definition effects
+      scenarioBuilder.endScenario().endPhase().endSimulation().build();
+      PhaseInstance phase = new PhaseInstanceImpl.AtOnce(new Phase.AtOnce("test", scenarioBuilder.build(), 0, Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Long.MAX_VALUE, -1, "test", concurrency));
+      return runScenario(phase);
    }
 
-   protected void runScenario(PhaseInstance phase) {
+   private List<Session> runScenario(PhaseInstance phase) {
       CountDownLatch latch = new CountDownLatch(1);
       List<Session> sessionList = Collections.synchronizedList(new ArrayList<>());
       phase.setComponents(new ConcurrentPoolImpl<>(() -> {
@@ -74,12 +77,13 @@ public abstract class BaseScenarioTest {
       if (phase.getError() != null) {
          throw new AssertionError(phase.getError());
       }
+      return sessionList;
    }
 
    @Before
    public void before(TestContext ctx) throws Exception {
       httpClientPool = HttpClientProvider.netty.builder().host("localhost")
-            .protocol(HttpVersion.HTTP_1_1)
+            .version(HttpVersion.HTTP_1_1)
             .port(8080)
             .concurrency(3)
             .threads(CLIENT_THREADS)
@@ -102,6 +106,10 @@ public abstract class BaseScenarioTest {
    }
 
    protected ScenarioBuilder scenarioBuilder() {
-      return BenchmarkBuilder.builder().simulation().addPhase("test").atOnce(1).scenario();
+      return BenchmarkBuilder.builder().simulation()
+            .http()
+               .baseUrl("http://localhost:8080")
+            .endHttp()
+            .addPhase("test").atOnce(1).duration(1).scenario();
    }
 }

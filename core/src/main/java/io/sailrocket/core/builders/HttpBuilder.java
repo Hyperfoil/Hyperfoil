@@ -21,6 +21,9 @@
 package io.sailrocket.core.builders;
 
 import io.sailrocket.core.builders.connection.HttpBase;
+import io.sailrocket.core.http.CookieAppender;
+import io.sailrocket.core.http.CookieRecorder;
+import io.sailrocket.core.steps.HttpRequestStep;
 
 import java.util.function.Consumer;
 
@@ -31,7 +34,7 @@ public class HttpBuilder {
 
     private final SimulationBuilder parent;
     private String baseUrl;
-    private int httpStatus;
+    private boolean repeatCookies = true;
 
     HttpBuilder(SimulationBuilder parent) {
         this.parent = parent;
@@ -46,12 +49,27 @@ public class HttpBuilder {
         return apply(clone -> clone.baseUrl = url);
     }
 
-    public HttpBuilder status(int status) {
-        return apply(clone -> clone.httpStatus = status);
+    public HttpBuilder repeatCookies(boolean repeatCookies) {
+        this.repeatCookies = repeatCookies;
+        return this;
     }
 
     public HttpBase build() {
-        return new HttpBase(null, baseUrl, httpStatus);
+        if (repeatCookies) {
+            for (PhaseBuilder<?> pb : parent.phases()) {
+                for (PhaseForkBuilder fork : pb.forks) {
+                    for (SequenceBuilder seq : fork.scenario.sequences()) {
+                        for (StepBuilder step : seq.steps) {
+                            step.forEach(HttpRequestStep.Builder.class, request -> {
+                                request.headerAppender(new CookieAppender());
+                                request.handler().headerExtractor(new CookieRecorder());
+                            });
+                        }
+                    }
+                }
+            }
+        }
+        return new HttpBase(baseUrl);
     }
 
     public SimulationBuilder endHttp() {

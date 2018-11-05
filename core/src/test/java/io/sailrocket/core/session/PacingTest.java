@@ -35,7 +35,7 @@ public class PacingTest extends BaseScenarioTest {
                .step().loop("counter", 5, "loop")
             .endSequence();
 
-      runScenario(scenarioBuilder.build(), 1);
+      runScenario(scenarioBuilder, 1);
    }
 
    @Test
@@ -50,7 +50,7 @@ public class PacingTest extends BaseScenarioTest {
                .step().loop("counter", 5, "loop")
             .endSequence();
 
-      runScenario(scenarioBuilder.build(), 1);
+      runScenario(scenarioBuilder, 1);
    }
 
    @Test
@@ -65,7 +65,7 @@ public class PacingTest extends BaseScenarioTest {
                .step().loop("counter", 5, "loop")
             .endSequence();
 
-      runScenario(scenarioBuilder.build(), 1);
+      runScenario(scenarioBuilder, 1);
    }
 
 }

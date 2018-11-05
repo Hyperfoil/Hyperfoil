@@ -1,19 +1,21 @@
 package io.sailrocket.core.builders.connection;
 
+import io.sailrocket.api.http.HttpVersion;
+
 public class HttpsProtocol implements Protocol {
 
     private final int port;
-    private final Version version;
+    private final HttpVersion version;
 
     public HttpsProtocol() {
-        this(-1, Version.HTTP_1_1);
+        this(-1, HttpVersion.HTTP_1_1);
     }
 
     public HttpsProtocol(int port) {
-        this(port, Version.HTTP_1_1);
+        this(port, HttpVersion.HTTP_1_1);
     }
 
-    public HttpsProtocol(int port, Version version) {
+    public HttpsProtocol(int port, HttpVersion version) {
         this.port = port >= 0 ? port : 443;
         this.version = version;
     }
@@ -29,7 +31,7 @@ public class HttpsProtocol implements Protocol {
     }
 
     @Override
-    public Version version() {
+    public HttpVersion version() {
         return version;
     }
 

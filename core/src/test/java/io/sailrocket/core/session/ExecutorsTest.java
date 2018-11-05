@@ -8,7 +8,7 @@ import java.util.Set;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import io.sailrocket.api.config.Scenario;
+import io.sailrocket.core.builders.ScenarioBuilder;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 
 @RunWith(VertxUnitRunner.class)
@@ -17,7 +17,7 @@ public class ExecutorsTest extends BaseScenarioTest {
    @Test
    public void test() {
       Set<Thread> threads = new HashSet<>();
-      Scenario scenario = scenarioBuilder().initialSequence("foo")
+      ScenarioBuilder scenario = scenarioBuilder().initialSequence("foo")
             .step(s -> {
                threads.add(Thread.currentThread());
                try {
@@ -26,7 +26,7 @@ public class ExecutorsTest extends BaseScenarioTest {
                }
                return true;
             })
-            .endSequence().build();
+            .endSequence();
 
       runScenarioOnceParallel(scenario, 10);
       assertThat(threads.size()).isEqualTo(CLIENT_THREADS);

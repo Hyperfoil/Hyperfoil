@@ -25,25 +25,13 @@ package io.sailrocket.core.builders.connection;
  */
 public class HttpBase {
 
-    private HttpHeader header;
     private Url baseUrl;
-    private int httpStatus;
 
-    public HttpBase(HttpHeader header, String baseUrl, int httpStatus) {
-        this.header = header;
+    public HttpBase(String baseUrl) {
         this.baseUrl = new Url(baseUrl);
-        this.httpStatus = httpStatus;
-    }
-
-    public HttpHeader header() {
-        return header;
     }
 
     public Url baseUrl() {
         return baseUrl;
-    }
-
-    public int httpStatus() {
-        return httpStatus;
     }
 }

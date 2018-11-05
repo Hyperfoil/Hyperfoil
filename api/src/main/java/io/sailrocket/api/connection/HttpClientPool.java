@@ -29,4 +29,6 @@ public interface HttpClientPool {
     EventExecutorGroup executors();
 
     HttpConnectionPool next();
+
+    String address();
 }
