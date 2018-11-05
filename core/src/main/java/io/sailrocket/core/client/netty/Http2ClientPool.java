@@ -98,7 +98,7 @@ class Http2ClientPool extends HttpClientPoolImpl {
         Http2Connection conn = new Http2Connection(ctx, connection(), encoder(), decoder(), Http2ClientPool.this);
         // Use a very large stream window size
         conn.incrementConnectionWindowSize(1073676288 - 65535);
-        ctx.pipeline().addBefore(generateName(TestClientHandler.class), null, new Http2StatisticsHandler(conn));
+        ctx.pipeline().addBefore(generateName(TestClientHandler.class), null, new Http2RawBytesHandler(conn));
         requestHandler.accept(conn, null);
       }
     }

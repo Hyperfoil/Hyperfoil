@@ -1,10 +1,12 @@
 package io.sailrocket.core.client.netty;
 
-import java.nio.charset.StandardCharsets;
 import java.util.function.Consumer;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.util.AsciiString;
+import io.sailrocket.core.util.Util;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
@@ -12,7 +14,6 @@ public class Http1xRawBytesHandler extends BaseRawBytesHandler {
    private static final Logger log = LoggerFactory.getLogger(Http1xRawBytesHandler.class);
    private static final byte CR = 13;
    private static final byte LF = 10;
-   private static final byte[] CONTENT_LENGTH = "Content-Length: ".getBytes(StandardCharsets.US_ASCII);
    private static final int MAX_LINE_LENGTH = 4096;
 
    private boolean crRead = false;
@@ -49,12 +50,12 @@ public class Http1xRawBytesHandler extends BaseRawBytesHandler {
                            throw new IllegalStateException("Too long header line.");
                         }
                         buf.getBytes(startLine, lastLine, lastLineLength, i - startLine);
-                        if (matches(lastLine, lastLineLength, CONTENT_LENGTH)) {
-                           contentLength = readNumber(lastLine, CONTENT_LENGTH.length);
+                        if (matches(lastLine, lastLineLength, HttpHeaderNames.CONTENT_LENGTH)) {
+                           contentLength = readNumber(lastLine, HttpHeaderNames.CONTENT_LENGTH.length() + 2);
                         }
                      } else {
-                        if (matches(buf, startLine, CONTENT_LENGTH)) {
-                           contentLength = readNumber(buf, startLine + CONTENT_LENGTH.length);
+                        if (matches(buf, startLine, HttpHeaderNames.CONTENT_LENGTH)) {
+                           contentLength = readNumber(buf, startLine + HttpHeaderNames.CONTENT_LENGTH.length() + 2);
                         }
                      }
                   } finally {
@@ -89,24 +90,24 @@ public class Http1xRawBytesHandler extends BaseRawBytesHandler {
       }
    }
 
-   private boolean matches(ByteBuf buf, int startIndex, byte[] string) {
-      if (startIndex + string.length > buf.writerIndex()) {
+   private boolean matches(ByteBuf buf, int startIndex, AsciiString string) {
+      if (startIndex + string.length() > buf.writerIndex()) {
          return false;
       }
-      for (int i = 0; i < string.length; ++i) {
-          if (buf.getByte(startIndex + i) != string[i]) {
+      for (int i = 0; i < string.length(); ++i) {
+          if (!Util.compareIgnoreCase(buf.getByte(startIndex + i), string.byteAt(i))) {
              return false;
           }
       }
       return true;
    }
 
-   private boolean matches(byte[] buf, int bufLimit, byte[] string) {
-      if (string.length > bufLimit) {
+   private boolean matches(byte[] buf, int bufLimit, AsciiString string) {
+      if (string.length() > bufLimit) {
          return false;
       }
-      for (int i = 0; i < string.length; ++i) {
-         if (buf[i] != string[i]) {
+      for (int i = 0; i < string.length(); ++i) {
+         if (!Util.compareIgnoreCase(buf[i], string.byteAt(i))) {
             return false;
          }
       }
@@ -138,6 +139,4 @@ public class Http1xRawBytesHandler extends BaseRawBytesHandler {
       // we expect that we've read the <CR><LF> and we should see them
       throw new IllegalStateException();
    }
-
-
 }

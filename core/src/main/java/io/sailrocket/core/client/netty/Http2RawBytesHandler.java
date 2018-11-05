@@ -10,14 +10,14 @@ import io.netty.channel.ChannelHandlerContext;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-public class Http2StatisticsHandler extends BaseRawBytesHandler {
-   private static final Logger log = LoggerFactory.getLogger(Http2StatisticsHandler.class);
+public class Http2RawBytesHandler extends BaseRawBytesHandler {
+   private static final Logger log = LoggerFactory.getLogger(Http2RawBytesHandler.class);
 
    private int streamId = -1;
    private byte[] frameHeader = new byte[FRAME_HEADER_LENGTH];
    private int frameHeaderIndex = 0;
 
-   public Http2StatisticsHandler(HttpConnection connection) {
+   public Http2RawBytesHandler(HttpConnection connection) {
       super(connection);
    }
 
