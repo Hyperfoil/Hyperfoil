@@ -26,7 +26,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 public abstract class BaseScenarioTest {
-   public static final int CLIENT_THREADS = 3;
    protected final Logger log = LoggerFactory.getLogger(getClass());
 
    protected Vertx vertx;
@@ -85,16 +84,19 @@ public abstract class BaseScenarioTest {
       httpClientPool = HttpClientProvider.netty.builder().host("localhost")
             .version(HttpVersion.HTTP_1_1)
             .port(8080)
-            .concurrency(3)
-            .threads(CLIENT_THREADS)
-            .size(100)
+            .concurrency(concurrency())
+            .threads(threads())
+            .size(connections())
             .build();
       Async clientPoolAsync = ctx.async();
       vertx = Vertx.vertx();
       router = Router.router(vertx);
       initRouter();
-      vertx.createHttpServer().requestHandler(router::accept).listen(8080, "localhost", ctx.asyncAssertSuccess());
-      httpClientPool.start(clientPoolAsync::complete);
+      vertx.createHttpServer().requestHandler(router::accept).listen(8080, "localhost",
+            ctx.asyncAssertSuccess(server -> {
+               httpClientPool.start(clientPoolAsync::complete);
+      }));
+
    }
 
    protected abstract void initRouter();
@@ -111,5 +113,17 @@ public abstract class BaseScenarioTest {
                .baseUrl("http://localhost:8080")
             .endHttp()
             .addPhase("test").atOnce(1).duration(1).scenario();
+   }
+
+   protected int threads() {
+      return 3;
+   }
+
+   protected int connections() {
+      return 10;
+   }
+
+   protected int concurrency() {
+      return 1;
    }
 }

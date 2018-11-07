@@ -85,7 +85,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    @Override
    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
       log.warn("Exception in {}", cause, this);
-      for (HttpStream request = inflights.poll(); request != null; ) {
+      for (HttpStream request = inflights.poll(); request != null; request = inflights.poll()) {
          if (!request.handlers.isCompleted()) {
             request.handlers.exceptionHandler().accept(cause);
             request.handlers.setCompleted();

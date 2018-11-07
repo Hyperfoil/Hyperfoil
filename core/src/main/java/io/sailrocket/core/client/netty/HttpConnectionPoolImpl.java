@@ -2,6 +2,7 @@ package io.sailrocket.core.client.netty;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Deque;
 import java.util.concurrent.TimeUnit;
 
@@ -60,6 +61,11 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
       if (session != null) {
          session.proceed();
       }
+   }
+
+   @Override
+   public Collection<HttpConnection> connections() {
+      return connections;
    }
 
    private HttpConnection choose() {

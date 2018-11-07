@@ -5,10 +5,12 @@ import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 
 import io.netty.buffer.ByteBuf;
+import io.sailrocket.api.http.HttpMethod;
 import io.sailrocket.api.http.HttpRequest;
 import io.sailrocket.api.http.HttpResponseHandlers;
 
 public abstract class AbstractHttpRequest implements HttpRequest, HttpResponseHandlers {
+   protected final HttpMethod method;
    protected IntConsumer statusHandler;
    protected Consumer<ByteBuf> dataHandler;
    protected Runnable endHandler;
@@ -17,6 +19,10 @@ public abstract class AbstractHttpRequest implements HttpRequest, HttpResponseHa
    protected IntConsumer resetHandler;
    protected Consumer<ByteBuf> rawBytesHandler;
    protected boolean completed;
+
+   protected AbstractHttpRequest(HttpMethod method) {
+       this.method = method;
+   }
 
    @Override
    public HttpRequest statusHandler(IntConsumer handler) {
@@ -103,5 +109,10 @@ public abstract class AbstractHttpRequest implements HttpRequest, HttpResponseHa
    @Override
    public void setCompleted() {
       completed = true;
+   }
+
+   @Override
+   public HttpMethod method() {
+       return method;
    }
 }

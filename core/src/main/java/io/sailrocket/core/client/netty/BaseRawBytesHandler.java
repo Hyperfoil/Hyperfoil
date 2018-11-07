@@ -18,7 +18,7 @@ public abstract class BaseRawBytesHandler extends ChannelInboundHandlerAdapter {
       Consumer<ByteBuf> handler = connection.currentResponseHandlers(streamId).rawBytesHandler();
       if (buf.readableBytes() > responseBytes) {
          ByteBuf slice = buf.readRetainedSlice(responseBytes);
-         invokeHandler(handler, buf);
+         invokeHandler(handler, slice);
          ctx.fireChannelRead(slice);
          responseBytes = 0;
          channelRead(ctx, buf);

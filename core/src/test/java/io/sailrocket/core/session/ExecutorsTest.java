@@ -13,6 +13,7 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
 
 @RunWith(VertxUnitRunner.class)
 public class ExecutorsTest extends BaseScenarioTest {
+   public static final int CLIENT_THREADS = 3;
 
    @Test
    public void test() {
@@ -34,5 +35,10 @@ public class ExecutorsTest extends BaseScenarioTest {
 
    @Override
    protected void initRouter() {
+   }
+
+   @Override
+   protected int threads() {
+      return CLIENT_THREADS;
    }
 }

@@ -1,5 +1,7 @@
 package io.sailrocket.api.connection;
 
+import java.util.Collection;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.util.concurrent.EventExecutor;
 import io.sailrocket.api.http.HttpMethod;
@@ -14,4 +16,6 @@ public interface HttpConnectionPool {
    EventExecutor executor();
 
    void pulse();
+
+   Collection<? extends Connection> connections();
 }

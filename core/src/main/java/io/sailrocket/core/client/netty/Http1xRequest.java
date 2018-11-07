@@ -15,6 +15,7 @@ class Http1xRequest extends AbstractHttpRequest {
     private final DefaultFullHttpRequest msg;
 
     Http1xRequest(Http1xConnection connection, HttpMethod method, String path, ByteBuf buf) {
+        super(method);
         this.connection = connection;
         this.msg = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, method.netty, path, buf == null ? Unpooled.EMPTY_BUFFER : buf, false);
     }

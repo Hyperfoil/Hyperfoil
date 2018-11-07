@@ -17,6 +17,7 @@ class Http2Request extends AbstractHttpRequest {
   private boolean sent;
 
   Http2Request(Http2ClientPool client, Http2Connection conn, HttpMethod method, String path, ByteBuf buf) {
+    super(method);
     this.conn = conn;
     this.headers = client.headers(method.name(), "https", path);
     this.body = buf;

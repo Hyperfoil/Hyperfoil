@@ -24,4 +24,6 @@ public interface HttpResponseHandlers {
    boolean isCompleted();
 
    void setCompleted();
+
+   HttpMethod method();
 }
