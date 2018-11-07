@@ -26,7 +26,7 @@ public class SimpleBuilderBenchmarkTestCase extends BaseBenchmarkTestCase {
     public void runSimpleBenchmarkTest() {
 
         BenchmarkBuilder builder = BenchmarkBuilder.builder().name("Test Benchmark");
-        TestBenchmarks.addTestSimulation(builder);
+        TestBenchmarks.addTestSimulation(builder, 1);
         Benchmark benchmark = builder.build();
         Simulation simulation = benchmark.simulation();
 

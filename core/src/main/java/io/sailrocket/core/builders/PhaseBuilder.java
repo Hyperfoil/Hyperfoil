@@ -159,11 +159,11 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
 
    protected abstract Phase buildPhase(int iteration, PhaseForkBuilder f);
 
-   int sliceValue(int value, double ratio) {
+   int sliceValue(String property, int value, double ratio) {
       double sliced = value * ratio;
       long rounded = Math.round(sliced);
       if (Math.abs(rounded - sliced) > 0.0001) {
-         throw new BenchmarkDefinitionException("Cannot slice phase " + name + " cleanly: " + value + " * " + ratio + " is not an integer.");
+         throw new BenchmarkDefinitionException("Cannot slice phase " + name + ", property " + property + " cleanly: " + value + " * " + ratio + " is not an integer.");
       }
       return (int) rounded;
    }
@@ -263,7 +263,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
          return new Phase.AtOnce(iterationName(i, f.name), f.scenario.build(), iterationStartTime(i),
                iterationReferences(startAfter, i, false), iterationReferences(startAfterStrict, i, true),
                iterationReferences(terminateAfterStrict, i, false), duration, maxDuration, sharedResources(f),
-               sliceValue(users + usersIncrement * i, f.weight / numAgents()));
+               sliceValue("users", users + usersIncrement * i, f.weight / numAgents()));
       }
    }
 
@@ -281,7 +281,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
          return new Phase.Always(iterationName(i, f.name), f.scenario.build(), iterationStartTime(i),
                iterationReferences(startAfter, i, false), iterationReferences(startAfterStrict, i, true),
                iterationReferences(terminateAfterStrict, i, false), duration, maxDuration, sharedResources(f),
-               sliceValue(users + usersIncrement * i, f.weight / numAgents()));
+               sliceValue("users", users + usersIncrement * i, f.weight / numAgents()));
       }
 
       public Always users(int users) {
@@ -318,7 +318,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
       public Phase.RampPerSec buildPhase(int i, PhaseForkBuilder f) {
          int maxSessionsEstimate;
          if (this.maxSessionsEstimate > 0) {
-             maxSessionsEstimate = sliceValue(this.maxSessionsEstimate, f.weight / numAgents());
+             maxSessionsEstimate = sliceValue("maxSessionsEstimate", this.maxSessionsEstimate, f.weight / numAgents());
          } else {
             double maxInitialUsers = initialUsersPerSec + initialUsersPerSecIncrement * (maxIterations - 1);
             double maxTargetUsers = targetUsersPerSec + targetUsersPerSecIncrement * (maxIterations - 1);
@@ -379,7 +379,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
          if (this.maxSessionsEstimate <= 0) {
             maxSessionsEstimate = (int) Math.ceil(f.weight / numAgents() * (usersPerSec + usersPerSecIncrement * (maxIterations - 1)));
          } else {
-            maxSessionsEstimate = sliceValue(this.maxSessionsEstimate, f.weight / numAgents());
+            maxSessionsEstimate = sliceValue("maxSessionsEstimate", this.maxSessionsEstimate, f.weight / numAgents());
          }
          return new Phase.ConstantPerSec(iterationName(i, f.name), f.scenario.build(), iterationStartTime(i),
                iterationReferences(startAfter, i, false), iterationReferences(startAfterStrict, i, true),
