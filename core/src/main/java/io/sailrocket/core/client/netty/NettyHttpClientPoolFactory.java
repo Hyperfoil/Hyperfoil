@@ -9,7 +9,7 @@ import io.sailrocket.api.http.HttpVersion;
 public class NettyHttpClientPoolFactory implements HttpClientPoolFactory {
 
   private int threads;
-  private HttpVersion version;
+  private HttpVersion[] versions;
   private int size;
   private boolean ssl;
   private int port;
@@ -28,8 +28,8 @@ public class NettyHttpClientPoolFactory implements HttpClientPoolFactory {
     return this;
   }
 
-  public HttpClientPoolFactory version(HttpVersion version) {
-    this.version = version;
+  public HttpClientPoolFactory versions(HttpVersion[] versions) {
+    this.versions = versions;
     return this;
   }
 
@@ -56,6 +56,6 @@ public class NettyHttpClientPoolFactory implements HttpClientPoolFactory {
   @Override
   public HttpClientPool build() throws Exception {
     EventLoopGroup workerGroup = new NioEventLoopGroup(this.threads);
-    return HttpClientPoolImpl.create(workerGroup, version, ssl, size, port, host, concurrency);
+    return new HttpClientPoolImpl(workerGroup, versions, ssl, size, port, host, concurrency);
   }
 }

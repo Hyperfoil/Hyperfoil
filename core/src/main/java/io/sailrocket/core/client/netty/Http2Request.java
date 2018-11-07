@@ -1,6 +1,7 @@
 package io.sailrocket.core.client.netty;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.handler.codec.http2.DefaultHttp2Headers;
 import io.netty.handler.codec.http2.Http2Headers;
 import io.sailrocket.api.connection.Connection;
 import io.sailrocket.api.http.HttpMethod;
@@ -16,14 +17,14 @@ class Http2Request extends AbstractHttpRequest {
   private final ByteBuf body;
   private boolean sent;
 
-  Http2Request(Http2ClientPool client, Http2Connection conn, HttpMethod method, String path, ByteBuf buf) {
+  Http2Request(HttpClientPoolImpl client, Http2Connection conn, HttpMethod method, String path, ByteBuf buf) {
     super(method);
     this.conn = conn;
-    this.headers = client.headers(method.name(), "https", path);
+    this.headers = new DefaultHttp2Headers().method(method.name()).scheme(client.scheme).path(path).authority(client.authority);
     this.body = buf;
   }
 
-  public Http2Request putHeader(String name, String value) {
+  public Http2Request putHeader(CharSequence name, CharSequence value) {
     headers.add(name, value);
     return this;
   }

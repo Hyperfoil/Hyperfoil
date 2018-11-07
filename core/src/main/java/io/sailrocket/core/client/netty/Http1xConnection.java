@@ -1,6 +1,7 @@
 package io.sailrocket.core.client.netty;
 
 import io.netty.handler.codec.http.HttpContent;
+import io.netty.handler.codec.http.HttpHeaderNames;
 import io.sailrocket.api.connection.Connection;
 import io.sailrocket.api.connection.HttpConnectionPool;
 import io.sailrocket.api.http.HttpMethod;
@@ -18,6 +19,7 @@ import io.vertx.core.logging.LoggerFactory;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Map;
+import java.util.function.BiConsumer;
 
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
@@ -28,13 +30,16 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    final HttpClientPoolImpl client;
    private final HttpConnectionPool pool;
    private final Deque<HttpStream> inflights;
+   private final BiConsumer<HttpConnection, Throwable> activationHandler;
    ChannelHandlerContext ctx;
    // we can safely use non-atomic variables since the connection should be always accessed by single thread
    private int size;
+   private boolean activated;
 
-   Http1xConnection(Http1XClientPool client, HttpConnectionPool pool) {
+   Http1xConnection(HttpClientPoolImpl client, HttpConnectionPool pool, BiConsumer<HttpConnection, Throwable> handler) {
       this.client = client;
       this.pool = pool;
+      this.activationHandler = handler;
       this.inflights = new ArrayDeque<>(client.maxConcurrentStream);
    }
 
@@ -43,9 +48,24 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    }
 
    @Override
-   public void channelRegistered(ChannelHandlerContext ctx) throws Exception {
+   public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
       this.ctx = ctx;
-      super.channelRegistered(ctx);
+      if (ctx.channel().isActive()) {
+         checkActivated(ctx);
+      }
+   }
+
+   @Override
+   public void channelActive(ChannelHandlerContext ctx) throws Exception {
+      super.channelActive(ctx);
+      checkActivated(ctx);
+   }
+
+   private void checkActivated(ChannelHandlerContext ctx) {
+      if (!activated) {
+         activated = true;
+         activationHandler.accept(this, null);
+      }
    }
 
    @Override
@@ -107,8 +127,9 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
 
    @Override
    public HttpRequest request(HttpMethod method, String path, ByteBuf body) {
-      Http1xRequest request = new Http1xRequest(this, method, path, body);
       size++;
+      Http1xRequest request = new Http1xRequest(this, method, path, body);
+      request.putHeader(HttpHeaderNames.HOST, client.authority);
       return request;
    }
 
@@ -134,8 +155,8 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    }
 
    @Override
-   public String address() {
-      return client.address();
+   public String host() {
+      return client.host();
    }
 
    @Override

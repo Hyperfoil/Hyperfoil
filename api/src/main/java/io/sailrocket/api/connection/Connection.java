@@ -13,5 +13,5 @@ public interface Connection {
 
    void close();
 
-   String address();
+   String host();
 }

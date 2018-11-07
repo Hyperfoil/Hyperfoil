@@ -85,9 +85,9 @@ public class SimulationBuilder {
         HttpClientPoolFactory httpClientPoolFactory = HttpClientProvider.netty.builder()
               .threads(threads)
               .ssl(http.baseUrl().protocol().secure())
-              .port(http.baseUrl().protocol().port())
+              .port(http.baseUrl().port())
               .host(http.baseUrl().host())
-              .version(http.baseUrl().protocol().version())
+              .versions(http.versions())
               .size(connections)
               .concurrency(concurrency);
 
@@ -118,7 +118,7 @@ public class SimulationBuilder {
         Map<String, Object> tags = new HashMap<>();
         HttpBase http = this.http.build();
         tags.put("url", http.baseUrl().toString());
-        tags.put("protocol", http.baseUrl().protocol().version().toString());
+        tags.put("protocol", http.baseUrl().protocol().scheme);
         tags.put("maxQueue", concurrency);
         tags.put("connections", connections);
         tags.put("threads", threads);

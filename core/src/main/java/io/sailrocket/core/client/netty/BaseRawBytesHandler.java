@@ -15,7 +15,10 @@ public abstract class BaseRawBytesHandler extends ChannelInboundHandlerAdapter {
    }
 
    protected void handleBuffer(ChannelHandlerContext ctx, ByteBuf buf, int streamId) throws Exception {
-      Consumer<ByteBuf> handler = connection.currentResponseHandlers(streamId).rawBytesHandler();
+      Consumer<ByteBuf> handler = null;
+      if (isRequestStream(streamId)) {
+         handler = connection.currentResponseHandlers(streamId).rawBytesHandler();
+      }
       if (buf.readableBytes() > responseBytes) {
          ByteBuf slice = buf.readRetainedSlice(responseBytes);
          invokeHandler(handler, slice);
@@ -28,6 +31,8 @@ public abstract class BaseRawBytesHandler extends ChannelInboundHandlerAdapter {
          ctx.fireChannelRead(buf);
       }
    }
+
+   protected abstract boolean isRequestStream(int streamId);
 
    protected void invokeHandler(Consumer<ByteBuf> handler, ByteBuf buf) {
       if (handler != null) {

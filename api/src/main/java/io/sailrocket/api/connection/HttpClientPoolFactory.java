@@ -8,7 +8,7 @@ public interface HttpClientPoolFactory extends Serializable {
 
   HttpClientPoolFactory threads(int count);
   HttpClientPoolFactory ssl(boolean ssl);
-  HttpClientPoolFactory version(HttpVersion version);
+  HttpClientPoolFactory versions(HttpVersion[] versions);
   HttpClientPoolFactory size(int size);
   HttpClientPoolFactory port(int port);
   HttpClientPoolFactory host(String host);

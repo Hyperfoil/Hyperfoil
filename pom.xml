@@ -74,6 +74,7 @@
         <log4j2.version>2.11.1</log4j2.version>
         <slf4j.version>1.7.12</slf4j.version>
         <snakeYaml.version>1.22</snakeYaml.version>
+        <netty.tcnative.boringssl.version>2.0.19.Final</netty.tcnative.boringssl.version>
 
         <exec.skip>true</exec.skip>
         <module.skipCopyDependencies>false</module.skipCopyDependencies>
@@ -192,6 +193,12 @@
                 <groupId>org.assertj</groupId>
                 <artifactId>assertj-core</artifactId>
                 <version>${assertj.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-tcnative-boringssl-static</artifactId>
+                <version>${netty.tcnative.boringssl.version}</version>
             </dependency>
 
         </dependencies>

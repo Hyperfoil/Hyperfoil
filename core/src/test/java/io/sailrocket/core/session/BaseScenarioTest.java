@@ -82,7 +82,7 @@ public abstract class BaseScenarioTest {
    @Before
    public void before(TestContext ctx) throws Exception {
       httpClientPool = HttpClientProvider.netty.builder().host("localhost")
-            .version(HttpVersion.HTTP_1_1)
+            .versions(HttpVersion.ALL_VERSIONS)
             .port(8080)
             .concurrency(concurrency())
             .threads(threads())

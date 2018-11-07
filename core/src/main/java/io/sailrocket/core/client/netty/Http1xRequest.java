@@ -21,7 +21,7 @@ class Http1xRequest extends AbstractHttpRequest {
     }
 
     @Override
-    public HttpRequest putHeader(String name, String value) {
+    public HttpRequest putHeader(CharSequence name, CharSequence value) {
       msg.headers().add(name, value);
       return this;
     }

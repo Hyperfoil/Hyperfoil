@@ -63,7 +63,7 @@ public class HttpClientPoolHandlerTest {
                 .host("localhost")
                 .concurrency(1)
                 .port(8088)
-                .version(HttpVersion.HTTP_1_1)
+                .versions(HttpVersion.ALL_VERSIONS)
                 .threads(1)
                 .ssl(false)
                 .size(1)

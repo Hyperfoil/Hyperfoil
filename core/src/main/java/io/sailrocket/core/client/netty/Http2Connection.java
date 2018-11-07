@@ -1,6 +1,6 @@
 package io.sailrocket.core.client.netty;
 
-import io.netty.handler.codec.http2.Http2Stream;
+import io.netty.handler.codec.http.HttpHeaderNames;
 import io.sailrocket.api.connection.Connection;
 import io.sailrocket.api.http.HttpMethod;
 import io.sailrocket.api.http.HttpRequest;
@@ -21,163 +21,79 @@ import io.sailrocket.api.http.HttpResponseHandlers;
  */
 class Http2Connection extends Http2EventAdapter implements HttpConnection {
 
-  private final Http2ClientPool client;
-  private final ChannelHandlerContext context;
-  private final io.netty.handler.codec.http2.Http2Connection connection;
-  private final Http2ConnectionEncoder encoder;
-  private final IntObjectMap<Http2Stream> streams = new IntObjectHashMap<>();
-  private int numStreams;
-  private long maxStreams;
+   private final HttpClientPoolImpl client;
+   private final ChannelHandlerContext context;
+   private final io.netty.handler.codec.http2.Http2Connection connection;
+   private final Http2ConnectionEncoder encoder;
+   private final IntObjectMap<Http2Stream> streams = new IntObjectHashMap<>();
+   private int numStreams;
+   private long maxStreams;
 
-  Http2Connection(ChannelHandlerContext context,
-                         io.netty.handler.codec.http2.Http2Connection connection,
-                         Http2ConnectionEncoder encoder,
-                         Http2ConnectionDecoder decoder,
-                         Http2ClientPool client) {
-    this.client = client;
-    this.context = context;
-    this.connection = connection;
-    this.encoder = encoder;
-    this.maxStreams = client.maxConcurrentStream;
+   Http2Connection(ChannelHandlerContext context,
+                   io.netty.handler.codec.http2.Http2Connection connection,
+                   Http2ConnectionEncoder encoder,
+                   Http2ConnectionDecoder decoder,
+                   HttpClientPoolImpl client) {
+      this.client = client;
+      this.context = context;
+      this.connection = connection;
+      this.encoder = encoder;
+      this.maxStreams = client.maxConcurrentStream;
 
-    //
-    Http2EventAdapter listener = new Http2EventAdapter() {
+      //
+      Http2EventAdapter listener = new EventAdapter(client);
 
-      @Override
-      public void onSettingsRead(ChannelHandlerContext ctx, Http2Settings settings) {
-        if (settings.maxConcurrentStreams() != null) {
-          maxStreams = Math.min(client.maxConcurrentStream, settings.maxConcurrentStreams());
-        }
+      connection.addListener(listener);
+      decoder.frameListener(listener);
+   }
+
+   @Override
+   public ChannelHandlerContext context() {
+      return context;
+   }
+
+   @Override
+   public boolean isAvailable() {
+      return numStreams < maxStreams;
+   }
+
+   public void incrementConnectionWindowSize(int increment) {
+      try {
+         io.netty.handler.codec.http2.Http2Stream stream = connection.connectionStream();
+         connection.local().flowController().incrementWindowSize(stream, increment);
+      } catch (Http2Exception e) {
+         e.printStackTrace();
       }
-
-      @Override
-      public void onHeadersRead(ChannelHandlerContext ctx, int streamId, Http2Headers headers, int streamDependency, short weight, boolean exclusive, int padding, boolean endStream) throws Http2Exception {
-        Http2Stream stream = streams.get(streamId);
-        if (stream != null) {
-          if (stream.handlers.statusHandler() != null) {
-            int code = -1;
-            try {
-              code = Integer.parseInt(headers.status().toString());
-            } catch (NumberFormatException ignore) {
-            }
-            stream.handlers.statusHandler().accept(code);
-          }
-          if (endStream) {
-            endStream(streamId);
-          }
-        }
-      }
-
-      @Override
-      public int onDataRead(ChannelHandlerContext ctx, int streamId, ByteBuf data, int padding, boolean endOfStream) throws Http2Exception {
-        int ack = super.onDataRead(ctx, streamId, data, padding, endOfStream);
-        Http2Stream stream = streams.get(streamId);
-        if (stream != null) {
-          if (stream.handlers.dataHandler() != null) {
-            stream.handlers.dataHandler().accept(data);
-          }
-          if (endOfStream) {
-            endStream(streamId);
-          }
-        }
-        return ack;
-      }
-
-      @Override
-      public void onRstStreamRead(ChannelHandlerContext ctx, int streamId, long errorCode) {
-        Http2Stream stream = streams.get(streamId);
-        if (stream != null) {
-          if (stream.handlers.resetHandler() != null) {
-            stream.handlers.resetHandler().accept(0);
-          }
-          endStream(streamId);
-        }
-      }
-
-      private void endStream(int streamId) {
-        numStreams--;
-        Http2Stream stream = streams.remove(streamId);
-        if (stream != null) {
-          if (stream.handlers.endHandler() != null) {
-            stream.handlers.endHandler().run();
-          }
-          stream.handlers.setCompleted();
-        }
-      }
-
-      @Override
-      public void onStreamClosed(io.netty.handler.codec.http2.Http2Stream stream) {
-        for (Http2Stream s : streams.values()) {
-          if (!s.handlers.isCompleted()) {
-            s.handlers.exceptionHandler().accept(Connection.CLOSED_EXCEPTION);
-            s.handlers.setCompleted();
-          }
-        }
-      }
-    };
-
-    connection.addListener(listener);
-    decoder.frameListener(listener);
-  }
-
-  @Override
-  public ChannelHandlerContext context() {
-    return context;
-  }
-
-  @Override
-  public boolean isAvailable() {
-    return numStreams < maxStreams;
-  }
-
-  public void incrementConnectionWindowSize(int increment) {
-    try {
-      io.netty.handler.codec.http2.Http2Stream stream = connection.connectionStream();
-      connection.local().flowController().incrementWindowSize(stream, increment);
-    } catch (Http2Exception e) {
-      e.printStackTrace();
-    }
-  }
+   }
 
    @Override
    public void close() {
       context.close();
    }
 
-  @Override
-  public String address() {
-    return client.address();
-  }
+   @Override
+   public String host() {
+      return client.host();
+   }
 
-  static class Http2Stream {
+   void bilto(Http2Stream stream) {
+      context.executor().execute(() -> {
+         int id = nextStreamId();
+         streams.put(id, stream);
+         encoder.writeHeaders(context, id, stream.headers, 0, stream.buff == null, context.newPromise());
+         if (stream.buff != null) {
+            encoder.writeData(context, id, stream.buff, 0, true, context.newPromise());
+         }
+         context.flush();
+      });
+   }
 
-    final Http2Headers headers;
-    final ByteBuf buff;
-    final HttpResponseHandlers handlers;
-
-    Http2Stream(Http2Headers headers, ByteBuf buff, HttpResponseHandlers handlers) {
-      this.headers = headers;
-      this.buff = buff;
-      this.handlers = handlers;
-    }
-  }
-
-  void bilto(Http2Stream stream) {
-    context.executor().execute(() -> {
-      int id = nextStreamId();
-      streams.put(id, stream);
-      encoder.writeHeaders(context, id, stream.headers, 0, stream.buff == null, context.newPromise());
-      if (stream.buff != null) {
-        encoder.writeData(context, id, stream.buff, 0, true, context.newPromise());
-      }
-      context.flush();
-    });
-  }
-
-  public HttpRequest request(HttpMethod method, String path, ByteBuf body) {
-    numStreams++;
-    return new Http2Request(client, this, method, path, body);
-  }
+   public HttpRequest request(HttpMethod method, String path, ByteBuf body) {
+      numStreams++;
+      Http2Request request = new Http2Request(client, this, method, path, body);
+      request.putHeader(HttpHeaderNames.HOST, client.authority);
+      return request;
+   }
 
    @Override
    public HttpResponseHandlers currentResponseHandlers(int streamId) {
@@ -185,8 +101,8 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
    }
 
    private int nextStreamId() {
-    return connection.local().incrementAndGetNextStreamId();
-  }
+      return connection.local().incrementAndGetNextStreamId();
+   }
 
    @Override
    public String toString() {
@@ -194,5 +110,98 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
             context.channel().localAddress() + " -> " + context.channel().remoteAddress() +
             ", streams=" + streams +
             '}';
+   }
+
+   void cancelRequests(Throwable cause) {
+      for (IntObjectMap.PrimitiveEntry<Http2Stream> entry : streams.entries()) {
+         Http2Stream request = entry.value();
+         if (!request.handlers.isCompleted()) {
+            request.handlers.exceptionHandler().accept(cause);
+            request.handlers.setCompleted();
+         }
+      }
+   }
+
+   static class Http2Stream {
+      final Http2Headers headers;
+      final ByteBuf buff;
+      final HttpResponseHandlers handlers;
+
+      Http2Stream(Http2Headers headers, ByteBuf buff, HttpResponseHandlers handlers) {
+         this.headers = headers;
+         this.buff = buff;
+         this.handlers = handlers;
+      }
+   }
+
+   private class EventAdapter extends Http2EventAdapter {
+
+      private final HttpClientPoolImpl client;
+
+      public EventAdapter(HttpClientPoolImpl client) {
+         this.client = client;
+      }
+
+      @Override
+      public void onSettingsRead(ChannelHandlerContext ctx, Http2Settings settings) {
+         if (settings.maxConcurrentStreams() != null) {
+            maxStreams = Math.min(client.maxConcurrentStream, settings.maxConcurrentStreams());
+         }
+      }
+
+      @Override
+      public void onHeadersRead(ChannelHandlerContext ctx, int streamId, Http2Headers headers, int streamDependency, short weight, boolean exclusive, int padding, boolean endStream) throws Http2Exception {
+         Http2Stream stream = streams.get(streamId);
+         if (stream != null) {
+            if (stream.handlers.statusHandler() != null) {
+               int code = -1;
+               try {
+                  code = Integer.parseInt(headers.status().toString());
+               } catch (NumberFormatException ignore) {
+               }
+               stream.handlers.statusHandler().accept(code);
+            }
+            if (endStream) {
+               endStream(streamId);
+            }
+         }
+      }
+
+      @Override
+      public int onDataRead(ChannelHandlerContext ctx, int streamId, ByteBuf data, int padding, boolean endOfStream) throws Http2Exception {
+         int ack = super.onDataRead(ctx, streamId, data, padding, endOfStream);
+         Http2Stream stream = streams.get(streamId);
+         if (stream != null) {
+            if (stream.handlers.dataHandler() != null) {
+               stream.handlers.dataHandler().accept(data);
+            }
+            if (endOfStream) {
+               endStream(streamId);
+            }
+         }
+         return ack;
+      }
+
+      @Override
+      public void onRstStreamRead(ChannelHandlerContext ctx, int streamId, long errorCode) {
+         Http2Stream stream = streams.get(streamId);
+         if (stream != null) {
+            if (stream.handlers.resetHandler() != null) {
+               stream.handlers.resetHandler().accept(0);
+            }
+            endStream(streamId);
+         }
+      }
+
+      private void endStream(int streamId) {
+         numStreams--;
+         Http2Stream stream = streams.remove(streamId);
+         if (stream != null) {
+            if (stream.handlers.endHandler() != null) {
+               stream.handlers.endHandler().run();
+            }
+            stream.handlers.setCompleted();
+         }
+      }
    }
 }

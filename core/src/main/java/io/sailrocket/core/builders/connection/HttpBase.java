@@ -20,18 +20,27 @@
 
 package io.sailrocket.core.builders.connection;
 
+import io.sailrocket.api.http.HttpVersion;
+
 /**
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
  */
 public class HttpBase {
 
-    private Url baseUrl;
+    private final Url baseUrl;
+    private final HttpVersion[] versions;
+    // TODO: direct HTTP/2 (no h2c)
 
-    public HttpBase(String baseUrl) {
+    public HttpBase(String baseUrl, HttpVersion[] versions) {
         this.baseUrl = new Url(baseUrl);
+        this.versions = versions;
     }
 
     public Url baseUrl() {
         return baseUrl;
+    }
+
+    public HttpVersion[] versions() {
+        return versions;
     }
 }

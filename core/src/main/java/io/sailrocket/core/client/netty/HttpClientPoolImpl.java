@@ -1,8 +1,12 @@
 package io.sailrocket.core.client.netty;
 
+import io.netty.bootstrap.Bootstrap;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoop;
+import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.codec.http2.Http2Settings;
 import io.netty.handler.ssl.ApplicationProtocolConfig;
-import io.netty.handler.ssl.ApplicationProtocolNames;
 import io.netty.handler.ssl.OpenSsl;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
@@ -19,67 +23,45 @@ import io.sailrocket.api.http.HttpVersion;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
+import java.net.InetSocketAddress;
 import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
+
+import javax.net.ssl.SSLException;
 
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
  */
-abstract class HttpClientPoolImpl implements HttpClientPool {
+class HttpClientPoolImpl implements HttpClientPool {
    private static final Logger log = LoggerFactory.getLogger(HttpClientPoolImpl.class);
 
+   final Http2Settings http2Settings = new Http2Settings();
    final int maxConcurrentStream;
    final int port;
    final String host;
-   final String address;
+   final String scheme;
+   final String authority;
    final EventLoopGroup eventLoopGroup;
    final SslContext sslContext;
+   final boolean forceH2c;
    private final HttpConnectionPoolImpl[] children;
    private final AtomicInteger idx = new AtomicInteger();
    private final Supplier<HttpConnectionPool> nextSupplier;
 
-
-   static HttpClientPool create(EventLoopGroup eventLoopGroup, HttpVersion version, boolean ssl, int size, int port, String host, int maxConcurrentStream) throws Exception {
-        SslContext sslContext = null;
-        if (ssl) {
-            SslProvider provider = OpenSsl.isAlpnSupported() ? SslProvider.OPENSSL : SslProvider.JDK;
-            SslContextBuilder builder = SslContextBuilder.forClient()
-                    .sslProvider(provider)
-                    /* NOTE: the cipher filter may not include all ciphers required by the HTTP/2 specification.
-                     * Please refer to the HTTP/2 specification for cipher requirements. */
-                    .ciphers(Http2SecurityUtil.CIPHERS, SupportedCipherSuiteFilter.INSTANCE)
-                    .trustManager(InsecureTrustManagerFactory.INSTANCE);
-            if (version == HttpVersion.HTTP_2_0) {
-                builder.applicationProtocolConfig(new ApplicationProtocolConfig(
-                        ApplicationProtocolConfig.Protocol.ALPN,
-                        // NO_ADVERTISE is currently the only mode supported by both OpenSsl and JDK providers.
-                        ApplicationProtocolConfig.SelectorFailureBehavior.NO_ADVERTISE,
-                        // ACCEPT is currently the only mode supported by both OpenSsl and JDK providers.
-                        ApplicationProtocolConfig.SelectedListenerFailureBehavior.ACCEPT,
-                        ApplicationProtocolNames.HTTP_2,
-                        ApplicationProtocolNames.HTTP_1_1));
-            }
-            sslContext = builder
-                    .build();
-        }
-        if (version == HttpVersion.HTTP_2_0) {
-            return new Http2ClientPool(eventLoopGroup, sslContext, size, port, host, maxConcurrentStream);
-        } else {
-            return new Http1XClientPool(eventLoopGroup, sslContext, size, port, host, maxConcurrentStream);
-        }
-    }
-
-    HttpClientPoolImpl(EventLoopGroup eventLoopGroup, SslContext sslContext, int size, int port, String host, int maxConcurrentStream) {
+   HttpClientPoolImpl(EventLoopGroup eventLoopGroup, HttpVersion[] versions, boolean ssl, int size, int port, String host, int maxConcurrentStream) throws SSLException {
         this.maxConcurrentStream = maxConcurrentStream;
         this.eventLoopGroup = eventLoopGroup;
-        this.sslContext = sslContext;
+        this.sslContext = ssl ? createSslContext(versions) : null;
         this.port = port;
         this.host = host;
-        this.address = (sslContext == null ? "http://" : "https://") + host + ":" + port;
+        this.scheme = sslContext == null ? "http" : "https";
+        this.authority = host + ":" + port;
+        this.forceH2c = versions.length == 1 && versions[0] == HttpVersion.HTTP_2_0;
 
         int numExecutors = (int) StreamSupport.stream(eventLoopGroup.spliterator(), false).count();
         this.children = new HttpConnectionPoolImpl[numExecutors];
@@ -104,6 +86,25 @@ abstract class HttpClientPoolImpl implements HttpClientPool {
         }
     }
 
+   private SslContext createSslContext(HttpVersion[] versions) throws SSLException {
+      SslProvider provider = OpenSsl.isAlpnSupported() ? SslProvider.OPENSSL : SslProvider.JDK;
+      SslContextBuilder builder = SslContextBuilder.forClient()
+            .sslProvider(provider)
+            /* NOTE: the cipher filter may not include all ciphers required by the HTTP/2 specification.
+             * Please refer to the HTTP/2 specification for cipher requirements. */
+            .ciphers(Http2SecurityUtil.CIPHERS, SupportedCipherSuiteFilter.INSTANCE)
+            .trustManager(InsecureTrustManagerFactory.INSTANCE);
+      builder.applicationProtocolConfig(new ApplicationProtocolConfig(
+            ApplicationProtocolConfig.Protocol.ALPN,
+            // NO_ADVERTISE is currently the only mode supported by both OpenSsl and JDK providers.
+            ApplicationProtocolConfig.SelectorFailureBehavior.NO_ADVERTISE,
+            // ACCEPT is currently the only mode supported by both OpenSsl and JDK providers.
+            ApplicationProtocolConfig.SelectedListenerFailureBehavior.ACCEPT,
+            Stream.of(versions).map(HttpVersion::protocolName).toArray(String[]::new)
+      ));
+      return builder.build();
+   }
+
     @Override
     public void start(Runnable completionHandler) {
        AtomicInteger countDown = new AtomicInteger(children.length);
@@ -124,7 +125,22 @@ abstract class HttpClientPoolImpl implements HttpClientPool {
        eventLoopGroup.shutdownGracefully(0, 10, TimeUnit.SECONDS);
     }
 
-    abstract void connect(final HttpConnectionPool pool, BiConsumer<HttpConnection, Throwable> handler);
+    void connect(final HttpConnectionPool pool, BiConsumer<HttpConnection, Throwable> handler) {
+       Bootstrap bootstrap = new Bootstrap();
+       bootstrap.channel(NioSocketChannel.class);
+       bootstrap.group(eventLoopGroup);
+       bootstrap.option(ChannelOption.SO_KEEPALIVE, true);
+       bootstrap.option(ChannelOption.SO_REUSEADDR, true);
+
+       bootstrap.handler(new HttpChannelInitializer(this, pool, handler));
+
+       ChannelFuture fut = bootstrap.connect(new InetSocketAddress(host, port));
+       fut.addListener(v -> {
+          if (!v.isSuccess()) {
+             handler.accept(null, v.cause());
+          }
+       });
+    }
 
 
     @Override
@@ -138,8 +154,7 @@ abstract class HttpClientPoolImpl implements HttpClientPool {
     }
 
    @Override
-   public String address() {
-      return address;
+   public String host() {
+      return host;
    }
-
 }

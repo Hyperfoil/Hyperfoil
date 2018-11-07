@@ -31,9 +31,15 @@ public class Http1xRawBytesHandler extends BaseRawBytesHandler {
    }
 
    @Override
-   public void channelRegistered(ChannelHandlerContext ctx) throws Exception {
-      lastLine = ctx.alloc().buffer(MAX_LINE_LENGTH);
-      super.channelRegistered(ctx);
+   protected boolean isRequestStream(int streamId) {
+      return true;
+   }
+
+   @Override
+   public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
+      if (lastLine == null) {
+         lastLine = ctx.alloc().buffer(MAX_LINE_LENGTH);
+      }
    }
 
    @Override

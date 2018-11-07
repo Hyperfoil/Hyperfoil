@@ -20,11 +20,14 @@
 
 package io.sailrocket.core.builders;
 
+import io.sailrocket.api.http.HttpVersion;
 import io.sailrocket.core.builders.connection.HttpBase;
 import io.sailrocket.core.http.CookieAppender;
 import io.sailrocket.core.http.CookieRecorder;
 import io.sailrocket.core.steps.HttpRequestStep;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Consumer;
 
 /**
@@ -35,6 +38,8 @@ public class HttpBuilder {
     private final SimulationBuilder parent;
     private String baseUrl;
     private boolean repeatCookies = true;
+    private boolean allowHttp1x = true;
+    private boolean allowHttp2 = true;
 
     HttpBuilder(SimulationBuilder parent) {
         this.parent = parent;
@@ -47,6 +52,16 @@ public class HttpBuilder {
 
     public HttpBuilder baseUrl(String url) {
         return apply(clone -> clone.baseUrl = url);
+    }
+
+    public HttpBuilder allowHttp1x(boolean allowHttp1x) {
+        this.allowHttp1x = allowHttp1x;
+        return this;
+    }
+
+    public HttpBuilder allowHttp2(boolean allowHttp2) {
+        this.allowHttp2 = allowHttp2;
+        return this;
     }
 
     public HttpBuilder repeatCookies(boolean repeatCookies) {
@@ -69,7 +84,16 @@ public class HttpBuilder {
                 }
             }
         }
-        return new HttpBase(baseUrl);
+        List<HttpVersion> httpVersions = new ArrayList<>();
+        // The order is important here because it will be provided to the ALPN
+        if (allowHttp2) {
+            httpVersions.add(HttpVersion.HTTP_2_0);
+        }
+        if (allowHttp1x) {
+            httpVersions.add(HttpVersion.HTTP_1_1);
+            httpVersions.add(HttpVersion.HTTP_1_0);
+        }
+        return new HttpBase(baseUrl, httpVersions.toArray(new HttpVersion[0]));
     }
 
     public SimulationBuilder endHttp() {

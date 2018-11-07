@@ -22,6 +22,14 @@ public class Http2RawBytesHandler extends BaseRawBytesHandler {
    }
 
    @Override
+   protected boolean isRequestStream(int streamId) {
+      // 0 is any connection-related stuff
+      // 1 is HTTP upgrade response
+      // even numbers are server-initiated connections
+      return (streamId & 1) == 1 && streamId >= 3;
+   }
+
+   @Override
    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
       if (msg instanceof ByteBuf) {
          ByteBuf buf = (ByteBuf) msg;

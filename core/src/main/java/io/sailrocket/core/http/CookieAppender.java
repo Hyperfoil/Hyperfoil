@@ -17,7 +17,7 @@ public class CookieAppender implements SerializableBiConsumer<Session, HttpReque
          log.error("No cookie store in the session. Did you add CookieRecorder?");
          return;
       }
-      String cookie = cookies.getCookie(httpRequest.connection().address());
+      String cookie = cookies.getCookie(httpRequest.connection().host());
       if (cookie != null) {
          httpRequest.putHeader(HttpHeaderNames.COOKIE.toString(), cookie);
       }

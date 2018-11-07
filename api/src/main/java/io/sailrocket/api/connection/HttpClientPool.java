@@ -30,5 +30,5 @@ public interface HttpClientPool {
 
     HttpConnectionPool next();
 
-    String address();
+    String host();
 }

@@ -34,7 +34,7 @@ public interface HttpRequest extends Request {
    * @param value value
    * @return this
    */
-  HttpRequest putHeader(String name, String value);
+  HttpRequest putHeader(CharSequence name, CharSequence value);
 
   /**
    * Http status codes, ref:

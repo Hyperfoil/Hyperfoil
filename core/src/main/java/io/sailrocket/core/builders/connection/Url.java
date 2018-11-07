@@ -9,22 +9,24 @@ public class Url {
 
     private Protocol protocol;
     private String host;
+    private int port;
     private String path;
 
-    public Url(String protocol, String host, String path, int port) {
-        this.protocol = Protocols.protocol(protocol, port);
+    public Url(String scheme, String host, String path, int port) {
+        this.protocol = Protocol.fromScheme(scheme);
         this.host = host;
+        this.port = this.protocol.portOrDefault(port);
         this.path = path;
     }
 
     public Url(String path) {
         try {
             URI uri = new URI(path);
+            this.protocol = Protocol.fromScheme(uri.getScheme());
             this.host = uri.getHost();
+            this.port = uri.getPort();
             this.path = uri.getPath();
-            this.protocol = Protocols.protocol(uri.getScheme(), uri.getPort());
-        }
-        catch(URISyntaxException e) {
+        } catch (URISyntaxException e) {
             throw new IllegalArgumentException("Method value is not a correct url"+e.getMessage());
         }
     }
@@ -41,13 +43,17 @@ public class Url {
         return path;
     }
 
+    public int port() {
+        return port;
+    }
+
     public URL toURL() throws MalformedURLException {
         return new URL(toString());
     }
 
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append(protocol.name()).append("://").append(host).append(":").append(protocol.port()).append("/");
+        sb.append(protocol.scheme).append("://").append(host).append(":").append(port).append("/");
         if(path != null && !path.equals("/")) {
             sb.append(path);
         }

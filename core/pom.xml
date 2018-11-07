@@ -104,6 +104,13 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- This dependency is needed for server-side ALPN support in tests -->
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-tcnative-boringssl-static</artifactId>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
     <build>
