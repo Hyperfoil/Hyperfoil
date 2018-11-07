@@ -220,11 +220,6 @@
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-compiler-plugin</artifactId>
-                    <version>3.7.0</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-jar-plugin</artifactId>
                     <version>3.0.2</version>
                 </plugin>
@@ -244,9 +239,25 @@
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>2.22.0</version>
                     <configuration>
+                        <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                        <trimStackTrace>false</trimStackTrace>
+                        <includes>
+                            <include>**/*TestCase.java</include>
+                            <include>**/*Test.java</include>
+                        </includes>
                         <systemPropertyVariables>
                             <vertx.logger-delegate-factory-class-name>io.vertx.core.logging.Log4j2LogDelegateFactory</vertx.logger-delegate-factory-class-name>
                         </systemPropertyVariables>
+                    </configuration>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.7.0</version>
+                    <configuration>
+                        <source>1.8</source>
+                        <target>1.8</target>
                     </configuration>
                 </plugin>
 
