@@ -1,7 +1,6 @@
 package io.sailrocket.core.client.netty;
 
 import io.netty.handler.codec.http.HttpHeaderNames;
-import io.sailrocket.api.connection.Connection;
 import io.sailrocket.api.http.HttpMethod;
 import io.sailrocket.api.http.HttpRequest;
 import io.netty.buffer.ByteBuf;
