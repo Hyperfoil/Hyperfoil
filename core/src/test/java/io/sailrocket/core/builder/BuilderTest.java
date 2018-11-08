@@ -41,9 +41,10 @@ public class BuilderTest {
               BenchmarkBuilder.builder()
                     .name("Test Benchmark")
                     .simulation()
-                        .http().baseUrl("http://localhost:8080").endHttp()
-                        .concurrency(10)
-                        .connections(1)
+                        .http()
+                            .baseUrl("http://localhost:8080")
+                            .sharedConnections(1)
+                        .endHttp()
                         .addPhase("foo").always(1)
                             .duration("3s")
                             .scenario()
@@ -62,8 +63,6 @@ public class BuilderTest {
         Simulation simulation = benchmark.simulation();
 
         assertEquals("http://localhost:8080/", simulation.tags().get("url"));
-        assertEquals(10, simulation.tags().get("maxQueue"));
-        assertEquals(1, simulation.tags().get("connections"));
         assertEquals(1, simulation.phases().size());
         assertEquals(3000L, simulation.phases().stream().findFirst().get().duration());
 

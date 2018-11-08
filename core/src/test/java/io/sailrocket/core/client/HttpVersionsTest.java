@@ -2,6 +2,7 @@ package io.sailrocket.core.client;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Stream;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -9,6 +10,8 @@ import org.junit.runner.RunWith;
 import io.sailrocket.api.connection.HttpClientPool;
 import io.sailrocket.api.http.HttpMethod;
 import io.sailrocket.api.http.HttpVersion;
+import io.sailrocket.core.builders.HttpBuilder;
+import io.sailrocket.core.client.netty.HttpClientPoolImpl;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
@@ -104,15 +107,11 @@ public class HttpVersionsTest {
    }
 
    private HttpClientPool client(int port, boolean ssl, HttpVersion[] versions) throws Exception {
-      return HttpClientProvider.netty.builder()
-                     .host("localhost")
-                     .concurrency(1)
-                     .port(port)
-                     .versions(versions)
-                     .threads(1)
-                     .ssl(ssl)
-                     .size(1)
-                     .build();
+      HttpBuilder builder = HttpBuilder.forTesting()
+            .baseUrl((ssl ? "https" : "http") + "://localhost:" + port);
+      builder.allowHttp2(Stream.of(versions).anyMatch(v -> v == HttpVersion.HTTP_2_0));
+      builder.allowHttp1x(Stream.of(versions).anyMatch(v -> v == HttpVersion.HTTP_1_1));
+      return new HttpClientPoolImpl(1, builder.build());
    }
 
    private void server(int port, boolean ssl, List<io.vertx.core.http.HttpVersion> serverVersions, Handler<AsyncResult<HttpServer>> handler) {

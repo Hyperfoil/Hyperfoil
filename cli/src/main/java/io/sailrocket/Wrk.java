@@ -138,8 +138,10 @@ public class Wrk {
          SimulationBuilder simulationBuilder = new BenchmarkBuilder(null)
                .name("wrk " + new SimpleDateFormat("YY/MM/dd HH:mm:ss").format(new Date()))
                .simulation()
-                  .http().baseUrl(baseUrl).endHttp()
-                  .connections(connections)
+                  .http()
+                     .baseUrl(baseUrl)
+                     .sharedConnections(connections)
+                  .endHttp()
                   .threads(this.threads);
 
          addPhase(simulationBuilder, "calibration", "1s");

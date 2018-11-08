@@ -10,9 +10,10 @@ import io.sailrocket.core.builders.SimulationBuilder;
 public class TestBenchmarks {
    public static SimulationBuilder addTestSimulation(BenchmarkBuilder builder, int users) {
       return builder.simulation()
-            .http().baseUrl("http://localhost:8080").endHttp()
-            .concurrency(10)
-            .connections(10)
+            .http()
+               .baseUrl("http://localhost:8080")
+               .sharedConnections(10)
+            .endHttp()
             .addPhase("test").always(users)
                .duration("5s")
                .scenario()

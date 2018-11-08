@@ -25,7 +25,8 @@ import io.sailrocket.api.connection.HttpClientPool;
 import io.sailrocket.api.connection.HttpConnectionPool;
 import io.sailrocket.api.http.HttpMethod;
 import io.sailrocket.api.http.HttpRequest;
-import io.sailrocket.api.http.HttpVersion;
+import io.sailrocket.core.builders.HttpBuilder;
+import io.sailrocket.core.client.netty.HttpClientPoolImpl;
 import io.vertx.core.Vertx;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -59,15 +60,8 @@ public class HttpClientPoolHandlerTest {
 
     @Test
     public void simpleHeaderRequest() throws Exception {
-        HttpClientPool client = HttpClientProvider.netty.builder()
-                .host("localhost")
-                .concurrency(1)
-                .port(8088)
-                .versions(HttpVersion.ALL_VERSIONS)
-                .threads(1)
-                .ssl(false)
-                .size(1)
-                .build();
+        HttpClientPool client = new HttpClientPoolImpl(1,
+              HttpBuilder.forTesting().baseUrl("http://localhost:8088").build());
 
         CountDownLatch startLatch = new CountDownLatch(1);
         client.start(startLatch::countDown);

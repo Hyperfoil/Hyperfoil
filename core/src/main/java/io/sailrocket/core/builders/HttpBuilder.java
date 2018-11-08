@@ -21,7 +21,7 @@
 package io.sailrocket.core.builders;
 
 import io.sailrocket.api.http.HttpVersion;
-import io.sailrocket.core.builders.connection.HttpBase;
+import io.sailrocket.api.config.Http;
 import io.sailrocket.core.http.CookieAppender;
 import io.sailrocket.core.http.CookieRecorder;
 import io.sailrocket.core.steps.HttpRequestStep;
@@ -36,10 +36,19 @@ import java.util.function.Consumer;
 public class HttpBuilder {
 
     private final SimulationBuilder parent;
+    private Http http;
     private String baseUrl;
     private boolean repeatCookies = true;
     private boolean allowHttp1x = true;
     private boolean allowHttp2 = true;
+    private int sharedConnections = 1;
+    private int maxHttp2Streams = 100;
+    private int pipeliningLimit = 1;
+    private boolean directHttp2 = false;
+
+    public static HttpBuilder forTesting() {
+        return new HttpBuilder(null);
+    }
 
     HttpBuilder(SimulationBuilder parent) {
         this.parent = parent;
@@ -69,8 +78,35 @@ public class HttpBuilder {
         return this;
     }
 
-    public HttpBase build() {
-        if (repeatCookies) {
+    public SimulationBuilder endHttp() {
+        return parent;
+    }
+
+    public HttpBuilder sharedConnections(int sharedConnections) {
+        this.sharedConnections = sharedConnections;
+        return this;
+    }
+
+    public HttpBuilder maxHttp2Streams(int maxStreams) {
+        this.maxHttp2Streams = maxStreams;
+        return this;
+    }
+
+    public HttpBuilder pipeliningLimit(int limit) {
+        this.pipeliningLimit = limit;
+        return this;
+    }
+
+    public HttpBuilder directHttp2(boolean directHttp2) {
+        this.directHttp2 = directHttp2;
+        return this;
+    }
+
+    public Http build() {
+        if (http != null) {
+            return http;
+        }
+        if (repeatCookies && parent != null) {
             for (PhaseBuilder<?> pb : parent.phases()) {
                 for (PhaseForkBuilder fork : pb.forks) {
                     for (SequenceBuilder seq : fork.scenario.sequences()) {
@@ -93,11 +129,9 @@ public class HttpBuilder {
             httpVersions.add(HttpVersion.HTTP_1_1);
             httpVersions.add(HttpVersion.HTTP_1_0);
         }
-        return new HttpBase(baseUrl, httpVersions.toArray(new HttpVersion[0]));
+        if (directHttp2) {
+            throw new UnsupportedOperationException("Direct HTTP/2 not implemented");
+        }
+        return http = new Http(baseUrl, httpVersions.toArray(new HttpVersion[0]), maxHttp2Streams, pipeliningLimit, sharedConnections, directHttp2);
     }
-
-    public SimulationBuilder endHttp() {
-        return parent;
-    }
-
 }

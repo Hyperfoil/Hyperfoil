@@ -14,6 +14,7 @@ import io.netty.buffer.CompositeByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.sailrocket.api.http.HttpMethod;
+import io.sailrocket.core.builders.HttpBuilder;
 import io.sailrocket.core.builders.ScenarioBuilder;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -22,6 +23,11 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
 public class ChunkedTransferTest extends BaseScenarioTest {
 
    public static final String SHIBBOLETH = "Shibboleth";
+
+   @Override
+   protected void initHttp(HttpBuilder http) {
+      http.pipeliningLimit(2);
+   }
 
    @Override
    protected void initRouter() {
@@ -36,11 +42,6 @@ public class ChunkedTransferTest extends BaseScenarioTest {
       router.route("/test2").handler(ctx -> {
          ctx.response().end(SHIBBOLETH);
       });
-   }
-
-   @Override
-   protected int concurrency() {
-      return 2;
    }
 
    @Test

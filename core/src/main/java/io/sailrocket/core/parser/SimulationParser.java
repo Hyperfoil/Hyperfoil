@@ -22,8 +22,6 @@ import io.sailrocket.core.builders.SimulationBuilder;
 
 class SimulationParser extends AbstractMappingParser<SimulationBuilder> {
     SimulationParser() {
-        register("concurrency", new PropertyParser.Int<>(SimulationBuilder::concurrency));
-        register("connections", new PropertyParser.Int<>(SimulationBuilder::connections));
         register("http", new Adapter<>(SimulationBuilder::http, new HttpParser()));
         register("phases", new PhasesParser());
         register("threads", new PropertyParser.Int<>(SimulationBuilder::threads));

@@ -40,7 +40,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
       this.client = client;
       this.pool = pool;
       this.activationHandler = handler;
-      this.inflights = new ArrayDeque<>(client.maxConcurrentStream);
+      this.inflights = new ArrayDeque<>(client.http.pipeliningLimit());
    }
 
    HttpStream createStream(DefaultFullHttpRequest msg, HttpResponseHandlers handlers) {
@@ -146,7 +146,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
 
    @Override
    public boolean isAvailable() {
-      return size < client.maxConcurrentStream;
+      return size < client.http.pipeliningLimit();
    }
 
    @Override

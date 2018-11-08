@@ -22,10 +22,8 @@ package io.sailrocket.core.builders;
 
 import io.sailrocket.api.config.BenchmarkDefinitionException;
 import io.sailrocket.api.config.Phase;
-import io.sailrocket.api.connection.HttpClientPoolFactory;
-import io.sailrocket.core.client.HttpClientProvider;
 import io.sailrocket.api.config.Simulation;
-import io.sailrocket.core.builders.connection.HttpBase;
+import io.sailrocket.api.config.Http;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -41,8 +39,6 @@ public class SimulationBuilder {
 
     private final BenchmarkBuilder benchmarkBuilder;
     private final HttpBuilder http = new HttpBuilder(this);
-    private int connections = 1;
-    private int concurrency = 1;
     private int threads = 1;
     private Map<String, PhaseBuilder<?>> phaseBuilders = new HashMap<>();
     private long statisticsCollectionPeriod = 1000;
@@ -64,14 +60,6 @@ public class SimulationBuilder {
         return http;
     }
 
-    public SimulationBuilder connections(int connections) {
-        return apply(clone -> clone.connections = connections);
-    }
-
-    public SimulationBuilder concurrency(int concurrency) {
-        return apply(clone -> clone.concurrency = concurrency);
-    }
-
     public SimulationBuilder threads(int threads) {
         return apply(clone -> clone.threads = threads);
     }
@@ -81,17 +69,7 @@ public class SimulationBuilder {
     }
 
     public Simulation build() {
-        HttpBase http = this.http.build();
-        HttpClientPoolFactory httpClientPoolFactory = HttpClientProvider.netty.builder()
-              .threads(threads)
-              .ssl(http.baseUrl().protocol().secure())
-              .port(http.baseUrl().port())
-              .host(http.baseUrl().host())
-              .versions(http.versions())
-              .size(connections)
-              .concurrency(concurrency);
-
-
+        Http http = this.http.build();
         Collection<Phase> phases = phaseBuilders.values().stream()
               .flatMap(builder -> builder.build().stream()).collect(Collectors.toList());
         Set<String> phaseNames = phases.stream().map(Phase::name).collect(Collectors.toSet());
@@ -100,7 +78,12 @@ public class SimulationBuilder {
             checkDependencies(phase, phase.startAfterStrict, phaseNames);
             checkDependencies(phase, phase.terminateAfterStrict, phaseNames);
         }
-        return new Simulation(httpClientPoolFactory, phases, buildTags(), statisticsCollectionPeriod);
+        Map<String, Object> tags = new HashMap<>();
+        tags.put("url", http.baseUrl().toString());
+        tags.put("protocol", http.baseUrl().protocol().scheme);
+        tags.put("threads", threads);
+
+        return new Simulation(threads, http, phases, tags, statisticsCollectionPeriod);
     }
 
     private void checkDependencies(Phase phase, Collection<String> references, Set<String> phaseNames) {
@@ -112,18 +95,6 @@ public class SimulationBuilder {
                 throw new BenchmarkDefinitionException("Phase " + dep + " referenced from " + phase.name() + " is not defined." + suggestion);
             }
         }
-    }
-
-    private Map<String, Object> buildTags() {
-        Map<String, Object> tags = new HashMap<>();
-        HttpBase http = this.http.build();
-        tags.put("url", http.baseUrl().toString());
-        tags.put("protocol", http.baseUrl().protocol().scheme);
-        tags.put("maxQueue", concurrency);
-        tags.put("connections", connections);
-        tags.put("threads", threads);
-
-        return tags;
     }
 
     void addPhase(String name, PhaseBuilder phaseBuilder) {

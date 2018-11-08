@@ -37,7 +37,7 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
       this.context = context;
       this.connection = connection;
       this.encoder = encoder;
-      this.maxStreams = client.maxConcurrentStream;
+      this.maxStreams = client.http.maxHttp2Streams();
 
       //
       Http2EventAdapter listener = new EventAdapter(client);
@@ -144,7 +144,7 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
       @Override
       public void onSettingsRead(ChannelHandlerContext ctx, Http2Settings settings) {
          if (settings.maxConcurrentStreams() != null) {
-            maxStreams = Math.min(client.maxConcurrentStream, settings.maxConcurrentStreams());
+            maxStreams = Math.min(client.http.maxHttp2Streams(), settings.maxConcurrentStreams());
          }
       }
 

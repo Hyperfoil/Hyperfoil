@@ -1,5 +1,7 @@
 package io.sailrocket.core.impl;
 
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.nio.NioEventLoopGroup;
 import io.sailrocket.api.config.Phase;
 import io.sailrocket.api.config.Simulation;
 import io.sailrocket.api.connection.HttpClientPool;
@@ -7,6 +9,7 @@ import io.sailrocket.api.connection.HttpConnectionPool;
 import io.sailrocket.api.session.Session;
 import io.sailrocket.core.api.PhaseInstance;
 import io.sailrocket.core.api.SimulationRunner;
+import io.sailrocket.core.client.netty.HttpClientPoolImpl;
 import io.sailrocket.core.session.SessionFactory;
 
 import java.util.ArrayList;
@@ -29,12 +32,14 @@ public class SimulationRunnerImpl implements SimulationRunner {
     protected HttpClientPool clientPool;
     protected List<Session> sessions = new ArrayList<>();
     protected Map<String, SharedResources> sharedResources = new HashMap<>();
+    protected EventLoopGroup eventLoopGroup;
 
     public SimulationRunnerImpl(Simulation simulation) {
+        this.eventLoopGroup = new NioEventLoopGroup(simulation.threads());
         this.simulation = simulation;
         HttpClientPool httpClientPool = null;
         try {
-            httpClientPool = simulation.httpClientPoolFactory().build();
+            httpClientPool = new HttpClientPoolImpl(eventLoopGroup, simulation.http());
         } catch (Exception e) {
             e.printStackTrace();
         }

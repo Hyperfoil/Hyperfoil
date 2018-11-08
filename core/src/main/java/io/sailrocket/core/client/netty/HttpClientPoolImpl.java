@@ -4,6 +4,7 @@ import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoop;
+import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http2.Http2Settings;
 import io.netty.handler.ssl.ApplicationProtocolConfig;
@@ -14,6 +15,7 @@ import io.netty.handler.ssl.SslProvider;
 import io.netty.handler.ssl.SupportedCipherSuiteFilter;
 import io.netty.util.concurrent.EventExecutor;
 import io.netty.util.concurrent.EventExecutorGroup;
+import io.sailrocket.api.config.Http;
 import io.sailrocket.api.connection.HttpClientPool;
 import io.sailrocket.api.connection.HttpConnectionPool;
 import io.netty.channel.EventLoopGroup;
@@ -37,11 +39,11 @@ import javax.net.ssl.SSLException;
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
  */
-class HttpClientPoolImpl implements HttpClientPool {
+public class HttpClientPoolImpl implements HttpClientPool {
    private static final Logger log = LoggerFactory.getLogger(HttpClientPoolImpl.class);
 
    final Http2Settings http2Settings = new Http2Settings();
-   final int maxConcurrentStream;
+   final Http http;
    final int port;
    final String host;
    final String scheme;
@@ -53,27 +55,32 @@ class HttpClientPoolImpl implements HttpClientPool {
    private final AtomicInteger idx = new AtomicInteger();
    private final Supplier<HttpConnectionPool> nextSupplier;
 
-   HttpClientPoolImpl(EventLoopGroup eventLoopGroup, HttpVersion[] versions, boolean ssl, int size, int port, String host, int maxConcurrentStream) throws SSLException {
-        this.maxConcurrentStream = maxConcurrentStream;
+   public HttpClientPoolImpl(int threads, Http http) throws SSLException {
+      this(new NioEventLoopGroup(threads), http);
+   }
+
+   public HttpClientPoolImpl(EventLoopGroup eventLoopGroup, Http http) throws SSLException {
         this.eventLoopGroup = eventLoopGroup;
-        this.sslContext = ssl ? createSslContext(versions) : null;
-        this.port = port;
-        this.host = host;
+        this.http = http;
+        this.sslContext = http.baseUrl().protocol().secure() ? createSslContext(http.versions()) : null;
+        this.host = http.baseUrl().host();
+        this.port = http.baseUrl().port();
         this.scheme = sslContext == null ? "http" : "https";
         this.authority = host + ":" + port;
-        this.forceH2c = versions.length == 1 && versions[0] == HttpVersion.HTTP_2_0;
+        this.forceH2c = http.versions().length == 1 && http.versions()[0] == HttpVersion.HTTP_2_0;
 
         int numExecutors = (int) StreamSupport.stream(eventLoopGroup.spliterator(), false).count();
         this.children = new HttpConnectionPoolImpl[numExecutors];
-        if (size < numExecutors) {
+        int sharedConnections = http.sharedConnections();
+        if (sharedConnections < numExecutors) {
             log.warn("Connection pool size ({}) too small: the event loop has {} executors. Setting connection pool size to {}",
-                  size, numExecutors, numExecutors);
-            size = numExecutors;
+                  http.sharedConnections(), numExecutors, numExecutors);
+           sharedConnections = numExecutors;
         }
         Iterator<EventExecutor> iterator = eventLoopGroup.iterator();
         for (int i = 0; i < numExecutors; ++i) {
             assert iterator.hasNext();
-            int childSize = (i + 1) * size / numExecutors - i * size / numExecutors;
+            int childSize = (i + 1) * sharedConnections / numExecutors - i * sharedConnections / numExecutors;
             children[i] = new HttpConnectionPoolImpl(this, (EventLoop) iterator.next(), childSize);
         }
 
@@ -141,7 +148,6 @@ class HttpClientPoolImpl implements HttpClientPool {
           }
        });
     }
-
 
     @Override
     public EventExecutorGroup executors() {

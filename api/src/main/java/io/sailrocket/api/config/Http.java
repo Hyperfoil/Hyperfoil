@@ -18,22 +18,29 @@
  *
  */
 
-package io.sailrocket.core.builders.connection;
+package io.sailrocket.api.config;
 
 import io.sailrocket.api.http.HttpVersion;
 
 /**
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
  */
-public class HttpBase {
+public class Http {
 
     private final Url baseUrl;
     private final HttpVersion[] versions;
-    // TODO: direct HTTP/2 (no h2c)
+    private final int maxHttp2Streams;
+    private final int pipeliningLimit;
+    private final int sharedConnections;
+    private final boolean directHttp2;
 
-    public HttpBase(String baseUrl, HttpVersion[] versions) {
+    public Http(String baseUrl, HttpVersion[] versions, int maxHttp2Streams, int pipeliningLimit, int sharedConnections, boolean directHttp2) {
         this.baseUrl = new Url(baseUrl);
         this.versions = versions;
+        this.maxHttp2Streams = maxHttp2Streams;
+        this.pipeliningLimit = pipeliningLimit;
+        this.sharedConnections = sharedConnections;
+        this.directHttp2 = directHttp2;
     }
 
     public Url baseUrl() {
@@ -42,5 +49,21 @@ public class HttpBase {
 
     public HttpVersion[] versions() {
         return versions;
+    }
+
+    public int maxHttp2Streams() {
+        return maxHttp2Streams;
+    }
+
+    public int pipeliningLimit() {
+        return pipeliningLimit;
+    }
+
+    public int sharedConnections() {
+        return sharedConnections;
+    }
+
+    public boolean directHttp2() {
+        return directHttp2;
     }
 }

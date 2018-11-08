@@ -1,4 +1,4 @@
-package io.sailrocket.core.builders.connection;
+package io.sailrocket.api.config;
 
 import java.net.MalformedURLException;
 import java.net.URI;

@@ -33,7 +33,7 @@ public class BenchmarkBuilder {
 
     private final String originalSource;
     private String name;
-    private SimulationBuilder simulation;
+    private final SimulationBuilder simulation = new SimulationBuilder(this);
     private Collection<Host> agents = new ArrayList<>();
     private Collection<SLABuilder> slas = new ArrayList<>();
 
@@ -51,7 +51,7 @@ public class BenchmarkBuilder {
     }
 
     public SimulationBuilder simulation() {
-        return simulation = new SimulationBuilder(this);
+        return simulation;
     }
 
     public BenchmarkBuilder addAgent(String name, String hostname, String username, int port){
