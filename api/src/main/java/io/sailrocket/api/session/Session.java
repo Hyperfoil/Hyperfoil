@@ -1,5 +1,7 @@
 package io.sailrocket.api.session;
 
+import java.util.Map;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.util.concurrent.EventExecutor;
 import io.sailrocket.api.connection.HttpConnectionPool;
@@ -15,7 +17,7 @@ public interface Session {
    int uniqueId();
 
    /// Common utility objects
-   HttpConnectionPool httpConnectionPool();
+   HttpConnectionPool httpConnectionPool(String baseUrl);
 
    EventExecutor executor();
 
@@ -66,7 +68,7 @@ public interface Session {
 
    SequenceInstance currentSequence();
 
-   void attach(HttpConnectionPool httpConnectionPool);
+   void attach(EventExecutor executor, Map<String, HttpConnectionPool> httpConnectionPools);
 
    void start();
 

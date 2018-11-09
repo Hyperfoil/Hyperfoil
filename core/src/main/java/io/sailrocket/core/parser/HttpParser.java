@@ -1,8 +1,11 @@
 package io.sailrocket.core.parser;
 
-import io.sailrocket.core.builders.HttpBuilder;
+import org.yaml.snakeyaml.events.SequenceStartEvent;
 
-class HttpParser extends AbstractMappingParser<HttpBuilder> {
+import io.sailrocket.core.builders.HttpBuilder;
+import io.sailrocket.core.builders.SimulationBuilder;
+
+class HttpParser extends AbstractParser<SimulationBuilder, HttpBuilder> {
    HttpParser() {
       register("baseUrl", new PropertyParser.String<>(HttpBuilder::baseUrl));
       register("repeatCookies", new PropertyParser.Boolean<>(HttpBuilder::repeatCookies));
@@ -12,6 +15,17 @@ class HttpParser extends AbstractMappingParser<HttpBuilder> {
       register("sharedConnections", new PropertyParser.Int<>(HttpBuilder::sharedConnections));
       register("pipeliningLimit", new PropertyParser.Int<>(HttpBuilder::pipeliningLimit));
       register("directHttp2", new PropertyParser.Boolean<>(HttpBuilder::directHttp2));
+   }
 
+   @Override
+   public void parse(Context ctx, SimulationBuilder target) throws ParserException {
+      if (ctx.peek() instanceof SequenceStartEvent) {
+         ctx.parseList(target.decoupledHttp(), (ctx1, builder) -> {
+            callSubBuilders(ctx1, builder);
+            target.addHttp(builder);
+         });
+      } else {
+         callSubBuilders(ctx, target.http());
+      }
    }
 }

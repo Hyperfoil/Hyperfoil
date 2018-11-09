@@ -15,7 +15,6 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.sailrocket.api.http.HttpMethod;
 import io.sailrocket.core.builders.HttpBuilder;
-import io.sailrocket.core.builders.ScenarioBuilder;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 
@@ -47,9 +46,9 @@ public class ChunkedTransferTest extends BaseScenarioTest {
    @Test
    public void testChunkedTransfer() {
       AtomicBoolean rawBytesSeen = new AtomicBoolean(false);
-      ScenarioBuilder scenario = scenarioBuilder().initialSequence("test")
+      scenario().initialSequence("test")
             .step(s -> {
-               s.httpConnectionPool().connections().forEach(c -> {
+               s.httpConnectionPool(null).connections().forEach(c -> {
                   try {
                      Field f = c.getClass().getDeclaredField("ctx");
                      f.setAccessible(true);
@@ -78,7 +77,7 @@ public class ChunkedTransferTest extends BaseScenarioTest {
             .step().awaitAllResponses()
             .endSequence();
 
-      runScenario(scenario, 1);
+      runScenario();
       assertThat(rawBytesSeen).isTrue();
    }
 

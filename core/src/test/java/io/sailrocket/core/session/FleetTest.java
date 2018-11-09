@@ -11,7 +11,6 @@ import org.junit.runner.RunWith;
 import io.sailrocket.api.http.HttpMethod;
 import io.sailrocket.api.session.Session;
 import io.sailrocket.api.statistics.Statistics;
-import io.sailrocket.core.builders.ScenarioBuilder;
 import io.sailrocket.core.extractors.ArrayRecorder;
 import io.sailrocket.core.extractors.SequenceScopedCountRecorder;
 import io.sailrocket.core.extractors.DefragProcessor;
@@ -72,7 +71,7 @@ public class FleetTest extends BaseScenarioTest {
       // We need to call async() to prevent termination when the test method completes
       Async async = ctx.async(2);
 
-      ScenarioBuilder scenario = scenarioBuilder()
+      scenario(2)
             .intVar("numberOfSunkShips")
             .initialSequence("fleet")
                .step(s -> {
@@ -125,7 +124,7 @@ public class FleetTest extends BaseScenarioTest {
                })
             .endSequence();
 
-      runScenario(scenario, 2);
+      runScenario();
    }
 
    private int currentCrewCount(Session session) {

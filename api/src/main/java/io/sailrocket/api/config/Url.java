@@ -1,11 +1,12 @@
 package io.sailrocket.api.config;
 
+import java.io.Serializable;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 
-public class Url {
+public class Url implements Serializable {
 
     private Protocol protocol;
     private String host;

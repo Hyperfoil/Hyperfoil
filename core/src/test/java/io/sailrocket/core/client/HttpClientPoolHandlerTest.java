@@ -61,7 +61,7 @@ public class HttpClientPoolHandlerTest {
     @Test
     public void simpleHeaderRequest() throws Exception {
         HttpClientPool client = new HttpClientPoolImpl(1,
-              HttpBuilder.forTesting().baseUrl("http://localhost:8088").build());
+              HttpBuilder.forTesting().baseUrl("http://localhost:8088").build(true));
 
         CountDownLatch startLatch = new CountDownLatch(1);
         client.start(startLatch::countDown);

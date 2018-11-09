@@ -7,6 +7,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 
 import io.netty.buffer.ByteBuf;
+import io.sailrocket.api.config.BenchmarkDefinitionException;
+import io.sailrocket.api.connection.HttpConnectionPool;
 import io.sailrocket.api.http.HttpMethod;
 import io.sailrocket.api.http.HttpRequest;
 import io.sailrocket.api.collection.RequestQueue;
@@ -26,18 +28,20 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
    private static final boolean trace = log.isTraceEnabled();
 
    private final HttpMethod method;
+   private final String baseUrl;
    private final SerializableFunction<Session, String> pathGenerator;
    private final SerializableFunction<Session, ByteBuf> bodyGenerator;
    private final SerializableBiConsumer<Session, HttpRequest>[] headerAppenders;
    private final long timeout;
    private final HttpResponseHandler handler;
 
-   public HttpRequestStep(HttpMethod method,
+   public HttpRequestStep(HttpMethod method, String baseUrl,
                           SerializableFunction<Session, String> pathGenerator,
                           SerializableFunction<Session, ByteBuf> bodyGenerator,
                           SerializableBiConsumer<Session, HttpRequest>[] headerAppenders,
                           long timeout, HttpResponseHandler handler) {
       this.method = method;
+      this.baseUrl = baseUrl;
       this.pathGenerator = pathGenerator;
       this.bodyGenerator = bodyGenerator;
       this.headerAppenders = headerAppenders;
@@ -57,12 +61,13 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
       ByteBuf body = bodyGenerator == null ? null : bodyGenerator.apply(session);
       String path = pathGenerator.apply(session);
 
+      HttpConnectionPool connectionPool = session.httpConnectionPool(baseUrl);
       // TODO alloc!
-      HttpRequest httpRequest = session.httpConnectionPool().request(method, path, body);
+      HttpRequest httpRequest = connectionPool.request(method, path, body);
       if (httpRequest == null) {
          // TODO: we should probably record being blocked due to insufficient connections
          log.warn("No HTTP connection in pool, waiting...");
-         session.httpConnectionPool().registerWaitingSession(session);
+         connectionPool.registerWaitingSession(session);
          return false;
       }
 
@@ -107,6 +112,7 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
 
    public static class Builder extends BaseStepBuilder {
       private HttpMethod method;
+      private String baseUrl;
       private SerializableFunction<Session, String> pathGenerator;
       private SerializableFunction<Session, ByteBuf> bodyGenerator;
       private List<SerializableBiConsumer<Session, HttpRequest>> headerAppenders = new ArrayList<>();
@@ -120,6 +126,11 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
 
       public Builder method(HttpMethod method) {
          this.method = method;
+         return this;
+      }
+
+      public Builder baseUrl(String baseUrl) {
+         this.baseUrl = baseUrl;
          return this;
       }
 
@@ -168,9 +179,20 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
 
       @Override
       public List<Step> build() {
+         if (!parent.endSequence().endScenario().endPhase().validateBaseUrl(baseUrl)) {
+            String guessedPath = "<unknown path>";
+            try {
+               guessedPath = pathGenerator.apply(null);
+            } catch (Throwable e) {}
+            if (baseUrl == null) {
+               throw new BenchmarkDefinitionException(String.format("%s to <default route>/%s is invalid as we don't have a default route set.", method, guessedPath));
+            } else {
+               throw new BenchmarkDefinitionException(String.format("%s to <default route>/%s is invalid - no HTTP configuration defined.", method, baseUrl, guessedPath));
+            }
+         }
          SerializableBiConsumer<Session, HttpRequest>[] headerAppenders =
                this.headerAppenders.isEmpty() ? null : this.headerAppenders.toArray(new SerializableBiConsumer[0]);
-         return Collections.singletonList(new HttpRequestStep(method, pathGenerator, bodyGenerator, headerAppenders, timeout, handler.build()));
+         return Collections.singletonList(new HttpRequestStep(method, baseUrl, pathGenerator, bodyGenerator, headerAppenders, timeout, handler.build()));
       }
    }
 }

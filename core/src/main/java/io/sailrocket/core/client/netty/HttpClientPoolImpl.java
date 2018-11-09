@@ -160,6 +160,16 @@ public class HttpClientPoolImpl implements HttpClientPool {
     }
 
    @Override
+   public HttpConnectionPool connectionPool(EventExecutor executor) {
+      for (HttpConnectionPoolImpl pool : children) {
+         if (pool.executor() == executor) {
+            return pool;
+         }
+      }
+      throw new IllegalStateException();
+   }
+
+   @Override
    public String host() {
       return host;
    }

@@ -28,6 +28,7 @@ import io.sailrocket.core.steps.HttpRequestStep;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 /**
@@ -59,8 +60,12 @@ public class HttpBuilder {
         return this;
     }
 
+    String baseUrl() {
+        return baseUrl;
+    }
+
     public HttpBuilder baseUrl(String url) {
-        return apply(clone -> clone.baseUrl = url);
+        return apply(clone -> clone.baseUrl = Objects.requireNonNull(url));
     }
 
     public HttpBuilder allowHttp1x(boolean allowHttp1x) {
@@ -102,8 +107,11 @@ public class HttpBuilder {
         return this;
     }
 
-    public Http build() {
+    public Http build(boolean isDefault) {
         if (http != null) {
+            if (isDefault != http.isDefault()) {
+                throw new IllegalArgumentException("Already built as isDefault=" + http.isDefault());
+            }
             return http;
         }
         if (repeatCookies && parent != null) {
@@ -132,6 +140,6 @@ public class HttpBuilder {
         if (directHttp2) {
             throw new UnsupportedOperationException("Direct HTTP/2 not implemented");
         }
-        return http = new Http(baseUrl, httpVersions.toArray(new HttpVersion[0]), maxHttp2Streams, pipeliningLimit, sharedConnections, directHttp2);
+        return http = new Http(isDefault, baseUrl, httpVersions.toArray(new HttpVersion[0]), maxHttp2Streams, pipeliningLimit, sharedConnections, directHttp2);
     }
 }

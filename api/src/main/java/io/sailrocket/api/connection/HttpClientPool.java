@@ -18,6 +18,7 @@
  */
 package io.sailrocket.api.connection;
 
+import io.netty.util.concurrent.EventExecutor;
 import io.netty.util.concurrent.EventExecutorGroup;
 
 public interface HttpClientPool {
@@ -29,6 +30,8 @@ public interface HttpClientPool {
     EventExecutorGroup executors();
 
     HttpConnectionPool next();
+
+    HttpConnectionPool connectionPool(EventExecutor executor);
 
     String host();
 }

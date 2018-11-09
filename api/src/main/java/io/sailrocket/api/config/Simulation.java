@@ -6,12 +6,12 @@ import java.util.Map;
 
 public class Simulation implements Serializable {
    private final int threads;
-   private final Http http;
+   private final Map<String, Http> http;
    private final Collection<Phase> phases;
    private final Map<String, Object> tags;
    private final long statisticsCollectionPeriod;
 
-   public Simulation(int threads, Http http, Collection<Phase> phases, Map<String, Object> tags, long statisticsCollectionPeriod) {
+   public Simulation(int threads, Map<String, Http> http, Collection<Phase> phases, Map<String, Object> tags, long statisticsCollectionPeriod) {
       this.threads = threads;
       this.http = http;
       this.phases = phases;
@@ -27,7 +27,7 @@ public class Simulation implements Serializable {
       return tags;
    }
 
-   public Http http() {
+   public Map<String, Http> http() {
       return http;
    }
 

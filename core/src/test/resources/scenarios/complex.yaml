@@ -6,7 +6,8 @@ hosts:
 
 simulation:
   http:
-    baseUrl: http://localhost:8080
+  - baseUrl: http://localhost:8080
+  - baseUrl: https://localhost:8443
   phases:
   - !rampPerSec rampUp: # When forks are in this should create a no-op phase that will be started after all the forks
       initialUsersPerSec: 1

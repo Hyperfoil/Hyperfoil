@@ -20,13 +20,16 @@
 
 package io.sailrocket.api.config;
 
+import java.io.Serializable;
+
 import io.sailrocket.api.http.HttpVersion;
 
 /**
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
  */
-public class Http {
+public class Http implements Serializable {
 
+    private final boolean isDefault;
     private final Url baseUrl;
     private final HttpVersion[] versions;
     private final int maxHttp2Streams;
@@ -34,7 +37,8 @@ public class Http {
     private final int sharedConnections;
     private final boolean directHttp2;
 
-    public Http(String baseUrl, HttpVersion[] versions, int maxHttp2Streams, int pipeliningLimit, int sharedConnections, boolean directHttp2) {
+    public Http(boolean isDefault, String baseUrl, HttpVersion[] versions, int maxHttp2Streams, int pipeliningLimit, int sharedConnections, boolean directHttp2) {
+        this.isDefault = isDefault;
         this.baseUrl = new Url(baseUrl);
         this.versions = versions;
         this.maxHttp2Streams = maxHttp2Streams;
@@ -65,5 +69,9 @@ public class Http {
 
     public boolean directHttp2() {
         return directHttp2;
+    }
+
+    public boolean isDefault() {
+        return isDefault;
     }
 }

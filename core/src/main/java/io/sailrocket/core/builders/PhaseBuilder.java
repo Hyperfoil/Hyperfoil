@@ -399,6 +399,23 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
       }
    }
 
+   public static class Sequentially extends PhaseBuilder<Sequentially> {
+      private int repeats;
+
+      protected Sequentially(SimulationBuilder parent, String name, int repeats) {
+         super(parent, name);
+         this.repeats = repeats;
+      }
+
+      @Override
+      protected Phase buildPhase(int i, PhaseForkBuilder f) {
+         return new Phase.Sequentially(iterationName(i, f.name), f.scenario().build(), iterationStartTime(i),
+               iterationReferences(startAfter, i, false), iterationReferences(startAfterStrict, i, true),
+               iterationReferences(terminateAfterStrict, i, false), duration, maxDuration,
+               sharedResources(f), repeats);
+      }
+   }
+
    public static class Discriminator {
       private final SimulationBuilder parent;
       private final String name;
@@ -422,6 +439,10 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
 
       public ConstantPerSec constantPerSec(int usersPerSec) {
          return new ConstantPerSec(parent, name, usersPerSec);
+      }
+
+      public Sequentially sequentially(int repeats) {
+         return new Sequentially(parent, name, repeats);
       }
    }
 }

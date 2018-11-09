@@ -7,7 +7,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import io.sailrocket.api.http.HttpMethod;
-import io.sailrocket.core.builders.ScenarioBuilder;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 
 @RunWith(VertxUnitRunner.class)
@@ -27,21 +26,19 @@ public class PacingTest extends BaseScenarioTest {
 
    @Test
    public void testThinkTimes() {
-      ScenarioBuilder scenarioBuilder = scenarioBuilder()
-            .initialSequence("loop")
+      scenario().initialSequence("loop")
                .step().httpRequest(HttpMethod.GET).path("/test").endStep()
                .step().awaitAllResponses()
                .step().thinkTime(500, TimeUnit.MILLISECONDS).endStep()
                .step().loop("counter", 5, "loop")
             .endSequence();
 
-      runScenario(scenarioBuilder, 1);
+      runScenario();
    }
 
    @Test
    public void testCycleTimes() {
-      ScenarioBuilder scenarioBuilder = scenarioBuilder()
-            .initialSequence("loop")
+      scenario().initialSequence("loop")
                // Delaying from now accumulates time skew as it always plans from this timestamp
                .step().scheduleDelay("foo", 1, TimeUnit.SECONDS).fromNow().endStep()
                .step().httpRequest(HttpMethod.GET).path("/test").endStep()
@@ -50,13 +47,12 @@ public class PacingTest extends BaseScenarioTest {
                .step().loop("counter", 5, "loop")
             .endSequence();
 
-      runScenario(scenarioBuilder, 1);
+      runScenario();
    }
 
    @Test
    public void testCycleTimesPrecise() {
-      ScenarioBuilder scenarioBuilder = scenarioBuilder()
-            .initialSequence("loop")
+      scenario().initialSequence("loop")
                // Delaying from last does not accumulate time skew as it bases the delay on previous iteration
                .step().scheduleDelay("foo", 1, TimeUnit.SECONDS).fromLast().endStep()
                .step().httpRequest(HttpMethod.GET).path("/test").endStep()
@@ -65,7 +61,7 @@ public class PacingTest extends BaseScenarioTest {
                .step().loop("counter", 5, "loop")
             .endSequence();
 
-      runScenario(scenarioBuilder, 1);
+      runScenario();
    }
 
 }

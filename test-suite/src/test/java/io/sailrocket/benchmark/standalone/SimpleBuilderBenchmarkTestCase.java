@@ -31,8 +31,6 @@ public class SimpleBuilderBenchmarkTestCase extends BaseBenchmarkTestCase {
         Simulation simulation = benchmark.simulation();
 
         assertEquals("http://localhost:8080/", simulation.tags().get("url"));
-        assertEquals(10, simulation.tags().get("maxQueue"));
-        assertEquals(10, simulation.tags().get("connections"));
         assertEquals(5_000L, simulation.phases().stream().findFirst().get().duration());
 
         try {

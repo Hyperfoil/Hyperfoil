@@ -10,7 +10,6 @@ import org.junit.runner.RunWith;
 import io.sailrocket.api.http.HttpMethod;
 import io.sailrocket.api.session.Session;
 import io.sailrocket.api.statistics.StatisticsSnapshot;
-import io.sailrocket.core.builders.ScenarioBuilder;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.ext.web.Cookie;
 import io.vertx.ext.web.handler.CookieHandler;
@@ -33,8 +32,7 @@ public class CookieTest extends BaseScenarioTest {
 
    @Test
    public void testRepeatCookie() {
-      ScenarioBuilder scenarioBuilder = scenarioBuilder()
-            .initialSequence("test")
+      scenario().initialSequence("test")
                .step().httpRequest(HttpMethod.GET).path("/test1").endStep()
                .step().awaitAllResponses()
                .step()
@@ -45,13 +43,8 @@ public class CookieTest extends BaseScenarioTest {
                .step().awaitAllResponses()
             .endSequence();
 
-      List<Session> sessions = runScenario(scenarioBuilder, 1);
-      assertThat(sessions.size()).isEqualTo(1);
-      Session session = sessions.iterator().next();
-      assertThat(session.statistics()).isNotNull();
-      assertThat(session.statistics().length).isEqualTo(1);
-      StatisticsSnapshot snapshot = new StatisticsSnapshot();
-      session.statistics()[0].moveIntervalTo(snapshot);
+      List<Session> sessions = runScenario();
+      StatisticsSnapshot snapshot = assertSingleSessionStats(sessions);
       assertThat(snapshot.status_5xx).isEqualTo(0);
       assertThat(snapshot.status_2xx).isEqualTo(2);
    }

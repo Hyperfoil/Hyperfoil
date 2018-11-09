@@ -1,7 +1,10 @@
 package io.sailrocket.core.impl;
 
+import io.netty.channel.EventLoop;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.util.concurrent.EventExecutor;
+import io.sailrocket.api.config.Http;
 import io.sailrocket.api.config.Phase;
 import io.sailrocket.api.config.Simulation;
 import io.sailrocket.api.connection.HttpClientPool;
@@ -21,6 +24,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+import javax.net.ssl.SSLException;
+
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
  * @author <a href="mailto:johara@redhat.com">John O'Hara</a>
@@ -28,29 +33,48 @@ import java.util.function.Consumer;
 public class SimulationRunnerImpl implements SimulationRunner {
     protected final Simulation simulation;
     protected final Map<String, PhaseInstance> instances = new HashMap<>();
-
-    protected HttpClientPool clientPool;
-    protected List<Session> sessions = new ArrayList<>();
-    protected Map<String, SharedResources> sharedResources = new HashMap<>();
-    protected EventLoopGroup eventLoopGroup;
+    protected final List<Session> sessions = new ArrayList<>();
+    protected final Map<String, SharedResources> sharedResources = new HashMap<>();
+    protected final EventLoopGroup eventLoopGroup;
+    protected final Map<String, HttpClientPool> httpClientPools = new HashMap<>();
+    protected final Map<EventExecutor, Map<String, HttpConnectionPool>> httpConnectionPools = new HashMap<>();
 
     public SimulationRunnerImpl(Simulation simulation) {
         this.eventLoopGroup = new NioEventLoopGroup(simulation.threads());
         this.simulation = simulation;
-        HttpClientPool httpClientPool = null;
-        try {
-            httpClientPool = new HttpClientPoolImpl(eventLoopGroup, simulation.http());
-        } catch (Exception e) {
-            e.printStackTrace();
+        for (Map.Entry<String, Http> http : simulation.http().entrySet()) {
+            try {
+                HttpClientPool httpClientPool = new HttpClientPoolImpl(eventLoopGroup, http.getValue());
+                httpClientPools.put(http.getKey(), httpClientPool);
+                if (http.getValue().isDefault()) {
+                    httpClientPools.put(null, httpClientPool);
+                }
+                for (EventExecutor executor : eventLoopGroup) {
+                    HttpConnectionPool httpConnectionPool = httpClientPool.connectionPool(executor);
+                    Map<String, HttpConnectionPool> pools = httpConnectionPools.computeIfAbsent(executor, e -> new HashMap<>());
+                    pools.put(http.getKey(), httpConnectionPool);
+                    if (http.getValue().isDefault()) {
+                        pools.put(null, httpConnectionPool);
+                    }
+                }
+            } catch (SSLException e) {
+                throw new IllegalStateException("Failed creating connection pool to " + http.getValue().baseUrl(), e);
+            }
         }
-        this.clientPool = httpClientPool;
     }
 
     @Override
     public void init(BiConsumer<String, PhaseInstance.Status> phaseChangeHandler) {
         //Initialise HttpClientPool
-        CountDownLatch latch = new CountDownLatch(1);
-        clientPool.start(latch::countDown);
+        CountDownLatch latch = new CountDownLatch(httpClientPools.size());
+        for (Map.Entry<String, HttpClientPool> entry : httpClientPools.entrySet()) {
+            if (entry.getKey() == null) {
+                // default client pool is initialized by name
+                latch.countDown();
+            } else {
+                entry.getValue().start(latch::countDown);
+            }
+        }
 
         for (Phase def : simulation.phases()) {
             PhaseInstance phase = PhaseInstanceImpl.newInstance(def);
@@ -72,8 +96,8 @@ public class SimulationRunnerImpl implements SimulationRunner {
                     synchronized (phaseSessions) {
                         phaseSessions.add(session);
                     }
-                    HttpConnectionPool httpConnectionPool = clientPool.next();
-                    session.attach(httpConnectionPool);
+                    EventLoop eventLoop = eventLoopGroup.next();
+                    session.attach(eventLoop, httpConnectionPools.get(eventLoop));
                     return session;
                 });
                 this.sharedResources.put(def.sharedResources, sharedResources);
@@ -91,7 +115,9 @@ public class SimulationRunnerImpl implements SimulationRunner {
 
     @Override
     public void shutdown() {
-        clientPool.shutdown();
+        for (HttpClientPool pool : httpClientPools.values()) {
+            pool.shutdown();
+        }
     }
 
     public void visitSessions(Consumer<Session> consumer) {
@@ -105,7 +131,7 @@ public class SimulationRunnerImpl implements SimulationRunner {
 
     @Override
     public void startPhase(String phase) {
-        instances.get(phase).start(clientPool.executors());
+        instances.get(phase).start(eventLoopGroup);
     }
 
     @Override

@@ -36,7 +36,7 @@ class SessionImpl implements Session, Runnable {
    private int lastRunningSequence = -1;
    private SequenceInstance currentSequence;
 
-   private HttpConnectionPool httpConnectionPool;
+   private Map<String, HttpConnectionPool> httpConnectionPools;
    private EventExecutor executor;
 
    private final ValidatorResults validatorResults = new ValidatorResults();
@@ -70,8 +70,8 @@ class SessionImpl implements Session, Runnable {
    }
 
    @Override
-   public HttpConnectionPool httpConnectionPool() {
-      return httpConnectionPool;
+   public HttpConnectionPool httpConnectionPool(String baseUrl) {
+      return httpConnectionPools.get(baseUrl);
    }
 
    @Override
@@ -257,10 +257,10 @@ class SessionImpl implements Session, Runnable {
    }
 
    @Override
-   public void attach(HttpConnectionPool httpConnectionPool) {
+   public void attach(EventExecutor executor, Map<String, HttpConnectionPool> httpConnectionPools) {
       assert this.executor == null;
-      this.executor = httpConnectionPool.executor();
-      this.httpConnectionPool = httpConnectionPool;
+      this.executor = executor;
+      this.httpConnectionPools = httpConnectionPools;
    }
 
    @Override

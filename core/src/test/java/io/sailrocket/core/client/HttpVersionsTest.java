@@ -111,7 +111,7 @@ public class HttpVersionsTest {
             .baseUrl((ssl ? "https" : "http") + "://localhost:" + port);
       builder.allowHttp2(Stream.of(versions).anyMatch(v -> v == HttpVersion.HTTP_2_0));
       builder.allowHttp1x(Stream.of(versions).anyMatch(v -> v == HttpVersion.HTTP_1_1));
-      return new HttpClientPoolImpl(1, builder.build());
+      return new HttpClientPoolImpl(1, builder.build(true));
    }
 
    private void server(int port, boolean ssl, List<io.vertx.core.http.HttpVersion> serverVersions, Handler<AsyncResult<HttpServer>> handler) {

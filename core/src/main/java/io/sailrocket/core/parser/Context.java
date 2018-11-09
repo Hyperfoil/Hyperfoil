@@ -125,7 +125,11 @@ class Context {
                consumePeeked(itemEvent);
                break;
             } else {
-               consumer.parse(this, target);
+               try {
+                  consumer.parse(this, target);
+               } catch (Exception e) {
+                  throw new ParserException(itemEvent, "Benchmark parsing error", e);
+               }
             }
          }
       } else if (event instanceof ScalarEvent) {

@@ -22,7 +22,7 @@ import io.sailrocket.core.builders.SimulationBuilder;
 
 class SimulationParser extends AbstractMappingParser<SimulationBuilder> {
     SimulationParser() {
-        register("http", new Adapter<>(SimulationBuilder::http, new HttpParser()));
+        register("http", new HttpParser());
         register("phases", new PhasesParser());
         register("threads", new PropertyParser.Int<>(SimulationBuilder::threads));
         register("statisticsCollectionPeriod", new PropertyParser.Int<>(SimulationBuilder::statisticsCollectionPeriod));
