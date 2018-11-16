@@ -12,6 +12,7 @@
     <artifactId>distribution</artifactId>
     <name>SailRocket Distribution</name>
     <description>Package distributable version of SailRocket</description>
+    <packaging>pom</packaging>
 
     <properties>
         <module.skipCopyDependencies>true</module.skipCopyDependencies>
@@ -52,8 +53,28 @@
                         </goals>
                         <configuration>
                             <target>
-                                <ant antfile="package.xml" inheritRefs="true" />
+                                <ant antfile="src/assembly/package.xml" inheritRefs="true" />
                             </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>create-distribution-zip</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <configuration>
+                            <finalName>sailrocket-${project.version}</finalName>
+                            <appendAssemblyId>false</appendAssemblyId>
+                            <descriptors>
+                                <descriptor>src/assembly/assembly.xml</descriptor>
+                            </descriptors>
                         </configuration>
                     </execution>
                 </executions>
