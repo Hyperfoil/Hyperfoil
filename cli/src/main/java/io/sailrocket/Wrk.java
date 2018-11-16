@@ -1,11 +1,15 @@
 package io.sailrocket;
 
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.List;
-
+import io.sailrocket.api.config.Benchmark;
+import io.sailrocket.api.http.HttpMethod;
+import io.sailrocket.api.statistics.LongValue;
+import io.sailrocket.api.statistics.StatisticsSnapshot;
+import io.sailrocket.core.builders.BenchmarkBuilder;
+import io.sailrocket.core.builders.PhaseBuilder;
+import io.sailrocket.core.builders.SimulationBuilder;
+import io.sailrocket.core.extractors.ByteBufSizeRecorder;
+import io.sailrocket.core.impl.LocalSimulationRunner;
+import io.sailrocket.core.impl.statistics.StatisticsCollector;
 import org.HdrHistogram.HistogramIterationValue;
 import org.aesh.command.AeshCommandRuntimeBuilder;
 import org.aesh.command.Command;
@@ -20,21 +24,26 @@ import org.aesh.command.option.Option;
 import org.aesh.command.option.OptionList;
 import org.aesh.command.parser.CommandLineParserException;
 
-import io.sailrocket.api.config.Benchmark;
-import io.sailrocket.api.http.HttpMethod;
-import io.sailrocket.api.statistics.LongValue;
-import io.sailrocket.api.statistics.StatisticsSnapshot;
-import io.sailrocket.core.builders.BenchmarkBuilder;
-import io.sailrocket.core.builders.PhaseBuilder;
-import io.sailrocket.core.builders.SimulationBuilder;
-import io.sailrocket.core.extractors.ByteBufSizeRecorder;
-import io.sailrocket.core.impl.LocalSimulationRunner;
-import io.sailrocket.core.impl.statistics.StatisticsCollector;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class Wrk {
-   private static final Logger log = LoggerFactory.getLogger(Wrk.class);
+
+    //ignore logging when running in the console below severe
+   static {
+      Handler[] handlers =
+              Logger.getLogger( "" ).getHandlers();
+      for ( int index = 0; index < handlers.length; index++ ) {
+         handlers[index].setLevel( Level.SEVERE);
+      }
+   }
+
 
    public static void main(String[] args) throws CommandLineParserException {
       CommandRuntime runtime = AeshCommandRuntimeBuilder.builder()
@@ -57,9 +66,10 @@ public class Wrk {
       }
       try {
          runtime.executeCommand(sb.toString());
-      } catch (Exception e) {
-         log.error("Failed to execute command.", e);
-         log.info("{}", runtime.commandInfo("wrk"));
+      }
+      catch (Exception e) {
+         System.out.println("Failed to execute command:"+ e.getMessage());
+         System.out.println(runtime.commandInfo("wrk"));
       }
    }
 
@@ -80,6 +90,9 @@ public class Wrk {
       @Option(shortName = 's', description = "!!!NOT SUPPORTED: LuaJIT script")
       String script;
 
+      @Option(shortName = 'h', hasValue = false, overrideRequired = true)
+      boolean help;
+
       @OptionList(shortName = 'H', name = "header", description = "HTTP header to add to request, e.g. \"User-Agent: wrk\"")
       List<String> headers;
 
@@ -97,8 +110,12 @@ public class Wrk {
 
       @Override
       public CommandResult execute(CommandInvocation commandInvocation) throws CommandException, InterruptedException {
+          if(help) {
+             commandInvocation.println(commandInvocation.getHelpInfo("wrk"));
+             return CommandResult.SUCCESS;
+          }
          if (script != null) {
-            log.warn("Scripting is not supported at this moment.");
+            commandInvocation.println("Scripting is not supported at this moment.");
          }
          if (!url.startsWith("http://") && !url.startsWith("https://")) {
             url = "http://" + url;
@@ -107,9 +124,8 @@ public class Wrk {
          try {
             uri = new URI(url);
          } catch (URISyntaxException e) {
-            log.error("Failed to parse URL: ", e);
-            System.exit(1);
-            return null;
+            commandInvocation.println("Failed to parse URL: "+ e.getMessage());
+            return CommandResult.FAILURE;
          }
          String baseUrl = uri.getScheme() + "://" + uri.getHost() + (uri.getPort() >=0 ? ":" + uri.getPort() : "");
          path = uri.getPath();
@@ -125,14 +141,15 @@ public class Wrk {
                String h = headers.get(i);
                int colonIndex = h.indexOf(':');
                if (colonIndex < 0) {
-                  log.warn("Cannot parse header '{}', ignoring.", h);
+                  commandInvocation.println(String.format("Cannot parse header '%s', ignoring.", h));
                   continue;
                }
                String header = h.substring(0, colonIndex).trim();
                String value = h.substring(colonIndex + 1).trim();
                parsedHeaders[i] = new String[] { header, value };
             }
-         } else {
+         }
+         else {
             parsedHeaders = null;
          }
          SimulationBuilder simulationBuilder = new BenchmarkBuilder(null)
@@ -150,14 +167,14 @@ public class Wrk {
 
          // TODO: allow running the benchmark from remote instance
          LocalSimulationRunner runner = new LocalSimulationRunner(benchmark);
-         log.info("Running {} test @ {}", duration, url);
-         log.info("  {} threads and {} connections", threads, connections);
+         commandInvocation.println("Running for "+duration+" test @ "+url);
+         commandInvocation.println(threads+" threads and "+connections+" connections");
          runner.run();
          StatisticsCollector collector = new StatisticsCollector(benchmark.simulation());
          runner.visitSessions(collector);
          collector.visitStatistics((phase, sequence, stats) -> {
             if ("test".equals(phase.name())) {
-               printStats(stats);
+               printStats(stats, commandInvocation);
             }
          });
          return null;
@@ -188,32 +205,32 @@ public class Wrk {
                   .endScenario();
       }
 
-      private void printStats(StatisticsSnapshot stats) {
+      private void printStats(StatisticsSnapshot stats, CommandInvocation invocation) {
          long dataRead = ((LongValue) stats.custom.get("bytes")).value();
          double durationSeconds = (stats.histogram.getEndTimeStamp() - stats.histogram.getStartTimeStamp()) / 1000d;
-         log.info("  {} requests in {}s, {} read", stats.histogram.getTotalCount(), durationSeconds, formatData(dataRead));
-         log.info("                 Avg    Stdev      Max");
-         log.info("Latency:      {} {} {}", formatTime(stats.histogram.getMean()), formatTime(stats.histogram.getStdDeviation()), formatTime(stats.histogram.getMaxValue()));
+         invocation.println(stats.histogram.getTotalCount()+" requests in "+durationSeconds+"s, "+formatData(dataRead)+" read");
+         invocation.println("                 Avg    Stdev      Max");
+         invocation.println("Latency:      "+formatTime(stats.histogram.getMean())+" "+formatTime(stats.histogram.getStdDeviation())+" "+formatTime(stats.histogram.getMaxValue()));
          if (latency) {
-            log.info("Latency Distribution");
+            invocation.println("Latency Distribution");
             for (double percentile : new double[] { 0.5, 0.75, 0.9, 0.99, 0.999, 0.9999, 0.99999, 1.0}) {
-               log.info("{}% {}", String.format("%7.3f", 100 * percentile), formatTime(stats.histogram.getValueAtPercentile(100 * percentile)));
+               invocation.println(String.format("%7.3f", 100 * percentile)+" "+formatTime(stats.histogram.getValueAtPercentile(100 * percentile)));
             }
-            log.info("----------------------------------------------------------");
-            log.info("Detailed Percentile Spectrum");
-            log.info("   Value  Percentile  TotalCount  1/(1-Percentile)");
+            invocation.println("----------------------------------------------------------");
+            invocation.println("Detailed Percentile Spectrum");
+            invocation.println("   Value  Percentile  TotalCount  1/(1-Percentile)");
             for (HistogramIterationValue value : stats.histogram.percentiles(5)) {
-               log.info("{}  {}", formatTime(value.getValueIteratedTo()), String.format("%9.5f%%  %10d  %15.2f",
+               invocation.println(formatTime(value.getValueIteratedTo())+" "+String.format("%9.5f%%  %10d  %15.2f",
                      value.getPercentile(), value.getTotalCountToThisValue(), 100/(100 - value.getPercentile())));
             }
-            log.info("----------------------------------------------------------");
+            invocation.println("----------------------------------------------------------");
          }
-         log.info("Requests/sec: {}", stats.histogram.getTotalCount() / durationSeconds);
+         invocation.println("Requests/sec: "+stats.histogram.getTotalCount() / durationSeconds);
          if (stats.errors() > 0) {
-            log.info("Socket errors: connect {}, reset {}, timeout {}", stats.connectFailureCount, stats.resetCount, stats.timeouts);
-            log.info("Non-2xx or 3xx responses: {}", stats.status_4xx + stats.status_5xx + stats.status_other);
+            invocation.println("Socket errors: connect "+stats.connectFailureCount+", reset "+stats.resetCount+", timeout "+stats.timeouts);
+            invocation.println("Non-2xx or 3xx responses: "+ stats.status_4xx + stats.status_5xx + stats.status_other);
          }
-         log.info("Transfer/sec: {}", formatData(dataRead / durationSeconds));
+         invocation.println("Transfer/sec: "+formatData(dataRead / durationSeconds));
       }
 
       private String formatData(double value) {

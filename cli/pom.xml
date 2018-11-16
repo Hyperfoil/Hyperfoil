@@ -67,6 +67,29 @@
         <plugins>
 
             <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-shade-plugin</artifactId>
+              <executions>
+                <execution>
+                  <phase>package</phase>
+                  <goals>
+                    <goal>shade</goal>
+                  </goals>
+                  <configuration>
+                    <artifactSet>
+                      <excludes>
+                        <exclude>org.fusesource.jansi:jansi</exclude>
+                        <exclude>org.jboss.shrinkwrap.resolver:shrinkwrap-resolver-depchain</exclude>
+                        <exclude>junit:junit</exclude>
+                      </excludes>
+                    </artifactSet>
+                  </configuration>
+                </execution>
+              </executions>
+            </plugin>
+
+
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
             </plugin>
