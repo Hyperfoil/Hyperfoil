@@ -241,7 +241,9 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
          }
          long now = System.currentTimeMillis();
          long delta = now - absoluteStartTime;
-         int required = (int) (delta * def.initialUsersPerSec + (def.targetUsersPerSec - def.initialUsersPerSec) * delta / def.duration) / 1000;
+
+         double progress = (def.targetUsersPerSec - def.initialUsersPerSec) / (def.duration * 1000);
+         int required = (int) (((progress * (delta + 1)) / 2 + def.initialUsersPerSec / 1000) * delta);
          for (int i = required - startedUsers; i > 0; --i) {
             int numActive = activeSessions.incrementAndGet();
             if (numActive < 0) {
@@ -254,9 +256,9 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
             sessionPool.acquire().start();
          }
          startedUsers = Math.max(startedUsers, required);
-         double denominator = def.targetUsersPerSec + def.initialUsersPerSec * (def.duration - 1);
-         // rounding up, not down as default integer division
-         long nextDelta = (long) ((1000 * (startedUsers + 1) * def.duration + denominator - 1)/ denominator);
+         // Next time is the root of quadratic equation
+         double bCoef = progress + def.initialUsersPerSec / 500;
+         long nextDelta = (long) Math.ceil((-bCoef + Math.sqrt(bCoef * bCoef + 8 * progress * (startedUsers + 1))) / (2 * progress));
          if (trace) {
             log.trace("{}: {} after start, {} started, next user in {} ms", def.name, delta, startedUsers, nextDelta - delta);
          }
