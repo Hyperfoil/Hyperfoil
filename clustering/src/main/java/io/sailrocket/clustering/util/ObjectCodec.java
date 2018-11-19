@@ -20,6 +20,8 @@
 
 package io.sailrocket.clustering.util;
 
+import io.sailrocket.util.Copyable;
+import io.sailrocket.util.Immutable;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.eventbus.MessageCodec;
 import io.vertx.core.eventbus.impl.codecs.ByteArrayMessageCodec;
@@ -88,9 +90,17 @@ public class ObjectCodec<T> implements MessageCodec<T, T> {
 
    @Override
     public T transform(T object) {
-        // If a message is sent *locally* across the event bus.
-        // This example sends message just as is
-        return object;
+       // If a message is sent *locally* across the event bus we need to provide a deep copy
+       // to protect against modifications in the sender thread if it is mutable
+       if (object instanceof Immutable) {
+           return object;
+       } else if (object instanceof Copyable) {
+           @SuppressWarnings("unchecked")
+           T copy = (T) ((Copyable) object).copy();
+           return (T) copy;
+       } else {
+           throw new IllegalArgumentException(object.getClass() + " is neither immutable nor copyable");
+       }
     }
 
     @Override

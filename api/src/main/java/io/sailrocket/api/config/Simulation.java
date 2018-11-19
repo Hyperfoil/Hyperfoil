@@ -4,7 +4,9 @@ import java.io.Serializable;
 import java.util.Collection;
 import java.util.Map;
 
-public class Simulation implements Serializable {
+import io.sailrocket.util.Immutable;
+
+public class Simulation implements Serializable, Immutable {
    private final int threads;
    private final Map<String, Http> http;
    private final Collection<Phase> phases;

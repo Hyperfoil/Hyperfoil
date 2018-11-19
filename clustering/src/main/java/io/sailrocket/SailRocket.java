@@ -56,6 +56,7 @@ class SailRocket {
       public static void main(String[] args) {
          log.info("Starting non-clustered Vert.x with controller and single agent...");
          Vertx vertx = Vertx.vertx();
+         Codecs.register(vertx);
          deploy(vertx, AgentControllerVerticle.class);
          deploy(vertx, AgentVerticle.class);
       }

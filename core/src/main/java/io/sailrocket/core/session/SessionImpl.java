@@ -81,7 +81,7 @@ class SessionImpl implements Session, Runnable {
 
    @Override
    public Phase phase() {
-      return phase.definition();
+      return phase != null ? phase.definition() : null;
    }
 
    void registerVar(Var var) {

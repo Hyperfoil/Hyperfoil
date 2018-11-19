@@ -11,7 +11,7 @@ import io.vertx.core.eventbus.EventBus;
 public class ReportSender extends StatisticsCollector {
    private final String address;
    private final EventBus eb;
-   private final StatisticsConsumer sendReport = (phase, sequence, statistics) -> sendReport(phase, sequence, statistics);
+   private final StatisticsConsumer sendReport = this::sendReport;
 
    public ReportSender(Simulation simulation, EventBus eb, String address) {
       super(simulation);

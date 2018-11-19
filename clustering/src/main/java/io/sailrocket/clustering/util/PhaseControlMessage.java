@@ -3,8 +3,9 @@ package io.sailrocket.clustering.util;
 import java.io.Serializable;
 
 import io.sailrocket.api.config.Simulation;
+import io.sailrocket.util.Immutable;
 
-public class PhaseControlMessage implements Serializable {
+public class PhaseControlMessage implements Serializable, Immutable {
    private final Command command;
    private final String phase;
 
