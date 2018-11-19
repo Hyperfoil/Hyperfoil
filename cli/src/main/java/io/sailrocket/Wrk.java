@@ -208,7 +208,6 @@ public class Wrk {
       private void printStats(StatisticsSnapshot stats, CommandInvocation invocation) {
          long dataRead = ((LongValue) stats.custom.get("bytes")).value();
          double durationSeconds = (stats.histogram.getEndTimeStamp() - stats.histogram.getStartTimeStamp()) / 1000d;
-         invocation.println(stats.histogram.getTotalCount()+" requests in "+durationSeconds+"s, "+formatData(dataRead)+" read");
          invocation.println("                 Avg    Stdev      Max");
          invocation.println("Latency:      "+formatTime(stats.histogram.getMean())+" "+formatTime(stats.histogram.getStdDeviation())+" "+formatTime(stats.histogram.getMaxValue()));
          if (latency) {
@@ -225,7 +224,8 @@ public class Wrk {
             }
             invocation.println("----------------------------------------------------------");
          }
-         invocation.println("Requests/sec: "+stats.histogram.getTotalCount() / durationSeconds);
+         invocation.println(stats.histogram.getTotalCount()+" requests in "+durationSeconds+"s, "+formatData(dataRead)+" read");
+         invocation.println("Requests/sec: "+String.format("%.02f", stats.histogram.getTotalCount() / durationSeconds));
          if (stats.errors() > 0) {
             invocation.println("Socket errors: connect "+stats.connectFailureCount+", reset "+stats.resetCount+", timeout "+stats.timeouts);
             invocation.println("Non-2xx or 3xx responses: "+ stats.status_4xx + stats.status_5xx + stats.status_other);
