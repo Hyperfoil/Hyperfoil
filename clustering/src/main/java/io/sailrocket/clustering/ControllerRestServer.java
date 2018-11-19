@@ -10,6 +10,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.sailrocket.api.config.Benchmark;
 import io.sailrocket.core.parser.BenchmarkParser;
 import io.sailrocket.core.parser.ParserException;
@@ -164,13 +165,17 @@ public class ControllerRestServer {
       Benchmark benchmark = controller.getBenchmark(benchmarkName);
       if (benchmark != null) {
          String runId = controller.startBenchmark(benchmark);
-         routingContext.response().setStatusCode(202).
-               putHeader(HttpHeaders.LOCATION, BASE_URL + "/run/" + runId)
-               .end("Initializing agents...");
+         if (runId != null) {
+            routingContext.response().setStatusCode(HttpResponseStatus.ACCEPTED.code()).
+                  putHeader(HttpHeaders.LOCATION, BASE_URL + "/run/" + runId)
+                  .end("Starting benchmark " + benchmarkName + ", run ID " + runId);
+         } else {
+            routingContext.response()
+                  .setStatusCode(HttpResponseStatus.FORBIDDEN.code()).end("Cannot start benchmark.");
+         }
       } else {
-         //benchmark has not been defined yet
-         String msg = "Benchmark not found";
-         routingContext.response().setStatusCode(500).end(msg);
+         routingContext.response()
+               .setStatusCode(HttpResponseStatus.NOT_FOUND.code()).end("Benchmark not found");
       }
    }
 
@@ -215,7 +220,7 @@ public class ControllerRestServer {
       }
       JsonArray jsonAgents = new JsonArray();
       body.put("agents", jsonAgents);
-      for (AgentInfo agent : controller.agents.values()) {
+      for (AgentInfo agent : run.agents) {
          JsonObject jsonAgent = new JsonObject();
          jsonAgents.add(jsonAgent);
          jsonAgent.put("address", agent.address);

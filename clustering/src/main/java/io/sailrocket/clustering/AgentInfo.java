@@ -6,11 +6,13 @@ import java.util.Map;
 import io.sailrocket.core.api.PhaseInstance;
 
 public class AgentInfo {
+   final String name;
    final String address;
    Status status = Status.REGISTERED;
    Map<String, PhaseInstance.Status> phases = new HashMap<>();
 
-   public AgentInfo(String address) {
+   public AgentInfo(String name, String address) {
+      this.name = name;
       this.address = address;
    }
 

@@ -1,6 +1,7 @@
 package io.sailrocket.clustering;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import io.sailrocket.api.config.Benchmark;
@@ -10,15 +11,17 @@ class Run {
    final String id;
    final Benchmark benchmark;
    final Map<String, ControllerPhase> phases = new HashMap<>();
+   final List<AgentInfo> agents;
 
    long startTime = Long.MIN_VALUE;
    long terminateTime = Long.MIN_VALUE;
    StatisticsStore statisticsStore;
 
 
-   Run(String id, Benchmark benchmark) {
+   Run(String id, Benchmark benchmark, List<AgentInfo> agents) {
       this.id = id;
       this.benchmark = benchmark;
+      this.agents = agents;
    }
 
    long nextTimestamp() {

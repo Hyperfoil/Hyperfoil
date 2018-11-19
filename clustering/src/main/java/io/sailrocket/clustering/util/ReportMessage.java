@@ -10,9 +10,11 @@ public class ReportMessage implements Serializable, Copyable {
    public final String phase;
    public final String sequence;
    public final StatisticsSnapshot statistics;
+   public final String runId;
 
-   public ReportMessage(String address, String phase, String sequence, StatisticsSnapshot statistics) {
+   public ReportMessage(String address, String runId, String phase, String sequence, StatisticsSnapshot statistics) {
       this.address = address;
+      this.runId = runId;
       this.phase = phase;
       this.sequence = sequence;
       this.statistics = statistics;
@@ -22,7 +24,7 @@ public class ReportMessage implements Serializable, Copyable {
    public Copyable copy() {
       StatisticsSnapshot statisticsCopy = new StatisticsSnapshot();
       statistics.copyInto(statisticsCopy);
-      return new ReportMessage(address, phase, sequence, statisticsCopy);
+      return new ReportMessage(address, runId, phase, sequence, statisticsCopy);
    }
 
    public static class Codec extends ObjectCodec<ReportMessage> {}

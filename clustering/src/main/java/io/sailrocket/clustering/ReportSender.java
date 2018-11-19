@@ -10,13 +10,15 @@ import io.vertx.core.eventbus.EventBus;
 
 public class ReportSender extends StatisticsCollector {
    private final String address;
+   private final String runId;
    private final EventBus eb;
    private final StatisticsConsumer sendReport = this::sendReport;
 
-   public ReportSender(Simulation simulation, EventBus eb, String address) {
+   public ReportSender(Simulation simulation, EventBus eb, String address, String runId) {
       super(simulation);
       this.eb = eb;
       this.address = address;
+      this.runId = runId;
    }
 
    public void send() {
@@ -24,9 +26,9 @@ public class ReportSender extends StatisticsCollector {
    }
 
    private boolean sendReport(Phase phase, Sequence sequence, StatisticsSnapshot statistics) {
-      // Here we assume that statistics will be serialized before next statistics collection kicks in and the statistics
-      // are reset. There are probably no guarantees that this happens synchronously, though.
-      eb.send(Feeds.STATS, new ReportMessage(address, phase.name(), sequence.name(), statistics));
+      // On a clustered event bus the statistics snapshot is marshalled synchronously, so we can reset it in the caller
+      // On a local event bus we enforce doing a copy (synchronously) by implementing copyable.
+      eb.send(Feeds.STATS, new ReportMessage(address, runId, phase.name(), sequence.name(), statistics));
       return false;
    }
 }

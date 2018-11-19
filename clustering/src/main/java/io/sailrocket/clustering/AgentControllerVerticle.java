@@ -1,8 +1,11 @@
 package io.sailrocket.clustering;
 
 import io.sailrocket.api.config.Benchmark;
+import io.sailrocket.api.config.Host;
 import io.sailrocket.api.config.Phase;
 import io.sailrocket.api.config.Sequence;
+import io.sailrocket.clustering.util.AgentControlMessage;
+import io.sailrocket.clustering.util.AgentHello;
 import io.sailrocket.core.api.PhaseInstance;
 import io.sailrocket.core.impl.statistics.StatisticsStore;
 import io.sailrocket.clustering.util.PersistenceUtil;
@@ -14,17 +17,24 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.eventbus.EventBus;
+import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class AgentControllerVerticle extends AbstractVerticle {
@@ -39,7 +49,7 @@ public class AgentControllerVerticle extends AbstractVerticle {
     private Map<String, Benchmark> benchmarks = new HashMap<>();
 
     Map<String, AgentInfo> agents = new HashMap<>();
-    Run run;
+    Map<String, Run> runs = new HashMap<>();
 
     private static Path getConfiguredPath(String property, Path def) {
         String path = System.getProperty(property);
@@ -58,12 +68,18 @@ public class AgentControllerVerticle extends AbstractVerticle {
         log.info("Starting in directory {}...", RUN_DIR);
         server = new ControllerRestServer(this);
         vertx.exceptionHandler(throwable -> log.error("Uncaught error: ", throwable));
+        try {
+            Files.list(RUN_DIR).forEach(this::updateRuns);
+        } catch (IOException e) {
+            log.error("Could not list run dir contents", e);
+        }
 
         eb = vertx.eventBus();
 
         eb.consumer(Feeds.DISCOVERY, message -> {
-            String address = (String) message.body();
-            if (agents.containsKey(address) || agents.putIfAbsent(address, new AgentInfo(address)) != null) {
+            AgentHello hello = (AgentHello) message.body();
+            String address = hello.address();
+            if (agents.containsKey(address) || agents.putIfAbsent(address, new AgentInfo(hello.name(), address)) != null) {
                 message.fail(1, "Agent already present");
             } else {
                 message.reply("Registered");
@@ -77,20 +93,53 @@ public class AgentControllerVerticle extends AbstractVerticle {
                log.error("No agent {}", phaseChange.senderId());
                return;
             }
+            Run run = runs.get(phaseChange.runId());
+            if (run == null) {
+                log.error("No run {}", phaseChange.runId());
+                return;
+            }
             String phase = phaseChange.phase();
             agent.phases.put(phase, phaseChange.status());
-            tryProgressStatus(phase);
+            tryProgressStatus(run, phase);
         });
 
         eb.consumer(Feeds.STATS, message -> {
             ReportMessage reportMessage = (ReportMessage) message.body();
-            log.trace("Received stats from {}: {}/{} ({} requests)",
+            log.trace("Run {}: Received stats from {}: {}/{} ({} requests)", reportMessage.runId,
                   reportMessage.address, reportMessage.phase, reportMessage.sequence, reportMessage.statistics.requestCount);
-            run.statisticsStore.record(reportMessage.address, reportMessage.phase, reportMessage.sequence, reportMessage.statistics);
+            Run run = runs.get(reportMessage.runId);
+            if (run != null) {
+                run.statisticsStore.record(reportMessage.address, reportMessage.phase, reportMessage.sequence, reportMessage.statistics);
+            } else {
+                log.error("Unknown run {}", reportMessage.runId);
+            }
         });
 
         BENCHMARK_DIR.toFile().mkdirs();
         loadBenchmarks(event -> future.complete());
+    }
+
+    private void updateRuns(Path runDir) {
+        File file = runDir.toFile();
+        if (!file.getName().matches("\\d\\d\\d\\d")) {
+            return;
+        }
+        String runId = file.getName();
+        int id = Integer.parseInt(runId, 16);
+        if (id >= runIds.get()) runIds.set(id + 1);
+        Path infoFile = runDir.resolve("info.json");
+        JsonObject info = new JsonObject();
+        if (infoFile.toFile().exists() && infoFile.toFile().isFile()) {
+            try {
+                info = new JsonObject(new String(Files.readAllBytes(infoFile), StandardCharsets.UTF_8));
+            } catch (IOException e) {
+                log.error("Cannot read info for run {}", runId);
+            }
+        }
+        Run run = new Run(runId, new Benchmark(info.getString("benchmark", "<unknown>"), null, null, null, null), Collections.emptyList());
+        run.startTime = info.getLong("startTime", 0L);
+        run.terminateTime = info.getLong("terminateTime", 0L);
+        runs.put(runId, run);
     }
 
     @Override
@@ -98,7 +147,7 @@ public class AgentControllerVerticle extends AbstractVerticle {
         server.stop(stopFuture);
     }
 
-    private void tryProgressStatus(String phase) {
+    private void tryProgressStatus(Run run, String phase) {
         PhaseInstance.Status minStatus = null;
         for (AgentInfo a : agents.values()) {
             PhaseInstance.Status status = a.phases.get(phase);
@@ -119,7 +168,7 @@ public class AgentControllerVerticle extends AbstractVerticle {
                 break;
             case TERMINATED:
                 if (!run.statisticsStore.validateSlas(phase)) {
-                    killCurrentRun();
+                    killRun(run);
                 }
                 controllerPhase.status(ControllerPhase.Status.TERMINATED);
                 break;
@@ -127,18 +176,37 @@ public class AgentControllerVerticle extends AbstractVerticle {
     }
 
     String startBenchmark(Benchmark benchmark) {
-        this.run = new Run(String.format("%04X", runIds.getAndIncrement()), benchmark);
+        List<AgentInfo> runAgents = new ArrayList<>();
+        if (benchmark.agents().length == 0) {
+            if (agents.isEmpty()) {
+                return null;
+            }
+            runAgents.add(agents.values().iterator().next());
+        } else {
+            for (Host host : benchmark.agents()) {
+                Optional<AgentInfo> opt = agents.values().stream().filter(a -> Objects.equals(a.name, host.name)).findFirst();
+                if (opt.isPresent()) {
+                    runAgents.add(opt.get());
+                } else {
+                    log.error("Agent {} ({}:{}) not registered", host.name, host.hostname, host.username);
+                    return null;
+                }
+            }
+        }
 
-        for (AgentInfo agent : agents.values()) {
+        Run run = new Run(String.format("%04X", runIds.getAndIncrement()), benchmark, runAgents);
+        runs.put(run.id, run);
+
+        for (AgentInfo agent : run.agents) {
             if (agent.status != AgentInfo.Status.REGISTERED) {
                 log.error("Already initializing {}, status is {}!", agent.address, agent.status);
             } else {
                 agent.status = AgentInfo.Status.INITIALIZING;
-                eb.send(agent.address, benchmark.simulation(), reply -> {
+                eb.send(agent.address, new AgentControlMessage(AgentControlMessage.Command.INITIALIZE, run.id, benchmark.simulation()), reply -> {
                     if (reply.succeeded()) {
                         agent.status = AgentInfo.Status.INITIALIZED;
                         if (agents.values().stream().allMatch(a -> a.status == AgentInfo.Status.INITIALIZED)) {
-                            startSimulation();
+                            startSimulation(run);
                         }
                     } else {
                         agent.status = AgentInfo.Status.FAILED;
@@ -150,7 +218,7 @@ public class AgentControllerVerticle extends AbstractVerticle {
         return run.id;
     }
 
-    private void startSimulation() {
+    private void startSimulation(Run run) {
         assert run.startTime == Long.MIN_VALUE;
         run.startTime = System.currentTimeMillis();
         for (Phase phase : run.benchmark.simulation().phases()) {
@@ -160,10 +228,10 @@ public class AgentControllerVerticle extends AbstractVerticle {
             Sequence sequence = failure.sla().sequence();
             System.out.println("Failed verify SLA(s) for " + sequence.phase() + "/" + sequence.name());
         });
-        runSimulation();
+        runSimulation(run);
     }
 
-    private void runSimulation() {
+    private void runSimulation(Run run) {
         long now = System.currentTimeMillis();
         for (ControllerPhase phase : run.phases.values()) {
             if (phase.status() == ControllerPhase.Status.RUNNING && phase.absoluteStartTime() + phase.definition().duration() <= now) {
@@ -187,7 +255,7 @@ public class AgentControllerVerticle extends AbstractVerticle {
         }
 
         if (run.phases.values().stream().allMatch(phase -> phase.status() == ControllerPhase.Status.TERMINATED)) {
-            stopSimulation();
+            stopSimulation(run);
             return;
         }
 
@@ -195,11 +263,28 @@ public class AgentControllerVerticle extends AbstractVerticle {
 
         delay = Math.min(delay, 1000);
         log.debug("Wait {} ms", delay);
-        vertx.setTimer(delay, timerId -> runSimulation());
+        vertx.setTimer(delay, timerId -> runSimulation(run));
     }
 
-    private void stopSimulation() {
+    private void stopSimulation(Run run) {
         run.terminateTime = System.currentTimeMillis();
+        for (AgentInfo agent : run.agents) {
+            eb.send(agent.address, new AgentControlMessage(AgentControlMessage.Command.RESET, run.id, null), reply -> {
+                if (reply.succeeded()) {
+                    agent.status = AgentInfo.Status.REGISTERED;
+                    if (run.agents.stream().allMatch(a -> a.status != AgentInfo.Status.INITIALIZED)) {
+                        run.agents.clear();
+                        persistRun(run);
+                    }
+                } else {
+                    agent.status = AgentInfo.Status.FAILED;
+                    log.error("Agent {} failed to initialize", reply.cause(), agent.address);
+                }
+            });
+        }
+    }
+
+    private void persistRun(Run run) {
         vertx.executeBlocking(future -> {
             Path runDir = RUN_DIR.resolve(run.id);
             runDir.toFile().mkdirs();
@@ -209,36 +294,43 @@ public class AgentControllerVerticle extends AbstractVerticle {
                 log.error("Failed to persist statistics", e);
                 future.fail(e);
             }
+            JsonObject info = new JsonObject()
+                  .put("id", run.id)
+                  .put("benchmark", run.benchmark.name())
+                  .put("startTime", run.startTime)
+                  .put("terminateTime", run.terminateTime);
+            try {
+                Files.write(runDir.resolve("info.json"), info.encodePrettily().getBytes(StandardCharsets.UTF_8));
+            } catch (IOException e) {
+                log.error("Cannot write info file", e);
+                future.fail(e);
+            }
             PersistenceUtil.store(run.benchmark, runDir);
             if (!future.isComplete()) {
                 future.complete();
             }
         }, null);
-        // TODO stop agents?
     }
 
     public Run run(String runId) {
-        if (runId != null && run != null && runId.equals(run.id)) {
-            return run;
-        } else {
-            return null;
-        }
+        return runs.get(runId);
     }
 
     public Collection<Run> runs() {
-        return run != null ? Collections.singleton(run) : Collections.emptyList();
+        return runs.values();
     }
 
     public boolean kill(String runId) {
-        if (runId != null && run != null && runId.equals(run.id)) {
-            killCurrentRun();
+        Run run = runs.get(runId);
+        if (run != null) {
+            killRun(run);
             return true;
         } else {
             return false;
         }
     }
 
-    private void killCurrentRun() {
+    private void killRun(Run run) {
         for (String phase : run.phases.keySet()) {
             eb.publish(Feeds.CONTROL, new PhaseControlMessage(PhaseControlMessage.Command.TERMINATE, null, phase));
         }

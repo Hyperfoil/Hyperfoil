@@ -27,11 +27,13 @@ import io.vertx.core.json.JsonObject;
 
 public class PhaseChangeMessage {
   private final String senderId;
+  private final String runId;
   private final String phase;
   private final PhaseInstance.Status status;
 
-  public PhaseChangeMessage(String senderId, String phase, PhaseInstance.Status status) {
+  public PhaseChangeMessage(String senderId, String runId, String phase, PhaseInstance.Status status) {
     this.senderId = senderId;
+    this.runId = runId;
     this.phase = phase;
     this.status = status;
   }
@@ -51,6 +53,10 @@ public class PhaseChangeMessage {
     return senderId;
   }
 
+  public String runId() {
+    return runId;
+  }
+
   public String phase() {
     return phase;
   }
@@ -67,6 +73,7 @@ public class PhaseChangeMessage {
         //todo: make this more optimal
       JsonObject jsonToEncode = new JsonObject();
       jsonToEncode.put("senderId", phaseChangeMessage.senderId());
+      jsonToEncode.put("runId", phaseChangeMessage.runId());
       jsonToEncode.put("phase", phaseChangeMessage.phase());
       jsonToEncode.put("status", phaseChangeMessage.status());
 
@@ -96,11 +103,12 @@ public class PhaseChangeMessage {
 
       // Get fields
       String senderId = contentJson.getString("senderId");
+      String runId = contentJson.getString("runId");
       String phase = contentJson.getString("phase");
       PhaseInstance.Status status = PhaseInstance.Status.valueOf(contentJson.getString("status"));
 
       // We can finally create custom message object
-      return new PhaseChangeMessage(senderId, phase, status);
+      return new PhaseChangeMessage(senderId, runId, phase, status);
     }
 
     @Override

@@ -63,13 +63,12 @@ public class ClusterTestCase {
 
 
         VertxOptions opts = new VertxOptions().setClustered(true);
-        JsonObject config = null;
 
         //configure multi node vert.x cluster
-        initiateController(opts, config, ctx, initAsync);
+        initiateController(opts, null, ctx, initAsync);
 
         //create multiple runner nodes
-        IntStream.range(0, AGENTS).forEach(id -> initiateRunner(opts, config, ctx, initAsync));
+        IntStream.range(0, AGENTS).forEach(id -> initiateRunner(opts, new JsonObject().put("name", "agent" + id), ctx, initAsync));
     }
 
     @After
