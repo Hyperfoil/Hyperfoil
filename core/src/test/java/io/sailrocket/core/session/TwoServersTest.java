@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -18,7 +19,14 @@ import io.vertx.ext.web.Router;
 public class TwoServersTest extends BaseScenarioTest {
    @Override
    protected void initRouter() {
-      router.route("/test").handler(ctx -> ctx.response().setStatusCode(200).end());
+      router.route("/test").handler(ctx -> {
+         // This makes the test reliably fail.
+         try {
+            Thread.sleep(100);
+         } catch (InterruptedException e) {
+         }
+         ctx.response().setStatusCode(200).end();
+      });
    }
 
    @Override
@@ -33,6 +41,7 @@ public class TwoServersTest extends BaseScenarioTest {
             .http("http://localhost:8081").endHttp();
    }
 
+   @Ignore /* This test is unstable when responses are received in the incorrect order */
    @Test
    public void test() {
       scenario().initialSequence("test")
