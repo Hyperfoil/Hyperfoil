@@ -21,7 +21,7 @@ import io.vertx.core.logging.LoggerFactory;
  * This instance is not thread-safe as it should be accessed only the {@link #executor()}.
  */
 class HttpConnectionPoolImpl implements HttpConnectionPool {
-   private static final Logger log = LoggerFactory.getLogger(HttpClientPoolImpl.class);
+   private static final Logger log = LoggerFactory.getLogger(HttpConnectionPoolImpl.class);
 
    private final HttpClientPoolImpl clientPool;
    private final ArrayList<HttpConnection> connections = new ArrayList<>();
