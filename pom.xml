@@ -50,6 +50,7 @@
         <module>clustering</module>
         <module>test-suite</module>
         <module>distribution</module>
+        <module>plugins/maven</module>
     </modules>
 
     <!-- Licenses -->
