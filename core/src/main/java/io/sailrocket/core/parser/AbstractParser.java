@@ -39,7 +39,7 @@ abstract class AbstractParser<T, S> implements Parser<T> {
                 ScalarEvent event = (ScalarEvent) next;
                 Parser<S> builder = subBuilders.get(event.getValue());
                 if (builder == null) {
-                    throw new ParserException(event, "Invalid configuration label: " + event.getValue() + ", expected one of " + subBuilders.keySet());
+                    throw new ParserException(event, "Invalid configuration label: '" + event.getValue() + "', expected one of " + subBuilders.keySet());
                 }
                 builder.parse(ctx, target);
             } else {

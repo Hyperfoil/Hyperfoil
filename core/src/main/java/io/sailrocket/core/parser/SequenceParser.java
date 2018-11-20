@@ -63,7 +63,7 @@ class SequenceParser implements Parser<ScenarioBuilder> {
             if (value == null || value.isEmpty()) {
                 throw new ParserException(event, "The sequence must not be empty.");
             } else {
-                throw new ParserException(event, "Expected sequence of steps but got " + value);
+                throw new ParserException(event, "Expected sequence of steps but got '" + value + "'");
             }
         } else if (event instanceof AliasEvent) {
             String anchor = ((AliasEvent) event).getAnchor();

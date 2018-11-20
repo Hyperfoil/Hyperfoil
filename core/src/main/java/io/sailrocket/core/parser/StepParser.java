@@ -131,7 +131,7 @@ class StepParser implements Parser<BaseSequenceBuilder> {
                ScalarEvent paramEvent = ctx.expectEvent(ScalarEvent.class);
                if (setter.getParameterCount() == 0) {
                   if (paramEvent.getValue() != null && !paramEvent.getValue().isEmpty()) {
-                     throw new ParserException(paramEvent, "Setter " + setter.getName() + " has no args, keep the mapping empty.");
+                     throw new ParserException(paramEvent, "Setter '" + setter.getName() + "' has no args, keep the mapping empty.");
                   }
                   setterArgs = new Object[0];
                } else {
@@ -140,7 +140,7 @@ class StepParser implements Parser<BaseSequenceBuilder> {
                try {
                   setter.invoke(builder, setterArgs);
                } catch (IllegalAccessException | InvocationTargetException e) {
-                  throw new ParserException(defEvent, "Cannot run setter " + setter, e);
+                  throw new ParserException(defEvent, "Cannot run setter '" + setter + "'", e);
                }
             } else {
                throw ctx.unexpectedEvent(defEvent);
@@ -154,7 +154,7 @@ class StepParser implements Parser<BaseSequenceBuilder> {
             throw cannotCreate(stepEvent, e);
          }
          if (!(builder instanceof BaseSequenceBuilder)) {
-            throw new ParserException(defEvent, "Builder on step " + stepEvent.getValue() + " does not allow nested steps.");
+            throw new ParserException(defEvent, "Builder on step '" + stepEvent.getValue() + "' does not allow nested steps.");
          }
          ctx.parseList((BaseSequenceBuilder) builder, StepParser.instance());
       }
@@ -164,7 +164,7 @@ class StepParser implements Parser<BaseSequenceBuilder> {
    private Method findMethod(Event event, Object target, String setter) throws ParserException {
       return Stream.of(target.getClass().getMethods())
             .filter(m -> setter.equals(m.getName()) && m.getParameterCount() <= 1).findFirst()
-            .orElseThrow(() -> new ParserException(event, "Cannot find setter " + setter + " on " + target));
+            .orElseThrow(() -> new ParserException(event, "Cannot find setter '" + setter + "' on '" + target + "'"));
    }
 
    private Object convert(Event event, String str, Class<?> type) throws ParserException {

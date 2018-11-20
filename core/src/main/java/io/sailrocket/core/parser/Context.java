@@ -61,7 +61,7 @@ class Context {
       Objects.requireNonNull(object);
       Anchor prev = anchors.putIfAbsent(anchor + ":" + object.getClass().getName(), new Anchor(event, object));
       if (prev != null) {
-         throw new ParserException(event, "Anchor " + anchor + " already defined on " + ParserException.location(prev.source));
+         throw new ParserException(event, "Anchor '" + anchor + "' already defined on '" + ParserException.location(prev.source) + "'");
       }
    }
 
@@ -73,17 +73,17 @@ class Context {
          for (String key : anchors.keySet()) {
             if (key.startsWith(prefix)) {
                Anchor similar = anchors.get(key);
-               throw new ParserException(event, "There is no anchor for " + alias + " with type " + clazz +
-                     " but there is another anchor " + key + " on " + ParserException.location(similar.source));
+               throw new ParserException(event, "There is no anchor for '" + alias + "' with type '" + clazz +
+                     "' but there is another anchor '" + key + "' on '" + ParserException.location(similar.source) + "'");
             }
          }
-         throw new ParserException(event, "There's no anchor for " + alias + ", available are "
-               + anchors.keySet().stream().sorted().collect(Collectors.toList()));
+         throw new ParserException(event, "There's no anchor for '" + alias + "', available are '"
+               + anchors.keySet().stream().sorted().collect(Collectors.toList()) + "'");
       }
       if (!clazz.isInstance(anchor.object)) {
-         throw new ParserException(event, alias + " is anchored to unexpected type "
-               + anchor.object.getClass() + " while we expect " + clazz + "; anchor is defined on "
-               + ParserException.location(anchor.source));
+         throw new ParserException(event, "'" + alias + "' is anchored to unexpected type '"
+               + anchor.object.getClass() + "' while we expect '" + clazz + "'; anchor is defined on '"
+               + ParserException.location(anchor.source) + "'");
       }
       @SuppressWarnings("unchecked")
       T object = (T) anchor.object;
@@ -94,7 +94,7 @@ class Context {
       if (hasNext()) {
          Event event = next();
          if (!eventClazz.isInstance(event)) {
-            throw new ParserException(event, "Expected " + eventClazz + ", got " + event);
+            throw new ParserException(event, "Expected '" + eventClazz + "', got '" + event + "'");
          }
          @SuppressWarnings("unchecked")
          E expectedEvent = (E) event;
@@ -110,7 +110,7 @@ class Context {
    }
 
    ParserException unexpectedEvent(Event event) {
-      return new ParserException(event, "Unexpected event " + event);
+      return new ParserException(event, "Unexpected event '" + event + "'");
    }
 
    <LI> void parseList(LI target, Parser<LI> consumer) throws ParserException {
@@ -136,7 +136,7 @@ class Context {
          // if the value is null/empty we can consider this an empty list
          String value = ((ScalarEvent) event).getValue();
          if (value != null && !value.isEmpty()) {
-            throw new ParserException(event, "Expected a sequence, got " + value);
+            throw new ParserException(event, "Expected a sequence, got '" + value + "'");
          }
       } else {
          throw unexpectedEvent(event);
@@ -172,7 +172,7 @@ class Context {
    <T> T popVar(Class<T> clazz) {
       Object top = vars.peek();
       if (clazz != null && top != null && !clazz.isInstance(top)) {
-         throw new IllegalStateException("On the top of the stack is " + top);
+         throw new IllegalStateException("On the top of the stack is '" + top + "'") ;
       }
       @SuppressWarnings("unchecked")
       T popped = (T) vars.pop();
@@ -182,7 +182,7 @@ class Context {
    <T> T peekVar(Class<T> clazz) {
       Object top = vars.peek();
       if (clazz != null && top != null && !clazz.isInstance(top)) {
-         throw new IllegalStateException("On the top of the stack is " + top);
+         throw new IllegalStateException("On the top of the stack is '" + top + "'");
       }
       @SuppressWarnings("unchecked")
       T peeked = (T) top;

@@ -48,7 +48,7 @@ class PhasesParser extends AbstractParser<SimulationBuilder, PhaseBuilder.Discri
         }
         Parser<PhaseBuilder.Discriminator> phaseBuilder = subBuilders.get(event.getTag());
         if (phaseBuilder == null) {
-            throw new ParserException(event, "Unknown phase type: " + event.getTag() + ", expected one of " + subBuilders.keySet());
+            throw new ParserException(event, "Unknown phase type: '" + event.getTag() + "', expected one of " + subBuilders.keySet());
         }
         String name = event.getValue();
         phaseBuilder.parse(ctx, target.addPhase(name));
