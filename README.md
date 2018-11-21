@@ -105,7 +105,7 @@ Note that the type of phase is declared using YAML tags. See the example of phas
   ...
   phases:
   # Over one minute ramp the number of users started each second from 1 to 100
-  - !rampPerSec rampUp:
+  - rampUp: !rampPerSec
       initialUsersPerSec: 1
       targetUsersPerSec: 100
       # We expect at most 200 users being active at one moment - see below
@@ -113,7 +113,7 @@ Note that the type of phase is declared using YAML tags. See the example of phas
       duration: 1m
       scenario: ...
   # After rampUp is finished, run for 5 minutes and start 100 new users each second
-  - !constantPerSec steadyState:
+  - steadyState: !constantPerSec
       usersPerSec: 100
       maxSessionsEstimate: 200
       startAfter: rampUp
@@ -122,12 +122,12 @@ Note that the type of phase is declared using YAML tags. See the example of phas
       maxDuration: 6m
       scenario: ...
   # 2 minutes after the benchmark has started spawn 5 users constantly doing something for 2 minutes
-  - !always outOfBand:
+  - outOfBand: !always
       users: 5
       startTime: 2m
       duration: 2m
       scenario: ...
-  - !atOnce final:
+  - final: !atOnce
       users: 1
       # Do something at the end: make sure that both rampUp and steadyState are terminated
       startAfterStrict:
@@ -151,7 +151,7 @@ phase but slice the users according to their `weight`:
 ```yaml
   ...
   phases:
-  - !constantPerSec steadyState:
+  - steadyState: !constantPerSec
       usersPerSec: 30
       duration: 5m
       forks:
@@ -174,7 +174,7 @@ In some types of tests it's useful to repeat given phase with increasing load - 
 ```yaml
   ...
   phases:
-  - !rampPerSec rampUp:
+  - rampUp: !rampPerSec
       # Create phases rampUp/000, rampUp/001 and rampUp/002
       maxIterations: 3
       # rampUp/000 will go from 1 to 100 users, rampUp will go from 101 to 200 users...
@@ -190,7 +190,7 @@ In some types of tests it's useful to repeat given phase with increasing load - 
         iteration: previous
       duration: 1m
       scenario: ...
-  - !constantPerSec steadyState:
+  - steadyState: !constantPerSec
       maxIterations: 3
       usersPerSec:
         base: 100
@@ -288,7 +288,7 @@ and it would be tedious to repeat these. That's where YAML anchors and aliases c
 ```yaml
   ...
   phases:
-  - !rampPerSec rampUp:
+  - rampUp: !rampPerSec
       scenario:
         orderedSequences:
         - login: &login
@@ -297,7 +297,7 @@ and it would be tedious to repeat these. That's where YAML anchors and aliases c
               path: /login
           - awaitAllResponses
           ...
-  - !constantPerSec steadyState:
+  - steadyState: !constantPerSec
       ...
       scenario:
         orderedSequences:
@@ -311,12 +311,12 @@ The same concept can be applied on whole scenarios:
 
 ```yaml
   phases:
-  - !rampPerSec rampUp:
+  - rampUp: !rampPerSec
       ...
       scenario: &doSomething
         orderedSequences:
         ...
-  - !constantPerSec steadyState:
+  - steadyState: !constantPerSec
       ...
       scenario: *doSomething
 ```
@@ -326,7 +326,7 @@ And forks as well:
 ```yaml
   ...
   phases:
-  - !rampPerSec rampUp:
+  - rampUp: !rampPerSec
       ...
       forks:
       - sellShares: &sellShares
@@ -335,7 +335,7 @@ And forks as well:
       - buyShares: &buyShares
           weight: 2
           scenario: ...
-  - !constantPerSec steadyState:
+  - steadyState: !constantPerSec
       ...
       forks:
       - sellShares: *sellShares

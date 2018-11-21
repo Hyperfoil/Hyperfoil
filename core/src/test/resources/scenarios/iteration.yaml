@@ -3,7 +3,7 @@ simulation:
   http:
     baseUrl: http://localhost:8080
   phases:
-  - !rampPerSec rampUp: # When forks are in this should create a no-op phase that will be started after all the forks
+  - rampUp: !rampPerSec # When forks are in this should create a no-op phase that will be started after all the forks
       initialUsersPerSec:
         base: 1
         increment: 100
@@ -34,7 +34,7 @@ simulation:
                  duration: 1s
               # TODO
 
-  - !constantPerSec steadyState:
+  - steadyState: !constantPerSec
       usersPerSec:
         base: 100
         increment: 100

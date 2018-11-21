@@ -19,6 +19,9 @@
 package io.sailrocket.core.parser;
 
 
+import java.util.Objects;
+
+import org.yaml.snakeyaml.events.Event;
 import org.yaml.snakeyaml.events.MappingEndEvent;
 import org.yaml.snakeyaml.events.MappingStartEvent;
 import org.yaml.snakeyaml.events.ScalarEvent;
@@ -43,14 +46,26 @@ class PhasesParser extends AbstractParser<SimulationBuilder, PhaseBuilder.Discri
     private void parsePhase(Context ctx, SimulationBuilder target) throws ParserException {
         ctx.expectEvent(MappingStartEvent.class);
         ScalarEvent event = ctx.expectEvent(ScalarEvent.class);
-        if (event.getTag() == null) {
-            throw new ParserException(event, "Phases must be tagged by the type; use one of: " + subBuilders.keySet());
-        }
-        Parser<PhaseBuilder.Discriminator> phaseBuilder = subBuilders.get(event.getTag());
-        if (phaseBuilder == null) {
-            throw new ParserException(event, "Unknown phase type: '" + event.getTag() + "', expected one of " + subBuilders.keySet());
-        }
         String name = event.getValue();
+        String nameTag = event.getTag();
+        String mappingTag = null;
+        if (ctx.hasNext()) {
+            Event nextEvent = ctx.peek();
+            if (nextEvent instanceof MappingStartEvent) {
+                mappingTag = ((MappingStartEvent) nextEvent).getTag();
+            }
+        }
+
+        if (nameTag == null && mappingTag == null) {
+            throw new ParserException(event, "Phases must be tagged by the type; use one of: " + subBuilders.keySet());
+        } else if (nameTag != null && mappingTag != null && !Objects.equals(nameTag, mappingTag)) {
+            throw new ParserException(event, "Both phase name and mapping have a (mismatching) tag. Tag on mapping (after :) is preferred.");
+        }
+        String tag = mappingTag != null ? mappingTag : nameTag;
+        Parser<PhaseBuilder.Discriminator> phaseBuilder = subBuilders.get(tag);
+        if (phaseBuilder == null) {
+            throw new ParserException(event, "Unknown phase type: '" + tag + "', expected one of " + subBuilders.keySet());
+        }
         phaseBuilder.parse(ctx, target.addPhase(name));
         ctx.expectEvent(MappingEndEvent.class);
     }

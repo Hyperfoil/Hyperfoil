@@ -3,7 +3,7 @@ simulation:
   http:
     baseUrl: http://localhost:8080
   phases:
-  - !rampPerSec rampUp:
+  - rampUp: !rampPerSec
       initialUsersPerSec: 1
       targetUsersPerSec: 100
       duration: 3s
@@ -21,12 +21,12 @@ simulation:
               fromNow:
               duration: 5s
         sequences:
-  - !constantPerSec steadyState:
+  - steadyState: !constantPerSec
       usersPerSec: 100
       startAfter: rampUp
       duration: 6s
       scenario: *scenario
-  - !rampPerSec rampDown:
+  - rampDown: !rampPerSec
       initialUsersPerSec: 100
       targetUsersPerSec: 1
       startAfter:
