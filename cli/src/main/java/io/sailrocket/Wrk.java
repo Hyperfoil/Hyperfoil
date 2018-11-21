@@ -33,6 +33,9 @@ import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static io.vertx.core.logging.LoggerFactory.LOGGER_DELEGATE_FACTORY_CLASS_NAME;
+
+
 public class Wrk {
 
     //ignore logging when running in the console below severe
@@ -46,6 +49,10 @@ public class Wrk {
 
 
    public static void main(String[] args) throws CommandLineParserException {
+
+      //set logger impl
+      System.setProperty(LOGGER_DELEGATE_FACTORY_CLASS_NAME, "io.vertx.core.logging.Log4j2LogDelegateFactory");
+
       CommandRuntime runtime = AeshCommandRuntimeBuilder.builder()
             .commandRegistry(AeshCommandRegistryBuilder.builder()
                   .command(WrkCommand.class).create())
