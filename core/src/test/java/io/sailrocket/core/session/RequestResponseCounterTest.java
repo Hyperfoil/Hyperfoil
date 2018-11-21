@@ -100,7 +100,7 @@ public class RequestResponseCounterTest {
         runner.run();
         System.out.println("finished running");
         StatisticsCollector collector = new StatisticsCollector(benchmark.simulation());
-        runner.visitSessions(collector);
+        runner.visitStatistics(collector);
 
         AtomicLong actualNumberOfRequests = new AtomicLong();
         collector.visitStatistics((phase, sequence, snapshot) -> {
