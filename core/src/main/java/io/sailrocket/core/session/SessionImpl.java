@@ -186,6 +186,10 @@ class SessionImpl implements Session, Runnable {
          log.trace("called run on terminated session #{}", uniqueId);
          return;
       }
+      if (lastRunningSequence < 0) {
+         log.trace("#{} No sequences to run, ignoring.", uniqueId);
+         return;
+      }
       log.trace("#{} Run ({} runnning sequences)", uniqueId, lastRunningSequence + 1);
       int lastProgressedSequence = -1;
       while (lastRunningSequence >= 0) {
@@ -239,6 +243,16 @@ class SessionImpl implements Session, Runnable {
          }
       }
       log.trace("#{} Session finished", uniqueId);
+      if (!requestQueue.isFull()) {
+         log.warn("#{} Session completed with requests in-flight!", uniqueId);
+         // We need to close all connections used to ongoing requests, despite these might
+         // carry requests from independent phases/sessions
+         do {
+            RequestQueue.Request request = requestQueue.complete();
+            Connection connection = request.request.connection();
+            connection.close();
+         } while (!requestQueue.isFull());
+      }
       reset();
       phase.notifyFinished(this);
    }

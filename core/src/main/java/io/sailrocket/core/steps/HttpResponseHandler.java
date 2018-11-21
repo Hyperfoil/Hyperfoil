@@ -60,12 +60,12 @@ public class HttpResponseHandler implements ResourceUtilizer, Session.ResourceKe
       RequestQueue.Request request = session.requestQueue().peek();
       session.currentSequence(request.sequence);
       if (request.request.isCompleted()) {
-         log.trace("#{} {} Ignoring status {} as the request has been marked failed.", session.uniqueId(), this, status);
+         log.trace("#{} Ignoring status {} as the request has been marked failed.", session.uniqueId(), status);
          return;
       }
 
       if (trace) {
-         log.trace("#{} {} Received status {}", session.uniqueId(), this, status);
+         log.trace("#{} Received status {}", session.uniqueId(), status);
       }
       request.sequence.statistics(session).addStatus(status);
 
@@ -108,11 +108,11 @@ public class HttpResponseHandler implements ResourceUtilizer, Session.ResourceKe
    private void handleHeader(Session session, String header, String value) {
       RequestQueue.Request request = session.requestQueue().peek();
       if (request.request.isCompleted()) {
-         log.trace("#{} {} Ignoring header on a failed request: {}: {}", session.uniqueId(), this, header, value);
+         log.trace("#{} Ignoring header on a failed request: {}: {}", session.uniqueId(), header, value);
          return;
       }
       if (trace) {
-         log.trace("#{} {} Received header {}: {}", session.uniqueId(), this, header, value);
+         log.trace("#{} Received header {}: {}", session.uniqueId(), header, value);
       }
       if (headerValidators != null) {
          for (HeaderValidator validator : headerValidators) {
@@ -128,7 +128,7 @@ public class HttpResponseHandler implements ResourceUtilizer, Session.ResourceKe
 
    private void handleThrowable(Session session, Throwable throwable) {
       if (trace) {
-         log.trace("#{} {} Received exception {}", session.uniqueId(), this, throwable);
+         log.trace("#{} Received exception {}", session.uniqueId(), throwable);
       }
       // TODO: we need to somehow report failures in all requests on this connection
 
@@ -148,12 +148,12 @@ public class HttpResponseHandler implements ResourceUtilizer, Session.ResourceKe
    private void handleBodyPart(Session session, ByteBuf buf) {
       RequestQueue.Request request = session.requestQueue().peek();
       if (request.request.isCompleted()) {
-         log.trace("#{} {} Ignoring body part ({} bytes) on a failed request.", session.uniqueId(), this, buf.readableBytes());
+         log.trace("#{} Ignoring body part ({} bytes) on a failed request.", session.uniqueId(), buf.readableBytes());
          return;
       }
 
       if (trace) {
-         log.trace("#{} {} Received part ({} bytes):\n{}", session.uniqueId(), this, buf.readableBytes(),
+         log.trace("#{} Received part ({} bytes):\n{}", session.uniqueId(), buf.readableBytes(),
                buf.toString(buf.readerIndex(), buf.readableBytes(), StandardCharsets.UTF_8));
       }
 

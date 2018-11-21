@@ -136,6 +136,10 @@ public class SimulationRunnerImpl implements SimulationRunner {
 
     public void visitStatistics(BiConsumer<Phase, Statistics[]> consumer) {
         for (SharedResources sharedResources : this.sharedResources.values()) {
+            if (sharedResources.currentPhase == null) {
+                // Phase(s) with these resources have not been started yet
+                continue;
+            }
             Phase phase = sharedResources.currentPhase.definition();
             for (Statistics[] statistics : sharedResources.statistics.values()) {
                 consumer.accept(phase, statistics);
