@@ -142,8 +142,8 @@ public class Main {
             String source = result.toString(StandardCharsets.UTF_8.name());
             Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(source);
 
-            if(benchmark == null);
-            invocation.println("Failed to parse benchmark configuration");
+            if(benchmark == null)
+                invocation.println("Failed to parse benchmark configuration");
 
             return benchmark;
         }
