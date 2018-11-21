@@ -82,8 +82,8 @@ public class RunMojo extends AbstractMojo {
             String source = result.toString(StandardCharsets.UTF_8.name());
             Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(source);
 
-            if (benchmark == null) ;
-            logger.info("Failed to parse benchmark configuration");
+            if (benchmark == null)
+                logger.info("Failed to parse benchmark configuration");
 
             return benchmark;
         } catch (ParserException | IOException e) {
