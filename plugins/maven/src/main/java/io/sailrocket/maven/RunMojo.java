@@ -94,9 +94,8 @@ public class RunMojo extends AbstractMojo {
     }
 
     private void printStats(StatisticsSnapshot stats) {
-        long dataRead = ((LongValue) stats.custom.get("bytes")).value();
         double durationSeconds = (stats.histogram.getEndTimeStamp() - stats.histogram.getStartTimeStamp()) / 1000d;
-        logger.info(stats.histogram.getTotalCount() + " requests in " + durationSeconds + "s, " + formatData(dataRead) + " read");
+        logger.info(stats.histogram.getTotalCount() + " requests in " + durationSeconds + "s, ");
         logger.info("                 Avg    Stdev      Max");
         logger.info("Latency:      " + formatTime(stats.histogram.getMean()) + " " + formatTime(stats.histogram.getStdDeviation()) + " " + formatTime(stats.histogram.getMaxValue()));
         logger.info("Requests/sec: " + stats.histogram.getTotalCount() / durationSeconds);
@@ -104,7 +103,6 @@ public class RunMojo extends AbstractMojo {
             logger.info("Socket errors: connect " + stats.connectFailureCount + ", reset " + stats.resetCount + ", timeout " + stats.timeouts);
             logger.info("Non-2xx or 3xx responses: " + stats.status_4xx + stats.status_5xx + stats.status_other);
         }
-        logger.info("Transfer/sec: " + formatData(dataRead / durationSeconds));
     }
 
     private String formatData(double value) {
