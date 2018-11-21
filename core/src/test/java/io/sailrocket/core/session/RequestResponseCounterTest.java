@@ -78,7 +78,7 @@ public class RequestResponseCounterTest {
                         .threads(2);
 
         simulationBuilder.addPhase("run").constantPerSec(500)
-                .duration(20)
+                .duration(5000)
                 .maxSessionsEstimate(500 * 15)
                 .scenario()
                 .initialSequence("request")
@@ -96,9 +96,7 @@ public class RequestResponseCounterTest {
         Benchmark benchmark = simulationBuilder.endSimulation().build();
 
         LocalSimulationRunner runner = new LocalSimulationRunner(benchmark);
-        System.out.println("starting the run");
         runner.run();
-        System.out.println("finished running");
         StatisticsCollector collector = new StatisticsCollector(benchmark.simulation());
         runner.visitStatistics(collector);
 
@@ -108,7 +106,6 @@ public class RequestResponseCounterTest {
         });
 
         assertEquals(counter.get(), actualNumberOfRequests.get());
-
     }
 
 }
