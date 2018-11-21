@@ -116,7 +116,7 @@ public class Main {
                   commandInvocation.println(benchmark.simulation().threads() + " threads");
                   runner.run();
                   StatisticsCollector collector = new StatisticsCollector(benchmark.simulation());
-                  runner.visitSessions(collector);
+                  runner.visitStatistics(collector);
                   collector.visitStatistics((phase, sequence, stats) -> {
                       printStats(stats, commandInvocation);
                   });

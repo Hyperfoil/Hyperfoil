@@ -37,7 +37,7 @@ public class SimpleBuilderBenchmarkTestCase extends BaseBenchmarkTestCase {
             LocalSimulationRunner runner = new LocalSimulationRunner(benchmark);
             runner.run();
             ReportStatisticsCollector statisticsConsumer = new ReportStatisticsCollector(simulation);
-            runner.visitSessions(statisticsConsumer);
+            runner.visitStatistics(statisticsConsumer);
             Map<String, Report> reports = statisticsConsumer.reports();
             assertNotEquals(0, reports.size());
             Histogram histogram = reports.values().stream().findFirst().get().histogram;

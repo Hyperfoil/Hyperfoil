@@ -2,16 +2,15 @@ package io.sailrocket.core.impl.statistics;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 
 import io.sailrocket.api.config.Phase;
 import io.sailrocket.api.config.Sequence;
 import io.sailrocket.api.config.Simulation;
-import io.sailrocket.api.session.Session;
 import io.sailrocket.api.statistics.Statistics;
 import io.sailrocket.api.statistics.StatisticsSnapshot;
 
-public class StatisticsCollector implements Consumer<Session> {
+public class StatisticsCollector implements BiConsumer<Phase, Statistics[]> {
    protected final Simulation simulation;
    protected Map<Phase, StatisticsSnapshot[]> aggregated = new HashMap<>();
 
@@ -25,13 +24,14 @@ public class StatisticsCollector implements Consumer<Session> {
       }
    }
 
+
    @Override
-   public void accept(Session session) {
-      StatisticsSnapshot[] snapshots = aggregated.get(session.phase());
-      for (Sequence sequence : session.phase().scenario().sequences()) {
-         Statistics statistics = session.statistics(sequence.id());
-         StatisticsSnapshot snapshot = snapshots[sequence.id()];
-         statistics.addIntervalTo(snapshot);
+   public void accept(Phase phase, Statistics[] statistics) {
+      StatisticsSnapshot[] snapshots = aggregated.get(phase);
+      for (int i = 0; i < statistics.length; i++) {
+         Statistics s = statistics[i];
+         StatisticsSnapshot snapshot = snapshots[i];
+         s.addIntervalTo(snapshot);
       }
    }
 
@@ -47,6 +47,7 @@ public class StatisticsCollector implements Consumer<Session> {
            }
        }
    }
+
 
    public interface StatisticsConsumer {
        void accept(Phase phase, Sequence sequence, StatisticsSnapshot snapshot);

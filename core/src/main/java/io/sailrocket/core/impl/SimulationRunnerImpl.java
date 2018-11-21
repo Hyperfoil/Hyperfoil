@@ -4,12 +4,14 @@ import io.netty.channel.EventLoop;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.util.concurrent.EventExecutor;
+import io.netty.util.concurrent.EventExecutorGroup;
 import io.sailrocket.api.config.Http;
 import io.sailrocket.api.config.Phase;
 import io.sailrocket.api.config.Simulation;
 import io.sailrocket.api.connection.HttpClientPool;
 import io.sailrocket.api.connection.HttpConnectionPool;
 import io.sailrocket.api.session.Session;
+import io.sailrocket.api.statistics.Statistics;
 import io.sailrocket.core.api.PhaseInstance;
 import io.sailrocket.core.api.SimulationRunner;
 import io.sailrocket.core.client.netty.HttpClientPoolImpl;
@@ -23,6 +25,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 import javax.net.ssl.SSLException;
 
@@ -77,19 +80,18 @@ public class SimulationRunnerImpl implements SimulationRunner {
         }
 
         for (Phase def : simulation.phases()) {
-            PhaseInstance phase = PhaseInstanceImpl.newInstance(def);
-            instances.put(def.name(), phase);
             SharedResources sharedResources;
             if (def.sharedResources == null) {
                 // Noop phases don't use any resources
                 sharedResources = SharedResources.NONE;
             } else if ((sharedResources = this.sharedResources.get(def.sharedResources)) == null) {
-                sharedResources = new SharedResources();
+                sharedResources = new SharedResources(eventLoopGroup, def.scenario.sequences().length);
                 List<Session> phaseSessions = sharedResources.sessions = new ArrayList<>();
+                Map<EventExecutor, Statistics[]> statistics = sharedResources.statistics;
                 sharedResources.sessionPool = new ConcurrentPoolImpl<>(() -> {
                     Session session;
                     synchronized (this.sessions) {
-                        session = SessionFactory.create(phase.definition().scenario, this.sessions.size());
+                        session = SessionFactory.create(def.scenario, this.sessions.size());
                         this.sessions.add(session);
                     }
                     // We probably don't need to synchronize
@@ -97,12 +99,15 @@ public class SimulationRunnerImpl implements SimulationRunner {
                         phaseSessions.add(session);
                     }
                     EventLoop eventLoop = eventLoopGroup.next();
-                    session.attach(eventLoop, httpConnectionPools.get(eventLoop));
+                    session.attach(eventLoop, httpConnectionPools.get(eventLoop), statistics.get(eventLoop));
                     return session;
                 });
                 this.sharedResources.put(def.sharedResources, sharedResources);
             }
-            phase.setComponents(sharedResources.sessionPool, sharedResources.sessions, phaseChangeHandler);
+            PhaseInstance phase = PhaseInstanceImpl.newInstance(def);
+            instances.put(def.name(), phase);
+            Statistics[] allStats = sharedResources.statistics.values().stream().flatMap(Stream::of).toArray(Statistics[]::new);
+            phase.setComponents(sharedResources.sessionPool, sharedResources.sessions, allStats, phaseChangeHandler);
             phase.reserveSessions();
         }
 
@@ -129,9 +134,21 @@ public class SimulationRunnerImpl implements SimulationRunner {
         }
     }
 
+    public void visitStatistics(BiConsumer<Phase, Statistics[]> consumer) {
+        for (SharedResources sharedResources : this.sharedResources.values()) {
+            Phase phase = sharedResources.currentPhase.definition();
+            for (Statistics[] statistics : sharedResources.statistics.values()) {
+                consumer.accept(phase, statistics);
+            }
+        }
+    }
+
     @Override
     public void startPhase(String phase) {
-        instances.get(phase).start(eventLoopGroup);
+        PhaseInstance phaseInstance = instances.get(phase);
+        SharedResources sharedResources = this.sharedResources.get(phaseInstance.definition().sharedResources);
+        sharedResources.currentPhase = phaseInstance;
+        phaseInstance.start(eventLoopGroup);
     }
 
     @Override
@@ -150,9 +167,23 @@ public class SimulationRunnerImpl implements SimulationRunner {
     }
 
     private static class SharedResources {
-        static final SharedResources NONE = new SharedResources();
+        static final SharedResources NONE = new SharedResources(null, 0);
 
+        PhaseInstance currentPhase;
         ConcurrentPoolImpl<Session> sessionPool;
         List<Session> sessions;
+        Map<EventExecutor, Statistics[]> statistics = new HashMap<>();
+
+        SharedResources(EventExecutorGroup executors, int sequences) {
+            if (executors != null) {
+                for (EventExecutor executor : executors) {
+                    Statistics[] statistics = new Statistics[sequences];
+                    for (int i = 0; i < sequences; i++) {
+                        statistics[i] = new Statistics();
+                    }
+                    this.statistics.put(executor, statistics);
+                }
+            }
+        }
     }
 }

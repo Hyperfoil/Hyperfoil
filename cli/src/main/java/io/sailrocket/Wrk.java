@@ -178,7 +178,7 @@ public class Wrk {
          commandInvocation.println(threads+" threads and "+connections+" connections");
          runner.run();
          StatisticsCollector collector = new StatisticsCollector(benchmark.simulation());
-         runner.visitSessions(collector);
+         runner.visitStatistics(collector);
          collector.visitStatistics((phase, sequence, stats) -> {
             if ("test".equals(phase.name())) {
                printStats(stats, commandInvocation);

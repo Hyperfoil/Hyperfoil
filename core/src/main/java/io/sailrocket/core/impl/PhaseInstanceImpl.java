@@ -28,6 +28,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
    protected D def;
    protected ConcurrentPool<Session> sessionPool;
    protected List<Session> sessionList;
+   private Statistics[] statistics;
    protected BiConsumer<String, PhaseInstance.Status> phaseChangeHandler;
    // Reads are done without locks
    protected volatile Status status = Status.NOT_STARTED;
@@ -75,10 +76,10 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       long now = System.currentTimeMillis();
       sessionPool.forEach(session -> {
          SessionFactory.resetPhase(session, this);
-         for (Statistics stats : session.statistics()) {
-            stats.start(now);
-         }
       });
+      for (Statistics stats : statistics) {
+         stats.start(now);
+      }
 
       assert status == Status.NOT_STARTED;
       status = Status.RUNNING;
@@ -122,9 +123,10 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
 
    // TODO better name
    @Override
-   public void setComponents(ConcurrentPool<Session> sessionPool, List<Session> sessionList, BiConsumer<String, Status> phaseChangeHandler) {
+   public void setComponents(ConcurrentPool<Session> sessionPool, List<Session> sessionList, Statistics[] statistics, BiConsumer<String, Status> phaseChangeHandler) {
       this.sessionPool = sessionPool;
       this.sessionList = sessionList;
+      this.statistics = statistics;
       this.phaseChangeHandler = phaseChangeHandler;
    }
 
@@ -156,11 +158,9 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
          status = Status.TERMINATED;
          log.debug("{} changing status to TERMINATED", def.name);
          long now = System.currentTimeMillis();
-         sessionPool.forEach(session -> {
-            for (Statistics stats : session.statistics()) {
-               stats.end(now);
-            }
-         });
+         for (Statistics stats : statistics) {
+            stats.end(now);
+         }
          phaseChangeHandler.accept(def.name, status);
       }
    }

@@ -68,7 +68,7 @@ public interface Session {
 
    SequenceInstance currentSequence();
 
-   void attach(EventExecutor executor, Map<String, HttpConnectionPool> httpConnectionPools);
+   void attach(EventExecutor executor, Map<String, HttpConnectionPool> httpConnectionPools, Statistics[] statistics);
 
    void start();
 

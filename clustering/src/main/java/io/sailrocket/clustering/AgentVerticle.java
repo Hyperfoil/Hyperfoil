@@ -59,7 +59,7 @@ public class AgentVerticle extends AbstractVerticle {
                     if (statsTimerId >= 0) {
                         vertx.cancelTimer(statsTimerId);
                     }
-                    runner.visitSessions(reportSender);
+                    runner.visitStatistics(reportSender);
                     reportSender.send();
                     runner = null;
                     reportSender = null;
@@ -121,7 +121,7 @@ public class AgentVerticle extends AbstractVerticle {
 
         runner.init((phase, status) -> eb.send(Feeds.RESPONSE, new PhaseChangeMessage(address, runId, phase, status)));
         statsTimerId = vertx.setPeriodic(simulation.statisticsCollectionPeriod(), timerId -> {
-            runner.visitSessions(reportSender);
+            runner.visitStatistics(reportSender);
             reportSender.send();
         });
         return true;

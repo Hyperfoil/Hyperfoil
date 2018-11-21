@@ -7,6 +7,7 @@ import io.netty.util.concurrent.EventExecutorGroup;
 import io.sailrocket.api.collection.ConcurrentPool;
 import io.sailrocket.api.config.Phase;
 import io.sailrocket.api.session.Session;
+import io.sailrocket.api.statistics.Statistics;
 
 public interface PhaseInstance {
    Phase definition();
@@ -26,7 +27,7 @@ public interface PhaseInstance {
    void terminate();
 
    // TODO better name
-   void setComponents(ConcurrentPool<Session> sessionPool, List<Session> sessionList, BiConsumer<String, Status> phaseChangeHandler);
+   void setComponents(ConcurrentPool<Session> sessionPool, List<Session> sessionList, Statistics[] statistics, BiConsumer<String, Status> phaseChangeHandler);
 
    void reserveSessions();
 

@@ -40,7 +40,7 @@ class SessionImpl implements Session, Runnable {
    private EventExecutor executor;
 
    private final ValidatorResults validatorResults = new ValidatorResults();
-   private final Statistics[] statistics;
+   private Statistics[] statistics;
    private final int uniqueId;
 
    public SessionImpl(Scenario scenario, int uniqueId) {
@@ -50,11 +50,9 @@ class SessionImpl implements Session, Runnable {
       this.uniqueId = uniqueId;
 
       Sequence[] sequences = scenario.sequences();
-      statistics = new Statistics[sequences.length];
       for (int i = 0; i < sequences.length; i++) {
          Sequence sequence = sequences[i];
          sequence.reserve(this);
-         statistics[i] = new Statistics();
       }
       for (String var : scenario.objectVars()) {
          declare(var);
@@ -257,10 +255,11 @@ class SessionImpl implements Session, Runnable {
    }
 
    @Override
-   public void attach(EventExecutor executor, Map<String, HttpConnectionPool> httpConnectionPools) {
+   public void attach(EventExecutor executor, Map<String, HttpConnectionPool> httpConnectionPools, Statistics[] statistics) {
       assert this.executor == null;
       this.executor = executor;
       this.httpConnectionPools = httpConnectionPools;
+      this.statistics = statistics;
    }
 
    @Override
