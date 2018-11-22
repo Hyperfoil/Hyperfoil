@@ -9,6 +9,7 @@ import io.sailrocket.core.parser.BenchmarkParser;
 import io.sailrocket.core.parser.ParserException;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
@@ -34,7 +35,7 @@ public class RunMojo extends AbstractMojo {
     private File yaml;
 
     @Override
-    public void execute() throws MojoExecutionException {
+    public void execute() throws MojoExecutionException, MojoFailureException {
 
         //set logger impl
         System.setProperty(LOGGER_DELEGATE_FACTORY_CLASS_NAME, "io.vertx.core.logging.Log4j2LogDelegateFactory");
@@ -68,7 +69,7 @@ public class RunMojo extends AbstractMojo {
     }
 
 
-    private Benchmark buildBenchmark(InputStream inputStream) {
+    private Benchmark buildBenchmark(InputStream inputStream) throws MojoFailureException {
         if (inputStream == null)
             logger.error("Could not find benchmark configuration");
 
@@ -87,10 +88,9 @@ public class RunMojo extends AbstractMojo {
 
             return benchmark;
         } catch (ParserException | IOException e) {
-            logger.info("Error occurred during parsing: " + e.getMessage());
-            e.printStackTrace();
+            logger.error("Error occurred during parsing: " + e.getMessage());
+            throw new MojoFailureException("Error occurred during parsing: " + e.getMessage(), e);
         }
-        return null;
     }
 
     private void printStats(StatisticsSnapshot stats) {
