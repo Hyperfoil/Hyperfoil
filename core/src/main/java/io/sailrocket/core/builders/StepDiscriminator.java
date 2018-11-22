@@ -76,6 +76,10 @@ public class StepDiscriminator {
       return parent.step(new AwaitDelayStep(key));
    }
 
+   public AwaitDelayStep.Builder awaitDelay() {
+      return new AwaitDelayStep.Builder(parent);
+   }
+
    public ScheduleDelayStep.Builder thinkTime(long duration, TimeUnit timeUnit) {
       // We will schedule two steps bound by an unique key
       Object key = new Object();

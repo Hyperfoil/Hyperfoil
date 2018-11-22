@@ -127,6 +127,8 @@ class Context {
             } else {
                try {
                   consumer.parse(this, target);
+               } catch (ParserException e) {
+                  throw e;
                } catch (Exception e) {
                   throw new ParserException(itemEvent, "Benchmark parsing error", e);
                }
