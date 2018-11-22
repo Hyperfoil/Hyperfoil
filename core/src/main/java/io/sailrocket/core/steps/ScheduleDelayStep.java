@@ -30,7 +30,7 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
 
    @Override
    public boolean invoke(Session session) {
-      Timestamp blockedUntil = (Timestamp) session.getObject(key);
+      Timestamp blockedUntil = (Timestamp) session.activate(key);
       long now = System.currentTimeMillis();
       long baseTimestamp;
       switch (type) {
