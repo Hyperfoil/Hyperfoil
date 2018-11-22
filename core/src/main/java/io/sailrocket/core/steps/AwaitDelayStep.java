@@ -7,7 +7,6 @@ import io.sailrocket.api.session.Session;
 import io.sailrocket.api.config.Step;
 import io.sailrocket.core.builders.BaseSequenceBuilder;
 import io.sailrocket.core.builders.BaseStepBuilder;
-import io.sailrocket.core.builders.StepBuilder;
 
 public class AwaitDelayStep implements Step {
    private final Object key;
