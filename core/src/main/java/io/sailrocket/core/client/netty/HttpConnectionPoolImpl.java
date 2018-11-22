@@ -152,7 +152,7 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
       }
 
       conn.context().channel().closeFuture().addListener(v -> {
-         log.info("Connection {} closed.", conn);
+         log.debug("Connection {} closed.", conn);
          count--;
          if (!shutdown) {
             connections.remove(conn);
