@@ -70,7 +70,7 @@ public interface Session {
 
    void attach(EventExecutor executor, Map<String, HttpConnectionPool> httpConnectionPools, Statistics[] statistics);
 
-   void start();
+   void start(PhaseInstance phase);
 
    /**
     * Run anything that can be executed.

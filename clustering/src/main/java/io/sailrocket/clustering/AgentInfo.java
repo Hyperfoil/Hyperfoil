@@ -3,7 +3,7 @@ package io.sailrocket.clustering;
 import java.util.HashMap;
 import java.util.Map;
 
-import io.sailrocket.core.api.PhaseInstance;
+import io.sailrocket.api.session.PhaseInstance;
 
 public class AgentInfo {
    final String name;

@@ -7,7 +7,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import io.sailrocket.api.config.Benchmark;
 import io.sailrocket.api.config.BenchmarkDefinitionException;
-import io.sailrocket.core.api.PhaseInstance;
+import io.sailrocket.api.session.PhaseInstance;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 

@@ -6,8 +6,7 @@ import io.sailrocket.api.collection.ConcurrentPool;
 import io.sailrocket.api.config.Phase;
 import io.sailrocket.api.session.Session;
 import io.sailrocket.api.statistics.Statistics;
-import io.sailrocket.core.api.PhaseInstance;
-import io.sailrocket.core.session.SessionFactory;
+import io.sailrocket.api.session.PhaseInstance;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
@@ -74,9 +73,6 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
    @Override
    public void start(EventExecutorGroup executorGroup) {
       long now = System.currentTimeMillis();
-      sessionPool.forEach(session -> {
-         SessionFactory.resetPhase(session, this);
-      });
       for (Statistics stats : statistics) {
          stats.start(now);
       }
@@ -186,7 +182,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
          assert activeSessions.get() == 0;
          activeSessions.set(def.users);
          for (int i = 0; i < def.users; ++i) {
-            sessionPool.acquire().start();
+            sessionPool.acquire().start(this);
          }
          finish();
       }
@@ -207,7 +203,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
          assert activeSessions.get() == 0;
          activeSessions.set(def.users);
          for (int i = 0; i < def.users; ++i) {
-            sessionPool.acquire().start();
+            sessionPool.acquire().start(this);
          }
       }
 
@@ -222,7 +218,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
             log.trace("notifyFinished session #{}", session.uniqueId());
             super.notifyFinished(session);
          } else {
-            session.start();
+            session.start(this);
          }
       }
    }
@@ -253,7 +249,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
             if (trace) {
                log.trace("{} has {} active sessions", def.name, numActive);
             }
-            sessionPool.acquire().start();
+            sessionPool.acquire().start(this);
          }
          startedUsers = Math.max(startedUsers, required);
          // Next time is the root of quadratic equation
@@ -302,7 +298,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
             if (trace) {
                log.trace("{} has {} active sessions", def.name, numActive);
             }
-            sessionPool.acquire().start();
+            sessionPool.acquire().start(this);
          }
          startedUsers = Math.max(startedUsers, required);
          // mathematically, the formula below should be 1000 * (startedUsers + 1) / usersPerSec but while
@@ -341,7 +337,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
          if (trace) {
             log.trace("{} has {} active sessions", def.name, numActive);
          }
-         sessionPool.acquire().start();
+         sessionPool.acquire().start(this);
       }
 
       @Override
@@ -356,7 +352,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
             log.debug("{} changing status to TERMINATING", def.name);
             super.notifyFinished(session);
          } else {
-            session.start();
+            session.start(this);
          }
       }
    }

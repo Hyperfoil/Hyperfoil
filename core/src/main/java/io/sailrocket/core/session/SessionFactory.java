@@ -7,16 +7,11 @@ import io.sailrocket.api.config.Phase;
 import io.sailrocket.api.config.Scenario;
 import io.sailrocket.api.config.Sequence;
 import io.sailrocket.api.session.Session;
-import io.sailrocket.core.api.PhaseInstance;
 import io.sailrocket.core.impl.PhaseInstanceImpl;
 
 public final class SessionFactory {
    public static Session create(Scenario scenario, int uniqueId) {
       return new SessionImpl(scenario, uniqueId);
-   }
-
-   public static void resetPhase(Session session, PhaseInstance phase) {
-      ((SessionImpl) session).resetPhase(phase);
    }
 
    public static Session forTesting() {

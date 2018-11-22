@@ -12,7 +12,7 @@ import io.sailrocket.api.connection.HttpClientPool;
 import io.sailrocket.api.connection.HttpConnectionPool;
 import io.sailrocket.api.session.Session;
 import io.sailrocket.api.statistics.Statistics;
-import io.sailrocket.core.api.PhaseInstance;
+import io.sailrocket.api.session.PhaseInstance;
 import io.sailrocket.core.api.SimulationRunner;
 import io.sailrocket.core.client.netty.HttpClientPoolImpl;
 import io.sailrocket.core.session.SessionFactory;

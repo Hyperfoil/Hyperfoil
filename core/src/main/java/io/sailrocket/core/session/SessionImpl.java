@@ -11,7 +11,7 @@ import io.sailrocket.api.http.ValidatorResults;
 import io.sailrocket.api.session.SequenceInstance;
 import io.sailrocket.api.session.Session;
 import io.sailrocket.api.statistics.Statistics;
-import io.sailrocket.core.api.PhaseInstance;
+import io.sailrocket.api.session.PhaseInstance;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
@@ -277,8 +277,9 @@ class SessionImpl implements Session, Runnable {
    }
 
    @Override
-   public void start() {
-      log.trace("#{} Session starting", uniqueId);
+   public void start(PhaseInstance phase) {
+      log.trace("#{} Session starting in {}", uniqueId, phase.definition().name);
+      resetPhase(phase);
       for (Sequence sequence : phase.definition().scenario().initialSequences()) {
          sequence.instantiate(this, 0);
       }
@@ -315,6 +316,9 @@ class SessionImpl implements Session, Runnable {
 
    public void resetPhase(PhaseInstance newPhase) {
       // I dislike having non-final phase but it helps not reallocating the resources...
+      if (phase == newPhase) {
+         return;
+      }
       assert phase == null || newPhase.definition().scenario() == phase.definition().scenario();
       assert phase == null || newPhase.definition().sharedResources.equals(phase.definition().sharedResources);
       assert phase == null || phase.status() == PhaseInstance.Status.TERMINATED;
@@ -363,5 +367,17 @@ class SessionImpl implements Session, Runnable {
       lastRunningSequence++;
       assert runningSequences[lastRunningSequence] == null;
       runningSequences[lastRunningSequence] = instance;
+   }
+
+   @Override
+   public String toString() {
+      StringBuilder sb = new StringBuilder("#").append(uniqueId)
+            .append(" (").append(phase != null ? phase.definition().name : null).append(") ")
+            .append(lastRunningSequence + 1).append(" sequences:");
+      for (int i = 0; i <= lastRunningSequence; ++i) {
+         sb.append(' ');
+         runningSequences[i].appendTo(sb);
+      }
+      return sb.toString();
    }
 }

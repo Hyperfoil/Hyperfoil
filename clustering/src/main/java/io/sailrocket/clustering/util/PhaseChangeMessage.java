@@ -20,7 +20,7 @@
 
 package io.sailrocket.clustering.util;
 
-import io.sailrocket.core.api.PhaseInstance;
+import io.sailrocket.api.session.PhaseInstance;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.eventbus.MessageCodec;
 import io.vertx.core.json.JsonObject;
