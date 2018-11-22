@@ -2,6 +2,7 @@ package io.sailrocket.clustering;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 
 import io.sailrocket.api.config.Simulation;
 import io.sailrocket.clustering.util.AgentControlMessage;
@@ -65,6 +66,11 @@ public class AgentVerticle extends AbstractVerticle {
                     reportSender = null;
                     // TODO: this does not guarantee in-order delivery
                     message.reply("OK");
+                    break;
+                case LIST_SESSIONS:
+                    ArrayList<String> sessions = new ArrayList<>();
+                    runner.visitSessions(s -> sessions.add(s.toString()));
+                    message.reply(sessions);
                     break;
             }
         });

@@ -62,10 +62,14 @@ public class SequenceInstance {
 
    @Override
    public String toString() {
-      return name + "(" + currentStep + "/" + steps.length + ")";
+      return appendTo(new StringBuilder()).toString();
    }
 
    public Statistics statistics(Session session) {
       return session.statistics(sourceId);
+   }
+
+   public StringBuilder appendTo(StringBuilder sb) {
+      return sb.append(name).append('(').append(currentStep).append('/').append(steps.length).append(')');
    }
 }

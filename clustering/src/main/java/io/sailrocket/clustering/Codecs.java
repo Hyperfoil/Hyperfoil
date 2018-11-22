@@ -1,7 +1,10 @@
 package io.sailrocket.clustering;
 
+import java.util.ArrayList;
+
 import io.sailrocket.clustering.util.AgentControlMessage;
 import io.sailrocket.clustering.util.AgentHello;
+import io.sailrocket.clustering.util.ObjectCodec;
 import io.sailrocket.clustering.util.PhaseChangeMessage;
 import io.sailrocket.clustering.util.PhaseControlMessage;
 import io.sailrocket.clustering.util.ReportMessage;
@@ -19,5 +22,6 @@ public final class Codecs {
       eb.registerDefaultCodec(PhaseChangeMessage.class, new PhaseChangeMessage.Codec());
       eb.registerDefaultCodec(PhaseControlMessage.class, new PhaseControlMessage.Codec());
       eb.registerDefaultCodec(ReportMessage.class, new ReportMessage.Codec());
+      eb.registerDefaultCodec(ArrayList.class, new ObjectCodec.ArrayList());
    }
 }

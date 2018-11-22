@@ -367,4 +367,33 @@ public class AgentControllerVerticle extends AbstractVerticle {
             future.complete();
         }, handler);
     }
+
+    public void listSessions(String runId, Handler<String> sessionStateHandler, Handler<AsyncResult<Void>> completionHandler) {
+        Run run = runs.get(runId);
+        if (run == null) {
+            completionHandler.handle(Future.factory.failureFuture(null));
+            return;
+        }
+        AtomicInteger agentCounter = new AtomicInteger(1);
+        for (AgentInfo agent : run.agents) {
+            agentCounter.incrementAndGet();
+            eb.send(agent.address, new AgentControlMessage(AgentControlMessage.Command.LIST_SESSIONS, runId, null), result -> {
+                if (result.failed()) {
+                    log.error("Failed to retrieve sessions", result.cause());
+                    completionHandler.handle(Future.factory.failedFuture(result.cause()));
+                } else {
+                    List<String> sessions = (List<String>) result.result().body();
+                    for (String state : sessions) {
+                        sessionStateHandler.handle(state);
+                    }
+                    if (agentCounter.decrementAndGet() == 0) {
+                        completionHandler.handle(Future.factory.succeededFuture());
+                    }
+                }
+            });
+        }
+        if (agentCounter.decrementAndGet() == 0) {
+            completionHandler.handle(Future.factory.succeededFuture());
+        }
+    }
 }

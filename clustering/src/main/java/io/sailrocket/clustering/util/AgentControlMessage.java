@@ -30,7 +30,8 @@ public class AgentControlMessage implements Serializable, Immutable {
 
    public enum Command {
       INITIALIZE,
-      RESET
+      RESET,
+      LIST_SESSIONS
    }
 
    public static class Codec extends ObjectCodec<AgentControlMessage> {}

@@ -116,5 +116,10 @@ public class ObjectCodec<T> implements MessageCodec<T, T> {
         return -1;
     }
 
-
+    public static class ArrayList extends ObjectCodec<java.util.ArrayList> {
+       @Override
+       public java.util.ArrayList transform(java.util.ArrayList object) {
+          return new java.util.ArrayList(object);
+       }
+    }
 }

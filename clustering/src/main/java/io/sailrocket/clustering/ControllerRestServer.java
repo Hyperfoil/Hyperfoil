@@ -19,6 +19,8 @@ import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServer;
+import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.impl.NoStackTraceThrowable;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
@@ -56,6 +58,7 @@ public class ControllerRestServer {
       router.get("/run").handler(this::handleListRuns);
       router.get("/run/:runid").handler(this::handleGetRun);
       router.get("/run/:runid/kill").handler(this::handleRunKill);
+      router.get("/run/:runid/sessions").handler(this::handleListSessions);
 
       httpServer = controller.getVertx().createHttpServer().requestHandler(router::accept).listen(CONTROLLER_PORT);
    }
@@ -228,6 +231,21 @@ public class ControllerRestServer {
       }
       String status = body.encodePrettily();
       routingContext.response().end(status);
+   }
+
+   private void handleListSessions(RoutingContext routingContext) {
+      HttpServerResponse response = routingContext.response().setChunked(true);
+      controller.listSessions(routingContext.pathParam("runid"),
+            state -> response.write(Buffer.buffer((state + "\n").getBytes(StandardCharsets.UTF_8))),
+            result -> {
+               if (result.succeeded()) {
+                  response.setStatusCode(HttpResponseStatus.OK.code()).end();
+               } else if (result.cause() instanceof NoStackTraceThrowable){
+                  response.setStatusCode(HttpResponseStatus.NOT_FOUND.code()).end();
+               } else {
+                  response.setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code()).end(result.cause().getMessage());
+               }
+            });
    }
 
    private void handleRunKill(RoutingContext routingContext) {
