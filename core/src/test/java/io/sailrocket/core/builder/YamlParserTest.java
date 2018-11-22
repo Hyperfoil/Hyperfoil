@@ -75,6 +75,11 @@ public class YamlParserTest {
         Benchmark benchmark = buildBenchmark("scenarios/iteration.yaml");
         assertThat(benchmark.name()).isEqualTo("iteration benchmark");
     }
+    @Test
+    public void testAwaitDelayYaml() {
+        Benchmark benchmark = buildBenchmark("scenarios/awaitDelay.yaml");
+        assertThat(benchmark.name()).isEqualTo("await delay benchmark");
+    }
 
     private Benchmark buildBenchmark(String s) {
         return buildBenchmark(this.getClass().getClassLoader().getResourceAsStream(s));
