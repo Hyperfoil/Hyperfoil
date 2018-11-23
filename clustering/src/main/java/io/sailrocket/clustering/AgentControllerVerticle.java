@@ -121,7 +121,7 @@ public class AgentControllerVerticle extends AbstractVerticle {
 
     private void updateRuns(Path runDir) {
         File file = runDir.toFile();
-        if (!file.getName().matches("\\d\\d\\d\\d")) {
+        if (!file.getName().matches("[0-9A-F][0-9A-F][0-9A-F][0-9A-F]")) {
             return;
         }
         String runId = file.getName();
