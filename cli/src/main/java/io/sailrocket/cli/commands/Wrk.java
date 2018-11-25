@@ -100,7 +100,7 @@ public class Wrk {
       }
    }
 
-   @CommandDefinition(name = "wrk", description = "API implemented by SailRocket")
+   @CommandDefinition(name = "run-local", description = "Runs a workload simluation against one endpoint using the same vm")
    public class WrkCommand implements Command<CommandInvocation> {
       @Option(shortName = 'c', description = "Total number of HTTP connections to keep open", required = true)
       int connections;
