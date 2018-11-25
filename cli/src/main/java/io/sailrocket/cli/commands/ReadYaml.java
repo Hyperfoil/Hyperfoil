@@ -18,7 +18,7 @@
  *
  */
 
-package io.sailrocket.cli;
+package io.sailrocket.cli.commands;
 
 import io.sailrocket.api.config.Benchmark;
 import io.sailrocket.api.statistics.LongValue;
@@ -51,82 +51,53 @@ import java.util.logging.Logger;
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
  */
-public class Main {
+@CommandDefinition(name = "read-yaml", description = "read-yaml command to initiate a sailrocket workload through a yaml file")
+public class ReadYaml implements Command<CommandInvocation> {
 
     //ignore logging when running in the console below severe
-   static {
-      Handler[] handlers =
-              Logger.getLogger( "" ).getHandlers();
-      for ( int index = 0; index < handlers.length; index++ ) {
-         handlers[index].setLevel( Level.SEVERE);
-      }
-   }
+    static {
+        Handler[] handlers =
+                Logger.getLogger( "" ).getHandlers();
+        for ( int index = 0; index < handlers.length; index++ ) {
+            handlers[index].setLevel( Level.SEVERE);
+        }
+    }
 
-  public static void main(String[] args) throws Exception {
-      CommandRuntime runtime = AeshCommandRuntimeBuilder.builder()
-            .commandRegistry(AeshCommandRegistryBuilder.builder()
-                  .command(MainCommand.class).create())
-            .build();
 
-      StringBuilder sb = new StringBuilder("main ");
-      if (args.length == 1) {
-         // When executed from mvn exec:exec -Pmain -Dmain.args="..." we don't want to quote the args
-         sb.append(args[0]);
-      } else {
-         for (String arg : args) {
-            if (arg.indexOf(' ') >= 0) {
-               sb.append('"').append(arg).append("\" ");
-            } else {
-               sb.append(arg).append(' ');
+    @Option(shortName = 'h', hasValue = false, overrideRequired = true)
+    boolean help;
+
+    @Argument(description = "Yaml file that should be parsed", required = true)
+    Resource yaml;
+
+    @Override
+    public CommandResult execute(CommandInvocation commandInvocation) throws CommandException, InterruptedException {
+        if(help) {
+            commandInvocation.println(commandInvocation.getHelpInfo("main"));
+            return CommandResult.SUCCESS;
+        }
+
+        Benchmark benchmark = null;
+        try {
+            benchmark = buildBenchmark(yaml.read(), commandInvocation);
+
+            if(benchmark != null) {
+                LocalSimulationRunner runner = new LocalSimulationRunner(benchmark);
+                commandInvocation.println("Running for " + benchmark.simulation().statisticsCollectionPeriod());
+                commandInvocation.println(benchmark.simulation().threads() + " threads");
+                runner.run();
+                StatisticsCollector collector = new StatisticsCollector(benchmark.simulation());
+                runner.visitStatistics(collector);
+                collector.visitStatistics((phase, sequence, stats) -> {
+                    printStats(stats, commandInvocation);
+                });
             }
-         }
-      }
-      try {
-         runtime.executeCommand(sb.toString());
-      }
-      catch (Exception e) {
-         System.out.println("Failed to execute command:"+ e.getMessage());
-         System.out.println(runtime.commandInfo("main"));
-      }
-   }
-
-   @CommandDefinition(name = "main", description = "Main command to initiate a sailrocket workload")
-   public class MainCommand implements Command<CommandInvocation> {
-
-      @Option(shortName = 'h', hasValue = false, overrideRequired = true)
-      boolean help;
-
-      @Argument(description = "Yaml file that should be parsed", required = true)
-      Resource yaml;
-
-      @Override
-      public CommandResult execute(CommandInvocation commandInvocation) throws CommandException, InterruptedException {
-          if(help) {
-              commandInvocation.println(commandInvocation.getHelpInfo("main"));
-              return CommandResult.SUCCESS;
-          }
-
-          Benchmark benchmark = null;
-          try {
-              benchmark = buildBenchmark(yaml.read(), commandInvocation);
-
-              if(benchmark != null) {
-                  LocalSimulationRunner runner = new LocalSimulationRunner(benchmark);
-                  commandInvocation.println("Running for " + benchmark.simulation().statisticsCollectionPeriod());
-                  commandInvocation.println(benchmark.simulation().threads() + " threads");
-                  runner.run();
-                  StatisticsCollector collector = new StatisticsCollector(benchmark.simulation());
-                  runner.visitStatistics(collector);
-                  collector.visitStatistics((phase, sequence, stats) -> {
-                      printStats(stats, commandInvocation);
-                  });
-              }
-          }
-          catch(FileNotFoundException e){
-              commandInvocation.println("Couldn't find yaml file: "+e.getMessage());
-          }
-          return CommandResult.SUCCESS;
-      }
+        }
+        catch(FileNotFoundException e){
+            commandInvocation.println("Couldn't find yaml file: "+e.getMessage());
+        }
+        return CommandResult.SUCCESS;
+    }
 
     private Benchmark buildBenchmark(InputStream inputStream, CommandInvocation invocation){
         if (inputStream == null)
@@ -154,12 +125,12 @@ public class Main {
         return null;
     }
 
-      private void printStats(StatisticsSnapshot stats, CommandInvocation invocation) {
-         long dataRead = ((LongValue) stats.custom.get("bytes")).value();
-         double durationSeconds = (stats.histogram.getEndTimeStamp() - stats.histogram.getStartTimeStamp()) / 1000d;
-         invocation.println(stats.histogram.getTotalCount()+" requests in "+durationSeconds+"s, "+formatData(dataRead)+" read");
-         invocation.println("                 Avg    Stdev      Max");
-         invocation.println("Latency:      "+formatTime(stats.histogram.getMean())+" "+formatTime(stats.histogram.getStdDeviation())+" "+formatTime(stats.histogram.getMaxValue()));
+    private void printStats(StatisticsSnapshot stats, CommandInvocation invocation) {
+        long dataRead = ((LongValue) stats.custom.get("bytes")).value();
+        double durationSeconds = (stats.histogram.getEndTimeStamp() - stats.histogram.getStartTimeStamp()) / 1000d;
+        invocation.println(stats.histogram.getTotalCount()+" requests in "+durationSeconds+"s, "+formatData(dataRead)+" read");
+        invocation.println("                 Avg    Stdev      Max");
+        invocation.println("Latency:      "+formatTime(stats.histogram.getMean())+" "+formatTime(stats.histogram.getStdDeviation())+" "+formatTime(stats.histogram.getMaxValue()));
          /*
          if (latency) {
             invocation.println("Latency Distribution");
@@ -176,47 +147,75 @@ public class Main {
             invocation.println("----------------------------------------------------------");
          }
          */
-         invocation.println("Requests/sec: "+stats.histogram.getTotalCount() / durationSeconds);
-         if (stats.errors() > 0) {
+        invocation.println("Requests/sec: "+stats.histogram.getTotalCount() / durationSeconds);
+        if (stats.errors() > 0) {
             invocation.println("Socket errors: connect "+stats.connectFailureCount+", reset "+stats.resetCount+", timeout "+stats.timeouts);
             invocation.println("Non-2xx or 3xx responses: "+ stats.status_4xx + stats.status_5xx + stats.status_other);
-         }
-         invocation.println("Transfer/sec: "+formatData(dataRead / durationSeconds));
-      }
+        }
+        invocation.println("Transfer/sec: "+formatData(dataRead / durationSeconds));
+    }
 
-      private String formatData(double value) {
-         double scaled;
-         String suffix;
-         if (value >= 1024 * 1024 * 1024) {
+    private String formatData(double value) {
+        double scaled;
+        String suffix;
+        if (value >= 1024 * 1024 * 1024) {
             scaled = (double) value / (1024 * 1024 * 1024);
             suffix = "GB";
-         } else if (value >= 1024 * 1024) {
+        } else if (value >= 1024 * 1024) {
             scaled = (double) value / (1024 * 1024);
             suffix = "MB";
-         }  else if (value >= 1024) {
+        }  else if (value >= 1024) {
             scaled = (double) value / 1024;
             suffix = "kB";
-         } else {
+        } else {
             scaled = value;
             suffix = "B ";
-         }
-         return String.format("%6.2f%s", scaled, suffix);
-      }
+        }
+        return String.format("%6.2f%s", scaled, suffix);
+    }
 
-      private String formatTime(double value) {
-         String suffix = "ns";
-         if (value >= 1000_000_000) {
+    private String formatTime(double value) {
+        String suffix = "ns";
+        if (value >= 1000_000_000) {
             value /= 1000_000_000;
             suffix = "s ";
-         } else if (value >= 1000_000) {
+        } else if (value >= 1000_000) {
             value /= 1000_000;
             suffix = "ms";
-         } else if (value >= 1000) {
+        } else if (value >= 1000) {
             value /= 1000;
             suffix = "us";
-         }
-         return String.format("%6.2f%s", value, suffix);
-      }
-   }
+        }
+        return String.format("%6.2f%s", value, suffix);
+    }
+
+    public static void main(String[] args) throws Exception {
+        CommandRuntime runtime =
+                AeshCommandRuntimeBuilder.builder()
+                                         .commandRegistry(AeshCommandRegistryBuilder.builder()
+                                                                  .command(ReadYaml.class).create())
+                                         .build();
+
+        StringBuilder sb = new StringBuilder("main ");
+        if (args.length == 1) {
+            // When executed from mvn exec:exec -Pmain -Dmain.args="..." we don't want to quote the args
+            sb.append(args[0]);
+        } else {
+            for (String arg : args) {
+                if (arg.indexOf(' ') >= 0) {
+                    sb.append('"').append(arg).append("\" ");
+                } else {
+                    sb.append(arg).append(' ');
+                }
+            }
+        }
+        try {
+            runtime.executeCommand(sb.toString());
+        }
+        catch (Exception e) {
+            System.out.println("Failed to execute command:"+ e.getMessage());
+            System.out.println(runtime.commandInfo("main"));
+        }
+    }
 
 }

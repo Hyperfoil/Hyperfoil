@@ -129,7 +129,7 @@
                                 <classpath />
                                 <argument>-Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.Log4j2LogDelegateFactory</argument>
                                 <argument>${io.sailrocket.debug}</argument>
-                                <argument>io.sailrocket.Wrk</argument>
+                                <argument>io.sailrocket.cli.commands.Wrk</argument>
                                 <argument>${wrk.args}</argument>
                             </arguments>
                         </configuration>

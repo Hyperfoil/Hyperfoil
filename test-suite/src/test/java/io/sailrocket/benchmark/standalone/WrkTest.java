@@ -4,7 +4,7 @@ import org.aesh.command.parser.CommandLineParserException;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
-import io.sailrocket.Wrk;
+import io.sailrocket.cli.commands.Wrk;
 import io.sailrocket.test.Benchmark;
 
 @Category(Benchmark.class)
