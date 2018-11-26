@@ -99,7 +99,7 @@ public class SailRocketCli {
 
         @Override
         public CommandResult execute(SailRocketCommandInvocation invocation) {
-            if(invocation.context().benchmark() != null)
+            if(invocation.context().running())
                 invocation.println("Benchmark "+invocation.context().benchmark().name()+
                                            " is currently running, not possible to exit");
 

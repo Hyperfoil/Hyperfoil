@@ -28,6 +28,7 @@ import io.sailrocket.api.config.Benchmark;
 public class SailRocketCliContext {
 
     private Benchmark benchmark;
+    private boolean running;
 
     public SailRocketCliContext() {
     }
@@ -43,4 +44,11 @@ public class SailRocketCliContext {
         this.benchmark = benchmark;
     }
 
+    public boolean running() {
+        return running;
+    }
+
+    public void setRunning(boolean running) {
+        this.running = running;
+    }
 }

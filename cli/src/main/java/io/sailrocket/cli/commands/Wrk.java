@@ -24,6 +24,7 @@ import io.sailrocket.api.config.Benchmark;
 import io.sailrocket.api.http.HttpMethod;
 import io.sailrocket.api.statistics.LongValue;
 import io.sailrocket.api.statistics.StatisticsSnapshot;
+import io.sailrocket.cli.context.SailRocketCommandInvocation;
 import io.sailrocket.core.builders.BenchmarkBuilder;
 import io.sailrocket.core.builders.PhaseBuilder;
 import io.sailrocket.core.builders.SimulationBuilder;
@@ -43,12 +44,15 @@ import org.aesh.command.option.Argument;
 import org.aesh.command.option.Option;
 import org.aesh.command.option.OptionList;
 import org.aesh.command.parser.CommandLineParserException;
+import org.aesh.utils.ANSI;
+import org.aesh.utils.Config;
 
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -135,10 +139,12 @@ public class Wrk {
       String path;
       String[][] parsedHeaders;
 
+      private boolean executedInCli = false;
+
       @Override
       public CommandResult execute(CommandInvocation commandInvocation) throws CommandException, InterruptedException {
           if(help) {
-             commandInvocation.println(commandInvocation.getHelpInfo("wrk"));
+             commandInvocation.println(commandInvocation.getHelpInfo("run-local"));
              return CommandResult.SUCCESS;
           }
          if (script != null) {
@@ -179,6 +185,10 @@ public class Wrk {
          else {
             parsedHeaders = null;
          }
+         //check if we're running in the cli
+         if(commandInvocation instanceof SailRocketCommandInvocation)
+            executedInCli = true;
+
          SimulationBuilder simulationBuilder = new BenchmarkBuilder(null)
                .name("wrk " + new SimpleDateFormat("YY/MM/dd HH:mm:ss").format(new Date()))
                .simulation()
@@ -194,17 +204,70 @@ public class Wrk {
 
          // TODO: allow running the benchmark from remote instance
          LocalSimulationRunner runner = new LocalSimulationRunner(benchmark);
-         commandInvocation.println("Running for "+duration+" test @ "+url);
-         commandInvocation.println(threads+" threads and "+connections+" connections");
-         runner.run();
+         commandInvocation.println("Running for " + duration + " test @ " + url);
+         commandInvocation.println(threads + " threads and " + connections + " connections");
+
+         if(executedInCli) {
+            ((SailRocketCommandInvocation) commandInvocation).context().setBenchmark(benchmark);
+            startRunnerInCliMode(runner, benchmark, (SailRocketCommandInvocation) commandInvocation);
+         }
+         else {
+            runner.run();
+            StatisticsCollector collector = new StatisticsCollector(benchmark.simulation());
+            runner.visitStatistics(collector);
+            collector.visitStatistics((phase, sequence, stats) -> {
+               if ("test".equals(phase.name())) {
+                  printStats(stats, commandInvocation);
+               }
+            });
+         }
+
+         return CommandResult.SUCCESS;
+      }
+
+      private void startRunnerInCliMode(LocalSimulationRunner runner, Benchmark benchmark,
+                                        SailRocketCommandInvocation invocation) {
+
+         CountDownLatch latch = new CountDownLatch(1);
+         Thread thread  = new Thread(() -> {runner.run(); latch.countDown();});
+         thread.start();
+
+         long startTime = System.currentTimeMillis();
+         while(latch.getCount() > 0) {
+
+            long duration = System.currentTimeMillis() - startTime;
+            if(duration % 800 == 0) {
+               invocation.getShell().write(ANSI.CURSOR_START);
+               invocation.getShell().write(ANSI.ERASE_WHOLE_LINE);
+               StatisticsCollector collector = new StatisticsCollector(benchmark.simulation());
+               runner.visitStatistics(collector);
+               collector.visitStatistics((phase, sequence, stats) -> {
+                  if("test".equals(phase.name())) {
+                     double durationSeconds = (stats.histogram.getEndTimeStamp() - stats.histogram.getStartTimeStamp()) / 1000d;
+                     invocation.print("Requests/sec: " + String.format("%.02f", stats.histogram.getTotalCount() / durationSeconds));
+                  }
+               });
+
+               try {
+                  Thread.sleep(10);
+               } catch(InterruptedException e) {
+                  //if we're interrupted, lets try to interrupt the benchmark...
+                  invocation.println("Interrupt received, trying to abort run...");
+                  thread.interrupt();
+                  latch.countDown();
+               }
+            }
+         }
+         invocation.context().setRunning(false);
+         invocation.println(Config.getLineSeparator()+"benchmark finished");
          StatisticsCollector collector = new StatisticsCollector(benchmark.simulation());
          runner.visitStatistics(collector);
          collector.visitStatistics((phase, sequence, stats) -> {
             if ("test".equals(phase.name())) {
-               printStats(stats, commandInvocation);
+               printStats(stats, invocation);
             }
          });
-         return null;
+
       }
 
       private PhaseBuilder addPhase(SimulationBuilder simulationBuilder, String phase, String duration) {
