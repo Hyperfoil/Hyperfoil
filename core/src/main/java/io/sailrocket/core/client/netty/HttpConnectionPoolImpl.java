@@ -14,6 +14,9 @@ import io.sailrocket.api.connection.HttpConnectionPool;
 import io.sailrocket.api.http.HttpMethod;
 import io.sailrocket.api.http.HttpRequest;
 import io.sailrocket.api.session.Session;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Future;
+import io.vertx.core.Handler;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
@@ -28,7 +31,7 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
    private final int size;
    private final EventLoop eventLoop;
    private int count; // The estimated count : created + creating
-   private Runnable startedHandler;
+   private Handler<AsyncResult<Void>> startedHandler;
    private boolean shutdown;
    private Deque<Session> waitingSessions = new ArrayDeque<>();
 
@@ -94,6 +97,13 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
       }
       //TODO:: configurable
       if (retry > 100) {
+         // When the connection is not available we'll let sessions see & terminate if it's past the duration
+         Handler<AsyncResult<Void>> handler = this.startedHandler;
+         if (handler != null) {
+            startedHandler = null;
+            handler.handle(Future.failedFuture("Cannot connect to " + clientPool.authority));
+         }
+         pulse();
          throw new IllegalStateException();
       }
       if (count < size) {
@@ -101,7 +111,7 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
          clientPool.connect(this, (conn, err) -> {
             // at this moment we're in unknown thread
             if (err != null) {
-               log.warn("Cannot create connection", err);
+               log.warn("Cannot create connection (retry {})", retry, err);
                // so we need to make sure that checkCreateConnections will be called in eventLoop
                eventLoop.execute(() -> {
                   count--;
@@ -130,9 +140,7 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
                }
             }
          });
-         eventLoop.schedule(() -> {
-            checkCreateConnections(retry);
-         }, 2, TimeUnit.MILLISECONDS);
+         eventLoop.schedule(() -> checkCreateConnections(retry), 2, TimeUnit.MILLISECONDS);
 
       }
    }
@@ -140,7 +148,7 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
    private void connectionCreated(HttpConnection conn) {
       assert eventLoop.inEventLoop();
 
-      Runnable handler = null;
+      Handler<AsyncResult<Void>> handler = null;
       connections.add(conn);
       if (count < size) {
          checkCreateConnections(0);
@@ -161,7 +169,7 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
       });
 
       if (handler != null) {
-         handler.run();
+         handler.handle(Future.succeededFuture());
       }
       pulse();
    }
@@ -175,7 +183,7 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
       });
    }
 
-   void start(Runnable handler) {
+   void start(Handler<AsyncResult<Void>> handler) {
       startedHandler = handler;
       eventLoop.execute(() -> checkCreateConnections(0));
    }

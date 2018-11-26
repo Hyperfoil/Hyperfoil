@@ -68,10 +68,12 @@ public class AgentControllerVerticle extends AbstractVerticle {
         log.info("Starting in directory {}...", RUN_DIR);
         server = new ControllerRestServer(this);
         vertx.exceptionHandler(throwable -> log.error("Uncaught error: ", throwable));
-        try {
-            Files.list(RUN_DIR).forEach(this::updateRuns);
-        } catch (IOException e) {
-            log.error("Could not list run dir contents", e);
+        if (Files.exists(RUN_DIR)) {
+            try {
+                Files.list(RUN_DIR).forEach(this::updateRuns);
+            } catch (IOException e) {
+                log.error("Could not list run dir contents", e);
+            }
         }
 
         eb = vertx.eventBus();
@@ -109,7 +111,10 @@ public class AgentControllerVerticle extends AbstractVerticle {
                   reportMessage.address, reportMessage.phase, reportMessage.sequence, reportMessage.statistics.requestCount);
             Run run = runs.get(reportMessage.runId);
             if (run != null) {
-                run.statisticsStore.record(reportMessage.address, reportMessage.phase, reportMessage.sequence, reportMessage.statistics);
+                // Agents start sending stats before the server processes the confirmation for initialization
+                if (run.statisticsStore != null) {
+                    run.statisticsStore.record(reportMessage.address, reportMessage.phase, reportMessage.sequence, reportMessage.statistics);
+                }
             } else {
                 log.error("Unknown run {}", reportMessage.runId);
             }
@@ -209,8 +214,8 @@ public class AgentControllerVerticle extends AbstractVerticle {
                             startSimulation(run);
                         }
                     } else {
-                        agent.status = AgentInfo.Status.FAILED;
                         log.error("Agent {} failed to initialize", reply.cause(), agent.address);
+                        stopSimulation(run);
                     }
                 });
             }
@@ -278,7 +283,7 @@ public class AgentControllerVerticle extends AbstractVerticle {
                     }
                 } else {
                     agent.status = AgentInfo.Status.FAILED;
-                    log.error("Agent {} failed to initialize", reply.cause(), agent.address);
+                    log.error("Agent {} failed to stop", reply.cause(), agent.address);
                 }
             });
         }
@@ -371,7 +376,7 @@ public class AgentControllerVerticle extends AbstractVerticle {
     public void listSessions(String runId, Handler<String> sessionStateHandler, Handler<AsyncResult<Void>> completionHandler) {
         Run run = runs.get(runId);
         if (run == null) {
-            completionHandler.handle(Future.factory.failureFuture(null));
+            completionHandler.handle(Future.failedFuture("No run " + runId));
             return;
         }
         AtomicInteger agentCounter = new AtomicInteger(1);
@@ -380,20 +385,20 @@ public class AgentControllerVerticle extends AbstractVerticle {
             eb.send(agent.address, new AgentControlMessage(AgentControlMessage.Command.LIST_SESSIONS, runId, null), result -> {
                 if (result.failed()) {
                     log.error("Failed to retrieve sessions", result.cause());
-                    completionHandler.handle(Future.factory.failedFuture(result.cause()));
+                    completionHandler.handle(Future.failedFuture(result.cause()));
                 } else {
                     List<String> sessions = (List<String>) result.result().body();
                     for (String state : sessions) {
                         sessionStateHandler.handle(state);
                     }
                     if (agentCounter.decrementAndGet() == 0) {
-                        completionHandler.handle(Future.factory.succeededFuture());
+                        completionHandler.handle(Future.succeededFuture());
                     }
                 }
             });
         }
         if (agentCounter.decrementAndGet() == 0) {
-            completionHandler.handle(Future.factory.succeededFuture());
+            completionHandler.handle(Future.succeededFuture());
         }
     }
 }

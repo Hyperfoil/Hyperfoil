@@ -20,10 +20,12 @@ package io.sailrocket.api.connection;
 
 import io.netty.util.concurrent.EventExecutor;
 import io.netty.util.concurrent.EventExecutorGroup;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Handler;
 
 public interface HttpClientPool {
 
-    void start(Runnable completionHandler);
+    void start(Handler<AsyncResult<Void>> completionHandler);
 
     void shutdown();
 

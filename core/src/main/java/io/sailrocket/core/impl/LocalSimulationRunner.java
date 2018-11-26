@@ -1,5 +1,6 @@
 package io.sailrocket.core.impl;
 
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -26,9 +27,14 @@ public class LocalSimulationRunner extends SimulationRunnerImpl {
          throw new BenchmarkDefinitionException("No phases/scenarios have been defined");
       }
 
+      CountDownLatch latch = new CountDownLatch(1);
+      init(this::phaseChanged, result -> latch.countDown());
       try {
-         init(this::phaseChanged);
+         latch.await();
+         // Exec is blocking and therefore must not run on the event-loop thread
          exec();
+      } catch (InterruptedException e) {
+         throw new RuntimeException(e);
       } finally {
          shutdown();
       }

@@ -11,6 +11,9 @@ import io.sailrocket.core.impl.SimulationRunnerImpl;
 import io.sailrocket.clustering.util.PhaseChangeMessage;
 import io.sailrocket.clustering.util.PhaseControlMessage;
 import io.vertx.core.AbstractVerticle;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Future;
+import io.vertx.core.Handler;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.eventbus.ReplyException;
 import io.vertx.core.eventbus.ReplyFailure;
@@ -49,11 +52,13 @@ public class AgentVerticle extends AbstractVerticle {
             AgentControlMessage controlMessage = (AgentControlMessage) message.body();
             switch (controlMessage.command()) {
                 case INITIALIZE:
-                    if (!initSimulation(controlMessage.runId(), controlMessage.simulation())) {
-                        message.fail(1, "Agent already initialized");
-                    } else {
-                        message.reply("OK");
-                    }
+                    initSimulation(controlMessage.runId(), controlMessage.simulation(), result -> {
+                        if (result.succeeded()) {
+                            message.reply("OK");
+                        } else {
+                            message.fail(1, result.cause().getMessage());
+                        }
+                    });
                     break;
                 case RESET:
                     // collect stats one last time before acknowledging termination
@@ -62,6 +67,7 @@ public class AgentVerticle extends AbstractVerticle {
                     }
                     runner.visitStatistics(reportSender);
                     reportSender.send();
+                    runner.shutdown();
                     runner = null;
                     reportSender = null;
                     // TODO: this does not guarantee in-order delivery
@@ -118,18 +124,22 @@ public class AgentVerticle extends AbstractVerticle {
         runner.shutdown();
     }
 
-    private boolean initSimulation(String runId, Simulation simulation) {
+    private void initSimulation(String runId, Simulation simulation, Handler<AsyncResult<Void>> handler) {
         if (runner != null) {
-            return false;
+            handler.handle(Future.failedFuture("Another simulation is running"));
+            return;
         }
         runner = new SimulationRunnerImpl(simulation);
         reportSender = new ReportSender(simulation, eb, address, runId);
 
-        runner.init((phase, status) -> eb.send(Feeds.RESPONSE, new PhaseChangeMessage(address, runId, phase, status)));
-        statsTimerId = vertx.setPeriodic(simulation.statisticsCollectionPeriod(), timerId -> {
-            runner.visitStatistics(reportSender);
-            reportSender.send();
+        runner.init((phase, status) -> eb.send(Feeds.RESPONSE, new PhaseChangeMessage(address, runId, phase, status)), result -> {
+            if (result.succeeded()) {
+                statsTimerId = vertx.setPeriodic(simulation.statisticsCollectionPeriod(), timerId -> {
+                    runner.visitStatistics(reportSender);
+                    reportSender.send();
+                });
+            }
+            handler.handle(result);
         });
-        return true;
     }
 }

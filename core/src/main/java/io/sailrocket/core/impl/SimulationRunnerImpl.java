@@ -16,13 +16,15 @@ import io.sailrocket.api.session.PhaseInstance;
 import io.sailrocket.core.api.SimulationRunner;
 import io.sailrocket.core.client.netty.HttpClientPoolImpl;
 import io.sailrocket.core.session.SessionFactory;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.CompositeFuture;
+import io.vertx.core.Future;
+import io.vertx.core.Handler;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -67,15 +69,15 @@ public class SimulationRunnerImpl implements SimulationRunner {
     }
 
     @Override
-    public void init(BiConsumer<String, PhaseInstance.Status> phaseChangeHandler) {
+    public void init(BiConsumer<String, PhaseInstance.Status> phaseChangeHandler, Handler<AsyncResult<Void>> handler) {
         //Initialise HttpClientPool
-        CountDownLatch latch = new CountDownLatch(httpClientPools.size());
+        ArrayList<Future> futures = new ArrayList<>();
         for (Map.Entry<String, HttpClientPool> entry : httpClientPools.entrySet()) {
-            if (entry.getKey() == null) {
-                // default client pool is initialized by name
-                latch.countDown();
-            } else {
-                entry.getValue().start(latch::countDown);
+            // default client pool is initialized by name
+            if (entry.getKey() != null) {
+                Future f = Future.future();
+                futures.add(f);
+                entry.getValue().start(f);
             }
         }
 
@@ -111,11 +113,8 @@ public class SimulationRunnerImpl implements SimulationRunner {
             phase.reserveSessions();
         }
 
-        try {
-            latch.await(100, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        CompositeFuture composite = CompositeFuture.join(futures);
+        composite.setHandler(result -> handler.handle(result.mapEmpty()));
     }
 
     @Override

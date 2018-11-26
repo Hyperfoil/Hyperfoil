@@ -82,23 +82,29 @@ public class HttpVersionsTest {
             HttpServer server = event.result();
             try {
                HttpClientPool client = client(port, ssl, clientVersions);
-               client.start(() -> client.next().request(HttpMethod.GET, "/ping", null)
-                     .statusHandler(status -> {
-                        if (status != expectedStatus) {
-                           ctx.fail();
-                        }
-                     })
-                     .endHandler(() -> {
-                        client.shutdown();
-                        server.close();
-                        async.complete();
-                     })
-                     .exceptionHandler(throwable -> {
-                        client.shutdown();
-                        server.close();
-                        ctx.fail(throwable);
-                     })
-                     .end());
+               client.start(result -> {
+                  if (result.failed()) {
+                     ctx.fail(result.cause());
+                     return;
+                  }
+                  client.next().request(HttpMethod.GET, "/ping", null)
+                        .statusHandler(status -> {
+                           if (status != expectedStatus) {
+                              ctx.fail();
+                           }
+                        })
+                        .endHandler(() -> {
+                           client.shutdown();
+                           server.close();
+                           async.complete();
+                        })
+                        .exceptionHandler(throwable -> {
+                           client.shutdown();
+                           server.close();
+                           ctx.fail(throwable);
+                        })
+                        .end();
+               });
             } catch (Exception e) {
                ctx.fail(e);
             }

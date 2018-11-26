@@ -22,6 +22,8 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.handler.codec.http2.Http2SecurityUtil;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.sailrocket.api.http.HttpVersion;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Handler;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
@@ -48,9 +50,9 @@ public class HttpClientPoolImpl implements HttpClientPool {
    final String host;
    final String scheme;
    final String authority;
-   final EventLoopGroup eventLoopGroup;
    final SslContext sslContext;
    final boolean forceH2c;
+   private final EventLoopGroup eventLoopGroup;
    private final HttpConnectionPoolImpl[] children;
    private final AtomicInteger idx = new AtomicInteger();
    private final Supplier<HttpConnectionPool> nextSupplier;
@@ -113,12 +115,15 @@ public class HttpClientPoolImpl implements HttpClientPool {
    }
 
     @Override
-    public void start(Runnable completionHandler) {
+    public void start(Handler<AsyncResult<Void>> completionHandler) {
        AtomicInteger countDown = new AtomicInteger(children.length);
        for (HttpConnectionPoolImpl child : children) {
-          child.start(() -> {
-             if (countDown.decrementAndGet() == 0) {
-                completionHandler.run();
+          child.start(result -> {
+             if (result.failed() || countDown.decrementAndGet() == 0) {
+                if (result.failed()) {
+                   shutdown();
+                }
+                completionHandler.handle(result);
              }
           });
        }

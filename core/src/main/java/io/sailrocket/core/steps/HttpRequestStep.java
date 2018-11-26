@@ -67,6 +67,8 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
       if (httpRequest == null) {
          // TODO: we should probably record being blocked due to insufficient connections
          log.warn("No HTTP connection in pool, waiting...");
+         // TODO: when the phase is finished, max duration is not set and the connection cannot be obtained
+         // we'll be waiting here forever. Maybe there should be a (default) timeout to obtain the connection.
          connectionPool.registerWaitingSession(session);
          return false;
       }

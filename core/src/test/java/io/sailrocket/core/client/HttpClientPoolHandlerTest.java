@@ -59,12 +59,18 @@ public class HttpClientPoolHandlerTest {
     }
 
     @Test
-    public void simpleHeaderRequest() throws Exception {
+    public void simpleHeaderRequest(TestContext ctx) throws Exception {
         HttpClientPool client = new HttpClientPoolImpl(1,
               HttpBuilder.forTesting().baseUrl("http://localhost:8088").build(true));
 
         CountDownLatch startLatch = new CountDownLatch(1);
-        client.start(startLatch::countDown);
+        client.start(result -> {
+           if (result.failed()) {
+              ctx.fail(result.cause());
+           } else {
+              startLatch.countDown();
+           }
+        });
         assertThat(startLatch.await(10, TimeUnit.SECONDS)).isTrue();
 
 
