@@ -188,7 +188,7 @@ public class ControllerRestServer {
 
    private void handleListRuns(RoutingContext routingContext) {
       JsonArray array = new JsonArray();
-      controller.runs().stream().map(run -> run.id).forEach(array::add);
+      controller.runs().stream().map(run -> run.id).sorted().forEach(array::add);
       routingContext.response().setStatusCode(200).end(array.toBuffer());
    }
 
@@ -212,6 +212,7 @@ public class ControllerRestServer {
       }
       JsonArray jsonPhases = new JsonArray();
       body.put("phases", jsonPhases);
+      long now = System.currentTimeMillis();
       for (ControllerPhase phase : run.phases.values()) {
          JsonObject jsonPhase = new JsonObject();
          jsonPhases.add(jsonPhase);
@@ -219,6 +220,15 @@ public class ControllerRestServer {
          jsonPhase.put("status", phase.status());
          if (phase.absoluteStartTime() > Long.MIN_VALUE) {
             jsonPhase.put("started", simpleDateFormat.format(new Date(phase.absoluteStartTime())));
+            if (phase.status() != ControllerPhase.Status.TERMINATED) {
+               StringBuilder remaining = new StringBuilder()
+                     .append(phase.definition().duration() - (now - phase.absoluteStartTime())).append(" ms");
+               if (phase.definition().maxDuration() >= 0) {
+                  remaining.append(" (")
+                        .append(phase.definition().maxDuration() - (now - phase.absoluteStartTime())).append(" ms)");
+               }
+               jsonPhase.put("remaining", remaining.toString());
+            }
          }
       }
       JsonArray jsonAgents = new JsonArray();
