@@ -36,9 +36,26 @@ public class Http1xRawBytesHandler extends BaseRawBytesHandler {
    }
 
    @Override
-   public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
+   public void handlerAdded(ChannelHandlerContext ctx) {
       if (lastLine == null) {
          lastLine = ctx.alloc().buffer(MAX_LINE_LENGTH);
+      }
+   }
+
+   @Override
+   public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+      if (lastLine != null) {
+         lastLine.release();
+         lastLine = null;
+      }
+      super.channelInactive(ctx);
+   }
+
+   @Override
+   public void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
+      if (lastLine != null) {
+         lastLine.release();
+         lastLine = null;
       }
    }
 
