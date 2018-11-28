@@ -54,7 +54,7 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
       HttpResponseHandler.HandlerInstances h = session.getResource(handler);
 
       if (session.requestQueue().isDepleted()) {
-         log.warn("Request queue too small; increase it to prevent blocking.");
+         log.warn("#{} Request queue too small; increase it to prevent blocking.", session.uniqueId());
          return false;
       }
 
@@ -66,11 +66,17 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
       HttpRequest httpRequest = connectionPool.request(method, path, body);
       if (httpRequest == null) {
          // TODO: we should probably record being blocked due to insufficient connections
-         log.warn("No HTTP connection in pool, waiting...");
+         log.warn("#{} No HTTP connection in pool, waiting...", session.uniqueId());
          // TODO: when the phase is finished, max duration is not set and the connection cannot be obtained
          // we'll be waiting here forever. Maybe there should be a (default) timeout to obtain the connection.
          connectionPool.registerWaitingSession(session);
+         session.currentSequence().setBlockedTimestamp();
+         session.currentSequence().statistics(session).incrementBlockedCount();
          return false;
+      }
+      long blockedTime = session.currentSequence().getBlockedTime();
+      if (blockedTime > 0) {
+         session.currentSequence().statistics(session).incrementBlockedTime(blockedTime);
       }
 
       RequestQueue.Request request = session.requestQueue().prepare();

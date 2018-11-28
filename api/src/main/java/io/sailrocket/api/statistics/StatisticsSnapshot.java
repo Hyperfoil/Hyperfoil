@@ -23,6 +23,8 @@ public class StatisticsSnapshot implements Serializable {
    public int status_other;
    public int resetCount;
    public int timeouts;
+   public int blockedCount;
+   public long blockedTime;
    public final Map<String, CustomValue> custom = new HashMap<>();
 
    public int[] statuses() {
@@ -41,6 +43,8 @@ public class StatisticsSnapshot implements Serializable {
       status_other = 0;
       resetCount = 0;
       timeouts = 0;
+      blockedCount = 0;
+      blockedTime = 0;
       for (CustomValue value : custom.values()) {
          if (value != null) {
             value.reset();
@@ -66,6 +70,8 @@ public class StatisticsSnapshot implements Serializable {
       target.status_other = status_other;
       target.resetCount = resetCount;
       target.timeouts = timeouts;
+      target.blockedCount = blockedCount;
+      target.blockedTime = blockedTime;
       for (String key : custom.keySet()) {
          CustomValue a = custom.get(key);
          CustomValue b = target.custom.get(key);
@@ -94,6 +100,8 @@ public class StatisticsSnapshot implements Serializable {
       target.status_other += status_other;
       target.resetCount += resetCount;
       target.timeouts += timeouts;
+      target.blockedCount += blockedCount;
+      target.blockedTime += blockedTime;
       for (String key : custom.keySet()) {
          CustomValue a = custom.get(key);
          CustomValue b = target.custom.get(key);
@@ -119,6 +127,8 @@ public class StatisticsSnapshot implements Serializable {
       target.status_other -= status_other;
       target.resetCount -= resetCount;
       target.timeouts -= timeouts;
+      target.blockedCount -= blockedCount;
+      target.blockedTime -= blockedTime;
       for (String key : custom.keySet()) {
          CustomValue a = custom.get(key);
          CustomValue b = target.custom.get(key);
@@ -136,11 +146,11 @@ public class StatisticsSnapshot implements Serializable {
    }
 
    public StatisticsSummary summary(double[] percentiles) {
-      long[] percentileValues = DoubleStream.of(percentiles).mapToLong(histogram::getValueAtPercentile).toArray();
+      long[] percentileValues = DoubleStream.of(percentiles).map(p -> p * 100).mapToLong(histogram::getValueAtPercentile).toArray();
       return new StatisticsSummary(histogram.getStartTimeStamp(), histogram.getEndTimeStamp(),
             histogram.getMinValue(), (long) histogram.getMean(), histogram.getMaxValue(),
             percentileValues, connectFailureCount, requestCount, responseCount,
-            status_2xx, status_3xx, status_4xx, status_5xx, status_other, resetCount, timeouts);
+            status_2xx, status_3xx, status_4xx, status_5xx, status_other, resetCount, timeouts, blockedCount, blockedTime);
    }
 
    public long errors() {

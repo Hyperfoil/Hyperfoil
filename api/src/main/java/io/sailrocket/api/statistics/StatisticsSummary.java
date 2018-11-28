@@ -19,10 +19,12 @@ public class StatisticsSummary {
    public final int status_other;
    public final int resetCount;
    public final int timeouts;
+   public final int blockedCount;
+   public final long blockedTime;
 
    public StatisticsSummary(long startTime, long endTime, long minResponseTime, long meanResponseTime, long maxResponseTime,
                             long[] percentileResponseTime, int connectFailureCount, int requestCount, int responseCount,
-                            int status_2xx, int status_3xx, int status_4xx, int status_5xx, int status_other, int resetCount, int timeouts) {
+                            int status_2xx, int status_3xx, int status_4xx, int status_5xx, int status_other, int resetCount, int timeouts, int blockedCount, long blockedTime) {
       this.startTime = startTime;
       this.endTime = endTime;
       this.minResponseTime = minResponseTime;
@@ -39,6 +41,8 @@ public class StatisticsSummary {
       this.status_other = status_other;
       this.resetCount = resetCount;
       this.timeouts = timeouts;
+      this.blockedCount = blockedCount;
+      this.blockedTime = blockedTime;
    }
 
    public static void printHeader(PrintWriter writer, double[] percentiles) {
@@ -48,7 +52,7 @@ public class StatisticsSummary {
          writer.print(p * 100);
          writer.print(',');
       }
-      writer.print("Max,ConnFailure,Reset,Timeouts,2xx,3xx,4xx,5xx,Other");
+      writer.print("Max,ConnFailure,Reset,Timeouts,2xx,3xx,4xx,5xx,Other,BlockedCount,BlockedTime");
    }
 
    public void printTo(PrintWriter writer) {
@@ -81,5 +85,9 @@ public class StatisticsSummary {
       writer.print(status_5xx);
       writer.print(',');
       writer.print(status_other);
+      writer.print(',');
+      writer.print(blockedCount);
+      writer.print(',');
+      writer.print(blockedTime);
    }
 }

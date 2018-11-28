@@ -66,6 +66,24 @@ public class Statistics {
       }
    }
 
+   public void incrementBlockedCount() {
+      long criticalValueAtEnter = recordingPhaser.writerCriticalSectionEnter();
+      try {
+         active.blockedCount++;
+      } finally {
+         recordingPhaser.writerCriticalSectionExit(criticalValueAtEnter);
+      }
+   }
+
+   public void incrementBlockedTime(long blockedTime) {
+      long criticalValueAtEnter = recordingPhaser.writerCriticalSectionEnter();
+      try {
+         active.blockedTime += blockedTime;
+      } finally {
+         recordingPhaser.writerCriticalSectionExit(criticalValueAtEnter);
+      }
+   }
+
    public void addStatus(int code) {
       long criticalValueAtEnter = recordingPhaser.writerCriticalSectionEnter();
       try {
