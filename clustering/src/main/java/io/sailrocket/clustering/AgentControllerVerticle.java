@@ -154,7 +154,7 @@ public class AgentControllerVerticle extends AbstractVerticle {
 
     private void tryProgressStatus(Run run, String phase) {
         PhaseInstance.Status minStatus = null;
-        for (AgentInfo a : agents.values()) {
+        for (AgentInfo a : run.agents) {
             PhaseInstance.Status status = a.phases.get(phase);
             if (status == null) {
                // The status is not defined on one of the nodes, so we can't progress it.
@@ -268,7 +268,11 @@ public class AgentControllerVerticle extends AbstractVerticle {
 
         delay = Math.min(delay, 1000);
         log.debug("Wait {} ms", delay);
-        vertx.setTimer(delay, timerId -> runSimulation(run));
+        if (delay > 0) {
+            vertx.setTimer(delay, timerId -> runSimulation(run));
+        } else {
+            vertx.runOnContext(nil -> runSimulation(run));
+        }
     }
 
     private void stopSimulation(Run run) {

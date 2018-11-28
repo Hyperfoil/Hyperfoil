@@ -31,7 +31,7 @@ public class Util {
       } else {
          throw new BenchmarkDefinitionException("Unknown time unit: " + time);
       }
-      return unit.toNanos(Long.parseLong(prefix));
+      return unit.toNanos(Long.parseLong(prefix.trim()));
    }
 
    public static long parseToMillis(String time) {

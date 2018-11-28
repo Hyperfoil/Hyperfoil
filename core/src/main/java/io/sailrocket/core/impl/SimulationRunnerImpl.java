@@ -150,7 +150,10 @@ public class SimulationRunnerImpl implements SimulationRunner {
     public void startPhase(String phase) {
         PhaseInstance phaseInstance = instances.get(phase);
         SharedResources sharedResources = this.sharedResources.get(phaseInstance.definition().sharedResources);
-        sharedResources.currentPhase = phaseInstance;
+        if (sharedResources != null) {
+            // Avoid NPE in noop phases
+            sharedResources.currentPhase = phaseInstance;
+        }
         phaseInstance.start(eventLoopGroup);
     }
 

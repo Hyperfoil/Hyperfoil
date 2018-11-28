@@ -6,6 +6,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
@@ -213,7 +214,7 @@ public class ControllerRestServer {
       JsonArray jsonPhases = new JsonArray();
       body.put("phases", jsonPhases);
       long now = System.currentTimeMillis();
-      for (ControllerPhase phase : run.phases.values()) {
+      run.phases.values().stream().sorted(Comparator.comparing(p -> p.definition().name)).forEach(phase -> {
          JsonObject jsonPhase = new JsonObject();
          jsonPhases.add(jsonPhase);
          jsonPhase.put("name", phase.definition().name);
@@ -230,7 +231,7 @@ public class ControllerRestServer {
                jsonPhase.put("remaining", remaining.toString());
             }
          }
-      }
+      });
       JsonArray jsonAgents = new JsonArray();
       body.put("agents", jsonAgents);
       for (AgentInfo agent : run.agents) {

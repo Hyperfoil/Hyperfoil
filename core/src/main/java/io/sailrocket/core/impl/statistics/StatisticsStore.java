@@ -82,13 +82,13 @@ public class StatisticsStore {
          }
       }
       for (Map.Entry<PhaseSeq, Data> entry : data.entrySet()) {
-         String filePrefix = dir + File.separator + entry.getKey().phase + "." + entry.getKey().sequence;
+         String filePrefix = dir + File.separator + sanitize(entry.getKey().phase) + "." + sanitize(entry.getKey().sequence);
          persistHistogramAndSeries(filePrefix, entry.getValue().total, entry.getValue().series);
       }
       String[] agents = data.values().stream().flatMap(d -> d.perAgent.keySet().stream())
             .distinct().sorted().toArray(String[]::new);
       for (String agent : agents) {
-         try (PrintWriter writer = new PrintWriter(dir + File.separator + "agent." + agent + ".csv")) {
+         try (PrintWriter writer = new PrintWriter(dir + File.separator + "agent." + sanitize(agent) + ".csv")) {
             writer.print("Phase,Sequence,");
             StatisticsSummary.printHeader(writer, percentiles);
             writer.println();
@@ -106,7 +106,7 @@ public class StatisticsStore {
             }
          }
          for (Map.Entry<PhaseSeq, Data> entry : data.entrySet()) {
-            String filePrefix = dir + File.separator + entry.getKey().phase + "." + entry.getKey().sequence + ".agent." + agent;
+            String filePrefix = dir + File.separator + sanitize(entry.getKey().phase) + "." + sanitize(entry.getKey().sequence) + ".agent." + agent;
             persistHistogramAndSeries(filePrefix, entry.getValue().perAgent.get(agent), entry.getValue().agentSeries.get(agent));
          }
       }
@@ -130,6 +130,10 @@ public class StatisticsStore {
             writer.println();
          }
       }
+   }
+
+   private String sanitize(String phase) {
+      return phase.replaceAll(File.separator, "_");
    }
 
    private void persistHistogramAndSeries(String filePrefix, StatisticsSnapshot total, List<StatisticsSummary> series) throws FileNotFoundException {
