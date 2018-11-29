@@ -59,8 +59,8 @@ public class HttpResponseHandler implements ResourceUtilizer, Session.ResourceKe
    private void handleStatus(Session session, int status) {
       RequestQueue.Request request = session.requestQueue().peek();
       session.currentSequence(request.sequence);
-      if (request.request.isCompleted()) {
-         log.trace("#{} Ignoring status {} as the request has been marked failed.", session.uniqueId(), status);
+      if (request.request == null) {
+         log.trace("#{} Ignoring status {} as the request has been marked completed (failed).", session.uniqueId(), status);
          return;
       }
 
@@ -107,7 +107,7 @@ public class HttpResponseHandler implements ResourceUtilizer, Session.ResourceKe
 
    private void handleHeader(Session session, String header, String value) {
       RequestQueue.Request request = session.requestQueue().peek();
-      if (request.request.isCompleted()) {
+      if (request.request == null) {
          log.trace("#{} Ignoring header on a failed request: {}: {}", session.uniqueId(), header, value);
          return;
       }
@@ -134,20 +134,21 @@ public class HttpResponseHandler implements ResourceUtilizer, Session.ResourceKe
 
       while (!session.requestQueue().isFull()) {
          RequestQueue.Request request = session.requestQueue().complete();
-         request.request.setCompleted();
+         request.request = null;
          if (request.timeoutFuture != null) {
             request.timeoutFuture.cancel(false);
             request.timeoutFuture = null;
          }
          request.sequence.statistics(session).incrementResets();
       }
+      session.requestQueue().gc();
       session.currentSequence(null);
       session.proceed();
    }
 
    private void handleBodyPart(Session session, ByteBuf buf) {
       RequestQueue.Request request = session.requestQueue().peek();
-      if (request.request.isCompleted()) {
+      if (request.request == null) {
          log.trace("#{} Ignoring body part ({} bytes) on a failed request.", session.uniqueId(), buf.readableBytes());
          return;
       }
@@ -175,7 +176,7 @@ public class HttpResponseHandler implements ResourceUtilizer, Session.ResourceKe
    private void handleEnd(Session session) {
       long endTime = System.nanoTime();
       RequestQueue.Request request = session.requestQueue().complete();
-      if (request.request.isCompleted()) {
+      if (request.request == null) {
          return;
       }
       if (request.timeoutFuture != null) {
@@ -185,6 +186,7 @@ public class HttpResponseHandler implements ResourceUtilizer, Session.ResourceKe
       Statistics statistics = session.currentSequence().statistics(session);
       statistics.recordValue(endTime - request.startTime);
       statistics.incrementResponses();
+      request.request = null;
 
       boolean headersValid = true;
       if (headerValidators != null) {

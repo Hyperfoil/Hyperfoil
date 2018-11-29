@@ -8,14 +8,14 @@ import io.sailrocket.api.session.SequenceInstance;
 import io.sailrocket.api.session.Session;
 
 public interface RequestQueue {
-   Request prepare();
+   Request prepare(io.sailrocket.api.connection.Request request);
 
    Request peek();
 
    Request complete();
 
    /**
-    * @return true if {@link #prepare()} would return <code>null</code>.
+    * @return true if {@link #prepare(io.sailrocket.api.connection.Request)} would return <code>null</code>.
     */
    boolean isDepleted();
 
@@ -48,10 +48,10 @@ public interface RequestQueue {
       @Override
       public void run() {
          timeoutFuture = null;
-         if (!request.isCompleted()) {
+         if (request != null) {
             sequence.statistics(queue.session()).incrementTimeouts();
             exceptionHandler.accept(TIMEOUT_EXCEPTION);
-            request.setCompleted();
+            request = null;
          }
          queue.gc();
       }

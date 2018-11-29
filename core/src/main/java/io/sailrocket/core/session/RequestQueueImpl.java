@@ -28,15 +28,17 @@ class RequestQueueImpl implements RequestQueue {
 
    /**
     * @return Request slot or <code>null</code> if none available
+    * @param request
     */
    @Override
-   public Request prepare() {
+   public Request prepare(io.sailrocket.api.connection.Request request) {
       if (freeSlots == 0) {
          return null;
       }
       Request slot = queue[writerIndex];
       writerIndex = (writerIndex + 1) & mask;
       freeSlots--;
+      slot.request = request;
       return slot;
    }
 
@@ -57,9 +59,7 @@ class RequestQueueImpl implements RequestQueue {
          readerIndex = (readerIndex + 1) & mask;
          freeSlots++;
          // If the request is already complete it is not the one we're completing...
-         if (slot.request != null && slot.request.isCompleted()) {
-            slot.request = null;
-         } else {
+         if (slot.request != null) {
             return slot;
          }
       }
@@ -78,10 +78,9 @@ class RequestQueueImpl implements RequestQueue {
 
    @Override
    public void gc() {
-      Request slot;
-      while ((slot = queue[readerIndex]).request != null && slot.request.isCompleted()) {
-         slot.request = null;
+      while (freeSlots < queue.length && queue[readerIndex].request == null) {
          readerIndex = (readerIndex + 1) & mask;
+         ++freeSlots;
       }
    }
 

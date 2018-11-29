@@ -28,14 +28,17 @@ import io.sailrocket.api.statistics.StatisticsSummary;
 
 public class StatisticsStore {
    private final Benchmark benchmark;
+   private final int numAgents;
    private final Map<PhaseSeq, Data> data = new HashMap<>();
    private final Consumer<SLA.Failure> failureHandler;
    private final double[] percentiles;
    private final List<SLA.Failure> failures = new ArrayList<>();
    private final int maxFailures = 100;
 
+
    public StatisticsStore(Benchmark benchmark, Consumer<SLA.Failure> failureHandler, double[] percentiles) {
       this.benchmark = benchmark;
+      this.numAgents = Math.max(benchmark.agents().length, 1);
       this.failureHandler = failureHandler;
       this.percentiles = percentiles;
       long collectionPeriod = benchmark.simulation().statisticsCollectionPeriod();
@@ -216,7 +219,7 @@ public class StatisticsStore {
          stats.addInto(total);
          stats.addInto(perAgent.computeIfAbsent(address, a -> new StatisticsSnapshot()));
          lastStats.computeIfAbsent(address, a -> new LinkedList<>()).add(stats);
-         if (lastStats.values().stream().filter(l -> !l.isEmpty()).count() == benchmark.agents().length) {
+         if (lastStats.values().stream().filter(l -> !l.isEmpty()).count() == numAgents) {
             StatisticsSnapshot sum = new StatisticsSnapshot();
             for (List<StatisticsSnapshot> list : lastStats.values()) {
                list.remove(0).addInto(sum);

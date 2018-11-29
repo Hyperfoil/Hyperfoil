@@ -79,14 +79,13 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
          session.currentSequence().statistics(session).incrementBlockedTime(blockedTime);
       }
 
-      RequestQueue.Request request = session.requestQueue().prepare();
+      RequestQueue.Request request = session.requestQueue().prepare(httpRequest);
       if (request == null) {
          throw new IllegalStateException();
       }
       request.startTime = System.nanoTime();
       request.sequence = session.currentSequence();
       request.exceptionHandler = h.handleException;
-      request.request = httpRequest;
       if (timeout > 0) {
          // TODO alloc!
          request.timeoutFuture = session.executor().schedule(request, timeout, TimeUnit.MILLISECONDS);

@@ -209,6 +209,7 @@ class SessionImpl implements Session, Runnable {
                   RequestQueue.Request request = requestQueue.complete();
                   Connection connection = request.request.connection();
                   connection.close();
+                  request.request = null;
                }
                reset();
                if (trace) {
@@ -251,6 +252,7 @@ class SessionImpl implements Session, Runnable {
             RequestQueue.Request request = requestQueue.complete();
             Connection connection = request.request.connection();
             connection.close();
+            request.request = null;
          } while (!requestQueue.isFull());
       }
       reset();
