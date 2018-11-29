@@ -195,7 +195,7 @@ public class ControllerRestServer {
 
    private void handleGetRun(RoutingContext routingContext) {
       JsonObject body = new JsonObject();
-      Run run = controller.run(routingContext.pathParam("runid"));
+      Run run = getRun(routingContext);
       if (run == null) {
          routingContext.response().setStatusCode(404).end();
          return;
@@ -244,9 +244,24 @@ public class ControllerRestServer {
       routingContext.response().end(status);
    }
 
+   private Run getRun(RoutingContext routingContext) {
+      String runid = routingContext.pathParam("runid");
+      Run run;
+      if ("last".equals(runid)) {
+         run = controller.runs.values().stream().reduce((r1, r2) -> r1.startTime > r2.startTime ? r1 : r2).orElse(null);
+      } else {
+         run = controller.run(runid);
+      }
+      return run;
+   }
+
    private void handleListSessions(RoutingContext routingContext) {
       HttpServerResponse response = routingContext.response().setChunked(true);
-      controller.listSessions(routingContext.pathParam("runid"),
+      Run run = getRun(routingContext);
+      if (run == null) {
+         routingContext.response().setStatusCode(HttpResponseStatus.NOT_FOUND.code()).end();
+      }
+      controller.listSessions(run,
             state -> response.write(Buffer.buffer((state + "\n").getBytes(StandardCharsets.UTF_8))),
             result -> {
                if (result.succeeded()) {
@@ -260,7 +275,9 @@ public class ControllerRestServer {
    }
 
    private void handleRunKill(RoutingContext routingContext) {
-      if (controller.kill(routingContext.pathParam("runid"))) {
+      Run run = getRun(routingContext);
+      if (run != null) {
+         controller.kill(run);
          routingContext.response().setStatusCode(202).end();
       } else {
          routingContext.response().setStatusCode(404).end();

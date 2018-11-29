@@ -329,17 +329,7 @@ public class AgentControllerVerticle extends AbstractVerticle {
         return runs.values();
     }
 
-    public boolean kill(String runId) {
-        Run run = runs.get(runId);
-        if (run != null) {
-            killRun(run);
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    private void killRun(Run run) {
+    public void kill(Run run) {
         for (String phase : run.phases.keySet()) {
             eb.publish(Feeds.CONTROL, new PhaseControlMessage(PhaseControlMessage.Command.TERMINATE, null, phase));
         }
@@ -377,16 +367,11 @@ public class AgentControllerVerticle extends AbstractVerticle {
         }, handler);
     }
 
-    public void listSessions(String runId, Handler<String> sessionStateHandler, Handler<AsyncResult<Void>> completionHandler) {
-        Run run = runs.get(runId);
-        if (run == null) {
-            completionHandler.handle(Future.failedFuture("No run " + runId));
-            return;
-        }
+    public void listSessions(Run run, Handler<String> sessionStateHandler, Handler<AsyncResult<Void>> completionHandler) {
         AtomicInteger agentCounter = new AtomicInteger(1);
         for (AgentInfo agent : run.agents) {
             agentCounter.incrementAndGet();
-            eb.send(agent.address, new AgentControlMessage(AgentControlMessage.Command.LIST_SESSIONS, runId, null), result -> {
+            eb.send(agent.address, new AgentControlMessage(AgentControlMessage.Command.LIST_SESSIONS, run.id, null), result -> {
                 if (result.failed()) {
                     log.error("Failed to retrieve sessions", result.cause());
                     completionHandler.handle(Future.failedFuture(result.cause()));
