@@ -9,6 +9,7 @@ import io.sailrocket.api.config.Http;
 import io.sailrocket.api.config.Phase;
 import io.sailrocket.api.config.Simulation;
 import io.sailrocket.api.connection.HttpClientPool;
+import io.sailrocket.api.connection.HttpConnection;
 import io.sailrocket.api.connection.HttpConnectionPool;
 import io.sailrocket.api.session.Session;
 import io.sailrocket.api.statistics.Statistics;
@@ -22,6 +23,7 @@ import io.vertx.core.Future;
 import io.vertx.core.Handler;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -170,6 +172,30 @@ public class SimulationRunnerImpl implements SimulationRunner {
     @Override
     public void terminatePhase(String phase) {
         instances.get(phase).terminate();
+    }
+
+    public List<String> listConnections() {
+        ArrayList<String> list = new ArrayList<>();
+        // Connection pools should be accessed only from the executor, but since we're only publishing stats...
+        for (Map<String, HttpConnectionPool> pools : httpConnectionPools.values()) {
+            for (Map.Entry<String, HttpConnectionPool> entry : pools.entrySet()) {
+                if (entry.getKey() == null) {
+                    // Ignore default pool: it's there twice
+                    continue;
+                }
+                Collection<? extends HttpConnection> connections = entry.getValue().connections();
+                int available = 0;
+                int inFlight = 0;
+                for (HttpConnection conn : connections) {
+                    if (conn.isAvailable()) {
+                        available++;
+                    }
+                    inFlight += conn.inFlight();
+                }
+                list.add(String.format("%s: %d/%d available, %d in-flight requests (estimate)", entry.getKey(), available, connections.size(), inFlight));
+            }
+        }
+        return list;
     }
 
     private static class SharedResources {

@@ -17,6 +17,7 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.eventbus.EventBus;
+import io.vertx.core.eventbus.Message;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -36,6 +37,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiConsumer;
 
 public class AgentControllerVerticle extends AbstractVerticle {
     private static final Logger log = LoggerFactory.getLogger(AgentControllerVerticle.class);
@@ -367,27 +369,40 @@ public class AgentControllerVerticle extends AbstractVerticle {
         }, handler);
     }
 
-    public void listSessions(Run run, Handler<String> sessionStateHandler, Handler<AsyncResult<Void>> completionHandler) {
-        AtomicInteger agentCounter = new AtomicInteger(1);
-        for (AgentInfo agent : run.agents) {
-            agentCounter.incrementAndGet();
-            eb.send(agent.address, new AgentControlMessage(AgentControlMessage.Command.LIST_SESSIONS, run.id, null), result -> {
-                if (result.failed()) {
-                    log.error("Failed to retrieve sessions", result.cause());
-                    completionHandler.handle(Future.failedFuture(result.cause()));
-                } else {
-                    List<String> sessions = (List<String>) result.result().body();
-                    for (String state : sessions) {
-                        sessionStateHandler.handle(state);
-                    }
-                    if (agentCounter.decrementAndGet() == 0) {
-                        completionHandler.handle(Future.succeededFuture());
-                    }
-                }
-            });
+   public void listSessions(Run run, boolean includeInactive, BiConsumer<AgentInfo, String> sessionStateHandler, Handler<AsyncResult<Void>> completionHandler) {
+      invokeOnAgents(run, AgentControlMessage.Command.LIST_SESSIONS, includeInactive, completionHandler, (agent, result) -> {
+         for (String state : (List<String>) result.result().body()) {
+            sessionStateHandler.accept(agent, state);
+         }
+      });
+   }
+
+   public void listConnections(Run run, BiConsumer<AgentInfo, String> connectionHandler, Handler<AsyncResult<Void>> completionHandler) {
+     invokeOnAgents(run, AgentControlMessage.Command.LIST_CONNECTIONS, null, completionHandler, (agent, result) -> {
+        for (String state : (List<String>) result.result().body()) {
+           connectionHandler.accept(agent, state);
         }
-        if (agentCounter.decrementAndGet() == 0) {
-            completionHandler.handle(Future.succeededFuture());
-        }
-    }
+     });
+   }
+
+   private void invokeOnAgents(Run run, AgentControlMessage.Command command, Object param, Handler<AsyncResult<Void>> completionHandler, BiConsumer<AgentInfo, AsyncResult<Message<Object>>> handler) {
+      AtomicInteger agentCounter = new AtomicInteger(1);
+      for (AgentInfo agent : run.agents) {
+         agentCounter.incrementAndGet();
+         eb.send(agent.address, new AgentControlMessage(command, run.id, param), result -> {
+            if (result.failed()) {
+               log.error("Failed to retrieve sessions", result.cause());
+               completionHandler.handle(Future.failedFuture(result.cause()));
+            } else {
+               handler.accept(agent, result);
+               if (agentCounter.decrementAndGet() == 0) {
+                  completionHandler.handle(Future.succeededFuture());
+               }
+            }
+         });
+      }
+      if (agentCounter.decrementAndGet() == 0) {
+         completionHandler.handle(Future.succeededFuture());
+      }
+   }
 }

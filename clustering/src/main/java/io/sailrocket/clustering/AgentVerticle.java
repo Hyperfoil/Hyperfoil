@@ -75,8 +75,16 @@ public class AgentVerticle extends AbstractVerticle {
                     break;
                 case LIST_SESSIONS:
                     ArrayList<String> sessions = new ArrayList<>();
-                    runner.visitSessions(s -> sessions.add(s.toString()));
+                    boolean includeInactive = controlMessage.includeInactive();
+                    runner.visitSessions(s -> {
+                        if (s.isActive() || includeInactive) {
+                            sessions.add(s.toString());
+                        }
+                    });
                     message.reply(sessions);
+                    break;
+                case LIST_CONNECTIONS:
+                    message.reply(runner.listConnections());
                     break;
             }
         });
@@ -121,7 +129,9 @@ public class AgentVerticle extends AbstractVerticle {
 
     @Override
     public void stop() {
-        runner.shutdown();
+        if (runner != null) {
+            runner.shutdown();
+        }
     }
 
     private void initSimulation(String runId, Simulation simulation, Handler<AsyncResult<Void>> handler) {

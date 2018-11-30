@@ -9,6 +9,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -16,7 +17,9 @@ import io.sailrocket.api.config.Benchmark;
 import io.sailrocket.core.parser.BenchmarkParser;
 import io.sailrocket.core.parser.ParserException;
 import io.sailrocket.clustering.util.PersistenceUtil;
+import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
+import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServer;
@@ -60,6 +63,7 @@ public class ControllerRestServer {
       router.get("/run/:runid").handler(this::handleGetRun);
       router.get("/run/:runid/kill").handler(this::handleRunKill);
       router.get("/run/:runid/sessions").handler(this::handleListSessions);
+      router.get("/run/:runid/connections").handler(this::handleListConnections);
 
       httpServer = controller.getVertx().createHttpServer().requestHandler(router::accept).listen(CONTROLLER_PORT);
    }
@@ -257,21 +261,50 @@ public class ControllerRestServer {
 
    private void handleListSessions(RoutingContext routingContext) {
       HttpServerResponse response = routingContext.response().setChunked(true);
+      boolean includeInactive = toBool(routingContext.queryParam("inactive"), false);
       Run run = getRun(routingContext);
       if (run == null) {
          routingContext.response().setStatusCode(HttpResponseStatus.NOT_FOUND.code()).end();
       }
-      controller.listSessions(run,
-            state -> response.write(Buffer.buffer((state + "\n").getBytes(StandardCharsets.UTF_8))),
-            result -> {
-               if (result.succeeded()) {
-                  response.setStatusCode(HttpResponseStatus.OK.code()).end();
-               } else if (result.cause() instanceof NoStackTraceThrowable){
-                  response.setStatusCode(HttpResponseStatus.NOT_FOUND.code()).end();
-               } else {
-                  response.setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code()).end(result.cause().getMessage());
-               }
-            });
+      controller.listSessions(run, includeInactive,
+            (agent, session) -> {
+               String line = agent.name + ": " + session + "\n";
+               response.write(Buffer.buffer(line.getBytes(StandardCharsets.UTF_8)));
+            },
+            commonListingHandler(response));
+   }
+
+   private boolean toBool(List<String> params, boolean defaultValue) {
+      if (params.isEmpty()) {
+         return defaultValue;
+      }
+      return "true".equals(params.get(params.size() - 1));
+   }
+
+   private void handleListConnections(RoutingContext routingContext) {
+      HttpServerResponse response = routingContext.response().setChunked(true);
+      Run run = getRun(routingContext);
+      if (run == null) {
+         routingContext.response().setStatusCode(HttpResponseStatus.NOT_FOUND.code()).end();
+      }
+      controller.listConnections(run,
+            (agent, connection) -> {
+               String line = agent.name + ": " + connection + "\n";
+               response.write(Buffer.buffer(line.getBytes(StandardCharsets.UTF_8)));
+            },
+            commonListingHandler(response));
+   }
+
+   private Handler<AsyncResult<Void>> commonListingHandler(HttpServerResponse response) {
+      return result -> {
+         if (result.succeeded()) {
+            response.setStatusCode(HttpResponseStatus.OK.code()).end();
+         } else if (result.cause() instanceof NoStackTraceThrowable){
+            response.setStatusCode(HttpResponseStatus.NOT_FOUND.code()).end();
+         } else {
+            response.setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code()).end(result.cause().getMessage());
+         }
+      };
    }
 
    private void handleRunKill(RoutingContext routingContext) {

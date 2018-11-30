@@ -8,12 +8,12 @@ import io.sailrocket.util.Immutable;
 public class AgentControlMessage implements Serializable, Immutable {
    private Command command;
    private String runId;
-   private Simulation simulation;
+   private Object param;
 
-   public AgentControlMessage(Command command, String runId, Simulation simulation) {
+   public AgentControlMessage(Command command, String runId, Object param) {
       this.command = command;
       this.runId = runId;
-      this.simulation = simulation;
+      this.param = param;
    }
 
    public Command command() {
@@ -25,13 +25,18 @@ public class AgentControlMessage implements Serializable, Immutable {
    }
 
    public Simulation simulation() {
-      return simulation;
+      return (Simulation) param;
+   }
+
+   public boolean includeInactive() {
+      return (Boolean) param;
    }
 
    public enum Command {
       INITIALIZE,
       RESET,
-      LIST_SESSIONS
+      LIST_SESSIONS,
+      LIST_CONNECTIONS
    }
 
    public static class Codec extends ObjectCodec<AgentControlMessage> {}
