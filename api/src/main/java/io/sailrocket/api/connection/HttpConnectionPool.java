@@ -9,6 +9,8 @@ import io.sailrocket.api.http.HttpRequest;
 import io.sailrocket.api.session.Session;
 
 public interface HttpConnectionPool {
+   HttpClientPool clientPool();
+
    HttpRequest request(HttpMethod method, String path, ByteBuf body);
 
    void registerWaitingSession(Session session);
@@ -17,5 +19,7 @@ public interface HttpConnectionPool {
 
    void pulse();
 
-   Collection<? extends Connection> connections();
+   Collection<? extends HttpConnection> connections();
+
+   void release(HttpConnection connection);
 }

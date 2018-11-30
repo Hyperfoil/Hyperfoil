@@ -5,6 +5,7 @@ import java.util.function.Consumer;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.sailrocket.api.connection.HttpConnection;
 
 public abstract class BaseRawBytesHandler extends ChannelInboundHandlerAdapter {
    protected final HttpConnection connection;

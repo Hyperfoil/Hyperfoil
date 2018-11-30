@@ -20,10 +20,13 @@ package io.sailrocket.api.connection;
 
 import io.netty.util.concurrent.EventExecutor;
 import io.netty.util.concurrent.EventExecutorGroup;
+import io.sailrocket.api.config.Http;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 
 public interface HttpClientPool {
+
+    Http config();
 
     void start(Handler<AsyncResult<Void>> completionHandler);
 
@@ -36,4 +39,6 @@ public interface HttpClientPool {
     HttpConnectionPool connectionPool(EventExecutor executor);
 
     String host();
+
+    CharSequence authority();
 }

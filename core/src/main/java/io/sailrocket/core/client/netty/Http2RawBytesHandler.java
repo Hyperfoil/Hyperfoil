@@ -7,6 +7,7 @@ import java.util.function.Consumer;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
+import io.sailrocket.api.connection.HttpConnection;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 

@@ -1,6 +1,8 @@
 package io.sailrocket.core.client.netty;
 
 import io.netty.handler.codec.http.HttpHeaderNames;
+import io.sailrocket.api.connection.HttpConnection;
+import io.sailrocket.api.connection.HttpConnectionPool;
 import io.sailrocket.api.http.HttpMethod;
 import io.sailrocket.api.http.HttpRequest;
 import io.netty.buffer.ByteBuf;
@@ -14,13 +16,16 @@ import io.netty.handler.codec.http2.Http2Settings;
 import io.netty.util.collection.IntObjectHashMap;
 import io.netty.util.collection.IntObjectMap;
 import io.sailrocket.api.http.HttpResponseHandlers;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
  */
 class Http2Connection extends Http2EventAdapter implements HttpConnection {
+   private static final Logger log = LoggerFactory.getLogger(Http2Connection.class);
 
-   private final HttpClientPoolImpl client;
+   private final HttpConnectionPool pool;
    private final ChannelHandlerContext context;
    private final io.netty.handler.codec.http2.Http2Connection connection;
    private final Http2ConnectionEncoder encoder;
@@ -32,15 +37,14 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
                    io.netty.handler.codec.http2.Http2Connection connection,
                    Http2ConnectionEncoder encoder,
                    Http2ConnectionDecoder decoder,
-                   HttpClientPoolImpl client) {
-      this.client = client;
+                   HttpConnectionPool pool) {
+      this.pool = pool;
       this.context = context;
       this.connection = connection;
       this.encoder = encoder;
-      this.maxStreams = client.http.maxHttp2Streams();
+      this.maxStreams = pool.clientPool().config().maxHttp2Streams();
 
-      //
-      Http2EventAdapter listener = new EventAdapter(client);
+      Http2EventAdapter listener = new EventAdapter();
 
       connection.addListener(listener);
       decoder.frameListener(listener);
@@ -54,6 +58,11 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
    @Override
    public boolean isAvailable() {
       return numStreams < maxStreams;
+   }
+
+   @Override
+   public int inFlight() {
+      return numStreams;
    }
 
    public void incrementConnectionWindowSize(int increment) {
@@ -72,7 +81,7 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
 
    @Override
    public String host() {
-      return client.host();
+      return pool.clientPool().host();
    }
 
    void bilto(Http2Stream stream) {
@@ -89,8 +98,8 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
 
    public HttpRequest request(HttpMethod method, String path, ByteBuf body) {
       numStreams++;
-      Http2Request request = new Http2Request(client, this, method, path, body);
-      request.putHeader(HttpHeaderNames.HOST, client.authority);
+      Http2Request request = new Http2Request((HttpClientPoolImpl) pool.clientPool(), this, method, path, body);
+      request.putHeader(HttpHeaderNames.HOST, pool.clientPool().authority());
       return request;
    }
 
@@ -135,21 +144,15 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
 
    private class EventAdapter extends Http2EventAdapter {
 
-      private final HttpClientPoolImpl client;
-
-      public EventAdapter(HttpClientPoolImpl client) {
-         this.client = client;
-      }
-
       @Override
       public void onSettingsRead(ChannelHandlerContext ctx, Http2Settings settings) {
          if (settings.maxConcurrentStreams() != null) {
-            maxStreams = Math.min(client.http.maxHttp2Streams(), settings.maxConcurrentStreams());
+            maxStreams = Math.min(pool.clientPool().config().maxHttp2Streams(), settings.maxConcurrentStreams());
          }
       }
 
       @Override
-      public void onHeadersRead(ChannelHandlerContext ctx, int streamId, Http2Headers headers, int streamDependency, short weight, boolean exclusive, int padding, boolean endStream) throws Http2Exception {
+      public void onHeadersRead(ChannelHandlerContext ctx, int streamId, Http2Headers headers, int streamDependency, short weight, boolean exclusive, int padding, boolean endStream) {
          Http2Stream stream = streams.get(streamId);
          if (stream != null) {
             if (stream.handlers.statusHandler() != null) {
@@ -200,6 +203,12 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
                stream.handlers.endHandler().run();
             }
             stream.handlers.setCompleted();
+            log.trace("Completed response on {}", this);
+            // If this connection was not available we make it available
+            // TODO: it would be better to check this in connection pool
+            if (numStreams == maxStreams - 1) {
+               pool.release(Http2Connection.this);
+            }
          }
       }
    }

@@ -18,6 +18,7 @@ import io.netty.handler.codec.http2.DefaultHttp2Connection;
 import io.netty.handler.codec.http2.Http2ClientUpgradeCodec;
 import io.netty.handler.ssl.ApplicationProtocolNames;
 import io.netty.handler.ssl.ApplicationProtocolNegotiationHandler;
+import io.sailrocket.api.connection.HttpConnection;
 import io.sailrocket.api.connection.HttpConnectionPool;
 
 class HttpChannelInitializer extends ChannelInitializer<Channel> {
@@ -46,7 +47,7 @@ class HttpChannelInitializer extends ChannelInitializer<Channel> {
       this.clientPool = clientPool;
       this.connectionPool = connectionPool;
       this.handler = handler;
-      this.http2ConnectionHandlerBuilder = new Http2ConnectionHandlerBuilder(clientPool, handler);
+      this.http2ConnectionHandlerBuilder = new Http2ConnectionHandlerBuilder(connectionPool, handler);
    }
 
    @Override

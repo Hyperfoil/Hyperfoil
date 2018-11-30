@@ -3,6 +3,7 @@ package io.sailrocket.core.client.netty;
 import io.netty.handler.codec.http.HttpContent;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.sailrocket.api.connection.Connection;
+import io.sailrocket.api.connection.HttpConnection;
 import io.sailrocket.api.connection.HttpConnectionPool;
 import io.sailrocket.api.http.HttpMethod;
 import io.sailrocket.api.http.HttpRequest;
@@ -27,7 +28,6 @@ import java.util.function.BiConsumer;
 class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    private static Logger log = LoggerFactory.getLogger(Http1xConnection.class);
 
-   final HttpClientPoolImpl client;
    private final HttpConnectionPool pool;
    private final Deque<HttpStream> inflights;
    private final BiConsumer<HttpConnection, Throwable> activationHandler;
@@ -37,7 +37,6 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    private boolean activated;
 
    Http1xConnection(HttpClientPoolImpl client, HttpConnectionPool pool, BiConsumer<HttpConnection, Throwable> handler) {
-      this.client = client;
       this.pool = pool;
       this.activationHandler = handler;
       this.inflights = new ArrayDeque<>(client.http.pipeliningLimit());
@@ -97,6 +96,11 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
          }
          request.handlers.setCompleted();
          log.trace("Completed response on {}", this);
+         // If this connection was not available we make it available
+         // TODO: it would be better to check this in connection pool
+         if (size == pool.clientPool().config().pipeliningLimit() - 1) {
+            pool.release(this);
+         }
          pool.pulse();
       }
       super.channelRead(ctx, msg);
@@ -129,7 +133,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    public HttpRequest request(HttpMethod method, String path, ByteBuf body) {
       size++;
       Http1xRequest request = new Http1xRequest(this, method, path, body);
-      request.putHeader(HttpHeaderNames.HOST, client.authority);
+      request.putHeader(HttpHeaderNames.HOST, pool.clientPool().authority());
       return request;
    }
 
@@ -146,7 +150,12 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
 
    @Override
    public boolean isAvailable() {
-      return size < client.http.pipeliningLimit();
+      return size < pool.clientPool().config().pipeliningLimit();
+   }
+
+   @Override
+   public int inFlight() {
+      return size;
    }
 
    @Override
@@ -156,7 +165,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
 
    @Override
    public String host() {
-      return client.host();
+      return pool.clientPool().host();
    }
 
    @Override

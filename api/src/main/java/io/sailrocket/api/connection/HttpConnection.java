@@ -1,7 +1,6 @@
-package io.sailrocket.core.client.netty;
+package io.sailrocket.api.connection;
 
 import io.netty.buffer.ByteBuf;
-import io.sailrocket.api.connection.Connection;
 import io.sailrocket.api.http.HttpMethod;
 import io.sailrocket.api.http.HttpRequest;
 import io.sailrocket.api.http.HttpResponseHandlers;

@@ -195,7 +195,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
    }
 
    long iterationStartTime(int iteration) {
-      return iteration == 0 ? startTime : 0;
+      return iteration == 0 ? startTime : -1;
    }
 
    // Identifier for phase + fork, omitting iteration

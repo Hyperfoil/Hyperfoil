@@ -10,6 +10,8 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.EventLoop;
 import io.netty.util.concurrent.EventExecutor;
+import io.sailrocket.api.connection.HttpClientPool;
+import io.sailrocket.api.connection.HttpConnection;
 import io.sailrocket.api.connection.HttpConnectionPool;
 import io.sailrocket.api.http.HttpMethod;
 import io.sailrocket.api.http.HttpRequest;
@@ -28,6 +30,7 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
 
    private final HttpClientPoolImpl clientPool;
    private final ArrayList<HttpConnection> connections = new ArrayList<>();
+   private final ArrayDeque<HttpConnection> available;
    private final int size;
    private final EventLoop eventLoop;
    private int count; // The estimated count : created + creating
@@ -39,12 +42,32 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
       this.clientPool = clientPool;
       this.size = size;
       this.eventLoop = eventLoop;
+      this.available = new ArrayDeque<>(size);
+   }
+
+   @Override
+   public HttpClientPool clientPool() {
+      return clientPool;
    }
 
    @Override
    public HttpRequest request(HttpMethod method, String path, ByteBuf body) {
-      HttpConnection connection = choose();
-      return connection == null ? null : connection.request(method, path, body);
+      assert eventLoop.inEventLoop();
+      HttpConnection connection = available.pollFirst();
+      if (connection == null) {
+         return null;
+      }
+      HttpRequest request = connection.request(method, path, body);
+      // Move it to the back of the queue if it is still available (do not prefer it for subsequent requests)
+      if (connection.isAvailable()) {
+         available.addLast(connection);
+      }
+      return request;
+   }
+
+   @Override
+   public void release(HttpConnection connection) {
+      available.add(connection);
    }
 
    @Override
@@ -69,24 +92,6 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
    @Override
    public Collection<HttpConnection> connections() {
       return connections;
-   }
-
-   private HttpConnection choose() {
-      assert eventLoop.inEventLoop();
-      // TODO prefer unused connections, O(1) execution...
-      for (int i = 0; i < connections.size(); i++) {
-         HttpConnection con = connections.get(i);
-         if (con.isAvailable()) {
-            log.trace("Using connection {}", con);
-            return con;
-         }
-      }
-      if (log.isTraceEnabled()) {
-         for (HttpConnection con : connections) {
-            log.trace("Unavailable connection {}", con);
-         }
-      }
-      return null;
    }
 
    private synchronized void checkCreateConnections(int retry) {
@@ -150,6 +155,7 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
 
       Handler<AsyncResult<Void>> handler = null;
       connections.add(conn);
+      available.add(conn);
       if (count < size) {
          checkCreateConnections(0);
       } else {

@@ -11,6 +11,8 @@ import io.netty.handler.codec.http2.Http2ConnectionEncoder;
 import io.netty.handler.codec.http2.Http2Settings;
 import io.netty.util.internal.StringUtil;
 import io.sailrocket.api.connection.Connection;
+import io.sailrocket.api.connection.HttpConnection;
+import io.sailrocket.api.connection.HttpConnectionPool;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
@@ -18,17 +20,17 @@ class CustomHttp2ConnectionHandler extends io.netty.handler.codec.http2.Http2Con
    private static final Logger log = LoggerFactory.getLogger(CustomHttp2ConnectionHandler.class);
 
    private final BiConsumer<HttpConnection, Throwable> activationHandler;
-   private final HttpClientPoolImpl clientPool;
+   private final HttpConnectionPool connectionPool;
    private Http2Connection connection;
 
    public CustomHttp2ConnectionHandler(
-         HttpClientPoolImpl clientPool,
+         HttpConnectionPool connectionPool,
          BiConsumer<HttpConnection, Throwable> activationHandler,
          Http2ConnectionDecoder decoder,
          Http2ConnectionEncoder encoder,
          Http2Settings initialSettings) {
       super(decoder, encoder, initialSettings);
-      this.clientPool = clientPool;
+      this.connectionPool = connectionPool;
       this.activationHandler = activationHandler;
    }
 
@@ -52,7 +54,7 @@ class CustomHttp2ConnectionHandler extends io.netty.handler.codec.http2.Http2Con
 
    private void checkActivated(ChannelHandlerContext ctx) {
       if (connection == null) {
-         connection = new Http2Connection(ctx, connection(), encoder(), decoder(), clientPool);
+         connection = new Http2Connection(ctx, connection(), encoder(), decoder(), connectionPool);
          // Use a very large stream window size
          connection.incrementConnectionWindowSize(1073676288 - 65535);
          ctx.pipeline().addBefore(generateName(CustomHttp2ConnectionHandler.class), null, new Http2RawBytesHandler(connection));

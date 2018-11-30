@@ -6,7 +6,6 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoop;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.handler.codec.http2.Http2Settings;
 import io.netty.handler.ssl.ApplicationProtocolConfig;
 import io.netty.handler.ssl.OpenSsl;
 import io.netty.handler.ssl.SslContext;
@@ -17,6 +16,7 @@ import io.netty.util.concurrent.EventExecutor;
 import io.netty.util.concurrent.EventExecutorGroup;
 import io.sailrocket.api.config.Http;
 import io.sailrocket.api.connection.HttpClientPool;
+import io.sailrocket.api.connection.HttpConnection;
 import io.sailrocket.api.connection.HttpConnectionPool;
 import io.netty.channel.EventLoopGroup;
 import io.netty.handler.codec.http2.Http2SecurityUtil;
@@ -44,7 +44,6 @@ import javax.net.ssl.SSLException;
 public class HttpClientPoolImpl implements HttpClientPool {
    private static final Logger log = LoggerFactory.getLogger(HttpClientPoolImpl.class);
 
-   final Http2Settings http2Settings = new Http2Settings();
    final Http http;
    final int port;
    final String host;
@@ -114,7 +113,12 @@ public class HttpClientPoolImpl implements HttpClientPool {
       return builder.build();
    }
 
-    @Override
+   @Override
+   public Http config() {
+      return http;
+   }
+
+   @Override
     public void start(Handler<AsyncResult<Void>> completionHandler) {
        AtomicInteger countDown = new AtomicInteger(children.length);
        for (HttpConnectionPoolImpl child : children) {
@@ -177,5 +181,10 @@ public class HttpClientPoolImpl implements HttpClientPool {
    @Override
    public String host() {
       return host;
+   }
+
+   @Override
+   public CharSequence authority() {
+      return authority;
    }
 }

@@ -11,6 +11,8 @@ public interface Connection {
 
    boolean isAvailable();
 
+   int inFlight();
+
    void close();
 
    String host();
