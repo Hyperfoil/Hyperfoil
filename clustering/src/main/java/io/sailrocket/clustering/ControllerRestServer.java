@@ -233,6 +233,12 @@ public class ControllerRestServer {
                         .append(phase.definition().maxDuration() - (now - phase.absoluteStartTime())).append(" ms)");
                }
                jsonPhase.put("remaining", remaining.toString());
+            } else {
+               jsonPhase.put("terminated", simpleDateFormat.format(new Date(phase.absoluteTerminateTime())));
+               long totalDuration = phase.absoluteTerminateTime() - phase.absoluteStartTime();
+               StringBuilder sb = new StringBuilder().append(totalDuration).append(" ms (exceeded by ")
+                     .append(totalDuration - phase.definition().duration()).append(" ms)");
+               jsonPhase.put("totalDuration", sb.toString());
             }
          }
       });

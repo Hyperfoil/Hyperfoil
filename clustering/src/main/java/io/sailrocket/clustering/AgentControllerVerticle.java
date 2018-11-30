@@ -178,6 +178,7 @@ public class AgentControllerVerticle extends AbstractVerticle {
                     killRun(run);
                 }
                 controllerPhase.status(ControllerPhase.Status.TERMINATED);
+                controllerPhase.absoluteTerminateTime(System.currentTimeMillis());
                 break;
         }
     }

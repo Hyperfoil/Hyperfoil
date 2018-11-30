@@ -6,6 +6,7 @@ public class ControllerPhase {
    private final Phase definition;
    private Status status = Status.NOT_STARTED;
    private long absoluteStartTime = Long.MIN_VALUE;
+   private long absoluteTerminateTime = Long.MIN_VALUE;
 
    public ControllerPhase(Phase definition) {
       this.definition = definition;
@@ -31,6 +32,14 @@ public class ControllerPhase {
 
    public void absoluteStartTime(long time) {
       absoluteStartTime = time;
+   }
+
+   public long absoluteTerminateTime() {
+      return absoluteTerminateTime;
+   }
+
+   public void absoluteTerminateTime(long absoluteTerminateTime) {
+      this.absoluteTerminateTime = absoluteTerminateTime;
    }
 
    enum Status {
