@@ -50,6 +50,7 @@ public class AgentControllerVerticle extends AbstractVerticle {
     private ControllerRestServer server;
     private AtomicInteger runIds = new AtomicInteger();
     private Map<String, Benchmark> benchmarks = new HashMap<>();
+    private long timerId = -1;
 
     Map<String, AgentInfo> agents = new HashMap<>();
     Map<String, Run> runs = new HashMap<>();
@@ -279,6 +280,10 @@ public class AgentControllerVerticle extends AbstractVerticle {
     }
 
     private void runSimulation(Run run) {
+        if (timerId >= 0) {
+            vertx.cancelTimer(timerId);
+            timerId = -1;
+        }
         long now = System.currentTimeMillis();
         for (ControllerPhase phase : run.phases.values()) {
             if (phase.status() == ControllerPhase.Status.RUNNING && phase.absoluteStartTime() + phase.definition().duration() <= now) {
@@ -306,12 +311,16 @@ public class AgentControllerVerticle extends AbstractVerticle {
             return;
         }
 
-        long delay = run.nextTimestamp() - System.currentTimeMillis();
+        long nextTimestamp = run.nextTimestamp();
+        long delay = nextTimestamp - System.currentTimeMillis();
 
         delay = Math.min(delay, 1000);
         log.debug("Wait {} ms", delay);
         if (delay > 0) {
-            vertx.setTimer(delay, timerId -> runSimulation(run));
+            if (timerId >= 0) {
+                vertx.cancelTimer(timerId);
+            }
+            timerId = vertx.setTimer(delay, timerId -> runSimulation(run));
         } else {
             vertx.runOnContext(nil -> runSimulation(run));
         }
