@@ -28,6 +28,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -103,8 +104,14 @@ public class AgentControllerVerticle extends AbstractVerticle {
                 return;
             }
             String phase = phaseChange.phase();
+            log.debug("Received phase change from {}: {} is {} (success={})",
+                  phaseChange.senderId(), phase, phaseChange.status(), phaseChange.isSuccessful());
             agent.phases.put(phase, phaseChange.status());
+            if (!phaseChange.isSuccessful()) {
+                run.phases.get(phase).setFailed();
+            }
             tryProgressStatus(run, phase);
+            runSimulation(run);
         });
 
         eb.consumer(Feeds.STATS, message -> {
@@ -175,11 +182,43 @@ public class AgentControllerVerticle extends AbstractVerticle {
                 break;
             case TERMINATED:
                 if (!run.statisticsStore.validateSlas(phase)) {
-                    killRun(run);
+                    controllerPhase.setFailed();
                 }
                 controllerPhase.status(ControllerPhase.Status.TERMINATED);
                 controllerPhase.absoluteTerminateTime(System.currentTimeMillis());
                 break;
+        }
+        cancelDependentPhases(run, controllerPhase);
+    }
+
+    private void cancelDependentPhases(Run run, ControllerPhase controllerPhase) {
+        if (controllerPhase.isFailed()) {
+            ArrayDeque<ControllerPhase> queue = new ArrayDeque<>(run.phases.values());
+            boolean changed = true;
+            OUTER: while (changed && !queue.isEmpty()) {
+                ControllerPhase p = queue.pollFirst();
+                if (p.status() != ControllerPhase.Status.NOT_STARTED) {
+                    continue;
+                }
+                for (String dep : p.definition().startAfter) {
+                    ControllerPhase depPhase = run.phases.get(dep);
+                    if (depPhase.isFailed() || depPhase.status() == ControllerPhase.Status.CANCELLED) {
+                        changed = true;
+                        p.status(ControllerPhase.Status.CANCELLED);
+                        continue OUTER;
+                    }
+                }
+                for (String dep : p.definition().startAfterStrict) {
+                    ControllerPhase depPhase = run.phases.get(dep);
+                    if (depPhase.isFailed() || depPhase.status() == ControllerPhase.Status.CANCELLED) {
+                        changed = true;
+                        p.status(ControllerPhase.Status.CANCELLED);
+                        continue OUTER;
+                    }
+                }
+                queue.addLast(p);
+                // let's ignore terminateAfterStrict as this might be already started
+            }
         }
     }
 
@@ -250,7 +289,7 @@ public class AgentControllerVerticle extends AbstractVerticle {
                 if (phase.definition().maxDuration() >= 0 && phase.absoluteStartTime() + phase.definition().maxDuration() <= now) {
                     eb.publish(Feeds.CONTROL, new PhaseControlMessage(PhaseControlMessage.Command.TERMINATE, null, phase.definition().name));
                     phase.status(ControllerPhase.Status.TERMINATING);
-                } else if (phase.definition().terminateAfterStrict().stream().map(run.phases::get).allMatch(p -> p.status() == ControllerPhase.Status.TERMINATED)) {
+                } else if (phase.definition().terminateAfterStrict().stream().map(run.phases::get).allMatch(p -> p.status().isTerminated())) {
                     eb.publish(Feeds.CONTROL, new PhaseControlMessage(PhaseControlMessage.Command.TRY_TERMINATE, null, phase.definition().name));
                 }
             }
@@ -262,7 +301,7 @@ public class AgentControllerVerticle extends AbstractVerticle {
             phase.status(ControllerPhase.Status.STARTING);
         }
 
-        if (run.phases.values().stream().allMatch(phase -> phase.status() == ControllerPhase.Status.TERMINATED)) {
+        if (run.phases.values().stream().allMatch(phase -> phase.status().isTerminated())) {
             stopSimulation(run);
             return;
         }

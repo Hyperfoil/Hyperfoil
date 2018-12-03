@@ -9,6 +9,7 @@ abstract class PhaseParser extends AbstractParser<PhaseBuilder.Discriminator, Ph
       register("startAfterStrict", new StartAfterParser(PhaseBuilder::startAfterStrict));
       register("duration", new PropertyParser.String<>(PhaseBuilder::duration));
       register("maxDuration", new PropertyParser.String<>(PhaseBuilder::maxDuration));
+      register("maxUnfinishedSessions", new PropertyParser.Int<>(PhaseBuilder::maxUnfinishedSessions));
       register("maxIterations", new PropertyParser.Int<>(PhaseBuilder::maxIterations));
       register("scenario", new Adapter<>(PhaseBuilder::scenario, new ScenarioParser()));
       register("forks", new PhaseForkParser());

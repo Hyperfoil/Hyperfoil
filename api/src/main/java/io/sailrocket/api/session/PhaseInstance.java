@@ -1,7 +1,6 @@
 package io.sailrocket.api.session;
 
 import java.util.List;
-import java.util.function.BiConsumer;
 
 import io.netty.util.concurrent.EventExecutorGroup;
 import io.sailrocket.api.collection.ConcurrentPool;
@@ -26,7 +25,7 @@ public interface PhaseInstance {
    void terminate();
 
    // TODO better name
-   void setComponents(ConcurrentPool<Session> sessionPool, List<Session> sessionList, Statistics[] statistics, BiConsumer<String, Status> phaseChangeHandler);
+   void setComponents(ConcurrentPool<Session> sessionPool, List<Session> sessionList, Statistics[] statistics, PhaseChangeHandler phaseChangeHandler);
 
    void reserveSessions();
 

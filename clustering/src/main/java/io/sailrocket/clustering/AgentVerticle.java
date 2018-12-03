@@ -65,9 +65,11 @@ public class AgentVerticle extends AbstractVerticle {
                     if (statsTimerId >= 0) {
                         vertx.cancelTimer(statsTimerId);
                     }
-                    runner.visitStatistics(reportSender);
-                    reportSender.send();
-                    runner.shutdown();
+                    if (runner != null) {
+                        runner.visitStatistics(reportSender);
+                        reportSender.send();
+                        runner.shutdown();
+                    }
                     runner = null;
                     reportSender = null;
                     // TODO: this does not guarantee in-order delivery
@@ -142,7 +144,10 @@ public class AgentVerticle extends AbstractVerticle {
         runner = new SimulationRunnerImpl(simulation);
         reportSender = new ReportSender(simulation, eb, address, runId);
 
-        runner.init((phase, status) -> eb.send(Feeds.RESPONSE, new PhaseChangeMessage(address, runId, phase, status)), result -> {
+        runner.init((phase, status, succesful) -> {
+            log.debug("{} changed phase {} to {}", address, phase, status);
+            eb.send(Feeds.RESPONSE, new PhaseChangeMessage(address, runId, phase, status, succesful));
+        }, result -> {
             if (result.succeeded()) {
                 statsTimerId = vertx.setPeriodic(simulation.statisticsCollectionPeriod(), timerId -> {
                     runner.visitStatistics(reportSender);

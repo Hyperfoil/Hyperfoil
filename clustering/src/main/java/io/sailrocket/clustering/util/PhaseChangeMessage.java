@@ -20,22 +20,24 @@
 
 package io.sailrocket.clustering.util;
 
-import io.sailrocket.api.session.PhaseInstance;
-import io.vertx.core.buffer.Buffer;
-import io.vertx.core.eventbus.MessageCodec;
-import io.vertx.core.json.JsonObject;
+import java.io.Serializable;
 
-public class PhaseChangeMessage {
+import io.sailrocket.api.session.PhaseInstance;
+import io.sailrocket.util.Immutable;
+
+public class PhaseChangeMessage implements Serializable, Immutable {
   private final String senderId;
   private final String runId;
   private final String phase;
   private final PhaseInstance.Status status;
+  private final boolean successful;
 
-  public PhaseChangeMessage(String senderId, String runId, String phase, PhaseInstance.Status status) {
+  public PhaseChangeMessage(String senderId, String runId, String phase, PhaseInstance.Status status, boolean successful) {
     this.senderId = senderId;
     this.runId = runId;
     this.phase = phase;
     this.status = status;
+    this.successful = successful;
   }
 
   @Override
@@ -65,73 +67,10 @@ public class PhaseChangeMessage {
     return status;
   }
 
-  public static class Codec implements MessageCodec<PhaseChangeMessage, PhaseChangeMessage> {
-
-    @Override
-    public void encodeToWire(Buffer buffer, PhaseChangeMessage phaseChangeMessage) {
-      // Easiest ways is using JSON object
-        //todo: make this more optimal
-      JsonObject jsonToEncode = new JsonObject();
-      jsonToEncode.put("senderId", phaseChangeMessage.senderId());
-      jsonToEncode.put("runId", phaseChangeMessage.runId());
-      jsonToEncode.put("phase", phaseChangeMessage.phase());
-      jsonToEncode.put("status", phaseChangeMessage.status());
-
-      // Encode object to string
-      String jsonToStr = jsonToEncode.encode();
-
-      // Length of JSON: is NOT characters count
-      int length = jsonToStr.getBytes().length;
-
-      // Write data into given buffer
-      buffer.appendInt(length);
-      buffer.appendString(jsonToStr);
-    }
-
-    @Override
-    public PhaseChangeMessage decodeFromWire(int position, Buffer buffer) {
-      // My custom message starting from this *position* of buffer
-      int _pos = position;
-
-      // Length of JSON
-      int length = buffer.getInt(_pos);
-
-      // Get JSON string by it`s length
-      // Jump 4 because getInt() == 4 bytes
-      String jsonStr = buffer.getString(_pos+=4, _pos+=length);
-      JsonObject contentJson = new JsonObject(jsonStr);
-
-      // Get fields
-      String senderId = contentJson.getString("senderId");
-      String runId = contentJson.getString("runId");
-      String phase = contentJson.getString("phase");
-      PhaseInstance.Status status = PhaseInstance.Status.valueOf(contentJson.getString("status"));
-
-      // We can finally create custom message object
-      return new PhaseChangeMessage(senderId, runId, phase, status);
-    }
-
-    @Override
-    public PhaseChangeMessage transform(PhaseChangeMessage phaseChangeMessage) {
-      // If a message is sent *locally* across the event bus.
-      // This example sends message just as is
-      return phaseChangeMessage;
-    }
-
-     @Override
-    public String name() {
-      // Each codec must have a unique name.
-      // This is used to identify a codec when sending a message and for unregistering codecs.
-      return this.getClass().getSimpleName();
-    }
-
-    @Override
-    public byte systemCodecID() {
-      // Always -1
-      return -1;
-    }
-
-
+  public boolean isSuccessful() {
+    return successful;
   }
+
+  public static class Codec extends ObjectCodec<PhaseChangeMessage> {}
 }
 

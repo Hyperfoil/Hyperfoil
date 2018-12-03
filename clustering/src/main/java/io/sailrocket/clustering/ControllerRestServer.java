@@ -225,7 +225,7 @@ public class ControllerRestServer {
          jsonPhase.put("status", phase.status());
          if (phase.absoluteStartTime() > Long.MIN_VALUE) {
             jsonPhase.put("started", simpleDateFormat.format(new Date(phase.absoluteStartTime())));
-            if (phase.status() != ControllerPhase.Status.TERMINATED) {
+            if (!phase.status().isTerminated()) {
                StringBuilder remaining = new StringBuilder()
                      .append(phase.definition().duration() - (now - phase.absoluteStartTime())).append(" ms");
                if (phase.definition().maxDuration() >= 0) {

@@ -11,6 +11,7 @@ import io.sailrocket.api.config.Simulation;
 import io.sailrocket.api.connection.HttpClientPool;
 import io.sailrocket.api.connection.HttpConnection;
 import io.sailrocket.api.connection.HttpConnectionPool;
+import io.sailrocket.api.session.PhaseChangeHandler;
 import io.sailrocket.api.session.Session;
 import io.sailrocket.api.statistics.Statistics;
 import io.sailrocket.api.session.PhaseInstance;
@@ -71,7 +72,7 @@ public class SimulationRunnerImpl implements SimulationRunner {
     }
 
     @Override
-    public void init(BiConsumer<String, PhaseInstance.Status> phaseChangeHandler, Handler<AsyncResult<Void>> handler) {
+    public void init(PhaseChangeHandler phaseChangeHandler, Handler<AsyncResult<Void>> handler) {
         //Initialise HttpClientPool
         ArrayList<Future> futures = new ArrayList<>();
         for (Map.Entry<String, HttpClientPool> entry : httpClientPools.entrySet()) {

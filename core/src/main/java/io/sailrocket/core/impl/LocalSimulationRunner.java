@@ -86,7 +86,7 @@ public class LocalSimulationRunner extends SimulationRunnerImpl {
       } while (instances.values().stream().anyMatch(phase -> phase.status() != PhaseInstance.Status.TERMINATED));
    }
 
-   private void phaseChanged(String phase, PhaseInstance.Status status) {
+   private void phaseChanged(String phase, PhaseInstance.Status status, boolean success) {
       statusLock.lock();
       try {
          statusCondition.signal();

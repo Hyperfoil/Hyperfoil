@@ -4,6 +4,7 @@ import io.netty.util.concurrent.EventExecutorGroup;
 import io.sailrocket.api.config.BenchmarkDefinitionException;
 import io.sailrocket.api.collection.ConcurrentPool;
 import io.sailrocket.api.config.Phase;
+import io.sailrocket.api.session.PhaseChangeHandler;
 import io.sailrocket.api.session.Session;
 import io.sailrocket.api.statistics.Statistics;
 import io.sailrocket.api.session.PhaseInstance;
@@ -15,7 +16,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstance {
@@ -28,7 +28,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
    protected ConcurrentPool<Session> sessionPool;
    protected List<Session> sessionList;
    private Statistics[] statistics;
-   protected BiConsumer<String, PhaseInstance.Status> phaseChangeHandler;
+   private PhaseChangeHandler phaseChangeHandler;
    // Reads are done without locks
    protected volatile Status status = Status.NOT_STARTED;
    protected long absoluteStartTime;
@@ -81,7 +81,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       status = Status.RUNNING;
       absoluteStartTime = now;
       log.debug("{} changing status to RUNNING", def.name);
-      phaseChangeHandler.accept(def.name, status);
+      phaseChangeHandler.onChange(def.name, status, true);
       proceed(executorGroup);
    }
 
@@ -90,7 +90,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       assert status == Status.RUNNING;
       status = Status.FINISHED;
       log.debug("{} changing status to FINISHED", def.name);
-      phaseChangeHandler.accept(def.name, status);
+      phaseChangeHandler.onChange(def.name, status, activeSessions.get() <= def.maxUnfinishedSessions);
    }
 
    @Override
@@ -119,7 +119,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
 
    // TODO better name
    @Override
-   public void setComponents(ConcurrentPool<Session> sessionPool, List<Session> sessionList, Statistics[] statistics, BiConsumer<String, Status> phaseChangeHandler) {
+   public void setComponents(ConcurrentPool<Session> sessionPool, List<Session> sessionList, Statistics[] statistics, PhaseChangeHandler phaseChangeHandler) {
       this.sessionPool = sessionPool;
       this.sessionList = sessionList;
       this.statistics = statistics;
@@ -157,7 +157,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
          for (Statistics stats : statistics) {
             stats.end(now);
          }
-         phaseChangeHandler.accept(def.name, status);
+         phaseChangeHandler.onChange(def.name, status, true);
       }
    }
 

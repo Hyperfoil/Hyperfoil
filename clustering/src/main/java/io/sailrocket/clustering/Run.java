@@ -41,7 +41,7 @@ class Run {
       return phases.values().stream().filter(phase -> phase.status() == ControllerPhase.Status.NOT_STARTED &&
             startTime + phase.definition().startTime() <= System.currentTimeMillis() &&
             phase.definition().startAfter().stream().allMatch(dep -> phases.get(dep).status().isFinished()) &&
-            phase.definition().startAfterStrict().stream().allMatch(dep -> phases.get(dep).status() == ControllerPhase.Status.TERMINATED))
+            phase.definition().startAfterStrict().stream().allMatch(dep -> phases.get(dep).status().isTerminated()))
             .toArray(ControllerPhase[]::new);
    }
 }
