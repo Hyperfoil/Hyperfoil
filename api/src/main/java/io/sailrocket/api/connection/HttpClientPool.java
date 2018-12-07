@@ -41,4 +41,6 @@ public interface HttpClientPool {
     String host();
 
     CharSequence authority();
+
+    String scheme();
 }

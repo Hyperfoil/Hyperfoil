@@ -1,13 +1,13 @@
 package io.sailrocket.core.client.netty;
 
-import java.util.function.Consumer;
-
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.util.AsciiString;
 import io.sailrocket.api.connection.HttpConnection;
+import io.sailrocket.api.connection.Request;
+import io.sailrocket.api.http.HttpMethod;
 import io.sailrocket.core.util.Util;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -27,7 +27,7 @@ public class Http1xRawBytesHandler extends BaseRawBytesHandler {
    private boolean expectTrailers = false;
    private int skipChunkBytes;
 
-   public Http1xRawBytesHandler(HttpConnection connection) {
+   Http1xRawBytesHandler(HttpConnection connection) {
       super(connection);
    }
 
@@ -53,7 +53,7 @@ public class Http1xRawBytesHandler extends BaseRawBytesHandler {
    }
 
    @Override
-   public void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
+   public void handlerRemoved(ChannelHandlerContext ctx) {
       if (lastLine != null) {
          lastLine.release();
          lastLine = null;
@@ -97,7 +97,7 @@ public class Http1xRawBytesHandler extends BaseRawBytesHandler {
                   try {
                      ByteBuf lineBuf;
                      if (readerIndex - lineStartOffset == 1 || lastLine.writerIndex() == 1 && readerIndex == 0) {
-                        switch (connection.currentResponseHandlers(0).method()) {
+                        switch ((HttpMethod) connection.peekRequest(0).requestData()) {
                            case HEAD:
                            case CONNECT:
                               contentLength = 0;
@@ -225,8 +225,8 @@ public class Http1xRawBytesHandler extends BaseRawBytesHandler {
    }
 
    private void passFullBuffer(ChannelHandlerContext ctx, ByteBuf buf) {
-      Consumer<ByteBuf> handler = connection.currentResponseHandlers(0).rawBytesHandler();
-      invokeHandler(handler, buf);
+      Request request = connection.peekRequest(0);
+      invokeHandler(request, buf);
       ctx.fireChannelRead(buf);
    }
 

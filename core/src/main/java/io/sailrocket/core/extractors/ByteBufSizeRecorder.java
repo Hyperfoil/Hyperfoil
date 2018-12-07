@@ -1,12 +1,12 @@
 package io.sailrocket.core.extractors;
 
 import io.netty.buffer.ByteBuf;
-import io.sailrocket.api.session.Session;
+import io.sailrocket.api.connection.Request;
+import io.sailrocket.api.http.RawBytesHandler;
 import io.sailrocket.api.statistics.LongValue;
 import io.sailrocket.api.statistics.Statistics;
-import io.sailrocket.function.SerializableBiConsumer;
 
-public class ByteBufSizeRecorder implements SerializableBiConsumer<Session, ByteBuf> {
+public class ByteBufSizeRecorder implements RawBytesHandler {
    private final String name;
 
    public ByteBufSizeRecorder(String name) {
@@ -14,8 +14,8 @@ public class ByteBufSizeRecorder implements SerializableBiConsumer<Session, Byte
    }
 
    @Override
-   public void accept(Session session, ByteBuf buf) {
-      Statistics statistics = session.requestQueue().peek().sequence.statistics(session);
+   public void accept(Request request, ByteBuf buf) {
+      Statistics statistics = request.sequence().statistics(request.session);
       statistics.getCustom(name, LongValue::new).add(buf.readableBytes());
    }
 }

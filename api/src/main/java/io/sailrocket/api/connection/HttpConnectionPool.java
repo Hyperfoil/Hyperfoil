@@ -1,17 +1,21 @@
 package io.sailrocket.api.connection;
 
 import java.util.Collection;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.util.concurrent.EventExecutor;
 import io.sailrocket.api.http.HttpMethod;
-import io.sailrocket.api.http.HttpRequest;
 import io.sailrocket.api.session.Session;
 
 public interface HttpConnectionPool {
    HttpClientPool clientPool();
 
-   HttpRequest request(HttpMethod method, String path, ByteBuf body);
+   boolean request(Request request,
+                   HttpMethod method, Function<Session, String> pathGenerator,
+                   BiConsumer<Session, HttpRequestWriter>[] headerAppenders,
+                   Function<Session, ByteBuf> bodyGenerator);
 
    void registerWaitingSession(Session session);
 

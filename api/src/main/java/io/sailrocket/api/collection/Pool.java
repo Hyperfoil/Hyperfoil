@@ -1,13 +1,13 @@
-package io.sailrocket.core.session;
+package io.sailrocket.api.collection;
 
 import java.util.function.Supplier;
 
-class Pool<T> {
+public class Pool<T> {
    private Object[] elements;
    private int mask;
    private int index;
 
-   Pool(int capacity, Supplier<T> init) {
+   public Pool(int capacity, Supplier<T> init) {
       mask = (1 << 32 - Integer.numberOfLeadingZeros(capacity - 1)) - 1;
       elements = new Object[mask + 1];
       for (int i = 0; i < elements.length; ++i) {
@@ -15,7 +15,13 @@ class Pool<T> {
       }
    }
 
-   T acquire() {
+   public Pool(T[] array) {
+      mask = (1 << 32 - Integer.numberOfLeadingZeros(array.length - 1)) - 1;
+      elements = new Object[mask + 1];
+      System.arraycopy(array, 0, elements, 0, array.length);
+   }
+
+   public T acquire() {
       int i = index + 1;
       while (i != index && elements[i & mask] == null) ++i;
       if (elements[i & mask] == null) {
@@ -41,9 +47,17 @@ class Pool<T> {
       }
    }
 
-   void checkFull() {
+   public boolean isFull() {
       for (Object o : elements) {
-         assert o != null;
+         if (o == null) return false;
       }
+      return true;
+   }
+
+   public boolean isDepleted() {
+      for (Object o : elements) {
+         if (o != null) return false;
+      }
+      return true;
    }
 }

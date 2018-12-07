@@ -37,7 +37,7 @@ public class CookieTest extends BaseScenarioTest {
                .step().awaitAllResponses()
                .step()
                   .httpRequest(HttpMethod.GET).path("/test2").handler()
-                     .statusValidator((session, status) -> status == 200)
+                     .statusValidator((request, status) -> status == 200)
                   .endHandler()
                .endStep()
                .step().awaitAllResponses()

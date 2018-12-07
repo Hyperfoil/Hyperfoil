@@ -1,16 +1,19 @@
 package io.sailrocket.api.connection;
 
+import java.util.function.BiConsumer;
+import java.util.function.Function;
+
 import io.netty.buffer.ByteBuf;
 import io.sailrocket.api.http.HttpMethod;
-import io.sailrocket.api.http.HttpRequest;
-import io.sailrocket.api.http.HttpResponseHandlers;
+import io.sailrocket.api.session.Session;
 
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
  */
 public interface HttpConnection extends Connection {
 
-    HttpRequest request(HttpMethod method, String path, ByteBuf body);
+    void request(Request request, HttpMethod method, Function<Session, String> pathGenerator,
+                 BiConsumer<Session, HttpRequestWriter>[] headerAppenders, Function<Session, ByteBuf> bodyGenerator);
 
-    HttpResponseHandlers currentResponseHandlers(int streamId);
+    Request peekRequest(int streamId);
 }

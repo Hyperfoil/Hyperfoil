@@ -97,9 +97,9 @@ public class FleetTest extends BaseScenarioTest {
                .endStep()
                .step().httpRequest(HttpMethod.DELETE).pathGenerator(FleetTest::currentShipQuery)
                   .handler()
-                     .statusExtractor(((status, session) -> {
+                     .statusExtractor(((request, status) -> {
                         if (status == 204) {
-                           session.addToInt("numberOfSunkShips", -1);
+                           request.session.addToInt("numberOfSunkShips", -1);
                         } else {
                            ctx.fail("Unexpected status " + status);
                         }

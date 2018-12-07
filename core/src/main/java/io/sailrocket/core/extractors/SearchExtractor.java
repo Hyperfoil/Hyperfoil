@@ -3,6 +3,7 @@ package io.sailrocket.core.extractors;
 import java.nio.charset.StandardCharsets;
 
 import io.netty.buffer.ByteBuf;
+import io.sailrocket.api.connection.Request;
 import io.sailrocket.api.http.BodyExtractor;
 import io.sailrocket.api.session.Session;
 import io.sailrocket.core.api.ResourceUtilizer;
@@ -44,14 +45,15 @@ public class SearchExtractor implements BodyExtractor, ResourceUtilizer, Session
    }
 
    @Override
-   public void beforeData(Session session) {
-      Context ctx = session.getResource(this);
+   public void beforeData(Request request) {
+      Context ctx = request.session.getResource(this);
       ctx.reset();
-      processor.before(session);
+      processor.before(request.session);
    }
 
    @Override
-   public void extractData(ByteBuf data, Session session) {
+   public void extractData(Request request, ByteBuf data) {
+      Session session = request.session;
       Context ctx = session.getResource(this);
       ctx.add(data);
       initHash(ctx, data);
@@ -136,11 +138,11 @@ public class SearchExtractor implements BodyExtractor, ResourceUtilizer, Session
    }
 
    @Override
-   public void afterData(Session session) {
-      Context ctx = session.getResource(this);
+   public void afterData(Request request) {
+      Context ctx = request.session.getResource(this);
       // release buffers
       ctx.reset();
-      processor.after(session);
+      processor.after(request.session);
    }
 
    @Override

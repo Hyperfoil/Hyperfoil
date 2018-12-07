@@ -1,10 +1,18 @@
 package io.sailrocket.core.client.netty;
 
+import java.io.IOException;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
+
 import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http2.DefaultHttp2Headers;
+import io.sailrocket.api.connection.Request;
+import io.sailrocket.api.connection.Connection;
+import io.sailrocket.api.connection.HttpClientPool;
 import io.sailrocket.api.connection.HttpConnection;
 import io.sailrocket.api.connection.HttpConnectionPool;
+import io.sailrocket.api.connection.HttpRequestWriter;
 import io.sailrocket.api.http.HttpMethod;
-import io.sailrocket.api.http.HttpRequest;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http2.Http2ConnectionDecoder;
@@ -16,6 +24,7 @@ import io.netty.handler.codec.http2.Http2Settings;
 import io.netty.util.collection.IntObjectHashMap;
 import io.netty.util.collection.IntObjectMap;
 import io.sailrocket.api.http.HttpResponseHandlers;
+import io.sailrocket.api.session.Session;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
@@ -29,7 +38,7 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
    private final ChannelHandlerContext context;
    private final io.netty.handler.codec.http2.Http2Connection connection;
    private final Http2ConnectionEncoder encoder;
-   private final IntObjectMap<Http2Stream> streams = new IntObjectHashMap<>();
+   private final IntObjectMap<Request> streams = new IntObjectHashMap<>();
    private int numStreams;
    private long maxStreams;
 
@@ -84,28 +93,33 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
       return pool.clientPool().host();
    }
 
-   void bilto(Http2Stream stream) {
-      context.executor().execute(() -> {
-         int id = nextStreamId();
-         streams.put(id, stream);
-         encoder.writeHeaders(context, id, stream.headers, 0, stream.buff == null, context.newPromise());
-         if (stream.buff != null) {
-            encoder.writeData(context, id, stream.buff, 0, true, context.newPromise());
-         }
-         context.flush();
-      });
-   }
-
-   public HttpRequest request(HttpMethod method, String path, ByteBuf body) {
+   public void request(Request request, HttpMethod method, Function<Session, String> pathGenerator, BiConsumer<Session, HttpRequestWriter>[] headerAppenders, Function<Session, ByteBuf> bodyGenerator) {
       numStreams++;
-      Http2Request request = new Http2Request((HttpClientPoolImpl) pool.clientPool(), this, method, path, body);
-      request.putHeader(HttpHeaderNames.HOST, pool.clientPool().authority());
-      return request;
+      HttpClientPool httpClientPool = pool.clientPool();
+      Http2Headers headers = new DefaultHttp2Headers().method(method.name()).scheme(httpClientPool.scheme())
+            .path(pathGenerator.apply(request.session)).authority(httpClientPool.authority());
+      headers.add(HttpHeaderNames.HOST, httpClientPool.authority());
+      if (headerAppenders != null) {
+         HttpRequestWriter writer = new HttpRequestWriterImpl(headers);
+         for (BiConsumer<Session, HttpRequestWriter> headerAppender : headerAppenders) {
+            headerAppender.accept(request.session, writer);
+         }
+      }
+      ByteBuf buf = bodyGenerator != null ? bodyGenerator.apply(request.session) : null;
+
+      assert context.executor().inEventLoop();
+      int id = nextStreamId();
+      streams.put(id, request);
+      encoder.writeHeaders(context, id, headers, 0, buf == null, context.newPromise());
+      if (buf != null) {
+         encoder.writeData(context, id, buf, 0, true, context.newPromise());
+      }
+      context.flush();
    }
 
    @Override
-   public HttpResponseHandlers currentResponseHandlers(int streamId) {
-      return streams.get(streamId).handlers;
+   public Request peekRequest(int streamId) {
+      return streams.get(streamId);
    }
 
    private int nextStreamId() {
@@ -121,24 +135,12 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
    }
 
    void cancelRequests(Throwable cause) {
-      for (IntObjectMap.PrimitiveEntry<Http2Stream> entry : streams.entries()) {
-         Http2Stream request = entry.value();
-         if (!request.handlers.isCompleted()) {
-            request.handlers.exceptionHandler().accept(cause);
-            request.handlers.setCompleted();
+      for (IntObjectMap.PrimitiveEntry<Request> entry : streams.entries()) {
+         Request request = entry.value();
+         if (!request.isCompleted()) {
+            request.handlers().handleThrowable(request, cause);
+            request.setCompleted();
          }
-      }
-   }
-
-   static class Http2Stream {
-      final Http2Headers headers;
-      final ByteBuf buff;
-      final HttpResponseHandlers handlers;
-
-      Http2Stream(Http2Headers headers, ByteBuf buff, HttpResponseHandlers handlers) {
-         this.headers = headers;
-         this.buff = buff;
-         this.handlers = handlers;
       }
    }
 
@@ -153,16 +155,15 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
 
       @Override
       public void onHeadersRead(ChannelHandlerContext ctx, int streamId, Http2Headers headers, int streamDependency, short weight, boolean exclusive, int padding, boolean endStream) {
-         Http2Stream stream = streams.get(streamId);
-         if (stream != null) {
-            if (stream.handlers.statusHandler() != null) {
-               int code = -1;
-               try {
-                  code = Integer.parseInt(headers.status().toString());
-               } catch (NumberFormatException ignore) {
-               }
-               stream.handlers.statusHandler().accept(code);
+         Request request = streams.get(streamId);
+         if (request != null) {
+            HttpResponseHandlers handlers = (HttpResponseHandlers) request.handlers();
+            int code = -1;
+            try {
+               code = Integer.parseInt(headers.status().toString());
+            } catch (NumberFormatException ignore) {
             }
+            handlers.handleStatus(request, code);
             if (endStream) {
                endStream(streamId);
             }
@@ -172,11 +173,10 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
       @Override
       public int onDataRead(ChannelHandlerContext ctx, int streamId, ByteBuf data, int padding, boolean endOfStream) throws Http2Exception {
          int ack = super.onDataRead(ctx, streamId, data, padding, endOfStream);
-         Http2Stream stream = streams.get(streamId);
-         if (stream != null) {
-            if (stream.handlers.dataHandler() != null) {
-               stream.handlers.dataHandler().accept(data);
-            }
+         Request request = streams.get(streamId);
+         if (request != null) {
+            HttpResponseHandlers handlers = (HttpResponseHandlers) request.handlers();
+            handlers.handleBodyPart(request, data);
             if (endOfStream) {
                endStream(streamId);
             }
@@ -186,30 +186,50 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
 
       @Override
       public void onRstStreamRead(ChannelHandlerContext ctx, int streamId, long errorCode) {
-         Http2Stream stream = streams.get(streamId);
-         if (stream != null) {
-            if (stream.handlers.resetHandler() != null) {
-               stream.handlers.resetHandler().accept(0);
-            }
-            endStream(streamId);
+         Request request = streams.remove(streamId);
+         if (request != null) {
+            numStreams--;
+            HttpResponseHandlers handlers = (HttpResponseHandlers) request.handlers();
+            // TODO: maybe add a specific handler because we don't need to terminate other streams
+            handlers.handleThrowable(request, new IOException("HTTP2 stream was reset"));
+            tryReleaseToPool();
          }
       }
 
       private void endStream(int streamId) {
-         numStreams--;
-         Http2Stream stream = streams.remove(streamId);
-         if (stream != null) {
-            if (stream.handlers.endHandler() != null) {
-               stream.handlers.endHandler().run();
-            }
-            stream.handlers.setCompleted();
+         Request request = streams.remove(streamId);
+         if (request != null) {
+            numStreams--;
+            request.handlers().handleEnd(request);
             log.trace("Completed response on {}", this);
-            // If this connection was not available we make it available
-            // TODO: it would be better to check this in connection pool
-            if (numStreams == maxStreams - 1) {
-               pool.release(Http2Connection.this);
-            }
+            tryReleaseToPool();
          }
+      }
+   }
+
+   private void tryReleaseToPool() {
+      // If this connection was not available we make it available
+      // TODO: it would be better to check this in connection pool
+      if (numStreams == maxStreams - 1) {
+         pool.release(Http2Connection.this);
+      }
+   }
+
+   private class HttpRequestWriterImpl implements HttpRequestWriter {
+      private final Http2Headers headers;
+
+      HttpRequestWriterImpl(Http2Headers headers) {
+         this.headers = headers;
+      }
+
+      @Override
+      public Connection connection() {
+         return Http2Connection.this;
+      }
+
+      @Override
+      public void putHeader(CharSequence header, CharSequence value) {
+         headers.add(header, value);
       }
    }
 }

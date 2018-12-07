@@ -4,6 +4,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.function.IntPredicate;
 
 import io.netty.buffer.ByteBuf;
+import io.sailrocket.api.connection.Request;
 import io.sailrocket.api.session.Session;
 import io.sailrocket.core.api.ResourceUtilizer;
 import io.sailrocket.api.http.BodyValidator;
@@ -35,8 +36,8 @@ public class SearchValidator implements BodyValidator, ResourceUtilizer, Session
    }
 
    @Override
-   public void validateData(Session session, ByteBuf data) {
-      Context ctx = session.getResource(this);
+   public void validateData(Request request, ByteBuf data) {
+      Context ctx = request.session.getResource(this);
       ctx.add(data);
       initHash(ctx, data);
       test(ctx, data);
@@ -69,14 +70,14 @@ public class SearchValidator implements BodyValidator, ResourceUtilizer, Session
    }
 
    @Override
-   public void beforeData(Session session) {
-      Context ctx = session.getResource(this);
+   public void beforeData(Request request) {
+      Context ctx = request.session.getResource(this);
       ctx.reset();
    }
 
    @Override
-   public boolean validate(Session session) {
-      Context ctx = session.getResource(this);
+   public boolean validate(Request request) {
+      Context ctx = request.session.getResource(this);
       boolean match = this.match.test(ctx.matches);
       ctx.reset();
       return match;
@@ -105,7 +106,7 @@ public class SearchValidator implements BodyValidator, ResourceUtilizer, Session
          parts[currentPart] = data.retain();
       }
 
-      public int byteRelative(int offset) {
+      int byteRelative(int offset) {
          int part = currentPart;
          while (parts[part].readerIndex() - offset < 0) {
             offset -= parts[part].readerIndex();

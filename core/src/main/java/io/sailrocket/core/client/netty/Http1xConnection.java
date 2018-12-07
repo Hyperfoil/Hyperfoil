@@ -1,12 +1,15 @@
 package io.sailrocket.core.client.netty;
 
+import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.HttpContent;
 import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.HttpVersion;
+import io.sailrocket.api.connection.Request;
 import io.sailrocket.api.connection.Connection;
 import io.sailrocket.api.connection.HttpConnection;
 import io.sailrocket.api.connection.HttpConnectionPool;
+import io.sailrocket.api.connection.HttpRequestWriter;
 import io.sailrocket.api.http.HttpMethod;
-import io.sailrocket.api.http.HttpRequest;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
@@ -14,6 +17,7 @@ import io.netty.handler.codec.http.DefaultFullHttpRequest;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.LastHttpContent;
 import io.sailrocket.api.http.HttpResponseHandlers;
+import io.sailrocket.api.session.Session;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
@@ -21,6 +25,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Map;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
@@ -29,7 +34,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    private static Logger log = LoggerFactory.getLogger(Http1xConnection.class);
 
    private final HttpConnectionPool pool;
-   private final Deque<HttpStream> inflights;
+   private final Deque<Request> inflights;
    private final BiConsumer<HttpConnection, Throwable> activationHandler;
    ChannelHandlerContext ctx;
    // we can safely use non-atomic variables since the connection should be always accessed by single thread
@@ -40,10 +45,6 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
       this.pool = pool;
       this.activationHandler = handler;
       this.inflights = new ArrayDeque<>(client.http.pipeliningLimit());
-   }
-
-   HttpStream createStream(DefaultFullHttpRequest msg, HttpResponseHandlers handlers) {
-      return new HttpStream(msg, handlers);
    }
 
    @Override
@@ -71,30 +72,22 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
       if (msg instanceof HttpResponse) {
          HttpResponse response = (HttpResponse) msg;
-         HttpStream request = inflights.peek();
-         if (request.handlers.statusHandler() != null) {
-            request.handlers.statusHandler().accept(response.status().code());
-         }
-         if (request.handlers.headerHandler() != null) {
-            for (Map.Entry<String, String> header : response.headers()) {
-               request.handlers.headerHandler().accept(header.getKey(), header.getValue());
-            }
+         Request request = inflights.peek();
+         HttpResponseHandlers handlers = (HttpResponseHandlers) request.handlers();
+         handlers.handleStatus(request, response.status().code());
+         for (Map.Entry<String, String> header : response.headers()) {
+            handlers.handleHeader(request, header.getKey(), header.getValue());
          }
       }
       if (msg instanceof HttpContent) {
-         HttpStream request = inflights.peek();
-         if (request.handlers.dataHandler() != null) {
-            request.handlers.dataHandler().accept(((HttpContent) msg).content());
-         }
+         Request request = inflights.peek();
+         HttpResponseHandlers handlers = (HttpResponseHandlers) request.handlers();
+         handlers.handleBodyPart(request, ((HttpContent) msg).content());
       }
       if (msg instanceof LastHttpContent) {
          size--;
-         HttpStream request = inflights.poll();
-
-         if (request.handlers.endHandler() != null) {
-            request.handlers.endHandler().run();
-         }
-         request.handlers.setCompleted();
+         Request request = inflights.poll();
+         request.handlers().handleEnd(request);
          log.trace("Completed response on {}", this);
          // If this connection was not available we make it available
          // TODO: it would be better to check this in connection pool
@@ -109,10 +102,11 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    @Override
    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
       log.warn("Exception in {}", cause, this);
-      for (HttpStream request = inflights.poll(); request != null; request = inflights.poll()) {
-         if (!request.handlers.isCompleted()) {
-            request.handlers.exceptionHandler().accept(cause);
-            request.handlers.setCompleted();
+      Request request;
+      while ((request = inflights.poll()) != null) {
+         if (!request.isCompleted()) {
+            request.handlers().handleThrowable(request, cause);
+            request.setCompleted();
          }
       }
       ctx.close();
@@ -120,27 +114,41 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
 
    @Override
    public void channelInactive(ChannelHandlerContext ctx) {
-      HttpStream request;
+      Request request;
       while ((request = inflights.poll()) != null) {
-         if (!request.handlers.isCompleted()) {
-            request.handlers.exceptionHandler().accept(Connection.CLOSED_EXCEPTION);
-            request.handlers.setCompleted();
+         if (!request.isCompleted()) {
+            request.handlers().handleThrowable(request, Connection.CLOSED_EXCEPTION);
+            request.setCompleted();
          }
       }
    }
 
    @Override
-   public HttpRequest request(HttpMethod method, String path, ByteBuf body) {
+   public void request(Request request, HttpMethod method, Function<Session, String> pathGenerator, BiConsumer<Session, HttpRequestWriter>[] headerAppenders, Function<Session, ByteBuf> bodyGenerator) {
       size++;
-      Http1xRequest request = new Http1xRequest(this, method, path, body);
-      request.putHeader(HttpHeaderNames.HOST, pool.clientPool().authority());
-      return request;
+      String path = pathGenerator.apply(request.session);
+      ByteBuf buf = bodyGenerator != null ? bodyGenerator.apply(request.session) : null;
+      if (buf == null) {
+         buf = Unpooled.EMPTY_BUFFER;
+      }
+      DefaultFullHttpRequest msg = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, method.netty, path, buf, false);
+      msg.headers().add(HttpHeaderNames.HOST, pool.clientPool().authority());
+      if (headerAppenders != null) {
+         // TODO: allocation, if it's not eliminated we could store a reusable object
+         HttpRequestWriter writer = new HttpRequestWriterImpl(msg);
+         for (BiConsumer<Session, HttpRequestWriter> headerAppender : headerAppenders) {
+            headerAppender.accept(request.session, writer);
+         }
+      }
+      assert ctx.executor().inEventLoop();
+      inflights.add(request);
+      ctx.writeAndFlush(msg);
    }
 
    @Override
-   public HttpResponseHandlers currentResponseHandlers(int streamId) {
+   public Request peekRequest(int streamId) {
       assert streamId == 0;
-      return inflights.peek().handlers;
+      return inflights.peek();
    }
 
    @Override
@@ -176,20 +184,21 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
             '}';
    }
 
-   class HttpStream implements Runnable {
-
+   private class HttpRequestWriterImpl implements HttpRequestWriter {
       private final DefaultFullHttpRequest msg;
-      private final HttpResponseHandlers handlers;
 
-      HttpStream(DefaultFullHttpRequest msg, HttpResponseHandlers handlers) {
+      public HttpRequestWriterImpl(DefaultFullHttpRequest msg) {
          this.msg = msg;
-         this.handlers = handlers;
       }
 
       @Override
-      public void run() {
-         ctx.writeAndFlush(msg);
-         inflights.add(this);
+      public Connection connection() {
+         return Http1xConnection.this;
+      }
+
+      @Override
+      public void putHeader(CharSequence header, CharSequence value) {
+         msg.headers().add(header, value);
       }
    }
 }

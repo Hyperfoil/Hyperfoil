@@ -3,8 +3,9 @@ package io.sailrocket.core.session;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -17,12 +18,13 @@ import io.vertx.ext.web.Router;
 
 @RunWith(VertxUnitRunner.class)
 public class TwoServersTest extends BaseScenarioTest {
+   CountDownLatch latch = new CountDownLatch(1);
+
    @Override
    protected void initRouter() {
       router.route("/test").handler(ctx -> {
-         // This makes the test reliably fail.
          try {
-            Thread.sleep(100);
+            latch.await(10, TimeUnit.SECONDS);
          } catch (InterruptedException e) {
          }
          ctx.response().setStatusCode(200).end();
@@ -41,12 +43,17 @@ public class TwoServersTest extends BaseScenarioTest {
             .http("http://localhost:8081").endHttp();
    }
 
-   @Ignore /* This test is unstable when responses are received in the incorrect order */
    @Test
    public void test() {
       scenario().initialSequence("test")
             .step().httpRequest(HttpMethod.GET).path("/test").endStep()
-            .step().httpRequest(HttpMethod.GET).baseUrl("http://localhost:8081").path("/test").endStep()
+            .step().httpRequest(HttpMethod.GET)
+               .baseUrl("http://localhost:8081")
+               .path("/test")
+               .handler()
+                  .onCompletion(s -> latch.countDown())
+               .endHandler()
+            .endStep()
             .step().awaitAllResponses();
 
       List<Session> sessions = runScenario();

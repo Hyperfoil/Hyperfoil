@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 import io.netty.buffer.ByteBuf;
+import io.sailrocket.api.connection.Request;
 import io.sailrocket.api.http.BodyExtractor;
 import io.sailrocket.api.session.Session;
 import io.sailrocket.core.api.ResourceUtilizer;
@@ -82,23 +83,23 @@ public class JsonExtractor implements BodyExtractor, ResourceUtilizer, Session.R
    }
 
    @Override
-   public void beforeData(Session session) {
-      processor.before(session);
-      Context ctx = session.getResource(this);
+   public void beforeData(Request request) {
+      processor.before(request.session);
+      Context ctx = request.session.getResource(this);
       ctx.reset();
    }
 
    @Override
-   public void extractData(ByteBuf data, Session session) {
-      Context ctx = session.getResource(this);
-      ctx.parse(data, session);
+   public void extractData(Request request, ByteBuf data) {
+      Context ctx = request.session.getResource(this);
+      ctx.parse(data, request.session);
    }
 
    @Override
-   public void afterData(Session session) {
-      processor.after(session);
+   public void afterData(Request request) {
+      processor.after(request.session);
 
-      Context ctx = session.getResource(this);
+      Context ctx = request.session.getResource(this);
       for (int i = 0; i < ctx.parts.length; ++i) {
          if (ctx.parts[i] == null) break;
          ctx.parts[i].release();

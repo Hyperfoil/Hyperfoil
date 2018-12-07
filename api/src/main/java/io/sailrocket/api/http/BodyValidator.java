@@ -22,13 +22,13 @@ package io.sailrocket.api.http;
 import java.io.Serializable;
 
 import io.netty.buffer.ByteBuf;
-import io.sailrocket.api.session.Session;
+import io.sailrocket.api.connection.Request;
 
 /**
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
  */
 public interface BodyValidator extends Serializable {
-   void beforeData(Session session);
-   void validateData(Session session, ByteBuf chunk);
-   boolean validate(Session session);
+   void beforeData(Request request);
+   void validateData(Request request, ByteBuf chunk);
+   boolean validate(Request request);
 }

@@ -21,12 +21,16 @@ package io.sailrocket.core.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.sailrocket.api.connection.Request;
 import io.sailrocket.api.connection.HttpClientPool;
 import io.sailrocket.api.connection.HttpConnectionPool;
 import io.sailrocket.api.http.HttpMethod;
-import io.sailrocket.api.http.HttpRequest;
+import io.sailrocket.api.session.SequenceInstance;
+import io.sailrocket.api.session.Session;
 import io.sailrocket.core.builders.HttpBuilder;
 import io.sailrocket.core.client.netty.HttpClientPoolImpl;
+import io.sailrocket.core.session.SessionFactory;
+import io.sailrocket.core.steps.HttpResponseHandlersImpl;
 import io.vertx.core.Vertx;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -77,26 +81,29 @@ public class HttpClientPoolHandlerTest {
         CountDownLatch latch = new CountDownLatch(4);
         HttpConnectionPool pool = client.next();
         pool.executor().execute(() -> {
-              HttpRequest conn = pool.request(HttpMethod.GET, "/", null);
-
-              conn.statusHandler(code -> {
-                  assertThat(code).isEqualTo(200);
-                  latch.countDown();
-              }).headerHandler((header, value) -> {
-                  if ("foo".equals(header)) {
-                      assertThat(value).isEqualTo("bar");
-                      latch.countDown();
-                  }
-              }).bodyPartHandler(input -> {
-                        byte[] bytes = new byte[input.readableBytes()];
-                        input.readBytes(bytes, 0, bytes.length);
-                        assertThat(new String(bytes)).isEqualTo("hello from server");
-                        latch.countDown();
-                    }).endHandler(() -> {
-                  latch.countDown();
-              });
-
-              conn.end();
+           Session session = SessionFactory.forTesting();
+           Request request = session.requestPool().acquire();
+           HttpResponseHandlersImpl handlers = HttpResponseHandlersImpl.Builder.forTesting()
+                 .statusExtractor((r, code) -> {
+                    assertThat(code).isEqualTo(200);
+                    latch.countDown();
+                 })
+                 .headerExtractor((req, header, value) -> {
+                    if ("foo".equals(header)) {
+                       assertThat(value).isEqualTo("bar");
+                       latch.countDown();
+                    }
+                 })
+                 .bodyExtractor((r, input) -> {
+                    byte[] bytes = new byte[input.readableBytes()];
+                    input.readBytes(bytes, 0, bytes.length);
+                    assertThat(new String(bytes)).isEqualTo("hello from server");
+                    latch.countDown();
+                 })
+                 .onCompletion(s -> latch.countDown())
+                 .build();
+           request.start(handlers, new SequenceInstance());
+           pool.request(request, HttpMethod.GET, s -> "/", null, null);
         });
 
         assertThat(latch.await(3, TimeUnit.SECONDS)).isTrue();

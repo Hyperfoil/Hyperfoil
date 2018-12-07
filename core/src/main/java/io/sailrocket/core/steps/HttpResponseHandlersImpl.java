@@ -5,14 +5,14 @@ import java.lang.reflect.Array;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.function.IntConsumer;
 
 import io.netty.buffer.ByteBuf;
+import io.sailrocket.api.connection.Request;
 import io.sailrocket.api.http.BodyExtractor;
 import io.sailrocket.api.http.HeaderExtractor;
-import io.sailrocket.api.collection.RequestQueue;
+import io.sailrocket.api.http.HttpResponseHandlers;
+import io.sailrocket.api.http.RawBytesHandler;
 import io.sailrocket.api.session.Session;
 import io.sailrocket.api.statistics.Statistics;
 import io.sailrocket.api.http.StatusExtractor;
@@ -20,13 +20,12 @@ import io.sailrocket.core.api.ResourceUtilizer;
 import io.sailrocket.api.http.BodyValidator;
 import io.sailrocket.api.http.HeaderValidator;
 import io.sailrocket.api.http.StatusValidator;
-import io.sailrocket.function.SerializableBiConsumer;
 import io.sailrocket.function.SerializableConsumer;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-public class HttpResponseHandler implements ResourceUtilizer, Session.ResourceKey<HttpResponseHandler.HandlerInstances>, Serializable {
-   private static final Logger log = LoggerFactory.getLogger(HttpResponseHandler.class);
+public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceUtilizer, Serializable {
+   private static final Logger log = LoggerFactory.getLogger(HttpResponseHandlersImpl.class);
    private static final boolean trace = log.isTraceEnabled();
 
    private final StatusValidator[] statusValidators;
@@ -36,16 +35,16 @@ public class HttpResponseHandler implements ResourceUtilizer, Session.ResourceKe
    private final HeaderExtractor[] headerExtractors;
    private final BodyExtractor[] bodyExtractors;
    private final SerializableConsumer<Session>[] completionHandlers;
-   private final SerializableBiConsumer<Session, ByteBuf>[] rawBytesHandlers;
+   private final RawBytesHandler[] rawBytesHandlers;
 
-   private HttpResponseHandler(StatusValidator[] statusValidators,
-                               HeaderValidator[] headerValidators,
-                               BodyValidator[] bodyValidators,
-                               StatusExtractor[] statusExtractors,
-                               HeaderExtractor[] headerExtractors,
-                               BodyExtractor[] bodyExtractors,
-                               SerializableConsumer<Session>[] completionHandlers,
-                               SerializableBiConsumer<Session, ByteBuf>[] rawBytesHandlers) {
+   private HttpResponseHandlersImpl(StatusValidator[] statusValidators,
+                                    HeaderValidator[] headerValidators,
+                                    BodyValidator[] bodyValidators,
+                                    StatusExtractor[] statusExtractors,
+                                    HeaderExtractor[] headerExtractors,
+                                    BodyExtractor[] bodyExtractors,
+                                    SerializableConsumer<Session>[] completionHandlers,
+                                    RawBytesHandler[] rawBytesHandlers) {
       this.statusValidators = statusValidators;
       this.headerValidators = headerValidators;
       this.bodyValidators = bodyValidators;
@@ -56,10 +55,11 @@ public class HttpResponseHandler implements ResourceUtilizer, Session.ResourceKe
       this.rawBytesHandlers = rawBytesHandlers;
    }
 
-   private void handleStatus(Session session, int status) {
-      RequestQueue.Request request = session.requestQueue().peek();
-      session.currentSequence(request.sequence);
-      if (request.request == null) {
+   @Override
+   public void handleStatus(Request request, int status) {
+      Session session = request.session;
+      session.currentSequence(request.sequence());
+      if (request.isCompleted()) {
          log.trace("#{} Ignoring status {} as the request has been marked completed (failed).", session.uniqueId(), status);
          return;
       }
@@ -67,47 +67,48 @@ public class HttpResponseHandler implements ResourceUtilizer, Session.ResourceKe
       if (trace) {
          log.trace("#{} Received status {}", session.uniqueId(), status);
       }
-      request.sequence.statistics(session).addStatus(status);
+      request.sequence().statistics(session).addStatus(status);
 
       boolean valid = true;
       if (statusValidators != null) {
          for (StatusValidator validator : statusValidators) {
-            valid = valid && validator.validate(session, status);
+            valid = valid && validator.validate(request, status);
          }
       }
       session.validatorResults().addStatus(valid);
       if (statusExtractors != null) {
          for (StatusExtractor extractor : statusExtractors) {
-            extractor.setStatus(status, session);
+            extractor.setStatus(request, status);
          }
       }
 
       // Status is obligatory so we'll init validators/extractors here
       if (headerValidators != null) {
          for (HeaderValidator validator : headerValidators) {
-            validator.beforeHeaders(session);
+            validator.beforeHeaders(request);
          }
       }
       if (headerExtractors != null) {
          for (HeaderExtractor extractor : headerExtractors) {
-            extractor.beforeHeaders(session);
+            extractor.beforeHeaders(request);
          }
       }
       if (bodyValidators != null) {
          for (BodyValidator validator : bodyValidators) {
-            validator.beforeData(session);
+            validator.beforeData(request);
          }
       }
       if (bodyExtractors != null) {
          for (BodyExtractor extractor : bodyExtractors) {
-            extractor.beforeData(session);
+            extractor.beforeData(request);
          }
       }
    }
 
-   private void handleHeader(Session session, String header, String value) {
-      RequestQueue.Request request = session.requestQueue().peek();
-      if (request.request == null) {
+   @Override
+   public void handleHeader(Request request, String header, String value) {
+      Session session = request.session;
+      if (request.isCompleted()) {
          log.trace("#{} Ignoring header on a failed request: {}: {}", session.uniqueId(), header, value);
          return;
       }
@@ -116,39 +117,39 @@ public class HttpResponseHandler implements ResourceUtilizer, Session.ResourceKe
       }
       if (headerValidators != null) {
          for (HeaderValidator validator : headerValidators) {
-            validator.validateHeader(session, header, value);
+            validator.validateHeader(request, header, value);
          }
       }
       if (headerExtractors != null) {
          for (HeaderExtractor extractor : headerExtractors) {
-            extractor.extractHeader(request, header, value, session);
+            extractor.extractHeader(request, header, value);
          }
       }
    }
 
-   private void handleThrowable(Session session, Throwable throwable) {
+   @Override
+   public void handleThrowable(Request request, Throwable throwable) {
+      Session session = request.session;
       if (trace) {
          log.trace("#{} Received exception {}", session.uniqueId(), throwable);
       }
-      // TODO: we need to somehow report failures in all requests on this connection
 
-      while (!session.requestQueue().isFull()) {
-         RequestQueue.Request request = session.requestQueue().complete();
-         request.request = null;
-         if (request.timeoutFuture != null) {
-            request.timeoutFuture.cancel(false);
-            request.timeoutFuture = null;
+      if (completionHandlers != null) {
+         for (Consumer<Session> handler : completionHandlers) {
+            handler.accept(session);
          }
-         request.sequence.statistics(session).incrementResets();
       }
-      session.requestQueue().gc();
+      request.setCompleted();
+      request.sequence().statistics(session).incrementResets();
+      session.requestPool().release(request);
       session.currentSequence(null);
       session.proceed();
    }
 
-   private void handleBodyPart(Session session, ByteBuf buf) {
-      RequestQueue.Request request = session.requestQueue().peek();
-      if (request.request == null) {
+   @Override
+   public void handleBodyPart(Request request, ByteBuf buf) {
+      Session session = request.session;
+      if (request.isCompleted()) {
          log.trace("#{} Ignoring body part ({} bytes) on a failed request.", session.uniqueId(), buf.readableBytes());
          return;
       }
@@ -161,55 +162,56 @@ public class HttpResponseHandler implements ResourceUtilizer, Session.ResourceKe
       int dataStartIndex = buf.readerIndex();
       if (bodyValidators != null) {
          for (BodyValidator validator : bodyValidators) {
-            validator.validateData(session, buf);
+            validator.validateData(request, buf);
             buf.readerIndex(dataStartIndex);
          }
       }
       if (bodyExtractors != null) {
          for (BodyExtractor extractor : bodyExtractors) {
-            extractor.extractData(buf, session);
+            extractor.extractData(request, buf);
             buf.readerIndex(dataStartIndex);
          }
       }
    }
 
-   private void handleEnd(Session session) {
-      long endTime = System.nanoTime();
-      RequestQueue.Request request = session.requestQueue().complete();
-      if (request.request == null) {
+   @Override
+   public boolean hasRawBytesHandler() {
+      return rawBytesHandlers != null && rawBytesHandlers.length > 0;
+   }
+
+   @Override
+   public void handleEnd(Request request) {
+      if (request.isCompleted()) {
          return;
       }
-      if (request.timeoutFuture != null) {
-         request.timeoutFuture.cancel(false);
-         request.timeoutFuture = null;
-      }
+      Session session = request.session;
+      long endTime = System.nanoTime();
       Statistics statistics = session.currentSequence().statistics(session);
-      statistics.recordValue(endTime - request.startTime);
+      statistics.recordValue(endTime - request.startTime());
       statistics.incrementResponses();
-      request.request = null;
 
       boolean headersValid = true;
       if (headerValidators != null) {
          for (HeaderValidator validator : headerValidators) {
-            headersValid = headersValid && validator.validate(session);
+            headersValid = headersValid && validator.validate(request);
          }
       }
       session.validatorResults().addHeader(headersValid);
       if (headerExtractors != null) {
          for (HeaderExtractor extractor : headerExtractors) {
-            extractor.afterHeaders(session);
+            extractor.afterHeaders(request);
          }
       }
       boolean bodyValid = true;
       if (bodyValidators != null) {
          for (BodyValidator validator : bodyValidators) {
-            bodyValid = bodyValid && validator.validate(session);
+            bodyValid = bodyValid && validator.validate(request);
          }
       }
       session.validatorResults().addBody(bodyValid);
       if (bodyExtractors != null) {
          for (BodyExtractor extractor : bodyExtractors) {
-            extractor.afterData(session);
+            extractor.afterData(request);
          }
       }
       if (completionHandlers != null) {
@@ -217,20 +219,23 @@ public class HttpResponseHandler implements ResourceUtilizer, Session.ResourceKe
             handler.accept(session);
          }
       }
+
+      request.setCompleted();
+      session.requestPool().release(request);
       session.currentSequence(null);
       // if anything was blocking due to full request queue we should continue from the right place
       session.proceed();
    }
 
-   private void handleRawBytes(Session session, ByteBuf buf) {
-      for (BiConsumer<Session, ByteBuf> rawBytesHandler : rawBytesHandlers) {
-         rawBytesHandler.accept(session, buf);
+   @Override
+   public void handleRawBytes(Request request, ByteBuf buf) {
+      for (RawBytesHandler rawBytesHandler : rawBytesHandlers) {
+         rawBytesHandler.accept(request, buf);
       }
    }
 
    @Override
    public void reserve(Session session) {
-      session.declareResource(this, new HandlerInstances(session));
       reserveAll(session, statusValidators);
       reserveAll(session, headerValidators);
       reserveAll(session, bodyValidators);
@@ -250,28 +255,6 @@ public class HttpResponseHandler implements ResourceUtilizer, Session.ResourceKe
       }
    }
 
-   class HandlerInstances implements Session.Resource {
-      final IntConsumer handleStatus;
-      final BiConsumer<String, String> handleHeader;
-      final Consumer<Throwable> handleException;
-      final Consumer<ByteBuf> handleBodyPart;
-      final Runnable handleEnd;
-      final Consumer<ByteBuf> handleRawBytes;
-
-      private HandlerInstances(Session session) {
-         handleStatus = status -> handleStatus(session, status);
-         handleHeader = (header, value) -> handleHeader(session, header, value);
-         handleException = throwable -> handleThrowable(session, throwable);
-         handleBodyPart = body -> handleBodyPart(session, body);
-         handleEnd = () -> handleEnd(session);
-         if (HttpResponseHandler.this.rawBytesHandlers != null) {
-            handleRawBytes = buf -> handleRawBytes(session, buf);
-         } else {
-            handleRawBytes = null;
-         }
-      }
-   }
-
    public static class Builder {
       private final HttpRequestStep.Builder parent;
       private List<StatusValidator> statusValidators = new ArrayList<>();
@@ -281,7 +264,11 @@ public class HttpResponseHandler implements ResourceUtilizer, Session.ResourceKe
       private List<HeaderExtractor> headerExtractors = new ArrayList<>();
       private List<BodyExtractor> bodyExtractors = new ArrayList<>();
       private List<SerializableConsumer<Session>> completionHandlers = new ArrayList<>();
-      private List<SerializableBiConsumer<Session, ByteBuf>> rawBytesHandlers = new ArrayList<>();
+      private List<RawBytesHandler> rawBytesHandlers = new ArrayList<>();
+
+      public static Builder forTesting() {
+         return new Builder(null);
+      }
 
       Builder(HttpRequestStep.Builder parent) {
          this.parent = parent;
@@ -322,7 +309,7 @@ public class HttpResponseHandler implements ResourceUtilizer, Session.ResourceKe
          return this;
       }
 
-      public Builder rawBytesHandler(SerializableBiConsumer<Session, ByteBuf> handler) {
+      public Builder rawBytesHandler(RawBytesHandler handler) {
          rawBytesHandlers.add(handler);
          return this;
       }
@@ -331,15 +318,15 @@ public class HttpResponseHandler implements ResourceUtilizer, Session.ResourceKe
          return parent;
       }
 
-      public HttpResponseHandler build() {
-         return new HttpResponseHandler(toArray(statusValidators, StatusValidator.class),
+      public HttpResponseHandlersImpl build() {
+         return new HttpResponseHandlersImpl(toArray(statusValidators, StatusValidator.class),
                toArray(headerValidators, HeaderValidator.class),
                toArray(bodyValidators, BodyValidator.class),
                toArray(statusExtractors, StatusExtractor.class),
                toArray(headerExtractors, HeaderExtractor.class),
                toArray(bodyExtractors, BodyExtractor.class),
                toArray(completionHandlers, SerializableConsumer.class),
-               toArray(rawBytesHandlers, SerializableBiConsumer.class));
+               toArray(rawBytesHandlers, RawBytesHandler.class));
       }
 
       private static <T> T[] toArray(List<T> list, Class<?> component) {

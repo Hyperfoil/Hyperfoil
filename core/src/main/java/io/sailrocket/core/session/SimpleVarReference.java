@@ -16,4 +16,9 @@ public class SimpleVarReference implements VarReference {
    public boolean isSet(Session session) {
       return session.isSet(var);
    }
+
+   @Override
+   public String toString() {
+      return "SimpleVarReference(" + var + ')';
+   }
 }

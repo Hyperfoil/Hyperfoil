@@ -8,10 +8,16 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import io.sailrocket.api.connection.HttpClientPool;
+import io.sailrocket.api.connection.Request;
 import io.sailrocket.api.http.HttpMethod;
+import io.sailrocket.api.http.HttpResponseHandlers;
 import io.sailrocket.api.http.HttpVersion;
+import io.sailrocket.api.session.SequenceInstance;
+import io.sailrocket.api.session.Session;
 import io.sailrocket.core.builders.HttpBuilder;
 import io.sailrocket.core.client.netty.HttpClientPoolImpl;
+import io.sailrocket.core.session.SessionFactory;
+import io.sailrocket.core.steps.HttpResponseHandlersImpl;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
@@ -87,23 +93,22 @@ public class HttpVersionsTest {
                      ctx.fail(result.cause());
                      return;
                   }
-                  client.next().request(HttpMethod.GET, "/ping", null)
-                        .statusHandler(status -> {
+                  Session session = SessionFactory.forTesting();
+                  Request request = session.requestPool().acquire();
+                  HttpResponseHandlers handlers = HttpResponseHandlersImpl.Builder.forTesting()
+                        .statusExtractor((r, status) -> {
                            if (status != expectedStatus) {
                               ctx.fail();
                            }
                         })
-                        .endHandler(() -> {
+                        .onCompletion(s -> {
                            client.shutdown();
                            server.close();
                            async.complete();
-                        })
-                        .exceptionHandler(throwable -> {
-                           client.shutdown();
-                           server.close();
-                           ctx.fail(throwable);
-                        })
-                        .end();
+                        }).build();
+                  request.start(handlers, new SequenceInstance());
+
+                  client.next().request(request, HttpMethod.GET, s -> "/ping", null, null);
                });
             } catch (Exception e) {
                ctx.fail(e);

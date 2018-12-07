@@ -6,6 +6,7 @@ import org.junit.Test;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import io.sailrocket.api.connection.Request;
 import io.sailrocket.api.session.Session;
 import io.sailrocket.core.session.SessionFactory;
 
@@ -61,14 +62,15 @@ public class SearchExtractorTest {
 
    private void runExtractor(SearchExtractor extractor, ExpectProcessor processor, String... text) {
       Session session = SessionFactory.forTesting();
+      Request request = session.requestPool().acquire();
       extractor.reserve(session);
-      extractor.beforeData(session);
+      extractor.beforeData(request);
 
       for (String t : text) {
          ByteBuf data = Unpooled.wrappedBuffer(t.getBytes(StandardCharsets.UTF_8));
-         extractor.extractData(data, session);
+         extractor.extractData(request, data);
       }
-      extractor.afterData(session);
+      extractor.afterData(request);
       processor.validate();
    }
 }

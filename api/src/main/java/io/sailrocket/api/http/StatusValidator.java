@@ -20,11 +20,11 @@ package io.sailrocket.api.http;
 
 import java.io.Serializable;
 
-import io.sailrocket.api.session.Session;
+import io.sailrocket.api.connection.Request;
 
 /**
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
  */
 public interface StatusValidator extends Serializable {
-   boolean validate(Session session, int status);
+   boolean validate(Request request, int status);
 }

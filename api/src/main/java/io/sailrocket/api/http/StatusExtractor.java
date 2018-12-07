@@ -2,8 +2,8 @@ package io.sailrocket.api.http;
 
 import java.io.Serializable;
 
-import io.sailrocket.api.session.Session;
+import io.sailrocket.api.connection.Request;
 
 public interface StatusExtractor extends Serializable {
-   void setStatus(int status, Session session);
+   void setStatus(Request request, int status);
 }

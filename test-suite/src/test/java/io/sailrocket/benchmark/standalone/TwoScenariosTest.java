@@ -113,9 +113,9 @@ public class TwoScenariosTest {
                   .sequence("rig")
                      .step().httpRequest(HttpMethod.GET)
                         .pathGenerator(s -> "/rig?ship=" + encode(((ShipInfo) s.getObject("ship")).name))
-                        .handler().statusValidator(((session, status) -> {
+                        .handler().statusValidator(((request, status) -> {
                            if (status == 200) {
-                              ((ShipInfo) session.getObject("ship")).sailsState = SailsState.RIGGED;
+                              ((ShipInfo) request.session.getObject("ship")).sailsState = SailsState.RIGGED;
                               return true;
                            }
                            return false;
@@ -153,9 +153,9 @@ public class TwoScenariosTest {
                   .sequence("furl")
                      .step().httpRequest(HttpMethod.GET)
                         .pathGenerator(s -> "/furl?ship=" + encode(((ShipInfo) s.getObject("ship")).name))
-                        .handler().statusValidator((session, status) -> {
+                        .handler().statusValidator((request, status) -> {
                            if (status == 200) {
-                              ((ShipInfo) session.getObject("ship")).sailsState = SailsState.RIGGED;
+                              ((ShipInfo) request.session.getObject("ship")).sailsState = SailsState.RIGGED;
                               return true;
                            }
                            return false;

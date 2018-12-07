@@ -21,15 +21,15 @@ package io.sailrocket.api.http;
 
 import java.io.Serializable;
 
-import io.sailrocket.api.session.Session;
+import io.sailrocket.api.connection.Request;
 
 /**
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
  */
 public interface HeaderValidator extends Serializable {
-   void beforeHeaders(Session session);
+   void beforeHeaders(Request request);
 
-   void validateHeader(Session session, String header, String value);
+   void validateHeader(Request request, String header, String value);
 
-   boolean validate(Session session);
+   boolean validate(Request request);
 }

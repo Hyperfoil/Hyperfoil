@@ -3,10 +3,12 @@ package io.sailrocket.core.session;
 import java.util.Collections;
 
 import io.netty.util.concurrent.EventExecutorGroup;
+import io.netty.util.concurrent.ImmediateEventExecutor;
 import io.sailrocket.api.config.Phase;
 import io.sailrocket.api.config.Scenario;
 import io.sailrocket.api.config.Sequence;
 import io.sailrocket.api.session.Session;
+import io.sailrocket.api.statistics.Statistics;
 import io.sailrocket.core.impl.PhaseInstanceImpl;
 
 public final class SessionFactory {
@@ -28,6 +30,7 @@ public final class SessionFactory {
          public void reserveSessions() {
          }
       });
+      session.attach(ImmediateEventExecutor.INSTANCE, null, new Statistics[]{new Statistics()});
       return session;
    }
 

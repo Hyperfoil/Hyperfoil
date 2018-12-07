@@ -1,11 +1,11 @@
 package io.sailrocket.core.session;
 
 import io.netty.util.concurrent.EventExecutor;
+import io.sailrocket.api.collection.Pool;
+import io.sailrocket.api.connection.Request;
 import io.sailrocket.api.config.Phase;
 import io.sailrocket.api.config.Scenario;
 import io.sailrocket.api.config.Sequence;
-import io.sailrocket.api.collection.RequestQueue;
-import io.sailrocket.api.connection.Connection;
 import io.sailrocket.api.connection.HttpConnectionPool;
 import io.sailrocket.api.http.ValidatorResults;
 import io.sailrocket.api.session.SequenceInstance;
@@ -29,8 +29,9 @@ class SessionImpl implements Session, Runnable {
    private final Map<Object, Var> vars = new HashMap<>();
    private final Map<ResourceKey, Resource> resources = new HashMap<>();
    private final List<Var> allVars = new ArrayList<>();
-   private final RequestQueueImpl requestQueue;
    private final Pool<SequenceInstance> sequencePool;
+   private final Pool<Request> requestPool;
+   private final Request[] requests;
    private final SequenceInstance[] runningSequences;
    private PhaseInstance phase;
    private int lastRunningSequence = -1;
@@ -44,8 +45,12 @@ class SessionImpl implements Session, Runnable {
    private final int uniqueId;
 
    public SessionImpl(Scenario scenario, int uniqueId) {
-      this.requestQueue = new RequestQueueImpl(this, scenario.maxRequests());
       this.sequencePool = new Pool<>(scenario.maxSequences(), SequenceInstance::new);
+      this.requests = new Request[16];
+      for (int i = 0; i < requests.length; ++i) {
+         this.requests[i] = new Request(this);
+      }
+      this.requestPool = new Pool<>(this.requests);
       this.runningSequences = new SequenceInstance[scenario.maxSequences()];
       this.uniqueId = uniqueId;
 
@@ -203,14 +208,7 @@ class SessionImpl implements Session, Runnable {
                   sequencePool.release(runningSequences[j]);
                   lastRunningSequence = -1;
                }
-               // We need to close all connections used to ongoing requests, despite these might
-               // carry requests from independent phases/sessions
-               while (!requestQueue.isFull()) {
-                  RequestQueue.Request request = requestQueue.complete();
-                  Connection connection = request.request.connection();
-                  connection.close();
-                  request.request = null;
-               }
+               cancelRequests();
                reset();
                if (trace) {
                   log.trace("#{} Session terminated", uniqueId);
@@ -244,19 +242,27 @@ class SessionImpl implements Session, Runnable {
          }
       }
       log.trace("#{} Session finished", uniqueId);
-      if (!requestQueue.isFull()) {
+      if (!requestPool.isFull()) {
          log.warn("#{} Session completed with requests in-flight!", uniqueId);
-         // We need to close all connections used to ongoing requests, despite these might
-         // carry requests from independent phases/sessions
-         do {
-            RequestQueue.Request request = requestQueue.complete();
-            Connection connection = request.request.connection();
-            connection.close();
-            request.request = null;
-         } while (!requestQueue.isFull());
+         cancelRequests();
+
       }
       reset();
       phase.notifyFinished(this);
+   }
+
+   private void cancelRequests() {
+      // We need to close all connections used to ongoing requests, despite these might
+      // carry requests from independent phases/sessions
+      if (!requestPool.isFull()) {
+         for (Request request : requests) {
+            if (!request.isCompleted()) {
+               request.connection().close();
+               request.setCompleted();
+               requestPool.release(request);
+            }
+         }
+      }
    }
 
    @Override
@@ -310,7 +316,8 @@ class SessionImpl implements Session, Runnable {
 
    @Override
    public void reset() {
-      sequencePool.checkFull();
+      assert sequencePool.isFull();
+      assert requestPool.isFull();
       for (int i = 0; i < allVars.size(); ++i) {
          allVars.get(i).unset();
       }
@@ -354,8 +361,8 @@ class SessionImpl implements Session, Runnable {
    }
 
    @Override
-   public RequestQueue requestQueue() {
-      return requestQueue;
+   public Pool<Request> requestPool() {
+      return requestPool;
    }
 
    public SequenceInstance acquireSequence() {

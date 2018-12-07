@@ -4,10 +4,11 @@ import java.util.Map;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.util.concurrent.EventExecutor;
+import io.sailrocket.api.collection.Pool;
+import io.sailrocket.api.connection.Request;
 import io.sailrocket.api.connection.HttpConnectionPool;
 import io.sailrocket.api.statistics.Statistics;
 import io.sailrocket.api.http.ValidatorResults;
-import io.sailrocket.api.collection.RequestQueue;
 import io.sailrocket.api.config.Phase;
 
 public interface Session {
@@ -28,8 +29,6 @@ public interface Session {
    Statistics statistics(int sequenceId);
 
    Statistics[] statistics();
-
-   RequestQueue requestQueue();
 
    /// Variable-related methods
    Session declare(Object key);
@@ -86,6 +85,8 @@ public interface Session {
    void fail(Throwable t);
 
    boolean isActive();
+
+   Pool<Request> requestPool();
 
    interface Processor {
       /**

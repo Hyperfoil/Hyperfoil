@@ -1,29 +1,17 @@
 package io.sailrocket.api.http;
 
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-import java.util.function.IntConsumer;
-
 import io.netty.buffer.ByteBuf;
+import io.sailrocket.api.connection.Request;
+import io.sailrocket.api.connection.ResponseHandlers;
 
-public interface HttpResponseHandlers {
-   IntConsumer statusHandler();
+public interface HttpResponseHandlers extends ResponseHandlers {
+   void handleStatus(Request request, int status);
 
-   Consumer<ByteBuf> dataHandler();
+   void handleHeader(Request request, String header, String value);
 
-   Runnable endHandler();
+   void handleBodyPart(Request request, ByteBuf buf);
 
-   BiConsumer<String, String> headerHandler();
+   boolean hasRawBytesHandler();
 
-   Consumer<Throwable> exceptionHandler();
-
-   IntConsumer resetHandler();
-
-   Consumer<ByteBuf> rawBytesHandler();
-
-   boolean isCompleted();
-
-   void setCompleted();
-
-   HttpMethod method();
+   void handleRawBytes(Request request, ByteBuf buf);
 }

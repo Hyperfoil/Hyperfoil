@@ -5,16 +5,19 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.EventLoop;
 import io.netty.util.concurrent.EventExecutor;
+import io.sailrocket.api.connection.Request;
 import io.sailrocket.api.connection.HttpClientPool;
 import io.sailrocket.api.connection.HttpConnection;
 import io.sailrocket.api.connection.HttpConnectionPool;
+import io.sailrocket.api.connection.HttpRequestWriter;
 import io.sailrocket.api.http.HttpMethod;
-import io.sailrocket.api.http.HttpRequest;
 import io.sailrocket.api.session.Session;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
@@ -51,18 +54,20 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
    }
 
    @Override
-   public HttpRequest request(HttpMethod method, String path, ByteBuf body) {
+   public boolean request(Request request, HttpMethod method, Function<Session, String> pathGenerator, BiConsumer<Session, HttpRequestWriter>[] headerAppenders, Function<Session, ByteBuf> bodyGenerator) {
       assert eventLoop.inEventLoop();
       HttpConnection connection = available.pollFirst();
       if (connection == null) {
-         return null;
+         return false;
       }
-      HttpRequest request = connection.request(method, path, body);
+      request.setRequestData(method);
+      request.attach(connection);
+      connection.request(request, method, pathGenerator, headerAppenders, bodyGenerator);
       // Move it to the back of the queue if it is still available (do not prefer it for subsequent requests)
       if (connection.isAvailable()) {
          available.addLast(connection);
       }
-      return request;
+      return true;
    }
 
    @Override

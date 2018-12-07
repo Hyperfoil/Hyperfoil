@@ -58,20 +58,10 @@
  * The choice of index is up to the Step that creates the new sequences. Two concurrently enabled sequences may share
  * the same index, but in that case these should not use the same variable names for sequence-scoped data.
  *
- * <h2>Recording statistics</h2>
- *
- * When processing a response the original request would not be available as the handler is stateless, and we can have
- * several requests in-flight. We need to find out a time when the request started, though, and that's why the session
- * holds a {@link io.sailrocket.core.session.RequestQueueImpl}. Since all requests are sent over the same connection (ATM)
- * and responses are received FIFO we can push the {@link io.sailrocket.core.session.RequestQueueImpl.Request} with
- * the start timestamp and retrieve it when processing the response. Since this queue is bounded, this effectively
- * limits the number of concurrent requests.
- *
  * <h2>Threading model</h2>
  *
- * There's no internal synchronization of anything; we rely on the event-loop model. It is expected that at any moment
- * the {@link io.sailrocket.api.session.Session} will be accessed (read or write) by at most one thread. It does not need to be
- * a single thread, therefore the use of thread-locals is strongly discouraged.
+ * There's no internal synchronization of anything; we rely on the event-loop model.
+ * Each {@link io.sailrocket.api.session.Session session} is tied to a single-threaded {@link io.netty.channel.EventLoop event loop}.
  */
 package io.sailrocket.core.session;
 
