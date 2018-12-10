@@ -279,9 +279,17 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          return this;
       }
 
+      public ServiceLoadedBuilder<StatusValidator> statusValidator() {
+         return new ServiceLoadedBuilder<>(StatusValidator.BuilderFactory.class, this::statusValidator);
+      }
+
       public Builder headerValidator(HeaderValidator validator) {
          headerValidators.add(validator);
          return this;
+      }
+
+      public ServiceLoadedBuilder<HeaderValidator> headerValidator() {
+         return new ServiceLoadedBuilder<>(HeaderValidator.BuilderFactory.class, this::headerValidator);
       }
 
       public Builder bodyValidator(BodyValidator validator) {
@@ -289,9 +297,17 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          return this;
       }
 
+      public ServiceLoadedBuilder<BodyValidator> bodyValidator() {
+         return new ServiceLoadedBuilder<>(BodyValidator.BuilderFactory.class, this::bodyValidator);
+      }
+
       public Builder statusExtractor(StatusExtractor extractor) {
          statusExtractors.add(extractor);
          return this;
+      }
+
+      public ServiceLoadedBuilder<StatusExtractor> statusExtractor() {
+         return new ServiceLoadedBuilder<>(StatusExtractor.BuilderFactory.class, this::statusExtractor);
       }
 
       public Builder headerExtractor(HeaderExtractor extractor) {
@@ -299,9 +315,17 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          return this;
       }
 
+      public ServiceLoadedBuilder<HeaderExtractor> headerExtractor() {
+         return new ServiceLoadedBuilder<>(HeaderExtractor.BuilderFactory.class, this::headerExtractor);
+      }
+
       public Builder bodyExtractor(BodyExtractor extractor) {
          bodyExtractors.add(extractor);
          return this;
+      }
+
+      public ServiceLoadedBuilder<BodyExtractor> bodyExtractor() {
+         return new ServiceLoadedBuilder<>(BodyExtractor.BuilderFactory.class, this::bodyExtractor);
       }
 
       public Builder onCompletion(SerializableConsumer<Session> handler) {

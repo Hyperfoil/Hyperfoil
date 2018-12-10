@@ -21,6 +21,7 @@ package io.sailrocket.api.http;
 import java.io.Serializable;
 
 import io.netty.buffer.ByteBuf;
+import io.sailrocket.api.config.LoadedBuilder;
 import io.sailrocket.api.connection.Request;
 
 public interface BodyExtractor extends Serializable {
@@ -28,4 +29,6 @@ public interface BodyExtractor extends Serializable {
     default void beforeData(Request request) {}
     void extractData(Request request, ByteBuf data);
     default void afterData(Request request) {}
+
+    interface BuilderFactory extends LoadedBuilder.Factory<BodyExtractor> {}
 }

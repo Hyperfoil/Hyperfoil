@@ -2,6 +2,7 @@ package io.sailrocket.api.http;
 
 import java.io.Serializable;
 
+import io.sailrocket.api.config.LoadedBuilder;
 import io.sailrocket.api.connection.Request;
 
 public interface HeaderExtractor extends Serializable {
@@ -12,4 +13,6 @@ public interface HeaderExtractor extends Serializable {
 
    default void afterHeaders(Request request) {
    }
+
+   interface BuilderFactory extends LoadedBuilder.Factory<HeaderExtractor> {}
 }

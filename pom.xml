@@ -73,6 +73,7 @@
         <hdrhistogram.version>2.1.9</hdrhistogram.version>
         <junit.version>4.12</junit.version>
         <log4j2.version>2.11.1</log4j2.version>
+        <metainf-services.version>1.4</metainf-services.version>
         <slf4j.version>1.7.12</slf4j.version>
         <snakeYaml.version>1.22</snakeYaml.version>
         <netty.tcnative.boringssl.version>2.0.19.Final</netty.tcnative.boringssl.version>
@@ -200,6 +201,12 @@
                 <groupId>org.aesh</groupId>
                 <artifactId>aesh</artifactId>
                 <version>1.9</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.kohsuke.metainf-services</groupId>
+                <artifactId>metainf-services</artifactId>
+                <version>${metainf-services.version}</version>
             </dependency>
 
             <dependency>

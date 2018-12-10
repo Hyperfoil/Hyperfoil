@@ -9,11 +9,14 @@ import org.yaml.snakeyaml.events.Event;
 import org.yaml.snakeyaml.events.MappingEndEvent;
 import org.yaml.snakeyaml.events.MappingStartEvent;
 import org.yaml.snakeyaml.events.ScalarEvent;
+import org.yaml.snakeyaml.events.SequenceEndEvent;
 import org.yaml.snakeyaml.events.SequenceStartEvent;
 
+import io.sailrocket.api.config.LoadedBuilder;
 import io.sailrocket.core.builders.BaseSequenceBuilder;
 import io.sailrocket.core.builders.SequenceBuilder;
 import io.sailrocket.core.builders.StepDiscriminator;
+import io.sailrocket.core.steps.ServiceLoadedBuilder;
 
 class StepParser implements Parser<BaseSequenceBuilder> {
    private static final StepParser INSTANCE = new StepParser();
@@ -45,18 +48,15 @@ class StepParser implements Parser<BaseSequenceBuilder> {
       return INSTANCE;
    }
 
+   private StepParser() {}
+
    @Override
    public void parse(Context ctx, BaseSequenceBuilder target) throws ParserException {
       Event firstEvent = ctx.next();
       StepDiscriminator discriminator = target.step();
       if (firstEvent instanceof ScalarEvent) {
          ScalarEvent stepEvent = (ScalarEvent) firstEvent;
-         Method step = findMethod(stepEvent, discriminator, stepEvent.getValue(), 0);
-         try {
-            step.invoke(discriminator);
-         } catch (IllegalAccessException | InvocationTargetException e) {
-            throw cannotCreate(stepEvent, e);
-         }
+         invokeWithNoArgs(discriminator, stepEvent, stepEvent.getValue());
          return;
       } else if (!(firstEvent instanceof MappingStartEvent)) {
          throw ctx.unexpectedEvent(firstEvent);
@@ -75,80 +75,114 @@ class StepParser implements Parser<BaseSequenceBuilder> {
       if (!ctx.hasNext()) {
          throw ctx.noMoreEvents(ScalarEvent.class, MappingStartEvent.class, MappingEndEvent.class, SequenceStartEvent.class);
       }
+      invokeWithParameters(ctx, discriminator, stepEvent);
+      ctx.expectEvent(MappingEndEvent.class);
+   }
+
+   private void invokeWithParameters(Context ctx, Object target, ScalarEvent keyEvent) throws ParserException {
       Event defEvent = ctx.peek();
+      String key = keyEvent.getValue();
       if (defEvent instanceof MappingEndEvent) {
          // end of list item -> no arg step
-         Method step = findMethod(stepEvent, discriminator, stepEvent.getValue(), 0);
-         try {
-            step.invoke(discriminator);
-         } catch (IllegalAccessException | InvocationTargetException e) {
-            throw cannotCreate(stepEvent, e);
-         }
+         invokeWithNoArgs(target, keyEvent, key);
          // we'll expect the mapping end at the end
       } else if (defEvent instanceof ScalarEvent) {
          // - step : param syntax
          String value = ((ScalarEvent) defEvent).getValue();
-         Method step = findMethod(stepEvent, discriminator, stepEvent.getValue(), 1);
-         Object param = convert(defEvent, value, step.getParameterTypes()[0]);
-         try {
-            step.invoke(discriminator, param);
-         } catch (IllegalAccessException | InvocationTargetException e) {
-            throw cannotCreate(stepEvent, e);
+         if (value != null && !value.isEmpty()) {
+            Method method = findMethod(keyEvent, target, key, 1);
+            Object param = convert(defEvent, value, method.getParameterTypes()[0]);
+            try {
+               method.invoke(target, param);
+            } catch (IllegalAccessException | InvocationTargetException e) {
+               throw cannotCreate(keyEvent, e);
+            }
+         } else {
+            invokeWithNoArgs(target, keyEvent, key);
          }
          ctx.consumePeeked(defEvent);
       } else if (defEvent instanceof MappingStartEvent) {
-         Method step = findMethod(stepEvent, discriminator, stepEvent.getValue(), -1);
-         Object[] args = new Object[step.getParameterCount()];
-         Class<?>[] parameterTypes = step.getParameterTypes();
+         Method method = findMethod(keyEvent, target, key, -1);
+         Object[] args = new Object[method.getParameterCount()];
+         Class<?>[] parameterTypes = method.getParameterTypes();
          for (int i = 0; i < parameterTypes.length; i++) {
             args[i] = defaultValue(parameterTypes[i]);
          }
          Object builder;
          try {
-            builder = step.invoke(discriminator, args);
+            builder = method.invoke(target, args);
          } catch (IllegalAccessException | InvocationTargetException e) {
-            throw cannotCreate(stepEvent, e);
+            throw cannotCreate(keyEvent, e);
          }
          ctx.consumePeeked(defEvent);
-         while (ctx.hasNext()) {
+         if (builder instanceof ServiceLoadedBuilder) {
             defEvent = ctx.next();
             if (defEvent instanceof MappingEndEvent) {
-               break;
+               throw new ParserException(defEvent, "Expecting builder type but found end of mapping.");
             } else if (defEvent instanceof ScalarEvent) {
-               Method setter = findSetter(defEvent, builder, ((ScalarEvent) defEvent).getValue());
-               Object[] setterArgs;
-               ScalarEvent paramEvent = ctx.expectEvent(ScalarEvent.class);
-               if (setter.getParameterCount() == 0) {
-                  if (paramEvent.getValue() != null && !paramEvent.getValue().isEmpty()) {
-                     throw new ParserException(paramEvent, "Setter '" + setter.getName() + "' has no args, keep the mapping empty.");
-                  }
-                  setterArgs = new Object[0];
-               } else {
-                  setterArgs = new Object[] { convert(defEvent, paramEvent.getValue(), setter.getParameterTypes()[0]) };
-               }
-               try {
-                  setter.invoke(builder, setterArgs);
-               } catch (IllegalAccessException | InvocationTargetException e) {
-                  throw new ParserException(defEvent, "Cannot run setter '" + setter + "'", e);
-               }
+               String name = ((ScalarEvent) defEvent).getValue();
+               ServiceLoadedBuilder<?> serviceLoadedBuilder = (ServiceLoadedBuilder<?>) builder;
+               LoadedBuilder loadedBuilder = serviceLoadedBuilder.forName(name);
+               ctx.expectEvent(MappingStartEvent.class);
+               applyMapping(ctx, loadedBuilder);
+               // applyMapping consumes MappingEndEvent
             } else {
                throw ctx.unexpectedEvent(defEvent);
             }
+            ctx.expectEvent(MappingEndEvent.class);
+         } else {
+            applyMapping(ctx, builder);
          }
       } else if (defEvent instanceof SequenceStartEvent) {
          Object builder;
-         Method step = findMethod(stepEvent, discriminator, stepEvent.getValue(), 0);
+         Method step = findMethod(keyEvent, target, key, 0);
          try {
-            builder = step.invoke(discriminator);
+            builder = step.invoke(target);
          } catch (IllegalAccessException | InvocationTargetException e) {
-            throw cannotCreate(stepEvent, e);
+            throw cannotCreate(keyEvent, e);
          }
-         if (!(builder instanceof BaseSequenceBuilder)) {
-            throw new ParserException(defEvent, "Builder on step '" + stepEvent.getValue() + "' does not allow nested steps.");
+         if (builder instanceof BaseSequenceBuilder) {
+            ctx.parseList((BaseSequenceBuilder) builder, StepParser.instance());
+         } else {
+            ctx.consumePeeked(defEvent);
+            while (ctx.hasNext()) {
+               defEvent = ctx.next();
+               if (defEvent instanceof SequenceEndEvent) {
+                  break;
+               } else if (defEvent instanceof ScalarEvent) {
+                  invokeWithParameters(ctx, builder, (ScalarEvent) defEvent);
+               } else if (defEvent instanceof MappingStartEvent) {
+                  defEvent = ctx.expectEvent(ScalarEvent.class);
+                  invokeWithParameters(ctx, builder, (ScalarEvent) defEvent);
+                  ctx.expectEvent(MappingEndEvent.class);
+               } else {
+                  throw ctx.unexpectedEvent(defEvent);
+               }
+            }
          }
-         ctx.parseList((BaseSequenceBuilder) builder, StepParser.instance());
       }
-      ctx.expectEvent(MappingEndEvent.class);
+   }
+
+   private void invokeWithNoArgs(Object target, ScalarEvent keyEvent, String key) throws ParserException {
+      Method method = findMethod(keyEvent, target, key, 0);
+      try {
+         method.invoke(target);
+      } catch (IllegalAccessException | InvocationTargetException e) {
+         throw cannotCreate(keyEvent, e);
+      }
+   }
+
+   private void applyMapping(Context ctx, Object builder) throws ParserException {
+      while (ctx.hasNext()) {
+         Event event = ctx.next();
+         if (event instanceof MappingEndEvent) {
+            break;
+         } else if (event instanceof ScalarEvent) {
+            invokeWithParameters(ctx, builder, (ScalarEvent) event);
+         } else {
+            throw ctx.unexpectedEvent(event);
+         }
+      }
    }
 
    private Method findMethod(Event event, Object target, String name, int params) throws ParserException {
@@ -161,12 +195,6 @@ class StepParser implements Parser<BaseSequenceBuilder> {
       } else {
          return Stream.of(candidates).reduce(StepParser::selectMethod).get();
       }
-   }
-
-   private Method findSetter(Event event, Object target, String setter) throws ParserException {
-      return Stream.of(target.getClass().getMethods())
-            .filter(m -> setter.equals(m.getName()) && m.getParameterCount() <= 1).findFirst()
-            .orElseThrow(() -> new ParserException(event, "Cannot find setter '" + setter + "' on '" + target + "'"));
    }
 
    private Object convert(Event event, String str, Class<?> type) throws ParserException {
@@ -197,7 +225,7 @@ class StepParser implements Parser<BaseSequenceBuilder> {
    }
 
    private ParserException cannotCreate(ScalarEvent event, Exception exception) {
-      return new ParserException(event, "Cannot create step '" + event.getValue() + "'", exception);
+      return new ParserException(event, "Cannot create step/builder '" + event.getValue() + "'", exception);
    }
 
 }

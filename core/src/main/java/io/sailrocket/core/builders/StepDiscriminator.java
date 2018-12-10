@@ -10,6 +10,7 @@ import io.sailrocket.api.session.Session;
 import io.sailrocket.core.steps.AwaitAllResponsesStep;
 import io.sailrocket.core.steps.AwaitConditionStep;
 import io.sailrocket.core.steps.AwaitDelayStep;
+import io.sailrocket.core.steps.AwaitIntStep;
 import io.sailrocket.core.steps.BreakSequenceStep;
 import io.sailrocket.core.steps.ForeachStep;
 import io.sailrocket.core.steps.HttpRequestStep;
@@ -98,6 +99,10 @@ public class StepDiscriminator {
 
    public BaseSequenceBuilder awaitCondition(Predicate<Session> condition) {
       return parent.step(new AwaitConditionStep(condition));
+   }
+
+   public AwaitIntStep.Builder awaitInt() {
+      return new AwaitIntStep.Builder(parent);
    }
 
    public <T> PollStep.Builder<T> poll(Function<Session, T> provider, String intoVar) {

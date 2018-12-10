@@ -21,6 +21,7 @@ package io.sailrocket.api.http;
 
 import java.io.Serializable;
 
+import io.sailrocket.api.config.LoadedBuilder;
 import io.sailrocket.api.connection.Request;
 
 /**
@@ -32,4 +33,6 @@ public interface HeaderValidator extends Serializable {
    void validateHeader(Request request, String header, String value);
 
    boolean validate(Request request);
+
+   interface BuilderFactory extends LoadedBuilder.Factory<HeaderValidator> {}
 }
