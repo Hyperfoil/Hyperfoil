@@ -58,4 +58,9 @@ public class SequenceImpl implements Sequence {
    public String phase() {
       return phase;
    }
+
+   @Override
+   public Step[] steps() {
+      return steps;
+   }
 }

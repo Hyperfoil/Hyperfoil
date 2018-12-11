@@ -5,7 +5,7 @@ import java.util.function.Consumer;
 import org.kohsuke.MetaInfServices;
 
 import io.sailrocket.api.config.BenchmarkDefinitionException;
-import io.sailrocket.api.config.LoadedBuilder;
+import io.sailrocket.api.config.ServiceLoadedBuilder;
 import io.sailrocket.api.connection.Request;
 import io.sailrocket.api.http.StatusExtractor;
 import io.sailrocket.api.session.Session;
@@ -49,7 +49,7 @@ public class StatusToCounterExtractor implements StatusExtractor, ResourceUtiliz
       session.declareInt(var);
    }
 
-   public static class Builder implements LoadedBuilder {
+   public static class Builder implements ServiceLoadedBuilder {
       private final Consumer<StatusExtractor> buildTarget;
       private Integer expectStatus;
       private String var;
@@ -105,7 +105,10 @@ public class StatusToCounterExtractor implements StatusExtractor, ResourceUtiliz
       }
 
       @Override
-      public LoadedBuilder newBuilder(Consumer<StatusExtractor> buildTarget) {
+      public ServiceLoadedBuilder newBuilder(Consumer<StatusExtractor> buildTarget, String param) {
+         if (param != null) {
+            throw new BenchmarkDefinitionException(StatusToCounterExtractor.class.getName() + " does not accept inline parameter");
+         }
          return new Builder(buildTarget);
       }
    }

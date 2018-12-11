@@ -1,10 +1,12 @@
 package io.sailrocket.core.builders;
 
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
+import io.sailrocket.api.config.Step;
 import io.sailrocket.api.http.HttpMethod;
 import io.sailrocket.api.session.Session;
 import io.sailrocket.core.steps.AwaitAllResponsesStep;
@@ -17,6 +19,7 @@ import io.sailrocket.core.steps.HttpRequestStep;
 import io.sailrocket.core.steps.LoopStep;
 import io.sailrocket.core.steps.PollStep;
 import io.sailrocket.core.steps.ScheduleDelayStep;
+import io.sailrocket.core.steps.ServiceLoadedBuilderProvider;
 import io.sailrocket.core.steps.StopwatchBeginStep;
 
 /**
@@ -111,5 +114,9 @@ public class StepDiscriminator {
 
    public <T> PollStep.Builder<T> poll(Supplier<T> supplier, String intoVar) {
       return new PollStep.Builder<>(parent, session -> supplier.get(), intoVar);
+   }
+
+   public ServiceLoadedBuilderProvider<List<Step>> serviceLoaded() {
+      return new ServiceLoadedBuilderProvider<>(Step.BuilderFactory.class, steps -> steps.forEach(parent::step));
    }
 }

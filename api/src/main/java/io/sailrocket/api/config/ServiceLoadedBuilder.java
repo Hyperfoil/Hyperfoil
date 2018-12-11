@@ -2,11 +2,11 @@ package io.sailrocket.api.config;
 
 import java.util.function.Consumer;
 
-public interface LoadedBuilder {
+public interface ServiceLoadedBuilder {
    void apply();
 
    interface Factory<T> {
       String name();
-      LoadedBuilder newBuilder(Consumer<T> buildTarget);
+      ServiceLoadedBuilder newBuilder(Consumer<T> buildTarget, String param);
    }
 }

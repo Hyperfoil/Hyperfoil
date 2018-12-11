@@ -20,8 +20,14 @@ package io.sailrocket.core.builder;
 
 import io.sailrocket.api.config.Benchmark;
 import io.sailrocket.api.config.Phase;
+import io.sailrocket.api.config.Sequence;
+import io.sailrocket.api.config.Step;
 import io.sailrocket.core.parser.BenchmarkParser;
 import io.sailrocket.core.parser.ParserException;
+import io.sailrocket.core.steps.AwaitIntStep;
+import io.sailrocket.core.steps.HttpRequestStep;
+import io.sailrocket.core.steps.NoopStep;
+import io.sailrocket.core.steps.ScheduleDelayStep;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -40,6 +46,17 @@ public class YamlParserTest {
     public void testSimpleYaml() {
         Benchmark benchmark = buildBenchmark("scenarios/simple.yaml");
         assertThat(benchmark.name()).isEqualTo("simple benchmark");
+        Phase[] phases = benchmark.simulation().phases().toArray(new Phase[0]);
+        assertThat(phases.length).isEqualTo(3);
+        Sequence[] sequences = phases[0].scenario().sequences();
+        assertThat(sequences.length).isEqualTo(1);
+        Step[] steps = sequences[0].steps();
+        assertThat(steps.length).isEqualTo(5);
+        assertThat(steps[0]).isInstanceOf(HttpRequestStep.class);
+        assertThat(steps[1]).isInstanceOf(HttpRequestStep.class);
+        assertThat(steps[2]).isInstanceOf(NoopStep.class);
+        assertThat(steps[3]).isInstanceOf(AwaitIntStep.class);
+        assertThat(steps[4]).isInstanceOf(ScheduleDelayStep.class);
     }
 
     @Test

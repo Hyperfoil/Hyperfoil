@@ -6,22 +6,22 @@ import java.util.ServiceLoader;
 import java.util.function.Consumer;
 
 import io.sailrocket.api.config.BenchmarkDefinitionException;
-import io.sailrocket.api.config.LoadedBuilder;
+import io.sailrocket.api.config.ServiceLoadedBuilder;
 
-public class ServiceLoadedBuilder<T> {
-   private static final Map<Class<LoadedBuilder.Factory<?>>, ServiceLoader<LoadedBuilder.Factory<?>>> SERVICE_LOADERS = new HashMap<>();
+public class ServiceLoadedBuilderProvider<T> {
+   private static final Map<Class<ServiceLoadedBuilder.Factory<?>>, ServiceLoader<ServiceLoadedBuilder.Factory<?>>> SERVICE_LOADERS = new HashMap<>();
 
-   private final Class<? extends LoadedBuilder.Factory<T>> factoryClazz;
+   private final Class<? extends ServiceLoadedBuilder.Factory<T>> factoryClazz;
    private final Consumer<T> consumer;
 
-   private static LoadedBuilder.Factory<?> factory(Class<LoadedBuilder.Factory<?>> clazz, String name) {
-      ServiceLoader<LoadedBuilder.Factory<?>> loader = SERVICE_LOADERS.get(clazz);
+   private static ServiceLoadedBuilder.Factory<?> factory(Class<ServiceLoadedBuilder.Factory<?>> clazz, String name) {
+      ServiceLoader<ServiceLoadedBuilder.Factory<?>> loader = SERVICE_LOADERS.get(clazz);
       if (loader == null) {
          loader = ServiceLoader.load(clazz);
          SERVICE_LOADERS.put(clazz, loader);
       }
-      LoadedBuilder.Factory<?> factory = null;
-      for (LoadedBuilder.Factory<?> f : loader) {
+      ServiceLoadedBuilder.Factory<?> factory = null;
+      for (ServiceLoadedBuilder.Factory<?> f : loader) {
          if (f.name().equals(name)) {
             if (factory != null) {
                throw new BenchmarkDefinitionException("Two classes ('" + factory.getClass().getName() +
@@ -37,14 +37,12 @@ public class ServiceLoadedBuilder<T> {
       return factory;
    }
 
-
-   public ServiceLoadedBuilder(Class<? extends LoadedBuilder.Factory<T>> factoryClazz, Consumer<T> consumer) {
+   public ServiceLoadedBuilderProvider(Class<? extends ServiceLoadedBuilder.Factory<T>> factoryClazz, Consumer<T> consumer) {
       this.factoryClazz = factoryClazz;
       this.consumer = consumer;
    }
 
-   public LoadedBuilder forName(String name) {
-      LoadedBuilder builder = factory((Class) factoryClazz, name).newBuilder(consumer);
-      return builder;
+   public ServiceLoadedBuilder forName(String name, String param) {
+      return factory((Class) factoryClazz, name).newBuilder(consumer, param);
    }
 }

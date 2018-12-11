@@ -42,4 +42,7 @@ public interface Sequence extends Serializable {
     String name();
 
     String phase();
+
+    // for testing only
+    Step[] steps();
 }

@@ -22,7 +22,7 @@ package io.sailrocket.api.http;
 import java.io.Serializable;
 
 import io.netty.buffer.ByteBuf;
-import io.sailrocket.api.config.LoadedBuilder;
+import io.sailrocket.api.config.ServiceLoadedBuilder;
 import io.sailrocket.api.connection.Request;
 
 /**
@@ -33,5 +33,5 @@ public interface BodyValidator extends Serializable {
    void validateData(Request request, ByteBuf chunk);
    boolean validate(Request request);
 
-   interface BuilderFactory extends LoadedBuilder.Factory<BodyValidator> {}
+   interface BuilderFactory extends ServiceLoadedBuilder.Factory<BodyValidator> {}
 }
