@@ -99,41 +99,45 @@ There are different types of phases based on the mode of starting new users:
 * `rampPerSec`: Similar to `constantPerSec` but ramps up or down the number of started users
   throughout the execution of the phase.
 
-Note that the type of phase is declared using YAML tags. See the example of phases configuration:
+See the example of phases configuration:
 
 ```yaml
   ...
   phases:
   # Over one minute ramp the number of users started each second from 1 to 100
-  - rampUp: !rampPerSec
-      initialUsersPerSec: 1
-      targetUsersPerSec: 100
-      # We expect at most 200 users being active at one moment - see below
-      maxSessionsEstimate: 200
-      duration: 1m
-      scenario: ...
+  - rampUp:
+      rampPerSec:
+        initialUsersPerSec: 1
+        targetUsersPerSec: 100
+        # We expect at most 200 users being active at one moment - see below
+        maxSessionsEstimate: 200
+        duration: 1m
+        scenario: ...
   # After rampUp is finished, run for 5 minutes and start 100 new users each second
-  - steadyState: !constantPerSec
-      usersPerSec: 100
-      maxSessionsEstimate: 200
-      startAfter: rampUp
-      duration: 5m
-      # If some users get stuck, forcefully terminate them after 6 minutes from the phase start
-      maxDuration: 6m
-      scenario: ...
+  - steadyState:
+      constantPerSec:
+        usersPerSec: 100
+        maxSessionsEstimate: 200
+        startAfter: rampUp
+        duration: 5m
+        # If some users get stuck, forcefully terminate them after 6 minutes from the phase start
+        maxDuration: 6m
+        scenario: ...
   # 2 minutes after the benchmark has started spawn 5 users constantly doing something for 2 minutes
-  - outOfBand: !always
-      users: 5
-      startTime: 2m
-      duration: 2m
-      scenario: ...
-  - final: !atOnce
-      users: 1
-      # Do something at the end: make sure that both rampUp and steadyState are terminated
-      startAfterStrict:
-      - rampUp
-      - steadyState
-      scenario: ...
+  - outOfBand:
+      always:
+        users: 5
+        startTime: 2m
+        duration: 2m
+        scenario: ...
+  - final:
+      atOnce:
+        users: 1
+        # Do something at the end: make sure that both rampUp and steadyState are terminated
+        startAfterStrict:
+        - rampUp
+        - steadyState
+        scenario: ...
 ```
 
 SailRocket initializes all phases before the benchmark starts, pre-allocating memory for sessions.
@@ -151,18 +155,19 @@ phase but slice the users according to their `weight`:
 ```yaml
   ...
   phases:
-  - steadyState: !constantPerSec
-      usersPerSec: 30
-      duration: 5m
-      forks:
-      - sellShares:
-          # This phase will start 10 users per second
-          weight: 1
-          scenario: ...
-      - buyShares:
-          # This phase will start 20 users per second
-          weight: 2
-          scenario: ...
+  - steadyState:
+      constantPerSec:
+        usersPerSec: 30
+        duration: 5m
+        forks:
+        - sellShares:
+            # This phase will start 10 users per second
+            weight: 1
+            scenario: ...
+        - buyShares:
+            # This phase will start 20 users per second
+            weight: 2
+            scenario: ...
 ```
 
 These phases will be later identified as `steadyState/sellShares` and `steadyState/buyShares`. Other phases can still
@@ -174,32 +179,34 @@ In some types of tests it's useful to repeat given phase with increasing load - 
 ```yaml
   ...
   phases:
-  - rampUp: !rampPerSec
-      # Create phases rampUp/000, rampUp/001 and rampUp/002
-      maxIterations: 3
-      # rampUp/000 will go from 1 to 100 users, rampUp will go from 101 to 200 users...
-      initialUsersPerSec:
-        base: 1
-        increment: 100
-      targetUsersPerSec:
-        base: 100
-        increment: 100
-      # rampUp/001 will start after steadyState/000 finishes
-      startAfter:
-        phase: steadyState
-        iteration: previous
-      duration: 1m
-      scenario: ...
-  - steadyState: !constantPerSec
-      maxIterations: 3
-      usersPerSec:
-        base: 100
-        increment: 100
-      # steadyState/000 will start after rampUp/000 finishes
-      startAfter:
-        phase: rampUp
-        iteration: same
-      duration: 5m
+  - rampUp:
+      rampPerSec:
+        # Create phases rampUp/000, rampUp/001 and rampUp/002
+        maxIterations: 3
+        # rampUp/000 will go from 1 to 100 users, rampUp will go from 101 to 200 users...
+        initialUsersPerSec:
+          base: 1
+          increment: 100
+        targetUsersPerSec:
+          base: 100
+          increment: 100
+        # rampUp/001 will start after steadyState/000 finishes
+        startAfter:
+          phase: steadyState
+          iteration: previous
+        duration: 1m
+        scenario: ...
+  - steadyState:
+      constantPerSec:
+        maxIterations: 3
+        usersPerSec:
+          base: 100
+          increment: 100
+        # steadyState/000 will start after rampUp/000 finishes
+        startAfter:
+          phase: rampUp
+          iteration: same
+        duration: 5m
 ```
 
 Similar to forks, there will be a no-op phase `rampUp` that will start after all
@@ -288,21 +295,23 @@ and it would be tedious to repeat these. That's where YAML anchors and aliases c
 ```yaml
   ...
   phases:
-  - rampUp: !rampPerSec
-      scenario:
-        orderedSequences:
-        - login: &login
-          - httpRequest:
-              method: POST
-              path: /login
-          - awaitAllResponses
-          ...
-  - steadyState: !constantPerSec
-      ...
-      scenario:
-        orderedSequences:
-        - login: *login
+  - rampUp:
+      rampPerSec:
+        scenario:
+          orderedSequences:
+          - login: &login
+            - httpRequest:
+                method: POST
+                path: /login
+            - awaitAllResponses
+            ...
+  - steadyState:
+      constantPerSec:
         ...
+        scenario:
+          orderedSequences:
+          - login: *login
+          ...
 ```
 
 The steps from `steadyState/sellShares/login` will be copied verbatim to `steadyState/buyShares/login`.
@@ -311,14 +320,16 @@ The same concept can be applied on whole scenarios:
 
 ```yaml
   phases:
-  - rampUp: !rampPerSec
-      ...
-      scenario: &doSomething
-        orderedSequences:
+  - rampUp:
+      rampPerSec:
         ...
-  - steadyState: !constantPerSec
-      ...
-      scenario: *doSomething
+        scenario: &doSomething
+          orderedSequences:
+          ...
+  - steadyState:
+      constantPerSec:
+        ...
+        scenario: *doSomething
 ```
 
 And forks as well:
@@ -326,18 +337,20 @@ And forks as well:
 ```yaml
   ...
   phases:
-  - rampUp: !rampPerSec
-      ...
-      forks:
-      - sellShares: &sellShares
-          weight: 1
-          scenario: ...
-      - buyShares: &buyShares
-          weight: 2
-          scenario: ...
-  - steadyState: !constantPerSec
-      ...
-      forks:
-      - sellShares: *sellShares
-      - buyShares: *buyShares
+  - rampUp:
+      rampPerSec:
+        ...
+        forks:
+        - sellShares: &sellShares
+            weight: 1
+            scenario: ...
+        - buyShares: &buyShares
+            weight: 2
+            scenario: ...
+  - steadyState:
+      constantPerSec:
+        ...
+        forks:
+        - sellShares: *sellShares
+        - buyShares: *buyShares
 ```

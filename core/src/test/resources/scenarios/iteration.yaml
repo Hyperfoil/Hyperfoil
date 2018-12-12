@@ -3,46 +3,48 @@ simulation:
   http:
     baseUrl: http://localhost:8080
   phases:
-  - rampUp: !rampPerSec # When forks are in this should create a no-op phase that will be started after all the forks
-      initialUsersPerSec:
-        base: 1
-        increment: 100
-      targetUsersPerSec:
-        base: 100
-        increment: 100
-      maxIterations: 3
-      startAfter:
-         phase: steadyState
-         iteration: previous
-      duration: 3s
-      # Forks don't have its own hierarchy, these just split the users into new phases. For
-      forks:
-      - foo: &foo
-          weight: 0.2
-          scenario:
-            initialSequences:
-            - doFoo:
-              - thinkTime:
-                 duration: 1s
-              # TODO
-      - bar: &bar
-          weight: 0.8
-          scenario:
-            initialSequences:
-            - doBar:
-              - thinkTime:
-                 duration: 1s
-              # TODO
+  - rampUp: # When forks are in this should create a no-op phase that will be started after all the forks
+      rampPerSec:
+        initialUsersPerSec:
+          base: 1
+          increment: 100
+        targetUsersPerSec:
+          base: 100
+          increment: 100
+        maxIterations: 3
+        startAfter:
+           phase: steadyState
+           iteration: previous
+        duration: 3s
+        # Forks don't have its own hierarchy, these just split the users into new phases. For
+        forks:
+        - foo: &foo
+            weight: 0.2
+            scenario:
+              initialSequences:
+              - doFoo:
+                - thinkTime:
+                   duration: 1s
+                # TODO
+        - bar: &bar
+            weight: 0.8
+            scenario:
+              initialSequences:
+              - doBar:
+                - thinkTime:
+                   duration: 1s
+                # TODO
 
-  - steadyState: !constantPerSec
-      usersPerSec:
-        base: 100
-        increment: 100
-      maxIterations: 3
-      startAfter:
-        phase: rampUp
-        iteration: same
-      duration: 6s
-      forks:
-      - foo: *foo
-      - bar: *bar
+  - steadyState:
+      constantPerSec:
+        usersPerSec:
+          base: 100
+          increment: 100
+        maxIterations: 3
+        startAfter:
+          phase: rampUp
+          iteration: same
+        duration: 6s
+        forks:
+        - foo: *foo
+        - bar: *bar

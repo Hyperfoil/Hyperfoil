@@ -3,56 +3,59 @@ simulation:
   http:
     baseUrl: http://localhost:8080
   phases:
-  - rampUp: !rampPerSec
-      initialUsersPerSec: 1
-      targetUsersPerSec: 100
-      duration: 3s
-      scenario: &scenario
-        initialSequences:
-        - testSequence:
-          - sla:
-              meanResponseTime: 1s
-          - httpRequest:
-              method: GET
-              path: /foo
-              handler:
-                statusExtractor:
-                  counter:
-                    expectStatus: 204
-                    var: testCounter
-                    init: 0
-                    add: 1
-          - httpRequest:
-              method: GET
-              path: /foo
-              handler:
-              # notice this is a list, for repeated invocations
-              - statusExtractor:
-                  counter:
-                    expectStatus: 204
-                    var: testCounter
-                    init: 0
-                    add: 1
-          - noop
-          - awaitInt:
-              var: testCounter
-              greaterOrEqualTo: 2
-          - scheduleDelay:
-              key: k
-              fromNow:
-              duration: 5s
-        sequences:
-  - steadyState: !constantPerSec
-      usersPerSec: 100
-      startAfter: rampUp
-      duration: 6s
-      scenario: *scenario
-  - rampDown: !rampPerSec
-      initialUsersPerSec: 100
-      targetUsersPerSec: 1
-      startAfter:
-        - rampUp # not needed, just to test list...
-        - steadyState
-      duration: 3s
-      scenario: *scenario
+  - rampUp:
+      rampPerSec:
+        initialUsersPerSec: 1
+        targetUsersPerSec: 100
+        duration: 3s
+        scenario: &scenario
+          initialSequences:
+          - testSequence:
+            - sla:
+                meanResponseTime: 1s
+            - httpRequest:
+                method: GET
+                path: /foo
+                handler:
+                  statusExtractor:
+                    counter:
+                      expectStatus: 204
+                      var: testCounter
+                      init: 0
+                      add: 1
+            - httpRequest:
+                method: GET
+                path: /foo
+                handler:
+                # notice this is a list, for repeated invocations
+                - statusExtractor:
+                    counter:
+                      expectStatus: 204
+                      var: testCounter
+                      init: 0
+                      add: 1
+            - noop
+            - awaitInt:
+                var: testCounter
+                greaterOrEqualTo: 2
+            - scheduleDelay:
+                key: k
+                fromNow:
+                duration: 5s
+          sequences:
+  - steadyState:
+      constantPerSec:
+        usersPerSec: 100
+        startAfter: rampUp
+        duration: 6s
+        scenario: *scenario
+  - rampDown:
+      rampPerSec:
+        initialUsersPerSec: 100
+        targetUsersPerSec: 1
+        startAfter:
+          - rampUp # not needed, just to test list...
+          - steadyState
+        duration: 3s
+        scenario: *scenario
 

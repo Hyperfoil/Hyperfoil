@@ -9,59 +9,61 @@ simulation:
   - baseUrl: http://localhost:8080
   - baseUrl: https://localhost:8443
   phases:
-  - rampUp: !rampPerSec # When forks are in this should create a no-op phase that will be started after all the forks
-      initialUsersPerSec: 1
-      targetUsersPerSec: 100
-      duration: 3s
-      forks:
-      - invalidRegistration: &invalidRegistration
-          weight: 0.2
-          scenario:
-            initialSequences:
-            - registerInvalid:
-              - thinkTime:
-                 duration: 1s
-              # TODO
-      - validRegistration: &validRegistration
-          weight: 0.8
-          scenario:
-            initialSequences:
-            - registerInvalid:
-              - thinkTime:
-                 duration: 1s
-              # TODO
-      - unregister: &unregister
-          weight: 0.1
-          scenario:
-            # ordered sequences is just a syntax-sugar, this has no counterpart in programmatic configuration
-            orderedSequences:
-            - login: &login
-              - thinkTime:
-                 duration: 1s
-              #TODO
-            - unregister: &unregister
-              - thinkTime:
-                 duration: 1s
-      - viewUser: &viewUser
-          weight: 1
-          scenario:
-            orderedSequences:
-            - login: *login
-            - viewUser: &viewUser # the anchor stores type, too, so we can overload the `viewUser` for both forked scenario and sequence
-              - thinkTime:
-                 duration: 1s
-            - logout: &logout
-              - thinkTime:
-                 duration: 1s
-  - steadyState: !constantPerSec
-      usersPerSec: 100
-      startAfter: rampUp
-      duration: 6s
-      forks:
-      - invalidRegistration: *invalidRegistration
-      - validRegistration: *validRegistration
-      - unregister: *unregister
-      - viewUser: *viewUser
+  - rampUp: # When forks are in this should create a no-op phase that will be started after all the forks
+      rampPerSec:
+        initialUsersPerSec: 1
+        targetUsersPerSec: 100
+        duration: 3s
+        forks:
+        - invalidRegistration: &invalidRegistration
+            weight: 0.2
+            scenario:
+              initialSequences:
+              - registerInvalid:
+                - thinkTime:
+                   duration: 1s
+                # TODO
+        - validRegistration: &validRegistration
+            weight: 0.8
+            scenario:
+              initialSequences:
+              - registerInvalid:
+                - thinkTime:
+                   duration: 1s
+                # TODO
+        - unregister: &unregister
+            weight: 0.1
+            scenario:
+              # ordered sequences is just a syntax-sugar, this has no counterpart in programmatic configuration
+              orderedSequences:
+              - login: &login
+                - thinkTime:
+                   duration: 1s
+                #TODO
+              - unregister: &unregister
+                - thinkTime:
+                   duration: 1s
+        - viewUser: &viewUser
+            weight: 1
+            scenario:
+              orderedSequences:
+              - login: *login
+              - viewUser: &viewUser # the anchor stores type, too, so we can overload the `viewUser` for both forked scenario and sequence
+                - thinkTime:
+                   duration: 1s
+              - logout: &logout
+                - thinkTime:
+                   duration: 1s
+  - steadyState:
+      constantPerSec:
+        usersPerSec: 100
+        startAfter: rampUp
+        duration: 6s
+        forks:
+        - invalidRegistration: *invalidRegistration
+        - validRegistration: *validRegistration
+        - unregister: *unregister
+        - viewUser: *viewUser
 
 #  sequences:
 #    - registerInvalid:
