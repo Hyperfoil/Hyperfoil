@@ -25,21 +25,15 @@ public class NoopStep implements Step {
    /**
     * The builder can be both service-loaded and used programmatically in {@link BaseSequenceBuilder#step(StepBuilder)}.
     */
-   public static class Builder implements ServiceLoadedBuilder, StepBuilder {
-      private final Consumer<List<Step>> buildTarget;
+   public static class Builder extends ServiceLoadedBuilder.Base<List<Step>> implements StepBuilder {
 
       public Builder(BaseSequenceBuilder parent) {
-         buildTarget = null;
+         super(null);
          parent.step(this);
       }
 
       public Builder(Consumer<List<Step>> buildTarget) {
-         this.buildTarget = buildTarget;
-      }
-
-      @Override
-      public void apply() {
-         buildTarget.accept(build());
+         super(buildTarget);
       }
 
       @Override

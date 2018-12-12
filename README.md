@@ -285,6 +285,12 @@ scenario:
     - awaitAllResponses
 ```
 
+You can use eiter well-known steps (those are defined as methods
+on `i.s.core.builders.StepDiscriminator` class) or provide custom *service-loaded* steps.
+These are provided by any implementation of `i.s.api.config.Step.BuilderFactory` that
+is registered using the `java.util.ServiceLoader` mechanism. Each name provided by the factory
+should be unique.
+
 An exhaustive list of steps will be provided in the **TODO** reference.
 
 ### Anchors and aliases

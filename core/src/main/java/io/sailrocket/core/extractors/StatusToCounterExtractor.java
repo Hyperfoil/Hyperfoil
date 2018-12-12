@@ -49,8 +49,7 @@ public class StatusToCounterExtractor implements StatusExtractor, ResourceUtiliz
       session.declareInt(var);
    }
 
-   public static class Builder implements ServiceLoadedBuilder {
-      private final Consumer<StatusExtractor> buildTarget;
+   public static class Builder extends ServiceLoadedBuilder.Base<StatusExtractor> {
       private Integer expectStatus;
       private String var;
       private int init;
@@ -58,7 +57,7 @@ public class StatusToCounterExtractor implements StatusExtractor, ResourceUtiliz
       private Integer set;
 
       public Builder(Consumer<StatusExtractor> buildTarget) {
-         this.buildTarget = buildTarget;
+         super(buildTarget);
       }
 
       public Builder expectStatus(int expectStatus) {
@@ -87,13 +86,13 @@ public class StatusToCounterExtractor implements StatusExtractor, ResourceUtiliz
       }
 
       @Override
-      public void apply() {
+      protected StatusExtractor build() {
          if (add != null && set != null) {
             throw new BenchmarkDefinitionException("Use either 'add' or 'set' (not both)");
          } else if (add == null && set == null) {
             throw new BenchmarkDefinitionException("Use either 'add' or 'set'");
          }
-         buildTarget.accept(new StatusToCounterExtractor(expectStatus, var, init, add, set));
+         return new StatusToCounterExtractor(expectStatus, var, init, add, set);
       }
    }
 
