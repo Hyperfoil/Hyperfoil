@@ -2,6 +2,7 @@ package io.sailrocket.core.steps;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 import io.sailrocket.api.config.Step;
@@ -18,14 +19,16 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
 
    private final Object key;
    private final Type type;
-   private final long duration;
-   private final TimeUnit timeUnit;
+   private final long duration, min, max;
+   private final boolean negativeExponential;
 
-   public ScheduleDelayStep(Object key, Type type, long duration, TimeUnit timeUnit) {
+   public ScheduleDelayStep(Object key, Type type, long duration, boolean negativeExponential, long min, long max) {
       this.key = key;
       this.type = type;
       this.duration = duration;
-      this.timeUnit = timeUnit;
+      this.negativeExponential = negativeExponential;
+      this.min = min;
+      this.max = max;
    }
 
    @Override
@@ -46,7 +49,17 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
          default:
             throw new IllegalStateException();
       }
-      blockedUntil.timestamp = baseTimestamp + timeUnit.toMillis(duration);
+      long relativeDelay = duration;
+      if (negativeExponential) {
+         double rand = ThreadLocalRandom.current().nextDouble();
+         relativeDelay = (long) ((duration) * -Math.log(Math.max(rand, 1e-20d)));
+         if (relativeDelay < min) {
+            relativeDelay = min;
+         } else if (relativeDelay > max) {
+            relativeDelay = max;
+         }
+      }
+      blockedUntil.timestamp = baseTimestamp + relativeDelay;
       long delay = blockedUntil.timestamp - now;
       if (delay > 0) {
          log.trace("Scheduling #{} to run in {}", session.uniqueId(), delay);
@@ -73,14 +86,15 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
    public static class Builder extends BaseStepBuilder {
       private Object key;
       private long duration;
-      private TimeUnit timeUnit;
       private Type type = Type.FROM_NOW;
+      private boolean negativeExponential;
+      private long min;
+      private long max;
 
       public Builder(BaseSequenceBuilder parent, Object key, long duration, TimeUnit timeUnit) {
          super(parent);
          this.key = key;
-         this.duration = duration;
-         this.timeUnit = timeUnit;
+         this.duration = timeUnit.toMillis(duration);
       }
 
       public Builder key(String key) {
@@ -90,7 +104,6 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
 
       public Builder duration(String duration) {
          this.duration = Util.parseToMillis(duration);
-         this.timeUnit = TimeUnit.MILLISECONDS;
          return this;
       }
 
@@ -104,9 +117,24 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
          return this;
       }
 
+      public Builder negativeExponential() {
+         this.negativeExponential = true;
+         return this;
+      }
+
+      public Builder min(String min) {
+         this.min = Util.parseToMillis(min);
+         return this;
+      }
+
+      public Builder max(String max) {
+         this.max = Util.parseToMillis(max);
+         return this;
+      }
+
       @Override
       public List<Step> build() {
-         return Collections.singletonList(new ScheduleDelayStep(key, type, duration, timeUnit));
+         return Collections.singletonList(new ScheduleDelayStep(key, type, duration, negativeExponential, min, max));
       }
 
       public Builder type(Type type) {
