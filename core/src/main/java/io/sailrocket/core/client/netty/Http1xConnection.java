@@ -96,7 +96,6 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
          }
          pool.pulse();
       }
-      super.channelRead(ctx, msg);
    }
 
    @Override
