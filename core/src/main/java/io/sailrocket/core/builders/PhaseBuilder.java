@@ -310,6 +310,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
       private double targetUsersPerSec;
       private double targetUsersPerSecIncrement;
       private int maxSessionsEstimate;
+      private boolean variance = true;
 
       RampPerSec(SimulationBuilder parent, String name, double initialUsersPerSec, double targetUsersPerSec) {
          super(parent, name);
@@ -338,7 +339,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
                duration, maxDuration, (int) (maxUnfinishedSessions * f.weight / numAgents()),
                sharedResources(f), (initialUsersPerSec + initialUsersPerSecIncrement * i) * f.weight / numAgents(),
                (targetUsersPerSec + targetUsersPerSecIncrement * i) * f.weight / numAgents(),
-               maxSessionsEstimate);
+               variance, maxSessionsEstimate);
       }
 
       public RampPerSec initialUsersPerSec(double initialUsersPerSec) {
@@ -364,12 +365,18 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
          this.targetUsersPerSecIncrement = increment;
          return this;
       }
+
+      public RampPerSec variance(boolean variance) {
+         this.variance = variance;
+         return this;
+      }
    }
 
    public static class ConstantPerSec extends PhaseBuilder<ConstantPerSec> {
       private double usersPerSec;
       private double usersPerSecIncrement;
       private int maxSessionsEstimate;
+      private boolean variance = true;
 
       ConstantPerSec(SimulationBuilder parent, String name, double usersPerSec) {
          super(parent, name);
@@ -393,7 +400,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
                iterationReferences(startAfter, i, false), iterationReferences(startAfterStrict, i, true),
                iterationReferences(terminateAfterStrict, i, false), duration, maxDuration,
                (int) (maxUnfinishedSessions * f.weight / numAgents()), sharedResources(f),
-               (usersPerSec + usersPerSecIncrement * i) * f.weight / numAgents(), maxSessionsEstimate);
+               (usersPerSec + usersPerSecIncrement * i) * f.weight / numAgents(), variance, maxSessionsEstimate);
       }
 
       public ConstantPerSec usersPerSec(double usersPerSec) {
@@ -404,6 +411,11 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
       public ConstantPerSec usersPerSec(double base, double increment) {
          this.usersPerSec = base;
          this.usersPerSecIncrement = increment;
+         return this;
+      }
+
+      public ConstantPerSec variance(boolean variance) {
+         this.variance = variance;
          return this;
       }
    }

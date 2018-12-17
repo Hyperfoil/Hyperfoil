@@ -49,6 +49,7 @@ abstract class PhaseParser extends AbstractParser<PhaseBuilder.Discriminator, Ph
          register("initialUsersPerSec", new IncrementPropertyParser.Double<>((builder, base, inc) -> ((PhaseBuilder.RampPerSec) builder).initialUsersPerSec(base, inc)));
          register("targetUsersPerSec", new IncrementPropertyParser.Double<>((builder, base, inc) -> ((PhaseBuilder.RampPerSec) builder).targetUsersPerSec(base, inc)));
          register("maxSessionsEstimate", new PropertyParser.Int<>((builder, sessions) -> ((PhaseBuilder.RampPerSec) builder).maxSessionsEstimate(sessions)));
+         register("variance", new PropertyParser.Boolean<>((builder, variance) -> ((PhaseBuilder.RampPerSec) builder).variance(variance)));
       }
 
       @Override
@@ -61,6 +62,7 @@ abstract class PhaseParser extends AbstractParser<PhaseBuilder.Discriminator, Ph
       ConstantPerSec() {
          register("usersPerSec", new IncrementPropertyParser.Double<>((builder, base, inc) -> ((PhaseBuilder.ConstantPerSec) builder).usersPerSec(base, inc)));
          register("maxSessionsEstimate", new PropertyParser.Int<>((builder, sessions) -> ((PhaseBuilder.ConstantPerSec) builder).maxSessionsEstimate(sessions)));
+         register("variance", new PropertyParser.Boolean<>((builder, variance) -> ((PhaseBuilder.ConstantPerSec) builder).variance(variance)));
       }
 
       @Override

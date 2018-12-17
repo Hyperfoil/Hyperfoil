@@ -122,17 +122,18 @@ public abstract class Phase implements Serializable {
       public final double initialUsersPerSec;
       public final double targetUsersPerSec;
       public final int maxSessionsEstimate;
-
+      public final boolean variance;
 
       public RampPerSec(String name, Scenario scenario, long startTime,
                         Collection<String> startAfter, Collection<String> startAfterStrict,
                         Collection<String> terminateAfterStrict,
                         long duration, long maxDuration,
                         int maxUnfinishedSessions, String sharedResources, double initialUsersPerSec, double targetUsersPerSec,
-                        int maxSessionsEstimate) {
+                        boolean variance, int maxSessionsEstimate) {
          super(name, scenario, startTime, startAfter, startAfterStrict, terminateAfterStrict, duration, maxDuration, maxUnfinishedSessions, sharedResources);
          this.initialUsersPerSec = initialUsersPerSec;
          this.targetUsersPerSec = targetUsersPerSec;
+         this.variance = variance;
          this.maxSessionsEstimate = maxSessionsEstimate;
       }
    }
@@ -140,13 +141,15 @@ public abstract class Phase implements Serializable {
    public static class ConstantPerSec extends Phase {
       public final double usersPerSec;
       public final int maxSessionsEstimate;
+      public final boolean variance;
 
       public ConstantPerSec(String name, Scenario scenario, long startTime,
                             Collection<String> startAfter, Collection<String> startAfterStrict,
                             Collection<String> terminateAfterStrict,
-                            long duration, long maxDuration, int maxUnfinishedSessions, String sharedResources, double usersPerSec, int maxSessionsEstimate) {
+                            long duration, long maxDuration, int maxUnfinishedSessions, String sharedResources, double usersPerSec, boolean variance, int maxSessionsEstimate) {
          super(name, scenario, startTime, startAfter, startAfterStrict, terminateAfterStrict, duration, maxDuration, maxUnfinishedSessions, sharedResources);
          this.usersPerSec = usersPerSec;
+         this.variance = variance;
          this.maxSessionsEstimate = maxSessionsEstimate;
       }
    }

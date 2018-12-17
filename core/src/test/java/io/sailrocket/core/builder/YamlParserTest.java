@@ -120,9 +120,7 @@ public class YamlParserTest {
 
             return benchmark;
         } catch (ParserException | IOException e) {
-            e.printStackTrace();
-            fail("Error occurred during parsing");
+            throw new AssertionError("Error occurred during parsing", e);
         }
-        return null;
     }
 }

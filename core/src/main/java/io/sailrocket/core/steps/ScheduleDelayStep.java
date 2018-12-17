@@ -94,7 +94,7 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
       public Builder(BaseSequenceBuilder parent, Object key, long duration, TimeUnit timeUnit) {
          super(parent);
          this.key = key;
-         this.duration = timeUnit.toMillis(duration);
+         this.duration = timeUnit == null ? 0 : timeUnit.toMillis(duration);
       }
 
       public Builder key(String key) {
