@@ -381,8 +381,16 @@ public class AgentControllerVerticle extends AbstractVerticle {
     }
 
     public void kill(Run run) {
-        for (String phase : run.phases.keySet()) {
-            eb.publish(Feeds.CONTROL, new PhaseControlMessage(PhaseControlMessage.Command.TERMINATE, null, phase));
+        for (Map.Entry<String, ControllerPhase> entry : run.phases.entrySet()) {
+            ControllerPhase.Status status = entry.getValue().status();
+            if (!status.isTerminated()) {
+                if (status == ControllerPhase.Status.NOT_STARTED) {
+                    entry.getValue().status(ControllerPhase.Status.CANCELLED);
+                } else {
+                    entry.getValue().status(ControllerPhase.Status.TERMINATING);
+                    eb.publish(Feeds.CONTROL, new PhaseControlMessage(PhaseControlMessage.Command.TERMINATE, null, entry.getKey()));
+                }
+            }
         }
     }
 

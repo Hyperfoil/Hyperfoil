@@ -236,8 +236,10 @@ public class ControllerRestServer {
             } else {
                jsonPhase.put("terminated", simpleDateFormat.format(new Date(phase.absoluteTerminateTime())));
                long totalDuration = phase.absoluteTerminateTime() - phase.absoluteStartTime();
-               StringBuilder sb = new StringBuilder().append(totalDuration).append(" ms (exceeded by ")
-                     .append(totalDuration - phase.definition().duration()).append(" ms)");
+               StringBuilder sb = new StringBuilder().append(totalDuration).append(" ms");
+               if (totalDuration > phase.definition().duration()) {
+                  sb.append(" (exceeded by ").append(totalDuration - phase.definition().duration()).append(" ms)");
+               }
                jsonPhase.put("totalDuration", sb.toString());
             }
          }
