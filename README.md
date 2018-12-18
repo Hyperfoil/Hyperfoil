@@ -140,6 +140,12 @@ See the example of phases configuration:
         scenario: ...
 ```
 
+The open-model phases specify rate of starting users using the `usersPerSec`, `initialUserPerSec` and `targetPerSec` properties.
+With default settings the starting users behave as the [Poisson point process](https://en.wikipedia.org/wiki/Poisson_point_process),
+effectively separating the start-times of successive users by random delays following
+the [exponential distribution](https://en.wikipedia.org/wiki/Exponential_distribution).
+If you prefer to start the users at fixed points in time (using uniform delays), set property `variance: false` in the phase.
+
 SailRocket initializes all phases before the benchmark starts, pre-allocating memory for sessions.
 In the open-model phases it's not possible to know how many users will be active at the same moment
 (if the server experiences a 3-second hiccup and we have 100 new users per second this should be at least 300
