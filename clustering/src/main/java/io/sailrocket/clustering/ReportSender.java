@@ -28,7 +28,9 @@ public class ReportSender extends StatisticsCollector {
    private boolean sendReport(Phase phase, Sequence sequence, StatisticsSnapshot statistics) {
       // On a clustered event bus the statistics snapshot is marshalled synchronously, so we can reset it in the caller
       // On a local event bus we enforce doing a copy (synchronously) by implementing copyable.
-      eb.send(Feeds.STATS, new ReportMessage(address, runId, phase.name(), sequence.name(), statistics));
+      if (statistics.histogram.getEndTimeStamp() >= statistics.histogram.getStartTimeStamp()) {
+         eb.send(Feeds.STATS, new ReportMessage(address, runId, phase.name(), sequence.name(), statistics));
+      }
       return false;
    }
 }

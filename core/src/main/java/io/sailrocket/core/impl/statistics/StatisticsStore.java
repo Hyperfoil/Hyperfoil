@@ -27,7 +27,8 @@ import io.sailrocket.api.statistics.StatisticsSnapshot;
 import io.sailrocket.api.statistics.StatisticsSummary;
 
 public class StatisticsStore {
-   private final Benchmark benchmark;
+   public static final double[] PERCENTILES = new double[]{0.5, 0.9, 0.99, 0.999, 0.9999};
+
    private final int numAgents;
    private final Map<PhaseSeq, Data> data = new HashMap<>();
    private final Consumer<SLA.Failure> failureHandler;
@@ -35,9 +36,7 @@ public class StatisticsStore {
    private final List<SLA.Failure> failures = new ArrayList<>();
    private final int maxFailures = 100;
 
-
    public StatisticsStore(Benchmark benchmark, Consumer<SLA.Failure> failureHandler, double[] percentiles) {
-      this.benchmark = benchmark;
       this.numAgents = Math.max(benchmark.agents().length, 1);
       this.failureHandler = failureHandler;
       this.percentiles = percentiles;
@@ -55,7 +54,7 @@ public class StatisticsStore {
    }
 
    public StatisticsStore(Benchmark benchmark, Consumer<SLA.Failure> failureHandler) {
-      this(benchmark, failureHandler, new double[] { 0.5, 0.9, 0.99, 0.999, 0.9999 });
+      this(benchmark, failureHandler, PERCENTILES);
    }
 
    public void record(String address, String phase, String sequence, StatisticsSnapshot stats) {
@@ -169,6 +168,31 @@ public class StatisticsStore {
          }
       }
       return failures.isEmpty();
+   }
+
+   public Map<String, Map<String, StatisticsSummary>> recentSummary(long minValidTimestamp) {
+      Map<String, Map<String, StatisticsSummary>> result = new HashMap<>();
+      for (Map.Entry<PhaseSeq, Data> entry : data.entrySet()) {
+         List<StatisticsSummary> series = entry.getValue().series;
+         if (series.isEmpty()) {
+            continue;
+         }
+         StatisticsSummary last = series.get(series.size() - 1);
+         if (last.startTime < minValidTimestamp) {
+            continue;
+         }
+         result.computeIfAbsent(entry.getKey().phase, p -> new HashMap<>()).put(entry.getKey().sequence, last);
+      }
+      return result;
+   }
+
+   public Map<String, Map<String, StatisticsSummary>> totalSummary() {
+      Map<String, Map<String, StatisticsSummary>> result = new HashMap<>();
+      for (Map.Entry<PhaseSeq, Data> entry : data.entrySet()) {
+         StatisticsSummary last = entry.getValue().total.summary(percentiles);
+         result.computeIfAbsent(entry.getKey().phase, p -> new HashMap<>()).put(entry.getKey().sequence, last);
+      }
+      return result;
    }
 
    private static final class Window {

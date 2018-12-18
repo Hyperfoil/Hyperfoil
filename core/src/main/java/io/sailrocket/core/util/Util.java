@@ -68,4 +68,19 @@ public class Util {
    private static byte toUpperCase(byte b) {
       return b >= 'a' && b <= 'z' ? (byte) (b - 32) : b;
    }
+
+   /**
+    * Pretty prints time in 9 spaces
+    */
+   public static String prettyPrintNanos(long meanResponseTime) {
+      if (meanResponseTime < 1000) {
+         return String.format("%6d ns", meanResponseTime);
+      } else if (meanResponseTime < 1000_000) {
+         return String.format("%6.2f μs", meanResponseTime / 1000d);
+      } else if (meanResponseTime < 1000_000_000) {
+         return String.format("%6.2f ms", meanResponseTime / 1000_000d);
+      } else {
+         return String.format("%6.2f s ", meanResponseTime / 1000_000_000d);
+      }
+   }
 }

@@ -10,13 +10,16 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.sailrocket.api.config.Benchmark;
+import io.sailrocket.api.statistics.StatisticsSummary;
 import io.sailrocket.core.parser.BenchmarkParser;
 import io.sailrocket.core.parser.ParserException;
 import io.sailrocket.clustering.util.PersistenceUtil;
+import io.sailrocket.core.util.Util;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
@@ -34,7 +37,7 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 
-public class ControllerRestServer {
+class ControllerRestServer {
    private static final Logger log = LoggerFactory.getLogger(ControllerRestServer.class);
    private static final String MIME_TYPE_SERIALIZED = "application/java-serialized-object";
    private static final Set<String> MIME_TYPE_YAML = new HashSet<>(
@@ -48,7 +51,7 @@ public class ControllerRestServer {
    private final HttpServer httpServer;
    private final Router router;
 
-   public ControllerRestServer(AgentControllerVerticle controller) {
+   ControllerRestServer(AgentControllerVerticle controller) {
       this.controller = controller;
       router = Router.router(controller.getVertx());
 
@@ -64,11 +67,13 @@ public class ControllerRestServer {
       router.get("/run/:runid/kill").handler(this::handleRunKill);
       router.get("/run/:runid/sessions").handler(this::handleListSessions);
       router.get("/run/:runid/connections").handler(this::handleListConnections);
+      router.get("/run/:runid/stats/recent").handler(this::handleRecentStats);
+      router.get("/run/:runid/stats/total").handler(this::handleTotalStats);
 
       httpServer = controller.getVertx().createHttpServer().requestHandler(router::accept).listen(CONTROLLER_PORT);
    }
 
-   public void stop(Future<Void> stopFuture) {
+   void stop(Future<Void> stopFuture) {
       httpServer.close(result -> stopFuture.complete());
    }
 
@@ -324,6 +329,65 @@ public class ControllerRestServer {
          routingContext.response().setStatusCode(404).end();
       }
    }
+
+   private void handleRecentStats(RoutingContext ctx) {
+      Run run = getRun(ctx);
+      if (run == null || run.statisticsStore == null) {
+         ctx.response().setStatusCode(HttpResponseStatus.NOT_FOUND.code());
+         return;
+      }
+      Map<String, Map<String, StatisticsSummary>> stats = run.statisticsStore.recentSummary(System.currentTimeMillis() - 3000);
+      // TODO: add json response format based on 'Accept' header
+      ctx.response().end(formatStatsSummary(stats));
+   }
+
+   private void handleTotalStats(RoutingContext ctx) {
+      Run run = getRun(ctx);
+      if (run == null || run.statisticsStore == null) {
+         ctx.response().setStatusCode(HttpResponseStatus.NOT_FOUND.code());
+         return;
+      }
+      Map<String, Map<String, StatisticsSummary>> stats = run.statisticsStore.totalSummary();
+      // TODO: add json response format based on 'Accept' header
+      ctx.response().end(formatStatsSummary(stats));
+   }
+
+   private String formatStatsSummary(Map<String, Map<String, StatisticsSummary>> stats) {
+      StringBuilder sb = new StringBuilder();
+      sb.append("Phase   Sequence");
+      int longestSequenceName = Math.max(stats.values().stream().flatMap(m -> m.keySet().stream()).mapToInt(String::length).max().orElse(8), 8);
+      printSpaces(sb, longestSequenceName - 8);
+      sb.append("  Requests      Mean       p50       p90       p99     p99.9    p99.99    2xx    3xx    4xx    5xx Timeouts Errors\n");
+      for (Map.Entry<String, Map<String, StatisticsSummary>> phaseEntry : stats.entrySet()) {
+         sb.append(phaseEntry.getKey()).append(':').append('\n');
+         for (Map.Entry<String, StatisticsSummary> sequenceEntry : phaseEntry.getValue().entrySet()) {
+            StatisticsSummary summary = sequenceEntry.getValue();
+            sb.append('\t').append(sequenceEntry.getKey()).append(": ");
+            printSpaces(sb, longestSequenceName - sequenceEntry.getKey().length());
+            sb.append(String.format("%8d ", summary.requestCount));
+            sb.append(Util.prettyPrintNanos(summary.meanResponseTime));
+            sb.append(' ');
+            for (int i = 0; i < summary.percentileResponseTime.length; ++i) {
+               sb.append(Util.prettyPrintNanos(summary.percentileResponseTime[i])).append(' ');
+            }
+            sb.append(String.format("%6d", summary.status_2xx))
+                  .append(String.format(" %6d", summary.status_3xx))
+                  .append(String.format(" %6d", summary.status_4xx))
+                  .append(String.format(" %6d", summary.status_5xx))
+                  .append(String.format(" %8d", summary.timeouts))
+                  .append(String.format(" %6d", summary.status_other + summary.connectFailureCount + summary.resetCount));
+            sb.append('\n');
+         }
+      }
+      return sb.toString();
+   }
+
+   private void printSpaces(StringBuilder sb, int i) {
+      for (;i > 0; --i) {
+         sb.append(' ');
+      }
+   }
+
 
    private static String encode(String string) {
       try {
