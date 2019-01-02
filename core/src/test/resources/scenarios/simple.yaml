@@ -26,6 +26,8 @@ simulation:
             - httpRequest:
                 method: GET
                 path: /foo
+                headers:
+                - Accept: text/plain
                 handler:
                 # notice this is a list, for repeated invocations
                 - statusExtractor:

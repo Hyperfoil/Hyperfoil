@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import io.netty.buffer.ByteBuf;
+import io.sailrocket.api.config.PairBuilder;
 import io.sailrocket.api.connection.Request;
 import io.sailrocket.api.config.BenchmarkDefinitionException;
 import io.sailrocket.api.connection.HttpConnectionPool;
@@ -137,6 +138,10 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
          return this;
       }
 
+      public HeadersBuilder headers() {
+         return new HeadersBuilder(this);
+      }
+
       public Builder timeout(long timeout, TimeUnit timeUnit) {
          if (timeout <= 0) {
             throw new IllegalArgumentException("Timeout must be positive!");
@@ -171,6 +176,23 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
          SerializableBiConsumer<Session, HttpRequestWriter>[] headerAppenders =
                this.headerAppenders.isEmpty() ? null : this.headerAppenders.toArray(new SerializableBiConsumer[0]);
          return Collections.singletonList(new HttpRequestStep(method, baseUrl, pathGenerator, bodyGenerator, headerAppenders, timeout, handler.build()));
+      }
+   }
+
+   public static class HeadersBuilder extends PairBuilder.String {
+      private final Builder parent;
+
+      public HeadersBuilder(Builder builder) {
+         this.parent = builder;
+      }
+
+      @Override
+      public void accept(java.lang.String header, java.lang.String value) {
+         parent.headerAppenders.add((session, writer) -> writer.putHeader(header, value));
+      }
+
+      public Builder endHeaders() {
+         return parent;
       }
    }
 }

@@ -13,6 +13,8 @@ import org.yaml.snakeyaml.events.SequenceEndEvent;
 import org.yaml.snakeyaml.events.SequenceStartEvent;
 
 import io.sailrocket.api.config.BenchmarkDefinitionException;
+import io.sailrocket.api.config.PairBuilder;
+import io.sailrocket.api.config.PartialBuilder;
 import io.sailrocket.api.config.ServiceLoadedBuilder;
 import io.sailrocket.core.builders.BaseSequenceBuilder;
 import io.sailrocket.core.builders.SequenceBuilder;
@@ -162,12 +164,16 @@ class StepParser implements Parser<BaseSequenceBuilder> {
    }
 
    private void invokeWithSingleParam(Object target, ScalarEvent keyEvent, String key, Event valueEvent, String value) throws ParserException {
+      if (target instanceof PairBuilder) {
+         PairBuilder builder = (PairBuilder) target;
+         acceptPair(builder, key, value, valueEvent);
+         return;
+      }
       Result<Method> result = findMethod(keyEvent, target, key, 1);
       if (result.value != null) {
          Object param = convert(valueEvent, value, result.value.getParameterTypes()[0]);
          try {
             result.value.invoke(target, param);
-            return;
          } catch (IllegalAccessException | InvocationTargetException e) {
             throw cannotCreate(keyEvent, e);
          }
@@ -176,6 +182,12 @@ class StepParser implements Parser<BaseSequenceBuilder> {
       } else {
          throw result.exception;
       }
+   }
+
+   @SuppressWarnings("unchecked")
+   private void acceptPair(PairBuilder builder, String key, String value, Event valueEvent) throws ParserException {
+      Object param = convert(valueEvent, value, builder.valueType());
+      builder.accept(key, param);
    }
 
    private ServiceLoadedBuilder getLoadedBuilder(StepDiscriminator target, ScalarEvent keyEvent, String key, String value, ParserException exception) throws ParserException {
@@ -191,6 +203,9 @@ class StepParser implements Parser<BaseSequenceBuilder> {
    }
 
    private Object invokeWithDefaultParams(Object target, ScalarEvent keyEvent, String key) throws ParserException {
+      if (target instanceof PartialBuilder) {
+         return ((PartialBuilder) target).withKey(key);
+      }
       Result<Method> result = findMethod(keyEvent, target, key, -1);
       if (result.value != null) {
          Method method = result.value;
@@ -212,6 +227,9 @@ class StepParser implements Parser<BaseSequenceBuilder> {
    }
 
    private Object invokeWithNoParams(Object target, ScalarEvent keyEvent, String key) throws ParserException {
+      if (target instanceof PartialBuilder) {
+         return ((PartialBuilder) target).withKey(key);
+      }
       Result<Method> result = findMethod(keyEvent, target, key, 0);
       if (result.value != null) {
          try {
@@ -242,12 +260,12 @@ class StepParser implements Parser<BaseSequenceBuilder> {
    private Result<Method> findMethod(Event event, Object target, String name, int params) {
       Method[] candidates = Stream.of(target.getClass().getMethods()).filter(m -> m.getName().equals(name)).toArray(Method[]::new);
       if (candidates.length == 0) {
-         return new Result(new ParserException(event, "Cannot find method '" + name + "' on '" + target + "'"));
+         return new Result<>(new ParserException(event, "Cannot find method '" + name + "' on '" + target + "'"));
       } else if (params >= 0) {
          return Stream.of(candidates).filter(m -> m.getParameterCount() == params).findAny().map(Result::new)
                .orElseGet(() -> new Result<>(new ParserException(event, "Wrong number of parameters to '" + name + "', expecting " + params)));
       } else {
-         return new Result(Stream.of(candidates).reduce(StepParser::selectMethod).get());
+         return new Result<>(Stream.of(candidates).reduce(StepParser::selectMethod).get());
       }
    }
 
