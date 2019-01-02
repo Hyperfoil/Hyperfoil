@@ -239,8 +239,8 @@ class StepParser implements Parser<BaseSequenceBuilder> {
       }
    }
 
-   private Result<Method> findMethod(Event event, Object target, String name, int params) throws ParserException {
-      Method[] candidates = Stream.of(target.getClass().getDeclaredMethods()).filter(m -> m.getName().equals(name)).toArray(Method[]::new);
+   private Result<Method> findMethod(Event event, Object target, String name, int params) {
+      Method[] candidates = Stream.of(target.getClass().getMethods()).filter(m -> m.getName().equals(name)).toArray(Method[]::new);
       if (candidates.length == 0) {
          return new Result(new ParserException(event, "Cannot find method '" + name + "' on '" + target + "'"));
       } else if (params >= 0) {
