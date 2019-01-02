@@ -14,8 +14,7 @@ simulation:
             - sla:
                 meanResponseTime: 1s
             - httpRequest:
-                method: GET
-                path: /foo
+                GET: /foo
                 handler:
                   statusExtractor:
                     counter:

@@ -16,12 +16,10 @@ simulation:
                 key: thinkTime
                 duration: 1s
             - httpRequest:
-                method: GET
-                path: /index.html
+                GET: /index.html
             - awaitAllResponses
             - httpRequest:
-                method: GET
-                path: /api/fruits-normal
+                GET: /api/fruits-normal
             - awaitAllResponses
             - awaitDelay :
                 key: thinkTime

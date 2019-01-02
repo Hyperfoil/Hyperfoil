@@ -252,8 +252,7 @@ scenario:
   initialSequences:
   - login:
     - httpRequest:
-          method: POST
-          path: /login
+        POST: /login
     # Wait until all requests sent get the response
     - awaitAllResponses
     # Enable instance of sequence 'wait5seconds'
@@ -265,8 +264,7 @@ scenario:
     - next: logout
   - logout:
     - httpRequest:
-        method: POST
-        path: /logout
+        POST: /logout
     - awaitAllResponses
 ```
 
@@ -278,16 +276,14 @@ scenario:
   orderedSequences:
   - login:
     - httpRequest:
-          method: POST
-          path: /login
+        POST: /login
     - awaitAllResponses
   - wait5seconds:
     - thinkTime:
         duration: 5s
   - logout:
     - httpRequest:
-        method: POST
-        path: /logout
+        POST: /logout
     - awaitAllResponses
 ```
 
@@ -313,8 +309,7 @@ and it would be tedious to repeat these. That's where YAML anchors and aliases c
           orderedSequences:
           - login: &login
             - httpRequest:
-                method: POST
-                path: /login
+                POST: /login
             - awaitAllResponses
             ...
   - steadyState:

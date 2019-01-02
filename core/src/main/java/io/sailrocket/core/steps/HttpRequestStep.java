@@ -108,6 +108,53 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
          return this;
       }
 
+      // Methods below allow more brevity in the YAML
+
+      public Builder GET(String path) {
+         this.method = HttpMethod.GET;
+         return path(path);
+      }
+
+      public Builder HEAD(String path) {
+         this.method = HttpMethod.HEAD;
+         return path(path);
+      }
+
+      public Builder POST(String path) {
+         this.method = HttpMethod.POST;
+         return path(path);
+      }
+
+      public Builder PUT(String path) {
+         this.method = HttpMethod.PUT;
+         return path(path);
+      }
+
+      public Builder DELETE(String path) {
+         this.method = HttpMethod.DELETE;
+         return path(path);
+      }
+
+      public Builder OPTIONS(String path) {
+         this.method = HttpMethod.OPTIONS;
+         return path(path);
+      }
+
+      public Builder PATCH(String path) {
+         this.method = HttpMethod.PATCH;
+         return path(path);
+      }
+
+      public Builder TRACE(String path) {
+         this.method = HttpMethod.TRACE;
+         return path(path);
+      }
+
+      public Builder CONNECT(String path) {
+         this.method = HttpMethod.CONNECT;
+         return path(path);
+      }
+
       public Builder baseUrl(String baseUrl) {
          this.baseUrl = baseUrl;
          return this;
