@@ -82,7 +82,7 @@ public class Wrk {
                   .command(WrkCommand.class).create())
             .build();
 
-      StringBuilder sb = new StringBuilder("wrk ");
+      StringBuilder sb = new StringBuilder("run-local ");
       if (args.length == 1) {
          // When executed from mvn exec:exec -Pwrk -Dwrk.args="..." we don't want to quote the args
          sb.append(args[0]);
