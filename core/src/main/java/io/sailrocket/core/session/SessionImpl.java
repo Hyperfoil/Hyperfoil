@@ -44,7 +44,7 @@ class SessionImpl implements Session, Runnable {
    private Statistics[] statistics;
    private final int uniqueId;
 
-   public SessionImpl(Scenario scenario, int uniqueId) {
+   SessionImpl(Scenario scenario, int uniqueId) {
       this.sequencePool = new Pool<>(scenario.maxSequences(), SequenceInstance::new);
       this.requests = new Request[16];
       for (int i = 0; i < requests.length; ++i) {

@@ -186,7 +186,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    private class HttpRequestWriterImpl implements HttpRequestWriter {
       private final DefaultFullHttpRequest msg;
 
-      public HttpRequestWriterImpl(DefaultFullHttpRequest msg) {
+      HttpRequestWriterImpl(DefaultFullHttpRequest msg) {
          this.msg = msg;
       }
 

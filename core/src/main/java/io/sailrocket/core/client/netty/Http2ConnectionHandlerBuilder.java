@@ -15,7 +15,7 @@ class Http2ConnectionHandlerBuilder extends AbstractHttp2ConnectionHandlerBuilde
   private final HttpConnectionPool connectionPool;
   private final BiConsumer<HttpConnection, Throwable> requestHandler;
 
-  public Http2ConnectionHandlerBuilder(HttpConnectionPool connectionPool, BiConsumer<HttpConnection, Throwable> requestHandler) {
+  Http2ConnectionHandlerBuilder(HttpConnectionPool connectionPool, BiConsumer<HttpConnection, Throwable> requestHandler) {
     this.connectionPool = connectionPool;
     this.requestHandler = requestHandler;
   }

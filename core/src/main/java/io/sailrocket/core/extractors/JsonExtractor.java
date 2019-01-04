@@ -139,7 +139,7 @@ public class JsonExtractor implements BodyExtractor, ResourceUtilizer, Session.R
       ByteBuf[] parts = new ByteBuf[MAX_PARTS];
       int nextPart = 0;
 
-      public Context() {
+      Context() {
          for (int i = 0; i < selectors.length; ++i) {
             selectorContext[i] = selectors[i].newContext();
          }
@@ -424,11 +424,11 @@ public class JsonExtractor implements BodyExtractor, ResourceUtilizer, Session.R
    private class AttribSelector implements Selector {
       byte[] name;
 
-      public AttribSelector(byte[] name) {
+      AttribSelector(byte[] name) {
          this.name = name;
       }
 
-      public boolean match(ByteBuf data, int start, int end, int offset) {
+      boolean match(ByteBuf data, int start, int end, int offset) {
          assert start <= end;
          for (int i = 0; i < name.length && i < end - start; ++i) {
             if (name[i + offset] != data.getByte(start + i)) return false;
@@ -451,7 +451,7 @@ public class JsonExtractor implements BodyExtractor, ResourceUtilizer, Session.R
          return new ArraySelectorContext();
       }
 
-      public boolean matches(ArraySelectorContext context) {
+      boolean matches(ArraySelectorContext context) {
          return context.active && context.currentItem >= rangeStart && context.currentItem <= rangeEnd;
       }
    }

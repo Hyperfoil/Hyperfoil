@@ -43,7 +43,7 @@ class HttpChannelInitializer extends ChannelInitializer<Channel> {
       }
    };
 
-   public HttpChannelInitializer(HttpClientPoolImpl clientPool, HttpConnectionPool connectionPool, BiConsumer<HttpConnection, Throwable> handler) {
+   HttpChannelInitializer(HttpClientPoolImpl clientPool, HttpConnectionPool connectionPool, BiConsumer<HttpConnection, Throwable> handler) {
       this.clientPool = clientPool;
       this.connectionPool = connectionPool;
       this.handler = handler;

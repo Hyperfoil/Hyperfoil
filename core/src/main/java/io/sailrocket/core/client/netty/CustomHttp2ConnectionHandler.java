@@ -23,7 +23,7 @@ class CustomHttp2ConnectionHandler extends io.netty.handler.codec.http2.Http2Con
    private final HttpConnectionPool connectionPool;
    private Http2Connection connection;
 
-   public CustomHttp2ConnectionHandler(
+   CustomHttp2ConnectionHandler(
          HttpConnectionPool connectionPool,
          BiConsumer<HttpConnection, Throwable> activationHandler,
          Http2ConnectionDecoder decoder,
