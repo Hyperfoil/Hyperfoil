@@ -27,6 +27,8 @@ simulation:
                 path: /foo
                 headers:
                 - Accept: text/plain
+                - Foo:
+                    var: foo
                 handler:
                 # notice this is a list, for repeated invocations
                 - statusExtractor:

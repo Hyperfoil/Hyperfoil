@@ -7,6 +7,7 @@ import java.util.concurrent.TimeUnit;
 
 import io.netty.buffer.ByteBuf;
 import io.sailrocket.api.config.PairBuilder;
+import io.sailrocket.api.config.PartialBuilder;
 import io.sailrocket.api.connection.Request;
 import io.sailrocket.api.config.BenchmarkDefinitionException;
 import io.sailrocket.api.connection.HttpConnectionPool;
@@ -226,7 +227,7 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
       }
    }
 
-   public static class HeadersBuilder extends PairBuilder.String {
+   public static class HeadersBuilder extends PairBuilder.String implements PartialBuilder {
       private final Builder parent;
 
       public HeadersBuilder(Builder builder) {
@@ -240,6 +241,32 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
 
       public Builder endHeaders() {
          return parent;
+      }
+
+      @Override
+      public Object withKey(java.lang.String key) {
+         return new PartialHeadersBuilder(parent, key);
+      }
+   }
+
+   public static class PartialHeadersBuilder {
+      private final Builder parent;
+      private final String header;
+
+      private PartialHeadersBuilder(Builder parent, String header) {
+         this.parent = parent;
+         this.header = header;
+      }
+
+      public void var(String var) {
+         parent.headerAppenders.add((session, writer) -> {
+            Object value = session.getObject(var);
+            if (value instanceof CharSequence) {
+               writer.putHeader(header, (CharSequence) value);
+            } else {
+               log.error("#{} Cannot convert variable {}: {} to CharSequence", session.uniqueId(), var, value);
+            }
+         });
       }
    }
 }
