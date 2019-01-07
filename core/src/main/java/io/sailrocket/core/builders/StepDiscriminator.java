@@ -9,6 +9,7 @@ import java.util.function.Supplier;
 import io.sailrocket.api.config.Step;
 import io.sailrocket.api.http.HttpMethod;
 import io.sailrocket.api.session.Session;
+import io.sailrocket.core.generators.RandomIntStep;
 import io.sailrocket.core.generators.TemplateStep;
 import io.sailrocket.core.steps.AwaitAllResponsesStep;
 import io.sailrocket.core.steps.AwaitConditionStep;
@@ -117,8 +118,14 @@ public class StepDiscriminator {
       return new PollStep.Builder<>(parent, session -> supplier.get(), intoVar);
    }
 
+   // generators
+
    public TemplateStep.Builder template() {
       return new TemplateStep.Builder(parent);
+   }
+
+   public RandomIntStep.Builder randomInt() {
+      return new RandomIntStep.Builder(parent);
    }
 
    public ServiceLoadedBuilderProvider<List<Step>> serviceLoaded() {
