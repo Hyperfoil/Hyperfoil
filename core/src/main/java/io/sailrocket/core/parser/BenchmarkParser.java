@@ -32,7 +32,11 @@ import org.yaml.snakeyaml.events.SequenceStartEvent;
 import org.yaml.snakeyaml.events.StreamEndEvent;
 import org.yaml.snakeyaml.events.StreamStartEvent;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 
 public class BenchmarkParser extends AbstractMappingParser<BenchmarkBuilder> {
@@ -70,6 +74,17 @@ public class BenchmarkParser extends AbstractMappingParser<BenchmarkBuilder> {
         ctx.expectEvent(StreamEndEvent.class);
 
         return benchmarkBuilder.build();
+    }
+
+    public Benchmark buildBenchmark(InputStream inputStream) throws ParserException, IOException {
+        ByteArrayOutputStream result = new ByteArrayOutputStream();
+        byte[] buffer = new byte[1024];
+        int length;
+        while ((length = inputStream.read(buffer)) != -1) {
+            result.write(buffer, 0, length);
+        }
+        String source = result.toString(StandardCharsets.UTF_8.name());
+        return buildBenchmark(source);
     }
 
     private static class DebugIterator<T> implements Iterator<T> {

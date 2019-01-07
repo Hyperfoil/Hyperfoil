@@ -107,17 +107,8 @@ public class YamlParserTest {
             fail("Could not find benchmark configuration");
 
         try {
-            ByteArrayOutputStream result = new ByteArrayOutputStream();
-            byte[] buffer = new byte[1024];
-            int length;
-            while ((length = inputStream.read(buffer)) != -1) {
-                result.write(buffer, 0, length);
-            }
-            String source = result.toString(StandardCharsets.UTF_8.name());
-            Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(source);
-
+            Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(inputStream);
             Assert.assertNotNull(benchmark);
-
             return benchmark;
         } catch (ParserException | IOException e) {
             throw new AssertionError("Error occurred during parsing", e);
