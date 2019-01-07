@@ -22,6 +22,8 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -39,6 +41,8 @@ import javax.net.ssl.SSLException;
  * @author <a href="mailto:johara@redhat.com">John O'Hara</a>
  */
 public class SimulationRunnerImpl implements SimulationRunner {
+    protected static final Logger log = LoggerFactory.getLogger(SimulationRunner.class);
+
     protected final Simulation simulation;
     protected final Map<String, PhaseInstance> instances = new HashMap<>();
     protected final List<Session> sessions = new ArrayList<>();

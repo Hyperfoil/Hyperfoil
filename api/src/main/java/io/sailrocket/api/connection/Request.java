@@ -17,7 +17,7 @@ public class Request implements Runnable {
    private Object requestData;
    private ResponseHandlers handlers;
    private Connection connection;
-   private boolean completed;
+   private boolean completed = true;
 
    public Request(Session session) {
       this.session = session;

@@ -24,7 +24,7 @@
  * After the session is constructed or reset you should create {@link io.sailrocket.api.session.SequenceInstance sequence instances}
  * from the {@link io.sailrocket.core.session.SequenceImpl templates} and subsequently
  * {@link io.sailrocket.core.session.SessionImpl#enableSequence(SequenceInstance) enable}
- * them in the session. Upon {@link io.sailrocket.core.session.SessionImpl#run()} the session tries to invoke all enabled
+ * them in the session. Upon {@link io.sailrocket.core.session.SessionImpl#runSession()} the session tries to invoke all enabled
  * sequence instances; some of the enabled sequences may be blocked because of missing data dependency.
  * <p>
  * The sequence consists of several {@link io.sailrocket.api.config.Step steps}, each of which may have some

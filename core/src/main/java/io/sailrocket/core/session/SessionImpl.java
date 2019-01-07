@@ -19,8 +19,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
 
-class SessionImpl implements Session, Runnable {
+class SessionImpl implements Session, Callable<Void> {
    private static final Logger log = LoggerFactory.getLogger(SessionImpl.class);
    private static final boolean trace = log.isTraceEnabled();
 
@@ -186,7 +187,17 @@ class SessionImpl implements Session, Runnable {
       return wrapper;
    }
 
-   public void run() {
+   @Override
+   public Void call() {
+      try {
+         runSession();
+      } catch (Throwable t) {
+         log.error("#{} Uncaught error", t, uniqueId);
+      }
+      return null;
+   }
+
+   public void runSession() {
       if (phase.status() == PhaseInstance.Status.TERMINATED ) {
          log.trace("called run on terminated session #{}", uniqueId);
          return;
@@ -257,6 +268,7 @@ class SessionImpl implements Session, Runnable {
       if (!requestPool.isFull()) {
          for (Request request : requests) {
             if (!request.isCompleted()) {
+               log.trace("Canceling request on {}", request.connection());
                request.connection().close();
                request.setCompleted();
                requestPool.release(request);
@@ -346,6 +358,7 @@ class SessionImpl implements Session, Runnable {
          runningSequences[i] = null;
       }
       lastRunningSequence = -1;
+      log.trace("#{} Stopped.", uniqueId);
    }
 
    @Override

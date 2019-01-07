@@ -9,11 +9,8 @@ import java.util.concurrent.locks.ReentrantLock;
 import io.sailrocket.api.config.Benchmark;
 import io.sailrocket.api.config.BenchmarkDefinitionException;
 import io.sailrocket.api.session.PhaseInstance;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 
 public class LocalSimulationRunner extends SimulationRunnerImpl {
-   private Logger log = LoggerFactory.getLogger(LocalSimulationRunner.class);
    private Lock statusLock = new ReentrantLock();
    private Condition statusCondition = statusLock.newCondition();
    private long startTime;
