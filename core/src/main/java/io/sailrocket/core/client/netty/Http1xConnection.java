@@ -133,6 +133,9 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
       }
       DefaultFullHttpRequest msg = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, method.netty, path, buf, false);
       msg.headers().add(HttpHeaderNames.HOST, pool.clientPool().authority());
+      if (buf.readableBytes() > 0) {
+         msg.headers().add(HttpHeaderNames.CONTENT_LENGTH, String.valueOf(buf.readableBytes()));
+      }
       if (headerAppenders != null) {
          // TODO: allocation, if it's not eliminated we could store a reusable object
          HttpRequestWriter writer = new HttpRequestWriterImpl(msg);

@@ -193,6 +193,9 @@ class SessionImpl implements Session, Callable<Void> {
          runSession();
       } catch (Throwable t) {
          log.error("#{} Uncaught error", t, uniqueId);
+         if (phase != null) {
+            phase.fail(t);
+         }
       }
       return null;
    }

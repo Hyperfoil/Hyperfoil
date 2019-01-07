@@ -97,16 +97,22 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
    public void request(Request request, HttpMethod method, Function<Session, String> pathGenerator, BiConsumer<Session, HttpRequestWriter>[] headerAppenders, BiFunction<Session, Connection, ByteBuf> bodyGenerator) {
       numStreams++;
       HttpClientPool httpClientPool = pool.clientPool();
+
+      ByteBuf buf = bodyGenerator != null ? bodyGenerator.apply(request.session, this) : null;
+
       Http2Headers headers = new DefaultHttp2Headers().method(method.name()).scheme(httpClientPool.scheme())
             .path(pathGenerator.apply(request.session)).authority(httpClientPool.authority());
       headers.add(HttpHeaderNames.HOST, httpClientPool.authority());
+      if (buf != null && buf.readableBytes() > 0) {
+         headers.add(HttpHeaderNames.CONTENT_LENGTH, String.valueOf(buf.readableBytes()));
+      }
+
       if (headerAppenders != null) {
          HttpRequestWriter writer = new HttpRequestWriterImpl(headers);
          for (BiConsumer<Session, HttpRequestWriter> headerAppender : headerAppenders) {
             headerAppender.accept(request.session, writer);
          }
       }
-      ByteBuf buf = bodyGenerator != null ? bodyGenerator.apply(request.session, this) : null;
 
       assert context.executor().inEventLoop();
       int id = nextStreamId();

@@ -30,6 +30,11 @@ public class LocalSimulationRunner extends SimulationRunnerImpl {
          latch.await();
          // Exec is blocking and therefore must not run on the event-loop thread
          exec();
+         for (PhaseInstance phase : instances.values()) {
+            if (phase.getError() != null) {
+               throw new RuntimeException(phase.getError());
+            }
+         }
       } catch (InterruptedException e) {
          throw new RuntimeException(e);
       } finally {

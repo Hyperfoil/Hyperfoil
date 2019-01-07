@@ -288,14 +288,14 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
       }
    }
 
-   private static class BodyBuilder {
+   public static class BodyBuilder {
       private final Builder parent;
 
       private BodyBuilder(Builder parent) {
          this.parent = parent;
       }
 
-      public void var(String var) {
+      public BodyBuilder var(String var) {
          parent.bodyGenerator((session, connection) -> {
             Object value = session.getObject(var);
             if (value instanceof ByteBuf) {
@@ -307,17 +307,20 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
                ByteBuf buffer = connection.context().alloc().buffer(str.length());
                ByteBuffer output = buffer.nioBuffer(buffer.writerIndex(), buffer.capacity() - buffer.writerIndex());
                CharsetEncoder encoder = StandardCharsets.UTF_8.newEncoder();
+               int accumulatedBytes = 0;
                for (;;) {
                   CoderResult result = encoder.encode(input, output, true);
                   if (result.isError()) {
                      log.error("#{} Cannot encode request body from var {}: {}, string is {}", session.uniqueId(), var, result, str);
                      return null;
                   } else if (result.isUnderflow()) {
-                     buffer.writerIndex(output.position());
+                     buffer.writerIndex(accumulatedBytes + output.position());
                      return buffer;
                   } else if (result.isOverflow()) {
                      buffer.capacity(buffer.capacity() * 2);
-                     output = buffer.nioBuffer(output.position(), buffer.capacity() - output.position());
+                     int writtenBytes = output.position();
+                     accumulatedBytes += writtenBytes;
+                     output = buffer.nioBuffer(accumulatedBytes, buffer.capacity() - accumulatedBytes);
                   } else {
                      throw new IllegalStateException();
                   }
@@ -327,6 +330,11 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
                return null;
             }
          });
+         return this;
+      }
+
+      public Builder endBody() {
+         return parent;
       }
    }
 }
