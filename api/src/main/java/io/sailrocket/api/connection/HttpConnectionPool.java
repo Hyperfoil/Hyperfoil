@@ -2,6 +2,7 @@ package io.sailrocket.api.connection;
 
 import java.util.Collection;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import io.netty.buffer.ByteBuf;
@@ -15,7 +16,7 @@ public interface HttpConnectionPool {
    boolean request(Request request,
                    HttpMethod method, Function<Session, String> pathGenerator,
                    BiConsumer<Session, HttpRequestWriter>[] headerAppenders,
-                   Function<Session, ByteBuf> bodyGenerator);
+                   BiFunction<Session, Connection, ByteBuf> bodyGenerator);
 
    void registerWaitingSession(Session session);
 

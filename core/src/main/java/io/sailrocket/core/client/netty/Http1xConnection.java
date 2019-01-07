@@ -25,6 +25,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Map;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 /**
@@ -123,10 +124,10 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    }
 
    @Override
-   public void request(Request request, HttpMethod method, Function<Session, String> pathGenerator, BiConsumer<Session, HttpRequestWriter>[] headerAppenders, Function<Session, ByteBuf> bodyGenerator) {
+   public void request(Request request, HttpMethod method, Function<Session, String> pathGenerator, BiConsumer<Session, HttpRequestWriter>[] headerAppenders, BiFunction<Session, Connection, ByteBuf> bodyGenerator) {
       size++;
       String path = pathGenerator.apply(request.session);
-      ByteBuf buf = bodyGenerator != null ? bodyGenerator.apply(request.session) : null;
+      ByteBuf buf = bodyGenerator != null ? bodyGenerator.apply(request.session, request.connection()) : null;
       if (buf == null) {
          buf = Unpooled.EMPTY_BUFFER;
       }

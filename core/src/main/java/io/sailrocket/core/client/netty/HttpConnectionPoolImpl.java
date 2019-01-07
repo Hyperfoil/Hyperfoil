@@ -6,12 +6,14 @@ import java.util.Collection;
 import java.util.Deque;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.EventLoop;
 import io.netty.util.concurrent.EventExecutor;
+import io.sailrocket.api.connection.Connection;
 import io.sailrocket.api.connection.Request;
 import io.sailrocket.api.connection.HttpClientPool;
 import io.sailrocket.api.connection.HttpConnection;
@@ -54,7 +56,7 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
    }
 
    @Override
-   public boolean request(Request request, HttpMethod method, Function<Session, String> pathGenerator, BiConsumer<Session, HttpRequestWriter>[] headerAppenders, Function<Session, ByteBuf> bodyGenerator) {
+   public boolean request(Request request, HttpMethod method, Function<Session, String> pathGenerator, BiConsumer<Session, HttpRequestWriter>[] headerAppenders, BiFunction<Session, Connection, ByteBuf> bodyGenerator) {
       assert eventLoop.inEventLoop();
       HttpConnection connection = available.pollFirst();
       if (connection == null) {
