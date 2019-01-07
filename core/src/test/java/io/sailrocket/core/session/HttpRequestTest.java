@@ -94,4 +94,23 @@ public class HttpRequestTest extends BaseScenarioTest {
 
       runScenario();
    }
+
+   @Test
+   public void testPattern(TestContext ctx) {
+      scenario()
+            .objectVar("x")
+            .initialSequence("test")
+               .step(s -> {
+                  s.setObject("x", "bar");
+                  return true;
+               })
+               .step().httpRequest(HttpMethod.POST)
+                  .path().pattern("/test?expect=${x}").endPath()
+                  .body("bar")
+                  .handler().statusExtractor(verifyStatus(ctx))
+                  .endHandler().endStep()
+               .step().awaitAllResponses();
+
+      runScenario();
+   }
 }

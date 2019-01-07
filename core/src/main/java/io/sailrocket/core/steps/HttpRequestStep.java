@@ -8,6 +8,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.StringTokenizer;
 import java.util.concurrent.TimeUnit;
 
 import io.netty.buffer.ByteBuf;
@@ -25,6 +26,7 @@ import io.sailrocket.api.session.Session;
 import io.sailrocket.core.builders.BaseSequenceBuilder;
 import io.sailrocket.core.builders.BaseStepBuilder;
 import io.sailrocket.core.api.ResourceUtilizer;
+import io.sailrocket.core.generators.Pattern;
 import io.sailrocket.core.util.Util;
 import io.sailrocket.function.SerializableBiConsumer;
 import io.sailrocket.function.SerializableBiFunction;
@@ -172,6 +174,10 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
 
       public Builder path(String path) {
          return pathGenerator(s -> path);
+      }
+
+      public PathBuilder path() {
+         return new PathBuilder(this);
       }
 
       public Builder pathGenerator(SerializableFunction<Session, String> pathGenerator) {
@@ -334,6 +340,46 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
       }
 
       public Builder endBody() {
+         return parent;
+      }
+   }
+
+   public static class PathBuilder {
+      private final Builder parent;
+      private boolean used;
+
+      public PathBuilder(Builder builder) {
+         this.parent = builder;
+      }
+
+      private void ensureUnused() {
+         if (used) {
+            throw new BenchmarkDefinitionException("Specify only one of: var, pattern");
+         }
+         used = true;
+      }
+
+      public PathBuilder var(String var) {
+         ensureUnused();
+         parent.pathGenerator(session -> {
+            Object value = session.getObject(var);
+            if (value instanceof String) {
+               return (String) value;
+            } else {
+               log.error("Cannot retrieve path from {}, the content is {}", var, value);
+               return null;
+            }
+         });
+         return this;
+      }
+
+      public PathBuilder pattern(String pattern) {
+         ensureUnused();
+         parent.pathGenerator(new Pattern(pattern));
+         return this;
+      }
+
+      public Builder endPath() {
          return parent;
       }
    }

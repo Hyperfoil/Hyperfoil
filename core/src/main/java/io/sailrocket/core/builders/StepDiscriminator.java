@@ -9,6 +9,7 @@ import java.util.function.Supplier;
 import io.sailrocket.api.config.Step;
 import io.sailrocket.api.http.HttpMethod;
 import io.sailrocket.api.session.Session;
+import io.sailrocket.core.generators.TemplateStep;
 import io.sailrocket.core.steps.AwaitAllResponsesStep;
 import io.sailrocket.core.steps.AwaitConditionStep;
 import io.sailrocket.core.steps.AwaitDelayStep;
@@ -114,6 +115,10 @@ public class StepDiscriminator {
 
    public <T> PollStep.Builder<T> poll(Supplier<T> supplier, String intoVar) {
       return new PollStep.Builder<>(parent, session -> supplier.get(), intoVar);
+   }
+
+   public TemplateStep.Builder template() {
+      return new TemplateStep.Builder(parent);
    }
 
    public ServiceLoadedBuilderProvider<List<Step>> serviceLoaded() {

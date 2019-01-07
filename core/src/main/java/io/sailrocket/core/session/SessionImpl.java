@@ -95,13 +95,13 @@ class SessionImpl implements Session, Callable<Void> {
    @Override
    public Session declare(Object key) {
       ObjectVar var = new ObjectVar(this);
-      vars.put(key, var);
+      vars.putIfAbsent(key, var);
       return this;
    }
 
    @Override
    public Object getObject(Object key) {
-      return ((ObjectVar) requireSet(key, vars.get(key))).get();
+      return ((ObjectVar) requireSet(key)).get();
    }
 
    @Override
@@ -109,11 +109,12 @@ class SessionImpl implements Session, Callable<Void> {
       if (trace) {
          log.trace("#{} {} <- {}", uniqueId, key, value);
       }
-      ObjectVar wrapper = (ObjectVar) vars.get(key);
-      wrapper.value = value;
-      wrapper.set = true;
+      ObjectVar var = getVar(key);
+      var.value = value;
+      var.set = true;
       return this;
    }
+
 
    @Override
    public Session declareInt(Object key) {
@@ -124,7 +125,7 @@ class SessionImpl implements Session, Callable<Void> {
 
    @Override
    public int getInt(Object key) {
-      IntVar var = (IntVar) vars.get(key);
+      IntVar var = requireSet(key);
       if (!var.isSet()) {
          throw new IllegalStateException("Variable " + key + " was not set yet!");
       }
@@ -136,36 +137,45 @@ class SessionImpl implements Session, Callable<Void> {
       if (trace) {
          log.trace("#{} {} <- {}", uniqueId, key, value);
       }
-      ((IntVar) vars.get(key)).set(value);
+      this.<IntVar>getVar(key).set(value);
       return this;
    }
 
    @Override
-   public Session addToInt(Object key, int delta) {
-      IntVar wrapper = (IntVar) vars.get(key);
-      if (!wrapper.isSet()) {
-         throw new IllegalStateException("Variable " + key + " was not set yet!");
+   public String getAsString(Object key) {
+      Var var = requireSet(key);
+      if (var instanceof ObjectVar) {
+         return String.valueOf(((ObjectVar) var).get());
+      } else if (var instanceof IntVar) {
+         return String.valueOf(((IntVar) var).get());
+      } else {
+         throw new IllegalStateException("Unexpected var: " + var);
       }
-      log.trace("#{} {} <- {}", uniqueId, key, wrapper.get() + delta);
-      wrapper.set(wrapper.get() + delta);
+   }
+
+   @Override
+   public Session addToInt(Object key, int delta) {
+      IntVar var = requireSet(key);
+      log.trace("#{} {} <- {}", uniqueId, key, var.get() + delta);
+      var.set(var.get() + delta);
       return this;
    }
 
    @Override
    public boolean isSet(Object key) {
-      return vars.get(key).isSet();
+      return getVar(key).isSet();
    }
 
    @Override
    public Object activate(Object key) {
-      ObjectVar var = (ObjectVar) vars.get(key);
+      ObjectVar var = getVar(key);
       var.set = true;
       return var.get();
    }
 
    @Override
    public Session unset(Object key) {
-      vars.get(key).unset();
+      getVar(key).unset();
       return this;
    }
 
@@ -180,11 +190,22 @@ class SessionImpl implements Session, Callable<Void> {
       return (R) resources.get(key);
    }
 
-   private <W extends Var> W requireSet(Object key, W wrapper) {
-      if (!wrapper.isSet()) {
+   private <V extends Var> V getVar(Object key) {
+      Var var = vars.get(key);
+      if (var == null) {
+         throw new IllegalStateException("Variable " + key + " was not defined!");
+      }
+      return (V) var;
+   }
+
+   private <V extends Var> V requireSet(Object key) {
+      Var var = vars.get(key);
+      if (var == null) {
+         throw new IllegalStateException("Variable " + key + " was not defined!");
+      } else if (!var.isSet()) {
          throw new IllegalStateException("Variable " + key + " was not set yet!");
       }
-      return wrapper;
+      return (V) var;
    }
 
    @Override

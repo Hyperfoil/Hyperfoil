@@ -43,6 +43,8 @@ public interface Session {
 
    Session setInt(Object key, int value);
 
+   String getAsString(Object key);
+
    default Session addToInt(Object key, int delta) {
       setInt(key, getInt(key) + delta);
       return this;
