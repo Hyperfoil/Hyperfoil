@@ -71,7 +71,6 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
 
       HttpConnectionPool connectionPool = session.httpConnectionPool(baseUrl);
       if (!connectionPool.request(request, method, pathGenerator, headerAppenders, bodyGenerator)) {
-         log.warn("#{} No HTTP connection in pool, waiting...", session.uniqueId());
          request.setCompleted();
          session.requestPool().release(request);
          // TODO: when the phase is finished, max duration is not set and the connection cannot be obtained
