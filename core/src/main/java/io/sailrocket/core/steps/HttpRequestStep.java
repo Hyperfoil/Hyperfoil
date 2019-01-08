@@ -8,7 +8,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.StringTokenizer;
 import java.util.concurrent.TimeUnit;
 
 import io.netty.buffer.ByteBuf;
@@ -121,50 +120,76 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
       }
 
       // Methods below allow more brevity in the YAML
-
       public Builder GET(String path) {
-         this.method = HttpMethod.GET;
-         return path(path);
+         return method(HttpMethod.GET).path(path);
+      }
+
+      public PathBuilder GET() {
+         return method(HttpMethod.GET).path();
       }
 
       public Builder HEAD(String path) {
-         this.method = HttpMethod.HEAD;
-         return path(path);
+         return method(HttpMethod.HEAD).path(path);
+      }
+
+      public PathBuilder HEAD() {
+         return method(HttpMethod.HEAD).path();
       }
 
       public Builder POST(String path) {
-         this.method = HttpMethod.POST;
-         return path(path);
+         return method(HttpMethod.POST).path(path);
+      }
+
+      public PathBuilder POST() {
+         return method(HttpMethod.POST).path();
       }
 
       public Builder PUT(String path) {
-         this.method = HttpMethod.PUT;
-         return path(path);
+         return method(HttpMethod.PUT).path(path);
+      }
+
+      public PathBuilder PUT() {
+         return method(HttpMethod.PUT).path();
       }
 
       public Builder DELETE(String path) {
-         this.method = HttpMethod.DELETE;
-         return path(path);
+         return method(HttpMethod.DELETE).path(path);
+      }
+
+      public PathBuilder DELETE() {
+         return method(HttpMethod.DELETE).path();
       }
 
       public Builder OPTIONS(String path) {
-         this.method = HttpMethod.OPTIONS;
-         return path(path);
+         return method(HttpMethod.OPTIONS).path(path);
+      }
+
+      public PathBuilder OPTIONS() {
+         return method(HttpMethod.OPTIONS).path();
       }
 
       public Builder PATCH(String path) {
-         this.method = HttpMethod.PATCH;
-         return path(path);
+         return method(HttpMethod.PATCH).path(path);
+      }
+
+      public PathBuilder PATCH() {
+         return method(HttpMethod.PATCH).path();
       }
 
       public Builder TRACE(String path) {
-         this.method = HttpMethod.TRACE;
-         return path(path);
+         return method(HttpMethod.TRACE).path(path);
+      }
+
+      public PathBuilder TRACE() {
+         return method(HttpMethod.TRACE).path();
       }
 
       public Builder CONNECT(String path) {
-         this.method = HttpMethod.CONNECT;
-         return path(path);
+         return method(HttpMethod.CONNECT).path(path);
+      }
+
+      public PathBuilder CONNECT() {
+         return method(HttpMethod.CONNECT).path();
       }
 
       public Builder baseUrl(String baseUrl) {
