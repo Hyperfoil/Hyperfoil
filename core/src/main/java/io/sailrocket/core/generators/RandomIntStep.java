@@ -7,10 +7,11 @@ import java.util.concurrent.ThreadLocalRandom;
 import io.sailrocket.api.config.BenchmarkDefinitionException;
 import io.sailrocket.api.config.Step;
 import io.sailrocket.api.session.Session;
+import io.sailrocket.core.api.ResourceUtilizer;
 import io.sailrocket.core.builders.BaseSequenceBuilder;
 import io.sailrocket.core.builders.BaseStepBuilder;
 
-public class RandomIntStep implements Step {
+public class RandomIntStep implements Step, ResourceUtilizer {
    private final String var;
    private final int minInclusive;
    private final int maxInclusive;
@@ -36,6 +37,11 @@ public class RandomIntStep implements Step {
       }
       session.setInt(var, r);
       return true;
+   }
+
+   @Override
+   public void reserve(Session session) {
+      session.declareInt(var);
    }
 
    public static class Builder extends BaseStepBuilder {
