@@ -10,6 +10,7 @@ import io.sailrocket.api.config.Step;
 import io.sailrocket.api.http.HttpMethod;
 import io.sailrocket.api.session.Session;
 import io.sailrocket.core.generators.RandomIntStep;
+import io.sailrocket.core.generators.RandomItemStep;
 import io.sailrocket.core.generators.TemplateStep;
 import io.sailrocket.core.steps.AwaitAllResponsesStep;
 import io.sailrocket.core.steps.AwaitConditionStep;
@@ -126,6 +127,10 @@ public class StepDiscriminator {
 
    public RandomIntStep.Builder randomInt() {
       return new RandomIntStep.Builder(parent);
+   }
+
+   public RandomItemStep.Builder randomItem() {
+      return new RandomItemStep.Builder(parent);
    }
 
    public ServiceLoadedBuilderProvider<List<Step>> serviceLoaded() {

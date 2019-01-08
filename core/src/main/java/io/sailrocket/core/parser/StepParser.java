@@ -13,6 +13,7 @@ import org.yaml.snakeyaml.events.SequenceEndEvent;
 import org.yaml.snakeyaml.events.SequenceStartEvent;
 
 import io.sailrocket.api.config.BenchmarkDefinitionException;
+import io.sailrocket.api.config.ListBuilder;
 import io.sailrocket.api.config.PairBuilder;
 import io.sailrocket.api.config.PartialBuilder;
 import io.sailrocket.api.config.ServiceLoadedBuilder;
@@ -147,7 +148,11 @@ class StepParser implements Parser<BaseSequenceBuilder> {
                if (defEvent instanceof SequenceEndEvent) {
                   break;
                } else if (defEvent instanceof ScalarEvent) {
-                  invokeWithParameters(ctx, builder, (ScalarEvent) defEvent);
+                  if (builder instanceof ListBuilder) {
+                     ((ListBuilder) builder).nextItem(((ScalarEvent) defEvent).getValue());
+                  } else {
+                     invokeWithParameters(ctx, builder, (ScalarEvent) defEvent);
+                  }
                } else if (defEvent instanceof MappingStartEvent) {
                   defEvent = ctx.expectEvent(ScalarEvent.class);
                   invokeWithParameters(ctx, builder, (ScalarEvent) defEvent);
