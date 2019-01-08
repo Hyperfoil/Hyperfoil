@@ -60,8 +60,8 @@ public class SLA implements Serializable {
    }
 
    public SLA.Failure validate(StatisticsSnapshot statistics) {
-      boolean actualErrorRate = (double) statistics.errors() / statistics.requestCount >= errorRate;
-      if (actualErrorRate) {
+      double actualErrorRate = (double) statistics.errors() / statistics.requestCount;
+      if (actualErrorRate >= errorRate) {
          return new SLA.Failure(this, statistics.clone(),
                String.format("Error rate exceeded: required %.3f, actual %.3f", errorRate, actualErrorRate));
       }
