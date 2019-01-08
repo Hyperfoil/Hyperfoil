@@ -31,7 +31,7 @@ public class ControllerPhase {
 
    public void status(Status status) {
       if (this.status.ordinal() < status.ordinal()) {
-         log.debug("{} changing status to {}", definition.name, status);
+         log.info("{} changing status to {}", definition.name, status);
          this.status = status;
       }
    }

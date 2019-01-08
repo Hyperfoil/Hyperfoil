@@ -244,6 +244,7 @@ public class AgentControllerVerticle extends AbstractVerticle {
 
         Run run = new Run(String.format("%04X", runIds.getAndIncrement()), benchmark, runAgents);
         runs.put(run.id, run);
+        log.info("Starting benchmark {} - run {}", run.benchmark.name(), run.id);
 
         for (AgentInfo agent : run.agents) {
             if (agent.status != AgentInfo.Status.REGISTERED) {
@@ -335,6 +336,7 @@ public class AgentControllerVerticle extends AbstractVerticle {
                     if (run.agents.stream().allMatch(a -> a.status != AgentInfo.Status.INITIALIZED)) {
                         run.agents.clear();
                         persistRun(run);
+                        log.info("Run {} completed", run.id);
                     }
                 } else {
                     agent.status = AgentInfo.Status.FAILED;

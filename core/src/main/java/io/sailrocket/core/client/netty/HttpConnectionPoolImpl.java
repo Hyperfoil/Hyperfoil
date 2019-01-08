@@ -123,7 +123,7 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
          clientPool.connect(this, (conn, err) -> {
             // at this moment we're in unknown thread
             if (err != null) {
-               log.warn("Cannot create connection (retry {}): {}", retry, err.getMessage());
+               log.warn("Cannot create connection (retry {}): {}", retry, err.toString());
                // so we need to make sure that checkCreateConnections will be called in eventLoop
                eventLoop.execute(() -> {
                   count--;
