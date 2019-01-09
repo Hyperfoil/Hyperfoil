@@ -1,8 +1,11 @@
 package io.sailrocket.core.session;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 import org.junit.Test;
@@ -10,6 +13,9 @@ import org.junit.runner.RunWith;
 
 import io.sailrocket.api.http.HttpMethod;
 import io.sailrocket.api.http.StatusExtractor;
+import io.sailrocket.api.session.Session;
+import io.sailrocket.api.statistics.StatisticsSnapshot;
+import io.sailrocket.core.extractors.RangeStatusValidator;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.ext.web.handler.BodyHandler;
@@ -26,6 +32,10 @@ public class HttpRequestTest extends BaseScenarioTest {
             ctx.response().setStatusCode(400).end();
          }
          ctx.response().setStatusCode(expect.equals(body) ? 200 : 412).end();
+      });
+      router.get("/status").handler(ctx -> {
+         String s = ctx.request().getParam("s");
+         ctx.response().setStatusCode(Integer.parseInt(s)).end();
       });
    }
 
@@ -112,5 +122,39 @@ public class HttpRequestTest extends BaseScenarioTest {
                .step().awaitAllResponses();
 
       runScenario();
+   }
+
+   @Test
+   public void testStatusValidator(TestContext ctx) {
+      scenario()
+            .initialSequence("expectOK")
+               .step().httpRequest(HttpMethod.GET)
+                  .path("/status?s=205")
+                  .handler()
+                     .statusValidator(new RangeStatusValidator(205, 205))
+                     .endHandler()
+                  .endStep()
+               .step().awaitAllResponses()
+               .endSequence()
+            .initialSequence("expectFail")
+               .step().httpRequest(HttpMethod.GET)
+                  .path("/status?s=406")
+                  .handler()
+                     .statusValidator(new RangeStatusValidator(200, 299))
+                     .endHandler()
+                  .endStep()
+               .step().awaitAllResponses()
+               .endSequence();
+
+      List<Session> sessions = runScenario();
+      Session session = sessions.iterator().next();
+      StatisticsSnapshot snapshot0 = session.statistics(0).snapshot();
+      StatisticsSnapshot snapshot1 = session.statistics(1).snapshot();
+      assertThat(snapshot0.status_2xx).isEqualTo(1);
+      assertThat(snapshot0.status_4xx).isEqualTo(0);
+      assertThat(snapshot1.status_2xx).isEqualTo(0);
+      assertThat(snapshot1.status_4xx).isEqualTo(1);
+      assertThat(session.validatorResults().statusValid()).isEqualTo(1);
+      assertThat(session.validatorResults().statusInvalid()).isEqualTo(1);
    }
 }

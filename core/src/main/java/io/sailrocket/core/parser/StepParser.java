@@ -122,14 +122,22 @@ class StepParser implements Parser<BaseSequenceBuilder> {
                String name = ((ScalarEvent) defEvent).getValue();
                ServiceLoadedBuilderProvider<?> provider = (ServiceLoadedBuilderProvider<?>) builder;
                ServiceLoadedBuilder serviceLoadedBuilder;
-               try {
-                  serviceLoadedBuilder = provider.forName(name, null);
-               } catch (BenchmarkDefinitionException e) {
-                  throw new ParserException(defEvent, "Failed to instantiate service-loaded builder", e);
+               Event builderEvent = ctx.next();
+               String param = null;
+               if (builderEvent instanceof ScalarEvent) {
+                  param = ((ScalarEvent) builderEvent).getValue();
                }
-               ctx.expectEvent(MappingStartEvent.class);
-               applyMapping(ctx, serviceLoadedBuilder);
-               // applyMapping consumes MappingEndEvent
+               try {
+                  serviceLoadedBuilder = provider.forName(name, param);
+               } catch (BenchmarkDefinitionException e) {
+                  throw new ParserException(defEvent, "Failed to instantiate service-loaded builder " + name, e);
+               }
+               if (builderEvent instanceof MappingStartEvent) {
+                  applyMapping(ctx, serviceLoadedBuilder);
+               } else if (!(builderEvent instanceof ScalarEvent)) {
+                  throw ctx.unexpectedEvent(builderEvent);
+               }
+               serviceLoadedBuilder.apply();
             } else {
                throw ctx.unexpectedEvent(defEvent);
             }

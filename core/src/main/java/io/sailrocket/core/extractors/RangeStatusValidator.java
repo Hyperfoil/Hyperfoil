@@ -14,8 +14,8 @@ import io.vertx.core.logging.LoggerFactory;
 public class RangeStatusValidator implements StatusValidator {
    private static final Logger log = LoggerFactory.getLogger(RangeStatusValidator.class);
 
-   final int min;
-   final int max;
+   public final int min;
+   public final int max;
 
    public RangeStatusValidator(int min, int max) {
       this.min = min;

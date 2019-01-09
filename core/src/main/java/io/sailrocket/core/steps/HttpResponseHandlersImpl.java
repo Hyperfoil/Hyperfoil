@@ -28,14 +28,14 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
    private static final Logger log = LoggerFactory.getLogger(HttpResponseHandlersImpl.class);
    private static final boolean trace = log.isTraceEnabled();
 
-   private final StatusValidator[] statusValidators;
-   private final HeaderValidator[] headerValidators;
-   private final BodyValidator[] bodyValidators;
-   private final StatusExtractor[] statusExtractors;
-   private final HeaderExtractor[] headerExtractors;
-   private final BodyExtractor[] bodyExtractors;
-   private final SerializableConsumer<Session>[] completionHandlers;
-   private final RawBytesHandler[] rawBytesHandlers;
+   final StatusValidator[] statusValidators;
+   final HeaderValidator[] headerValidators;
+   final BodyValidator[] bodyValidators;
+   final StatusExtractor[] statusExtractors;
+   final HeaderExtractor[] headerExtractors;
+   final BodyExtractor[] bodyExtractors;
+   final SerializableConsumer<Session>[] completionHandlers;
+   final RawBytesHandler[] rawBytesHandlers;
 
    private HttpResponseHandlersImpl(StatusValidator[] statusValidators,
                                     HeaderValidator[] headerValidators,

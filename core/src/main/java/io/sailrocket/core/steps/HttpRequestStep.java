@@ -37,13 +37,13 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
    private static final Logger log = LoggerFactory.getLogger(HttpRequestStep.class);
    private static final boolean trace = log.isTraceEnabled();
 
-   private final HttpMethod method;
-   private final String baseUrl;
-   private final SerializableFunction<Session, String> pathGenerator;
-   private final SerializableBiFunction<Session, Connection, ByteBuf> bodyGenerator;
-   private final SerializableBiConsumer<Session, HttpRequestWriter>[] headerAppenders;
-   private final long timeout;
-   private final HttpResponseHandlersImpl handler;
+   final HttpMethod method;
+   final String baseUrl;
+   final SerializableFunction<Session, String> pathGenerator;
+   final SerializableBiFunction<Session, Connection, ByteBuf> bodyGenerator;
+   final SerializableBiConsumer<Session, HttpRequestWriter>[] headerAppenders;
+   final long timeout;
+   final HttpResponseHandlersImpl handler;
 
    public HttpRequestStep(HttpMethod method, String baseUrl,
                           SerializableFunction<Session, String> pathGenerator,

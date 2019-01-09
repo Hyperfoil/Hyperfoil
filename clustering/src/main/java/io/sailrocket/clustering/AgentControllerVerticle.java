@@ -275,7 +275,7 @@ public class AgentControllerVerticle extends AbstractVerticle {
         }
         run.statisticsStore = new StatisticsStore(run.benchmark, failure -> {
             Sequence sequence = failure.sla().sequence();
-            System.out.println("Failed verify SLA(s) for " + sequence.phase() + "/" + sequence.name());
+            log.warn("Failed verify SLA(s) for {}/{}", sequence.phase(), sequence.name());
         });
         runSimulation(run);
     }

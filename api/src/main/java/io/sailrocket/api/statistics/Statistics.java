@@ -173,4 +173,10 @@ public class Statistics {
          recordingPhaser.readerUnlock();
       }
    }
+
+   public StatisticsSnapshot snapshot() {
+      StatisticsSnapshot snapshot = new StatisticsSnapshot();
+      addIntervalTo(snapshot);
+      return snapshot;
+   }
 }

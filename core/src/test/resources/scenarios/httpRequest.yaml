@@ -1,0 +1,26 @@
+# For parser testing
+name: generators
+simulation:
+  http:
+    baseUrl: http://localhost:8080
+  phases:
+  - testPhase:
+      atOnce:
+        users: 1
+        duration: 0
+        scenario:
+          initialSequences:
+          - testSequence:
+            - httpRequest:
+                GET: /foo
+                handler:
+                  statusValidator:
+                    range: 2xx
+            - httpRequest:
+                PUT:
+                  pattern: /foo?bar=${x}
+                handler:
+                  statusValidator:
+                    range:
+                      min: 201
+                      max: 259
