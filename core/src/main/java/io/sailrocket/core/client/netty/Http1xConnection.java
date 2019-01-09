@@ -107,6 +107,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
          if (!request.isCompleted()) {
             request.handlers().handleThrowable(request, cause);
             request.setCompleted();
+            request.session.proceed();
          }
       }
       ctx.close();
@@ -119,6 +120,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
          if (!request.isCompleted()) {
             request.handlers().handleThrowable(request, Connection.CLOSED_EXCEPTION);
             request.setCompleted();
+            request.session.proceed();
          }
       }
    }
