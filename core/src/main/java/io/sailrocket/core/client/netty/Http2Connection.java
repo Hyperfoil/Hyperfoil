@@ -42,6 +42,7 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
    private final IntObjectMap<Request> streams = new IntObjectHashMap<>();
    private int numStreams;
    private long maxStreams;
+   private boolean closed;
 
    Http2Connection(ChannelHandlerContext context,
                    io.netty.handler.codec.http2.Http2Connection connection,
@@ -127,6 +128,16 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
    @Override
    public Request peekRequest(int streamId) {
       return streams.get(streamId);
+   }
+
+   @Override
+   public void setClosed() {
+      this.closed = true;
+   }
+
+   @Override
+   public boolean isClosed() {
+      return closed;
    }
 
    private int nextStreamId() {

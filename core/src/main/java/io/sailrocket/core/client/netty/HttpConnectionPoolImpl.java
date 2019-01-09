@@ -39,6 +39,8 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
    private final int size;
    private final EventLoop eventLoop;
    private int count; // The estimated count : created + creating
+   private int created;
+   private int closed; // number of closed connections in #connections
    private Handler<AsyncResult<Void>> startedHandler;
    private boolean shutdown;
    private Deque<Session> waitingSessions = new ArrayDeque<>();
@@ -58,9 +60,18 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
    @Override
    public boolean request(Request request, HttpMethod method, Function<Session, String> pathGenerator, BiConsumer<Session, HttpRequestWriter>[] headerAppenders, BiFunction<Session, Connection, ByteBuf> bodyGenerator) {
       assert eventLoop.inEventLoop();
-      HttpConnection connection = available.pollFirst();
-      if (connection == null) {
-         return false;
+      HttpConnection connection;
+      for (;;) {
+         connection = available.pollFirst();
+         if (connection == null) {
+            return false;
+         } else if (connection.isClosed()) {
+            continue;
+         } else if (!connection.context().channel().isOpen()) {
+            throw new IllegalStateException("Connection " + connection + " is closed!");
+         } else {
+            break;
+         }
       }
       request.setRequestData(method);
       request.attach(connection);
@@ -141,7 +152,7 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
                });
             } else {
                if (conn.context().executor() != eventLoop) {
-                  log.trace("Connection created, re-registering...");
+                  log.trace("Connection {} created, re-registering...", conn);
                   conn.context().channel().deregister().addListener(future -> {
                      if (future.isSuccess()) {
                         eventLoop.register(conn.context().channel()).addListener(regFuture -> {
@@ -156,7 +167,7 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
                      }
                   });
                } else {
-                  log.trace("Connection created, in correct event loop.");
+                  log.trace("Connection {} created, in correct event loop.", conn);
                   assert eventLoop.inEventLoop();
                   connectionCreated(conn);
                }
@@ -172,21 +183,29 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
 
       Handler<AsyncResult<Void>> handler = null;
       connections.add(conn);
+      created++;
       available.add(conn);
       if (count < size) {
          checkCreateConnections(0);
       } else {
-         if (connections.size() == size) {
+         if (created == size) {
             handler = startedHandler;
             startedHandler = null;
          }
       }
 
       conn.context().channel().closeFuture().addListener(v -> {
+         conn.setClosed();
          log.debug("Connection {} closed.", conn);
          count--;
+         created--;
+         closed++;
+         if (closed > size) {
+            // do cleanup
+            connections.removeIf(HttpConnection::isClosed);
+            closed = 0;
+         }
          if (!shutdown) {
-            connections.remove(conn);
             checkCreateConnections(0);
          }
       });
@@ -221,6 +240,9 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
       eventLoop.execute(() -> {
          log.debug("Closing all connections");
          for (HttpConnection conn : connections) {
+            if (conn.isClosed()) {
+               continue;
+            }
             conn.context().writeAndFlush(Unpooled.EMPTY_BUFFER);
             conn.context().close();
             conn.context().flush();

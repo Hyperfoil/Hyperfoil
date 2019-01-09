@@ -17,4 +17,8 @@ public interface HttpConnection extends Connection {
                  BiConsumer<Session, HttpRequestWriter>[] headerAppenders, BiFunction<Session, Connection, ByteBuf> bodyGenerator);
 
     Request peekRequest(int streamId);
+
+    void setClosed();
+
+    boolean isClosed();
 }

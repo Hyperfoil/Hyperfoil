@@ -41,6 +41,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    // we can safely use non-atomic variables since the connection should be always accessed by single thread
    private int size;
    private boolean activated;
+   private boolean closed;
 
    Http1xConnection(HttpClientPoolImpl client, HttpConnectionPool pool, BiConsumer<HttpConnection, Throwable> handler) {
       this.pool = pool;
@@ -154,6 +155,16 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    public Request peekRequest(int streamId) {
       assert streamId == 0;
       return inflights.peek();
+   }
+
+   @Override
+   public void setClosed() {
+      this.closed = true;
+   }
+
+   @Override
+   public boolean isClosed() {
+      return closed;
    }
 
    @Override
