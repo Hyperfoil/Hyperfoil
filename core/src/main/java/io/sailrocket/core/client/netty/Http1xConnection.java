@@ -75,7 +75,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
          HttpResponse response = (HttpResponse) msg;
          Request request = inflights.peek();
          HttpResponseHandlers handlers = (HttpResponseHandlers) request.handlers();
-         handlers.handleStatus(request, response.status().code());
+         handlers.handleStatus(request, response.status().code(), response.status().reasonPhrase());
          for (Map.Entry<String, String> header : response.headers()) {
             handlers.handleHeader(request, header.getKey(), header.getValue());
          }

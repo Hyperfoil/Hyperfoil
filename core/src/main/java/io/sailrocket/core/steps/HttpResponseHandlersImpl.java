@@ -56,7 +56,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
    }
 
    @Override
-   public void handleStatus(Request request, int status) {
+   public void handleStatus(Request request, int status, String reason) {
       Session session = request.session;
       session.currentSequence(request.sequence());
       if (request.isCompleted()) {
@@ -65,7 +65,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       }
 
       if (trace) {
-         log.trace("#{} Received status {}", session.uniqueId(), status);
+         log.trace("#{} Received status {}: {}", session.uniqueId(), status, reason);
       }
       request.sequence().statistics(session).addStatus(status);
 

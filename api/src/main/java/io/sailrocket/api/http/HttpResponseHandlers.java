@@ -5,7 +5,7 @@ import io.sailrocket.api.connection.Request;
 import io.sailrocket.api.connection.ResponseHandlers;
 
 public interface HttpResponseHandlers extends ResponseHandlers {
-   void handleStatus(Request request, int status);
+   void handleStatus(Request request, int status, String reason);
 
    void handleHeader(Request request, String header, String value);
 

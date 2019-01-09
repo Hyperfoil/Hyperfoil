@@ -171,7 +171,7 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
                code = Integer.parseInt(headers.status().toString());
             } catch (NumberFormatException ignore) {
             }
-            handlers.handleStatus(request, code);
+            handlers.handleStatus(request, code, "");
             if (endStream) {
                endStream(streamId);
             }
