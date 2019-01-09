@@ -83,6 +83,11 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
    }
 
    @Override
+   public int waitingSessions() {
+      return waitingSessions.size();
+   }
+
+   @Override
    public EventExecutor executor() {
       return eventLoop;
    }
@@ -93,6 +98,11 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
       log.trace("Pulse #{}", session == null ? "<none>" : session.uniqueId());
       if (session != null) {
          session.proceed();
+      }
+      // The session might not use the connection (e.g. when it's terminated) and call pulse() again
+      // We don't want to activate all the sessions, though so we need to schedule another pulse
+      if (!waitingSessions.isEmpty()) {
+         executor().schedule(this::pulse, 1, TimeUnit.MILLISECONDS);
       }
    }
 

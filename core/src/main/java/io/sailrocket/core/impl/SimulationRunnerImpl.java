@@ -188,7 +188,8 @@ public class SimulationRunnerImpl implements SimulationRunner {
                     // Ignore default pool: it's there twice
                     continue;
                 }
-                Collection<? extends HttpConnection> connections = entry.getValue().connections();
+                HttpConnectionPool pool = entry.getValue();
+                Collection<? extends HttpConnection> connections = pool.connections();
                 int available = 0;
                 int inFlight = 0;
                 for (HttpConnection conn : connections) {
@@ -197,7 +198,7 @@ public class SimulationRunnerImpl implements SimulationRunner {
                     }
                     inFlight += conn.inFlight();
                 }
-                list.add(String.format("%s: %d/%d available, %d in-flight requests (estimate)", entry.getKey(), available, connections.size(), inFlight));
+                list.add(String.format("%s: %d/%d available, %d in-flight requests, %d waiting sessions (estimate)", entry.getKey(), available, connections.size(), inFlight, pool.waitingSessions()));
             }
         }
         return list;

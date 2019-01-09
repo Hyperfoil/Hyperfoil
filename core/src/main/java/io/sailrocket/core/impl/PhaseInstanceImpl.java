@@ -229,7 +229,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       @Override
       public void notifyFinished(Session session) {
          if (status.isFinished()) {
-            log.trace("notifyFinished session #{}", session.uniqueId());
+            log.trace("#{} NotifyFinished", session.uniqueId());
             super.notifyFinished(session);
          } else {
             session.start(this);
@@ -296,7 +296,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       @Override
       public void notifyFinished(Session session) {
          sessionPool.release(session);
-         log.trace("notifyFinished session #{}", session.uniqueId());
+         log.trace("#{} NotifyFinished", session.uniqueId());
          super.notifyFinished(session);
       }
    }
@@ -358,7 +358,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       @Override
       public void notifyFinished(Session session) {
          sessionPool.release(session);
-         log.trace("notifyFinished session #{}", session.uniqueId());
+         log.trace("#{} NotifyFinished", session.uniqueId());
          super.notifyFinished(session);
       }
    }

@@ -20,6 +20,8 @@ public interface HttpConnectionPool {
 
    void registerWaitingSession(Session session);
 
+   int waitingSessions();
+
    EventExecutor executor();
 
    void pulse();

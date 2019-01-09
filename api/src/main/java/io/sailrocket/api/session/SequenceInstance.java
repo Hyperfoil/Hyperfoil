@@ -30,7 +30,7 @@ public class SequenceInstance {
                return progressed;
             }
          } catch (Throwable t) {
-            log.error("{} {} failure invoking step {}", t, session.uniqueId(), name, step);
+            log.error("#{} {} failure invoking step {}", t, session.uniqueId(), name, step);
             session.fail(t);
             return false;
          }

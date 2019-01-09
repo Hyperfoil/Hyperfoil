@@ -223,7 +223,7 @@ class SessionImpl implements Session, Callable<Void> {
 
    public void runSession() {
       if (phase.status() == PhaseInstance.Status.TERMINATED ) {
-         log.trace("called run on terminated session #{}", uniqueId);
+         log.trace("#{} Phase is terminated", uniqueId);
          return;
       }
       if (lastRunningSequence < 0) {
