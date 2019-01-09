@@ -36,8 +36,9 @@ public class Http implements Serializable {
     private final int pipeliningLimit;
     private final int sharedConnections;
     private final boolean directHttp2;
+    private final long requestTimeout;
 
-    public Http(boolean isDefault, String baseUrl, HttpVersion[] versions, int maxHttp2Streams, int pipeliningLimit, int sharedConnections, boolean directHttp2) {
+    public Http(boolean isDefault, String baseUrl, HttpVersion[] versions, int maxHttp2Streams, int pipeliningLimit, int sharedConnections, boolean directHttp2, long requestTimeout) {
         this.isDefault = isDefault;
         this.baseUrl = new Url(baseUrl);
         this.versions = versions;
@@ -45,6 +46,7 @@ public class Http implements Serializable {
         this.pipeliningLimit = pipeliningLimit;
         this.sharedConnections = sharedConnections;
         this.directHttp2 = directHttp2;
+        this.requestTimeout = requestTimeout;
     }
 
     public Url baseUrl() {

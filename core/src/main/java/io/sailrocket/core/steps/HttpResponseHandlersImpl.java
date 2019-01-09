@@ -182,6 +182,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
    @Override
    public void handleEnd(Request request) {
       if (request.isCompleted()) {
+         log.trace("Request is already completed.");
          return;
       }
       Session session = request.session;

@@ -15,6 +15,7 @@ class HttpParser extends AbstractParser<SimulationBuilder, HttpBuilder> {
       register("sharedConnections", new PropertyParser.Int<>(HttpBuilder::sharedConnections));
       register("pipeliningLimit", new PropertyParser.Int<>(HttpBuilder::pipeliningLimit));
       register("directHttp2", new PropertyParser.Boolean<>(HttpBuilder::directHttp2));
+      register("requestTimeout", new PropertyParser.String<>(HttpBuilder::requestTimeout));
    }
 
    @Override

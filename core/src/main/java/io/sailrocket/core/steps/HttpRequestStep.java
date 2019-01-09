@@ -25,6 +25,7 @@ import io.sailrocket.api.session.Session;
 import io.sailrocket.core.builders.BaseSequenceBuilder;
 import io.sailrocket.core.builders.BaseStepBuilder;
 import io.sailrocket.core.api.ResourceUtilizer;
+import io.sailrocket.core.builders.SimulationBuilder;
 import io.sailrocket.core.generators.Pattern;
 import io.sailrocket.core.util.Util;
 import io.sailrocket.function.SerializableBiConsumer;
@@ -90,6 +91,7 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
          request.setTimeout(timeout, TimeUnit.MILLISECONDS);
       }
 
+      log.trace("#{} sent request on {}", session.uniqueId(), request.connection());
       session.currentSequence().statistics(session).incrementRequests();
       return true;
    }
@@ -258,7 +260,8 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
 
       @Override
       public List<Step> build() {
-         if (!parent.endSequence().endScenario().endPhase().validateBaseUrl(baseUrl)) {
+         SimulationBuilder simulation = parent.endSequence().endScenario().endPhase();
+         if (!simulation.validateBaseUrl(baseUrl)) {
             String guessedPath = "<unknown path>";
             try {
                guessedPath = pathGenerator.apply(null);
@@ -271,6 +274,10 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
          }
          SerializableBiConsumer<Session, HttpRequestWriter>[] headerAppenders =
                this.headerAppenders.isEmpty() ? null : this.headerAppenders.toArray(new SerializableBiConsumer[0]);
+         long timeout = this.timeout;
+         if (timeout == 0) {
+            timeout = simulation.http(baseUrl).requestTimeout();
+         }
          return Collections.singletonList(new HttpRequestStep(method, baseUrl, pathGenerator, bodyGenerator, headerAppenders, timeout, handler.build()));
       }
    }

@@ -25,6 +25,7 @@ import io.sailrocket.api.config.Http;
 import io.sailrocket.core.http.CookieAppender;
 import io.sailrocket.core.http.CookieRecorder;
 import io.sailrocket.core.steps.HttpRequestStep;
+import io.sailrocket.core.util.Util;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -46,6 +47,7 @@ public class HttpBuilder {
     private int maxHttp2Streams = 100;
     private int pipeliningLimit = 1;
     private boolean directHttp2 = false;
+    private long requestTimeout = 30000;
 
     public static HttpBuilder forTesting() {
         return new HttpBuilder(null);
@@ -107,6 +109,24 @@ public class HttpBuilder {
         return this;
     }
 
+    public HttpBuilder requestTimeout(long requestTimeout) {
+        this.requestTimeout = requestTimeout;
+        return this;
+    }
+
+    public HttpBuilder requestTimeout(String requestTimeout) {
+        if ("none".equals(requestTimeout)) {
+            this.requestTimeout = -1;
+        } else {
+            this.requestTimeout = Util.parseToMillis(requestTimeout);
+        }
+        return this;
+    }
+
+    public long requestTimeout() {
+        return requestTimeout;
+    }
+
     public Http build(boolean isDefault) {
         if (http != null) {
             if (isDefault != http.isDefault()) {
@@ -140,6 +160,6 @@ public class HttpBuilder {
         if (directHttp2) {
             throw new UnsupportedOperationException("Direct HTTP/2 not implemented");
         }
-        return http = new Http(isDefault, baseUrl, httpVersions.toArray(new HttpVersion[0]), maxHttp2Streams, pipeliningLimit, sharedConnections, directHttp2);
+        return http = new Http(isDefault, baseUrl, httpVersions.toArray(new HttpVersion[0]), maxHttp2Streams, pipeliningLimit, sharedConnections, directHttp2, requestTimeout);
     }
 }
