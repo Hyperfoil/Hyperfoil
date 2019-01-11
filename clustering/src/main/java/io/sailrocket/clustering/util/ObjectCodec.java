@@ -90,17 +90,9 @@ public class ObjectCodec<T> implements MessageCodec<T, T> {
 
    @Override
     public T transform(T object) {
-       // If a message is sent *locally* across the event bus we need to provide a deep copy
-       // to protect against modifications in the sender thread if it is mutable
-       if (object instanceof Immutable) {
-           return object;
-       } else if (object instanceof Copyable) {
-           @SuppressWarnings("unchecked")
-           T copy = (T) ((Copyable) object).copy();
-           return (T) copy;
-       } else {
-           throw new IllegalArgumentException(object.getClass() + " is neither immutable nor copyable");
-       }
+       // We cannot protect the sender against mutation in codec because the encodeToWire is not called
+       // synchronously even if the eventBus.send() is invoked from event loop.
+        return object;
     }
 
     @Override

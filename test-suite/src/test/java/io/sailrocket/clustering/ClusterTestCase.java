@@ -3,7 +3,6 @@ package io.sailrocket.clustering;
 import io.sailrocket.test.Benchmark;
 import io.sailrocket.test.TestBenchmarks;
 import io.vertx.core.DeploymentOptions;
-import io.vertx.core.Verticle;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.http.HttpHeaders;
@@ -14,7 +13,6 @@ import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.asynchttpclient.AsyncHttpClient;
 import org.asynchttpclient.Response;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -24,8 +22,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -33,10 +29,9 @@ import static org.asynchttpclient.Dsl.asyncHttpClient;
 
 @RunWith(VertxUnitRunner.class)
 @Category(Benchmark.class)
-public class ClusterTestCase {
+public class ClusterTestCase extends BaseClusteredTest {
 
     public static final String BASE_URL = "http://localhost:8090";
-    private Collection<Vertx> servers = new ArrayList<>();
 
     private static final int CONTROLLERS = 1;
     private static final int AGENTS = 2;
@@ -69,11 +64,6 @@ public class ClusterTestCase {
 
         //create multiple runner nodes
         IntStream.range(0, AGENTS).forEach(id -> initiateRunner(opts, new JsonObject().put("name", "agent" + id), ctx, initAsync));
-    }
-
-    @After
-    public void teardown(TestContext ctx) {
-        servers.forEach(vertx -> vertx.close(ctx.asyncAssertSuccess()));
     }
 
     Vertx standalone() {
@@ -167,26 +157,6 @@ public class ClusterTestCase {
 
     private void initiateRunner(VertxOptions opts, JsonObject config, TestContext ctx, Async initAsync) {
         initiateClustered(opts, AgentVerticle.class, new DeploymentOptions().setConfig(config).setWorker(true), ctx, initAsync);
-    }
-
-    private void initiateClustered(VertxOptions opts, Class<? extends Verticle> verticleClass, DeploymentOptions options, TestContext ctx, Async initAsync) {
-        Vertx.clusteredVertx(opts, result -> {
-            if (result.succeeded()) {
-                Vertx vertx = result.result();
-                servers.add(vertx);
-                // Codecs can be registered just once per vertx node so we can't register them in verticles
-                Codecs.register(vertx);
-                vertx.deployVerticle(verticleClass.getName(), options, v -> {
-                    if (v.succeeded()) {
-                        initAsync.countDown();
-                    } else {
-                        ctx.fail(v.cause());
-                    }
-                });
-            } else {
-                ctx.fail(result.cause());
-            }
-        });
     }
 
 }

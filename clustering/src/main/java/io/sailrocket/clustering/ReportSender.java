@@ -30,11 +30,13 @@ public class ReportSender extends StatisticsCollector {
    }
 
    private boolean sendReport(Phase phase, Sequence sequence, StatisticsSnapshot statistics) {
-      // On a clustered event bus the statistics snapshot is marshalled synchronously, so we can reset it in the caller
-      // On a local event bus we enforce doing a copy (synchronously) by implementing copyable.
       if (statistics.histogram.getEndTimeStamp() >= statistics.histogram.getStartTimeStamp()) {
          log.debug("Sending stats for {}/{}, {} requests", phase.name(), sequence.name(), statistics.requestCount);
-         eb.send(Feeds.STATS, new ReportMessage(address, runId, phase.name(), sequence.name(), statistics));
+         // On clustered eventbus, ObjectCodec is not called synchronously so we *must* do a copy here.
+         // (on a local eventbus we'd have to do a copy in transform() anyway)
+         StatisticsSnapshot copy = new StatisticsSnapshot();
+         statistics.copyInto(copy);
+         eb.send(Feeds.STATS, new ReportMessage(address, runId, phase.name(), sequence.name(), copy));
       }
       return false;
    }
