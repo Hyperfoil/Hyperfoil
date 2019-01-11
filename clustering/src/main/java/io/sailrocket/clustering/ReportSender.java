@@ -7,8 +7,12 @@ import io.sailrocket.api.statistics.StatisticsSnapshot;
 import io.sailrocket.core.impl.statistics.StatisticsCollector;
 import io.sailrocket.clustering.util.ReportMessage;
 import io.vertx.core.eventbus.EventBus;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 
 public class ReportSender extends StatisticsCollector {
+   private static final Logger log = LoggerFactory.getLogger(ReportSender.class);
+
    private final String address;
    private final String runId;
    private final EventBus eb;
@@ -29,6 +33,7 @@ public class ReportSender extends StatisticsCollector {
       // On a clustered event bus the statistics snapshot is marshalled synchronously, so we can reset it in the caller
       // On a local event bus we enforce doing a copy (synchronously) by implementing copyable.
       if (statistics.histogram.getEndTimeStamp() >= statistics.histogram.getStartTimeStamp()) {
+         log.debug("Sending stats for {}/{}, {} requests", phase.name(), sequence.name(), statistics.requestCount);
          eb.send(Feeds.STATS, new ReportMessage(address, runId, phase.name(), sequence.name(), statistics));
       }
       return false;
