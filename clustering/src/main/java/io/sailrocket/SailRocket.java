@@ -1,5 +1,8 @@
 package io.sailrocket;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+
 import io.sailrocket.clustering.AgentControllerVerticle;
 import io.sailrocket.clustering.AgentVerticle;
 import io.sailrocket.clustering.Codecs;
@@ -17,6 +20,12 @@ class SailRocket {
    static void clusteredVertx(Handler<Vertx> startedHandler) {
       log.info("Starting Vert.x...");
       VertxOptions options = new VertxOptions().setClustered(true);
+      try {
+         String hostName = InetAddress.getLocalHost().getHostName();
+         options.setClusterHost(hostName);
+      } catch (UnknownHostException e) {
+         log.error("Cannot lookup hostname", e);
+      }
       Vertx.clusteredVertx(options, result -> {
          if (result.failed()) {
             log.error("Cannot start Vert.x", result.cause());
