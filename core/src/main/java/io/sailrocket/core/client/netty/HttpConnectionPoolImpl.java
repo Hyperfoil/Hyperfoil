@@ -152,7 +152,7 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
                });
             } else {
                if (conn.context().executor() != eventLoop) {
-                  log.trace("Connection {} created, re-registering...", conn);
+                  log.debug("Connection {} created, re-registering...", conn);
                   conn.context().channel().deregister().addListener(future -> {
                      if (future.isSuccess()) {
                         eventLoop.register(conn.context().channel()).addListener(regFuture -> {
@@ -167,7 +167,7 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
                      }
                   });
                } else {
-                  log.trace("Connection {} created, in correct event loop.", conn);
+                  log.debug("Connection {} created, in correct event loop.", conn);
                   assert eventLoop.inEventLoop();
                   connectionCreated(conn);
                }
