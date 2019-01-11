@@ -81,7 +81,7 @@ public class ClusterTestCase extends BaseClusteredTest {
                   .execute()
                   .toCompletableFuture()
                   .thenApply(Response::getResponseBody)
-                  .thenApply(response -> AGENTS == Integer.parseInt(response))
+                  .thenApply(response -> AGENTS == new JsonArray(response).size())
                   .join()) {
                 Thread.sleep(1000);
             }

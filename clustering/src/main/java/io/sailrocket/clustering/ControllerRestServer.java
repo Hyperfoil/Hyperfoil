@@ -61,7 +61,7 @@ class ControllerRestServer {
       router.get("/benchmark").handler(this::handleListBenchmarks);
       router.get("/benchmark/:benchmarkname").handler(this::handleGetBenchmark);
       router.get("/benchmark/:benchmarkname/start").handler(this::handleBenchmarkStart);
-      router.get("/agents").handler(this::handleGetAgentCount);
+      router.get("/agents").handler(this::handleGetAgents);
       router.get("/run").handler(this::handleListRuns);
       router.get("/run/:runid").handler(this::handleGetRun);
       router.get("/run/:runid/kill").handler(this::handleRunKill);
@@ -192,8 +192,12 @@ class ControllerRestServer {
       }
    }
 
-   private void handleGetAgentCount(RoutingContext routingContext) {
-      routingContext.response().end(Integer.toString(controller.agents.size()));
+   private void handleGetAgents(RoutingContext routingContext) {
+      JsonArray agents = new JsonArray(Arrays.asList(controller.agents.values().stream().map(ai -> new JsonObject()
+            .put("name", ai.name)
+            .put("address", ai.address)
+            .put("status", ai.status)).toArray()));
+      routingContext.response().end(agents.encodePrettily());
    }
 
    private void handleListRuns(RoutingContext routingContext) {
