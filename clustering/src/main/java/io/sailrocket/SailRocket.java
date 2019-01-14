@@ -18,6 +18,7 @@ class SailRocket {
    static final Logger log = LoggerFactory.getLogger(Controller.class);
 
    static void clusteredVertx(Handler<Vertx> startedHandler) {
+      logJavaVersion();
       log.info("Starting Vert.x...");
       VertxOptions options = new VertxOptions().setClustered(true);
       try {
@@ -63,11 +64,21 @@ class SailRocket {
 
    public static class Standalone extends SailRocket {
       public static void main(String[] args) {
+         logJavaVersion();
          log.info("Starting non-clustered Vert.x with controller and single agent...");
          Vertx vertx = Vertx.vertx();
          Codecs.register(vertx);
          deploy(vertx, AgentControllerVerticle.class);
          deploy(vertx, AgentVerticle.class);
       }
+   }
+
+   private static void logJavaVersion() {
+      log.info("{} {} {} {} ({})",
+            System.getProperty("java.vm.vendor", "<unknown VM vendor>"),
+            System.getProperty("java.vm.name", "<unknown VM name>"),
+            System.getProperty("java.version", "<unknown version>"),
+            System.getProperty("java.vm.version", "<unknown VM version>"),
+            System.getProperty("java.home", "<unknown Java home>"));
    }
 }
