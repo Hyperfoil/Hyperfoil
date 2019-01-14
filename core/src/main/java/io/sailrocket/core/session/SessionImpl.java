@@ -142,18 +142,6 @@ class SessionImpl implements Session, Callable<Void> {
    }
 
    @Override
-   public String getAsString(Object key) {
-      Var var = requireSet(key);
-      if (var instanceof ObjectVar) {
-         return String.valueOf(((ObjectVar) var).get());
-      } else if (var instanceof IntVar) {
-         return String.valueOf(((IntVar) var).get());
-      } else {
-         throw new IllegalStateException("Unexpected var: " + var);
-      }
-   }
-
-   @Override
    public Session addToInt(Object key, int delta) {
       IntVar var = requireSet(key);
       if (trace) {
@@ -192,7 +180,8 @@ class SessionImpl implements Session, Callable<Void> {
       return (R) resources.get(key);
    }
 
-   private <V extends Var> V getVar(Object key) {
+   @Override
+   public <V extends Var> V getVar(Object key) {
       Var var = vars.get(key);
       if (var == null) {
          throw new IllegalStateException("Variable " + key + " was not defined!");

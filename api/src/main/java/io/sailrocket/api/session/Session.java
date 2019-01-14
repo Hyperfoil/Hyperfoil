@@ -43,7 +43,7 @@ public interface Session {
 
    Session setInt(Object key, int value);
 
-   String getAsString(Object key);
+   <V extends Var> V getVar(Object key);
 
    default Session addToInt(Object key, int delta) {
       setInt(key, getInt(key) + delta);
@@ -108,9 +108,23 @@ public interface Session {
       }
    }
 
+   enum VarType {
+      OBJECT,
+      INTEGER
+   }
+
    interface Var {
       boolean isSet();
       void unset();
+      VarType type();
+
+      default int intValue() {
+         throw new UnsupportedOperationException();
+      }
+
+      default Object objectValue() {
+         throw new UnsupportedOperationException();
+      }
    }
 
    /**

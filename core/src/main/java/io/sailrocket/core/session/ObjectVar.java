@@ -17,6 +17,16 @@ public class ObjectVar implements Session.Var {
    }
 
    @Override
+   public Session.VarType type() {
+      return Session.VarType.OBJECT;
+   }
+
+   @Override
+   public Object objectValue() {
+      return value;
+   }
+
+   @Override
    public boolean isSet() {
       return set;
    }

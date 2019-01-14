@@ -17,6 +17,16 @@ public class IntVar implements Session.Var {
    }
 
    @Override
+   public Session.VarType type() {
+      return Session.VarType.INTEGER;
+   }
+
+   @Override
+   public int intValue() {
+      return value;
+   }
+
+   @Override
    public boolean isSet() {
       return set;
    }
