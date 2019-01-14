@@ -103,23 +103,20 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    @Override
    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
       log.warn("Exception in {}", cause, this);
-      Request request;
-      while ((request = inflights.poll()) != null) {
-         if (!request.isCompleted()) {
-            request.handlers().handleThrowable(request, cause);
-            request.setCompleted();
-            request.session.proceed();
-         }
-      }
+      cancelRequests(cause);
       ctx.close();
    }
 
    @Override
    public void channelInactive(ChannelHandlerContext ctx) {
+      cancelRequests(Connection.CLOSED_EXCEPTION);
+   }
+
+   private void cancelRequests(Throwable cause) {
       Request request;
       while ((request = inflights.poll()) != null) {
          if (!request.isCompleted()) {
-            request.handlers().handleThrowable(request, Connection.CLOSED_EXCEPTION);
+            request.handlers().handleThrowable(request, cause);
             request.setCompleted();
             request.session.proceed();
          }
@@ -184,6 +181,9 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
 
    @Override
    public void close() {
+      // We need to cancel requests manually before sending the FIN packet, otherwise the server
+      // could give us an unexpected response before closing the connection with RST packet.
+      cancelRequests(Connection.SELF_CLOSED_EXCEPTION);
       ctx.close();
    }
 

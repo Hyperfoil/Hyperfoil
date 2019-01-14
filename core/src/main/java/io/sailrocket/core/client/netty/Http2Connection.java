@@ -87,6 +87,7 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
 
    @Override
    public void close() {
+      cancelRequests(Connection.SELF_CLOSED_EXCEPTION);
       context.close();
    }
 
