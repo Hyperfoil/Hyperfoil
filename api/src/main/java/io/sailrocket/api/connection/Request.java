@@ -1,5 +1,6 @@
 package io.sailrocket.api.connection;
 
+import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -7,7 +8,7 @@ import io.netty.util.concurrent.ScheduledFuture;
 import io.sailrocket.api.session.SequenceInstance;
 import io.sailrocket.api.session.Session;
 
-public class Request implements Runnable {
+public class Request implements Callable<Void> {
    private static final TimeoutException TIMEOUT_EXCEPTION = new TimeoutException();
 
    public final Session session;
@@ -27,13 +28,14 @@ public class Request implements Runnable {
     * This method works as timeout handler
     */
    @Override
-   public void run() {
+   public Void call() {
       timeoutFuture = null;
       if (!isCompleted()) {
          sequence.statistics(session).incrementTimeouts();
          handlers().handleThrowable(this, TIMEOUT_EXCEPTION);
          // handleThrowable sets the request completed
       }
+      return null;
    }
 
    public void start(ResponseHandlers handlers, SequenceInstance sequence) {
