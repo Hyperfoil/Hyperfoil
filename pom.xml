@@ -62,7 +62,6 @@
     </licenses>
 
     <properties>
-        <vertx.version>3.5.4</vertx.version>
 
         <!-- maven-compiler-plugin -->
         <maven.compiler.target>1.8</maven.compiler.target>
@@ -74,9 +73,10 @@
         <junit.version>4.12</junit.version>
         <log4j2.version>2.11.1</log4j2.version>
         <metainf-services.version>1.4</metainf-services.version>
+        <netty.tcnative.boringssl.version>2.0.19.Final</netty.tcnative.boringssl.version>
         <slf4j.version>1.7.12</slf4j.version>
         <snakeYaml.version>1.22</snakeYaml.version>
-        <netty.tcnative.boringssl.version>2.0.19.Final</netty.tcnative.boringssl.version>
+        <vertx.version>3.6.2</vertx.version>
 
         <exec.skip>true</exec.skip>
         <module.skipCopyDependencies>false</module.skipCopyDependencies>
