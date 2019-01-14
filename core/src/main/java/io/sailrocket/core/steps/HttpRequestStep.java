@@ -91,7 +91,9 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
          request.setTimeout(timeout, TimeUnit.MILLISECONDS);
       }
 
-      log.trace("#{} sent request on {}", session.uniqueId(), request.connection());
+      if (trace) {
+         log.trace("#{} sent request on {}", session.uniqueId(), request.connection());
+      }
       session.currentSequence().statistics(session).incrementRequests();
       return true;
    }

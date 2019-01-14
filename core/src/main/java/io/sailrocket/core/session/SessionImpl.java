@@ -156,7 +156,9 @@ class SessionImpl implements Session, Callable<Void> {
    @Override
    public Session addToInt(Object key, int delta) {
       IntVar var = requireSet(key);
-      log.trace("#{} {} <- {}", uniqueId, key, var.get() + delta);
+      if (trace) {
+         log.trace("#{} {} <- {}", uniqueId, key, var.get() + delta);
+      }
       var.set(var.get() + delta);
       return this;
    }
@@ -223,14 +225,20 @@ class SessionImpl implements Session, Callable<Void> {
 
    public void runSession() {
       if (phase.status() == PhaseInstance.Status.TERMINATED ) {
-         log.trace("#{} Phase is terminated", uniqueId);
+         if (trace) {
+            log.trace("#{} Phase is terminated", uniqueId);
+         }
          return;
       }
       if (lastRunningSequence < 0) {
-         log.trace("#{} No sequences to run, ignoring.", uniqueId);
+         if (trace) {
+            log.trace("#{} No sequences to run, ignoring.", uniqueId);
+         }
          return;
       }
-      log.trace("#{} Run ({} runnning sequences)", uniqueId, lastRunningSequence + 1);
+      if (trace) {
+         log.trace("#{} Run ({} runnning sequences)", uniqueId, lastRunningSequence + 1);
+      }
       int lastProgressedSequence = -1;
       while (lastRunningSequence >= 0) {
          boolean progressed = false;
@@ -272,11 +280,15 @@ class SessionImpl implements Session, Callable<Void> {
             currentSequence(null);
          }
          if (!progressed && lastRunningSequence >= 0) {
-            log.trace("#{} ({}) no progress, not finished.", uniqueId, phase.definition().name());
+            if (trace) {
+               log.trace("#{} ({}) no progress, not finished.", uniqueId, phase.definition().name());
+            }
             return;
          }
       }
-      log.trace("#{} Session finished", uniqueId);
+      if (trace) {
+         log.trace("#{} Session finished", uniqueId);
+      }
       if (!requestPool.isFull()) {
          log.warn("#{} Session completed with requests in-flight!", uniqueId);
          cancelRequests();
@@ -292,7 +304,9 @@ class SessionImpl implements Session, Callable<Void> {
       if (!requestPool.isFull()) {
          for (Request request : requests) {
             if (!request.isCompleted()) {
-               log.trace("Canceling request on {}", request.connection());
+               if (trace) {
+                  log.trace("Canceling request on {}", request.connection());
+               }
                request.connection().close();
                request.setCompleted();
                requestPool.release(request);
@@ -303,7 +317,9 @@ class SessionImpl implements Session, Callable<Void> {
 
    @Override
    public void currentSequence(SequenceInstance current) {
-      log.trace("#{} Changing sequence {} -> {}", uniqueId, currentSequence, current);
+      if (trace) {
+         log.trace("#{} Changing sequence {} -> {}", uniqueId, currentSequence, current);
+      }
       assert current == null || currentSequence == null;
       currentSequence = current;
    }
@@ -322,7 +338,9 @@ class SessionImpl implements Session, Callable<Void> {
 
    @Override
    public void start(PhaseInstance phase) {
-      log.trace("#{} Session starting in {}", uniqueId, phase.definition().name);
+      if (trace) {
+         log.trace("#{} Session starting in {}", uniqueId, phase.definition().name);
+      }
       resetPhase(phase);
       for (Sequence sequence : phase.definition().scenario().initialSequences()) {
          sequence.instantiate(this, 0);
@@ -382,7 +400,9 @@ class SessionImpl implements Session, Callable<Void> {
          runningSequences[i] = null;
       }
       lastRunningSequence = -1;
-      log.trace("#{} Stopped.", uniqueId);
+      if (trace) {
+         log.trace("#{} Stopped.", uniqueId);
+      }
    }
 
    @Override

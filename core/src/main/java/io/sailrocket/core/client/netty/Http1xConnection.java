@@ -33,6 +33,7 @@ import java.util.function.Function;
  */
 class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    private static Logger log = LoggerFactory.getLogger(Http1xConnection.class);
+   private static boolean trace = log.isTraceEnabled();
 
    private final HttpConnectionPool pool;
    private final Deque<Request> inflights;
@@ -90,7 +91,9 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
          size--;
          Request request = inflights.poll();
          request.handlers().handleEnd(request);
-         log.trace("Completed response on {}", this);
+         if (trace) {
+            log.trace("Completed response on {}", this);
+         }
          // If this connection was not available we make it available
          // TODO: it would be better to check this in connection pool
          if (size == pool.clientPool().config().pipeliningLimit() - 1) {

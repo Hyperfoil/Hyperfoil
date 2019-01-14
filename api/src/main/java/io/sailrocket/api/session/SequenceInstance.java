@@ -26,7 +26,9 @@ public class SequenceInstance {
          }
          try {
             if (!step.invoke(session)) {
-               log.trace("#{} {} step {} is blocked", session.uniqueId(), name, step);
+               if (trace) {
+                  log.trace("#{} {} step {} is blocked", session.uniqueId(), name, step);
+               }
                return progressed;
             }
          } catch (Throwable t) {

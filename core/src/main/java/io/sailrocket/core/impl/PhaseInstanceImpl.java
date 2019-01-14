@@ -91,7 +91,12 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       assert status == Status.RUNNING;
       status = Status.FINISHED;
       log.debug("{} changing status to FINISHED", def.name);
-      phaseChangeHandler.onChange(def.name, status, activeSessions.get() <= def.maxUnfinishedSessions);
+      int active = activeSessions.get();
+      boolean successful = active <= def.maxUnfinishedSessions;
+      if (!successful) {
+         log.info("Phase {} had {} active sessions, maximum is {}", def.name, active, def.maxUnfinishedSessions);
+      }
+      phaseChangeHandler.onChange(def.name, status, successful);
    }
 
    @Override
@@ -130,7 +135,9 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
    @Override
    public void notifyFinished(Session session) {
       int numActive = activeSessions.decrementAndGet();
-      log.trace("{} has {} active sessions", def.name, numActive);
+      if (trace) {
+         log.trace("#{} NotifyFinished, {} has {} active sessions", session.uniqueId(), def.name, numActive);
+      }
       if (numActive < 0)
          log.error("{} has {} active sessions", def.name, numActive);
       if (numActive <= 0) {
@@ -141,7 +148,9 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
    @Override
    public void notifyTerminated(Session session) {
       int numActive = activeSessions.decrementAndGet();
-      log.trace("{} has {} active sessions", def.name, numActive);
+      if (trace) {
+         log.trace("{} has {} active sessions", def.name, numActive);
+      }
       if (numActive < 0)
          log.error("{} has {} active sessions", def.name, numActive);
       if (numActive <= 0) {
@@ -229,7 +238,6 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       @Override
       public void notifyFinished(Session session) {
          if (status.isFinished()) {
-            log.trace("#{} NotifyFinished", session.uniqueId());
             super.notifyFinished(session);
          } else {
             session.start(this);
@@ -296,7 +304,6 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       @Override
       public void notifyFinished(Session session) {
          sessionPool.release(session);
-         log.trace("#{} NotifyFinished", session.uniqueId());
          super.notifyFinished(session);
       }
    }
@@ -358,7 +365,6 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       @Override
       public void notifyFinished(Session session) {
          sessionPool.release(session);
-         log.trace("#{} NotifyFinished", session.uniqueId());
          super.notifyFinished(session);
       }
    }

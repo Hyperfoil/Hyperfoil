@@ -60,7 +60,9 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       Session session = request.session;
       session.currentSequence(request.sequence());
       if (request.isCompleted()) {
-         log.trace("#{} Ignoring status {} as the request has been marked completed (failed).", session.uniqueId(), status);
+         if (trace) {
+            log.trace("#{} Ignoring status {} as the request has been marked completed (failed).", session.uniqueId(), status);
+         }
          return;
       }
 
@@ -109,7 +111,9 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
    public void handleHeader(Request request, String header, String value) {
       Session session = request.session;
       if (request.isCompleted()) {
-         log.trace("#{} Ignoring header on a failed request: {}: {}", session.uniqueId(), header, value);
+         if (trace) {
+            log.trace("#{} Ignoring header on a failed request: {}: {}", session.uniqueId(), header, value);
+         }
          return;
       }
       if (trace) {
@@ -134,7 +138,9 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          log.trace("#{} Received exception {}", session.uniqueId(), throwable);
       }
       if (request.isCompleted()) {
-         log.trace("#{} Request has been already completed", session.uniqueId());
+         if (trace) {
+            log.trace("#{} Request has been already completed", session.uniqueId());
+         }
          return;
       }
 
@@ -154,7 +160,9 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
    public void handleBodyPart(Request request, ByteBuf buf) {
       Session session = request.session;
       if (request.isCompleted()) {
-         log.trace("#{} Ignoring body part ({} bytes) on a failed request.", session.uniqueId(), buf.readableBytes());
+         if (trace) {
+            log.trace("#{} Ignoring body part ({} bytes) on a failed request.", session.uniqueId(), buf.readableBytes());
+         }
          return;
       }
 
@@ -187,7 +195,9 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
    public void handleEnd(Request request) {
       Session session = request.session;
       if (request.isCompleted()) {
-         log.trace("#{} Request has been already completed.", session.uniqueId());
+         if (trace) {
+            log.trace("#{} Request has been already completed.", session.uniqueId());
+         }
          return;
       }
 

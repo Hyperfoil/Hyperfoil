@@ -32,6 +32,7 @@ import io.vertx.core.logging.LoggerFactory;
  */
 class HttpConnectionPoolImpl implements HttpConnectionPool {
    private static final Logger log = LoggerFactory.getLogger(HttpConnectionPoolImpl.class);
+   private static final boolean trace = log.isTraceEnabled();
 
    private final HttpClientPoolImpl clientPool;
    private final ArrayList<HttpConnection> connections = new ArrayList<>();
@@ -106,7 +107,9 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
    @Override
    public void pulse() {
       Session session = waitingSessions.poll();
-      log.trace("Pulse #{}", session == null ? "<none>" : session.uniqueId());
+      if (trace) {
+         log.trace("Pulse #{}", session == null ? "<none>" : session.uniqueId());
+      }
       if (session != null) {
          session.proceed();
       }
