@@ -13,6 +13,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.EventLoop;
 import io.netty.util.concurrent.EventExecutor;
+import io.netty.util.concurrent.ScheduledFuture;
 import io.sailrocket.api.connection.Connection;
 import io.sailrocket.api.connection.Request;
 import io.sailrocket.api.connection.HttpClientPool;
@@ -45,6 +46,7 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
    private Handler<AsyncResult<Void>> startedHandler;
    private boolean shutdown;
    private Deque<Session> waitingSessions = new ArrayDeque<>();
+   private ScheduledFuture<?> pulseFuture;
 
    HttpConnectionPoolImpl(HttpClientPoolImpl clientPool, EventLoop eventLoop, int size) {
       this.clientPool = clientPool;
@@ -115,9 +117,16 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
       }
       // The session might not use the connection (e.g. when it's terminated) and call pulse() again
       // We don't want to activate all the sessions, though so we need to schedule another pulse
-      if (!waitingSessions.isEmpty()) {
-         executor().schedule(this::pulse, 1, TimeUnit.MILLISECONDS);
+      if (pulseFuture == null && !waitingSessions.isEmpty()) {
+         pulseFuture = executor().schedule(this::scheduledPulse, 1, TimeUnit.MILLISECONDS);
       }
+   }
+
+   // signature to match Callable
+   private Object scheduledPulse() {
+      pulseFuture = null;
+      pulse();
+      return null;
    }
 
    @Override
