@@ -2,7 +2,12 @@ package io.sailrocket.api.collection;
 
 import java.util.function.Supplier;
 
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
+
 public class Pool<T> {
+   private static final Logger log = LoggerFactory.getLogger(Pool.class);
+
    private Object[] elements;
    private int mask;
    private int index;
@@ -43,6 +48,13 @@ public class Pool<T> {
          index = (i + mask) & mask;
          elements[i] = object;
       } else {
+         // This should not happen...
+         for (i = 0; i < elements.length; ++i) {
+            if (elements[i] == object) {
+               log.error("{} already returned to pool!", object);
+               return;
+            }
+         }
          throw new IllegalStateException("Pool should not be full!");
       }
    }

@@ -133,6 +133,10 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       if (trace) {
          log.trace("#{} Received exception {}", session.uniqueId(), throwable);
       }
+      if (request.isCompleted()) {
+         log.trace("#{} Request has been already completed", session.uniqueId());
+         return;
+      }
 
       if (completionHandlers != null) {
          for (Consumer<Session> handler : completionHandlers) {
@@ -181,11 +185,12 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
 
    @Override
    public void handleEnd(Request request) {
+      Session session = request.session;
       if (request.isCompleted()) {
-         log.trace("Request is already completed.");
+         log.trace("#{} Request has been already completed.", session.uniqueId());
          return;
       }
-      Session session = request.session;
+
       long endTime = System.nanoTime();
       Statistics statistics = session.currentSequence().statistics(session);
       statistics.recordValue(endTime - request.startTime());

@@ -32,8 +32,7 @@ public class Request implements Runnable {
       if (!isCompleted()) {
          sequence.statistics(session).incrementTimeouts();
          handlers().handleThrowable(this, TIMEOUT_EXCEPTION);
-         connection.close();
-         setCompleted();
+         // handleThrowable sets the request completed
       }
    }
 
