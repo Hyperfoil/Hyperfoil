@@ -278,7 +278,7 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
                this.headerAppenders.isEmpty() ? null : this.headerAppenders.toArray(new SerializableBiConsumer[0]);
          long timeout = this.timeout;
          if (timeout == Long.MIN_VALUE) {
-            timeout = simulation.http(baseUrl).requestTimeout();
+            timeout = (baseUrl == null ? simulation.http() : simulation.http(baseUrl)).requestTimeout();
          }
          return Collections.singletonList(new HttpRequestStep(method, baseUrl, pathGenerator, bodyGenerator, headerAppenders, timeout, handler.build()));
       }
