@@ -254,7 +254,7 @@ public class AgentControllerVerticle extends AbstractVerticle {
                 eb.send(agent.address, new AgentControlMessage(AgentControlMessage.Command.INITIALIZE, run.id, benchmark.simulation()), reply -> {
                     if (reply.succeeded()) {
                         agent.status = AgentInfo.Status.INITIALIZED;
-                        if (agents.values().stream().allMatch(a -> a.status == AgentInfo.Status.INITIALIZED)) {
+                        if (run.agents.stream().allMatch(a -> a.status == AgentInfo.Status.INITIALIZED)) {
                             startSimulation(run);
                         }
                     } else {
