@@ -3,15 +3,15 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <artifactId>sailrocket-all</artifactId>
-        <groupId>io.sailrocket</groupId>
+        <artifactId>hyperfoil-all</artifactId>
+        <groupId>io.hyperfoil</groupId>
         <version>0.1-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>distribution</artifactId>
-    <name>SailRocket Distribution</name>
-    <description>Package distributable version of SailRocket</description>
+    <name>Hyperfoil Distribution</name>
+    <description>Package distributable version of Hyperfoil</description>
     <packaging>pom</packaging>
 
     <properties>
@@ -70,7 +70,7 @@
                             <goal>single</goal>
                         </goals>
                         <configuration>
-                            <finalName>sailrocket-${project.version}</finalName>
+                            <finalName>hyperfoil-${project.version}</finalName>
                             <appendAssemblyId>false</appendAssemblyId>
                             <descriptors>
                                 <descriptor>src/assembly/assembly.xml</descriptor>

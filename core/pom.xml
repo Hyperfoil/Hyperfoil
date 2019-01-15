@@ -24,20 +24,20 @@
 
     <!-- Parent -->
     <parent>
-        <groupId>io.sailrocket</groupId>
-        <artifactId>sailrocket-all</artifactId>
+        <groupId>io.hyperfoil</groupId>
+        <artifactId>hyperfoil-all</artifactId>
         <version>0.1-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>core</artifactId>
     <packaging>jar</packaging>
-    <name>SailRocket Core</name>
-    <description>The core of SailRocket</description>
+    <name>Hyperfoil Core</name>
+    <description>The core of Hyperfoil</description>
     <scm>
-        <connection>scm:git:git://github.com/RedHatPerf/SailRocket.git</connection>
-        <developerConnection>scm:git:ssh://git@github.com/RedHatPerf/SailRocket.git</developerConnection>
-        <url>https://github.com/RedHatPerf/SailRocket/tree/master</url>
+        <connection>scm:git:git://github.com/RedHatPerf/Hyperfoil.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/RedHatPerf/Hyperfoil.git</developerConnection>
+        <url>https://github.com/RedHatPerf/Hyperfoil/tree/master</url>
     </scm>
 
     <!-- Licenses -->
@@ -66,7 +66,7 @@
     <dependencies>
 
         <dependency>
-            <groupId>io.sailrocket</groupId>
+            <groupId>io.hyperfoil</groupId>
             <artifactId>api</artifactId>
         </dependency>
 

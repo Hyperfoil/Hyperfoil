@@ -8,7 +8,7 @@
   </Appenders>
 
   <Loggers>
-    <Logger name="io.sailrocket" level="INFO"/>
+    <Logger name="io.hyperfoil" level="INFO"/>
     <Logger name="io.vertx" level="INFO"/>
     <Logger name="io.netty" level="INFO"/>
 

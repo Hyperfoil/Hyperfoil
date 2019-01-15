@@ -5,17 +5,17 @@
 
     <!-- Parent -->
     <parent>
-        <groupId>io.sailrocket</groupId>
-        <artifactId>sailrocket-all</artifactId>
+        <groupId>io.hyperfoil</groupId>
+        <artifactId>hyperfoil-all</artifactId>
         <version>0.1-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>sailrocket-maven-plugin</artifactId>
-    <name>SailRocket Maven Plugin</name>
+    <artifactId>hyperfoil-maven-plugin</artifactId>
+    <name>Hyperfoil Maven Plugin</name>
     <packaging>maven-plugin</packaging>
-    <description>Sailrocket maven runner</description>
+    <description>Hyperfoil maven runner</description>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

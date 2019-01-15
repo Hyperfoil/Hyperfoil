@@ -1,0 +1,44 @@
+package io.hyperfoil.test;
+
+import java.util.concurrent.TimeUnit;
+
+import io.hyperfoil.api.http.HttpMethod;
+import io.hyperfoil.api.config.Benchmark;
+import io.hyperfoil.core.builders.BenchmarkBuilder;
+import io.hyperfoil.core.builders.SimulationBuilder;
+
+public class TestBenchmarks {
+   public static SimulationBuilder addTestSimulation(BenchmarkBuilder builder, int users) {
+      return builder.simulation()
+            .http()
+               .baseUrl("http://localhost:8080")
+               .sharedConnections(10)
+            .endHttp()
+            .addPhase("test").always(users)
+               .duration("5s")
+               .scenario()
+                  .initialSequence("test")
+                        .sla()
+                           .meanResponseTime(TimeUnit.MILLISECONDS.toNanos(10))
+                           .addPercentileLimit(0.99, TimeUnit.MILLISECONDS.toNanos(100))
+                           .errorRate(0.02)
+                           .window(3000)
+                        .endSLA()
+                        .step().httpRequest(HttpMethod.GET)
+                        .path("test")
+                        .endStep()
+                        .step().awaitAllResponses()
+                  .endSequence()
+               .endScenario()
+            .endPhase();
+   }
+
+   public static Benchmark testBenchmark(int agents) {
+      BenchmarkBuilder benchmarkBuilder = BenchmarkBuilder.builder().name("test");
+      for (int i = 0; i < agents; ++i) {
+         benchmarkBuilder.addAgent("agent" + i, "localhost:12345");
+      }
+      addTestSimulation(benchmarkBuilder, agents);
+      return benchmarkBuilder.build();
+   }
+}

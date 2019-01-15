@@ -3,16 +3,16 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <artifactId>sailrocket-all</artifactId>
-        <groupId>io.sailrocket</groupId>
+        <artifactId>hyperfoil-all</artifactId>
+        <groupId>io.hyperfoil</groupId>
         <version>0.1-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>test-suite</artifactId>
-    <name>SailRocket test-suite</name>
+    <name>Hyperfoil test-suite</name>
 
-    <url>https://github.com/RedHatPerf/SailRocket</url>
+    <url>https://github.com/RedHatPerf/Hyperfoil</url>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -20,7 +20,7 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <vertx.version>3.5.2.CR3</vertx.version>
 
-        <junit.excluded.categories>io.sailrocket.test.Benchmark</junit.excluded.categories>
+        <junit.excluded.categories>io.hyperfoil.test.Benchmark</junit.excluded.categories>
         <module.skipCopyDependencies>true</module.skipCopyDependencies>
     </properties>
 
@@ -45,13 +45,13 @@
         </dependency>
 
         <dependency>
-            <groupId>io.sailrocket</groupId>
+            <groupId>io.hyperfoil</groupId>
             <artifactId>api</artifactId>
             <scope>test</scope>
         </dependency>
 
         <dependency>
-            <groupId>io.sailrocket</groupId>
+            <groupId>io.hyperfoil</groupId>
             <artifactId>core</artifactId>
             <scope>test</scope>
         </dependency>
@@ -63,13 +63,13 @@
         </dependency>
 
         <dependency>
-            <groupId>io.sailrocket</groupId>
+            <groupId>io.hyperfoil</groupId>
             <artifactId>clustering</artifactId>
             <scope>test</scope>
         </dependency>
 
         <dependency>
-            <groupId>io.sailrocket</groupId>
+            <groupId>io.hyperfoil</groupId>
             <artifactId>cli</artifactId>
             <scope>test</scope>
         </dependency>

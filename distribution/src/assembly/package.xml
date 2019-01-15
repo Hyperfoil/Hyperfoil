@@ -1,4 +1,4 @@
-<project name="sailrocket-package" basedir="." default="package">
+<project name="hyperfoil-package" basedir="." default="package">
     <property name="root.dir" value=".." />
     <property name="dist.dir" value="${project.build.directory}/distribution" />
 
@@ -34,7 +34,7 @@
         <attribute name="module" />
         <sequential>
             <copy todir="${dist.dir}/lib" failonerror="true" flatten="true">
-                <file file="${io.sailrocket:@{module}:jar}" />
+                <file file="${io.hyperfoil:@{module}:jar}" />
                 <fileset dir="${root.dir}/@{module}/target/dependency"/>
             </copy>
         </sequential>

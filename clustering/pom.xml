@@ -3,24 +3,24 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <artifactId>sailrocket-all</artifactId>
-        <groupId>io.sailrocket</groupId>
+        <artifactId>hyperfoil-all</artifactId>
+        <groupId>io.hyperfoil</groupId>
         <version>0.1-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>clustering</artifactId>
 
-    <name>SailRocket clustering</name>
-    <url>https://github.com/RedHatPerf/SailRocket</url>
+    <name>Hyperfoil clustering</name>
+    <url>https://github.com/RedHatPerf/Hyperfoil</url>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
         <vertx.version>3.5.2.CR3</vertx.version>
-        <io.sailrocket.clustered>true</io.sailrocket.clustered>
-        <io.sailrocket.debug />
+        <io.hyperfoil.clustered>true</io.hyperfoil.clustered>
+        <io.hyperfoil.debug />
     </properties>
 
 
@@ -59,7 +59,7 @@
         </dependency>
 
         <dependency>
-            <groupId>io.sailrocket</groupId>
+            <groupId>io.hyperfoil</groupId>
             <artifactId>core</artifactId>
         </dependency>
         <dependency>
@@ -88,9 +88,9 @@
                         <classpath />
                         <argument>-Djava.net.preferIPv4Stack=true</argument>
                         <argument>-Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.Log4j2LogDelegateFactory</argument>
-                        <argument>-Dio.sailrocket.clustered=${io.sailrocket.clustered}</argument>
-                        <argument>${io.sailrocket.debug}</argument>
-                        <argument>io.sailrocket.boot.SailRocket.Controller</argument>
+                        <argument>-Dio.hyperfoil.clustered=${io.hyperfoil.clustered}</argument>
+                        <argument>${io.hyperfoil.debug}</argument>
+                        <argument>io.hyperfoil.boot.Hyperfoil.Controller</argument>
                     </arguments>
                 </configuration>
             </plugin>
@@ -104,7 +104,7 @@
                 <activeByDefault>false</activeByDefault>
             </activation>
             <properties>
-                <io.sailrocket.debug>-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005</io.sailrocket.debug>
+                <io.hyperfoil.debug>-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005</io.hyperfoil.debug>
             </properties>
         </profile>
     </profiles>

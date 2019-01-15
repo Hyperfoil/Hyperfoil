@@ -1,4 +1,4 @@
-name: io.sailrocket.benchmark.standalone.IterationsTest
+name: io.hyperfoil.benchmark.standalone.IterationsTest
 simulation:
   http:
     baseUrl: http://localhost:8080

@@ -1,6 +1,6 @@
-# SailRocket
+# Hyperfoil
 
-SailRocket is a distributed benchmarking framework designed to obtain
+Hyperfoil is a distributed benchmarking framework designed to obtain
 the most correct results (by avoiding the [coordinated omission problem](https://www.quora.com/In-Java-what-is-Coordinated-Omission))
 and keeping very low allocation profile in the driver.
 
@@ -14,7 +14,7 @@ We'll refer to this location as `$DIST` later in this document.
 
 ## Architecture overview
 
-SailRocket uses a master-slave design with single Controller that orchestrates the run
+Hyperfoil uses a master-slave design with single Controller that orchestrates the run
 and one or more Agents that drive the load towards system-under-test (SUT).
 
 Controller exposes a RESTful interface that can be accessed through the CLI or web-UI (TODO).
@@ -39,19 +39,19 @@ $DIST/bin/standalone.sh
 ```
 which will launch non-clustered Vert.x instance with the controller and single agent.
 
-These are the properties SailRocket recognizes:
+These are the properties Hyperfoil recognizes:
 
 | Property                      | Default           | Description                           |
   ------------------------------|-------------------|---------------------------------------|
-| io.sailrocket.controller.host | localhost         | Host for Controller REST server       |
-| io.sailrocket.controller.port |              8090 | Port for Controller REST server       |
-| io.sailrocket.rootdir         | /tmp/sailrocket   | Root directory for stored files       |
-| io.sailrocket.benchmarkdir    | *root*/benchmark  | Benchmark files (YAML and serialized) |
-| io.sailrocket.rundir          | *root*/run        | Run result files (configs, stats...)  |
+| io.hyperfoil.controller.host | localhost         | Host for Controller REST server       |
+| io.hyperfoil.controller.port |              8090 | Port for Controller REST server       |
+| io.hyperfoil.rootdir         | /tmp/hyperfoil   | Root directory for stored files       |
+| io.hyperfoil.benchmarkdir    | *root*/benchmark  | Benchmark files (YAML and serialized) |
+| io.hyperfoil.rundir          | *root*/run        | Run result files (configs, stats...)  |
 
 ## Benchmark configuration
 
-The benchmark can be created either through programmatic API (see `io.sailrocket.core.builders.BenchmarkBuilder`)
+The benchmark can be created either through programmatic API (see `io.hyperfoil.core.builders.BenchmarkBuilder`)
 or through YAML configuration files. This section will focus on the YAML configuration. Here is an example of such configuration:
 
 ```yaml
@@ -146,7 +146,7 @@ effectively separating the start-times of successive users by random delays foll
 the [exponential distribution](https://en.wikipedia.org/wiki/Exponential_distribution).
 If you prefer to start the users at fixed points in time (using uniform delays), set property `variance: false` in the phase.
 
-SailRocket initializes all phases before the benchmark starts, pre-allocating memory for sessions.
+Hyperfoil initializes all phases before the benchmark starts, pre-allocating memory for sessions.
 In the open-model phases it's not possible to know how many users will be active at the same moment
 (if the server experiences a 3-second hiccup and we have 100 new users per second this should be at least 300
 as all the users will be blocked). However we need to provide the estimate for memory pre-allocation.
@@ -231,7 +231,7 @@ Scenario is a set of *sequences*. The sequence is the smallest unit of statistic
 several sequentially executed *steps*. Usually you should do only one request in each *sequence* as all
 the requests will be reported together.
 
-SailRocket is asynchronous framework and all steps must be non-blocking: therefore running e.g. `Thread.sleep(...)`
+Hyperfoil is asynchronous framework and all steps must be non-blocking: therefore running e.g. `Thread.sleep(...)`
 in a step is strictly prohibited. The state of the scenario execution is stored in a *session*.
 A session will be always accessed by single thread at any moment but it's not guaranteed that it will be the same thread.
 
