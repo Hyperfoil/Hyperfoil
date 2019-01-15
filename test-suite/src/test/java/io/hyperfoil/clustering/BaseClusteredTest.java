@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.After;
-import org.junit.runner.RunWith;
 
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Verticle;
@@ -12,9 +11,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
 
-@RunWith(VertxUnitRunner.class)
 public class BaseClusteredTest {
    protected List<Vertx> servers = new ArrayList<>();
 
