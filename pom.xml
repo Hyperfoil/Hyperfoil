@@ -101,25 +101,25 @@
         <dependencies>
             <dependency>
                 <groupId>io.hyperfoil</groupId>
-                <artifactId>api</artifactId>
+                <artifactId>hyperfoil-api</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.hyperfoil</groupId>
-                <artifactId>cli</artifactId>
+                <artifactId>hyperfoil-cli</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.hyperfoil</groupId>
-                <artifactId>core</artifactId>
+                <artifactId>hyperfoil-core</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.hyperfoil</groupId>
-                <artifactId>clustering</artifactId>
+                <artifactId>hyperfoil-clustering</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

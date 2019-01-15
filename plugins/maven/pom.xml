@@ -48,13 +48,13 @@
 
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>api</artifactId>
+            <artifactId>hyperfoil-api</artifactId>
             <version>${project.version}</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>core</artifactId>
+            <artifactId>hyperfoil-core</artifactId>
             <version>${project.version}</version>
             <scope>compile</scope>
         </dependency>

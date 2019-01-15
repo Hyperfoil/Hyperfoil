@@ -9,9 +9,9 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>clustering</artifactId>
+    <artifactId>hyperfoil-clustering</artifactId>
 
-    <name>Hyperfoil clustering</name>
+    <name>Hyperfoil Clustering</name>
     <url>https://github.com/RedHatPerf/Hyperfoil</url>
 
     <properties>
@@ -60,7 +60,7 @@
 
         <dependency>
             <groupId>io.hyperfoil</groupId>
-            <artifactId>core</artifactId>
+            <artifactId>hyperfoil-core</artifactId>
         </dependency>
         <dependency>
             <groupId>io.vertx</groupId>

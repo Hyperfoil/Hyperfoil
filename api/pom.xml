@@ -9,8 +9,8 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>api</artifactId>
-    <name>Hyperfoil api</name>
+    <artifactId>hyperfoil-api</artifactId>
+    <name>Hyperfoil API</name>
 
     <dependencies>
 

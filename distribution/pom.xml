@@ -9,7 +9,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>distribution</artifactId>
+    <artifactId>hyperfoil-distribution</artifactId>
     <name>Hyperfoil Distribution</name>
     <description>Package distributable version of Hyperfoil</description>
     <packaging>pom</packaging>
@@ -21,22 +21,22 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>api</artifactId>
+            <artifactId>hyperfoil-api</artifactId>
         </dependency>
 
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>cli</artifactId>
+            <artifactId>hyperfoil-cli</artifactId>
         </dependency>
 
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>core</artifactId>
+            <artifactId>hyperfoil-core</artifactId>
         </dependency>
 
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>clustering</artifactId>
+            <artifactId>hyperfoil-clustering</artifactId>
         </dependency>
     </dependencies>
 

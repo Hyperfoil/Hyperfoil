@@ -30,7 +30,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>core</artifactId>
+    <artifactId>hyperfoil-core</artifactId>
     <packaging>jar</packaging>
     <name>Hyperfoil Core</name>
     <description>The core of Hyperfoil</description>
@@ -67,7 +67,7 @@
 
         <dependency>
             <groupId>io.hyperfoil</groupId>
-            <artifactId>api</artifactId>
+            <artifactId>hyperfoil-api</artifactId>
         </dependency>
 
         <dependency>

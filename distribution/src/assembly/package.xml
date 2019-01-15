@@ -34,7 +34,7 @@
         <attribute name="module" />
         <sequential>
             <copy todir="${dist.dir}/lib" failonerror="true" flatten="true">
-                <file file="${io.hyperfoil:@{module}:jar}" />
+                <file file="${io.hyperfoil:hyperfoil-@{module}:jar}" />
                 <fileset dir="${root.dir}/@{module}/target/dependency"/>
             </copy>
         </sequential>
