@@ -15,6 +15,7 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.eventbus.EventBus;
+import io.vertx.core.eventbus.MessageConsumer;
 import io.vertx.core.eventbus.ReplyException;
 import io.vertx.core.eventbus.ReplyFailure;
 import io.vertx.core.logging.Logger;
@@ -28,6 +29,7 @@ public class AgentVerticle extends AbstractVerticle {
     private EventBus eb;
 
     private SimulationRunnerImpl runner;
+    private MessageConsumer<Object> controlFeedConsumer;
     private long statsTimerId = -1;
     private ReportSender reportSender;
 
@@ -70,6 +72,10 @@ public class AgentVerticle extends AbstractVerticle {
                         reportSender.send();
                         runner.shutdown();
                     }
+                    if (controlFeedConsumer != null) {
+                        controlFeedConsumer.unregister();
+                    }
+                    controlFeedConsumer = null;
                     runner = null;
                     reportSender = null;
                     // TODO: this does not guarantee in-order delivery
@@ -91,23 +97,7 @@ public class AgentVerticle extends AbstractVerticle {
             }
         });
 
-        eb.consumer(Feeds.CONTROL, message -> {
-            PhaseControlMessage controlMessage = (PhaseControlMessage) message.body();
-            switch (controlMessage.command()) {
-                case RUN:
-                    runner.startPhase(controlMessage.phase());
-                    break;
-                case FINISH:
-                    runner.finishPhase(controlMessage.phase());
-                    break;
-                case TRY_TERMINATE:
-                    runner.tryTerminatePhase(controlMessage.phase());
-                    break;
-                case TERMINATE:
-                    runner.terminatePhase(controlMessage.phase());
-                    break;
-            }
-        });
+        listenOnControl();
 
         vertx.setPeriodic(1000, timerId -> {
             eb.send(Feeds.DISCOVERY, new AgentHello(name, address), reply -> {
@@ -129,6 +119,26 @@ public class AgentVerticle extends AbstractVerticle {
         });
     }
 
+    private MessageConsumer<Object> listenOnControl() {
+        return eb.consumer(Feeds.CONTROL, message -> {
+            PhaseControlMessage controlMessage = (PhaseControlMessage) message.body();
+            switch (controlMessage.command()) {
+                case RUN:
+                    runner.startPhase(controlMessage.phase());
+                    break;
+                case FINISH:
+                    runner.finishPhase(controlMessage.phase());
+                    break;
+                case TRY_TERMINATE:
+                    runner.tryTerminatePhase(controlMessage.phase());
+                    break;
+                case TERMINATE:
+                    runner.terminatePhase(controlMessage.phase());
+                    break;
+            }
+        });
+    }
+
     @Override
     public void stop() {
         if (runner != null) {
@@ -142,6 +152,7 @@ public class AgentVerticle extends AbstractVerticle {
             return;
         }
         runner = new SimulationRunnerImpl(simulation);
+        controlFeedConsumer = listenOnControl();
         reportSender = new ReportSender(simulation, eb, address, runId);
 
         runner.init((phase, status, succesful) -> {
