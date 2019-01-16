@@ -158,7 +158,6 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
          Request request = entry.value();
          if (!request.isCompleted()) {
             request.handlers().handleThrowable(request, cause);
-            request.setCompleted();
             request.session.proceed();
          }
       }

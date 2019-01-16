@@ -120,7 +120,6 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
       while ((request = inflights.poll()) != null) {
          if (!request.isCompleted()) {
             request.handlers().handleThrowable(request, cause);
-            request.setCompleted();
             request.session.proceed();
          }
       }

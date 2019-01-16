@@ -297,8 +297,11 @@ class SessionImpl implements Session, Callable<Void> {
                   log.trace("Canceling request on {}", request.connection());
                }
                request.connection().close();
-               request.setCompleted();
-               requestPool.release(request);
+               // Connection close should complete the request
+               if (!request.isCompleted()) {
+                  request.setCompleted();
+                  requestPool.release(request);
+               }
             }
          }
       }

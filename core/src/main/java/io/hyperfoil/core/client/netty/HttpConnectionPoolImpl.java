@@ -157,11 +157,14 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
             // at this moment we're in unknown thread
             if (err != null) {
                log.warn("Cannot create connection (retry {}): {}", retry, err.toString());
-               // so we need to make sure that checkCreateConnections will be called in eventLoop
-               eventLoop.execute(() -> {
-                  count--;
-                  checkCreateConnections(retry + 1);
-               });
+               // scheduling task when the executor is shut down causes errors
+               if (!eventLoop.isShuttingDown() && !eventLoop.isShutdown()) {
+                  // so we need to make sure that checkCreateConnections will be called in eventLoop
+                  eventLoop.execute(() -> {
+                     count--;
+                     checkCreateConnections(retry + 1);
+                  });
+               }
             } else {
                if (conn.context().executor() != eventLoop) {
                   log.debug("Connection {} created, re-registering...", conn);
