@@ -176,8 +176,13 @@ class ControllerRestServer {
    private void handleBenchmarkStart(RoutingContext routingContext) {
       String benchmarkName = routingContext.pathParam("benchmarkname");
       Benchmark benchmark = controller.getBenchmark(benchmarkName);
+      List<String> descList = routingContext.queryParam("desc");
+      String description = null;
+      if (descList != null && !descList.isEmpty()) {
+         description = descList.iterator().next();
+      }
       if (benchmark != null) {
-         String runId = controller.startBenchmark(benchmark);
+         String runId = controller.startBenchmark(benchmark, description);
          if (runId != null) {
             routingContext.response().setStatusCode(HttpResponseStatus.ACCEPTED.code()).
                   putHeader(HttpHeaders.LOCATION, BASE_URL + "/run/" + runId)
@@ -223,6 +228,9 @@ class ControllerRestServer {
       }
       if (run.terminateTime > Long.MIN_VALUE) {
          body.put("terminated", simpleDateFormat.format(new Date(run.terminateTime)));
+      }
+      if (run.description != null) {
+         body.put("description", run.description);
       }
       JsonArray jsonPhases = new JsonArray();
       body.put("phases", jsonPhases);

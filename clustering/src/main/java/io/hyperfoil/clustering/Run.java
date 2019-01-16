@@ -12,6 +12,7 @@ class Run {
    final Benchmark benchmark;
    final Map<String, ControllerPhase> phases = new HashMap<>();
    final List<AgentInfo> agents;
+   String description;
 
    long startTime = Long.MIN_VALUE;
    long terminateTime = Long.MIN_VALUE;

@@ -154,6 +154,7 @@ public class AgentControllerVerticle extends AbstractVerticle {
         Run run = new Run(runId, new Benchmark(info.getString("benchmark", "<unknown>"), null, null, null, null), Collections.emptyList());
         run.startTime = info.getLong("startTime", 0L);
         run.terminateTime = info.getLong("terminateTime", 0L);
+        run.description = info.getString("description");
         runs.put(runId, run);
     }
 
@@ -223,7 +224,7 @@ public class AgentControllerVerticle extends AbstractVerticle {
         }
     }
 
-    String startBenchmark(Benchmark benchmark) {
+    String startBenchmark(Benchmark benchmark, String description) {
         List<AgentInfo> runAgents = new ArrayList<>();
         if (benchmark.agents().length == 0) {
             if (agents.isEmpty()) {
@@ -243,6 +244,7 @@ public class AgentControllerVerticle extends AbstractVerticle {
         }
 
         Run run = new Run(String.format("%04X", runIds.getAndIncrement()), benchmark, runAgents);
+        run.description = description;
         runs.put(run.id, run);
         log.info("Starting benchmark {} - run {}", run.benchmark.name(), run.id);
 
@@ -360,7 +362,8 @@ public class AgentControllerVerticle extends AbstractVerticle {
                   .put("id", run.id)
                   .put("benchmark", run.benchmark.name())
                   .put("startTime", run.startTime)
-                  .put("terminateTime", run.terminateTime);
+                  .put("terminateTime", run.terminateTime)
+                  .put("description", run.description);
             try {
                 Files.write(runDir.resolve("info.json"), info.encodePrettily().getBytes(StandardCharsets.UTF_8));
             } catch (IOException e) {
