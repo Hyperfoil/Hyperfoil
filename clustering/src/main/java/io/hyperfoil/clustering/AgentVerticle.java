@@ -54,6 +54,7 @@ public class AgentVerticle extends AbstractVerticle {
             AgentControlMessage controlMessage = (AgentControlMessage) message.body();
             switch (controlMessage.command()) {
                 case INITIALIZE:
+                    log.info("Initializing agent, run {}", controlMessage.runId());
                     initSimulation(controlMessage.runId(), controlMessage.simulation(), result -> {
                         if (result.succeeded()) {
                             message.reply("OK");
@@ -64,6 +65,7 @@ public class AgentVerticle extends AbstractVerticle {
                     break;
                 case RESET:
                     // collect stats one last time before acknowledging termination
+                    log.info("Received agent reset");
                     if (statsTimerId >= 0) {
                         vertx.cancelTimer(statsTimerId);
                     }
@@ -82,6 +84,7 @@ public class AgentVerticle extends AbstractVerticle {
                     message.reply("OK");
                     break;
                 case LIST_SESSIONS:
+                    log.debug("Listing sessions...");
                     ArrayList<String> sessions = new ArrayList<>();
                     boolean includeInactive = controlMessage.includeInactive();
                     runner.visitSessions(s -> {
@@ -92,6 +95,7 @@ public class AgentVerticle extends AbstractVerticle {
                     message.reply(sessions);
                     break;
                 case LIST_CONNECTIONS:
+                    log.debug("Listing connections...");
                     message.reply(runner.listConnections());
                     break;
             }
@@ -148,6 +152,7 @@ public class AgentVerticle extends AbstractVerticle {
 
     private void initSimulation(String runId, Simulation simulation, Handler<AsyncResult<Void>> handler) {
         if (runner != null) {
+            log.error("Another simulation is running!");
             handler.handle(Future.failedFuture("Another simulation is running"));
             return;
         }
