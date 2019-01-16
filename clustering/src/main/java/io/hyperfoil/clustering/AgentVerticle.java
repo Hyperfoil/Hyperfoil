@@ -101,8 +101,6 @@ public class AgentVerticle extends AbstractVerticle {
             }
         });
 
-        listenOnControl();
-
         vertx.setPeriodic(1000, timerId -> {
             eb.send(Feeds.DISCOVERY, new AgentHello(name, address), reply -> {
                 log.trace("{} Pinging controller", address);
