@@ -78,7 +78,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
          stats.start(now);
       }
 
-      assert status == Status.NOT_STARTED;
+      assert status == Status.NOT_STARTED : "Status is " + status;
       status = Status.RUNNING;
       absoluteStartTime = now;
       log.debug("{} changing status to RUNNING", def.name);
@@ -88,7 +88,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
 
    @Override
    public void finish() {
-      assert status == Status.RUNNING;
+      assert status == Status.RUNNING : "Status is " + status;
       status = Status.FINISHED;
       log.debug("{} changing status to FINISHED", def.name);
       int active = activeSessions.get();
