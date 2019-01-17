@@ -200,6 +200,9 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          }
          return;
       }
+      if (trace) {
+         log.trace("#{} Completed request on {}", session.uniqueId(), request.connection());
+      }
 
       long endTime = System.nanoTime();
       Statistics statistics = session.currentSequence().statistics(session);
