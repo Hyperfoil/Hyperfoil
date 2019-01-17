@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import javax.net.ssl.SSLException;
@@ -97,7 +98,7 @@ public class SimulationRunnerImpl implements SimulationRunner {
                 sharedResources = new SharedResources(eventLoopGroup, def.scenario.sequences().length);
                 List<Session> phaseSessions = sharedResources.sessions = new ArrayList<>();
                 Map<EventExecutor, Statistics[]> statistics = sharedResources.statistics;
-                sharedResources.sessionPool = new ConcurrentPoolImpl<>(() -> {
+                Supplier<Session> sessionSupplier = () -> {
                     Session session;
                     synchronized (this.sessions) {
                         session = SessionFactory.create(def.scenario, this.sessions.size());
@@ -110,6 +111,10 @@ public class SimulationRunnerImpl implements SimulationRunner {
                     EventLoop eventLoop = eventLoopGroup.next();
                     session.attach(eventLoop, httpConnectionPools.get(eventLoop), statistics.get(eventLoop));
                     return session;
+                };
+                sharedResources.sessionPool = new ConcurrentPoolImpl<>(sessionSupplier, () -> {
+                    log.warn("Pool depleted, allocating new sessions!");
+                    return sessionSupplier.get();
                 });
                 this.sharedResources.put(def.sharedResources, sharedResources);
             }

@@ -134,9 +134,12 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
 
    @Override
    public void notifyFinished(Session session) {
+      if (session != null) {
+         sessionPool.release(session);
+      }
       int numActive = activeSessions.decrementAndGet();
       if (trace) {
-         log.trace("#{} NotifyFinished, {} has {} active sessions", session.uniqueId(), def.name, numActive);
+         log.trace("#{} NotifyFinished, {} has {} active sessions", session == null ? -1 : session.uniqueId(), def.name, numActive);
       }
       if (numActive < 0)
          log.error("{} has {} active sessions", def.name, numActive);
@@ -191,7 +194,12 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       if (trace) {
          log.trace("{} has {} active sessions", def.name, numActive);
       }
-      sessionPool.acquire().start(this);
+      Session session = sessionPool.acquire();
+      if (session == null) {
+         notifyFinished(null);
+         return true;
+      }
+      session.start(this);
       return false;
    }
 
@@ -205,7 +213,12 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
          assert activeSessions.get() == 0;
          activeSessions.set(def.users);
          for (int i = 0; i < def.users; ++i) {
-            sessionPool.acquire().start(this);
+            Session session = sessionPool.acquire();
+            if (session != null) {
+               session.start(this);
+            } else {
+               notifyFinished(null);
+            }
          }
          finish();
       }
@@ -226,7 +239,12 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
          assert activeSessions.get() == 0;
          activeSessions.set(def.users);
          for (int i = 0; i < def.users; ++i) {
-            sessionPool.acquire().start(this);
+            Session session = sessionPool.acquire();
+            if (session != null) {
+               session.start(this);
+            } else {
+               notifyFinished(null);
+            }
          }
       }
 
@@ -237,7 +255,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
 
       @Override
       public void notifyFinished(Session session) {
-         if (status.isFinished()) {
+         if (status.isFinished() || session == null) {
             super.notifyFinished(session);
          } else {
             session.start(this);
@@ -277,7 +295,9 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
             double progress = (def.targetUsersPerSec - def.initialUsersPerSec) / (def.duration * 1000);
             int required = (int) (((progress * (delta + 1)) / 2 + def.initialUsersPerSec / 1000) * delta);
             for (int i = required - startedUsers; i > 0; --i) {
-               if (startNewSession()) return;
+               if (startNewSession()) {
+                  return;
+               }
             }
             startedUsers = Math.max(startedUsers, required);
             // Next time is the root of quadratic equation
@@ -299,12 +319,6 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       @Override
       public void reserveSessions() {
          sessionPool.reserve(def.maxSessionsEstimate);
-      }
-
-      @Override
-      public void notifyFinished(Session session) {
-         sessionPool.release(session);
-         super.notifyFinished(session);
       }
    }
 
@@ -342,7 +356,9 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
             // integer division is rounding down, we're trying to round up
             nextDelta = (long) ((1000 * (startedUsers + 1) + def.usersPerSec - 1) / def.usersPerSec);
             for (int i = required - startedUsers; i > 0; --i) {
-               if (startNewSession()) return;
+               if (startNewSession()) {
+                  return;
+               }
             }
             startedUsers = Math.max(startedUsers, required);
          }
@@ -361,12 +377,6 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       public void reserveSessions() {
          sessionPool.reserve(def.maxSessionsEstimate);
       }
-
-      @Override
-      public void notifyFinished(Session session) {
-         sessionPool.release(session);
-         super.notifyFinished(session);
-      }
    }
 
    public static class Sequentially extends PhaseInstanceImpl<Phase.Sequentially> {
@@ -383,7 +393,12 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
          if (trace) {
             log.trace("{} has {} active sessions", def.name, numActive);
          }
-         sessionPool.acquire().start(this);
+         Session session = sessionPool.acquire();
+         if (session != null) {
+            session.start(this);
+         } else {
+            notifyFinished(null);
+         }
       }
 
       @Override

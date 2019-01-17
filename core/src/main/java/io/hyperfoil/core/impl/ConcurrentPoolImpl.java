@@ -12,12 +12,14 @@ import io.vertx.core.logging.LoggerFactory;
 
 public class ConcurrentPoolImpl<T> implements ConcurrentPool<T> {
    private Logger log = LoggerFactory.getLogger(ConcurrentPoolImpl.class);
-   private final Supplier<T> supplier;
+   private final Supplier<T> initSupplier;
+   private final Supplier<T> depletionSupplier;
    private BlockingQueue<T> primaryQueue;
    private final BlockingQueue<T> secondaryQueue = new LinkedBlockingQueue<>();
 
-   public ConcurrentPoolImpl(Supplier<T> supplier) {
-      this.supplier = supplier;
+   public ConcurrentPoolImpl(Supplier<T> initSupplier, Supplier<T> depletionSupplier) {
+      this.initSupplier = initSupplier;
+      this.depletionSupplier = depletionSupplier;
    }
 
    @Override
@@ -31,8 +33,7 @@ public class ConcurrentPoolImpl<T> implements ConcurrentPool<T> {
       if (object != null) {
          return object;
       }
-      log.warn("Pool depleted, allocating new sessions!");
-      return supplier.get();
+      return depletionSupplier.get();
    }
 
    @Override
@@ -49,7 +50,7 @@ public class ConcurrentPoolImpl<T> implements ConcurrentPool<T> {
          primaryQueue = new ArrayBlockingQueue<>(capacity);
       }
       while (primaryQueue.size() < capacity) {
-         primaryQueue.add(supplier.get());
+         primaryQueue.add(initSupplier.get());
       }
    }
 
