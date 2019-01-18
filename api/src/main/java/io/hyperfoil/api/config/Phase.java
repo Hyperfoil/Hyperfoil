@@ -3,6 +3,7 @@ package io.hyperfoil.api.config;
 import java.io.Serializable;
 import java.util.Collection;
 
+import io.hyperfoil.function.SerializableSupplier;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
@@ -10,6 +11,7 @@ public abstract class Phase implements Serializable {
    protected static final Logger log = LoggerFactory.getLogger(Phase.class);
    protected static final boolean trace = log.isTraceEnabled();
 
+   protected final SerializableSupplier<Benchmark> benchmark;
    public final String name;
    public final Scenario scenario;
    public final long startTime;
@@ -22,9 +24,10 @@ public abstract class Phase implements Serializable {
    // identifier for sharing resources across iterations
    public final String sharedResources;
 
-   public Phase(String name, Scenario scenario, long startTime,
+   public Phase(SerializableSupplier<Benchmark> benchmark, String name, Scenario scenario, long startTime,
                 Collection<String> startAfter, Collection<String> startAfterStrict,
                 Collection<String> terminateAfterStrict, long duration, long maxDuration, int maxUnfinishedSessions, String sharedResources) {
+      this.benchmark = benchmark;
       this.name = name;
       this.terminateAfterStrict = terminateAfterStrict;
       this.maxDuration = maxDuration;
@@ -96,13 +99,17 @@ public abstract class Phase implements Serializable {
       return maxDuration;
    }
 
+   public Benchmark benchmark() {
+      return benchmark.get();
+   }
+
    public static class AtOnce extends Phase {
       public final int users;
 
-      public AtOnce(String name, Scenario scenario, long startTime,
+      public AtOnce(SerializableSupplier<Benchmark> benchmark, String name, Scenario scenario, long startTime,
                     Collection<String> startAfter, Collection<String> startAfterStrict,
                     Collection<String> terminateAfterStrict, long duration, long maxDuration, int maxUnfinishedSessions, String sharedResources, int users) {
-         super(name, scenario, startTime, startAfter, startAfterStrict, terminateAfterStrict, duration, maxDuration, maxUnfinishedSessions, sharedResources);
+         super(benchmark, name, scenario, startTime, startAfter, startAfterStrict, terminateAfterStrict, duration, maxDuration, maxUnfinishedSessions, sharedResources);
          this.users = users;
       }
    }
@@ -110,10 +117,10 @@ public abstract class Phase implements Serializable {
    public static class Always extends Phase {
       public final int users;
 
-      public Always(String name, Scenario scenario, long startTime,
+      public Always(SerializableSupplier<Benchmark> benchmark, String name, Scenario scenario, long startTime,
                     Collection<String> startAfter, Collection<String> startAfterStrict,
                     Collection<String> terminateAfterStrict, long duration, long maxDuration, int maxUnfinishedSessions, String sharedResources, int users) {
-         super(name, scenario, startTime, startAfter, startAfterStrict, terminateAfterStrict, duration, maxDuration, maxUnfinishedSessions, sharedResources);
+         super(benchmark, name, scenario, startTime, startAfter, startAfterStrict, terminateAfterStrict, duration, maxDuration, maxUnfinishedSessions, sharedResources);
          this.users = users;
       }
    }
@@ -124,13 +131,13 @@ public abstract class Phase implements Serializable {
       public final int maxSessionsEstimate;
       public final boolean variance;
 
-      public RampPerSec(String name, Scenario scenario, long startTime,
+      public RampPerSec(SerializableSupplier<Benchmark> benchmark, String name, Scenario scenario, long startTime,
                         Collection<String> startAfter, Collection<String> startAfterStrict,
                         Collection<String> terminateAfterStrict,
                         long duration, long maxDuration,
                         int maxUnfinishedSessions, String sharedResources, double initialUsersPerSec, double targetUsersPerSec,
                         boolean variance, int maxSessionsEstimate) {
-         super(name, scenario, startTime, startAfter, startAfterStrict, terminateAfterStrict, duration, maxDuration, maxUnfinishedSessions, sharedResources);
+         super(benchmark, name, scenario, startTime, startAfter, startAfterStrict, terminateAfterStrict, duration, maxDuration, maxUnfinishedSessions, sharedResources);
          this.initialUsersPerSec = initialUsersPerSec;
          this.targetUsersPerSec = targetUsersPerSec;
          this.variance = variance;
@@ -143,11 +150,11 @@ public abstract class Phase implements Serializable {
       public final int maxSessionsEstimate;
       public final boolean variance;
 
-      public ConstantPerSec(String name, Scenario scenario, long startTime,
+      public ConstantPerSec(SerializableSupplier<Benchmark> benchmark, String name, Scenario scenario, long startTime,
                             Collection<String> startAfter, Collection<String> startAfterStrict,
                             Collection<String> terminateAfterStrict,
                             long duration, long maxDuration, int maxUnfinishedSessions, String sharedResources, double usersPerSec, boolean variance, int maxSessionsEstimate) {
-         super(name, scenario, startTime, startAfter, startAfterStrict, terminateAfterStrict, duration, maxDuration, maxUnfinishedSessions, sharedResources);
+         super(benchmark, name, scenario, startTime, startAfter, startAfterStrict, terminateAfterStrict, duration, maxDuration, maxUnfinishedSessions, sharedResources);
          this.usersPerSec = usersPerSec;
          this.variance = variance;
          this.maxSessionsEstimate = maxSessionsEstimate;
@@ -157,19 +164,18 @@ public abstract class Phase implements Serializable {
    public static class Sequentially extends Phase {
       public final int repeats;
 
-      public Sequentially(String name, Scenario scenario, long startTime,
+      public Sequentially(SerializableSupplier<Benchmark> benchmark, String name, Scenario scenario, long startTime,
                           Collection<String> startAfter, Collection<String> startAfterStrict,
                           Collection<String> terminateAfterStrict,
                           long duration, long maxDuration, int maxUnfinishedSessions, String sharedResources, int repeats) {
-         super(name, scenario, startTime, startAfter, startAfterStrict, terminateAfterStrict, duration, maxDuration, maxUnfinishedSessions, sharedResources);
+         super(benchmark, name, scenario, startTime, startAfter, startAfterStrict, terminateAfterStrict, duration, maxDuration, maxUnfinishedSessions, sharedResources);
          this.repeats = repeats;
       }
    }
 
    public static class Noop extends Phase {
-      public Noop(String name, Collection<String> startAfter, Collection<String> startAfterStrict, Collection<String> terminateAfterStrict) {
-         super(name, new Scenario(new Sequence[0], new Sequence[0], new String[0], new String[0]),
-               -1, startAfter, startAfterStrict, terminateAfterStrict, 0, -1, 0, null);
+      public Noop(SerializableSupplier<Benchmark> benchmark, String name, Collection<String> startAfter, Collection<String> startAfterStrict, Collection<String> terminateAfterStrict, Scenario scenario) {
+         super(benchmark, name, scenario, -1, startAfter, startAfterStrict, terminateAfterStrict, 0, -1, 0, null);
       }
    }
 }

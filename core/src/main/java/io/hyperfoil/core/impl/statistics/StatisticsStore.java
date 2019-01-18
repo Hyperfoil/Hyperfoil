@@ -17,7 +17,6 @@ import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.Phase;
@@ -43,10 +42,10 @@ public class StatisticsStore {
       long collectionPeriod = benchmark.simulation().statisticsCollectionPeriod();
       for (Phase phase : benchmark.simulation().phases()) {
          for (Sequence sequence : phase.scenario().sequences()) {
-            Map<SLA, Window> rings = Stream.of(benchmark.slas())
+            Map<SLA, Window> rings = benchmark.slas()
                   .filter(sla -> sla.sequence() == sequence && sla.window() > 0)
                   .collect(Collectors.toMap(Function.identity(), sla -> new Window((int) (sla.window() / collectionPeriod))));
-            SLA[] total = Stream.of(benchmark.slas())
+            SLA[] total = benchmark.slas()
                   .filter(sla -> sla.sequence() == sequence && sla.window() <= 0).toArray(SLA[]::new);
             data.put(new PhaseSeq(phase.name, sequence.name()), new Data(rings, total));
          }
@@ -117,7 +116,7 @@ public class StatisticsStore {
          StatisticsSummary.printHeader(writer, percentiles);
          writer.println();
          for (SLA.Failure failure : failures) {
-            writer.print(failure.sla().sequence().phase());
+            writer.print(failure.sla().sequence().phase().name());
             writer.print(',');
             writer.print(failure.sla().sequence().name());
             writer.print(",\"");

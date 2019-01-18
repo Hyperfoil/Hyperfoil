@@ -5,12 +5,14 @@ import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
+import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.api.ResourceUtilizer;
 import io.hyperfoil.core.builders.BaseSequenceBuilder;
 import io.hyperfoil.core.builders.BaseStepBuilder;
 import io.hyperfoil.core.util.Util;
+import io.hyperfoil.function.SerializableSupplier;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
@@ -133,7 +135,7 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
       }
 
       @Override
-      public List<Step> build() {
+      public List<Step> build(SerializableSupplier<Sequence> sequence) {
          return Collections.singletonList(new ScheduleDelayStep(key, type, duration, negativeExponential, min, max));
       }
 

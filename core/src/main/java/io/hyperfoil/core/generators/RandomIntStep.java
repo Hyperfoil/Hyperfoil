@@ -5,11 +5,13 @@ import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.api.ResourceUtilizer;
 import io.hyperfoil.core.builders.BaseSequenceBuilder;
 import io.hyperfoil.core.builders.BaseStepBuilder;
+import io.hyperfoil.function.SerializableSupplier;
 
 public class RandomIntStep implements Step, ResourceUtilizer {
    private final String var;
@@ -69,7 +71,7 @@ public class RandomIntStep implements Step, ResourceUtilizer {
       }
 
       @Override
-      public List<Step> build() {
+      public List<Step> build(SerializableSupplier<Sequence> sequence) {
          if (var == null) {
             throw new BenchmarkDefinitionException("Missing target var.");
          }

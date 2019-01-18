@@ -20,10 +20,12 @@
 
 package io.hyperfoil.core.builders;
 
+import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.config.Simulation;
 import io.hyperfoil.api.config.Http;
+import io.hyperfoil.function.SerializableSupplier;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -77,7 +79,7 @@ public class SimulationBuilder {
         return new PhaseBuilder.Discriminator(this, name);
     }
 
-    public Simulation build() {
+    public Simulation build(SerializableSupplier<Benchmark> benchmark) {
         if (defaultHttp == null) {
             if (httpMap.isEmpty()) {
                 // may be removed in the future when we define more than HTTP connections
@@ -99,7 +101,7 @@ public class SimulationBuilder {
               .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().build(entry.getValue() == defaultHttp)));
 
         Collection<Phase> phases = phaseBuilders.values().stream()
-              .flatMap(builder -> builder.build().stream()).collect(Collectors.toList());
+              .flatMap(builder -> builder.build(benchmark).stream()).collect(Collectors.toList());
         Set<String> phaseNames = phases.stream().map(Phase::name).collect(Collectors.toSet());
         for (Phase phase : phases) {
             checkDependencies(phase, phase.startAfter, phaseNames);

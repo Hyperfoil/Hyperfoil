@@ -5,7 +5,7 @@ public abstract class BaseStepBuilder implements StepBuilder {
 
    protected BaseStepBuilder(BaseSequenceBuilder parent) {
       this.parent = parent;
-      parent.step(this);
+      parent.stepBuilder(this);
    }
 
    public BaseSequenceBuilder endStep() {

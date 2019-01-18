@@ -10,6 +10,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import io.hyperfoil.api.config.Http;
+import io.hyperfoil.api.config.Sequence;
+import io.hyperfoil.api.config.Simulation;
+import io.hyperfoil.core.generators.StringGeneratorBuilder;
+import io.hyperfoil.function.SerializableSupplier;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.hyperfoil.api.config.PairBuilder;
@@ -26,7 +31,6 @@ import io.hyperfoil.core.builders.BaseSequenceBuilder;
 import io.hyperfoil.core.builders.BaseStepBuilder;
 import io.hyperfoil.core.api.ResourceUtilizer;
 import io.hyperfoil.core.builders.SimulationBuilder;
-import io.hyperfoil.core.generators.Pattern;
 import io.hyperfoil.core.util.Util;
 import io.hyperfoil.function.SerializableBiConsumer;
 import io.hyperfoil.function.SerializableBiFunction;
@@ -34,23 +38,25 @@ import io.hyperfoil.function.SerializableFunction;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-public class HttpRequestStep implements Step, ResourceUtilizer {
+public class HttpRequestStep extends BaseStep implements ResourceUtilizer {
    private static final Logger log = LoggerFactory.getLogger(HttpRequestStep.class);
    private static final boolean trace = log.isTraceEnabled();
 
    final HttpMethod method;
-   final String baseUrl;
+   final SerializableFunction<Session, String> baseUrl;
    final SerializableFunction<Session, String> pathGenerator;
    final SerializableBiFunction<Session, Connection, ByteBuf> bodyGenerator;
    final SerializableBiConsumer<Session, HttpRequestWriter>[] headerAppenders;
    final long timeout;
    final HttpResponseHandlersImpl handler;
 
-   public HttpRequestStep(HttpMethod method, String baseUrl,
+   public HttpRequestStep(SerializableSupplier<Sequence> sequence, HttpMethod method,
+                          SerializableFunction<Session, String> baseUrl,
                           SerializableFunction<Session, String> pathGenerator,
                           SerializableBiFunction<Session, Connection, ByteBuf> bodyGenerator,
                           SerializableBiConsumer<Session, HttpRequestWriter>[] headerAppenders,
                           long timeout, HttpResponseHandlersImpl handler) {
+      super(sequence);
       this.method = method;
       this.baseUrl = baseUrl;
       this.pathGenerator = pathGenerator;
@@ -70,6 +76,7 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
 
       request.start(handler, session.currentSequence());
 
+      String baseUrl = this.baseUrl == null ? null : this.baseUrl.apply(session);
       HttpConnectionPool connectionPool = session.httpConnectionPool(baseUrl);
       if (!connectionPool.request(request, method, pathGenerator, headerAppenders, bodyGenerator)) {
          request.setCompleted();
@@ -89,6 +96,13 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
       if (timeout > 0) {
          // TODO alloc!
          request.setTimeout(timeout, TimeUnit.MILLISECONDS);
+      } else {
+         Simulation simulation = sequence().phase().benchmark().simulation();
+         Http http = baseUrl == null ? simulation.defaultHttp() : simulation.http().get(baseUrl);
+         long timeout = http.requestTimeout();
+         if (timeout > 0) {
+            request.setTimeout(timeout, TimeUnit.MILLISECONDS);
+         }
       }
 
       if (trace) {
@@ -105,7 +119,7 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
 
    public static class Builder extends BaseStepBuilder {
       private HttpMethod method;
-      private String baseUrl;
+      private SerializableFunction<Session, String> baseUrl;
       private SerializableFunction<Session, String> pathGenerator;
       private SerializableBiFunction<Session, Connection, ByteBuf> bodyGenerator;
       private List<SerializableBiConsumer<Session, HttpRequestWriter>> headerAppenders = new ArrayList<>();
@@ -127,7 +141,7 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
          return method(HttpMethod.GET).path(path);
       }
 
-      public PathBuilder GET() {
+      public StringGeneratorBuilder GET() {
          return method(HttpMethod.GET).path();
       }
 
@@ -135,7 +149,7 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
          return method(HttpMethod.HEAD).path(path);
       }
 
-      public PathBuilder HEAD() {
+      public StringGeneratorBuilder HEAD() {
          return method(HttpMethod.HEAD).path();
       }
 
@@ -143,7 +157,7 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
          return method(HttpMethod.POST).path(path);
       }
 
-      public PathBuilder POST() {
+      public StringGeneratorBuilder POST() {
          return method(HttpMethod.POST).path();
       }
 
@@ -151,7 +165,7 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
          return method(HttpMethod.PUT).path(path);
       }
 
-      public PathBuilder PUT() {
+      public StringGeneratorBuilder PUT() {
          return method(HttpMethod.PUT).path();
       }
 
@@ -159,7 +173,7 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
          return method(HttpMethod.DELETE).path(path);
       }
 
-      public PathBuilder DELETE() {
+      public StringGeneratorBuilder DELETE() {
          return method(HttpMethod.DELETE).path();
       }
 
@@ -167,7 +181,7 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
          return method(HttpMethod.OPTIONS).path(path);
       }
 
-      public PathBuilder OPTIONS() {
+      public StringGeneratorBuilder OPTIONS() {
          return method(HttpMethod.OPTIONS).path();
       }
 
@@ -175,7 +189,7 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
          return method(HttpMethod.PATCH).path(path);
       }
 
-      public PathBuilder PATCH() {
+      public StringGeneratorBuilder PATCH() {
          return method(HttpMethod.PATCH).path();
       }
 
@@ -183,7 +197,7 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
          return method(HttpMethod.TRACE).path(path);
       }
 
-      public PathBuilder TRACE() {
+      public StringGeneratorBuilder TRACE() {
          return method(HttpMethod.TRACE).path();
       }
 
@@ -191,21 +205,29 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
          return method(HttpMethod.CONNECT).path(path);
       }
 
-      public PathBuilder CONNECT() {
+      public StringGeneratorBuilder CONNECT() {
          return method(HttpMethod.CONNECT).path();
       }
 
       public Builder baseUrl(String baseUrl) {
-         this.baseUrl = baseUrl;
+         return baseUrl(session -> baseUrl);
+      }
+
+      public Builder baseUrl(SerializableFunction<Session, String> baseUrlGenerator) {
+         this.baseUrl = baseUrlGenerator;
          return this;
+      }
+
+      public StringGeneratorBuilder<HttpRequestStep.Builder> baseUrl() {
+         return new StringGeneratorBuilder<>(this, this::baseUrl);
       }
 
       public Builder path(String path) {
          return pathGenerator(s -> path);
       }
 
-      public PathBuilder path() {
-         return new PathBuilder(this);
+      public StringGeneratorBuilder<HttpRequestStep.Builder> path() {
+         return new StringGeneratorBuilder<>(this, this::pathGenerator);
       }
 
       public Builder pathGenerator(SerializableFunction<Session, String> pathGenerator) {
@@ -261,9 +283,16 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
       }
 
       @Override
-      public List<Step> build() {
+      public List<Step> build(SerializableSupplier<Sequence> sequence) {
          SimulationBuilder simulation = parent.endSequence().endScenario().endPhase();
-         if (!simulation.validateBaseUrl(baseUrl)) {
+         String guessedBaseUrl = null;
+         boolean checkBaseUrl = true;
+         try {
+            guessedBaseUrl = baseUrl == null ? null : baseUrl.apply(null);
+         } catch (Throwable e) {
+            checkBaseUrl = false;
+         }
+         if (checkBaseUrl && !simulation.validateBaseUrl(guessedBaseUrl)) {
             String guessedPath = "<unknown path>";
             try {
                guessedPath = pathGenerator.apply(null);
@@ -276,11 +305,7 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
          }
          SerializableBiConsumer<Session, HttpRequestWriter>[] headerAppenders =
                this.headerAppenders.isEmpty() ? null : this.headerAppenders.toArray(new SerializableBiConsumer[0]);
-         long timeout = this.timeout;
-         if (timeout == Long.MIN_VALUE) {
-            timeout = (baseUrl == null ? simulation.http() : simulation.http(baseUrl)).requestTimeout();
-         }
-         return Collections.singletonList(new HttpRequestStep(method, baseUrl, pathGenerator, bodyGenerator, headerAppenders, timeout, handler.build()));
+         return Collections.singletonList(new HttpRequestStep(sequence, method, baseUrl, pathGenerator, bodyGenerator, headerAppenders, timeout, handler.build()));
       }
    }
 
@@ -377,43 +402,4 @@ public class HttpRequestStep implements Step, ResourceUtilizer {
       }
    }
 
-   public static class PathBuilder {
-      private final Builder parent;
-      private boolean used;
-
-      public PathBuilder(Builder builder) {
-         this.parent = builder;
-      }
-
-      private void ensureUnused() {
-         if (used) {
-            throw new BenchmarkDefinitionException("Specify only one of: var, pattern");
-         }
-         used = true;
-      }
-
-      public PathBuilder var(String var) {
-         ensureUnused();
-         parent.pathGenerator(session -> {
-            Object value = session.getObject(var);
-            if (value instanceof String) {
-               return (String) value;
-            } else {
-               log.error("Cannot retrieve path from {}, the content is {}", var, value);
-               return null;
-            }
-         });
-         return this;
-      }
-
-      public PathBuilder pattern(String pattern) {
-         ensureUnused();
-         parent.pathGenerator(new Pattern(pattern));
-         return this;
-      }
-
-      public Builder endPath() {
-         return parent;
-      }
-   }
 }

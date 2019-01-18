@@ -151,7 +151,7 @@ public class AgentControllerVerticle extends AbstractVerticle {
                 log.error("Cannot read info for run {}", runId);
             }
         }
-        Run run = new Run(runId, new Benchmark(info.getString("benchmark", "<unknown>"), null, null, null, null), Collections.emptyList());
+        Run run = new Run(runId, new Benchmark(info.getString("benchmark", "<unknown>"), null, null, null), Collections.emptyList());
         run.startTime = info.getLong("startTime", 0L);
         run.terminateTime = info.getLong("terminateTime", 0L);
         run.description = info.getString("description");
@@ -277,7 +277,7 @@ public class AgentControllerVerticle extends AbstractVerticle {
         }
         run.statisticsStore = new StatisticsStore(run.benchmark, failure -> {
             Sequence sequence = failure.sla().sequence();
-            log.warn("Failed verify SLA(s) for {}/{}", sequence.phase(), sequence.name());
+            log.warn("Failed verify SLA(s) for {}/{}", sequence.phase().name(), sequence.name());
         });
         runSimulation(run);
     }

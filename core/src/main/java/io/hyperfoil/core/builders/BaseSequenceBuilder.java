@@ -4,7 +4,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.Step;
+import io.hyperfoil.function.SerializableSupplier;
 
 public abstract class BaseSequenceBuilder implements Rewritable<BaseSequenceBuilder> {
    protected final BaseSequenceBuilder parent;
@@ -19,11 +21,12 @@ public abstract class BaseSequenceBuilder implements Rewritable<BaseSequenceBuil
    }
 
    public BaseSequenceBuilder step(Step step) {
-      steps.add(() -> Collections.singletonList(step));
+      steps.add((SerializableSupplier<Sequence> sequence) -> Collections.singletonList(step));
       return this;
    }
 
-   public BaseSequenceBuilder step(StepBuilder stepBuilder) {
+   // Calling this method step() would cause ambiguity with step(Step) defined through lambda
+   public BaseSequenceBuilder stepBuilder(StepBuilder stepBuilder) {
       steps.add(stepBuilder);
       return this;
    }

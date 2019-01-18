@@ -4,11 +4,13 @@ import java.util.Collections;
 import java.util.List;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.api.ResourceUtilizer;
 import io.hyperfoil.core.builders.BaseSequenceBuilder;
 import io.hyperfoil.core.builders.BaseStepBuilder;
+import io.hyperfoil.function.SerializableSupplier;
 
 public class TemplateStep implements Step, ResourceUtilizer {
    private final Pattern pattern;
@@ -49,7 +51,7 @@ public class TemplateStep implements Step, ResourceUtilizer {
       }
 
       @Override
-      public List<Step> build() {
+      public List<Step> build(SerializableSupplier<Sequence> sequence) {
          if (pattern == null) {
             throw new BenchmarkDefinitionException("Missing pattern for template.");
          }

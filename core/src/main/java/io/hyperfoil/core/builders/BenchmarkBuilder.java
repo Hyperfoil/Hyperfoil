@@ -21,7 +21,6 @@ package io.hyperfoil.core.builders;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.Host;
-import io.hyperfoil.api.config.SLA;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -35,7 +34,6 @@ public class BenchmarkBuilder {
     private String name;
     private final SimulationBuilder simulation = new SimulationBuilder(this);
     private Collection<Host> agents = new ArrayList<>();
-    private Collection<SLABuilder> slas = new ArrayList<>();
 
     public BenchmarkBuilder(String originalSource) {
         this.originalSource = originalSource;
@@ -60,11 +58,10 @@ public class BenchmarkBuilder {
     }
 
     public Benchmark build() {
-        return new Benchmark(name, originalSource, simulation.build(), agents.toArray(new Host[0]), slas.stream().map(SLABuilder::build).toArray(SLA[]::new));
-    }
-
-    void addSLA(SLABuilder sla) {
-        slas.add(sla);
+        FutureSupplier<Benchmark> bs = new FutureSupplier<>();
+        Benchmark benchmark = new Benchmark(name, originalSource, simulation.build(bs), agents.toArray(new Host[0]));
+        bs.set(benchmark);
+        return benchmark;
     }
 
     public BenchmarkBuilder addAgent(String name, String usernameHostPort) {

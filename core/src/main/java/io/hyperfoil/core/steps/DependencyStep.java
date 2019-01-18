@@ -1,18 +1,21 @@
 package io.hyperfoil.core.steps;
 
+import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.session.VarReference;
 import io.hyperfoil.api.session.Session;
+import io.hyperfoil.function.SerializableSupplier;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-public abstract class DependencyStep implements Step {
+public abstract class DependencyStep extends BaseStep {
    private static final Logger log = LoggerFactory.getLogger(Step.class);
    private static final boolean trace = log.isTraceEnabled();
 
    private final VarReference[] dependencies;
 
-   protected DependencyStep(VarReference[] dependencies) {
+   protected DependencyStep(SerializableSupplier<Sequence> sequence, VarReference[] dependencies) {
+      super(sequence);
       this.dependencies = dependencies;
    }
 

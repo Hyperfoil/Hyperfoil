@@ -20,6 +20,7 @@ package io.hyperfoil.api.config;
 
 import java.io.Serializable;
 import java.util.Arrays;
+import java.util.stream.Stream;
 
 /**
  * A benchmark is a collection of simulation, user,
@@ -32,14 +33,12 @@ public class Benchmark implements Serializable {
     protected final String originalSource;
     protected final Simulation simulation;
     protected final Host[] agents;
-    protected final SLA[] slas;
 
-    public Benchmark(String name, String originalSource, Simulation simulation, Host[] agents, SLA[] slas) {
+    public Benchmark(String name, String originalSource, Simulation simulation, Host[] agents) {
         this.name = name;
         this.originalSource = originalSource;
         this.simulation = simulation;
         this.agents = agents;
-        this.slas = slas;
     }
 
     public Simulation simulation() {
@@ -50,8 +49,10 @@ public class Benchmark implements Serializable {
         return name;
     }
 
-    public SLA[] slas() {
-        return slas;
+    public Stream<SLA> slas() {
+        return simulation().phases().stream().flatMap(
+              phase -> Stream.of(phase.scenario.sequences()).flatMap(sequence -> Stream.of(sequence.slas()))
+        );
     }
 
     public Host[] agents() {
@@ -73,7 +74,6 @@ public class Benchmark implements Serializable {
                        ", originalSource='" + originalSource + '\'' +
                        ", simulation=" + simulation +
                        ", agents=" + Arrays.toString(agents) +
-                       ", slas=" + Arrays.toString(slas) +
                        '}';
     }
 }

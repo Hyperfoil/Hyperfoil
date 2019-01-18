@@ -5,18 +5,20 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
+import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.session.VarReference;
 import io.hyperfoil.core.builders.BaseSequenceBuilder;
 import io.hyperfoil.core.builders.DependencyStepBuilder;
+import io.hyperfoil.function.SerializableSupplier;
 
 public class BreakSequenceStep extends DependencyStep {
    private final Predicate<Session> condition;
    private final Consumer<Session> onBreak;
 
-   public BreakSequenceStep(VarReference[] dependencies, Predicate<Session> condition, Consumer<Session> onBreak) {
-      super(dependencies);
+   public BreakSequenceStep(SerializableSupplier<Sequence> sequence, VarReference[] dependencies, Predicate<Session> condition, Consumer<Session> onBreak) {
+      super(sequence, dependencies);
       this.condition = condition;
       this.onBreak = onBreak;
    }
@@ -50,8 +52,8 @@ public class BreakSequenceStep extends DependencyStep {
       }
 
       @Override
-      public List<Step> build() {
-         return Collections.singletonList(new BreakSequenceStep(dependencies(), condition, onBreak));
+      public List<Step> build(SerializableSupplier<Sequence> sequence) {
+         return Collections.singletonList(new BreakSequenceStep(sequence, dependencies(), condition, onBreak));
       }
    }
 }

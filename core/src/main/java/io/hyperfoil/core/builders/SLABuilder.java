@@ -4,7 +4,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 
 import io.hyperfoil.api.config.SLA;
+import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.core.util.Util;
+import io.hyperfoil.function.SerializableSupplier;
 
 public class SLABuilder {
    private final SequenceBuilder parent;
@@ -16,14 +18,13 @@ public class SLABuilder {
 
    public SLABuilder(SequenceBuilder parent) {
       this.parent = parent;
-      parent.sla(this);
    }
 
-   public SLA build() {
+   public SLA build(SerializableSupplier<Sequence> sequence) {
       if (sla != null) {
          return sla;
       }
-      return sla = new SLA(parent.build(), window, errorRate, meanResponseTime, limits);
+      return sla = new SLA(sequence, window, errorRate, meanResponseTime, limits);
    }
 
    public SequenceBuilder endSLA() {

@@ -21,11 +21,14 @@
 package io.hyperfoil.core.builders;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.Scenario;
+import io.hyperfoil.function.SerializableSupplier;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.stream.Collectors;
 
 /**
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
@@ -89,7 +92,7 @@ public class ScenarioBuilder implements Rewritable<ScenarioBuilder> {
         return this;
     }
 
-    public Scenario build() {
+    public Scenario build(SerializableSupplier<Phase> phase) {
         if (scenario != null) {
             return scenario;
         }
@@ -97,18 +100,24 @@ public class ScenarioBuilder implements Rewritable<ScenarioBuilder> {
             throw new IllegalArgumentException("No initial sequences.");
         }
         return scenario = new Scenario(
-              initialSequences.stream().map(SequenceBuilder::build).toArray(Sequence[]::new),
-              sequences.stream().map(SequenceBuilder::build).toArray(Sequence[]::new),
+              initialSequences.stream().map(sequenceBuilder -> sequenceBuilder.build(phase)).toArray(Sequence[]::new),
+              sequences.stream().map(sequenceBuilder1 -> sequenceBuilder1.build(phase)).toArray(Sequence[]::new),
               objectVars.toArray(new String[0]),
               intVars.toArray(new String[0]));
     }
 
     @Override
     public void readFrom(ScenarioBuilder other) {
-        this.initialSequences = other.initialSequences;
-        this.sequences = other.sequences;
+        this.sequences = other.sequences.stream()
+              .map(seq -> new SequenceBuilder(this, seq)).collect(Collectors.toList());
+        this.initialSequences = other.initialSequences.stream()
+              .map(seq -> findMatchingSequence(seq.name())).collect(Collectors.toList());
         this.intVars = other.intVars;
         this.objectVars = other.objectVars;
+    }
+
+    private SequenceBuilder findMatchingSequence(String name) {
+        return this.sequences.stream().filter(s2 -> s2.name().equals(name)).findFirst().orElseThrow(() -> new IllegalStateException());
     }
 
     Collection<SequenceBuilder> sequences() {

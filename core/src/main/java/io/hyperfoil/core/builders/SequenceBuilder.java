@@ -20,11 +20,16 @@
 
 package io.hyperfoil.core.builders;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
+import io.hyperfoil.api.config.Phase;
+import io.hyperfoil.api.config.SLA;
 import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.core.session.SequenceImpl;
+import io.hyperfoil.function.SerializableSupplier;
 
 /**
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
@@ -34,6 +39,7 @@ public class SequenceBuilder extends BaseSequenceBuilder {
     private final String name;
     private int id;
     private Sequence sequence;
+    private List<SLABuilder> slas = new ArrayList<>();
 
     SequenceBuilder(ScenarioBuilder scenario, String name) {
         super(null);
@@ -41,25 +47,33 @@ public class SequenceBuilder extends BaseSequenceBuilder {
         this.name = Objects.requireNonNull(name);
     }
 
-    public Sequence build() {
+    SequenceBuilder(ScenarioBuilder scenario, SequenceBuilder other) {
+        super(null);
+        this.scenario = scenario;
+        this.name = other.name;
+        readFrom(other);
+    }
+
+    public Sequence build(SerializableSupplier<Phase> phase) {
         if (sequence != null) {
             return sequence;
         }
-        String phase = endSequence().endScenario().name;
-        return sequence = new SequenceImpl(phase, this.name, id, steps.stream().flatMap(builder -> builder.build().stream()).toArray(Step[]::new));
+        FutureSupplier<Sequence> ss = new FutureSupplier<>();
+        sequence = new SequenceImpl(phase, this.name, id,
+              slas.stream().map(builder -> builder.build(ss)).toArray(SLA[]::new),
+              steps.stream().flatMap(builder -> builder.build(ss).stream()).toArray(Step[]::new));
+        ss.set(sequence);
+        return sequence;
     }
 
     void id(int id) {
         this.id = id;
     }
 
-    public SequenceBuilder sla(SLABuilder sla) {
-        endSequence().endScenario().endPhase().endSimulation().addSLA(sla);
-        return this;
-    }
-
     public SLABuilder sla() {
-        return new SLABuilder(this);
+        SLABuilder builder = new SLABuilder(this);
+        slas.add(builder);
+        return builder;
     }
 
     @Override

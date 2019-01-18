@@ -1,12 +1,10 @@
 package io.hyperfoil.core.builders;
 
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.generators.RandomIntStep;
@@ -92,7 +90,7 @@ public class StepDiscriminator {
       Object key = new Object();
       // thinkTime should expose builder to support configurable duration randomization in the future
       ScheduleDelayStep.Builder delayBuilder = new ScheduleDelayStep.Builder(parent, key, duration, timeUnit).fromNow();
-      parent.step(delayBuilder);
+      parent.stepBuilder(delayBuilder);
       parent.step(new AwaitDelayStep(key));
       return delayBuilder;
    }
@@ -133,7 +131,7 @@ public class StepDiscriminator {
       return new RandomItemStep.Builder(parent);
    }
 
-   public ServiceLoadedBuilderProvider<List<Step>> serviceLoaded() {
-      return new ServiceLoadedBuilderProvider<>(Step.BuilderFactory.class, steps -> steps.forEach(parent::step));
+   public ServiceLoadedBuilderProvider<StepBuilder> serviceLoaded() {
+      return new ServiceLoadedBuilderProvider<>(StepBuilder.Factory.class, parent::stepBuilder);
    }
 }

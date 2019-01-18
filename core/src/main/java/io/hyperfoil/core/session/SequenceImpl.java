@@ -1,25 +1,30 @@
 package io.hyperfoil.core.session;
 
+import io.hyperfoil.api.config.Phase;
+import io.hyperfoil.api.config.SLA;
 import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.core.api.ResourceUtilizer;
+import io.hyperfoil.function.SerializableSupplier;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
 public class SequenceImpl implements Sequence {
    private static final Logger log = LoggerFactory.getLogger(SequenceImpl.class);
 
-   private final String phase;
+   private final SerializableSupplier<Phase> phase;
    private final String name;
    private final int id;
+   private final SLA[] slas;
    private final Step[] steps;
 
-   public SequenceImpl(String phase, String name, int id, Step[] steps) {
+   public SequenceImpl(SerializableSupplier<Phase> phase, String name, int id, SLA[] slas, Step[] steps) {
       this.phase = phase;
       this.name = name;
       this.id = id;
+      this.slas = slas;
       this.steps = steps;
    }
 
@@ -54,9 +59,15 @@ public class SequenceImpl implements Sequence {
       return name;
    }
 
+
    @Override
-   public String phase() {
-      return phase;
+   public Phase phase() {
+      return phase.get();
+   }
+
+   @Override
+   public SLA[] slas() {
+      return slas;
    }
 
    @Override

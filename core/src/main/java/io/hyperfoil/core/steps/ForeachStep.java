@@ -12,14 +12,15 @@ import io.hyperfoil.core.api.ResourceUtilizer;
 import io.hyperfoil.core.builders.BaseSequenceBuilder;
 import io.hyperfoil.core.builders.DependencyStepBuilder;
 import io.hyperfoil.core.session.SimpleVarReference;
+import io.hyperfoil.function.SerializableSupplier;
 
 public class ForeachStep extends DependencyStep implements ResourceUtilizer {
    private final String dataVar;
    private final String counterVar;
-   private final Sequence template;
+   private final String template;
 
-   public ForeachStep(VarReference[] dependencies, String dataVar, String counterVar, Sequence template) {
-      super(dependencies);
+   public ForeachStep(SerializableSupplier<Sequence> sequence, VarReference[] dependencies, String dataVar, String counterVar, String template) {
+      super(sequence, dependencies);
       this.dataVar = dataVar;
       this.counterVar = counterVar;
       this.template = template;
@@ -39,7 +40,7 @@ public class ForeachStep extends DependencyStep implements ResourceUtilizer {
       int i = 0;
       for (; i < array.length; i++) {
          if (!array[i].isSet()) break;
-         template.instantiate(session, i);
+         sequence().phase().scenario().sequence(template).instantiate(session, i);
       }
       if (counterVar != null) {
          session.setInt(counterVar, i);
@@ -80,12 +81,11 @@ public class ForeachStep extends DependencyStep implements ResourceUtilizer {
       }
 
       @Override
-      public List<Step> build() {
+      public List<Step> build(SerializableSupplier<Sequence> sequence) {
          if (sequenceTemplate == null) {
             throw new BenchmarkDefinitionException("Template sequence must be defined");
          }
-         Sequence sequence = parent.end().endSequence().findSequence(sequenceTemplate).build();
-         return Collections.singletonList(new ForeachStep(dependencies(), dataVar, counterVar, sequence));
+         return Collections.singletonList(new ForeachStep(sequence, dependencies(), dataVar, counterVar, sequenceTemplate));
       }
 
       public Builder sequenceTemplate(String sequenceTemplate) {

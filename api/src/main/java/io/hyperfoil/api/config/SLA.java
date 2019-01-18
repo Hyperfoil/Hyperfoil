@@ -23,15 +23,16 @@ import java.util.Collection;
 import java.util.Collections;
 
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
+import io.hyperfoil.function.SerializableSupplier;
 
 public class SLA implements Serializable {
-   private final Sequence sequence;
+   private final SerializableSupplier<Sequence> sequence;
    private final long window;
    private final double errorRate;
    private final long meanResponseTime;
    private final Collection<PercentileLimit> limits;
 
-   public SLA(Sequence sequence, long window, double errorRate, long meanResponseTime, Collection<PercentileLimit> limits) {
+   public SLA(SerializableSupplier<Sequence> sequence, long window, double errorRate, long meanResponseTime, Collection<PercentileLimit> limits) {
       this.sequence = sequence;
       this.window = window;
       this.meanResponseTime = meanResponseTime;
@@ -40,7 +41,7 @@ public class SLA implements Serializable {
    }
 
    public Sequence sequence() {
-      return sequence;
+      return sequence.get();
    }
 
    public long window() {

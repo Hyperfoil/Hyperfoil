@@ -115,7 +115,7 @@ public class HttpRequestTest extends BaseScenarioTest {
                   return true;
                })
                .step().httpRequest(HttpMethod.POST)
-                  .path().pattern("/test?expect=${x}").endPath()
+                  .path().pattern("/test?expect=${x}").end()
                   .body("bar")
                   .handler().statusExtractor(verifyStatus(ctx))
                   .endHandler().endStep()

@@ -76,4 +76,8 @@ public class Http implements Serializable {
     public boolean isDefault() {
         return isDefault;
     }
+
+    public long requestTimeout() {
+        return requestTimeout;
+    }
 }
