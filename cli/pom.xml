@@ -83,9 +83,34 @@
                         <exclude>junit:junit</exclude>
                       </excludes>
                     </artifactSet>
+                    <finalName>hyperfoil-cli-${project.version}-fat</finalName>
+                    <filters>
+                      <filter>
+                        <artifact>io.hyperfoil:hyperfoil-core</artifact>
+                        <excludes>
+                          <exclude>log4j2.xml</exclude>
+                        </excludes>
+                      </filter>
+                    </filters>
+                    <transformers>
+                      <transformer implementation="org.apache.maven.plugins.shade.resource.IncludeResourceTransformer">
+                          <resource>log4j2.xml</resource>
+                          <file>src/main/resources/log4j2.xml</file>
+                      </transformer>
+                    </transformers>
                   </configuration>
                 </execution>
               </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>**/log4j2.xml</exclude>
+                    </excludes>
+                </configuration>
             </plugin>
 
 
