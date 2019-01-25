@@ -101,9 +101,9 @@ public class RequestResponseCounterTest {
         runner.visitStatistics(collector);
 
         AtomicLong actualNumberOfRequests = new AtomicLong();
-        collector.visitStatistics((phase, sequence, snapshot) -> {
+        collector.visitStatistics((phase, sequence, snapshot, countDown) -> {
             actualNumberOfRequests.set(snapshot.histogram.getTotalCount());
-        });
+        }, null);
 
         assertEquals(counter.get(), actualNumberOfRequests.get());
     }

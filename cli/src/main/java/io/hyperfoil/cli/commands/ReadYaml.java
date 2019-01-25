@@ -88,9 +88,7 @@ public class ReadYaml implements Command<CommandInvocation> {
                 runner.run();
                 StatisticsCollector collector = new StatisticsCollector(benchmark.simulation());
                 runner.visitStatistics(collector);
-                collector.visitStatistics((phase, sequence, stats) -> {
-                    printStats(stats, commandInvocation);
-                });
+                collector.visitStatistics((phase, sequence, stats, countDown) -> printStats(stats, commandInvocation), null);
             }
         }
         catch(FileNotFoundException e){

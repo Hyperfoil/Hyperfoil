@@ -23,13 +23,14 @@ import io.hyperfoil.api.config.Simulation;
 import io.hyperfoil.core.impl.Report;
 import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
+import io.hyperfoil.core.util.CountDown;
 
 import java.util.HashMap;
 import java.util.Map;
 
 @Deprecated
 public class ReportStatisticsCollector extends StatisticsCollector {
-    private final StatisticsConsumer addReport = (phase, sequence, snapshot) -> addReport(phase, sequence, snapshot);
+    private final StatisticsConsumer addReport = this::addReport;
     private Map<String, Report> reportMap;
 
     public ReportStatisticsCollector(Simulation simulation) {
@@ -38,11 +39,11 @@ public class ReportStatisticsCollector extends StatisticsCollector {
 
     public Map<String, Report> reports() {
         reportMap = new HashMap<>();
-        visitStatistics(addReport);
+        visitStatistics(addReport, null);
         return reportMap;
     }
 
-    private void addReport(Phase phase, Sequence sequence, StatisticsSnapshot snapshot) {
+    private void addReport(Phase phase, Sequence sequence, StatisticsSnapshot snapshot, CountDown countDown) {
         Report report = new Report(simulation.tags());
         report.measures(
               snapshot.requestCount,

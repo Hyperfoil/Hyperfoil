@@ -128,6 +128,7 @@ public class AgentControllerVerticle extends AbstractVerticle {
             } else {
                 log.error("Unknown run {}", reportMessage.runId);
             }
+            message.reply("OK");
         });
 
         BENCHMARK_DIR.toFile().mkdirs();
@@ -228,6 +229,7 @@ public class AgentControllerVerticle extends AbstractVerticle {
         List<AgentInfo> runAgents = new ArrayList<>();
         if (benchmark.agents().length == 0) {
             if (agents.isEmpty()) {
+                log.error("Cannot start benchmark, no agents available.");
                 return null;
             }
             runAgents.add(agents.values().iterator().next());

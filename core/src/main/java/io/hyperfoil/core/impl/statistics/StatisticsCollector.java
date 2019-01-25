@@ -9,6 +9,7 @@ import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.Simulation;
 import io.hyperfoil.api.statistics.Statistics;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
+import io.hyperfoil.core.util.CountDown;
 
 public class StatisticsCollector implements BiConsumer<Phase, Statistics[]> {
    protected final Simulation simulation;
@@ -35,14 +36,14 @@ public class StatisticsCollector implements BiConsumer<Phase, Statistics[]> {
       }
    }
 
-   public void visitStatistics(StatisticsConsumer consumer) {
+   public void visitStatistics(StatisticsConsumer consumer, CountDown countDown) {
        for (Map.Entry<Phase, StatisticsSnapshot[]> entry : aggregated.entrySet()) {
            Phase phase = entry.getKey();
            Sequence[] sequences = phase.scenario().sequences();
            assert entry.getValue().length == sequences.length;
            for (int i = 0; i < sequences.length; ++i) {
               StatisticsSnapshot snapshot = entry.getValue()[i];
-              consumer.accept(phase, sequences[i], snapshot);
+              consumer.accept(phase, sequences[i], snapshot, countDown);
               snapshot.reset();
            }
        }
@@ -50,6 +51,6 @@ public class StatisticsCollector implements BiConsumer<Phase, Statistics[]> {
 
 
    public interface StatisticsConsumer {
-       void accept(Phase phase, Sequence sequence, StatisticsSnapshot snapshot);
+       void accept(Phase phase, Sequence sequence, StatisticsSnapshot snapshot, CountDown countDown);
    }
 }

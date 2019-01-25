@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import io.hyperfoil.api.config.Simulation;
 import io.hyperfoil.clustering.util.AgentControlMessage;
 import io.hyperfoil.clustering.util.AgentHello;
+import io.hyperfoil.core.util.CountDown;
 import io.hyperfoil.core.impl.SimulationRunnerImpl;
 import io.hyperfoil.clustering.util.PhaseChangeMessage;
 import io.hyperfoil.clustering.util.PhaseControlMessage;
@@ -32,6 +33,7 @@ public class AgentVerticle extends AbstractVerticle {
     private MessageConsumer<Object> controlFeedConsumer;
     private long statsTimerId = -1;
     private ReportSender reportSender;
+    private CountDown statisticsCountDown;
 
     @Override
     public void start() {
@@ -69,9 +71,10 @@ public class AgentVerticle extends AbstractVerticle {
                     if (statsTimerId >= 0) {
                         vertx.cancelTimer(statsTimerId);
                     }
+                    CountDown completion = new CountDown(result -> message.reply(result.succeeded() ? "OK" : result.cause()), 1);
                     if (runner != null) {
                         runner.visitStatistics(reportSender);
-                        reportSender.send();
+                        reportSender.send(completion);
                         runner.shutdown();
                     }
                     if (controlFeedConsumer != null) {
@@ -80,8 +83,8 @@ public class AgentVerticle extends AbstractVerticle {
                     controlFeedConsumer = null;
                     runner = null;
                     reportSender = null;
-                    // TODO: this does not guarantee in-order delivery
-                    message.reply("OK");
+                    statisticsCountDown.setHandler(result -> completion.countDown());
+                    statisticsCountDown.countDown();
                     break;
                 case LIST_SESSIONS:
                     log.debug("Listing sessions...");
@@ -157,6 +160,7 @@ public class AgentVerticle extends AbstractVerticle {
         runner = new SimulationRunnerImpl(simulation);
         controlFeedConsumer = listenOnControl();
         reportSender = new ReportSender(simulation, eb, address, runId);
+        statisticsCountDown = new CountDown(1);
 
         runner.init((phase, status, succesful) -> {
             log.debug("{} changed phase {} to {}", address, phase, status);
@@ -165,7 +169,7 @@ public class AgentVerticle extends AbstractVerticle {
             if (result.succeeded()) {
                 statsTimerId = vertx.setPeriodic(simulation.statisticsCollectionPeriod(), timerId -> {
                     runner.visitStatistics(reportSender);
-                    reportSender.send();
+                    reportSender.send(statisticsCountDown);
                 });
             }
             handler.handle(result);

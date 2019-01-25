@@ -215,11 +215,11 @@ public class Wrk {
             runner.run();
             StatisticsCollector collector = new StatisticsCollector(benchmark.simulation());
             runner.visitStatistics(collector);
-            collector.visitStatistics((phase, sequence, stats) -> {
+            collector.visitStatistics((phase, sequence, stats, countDown) -> {
                if ("test".equals(phase.name())) {
                   printStats(stats, commandInvocation);
                }
-            });
+            }, null);
          }
 
          return CommandResult.SUCCESS;
@@ -241,12 +241,12 @@ public class Wrk {
                invocation.getShell().write(ANSI.ERASE_WHOLE_LINE);
                StatisticsCollector collector = new StatisticsCollector(benchmark.simulation());
                runner.visitStatistics(collector);
-               collector.visitStatistics((phase, sequence, stats) -> {
+               collector.visitStatistics((phase, sequence, stats, countDown) -> {
                   if("test".equals(phase.name())) {
                      double durationSeconds = (stats.histogram.getEndTimeStamp() - stats.histogram.getStartTimeStamp()) / 1000d;
                      invocation.print("Requests/sec: " + String.format("%.02f", stats.histogram.getTotalCount() / durationSeconds));
                   }
-               });
+               }, null);
 
                try {
                   Thread.sleep(10);
@@ -262,11 +262,11 @@ public class Wrk {
          invocation.println(Config.getLineSeparator()+"benchmark finished");
          StatisticsCollector collector = new StatisticsCollector(benchmark.simulation());
          runner.visitStatistics(collector);
-         collector.visitStatistics((phase, sequence, stats) -> {
+         collector.visitStatistics((phase, sequence, stats, countDown) -> {
             if ("test".equals(phase.name())) {
                printStats(stats, invocation);
             }
-         });
+         }, null);
 
       }
 

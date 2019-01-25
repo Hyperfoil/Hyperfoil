@@ -55,9 +55,7 @@ public class RunMojo extends AbstractMojo {
                 runner.run();
                 StatisticsCollector collector = new StatisticsCollector(benchmark.simulation());
                 runner.visitStatistics(collector);
-                collector.visitStatistics((phase, sequence, stats) -> {
-                    printStats(stats);
-                });
+                collector.visitStatistics((phase, sequence, stats, countDown) -> printStats(stats), null);
             }
         } catch (FileNotFoundException e) {
             logger.error("Couldn't find yaml file: " + e.getMessage());

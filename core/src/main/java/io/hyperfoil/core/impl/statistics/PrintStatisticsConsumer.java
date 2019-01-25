@@ -26,7 +26,7 @@ public class PrintStatisticsConsumer extends StatisticsCollector {
     }
 
     public void print() {
-        visitStatistics(((phase, sequence, snapshot) -> {
+        visitStatistics(((phase, sequence, snapshot, countDown) -> {
             System.out.format("%s/%s : total requests/responses %d, max %.2f, min %.2f, mean %.2f, 90th centile: %.2f%n",
                   phase.name(), sequence.name(),
                   snapshot.requestCount,
@@ -35,6 +35,6 @@ public class PrintStatisticsConsumer extends StatisticsCollector {
                   snapshot.histogram.getMean() / 1_000_000.0,
                   snapshot.histogram.getValueAtPercentile(99.0) / 1_000_000.0
             );
-        }));
+        }), null);
     }
 }
