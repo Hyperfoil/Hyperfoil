@@ -16,7 +16,7 @@ public class Url implements Serializable {
     public Url(String scheme, String host, String path, int port) {
         this.protocol = Protocol.fromScheme(scheme);
         this.host = host;
-        this.port = this.protocol.portOrDefault(port);
+        this.port = protocol.portOrDefault(port);
         this.path = path;
     }
 
@@ -25,10 +25,10 @@ public class Url implements Serializable {
             URI uri = new URI(path);
             this.protocol = Protocol.fromScheme(uri.getScheme());
             this.host = uri.getHost();
-            this.port = uri.getPort();
+            this.port = protocol.portOrDefault(uri.getPort());
             this.path = uri.getPath();
         } catch (URISyntaxException e) {
-            throw new IllegalArgumentException("Method value is not a correct url"+e.getMessage());
+            throw new IllegalArgumentException("Method value is not a correct url: " + e.getMessage());
         }
     }
 

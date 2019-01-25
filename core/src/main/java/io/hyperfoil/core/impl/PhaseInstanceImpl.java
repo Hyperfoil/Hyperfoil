@@ -220,7 +220,6 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
                notifyFinished(null);
             }
          }
-         finish();
       }
 
       @Override

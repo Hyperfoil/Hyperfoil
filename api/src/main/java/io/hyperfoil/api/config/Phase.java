@@ -103,14 +103,31 @@ public abstract class Phase implements Serializable {
       return benchmark.get();
    }
 
+   private static int requirePositive(int value, String message) {
+      if (value <= 0) {
+         throw new BenchmarkDefinitionException(message);
+      }
+      return value;
+   }
+
+   private static double requireNonNegative(double value, String message) {
+      if (value < 0) {
+         throw new BenchmarkDefinitionException(message);
+      }
+      return value;
+   }
+
    public static class AtOnce extends Phase {
       public final int users;
 
       public AtOnce(SerializableSupplier<Benchmark> benchmark, String name, Scenario scenario, long startTime,
                     Collection<String> startAfter, Collection<String> startAfterStrict,
                     Collection<String> terminateAfterStrict, long duration, long maxDuration, int maxUnfinishedSessions, String sharedResources, int users) {
-         super(benchmark, name, scenario, startTime, startAfter, startAfterStrict, terminateAfterStrict, duration, maxDuration, maxUnfinishedSessions, sharedResources);
-         this.users = users;
+         super(benchmark, name, scenario, startTime, startAfter, startAfterStrict, terminateAfterStrict, 0, maxDuration, maxUnfinishedSessions, sharedResources);
+         if (duration > 0) {
+            log.warn("Duration for phase {} is ignored.", duration);
+         }
+         this.users = requirePositive(users, "Phase " + name + " requires positive number of users!");
       }
    }
 
@@ -121,7 +138,7 @@ public abstract class Phase implements Serializable {
                     Collection<String> startAfter, Collection<String> startAfterStrict,
                     Collection<String> terminateAfterStrict, long duration, long maxDuration, int maxUnfinishedSessions, String sharedResources, int users) {
          super(benchmark, name, scenario, startTime, startAfter, startAfterStrict, terminateAfterStrict, duration, maxDuration, maxUnfinishedSessions, sharedResources);
-         this.users = users;
+         this.users = requirePositive(users, "Phase " + name + " requires positive number of users!");;
       }
    }
 
@@ -138,8 +155,8 @@ public abstract class Phase implements Serializable {
                         int maxUnfinishedSessions, String sharedResources, double initialUsersPerSec, double targetUsersPerSec,
                         boolean variance, int maxSessionsEstimate) {
          super(benchmark, name, scenario, startTime, startAfter, startAfterStrict, terminateAfterStrict, duration, maxDuration, maxUnfinishedSessions, sharedResources);
-         this.initialUsersPerSec = initialUsersPerSec;
-         this.targetUsersPerSec = targetUsersPerSec;
+         this.initialUsersPerSec = requireNonNegative(initialUsersPerSec, "Phase " + name + " requires non-negative number of initial users per second!");
+         this.targetUsersPerSec = requireNonNegative(targetUsersPerSec, "Phase " + name + " requires non-negative number of target users per second!");
          this.variance = variance;
          this.maxSessionsEstimate = maxSessionsEstimate;
       }
@@ -155,7 +172,7 @@ public abstract class Phase implements Serializable {
                             Collection<String> terminateAfterStrict,
                             long duration, long maxDuration, int maxUnfinishedSessions, String sharedResources, double usersPerSec, boolean variance, int maxSessionsEstimate) {
          super(benchmark, name, scenario, startTime, startAfter, startAfterStrict, terminateAfterStrict, duration, maxDuration, maxUnfinishedSessions, sharedResources);
-         this.usersPerSec = usersPerSec;
+         this.usersPerSec = Phase.requireNonNegative(usersPerSec, "Phase " + name + " requires non-negative number of users per second!");
          this.variance = variance;
          this.maxSessionsEstimate = maxSessionsEstimate;
       }
@@ -169,7 +186,7 @@ public abstract class Phase implements Serializable {
                           Collection<String> terminateAfterStrict,
                           long duration, long maxDuration, int maxUnfinishedSessions, String sharedResources, int repeats) {
          super(benchmark, name, scenario, startTime, startAfter, startAfterStrict, terminateAfterStrict, duration, maxDuration, maxUnfinishedSessions, sharedResources);
-         this.repeats = repeats;
+         this.repeats = Phase.requirePositive(repeats, "Phase " + name + " requires positive number of repeats!");
       }
    }
 
