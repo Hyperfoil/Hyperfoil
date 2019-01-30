@@ -6,18 +6,18 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import io.hyperfoil.api.collection.ConcurrentPool;
+import io.hyperfoil.api.collection.ElasticPool;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-public class ConcurrentPoolImpl<T> implements ConcurrentPool<T> {
-   private Logger log = LoggerFactory.getLogger(ConcurrentPoolImpl.class);
+public class ElasticPoolImpl<T> implements ElasticPool<T> {
+   private Logger log = LoggerFactory.getLogger(ElasticPoolImpl.class);
    private final Supplier<T> initSupplier;
    private final Supplier<T> depletionSupplier;
    private BlockingQueue<T> primaryQueue;
    private final BlockingQueue<T> secondaryQueue = new LinkedBlockingQueue<>();
 
-   public ConcurrentPoolImpl(Supplier<T> initSupplier, Supplier<T> depletionSupplier) {
+   public ElasticPoolImpl(Supplier<T> initSupplier, Supplier<T> depletionSupplier) {
       this.initSupplier = initSupplier;
       this.depletionSupplier = depletionSupplier;
    }

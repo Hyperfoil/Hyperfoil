@@ -5,14 +5,17 @@ import java.util.function.Supplier;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-public class Pool<T> {
-   private static final Logger log = LoggerFactory.getLogger(Pool.class);
+/**
+ * Fixed-size pool that can be accessed by single thread only.
+ */
+public class LimitedPool<T> {
+   private static final Logger log = LoggerFactory.getLogger(LimitedPool.class);
 
    private Object[] elements;
    private int mask;
    private int index;
 
-   public Pool(int capacity, Supplier<T> init) {
+   public LimitedPool(int capacity, Supplier<T> init) {
       mask = (1 << 32 - Integer.numberOfLeadingZeros(capacity - 1)) - 1;
       elements = new Object[mask + 1];
       for (int i = 0; i < elements.length; ++i) {
@@ -20,7 +23,7 @@ public class Pool<T> {
       }
    }
 
-   public Pool(T[] array) {
+   public LimitedPool(T[] array) {
       mask = (1 << 32 - Integer.numberOfLeadingZeros(array.length - 1)) - 1;
       elements = new Object[mask + 1];
       System.arraycopy(array, 0, elements, 0, array.length);

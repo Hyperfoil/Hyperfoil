@@ -2,7 +2,7 @@ package io.hyperfoil.core.impl;
 
 import io.netty.util.concurrent.EventExecutorGroup;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
-import io.hyperfoil.api.collection.ConcurrentPool;
+import io.hyperfoil.api.collection.ElasticPool;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.session.PhaseChangeHandler;
 import io.hyperfoil.api.session.Session;
@@ -26,7 +26,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
    private static Map<Class<? extends Phase>, Function<? extends Phase, PhaseInstance>> constructors = new HashMap<>();
 
    protected D def;
-   protected ConcurrentPool<Session> sessionPool;
+   protected ElasticPool<Session> sessionPool;
    protected List<Session> sessionList;
    private Statistics[] statistics;
    private PhaseChangeHandler phaseChangeHandler;
@@ -125,7 +125,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
 
    // TODO better name
    @Override
-   public void setComponents(ConcurrentPool<Session> sessionPool, List<Session> sessionList, Statistics[] statistics, PhaseChangeHandler phaseChangeHandler) {
+   public void setComponents(ElasticPool<Session> sessionPool, List<Session> sessionList, Statistics[] statistics, PhaseChangeHandler phaseChangeHandler) {
       this.sessionPool = sessionPool;
       this.sessionList = sessionList;
       this.statistics = statistics;

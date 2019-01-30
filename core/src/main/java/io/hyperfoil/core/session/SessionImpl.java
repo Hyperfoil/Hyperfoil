@@ -2,7 +2,7 @@ package io.hyperfoil.core.session;
 
 import io.hyperfoil.api.session.SharedData;
 import io.netty.util.concurrent.EventExecutor;
-import io.hyperfoil.api.collection.Pool;
+import io.hyperfoil.api.collection.LimitedPool;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.config.Scenario;
@@ -31,8 +31,8 @@ class SessionImpl implements Session, Callable<Void> {
    private final Map<Object, Var> vars = new HashMap<>();
    private final Map<ResourceKey, Resource> resources = new HashMap<>();
    private final List<Var> allVars = new ArrayList<>();
-   private final Pool<SequenceInstance> sequencePool;
-   private final Pool<Request> requestPool;
+   private final LimitedPool<SequenceInstance> sequencePool;
+   private final LimitedPool<Request> requestPool;
    private final Request[] requests;
    private final SequenceInstance[] runningSequences;
    private PhaseInstance phase;
@@ -48,12 +48,12 @@ class SessionImpl implements Session, Callable<Void> {
    private final int uniqueId;
 
    SessionImpl(Scenario scenario, int uniqueId) {
-      this.sequencePool = new Pool<>(scenario.maxSequences(), SequenceInstance::new);
+      this.sequencePool = new LimitedPool<>(scenario.maxSequences(), SequenceInstance::new);
       this.requests = new Request[16];
       for (int i = 0; i < requests.length; ++i) {
          this.requests[i] = new Request(this);
       }
-      this.requestPool = new Pool<>(this.requests);
+      this.requestPool = new LimitedPool<>(this.requests);
       this.runningSequences = new SequenceInstance[scenario.maxSequences()];
       this.uniqueId = uniqueId;
 
@@ -417,7 +417,7 @@ class SessionImpl implements Session, Callable<Void> {
    }
 
    @Override
-   public Pool<Request> requestPool() {
+   public LimitedPool<Request> requestPool() {
       return requestPool;
    }
 

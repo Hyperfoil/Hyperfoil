@@ -4,7 +4,7 @@ import java.util.Map;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.util.concurrent.EventExecutor;
-import io.hyperfoil.api.collection.Pool;
+import io.hyperfoil.api.collection.LimitedPool;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.connection.HttpConnectionPool;
 import io.hyperfoil.api.statistics.Statistics;
@@ -90,7 +90,7 @@ public interface Session {
 
    boolean isActive();
 
-   Pool<Request> requestPool();
+   LimitedPool<Request> requestPool();
 
    interface Processor {
       /**

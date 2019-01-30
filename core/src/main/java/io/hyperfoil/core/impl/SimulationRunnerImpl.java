@@ -115,7 +115,7 @@ public class SimulationRunnerImpl implements SimulationRunner {
                     session.attach(eventLoop, data.get(eventLoop), httpConnectionPools.get(eventLoop), statistics.get(eventLoop));
                     return session;
                 };
-                sharedResources.sessionPool = new ConcurrentPoolImpl<>(sessionSupplier, () -> {
+                sharedResources.sessionPool = new ElasticPoolImpl<>(sessionSupplier, () -> {
                     log.warn("Pool depleted, allocating new sessions!");
                     return sessionSupplier.get();
                 });
@@ -216,7 +216,7 @@ public class SimulationRunnerImpl implements SimulationRunner {
         static final SharedResources NONE = new SharedResources(null, 0);
 
         PhaseInstance currentPhase;
-        ConcurrentPoolImpl<Session> sessionPool;
+        ElasticPoolImpl<Session> sessionPool;
         List<Session> sessions;
         Map<EventExecutor, Statistics[]> statistics = new HashMap<>();
         Map<EventExecutor, SharedData> data = new HashMap<>();

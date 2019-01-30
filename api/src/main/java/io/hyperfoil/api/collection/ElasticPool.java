@@ -2,9 +2,15 @@ package io.hyperfoil.api.collection;
 
 import java.util.function.Consumer;
 
-public interface ConcurrentPool<T> {
+/**
+ * Pool that can create further elements when depleted.
+ * @param <T>
+ */
+public interface ElasticPool<T> {
    /**
-    * This will be always called by single thread only.
+    * This can be called by single thread only.
+    *
+    * Never returns null.
     */
    T acquire();
 
