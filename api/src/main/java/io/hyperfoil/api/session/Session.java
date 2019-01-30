@@ -22,6 +22,8 @@ public interface Session {
 
    EventExecutor executor();
 
+   SharedData sharedData();
+
    Phase phase();
 
    ValidatorResults validatorResults();
@@ -69,7 +71,7 @@ public interface Session {
 
    SequenceInstance currentSequence();
 
-   void attach(EventExecutor executor, Map<String, HttpConnectionPool> httpConnectionPools, Statistics[] statistics);
+   void attach(EventExecutor executor, SharedData sharedData, Map<String, HttpConnectionPool> httpConnectionPools, Statistics[] statistics);
 
    void start(PhaseInstance phase);
 

@@ -1,5 +1,7 @@
 package io.hyperfoil.core.impl;
 
+import io.hyperfoil.api.session.SharedData;
+import io.hyperfoil.core.session.SharedDataImpl;
 import io.netty.channel.EventLoop;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -98,6 +100,7 @@ public class SimulationRunnerImpl implements SimulationRunner {
                 sharedResources = new SharedResources(eventLoopGroup, def.scenario.sequences().length);
                 List<Session> phaseSessions = sharedResources.sessions = new ArrayList<>();
                 Map<EventExecutor, Statistics[]> statistics = sharedResources.statistics;
+                Map<EventExecutor, SharedData> data = sharedResources.data;
                 Supplier<Session> sessionSupplier = () -> {
                     Session session;
                     synchronized (this.sessions) {
@@ -109,7 +112,7 @@ public class SimulationRunnerImpl implements SimulationRunner {
                         phaseSessions.add(session);
                     }
                     EventLoop eventLoop = eventLoopGroup.next();
-                    session.attach(eventLoop, httpConnectionPools.get(eventLoop), statistics.get(eventLoop));
+                    session.attach(eventLoop, data.get(eventLoop), httpConnectionPools.get(eventLoop), statistics.get(eventLoop));
                     return session;
                 };
                 sharedResources.sessionPool = new ConcurrentPoolImpl<>(sessionSupplier, () -> {
@@ -216,6 +219,7 @@ public class SimulationRunnerImpl implements SimulationRunner {
         ConcurrentPoolImpl<Session> sessionPool;
         List<Session> sessions;
         Map<EventExecutor, Statistics[]> statistics = new HashMap<>();
+        Map<EventExecutor, SharedData> data = new HashMap<>();
 
         SharedResources(EventExecutorGroup executors, int sequences) {
             if (executors != null) {
@@ -225,6 +229,7 @@ public class SimulationRunnerImpl implements SimulationRunner {
                         statistics[i] = new Statistics();
                     }
                     this.statistics.put(executor, statistics);
+                    this.data.put(executor, new SharedDataImpl());
                 }
             }
         }

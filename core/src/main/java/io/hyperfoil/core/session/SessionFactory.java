@@ -30,7 +30,7 @@ public final class SessionFactory {
          public void reserveSessions() {
          }
       });
-      session.attach(ImmediateEventExecutor.INSTANCE, null, new Statistics[]{new Statistics()});
+      session.attach(ImmediateEventExecutor.INSTANCE, null, null, new Statistics[]{new Statistics()});
       return session;
    }
 

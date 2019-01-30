@@ -1,5 +1,6 @@
 package io.hyperfoil.core.session;
 
+import io.hyperfoil.api.session.SharedData;
 import io.netty.util.concurrent.EventExecutor;
 import io.hyperfoil.api.collection.Pool;
 import io.hyperfoil.api.connection.Request;
@@ -40,6 +41,7 @@ class SessionImpl implements Session, Callable<Void> {
 
    private Map<String, HttpConnectionPool> httpConnectionPools;
    private EventExecutor executor;
+   private SharedData sharedData;
 
    private final ValidatorResults validatorResults = new ValidatorResults();
    private Statistics[] statistics;
@@ -81,6 +83,11 @@ class SessionImpl implements Session, Callable<Void> {
    @Override
    public EventExecutor executor() {
       return executor;
+   }
+
+   @Override
+   public SharedData sharedData() {
+      return sharedData;
    }
 
    @Override
@@ -321,9 +328,10 @@ class SessionImpl implements Session, Callable<Void> {
    }
 
    @Override
-   public void attach(EventExecutor executor, Map<String, HttpConnectionPool> httpConnectionPools, Statistics[] statistics) {
+   public void attach(EventExecutor executor, SharedData sharedData, Map<String, HttpConnectionPool> httpConnectionPools, Statistics[] statistics) {
       assert this.executor == null;
       this.executor = executor;
+      this.sharedData = sharedData;
       this.httpConnectionPools = httpConnectionPools;
       this.statistics = statistics;
    }

@@ -19,6 +19,8 @@ import io.hyperfoil.core.steps.ForeachStep;
 import io.hyperfoil.core.steps.HttpRequestStep;
 import io.hyperfoil.core.steps.LoopStep;
 import io.hyperfoil.core.steps.PollStep;
+import io.hyperfoil.core.steps.PullSharedMapStep;
+import io.hyperfoil.core.steps.PushSharedMapStep;
 import io.hyperfoil.core.steps.ScheduleDelayStep;
 import io.hyperfoil.core.steps.ServiceLoadedBuilderProvider;
 import io.hyperfoil.core.steps.StopwatchBeginStep;
@@ -133,5 +135,15 @@ public class StepDiscriminator {
 
    public ServiceLoadedBuilderProvider<StepBuilder> serviceLoaded() {
       return new ServiceLoadedBuilderProvider<>(StepBuilder.Factory.class, parent::stepBuilder);
+   }
+
+   // data
+
+   public PullSharedMapStep.Builder pullSharedMap() {
+      return new PullSharedMapStep.Builder(parent);
+   }
+
+   public PushSharedMapStep.Builder pushSharedMap() {
+      return new PushSharedMapStep.Builder(parent);
    }
 }
