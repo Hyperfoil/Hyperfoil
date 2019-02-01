@@ -16,24 +16,6 @@
 
     <name>Hyperfoil CLI</name>
 
-    <properties>
-        <tcnative.version>2.0.6.Final</tcnative.version>
-        <args></args>
-        <opts></opts>
-    </properties>
-
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>io.vertx</groupId>
-                <artifactId>vertx-dependencies</artifactId>
-                <version>${vertx.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
-
     <dependencies>
 
         <dependency>
