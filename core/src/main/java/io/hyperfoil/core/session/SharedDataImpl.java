@@ -61,10 +61,10 @@ public class SharedDataImpl implements SharedData {
    }
 
    private static class SharedMapSet {
-      MapImpl unused[];
+      MapImpl[] unused;
       int unusedSize;
       int maxEntries;
-      MapImpl maps[];
+      MapImpl[] maps;
       int currentSize;
 
       SharedMapSet(int entries) {
@@ -149,7 +149,7 @@ public class SharedDataImpl implements SharedData {
    }
 
    private static class Positions {
-      private int array[] = new int[16];
+      private int[] array = new int[16];
       private int size;
 
       int insert(int target) {
