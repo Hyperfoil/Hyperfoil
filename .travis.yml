@@ -1,1 +1,18 @@
 language: java
+if: tag IS present
+cache:
+  directories:
+  - $HOME/.m2
+before_deploy:
+- mvn help:evaluate -N -Dexpression=project.version
+- export project_version=$(mvn help:evaluate -N -Dexpression=project.version|grep -v '\[')
+- export current_tag=$(git describe --tags)
+deploy:
+  provider: releases
+  api_key:
+    secure: "lDSOSFmt4LHwzo8bBxjuqtmCjEYZxwkxdDhqN1I/1KbIxmNmnA/g3qV5JSDaPLIGjPrtP2gB/a8byW0OTs9g4bENJuL9Sf2RhrbbBVjgnWXMYvY0qRbmR/VmkF+cSOeKN3D0+bMOMjqNGy5T2fXM7O1qYiYVeojuHHYx1VxFh2Wz0xWrRpR+T6A+6eGUoOClicmPIrZtmgdjMTnS8EoXHmItGiOP0ohQ2tuFrciBDGsJyUoEGo9pLbRYn9YYwCBSvP47U9C4IJsEZbPj9IWJILdqmLw+cqLUKO1FCzrDJoVWXXBaJiCnm6TU89w5S6aLFvTIqPhEl2ljUCnP0ERnvme7BB7HExpPITqcQnbNBW3EBWvFhHrTzS0ZQ5ieDKCMyV6k7s7vgIyq2si4GxoXH07rUPshbOxqms6g3ZhmjrIOMdbr4c+hX4QFkSWGMr9giEga4LW/y4V0yc2+BvulsZ6k6BJwSBAgvphXcnbLgfvYvZ+7Aqs3MmwcmvODwBkjbW/QxI7+co7z/tdr8KD3f5qai/tK6A9F6uyJNJItO7uevZyWmTtg1kjZls37QzOwedUolVl3zlmw7WX+Xna3/bacRU63CL9bAgAqjz/uYHNeGr7QeMgeFzKdGLu5l08tdbJHptbjc2wH22naWd7nkkKxRZ3tWkmFr7Ad9q+gOnk="
+  file: distribution/target/hyperfoil-$project_version.zip
+  skip_cleanup: true
+  on:
+    tags: true
+  name: $current_tag
