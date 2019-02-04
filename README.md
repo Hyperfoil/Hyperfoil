@@ -4,7 +4,51 @@ Hyperfoil is a distributed benchmarking framework designed to obtain
 the most correct results (by avoiding the [coordinated omission problem](https://www.quora.com/In-Java-what-is-Coordinated-Omission))
 and keeping very low allocation profile in the driver.
 
-## Building
+## Installation
+
+You can fetch release, distribute and start the cluster using [Ansible Galaxy scripts](https://github.com/Hyperfoil/hyperfoil-ansible)
+
+First, get the scripts:
+```
+ansible-galaxy install hyperfoil.hyperfoil_setup
+ansible-galaxy install hyperfoil.hyperfoil_shutdown
+ansible-galaxy install hyperfoil.hyperfoil_test
+```
+
+Now, edit your `hosts` file, it could look like this:
+```
+[hyperfoil-controller]
+controller ansible_host=localhost
+
+[hyperfoil-agent]
+agent-1 ansible_host=localhost
+```
+(You can add more agents by duplicating the last line with `agent-2` etc.)
+
+Prepare your playbook; if you care only about setup (not running the test) you can use this:
+```yaml
+- hosts: hyperfoil-controller
+  roles:
+  - hyperfoil-setup
+  vars:
+    hyperfoil_role: controller
+- hosts: hyperfoil-agent
+  roles:
+  - hyperfoil-setup
+  vars:
+    hyperfoil_role: agent
+```
+
+The [example script](https://github.com/Hyperfoil/hyperfoil-ansible/blob/master/example.yml) shows how to controll the test from Ansible as well.
+
+Finally, run the playbook and check that agents are registered:
+```
+ansible-playbook -i hosts my-playbook.yml
+curl localhost:8090/agents
+```
+
+
+## Building from sources
 
 ```
 mvn clean package -DskipTests=true
