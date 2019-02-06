@@ -29,12 +29,12 @@ Prepare your playbook; if you care only about setup (not running the test) you c
 ```yaml
 - hosts: hyperfoil-controller
   roles:
-  - hyperfoil-setup
+  - hyperfoil.hyperfoil_setup
   vars:
     hyperfoil_role: controller
 - hosts: hyperfoil-agent
   roles:
-  - hyperfoil-setup
+  - hyperfoil.hyperfoil_setup
   vars:
     hyperfoil_role: agent
 ```
