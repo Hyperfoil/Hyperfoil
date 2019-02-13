@@ -20,6 +20,8 @@ package io.hyperfoil.core.parser;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.core.builders.BenchmarkBuilder;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.events.DocumentEndEvent;
@@ -40,6 +42,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 
 public class BenchmarkParser extends AbstractMappingParser<BenchmarkBuilder> {
+    private static final Logger log = LoggerFactory.getLogger(BenchmarkParser.class);
     private static final BenchmarkParser INSTANCE = new BenchmarkParser();
     private static final boolean DEBUG_PARSER = Boolean.getBoolean("io.hyperfoil.parser.debug");
 
@@ -48,11 +51,18 @@ public class BenchmarkParser extends AbstractMappingParser<BenchmarkBuilder> {
     }
 
     private BenchmarkParser() {
+        register("$schema", new PropertyParser.String<>(this::checkSchema));
         register("name", new PropertyParser.String<>(BenchmarkBuilder::name));
         register("hosts", new AgentsParser());
         register("simulation", new Adapter<>(BenchmarkBuilder::simulation, new SimulationParser()));
     }
 
+    private void checkSchema(BenchmarkBuilder builder, String schema) {
+        if (schema.startsWith("http") && !schema.startsWith("http://hyperfoil.io/schema") &&
+              !schema.startsWith("https://hyperfoil.io/schema")) {
+            log.warn("Unexpected schema: should start with `http://hyperfoil.io/schema`!");
+        }
+    }
 
     public Benchmark buildBenchmark(String source) throws ParserException {
         Yaml yaml = new Yaml();

@@ -6,6 +6,10 @@
   "additionalProperties": false,
   "required": [ "name", "simulation" ],
   "properties": {
+    "$schema": {
+      "description": "This should point to either http://hyperfoil.io/schema or local file"
+      "type": "string"
+    },
     "name": {
       "description": "Name of the benchmark.",
       "type": "string"
