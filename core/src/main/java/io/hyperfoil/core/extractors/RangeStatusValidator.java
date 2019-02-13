@@ -64,7 +64,12 @@ public class RangeStatusValidator implements StatusValidator {
       }
 
       @Override
-      public ServiceLoadedBuilder newBuilder(Consumer<StatusValidator> buildTarget, String param) {
+      public boolean acceptsParam() {
+         return true;
+      }
+
+      @Override
+      public Builder newBuilder(Consumer<StatusValidator> buildTarget, String param) {
          if (param != null) {
             int xn = 0;
             for (int i = param.length() - 1; i >= 0; --i) {

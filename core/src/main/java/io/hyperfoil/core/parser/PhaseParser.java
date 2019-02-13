@@ -4,7 +4,7 @@ import io.hyperfoil.core.builders.PhaseBuilder;
 
 abstract class PhaseParser extends AbstractParser<PhaseBuilder.Discriminator, PhaseBuilder> {
    PhaseParser() {
-      register("startTime", new PropertyParser.String<>(PhaseBuilder::duration));
+      register("startTime", new PropertyParser.String<>(PhaseBuilder::startTime));
       register("startAfter", new StartAfterParser(PhaseBuilder::startAfter));
       register("startAfterStrict", new StartAfterParser(PhaseBuilder::startAfterStrict));
       register("duration", new PropertyParser.String<>(PhaseBuilder::duration));

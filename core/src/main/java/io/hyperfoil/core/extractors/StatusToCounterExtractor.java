@@ -104,7 +104,12 @@ public class StatusToCounterExtractor implements StatusExtractor, ResourceUtiliz
       }
 
       @Override
-      public ServiceLoadedBuilder newBuilder(Consumer<StatusExtractor> buildTarget, String param) {
+      public boolean acceptsParam() {
+         return false;
+      }
+
+      @Override
+      public Builder newBuilder(Consumer<StatusExtractor> buildTarget, String param) {
          if (param != null) {
             throw new BenchmarkDefinitionException(StatusToCounterExtractor.class.getName() + " does not accept inline parameter");
          }

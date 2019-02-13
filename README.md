@@ -96,7 +96,19 @@ These are the properties Hyperfoil recognizes:
 ## Benchmark configuration
 
 The benchmark can be created either through programmatic API (see `io.hyperfoil.core.builders.BenchmarkBuilder`)
-or through YAML configuration files. This section will focus on the YAML configuration. Here is an example of such configuration:
+or through YAML configuration files. This section will focus on the YAML configuration.
+
+For your convenience we recommend using editor with YAML validation against JSON schema;
+you can point your editor to `docs/schema.json`. We can recommend [Visual Studio Code](https://code.visualstudio.com/)
+with [redhat.vscode-yaml](https://marketplace.visualstudio.com/items?itemName=redhat.vscode-yaml) plugin.
+You need to edit settings file to map benchmark configuration files (with `.hf.yaml` extension) to the schema, adding
+```
+"yaml.schemas" : {
+    "file:///path/to/hyperfoil-distribution/docs/schema.json" : "/*.hf.yaml"
+},
+```
+
+Here is an example of benchmark configuration:
 
 ```yaml
 name: complex benchmark

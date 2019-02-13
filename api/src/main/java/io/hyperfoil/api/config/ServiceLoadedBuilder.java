@@ -24,6 +24,11 @@ public interface ServiceLoadedBuilder {
       String name();
 
       /**
+       * @return True if {@link #newBuilder(Consumer, String)} can be called with non-null parameter.
+       */
+      boolean acceptsParam();
+
+      /**
        * Constructs the builder, usually passing the build target as a constructor arg to the builder instance.
        *
        * @param buildTarget

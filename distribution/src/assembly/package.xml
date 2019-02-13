@@ -9,6 +9,7 @@
     </target>
 
     <target name="all">
+        <mkdir dir="${dist.dir}/docs"/>
         <mkdir dir="${dist.dir}/bin"/>
         <mkdir dir="${dist.dir}/lib"/>
 

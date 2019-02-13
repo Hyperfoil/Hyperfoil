@@ -326,7 +326,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer {
       }
 
       @Override
-      public Object withKey(java.lang.String key) {
+      public PartialHeadersBuilder withKey(java.lang.String key) {
          return new PartialHeadersBuilder(parent, key);
       }
    }
@@ -340,7 +340,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer {
          this.header = header;
       }
 
-      public void var(String var) {
+      public PartialHeadersBuilder var(String var) {
          parent.headerAppenders.add((session, writer) -> {
             Object value = session.getObject(var);
             if (value instanceof CharSequence) {
@@ -349,6 +349,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer {
                log.error("#{} Cannot convert variable {}: {} to CharSequence", session.uniqueId(), var, value);
             }
          });
+         return this;
       }
    }
 

@@ -45,7 +45,6 @@ simulation:
                 key: k
                 fromNow:
                 duration: 5s
-          sequences:
   - steadyState:
       constantPerSec:
         usersPerSec: 100
@@ -61,4 +60,3 @@ simulation:
           - steadyState
         duration: 3s
         scenario: *scenario
-

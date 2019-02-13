@@ -49,7 +49,7 @@ import static org.junit.Assert.fail;
 public class YamlParserTest {
     @Test
     public void testSimpleYaml() {
-        Benchmark benchmark = buildBenchmark("scenarios/simple.yaml");
+        Benchmark benchmark = buildBenchmark("scenarios/simple.hf.yaml");
         assertThat(benchmark.name()).isEqualTo("simple benchmark");
         Phase[] phases = benchmark.simulation().phases().toArray(new Phase[0]);
         assertThat(phases.length).isEqualTo(3);
@@ -66,7 +66,7 @@ public class YamlParserTest {
 
     @Test
     public void testComplexYaml() {
-        Benchmark benchmark = buildBenchmark("scenarios/complex.yaml");
+        Benchmark benchmark = buildBenchmark("scenarios/complex.hf.yaml");
         assertThat(benchmark.name()).isEqualTo("complex benchmark");
         assertThat(benchmark.agents().length).isEqualTo(3);
 
@@ -94,24 +94,24 @@ public class YamlParserTest {
 
     @Test
     public void testIterationYaml() {
-        Benchmark benchmark = buildBenchmark("scenarios/iteration.yaml");
+        Benchmark benchmark = buildBenchmark("scenarios/iteration.hf.yaml");
         assertThat(benchmark.name()).isEqualTo("iteration benchmark");
     }
 
     @Test
     public void testAwaitDelayYaml() {
-        Benchmark benchmark = buildBenchmark("scenarios/awaitDelay.yaml");
+        Benchmark benchmark = buildBenchmark("scenarios/awaitDelay.hf.yaml");
         assertThat(benchmark.name()).isEqualTo("await delay benchmark");
     }
 
     @Test
     public void testGeneratorsYaml() {
-        buildBenchmark("scenarios/generators.yaml");
+        buildBenchmark("scenarios/generators.hf.yaml");
     }
 
     @Test
     public void testHttpRequestYaml() {
-        Benchmark benchmark = buildBenchmark("scenarios/httpRequest.yaml");
+        Benchmark benchmark = buildBenchmark("scenarios/httpRequest.hf.yaml");
         Phase testPhase = benchmark.simulation().phases().iterator().next();
         Sequence testSequence = testPhase.scenario().sequences()[0];
         Iterator<Step> iterator = Arrays.asList(testSequence.steps()).iterator();

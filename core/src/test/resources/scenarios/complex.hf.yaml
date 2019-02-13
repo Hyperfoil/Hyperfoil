@@ -40,7 +40,7 @@ simulation:
                 - thinkTime:
                    duration: 1s
                 #TODO
-              - unregister: &unregister
+              - unregister: &unregisterSeq
                 - thinkTime:
                    duration: 1s
         - viewUser: &viewUser
@@ -48,7 +48,9 @@ simulation:
             scenario:
               orderedSequences:
               - login: *login
-              - viewUser: &viewUser # the anchor stores type, too, so we can overload the `viewUser` for both forked scenario and sequence
+              # Despite the anchor stores type and therfore we could overload the `viewUser`
+              # for both forked scenario and sequence, YAML validators could have trouble with that.
+              - viewUser: &viewUserSeq
                 - thinkTime:
                    duration: 1s
               - logout: &logout

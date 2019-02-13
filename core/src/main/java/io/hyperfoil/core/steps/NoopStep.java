@@ -59,7 +59,12 @@ public class NoopStep implements Step {
       }
 
       @Override
-      public ServiceLoadedBuilder newBuilder(Consumer<StepBuilder> buildTarget, String param) {
+      public boolean acceptsParam() {
+         return false;
+      }
+
+      @Override
+      public Builder newBuilder(Consumer<StepBuilder> buildTarget, String param) {
          if (param != null) {
             throw new BenchmarkDefinitionException(NoopStep.class.getName() + " does not accept inline parameter");
          }

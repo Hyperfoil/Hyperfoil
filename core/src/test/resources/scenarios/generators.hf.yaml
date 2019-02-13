@@ -19,4 +19,4 @@ simulation:
                 - A
                 - B
                 - C
-                var: y
+                var: "y" # without the quotes `y` means `true` = boolean, not string

@@ -46,7 +46,7 @@ public class BreakSequenceStep extends DependencyStep {
          this.condition = condition;
       }
 
-      public DependencyStepBuilder onBreak(Consumer<Session> onBreak) {
+      public Builder onBreak(Consumer<Session> onBreak) {
          this.onBreak = onBreak;
          return this;
       }
