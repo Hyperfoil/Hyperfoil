@@ -87,10 +87,5 @@ public class ForeachStep extends DependencyStep implements ResourceUtilizer {
          }
          return Collections.singletonList(new ForeachStep(sequence, dependencies(), dataVar, counterVar, sequenceTemplate));
       }
-
-      public Builder sequenceTemplate(String sequenceTemplate) {
-         this.sequenceTemplate = sequenceTemplate;
-         return this;
-      }
    }
 }
