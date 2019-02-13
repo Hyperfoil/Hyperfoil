@@ -109,7 +109,8 @@ class ControllerRestServer {
             benchmark = BenchmarkParser.instance().buildBenchmark(source);
          } catch (ParserException e) {
             log.error("Failed to read benchmark", e);
-            benchmark = null;
+            ctx.response().setStatusCode(400).end("Cannot read benchmark: " + e.getMessage());
+            return;
          }
       } else {
          ctx.response().setStatusCode(406).setStatusMessage("Unsupported Content-Type.");
