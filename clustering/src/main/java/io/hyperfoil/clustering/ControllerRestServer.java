@@ -109,7 +109,18 @@ class ControllerRestServer {
             benchmark = BenchmarkParser.instance().buildBenchmark(source);
          } catch (ParserException e) {
             log.error("Failed to read benchmark", e);
-            ctx.response().setStatusCode(400).end("Cannot read benchmark: " + e.getMessage());
+            StringBuilder causes = new StringBuilder();
+            Set<Throwable> reported = new HashSet<>();
+            Throwable last = e;
+            while (last != null && !reported.contains(last)) {
+               if (causes.length() != 0) {
+                  causes.append(": ");
+               }
+               causes.append(last.getMessage());
+               reported.add(last);
+               last = last.getCause();
+            }
+            ctx.response().setStatusCode(400).end("Cannot read benchmark: " + causes);
             return;
          }
       } else {

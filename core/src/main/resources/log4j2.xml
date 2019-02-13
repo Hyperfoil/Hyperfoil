@@ -3,7 +3,7 @@
 <Configuration name="CommandLineConfig">
   <Appenders>
     <Console name="STDOUT">
-      <PatternLayout pattern="%d{HH:mm:ss,SSS} %-5p (%t) [%c{1.}] %m%throwable{10}%n"/>
+      <PatternLayout pattern="%d{HH:mm:ss,SSS} %-5p (%t) [%c{1.}] %m%throwable%n"/>
     </Console>
   </Appenders>
 
