@@ -24,20 +24,32 @@ import org.yaml.snakeyaml.events.Event;
 import org.yaml.snakeyaml.events.MappingEndEvent;
 import org.yaml.snakeyaml.events.MappingStartEvent;
 import org.yaml.snakeyaml.events.ScalarEvent;
+import org.yaml.snakeyaml.events.SequenceStartEvent;
 
 class AgentsParser implements Parser<BenchmarkBuilder> {
 
     @Override
     public void parse(Context ctx, BenchmarkBuilder builder) throws ParserException {
-        ctx.expectEvent(MappingStartEvent.class);
+        Event event = ctx.next();
+        if (event instanceof ScalarEvent) {
+            String value = ((ScalarEvent) event).getValue();
+            if (value == null || value.isEmpty()) {
+                // `hosts:` without a value should be equal to omitting agents declaration completely
+                return;
+            }
+        } else if (event instanceof SequenceStartEvent) {
+            throw new ParserException(event, "Agent hosts should user properties, not a sequence; each agent name must be unique.");
+        } else if (!(event instanceof MappingStartEvent)) {
+            throw ctx.unexpectedEvent(event);
+        }
         while (ctx.hasNext()) {
             Event next = ctx.next();
             if (next instanceof MappingEndEvent) {
                 break;
             } else if (next instanceof ScalarEvent) {
                 String name = ((ScalarEvent) next).getValue();
-                ScalarEvent event = ctx.expectEvent(ScalarEvent.class);
-                builder.addAgent(name, event.getValue());
+                String hostPort = ctx.expectEvent(ScalarEvent.class).getValue();
+                builder.addAgent(name, hostPort);
             } else {
                 throw ctx.unexpectedEvent(next);
             }
