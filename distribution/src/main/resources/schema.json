@@ -7,7 +7,7 @@
   "required": [ "name", "simulation" ],
   "properties": {
     "$schema": {
-      "description": "This should point to either http://hyperfoil.io/schema or local file"
+      "description": "This should point to either http://hyperfoil.io/schema or local file",
       "type": "string"
     },
     "name": {
