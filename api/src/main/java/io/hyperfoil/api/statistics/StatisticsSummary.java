@@ -8,6 +8,7 @@ public class StatisticsSummary {
    public final long minResponseTime;
    public final long meanResponseTime;
    public final long maxResponseTime;
+   public final long meanSendTime;
    public final long[] percentileResponseTime; // the percentiles depend on configuration
    public final int connectFailureCount;
    public final int requestCount;
@@ -23,13 +24,14 @@ public class StatisticsSummary {
    public final long blockedTime;
 
    public StatisticsSummary(long startTime, long endTime, long minResponseTime, long meanResponseTime, long maxResponseTime,
-                            long[] percentileResponseTime, int connectFailureCount, int requestCount, int responseCount,
+                            long meanSendTime, long[] percentileResponseTime, int connectFailureCount, int requestCount, int responseCount,
                             int status_2xx, int status_3xx, int status_4xx, int status_5xx, int status_other, int resetCount, int timeouts, int blockedCount, long blockedTime) {
       this.startTime = startTime;
       this.endTime = endTime;
       this.minResponseTime = minResponseTime;
       this.meanResponseTime = meanResponseTime;
       this.maxResponseTime = maxResponseTime;
+      this.meanSendTime = meanSendTime;
       this.percentileResponseTime = percentileResponseTime;
       this.connectFailureCount = connectFailureCount;
       this.requestCount = requestCount;
@@ -52,7 +54,7 @@ public class StatisticsSummary {
          writer.print(p * 100);
          writer.print(',');
       }
-      writer.print("Max,ConnFailure,Reset,Timeouts,2xx,3xx,4xx,5xx,Other,BlockedCount,BlockedTime");
+      writer.print("Max,MeanSendTime,ConnFailure,Reset,Timeouts,2xx,3xx,4xx,5xx,Other,BlockedCount,BlockedTime");
    }
 
    public void printTo(PrintWriter writer) {
@@ -69,6 +71,8 @@ public class StatisticsSummary {
          writer.print(',');
       }
       writer.print(maxResponseTime);
+      writer.print(',');
+      writer.print(meanSendTime);
       writer.print(',');
       writer.print(connectFailureCount);
       writer.print(',');

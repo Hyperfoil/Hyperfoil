@@ -16,7 +16,7 @@ public class StopwatchEndStep implements Step {
       long now = System.nanoTime();
       StopwatchBeginStep.StartTime startTime = (StopwatchBeginStep.StartTime) session.getObject(key);
       Statistics statistics = session.currentSequence().statistics(session);
-      statistics.recordValue(now - startTime.timestamp);
+      statistics.recordResponse(0, now - startTime.timestamp);
       // TODO: record any request/response counts?
       return true;
    }

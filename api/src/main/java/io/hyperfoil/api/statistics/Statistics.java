@@ -21,10 +21,12 @@ public class Statistics {
       active.histogram.setStartTimeStamp(System.currentTimeMillis());
    }
 
-   public void recordValue(final long value) {
+   public void recordResponse(long sendTime, long responseTime) {
       long criticalValueAtEnter = recordingPhaser.writerCriticalSectionEnter();
       try {
-         active.histogram.recordValue(value);
+         active.histogram.recordValue(responseTime);
+         active.totalSendTime += sendTime;
+         active.responseCount++;
       } finally {
          recordingPhaser.writerCriticalSectionExit(criticalValueAtEnter);
       }
@@ -34,15 +36,6 @@ public class Statistics {
       long criticalValueAtEnter = recordingPhaser.writerCriticalSectionEnter();
       try {
          active.requestCount++;
-      } finally {
-         recordingPhaser.writerCriticalSectionExit(criticalValueAtEnter);
-      }
-   }
-
-   public void incrementResponses() {
-      long criticalValueAtEnter = recordingPhaser.writerCriticalSectionEnter();
-      try {
-         active.responseCount++;
       } finally {
          recordingPhaser.writerCriticalSectionExit(criticalValueAtEnter);
       }

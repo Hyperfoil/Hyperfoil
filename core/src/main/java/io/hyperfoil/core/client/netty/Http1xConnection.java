@@ -1,6 +1,7 @@
 package io.hyperfoil.core.client.netty;
 
 import io.netty.buffer.Unpooled;
+import io.netty.channel.ChannelPromise;
 import io.netty.handler.codec.http.HttpContent;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpVersion;
@@ -147,7 +148,9 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
       }
       assert ctx.executor().inEventLoop();
       inflights.add(request);
-      ctx.writeAndFlush(msg);
+      ChannelPromise writePromise = ctx.newPromise();
+      writePromise.addListener(request);
+      ctx.writeAndFlush(msg, writePromise);
    }
 
    @Override

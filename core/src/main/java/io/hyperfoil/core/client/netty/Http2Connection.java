@@ -5,6 +5,7 @@ import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
+import io.netty.channel.ChannelPromise;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http2.DefaultHttp2Headers;
 import io.hyperfoil.api.connection.Request;
@@ -119,10 +120,13 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
       assert context.executor().inEventLoop();
       int id = nextStreamId();
       streams.put(id, request);
-      encoder.writeHeaders(context, id, headers, 0, buf == null, context.newPromise());
+      ChannelPromise writePromise = context.newPromise();
+      encoder.writeHeaders(context, id, headers, 0, buf == null, writePromise);
       if (buf != null) {
-         encoder.writeData(context, id, buf, 0, true, context.newPromise());
+         writePromise = context.newPromise();
+         encoder.writeData(context, id, buf, 0, true, writePromise);
       }
+      writePromise.addListener(request);
       context.flush();
    }
 

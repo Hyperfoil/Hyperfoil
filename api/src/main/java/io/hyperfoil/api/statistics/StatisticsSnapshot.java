@@ -13,6 +13,7 @@ import org.HdrHistogram.Histogram;
  */
 public class StatisticsSnapshot implements Serializable {
    public final Histogram histogram = new Histogram(TimeUnit.MINUTES.toNanos(1), 2);
+   public long totalSendTime;
    public int connectFailureCount;
    public int requestCount;
    public int responseCount;
@@ -33,6 +34,7 @@ public class StatisticsSnapshot implements Serializable {
 
    public void reset() {
       histogram.reset();
+      totalSendTime = 0;
       connectFailureCount = 0;
       requestCount = 0;
       responseCount = 0;
@@ -60,6 +62,7 @@ public class StatisticsSnapshot implements Serializable {
 
    public void copyInto(StatisticsSnapshot target) {
       histogram.copyInto(target.histogram);
+      target.totalSendTime = totalSendTime;
       target.connectFailureCount = connectFailureCount;
       target.requestCount = requestCount;
       target.responseCount = responseCount;
@@ -90,6 +93,7 @@ public class StatisticsSnapshot implements Serializable {
 
    public void addInto(StatisticsSnapshot target) {
       target.histogram.add(histogram);
+      target.totalSendTime += totalSendTime;
       target.connectFailureCount += connectFailureCount;
       target.requestCount += requestCount;
       target.responseCount += responseCount;
@@ -117,6 +121,7 @@ public class StatisticsSnapshot implements Serializable {
 
    public void subtractFrom(StatisticsSnapshot target) {
       target.histogram.subtract(histogram);
+      target.totalSendTime -= totalSendTime;
       target.connectFailureCount -= connectFailureCount;
       target.requestCount -= requestCount;
       target.responseCount -= responseCount;
@@ -149,7 +154,7 @@ public class StatisticsSnapshot implements Serializable {
       long[] percentileValues = DoubleStream.of(percentiles).map(p -> p * 100).mapToLong(histogram::getValueAtPercentile).toArray();
       return new StatisticsSummary(histogram.getStartTimeStamp(), histogram.getEndTimeStamp(),
             histogram.getMinValue(), (long) histogram.getMean(), histogram.getMaxValue(),
-            percentileValues, connectFailureCount, requestCount, responseCount,
+            totalSendTime / responseCount, percentileValues, connectFailureCount, requestCount, responseCount,
             status_2xx, status_3xx, status_4xx, status_5xx, status_other, resetCount, timeouts, blockedCount, blockedTime);
    }
 

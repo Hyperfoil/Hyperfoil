@@ -206,8 +206,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
 
       long endTime = System.nanoTime();
       Statistics statistics = session.currentSequence().statistics(session);
-      statistics.recordValue(endTime - request.startTime());
-      statistics.incrementResponses();
+      statistics.recordResponse(request.sendTime() - request.startTime(), endTime - request.startTime());
 
       boolean headersValid = true;
       if (headerValidators != null) {

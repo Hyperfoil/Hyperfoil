@@ -4,15 +4,18 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import io.netty.util.concurrent.Future;
+import io.netty.util.concurrent.GenericFutureListener;
 import io.netty.util.concurrent.ScheduledFuture;
 import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.api.session.Session;
 
-public class Request implements Callable<Void> {
+public class Request implements Callable<Void>, GenericFutureListener<Future<Void>> {
    private static final TimeoutException TIMEOUT_EXCEPTION = new TimeoutException();
 
    public final Session session;
    private long startTime;
+   private long sendTime;
    private SequenceInstance sequence;
    private ScheduledFuture<?> timeoutFuture;
    private Object requestData;
@@ -86,8 +89,17 @@ public class Request implements Callable<Void> {
       return startTime;
    }
 
+   public long sendTime() {
+      return sendTime;
+   }
+
    public void setTimeout(long timeout, TimeUnit timeUnit) {
       timeoutFuture = session.executor().schedule(this, timeout, timeUnit);
    }
 
+   @Override
+   public void operationComplete(Future<Void> future) throws Exception {
+      // This is called when the request is written on the wire
+      sendTime = System.nanoTime();
+   }
 }
