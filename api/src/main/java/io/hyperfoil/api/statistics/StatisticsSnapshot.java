@@ -154,7 +154,8 @@ public class StatisticsSnapshot implements Serializable {
       long[] percentileValues = DoubleStream.of(percentiles).map(p -> p * 100).mapToLong(histogram::getValueAtPercentile).toArray();
       return new StatisticsSummary(histogram.getStartTimeStamp(), histogram.getEndTimeStamp(),
             histogram.getMinValue(), (long) histogram.getMean(), histogram.getMaxValue(),
-            totalSendTime / responseCount, percentileValues, connectFailureCount, requestCount, responseCount,
+            responseCount > 0 ? totalSendTime / responseCount : resetCount,
+            percentileValues, connectFailureCount, requestCount, responseCount,
             status_2xx, status_3xx, status_4xx, status_5xx, status_other, resetCount, timeouts, blockedCount, blockedTime);
    }
 
