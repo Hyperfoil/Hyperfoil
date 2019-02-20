@@ -10,7 +10,6 @@ import org.junit.runner.RunWith;
 
 import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.api.statistics.Statistics;
 import io.hyperfoil.core.extractors.ArrayRecorder;
 import io.hyperfoil.core.extractors.SequenceScopedCountRecorder;
 import io.hyperfoil.core.extractors.DefragProcessor;
@@ -116,9 +115,6 @@ public class FleetTest extends BaseScenarioTest {
                .step(new AwaitConditionStep(s -> s.getInt("numberOfSunkShips") <= 0))
                .step(s -> {
                   log.info("Test completed");
-                  for (Statistics stats : s.statistics()) {
-                     log.trace(stats);
-                  }
                   async.countDown();
                   return true;
                })

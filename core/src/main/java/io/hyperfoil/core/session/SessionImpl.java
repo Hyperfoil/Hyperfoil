@@ -42,9 +42,9 @@ class SessionImpl implements Session, Callable<Void> {
    private Map<String, HttpConnectionPool> httpConnectionPools;
    private EventExecutor executor;
    private SharedData sharedData;
+   private Map<String, Statistics> statistics;
 
    private final ValidatorResults validatorResults = new ValidatorResults();
-   private Statistics[] statistics;
    private final int uniqueId;
 
    SessionImpl(Scenario scenario, int uniqueId) {
@@ -56,7 +56,10 @@ class SessionImpl implements Session, Callable<Void> {
       this.requestPool = new LimitedPool<>(this.requests);
       this.runningSequences = new SequenceInstance[scenario.maxSequences()];
       this.uniqueId = uniqueId;
+   }
 
+   @Override
+   public void reserve(Scenario scenario) {
       Sequence[] sequences = scenario.sequences();
       for (int i = 0; i < sequences.length; i++) {
          Sequence sequence = sequences[i];
@@ -78,6 +81,16 @@ class SessionImpl implements Session, Callable<Void> {
    @Override
    public HttpConnectionPool httpConnectionPool(String baseUrl) {
       return httpConnectionPools.get(baseUrl);
+   }
+
+   @Override
+   public String findBaseUrl(String path) {
+      for (String baseUrl : httpConnectionPools.keySet()) {
+         if (path.startsWith(baseUrl)) {
+            return baseUrl;
+         }
+      }
+      return null;
    }
 
    @Override
@@ -328,7 +341,7 @@ class SessionImpl implements Session, Callable<Void> {
    }
 
    @Override
-   public void attach(EventExecutor executor, SharedData sharedData, Map<String, HttpConnectionPool> httpConnectionPools, Statistics[] statistics) {
+   public void attach(EventExecutor executor, SharedData sharedData, Map<String, HttpConnectionPool> httpConnectionPools, Map<String, Statistics> statistics) {
       assert this.executor == null;
       this.executor = executor;
       this.sharedData = sharedData;
@@ -359,13 +372,8 @@ class SessionImpl implements Session, Callable<Void> {
    }
 
    @Override
-   public Statistics statistics(int sequenceId) {
-      return statistics[sequenceId];
-   }
-
-   @Override
-   public Statistics[] statistics() {
-      return statistics;
+   public Statistics statistics(String name) {
+      return statistics.computeIfAbsent(name, n -> new Statistics());
    }
 
    @Override

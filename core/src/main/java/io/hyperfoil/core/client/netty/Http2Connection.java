@@ -3,7 +3,6 @@ package io.hyperfoil.core.client.netty;
 import java.io.IOException;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 
 import io.netty.channel.ChannelPromise;
 import io.netty.handler.codec.http.HttpHeaderNames;
@@ -97,14 +96,14 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
       return pool.clientPool().host();
    }
 
-   public void request(Request request, HttpMethod method, Function<Session, String> pathGenerator, BiConsumer<Session, HttpRequestWriter>[] headerAppenders, BiFunction<Session, Connection, ByteBuf> bodyGenerator) {
+   public void request(Request request, HttpMethod method, String path, BiConsumer<Session, HttpRequestWriter>[] headerAppenders, BiFunction<Session, Connection, ByteBuf> bodyGenerator) {
       numStreams++;
       HttpClientPool httpClientPool = pool.clientPool();
 
       ByteBuf buf = bodyGenerator != null ? bodyGenerator.apply(request.session, this) : null;
 
       Http2Headers headers = new DefaultHttp2Headers().method(method.name()).scheme(httpClientPool.scheme())
-            .path(pathGenerator.apply(request.session)).authority(httpClientPool.authority());
+            .path(path).authority(httpClientPool.authority());
       headers.add(HttpHeaderNames.HOST, httpClientPool.authority());
       if (buf != null && buf.readableBytes() > 0) {
          headers.add(HttpHeaderNames.CONTENT_LENGTH, String.valueOf(buf.readableBytes()));

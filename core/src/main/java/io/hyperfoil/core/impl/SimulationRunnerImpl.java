@@ -35,7 +35,6 @@ import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-import java.util.stream.Stream;
 
 import javax.net.ssl.SSLException;
 
@@ -99,7 +98,7 @@ public class SimulationRunnerImpl implements SimulationRunner {
             } else if ((sharedResources = this.sharedResources.get(def.sharedResources)) == null) {
                 sharedResources = new SharedResources(eventLoopGroup, def.scenario.sequences().length);
                 List<Session> phaseSessions = sharedResources.sessions = new ArrayList<>();
-                Map<EventExecutor, Statistics[]> statistics = sharedResources.statistics;
+                Map<EventExecutor, Map<String, Statistics>> statistics = sharedResources.statistics;
                 Map<EventExecutor, SharedData> data = sharedResources.data;
                 Supplier<Session> sessionSupplier = () -> {
                     Session session;
@@ -113,6 +112,7 @@ public class SimulationRunnerImpl implements SimulationRunner {
                     }
                     EventLoop eventLoop = eventLoopGroup.next();
                     session.attach(eventLoop, data.get(eventLoop), httpConnectionPools.get(eventLoop), statistics.get(eventLoop));
+                    session.reserve(def.scenario);
                     return session;
                 };
                 sharedResources.sessionPool = new ElasticPoolImpl<>(sessionSupplier, () -> {
@@ -123,9 +123,11 @@ public class SimulationRunnerImpl implements SimulationRunner {
             }
             PhaseInstance phase = PhaseInstanceImpl.newInstance(def);
             instances.put(def.name(), phase);
-            Statistics[] allStats = sharedResources.statistics.values().stream().flatMap(Stream::of).toArray(Statistics[]::new);
+            Statistics[] allStats = sharedResources.statistics.values().stream()
+                  .map(Map::values).flatMap(Collection::stream).toArray(Statistics[]::new);
             phase.setComponents(sharedResources.sessionPool, sharedResources.sessions, allStats, phaseChangeHandler);
             phase.reserveSessions();
+            // at this point all session resources should be reserved
         }
 
         CompositeFuture composite = CompositeFuture.join(futures);
@@ -148,14 +150,14 @@ public class SimulationRunnerImpl implements SimulationRunner {
         }
     }
 
-    public void visitStatistics(BiConsumer<Phase, Statistics[]> consumer) {
+    public void visitStatistics(BiConsumer<Phase, Map<String, Statistics>> consumer) {
         for (SharedResources sharedResources : this.sharedResources.values()) {
             if (sharedResources.currentPhase == null) {
                 // Phase(s) with these resources have not been started yet
                 continue;
             }
             Phase phase = sharedResources.currentPhase.definition();
-            for (Statistics[] statistics : sharedResources.statistics.values()) {
+            for (Map<String, Statistics> statistics : sharedResources.statistics.values()) {
                 consumer.accept(phase, statistics);
             }
         }
@@ -218,17 +220,13 @@ public class SimulationRunnerImpl implements SimulationRunner {
         PhaseInstance currentPhase;
         ElasticPoolImpl<Session> sessionPool;
         List<Session> sessions;
-        Map<EventExecutor, Statistics[]> statistics = new HashMap<>();
+        Map<EventExecutor, Map<String, Statistics>> statistics = new HashMap<>();
         Map<EventExecutor, SharedData> data = new HashMap<>();
 
         SharedResources(EventExecutorGroup executors, int sequences) {
             if (executors != null) {
                 for (EventExecutor executor : executors) {
-                    Statistics[] statistics = new Statistics[sequences];
-                    for (int i = 0; i < sequences; i++) {
-                        statistics[i] = new Statistics();
-                    }
-                    this.statistics.put(executor, statistics);
+                    this.statistics.put(executor, new HashMap<>());
                     this.data.put(executor, new SharedDataImpl());
                 }
             }

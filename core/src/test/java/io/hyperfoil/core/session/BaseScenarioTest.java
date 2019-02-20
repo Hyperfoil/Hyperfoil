@@ -2,7 +2,6 @@ package io.hyperfoil.core.session;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.core.builders.BenchmarkBuilder;
 import io.hyperfoil.core.builders.HttpBuilder;
@@ -17,7 +16,9 @@ import org.junit.After;
 import org.junit.Before;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public abstract class BaseScenarioTest {
    protected final Logger log = LoggerFactory.getLogger(getClass());
@@ -26,12 +27,13 @@ public abstract class BaseScenarioTest {
    protected Router router;
    protected BenchmarkBuilder benchmarkBuilder;
 
-   protected List<Session> runScenario() {
+   protected Map<String, List<StatisticsSnapshot>> runScenario() {
       LocalSimulationRunner runner = new LocalSimulationRunner(benchmarkBuilder.build());
       runner.run();
-      ArrayList<Session> sessions = new ArrayList<>();
-      runner.visitSessions(sessions::add);
-      return sessions;
+      Map<String, List<StatisticsSnapshot>> stats = new HashMap<>();
+      runner.visitStatistics((phase, map) -> map.entrySet().forEach(
+            e -> stats.computeIfAbsent(e.getKey(), l -> new ArrayList<>()).add(e.getValue().snapshot())));
+      return stats;
    }
 
    @Before
@@ -75,13 +77,10 @@ public abstract class BaseScenarioTest {
       return 3;
    }
 
-   protected StatisticsSnapshot assertSingleSessionStats(List<Session> sessions) {
-      assertThat(sessions.size()).isEqualTo(1);
-      Session session = sessions.iterator().next();
-      assertThat(session.statistics()).isNotNull();
-      assertThat(session.statistics().length).isEqualTo(1);
-      StatisticsSnapshot snapshot = new StatisticsSnapshot();
-      session.statistics()[0].moveIntervalTo(snapshot);
-      return snapshot;
+   protected StatisticsSnapshot assertSingleSessionStats(Map<String, List<StatisticsSnapshot>> stats) {
+      assertThat(stats.size()).isEqualTo(1);
+      List<StatisticsSnapshot> list = stats.values().iterator().next();
+      assertThat(list.size()).isEqualTo(1);
+      return list.iterator().next();
    }
 }

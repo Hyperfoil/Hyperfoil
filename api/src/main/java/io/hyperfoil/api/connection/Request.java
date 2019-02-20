@@ -4,6 +4,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import io.hyperfoil.api.statistics.Statistics;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
 import io.netty.util.concurrent.ScheduledFuture;
@@ -17,6 +18,7 @@ public class Request implements Callable<Void>, GenericFutureListener<Future<Voi
    private long startTime;
    private long sendTime;
    private SequenceInstance sequence;
+   private Statistics statistics;
    private ScheduledFuture<?> timeoutFuture;
    private Object requestData;
    private ResponseHandlers handlers;
@@ -34,17 +36,18 @@ public class Request implements Callable<Void>, GenericFutureListener<Future<Voi
    public Void call() {
       timeoutFuture = null;
       if (!isCompleted()) {
-         sequence.statistics(session).incrementTimeouts();
+         statistics.incrementTimeouts();
          handlers().handleThrowable(this, TIMEOUT_EXCEPTION);
          // handleThrowable sets the request completed
       }
       return null;
    }
 
-   public void start(ResponseHandlers handlers, SequenceInstance sequence) {
+   public void start(ResponseHandlers handlers, SequenceInstance sequence, Statistics statistics) {
       this.startTime = System.nanoTime();
       this.handlers = handlers;
       this.sequence = sequence;
+      this.statistics = statistics;
       this.completed = false;
    }
 
@@ -83,6 +86,10 @@ public class Request implements Callable<Void>, GenericFutureListener<Future<Voi
 
    public SequenceInstance sequence() {
       return sequence;
+   }
+
+   public Statistics statistics() {
+      return statistics;
    }
 
    public long startTime() {

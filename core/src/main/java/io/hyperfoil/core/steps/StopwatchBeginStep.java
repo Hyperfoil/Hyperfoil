@@ -53,7 +53,7 @@ public class StopwatchBeginStep implements Step, ResourceUtilizer {
          Object key = new Object();
          steps.add(new StopwatchBeginStep(key));
          steps.addAll(this.steps.stream().flatMap(stepBuilder -> stepBuilder.build(sequence).stream()).collect(Collectors.toList()));
-         steps.add(new StopwatchEndStep(key));
+         steps.add(new StopwatchEndStep(sequence, key));
          return steps;
       }
 

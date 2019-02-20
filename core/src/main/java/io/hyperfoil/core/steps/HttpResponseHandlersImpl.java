@@ -14,7 +14,6 @@ import io.hyperfoil.api.http.HeaderExtractor;
 import io.hyperfoil.api.http.HttpResponseHandlers;
 import io.hyperfoil.api.http.RawBytesHandler;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.api.statistics.Statistics;
 import io.hyperfoil.api.http.StatusExtractor;
 import io.hyperfoil.core.api.ResourceUtilizer;
 import io.hyperfoil.api.http.BodyValidator;
@@ -69,7 +68,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       if (trace) {
          log.trace("#{} Received status {}: {}", session.uniqueId(), status, reason);
       }
-      request.sequence().statistics(session).addStatus(status);
+      request.statistics().addStatus(status);
 
       boolean valid = true;
       if (statusValidators != null) {
@@ -150,7 +149,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          }
       }
       request.setCompleted();
-      request.sequence().statistics(session).incrementResets();
+      request.statistics().incrementResets();
       session.requestPool().release(request);
       session.currentSequence(null);
       session.proceed();
@@ -205,8 +204,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       }
 
       long endTime = System.nanoTime();
-      Statistics statistics = session.currentSequence().statistics(session);
-      statistics.recordResponse(request.sendTime() - request.startTime(), endTime - request.startTime());
+      request.statistics().recordResponse(request.sendTime() - request.startTime(), endTime - request.startTime());
 
       boolean headersValid = true;
       if (headerValidators != null) {

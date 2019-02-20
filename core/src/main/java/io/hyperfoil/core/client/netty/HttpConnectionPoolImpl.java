@@ -7,7 +7,6 @@ import java.util.Deque;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -61,7 +60,7 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
    }
 
    @Override
-   public boolean request(Request request, HttpMethod method, Function<Session, String> pathGenerator, BiConsumer<Session, HttpRequestWriter>[] headerAppenders, BiFunction<Session, Connection, ByteBuf> bodyGenerator) {
+   public boolean request(Request request, HttpMethod method, String path, BiConsumer<Session, HttpRequestWriter>[] headerAppenders, BiFunction<Session, Connection, ByteBuf> bodyGenerator) {
       assert eventLoop.inEventLoop();
       HttpConnection connection;
       for (;;) {
@@ -78,7 +77,7 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
       }
       request.setRequestData(method);
       request.attach(connection);
-      connection.request(request, method, pathGenerator, headerAppenders, bodyGenerator);
+      connection.request(request, method, path, headerAppenders, bodyGenerator);
       // Move it to the back of the queue if it is still available (do not prefer it for subsequent requests)
       if (connection.isAvailable()) {
          available.addLast(connection);

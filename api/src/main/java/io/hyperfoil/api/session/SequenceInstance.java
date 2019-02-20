@@ -1,6 +1,5 @@
 package io.hyperfoil.api.session;
 
-import io.hyperfoil.api.statistics.Statistics;
 import io.hyperfoil.api.config.Step;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -63,6 +62,10 @@ public class SequenceInstance {
       return index;
    }
 
+   public String name() {
+      return name;
+   }
+
    public void setBlockedTimestamp() {
       blockedTimestamp = System.nanoTime();
    }
@@ -80,10 +83,6 @@ public class SequenceInstance {
    @Override
    public String toString() {
       return appendTo(new StringBuilder()).toString();
-   }
-
-   public Statistics statistics(Session session) {
-      return session.statistics(sourceId);
    }
 
    public StringBuilder appendTo(StringBuilder sb) {

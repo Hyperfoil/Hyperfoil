@@ -26,9 +26,9 @@ public class PrintStatisticsConsumer extends StatisticsCollector {
     }
 
     public void print() {
-        visitStatistics(((phase, sequence, snapshot, countDown) -> {
+        visitStatistics(((phase, name, snapshot, countDown) -> {
             System.out.format("%s/%s : total requests/responses %d, max %.2f, min %.2f, mean %.2f, 90th centile: %.2f%n",
-                  phase.name(), sequence.name(),
+                  phase.name(), name,
                   snapshot.requestCount,
                   snapshot.histogram.getMaxValue() / 1_000_000.0,
                   snapshot.histogram.getMinValue() / 1_000_000.0,

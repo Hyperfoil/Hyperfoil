@@ -3,12 +3,12 @@ package io.hyperfoil.core.session;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
+import java.util.Map;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import io.hyperfoil.api.http.HttpMethod;
-import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.ext.web.Cookie;
@@ -43,8 +43,8 @@ public class CookieTest extends BaseScenarioTest {
                .step().awaitAllResponses()
             .endSequence();
 
-      List<Session> sessions = runScenario();
-      StatisticsSnapshot snapshot = assertSingleSessionStats(sessions);
+      Map<String, List<StatisticsSnapshot>> stats = runScenario();
+      StatisticsSnapshot snapshot = assertSingleSessionStats(stats);
       assertThat(snapshot.status_5xx).isEqualTo(0);
       assertThat(snapshot.status_2xx).isEqualTo(2);
    }

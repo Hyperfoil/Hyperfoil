@@ -21,7 +21,6 @@ package io.hyperfoil.core.impl.statistics;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.config.Simulation;
 import io.hyperfoil.core.impl.Report;
-import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.core.util.CountDown;
 
@@ -43,7 +42,7 @@ public class ReportStatisticsCollector extends StatisticsCollector {
         return reportMap;
     }
 
-    private void addReport(Phase phase, Sequence sequence, StatisticsSnapshot snapshot, CountDown countDown) {
+    private void addReport(Phase phase, String name, StatisticsSnapshot snapshot, CountDown countDown) {
         Report report = new Report(simulation.tags());
         report.measures(
               snapshot.requestCount,
@@ -58,6 +57,6 @@ public class ReportStatisticsCollector extends StatisticsCollector {
               0, //clientPool.bytesRead(),  //TODO::get bytes from client pool
               0  //clientPool.bytesWritten()
         );
-        reportMap.put(phase.name() + "/" + sequence.name(), report);
+        reportMap.put(phase.name() + "/" + name, report);
     }
 }

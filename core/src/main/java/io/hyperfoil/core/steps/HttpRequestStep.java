@@ -9,10 +9,14 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import io.hyperfoil.api.config.Http;
+import io.hyperfoil.api.config.ListBuilder;
 import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.Simulation;
+import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.core.generators.StringGeneratorBuilder;
 import io.hyperfoil.function.SerializableSupplier;
 import io.netty.buffer.ByteBuf;
@@ -47,6 +51,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer {
    final SerializableFunction<Session, String> pathGenerator;
    final SerializableBiFunction<Session, Connection, ByteBuf> bodyGenerator;
    final SerializableBiConsumer<Session, HttpRequestWriter>[] headerAppenders;
+   final SerializableBiFunction<String, String, String> statisticsSelector;
    final long timeout;
    final HttpResponseHandlersImpl handler;
 
@@ -55,6 +60,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer {
                           SerializableFunction<Session, String> pathGenerator,
                           SerializableBiFunction<Session, Connection, ByteBuf> bodyGenerator,
                           SerializableBiConsumer<Session, HttpRequestWriter>[] headerAppenders,
+                          SerializableBiFunction<String, String, String> statisticsSelector,
                           long timeout, HttpResponseHandlersImpl handler) {
       super(sequence);
       this.method = method;
@@ -62,6 +68,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer {
       this.pathGenerator = pathGenerator;
       this.bodyGenerator = bodyGenerator;
       this.headerAppenders = headerAppenders;
+      this.statisticsSelector = statisticsSelector;
       this.timeout = timeout;
       this.handler = handler;
    }
@@ -74,23 +81,41 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer {
          return false;
       }
 
-      request.start(handler, session.currentSequence());
-
       String baseUrl = this.baseUrl == null ? null : this.baseUrl.apply(session);
+      String path = pathGenerator.apply(session);
+      if (baseUrl == null && (path.startsWith("http://") || path.startsWith("https://"))) {
+         baseUrl = session.findBaseUrl(path);
+         if (baseUrl == null) {
+            log.error("Cannot access {}: no base url configured", path);
+            return true;
+         }
+         path = path.substring(baseUrl.length());
+      }
+      String statistics = null;
+      if (statisticsSelector != null) {
+         statistics = statisticsSelector.apply(baseUrl, path);
+      }
+      if (statistics == null) {
+         sequence().name();
+      }
+
+      SequenceInstance sequence = session.currentSequence();
+      request.start(handler, sequence, session.statistics(statistics));
+
       HttpConnectionPool connectionPool = session.httpConnectionPool(baseUrl);
-      if (!connectionPool.request(request, method, pathGenerator, headerAppenders, bodyGenerator)) {
+      if (!connectionPool.request(request, method, path, headerAppenders, bodyGenerator)) {
          request.setCompleted();
          session.requestPool().release(request);
          // TODO: when the phase is finished, max duration is not set and the connection cannot be obtained
          // we'll be waiting here forever. Maybe there should be a (default) timeout to obtain the connection.
          connectionPool.registerWaitingSession(session);
-         session.currentSequence().setBlockedTimestamp();
-         session.currentSequence().statistics(session).incrementBlockedCount();
+         sequence.setBlockedTimestamp();
+         request.statistics().incrementBlockedCount();
          return false;
       }
-      long blockedTime = session.currentSequence().getBlockedTime();
+      long blockedTime = sequence.getBlockedTime();
       if (blockedTime > 0) {
-         session.currentSequence().statistics(session).incrementBlockedTime(blockedTime);
+         request.statistics().incrementBlockedTime(blockedTime);
       }
       // Set up timeout only after successful request
       if (timeout > 0) {
@@ -108,7 +133,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer {
       if (trace) {
          log.trace("#{} sent request on {}", session.uniqueId(), request.connection());
       }
-      session.currentSequence().statistics(session).incrementRequests();
+      request.statistics().incrementRequests();
       return true;
    }
 
@@ -123,6 +148,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer {
       private SerializableFunction<Session, String> pathGenerator;
       private SerializableBiFunction<Session, Connection, ByteBuf> bodyGenerator;
       private List<SerializableBiConsumer<Session, HttpRequestWriter>> headerAppenders = new ArrayList<>();
+      private SerializableBiFunction<String, String, String> statisticsSelector;
       private long timeout = Long.MIN_VALUE;
       private HttpResponseHandlersImpl.Builder handler = new HttpResponseHandlersImpl.Builder(this);
 
@@ -278,6 +304,17 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer {
          return timeout(Util.parseToMillis(timeout), TimeUnit.MILLISECONDS);
       }
 
+      public Builder statistics(SerializableBiFunction<String, String, String> selector) {
+         this.statisticsSelector = selector;
+         return this;
+      }
+
+      public PathStatisticsSelector statistics() {
+         PathStatisticsSelector selector = new PathStatisticsSelector();
+         this.statisticsSelector = selector;
+         return selector;
+      }
+
       public HttpResponseHandlersImpl.Builder handler() {
          return handler;
       }
@@ -305,7 +342,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer {
          }
          SerializableBiConsumer<Session, HttpRequestWriter>[] headerAppenders =
                this.headerAppenders.isEmpty() ? null : this.headerAppenders.toArray(new SerializableBiConsumer[0]);
-         return Collections.singletonList(new HttpRequestStep(sequence, method, baseUrl, pathGenerator, bodyGenerator, headerAppenders, timeout, handler.build()));
+         return Collections.singletonList(new HttpRequestStep(sequence, method, baseUrl, pathGenerator, bodyGenerator, headerAppenders, statisticsSelector, timeout, handler.build()));
       }
    }
 
@@ -403,4 +440,43 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer {
       }
    }
 
+   public static class PathStatisticsSelector implements ListBuilder, SerializableBiFunction<String,String,String> {
+      public List<SerializableFunction<String, String>> tests = new ArrayList<>();
+
+      @Override
+      public void nextItem(String item) {
+         item = item.trim();
+         int arrow = item.indexOf("->");
+         if (arrow < 0) {
+            Pattern pattern = Pattern.compile(item);
+            tests.add(path -> pattern.matcher(path).matches() ? path : null);
+         } else if (arrow == 0) {
+            String replacement = item.substring(2).trim();
+            tests.add(path -> replacement);
+         } else {
+            Pattern pattern = Pattern.compile(item.substring(0, arrow).trim());
+            String replacement = item.substring(arrow + 2).trim();
+            tests.add(path -> {
+               Matcher matcher = pattern.matcher(path);
+               if (matcher.matches()) {
+                  return matcher.replaceFirst(replacement);
+               } else {
+                  return null;
+               }
+            });
+         }
+      }
+
+      @Override
+      public String apply(String baseUrl, String path) {
+         String combined = baseUrl != null ? baseUrl + path : path;
+         for (SerializableFunction<String, String> test : tests) {
+            String result = test.apply(combined);
+            if (result != null) {
+               return result;
+            }
+         }
+         return null;
+      }
+   }
 }

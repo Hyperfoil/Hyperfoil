@@ -27,6 +27,7 @@ import io.hyperfoil.api.connection.HttpConnectionPool;
 import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.api.session.Session;
+import io.hyperfoil.api.statistics.Statistics;
 import io.hyperfoil.core.builders.HttpBuilder;
 import io.hyperfoil.core.client.netty.HttpClientPoolImpl;
 import io.hyperfoil.core.session.SessionFactory;
@@ -102,8 +103,8 @@ public class HttpClientPoolHandlerTest {
                  })
                  .onCompletion(s -> latch.countDown())
                  .build();
-           request.start(handlers, new SequenceInstance());
-           pool.request(request, HttpMethod.GET, s -> "/", null, null);
+           request.start(handlers, new SequenceInstance(), new Statistics());
+           pool.request(request, HttpMethod.GET, "/", null, null);
         });
 
         assertThat(latch.await(3, TimeUnit.SECONDS)).isTrue();

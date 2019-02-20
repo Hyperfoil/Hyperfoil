@@ -14,6 +14,7 @@ import io.hyperfoil.api.http.HttpResponseHandlers;
 import io.hyperfoil.api.http.HttpVersion;
 import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.api.session.Session;
+import io.hyperfoil.api.statistics.Statistics;
 import io.hyperfoil.core.builders.HttpBuilder;
 import io.hyperfoil.core.client.netty.HttpClientPoolImpl;
 import io.hyperfoil.core.session.SessionFactory;
@@ -106,9 +107,9 @@ public class HttpVersionsTest {
                            server.close();
                            async.complete();
                         }).build();
-                  request.start(handlers, new SequenceInstance());
+                  request.start(handlers, new SequenceInstance(), new Statistics());
 
-                  client.next().request(request, HttpMethod.GET, s -> "/ping", null, null);
+                  client.next().request(request, HttpMethod.GET, "/ping", null, null);
                });
             } catch (Exception e) {
                ctx.fail(e);

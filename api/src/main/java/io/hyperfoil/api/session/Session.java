@@ -2,6 +2,7 @@ package io.hyperfoil.api.session;
 
 import java.util.Map;
 
+import io.hyperfoil.api.config.Scenario;
 import io.netty.buffer.ByteBuf;
 import io.netty.util.concurrent.EventExecutor;
 import io.hyperfoil.api.collection.LimitedPool;
@@ -12,6 +13,9 @@ import io.hyperfoil.api.http.ValidatorResults;
 import io.hyperfoil.api.config.Phase;
 
 public interface Session {
+
+   void reserve(Scenario scenario);
+
    /**
     * @return Integer >= 0 that's unique across whole simulation
     */
@@ -19,6 +23,8 @@ public interface Session {
 
    /// Common utility objects
    HttpConnectionPool httpConnectionPool(String baseUrl);
+
+   String findBaseUrl(String path);
 
    EventExecutor executor();
 
@@ -28,9 +34,7 @@ public interface Session {
 
    ValidatorResults validatorResults();
 
-   Statistics statistics(int sequenceId);
-
-   Statistics[] statistics();
+   Statistics statistics(String name);
 
    /// Variable-related methods
    Session declare(Object key);
@@ -71,7 +75,7 @@ public interface Session {
 
    SequenceInstance currentSequence();
 
-   void attach(EventExecutor executor, SharedData sharedData, Map<String, HttpConnectionPool> httpConnectionPools, Statistics[] statistics);
+   void attach(EventExecutor executor, SharedData sharedData, Map<String, HttpConnectionPool> httpConnectionPools, Map<String, Statistics> statistics);
 
    void start(PhaseInstance phase);
 
