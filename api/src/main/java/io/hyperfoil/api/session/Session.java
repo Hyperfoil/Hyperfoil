@@ -1,5 +1,7 @@
 package io.hyperfoil.api.session;
 
+import java.lang.reflect.Array;
+import java.util.List;
 import java.util.Map;
 
 import io.hyperfoil.api.config.Scenario;
@@ -50,6 +52,8 @@ public interface Session {
    Session setInt(Object key, int value);
 
    <V extends Var> V getVar(Object key);
+
+   <V extends Var> V getSequenceScopedVar(Object key);
 
    default Session addToInt(Object key, int delta) {
       setInt(key, getInt(key) + delta);

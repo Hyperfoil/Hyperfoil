@@ -14,6 +14,8 @@ import io.hyperfoil.core.steps.AwaitAllResponsesStep;
 import io.hyperfoil.core.steps.AwaitConditionStep;
 import io.hyperfoil.core.steps.AwaitDelayStep;
 import io.hyperfoil.core.steps.AwaitIntStep;
+import io.hyperfoil.core.steps.AwaitSequenceVarStep;
+import io.hyperfoil.core.steps.AwaitVarStep;
 import io.hyperfoil.core.steps.BreakSequenceStep;
 import io.hyperfoil.core.steps.ForeachStep;
 import io.hyperfoil.core.steps.HttpRequestStep;
@@ -24,6 +26,7 @@ import io.hyperfoil.core.steps.PushSharedMapStep;
 import io.hyperfoil.core.steps.ScheduleDelayStep;
 import io.hyperfoil.core.steps.ServiceLoadedBuilderProvider;
 import io.hyperfoil.core.steps.StopwatchBeginStep;
+import io.hyperfoil.core.steps.UnsetStep;
 
 /**
  * Helper class to gather well-known step builders
@@ -109,6 +112,18 @@ public class StepDiscriminator {
 
    public AwaitIntStep.Builder awaitInt() {
       return new AwaitIntStep.Builder(parent);
+   }
+
+   public BaseSequenceBuilder awaitVar(String var) {
+      return parent.step(new AwaitVarStep(var));
+   }
+
+   public BaseSequenceBuilder awaitSequenceVar(String var) {
+      return parent.step(new AwaitSequenceVarStep(var));
+   }
+
+   public UnsetStep.Builder unset() {
+      return new UnsetStep.Builder(parent);
    }
 
    public <T> PollStep.Builder<T> poll(Function<Session, T> provider, String intoVar) {

@@ -4,6 +4,7 @@ import java.util.function.Consumer;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.session.Session;
+import io.hyperfoil.core.session.ObjectVar;
 import io.hyperfoil.function.SerializableFunction;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -35,6 +36,26 @@ public class StringGeneratorBuilder<T> {
             return (String) value;
          } else {
             log.error("Cannot retrieve string from {}, the content is {}", var, value);
+            return null;
+         }
+      });
+      return this;
+   }
+
+   public StringGeneratorBuilder<T> sequenceVar(String var) {
+      ensureUnused();
+      consumer.accept(session -> {
+         Object sequenceVar = session.getSequenceScopedVar(var);
+         if (sequenceVar instanceof ObjectVar) {
+            Object sequenceValue = ((ObjectVar) sequenceVar).get();
+            if (sequenceValue instanceof String) {
+               return (String) sequenceValue;
+            } else {
+               log.error("Cannot retrieve string from {}[{}], the content is {}", var, session.currentSequence().index(), sequenceValue);
+               return null;
+            }
+         } else {
+            log.error("Cannot retrieve string from {}[{}], it does not contain settable variable but {}", var, session.currentSequence().index(), sequenceVar);
             return null;
          }
       });

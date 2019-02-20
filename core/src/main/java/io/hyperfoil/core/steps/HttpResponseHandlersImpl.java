@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
+import io.hyperfoil.api.session.Action;
 import io.netty.buffer.ByteBuf;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.http.BodyExtractor;
@@ -347,6 +348,10 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       public Builder onCompletion(SerializableConsumer<Session> handler) {
          completionHandlers.add(handler);
          return this;
+      }
+
+      public ServiceLoadedBuilderProvider<Action> onCompletion() {
+         return new ServiceLoadedBuilderProvider<>(Action.BuilderFactory.class, a -> onCompletion(a::run));
       }
 
       public Builder rawBytesHandler(RawBytesHandler handler) {

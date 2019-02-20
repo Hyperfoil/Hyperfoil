@@ -16,6 +16,7 @@ import io.hyperfoil.api.session.PhaseInstance;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -207,6 +208,20 @@ class SessionImpl implements Session, Callable<Void> {
          throw new IllegalStateException("Variable " + key + " was not defined!");
       }
       return (V) var;
+   }
+
+   @Override
+   public <V extends Var> V getSequenceScopedVar(Object key) {
+      Object value = getObject(key);
+      if (value instanceof ObjectVar[]) {
+         int index = currentSequence.index();
+         return (V) Array.get(value, index);
+      } else if (value instanceof List) {
+         int index = currentSequence.index();
+         return (V) ((List) value).get(index);
+      } else {
+         throw new IllegalStateException(key + " does not constitute to sequence-scoped variable, it contains " + value);
+      }
    }
 
    private <V extends Var> V requireSet(Object key) {
