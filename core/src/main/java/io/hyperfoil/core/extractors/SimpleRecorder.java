@@ -2,11 +2,12 @@ package io.hyperfoil.core.extractors;
 
 import java.nio.charset.StandardCharsets;
 
+import io.hyperfoil.api.http.Processor;
 import io.netty.buffer.ByteBuf;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.api.ResourceUtilizer;
 
-public class SimpleRecorder implements Session.Processor, ResourceUtilizer {
+public class SimpleRecorder implements Processor, ResourceUtilizer {
    private final String var;
 
    public SimpleRecorder(String var) {

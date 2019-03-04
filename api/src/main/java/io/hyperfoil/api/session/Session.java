@@ -1,11 +1,8 @@
 package io.hyperfoil.api.session;
 
-import java.lang.reflect.Array;
-import java.util.List;
 import java.util.Map;
 
 import io.hyperfoil.api.config.Scenario;
-import io.netty.buffer.ByteBuf;
 import io.netty.util.concurrent.EventExecutor;
 import io.hyperfoil.api.collection.LimitedPool;
 import io.hyperfoil.api.connection.Request;
@@ -99,24 +96,6 @@ public interface Session {
    boolean isActive();
 
    LimitedPool<Request> requestPool();
-
-   interface Processor {
-      /**
-       * Invoked before we record first value from given response.
-       * @param session
-       */
-      default void before(Session session) {
-      }
-
-      void process(Session session, ByteBuf data, int offset, int length, boolean isLastPart);
-
-      /**
-       * Invoked after we record the last value from given response.
-       * @param session
-       */
-      default void after(Session session) {
-      }
-   }
 
    enum VarType {
       OBJECT,

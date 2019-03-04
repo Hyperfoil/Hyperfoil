@@ -6,10 +6,11 @@ import java.util.Deque;
 import java.util.LinkedList;
 import java.util.function.Predicate;
 
+import io.hyperfoil.api.http.Processor;
 import io.netty.buffer.ByteBuf;
 import io.hyperfoil.api.session.Session;
 
-public class ExpectProcessor implements Session.Processor {
+public class ExpectProcessor implements Processor {
    int beforeCalled;
    int afterCalled;
    int invoked;

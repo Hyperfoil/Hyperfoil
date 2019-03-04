@@ -17,7 +17,7 @@
  * the {@link io.hyperfoil.core.api.ResourceUtilizer} interface to register itselves. The reservation is invoked
  * once when the session is created through {@link io.hyperfoil.core.session.SequenceImpl#reserve(Session)}
  * which in turn calls this on all {@link io.hyperfoil.api.config.Step steps} and these call the
- * {@link io.hyperfoil.api.session.Session.Processor processors} or any other handlers.
+ * {@link io.hyperfoil.api.http.Processor processors} or any other handlers.
  *
  * <h2>Execution</h2>
  *

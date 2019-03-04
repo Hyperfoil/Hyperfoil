@@ -1,5 +1,6 @@
 package io.hyperfoil.core.extractors;
 
+import io.hyperfoil.api.http.Processor;
 import io.netty.buffer.ByteBuf;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.IntVar;
@@ -7,7 +8,7 @@ import io.hyperfoil.core.api.ResourceUtilizer;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-public class SequenceScopedCountRecorder implements Session.Processor, ResourceUtilizer {
+public class SequenceScopedCountRecorder implements Processor, ResourceUtilizer {
    private static final Logger log = LoggerFactory.getLogger(SequenceScopedCountRecorder.class);
    private final String arrayVar;
    private final int numCounters;

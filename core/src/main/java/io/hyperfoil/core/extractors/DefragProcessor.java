@@ -1,5 +1,6 @@
 package io.hyperfoil.core.extractors;
 
+import io.hyperfoil.api.http.Processor;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.CompositeByteBuf;
 import io.hyperfoil.api.session.Session;
@@ -7,12 +8,12 @@ import io.hyperfoil.core.api.ResourceUtilizer;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-public class DefragProcessor implements Session.Processor, ResourceUtilizer, Session.ResourceKey<DefragProcessor.Context> {
+public class DefragProcessor implements Processor, ResourceUtilizer, Session.ResourceKey<DefragProcessor.Context> {
    private static final Logger log = LoggerFactory.getLogger(DefragProcessor.class);
 
-   private final Session.Processor delegate;
+   private final Processor delegate;
 
-   public DefragProcessor(Session.Processor delegate) {
+   public DefragProcessor(Processor delegate) {
       this.delegate = delegate;
    }
 
@@ -66,7 +67,7 @@ public class DefragProcessor implements Session.Processor, ResourceUtilizer, Ses
          composite.addComponent(true, data.retainedSlice(offset, length));
       }
 
-      public void flush(Session session, Session.Processor processor) {
+      public void flush(Session session, Processor processor) {
          log.debug("Flushing {} bytes", composite.writerIndex());
          processor.process(session, composite, 0, composite.writerIndex(), true);
          // Not sure if this is the right call to forget/reuse the components (if needed)

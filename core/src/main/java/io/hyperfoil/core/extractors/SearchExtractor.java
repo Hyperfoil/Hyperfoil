@@ -2,6 +2,7 @@ package io.hyperfoil.core.extractors;
 
 import java.nio.charset.StandardCharsets;
 
+import io.hyperfoil.api.http.Processor;
 import io.netty.buffer.ByteBuf;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.http.BodyExtractor;
@@ -16,9 +17,9 @@ public class SearchExtractor implements BodyExtractor, ResourceUtilizer, Session
    private final byte[] begin, end;
    private final int beginHash, endHash;
    private final int beginCoef, endCoef;
-   private Session.Processor processor;
+   private Processor processor;
 
-   public SearchExtractor(String begin, String end, Session.Processor processor) {
+   public SearchExtractor(String begin, String end, Processor processor) {
       this.begin = begin.getBytes(StandardCharsets.UTF_8);
       this.end = end.getBytes(StandardCharsets.UTF_8);
       this.beginHash = computeHash(this.begin);

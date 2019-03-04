@@ -2,6 +2,7 @@ package io.hyperfoil.core.extractors;
 
 import java.nio.charset.StandardCharsets;
 
+import io.hyperfoil.api.http.Processor;
 import io.netty.buffer.ByteBuf;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.ObjectVar;
@@ -9,7 +10,7 @@ import io.hyperfoil.core.api.ResourceUtilizer;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-public class ArrayRecorder implements Session.Processor, ResourceUtilizer {
+public class ArrayRecorder implements Processor, ResourceUtilizer {
    private static final Logger log = LoggerFactory.getLogger(ArrayRecorder.class);
    private final String var;
    private final int maxSize;

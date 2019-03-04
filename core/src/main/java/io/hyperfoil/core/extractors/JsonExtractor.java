@@ -4,6 +4,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import io.hyperfoil.api.http.Processor;
 import io.netty.buffer.ByteBuf;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.http.BodyExtractor;
@@ -14,10 +15,10 @@ public class JsonExtractor implements BodyExtractor, ResourceUtilizer, Session.R
    private static final int MAX_PARTS = 16;
 
    private final String path;
-   private final Session.Processor processor;
+   private final Processor processor;
    private final Selector[] selectors;
 
-   public JsonExtractor(String path, Session.Processor processor) {
+   public JsonExtractor(String path, Processor processor) {
       this.path = path.trim();
       this.processor = processor;
       try {
