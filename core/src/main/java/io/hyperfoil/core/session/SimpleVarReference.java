@@ -1,20 +1,25 @@
 package io.hyperfoil.core.session;
 
-import static java.util.Objects.requireNonNull;
-
 import io.hyperfoil.api.session.VarReference;
 import io.hyperfoil.api.session.Session;
 
 public class SimpleVarReference implements VarReference {
    private final String var;
+   private final boolean set;
 
    public SimpleVarReference(String var) {
-      this.var = requireNonNull(var);
+      if (var.startsWith("!")) {
+         this.var = var.substring(1).trim();
+         this.set = false;
+      } else {
+         this.var = var;
+         this.set = true;
+      }
    }
 
    @Override
    public boolean isSet(Session session) {
-      return session.isSet(var);
+      return session.isSet(var) == set;
    }
 
    @Override

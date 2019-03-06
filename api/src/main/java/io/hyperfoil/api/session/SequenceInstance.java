@@ -21,17 +21,17 @@ public class SequenceInstance {
       while (currentStep < steps.length) {
          Step step = steps[currentStep];
          if (trace) {
-            log.trace("#{} {} invoking step {}", session.uniqueId(), name, step);
+            log.trace("#{} {}({}) invoking step {}", session.uniqueId(), name, index, step);
          }
          try {
             if (!step.invoke(session)) {
                if (trace) {
-                  log.trace("#{} {} step {} is blocked", session.uniqueId(), name, step);
+                  log.trace("#{} {}({}) step {} is blocked", session.uniqueId(), name, index, step);
                }
                return progressed;
             }
          } catch (Throwable t) {
-            log.error("#{} {} failure invoking step {}", t, session.uniqueId(), name, step);
+            log.error("#{} {}({}) failure invoking step {}", t, session.uniqueId(), name, index, step);
             session.fail(t);
             return false;
          }
@@ -86,6 +86,6 @@ public class SequenceInstance {
    }
 
    public StringBuilder appendTo(StringBuilder sb) {
-      return sb.append(name).append('(').append(currentStep).append('/').append(steps.length).append(')');
+      return sb.append(name).append('(').append(index).append(")(").append(currentStep).append('/').append(steps.length).append(')');
    }
 }

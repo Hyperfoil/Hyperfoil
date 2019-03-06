@@ -8,14 +8,21 @@ import io.hyperfoil.api.session.Session;
 
 public class SequenceScopedVarReference implements VarReference {
    private final String var;
+   private final boolean set;
 
    public SequenceScopedVarReference(String var) {
-      this.var = var;
+      if (var.startsWith("!")) {
+         this.var = var.substring(1).trim();
+         this.set = false;
+      } else {
+         this.var = var;
+         this.set = true;
+      }
    }
 
    @Override
    public boolean isSet(Session session) {
-      if (!session.isSet(var)) return false;
+      if (set && !session.isSet(var)) return false;
 
       Object collection = session.getObject(var);
       if (collection == null) {
@@ -33,7 +40,7 @@ public class SequenceScopedVarReference implements VarReference {
 
    private boolean checkVar(int index, Object o) {
       if (o instanceof Session.Var) {
-         return ((Session.Var) o).isSet();
+         return ((Session.Var) o).isSet() == set;
       } else {
          throw new IllegalStateException("Collection in " + var + "[" + index + "] does not contain settable variable: " + o);
       }
@@ -41,6 +48,6 @@ public class SequenceScopedVarReference implements VarReference {
 
    @Override
    public String toString() {
-      return var + "[currentSequence]";
+      return (set ? "" : "<not set>") + var + "[currentSequence]";
    }
 }

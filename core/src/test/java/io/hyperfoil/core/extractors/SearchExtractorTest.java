@@ -4,9 +4,9 @@ import java.nio.charset.StandardCharsets;
 
 import org.junit.Test;
 
+import io.hyperfoil.api.connection.HttpRequest;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
 
@@ -62,7 +62,7 @@ public class SearchExtractorTest {
 
    private void runExtractor(SearchExtractor extractor, ExpectProcessor processor, String... text) {
       Session session = SessionFactory.forTesting();
-      Request request = session.requestPool().acquire();
+      HttpRequest request = session.httpRequestPool().acquire();
       extractor.reserve(session);
       extractor.beforeData(request);
 

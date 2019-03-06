@@ -4,9 +4,10 @@ import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import io.hyperfoil.api.connection.HttpRequest;
+import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.http.Processor;
 import io.netty.buffer.ByteBuf;
-import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.http.BodyExtractor;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.api.ResourceUtilizer;
@@ -15,10 +16,10 @@ public class JsonExtractor implements BodyExtractor, ResourceUtilizer, Session.R
    private static final int MAX_PARTS = 16;
 
    private final String path;
-   private final Processor processor;
+   private final Processor<Request> processor;
    private final Selector[] selectors;
 
-   public JsonExtractor(String path, Processor processor) {
+   public JsonExtractor(String path, Processor<Request> processor) {
       this.path = path.trim();
       this.processor = processor;
       try {
@@ -84,21 +85,21 @@ public class JsonExtractor implements BodyExtractor, ResourceUtilizer, Session.R
    }
 
    @Override
-   public void beforeData(Request request) {
-      processor.before(request.session);
+   public void beforeData(HttpRequest request) {
+      processor.before(request);
       Context ctx = request.session.getResource(this);
       ctx.reset();
    }
 
    @Override
-   public void extractData(Request request, ByteBuf data) {
+   public void extractData(HttpRequest request, ByteBuf data) {
       Context ctx = request.session.getResource(this);
-      ctx.parse(data, request.session);
+      ctx.parse(data, request);
    }
 
    @Override
-   public void afterData(Request request) {
-      processor.after(request.session);
+   public void afterData(HttpRequest request) {
+      processor.after(request);
 
       Context ctx = request.session.getResource(this);
       for (int i = 0; i < ctx.parts.length; ++i) {
@@ -167,7 +168,7 @@ public class JsonExtractor implements BodyExtractor, ResourceUtilizer, Session.R
          return selectorContext[selector];
       }
 
-      private void parse(ByteBuf data, Session session) {
+      private void parse(ByteBuf data, HttpRequest request) {
          while (data.isReadable()) {
             switch (data.readByte()) {
                case ' ':
@@ -185,7 +186,7 @@ public class JsonExtractor implements BodyExtractor, ResourceUtilizer, Session.R
                   break;
                case '}':
                   if (!inQuote) {
-                     tryRecord(session, data);
+                     tryRecord(request, data);
                      if (level == selectorLevel) {
                         --selectorLevel;
                         --selector;
@@ -230,7 +231,7 @@ public class JsonExtractor implements BodyExtractor, ResourceUtilizer, Session.R
                   if (!inQuote) {
                      inAttrib = true;
                      attribStartIndex = -1;
-                     tryRecord(session, data);
+                     tryRecord(request, data);
                      if (selectorLevel == level && selector < selectors.length && current() instanceof ArraySelectorContext) {
                         ArraySelectorContext asc = (ArraySelectorContext) current();
                         if (asc.active) {
@@ -256,7 +257,7 @@ public class JsonExtractor implements BodyExtractor, ResourceUtilizer, Session.R
                   break;
                case ']':
                   if (!inQuote) {
-                     tryRecord(session, data);
+                     tryRecord(request, data);
                      if (selectorLevel == level && selector < selectors.length && current() instanceof ArraySelectorContext) {
                         ArraySelectorContext asc = (ArraySelectorContext) current();
                         asc.active = false;
@@ -320,7 +321,7 @@ public class JsonExtractor implements BodyExtractor, ResourceUtilizer, Session.R
          }
       }
 
-      private void tryRecord(Session session, ByteBuf data) {
+      private void tryRecord(HttpRequest request, ByteBuf data) {
          if (selectorLevel == level && valueStartIndex >= 0) {
             // valueStartIndex is always before quotes here
             ByteBuf buf = valueStartPart < 0 ? data : parts[valueStartPart];
@@ -389,10 +390,10 @@ public class JsonExtractor implements BodyExtractor, ResourceUtilizer, Session.R
             }
             while (valueStartPart >= 0 && valueStartPart != endPart) {
                int valueEndIndex = endPart == valueStartPart ? end : parts[valueStartPart].writerIndex();
-               processor.process(session, parts[valueStartPart], valueStartIndex, valueEndIndex - valueStartIndex, false);
+               processor.process(request, parts[valueStartPart], valueStartIndex, valueEndIndex - valueStartIndex, false);
                incrementValueStartPart();
             }
-            processor.process(session, endBuf, valueStartIndex, end - valueStartIndex, true);
+            processor.process(request, endBuf, valueStartIndex, end - valueStartIndex, true);
             valueStartIndex = -1;
             --selector;
          }

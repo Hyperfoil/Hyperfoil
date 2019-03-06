@@ -20,15 +20,15 @@ package io.hyperfoil.api.http;
 
 import java.io.Serializable;
 
+import io.hyperfoil.api.connection.HttpRequest;
 import io.netty.buffer.ByteBuf;
 import io.hyperfoil.api.config.ServiceLoadedBuilder;
-import io.hyperfoil.api.connection.Request;
 
 public interface BodyExtractor extends Serializable {
 
-    default void beforeData(Request request) {}
-    void extractData(Request request, ByteBuf data);
-    default void afterData(Request request) {}
+    default void beforeData(HttpRequest request) {}
+    void extractData(HttpRequest request, ByteBuf data);
+    default void afterData(HttpRequest request) {}
 
     interface BuilderFactory extends ServiceLoadedBuilder.Factory<BodyExtractor> {}
 }

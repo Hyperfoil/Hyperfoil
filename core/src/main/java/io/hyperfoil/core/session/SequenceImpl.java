@@ -38,7 +38,8 @@ public class SequenceImpl implements Sequence {
       SessionImpl impl = (SessionImpl) session;
       SequenceInstance instance = impl.acquireSequence();
       if (instance == null) {
-         log.warn("Cannot instantiate sequence {} ({}), no free instances.", name, id);
+         log.error("Cannot instantiate sequence {}({}), no free instances.", name, id);
+         impl.fail(new IllegalStateException("No free sequence instances"));
       } else {
          instance.reset(name, id, index, steps);
          impl.enableSequence(instance);

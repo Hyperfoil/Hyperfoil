@@ -1,5 +1,6 @@
 package io.hyperfoil.core.extractors;
 
+import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.http.Processor;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.CompositeByteBuf;
@@ -8,36 +9,34 @@ import io.hyperfoil.core.api.ResourceUtilizer;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-public class DefragProcessor implements Processor, ResourceUtilizer, Session.ResourceKey<DefragProcessor.Context> {
+public class DefragProcessor<R extends Request> extends Processor.BaseDelegating<R> implements ResourceUtilizer, Session.ResourceKey<DefragProcessor.Context> {
    private static final Logger log = LoggerFactory.getLogger(DefragProcessor.class);
 
-   private final Processor delegate;
-
-   public DefragProcessor(Processor delegate) {
-      this.delegate = delegate;
+   public DefragProcessor(Processor<R> delegate) {
+      super(delegate);
    }
 
    @Override
-   public void before(Session session) {
-      delegate.before(session);
+   public void before(R request) {
+      delegate.before(request);
    }
 
    @Override
-   public void process(Session session, ByteBuf data, int offset, int length, boolean isLastPart) {
-      Context ctx = session.getResource(this);
+   public void process(R request, ByteBuf data, int offset, int length, boolean isLastPart) {
+      Context<R> ctx = request.session.getResource(this);
       if (isLastPart && !ctx.isBuffering()) {
-         delegate.process(session, data, offset, length, true);
+         delegate.process(request, data, offset, length, true);
          return;
       }
       ctx.buffer(data, offset, length);
       if (isLastPart) {
-         ctx.flush(session, delegate);
+         ctx.flush(request, delegate);
       }
    }
 
    @Override
-   public void after(Session session) {
-      delegate.after(session);
+   public void after(R request) {
+      delegate.after(request);
    }
 
    @Override
@@ -52,7 +51,7 @@ public class DefragProcessor implements Processor, ResourceUtilizer, Session.Res
       }
    }
 
-   static class Context implements Session.Resource {
+   static class Context<R extends Request> implements Session.Resource {
       CompositeByteBuf composite = null;
 
       public boolean isBuffering() {
@@ -67,9 +66,9 @@ public class DefragProcessor implements Processor, ResourceUtilizer, Session.Res
          composite.addComponent(true, data.retainedSlice(offset, length));
       }
 
-      public void flush(Session session, Processor processor) {
+      public void flush(R request, Processor<R> processor) {
          log.debug("Flushing {} bytes", composite.writerIndex());
-         processor.process(session, composite, 0, composite.writerIndex(), true);
+         processor.process(request, composite, 0, composite.writerIndex(), true);
          // Not sure if this is the right call to forget/reuse the components (if needed)
          composite.clear();
       }

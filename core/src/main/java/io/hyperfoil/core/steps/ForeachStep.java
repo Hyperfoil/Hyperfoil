@@ -40,7 +40,7 @@ public class ForeachStep extends DependencyStep implements ResourceUtilizer {
       int i = 0;
       for (; i < array.length; i++) {
          if (!array[i].isSet()) break;
-         sequence().phase().scenario().sequence(template).instantiate(session, i);
+         session.phase().scenario().sequence(template).instantiate(session, i);
       }
       if (counterVar != null) {
          session.setInt(counterVar, i);

@@ -1,7 +1,7 @@
 package io.hyperfoil.api.connection;
 
-public interface ResponseHandlers {
-   void handleThrowable(Request request, Throwable throwable);
+public interface ResponseHandlers<R extends Request> {
+   void handleThrowable(R request, Throwable throwable);
 
-   void handleEnd(Request request);
+   void handleEnd(R request);
 }

@@ -1,9 +1,5 @@
 package io.hyperfoil.core.steps;
 
-import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
-import java.nio.charset.CharsetEncoder;
-import java.nio.charset.CoderResult;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -16,6 +12,7 @@ import io.hyperfoil.api.config.Http;
 import io.hyperfoil.api.config.ListBuilder;
 import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.Simulation;
+import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.core.generators.StringGeneratorBuilder;
 import io.hyperfoil.function.SerializableSupplier;
@@ -24,7 +21,6 @@ import io.netty.buffer.Unpooled;
 import io.hyperfoil.api.config.PairBuilder;
 import io.hyperfoil.api.config.PartialBuilder;
 import io.hyperfoil.api.connection.Connection;
-import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.connection.HttpConnectionPool;
 import io.hyperfoil.api.connection.HttpRequestWriter;
@@ -75,7 +71,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer {
 
    @Override
    public boolean invoke(Session session) {
-      Request request = session.requestPool().acquire();
+      HttpRequest request = session.httpRequestPool().acquire();
       if (request == null) {
          log.warn("#{} Request pool too small; increase it to prevent blocking.", session.uniqueId());
          return false;
@@ -84,7 +80,11 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer {
       String baseUrl = this.baseUrl == null ? null : this.baseUrl.apply(session);
       String path = pathGenerator.apply(session);
       if (baseUrl == null && (path.startsWith("http://") || path.startsWith("https://"))) {
-         baseUrl = session.findBaseUrl(path);
+         for (String url : session.httpDestinations().baseUrls()) {
+            if (path.startsWith(url)) {
+               baseUrl = url;
+            }
+         }
          if (baseUrl == null) {
             log.error("Cannot access {}: no base url configured", path);
             return true;
@@ -96,16 +96,19 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer {
          statistics = statisticsSelector.apply(baseUrl, path);
       }
       if (statistics == null) {
-         sequence().name();
+         statistics = sequence().name();
       }
 
       SequenceInstance sequence = session.currentSequence();
+      request.baseUrl = baseUrl;
+      request.method = method;
+      request.path = path;
       request.start(handler, sequence, session.statistics(statistics));
 
-      HttpConnectionPool connectionPool = session.httpConnectionPool(baseUrl);
-      if (!connectionPool.request(request, method, path, headerAppenders, bodyGenerator)) {
+      HttpConnectionPool connectionPool = session.httpDestinations().getConnectionPool(baseUrl);
+      if (!connectionPool.request(request, headerAppenders, bodyGenerator)) {
          request.setCompleted();
-         session.requestPool().release(request);
+         session.httpRequestPool().release(request);
          // TODO: when the phase is finished, max duration is not set and the connection cannot be obtained
          // we'll be waiting here forever. Maybe there should be a (default) timeout to obtain the connection.
          connectionPool.registerWaitingSession(session);
@@ -122,7 +125,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer {
          // TODO alloc!
          request.setTimeout(timeout, TimeUnit.MILLISECONDS);
       } else {
-         Simulation simulation = sequence().phase().benchmark().simulation();
+         Simulation simulation = session.phase().benchmark().simulation();
          Http http = baseUrl == null ? simulation.defaultHttp() : simulation.http().get(baseUrl);
          long timeout = http.requestTimeout();
          if (timeout > 0) {
@@ -131,7 +134,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer {
       }
 
       if (trace) {
-         log.trace("#{} sent request on {}", session.uniqueId(), request.connection());
+         log.trace("#{} sent to {} request on {}", session.uniqueId(), path, request.connection());
       }
       request.statistics().incrementRequests();
       return true;
@@ -404,29 +407,8 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer {
                return (ByteBuf) value;
             } else if (value instanceof String){
                String str = (String) value;
-               // TODO: allocations everywhere but at least not the bytes themselves...
-               CharBuffer input = CharBuffer.wrap(str);
-               ByteBuf buffer = connection.context().alloc().buffer(str.length());
-               ByteBuffer output = buffer.nioBuffer(buffer.writerIndex(), buffer.capacity() - buffer.writerIndex());
-               CharsetEncoder encoder = StandardCharsets.UTF_8.newEncoder();
-               int accumulatedBytes = 0;
-               for (;;) {
-                  CoderResult result = encoder.encode(input, output, true);
-                  if (result.isError()) {
-                     log.error("#{} Cannot encode request body from var {}: {}, string is {}", session.uniqueId(), var, result, str);
-                     return null;
-                  } else if (result.isUnderflow()) {
-                     buffer.writerIndex(accumulatedBytes + output.position());
-                     return buffer;
-                  } else if (result.isOverflow()) {
-                     buffer.capacity(buffer.capacity() * 2);
-                     int writtenBytes = output.position();
-                     accumulatedBytes += writtenBytes;
-                     output = buffer.nioBuffer(accumulatedBytes, buffer.capacity() - accumulatedBytes);
-                  } else {
-                     throw new IllegalStateException();
-                  }
-               }
+               return Util.string2byteBuf(str, connection.context().alloc().buffer(str.length()));
+
             } else {
                log.error("#{} Cannot encode request body from var {}: {}", session.uniqueId(), var, value);
                return null;

@@ -21,7 +21,7 @@ package io.hyperfoil.core.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.hyperfoil.api.connection.Request;
+import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.connection.HttpClientPool;
 import io.hyperfoil.api.connection.HttpConnectionPool;
 import io.hyperfoil.api.http.HttpMethod;
@@ -83,7 +83,7 @@ public class HttpClientPoolHandlerTest {
         HttpConnectionPool pool = client.next();
         pool.executor().execute(() -> {
            Session session = SessionFactory.forTesting();
-           Request request = session.requestPool().acquire();
+           HttpRequest request = session.httpRequestPool().acquire();
            HttpResponseHandlersImpl handlers = HttpResponseHandlersImpl.Builder.forTesting()
                  .statusExtractor((r, code) -> {
                     assertThat(code).isEqualTo(200);
@@ -103,8 +103,10 @@ public class HttpClientPoolHandlerTest {
                  })
                  .onCompletion(s -> latch.countDown())
                  .build();
+           request.method = HttpMethod.GET;
+           request.path = "/";
            request.start(handlers, new SequenceInstance(), new Statistics());
-           pool.request(request, HttpMethod.GET, "/", null, null);
+           pool.request(request, null, null);
         });
 
         assertThat(latch.await(3, TimeUnit.SECONDS)).isTrue();

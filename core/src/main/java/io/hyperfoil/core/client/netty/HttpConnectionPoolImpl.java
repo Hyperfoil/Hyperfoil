@@ -8,18 +8,17 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 
+import io.hyperfoil.api.connection.HttpRequest;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.EventLoop;
 import io.netty.util.concurrent.EventExecutor;
 import io.netty.util.concurrent.ScheduledFuture;
 import io.hyperfoil.api.connection.Connection;
-import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.connection.HttpClientPool;
 import io.hyperfoil.api.connection.HttpConnection;
 import io.hyperfoil.api.connection.HttpConnectionPool;
 import io.hyperfoil.api.connection.HttpRequestWriter;
-import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.api.session.Session;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
@@ -60,7 +59,7 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
    }
 
    @Override
-   public boolean request(Request request, HttpMethod method, String path, BiConsumer<Session, HttpRequestWriter>[] headerAppenders, BiFunction<Session, Connection, ByteBuf> bodyGenerator) {
+   public boolean request(HttpRequest request, BiConsumer<Session, HttpRequestWriter>[] headerAppenders, BiFunction<Session, Connection, ByteBuf> bodyGenerator) {
       assert eventLoop.inEventLoop();
       HttpConnection connection;
       for (;;) {
@@ -75,9 +74,8 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
             break;
          }
       }
-      request.setRequestData(method);
       request.attach(connection);
-      connection.request(request, method, path, headerAppenders, bodyGenerator);
+      connection.request(request, headerAppenders, bodyGenerator);
       // Move it to the back of the queue if it is still available (do not prefer it for subsequent requests)
       if (connection.isAvailable()) {
          available.addLast(connection);

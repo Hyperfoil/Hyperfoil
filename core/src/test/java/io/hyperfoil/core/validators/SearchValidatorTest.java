@@ -64,7 +64,7 @@ public class SearchValidatorTest {
 
    private Request runValidator(SearchValidator validator, String... text) {
       Session session = SessionFactory.forTesting();
-      Request request = session.requestPool().acquire();
+      Request request = session.httpRequestPool().acquire();
       validator.reserve(session);
       validator.beforeData(request);
 

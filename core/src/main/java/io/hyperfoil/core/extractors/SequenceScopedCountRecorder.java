@@ -1,5 +1,6 @@
 package io.hyperfoil.core.extractors;
 
+import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.http.Processor;
 import io.netty.buffer.ByteBuf;
 import io.hyperfoil.api.session.Session;
@@ -8,7 +9,7 @@ import io.hyperfoil.core.api.ResourceUtilizer;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-public class SequenceScopedCountRecorder implements Processor, ResourceUtilizer {
+public class SequenceScopedCountRecorder implements Processor<Request>, ResourceUtilizer {
    private static final Logger log = LoggerFactory.getLogger(SequenceScopedCountRecorder.class);
    private final String arrayVar;
    private final int numCounters;
@@ -19,17 +20,17 @@ public class SequenceScopedCountRecorder implements Processor, ResourceUtilizer 
    }
 
    @Override
-   public void before(Session session) {
-      int index = getIndex(session);
-      IntVar[] array = (IntVar[]) session.activate(arrayVar);
+   public void before(Request request) {
+      int index = getIndex(request.session);
+      IntVar[] array = (IntVar[]) request.session.activate(arrayVar);
       array[index].set(0);
    }
 
    @Override
-   public void process(Session session, ByteBuf buf, int offset, int length, boolean isLastPart) {
+   public void process(Request request, ByteBuf buf, int offset, int length, boolean isLastPart) {
       if (isLastPart) {
-         int index = getIndex(session);
-         IntVar[] array = (IntVar[]) session.getObject(arrayVar);
+         int index = getIndex(request.session);
+         IntVar[] array = (IntVar[]) request.session.getObject(arrayVar);
          array[index].add(1);
       }
    }

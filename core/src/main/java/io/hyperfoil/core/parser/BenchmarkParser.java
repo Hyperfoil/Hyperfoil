@@ -20,6 +20,7 @@ package io.hyperfoil.core.parser;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.core.builders.BenchmarkBuilder;
+import io.hyperfoil.core.util.Util;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
@@ -34,11 +35,9 @@ import org.yaml.snakeyaml.events.SequenceStartEvent;
 import org.yaml.snakeyaml.events.StreamEndEvent;
 import org.yaml.snakeyaml.events.StreamStartEvent;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
-import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 
 public class BenchmarkParser extends AbstractMappingParser<BenchmarkBuilder> {
@@ -87,14 +86,7 @@ public class BenchmarkParser extends AbstractMappingParser<BenchmarkBuilder> {
     }
 
     public Benchmark buildBenchmark(InputStream inputStream) throws ParserException, IOException {
-        ByteArrayOutputStream result = new ByteArrayOutputStream();
-        byte[] buffer = new byte[1024];
-        int length;
-        while ((length = inputStream.read(buffer)) != -1) {
-            result.write(buffer, 0, length);
-        }
-        String source = result.toString(StandardCharsets.UTF_8.name());
-        return buildBenchmark(source);
+        return buildBenchmark(Util.toString(inputStream));
     }
 
     private static class DebugIterator<T> implements Iterator<T> {

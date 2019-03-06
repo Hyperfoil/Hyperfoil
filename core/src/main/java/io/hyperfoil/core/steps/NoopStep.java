@@ -6,7 +6,6 @@ import java.util.function.Consumer;
 
 import org.kohsuke.MetaInfServices;
 
-import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.ServiceLoadedBuilder;
 import io.hyperfoil.api.config.Step;
@@ -65,9 +64,6 @@ public class NoopStep implements Step {
 
       @Override
       public Builder newBuilder(Consumer<StepBuilder> buildTarget, String param) {
-         if (param != null) {
-            throw new BenchmarkDefinitionException(NoopStep.class.getName() + " does not accept inline parameter");
-         }
          return new Builder(buildTarget);
       }
    }

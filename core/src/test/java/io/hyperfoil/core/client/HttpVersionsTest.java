@@ -8,7 +8,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import io.hyperfoil.api.connection.HttpClientPool;
-import io.hyperfoil.api.connection.Request;
+import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.api.http.HttpResponseHandlers;
 import io.hyperfoil.api.http.HttpVersion;
@@ -95,7 +95,7 @@ public class HttpVersionsTest {
                      return;
                   }
                   Session session = SessionFactory.forTesting();
-                  Request request = session.requestPool().acquire();
+                  HttpRequest request = session.httpRequestPool().acquire();
                   HttpResponseHandlers handlers = HttpResponseHandlersImpl.Builder.forTesting()
                         .statusExtractor((r, status) -> {
                            if (status != expectedStatus) {
@@ -107,9 +107,11 @@ public class HttpVersionsTest {
                            server.close();
                            async.complete();
                         }).build();
+                  request.method = HttpMethod.GET;
+                  request.path = "/ping";
                   request.start(handlers, new SequenceInstance(), new Statistics());
 
-                  client.next().request(request, HttpMethod.GET, "/ping", null, null);
+                  client.next().request(request, null, null);
                });
             } catch (Exception e) {
                ctx.fail(e);

@@ -2,6 +2,7 @@ package io.hyperfoil.core.extractors;
 
 import java.nio.charset.StandardCharsets;
 
+import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.http.Processor;
 import io.netty.buffer.ByteBuf;
 import io.hyperfoil.api.session.Session;
@@ -10,7 +11,7 @@ import io.hyperfoil.core.api.ResourceUtilizer;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-public class ArrayRecorder implements Processor, ResourceUtilizer {
+public class ArrayRecorder implements Processor<Request>, ResourceUtilizer {
    private static final Logger log = LoggerFactory.getLogger(ArrayRecorder.class);
    private final String var;
    private final int maxSize;
@@ -20,17 +21,17 @@ public class ArrayRecorder implements Processor, ResourceUtilizer {
       this.maxSize = maxSize;
    }
 
-   public void before(Session session) {
-      ObjectVar[] array = (ObjectVar[]) session.activate(var);
+   public void before(Request request) {
+      ObjectVar[] array = (ObjectVar[]) request.session.activate(var);
       for (int i = 0; i < array.length; ++i) {
          array[i].unset();
       }
    }
 
    @Override
-   public void process(Session session, ByteBuf data, int offset, int length, boolean isLastPart) {
+   public void process(Request request, ByteBuf data, int offset, int length, boolean isLastPart) {
       assert isLastPart;
-      ObjectVar[] array = (ObjectVar[]) session.activate(var);
+      ObjectVar[] array = (ObjectVar[]) request.session.activate(var);
       String value = data.toString(offset, length, StandardCharsets.UTF_8);
       for (int i = 0; i < array.length; ++i) {
          if (array[i].isSet()) continue;

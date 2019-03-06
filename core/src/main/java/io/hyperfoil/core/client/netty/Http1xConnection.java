@@ -1,16 +1,15 @@
 package io.hyperfoil.core.client.netty;
 
+import io.hyperfoil.api.connection.HttpRequest;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelPromise;
 import io.netty.handler.codec.http.HttpContent;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpVersion;
-import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.connection.Connection;
 import io.hyperfoil.api.connection.HttpConnection;
 import io.hyperfoil.api.connection.HttpConnectionPool;
 import io.hyperfoil.api.connection.HttpRequestWriter;
-import io.hyperfoil.api.http.HttpMethod;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
@@ -36,7 +35,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    private static boolean trace = log.isTraceEnabled();
 
    private final HttpConnectionPool pool;
-   private final Deque<Request> inflights;
+   private final Deque<HttpRequest> inflights;
    private final BiConsumer<HttpConnection, Throwable> activationHandler;
    ChannelHandlerContext ctx;
    // we can safely use non-atomic variables since the connection should be always accessed by single thread
@@ -75,25 +74,41 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
       if (msg instanceof HttpResponse) {
          HttpResponse response = (HttpResponse) msg;
-         Request request = inflights.peek();
+         HttpRequest request = inflights.peek();
          HttpResponseHandlers handlers = (HttpResponseHandlers) request.handlers();
-         handlers.handleStatus(request, response.status().code(), response.status().reasonPhrase());
-         for (Map.Entry<String, String> header : response.headers()) {
-            handlers.handleHeader(request, header.getKey(), header.getValue());
+         try {
+            handlers.handleStatus(request, response.status().code(), response.status().reasonPhrase());
+            for (Map.Entry<String, String> header : response.headers()) {
+               handlers.handleHeader(request, header.getKey(), header.getValue());
+            }
+         } catch (Throwable t) {
+            log.error("Response processing failed on {}", t, this);
+            handlers.handleThrowable(request, t);
          }
       }
       if (msg instanceof HttpContent) {
-         Request request = inflights.peek();
+         HttpRequest request = inflights.peek();
          HttpResponseHandlers handlers = (HttpResponseHandlers) request.handlers();
-         handlers.handleBodyPart(request, ((HttpContent) msg).content());
+         try {
+            handlers.handleBodyPart(request, ((HttpContent) msg).content());
+         } catch (Throwable t) {
+            log.error("Response processing failed on {}", t, this);
+            request.session.fail(t);
+         }
       }
       if (msg instanceof LastHttpContent) {
          size--;
-         Request request = inflights.poll();
-         request.handlers().handleEnd(request);
-         if (trace) {
-            log.trace("Completed response on {}", this);
+         HttpRequest request = inflights.poll();
+         try {
+            request.handlers().handleEnd(request);
+            if (trace) {
+               log.trace("Completed response on {}", this);
+            }
+         } catch (Throwable t) {
+            log.error("Response processing failed on {}", t, this);
+            request.handlers().handleThrowable(request, t);
          }
+
          // If this connection was not available we make it available
          // TODO: it would be better to check this in connection pool
          if (size == pool.clientPool().config().pipeliningLimit() - 1) {
@@ -116,7 +131,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    }
 
    private void cancelRequests(Throwable cause) {
-      Request request;
+      HttpRequest request;
       while ((request = inflights.poll()) != null) {
          if (!request.isCompleted()) {
             request.handlers().handleThrowable(request, cause);
@@ -126,13 +141,13 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    }
 
    @Override
-   public void request(Request request, HttpMethod method, String path, BiConsumer<Session, HttpRequestWriter>[] headerAppenders, BiFunction<Session, Connection, ByteBuf> bodyGenerator) {
+   public void request(HttpRequest request, BiConsumer<Session, HttpRequestWriter>[] headerAppenders, BiFunction<Session, Connection, ByteBuf> bodyGenerator) {
       size++;
       ByteBuf buf = bodyGenerator != null ? bodyGenerator.apply(request.session, request.connection()) : null;
       if (buf == null) {
          buf = Unpooled.EMPTY_BUFFER;
       }
-      DefaultFullHttpRequest msg = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, method.netty, path, buf, false);
+      DefaultFullHttpRequest msg = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, request.method.netty, request.path, buf, false);
       msg.headers().add(HttpHeaderNames.HOST, pool.clientPool().authority());
       if (buf.readableBytes() > 0) {
          msg.headers().add(HttpHeaderNames.CONTENT_LENGTH, String.valueOf(buf.readableBytes()));
@@ -152,7 +167,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    }
 
    @Override
-   public Request peekRequest(int streamId) {
+   public HttpRequest peekRequest(int streamId) {
       assert streamId == 0;
       return inflights.peek();
    }

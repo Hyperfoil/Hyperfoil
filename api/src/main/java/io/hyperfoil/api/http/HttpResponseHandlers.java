@@ -1,17 +1,17 @@
 package io.hyperfoil.api.http;
 
-import io.netty.buffer.ByteBuf;
-import io.hyperfoil.api.connection.Request;
+import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.connection.ResponseHandlers;
+import io.netty.buffer.ByteBuf;
 
-public interface HttpResponseHandlers extends ResponseHandlers {
-   void handleStatus(Request request, int status, String reason);
+public interface HttpResponseHandlers extends ResponseHandlers<HttpRequest> {
+   void handleStatus(HttpRequest request, int status, String reason);
 
-   void handleHeader(Request request, String header, String value);
+   void handleHeader(HttpRequest request, String header, String value);
 
-   void handleBodyPart(Request request, ByteBuf buf);
+   void handleBodyPart(HttpRequest request, ByteBuf buf);
 
    boolean hasRawBytesHandler();
 
-   void handleRawBytes(Request request, ByteBuf buf);
+   void handleRawBytes(HttpRequest request, ByteBuf buf);
 }

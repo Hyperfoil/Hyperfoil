@@ -1,14 +1,13 @@
 package io.hyperfoil.core.client.netty;
 
+import io.hyperfoil.api.connection.HttpRequest;
+import io.hyperfoil.api.connection.HttpConnection;
+import io.hyperfoil.core.util.Util;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.util.AsciiString;
-import io.hyperfoil.api.connection.HttpConnection;
-import io.hyperfoil.api.connection.Request;
-import io.hyperfoil.api.http.HttpMethod;
-import io.hyperfoil.core.util.Util;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
@@ -97,7 +96,7 @@ public class Http1xRawBytesHandler extends BaseRawBytesHandler {
                   try {
                      ByteBuf lineBuf;
                      if (readerIndex - lineStartOffset == 1 || lastLine.writerIndex() == 1 && readerIndex == 0) {
-                        switch ((HttpMethod) connection.peekRequest(0).requestData()) {
+                        switch (((HttpRequest) connection.peekRequest(0)).method) {
                            case HEAD:
                            case CONNECT:
                               contentLength = 0;
@@ -225,7 +224,7 @@ public class Http1xRawBytesHandler extends BaseRawBytesHandler {
    }
 
    private void passFullBuffer(ChannelHandlerContext ctx, ByteBuf buf) {
-      Request request = connection.peekRequest(0);
+      HttpRequest request = connection.peekRequest(0);
       invokeHandler(request, buf);
       ctx.fireChannelRead(buf);
    }

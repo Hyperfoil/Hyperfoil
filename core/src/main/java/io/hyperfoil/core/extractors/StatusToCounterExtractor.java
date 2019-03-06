@@ -110,9 +110,6 @@ public class StatusToCounterExtractor implements StatusExtractor, ResourceUtiliz
 
       @Override
       public Builder newBuilder(Consumer<StatusExtractor> buildTarget, String param) {
-         if (param != null) {
-            throw new BenchmarkDefinitionException(StatusToCounterExtractor.class.getName() + " does not accept inline parameter");
-         }
          return new Builder(buildTarget);
       }
    }

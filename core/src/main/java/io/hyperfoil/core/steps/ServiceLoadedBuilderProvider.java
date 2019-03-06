@@ -48,6 +48,10 @@ public class ServiceLoadedBuilderProvider<T> {
    }
 
    public ServiceLoadedBuilder forName(String name, String param) {
-      return factory((Class) factoryClazz, name).newBuilder(consumer, param);
+      ServiceLoadedBuilder.Factory factory = factory((Class) factoryClazz, name);
+      if (param != null && !factory.acceptsParam()) {
+         throw new BenchmarkDefinitionException(factory.name() + " does not accept inline parameter");
+      }
+      return factory.newBuilder(consumer, param);
    }
 }

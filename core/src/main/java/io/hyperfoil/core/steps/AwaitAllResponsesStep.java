@@ -6,6 +6,6 @@ import io.hyperfoil.api.config.Step;
 public class AwaitAllResponsesStep implements Step {
    @Override
    public boolean invoke(Session session) {
-      return session.requestPool().isFull();
+      return session.httpRequestPool().isFull();
    }
 }

@@ -1,6 +1,7 @@
 package io.hyperfoil.core.impl;
 
 import io.hyperfoil.api.session.SharedData;
+import io.hyperfoil.core.client.netty.HttpDestinationTableImpl;
 import io.hyperfoil.core.session.SharedDataImpl;
 import io.netty.channel.EventLoop;
 import io.netty.channel.EventLoopGroup;
@@ -51,11 +52,12 @@ public class SimulationRunnerImpl implements SimulationRunner {
     protected final Map<String, SharedResources> sharedResources = new HashMap<>();
     protected final EventLoopGroup eventLoopGroup;
     protected final Map<String, HttpClientPool> httpClientPools = new HashMap<>();
-    protected final Map<EventExecutor, Map<String, HttpConnectionPool>> httpConnectionPools = new HashMap<>();
+    protected final Map<EventExecutor, HttpDestinationTableImpl> httpDestinations = new HashMap<>();
 
     public SimulationRunnerImpl(Simulation simulation) {
         this.eventLoopGroup = new NioEventLoopGroup(simulation.threads());
         this.simulation = simulation;
+        Map<EventExecutor, Map<String, HttpConnectionPool>> httpConnectionPools = new HashMap<>();
         for (Map.Entry<String, Http> http : simulation.http().entrySet()) {
             try {
                 HttpClientPool httpClientPool = new HttpClientPoolImpl(eventLoopGroup, http.getValue());
@@ -74,6 +76,9 @@ public class SimulationRunnerImpl implements SimulationRunner {
             } catch (SSLException e) {
                 throw new IllegalStateException("Failed creating connection pool to " + http.getValue().baseUrl(), e);
             }
+        }
+        for (Map.Entry<EventExecutor, Map<String, HttpConnectionPool>> entry : httpConnectionPools.entrySet()) {
+            httpDestinations.put(entry.getKey(), new HttpDestinationTableImpl(entry.getValue()));
         }
     }
 
@@ -111,7 +116,7 @@ public class SimulationRunnerImpl implements SimulationRunner {
                         phaseSessions.add(session);
                     }
                     EventLoop eventLoop = eventLoopGroup.next();
-                    session.attach(eventLoop, data.get(eventLoop), httpConnectionPools.get(eventLoop), statistics.get(eventLoop));
+                    session.attach(eventLoop, data.get(eventLoop), httpDestinations.get(eventLoop), statistics.get(eventLoop));
                     session.reserve(def.scenario);
                     return session;
                 };
@@ -192,8 +197,8 @@ public class SimulationRunnerImpl implements SimulationRunner {
     public List<String> listConnections() {
         ArrayList<String> list = new ArrayList<>();
         // Connection pools should be accessed only from the executor, but since we're only publishing stats...
-        for (Map<String, HttpConnectionPool> pools : httpConnectionPools.values()) {
-            for (Map.Entry<String, HttpConnectionPool> entry : pools.entrySet()) {
+        for (HttpDestinationTableImpl destinations : httpDestinations.values()) {
+            for (Map.Entry<String, HttpConnectionPool> entry : destinations.iterable()) {
                 if (entry.getKey() == null) {
                     // Ignore default pool: it's there twice
                     continue;

@@ -2,11 +2,11 @@ package io.hyperfoil.core.client.netty;
 
 import static io.netty.handler.codec.http2.Http2CodecUtil.FRAME_HEADER_LENGTH;
 
+import io.hyperfoil.api.connection.HttpRequest;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.hyperfoil.api.connection.HttpConnection;
-import io.hyperfoil.api.connection.Request;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
@@ -44,7 +44,7 @@ public class Http2RawBytesHandler extends BaseRawBytesHandler {
                   ByteBuf wrapped = Unpooled.wrappedBuffer(frameHeader);
                   responseBytes = FRAME_HEADER_LENGTH + wrapped.getUnsignedMedium(0);
                   streamId = wrapped.getInt(5) & Integer.MAX_VALUE;
-                  Request request = connection.peekRequest(streamId);
+                  HttpRequest request = connection.peekRequest(streamId);
                   invokeHandler(request, wrapped);
                   ctx.fireChannelRead(wrapped);
 

@@ -24,6 +24,9 @@ import io.hyperfoil.api.config.Http;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 
+/**
+ * Manages access to single host (identified by the same URL), keeping a {@link HttpConnectionPool} for each executor.
+ */
 public interface HttpClientPool {
 
     Http config();

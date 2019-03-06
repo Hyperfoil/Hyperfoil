@@ -2,6 +2,7 @@ package io.hyperfoil.core.session;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.core.builders.BenchmarkBuilder;
 import io.hyperfoil.core.builders.HttpBuilder;
@@ -28,12 +29,16 @@ public abstract class BaseScenarioTest {
    protected BenchmarkBuilder benchmarkBuilder;
 
    protected Map<String, List<StatisticsSnapshot>> runScenario() {
-      LocalSimulationRunner runner = new LocalSimulationRunner(benchmarkBuilder.build());
+      LocalSimulationRunner runner = new LocalSimulationRunner(benchmark());
       runner.run();
       Map<String, List<StatisticsSnapshot>> stats = new HashMap<>();
       runner.visitStatistics((phase, map) -> map.entrySet().forEach(
             e -> stats.computeIfAbsent(e.getKey(), l -> new ArrayList<>()).add(e.getValue().snapshot())));
       return stats;
+   }
+
+   protected Benchmark benchmark() {
+      return benchmarkBuilder.build();
    }
 
    @Before

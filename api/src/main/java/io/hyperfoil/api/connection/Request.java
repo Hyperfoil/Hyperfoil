@@ -11,7 +11,7 @@ import io.netty.util.concurrent.ScheduledFuture;
 import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.api.session.Session;
 
-public class Request implements Callable<Void>, GenericFutureListener<Future<Void>> {
+public abstract class Request implements Callable<Void>, GenericFutureListener<Future<Void>> {
    private static final TimeoutException TIMEOUT_EXCEPTION = new TimeoutException();
 
    public final Session session;
@@ -20,8 +20,6 @@ public class Request implements Callable<Void>, GenericFutureListener<Future<Voi
    private SequenceInstance sequence;
    private Statistics statistics;
    private ScheduledFuture<?> timeoutFuture;
-   private Object requestData;
-   private ResponseHandlers handlers;
    private Connection connection;
    private boolean completed = true;
 
@@ -37,26 +35,19 @@ public class Request implements Callable<Void>, GenericFutureListener<Future<Voi
       timeoutFuture = null;
       if (!isCompleted()) {
          statistics.incrementTimeouts();
-         handlers().handleThrowable(this, TIMEOUT_EXCEPTION);
+         handleThrowable(TIMEOUT_EXCEPTION);
          // handleThrowable sets the request completed
       }
       return null;
    }
 
-   public void start(ResponseHandlers handlers, SequenceInstance sequence, Statistics statistics) {
+   protected abstract void handleThrowable(Throwable throwable);
+
+   public void start(SequenceInstance sequence, Statistics statistics) {
       this.startTime = System.nanoTime();
-      this.handlers = handlers;
       this.sequence = sequence;
       this.statistics = statistics;
       this.completed = false;
-   }
-
-   public Object requestData() {
-      return requestData;
-   }
-
-   public void setRequestData(Object requestData) {
-      this.requestData = requestData;
    }
 
    public void attach(Connection connection) {
@@ -80,10 +71,6 @@ public class Request implements Callable<Void>, GenericFutureListener<Future<Voi
       return connection;
    }
 
-   public ResponseHandlers handlers() {
-      return handlers;
-   }
-
    public SequenceInstance sequence() {
       return sequence;
    }
@@ -105,7 +92,7 @@ public class Request implements Callable<Void>, GenericFutureListener<Future<Voi
    }
 
    @Override
-   public void operationComplete(Future<Void> future) throws Exception {
+   public void operationComplete(Future<Void> future) {
       // This is called when the request is written on the wire
       sendTime = System.nanoTime();
    }

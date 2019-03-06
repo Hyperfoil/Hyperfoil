@@ -1,9 +1,10 @@
 package io.hyperfoil.core.session;
 
+import io.hyperfoil.api.connection.HttpDestinationTable;
+import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.session.SharedData;
 import io.netty.util.concurrent.EventExecutor;
 import io.hyperfoil.api.collection.LimitedPool;
-import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.config.Scenario;
 import io.hyperfoil.api.config.Sequence;
@@ -33,14 +34,14 @@ class SessionImpl implements Session, Callable<Void> {
    private final Map<ResourceKey, Resource> resources = new HashMap<>();
    private final List<Var> allVars = new ArrayList<>();
    private final LimitedPool<SequenceInstance> sequencePool;
-   private final LimitedPool<Request> requestPool;
-   private final Request[] requests;
+   private final LimitedPool<HttpRequest> requestPool;
+   private final HttpRequest[] requests;
    private final SequenceInstance[] runningSequences;
    private PhaseInstance phase;
    private int lastRunningSequence = -1;
    private SequenceInstance currentSequence;
 
-   private Map<String, HttpConnectionPool> httpConnectionPools;
+   private HttpDestinationTable httpDestinations;
    private EventExecutor executor;
    private SharedData sharedData;
    private Map<String, Statistics> statistics;
@@ -50,9 +51,9 @@ class SessionImpl implements Session, Callable<Void> {
 
    SessionImpl(Scenario scenario, int uniqueId) {
       this.sequencePool = new LimitedPool<>(scenario.maxSequences(), SequenceInstance::new);
-      this.requests = new Request[16];
+      this.requests = new HttpRequest[16];
       for (int i = 0; i < requests.length; ++i) {
-         this.requests[i] = new Request(this);
+         this.requests[i] = new HttpRequest(this);
       }
       this.requestPool = new LimitedPool<>(this.requests);
       this.runningSequences = new SequenceInstance[scenario.maxSequences()];
@@ -81,17 +82,12 @@ class SessionImpl implements Session, Callable<Void> {
 
    @Override
    public HttpConnectionPool httpConnectionPool(String baseUrl) {
-      return httpConnectionPools.get(baseUrl);
+      return httpDestinations.getConnectionPool(baseUrl);
    }
 
    @Override
-   public String findBaseUrl(String path) {
-      for (String baseUrl : httpConnectionPools.keySet()) {
-         if (path.startsWith(baseUrl)) {
-            return baseUrl;
-         }
-      }
-      return null;
+   public HttpDestinationTable httpDestinations() {
+      return httpDestinations;
    }
 
    @Override
@@ -326,7 +322,7 @@ class SessionImpl implements Session, Callable<Void> {
       // We need to close all connections used to ongoing requests, despite these might
       // carry requests from independent phases/sessions
       if (!requestPool.isFull()) {
-         for (Request request : requests) {
+         for (HttpRequest request : requests) {
             if (!request.isCompleted()) {
                if (trace) {
                   log.trace("Canceling request on {}", request.connection());
@@ -356,11 +352,11 @@ class SessionImpl implements Session, Callable<Void> {
    }
 
    @Override
-   public void attach(EventExecutor executor, SharedData sharedData, Map<String, HttpConnectionPool> httpConnectionPools, Map<String, Statistics> statistics) {
+   public void attach(EventExecutor executor, SharedData sharedData, HttpDestinationTable httpDestinations, Map<String, Statistics> statistics) {
       assert this.executor == null;
       this.executor = executor;
       this.sharedData = sharedData;
-      this.httpConnectionPools = httpConnectionPools;
+      this.httpDestinations = httpDestinations;
       this.statistics = statistics;
    }
 
@@ -426,6 +422,7 @@ class SessionImpl implements Session, Callable<Void> {
       if (trace) {
          log.trace("#{} Stopped.", uniqueId);
       }
+      phase.notifyTerminated(this);
    }
 
    @Override
@@ -440,7 +437,7 @@ class SessionImpl implements Session, Callable<Void> {
    }
 
    @Override
-   public LimitedPool<Request> requestPool() {
+   public LimitedPool<HttpRequest> httpRequestPool() {
       return requestPool;
    }
 

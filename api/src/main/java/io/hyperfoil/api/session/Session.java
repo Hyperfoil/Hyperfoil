@@ -3,9 +3,10 @@ package io.hyperfoil.api.session;
 import java.util.Map;
 
 import io.hyperfoil.api.config.Scenario;
+import io.hyperfoil.api.connection.HttpDestinationTable;
+import io.hyperfoil.api.connection.HttpRequest;
 import io.netty.util.concurrent.EventExecutor;
 import io.hyperfoil.api.collection.LimitedPool;
-import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.connection.HttpConnectionPool;
 import io.hyperfoil.api.statistics.Statistics;
 import io.hyperfoil.api.http.ValidatorResults;
@@ -23,7 +24,7 @@ public interface Session {
    /// Common utility objects
    HttpConnectionPool httpConnectionPool(String baseUrl);
 
-   String findBaseUrl(String path);
+   HttpDestinationTable httpDestinations();
 
    EventExecutor executor();
 
@@ -76,7 +77,7 @@ public interface Session {
 
    SequenceInstance currentSequence();
 
-   void attach(EventExecutor executor, SharedData sharedData, Map<String, HttpConnectionPool> httpConnectionPools, Map<String, Statistics> statistics);
+   void attach(EventExecutor executor, SharedData sharedData, HttpDestinationTable httpDestinations, Map<String, Statistics> statistics);
 
    void start(PhaseInstance phase);
 
@@ -95,7 +96,7 @@ public interface Session {
 
    boolean isActive();
 
-   LimitedPool<Request> requestPool();
+   LimitedPool<HttpRequest> httpRequestPool();
 
    enum VarType {
       OBJECT,

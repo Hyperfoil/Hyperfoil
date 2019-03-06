@@ -48,7 +48,7 @@ public class ChunkedTransferTest extends BaseScenarioTest {
       AtomicBoolean rawBytesSeen = new AtomicBoolean(false);
       scenario().initialSequence("test")
             .step(s -> {
-               s.httpConnectionPool(null).connections().forEach(c -> {
+               s.httpDestinations().getConnectionPool(null).connections().forEach(c -> {
                   try {
                      Field f = c.getClass().getDeclaredField("ctx");
                      f.setAccessible(true);

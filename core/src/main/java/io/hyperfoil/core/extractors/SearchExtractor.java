@@ -2,9 +2,10 @@ package io.hyperfoil.core.extractors;
 
 import java.nio.charset.StandardCharsets;
 
+import io.hyperfoil.api.connection.HttpRequest;
+import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.http.Processor;
 import io.netty.buffer.ByteBuf;
-import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.http.BodyExtractor;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.api.ResourceUtilizer;
@@ -17,9 +18,9 @@ public class SearchExtractor implements BodyExtractor, ResourceUtilizer, Session
    private final byte[] begin, end;
    private final int beginHash, endHash;
    private final int beginCoef, endCoef;
-   private Processor processor;
+   private Processor<Request> processor;
 
-   public SearchExtractor(String begin, String end, Processor processor) {
+   public SearchExtractor(String begin, String end, Processor<Request> processor) {
       this.begin = begin.getBytes(StandardCharsets.UTF_8);
       this.end = end.getBytes(StandardCharsets.UTF_8);
       this.beginHash = computeHash(this.begin);
@@ -46,21 +47,20 @@ public class SearchExtractor implements BodyExtractor, ResourceUtilizer, Session
    }
 
    @Override
-   public void beforeData(Request request) {
+   public void beforeData(HttpRequest request) {
       Context ctx = request.session.getResource(this);
       ctx.reset();
-      processor.before(request.session);
+      processor.before(request);
    }
 
    @Override
-   public void extractData(Request request, ByteBuf data) {
-      Session session = request.session;
-      Context ctx = session.getResource(this);
+   public void extractData(HttpRequest request, ByteBuf data) {
+      Context ctx = request.session.getResource(this);
       ctx.add(data);
       initHash(ctx, data);
       while (test(ctx)) {
          if (ctx.lookupText == end) {
-            fireProcessor(ctx, session);
+            fireProcessor(ctx, request);
          } else {
             ctx.mark();
          }
@@ -71,7 +71,7 @@ public class SearchExtractor implements BodyExtractor, ResourceUtilizer, Session
          ctx.currentHash -= ctx.lookupCoef * ctx.byteRelative(ctx.lookupText.length + 1);
          while (test(ctx)) {
             if (ctx.lookupText == end) {
-               fireProcessor(ctx, session);
+               fireProcessor(ctx, request);
             } else {
                ctx.mark();
             }
@@ -80,7 +80,7 @@ public class SearchExtractor implements BodyExtractor, ResourceUtilizer, Session
       }
    }
 
-   private void fireProcessor(Context ctx, Session session) {
+   private void fireProcessor(Context ctx, HttpRequest request) {
       int endPart = ctx.currentPart;
       int endPos = ctx.parts[endPart].readerIndex() - end.length;
       while (endPos < 0) {
@@ -96,12 +96,12 @@ public class SearchExtractor implements BodyExtractor, ResourceUtilizer, Session
          ByteBuf data = ctx.parts[ctx.markPart];
          // if the begin ends with part, we'll skip the 0-length process call
          if (ctx.markPos != data.writerIndex()) {
-            processor.process(session, data, ctx.markPos, data.writerIndex() - ctx.markPos, false);
+            processor.process(request, data, ctx.markPos, data.writerIndex() - ctx.markPos, false);
          }
          ctx.markPos = 0;
          ctx.markPart++;
       }
-      processor.process(session, ctx.parts[endPart], ctx.markPos, endPos - ctx.markPos, true);
+      processor.process(request, ctx.parts[endPart], ctx.markPos, endPos - ctx.markPos, true);
    }
 
    private boolean test(Context ctx) {
@@ -139,11 +139,11 @@ public class SearchExtractor implements BodyExtractor, ResourceUtilizer, Session
    }
 
    @Override
-   public void afterData(Request request) {
+   public void afterData(HttpRequest request) {
       Context ctx = request.session.getResource(this);
       // release buffers
       ctx.reset();
-      processor.after(request.session);
+      processor.after(request);
    }
 
    @Override

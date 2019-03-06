@@ -7,9 +7,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
+import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.session.Action;
 import io.netty.buffer.ByteBuf;
-import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.http.BodyExtractor;
 import io.hyperfoil.api.http.HeaderExtractor;
 import io.hyperfoil.api.http.HttpResponseHandlers;
@@ -56,7 +56,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
    }
 
    @Override
-   public void handleStatus(Request request, int status, String reason) {
+   public void handleStatus(HttpRequest request, int status, String reason) {
       Session session = request.session;
       session.currentSequence(request.sequence());
       if (request.isCompleted()) {
@@ -108,7 +108,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
    }
 
    @Override
-   public void handleHeader(Request request, String header, String value) {
+   public void handleHeader(HttpRequest request, String header, String value) {
       Session session = request.session;
       if (request.isCompleted()) {
          if (trace) {
@@ -132,7 +132,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
    }
 
    @Override
-   public void handleThrowable(Request request, Throwable throwable) {
+   public void handleThrowable(HttpRequest request, Throwable throwable) {
       Session session = request.session;
       if (trace) {
          log.trace("#{} Received exception {}", session.uniqueId(), throwable);
@@ -151,13 +151,13 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       }
       request.setCompleted();
       request.statistics().incrementResets();
-      session.requestPool().release(request);
+      session.httpRequestPool().release(request);
       session.currentSequence(null);
       session.proceed();
    }
 
    @Override
-   public void handleBodyPart(Request request, ByteBuf buf) {
+   public void handleBodyPart(HttpRequest request, ByteBuf buf) {
       Session session = request.session;
       if (request.isCompleted()) {
          if (trace) {
@@ -192,7 +192,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
    }
 
    @Override
-   public void handleEnd(Request request) {
+   public void handleEnd(HttpRequest request) {
       Session session = request.session;
       if (request.isCompleted()) {
          if (trace) {
@@ -238,14 +238,14 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       }
 
       request.setCompleted();
-      session.requestPool().release(request);
+      session.httpRequestPool().release(request);
       session.currentSequence(null);
       // if anything was blocking due to full request queue we should continue from the right place
       session.proceed();
    }
 
    @Override
-   public void handleRawBytes(Request request, ByteBuf buf) {
+   public void handleRawBytes(HttpRequest request, ByteBuf buf) {
       for (RawBytesHandler rawBytesHandler : rawBytesHandlers) {
          rawBytesHandler.accept(request, buf);
       }

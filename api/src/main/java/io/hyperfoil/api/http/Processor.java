@@ -1,25 +1,43 @@
 package io.hyperfoil.api.http;
 
 import io.hyperfoil.api.config.ServiceLoadedBuilder;
-import io.hyperfoil.api.session.Session;
+import io.hyperfoil.api.connection.Request;
 import io.netty.buffer.ByteBuf;
 
-public interface Processor {
+public interface Processor<R extends Request> {
    /**
     * Invoked before we record first value from given response.
-    * @param session
+    * @param request
     */
-   default void before(Session session) {
+   default void before(R request) {
    }
 
-   void process(Session session, ByteBuf data, int offset, int length, boolean isLastPart);
+   void process(R request, ByteBuf data, int offset, int length, boolean isLastPart);
 
    /**
     * Invoked after we record the last value from given response.
-    * @param session
+    * @param request
     */
-   default void after(Session session) {
+   default void after(R request) {
    }
 
    interface BuilderFactory extends ServiceLoadedBuilder.Factory<Processor> {}
+
+   abstract class BaseDelegating<R extends Request> implements Processor<R> {
+      protected final Processor<R> delegate;
+
+      protected BaseDelegating(Processor<R> delegate) {
+         this.delegate = delegate;
+      }
+
+      @Override
+      public void before(R request) {
+         delegate.before(request);
+      }
+
+      @Override
+      public void after(R request) {
+         delegate.after(request);
+      }
+   }
 }
