@@ -344,12 +344,14 @@ scenario:
 ```
 
 You can use eiter well-known steps (those are defined as methods
-on `i.s.core.builders.StepCatalog` class) or provide custom *service-loaded* steps.
-These are provided by any implementation of `i.s.api.config.Step.BuilderFactory` that
+on `i.h.core.builders.StepCatalog` class) or provide custom *service-loaded* steps.
+These are provided by any implementation of `i.h.api.config.StepBuilder.Factory` that
 is registered using the `java.util.ServiceLoader` mechanism. Each name provided by the factory
 should be unique.
 
 An exhaustive list of steps will be provided in the **TODO** reference.
+In the meantime use the JSON schema to see available ones.
+
 
 ### Anchors and aliases
 
