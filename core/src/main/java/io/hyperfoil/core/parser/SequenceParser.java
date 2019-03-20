@@ -18,8 +18,8 @@
  */
 package io.hyperfoil.core.parser;
 
-import io.hyperfoil.core.builders.ScenarioBuilder;
-import io.hyperfoil.core.builders.SequenceBuilder;
+import io.hyperfoil.api.config.ScenarioBuilder;
+import io.hyperfoil.api.config.SequenceBuilder;
 
 import java.util.function.BiFunction;
 

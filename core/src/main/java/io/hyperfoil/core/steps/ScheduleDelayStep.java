@@ -8,10 +8,9 @@ import java.util.concurrent.TimeUnit;
 import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.core.api.ResourceUtilizer;
-import io.hyperfoil.core.builders.BaseSequenceBuilder;
+import io.hyperfoil.api.session.ResourceUtilizer;
+import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.core.builders.BaseStepBuilder;
-import io.hyperfoil.core.util.Util;
 import io.hyperfoil.function.SerializableSupplier;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -105,7 +104,7 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
       }
 
       public Builder duration(String duration) {
-         this.duration = Util.parseToMillis(duration);
+         this.duration = io.hyperfoil.util.Util.parseToMillis(duration);
          return this;
       }
 
@@ -125,12 +124,12 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
       }
 
       public Builder min(String min) {
-         this.min = Util.parseToMillis(min);
+         this.min = io.hyperfoil.util.Util.parseToMillis(min);
          return this;
       }
 
       public Builder max(String max) {
-         this.max = Util.parseToMillis(max);
+         this.max = io.hyperfoil.util.Util.parseToMillis(max);
          return this;
       }
 

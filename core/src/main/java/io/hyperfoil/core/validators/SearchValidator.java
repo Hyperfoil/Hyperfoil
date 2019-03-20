@@ -6,7 +6,7 @@ import java.util.function.IntPredicate;
 import io.netty.buffer.ByteBuf;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.core.api.ResourceUtilizer;
+import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.http.BodyValidator;
 
 /**

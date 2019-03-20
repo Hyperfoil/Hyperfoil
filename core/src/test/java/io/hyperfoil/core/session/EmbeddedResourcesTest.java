@@ -47,16 +47,21 @@ public class EmbeddedResourcesTest extends BaseScenarioTest {
    @Test
    public void test() {
       Map<String, List<StatisticsSnapshot>> stats = runScenario();
-      assertThat(stats.size()).isEqualTo(4);
+      assertThat(stats.size()).isEqualTo(5);
       for (Map.Entry<String, List<StatisticsSnapshot>> entry : stats.entrySet()) {
-         if (!entry.getKey().equals("index")) {
-            assertThat(entry.getKey()).matches(".*\\.(css|js|ico|php)");
+         String name = entry.getKey();
+         int hits;
+         if (name.equals("automatic") || name.equals("manual")) {
+            hits = 1;
+         } else {
+            assertThat(name).matches(".*\\.(css|js|ico|php)");
+            hits = 2;
          }
          List<StatisticsSnapshot> list = entry.getValue();
          assertThat(list.size()).isEqualTo(1);
          StatisticsSnapshot snapshot = list.iterator().next();
-         assertThat(snapshot.requestCount).isEqualTo(1);
-         assertThat(snapshot.status_2xx).isEqualTo(1);
+         assertThat(snapshot.requestCount).isEqualTo(hits);
+         assertThat(snapshot.status_2xx).isEqualTo(hits);
       }
    }
 }

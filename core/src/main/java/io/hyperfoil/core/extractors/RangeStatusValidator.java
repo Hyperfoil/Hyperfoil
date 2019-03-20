@@ -6,6 +6,7 @@ import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.ServiceLoadedBuilder;
+import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.http.StatusValidator;
 import io.vertx.core.logging.Logger;
@@ -69,7 +70,7 @@ public class RangeStatusValidator implements StatusValidator {
       }
 
       @Override
-      public Builder newBuilder(Consumer<StatusValidator> buildTarget, String param) {
+      public Builder newBuilder(StepBuilder stepBuilder, Consumer<StatusValidator> buildTarget, String param) {
          if (param != null) {
             int xn = 0;
             for (int i = param.length() - 1; i >= 0; --i) {

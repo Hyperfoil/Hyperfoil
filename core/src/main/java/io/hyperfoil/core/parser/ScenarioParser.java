@@ -18,7 +18,7 @@
  */
 package io.hyperfoil.core.parser;
 
-import io.hyperfoil.core.builders.ScenarioBuilder;
+import io.hyperfoil.api.config.ScenarioBuilder;
 
 import org.yaml.snakeyaml.events.AliasEvent;
 import org.yaml.snakeyaml.events.MappingStartEvent;

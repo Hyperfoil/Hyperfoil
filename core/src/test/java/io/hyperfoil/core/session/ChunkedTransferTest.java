@@ -14,7 +14,7 @@ import io.netty.buffer.CompositeByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.hyperfoil.api.http.HttpMethod;
-import io.hyperfoil.core.builders.HttpBuilder;
+import io.hyperfoil.api.config.HttpBuilder;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 
@@ -63,7 +63,7 @@ public class ChunkedTransferTest extends BaseScenarioTest {
                });
                return true;
             })
-            .step().httpRequest(HttpMethod.GET).path("/test")
+            .step(SC).httpRequest(HttpMethod.GET).path("/test")
                .handler().rawBytesHandler((session, byteBuf) -> {
                   log.info("Received chunk {} bytes:\n{}", byteBuf.readableBytes(),
                         byteBuf.toString(byteBuf.readerIndex(), byteBuf.readableBytes(), StandardCharsets.UTF_8));
@@ -73,8 +73,8 @@ public class ChunkedTransferTest extends BaseScenarioTest {
                   rawBytesSeen.set(true);
                }).endHandler()
             .endStep()
-            .step().httpRequest(HttpMethod.GET).path("/test2").endStep()
-            .step().awaitAllResponses()
+            .step(SC).httpRequest(HttpMethod.GET).path("/test2").endStep()
+            .step(SC).awaitAllResponses()
             .endSequence();
 
       runScenario();

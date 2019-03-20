@@ -18,7 +18,7 @@
  */
 package io.hyperfoil.core.parser;
 
-import io.hyperfoil.core.builders.SLABuilder;
+import io.hyperfoil.api.config.SLABuilder;
 
 class SLAParser extends AbstractMappingParser<SLABuilder> {
     private static final SLAParser INSTANCE = new SLAParser();

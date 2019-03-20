@@ -4,8 +4,7 @@ import org.yaml.snakeyaml.events.MappingEndEvent;
 import org.yaml.snakeyaml.events.MappingStartEvent;
 import org.yaml.snakeyaml.events.ScalarEvent;
 
-import io.hyperfoil.core.builders.SLABuilder;
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.api.config.SLABuilder;
 
 class PercentileLimitsParser implements Parser<SLABuilder> {
    @Override
@@ -17,7 +16,7 @@ class PercentileLimitsParser implements Parser<SLABuilder> {
       ctx.expectEvent(MappingStartEvent.class);
       ScalarEvent percentile = ctx.expectEvent(ScalarEvent.class);
       ScalarEvent responseTime = ctx.expectEvent(ScalarEvent.class);
-      builder.addPercentileLimit(Double.parseDouble(percentile.getValue()), Util.parseToNanos(responseTime.getValue()));
+      builder.addPercentileLimit(Double.parseDouble(percentile.getValue()), io.hyperfoil.util.Util.parseToNanos(responseTime.getValue()));
       ctx.expectEvent(MappingEndEvent.class);
    }
 }

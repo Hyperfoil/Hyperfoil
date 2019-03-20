@@ -2,7 +2,7 @@ package io.hyperfoil.core.steps;
 
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.config.Step;
-import io.hyperfoil.core.api.ResourceUtilizer;
+import io.hyperfoil.api.session.ResourceUtilizer;
 
 public class LoopStep implements Step, ResourceUtilizer {
    private final String counterVar;

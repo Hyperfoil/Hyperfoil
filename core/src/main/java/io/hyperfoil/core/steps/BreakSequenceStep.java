@@ -9,7 +9,7 @@ import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.session.VarReference;
-import io.hyperfoil.core.builders.BaseSequenceBuilder;
+import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.core.builders.DependencyStepBuilder;
 import io.hyperfoil.function.SerializableSupplier;
 

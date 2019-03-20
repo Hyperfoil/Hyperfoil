@@ -28,7 +28,7 @@ import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.statistics.Statistics;
-import io.hyperfoil.core.builders.HttpBuilder;
+import io.hyperfoil.api.config.HttpBuilder;
 import io.hyperfoil.core.client.netty.HttpClientPoolImpl;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.steps.HttpResponseHandlersImpl;

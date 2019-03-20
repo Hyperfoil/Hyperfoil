@@ -1,10 +1,17 @@
 package io.hyperfoil.core.builders;
 
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
+import org.kohsuke.MetaInfServices;
+
+import io.hyperfoil.api.config.BaseSequenceBuilder;
+import io.hyperfoil.api.config.Sequence;
+import io.hyperfoil.api.config.Step;
+import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.generators.RandomIntStep;
@@ -25,16 +32,19 @@ import io.hyperfoil.core.steps.PullSharedMapStep;
 import io.hyperfoil.core.steps.PushSharedMapStep;
 import io.hyperfoil.core.steps.ScheduleDelayStep;
 import io.hyperfoil.core.steps.ServiceLoadedBuilderProvider;
+import io.hyperfoil.core.steps.SetStep;
 import io.hyperfoil.core.steps.StopwatchBeginStep;
 import io.hyperfoil.core.steps.UnsetStep;
+import io.hyperfoil.function.SerializableSupplier;
+import io.hyperfoil.impl.StepCatalogFactory;
 
 /**
  * Helper class to gather well-known step builders
  */
-public class StepDiscriminator {
+public class StepCatalog implements Step.Catalog {
    private final BaseSequenceBuilder parent;
 
-   StepDiscriminator(BaseSequenceBuilder parent) {
+   StepCatalog(BaseSequenceBuilder parent) {
       this.parent = parent;
    }
 
@@ -126,6 +136,10 @@ public class StepDiscriminator {
       return new UnsetStep.Builder(parent);
    }
 
+   public SetStep.Builder set() {
+      return new SetStep.Builder(parent);
+   }
+
    public <T> PollStep.Builder<T> poll(Function<Session, T> provider, String intoVar) {
       return new PollStep.Builder<>(parent, provider, intoVar);
    }
@@ -149,7 +163,17 @@ public class StepDiscriminator {
    }
 
    public ServiceLoadedBuilderProvider<StepBuilder> serviceLoaded() {
-      return new ServiceLoadedBuilderProvider<>(StepBuilder.Factory.class, parent::stepBuilder);
+      return new ServiceLoadedBuilderProvider<>(StepBuilder.Factory.class, new StepBuilder() {
+         @Override
+         public List<Step> build(SerializableSupplier<Sequence> sequence) {
+            throw new UnsupportedOperationException();
+         }
+
+         @Override
+         public BaseSequenceBuilder endStep() {
+            return parent;
+         }
+      }, parent::stepBuilder);
    }
 
    // data
@@ -160,5 +184,13 @@ public class StepDiscriminator {
 
    public PushSharedMapStep.Builder pushSharedMap() {
       return new PushSharedMapStep.Builder(parent);
+   }
+
+   @MetaInfServices(StepCatalogFactory.class)
+   public static class Factory implements StepCatalogFactory {
+      @Override
+      public Step.Catalog create(BaseSequenceBuilder sequenceBuilder) {
+         return new StepCatalog(sequenceBuilder);
+      }
    }
 }

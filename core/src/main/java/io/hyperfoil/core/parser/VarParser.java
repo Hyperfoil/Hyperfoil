@@ -6,7 +6,7 @@ import org.yaml.snakeyaml.events.MappingEndEvent;
 import org.yaml.snakeyaml.events.MappingStartEvent;
 import org.yaml.snakeyaml.events.ScalarEvent;
 
-import io.hyperfoil.core.builders.ScenarioBuilder;
+import io.hyperfoil.api.config.ScenarioBuilder;
 
 class VarParser implements Parser<ScenarioBuilder> {
    private final BiConsumer<ScenarioBuilder, String> consumer;

@@ -1,8 +1,8 @@
 package io.hyperfoil.core.parser;
 
-import io.hyperfoil.core.builders.PhaseBuilder;
+import io.hyperfoil.api.config.PhaseBuilder;
 
-abstract class PhaseParser extends AbstractParser<PhaseBuilder.Discriminator, PhaseBuilder> {
+abstract class PhaseParser extends AbstractParser<PhaseBuilder.Catalog, PhaseBuilder> {
    PhaseParser() {
       register("startTime", new PropertyParser.String<>(PhaseBuilder::startTime));
       register("startAfter", new StartAfterParser(PhaseBuilder::startAfter));
@@ -16,11 +16,11 @@ abstract class PhaseParser extends AbstractParser<PhaseBuilder.Discriminator, Ph
    }
 
    @Override
-   public void parse(Context ctx, PhaseBuilder.Discriminator target) throws ParserException {
+   public void parse(Context ctx, PhaseBuilder.Catalog target) throws ParserException {
       callSubBuilders(ctx, type(target));
    }
 
-   protected abstract PhaseBuilder type(PhaseBuilder.Discriminator discriminator);
+   protected abstract PhaseBuilder type(PhaseBuilder.Catalog catalog);
 
    static class AtOnce extends PhaseParser {
       AtOnce() {
@@ -28,8 +28,8 @@ abstract class PhaseParser extends AbstractParser<PhaseBuilder.Discriminator, Ph
       }
 
       @Override
-      protected PhaseBuilder type(PhaseBuilder.Discriminator discriminator) {
-         return discriminator.atOnce(-1);
+      protected PhaseBuilder type(PhaseBuilder.Catalog catalog) {
+         return catalog.atOnce(-1);
       }
    }
 
@@ -39,8 +39,8 @@ abstract class PhaseParser extends AbstractParser<PhaseBuilder.Discriminator, Ph
       }
 
       @Override
-      protected PhaseBuilder type(PhaseBuilder.Discriminator discriminator) {
-         return discriminator.always(-1);
+      protected PhaseBuilder type(PhaseBuilder.Catalog catalog) {
+         return catalog.always(-1);
       }
    }
 
@@ -53,8 +53,8 @@ abstract class PhaseParser extends AbstractParser<PhaseBuilder.Discriminator, Ph
       }
 
       @Override
-      protected PhaseBuilder type(PhaseBuilder.Discriminator discriminator) {
-         return discriminator.rampPerSec(-1, -1);
+      protected PhaseBuilder type(PhaseBuilder.Catalog catalog) {
+         return catalog.rampPerSec(-1, -1);
       }
    }
 
@@ -66,8 +66,8 @@ abstract class PhaseParser extends AbstractParser<PhaseBuilder.Discriminator, Ph
       }
 
       @Override
-      protected PhaseBuilder type(PhaseBuilder.Discriminator discriminator) {
-         return discriminator.constantPerSec(-1);
+      protected PhaseBuilder type(PhaseBuilder.Catalog catalog) {
+         return catalog.constantPerSec(-1);
       }
    }
 }

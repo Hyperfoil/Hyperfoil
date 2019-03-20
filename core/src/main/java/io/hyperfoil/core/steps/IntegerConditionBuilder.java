@@ -2,7 +2,7 @@ package io.hyperfoil.core.steps;
 
 import java.util.function.IntPredicate;
 
-import io.hyperfoil.core.builders.BaseSequenceBuilder;
+import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.core.builders.BaseStepBuilder;
 
 public abstract class IntegerConditionBuilder<B extends IntegerConditionBuilder<B>> extends BaseStepBuilder {

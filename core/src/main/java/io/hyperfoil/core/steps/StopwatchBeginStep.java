@@ -2,15 +2,13 @@ package io.hyperfoil.core.steps;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.config.Step;
-import io.hyperfoil.core.api.ResourceUtilizer;
-import io.hyperfoil.core.builders.BaseSequenceBuilder;
-import io.hyperfoil.core.builders.StepBuilder;
+import io.hyperfoil.api.session.ResourceUtilizer;
+import io.hyperfoil.api.config.BaseSequenceBuilder;
+import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.function.SerializableSupplier;
 
 public class StopwatchBeginStep implements Step, ResourceUtilizer {
@@ -52,17 +50,14 @@ public class StopwatchBeginStep implements Step, ResourceUtilizer {
          List<Step> steps = new ArrayList<>();
          Object key = new Object();
          steps.add(new StopwatchBeginStep(key));
-         steps.addAll(this.steps.stream().flatMap(stepBuilder -> stepBuilder.build(sequence).stream()).collect(Collectors.toList()));
+         steps.addAll(super.buildSteps(sequence));
          steps.add(new StopwatchEndStep(sequence, key));
          return steps;
       }
 
       @Override
-      public <T extends StepBuilder> void forEach(Class<T> type, Consumer<T> consumer) {
-         for (StepBuilder step : steps) {
-            step.forEach(type, consumer);
-         }
-         StepBuilder.super.forEach(type, consumer);
+      public BaseSequenceBuilder endStep() {
+         return parent;
       }
    }
 }

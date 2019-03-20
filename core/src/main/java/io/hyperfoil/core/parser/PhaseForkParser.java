@@ -4,8 +4,8 @@ import org.yaml.snakeyaml.events.MappingEndEvent;
 import org.yaml.snakeyaml.events.MappingStartEvent;
 import org.yaml.snakeyaml.events.ScalarEvent;
 
-import io.hyperfoil.core.builders.PhaseBuilder;
-import io.hyperfoil.core.builders.PhaseForkBuilder;
+import io.hyperfoil.api.config.PhaseBuilder;
+import io.hyperfoil.api.config.PhaseForkBuilder;
 
 /**
  * About forks: while the internals rely on one phase having only one scenario (due to resources allocation etc.)
@@ -15,7 +15,7 @@ import io.hyperfoil.core.builders.PhaseForkBuilder;
  * The parent phase is replaced by a no-op phase that is scheduled after all the forked phases - therefore other phases
  * can still be scheduled using {@link PhaseBuilder#startAfter(String)} and {@link PhaseBuilder#startAfterStrict(String)}.
  */
-class PhaseForkParser implements Parser<io.hyperfoil.core.builders.PhaseBuilder> {
+class PhaseForkParser implements Parser<PhaseBuilder> {
    @Override
    public void parse(Context ctx, PhaseBuilder target) throws ParserException {
       ctx.parseList(target, this::parseFork);

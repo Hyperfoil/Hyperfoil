@@ -18,10 +18,11 @@
  */
 package io.hyperfoil.core.parser;
 
-import io.hyperfoil.core.builders.SimulationBuilder;
+import io.hyperfoil.api.config.SimulationBuilder;
 
 class SimulationParser extends AbstractMappingParser<SimulationBuilder> {
     SimulationParser() {
+        register("ergonomics", new ErgonomicsParser());
         register("http", new HttpParser());
         register("phases", new PhasesParser());
         register("threads", new PropertyParser.Int<>(SimulationBuilder::threads));

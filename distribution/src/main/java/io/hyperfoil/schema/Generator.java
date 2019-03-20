@@ -15,9 +15,9 @@ import io.hyperfoil.api.config.ListBuilder;
 import io.hyperfoil.api.config.PairBuilder;
 import io.hyperfoil.api.config.PartialBuilder;
 import io.hyperfoil.api.config.ServiceLoadedBuilder;
-import io.hyperfoil.core.builders.BaseSequenceBuilder;
-import io.hyperfoil.core.builders.StepBuilder;
-import io.hyperfoil.core.builders.StepDiscriminator;
+import io.hyperfoil.api.config.BaseSequenceBuilder;
+import io.hyperfoil.api.config.StepBuilder;
+import io.hyperfoil.core.builders.StepCatalog;
 import io.hyperfoil.core.steps.ServiceLoadedBuilderProvider;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -58,7 +58,7 @@ public class Generator {
       JsonArray simpleBuilders = oneOf.getJsonObject(1).getJsonArray("enum");
       simpleBuilders.clear();
 
-      for (Method method : StepDiscriminator.class.getMethods()) {
+      for (Method method : StepCatalog.class.getMethods()) {
          if (StepBuilder.class.isAssignableFrom(method.getReturnType())) {
             addBuilder(builders, simpleBuilders, method.getName(), method.getReturnType(), false);
          } else if (BaseSequenceBuilder.class.isAssignableFrom(method.getReturnType())) {
@@ -68,7 +68,7 @@ public class Generator {
       for (Object f : getFactories(StepBuilder.Factory.class)) {
          StepBuilder.Factory factory = (StepBuilder.Factory) f;
          try {
-            Class<?> newBuilder = factory.getClass().getMethod("newBuilder", Consumer.class, String.class).getReturnType();
+            Class<?> newBuilder = factory.getClass().getMethod("newBuilder", StepBuilder.class, Consumer.class, String.class).getReturnType();
             addBuilder(builders, simpleBuilders, factory.name(), newBuilder, factory.acceptsParam());
          } catch (NoSuchMethodException e) {
             throw new IllegalStateException(e);
@@ -220,7 +220,7 @@ public class Generator {
                   .put("properties", serviceLoadedProperties);
             for (ServiceLoadedBuilder.Factory f : getFactories(nested)) {
                try {
-                  Class<?> serviceLoadedBuilder = f.getClass().getMethod("newBuilder", Consumer.class, String.class).getReturnType();
+                  Class<?> serviceLoadedBuilder = f.getClass().getMethod("newBuilder", StepBuilder.class, Consumer.class, String.class).getReturnType();
                   JsonObject serviceLoadedProperty = describeBuilder(serviceLoadedBuilder);
                   if (f.acceptsParam()) {
                      serviceLoadedProperty = new JsonObject()

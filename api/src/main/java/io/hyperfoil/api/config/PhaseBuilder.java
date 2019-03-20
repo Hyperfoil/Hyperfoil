@@ -1,4 +1,4 @@
-package io.hyperfoil.core.builders;
+package io.hyperfoil.api.config;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -8,13 +8,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import io.hyperfoil.api.config.Benchmark;
-import io.hyperfoil.api.config.BenchmarkDefinitionException;
-import io.hyperfoil.api.config.Phase;
-import io.hyperfoil.api.config.Scenario;
-import io.hyperfoil.api.config.Sequence;
-import io.hyperfoil.core.util.Util;
 import io.hyperfoil.function.SerializableSupplier;
+import io.hyperfoil.util.Util;
 
 /**
  * The builder creates a matrix of phases (not just single phase); we allow multiple iterations of a phase
@@ -454,11 +449,11 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
       }
    }
 
-   public static class Discriminator {
+   public static class Catalog {
       private final SimulationBuilder parent;
       private final String name;
 
-      Discriminator(SimulationBuilder parent, String name) {
+      Catalog(SimulationBuilder parent, String name) {
          this.parent = parent;
          this.name = name;
       }

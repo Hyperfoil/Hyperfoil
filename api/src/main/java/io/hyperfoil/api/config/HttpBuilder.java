@@ -18,14 +18,10 @@
  *
  */
 
-package io.hyperfoil.core.builders;
+package io.hyperfoil.api.config;
 
 import io.hyperfoil.api.http.HttpVersion;
-import io.hyperfoil.api.config.Http;
-import io.hyperfoil.core.http.CookieAppender;
-import io.hyperfoil.core.http.CookieRecorder;
-import io.hyperfoil.core.steps.HttpRequestStep;
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.util.Util;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,7 +36,6 @@ public class HttpBuilder {
     private final SimulationBuilder parent;
     private Http http;
     private String baseUrl;
-    private boolean repeatCookies = true;
     private boolean allowHttp1x = true;
     private boolean allowHttp2 = true;
     private int sharedConnections = 1;
@@ -77,11 +72,6 @@ public class HttpBuilder {
 
     public HttpBuilder allowHttp2(boolean allowHttp2) {
         this.allowHttp2 = allowHttp2;
-        return this;
-    }
-
-    public HttpBuilder repeatCookies(boolean repeatCookies) {
-        this.repeatCookies = repeatCookies;
         return this;
     }
 
@@ -133,20 +123,6 @@ public class HttpBuilder {
                 throw new IllegalArgumentException("Already built as isDefault=" + http.isDefault());
             }
             return http;
-        }
-        if (repeatCookies && parent != null) {
-            for (PhaseBuilder<?> pb : parent.phases()) {
-                for (PhaseForkBuilder fork : pb.forks) {
-                    for (SequenceBuilder seq : fork.scenario.sequences()) {
-                        for (StepBuilder step : seq.steps) {
-                            step.forEach(HttpRequestStep.Builder.class, request -> {
-                                request.headerAppender(new CookieAppender());
-                                request.handler().headerExtractor(new CookieRecorder());
-                            });
-                        }
-                    }
-                }
-            }
         }
         List<HttpVersion> httpVersions = new ArrayList<>();
         // The order is important here because it will be provided to the ALPN

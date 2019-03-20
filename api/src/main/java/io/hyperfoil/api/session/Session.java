@@ -98,6 +98,10 @@ public interface Session {
 
    LimitedPool<HttpRequest> httpRequestPool();
 
+   SequenceInstance acquireSequence();
+
+   void enableSequence(SequenceInstance instance);
+
    enum VarType {
       OBJECT,
       INTEGER

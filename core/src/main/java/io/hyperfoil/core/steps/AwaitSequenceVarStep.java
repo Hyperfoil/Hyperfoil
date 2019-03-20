@@ -2,7 +2,7 @@ package io.hyperfoil.core.steps;
 
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.VarReference;
-import io.hyperfoil.core.api.ResourceUtilizer;
+import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.core.session.SequenceScopedVarReference;
 
 public class AwaitSequenceVarStep extends DependencyStep implements ResourceUtilizer {

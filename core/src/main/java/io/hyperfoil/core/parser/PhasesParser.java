@@ -22,10 +22,10 @@ import org.yaml.snakeyaml.events.MappingEndEvent;
 import org.yaml.snakeyaml.events.MappingStartEvent;
 import org.yaml.snakeyaml.events.ScalarEvent;
 
-import io.hyperfoil.core.builders.PhaseBuilder;
-import io.hyperfoil.core.builders.SimulationBuilder;
+import io.hyperfoil.api.config.PhaseBuilder;
+import io.hyperfoil.api.config.SimulationBuilder;
 
-class PhasesParser extends AbstractParser<SimulationBuilder, PhaseBuilder.Discriminator> {
+class PhasesParser extends AbstractParser<SimulationBuilder, PhaseBuilder.Catalog> {
 
     PhasesParser() {
         register("atOnce", new PhaseParser.AtOnce());
@@ -45,7 +45,7 @@ class PhasesParser extends AbstractParser<SimulationBuilder, PhaseBuilder.Discri
         String name = event.getValue();
         ctx.expectEvent(MappingStartEvent.class);
         event = ctx.expectEvent(ScalarEvent.class);
-        Parser<PhaseBuilder.Discriminator> builder = subBuilders.get(event.getValue());
+        Parser<PhaseBuilder.Catalog> builder = subBuilders.get(event.getValue());
         if (builder == null) {
             throw new ParserException(event, "Invalid phase type: '" + event.getValue() + "', expected one of " + subBuilders.keySet());
         }

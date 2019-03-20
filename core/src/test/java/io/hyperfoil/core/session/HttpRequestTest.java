@@ -51,12 +51,12 @@ public class HttpRequestTest extends BaseScenarioTest {
    public void testStringBody(TestContext ctx) {
       scenario()
             .initialSequence("test")
-               .step().httpRequest(HttpMethod.POST)
+               .step(SC).httpRequest(HttpMethod.POST)
                   .path("/test?expect=bar")
                   .body("bar")
                   .handler().statusExtractor(verifyStatus(ctx))
                   .endHandler().endStep()
-               .step().awaitAllResponses();
+               .step(SC).awaitAllResponses();
 
       runScenario();
    }
@@ -70,12 +70,12 @@ public class HttpRequestTest extends BaseScenarioTest {
                   s.setObject("x", "bar");
                   return true;
                })
-               .step().httpRequest(HttpMethod.POST)
+               .step(SC).httpRequest(HttpMethod.POST)
                   .path("/test?expect=bar")
                   .body().var("x").endBody()
                   .handler().statusExtractor(verifyStatus(ctx))
                   .endHandler().endStep()
-               .step().awaitAllResponses();
+               .step(SC).awaitAllResponses();
 
       runScenario();
    }
@@ -95,12 +95,12 @@ public class HttpRequestTest extends BaseScenarioTest {
                s.setObject("x", chineseStr);
                return true;
             })
-            .step().httpRequest(HttpMethod.POST)
+            .step(SC).httpRequest(HttpMethod.POST)
             .path("/test?expect=" + URLEncoder.encode(chineseStr, StandardCharsets.UTF_8.name()))
             .body().var("x").endBody()
             .handler().statusExtractor(verifyStatus(ctx))
             .endHandler().endStep()
-            .step().awaitAllResponses();
+            .step(SC).awaitAllResponses();
 
       runScenario();
    }
@@ -114,12 +114,12 @@ public class HttpRequestTest extends BaseScenarioTest {
                   s.setObject("x", "bar");
                   return true;
                })
-               .step().httpRequest(HttpMethod.POST)
+               .step(SC).httpRequest(HttpMethod.POST)
                   .path().pattern("/test?expect=${x}").end()
                   .body("bar")
                   .handler().statusExtractor(verifyStatus(ctx))
                   .endHandler().endStep()
-               .step().awaitAllResponses();
+               .step(SC).awaitAllResponses();
 
       runScenario();
    }
@@ -128,22 +128,22 @@ public class HttpRequestTest extends BaseScenarioTest {
    public void testStatusValidator(TestContext ctx) {
       scenario()
             .initialSequence("expectOK")
-               .step().httpRequest(HttpMethod.GET)
+               .step(SC).httpRequest(HttpMethod.GET)
                   .path("/status?s=205")
                   .handler()
                      .statusValidator(new RangeStatusValidator(205, 205))
                      .endHandler()
                   .endStep()
-               .step().awaitAllResponses()
+               .step(SC).awaitAllResponses()
                .endSequence()
             .initialSequence("expectFail")
-               .step().httpRequest(HttpMethod.GET)
+               .step(SC).httpRequest(HttpMethod.GET)
                   .path("/status?s=406")
                   .handler()
                      .statusValidator(new RangeStatusValidator(200, 299))
                      .endHandler()
                   .endStep()
-               .step().awaitAllResponses()
+               .step(SC).awaitAllResponses()
                .endSequence();
 
       Map<String, List<StatisticsSnapshot>> stats = runScenario();

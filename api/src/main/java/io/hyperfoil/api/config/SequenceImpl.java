@@ -1,17 +1,13 @@
-package io.hyperfoil.core.session;
+package io.hyperfoil.api.config;
 
-import io.hyperfoil.api.config.Phase;
-import io.hyperfoil.api.config.SLA;
-import io.hyperfoil.api.config.Sequence;
+import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.api.config.Step;
-import io.hyperfoil.core.api.ResourceUtilizer;
 import io.hyperfoil.function.SerializableSupplier;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-public class SequenceImpl implements Sequence {
+class SequenceImpl implements Sequence {
    private static final Logger log = LoggerFactory.getLogger(SequenceImpl.class);
 
    private final SerializableSupplier<Phase> phase;
@@ -35,14 +31,13 @@ public class SequenceImpl implements Sequence {
 
    @Override
    public void instantiate(Session session, int index) {
-      SessionImpl impl = (SessionImpl) session;
-      SequenceInstance instance = impl.acquireSequence();
+      SequenceInstance instance = session.acquireSequence();
       if (instance == null) {
          log.error("Cannot instantiate sequence {}({}), no free instances.", name, id);
-         impl.fail(new IllegalStateException("No free sequence instances"));
+         session.fail(new IllegalStateException("No free sequence instances"));
       } else {
          instance.reset(name, id, index, steps);
-         impl.enableSequence(instance);
+         session.enableSequence(instance);
       }
    }
 

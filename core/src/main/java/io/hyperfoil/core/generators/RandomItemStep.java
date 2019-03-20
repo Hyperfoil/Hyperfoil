@@ -12,8 +12,8 @@ import io.hyperfoil.api.config.ListBuilder;
 import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.core.api.ResourceUtilizer;
-import io.hyperfoil.core.builders.BaseSequenceBuilder;
+import io.hyperfoil.api.session.ResourceUtilizer;
+import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.core.builders.BaseStepBuilder;
 import io.hyperfoil.function.SerializableSupplier;
 

@@ -18,12 +18,8 @@
  *
  */
 
-package io.hyperfoil.core.builders;
+package io.hyperfoil.api.config;
 
-import io.hyperfoil.api.config.BenchmarkDefinitionException;
-import io.hyperfoil.api.config.Phase;
-import io.hyperfoil.api.config.Sequence;
-import io.hyperfoil.api.config.Scenario;
 import io.hyperfoil.function.SerializableSupplier;
 
 import java.util.ArrayList;

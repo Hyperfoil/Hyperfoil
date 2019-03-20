@@ -1,21 +1,34 @@
 package io.hyperfoil.core.extractors;
 
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.api.config.SequenceBuilder;
+import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.connection.HttpRequest;
+import io.hyperfoil.api.connection.Request;
+import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.api.http.Processor;
 import io.hyperfoil.api.config.ServiceLoadedBuilder;
 import io.hyperfoil.api.http.BodyExtractor;
+import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.core.api.ResourceUtilizer;
+import io.hyperfoil.api.session.ResourceUtilizer;
+import io.hyperfoil.core.generators.StringGeneratorBuilder;
+import io.hyperfoil.core.steps.AwaitIntStep;
+import io.hyperfoil.core.steps.AwaitSequenceVarStep;
+import io.hyperfoil.core.steps.HttpRequestStep;
+import io.hyperfoil.core.steps.PathStatisticsSelector;
 import io.hyperfoil.core.steps.ServiceLoadedBuilderProvider;
+import io.hyperfoil.core.steps.UnsetStep;
 import io.hyperfoil.core.util.Trie;
 import io.hyperfoil.core.util.Util;
+import io.hyperfoil.function.SerializableBiFunction;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.vertx.core.logging.Logger;
@@ -269,17 +282,19 @@ public class HtmlExtractor implements BodyExtractor, ResourceUtilizer, Session.R
    }
 
    public static class Builder extends ServiceLoadedBuilder.Base<BodyExtractor> {
+      private final StepBuilder step;
       private EmbeddedResourceHandlerBuilder embeddedResourceHandler;
 
-      protected Builder(Consumer<BodyExtractor> buildTarget) {
+      protected Builder(StepBuilder step, Consumer<BodyExtractor> buildTarget) {
          super(buildTarget);
+         this.step = step;
       }
 
       public EmbeddedResourceHandlerBuilder onEmbeddedResource() {
          if (embeddedResourceHandler != null) {
             throw new BenchmarkDefinitionException("Embedded resource handler already set!");
          }
-         return embeddedResourceHandler = new EmbeddedResourceHandlerBuilder();
+         return embeddedResourceHandler = new EmbeddedResourceHandlerBuilder(step);
       }
 
       @Override
@@ -301,11 +316,11 @@ public class HtmlExtractor implements BodyExtractor, ResourceUtilizer, Session.R
       }
 
       @Override
-      public ServiceLoadedBuilder newBuilder(Consumer<BodyExtractor> buildTarget, String param) {
+      public ServiceLoadedBuilder newBuilder(StepBuilder stepBuilder, Consumer<BodyExtractor> buildTarget, String param) {
          if (param != null) {
             throw new BenchmarkDefinitionException(HtmlExtractor.class.getName() + " does not accept inline parameter");
          }
-         return new Builder(buildTarget);
+         return new Builder(stepBuilder, buildTarget);
       }
    }
 
@@ -319,23 +334,158 @@ public class HtmlExtractor implements BodyExtractor, ResourceUtilizer, Session.R
       private static final String[] TAGS = { "img", "link", "embed", "frame", "iframe", "object", "script" };
       private static final String[] ATTRS = { "src", "href", "src", "src", "src", "data", "src" };
 
+      private final StepBuilder step;
       private boolean ignoreExternal = true;
-      private Processor processor;
+      private Processor<HttpRequest> processor;
+      private FetchResourceBuilder fetchResource;
+
+      public EmbeddedResourceHandlerBuilder(StepBuilder step) {
+         this.step = step;
+      }
 
       public EmbeddedResourceHandlerBuilder ignoreExternal(boolean ignoreExternal) {
          this.ignoreExternal = ignoreExternal;
          return this;
       }
 
+      public FetchResourceBuilder fetchResource() {
+         return this.fetchResource = new FetchResourceBuilder(step);
+      }
+
+      public EmbeddedResourceHandlerBuilder processor(Processor<HttpRequest> processor) {
+         if (this.processor != null) {
+            throw new BenchmarkDefinitionException("Processor already set! " + processor);
+         }
+         this.processor = processor;
+         return this;
+      }
+
       public ServiceLoadedBuilderProvider<Processor> processor() {
-         return new ServiceLoadedBuilderProvider<>(Processor.BuilderFactory.class, a -> processor = a);
+         return new ServiceLoadedBuilderProvider<>(Processor.BuilderFactory.class, step, p -> processor((Processor<HttpRequest>) p));
       }
 
       public BaseTagAttributeHandler build() {
+         if (processor != null && fetchResource != null) {
+            throw new BenchmarkDefinitionException("Only one of processor/fetchResource allowed!");
+         }
+         if (fetchResource != null) {
+            processor = fetchResource.build();
+         }
          if (processor == null) {
             throw new BenchmarkDefinitionException("Embedded resource handler is missing the processor");
          }
          return new BaseTagAttributeHandler(TAGS, ATTRS, new EmbeddedResourceProcessor(ignoreExternal, processor));
+      }
+   }
+
+   public static class FetchResourceBuilder {
+      private final StepBuilder step;
+      private int maxResources;
+      private SerializableBiFunction<String,String,String> statisticsSelector;
+      private Action onCompletion;
+
+      public FetchResourceBuilder(StepBuilder step) {
+         this.step = step;
+      }
+
+      public FetchResourceBuilder maxResources(int maxResources) {
+         this.maxResources = maxResources;
+         return this;
+      }
+
+      public PathStatisticsSelector statistics() {
+         if (statisticsSelector != null) {
+            throw new BenchmarkDefinitionException("Statistics already set!");
+         }
+         PathStatisticsSelector statisticsSelector = new PathStatisticsSelector();
+         this.statisticsSelector = statisticsSelector;
+         return statisticsSelector;
+      }
+
+      public ServiceLoadedBuilderProvider<Action> onCompletion() {
+         return new ServiceLoadedBuilderProvider<>(Action.BuilderFactory.class, step, a -> {
+            if (onCompletion != null) {
+               throw new BenchmarkDefinitionException("Completion action already set!");
+            }
+            onCompletion = a;
+         });
+      }
+
+      public Processor<HttpRequest> build() {
+         if (maxResources <= 0) {
+            throw new BenchmarkDefinitionException("maxResources is missing or invalid.");
+         }
+
+         String generatedSeqName = String.format("%s_fetchResources_%08x",
+               step.endStep().name(), ThreadLocalRandom.current().nextInt());
+         String downloadUrlVar = generatedSeqName + "_url";
+         String completionCounter = generatedSeqName + "_latch";
+
+         SequenceBuilder sequence = step.endStep().endSequence().sequence(generatedSeqName);
+
+         // Constructor adds self into sequence
+         HttpRequestStep.Builder requestBuilder = new HttpRequestStep.Builder(sequence, HttpMethod.GET);
+         new StringGeneratorBuilder<>(requestBuilder, requestBuilder::pathGenerator)
+               .sequenceVar(downloadUrlVar); // this sets the pathGenerator
+         if (statisticsSelector != null) {
+            requestBuilder.statistics(statisticsSelector);
+         } else {
+            // Rather than using auto-generated sequence name we'll use the full path
+            requestBuilder.statistics((baseUrl, path) -> baseUrl != null ? baseUrl + path : path);
+         }
+         requestBuilder.handler().onCompletion(new UnsetStep(downloadUrlVar, true)::run);
+
+         sequence
+               .step(new AwaitSequenceVarStep("!" + downloadUrlVar))
+               .step(s -> {
+            s.addToInt(completionCounter, -1);
+            return true;
+         });
+
+         step.endStep().insertAfter(step)
+               .step(new AwaitIntStep(completionCounter, x -> x == 0))
+               .step(s -> {
+            onCompletion.run(s);
+            return true;
+         });
+
+         return new FetchResourcesAdapter(completionCounter, new NewSequenceProcessor(maxResources, generatedSeqName + "_cnt", downloadUrlVar, generatedSeqName));
+      }
+   }
+
+   private static class FetchResourcesAdapter implements Processor<HttpRequest>, ResourceUtilizer {
+      private final String completionCounter;
+      private final Processor<Request> delegate;
+
+      private FetchResourcesAdapter(String completionCounter, Processor<Request> delegate) {
+         this.completionCounter = completionCounter;
+         this.delegate = delegate;
+      }
+
+      @Override
+      public void before(HttpRequest request) {
+         request.session.setInt(completionCounter, 1);
+         delegate.before(request);
+      }
+
+      @Override
+      public void process(HttpRequest request, ByteBuf data, int offset, int length, boolean isLastPart) {
+         request.session.addToInt(completionCounter, 1);
+         delegate.process(request, data, offset, length, isLastPart);
+      }
+
+      @Override
+      public void after(HttpRequest request) {
+         request.session.addToInt(completionCounter, -1);
+         delegate.after(request);
+      }
+
+      @Override
+      public void reserve(Session session) {
+         session.declareInt(completionCounter);
+         if (delegate instanceof ResourceUtilizer) {
+            ((ResourceUtilizer) delegate).reserve(session);
+         }
       }
    }
 
@@ -441,7 +591,7 @@ public class HtmlExtractor implements BodyExtractor, ResourceUtilizer, Session.R
 
       private final boolean ignoreExternal;
 
-      EmbeddedResourceProcessor(boolean ignoreExternal, Processor delegate) {
+      EmbeddedResourceProcessor(boolean ignoreExternal, Processor<HttpRequest> delegate) {
          super(delegate);
          this.ignoreExternal = ignoreExternal;
       }

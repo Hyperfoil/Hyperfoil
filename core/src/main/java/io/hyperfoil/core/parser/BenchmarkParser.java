@@ -19,7 +19,7 @@
 package io.hyperfoil.core.parser;
 
 import io.hyperfoil.api.config.Benchmark;
-import io.hyperfoil.core.builders.BenchmarkBuilder;
+import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.core.util.Util;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;

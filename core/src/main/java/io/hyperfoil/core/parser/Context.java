@@ -16,7 +16,7 @@ import org.yaml.snakeyaml.events.SequenceEndEvent;
 import org.yaml.snakeyaml.events.SequenceStartEvent;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
-import io.hyperfoil.core.builders.Rewritable;
+import io.hyperfoil.api.config.Rewritable;
 
 
 class Context {

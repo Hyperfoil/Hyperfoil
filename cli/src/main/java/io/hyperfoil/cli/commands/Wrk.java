@@ -25,9 +25,10 @@ import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.api.statistics.LongValue;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
-import io.hyperfoil.core.builders.BenchmarkBuilder;
-import io.hyperfoil.core.builders.PhaseBuilder;
-import io.hyperfoil.core.builders.SimulationBuilder;
+import io.hyperfoil.api.config.BenchmarkBuilder;
+import io.hyperfoil.api.config.PhaseBuilder;
+import io.hyperfoil.api.config.SimulationBuilder;
+import io.hyperfoil.core.builders.StepCatalog;
 import io.hyperfoil.core.extractors.ByteBufSizeRecorder;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
 import io.hyperfoil.core.impl.statistics.StatisticsCollector;
@@ -276,7 +277,7 @@ public class Wrk {
                   .maxSessionsEstimate(rate * 15)
                   .scenario()
                      .initialSequence("request")
-                        .step().httpRequest(HttpMethod.GET)
+                        .step(StepCatalog.class).httpRequest(HttpMethod.GET)
                            .path(path)
                            .headerAppender((session, request) -> {
                               if (parsedHeaders != null) {
@@ -290,7 +291,7 @@ public class Wrk {
                               .rawBytesHandler(new ByteBufSizeRecorder("bytes"))
                            .endHandler()
                         .endStep()
-                        .step().awaitAllResponses()
+                        .step(StepCatalog.class).awaitAllResponses()
                      .endSequence()
                   .endScenario();
       }

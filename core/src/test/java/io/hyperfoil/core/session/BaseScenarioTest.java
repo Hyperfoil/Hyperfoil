@@ -4,9 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
-import io.hyperfoil.core.builders.BenchmarkBuilder;
-import io.hyperfoil.core.builders.HttpBuilder;
-import io.hyperfoil.core.builders.ScenarioBuilder;
+import io.hyperfoil.api.config.BenchmarkBuilder;
+import io.hyperfoil.api.config.HttpBuilder;
+import io.hyperfoil.api.config.ScenarioBuilder;
+import io.hyperfoil.core.builders.StepCatalog;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
 import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
@@ -22,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 
 public abstract class BaseScenarioTest {
+   protected static final Class<StepCatalog> SC = StepCatalog.class;
    protected final Logger log = LoggerFactory.getLogger(getClass());
 
    protected Vertx vertx;

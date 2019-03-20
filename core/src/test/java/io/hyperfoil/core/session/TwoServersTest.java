@@ -46,15 +46,15 @@ public class TwoServersTest extends BaseScenarioTest {
    @Test
    public void test() {
       scenario().initialSequence("test")
-            .step().httpRequest(HttpMethod.GET).path("/test").endStep()
-            .step().httpRequest(HttpMethod.GET)
+            .step(SC).httpRequest(HttpMethod.GET).path("/test").endStep()
+            .step(SC).httpRequest(HttpMethod.GET)
                .baseUrl("http://localhost:8081")
                .path("/test")
                .handler()
                   .onCompletion(s -> latch.countDown())
                .endHandler()
             .endStep()
-            .step().awaitAllResponses();
+            .step(SC).awaitAllResponses();
 
       Map<String, List<StatisticsSnapshot>> stats = runScenario();
       StatisticsSnapshot snapshot = assertSingleSessionStats(stats);

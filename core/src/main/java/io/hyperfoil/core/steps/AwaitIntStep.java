@@ -7,7 +7,7 @@ import java.util.function.IntPredicate;
 import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.core.builders.BaseSequenceBuilder;
+import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.function.SerializableSupplier;
 
 public class AwaitIntStep implements Step {

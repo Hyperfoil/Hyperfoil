@@ -4,8 +4,9 @@ import org.yaml.snakeyaml.events.MappingEndEvent;
 import org.yaml.snakeyaml.events.MappingStartEvent;
 import org.yaml.snakeyaml.events.ScalarEvent;
 
-import io.hyperfoil.core.builders.ScenarioBuilder;
-import io.hyperfoil.core.builders.SequenceBuilder;
+import io.hyperfoil.api.config.ScenarioBuilder;
+import io.hyperfoil.api.config.SequenceBuilder;
+import io.hyperfoil.core.builders.StepCatalog;
 
 /**
  * This provides a syntax-sugar automatically following one sequence with another
@@ -30,7 +31,7 @@ class OrderedSequenceParser implements Parser<ScenarioBuilder> {
       }
       SequenceParser.parseSequence(ctx, sequenceBuilder);
       if (lastBuilder != null) {
-         lastBuilder.step().nextSequence(sequenceNameEvent.getValue());
+         lastBuilder.step(StepCatalog.class).nextSequence(sequenceNameEvent.getValue());
       }
       ctx.pushVar(sequenceBuilder);
       ctx.expectEvent(MappingEndEvent.class);

@@ -7,11 +7,13 @@ import java.util.function.Consumer;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.ServiceLoadedBuilder;
+import io.hyperfoil.api.config.StepBuilder;
 
 public class ServiceLoadedBuilderProvider<T> {
    private static final Map<Class<ServiceLoadedBuilder.Factory<?>>, ServiceLoader<ServiceLoadedBuilder.Factory<?>>> SERVICE_LOADERS = new HashMap<>();
 
    private final Class<? extends ServiceLoadedBuilder.Factory<T>> factoryClazz;
+   private final StepBuilder stepBuilder;
    private final Consumer<T> consumer;
 
    public static Iterable<ServiceLoadedBuilder.Factory<?>> factories(Class<ServiceLoadedBuilder.Factory<?>> clazz) {
@@ -42,8 +44,9 @@ public class ServiceLoadedBuilderProvider<T> {
       return factory;
    }
 
-   public ServiceLoadedBuilderProvider(Class<? extends ServiceLoadedBuilder.Factory<T>> factoryClazz, Consumer<T> consumer) {
+   public ServiceLoadedBuilderProvider(Class<? extends ServiceLoadedBuilder.Factory<T>> factoryClazz, StepBuilder stepBuilder, Consumer<T> consumer) {
       this.factoryClazz = factoryClazz;
+      this.stepBuilder = stepBuilder;
       this.consumer = consumer;
    }
 
@@ -52,6 +55,6 @@ public class ServiceLoadedBuilderProvider<T> {
       if (param != null && !factory.acceptsParam()) {
          throw new BenchmarkDefinitionException(factory.name() + " does not accept inline parameter");
       }
-      return factory.newBuilder(consumer, param);
+      return factory.newBuilder(stepBuilder, consumer, param);
    }
 }

@@ -3,7 +3,7 @@
  *
  * There are two main components:
  * <ul>
- * <li>{@link io.hyperfoil.core.session.SequenceImpl Sequence templates} - instructions 'what to do'
+ * <li>{@link io.hyperfoil.api.config.SequenceImpl Sequence templates} - instructions 'what to do'
  * <li>Session (execution context) holds any state, including current state of the state machine and variables
  * </ul>
  * <h2>Memory allocation</h2>
@@ -14,15 +14,15 @@
  * which does not release the memory.
  * <p>
  * Any memory required by validators/extractors must be known ahead and these should implement
- * the {@link io.hyperfoil.core.api.ResourceUtilizer} interface to register itselves. The reservation is invoked
- * once when the session is created through {@link io.hyperfoil.core.session.SequenceImpl#reserve(Session)}
+ * the {@link io.hyperfoil.api.session.ResourceUtilizer} interface to register itselves. The reservation is invoked
+ * once when the session is created through {@link io.hyperfoil.api.config.SequenceImpl#reserve(Session)}
  * which in turn calls this on all {@link io.hyperfoil.api.config.Step steps} and these call the
  * {@link io.hyperfoil.api.http.Processor processors} or any other handlers.
  *
  * <h2>Execution</h2>
  *
  * After the session is constructed or reset you should create {@link io.hyperfoil.api.session.SequenceInstance sequence instances}
- * from the {@link io.hyperfoil.core.session.SequenceImpl templates} and subsequently
+ * from the {@link io.hyperfoil.api.config.SequenceImpl templates} and subsequently
  * {@link io.hyperfoil.core.session.SessionImpl#enableSequence(SequenceInstance) enable}
  * them in the session. Upon {@link io.hyperfoil.core.session.SessionImpl#runSession()} the session tries to invoke all enabled
  * sequence instances; some of the enabled sequences may be blocked because of missing data dependency.

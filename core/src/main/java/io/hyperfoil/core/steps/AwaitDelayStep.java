@@ -6,7 +6,7 @@ import java.util.List;
 import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.config.Step;
-import io.hyperfoil.core.builders.BaseSequenceBuilder;
+import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.core.builders.BaseStepBuilder;
 import io.hyperfoil.function.SerializableSupplier;
 

@@ -16,7 +16,7 @@ import io.hyperfoil.api.http.HttpResponseHandlers;
 import io.hyperfoil.api.http.RawBytesHandler;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.http.StatusExtractor;
-import io.hyperfoil.core.api.ResourceUtilizer;
+import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.http.BodyValidator;
 import io.hyperfoil.api.http.HeaderValidator;
 import io.hyperfoil.api.http.StatusValidator;
@@ -297,7 +297,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       }
 
       public ServiceLoadedBuilderProvider<StatusValidator> statusValidator() {
-         return new ServiceLoadedBuilderProvider<>(StatusValidator.BuilderFactory.class, this::statusValidator);
+         return new ServiceLoadedBuilderProvider<>(StatusValidator.BuilderFactory.class, parent, this::statusValidator);
       }
 
       public Builder headerValidator(HeaderValidator validator) {
@@ -306,7 +306,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       }
 
       public ServiceLoadedBuilderProvider<HeaderValidator> headerValidator() {
-         return new ServiceLoadedBuilderProvider<>(HeaderValidator.BuilderFactory.class, this::headerValidator);
+         return new ServiceLoadedBuilderProvider<>(HeaderValidator.BuilderFactory.class, parent, this::headerValidator);
       }
 
       public Builder bodyValidator(BodyValidator validator) {
@@ -315,7 +315,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       }
 
       public ServiceLoadedBuilderProvider<BodyValidator> bodyValidator() {
-         return new ServiceLoadedBuilderProvider<>(BodyValidator.BuilderFactory.class, this::bodyValidator);
+         return new ServiceLoadedBuilderProvider<>(BodyValidator.BuilderFactory.class, parent, this::bodyValidator);
       }
 
       public Builder statusExtractor(StatusExtractor extractor) {
@@ -324,7 +324,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       }
 
       public ServiceLoadedBuilderProvider<StatusExtractor> statusExtractor() {
-         return new ServiceLoadedBuilderProvider<>(StatusExtractor.BuilderFactory.class, this::statusExtractor);
+         return new ServiceLoadedBuilderProvider<>(StatusExtractor.BuilderFactory.class, parent, this::statusExtractor);
       }
 
       public Builder headerExtractor(HeaderExtractor extractor) {
@@ -333,7 +333,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       }
 
       public ServiceLoadedBuilderProvider<HeaderExtractor> headerExtractor() {
-         return new ServiceLoadedBuilderProvider<>(HeaderExtractor.BuilderFactory.class, this::headerExtractor);
+         return new ServiceLoadedBuilderProvider<>(HeaderExtractor.BuilderFactory.class, parent, this::headerExtractor);
       }
 
       public Builder bodyExtractor(BodyExtractor extractor) {
@@ -342,7 +342,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       }
 
       public ServiceLoadedBuilderProvider<BodyExtractor> bodyExtractor() {
-         return new ServiceLoadedBuilderProvider<>(BodyExtractor.BuilderFactory.class, this::bodyExtractor);
+         return new ServiceLoadedBuilderProvider<>(BodyExtractor.BuilderFactory.class, parent, this::bodyExtractor);
       }
 
       public Builder onCompletion(SerializableConsumer<Session> handler) {
@@ -351,7 +351,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       }
 
       public ServiceLoadedBuilderProvider<Action> onCompletion() {
-         return new ServiceLoadedBuilderProvider<>(Action.BuilderFactory.class, a -> onCompletion(a::run));
+         return new ServiceLoadedBuilderProvider<>(Action.BuilderFactory.class, parent, a -> onCompletion(a::run));
       }
 
       public Builder rawBytesHandler(RawBytesHandler handler) {

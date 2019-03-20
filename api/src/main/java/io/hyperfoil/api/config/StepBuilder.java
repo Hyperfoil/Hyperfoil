@@ -18,14 +18,10 @@
  *
  */
 
-package io.hyperfoil.core.builders;
+package io.hyperfoil.api.config;
 
 import java.util.List;
-import java.util.function.Consumer;
 
-import io.hyperfoil.api.config.Sequence;
-import io.hyperfoil.api.config.ServiceLoadedBuilder;
-import io.hyperfoil.api.config.Step;
 import io.hyperfoil.function.SerializableSupplier;
 
 /**
@@ -34,11 +30,7 @@ import io.hyperfoil.function.SerializableSupplier;
 public interface StepBuilder {
    List<Step> build(SerializableSupplier<Sequence> sequence);
 
-   default <T extends StepBuilder> void forEach(Class<T> type, Consumer<T> consumer) {
-      if (type.isInstance(this)) {
-         consumer.accept((T) this);
-      }
-   }
+   BaseSequenceBuilder endStep();
 
    interface Factory extends ServiceLoadedBuilder.Factory<StepBuilder> {}
 }

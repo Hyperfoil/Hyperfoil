@@ -17,9 +17,9 @@ import io.hyperfoil.api.config.ListBuilder;
 import io.hyperfoil.api.config.PairBuilder;
 import io.hyperfoil.api.config.PartialBuilder;
 import io.hyperfoil.api.config.ServiceLoadedBuilder;
-import io.hyperfoil.core.builders.BaseSequenceBuilder;
-import io.hyperfoil.core.builders.SequenceBuilder;
-import io.hyperfoil.core.builders.StepDiscriminator;
+import io.hyperfoil.api.config.BaseSequenceBuilder;
+import io.hyperfoil.api.config.SequenceBuilder;
+import io.hyperfoil.core.builders.StepCatalog;
 import io.hyperfoil.core.steps.ServiceLoadedBuilderProvider;
 
 class StepParser implements Parser<BaseSequenceBuilder> {
@@ -57,10 +57,10 @@ class StepParser implements Parser<BaseSequenceBuilder> {
    @Override
    public void parse(Context ctx, BaseSequenceBuilder target) throws ParserException {
       Event firstEvent = ctx.next();
-      StepDiscriminator discriminator = target.step();
+      StepCatalog catalog = target.step(StepCatalog.class);
       if (firstEvent instanceof ScalarEvent) {
          ScalarEvent stepEvent = (ScalarEvent) firstEvent;
-         Object builder = invokeWithNoParams(discriminator, stepEvent, stepEvent.getValue());
+         Object builder = invokeWithNoParams(catalog, stepEvent, stepEvent.getValue());
          if (builder instanceof ServiceLoadedBuilder) {
             ((ServiceLoadedBuilder) builder).apply();
          }
@@ -82,7 +82,7 @@ class StepParser implements Parser<BaseSequenceBuilder> {
       if (!ctx.hasNext()) {
          throw ctx.noMoreEvents(ScalarEvent.class, MappingStartEvent.class, MappingEndEvent.class, SequenceStartEvent.class);
       }
-      invokeWithParameters(ctx, discriminator, stepEvent);
+      invokeWithParameters(ctx, catalog, stepEvent);
       ctx.expectEvent(MappingEndEvent.class);
    }
 
@@ -190,8 +190,8 @@ class StepParser implements Parser<BaseSequenceBuilder> {
          } catch (IllegalAccessException | InvocationTargetException e) {
             throw cannotCreate(keyEvent, e);
          }
-      } else if (target instanceof StepDiscriminator){
-         getLoadedBuilder((StepDiscriminator) target, keyEvent, key, value, result.exception).apply();
+      } else if (target instanceof StepCatalog){
+         getLoadedBuilder((StepCatalog) target, keyEvent, key, value, result.exception).apply();
       } else {
          throw result.exception;
       }
@@ -203,7 +203,7 @@ class StepParser implements Parser<BaseSequenceBuilder> {
       builder.accept(key, param);
    }
 
-   private ServiceLoadedBuilder getLoadedBuilder(StepDiscriminator target, ScalarEvent keyEvent, String key, String value, ParserException exception) throws ParserException {
+   private ServiceLoadedBuilder getLoadedBuilder(StepCatalog target, ScalarEvent keyEvent, String key, String value, ParserException exception) throws ParserException {
       ServiceLoadedBuilder serviceLoadedBuilder;
       try {
          serviceLoadedBuilder = target.serviceLoaded().forName(key, value);
@@ -232,8 +232,8 @@ class StepParser implements Parser<BaseSequenceBuilder> {
          } catch (IllegalAccessException | InvocationTargetException e) {
             throw cannotCreate(keyEvent, e);
          }
-      } else if (target instanceof StepDiscriminator) {
-         return getLoadedBuilder((StepDiscriminator) target, keyEvent, key, null, result.exception);
+      } else if (target instanceof StepCatalog) {
+         return getLoadedBuilder((StepCatalog) target, keyEvent, key, null, result.exception);
       } else {
          throw result.exception;
       }
@@ -250,8 +250,8 @@ class StepParser implements Parser<BaseSequenceBuilder> {
          } catch (IllegalAccessException | InvocationTargetException e) {
             throw cannotCreate(keyEvent, e);
          }
-      } else if (target instanceof StepDiscriminator) {
-         return getLoadedBuilder((StepDiscriminator) target, keyEvent, key, null, result.exception);
+      } else if (target instanceof StepCatalog) {
+         return getLoadedBuilder((StepCatalog) target, keyEvent, key, null, result.exception);
       } else {
          throw result.exception;
       }

@@ -2,13 +2,12 @@ package io.hyperfoil.core.parser;
 
 import org.yaml.snakeyaml.events.SequenceStartEvent;
 
-import io.hyperfoil.core.builders.HttpBuilder;
-import io.hyperfoil.core.builders.SimulationBuilder;
+import io.hyperfoil.api.config.HttpBuilder;
+import io.hyperfoil.api.config.SimulationBuilder;
 
 class HttpParser extends AbstractParser<SimulationBuilder, HttpBuilder> {
    HttpParser() {
       register("baseUrl", new PropertyParser.String<>(HttpBuilder::baseUrl));
-      register("repeatCookies", new PropertyParser.Boolean<>(HttpBuilder::repeatCookies));
       register("allowHttp1x", new PropertyParser.Boolean<>(HttpBuilder::allowHttp1x));
       register("allowHttp2", new PropertyParser.Boolean<>(HttpBuilder::allowHttp2));
       register("maxHttp2Streams", new PropertyParser.Int<>(HttpBuilder::maxHttp2Streams));

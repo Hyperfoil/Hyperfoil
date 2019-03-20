@@ -12,7 +12,7 @@ import org.junit.runner.RunWith;
 import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.core.session.BaseScenarioTest;
-import io.hyperfoil.core.steps.HttpRequestStep;
+import io.hyperfoil.core.steps.PathStatisticsSelector;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 
 @RunWith(VertxUnitRunner.class)
@@ -27,12 +27,12 @@ public class PathStatisticsTest extends BaseScenarioTest {
    @Test
    public void test() {
       AtomicInteger counter = new AtomicInteger(0);
-      HttpRequestStep.PathStatisticsSelector selector = new HttpRequestStep.PathStatisticsSelector();
+      PathStatisticsSelector selector = new PathStatisticsSelector();
       selector.nextItem(".*\\.js");
       selector.nextItem("(.*\\.php).* -> $1");
       selector.nextItem("-> others");
       scenario(3).initialSequence("test")
-            .step().httpRequest(HttpMethod.GET)
+            .step(SC).httpRequest(HttpMethod.GET)
                .pathGenerator(s -> {
                   switch (counter.getAndIncrement()) {
                      case 0:
@@ -46,7 +46,7 @@ public class PathStatisticsTest extends BaseScenarioTest {
                   }
                })
                .statistics(selector).endStep()
-            .step().awaitAllResponses();
+            .step(SC).awaitAllResponses();
 
       Map<String, List<StatisticsSnapshot>> stats = runScenario();
       verifyRequest(stats.get("/foo.js"));

@@ -18,7 +18,7 @@
  */
 package io.hyperfoil.core.parser;
 
-import io.hyperfoil.core.builders.BenchmarkBuilder;
+import io.hyperfoil.api.config.BenchmarkBuilder;
 
 import org.yaml.snakeyaml.events.Event;
 import org.yaml.snakeyaml.events.MappingEndEvent;

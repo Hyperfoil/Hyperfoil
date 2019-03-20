@@ -6,7 +6,7 @@ import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.http.Processor;
 import io.netty.buffer.ByteBuf;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.core.api.ResourceUtilizer;
+import io.hyperfoil.api.session.ResourceUtilizer;
 
 public class SimpleRecorder implements Processor<Request>, ResourceUtilizer {
    private final String var;

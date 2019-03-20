@@ -7,9 +7,9 @@ import org.yaml.snakeyaml.events.MappingStartEvent;
 import org.yaml.snakeyaml.events.ScalarEvent;
 import org.yaml.snakeyaml.events.SequenceStartEvent;
 
-import io.hyperfoil.core.builders.PhaseBuilder;
-import io.hyperfoil.core.builders.PhaseReference;
-import io.hyperfoil.core.builders.RelativeIteration;
+import io.hyperfoil.api.config.PhaseBuilder;
+import io.hyperfoil.api.config.PhaseReference;
+import io.hyperfoil.api.config.RelativeIteration;
 
 class StartAfterParser implements Parser<PhaseBuilder> {
    private final BiConsumer<PhaseBuilder, PhaseReference> consumer;

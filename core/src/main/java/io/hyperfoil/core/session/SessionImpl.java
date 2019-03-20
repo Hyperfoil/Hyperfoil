@@ -441,10 +441,12 @@ class SessionImpl implements Session, Callable<Void> {
       return requestPool;
    }
 
+   @Override
    public SequenceInstance acquireSequence() {
       return sequencePool.acquire();
    }
 
+   @Override
    public void enableSequence(SequenceInstance instance) {
       if (lastRunningSequence >= runningSequences.length - 1) {
          throw new IllegalStateException("Maximum number of scheduled sequences exceeded!");

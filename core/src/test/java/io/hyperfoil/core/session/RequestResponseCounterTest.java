@@ -22,8 +22,9 @@ package io.hyperfoil.core.session;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.http.HttpMethod;
-import io.hyperfoil.core.builders.BenchmarkBuilder;
-import io.hyperfoil.core.builders.SimulationBuilder;
+import io.hyperfoil.api.config.BenchmarkBuilder;
+import io.hyperfoil.api.config.SimulationBuilder;
+import io.hyperfoil.core.builders.StepCatalog;
 import io.hyperfoil.core.extractors.ByteBufSizeRecorder;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
 import io.hyperfoil.core.impl.statistics.StatisticsCollector;
@@ -82,14 +83,14 @@ public class RequestResponseCounterTest {
                 .maxSessionsEstimate(500 * 15)
                 .scenario()
                 .initialSequence("request")
-                .step().httpRequest(HttpMethod.GET)
+                .step(StepCatalog.class).httpRequest(HttpMethod.GET)
                 .path("/")
                 .timeout("60s")
                 .handler()
                 .rawBytesHandler(new ByteBufSizeRecorder("bytes"))
                 .endHandler()
                 .endStep()
-                .step().awaitAllResponses()
+                .step(StepCatalog.class).awaitAllResponses()
                 .endSequence()
                 .endScenario();
 

@@ -10,8 +10,8 @@ import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.ServiceLoadedBuilder;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.core.builders.BaseSequenceBuilder;
-import io.hyperfoil.core.builders.StepBuilder;
+import io.hyperfoil.api.config.BaseSequenceBuilder;
+import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.function.SerializableSupplier;
 
 /**
@@ -27,10 +27,12 @@ public class NoopStep implements Step {
     * The builder can be both service-loaded and used programmatically in {@link BaseSequenceBuilder#stepBuilder(StepBuilder)}.
     */
    public static class Builder extends ServiceLoadedBuilder.Base<StepBuilder> implements StepBuilder {
+      private BaseSequenceBuilder parent;
 
       /* Use this variant when constructing manually */
       public Builder(BaseSequenceBuilder parent) {
          super(null);
+         this.parent = parent;
          parent.stepBuilder(this);
       }
 
@@ -48,6 +50,11 @@ public class NoopStep implements Step {
       public List<Step> build(SerializableSupplier<Sequence> sequence) {
          return Collections.singletonList(new NoopStep());
       }
+
+      @Override
+      public BaseSequenceBuilder endStep() {
+         return parent;
+      }
    }
 
    @MetaInfServices(StepBuilder.Factory.class)
@@ -63,7 +70,7 @@ public class NoopStep implements Step {
       }
 
       @Override
-      public Builder newBuilder(Consumer<StepBuilder> buildTarget, String param) {
+      public Builder newBuilder(StepBuilder stepBuilder, Consumer<StepBuilder> buildTarget, String param) {
          return new Builder(buildTarget);
       }
    }

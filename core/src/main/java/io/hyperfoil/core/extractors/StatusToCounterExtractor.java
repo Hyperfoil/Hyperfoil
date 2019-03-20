@@ -6,10 +6,11 @@ import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.ServiceLoadedBuilder;
+import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.http.StatusExtractor;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.core.api.ResourceUtilizer;
+import io.hyperfoil.api.session.ResourceUtilizer;
 
 public class StatusToCounterExtractor implements StatusExtractor, ResourceUtilizer {
    private final Integer expectStatus;
@@ -109,7 +110,7 @@ public class StatusToCounterExtractor implements StatusExtractor, ResourceUtiliz
       }
 
       @Override
-      public Builder newBuilder(Consumer<StatusExtractor> buildTarget, String param) {
+      public Builder newBuilder(StepBuilder stepBuilder, Consumer<StatusExtractor> buildTarget, String param) {
          return new Builder(buildTarget);
       }
    }

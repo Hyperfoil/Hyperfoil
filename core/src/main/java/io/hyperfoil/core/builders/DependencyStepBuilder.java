@@ -3,6 +3,7 @@ package io.hyperfoil.core.builders;
 import java.util.ArrayList;
 import java.util.Collection;
 
+import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.api.session.VarReference;
 
 public abstract class DependencyStepBuilder extends BaseStepBuilder {

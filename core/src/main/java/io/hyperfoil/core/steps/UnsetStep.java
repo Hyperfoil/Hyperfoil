@@ -10,8 +10,8 @@ import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.ServiceLoadedBuilder;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.core.builders.BaseSequenceBuilder;
-import io.hyperfoil.core.builders.StepBuilder;
+import io.hyperfoil.api.config.BaseSequenceBuilder;
+import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.function.SerializableSupplier;
 
 public class UnsetStep implements Action.Step {
@@ -72,6 +72,7 @@ public class UnsetStep implements Action.Step {
          return Collections.singletonList(new UnsetStep(var, sequenceScoped));
       }
 
+      @Override
       public BaseSequenceBuilder endStep() {
          return parent;
       }
@@ -90,7 +91,7 @@ public class UnsetStep implements Action.Step {
       }
 
       @Override
-      public ServiceLoadedBuilder newBuilder(Consumer<Action> buildTarget, String param) {
+      public UnsetStep.Builder newBuilder(StepBuilder stepBuilder, Consumer<Action> buildTarget, String param) {
          return new Builder(buildTarget, param);
       }
    }

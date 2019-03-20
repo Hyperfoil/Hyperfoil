@@ -1,10 +1,10 @@
 package io.hyperfoil.benchmark.standalone;
 
 import io.hyperfoil.api.config.Benchmark;
+import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Simulation;
 import io.hyperfoil.core.impl.Report;
-import io.hyperfoil.core.builders.BenchmarkBuilder;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
 import io.hyperfoil.core.impl.statistics.ReportStatisticsCollector;
 import io.hyperfoil.test.TestBenchmarks;

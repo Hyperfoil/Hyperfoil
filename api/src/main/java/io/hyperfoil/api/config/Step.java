@@ -12,4 +12,8 @@ public interface Step extends Serializable {
     */
    boolean invoke(Session session);
 
+   /**
+    * Marker interface that should have single implementation in other module.
+    */
+   interface Catalog {}
 }

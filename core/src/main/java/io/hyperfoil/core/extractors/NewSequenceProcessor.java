@@ -6,10 +6,11 @@ import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.ServiceLoadedBuilder;
+import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.http.Processor;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.core.api.ResourceUtilizer;
+import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.core.session.ObjectVar;
 import io.hyperfoil.core.util.Util;
 import io.netty.buffer.ByteBuf;
@@ -77,7 +78,7 @@ public class NewSequenceProcessor implements Processor<Request>, ResourceUtilize
       }
 
       @Override
-      public ServiceLoadedBuilder newBuilder(Consumer<Processor> buildTarget, String param) {
+      public ServiceLoadedBuilder newBuilder(StepBuilder stepBuilder, Consumer<Processor> buildTarget, String param) {
          return new Builder(buildTarget);
       }
    }

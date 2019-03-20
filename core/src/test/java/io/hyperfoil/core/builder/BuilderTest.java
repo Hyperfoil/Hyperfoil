@@ -23,7 +23,8 @@ package io.hyperfoil.core.builder;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.Simulation;
 import io.hyperfoil.api.http.HttpMethod;
-import io.hyperfoil.core.builders.BenchmarkBuilder;
+import io.hyperfoil.api.config.BenchmarkBuilder;
+import io.hyperfoil.core.builders.StepCatalog;
 
 import org.junit.Test;
 
@@ -49,10 +50,10 @@ public class BuilderTest {
                             .duration("3s")
                             .scenario()
                                 .initialSequence("foo")
-                                    .step().httpRequest(HttpMethod.GET)
+                                    .step(StepCatalog.class).httpRequest(HttpMethod.GET)
                                             .path("foo")
                                             .endStep()
-                                    .step().awaitAllResponses()
+                                    .step(StepCatalog.class).awaitAllResponses()
                                     .end()
                                 .endSequence()
                             .endScenario()

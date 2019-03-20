@@ -18,17 +18,12 @@
  *
  */
 
-package io.hyperfoil.core.builders;
+package io.hyperfoil.api.config;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-import io.hyperfoil.api.config.Phase;
-import io.hyperfoil.api.config.SLA;
-import io.hyperfoil.api.config.Sequence;
-import io.hyperfoil.api.config.Step;
-import io.hyperfoil.core.session.SequenceImpl;
 import io.hyperfoil.function.SerializableSupplier;
 
 /**
@@ -61,7 +56,7 @@ public class SequenceBuilder extends BaseSequenceBuilder {
         FutureSupplier<Sequence> ss = new FutureSupplier<>();
         sequence = new SequenceImpl(phase, this.name, id,
               slas.stream().map(builder -> builder.build(ss)).toArray(SLA[]::new),
-              steps.stream().flatMap(builder -> builder.build(ss).stream()).toArray(Step[]::new));
+              buildSteps(ss).toArray(new Step[0]));
         ss.set(sequence);
         return sequence;
     }

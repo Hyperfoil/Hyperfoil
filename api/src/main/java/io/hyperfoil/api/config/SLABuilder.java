@@ -1,12 +1,10 @@
-package io.hyperfoil.core.builders;
+package io.hyperfoil.api.config;
 
 import java.util.ArrayList;
 import java.util.Collection;
 
-import io.hyperfoil.api.config.SLA;
-import io.hyperfoil.api.config.Sequence;
-import io.hyperfoil.core.util.Util;
 import io.hyperfoil.function.SerializableSupplier;
+import io.hyperfoil.util.Util;
 
 public class SLABuilder {
    private final SequenceBuilder parent;

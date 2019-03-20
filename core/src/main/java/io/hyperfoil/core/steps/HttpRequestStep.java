@@ -5,16 +5,15 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import io.hyperfoil.api.config.Http;
-import io.hyperfoil.api.config.ListBuilder;
 import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.Simulation;
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.core.generators.StringGeneratorBuilder;
+import io.hyperfoil.core.http.CookieAppender;
+import io.hyperfoil.core.http.CookieRecorder;
 import io.hyperfoil.function.SerializableSupplier;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -27,10 +26,10 @@ import io.hyperfoil.api.connection.HttpRequestWriter;
 import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.core.builders.BaseSequenceBuilder;
+import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.core.builders.BaseStepBuilder;
-import io.hyperfoil.core.api.ResourceUtilizer;
-import io.hyperfoil.core.builders.SimulationBuilder;
+import io.hyperfoil.api.session.ResourceUtilizer;
+import io.hyperfoil.api.config.SimulationBuilder;
 import io.hyperfoil.core.util.Util;
 import io.hyperfoil.function.SerializableBiConsumer;
 import io.hyperfoil.function.SerializableBiFunction;
@@ -304,7 +303,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer {
       }
 
       public Builder timeout(String timeout) {
-         return timeout(Util.parseToMillis(timeout), TimeUnit.MILLISECONDS);
+         return timeout(io.hyperfoil.util.Util.parseToMillis(timeout), TimeUnit.MILLISECONDS);
       }
 
       public Builder statistics(SerializableBiFunction<String, String, String> selector) {
@@ -325,6 +324,10 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer {
       @Override
       public List<Step> build(SerializableSupplier<Sequence> sequence) {
          SimulationBuilder simulation = parent.endSequence().endScenario().endPhase();
+         if (simulation.ergonomics().repeatCookies()) {
+            headerAppender(new CookieAppender());
+            handler().headerExtractor(new CookieRecorder());
+         }
          String guessedBaseUrl = null;
          boolean checkBaseUrl = true;
          try {
@@ -422,43 +425,4 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer {
       }
    }
 
-   public static class PathStatisticsSelector implements ListBuilder, SerializableBiFunction<String,String,String> {
-      public List<SerializableFunction<String, String>> tests = new ArrayList<>();
-
-      @Override
-      public void nextItem(String item) {
-         item = item.trim();
-         int arrow = item.indexOf("->");
-         if (arrow < 0) {
-            Pattern pattern = Pattern.compile(item);
-            tests.add(path -> pattern.matcher(path).matches() ? path : null);
-         } else if (arrow == 0) {
-            String replacement = item.substring(2).trim();
-            tests.add(path -> replacement);
-         } else {
-            Pattern pattern = Pattern.compile(item.substring(0, arrow).trim());
-            String replacement = item.substring(arrow + 2).trim();
-            tests.add(path -> {
-               Matcher matcher = pattern.matcher(path);
-               if (matcher.matches()) {
-                  return matcher.replaceFirst(replacement);
-               } else {
-                  return null;
-               }
-            });
-         }
-      }
-
-      @Override
-      public String apply(String baseUrl, String path) {
-         String combined = baseUrl != null ? baseUrl + path : path;
-         for (SerializableFunction<String, String> test : tests) {
-            String result = test.apply(combined);
-            if (result != null) {
-               return result;
-            }
-         }
-         return null;
-      }
-   }
 }

@@ -1,4 +1,4 @@
-package io.hyperfoil.core.builders;
+package io.hyperfoil.api.config;
 
 public class PhaseReference {
    public final String phase;

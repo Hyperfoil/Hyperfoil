@@ -8,14 +8,16 @@ import io.hyperfoil.util.Immutable;
 
 public class Simulation implements Serializable, Immutable {
    private final int threads;
+   private final Ergonomics ergonomics;
    private final Map<String, Http> http;
    private final Http defaultHttp;
    private final Collection<Phase> phases;
    private final Map<String, Object> tags;
    private final long statisticsCollectionPeriod;
 
-   public Simulation(int threads, Map<String, Http> http, Collection<Phase> phases, Map<String, Object> tags, long statisticsCollectionPeriod) {
+   public Simulation(int threads, Ergonomics ergonomics, Map<String, Http> http, Collection<Phase> phases, Map<String, Object> tags, long statisticsCollectionPeriod) {
       this.threads = threads;
+      this.ergonomics = ergonomics;
       this.http = http;
       this.defaultHttp = http.values().stream().filter(Http::isDefault).findFirst().orElse(null);
       this.phases = phases;

@@ -32,6 +32,9 @@
           "type": "integer",
           "minimum": 1
         },
+        "ergonomics": {
+          "$ref": "#/definitions/ergonomics"
+        },
         "http": {
           "oneOf": [
             {
@@ -147,6 +150,17 @@
     }
   },
   "definitions": {
+    "ergonomics": {
+      "description": "Adjust scenario to implement common functionality out-of-the-box.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "repeatCookies": {
+          "description": "Store cookies in session and resend them on future requests. Default is true.",
+          "type": "boolean"
+        }
+      }
+    },
     "http": {
       "description": "HTTP connection pool configuration.",
       "type": "object",
@@ -157,10 +171,6 @@
           "description": "Prefix for URLs to the target server, including schema.",
           "type": "string",
           "pattern": "^https?://.*"
-        },
-        "repeatCookies": {
-          "description": "Store cookies in session and resend them on future requests. Default is true.",
-          "type": "boolean"
         },
         "allowHttp1x": {
           "description": "Allow using HTTP 1.0 and HTTP 1.1 connections. Default is true.",

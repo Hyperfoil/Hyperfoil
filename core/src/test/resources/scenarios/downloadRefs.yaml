@@ -9,8 +9,23 @@ simulation:
         users: 1
         duration: 0
         scenario:
-          initialSequences:
-          - index:
+          orderedSequences:
+          - automatic:
+            - httpRequest:
+                GET: /foobar/index.html
+                handler:
+                  bodyExtractor:
+                    parseHtml:
+                      onEmbeddedResource:
+                        fetchResource:
+                          maxResources: 16
+                          statistics:
+                          # Drop the query part
+                          - ([^?]*)(\?.*)? -> $1
+                          onCompletion:
+                            set: allFetched <- true
+            - awaitVar: allFetched
+          - manual:
             - httpRequest:
                 GET: /foobar/index.html
                 handler:

@@ -18,13 +18,8 @@
  *
  */
 
-package io.hyperfoil.core.builders;
+package io.hyperfoil.api.config;
 
-import io.hyperfoil.api.config.Benchmark;
-import io.hyperfoil.api.config.BenchmarkDefinitionException;
-import io.hyperfoil.api.config.Phase;
-import io.hyperfoil.api.config.Simulation;
-import io.hyperfoil.api.config.Http;
 import io.hyperfoil.function.SerializableSupplier;
 
 import java.util.Collection;
@@ -41,6 +36,7 @@ import java.util.stream.Collectors;
 public class SimulationBuilder {
 
     private final BenchmarkBuilder benchmarkBuilder;
+    private ErgonomicsBuilder ergonomics = new ErgonomicsBuilder();
     private HttpBuilder defaultHttp;
     private Map<String, HttpBuilder> httpMap = new HashMap<>();
     private int threads = 1;
@@ -60,6 +56,10 @@ public class SimulationBuilder {
         return this;
     }
 
+    public ErgonomicsBuilder ergonomics() {
+        return ergonomics;
+    }
+
     public HttpBuilder http() {
         if (defaultHttp == null) {
             defaultHttp = new HttpBuilder(this);
@@ -75,8 +75,8 @@ public class SimulationBuilder {
         return apply(clone -> clone.threads = threads);
     }
 
-    public PhaseBuilder.Discriminator addPhase(String name) {
-        return new PhaseBuilder.Discriminator(this, name);
+    public PhaseBuilder.Catalog addPhase(String name) {
+        return new PhaseBuilder.Catalog(this, name);
     }
 
     public Simulation build(SerializableSupplier<Benchmark> benchmark) {
@@ -116,7 +116,7 @@ public class SimulationBuilder {
         }
         tags.put("threads", threads);
 
-        return new Simulation(threads, http, phases, tags, statisticsCollectionPeriod);
+        return new Simulation(threads, ergonomics.build(), http, phases, tags, statisticsCollectionPeriod);
     }
 
     private void checkDependencies(Phase phase, Collection<String> references, Set<String> phaseNames) {

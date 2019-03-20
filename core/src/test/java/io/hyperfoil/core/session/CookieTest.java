@@ -33,14 +33,14 @@ public class CookieTest extends BaseScenarioTest {
    @Test
    public void testRepeatCookie() {
       scenario().initialSequence("test")
-               .step().httpRequest(HttpMethod.GET).path("/test1").endStep()
-               .step().awaitAllResponses()
-               .step()
+               .step(SC).httpRequest(HttpMethod.GET).path("/test1").endStep()
+               .step(SC).awaitAllResponses()
+               .step(SC)
                   .httpRequest(HttpMethod.GET).path("/test2").handler()
                      .statusValidator((request, status) -> status == 200)
                   .endHandler()
                .endStep()
-               .step().awaitAllResponses()
+               .step(SC).awaitAllResponses()
             .endSequence();
 
       Map<String, List<StatisticsSnapshot>> stats = runScenario();

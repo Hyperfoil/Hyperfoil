@@ -2,10 +2,11 @@ package io.hyperfoil.test;
 
 import java.util.concurrent.TimeUnit;
 
-import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.api.config.Benchmark;
-import io.hyperfoil.core.builders.BenchmarkBuilder;
-import io.hyperfoil.core.builders.SimulationBuilder;
+import io.hyperfoil.api.config.BenchmarkBuilder;
+import io.hyperfoil.api.config.SimulationBuilder;
+import io.hyperfoil.api.http.HttpMethod;
+import io.hyperfoil.core.builders.StepCatalog;
 
 public class TestBenchmarks {
    public static SimulationBuilder addTestSimulation(BenchmarkBuilder builder, int users) {
@@ -24,10 +25,10 @@ public class TestBenchmarks {
                            .errorRate(0.02)
                            .window(3000)
                         .endSLA()
-                        .step().httpRequest(HttpMethod.GET)
+                        .step(StepCatalog.class).httpRequest(HttpMethod.GET)
                         .path("test")
                         .endStep()
-                        .step().awaitAllResponses()
+                        .step(StepCatalog.class).awaitAllResponses()
                   .endSequence()
                .endScenario()
             .endPhase();

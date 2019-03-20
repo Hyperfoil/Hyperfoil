@@ -17,10 +17,7 @@
  * limitations under the License.
  *
  */
-package io.hyperfoil.core.builders;
-
-import io.hyperfoil.api.config.Benchmark;
-import io.hyperfoil.api.config.Host;
+package io.hyperfoil.api.config;
 
 import java.util.ArrayList;
 import java.util.Collection;

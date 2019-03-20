@@ -34,7 +34,7 @@ public class RangeStatusValidatorTest {
 
    private RangeStatusValidator create(String inline) {
       AtomicReference<StatusValidator> ref = new AtomicReference<>();
-      factory.newBuilder(ref::set, inline).apply();
+      factory.newBuilder(null, ref::set, inline).apply();
       return (RangeStatusValidator) ref.get();
    }
 }

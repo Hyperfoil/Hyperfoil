@@ -10,7 +10,7 @@ import io.hyperfoil.api.http.Processor;
 import io.netty.buffer.ByteBuf;
 import io.hyperfoil.api.http.BodyExtractor;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.core.api.ResourceUtilizer;
+import io.hyperfoil.api.session.ResourceUtilizer;
 
 public class JsonExtractor implements BodyExtractor, ResourceUtilizer, Session.ResourceKey<JsonExtractor.Context> {
    private static final int MAX_PARTS = 16;

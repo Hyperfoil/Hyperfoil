@@ -12,8 +12,9 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 
+import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.http.HttpMethod;
-import io.hyperfoil.core.builders.BenchmarkBuilder;
+import io.hyperfoil.core.builders.StepCatalog;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
 import io.hyperfoil.core.util.RandomConcurrentSet;
 import io.vertx.core.Vertx;
@@ -24,6 +25,8 @@ import io.vertx.ext.web.Router;
 @RunWith(VertxUnitRunner.class)
 @Category(io.hyperfoil.test.Benchmark.class)
 public class TwoScenariosTest {
+   private static Class<StepCatalog> SC = StepCatalog.class;
+
    protected Vertx vertx;
    protected Router router;
 
@@ -98,20 +101,20 @@ public class TwoScenariosTest {
                .maxDuration(10000)
                .scenario()
                   .initialSequence("select-ship")
-                     .step().stopwatch()
-                        .step().poll(ships::fetch, "ship")
+                     .step(SC).stopwatch()
+                        .step(SC).poll(ships::fetch, "ship")
                         .filter(ship -> ship.sailsState == SailsState.FURLED, ships::put)
                         .endStep()
                      .end()
-                     .step().nextSequence("board")
+                     .step(SC).nextSequence("board")
                   .endSequence()
                   .sequence("board")
-                     .step().httpRequest(HttpMethod.GET).path("/board").endStep()
-                     .step().awaitAllResponses()
-                     .step().nextSequence("rig")
+                     .step(SC).httpRequest(HttpMethod.GET).path("/board").endStep()
+                     .step(SC).awaitAllResponses()
+                     .step(SC).nextSequence("rig")
                   .endSequence()
                   .sequence("rig")
-                     .step().httpRequest(HttpMethod.GET)
+                     .step(SC).httpRequest(HttpMethod.GET)
                         .pathGenerator(s -> "/rig?ship=" + encode(((ShipInfo) s.getObject("ship")).name))
                         .handler().statusValidator(((request, status) -> {
                            if (status == 200) {
@@ -121,12 +124,12 @@ public class TwoScenariosTest {
                            return false;
                         })).endHandler()
                      .endStep()
-                     .step().awaitAllResponses()
-                     .step().nextSequence("disembark")
+                     .step(SC).awaitAllResponses()
+                     .step(SC).nextSequence("disembark")
                   .endSequence()
                   .sequence("disembark")
-                     .step().httpRequest(HttpMethod.GET).path("/disembark").endStep()
-                     .step().awaitAllResponses()
+                     .step(SC).httpRequest(HttpMethod.GET).path("/disembark").endStep()
+                     .step(SC).awaitAllResponses()
                      .step(s -> {
                         ships.put((ShipInfo) s.getObject("ship"));
                         return true;
@@ -138,20 +141,20 @@ public class TwoScenariosTest {
                .duration(5000) // no max duration, should not need it
                .scenario()
                   .initialSequence("select-ship")
-                     .step().stopwatch()
-                        .step().poll(ships::fetch, "ship")
+                     .step(SC).stopwatch()
+                        .step(SC).poll(ships::fetch, "ship")
                         .filter(ship -> ship.sailsState == SailsState.RIGGED, ships::put)
                         .endStep()
                      .end()
-                     .step().nextSequence("board")
+                     .step(SC).nextSequence("board")
                   .endSequence()
                   .sequence("board")
-                     .step().httpRequest(HttpMethod.GET).path("/board").endStep()
-                     .step().awaitAllResponses()
-                     .step().nextSequence("furl")
+                     .step(SC).httpRequest(HttpMethod.GET).path("/board").endStep()
+                     .step(SC).awaitAllResponses()
+                     .step(SC).nextSequence("furl")
                   .endSequence()
                   .sequence("furl")
-                     .step().httpRequest(HttpMethod.GET)
+                     .step(SC).httpRequest(HttpMethod.GET)
                         .pathGenerator(s -> "/furl?ship=" + encode(((ShipInfo) s.getObject("ship")).name))
                         .handler().statusValidator((request, status) -> {
                            if (status == 200) {
@@ -161,12 +164,12 @@ public class TwoScenariosTest {
                            return false;
                         }).endHandler()
                      .endStep()
-                     .step().awaitAllResponses()
-                     .step().nextSequence("disembark")
+                     .step(SC).awaitAllResponses()
+                     .step(SC).nextSequence("disembark")
                   .endSequence()
                   .sequence("disembark")
-                     .step().httpRequest(HttpMethod.GET).path("/disembark").endStep()
-                     .step().awaitAllResponses()
+                     .step(SC).httpRequest(HttpMethod.GET).path("/disembark").endStep()
+                     .step(SC).awaitAllResponses()
                      .step(s -> {
                         ships.put((ShipInfo) s.getObject("ship"));
                         return true;
