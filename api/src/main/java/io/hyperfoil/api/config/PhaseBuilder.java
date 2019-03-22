@@ -135,6 +135,10 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
       return self();
    }
 
+   public void prepareBuild() {
+      forks.forEach(fork -> fork.scenario.prepareBuild());
+   }
+
    public Collection<Phase> build(SerializableSupplier<Benchmark> benchmark) {
       // normalize fork weights first
       if (forks.isEmpty()) {

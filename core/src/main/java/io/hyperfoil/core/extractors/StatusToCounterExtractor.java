@@ -1,11 +1,8 @@
 package io.hyperfoil.core.extractors;
 
-import java.util.function.Consumer;
-
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
-import io.hyperfoil.api.config.ServiceLoadedBuilder;
 import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.http.StatusExtractor;
@@ -50,16 +47,12 @@ public class StatusToCounterExtractor implements StatusExtractor, ResourceUtiliz
       session.declareInt(var);
    }
 
-   public static class Builder extends ServiceLoadedBuilder.Base<StatusExtractor> {
+   public static class Builder implements StatusExtractor.Builder {
       private Integer expectStatus;
       private String var;
       private int init;
       private Integer add;
       private Integer set;
-
-      public Builder(Consumer<StatusExtractor> buildTarget) {
-         super(buildTarget);
-      }
 
       public Builder expectStatus(int expectStatus) {
          this.expectStatus = expectStatus;
@@ -87,7 +80,7 @@ public class StatusToCounterExtractor implements StatusExtractor, ResourceUtiliz
       }
 
       @Override
-      protected StatusExtractor build() {
+      public StatusExtractor build() {
          if (add != null && set != null) {
             throw new BenchmarkDefinitionException("Use either 'add' or 'set' (not both)");
          } else if (add == null && set == null) {
@@ -110,8 +103,8 @@ public class StatusToCounterExtractor implements StatusExtractor, ResourceUtiliz
       }
 
       @Override
-      public Builder newBuilder(StepBuilder stepBuilder, Consumer<StatusExtractor> buildTarget, String param) {
-         return new Builder(buildTarget);
+      public Builder newBuilder(StepBuilder stepBuilder, String param) {
+         return new Builder();
       }
    }
 }

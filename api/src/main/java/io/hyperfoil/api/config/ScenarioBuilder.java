@@ -88,6 +88,10 @@ public class ScenarioBuilder implements Rewritable<ScenarioBuilder> {
         return this;
     }
 
+    public void prepareBuild() {
+        new ArrayList<>(sequences).forEach(SequenceBuilder::prepareBuild);
+    }
+
     public Scenario build(SerializableSupplier<Phase> phase) {
         if (scenario != null) {
             return scenario;

@@ -1,11 +1,9 @@
 package io.hyperfoil.core.extractors;
 
-import java.util.function.Consumer;
 
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
-import io.hyperfoil.api.config.ServiceLoadedBuilder;
 import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.http.StatusValidator;
@@ -33,16 +31,12 @@ public class RangeStatusValidator implements StatusValidator {
       return valid;
    }
 
-   public static class Builder extends ServiceLoadedBuilder.Base<StatusValidator> {
+   public static class Builder implements StatusValidator.Builder {
       private int min = 200;
       private int max = 299;
 
-      protected Builder(Consumer<StatusValidator> buildTarget) {
-         super(buildTarget);
-      }
-
       @Override
-      protected StatusValidator build() {
+      public RangeStatusValidator build() {
          return new RangeStatusValidator(min, max);
       }
 
@@ -70,7 +64,7 @@ public class RangeStatusValidator implements StatusValidator {
       }
 
       @Override
-      public Builder newBuilder(StepBuilder stepBuilder, Consumer<StatusValidator> buildTarget, String param) {
+      public Builder newBuilder(StepBuilder stepBuilder, String param) {
          if (param != null) {
             int xn = 0;
             for (int i = param.length() - 1; i >= 0; --i) {
@@ -83,19 +77,19 @@ public class RangeStatusValidator implements StatusValidator {
                if (dash >= 0) {
                   int min = Integer.parseInt(param.substring(0, dash).trim());
                   int max = Integer.parseInt(param.substring(dash + 1).trim());
-                  return new Builder(buildTarget).min(min).max(max);
+                  return new Builder().min(min).max(max);
                } else {
                   int value = Integer.parseInt(param.substring(0, param.length() - xn));
                   int mul = pow(10, xn);
                   int min = value * mul;
                   int max = (value + 1) * mul - 1;
-                  return new Builder(buildTarget).min(min).max(max);
+                  return new Builder().min(min).max(max);
                }
             } catch (NumberFormatException e) {
                throw new BenchmarkDefinitionException("Cannot parse '" + param + "' as status range");
             }
          }
-         return new Builder(buildTarget);
+         return new Builder();
       }
 
       private int pow(int base, int exp) {

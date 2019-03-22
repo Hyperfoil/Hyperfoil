@@ -56,6 +56,7 @@ public class BenchmarkBuilder {
 
     public Benchmark build() {
         FutureSupplier<Benchmark> bs = new FutureSupplier<>();
+        simulation.prepareBuild();
         Benchmark benchmark = new Benchmark(name, originalSource, simulation.build(bs), agents.toArray(new Host[0]));
         bs.set(benchmark);
         return benchmark;

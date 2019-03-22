@@ -2,16 +2,15 @@ package io.hyperfoil.core.steps;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.function.Consumer;
 
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.Sequence;
-import io.hyperfoil.api.config.ServiceLoadedBuilder;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.api.config.StepBuilder;
+import io.hyperfoil.core.builders.BaseStepBuilder;
 import io.hyperfoil.function.SerializableSupplier;
 
 public class UnsetStep implements Action.Step {
@@ -33,21 +32,17 @@ public class UnsetStep implements Action.Step {
       }
    }
 
-   public static class Builder extends ServiceLoadedBuilder.Base<Action> implements StepBuilder {
-      private final BaseSequenceBuilder parent;
+   public static class Builder extends BaseStepBuilder implements Action.Builder {
       private String var;
       private boolean sequenceScoped;
 
-      public Builder(Consumer<Action> buildTarget, String var) {
-         super(buildTarget);
-         this.parent = null;
-         this.var = var;
+      public Builder(BaseSequenceBuilder parent) {
+         super(parent);
       }
 
-      public Builder(BaseSequenceBuilder parent) {
+      public Builder(String param) {
          super(null);
-         this.parent = parent;
-         parent.stepBuilder(this);
+         var = param;
       }
 
       public Builder var(String var) {
@@ -63,8 +58,8 @@ public class UnsetStep implements Action.Step {
       }
 
       @Override
-      protected UnsetStep build() {
-         return new UnsetStep(var, sequenceScoped);
+      public void prepareBuild() {
+         // We need to override unrelated default methods
       }
 
       @Override
@@ -73,8 +68,8 @@ public class UnsetStep implements Action.Step {
       }
 
       @Override
-      public BaseSequenceBuilder endStep() {
-         return parent;
+      public Action build() {
+         return new UnsetStep(var, sequenceScoped);
       }
    }
 
@@ -91,8 +86,8 @@ public class UnsetStep implements Action.Step {
       }
 
       @Override
-      public UnsetStep.Builder newBuilder(StepBuilder stepBuilder, Consumer<Action> buildTarget, String param) {
-         return new Builder(buildTarget, param);
+      public UnsetStep.Builder newBuilder(StepBuilder stepBuilder, String param) {
+         return new Builder(param);
       }
    }
 }

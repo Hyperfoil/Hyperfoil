@@ -79,7 +79,7 @@ public class SimulationBuilder {
         return new PhaseBuilder.Catalog(this, name);
     }
 
-    public Simulation build(SerializableSupplier<Benchmark> benchmark) {
+    public void prepareBuild() {
         if (defaultHttp == null) {
             if (httpMap.isEmpty()) {
                 // may be removed in the future when we define more than HTTP connections
@@ -96,7 +96,11 @@ public class SimulationBuilder {
             }
             httpMap.put(defaultHttp.baseUrl(), defaultHttp);
         }
+        httpMap.values().forEach(HttpBuilder::prepareBuild);
+        phaseBuilders.values().forEach(PhaseBuilder::prepareBuild);
+    }
 
+    public Simulation build(SerializableSupplier<Benchmark> benchmark) {
         Map<String, Http> http = httpMap.entrySet().stream()
               .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().build(entry.getValue() == defaultHttp)));
 

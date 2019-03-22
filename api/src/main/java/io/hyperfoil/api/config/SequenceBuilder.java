@@ -49,6 +49,12 @@ public class SequenceBuilder extends BaseSequenceBuilder {
         readFrom(other);
     }
 
+    public void prepareBuild() {
+        // We need to make a defensive copy as prepareBuild() may trigger modifications
+        new ArrayList<>(slas).forEach(SLABuilder::prepareBuild);
+        new ArrayList<>(steps).forEach(StepBuilder::prepareBuild);
+    }
+
     public Sequence build(SerializableSupplier<Phase> phase) {
         if (sequence != null) {
             return sequence;

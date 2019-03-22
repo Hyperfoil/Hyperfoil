@@ -21,7 +21,7 @@ package io.hyperfoil.api.http;
 
 import java.io.Serializable;
 
-import io.hyperfoil.api.config.ServiceLoadedBuilder;
+import io.hyperfoil.api.config.ServiceLoadedFactory;
 import io.hyperfoil.api.connection.Request;
 
 /**
@@ -34,5 +34,9 @@ public interface HeaderValidator extends Serializable {
 
    boolean validate(Request request);
 
-   interface BuilderFactory extends ServiceLoadedBuilder.Factory<HeaderValidator> {}
+   interface Builder {
+      default void prepareBuild() {}
+      HeaderValidator build();
+   }
+   interface BuilderFactory extends ServiceLoadedFactory<HeaderValidator.Builder> {}
 }

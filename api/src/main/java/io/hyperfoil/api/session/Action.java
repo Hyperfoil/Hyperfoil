@@ -2,7 +2,7 @@ package io.hyperfoil.api.session;
 
 import java.io.Serializable;
 
-import io.hyperfoil.api.config.ServiceLoadedBuilder;
+import io.hyperfoil.api.config.ServiceLoadedFactory;
 
 /**
  * Actions are similar to {@link io.hyperfoil.api.config.Step steps} but are executed unconditionally;
@@ -11,7 +11,11 @@ import io.hyperfoil.api.config.ServiceLoadedBuilder;
 public interface Action extends Serializable {
    void run(Session session);
 
-   interface BuilderFactory extends ServiceLoadedBuilder.Factory<Action> {}
+   interface Builder {
+      default void prepareBuild() {}
+      Action build();
+   }
+   interface BuilderFactory extends ServiceLoadedFactory<Builder> {}
 
    /**
     * Combination of an action and a step.

@@ -13,7 +13,6 @@ import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.core.generators.StringGeneratorBuilder;
 import io.hyperfoil.core.http.CookieAppender;
-import io.hyperfoil.core.http.CookieRecorder;
 import io.hyperfoil.function.SerializableSupplier;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -322,12 +321,16 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer {
       }
 
       @Override
+      public void prepareBuild() {
+         if (parent.endSequence().endScenario().endPhase().ergonomics().repeatCookies()) {
+            headerAppender(new CookieAppender());
+         }
+         handler.prepareBuild();
+      }
+
+      @Override
       public List<Step> build(SerializableSupplier<Sequence> sequence) {
          SimulationBuilder simulation = parent.endSequence().endScenario().endPhase();
-         if (simulation.ergonomics().repeatCookies()) {
-            headerAppender(new CookieAppender());
-            handler().headerExtractor(new CookieRecorder());
-         }
          String guessedBaseUrl = null;
          boolean checkBaseUrl = true;
          try {

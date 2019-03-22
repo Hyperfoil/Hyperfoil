@@ -2,11 +2,7 @@ package io.hyperfoil.core.extractors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.concurrent.atomic.AtomicReference;
-
 import org.junit.Test;
-
-import io.hyperfoil.api.http.StatusValidator;
 
 public class RangeStatusValidatorTest {
    RangeStatusValidator.BuilderFactory factory = new RangeStatusValidator.BuilderFactory();
@@ -33,8 +29,6 @@ public class RangeStatusValidatorTest {
    }
 
    private RangeStatusValidator create(String inline) {
-      AtomicReference<StatusValidator> ref = new AtomicReference<>();
-      factory.newBuilder(null, ref::set, inline).apply();
-      return (RangeStatusValidator) ref.get();
+      return factory.newBuilder(null, inline).build();
    }
 }

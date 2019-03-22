@@ -8,14 +8,15 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.function.Consumer;
+import java.util.Optional;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import io.hyperfoil.api.config.ListBuilder;
 import io.hyperfoil.api.config.PairBuilder;
 import io.hyperfoil.api.config.PartialBuilder;
-import io.hyperfoil.api.config.ServiceLoadedBuilder;
 import io.hyperfoil.api.config.BaseSequenceBuilder;
+import io.hyperfoil.api.config.ServiceLoadedFactory;
 import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.core.builders.StepCatalog;
 import io.hyperfoil.core.steps.ServiceLoadedBuilderProvider;
@@ -37,7 +38,7 @@ public class Generator {
    }
 
    @SuppressWarnings("unchecked")
-   private static Iterable<ServiceLoadedBuilder.Factory<?>> getFactories(Class<?> factoryClass) {
+   private static Iterable<ServiceLoadedFactory<?>> getFactories(Class<?> factoryClass) {
       return ServiceLoadedBuilderProvider.factories((Class) factoryClass);
    }
 
@@ -68,7 +69,7 @@ public class Generator {
       for (Object f : getFactories(StepBuilder.Factory.class)) {
          StepBuilder.Factory factory = (StepBuilder.Factory) f;
          try {
-            Class<?> newBuilder = factory.getClass().getMethod("newBuilder", StepBuilder.class, Consumer.class, String.class).getReturnType();
+            Class<?> newBuilder = factory.getClass().getMethod("newBuilder", StepBuilder.class, String.class).getReturnType();
             addBuilder(builders, simpleBuilders, factory.name(), newBuilder, factory.acceptsParam());
          } catch (NoSuchMethodException e) {
             throw new IllegalStateException(e);
@@ -180,8 +181,13 @@ public class Generator {
                .put("items", TYPE_STRING);
       } else if (ServiceLoadedBuilderProvider.class.isAssignableFrom(m.getReturnType())) {
          ParameterizedType type = (ParameterizedType) m.getAnnotatedReturnType().getType();
-         Class<?> provided = (Class<?>) type.getActualTypeArguments()[0];
-         return getServiceLoadedImplementations(provided);
+         Class<?> builderType = (Class<?>) type.getActualTypeArguments()[0];
+         Optional<Method> buildMethod = Stream.of(builderType.getMethods()).filter(bm -> "build".equals(bm.getName())).findFirst();
+         if (!buildMethod.isPresent()) {
+            throw new IllegalStateException("ServiceLoadedBuilderProvider returned from " + m +
+                  " does not return a builder: " + builderType.getName());
+         }
+         return getServiceLoadedImplementations(buildMethod.get().getReturnType());
       } else if (m.getReturnType().getName().endsWith("Builder")) {
          JsonObject builderReference = describeBuilder(m.getReturnType());
          return new JsonObject().put("oneOf",
@@ -210,7 +216,7 @@ public class Generator {
       // This is not ideal; there's no reason for the builder factory to be nested but it's 'convention'
       // and ATM there's no other way
       for (Class<?> nested : serviceLoadedClazz.getClasses()) {
-         if (ServiceLoadedBuilder.Factory.class.isAssignableFrom(nested)) {
+         if (ServiceLoadedFactory.class.isAssignableFrom(nested)) {
             JsonObject serviceLoadedProperties = new JsonObject();
             JsonObject property = new JsonObject()
                   .put("type", "object")
@@ -218,9 +224,9 @@ public class Generator {
                   .put("minProperties", 1)
                   .put("maxProperties", 1)
                   .put("properties", serviceLoadedProperties);
-            for (ServiceLoadedBuilder.Factory f : getFactories(nested)) {
+            for (ServiceLoadedFactory f : getFactories(nested)) {
                try {
-                  Class<?> serviceLoadedBuilder = f.getClass().getMethod("newBuilder", StepBuilder.class, Consumer.class, String.class).getReturnType();
+                  Class<?> serviceLoadedBuilder = f.getClass().getMethod("newBuilder", StepBuilder.class, String.class).getReturnType();
                   JsonObject serviceLoadedProperty = describeBuilder(serviceLoadedBuilder);
                   if (f.acceptsParam()) {
                      serviceLoadedProperty = new JsonObject()

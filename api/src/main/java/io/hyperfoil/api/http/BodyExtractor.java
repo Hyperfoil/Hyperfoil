@@ -20,9 +20,9 @@ package io.hyperfoil.api.http;
 
 import java.io.Serializable;
 
+import io.hyperfoil.api.config.ServiceLoadedFactory;
 import io.hyperfoil.api.connection.HttpRequest;
 import io.netty.buffer.ByteBuf;
-import io.hyperfoil.api.config.ServiceLoadedBuilder;
 
 public interface BodyExtractor extends Serializable {
 
@@ -30,5 +30,9 @@ public interface BodyExtractor extends Serializable {
     void extractData(HttpRequest request, ByteBuf data);
     default void afterData(HttpRequest request) {}
 
-    interface BuilderFactory extends ServiceLoadedBuilder.Factory<BodyExtractor> {}
+    interface Builder {
+        default void prepareBuild() {}
+        BodyExtractor build();
+    }
+    interface BuilderFactory extends ServiceLoadedFactory<Builder> {}
 }

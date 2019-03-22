@@ -1,11 +1,9 @@
 package io.hyperfoil.core.extractors;
 
-import java.util.function.Consumer;
 
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
-import io.hyperfoil.api.config.ServiceLoadedBuilder;
 import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.http.Processor;
@@ -78,20 +76,16 @@ public class NewSequenceProcessor implements Processor<Request>, ResourceUtilize
       }
 
       @Override
-      public ServiceLoadedBuilder newBuilder(StepBuilder stepBuilder, Consumer<Processor> buildTarget, String param) {
-         return new Builder(buildTarget);
+      public Builder newBuilder(StepBuilder stepBuilder, String param) {
+         return new Builder();
       }
    }
 
-   public static class Builder extends ServiceLoadedBuilder.Base<Processor> {
+   public static class Builder implements Processor.Builder<Request> {
       private int maxSequences = -1;
       private String counterVar;
       private String dataVar;
       private String template;
-
-      protected Builder(Consumer<Processor> buildTarget) {
-         super(buildTarget);
-      }
 
       public Builder maxSequences(int maxSequences) {
          this.maxSequences = maxSequences;
@@ -114,7 +108,7 @@ public class NewSequenceProcessor implements Processor<Request>, ResourceUtilize
       }
 
       @Override
-      protected NewSequenceProcessor build() {
+      public NewSequenceProcessor build() {
          if (maxSequences <= 0) {
             throw new BenchmarkDefinitionException("maxSequences is missing or invalid.");
          }

@@ -20,7 +20,7 @@ package io.hyperfoil.api.http;
 
 import java.io.Serializable;
 
-import io.hyperfoil.api.config.ServiceLoadedBuilder;
+import io.hyperfoil.api.config.ServiceLoadedFactory;
 import io.hyperfoil.api.connection.Request;
 
 /**
@@ -29,6 +29,11 @@ import io.hyperfoil.api.connection.Request;
 public interface StatusValidator extends Serializable {
    boolean validate(Request request, int status);
 
-   interface BuilderFactory extends ServiceLoadedBuilder.Factory<StatusValidator> {
+   interface Builder {
+      default void prepareBuild() {}
+      StatusValidator build();
+   }
+
+   interface BuilderFactory extends ServiceLoadedFactory<StatusValidator.Builder> {
    }
 }

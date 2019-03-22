@@ -18,6 +18,9 @@ public class SLABuilder {
       this.parent = parent;
    }
 
+   public void prepareBuild() {
+   }
+
    public SLA build(SerializableSupplier<Sequence> sequence) {
       if (sla != null) {
          return sla;

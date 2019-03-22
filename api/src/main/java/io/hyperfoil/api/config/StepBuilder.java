@@ -28,9 +28,11 @@ import io.hyperfoil.function.SerializableSupplier;
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
  */
 public interface StepBuilder {
+   default void prepareBuild() {}
+
    List<Step> build(SerializableSupplier<Sequence> sequence);
 
    BaseSequenceBuilder endStep();
 
-   interface Factory extends ServiceLoadedBuilder.Factory<StepBuilder> {}
+   interface Factory extends ServiceLoadedFactory<StepBuilder> {}
 }

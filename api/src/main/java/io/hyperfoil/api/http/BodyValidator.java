@@ -21,8 +21,8 @@ package io.hyperfoil.api.http;
 
 import java.io.Serializable;
 
+import io.hyperfoil.api.config.ServiceLoadedFactory;
 import io.netty.buffer.ByteBuf;
-import io.hyperfoil.api.config.ServiceLoadedBuilder;
 import io.hyperfoil.api.connection.Request;
 
 /**
@@ -33,5 +33,9 @@ public interface BodyValidator extends Serializable {
    void validateData(Request request, ByteBuf chunk);
    boolean validate(Request request);
 
-   interface BuilderFactory extends ServiceLoadedBuilder.Factory<BodyValidator> {}
+   interface Builder {
+      default void prepareBuild() {}
+      BodyValidator build();
+   }
+   interface BuilderFactory extends ServiceLoadedFactory<BodyValidator.Builder> {}
 }

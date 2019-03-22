@@ -6,18 +6,19 @@ import java.util.ServiceLoader;
 import java.util.function.Consumer;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
-import io.hyperfoil.api.config.ServiceLoadedBuilder;
+import io.hyperfoil.api.config.ServiceLoadedContract;
+import io.hyperfoil.api.config.ServiceLoadedFactory;
 import io.hyperfoil.api.config.StepBuilder;
 
-public class ServiceLoadedBuilderProvider<T> {
-   private static final Map<Class<ServiceLoadedBuilder.Factory<?>>, ServiceLoader<ServiceLoadedBuilder.Factory<?>>> SERVICE_LOADERS = new HashMap<>();
+public class ServiceLoadedBuilderProvider<B> {
+   private static final Map<Class<ServiceLoadedFactory<?>>, ServiceLoader<ServiceLoadedFactory<?>>> SERVICE_LOADERS = new HashMap<>();
 
-   private final Class<? extends ServiceLoadedBuilder.Factory<T>> factoryClazz;
+   private final Class<? extends ServiceLoadedFactory<B>> factoryClazz;
    private final StepBuilder stepBuilder;
-   private final Consumer<T> consumer;
+   private final Consumer<B> consumer;
 
-   public static Iterable<ServiceLoadedBuilder.Factory<?>> factories(Class<ServiceLoadedBuilder.Factory<?>> clazz) {
-      ServiceLoader<ServiceLoadedBuilder.Factory<?>> loader = SERVICE_LOADERS.get(clazz);
+   public static Iterable<ServiceLoadedFactory<?>> factories(Class<ServiceLoadedFactory<?>> clazz) {
+      ServiceLoader<ServiceLoadedFactory<?>> loader = SERVICE_LOADERS.get(clazz);
       if (loader == null) {
          loader = ServiceLoader.load(clazz);
          SERVICE_LOADERS.put(clazz, loader);
@@ -25,10 +26,10 @@ public class ServiceLoadedBuilderProvider<T> {
       return loader;
    }
 
-   private static ServiceLoadedBuilder.Factory<?> factory(Class<ServiceLoadedBuilder.Factory<?>> clazz, String name) {
-      Iterable<ServiceLoadedBuilder.Factory<?>> loader = factories(clazz);
-      ServiceLoadedBuilder.Factory<?> factory = null;
-      for (ServiceLoadedBuilder.Factory<?> f : loader) {
+   private static ServiceLoadedFactory<?> factory(Class<ServiceLoadedFactory<?>> clazz, String name) {
+      Iterable<ServiceLoadedFactory<?>> loader = factories(clazz);
+      ServiceLoadedFactory<?> factory = null;
+      for (ServiceLoadedFactory<?> f : loader) {
          if (f.name().equals(name)) {
             if (factory != null) {
                throw new BenchmarkDefinitionException("Two classes ('" + factory.getClass().getName() +
@@ -44,17 +45,18 @@ public class ServiceLoadedBuilderProvider<T> {
       return factory;
    }
 
-   public ServiceLoadedBuilderProvider(Class<? extends ServiceLoadedBuilder.Factory<T>> factoryClazz, StepBuilder stepBuilder, Consumer<T> consumer) {
+   public ServiceLoadedBuilderProvider(Class<? extends ServiceLoadedFactory<B>> factoryClazz, StepBuilder stepBuilder, Consumer<B> consumer) {
       this.factoryClazz = factoryClazz;
       this.stepBuilder = stepBuilder;
       this.consumer = consumer;
    }
 
-   public ServiceLoadedBuilder forName(String name, String param) {
-      ServiceLoadedBuilder.Factory factory = factory((Class) factoryClazz, name);
+   public ServiceLoadedContract<B> forName(String name, String param) {
+      ServiceLoadedFactory<B> factory = factory((Class) factoryClazz, name);
       if (param != null && !factory.acceptsParam()) {
          throw new BenchmarkDefinitionException(factory.name() + " does not accept inline parameter");
       }
-      return factory.newBuilder(stepBuilder, consumer, param);
+      B builder = factory.newBuilder(stepBuilder, param);
+      return new ServiceLoadedContract<>(builder, consumer);
    }
 }

@@ -2,17 +2,16 @@ package io.hyperfoil.core.steps;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.function.Consumer;
 
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Sequence;
-import io.hyperfoil.api.config.ServiceLoadedBuilder;
 import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.Session;
+import io.hyperfoil.core.builders.BaseStepBuilder;
 import io.hyperfoil.core.session.ObjectVar;
 import io.hyperfoil.function.SerializableSupplier;
 
@@ -45,15 +44,13 @@ public class SetStep implements Action.Step {
       }
    }
 
-   public static class Builder extends ServiceLoadedBuilder.Base<Action> implements StepBuilder {
-      private final BaseSequenceBuilder parent;
+   public static class Builder extends BaseStepBuilder implements Action.Builder {
       private String var;
       private boolean sequenceScoped;
       private String value;
 
-      public Builder(Consumer<Action> buildTarget, String param) {
-         super(buildTarget);
-         this.parent = null;
+      public Builder(String param) {
+         super(null);
          int sep = param.indexOf("<-");
          if (sep < 0) {
             throw new BenchmarkDefinitionException("Invalid inline definition '" + param + "': should be 'var <- value'");
@@ -63,9 +60,7 @@ public class SetStep implements Action.Step {
       }
 
       public Builder(BaseSequenceBuilder parent) {
-         super(null);
-         this.parent = parent;
-         parent.stepBuilder(this);
+         super(parent);
       }
 
       public SetStep.Builder var(String var) {
@@ -86,7 +81,7 @@ public class SetStep implements Action.Step {
       }
 
       @Override
-      protected SetStep build() {
+      public SetStep build() {
          if (var == null) {
             throw new BenchmarkDefinitionException("Variable name was not set!");
          }
@@ -97,8 +92,13 @@ public class SetStep implements Action.Step {
       }
 
       @Override
+      public void prepareBuild() {
+         // We need to override unrelated default methods
+      }
+
+      @Override
       public List<io.hyperfoil.api.config.Step> build(SerializableSupplier<Sequence> sequence) {
-         return Collections.singletonList(new UnsetStep(var, sequenceScoped));
+         return Collections.singletonList(build());
       }
 
       @Override
@@ -120,8 +120,8 @@ public class SetStep implements Action.Step {
       }
 
       @Override
-      public SetStep.Builder newBuilder(StepBuilder stepBuilder, Consumer<Action> buildTarget, String param) {
-         return new SetStep.Builder(buildTarget, param);
+      public SetStep.Builder newBuilder(StepBuilder stepBuilder, String param) {
+         return new SetStep.Builder(param);
       }
    }
 }

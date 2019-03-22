@@ -16,7 +16,7 @@ import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.ListBuilder;
 import io.hyperfoil.api.config.PairBuilder;
 import io.hyperfoil.api.config.PartialBuilder;
-import io.hyperfoil.api.config.ServiceLoadedBuilder;
+import io.hyperfoil.api.config.ServiceLoadedContract;
 import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.api.config.SequenceBuilder;
 import io.hyperfoil.core.builders.StepCatalog;
@@ -61,8 +61,8 @@ class StepParser implements Parser<BaseSequenceBuilder> {
       if (firstEvent instanceof ScalarEvent) {
          ScalarEvent stepEvent = (ScalarEvent) firstEvent;
          Object builder = invokeWithNoParams(catalog, stepEvent, stepEvent.getValue());
-         if (builder instanceof ServiceLoadedBuilder) {
-            ((ServiceLoadedBuilder) builder).apply();
+         if (builder instanceof ServiceLoadedContract) {
+            ((ServiceLoadedContract<?>) builder).complete();
          }
          return;
       } else if (!(firstEvent instanceof MappingStartEvent)) {
@@ -92,8 +92,8 @@ class StepParser implements Parser<BaseSequenceBuilder> {
       if (defEvent instanceof MappingEndEvent) {
          // end of list item -> no arg step
          Object builder = invokeWithNoParams(target, keyEvent, key);
-         if (builder instanceof ServiceLoadedBuilder) {
-            ((ServiceLoadedBuilder) builder).apply();
+         if (builder instanceof ServiceLoadedContract) {
+            ((ServiceLoadedContract<?>) builder).complete();
          }
          // we'll expect the mapping end at the end
       } else if (defEvent instanceof ScalarEvent) {
@@ -103,17 +103,18 @@ class StepParser implements Parser<BaseSequenceBuilder> {
             invokeWithSingleParam(target, keyEvent, key, defEvent, value);
          } else {
             Object builder = invokeWithNoParams(target, keyEvent, key);
-            if (builder instanceof ServiceLoadedBuilder) {
-               ((ServiceLoadedBuilder) builder).apply();
+            if (builder instanceof ServiceLoadedContract) {
+               ((ServiceLoadedContract<?>) builder).complete();
             }
          }
          ctx.consumePeeked(defEvent);
       } else if (defEvent instanceof MappingStartEvent) {
          Object builder = invokeWithDefaultParams(target, keyEvent, key);
          ctx.consumePeeked(defEvent);
-         if (builder instanceof ServiceLoadedBuilder) {
-            applyMapping(ctx, builder);
-            ((ServiceLoadedBuilder) builder).apply();
+         if (builder instanceof ServiceLoadedContract) {
+            ServiceLoadedContract<?> serviceLoadedContract = (ServiceLoadedContract<?>) builder;
+            applyMapping(ctx, serviceLoadedContract.builder());
+            serviceLoadedContract.complete();
          } else if (builder instanceof ServiceLoadedBuilderProvider) {
             defEvent = ctx.next();
             if (defEvent instanceof MappingEndEvent) {
@@ -121,23 +122,23 @@ class StepParser implements Parser<BaseSequenceBuilder> {
             } else if (defEvent instanceof ScalarEvent) {
                String name = ((ScalarEvent) defEvent).getValue();
                ServiceLoadedBuilderProvider<?> provider = (ServiceLoadedBuilderProvider<?>) builder;
-               ServiceLoadedBuilder serviceLoadedBuilder;
+               ServiceLoadedContract<?> slc;
                Event builderEvent = ctx.next();
                String param = null;
                if (builderEvent instanceof ScalarEvent) {
                   param = ((ScalarEvent) builderEvent).getValue();
                }
                try {
-                  serviceLoadedBuilder = provider.forName(name, param);
+                  slc = provider.forName(name, param);
                } catch (BenchmarkDefinitionException e) {
                   throw new ParserException(defEvent, "Failed to instantiate service-loaded builder " + name, e);
                }
                if (builderEvent instanceof MappingStartEvent) {
-                  applyMapping(ctx, serviceLoadedBuilder);
+                  applyMapping(ctx, slc.builder());
                } else if (!(builderEvent instanceof ScalarEvent)) {
                   throw ctx.unexpectedEvent(builderEvent);
                }
-               serviceLoadedBuilder.apply();
+               slc.complete();
             } else {
                throw ctx.unexpectedEvent(defEvent);
             }
@@ -147,6 +148,11 @@ class StepParser implements Parser<BaseSequenceBuilder> {
          }
       } else if (defEvent instanceof SequenceStartEvent) {
          Object builder = invokeWithNoParams(target, keyEvent, key);
+         ServiceLoadedContract<?> slc = null;
+         if (builder instanceof ServiceLoadedContract) {
+            slc = (ServiceLoadedContract<?>) builder;
+            builder = slc.builder();
+         }
          if (builder instanceof BaseSequenceBuilder) {
             ctx.parseList((BaseSequenceBuilder) builder, StepParser.instance());
          } else {
@@ -169,9 +175,9 @@ class StepParser implements Parser<BaseSequenceBuilder> {
                   throw ctx.unexpectedEvent(defEvent);
                }
             }
-            if (builder instanceof ServiceLoadedBuilder) {
-               ((ServiceLoadedBuilder) builder).apply();
-            }
+         }
+         if (slc != null) {
+            slc.complete();
          }
       }
    }
@@ -191,7 +197,7 @@ class StepParser implements Parser<BaseSequenceBuilder> {
             throw cannotCreate(keyEvent, e);
          }
       } else if (target instanceof StepCatalog){
-         getLoadedBuilder((StepCatalog) target, keyEvent, key, value, result.exception).apply();
+         getLoadedBuilder((StepCatalog) target, keyEvent, key, value, result.exception).complete();
       } else {
          throw result.exception;
       }
@@ -203,16 +209,16 @@ class StepParser implements Parser<BaseSequenceBuilder> {
       builder.accept(key, param);
    }
 
-   private ServiceLoadedBuilder getLoadedBuilder(StepCatalog target, ScalarEvent keyEvent, String key, String value, ParserException exception) throws ParserException {
-      ServiceLoadedBuilder serviceLoadedBuilder;
+   private ServiceLoadedContract<?> getLoadedBuilder(StepCatalog target, ScalarEvent keyEvent, String key, String value, ParserException exception) throws ParserException {
+      ServiceLoadedContract<?> serviceLoadedContract;
       try {
-         serviceLoadedBuilder = target.serviceLoaded().forName(key, value);
+         serviceLoadedContract = target.serviceLoaded().forName(key, value);
       } catch (BenchmarkDefinitionException e) {
          ParserException pe = new ParserException(keyEvent, "Cannot find any step matching name '" + key + "'", e);
          pe.addSuppressed(exception);
          throw pe;
       }
-      return serviceLoadedBuilder;
+      return serviceLoadedContract;
    }
 
    private Object invokeWithDefaultParams(Object target, ScalarEvent keyEvent, String key) throws ParserException {

@@ -8,7 +8,9 @@ public abstract class BaseStepBuilder implements StepBuilder {
 
    protected BaseStepBuilder(BaseSequenceBuilder parent) {
       this.parent = parent;
-      parent.stepBuilder(this);
+      if (parent != null) {
+         parent.stepBuilder(this);
+      }
    }
 
    public BaseSequenceBuilder endStep() {

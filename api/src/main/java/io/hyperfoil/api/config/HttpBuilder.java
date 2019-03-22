@@ -117,6 +117,9 @@ public class HttpBuilder {
         return requestTimeout;
     }
 
+    public void prepareBuild() {
+    }
+
     public Http build(boolean isDefault) {
         if (http != null) {
             if (isDefault != http.isDefault()) {

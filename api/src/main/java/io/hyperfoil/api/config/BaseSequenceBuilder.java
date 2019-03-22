@@ -2,10 +2,10 @@ package io.hyperfoil.api.config;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.ConcurrentModificationException;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.ServiceLoader;
+import java.util.stream.Collectors;
 
 import io.hyperfoil.function.SerializableSupplier;
 import io.hyperfoil.impl.StepCatalogFactory;
@@ -91,17 +91,7 @@ public abstract class BaseSequenceBuilder implements Rewritable<BaseSequenceBuil
    }
 
    protected List<Step> buildSteps(SerializableSupplier<Sequence> sequence) {
-      // We can't use streams/iterator and build the sequence since the list of steps can be modified during build,
-      // appending further steps etc. All modifications should happen only on higher index than the current one, though.
-      ArrayList<Step> out = new ArrayList<>();
-      for (int i = 0; i < steps.size(); ++i) {
-         StepBuilder builder = steps.get(i);
-         out.addAll(builder.build(sequence));
-         if (builder != steps.get(i)) {
-            throw new ConcurrentModificationException("Modified already built steps!");
-         }
-      }
-      return out;
+      return steps.stream().map(b -> b.build(sequence)).flatMap(List::stream).collect(Collectors.toList());
    }
 
    private static class StepInserter extends BaseSequenceBuilder implements StepBuilder {
