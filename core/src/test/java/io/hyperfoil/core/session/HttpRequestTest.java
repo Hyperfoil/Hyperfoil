@@ -130,20 +130,20 @@ public class HttpRequestTest extends BaseScenarioTest {
             .initialSequence("expectOK")
                .step(SC).httpRequest(HttpMethod.GET)
                   .path("/status?s=205")
+                  .sync(true)
                   .handler()
                      .statusValidator(new RangeStatusValidator(205, 205))
                      .endHandler()
                   .endStep()
-               .step(SC).awaitAllResponses()
                .endSequence()
             .initialSequence("expectFail")
                .step(SC).httpRequest(HttpMethod.GET)
                   .path("/status?s=406")
+                  .sync(true)
                   .handler()
                      .statusValidator(new RangeStatusValidator(200, 299))
                      .endHandler()
                   .endStep()
-               .step(SC).awaitAllResponses()
                .endSequence();
 
       Map<String, List<StatisticsSnapshot>> stats = runScenario();

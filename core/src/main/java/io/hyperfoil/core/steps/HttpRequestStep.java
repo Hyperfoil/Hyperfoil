@@ -4,6 +4,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 import io.hyperfoil.api.config.Http;
@@ -152,6 +153,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer {
       private SerializableBiFunction<String, String, String> statisticsSelector;
       private long timeout = Long.MIN_VALUE;
       private HttpResponseHandlersImpl.Builder handler = new HttpResponseHandlersImpl.Builder(this);
+      private boolean sync = false;
 
       public Builder(BaseSequenceBuilder parent, HttpMethod method) {
          super(parent);
@@ -320,10 +322,21 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer {
          return handler;
       }
 
+      public Builder sync(boolean sync) {
+         this.sync = sync;
+         return this;
+      }
+
       @Override
       public void prepareBuild() {
          if (parent.endSequence().endScenario().endPhase().ergonomics().repeatCookies()) {
             headerAppender(new CookieAppender());
+         }
+         if (sync) {
+            String var = String.format("%s_sync_%08x", endStep().name(), ThreadLocalRandom.current().nextInt());
+            endStep().insertBefore(this).step(new SyncRequestIncrementStep(var));
+            handler.onCompletion(s -> s.addToInt(var, -1));
+            endStep().insertAfter(this).step(new AwaitIntStep(var, x -> x == 0));
          }
          handler.prepareBuild();
       }
@@ -352,6 +365,33 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer {
          SerializableBiConsumer<Session, HttpRequestWriter>[] headerAppenders =
                this.headerAppenders.isEmpty() ? null : this.headerAppenders.toArray(new SerializableBiConsumer[0]);
          return Collections.singletonList(new HttpRequestStep(sequence, method, baseUrl, pathGenerator, bodyGenerator, headerAppenders, statisticsSelector, timeout, handler.build()));
+      }
+   }
+
+   private static class SyncRequestIncrementStep implements Step, ResourceUtilizer {
+      private final String var;
+
+      public SyncRequestIncrementStep(String var) {
+         this.var = var;
+      }
+
+      @Override
+      public boolean invoke(Session s) {
+         if (s.isSet(var)) {
+            if (s.getInt(var) != 0) {
+               s.fail(new IllegalStateException("Synchronous HTTP request executed multiple times."));
+            } else {
+               s.addToInt(var, 1);
+            }
+         } else {
+            s.setInt(var, 1);
+         }
+         return true;
+      }
+
+      @Override
+      public void reserve(Session session) {
+         session.declareInt(var);
       }
    }
 

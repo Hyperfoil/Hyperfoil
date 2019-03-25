@@ -79,11 +79,19 @@ public abstract class BaseSequenceBuilder implements Rewritable<BaseSequenceBuil
       return parent.name();
    }
 
+   public BaseSequenceBuilder insertBefore(StepBuilder step) {
+      return insertWithOffset(step, 0);
+   }
+
    public BaseSequenceBuilder insertAfter(StepBuilder step) {
+      return insertWithOffset(step, 1);
+   }
+
+   private BaseSequenceBuilder insertWithOffset(StepBuilder step, int offset) {
       for (int i = 0; i < steps.size(); ++i) {
          if (steps.get(i) == step) {
             StepInserter inserter = new StepInserter(this);
-            steps.add(i + 1, inserter);
+            steps.add(i + offset, inserter);
             return inserter;
          }
       }
