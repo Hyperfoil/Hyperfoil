@@ -85,17 +85,17 @@ public class HttpClientPoolHandlerTest {
            Session session = SessionFactory.forTesting();
            HttpRequest request = session.httpRequestPool().acquire();
            HttpResponseHandlersImpl handlers = HttpResponseHandlersImpl.Builder.forTesting()
-                 .statusExtractor((r, code) -> {
+                 .status((r, code) -> {
                     assertThat(code).isEqualTo(200);
                     latch.countDown();
                  })
-                 .headerExtractor((req, header, value) -> {
+                 .header((req, header, value) -> {
                     if ("foo".equals(header)) {
                        assertThat(value).isEqualTo("bar");
                        latch.countDown();
                     }
                  })
-                 .bodyExtractor((r, input) -> {
+                 .body((r, input) -> {
                     byte[] bytes = new byte[input.readableBytes()];
                     input.readBytes(bytes, 0, bytes.length);
                     assertThat(new String(bytes)).isEqualTo("hello from server");

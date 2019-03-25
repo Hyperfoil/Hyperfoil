@@ -1,4 +1,4 @@
-package io.hyperfoil.core.extractors;
+package io.hyperfoil.core.handlers;
 
 
 import org.kohsuke.MetaInfServices;
@@ -6,11 +6,11 @@ import org.kohsuke.MetaInfServices;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.connection.Request;
-import io.hyperfoil.api.http.StatusValidator;
+import io.hyperfoil.api.http.StatusHandler;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-public class RangeStatusValidator implements StatusValidator {
+public class RangeStatusValidator implements StatusHandler {
    private static final Logger log = LoggerFactory.getLogger(RangeStatusValidator.class);
 
    public final int min;
@@ -22,16 +22,16 @@ public class RangeStatusValidator implements StatusValidator {
    }
 
    @Override
-   public boolean validate(Request request, int status) {
+   public void handleStatus(Request request, int status) {
       boolean valid = status >= min && status <= max;
       if (!valid) {
+         request.markInvalid();
          log.warn("#{} Sequence {}, connection {} received invalid status {}", request.session.uniqueId(),
                request.sequence(), request.connection(), status);
       }
-      return valid;
    }
 
-   public static class Builder implements StatusValidator.Builder {
+   public static class Builder implements StatusHandler.Builder {
       private int min = 200;
       private int max = 299;
 
@@ -51,8 +51,8 @@ public class RangeStatusValidator implements StatusValidator {
       }
    }
 
-   @MetaInfServices(StatusValidator.BuilderFactory.class)
-   public static class BuilderFactory implements StatusValidator.BuilderFactory {
+   @MetaInfServices(StatusHandler.BuilderFactory.class)
+   public static class BuilderFactory implements StatusHandler.BuilderFactory {
       @Override
       public String name() {
          return "range";

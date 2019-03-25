@@ -18,6 +18,7 @@ public class StatisticsSummary {
    public final int status_4xx;
    public final int status_5xx;
    public final int status_other;
+   public final int invalid;
    public final int resetCount;
    public final int timeouts;
    public final int blockedCount;
@@ -25,7 +26,8 @@ public class StatisticsSummary {
 
    public StatisticsSummary(long startTime, long endTime, long minResponseTime, long meanResponseTime, long maxResponseTime,
                             long meanSendTime, long[] percentileResponseTime, int connectFailureCount, int requestCount, int responseCount,
-                            int status_2xx, int status_3xx, int status_4xx, int status_5xx, int status_other, int resetCount, int timeouts, int blockedCount, long blockedTime) {
+                            int status_2xx, int status_3xx, int status_4xx, int status_5xx, int status_other,
+                            int invalid, int resetCount, int timeouts, int blockedCount, long blockedTime) {
       this.startTime = startTime;
       this.endTime = endTime;
       this.minResponseTime = minResponseTime;
@@ -41,6 +43,7 @@ public class StatisticsSummary {
       this.status_4xx = status_4xx;
       this.status_5xx = status_5xx;
       this.status_other = status_other;
+      this.invalid = invalid;
       this.resetCount = resetCount;
       this.timeouts = timeouts;
       this.blockedCount = blockedCount;
@@ -54,7 +57,7 @@ public class StatisticsSummary {
          writer.print(p * 100);
          writer.print(',');
       }
-      writer.print("Max,MeanSendTime,ConnFailure,Reset,Timeouts,2xx,3xx,4xx,5xx,Other,BlockedCount,BlockedTime");
+      writer.print("Max,MeanSendTime,ConnFailure,Reset,Timeouts,2xx,3xx,4xx,5xx,Other,Invalid,BlockedCount,BlockedTime");
    }
 
    public void printTo(PrintWriter writer) {
@@ -89,6 +92,8 @@ public class StatisticsSummary {
       writer.print(status_5xx);
       writer.print(',');
       writer.print(status_other);
+      writer.print(',');
+      writer.print(invalid);
       writer.print(',');
       writer.print(blockedCount);
       writer.print(',');

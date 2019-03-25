@@ -1,4 +1,4 @@
-package io.hyperfoil.core.extractors;
+package io.hyperfoil.core.handlers;
 
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
@@ -8,18 +8,18 @@ import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.http.Processor;
 import io.netty.buffer.ByteBuf;
-import io.hyperfoil.api.http.BodyExtractor;
+import io.hyperfoil.api.http.BodyHandler;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.ResourceUtilizer;
 
-public class JsonExtractor implements BodyExtractor, ResourceUtilizer, Session.ResourceKey<JsonExtractor.Context> {
+public class JsonHandler implements BodyHandler, ResourceUtilizer, Session.ResourceKey<JsonHandler.Context> {
    private static final int MAX_PARTS = 16;
 
    private final String path;
    private final Processor<Request> processor;
    private final Selector[] selectors;
 
-   public JsonExtractor(String path, Processor<Request> processor) {
+   public JsonHandler(String path, Processor<Request> processor) {
       this.path = path.trim();
       this.processor = processor;
       try {
@@ -92,7 +92,7 @@ public class JsonExtractor implements BodyExtractor, ResourceUtilizer, Session.R
    }
 
    @Override
-   public void extractData(HttpRequest request, ByteBuf data) {
+   public void handleData(HttpRequest request, ByteBuf data) {
       Context ctx = request.session.getResource(this);
       ctx.parse(data, request);
    }
@@ -111,7 +111,7 @@ public class JsonExtractor implements BodyExtractor, ResourceUtilizer, Session.R
 
    @Override
    public String toString() {
-      return "JsonExtractor{" +
+      return "JsonHandler{" +
             "path='" + path + '\'' +
             ", recorder=" + processor +
             '}';

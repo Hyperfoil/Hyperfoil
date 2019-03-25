@@ -10,10 +10,10 @@ import org.junit.runner.RunWith;
 
 import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.core.extractors.ArrayRecorder;
-import io.hyperfoil.core.extractors.SequenceScopedCountRecorder;
-import io.hyperfoil.core.extractors.DefragProcessor;
-import io.hyperfoil.core.extractors.JsonExtractor;
+import io.hyperfoil.core.handlers.ArrayRecorder;
+import io.hyperfoil.core.handlers.SequenceScopedCountRecorder;
+import io.hyperfoil.core.handlers.DefragProcessor;
+import io.hyperfoil.core.handlers.JsonHandler;
 import io.hyperfoil.core.steps.AwaitConditionStep;
 import io.hyperfoil.core.test.CrewMember;
 import io.hyperfoil.core.test.Fleet;
@@ -79,7 +79,7 @@ public class FleetTest extends BaseScenarioTest {
                })
                .step(SC).httpRequest(HttpMethod.GET).path("/fleet")
                   .handler()
-                     .bodyExtractor(new JsonExtractor(".ships[].name", new DefragProcessor(new ArrayRecorder("shipNames", MAX_SHIPS))))
+                     .body(new JsonHandler(".ships[].name", new DefragProcessor(new ArrayRecorder("shipNames", MAX_SHIPS))))
                   .endHandler()
                .endStep()
                .step(SC).foreach("shipNames", "numberOfShips").sequence("ship").endStep()
@@ -87,7 +87,7 @@ public class FleetTest extends BaseScenarioTest {
             .sequence("ship")
                .step(SC).httpRequest(HttpMethod.GET).pathGenerator(FleetTest::currentShipQuery)
                   .handler()
-                     .bodyExtractor(new JsonExtractor(".crew[]", new SequenceScopedCountRecorder("crewCount", MAX_SHIPS)))
+                     .body(new JsonHandler(".crew[]", new SequenceScopedCountRecorder("crewCount", MAX_SHIPS)))
                   .endHandler()
                .endStep()
                .step(SC).breakSequence(s -> currentCrewCount(s) > 0)
@@ -96,7 +96,7 @@ public class FleetTest extends BaseScenarioTest {
                .endStep()
                .step(SC).httpRequest(HttpMethod.DELETE).pathGenerator(FleetTest::currentShipQuery)
                   .handler()
-                     .statusExtractor(((request, status) -> {
+                     .status(((request, status) -> {
                         if (status == 204) {
                            request.session.addToInt("numberOfSunkShips", -1);
                         } else {

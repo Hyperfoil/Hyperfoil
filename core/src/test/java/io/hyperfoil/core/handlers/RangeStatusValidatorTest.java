@@ -1,4 +1,4 @@
-package io.hyperfoil.core.extractors;
+package io.hyperfoil.core.handlers;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

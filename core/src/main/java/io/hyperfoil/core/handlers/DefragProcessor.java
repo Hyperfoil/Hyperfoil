@@ -1,4 +1,4 @@
-package io.hyperfoil.core.extractors;
+package io.hyperfoil.core.handlers;
 
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.http.Processor;

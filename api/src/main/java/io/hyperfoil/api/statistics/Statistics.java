@@ -115,6 +115,15 @@ public class Statistics {
       }
    }
 
+   public void addInvalid() {
+      long criticalValueAtEnter = recordingPhaser.writerCriticalSectionEnter();
+      try {
+         active.invalid++;
+      } finally {
+         recordingPhaser.writerCriticalSectionExit(criticalValueAtEnter);
+      }
+   }
+
    public synchronized void moveIntervalTo(StatisticsSnapshot target) {
       performIntervalSample();
       inactive.copyInto(target);

@@ -9,7 +9,6 @@ import io.netty.util.concurrent.EventExecutor;
 import io.hyperfoil.api.collection.LimitedPool;
 import io.hyperfoil.api.connection.HttpConnectionPool;
 import io.hyperfoil.api.statistics.Statistics;
-import io.hyperfoil.api.http.ValidatorResults;
 import io.hyperfoil.api.config.Phase;
 
 public interface Session {
@@ -31,8 +30,6 @@ public interface Session {
    SharedData sharedData();
 
    Phase phase();
-
-   ValidatorResults validatorResults();
 
    Statistics statistics(String name);
 

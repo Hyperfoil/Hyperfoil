@@ -13,9 +13,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import io.hyperfoil.api.http.HttpMethod;
-import io.hyperfoil.api.http.StatusExtractor;
+import io.hyperfoil.api.http.StatusHandler;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
-import io.hyperfoil.core.extractors.RangeStatusValidator;
+import io.hyperfoil.core.handlers.RangeStatusValidator;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.ext.web.handler.BodyHandler;
@@ -39,7 +39,7 @@ public class HttpRequestTest extends BaseScenarioTest {
       });
    }
 
-   private StatusExtractor verifyStatus(TestContext ctx) {
+   private StatusHandler verifyStatus(TestContext ctx) {
       return (request, status) -> {
          if (status != 200) {
             ctx.fail("Status is " + status);
@@ -54,7 +54,7 @@ public class HttpRequestTest extends BaseScenarioTest {
                .step(SC).httpRequest(HttpMethod.POST)
                   .path("/test?expect=bar")
                   .body("bar")
-                  .handler().statusExtractor(verifyStatus(ctx))
+                  .handler().status(verifyStatus(ctx))
                   .endHandler().endStep()
                .step(SC).awaitAllResponses();
 
@@ -73,7 +73,7 @@ public class HttpRequestTest extends BaseScenarioTest {
                .step(SC).httpRequest(HttpMethod.POST)
                   .path("/test?expect=bar")
                   .body().var("x").endBody()
-                  .handler().statusExtractor(verifyStatus(ctx))
+                  .handler().status(verifyStatus(ctx))
                   .endHandler().endStep()
                .step(SC).awaitAllResponses();
 
@@ -98,7 +98,7 @@ public class HttpRequestTest extends BaseScenarioTest {
             .step(SC).httpRequest(HttpMethod.POST)
             .path("/test?expect=" + URLEncoder.encode(chineseStr, StandardCharsets.UTF_8.name()))
             .body().var("x").endBody()
-            .handler().statusExtractor(verifyStatus(ctx))
+            .handler().status(verifyStatus(ctx))
             .endHandler().endStep()
             .step(SC).awaitAllResponses();
 
@@ -117,7 +117,7 @@ public class HttpRequestTest extends BaseScenarioTest {
                .step(SC).httpRequest(HttpMethod.POST)
                   .path().pattern("/test?expect=${x}").end()
                   .body("bar")
-                  .handler().statusExtractor(verifyStatus(ctx))
+                  .handler().status(verifyStatus(ctx))
                   .endHandler().endStep()
                .step(SC).awaitAllResponses();
 
@@ -132,7 +132,7 @@ public class HttpRequestTest extends BaseScenarioTest {
                   .path("/status?s=205")
                   .sync(true)
                   .handler()
-                     .statusValidator(new RangeStatusValidator(205, 205))
+                     .status(new RangeStatusValidator(205, 205))
                      .endHandler()
                   .endStep()
                .endSequence()
@@ -141,7 +141,7 @@ public class HttpRequestTest extends BaseScenarioTest {
                   .path("/status?s=406")
                   .sync(true)
                   .handler()
-                     .statusValidator(new RangeStatusValidator(200, 299))
+                     .status(new RangeStatusValidator(200, 299))
                      .endHandler()
                   .endStep()
                .endSequence();
@@ -154,7 +154,6 @@ public class HttpRequestTest extends BaseScenarioTest {
       assertThat(snapshot1.status_2xx).isEqualTo(0);
       assertThat(snapshot1.status_4xx).isEqualTo(1);
       // TODO issue #5
-      SessionFactory.forTesting().validatorResults();
 //      assertThat(session.validatorResults().statusValid()).isEqualTo(1);
 //      assertThat(session.validatorResults().statusInvalid()).isEqualTo(1);
    }

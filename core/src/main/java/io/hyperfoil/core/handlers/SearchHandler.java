@@ -1,4 +1,4 @@
-package io.hyperfoil.core.extractors;
+package io.hyperfoil.core.handlers;
 
 import java.nio.charset.StandardCharsets;
 
@@ -6,7 +6,7 @@ import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.http.Processor;
 import io.netty.buffer.ByteBuf;
-import io.hyperfoil.api.http.BodyExtractor;
+import io.hyperfoil.api.http.BodyHandler;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.ResourceUtilizer;
 
@@ -14,13 +14,13 @@ import io.hyperfoil.api.session.ResourceUtilizer;
  * Simple pattern (no regexp) search based on Rabin-Karp algorithm.
  * Does not handle the intricacies of UTF-8 mapping same strings to different bytes.
  */
-public class SearchExtractor implements BodyExtractor, ResourceUtilizer, Session.ResourceKey<SearchExtractor.Context> {
+public class SearchHandler implements BodyHandler, ResourceUtilizer, Session.ResourceKey<SearchHandler.Context> {
    private final byte[] begin, end;
    private final int beginHash, endHash;
    private final int beginCoef, endCoef;
    private Processor<Request> processor;
 
-   public SearchExtractor(String begin, String end, Processor<Request> processor) {
+   public SearchHandler(String begin, String end, Processor<Request> processor) {
       this.begin = begin.getBytes(StandardCharsets.UTF_8);
       this.end = end.getBytes(StandardCharsets.UTF_8);
       this.beginHash = computeHash(this.begin);
@@ -54,7 +54,7 @@ public class SearchExtractor implements BodyExtractor, ResourceUtilizer, Session
    }
 
    @Override
-   public void extractData(HttpRequest request, ByteBuf data) {
+   public void handleData(HttpRequest request, ByteBuf data) {
       Context ctx = request.session.getResource(this);
       ctx.add(data);
       initHash(ctx, data);

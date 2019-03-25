@@ -1,22 +1,22 @@
-package io.hyperfoil.core.extractors;
+package io.hyperfoil.core.handlers;
 
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.connection.Request;
-import io.hyperfoil.api.http.StatusExtractor;
+import io.hyperfoil.api.http.StatusHandler;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.ResourceUtilizer;
 
-public class StatusToCounterExtractor implements StatusExtractor, ResourceUtilizer {
+public class StatusToCounterHandler implements StatusHandler, ResourceUtilizer {
    private final Integer expectStatus;
    private final String var;
    private final int init;
    private final Integer add;
    private final Integer set;
 
-   public StatusToCounterExtractor(int expectStatus, String var, int init, Integer add, Integer set) {
+   public StatusToCounterHandler(int expectStatus, String var, int init, Integer add, Integer set) {
       this.expectStatus = expectStatus;
       this.var = var;
       this.init = init;
@@ -25,7 +25,7 @@ public class StatusToCounterExtractor implements StatusExtractor, ResourceUtiliz
    }
 
    @Override
-   public void setStatus(Request request, int status) {
+   public void handleStatus(Request request, int status) {
       if (expectStatus != null && expectStatus != status) {
          return;
       }
@@ -47,7 +47,7 @@ public class StatusToCounterExtractor implements StatusExtractor, ResourceUtiliz
       session.declareInt(var);
    }
 
-   public static class Builder implements StatusExtractor.Builder {
+   public static class Builder implements StatusHandler.Builder {
       private Integer expectStatus;
       private String var;
       private int init;
@@ -80,18 +80,18 @@ public class StatusToCounterExtractor implements StatusExtractor, ResourceUtiliz
       }
 
       @Override
-      public StatusExtractor build() {
+      public StatusHandler build() {
          if (add != null && set != null) {
             throw new BenchmarkDefinitionException("Use either 'add' or 'set' (not both)");
          } else if (add == null && set == null) {
             throw new BenchmarkDefinitionException("Use either 'add' or 'set'");
          }
-         return new StatusToCounterExtractor(expectStatus, var, init, add, set);
+         return new StatusToCounterHandler(expectStatus, var, init, add, set);
       }
    }
 
-   @MetaInfServices(StatusExtractor.BuilderFactory.class)
-   public static class BuilderFactory implements StatusExtractor.BuilderFactory {
+   @MetaInfServices(StatusHandler.BuilderFactory.class)
+   public static class BuilderFactory implements StatusHandler.BuilderFactory {
       @Override
       public String name() {
          return "counter";

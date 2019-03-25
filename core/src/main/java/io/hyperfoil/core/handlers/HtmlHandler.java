@@ -1,4 +1,4 @@
-package io.hyperfoil.core.extractors;
+package io.hyperfoil.core.handlers;
 
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ThreadLocalRandom;
@@ -13,7 +13,7 @@ import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.api.http.Processor;
-import io.hyperfoil.api.http.BodyExtractor;
+import io.hyperfoil.api.http.BodyHandler;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.ResourceUtilizer;
@@ -32,13 +32,13 @@ import io.netty.buffer.ByteBufAllocator;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-public class HtmlExtractor implements BodyExtractor, ResourceUtilizer, Session.ResourceKey<HtmlExtractor.Context> {
-   private static final Logger log = LoggerFactory.getLogger(HtmlExtractor.class);
+public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.ResourceKey<HtmlHandler.Context> {
+   private static final Logger log = LoggerFactory.getLogger(HtmlHandler.class);
    private static final boolean trace = log.isTraceEnabled();
 
    private final TagHandler[] handlers;
 
-   private HtmlExtractor(TagHandler... handlers) {
+   private HtmlHandler(TagHandler... handlers) {
       this.handlers = handlers;
    }
 
@@ -57,7 +57,7 @@ public class HtmlExtractor implements BodyExtractor, ResourceUtilizer, Session.R
    }
 
    @Override
-   public void extractData(HttpRequest request, ByteBuf data) {
+   public void handleData(HttpRequest request, ByteBuf data) {
       Context ctx = request.session.getResource(this);
       switch (ctx.tagStatus) {
          case PARSING_TAG:
@@ -280,7 +280,7 @@ public class HtmlExtractor implements BodyExtractor, ResourceUtilizer, Session.R
       void endTag(HttpRequest request);
    }
 
-   public static class Builder implements BodyExtractor.Builder {
+   public static class Builder implements BodyHandler.Builder {
       private final StepBuilder step;
       private EmbeddedResourceHandlerBuilder embeddedResourceHandler;
 
@@ -301,13 +301,13 @@ public class HtmlExtractor implements BodyExtractor, ResourceUtilizer, Session.R
       }
 
       @Override
-      public BodyExtractor build() {
-         return new HtmlExtractor(embeddedResourceHandler.build());
+      public BodyHandler build() {
+         return new HtmlHandler(embeddedResourceHandler.build());
       }
    }
 
-   @MetaInfServices(BodyExtractor.BuilderFactory.class)
-   public static class BuilderFactory implements BodyExtractor.BuilderFactory {
+   @MetaInfServices(BodyHandler.BuilderFactory.class)
+   public static class BuilderFactory implements BodyHandler.BuilderFactory {
       @Override
       public String name() {
          return "parseHtml";
@@ -319,9 +319,9 @@ public class HtmlExtractor implements BodyExtractor, ResourceUtilizer, Session.R
       }
 
       @Override
-      public BodyExtractor.Builder newBuilder(StepBuilder stepBuilder, String param) {
+      public BodyHandler.Builder newBuilder(StepBuilder stepBuilder, String param) {
          if (param != null) {
-            throw new BenchmarkDefinitionException(HtmlExtractor.class.getName() + " does not accept inline parameter");
+            throw new BenchmarkDefinitionException(HtmlHandler.class.getName() + " does not accept inline parameter");
          }
          return new Builder(stepBuilder);
       }

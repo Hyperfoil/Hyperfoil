@@ -25,7 +25,7 @@ import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.SimulationBuilder;
 import io.hyperfoil.core.builders.StepCatalog;
-import io.hyperfoil.core.extractors.ByteBufSizeRecorder;
+import io.hyperfoil.core.handlers.ByteBufSizeRecorder;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
 import io.hyperfoil.core.impl.statistics.StatisticsCollector;
 import io.vertx.core.Vertx;

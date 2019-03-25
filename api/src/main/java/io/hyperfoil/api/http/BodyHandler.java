@@ -15,28 +15,24 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
  */
 package io.hyperfoil.api.http;
 
 import java.io.Serializable;
 
 import io.hyperfoil.api.config.ServiceLoadedFactory;
-import io.hyperfoil.api.connection.Request;
+import io.hyperfoil.api.connection.HttpRequest;
+import io.netty.buffer.ByteBuf;
 
-/**
- * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
- */
-public interface HeaderValidator extends Serializable {
-   void beforeHeaders(Request request);
+public interface BodyHandler extends Serializable {
 
-   void validateHeader(Request request, String header, String value);
+    default void beforeData(HttpRequest request) {}
+    void handleData(HttpRequest request, ByteBuf data);
+    default void afterData(HttpRequest request) {}
 
-   boolean validate(Request request);
-
-   interface Builder {
-      default void prepareBuild() {}
-      HeaderValidator build();
-   }
-   interface BuilderFactory extends ServiceLoadedFactory<HeaderValidator.Builder> {}
+    interface Builder {
+        default void prepareBuild() {}
+        BodyHandler build();
+    }
+    interface BuilderFactory extends ServiceLoadedFactory<Builder> {}
 }

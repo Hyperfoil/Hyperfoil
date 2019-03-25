@@ -11,16 +11,13 @@ import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.core.http.CookieRecorder;
 import io.netty.buffer.ByteBuf;
-import io.hyperfoil.api.http.BodyExtractor;
-import io.hyperfoil.api.http.HeaderExtractor;
+import io.hyperfoil.api.http.BodyHandler;
+import io.hyperfoil.api.http.HeaderHandler;
 import io.hyperfoil.api.http.HttpResponseHandlers;
 import io.hyperfoil.api.http.RawBytesHandler;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.api.http.StatusExtractor;
+import io.hyperfoil.api.http.StatusHandler;
 import io.hyperfoil.api.session.ResourceUtilizer;
-import io.hyperfoil.api.http.BodyValidator;
-import io.hyperfoil.api.http.HeaderValidator;
-import io.hyperfoil.api.http.StatusValidator;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
@@ -28,29 +25,20 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
    private static final Logger log = LoggerFactory.getLogger(HttpResponseHandlersImpl.class);
    private static final boolean trace = log.isTraceEnabled();
 
-   final StatusValidator[] statusValidators;
-   final HeaderValidator[] headerValidators;
-   final BodyValidator[] bodyValidators;
-   final StatusExtractor[] statusExtractors;
-   final HeaderExtractor[] headerExtractors;
-   final BodyExtractor[] bodyExtractors;
+   final StatusHandler[] statusHandlers;
+   final HeaderHandler[] headerHandlers;
+   final BodyHandler[] bodyHandlers;
    final Action[] completionHandlers;
    final RawBytesHandler[] rawBytesHandlers;
 
-   private HttpResponseHandlersImpl(StatusValidator[] statusValidators,
-                                    HeaderValidator[] headerValidators,
-                                    BodyValidator[] bodyValidators,
-                                    StatusExtractor[] statusExtractors,
-                                    HeaderExtractor[] headerExtractors,
-                                    BodyExtractor[] bodyExtractors,
+   private HttpResponseHandlersImpl(StatusHandler[] statusHandlers,
+                                    HeaderHandler[] headerHandlers,
+                                    BodyHandler[] bodyHandlers,
                                     Action[] completionHandlers,
                                     RawBytesHandler[] rawBytesHandlers) {
-      this.statusValidators = statusValidators;
-      this.headerValidators = headerValidators;
-      this.bodyValidators = bodyValidators;
-      this.statusExtractors = statusExtractors;
-      this.headerExtractors = headerExtractors;
-      this.bodyExtractors = bodyExtractors;
+      this.statusHandlers = statusHandlers;
+      this.headerHandlers = headerHandlers;
+      this.bodyHandlers = bodyHandlers;
       this.completionHandlers = completionHandlers;
       this.rawBytesHandlers = rawBytesHandlers;
    }
@@ -69,40 +57,22 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       if (trace) {
          log.trace("#{} Received status {}: {}", session.uniqueId(), status, reason);
       }
+
       request.statistics().addStatus(status);
-
-      boolean valid = true;
-      if (statusValidators != null) {
-         for (StatusValidator validator : statusValidators) {
-            valid = valid && validator.validate(request, status);
-         }
-      }
-      session.validatorResults().addStatus(valid);
-      if (statusExtractors != null) {
-         for (StatusExtractor extractor : statusExtractors) {
-            extractor.setStatus(request, status);
+      if (statusHandlers != null) {
+         for (StatusHandler handler : statusHandlers) {
+            handler.handleStatus(request, status);
          }
       }
 
-      // Status is obligatory so we'll init validators/extractors here
-      if (headerValidators != null) {
-         for (HeaderValidator validator : headerValidators) {
-            validator.beforeHeaders(request);
+      if (headerHandlers != null) {
+         for (HeaderHandler handler : headerHandlers) {
+            handler.beforeHeaders(request);
          }
       }
-      if (headerExtractors != null) {
-         for (HeaderExtractor extractor : headerExtractors) {
-            extractor.beforeHeaders(request);
-         }
-      }
-      if (bodyValidators != null) {
-         for (BodyValidator validator : bodyValidators) {
-            validator.beforeData(request);
-         }
-      }
-      if (bodyExtractors != null) {
-         for (BodyExtractor extractor : bodyExtractors) {
-            extractor.beforeData(request);
+      if (bodyHandlers != null) {
+         for (BodyHandler handler : bodyHandlers) {
+            handler.beforeData(request);
          }
       }
    }
@@ -119,14 +89,9 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       if (trace) {
          log.trace("#{} Received header {}: {}", session.uniqueId(), header, value);
       }
-      if (headerValidators != null) {
-         for (HeaderValidator validator : headerValidators) {
-            validator.validateHeader(request, header, value);
-         }
-      }
-      if (headerExtractors != null) {
-         for (HeaderExtractor extractor : headerExtractors) {
-            extractor.extractHeader(request, header, value);
+      if (headerHandlers != null) {
+         for (HeaderHandler handler : headerHandlers) {
+            handler.handleHeader(request, header, value);
          }
       }
    }
@@ -149,8 +114,8 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
             handler.run(session);
          }
       }
-      request.setCompleted();
       request.statistics().incrementResets();
+      request.setCompleted();
       session.httpRequestPool().release(request);
       session.currentSequence(null);
       session.proceed();
@@ -172,15 +137,9 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       }
 
       int dataStartIndex = buf.readerIndex();
-      if (bodyValidators != null) {
-         for (BodyValidator validator : bodyValidators) {
-            validator.validateData(request, buf);
-            buf.readerIndex(dataStartIndex);
-         }
-      }
-      if (bodyExtractors != null) {
-         for (BodyExtractor extractor : bodyExtractors) {
-            extractor.extractData(request, buf);
+      if (bodyHandlers != null) {
+         for (BodyHandler handler : bodyHandlers) {
+            handler.handleData(request, buf);
             buf.readerIndex(dataStartIndex);
          }
       }
@@ -207,28 +166,14 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       long endTime = System.nanoTime();
       request.statistics().recordResponse(request.sendTime() - request.startTime(), endTime - request.startTime());
 
-      boolean headersValid = true;
-      if (headerValidators != null) {
-         for (HeaderValidator validator : headerValidators) {
-            headersValid = headersValid && validator.validate(request);
+      if (headerHandlers != null) {
+         for (HeaderHandler handler : headerHandlers) {
+            handler.afterHeaders(request);
          }
       }
-      session.validatorResults().addHeader(headersValid);
-      if (headerExtractors != null) {
-         for (HeaderExtractor extractor : headerExtractors) {
-            extractor.afterHeaders(request);
-         }
-      }
-      boolean bodyValid = true;
-      if (bodyValidators != null) {
-         for (BodyValidator validator : bodyValidators) {
-            bodyValid = bodyValid && validator.validate(request);
-         }
-      }
-      session.validatorResults().addBody(bodyValid);
-      if (bodyExtractors != null) {
-         for (BodyExtractor extractor : bodyExtractors) {
-            extractor.afterData(request);
+      if (bodyHandlers != null) {
+         for (BodyHandler handler : bodyHandlers) {
+            handler.afterData(request);
          }
       }
       if (completionHandlers != null) {
@@ -237,6 +182,9 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          }
       }
 
+      if (!request.isValid()) {
+         request.statistics().addInvalid();
+      }
       request.setCompleted();
       session.httpRequestPool().release(request);
       session.currentSequence(null);
@@ -253,12 +201,9 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
 
    @Override
    public void reserve(Session session) {
-      reserveAll(session, statusValidators);
-      reserveAll(session, headerValidators);
-      reserveAll(session, bodyValidators);
-      reserveAll(session, statusExtractors);
-      reserveAll(session, headerExtractors);
-      reserveAll(session, bodyExtractors);
+      reserveAll(session, statusHandlers);
+      reserveAll(session, headerHandlers);
+      reserveAll(session, bodyHandlers);
       reserveAll(session, rawBytesHandlers);
    }
 
@@ -274,12 +219,9 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
 
    public static class Builder {
       private final HttpRequestStep.Builder parent;
-      private List<StatusValidator.Builder> statusValidators = new ArrayList<>();
-      private List<HeaderValidator.Builder> headerValidators = new ArrayList<>();
-      private List<BodyValidator.Builder> bodyValidators = new ArrayList<>();
-      private List<StatusExtractor.Builder> statusExtractors = new ArrayList<>();
-      private List<HeaderExtractor.Builder> headerExtractors = new ArrayList<>();
-      private List<BodyExtractor.Builder> bodyExtractors = new ArrayList<>();
+      private List<StatusHandler.Builder> statusHandlers = new ArrayList<>();
+      private List<HeaderHandler.Builder> headerHandlers = new ArrayList<>();
+      private List<BodyHandler.Builder> bodyHandlers = new ArrayList<>();
       private List<Action.Builder> completionHandlers = new ArrayList<>();
       private List<RawBytesHandler> rawBytesHandlers = new ArrayList<>();
 
@@ -291,58 +233,31 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          this.parent = parent;
       }
 
-      public Builder statusValidator(StatusValidator validator) {
-         statusValidators.add(() -> validator);
+      public Builder status(StatusHandler handler) {
+         statusHandlers.add(() -> handler);
          return this;
       }
 
-      public ServiceLoadedBuilderProvider<StatusValidator.Builder> statusValidator() {
-         return new ServiceLoadedBuilderProvider<>(StatusValidator.BuilderFactory.class, parent, statusValidators::add);
+      public ServiceLoadedBuilderProvider<StatusHandler.Builder> status() {
+         return new ServiceLoadedBuilderProvider<>(StatusHandler.BuilderFactory.class, parent, statusHandlers::add);
       }
 
-      public Builder headerValidator(HeaderValidator validator) {
-         headerValidators.add(() -> validator);
+      public Builder header(HeaderHandler handler) {
+         headerHandlers.add(() -> handler);
          return this;
       }
 
-      public ServiceLoadedBuilderProvider<HeaderValidator.Builder> headerValidator() {
-         return new ServiceLoadedBuilderProvider<>(HeaderValidator.BuilderFactory.class, parent, headerValidators::add);
+      public ServiceLoadedBuilderProvider<HeaderHandler.Builder> header() {
+         return new ServiceLoadedBuilderProvider<>(HeaderHandler.BuilderFactory.class, parent, headerHandlers::add);
       }
 
-      public Builder bodyValidator(BodyValidator validator) {
-         bodyValidators.add(()-> validator);
+      public Builder body(BodyHandler handler) {
+         bodyHandlers.add(() -> handler);
          return this;
       }
 
-      public ServiceLoadedBuilderProvider<BodyValidator.Builder> bodyValidator() {
-         return new ServiceLoadedBuilderProvider<>(BodyValidator.BuilderFactory.class, parent, bodyValidators::add);
-      }
-
-      public Builder statusExtractor(StatusExtractor extractor) {
-         statusExtractors.add(() -> extractor);
-         return this;
-      }
-
-      public ServiceLoadedBuilderProvider<StatusExtractor.Builder> statusExtractor() {
-         return new ServiceLoadedBuilderProvider<>(StatusExtractor.BuilderFactory.class, parent, statusExtractors::add);
-      }
-
-      public Builder headerExtractor(HeaderExtractor extractor) {
-         headerExtractors.add(() -> extractor);
-         return this;
-      }
-
-      public ServiceLoadedBuilderProvider<HeaderExtractor.Builder> headerExtractor() {
-         return new ServiceLoadedBuilderProvider<>(HeaderExtractor.BuilderFactory.class, parent, headerExtractors::add);
-      }
-
-      public Builder bodyExtractor(BodyExtractor extractor) {
-         bodyExtractors.add(() -> extractor);
-         return this;
-      }
-
-      public ServiceLoadedBuilderProvider<BodyExtractor.Builder> bodyExtractor() {
-         return new ServiceLoadedBuilderProvider<>(BodyExtractor.BuilderFactory.class, parent, bodyExtractors::add);
+      public ServiceLoadedBuilderProvider<BodyHandler.Builder> body() {
+         return new ServiceLoadedBuilderProvider<>(BodyHandler.BuilderFactory.class, parent, bodyHandlers::add);
       }
 
       public Builder onCompletion(Action handler) {
@@ -365,26 +280,20 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
 
       public void prepareBuild() {
          if (parent.endStep().endSequence().endScenario().endPhase().ergonomics().repeatCookies()) {
-            headerExtractor(new CookieRecorder());
+            header(new CookieRecorder());
          }
          // TODO: we might need defensive copies here
-         statusValidators.forEach(StatusValidator.Builder::prepareBuild);
-         headerValidators.forEach(HeaderValidator.Builder::prepareBuild);
-         bodyValidators.forEach(BodyValidator.Builder::prepareBuild);
-         statusExtractors.forEach(StatusExtractor.Builder::prepareBuild);
-         headerExtractors.forEach(HeaderExtractor.Builder::prepareBuild);
-         bodyExtractors.forEach(BodyExtractor.Builder::prepareBuild);
+         statusHandlers.forEach(StatusHandler.Builder::prepareBuild);
+         headerHandlers.forEach(HeaderHandler.Builder::prepareBuild);
+         bodyHandlers.forEach(BodyHandler.Builder::prepareBuild);
          completionHandlers.forEach(Action.Builder::prepareBuild);
       }
 
       public HttpResponseHandlersImpl build() {
          return new HttpResponseHandlersImpl(
-               toArray(statusValidators, StatusValidator.Builder::build, StatusValidator[]::new),
-               toArray(headerValidators, HeaderValidator.Builder::build, HeaderValidator[]::new),
-               toArray(bodyValidators, BodyValidator.Builder::build, BodyValidator[]::new),
-               toArray(statusExtractors, StatusExtractor.Builder::build, StatusExtractor[]::new),
-               toArray(headerExtractors, HeaderExtractor.Builder::build, HeaderExtractor[]::new),
-               toArray(bodyExtractors, BodyExtractor.Builder::build, BodyExtractor[]::new),
+               toArray(statusHandlers, StatusHandler.Builder::build, StatusHandler[]::new),
+               toArray(headerHandlers, HeaderHandler.Builder::build, HeaderHandler[]::new),
+               toArray(bodyHandlers, BodyHandler.Builder::build, BodyHandler[]::new),
                toArray(completionHandlers, Action.Builder::build, Action[]::new),
                toArray(rawBytesHandlers, Function.identity(), RawBytesHandler[]::new));
       }

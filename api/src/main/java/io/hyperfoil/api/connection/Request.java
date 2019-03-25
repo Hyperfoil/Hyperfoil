@@ -22,6 +22,7 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
    private ScheduledFuture<?> timeoutFuture;
    private Connection connection;
    private boolean completed = true;
+   private boolean valid = true;
 
    public Request(Session session) {
       this.session = session;
@@ -54,6 +55,14 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
       this.connection = connection;
    }
 
+   public boolean isValid() {
+      return valid;
+   }
+
+   public void markInvalid() {
+      valid = false;
+   }
+
    public boolean isCompleted() {
       return completed;
    }
@@ -65,6 +74,7 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
       }
       connection = null;
       completed = true;
+      valid = true;
    }
 
    public Connection connection() {

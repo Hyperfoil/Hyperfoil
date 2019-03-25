@@ -14,13 +14,13 @@ simulation:
             - httpRequest:
                 GET: /foo
                 handler:
-                  statusValidator:
+                  status:
                     range: 2xx
             - httpRequest:
                 PUT:
                   pattern: /foo?bar=${x}
                 handler:
-                  statusValidator:
+                  status:
                     range:
                       min: 201
                       max: 259

@@ -9,7 +9,6 @@ import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.config.Scenario;
 import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.connection.HttpConnectionPool;
-import io.hyperfoil.api.http.ValidatorResults;
 import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.statistics.Statistics;
@@ -46,7 +45,6 @@ class SessionImpl implements Session, Callable<Void> {
    private SharedData sharedData;
    private Map<String, Statistics> statistics;
 
-   private final ValidatorResults validatorResults = new ValidatorResults();
    private final int uniqueId;
 
    SessionImpl(Scenario scenario, int uniqueId) {
@@ -375,11 +373,6 @@ class SessionImpl implements Session, Callable<Void> {
    @Override
    public void proceed() {
       executor.submit(this);
-   }
-
-   @Override
-   public ValidatorResults validatorResults() {
-      return validatorResults;
    }
 
    @Override

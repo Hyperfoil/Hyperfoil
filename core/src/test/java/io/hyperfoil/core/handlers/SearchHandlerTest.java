@@ -1,4 +1,4 @@
-package io.hyperfoil.core.extractors;
+package io.hyperfoil.core.handlers;
 
 import java.nio.charset.StandardCharsets;
 
@@ -10,44 +10,44 @@ import io.netty.buffer.Unpooled;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
 
-public class SearchExtractorTest {
+public class SearchHandlerTest {
    @Test
    public void testSimple() {
       ExpectProcessor processor = new ExpectProcessor();
       processor.expect(6, 3, true);
-      SearchExtractor extractor = new SearchExtractor("foo", "bar", processor);
-      runExtractor(extractor, processor, "yyyfooxxxbaryyy");
+      SearchHandler handler = new SearchHandler("foo", "bar", processor);
+      runHandler(handler, processor, "yyyfooxxxbaryyy");
    }
 
    @Test
    public void testStartEnd() {
       ExpectProcessor processor = new ExpectProcessor();
       processor.expect(3, 2, true);
-      SearchExtractor extractor = new SearchExtractor("foo", "bar", processor);
-      runExtractor(extractor, processor, "fooxxbar");
+      SearchHandler handler = new SearchHandler("foo", "bar", processor);
+      runHandler(handler, processor, "fooxxbar");
    }
 
    @Test
    public void testEmpty() {
       ExpectProcessor processor = new ExpectProcessor();
       processor.expect(3, 0, true);
-      SearchExtractor extractor = new SearchExtractor("foo", "bar", processor);
-      runExtractor(extractor, processor, "foobar");
+      SearchHandler handler = new SearchHandler("foo", "bar", processor);
+      runHandler(handler, processor, "foobar");
    }
 
    @Test
    public void testNotEnding() {
       ExpectProcessor processor = new ExpectProcessor();
-      SearchExtractor extractor = new SearchExtractor("foo", "bar", processor);
-      runExtractor(extractor, processor, "fooxxx");
+      SearchHandler handler = new SearchHandler("foo", "bar", processor);
+      runHandler(handler, processor, "fooxxx");
    }
 
    @Test
    public void testGreedy() {
       ExpectProcessor processor = new ExpectProcessor();
       processor.expect(3, 6, true);
-      SearchExtractor extractor = new SearchExtractor("foo", "bar", processor);
-      runExtractor(extractor, processor, "foofooxxxbar");
+      SearchHandler handler = new SearchHandler("foo", "bar", processor);
+      runHandler(handler, processor, "foofooxxxbar");
    }
 
    @Test
@@ -56,21 +56,21 @@ public class SearchExtractorTest {
       processor.expect(1, 3, true);
       processor.expect(0, 1, false);
       processor.expect(0, 2, true);
-      SearchExtractor extractor = new SearchExtractor("foo", "bar", processor);
-      runExtractor(extractor, processor, "fo", "oxxxb", "aryyyfoo", "x", "xxbar");
+      SearchHandler handler = new SearchHandler("foo", "bar", processor);
+      runHandler(handler, processor, "fo", "oxxxb", "aryyyfoo", "x", "xxbar");
    }
 
-   private void runExtractor(SearchExtractor extractor, ExpectProcessor processor, String... text) {
+   private void runHandler(SearchHandler handler, ExpectProcessor processor, String... text) {
       Session session = SessionFactory.forTesting();
       HttpRequest request = session.httpRequestPool().acquire();
-      extractor.reserve(session);
-      extractor.beforeData(request);
+      handler.reserve(session);
+      handler.beforeData(request);
 
       for (String t : text) {
          ByteBuf data = Unpooled.wrappedBuffer(t.getBytes(StandardCharsets.UTF_8));
-         extractor.extractData(request, data);
+         handler.handleData(request, data);
       }
-      extractor.afterData(request);
+      handler.afterData(request);
       processor.validate();
    }
 }

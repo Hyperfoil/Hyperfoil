@@ -97,7 +97,7 @@ public class HttpVersionsTest {
                   Session session = SessionFactory.forTesting();
                   HttpRequest request = session.httpRequestPool().acquire();
                   HttpResponseHandlers handlers = HttpResponseHandlersImpl.Builder.forTesting()
-                        .statusExtractor((r, status) -> {
+                        .status((r, status) -> {
                            if (status != expectedStatus) {
                               ctx.fail();
                            }

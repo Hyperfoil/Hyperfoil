@@ -3,17 +3,17 @@ package io.hyperfoil.core.validators;
 import java.nio.charset.StandardCharsets;
 import java.util.function.IntPredicate;
 
+import io.hyperfoil.api.connection.HttpRequest;
+import io.hyperfoil.api.http.BodyHandler;
 import io.netty.buffer.ByteBuf;
-import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.ResourceUtilizer;
-import io.hyperfoil.api.http.BodyValidator;
 
 /**
  * Simple pattern (no regexp) search based on Rabin-Karp algorithm.
  * Does not handle the intricacies of UTF-8 mapping same strings to different bytes.
  */
-public class SearchValidator implements BodyValidator, ResourceUtilizer, Session.ResourceKey<SearchValidator.Context> {
+public class SearchValidator implements BodyHandler, ResourceUtilizer, Session.ResourceKey<SearchValidator.Context> {
    private final byte[] text;
    private final int hash;
    private final int coef;
@@ -36,7 +36,7 @@ public class SearchValidator implements BodyValidator, ResourceUtilizer, Session
    }
 
    @Override
-   public void validateData(Request request, ByteBuf data) {
+   public void handleData(HttpRequest request, ByteBuf data) {
       Context ctx = request.session.getResource(this);
       ctx.add(data);
       initHash(ctx, data);
@@ -70,17 +70,19 @@ public class SearchValidator implements BodyValidator, ResourceUtilizer, Session
    }
 
    @Override
-   public void beforeData(Request request) {
+   public void beforeData(HttpRequest request) {
       Context ctx = request.session.getResource(this);
       ctx.reset();
    }
 
    @Override
-   public boolean validate(Request request) {
+   public void afterData(HttpRequest request) {
       Context ctx = request.session.getResource(this);
       boolean match = this.match.test(ctx.matches);
       ctx.reset();
-      return match;
+      if (!match) {
+         request.markInvalid();
+      }
    }
 
    @Override

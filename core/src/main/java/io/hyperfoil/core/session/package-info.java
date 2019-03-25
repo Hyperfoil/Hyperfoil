@@ -13,7 +13,7 @@
  * the {@link io.hyperfoil.core.session.SessionImpl} is {@link io.hyperfoil.core.session.SessionImpl#reset()}
  * which does not release the memory.
  * <p>
- * Any memory required by validators/extractors must be known ahead and these should implement
+ * Any memory required by handlers must be known ahead and these should implement
  * the {@link io.hyperfoil.api.session.ResourceUtilizer} interface to register itselves. The reservation is invoked
  * once when the session is created through {@link io.hyperfoil.api.config.SequenceImpl#reserve(Session)}
  * which in turn calls this on all {@link io.hyperfoil.api.config.Step steps} and these call the

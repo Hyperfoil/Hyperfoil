@@ -22,8 +22,8 @@ import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.Step;
-import io.hyperfoil.api.http.StatusValidator;
-import io.hyperfoil.core.extractors.RangeStatusValidator;
+import io.hyperfoil.api.http.StatusHandler;
+import io.hyperfoil.core.handlers.RangeStatusValidator;
 import io.hyperfoil.core.parser.BenchmarkParser;
 import io.hyperfoil.core.parser.ParserException;
 import io.hyperfoil.core.steps.AwaitIntStep;
@@ -117,16 +117,16 @@ public class YamlParserTest {
         Iterator<Step> iterator = Arrays.asList(testSequence.steps()).iterator();
 
         HttpRequestStep request1 = (HttpRequestStep) iterator.next();
-        StatusValidator[] statusValidators1 = HttpRequestStepUtil.statusValidators(request1);
-        assertThat(statusValidators1).isNotNull().hasSize(1);
-        assertCondition((RangeStatusValidator) statusValidators1[0], v -> v.min == 200);
-        assertCondition((RangeStatusValidator) statusValidators1[0], v -> v.max == 299);
+        StatusHandler[] statusHandlers1 = HttpRequestStepUtil.statusHandlers(request1);
+        assertThat(statusHandlers1).isNotNull().hasSize(1);
+        assertCondition((RangeStatusValidator) statusHandlers1[0], v -> v.min == 200);
+        assertCondition((RangeStatusValidator) statusHandlers1[0], v -> v.max == 299);
 
         HttpRequestStep request2 = (HttpRequestStep) iterator.next();
-        StatusValidator[] statusValidators2 = HttpRequestStepUtil.statusValidators(request2);
-        assertThat(statusValidators2).isNotNull().hasSize(1);
-        assertCondition((RangeStatusValidator) statusValidators2[0], v -> v.min == 201);
-        assertCondition((RangeStatusValidator) statusValidators2[0], v -> v.max == 259);
+        StatusHandler[] statusHandlers2 = HttpRequestStepUtil.statusHandlers(request2);
+        assertThat(statusHandlers2).isNotNull().hasSize(1);
+        assertCondition((RangeStatusValidator) statusHandlers2[0], v -> v.min == 201);
+        assertCondition((RangeStatusValidator) statusHandlers2[0], v -> v.max == 259);
     }
 
     private <T> void assertCondition(T object, Predicate<T> predicate) {
