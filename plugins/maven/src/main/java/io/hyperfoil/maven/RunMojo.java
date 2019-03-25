@@ -21,6 +21,8 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintStream;
+import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 
 import static io.vertx.core.logging.LoggerFactory.LOGGER_DELEGATE_FACTORY_CLASS_NAME;
@@ -32,6 +34,9 @@ public class RunMojo extends AbstractMojo {
 
     @Parameter(required = true)
     private File yaml;
+
+    @Parameter(defaultValue = "false")
+    private Boolean outputPercentileDistribution;
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
@@ -96,6 +101,19 @@ public class RunMojo extends AbstractMojo {
         logger.info("                 Avg    Stdev      Max");
         logger.info("Latency:      " + formatTime(stats.histogram.getMean()) + " " + formatTime(stats.histogram.getStdDeviation()) + " " + formatTime(stats.histogram.getMaxValue()));
         logger.info("Requests/sec: " + stats.histogram.getTotalCount() / durationSeconds);
+
+        if (outputPercentileDistribution) {
+            final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            try {
+                stats.histogram.outputPercentileDistribution(new PrintStream(baos, true, "UTF-8"), 1000.00);
+                String data = new String(baos.toByteArray(), StandardCharsets.UTF_8);
+
+                logger.info("\nPercentile Distribution\n\n" + data );
+            } catch (UnsupportedEncodingException e) {
+                logger.error("Could not write Percentile Distribution to log");
+            }
+        }
+
         if (stats.errors() > 0) {
             logger.info("Socket errors: connect " + stats.connectFailureCount + ", reset " + stats.resetCount + ", timeout " + stats.timeouts);
             logger.info("Non-2xx or 3xx responses: " + stats.status_4xx + stats.status_5xx + stats.status_other);
