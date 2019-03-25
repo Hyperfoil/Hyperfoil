@@ -6,7 +6,7 @@ and keeping very low allocation profile in the driver.
 
 ## Installation
 
-You can fetch release, distribute and start the cluster using [Ansible Galaxy scripts](https://github.com/Hyperfoil/hyperfoil-ansible)
+You can fetch release, distribute and start the cluster using Ansible Galaxy scripts; [setup](https://github.com/Hyperfoil/hyperfoil_setup), [test](https://github.com/Hyperfoil/hyperfoil_test), [shutdown](https://github.com/Hyperfoil/hyperfoil_shutdown)
 
 First, get the scripts:
 ```
