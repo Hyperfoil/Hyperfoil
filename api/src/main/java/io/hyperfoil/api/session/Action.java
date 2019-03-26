@@ -2,6 +2,7 @@ package io.hyperfoil.api.session;
 
 import java.io.Serializable;
 
+import io.hyperfoil.api.config.BuilderBase;
 import io.hyperfoil.api.config.ServiceLoadedFactory;
 
 /**
@@ -11,8 +12,7 @@ import io.hyperfoil.api.config.ServiceLoadedFactory;
 public interface Action extends Serializable {
    void run(Session session);
 
-   interface Builder {
-      default void prepareBuild() {}
+   interface Builder extends BuilderBase<Builder> {
       Action build();
    }
    interface BuilderFactory extends ServiceLoadedFactory<Builder> {}

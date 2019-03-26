@@ -2,6 +2,7 @@ package io.hyperfoil.api.http;
 
 import java.io.Serializable;
 
+import io.hyperfoil.api.config.BuilderBase;
 import io.hyperfoil.api.config.ServiceLoadedFactory;
 import io.hyperfoil.api.connection.Request;
 
@@ -14,8 +15,7 @@ public interface HeaderHandler extends Serializable {
    default void afterHeaders(Request request) {
    }
 
-   interface Builder {
-      default void prepareBuild() {}
+   interface Builder extends BuilderBase<Builder> {
       HeaderHandler build();
    }
    interface BuilderFactory extends ServiceLoadedFactory<HeaderHandler.Builder> {}

@@ -7,13 +7,16 @@ public interface Locator {
    ScenarioBuilder scenario();
 
    static Locator fromStep(StepBuilder step) {
+      if (!step.canBeLocated()) {
+         throw new IllegalStateException(step + " cannot be located as it does not support deep copy.");
+      }
       return new Step(step);
    }
 
    class Step implements Locator {
       private final StepBuilder step;
 
-      public Step(StepBuilder step) {
+      private Step(StepBuilder step) {
          this.step = step;
       }
 

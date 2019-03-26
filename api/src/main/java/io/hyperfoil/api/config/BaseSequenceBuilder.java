@@ -41,17 +41,7 @@ public abstract class BaseSequenceBuilder implements Rewritable<BaseSequenceBuil
    }
 
    public BaseSequenceBuilder step(Step step) {
-      steps.add(new StepBuilder() {
-         @Override
-         public List<Step> build(SerializableSupplier<Sequence> sequence) {
-            return Collections.singletonList(step);
-         }
-
-         @Override
-         public BaseSequenceBuilder endStep() {
-            return BaseSequenceBuilder.this;
-         }
-      });
+      steps.add(new ProvidedStepBuilder(step, this));
       return this;
    }
 
@@ -72,7 +62,7 @@ public abstract class BaseSequenceBuilder implements Rewritable<BaseSequenceBuil
    @Override
    public void readFrom(BaseSequenceBuilder other) {
       assert steps.isEmpty();
-      steps.addAll(other.steps);
+      other.steps.forEach(s -> s.addCopyTo(this));
    }
 
    public String name() {
@@ -88,6 +78,9 @@ public abstract class BaseSequenceBuilder implements Rewritable<BaseSequenceBuil
    }
 
    private BaseSequenceBuilder insertWithOffset(StepBuilder step, int offset) {
+      if (!step.canBeLocated()) {
+         throw new IllegalStateException(step + " cannot be located as it does not support deep copy.");
+      }
       for (int i = 0; i < steps.size(); ++i) {
          if (steps.get(i) == step) {
             StepInserter inserter = new StepInserter(this);
@@ -115,6 +108,46 @@ public abstract class BaseSequenceBuilder implements Rewritable<BaseSequenceBuil
       @Override
       public BaseSequenceBuilder endStep() {
          return parent;
+      }
+
+      @Override
+      public void addCopyTo(BaseSequenceBuilder newParent) {
+         newParent.stepBuilder(new StepInserter(newParent));
+      }
+
+      @Override
+      public boolean canBeLocated() {
+         return true;
+      }
+   }
+
+   private static class ProvidedStepBuilder implements StepBuilder {
+      private final Step step;
+      private final BaseSequenceBuilder parent;
+
+      public ProvidedStepBuilder(Step step, BaseSequenceBuilder parent) {
+         this.step = step;
+         this.parent = parent;
+      }
+
+      @Override
+      public List<Step> build(SerializableSupplier<Sequence> sequence) {
+         return Collections.singletonList(step);
+      }
+
+      @Override
+      public BaseSequenceBuilder endStep() {
+         return parent;
+      }
+
+      @Override
+      public void addCopyTo(BaseSequenceBuilder newParent) {
+         newParent.stepBuilder(new ProvidedStepBuilder(step, newParent));
+      }
+
+      @Override
+      public boolean canBeLocated() {
+         return true;
       }
    }
 }

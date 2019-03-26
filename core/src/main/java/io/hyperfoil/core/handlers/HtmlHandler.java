@@ -7,6 +7,7 @@ import java.util.stream.Stream;
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.api.config.BuilderBase;
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.SequenceBuilder;
 import io.hyperfoil.api.connection.HttpRequest;
@@ -301,6 +302,13 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
       }
 
       @Override
+      public BodyHandler.Builder copy(Locator locator) {
+         Builder newBuilder = new Builder(locator);
+         newBuilder.embeddedResourceHandler = embeddedResourceHandler.copy(locator);
+         return newBuilder;
+      }
+
+      @Override
       public BodyHandler build() {
          return new HtmlHandler(embeddedResourceHandler.build());
       }
@@ -333,7 +341,7 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
     *
     * Does not handle <source src="..."> or <track src="..."> because browser would choose only one of the options.
     */
-   public static class EmbeddedResourceHandlerBuilder {
+   public static class EmbeddedResourceHandlerBuilder implements BuilderBase<EmbeddedResourceHandlerBuilder> {
       private static final String[] TAGS = { "img", "link", "embed", "frame", "iframe", "object", "script" };
       private static final String[] ATTRS = { "src", "href", "src", "src", "src", "data", "src" };
 
@@ -373,6 +381,16 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
          }
       }
 
+      @Override
+      public EmbeddedResourceHandlerBuilder copy(Locator locator) {
+         EmbeddedResourceHandlerBuilder builder = new EmbeddedResourceHandlerBuilder(locator);
+         builder.ignoreExternal(ignoreExternal).processor(processor);
+         if (fetchResource != null) {
+            builder.fetchResource = fetchResource.copy(locator);
+         }
+         return builder;
+      }
+
       public BaseTagAttributeHandler build() {
          if (processor != null && fetchResource != null) {
             throw new BenchmarkDefinitionException("Only one of processor/fetchResource allowed!");
@@ -389,7 +407,7 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
       }
    }
 
-   public static class FetchResourceBuilder {
+   public static class FetchResourceBuilder implements BuilderBase<FetchResourceBuilder> {
       private final Locator locator;
       private final String generatedSeqName;
 
@@ -417,21 +435,29 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
       }
 
       public PathStatisticsSelector statistics() {
-         if (statisticsSelector != null) {
-            throw new BenchmarkDefinitionException("Statistics already set!");
-         }
          PathStatisticsSelector statisticsSelector = new PathStatisticsSelector();
-         this.statisticsSelector = statisticsSelector;
+         statistics(statisticsSelector);
          return statisticsSelector;
       }
 
+      public FetchResourceBuilder statistics(SerializableBiFunction<String,String,String> statistics) {
+         if (this.statisticsSelector != null) {
+            throw new BenchmarkDefinitionException("Statistics already set!");
+         }
+         this.statisticsSelector = statistics;
+         return this;
+      }
+
       public ServiceLoadedBuilderProvider<Action.Builder> onCompletion() {
-         return new ServiceLoadedBuilderProvider<>(Action.BuilderFactory.class, locator, a -> {
-            if (onCompletion != null) {
-               throw new BenchmarkDefinitionException("Completion action already set!");
-            }
-            onCompletion = a;
-         });
+         return new ServiceLoadedBuilderProvider<>(Action.BuilderFactory.class, locator, this::onCompletion);
+      }
+
+      public FetchResourceBuilder onCompletion(Action.Builder a) {
+         if (onCompletion != null) {
+            throw new BenchmarkDefinitionException("Completion action already set!");
+         }
+         onCompletion = a;
+         return this;
       }
 
       public void prepareBuild() {
@@ -442,7 +468,7 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
          SequenceBuilder sequence = locator.scenario().sequence(generatedSeqName);
 
          // Constructor adds self into sequence
-         HttpRequestStep.Builder requestBuilder = new HttpRequestStep.Builder(sequence, HttpMethod.GET);
+         HttpRequestStep.Builder requestBuilder = new HttpRequestStep.Builder(sequence).method(HttpMethod.GET);
          new StringGeneratorBuilder<>(requestBuilder, requestBuilder::pathGenerator)
                .sequenceVar(downloadUrlVar()); // this sets the pathGenerator
          if (statisticsSelector != null) {
@@ -467,6 +493,14 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
                   onCompletion.run(s);
                   return true;
                });
+      }
+
+      @Override
+      public FetchResourceBuilder copy(Locator locator) {
+         return new FetchResourceBuilder(locator)
+               .maxResources(maxResources)
+               .statistics(statisticsSelector)
+               .onCompletion(onCompletion);
       }
 
       public Processor<HttpRequest> build() {

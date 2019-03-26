@@ -7,7 +7,9 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 
+import io.hyperfoil.api.config.BuilderBase;
 import io.hyperfoil.api.config.Locator;
+import io.hyperfoil.api.config.Rewritable;
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.core.http.CookieRecorder;
@@ -218,7 +220,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       }
    }
 
-   public static class Builder {
+   public static class Builder implements Rewritable<Builder> {
       private final HttpRequestStep.Builder parent;
       private List<StatusHandler.Builder> statusHandlers = new ArrayList<>();
       private List<HeaderHandler.Builder> headerHandlers = new ArrayList<>();
@@ -305,6 +307,16 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          } else {
             return list.stream().map(build).toArray(generator);
          }
+      }
+
+      @Override
+      public void readFrom(Builder other) {
+         Locator locator = Locator.fromStep(parent);
+         statusHandlers = BuilderBase.copy(locator, other.statusHandlers);
+         headerHandlers = BuilderBase.copy(locator, other.headerHandlers);
+         bodyHandlers = BuilderBase.copy(locator, other.bodyHandlers);
+         completionHandlers = BuilderBase.copy(locator, other.completionHandlers);
+         rawBytesHandlers = other.rawBytesHandlers;
       }
    }
 }

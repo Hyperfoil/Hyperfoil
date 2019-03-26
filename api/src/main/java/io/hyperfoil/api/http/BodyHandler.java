@@ -20,6 +20,7 @@ package io.hyperfoil.api.http;
 
 import java.io.Serializable;
 
+import io.hyperfoil.api.config.BuilderBase;
 import io.hyperfoil.api.config.ServiceLoadedFactory;
 import io.hyperfoil.api.connection.HttpRequest;
 import io.netty.buffer.ByteBuf;
@@ -30,8 +31,7 @@ public interface BodyHandler extends Serializable {
     void handleData(HttpRequest request, ByteBuf data);
     default void afterData(HttpRequest request) {}
 
-    interface Builder {
-        default void prepareBuild() {}
+    interface Builder extends BuilderBase<Builder> {
         BodyHandler build();
     }
     interface BuilderFactory extends ServiceLoadedFactory<Builder> {}

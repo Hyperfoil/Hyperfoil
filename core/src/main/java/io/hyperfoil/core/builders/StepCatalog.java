@@ -78,7 +78,7 @@ public class StepCatalog implements Step.Catalog {
    // requests
 
    public HttpRequestStep.Builder httpRequest(HttpMethod method) {
-      return new HttpRequestStep.Builder(parent, method);
+      return new HttpRequestStep.Builder(parent).method(method);
    }
 
    public BaseSequenceBuilder awaitAllResponses() {

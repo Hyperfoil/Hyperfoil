@@ -155,9 +155,8 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer {
       private HttpResponseHandlersImpl.Builder handler = new HttpResponseHandlersImpl.Builder(this);
       private boolean sync = false;
 
-      public Builder(BaseSequenceBuilder parent, HttpMethod method) {
+      public Builder(BaseSequenceBuilder parent) {
          super(parent);
-         this.method = method;
       }
 
       public Builder method(HttpMethod method) {
@@ -365,6 +364,26 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer {
          SerializableBiConsumer<Session, HttpRequestWriter>[] headerAppenders =
                this.headerAppenders.isEmpty() ? null : this.headerAppenders.toArray(new SerializableBiConsumer[0]);
          return Collections.singletonList(new HttpRequestStep(sequence, method, baseUrl, pathGenerator, bodyGenerator, headerAppenders, statisticsSelector, timeout, handler.build()));
+      }
+
+      @Override
+      public void addCopyTo(BaseSequenceBuilder newParent) {
+         Builder newBuilder = new Builder(newParent)
+               .method(method)
+               .baseUrl(baseUrl)
+               .pathGenerator(pathGenerator)
+               .bodyGenerator(bodyGenerator)
+               .statistics(statisticsSelector)
+               .sync(sync);
+         if (timeout > 0) {
+            newBuilder.timeout(timeout, TimeUnit.MILLISECONDS);
+         }
+         newBuilder.handler().readFrom(handler);
+      }
+
+      @Override
+      public boolean canBeLocated() {
+         return true;
       }
    }
 

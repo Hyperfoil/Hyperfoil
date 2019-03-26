@@ -34,5 +34,26 @@ public interface StepBuilder {
 
    BaseSequenceBuilder endStep();
 
+   /**
+    * Create a copy of this builder, adding it as a next step to the provided sequence.
+    *
+    * If this builder does not use its position (calling {@link #endStep()} either directly or
+    * e.g. through {@link Locator#fromStep(StepBuilder)}) it can just add <code>this</code>
+    * without doing actual copy.
+    */
+   default void addCopyTo(BaseSequenceBuilder newParent) {
+      if (canBeLocated()) {
+         throw new IllegalStateException("This default method cannot be used on " + getClass().getName());
+      }
+      newParent.stepBuilder(this);
+   }
+
+   /**
+    * Override this along with {@link #addCopyTo(BaseSequenceBuilder)}.
+    */
+   default boolean canBeLocated() {
+      return false;
+   }
+
    interface Factory extends ServiceLoadedFactory<StepBuilder> {}
 }
