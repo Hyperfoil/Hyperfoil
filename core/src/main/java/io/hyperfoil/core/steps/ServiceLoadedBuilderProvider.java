@@ -6,15 +6,15 @@ import java.util.ServiceLoader;
 import java.util.function.Consumer;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.ServiceLoadedContract;
 import io.hyperfoil.api.config.ServiceLoadedFactory;
-import io.hyperfoil.api.config.StepBuilder;
 
 public class ServiceLoadedBuilderProvider<B> {
    private static final Map<Class<ServiceLoadedFactory<?>>, ServiceLoader<ServiceLoadedFactory<?>>> SERVICE_LOADERS = new HashMap<>();
 
    private final Class<? extends ServiceLoadedFactory<B>> factoryClazz;
-   private final StepBuilder stepBuilder;
+   private final Locator locator;
    private final Consumer<B> consumer;
 
    public static Iterable<ServiceLoadedFactory<?>> factories(Class<ServiceLoadedFactory<?>> clazz) {
@@ -45,9 +45,9 @@ public class ServiceLoadedBuilderProvider<B> {
       return factory;
    }
 
-   public ServiceLoadedBuilderProvider(Class<? extends ServiceLoadedFactory<B>> factoryClazz, StepBuilder stepBuilder, Consumer<B> consumer) {
+   public ServiceLoadedBuilderProvider(Class<? extends ServiceLoadedFactory<B>> factoryClazz, Locator locator, Consumer<B> consumer) {
       this.factoryClazz = factoryClazz;
-      this.stepBuilder = stepBuilder;
+      this.locator = locator;
       this.consumer = consumer;
    }
 
@@ -56,7 +56,7 @@ public class ServiceLoadedBuilderProvider<B> {
       if (param != null && !factory.acceptsParam()) {
          throw new BenchmarkDefinitionException(factory.name() + " does not accept inline parameter");
       }
-      B builder = factory.newBuilder(stepBuilder, param);
+      B builder = factory.newBuilder(locator, param);
       return new ServiceLoadedContract<>(builder, consumer);
    }
 }

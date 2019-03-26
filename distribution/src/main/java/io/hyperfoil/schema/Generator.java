@@ -13,6 +13,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import io.hyperfoil.api.config.ListBuilder;
+import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.PairBuilder;
 import io.hyperfoil.api.config.PartialBuilder;
 import io.hyperfoil.api.config.BaseSequenceBuilder;
@@ -69,7 +70,7 @@ public class Generator {
       for (Object f : getFactories(StepBuilder.Factory.class)) {
          StepBuilder.Factory factory = (StepBuilder.Factory) f;
          try {
-            Class<?> newBuilder = factory.getClass().getMethod("newBuilder", StepBuilder.class, String.class).getReturnType();
+            Class<?> newBuilder = factory.getClass().getMethod("newBuilder", Locator.class, String.class).getReturnType();
             addBuilder(builders, simpleBuilders, factory.name(), newBuilder, factory.acceptsParam());
          } catch (NoSuchMethodException e) {
             throw new IllegalStateException(e);
@@ -226,7 +227,7 @@ public class Generator {
                   .put("properties", serviceLoadedProperties);
             for (ServiceLoadedFactory f : getFactories(nested)) {
                try {
-                  Class<?> serviceLoadedBuilder = f.getClass().getMethod("newBuilder", StepBuilder.class, String.class).getReturnType();
+                  Class<?> serviceLoadedBuilder = f.getClass().getMethod("newBuilder", Locator.class, String.class).getReturnType();
                   JsonObject serviceLoadedProperty = describeBuilder(serviceLoadedBuilder);
                   if (f.acceptsParam()) {
                      serviceLoadedProperty = new JsonObject()

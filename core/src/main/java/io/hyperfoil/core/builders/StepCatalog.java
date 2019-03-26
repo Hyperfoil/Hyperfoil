@@ -1,6 +1,5 @@
 package io.hyperfoil.core.builders;
 
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -9,7 +8,8 @@ import java.util.function.Supplier;
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BaseSequenceBuilder;
-import io.hyperfoil.api.config.Sequence;
+import io.hyperfoil.api.config.Locator;
+import io.hyperfoil.api.config.ScenarioBuilder;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.http.HttpMethod;
@@ -35,7 +35,6 @@ import io.hyperfoil.core.steps.ServiceLoadedBuilderProvider;
 import io.hyperfoil.core.steps.SetStep;
 import io.hyperfoil.core.steps.StopwatchBeginStep;
 import io.hyperfoil.core.steps.UnsetStep;
-import io.hyperfoil.function.SerializableSupplier;
 import io.hyperfoil.impl.StepCatalogFactory;
 
 /**
@@ -163,15 +162,20 @@ public class StepCatalog implements Step.Catalog {
    }
 
    public ServiceLoadedBuilderProvider<StepBuilder> serviceLoaded() {
-      return new ServiceLoadedBuilderProvider<>(StepBuilder.Factory.class, new StepBuilder() {
+      return new ServiceLoadedBuilderProvider<>(StepBuilder.Factory.class, new Locator() {
          @Override
-         public List<Step> build(SerializableSupplier<Sequence> sequence) {
+         public StepBuilder step() {
             throw new UnsupportedOperationException();
          }
 
          @Override
-         public BaseSequenceBuilder endStep() {
+         public BaseSequenceBuilder sequence() {
             return parent;
+         }
+
+         @Override
+         public ScenarioBuilder scenario() {
+            return parent.endSequence();
          }
       }, parent::stepBuilder);
    }

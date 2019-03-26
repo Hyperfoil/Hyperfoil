@@ -7,8 +7,8 @@ import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Sequence;
-import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.builders.BaseStepBuilder;
@@ -100,11 +100,6 @@ public class SetStep implements Action.Step {
       public List<io.hyperfoil.api.config.Step> build(SerializableSupplier<Sequence> sequence) {
          return Collections.singletonList(build());
       }
-
-      @Override
-      public BaseSequenceBuilder endStep() {
-         return parent;
-      }
    }
 
    @MetaInfServices(Action.BuilderFactory.class)
@@ -120,7 +115,7 @@ public class SetStep implements Action.Step {
       }
 
       @Override
-      public SetStep.Builder newBuilder(StepBuilder stepBuilder, String param) {
+      public SetStep.Builder newBuilder(Locator locator, String param) {
          return new SetStep.Builder(param);
       }
    }

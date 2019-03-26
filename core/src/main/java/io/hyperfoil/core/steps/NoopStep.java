@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.kohsuke.MetaInfServices;
 
+import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.session.Session;
@@ -49,7 +50,7 @@ public class NoopStep implements Step {
       }
 
       @Override
-      public StepBuilder newBuilder(StepBuilder stepBuilder, String param) {
+      public StepBuilder newBuilder(Locator locator, String param) {
          return new Builder(null);
       }
    }

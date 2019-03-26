@@ -329,7 +329,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer {
 
       @Override
       public void prepareBuild() {
-         if (parent.endSequence().endScenario().endPhase().ergonomics().repeatCookies()) {
+         if (endStep().endSequence().endScenario().endPhase().ergonomics().repeatCookies()) {
             headerAppender(new CookieAppender());
          }
          if (sync) {
@@ -343,7 +343,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer {
 
       @Override
       public List<Step> build(SerializableSupplier<Sequence> sequence) {
-         SimulationBuilder simulation = parent.endSequence().endScenario().endPhase();
+         SimulationBuilder simulation = endStep().endSequence().endScenario().endPhase();
          String guessedBaseUrl = null;
          boolean checkBaseUrl = true;
          try {

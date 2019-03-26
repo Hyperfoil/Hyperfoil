@@ -4,7 +4,7 @@ import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.api.config.StepBuilder;
 
 public abstract class BaseStepBuilder implements StepBuilder {
-   protected final BaseSequenceBuilder parent;
+   private final BaseSequenceBuilder parent;
 
    protected BaseStepBuilder(BaseSequenceBuilder parent) {
       this.parent = parent;

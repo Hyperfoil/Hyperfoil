@@ -7,8 +7,8 @@ import java.util.stream.Stream;
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.SequenceBuilder;
-import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.http.HttpMethod;
@@ -281,18 +281,18 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
    }
 
    public static class Builder implements BodyHandler.Builder {
-      private final StepBuilder step;
+      private final Locator locator;
       private EmbeddedResourceHandlerBuilder embeddedResourceHandler;
 
-      protected Builder(StepBuilder step) {
-         this.step = step;
+      protected Builder(Locator locator) {
+         this.locator = locator;
       }
 
       public EmbeddedResourceHandlerBuilder onEmbeddedResource() {
          if (embeddedResourceHandler != null) {
             throw new BenchmarkDefinitionException("Embedded resource handler already set!");
          }
-         return embeddedResourceHandler = new EmbeddedResourceHandlerBuilder(step);
+         return embeddedResourceHandler = new EmbeddedResourceHandlerBuilder(locator);
       }
 
       @Override
@@ -319,11 +319,11 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
       }
 
       @Override
-      public BodyHandler.Builder newBuilder(StepBuilder stepBuilder, String param) {
+      public BodyHandler.Builder newBuilder(Locator locator, String param) {
          if (param != null) {
             throw new BenchmarkDefinitionException(HtmlHandler.class.getName() + " does not accept inline parameter");
          }
-         return new Builder(stepBuilder);
+         return new Builder(locator);
       }
    }
 
@@ -337,13 +337,13 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
       private static final String[] TAGS = { "img", "link", "embed", "frame", "iframe", "object", "script" };
       private static final String[] ATTRS = { "src", "href", "src", "src", "src", "data", "src" };
 
-      private final StepBuilder step;
+      private final Locator locator;
       private boolean ignoreExternal = true;
       private Processor.Builder<HttpRequest> processor;
       private FetchResourceBuilder fetchResource;
 
-      EmbeddedResourceHandlerBuilder(StepBuilder step) {
-         this.step = step;
+      EmbeddedResourceHandlerBuilder(Locator locator) {
+         this.locator = locator;
       }
 
       public EmbeddedResourceHandlerBuilder ignoreExternal(boolean ignoreExternal) {
@@ -352,7 +352,7 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
       }
 
       public FetchResourceBuilder fetchResource() {
-         return this.fetchResource = new FetchResourceBuilder(step);
+         return this.fetchResource = new FetchResourceBuilder(locator);
       }
 
       public EmbeddedResourceHandlerBuilder processor(Processor.Builder<HttpRequest> processor) {
@@ -364,7 +364,7 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
       }
 
       public ServiceLoadedBuilderProvider<Processor.Builder> processor() {
-         return new ServiceLoadedBuilderProvider<>(Processor.BuilderFactory.class, step, p -> processor((Processor.Builder<HttpRequest>) p));
+         return new ServiceLoadedBuilderProvider<>(Processor.BuilderFactory.class, locator, p -> processor((Processor.Builder<HttpRequest>) p));
       }
 
       public void prepareBuild() {
@@ -390,17 +390,17 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
    }
 
    public static class FetchResourceBuilder {
-      private final StepBuilder step;
+      private final Locator locator;
       private final String generatedSeqName;
 
       private int maxResources;
       private SerializableBiFunction<String,String,String> statisticsSelector;
       private Action.Builder onCompletion;
 
-      FetchResourceBuilder(StepBuilder step) {
-         this.step = step;
+      FetchResourceBuilder(Locator locator) {
+         this.locator = locator;
          this.generatedSeqName = String.format("%s_fetchResources_%08x",
-               step.endStep().name(), ThreadLocalRandom.current().nextInt());
+               locator.sequence().name(), ThreadLocalRandom.current().nextInt());
       }
 
       private String completionLatch() {
@@ -426,7 +426,7 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
       }
 
       public ServiceLoadedBuilderProvider<Action.Builder> onCompletion() {
-         return new ServiceLoadedBuilderProvider<>(Action.BuilderFactory.class, step, a -> {
+         return new ServiceLoadedBuilderProvider<>(Action.BuilderFactory.class, locator, a -> {
             if (onCompletion != null) {
                throw new BenchmarkDefinitionException("Completion action already set!");
             }
@@ -439,7 +439,7 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
             throw new BenchmarkDefinitionException("maxResources is missing or invalid.");
          }
 
-         SequenceBuilder sequence = step.endStep().endSequence().sequence(generatedSeqName);
+         SequenceBuilder sequence = locator.scenario().sequence(generatedSeqName);
 
          // Constructor adds self into sequence
          HttpRequestStep.Builder requestBuilder = new HttpRequestStep.Builder(sequence, HttpMethod.GET);
@@ -461,7 +461,7 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
                });
 
          Action onCompletion = this.onCompletion.build();
-         step.endStep().insertAfter(step)
+         locator.sequence().insertAfter(locator.step())
                .step(new AwaitIntStep(completionLatch(), x -> x == 0))
                .step(s -> {
                   onCompletion.run(s);

@@ -13,18 +13,17 @@ public interface ServiceLoadedFactory<B> {
    String name();
 
    /**
-    * @return True if {@link #newBuilder(StepBuilder, String)} can be called with non-null parameter.
+    * @return True if {@link #newBuilder(Locator, String)} can be called with non-null parameter.
     */
    boolean acceptsParam();
 
    /**
     * Constructs the builder, usually passing the build target as a constructor arg to the builder instance.
     *
-    *
-    * @param stepBuilder
+    * @param locator
     * @param param
     * @return
     * @throws IllegalArgumentException if the loader does not expect any parameter and it is not <code>null</code>.
     */
-   B newBuilder(StepBuilder stepBuilder, String param);
+   B newBuilder(Locator locator, String param);
 }

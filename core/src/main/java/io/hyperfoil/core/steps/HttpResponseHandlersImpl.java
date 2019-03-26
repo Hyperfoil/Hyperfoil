@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 
+import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.core.http.CookieRecorder;
@@ -239,7 +240,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       }
 
       public ServiceLoadedBuilderProvider<StatusHandler.Builder> status() {
-         return new ServiceLoadedBuilderProvider<>(StatusHandler.BuilderFactory.class, parent, statusHandlers::add);
+         return new ServiceLoadedBuilderProvider<>(StatusHandler.BuilderFactory.class, Locator.fromStep(parent), statusHandlers::add);
       }
 
       public Builder header(HeaderHandler handler) {
@@ -248,7 +249,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       }
 
       public ServiceLoadedBuilderProvider<HeaderHandler.Builder> header() {
-         return new ServiceLoadedBuilderProvider<>(HeaderHandler.BuilderFactory.class, parent, headerHandlers::add);
+         return new ServiceLoadedBuilderProvider<>(HeaderHandler.BuilderFactory.class, Locator.fromStep(parent), headerHandlers::add);
       }
 
       public Builder body(BodyHandler handler) {
@@ -257,7 +258,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       }
 
       public ServiceLoadedBuilderProvider<BodyHandler.Builder> body() {
-         return new ServiceLoadedBuilderProvider<>(BodyHandler.BuilderFactory.class, parent, bodyHandlers::add);
+         return new ServiceLoadedBuilderProvider<>(BodyHandler.BuilderFactory.class, Locator.fromStep(parent), bodyHandlers::add);
       }
 
       public Builder onCompletion(Action handler) {
@@ -266,7 +267,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       }
 
       public ServiceLoadedBuilderProvider<Action.Builder> onCompletion() {
-         return new ServiceLoadedBuilderProvider<>(Action.BuilderFactory.class, parent, completionHandlers::add);
+         return new ServiceLoadedBuilderProvider<>(Action.BuilderFactory.class, Locator.fromStep(parent), completionHandlers::add);
       }
 
       public Builder rawBytesHandler(RawBytesHandler handler) {

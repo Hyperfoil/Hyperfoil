@@ -5,11 +5,11 @@ import java.util.List;
 
 import org.kohsuke.MetaInfServices;
 
+import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.config.BaseSequenceBuilder;
-import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.core.builders.BaseStepBuilder;
 import io.hyperfoil.function.SerializableSupplier;
 
@@ -86,7 +86,7 @@ public class UnsetStep implements Action.Step {
       }
 
       @Override
-      public UnsetStep.Builder newBuilder(StepBuilder stepBuilder, String param) {
+      public UnsetStep.Builder newBuilder(Locator locator, String param) {
          return new Builder(param);
       }
    }

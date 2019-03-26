@@ -4,7 +4,7 @@ package io.hyperfoil.core.handlers;
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
-import io.hyperfoil.api.config.StepBuilder;
+import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.http.Processor;
 import io.hyperfoil.api.session.Session;
@@ -76,7 +76,7 @@ public class NewSequenceProcessor implements Processor<Request>, ResourceUtilize
       }
 
       @Override
-      public Builder newBuilder(StepBuilder stepBuilder, String param) {
+      public Builder newBuilder(Locator locator, String param) {
          return new Builder();
       }
    }

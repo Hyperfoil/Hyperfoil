@@ -4,7 +4,7 @@ package io.hyperfoil.core.handlers;
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
-import io.hyperfoil.api.config.StepBuilder;
+import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.http.StatusHandler;
 import io.vertx.core.logging.Logger;
@@ -64,7 +64,7 @@ public class RangeStatusValidator implements StatusHandler {
       }
 
       @Override
-      public Builder newBuilder(StepBuilder stepBuilder, String param) {
+      public Builder newBuilder(Locator locator, String param) {
          if (param != null) {
             int xn = 0;
             for (int i = param.length() - 1; i >= 0; --i) {
