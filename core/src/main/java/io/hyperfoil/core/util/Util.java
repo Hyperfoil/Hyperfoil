@@ -83,4 +83,23 @@ public class Util {
          }
       }
    }
+
+   public static String prettyPrintData(double value) {
+      double scaled;
+      String suffix;
+      if (value >= 1024 * 1024 * 1024) {
+         scaled = (double) value / (1024 * 1024 * 1024);
+         suffix = "GB";
+      } else if (value >= 1024 * 1024) {
+         scaled = (double) value / (1024 * 1024);
+         suffix = "MB";
+      }  else if (value >= 1024) {
+         scaled = (double) value / 1024;
+         suffix = "kB";
+      } else {
+         scaled = value;
+         suffix = "B ";
+      }
+      return String.format("%6.2f%s", scaled, suffix);
+   }
 }

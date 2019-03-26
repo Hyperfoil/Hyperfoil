@@ -32,6 +32,8 @@ import io.hyperfoil.core.builders.StepCatalog;
 import io.hyperfoil.core.handlers.ByteBufSizeRecorder;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
 import io.hyperfoil.core.impl.statistics.StatisticsCollector;
+import io.hyperfoil.core.util.Util;
+
 import org.HdrHistogram.HistogramIterationValue;
 import org.aesh.command.AeshCommandRuntimeBuilder;
 import org.aesh.command.Command;
@@ -299,63 +301,32 @@ public class Wrk {
       private void printStats(StatisticsSnapshot stats, CommandInvocation invocation) {
          long dataRead = ((LongValue) stats.custom.get("bytes")).value();
          double durationSeconds = (stats.histogram.getEndTimeStamp() - stats.histogram.getStartTimeStamp()) / 1000d;
-         invocation.println("                 Avg    Stdev      Max");
-         invocation.println("Latency:      "+formatTime(stats.histogram.getMean())+" "+formatTime(stats.histogram.getStdDeviation())+" "+formatTime(stats.histogram.getMaxValue()));
+         invocation.println("                  Avg     Stdev       Max");
+         invocation.println("Latency:    " + Util.prettyPrintNanos((long) stats.histogram.getMean()) + " "
+               + Util.prettyPrintNanos((long) stats.histogram.getStdDeviation()) + " " + Util.prettyPrintNanos(stats.histogram.getMaxValue()));
          if (latency) {
             invocation.println("Latency Distribution");
             for (double percentile : new double[] { 0.5, 0.75, 0.9, 0.99, 0.999, 0.9999, 0.99999, 1.0}) {
-               invocation.println(String.format("%7.3f", 100 * percentile)+" "+formatTime(stats.histogram.getValueAtPercentile(100 * percentile)));
+               invocation.println(String.format("%7.3f", 100 * percentile)+" "+Util.prettyPrintNanos(stats.histogram.getValueAtPercentile(100 * percentile)));
             }
             invocation.println("----------------------------------------------------------");
             invocation.println("Detailed Percentile Spectrum");
-            invocation.println("   Value  Percentile  TotalCount  1/(1-Percentile)");
+            invocation.println("    Value  Percentile  TotalCount  1/(1-Percentile)");
             for (HistogramIterationValue value : stats.histogram.percentiles(5)) {
-               invocation.println(formatTime(value.getValueIteratedTo())+" "+String.format("%9.5f%%  %10d  %15.2f",
+               invocation.println(Util.prettyPrintNanos(value.getValueIteratedTo())+" "+String.format("%9.5f%%  %10d  %15.2f",
                      value.getPercentile(), value.getTotalCountToThisValue(), 100/(100 - value.getPercentile())));
             }
             invocation.println("----------------------------------------------------------");
          }
-         invocation.println(stats.histogram.getTotalCount()+" requests in "+durationSeconds+"s, "+formatData(dataRead)+" read");
+         invocation.println(stats.histogram.getTotalCount()+" requests in "+durationSeconds+"s, "+ Util.prettyPrintData(dataRead)+" read");
          invocation.println("Requests/sec: "+String.format("%.02f", stats.histogram.getTotalCount() / durationSeconds));
          if (stats.errors() > 0) {
             invocation.println("Socket errors: connect "+stats.connectFailureCount+", reset "+stats.resetCount+", timeout "+stats.timeouts);
             invocation.println("Non-2xx or 3xx responses: "+ stats.status_4xx + stats.status_5xx + stats.status_other);
          }
-         invocation.println("Transfer/sec: "+formatData(dataRead / durationSeconds));
+         invocation.println("Transfer/sec: "+ Util.prettyPrintData(dataRead / durationSeconds));
       }
 
-      private String formatData(double value) {
-         double scaled;
-         String suffix;
-         if (value >= 1024 * 1024 * 1024) {
-            scaled = (double) value / (1024 * 1024 * 1024);
-            suffix = "GB";
-         } else if (value >= 1024 * 1024) {
-            scaled = (double) value / (1024 * 1024);
-            suffix = "MB";
-         }  else if (value >= 1024) {
-            scaled = (double) value / 1024;
-            suffix = "kB";
-         } else {
-            scaled = value;
-            suffix = "B ";
-         }
-         return String.format("%6.2f%s", scaled, suffix);
-      }
-
-      private String formatTime(double value) {
-         String suffix = "ns";
-         if (value >= 1000_000_000) {
-            value /= 1000_000_000;
-            suffix = "s ";
-         } else if (value >= 1000_000) {
-            value /= 1000_000;
-            suffix = "ms";
-         } else if (value >= 1000) {
-            value /= 1000;
-            suffix = "us";
-         }
-         return String.format("%6.2f%s", value, suffix);
-      }
    }
+
 }

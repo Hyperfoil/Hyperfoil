@@ -1,5 +1,7 @@
 package io.hyperfoil.core.impl;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
@@ -8,15 +10,25 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.session.PhaseInstance;
+import io.hyperfoil.api.statistics.Statistics;
+import io.hyperfoil.api.statistics.StatisticsSnapshot;
+import io.hyperfoil.core.impl.statistics.StatisticsCollector;
 
 public class LocalSimulationRunner extends SimulationRunnerImpl {
-   private Lock statusLock = new ReentrantLock();
-   private Condition statusCondition = statusLock.newCondition();
+   private final StatisticsCollector.StatisticsConsumer statsConsumer;
+   private final Lock statusLock = new ReentrantLock();
+   private final Condition statusCondition = statusLock.newCondition();
    private long startTime;
 
    public LocalSimulationRunner(Benchmark benchmark) {
+      this(benchmark, null);
+   }
+
+   public LocalSimulationRunner(Benchmark benchmark, StatisticsCollector.StatisticsConsumer statsConsumer) {
       super(benchmark.simulation());
+      this.statsConsumer = statsConsumer;
    }
 
    public void run() {
@@ -89,11 +101,28 @@ public class LocalSimulationRunner extends SimulationRunnerImpl {
    }
 
    private void phaseChanged(String phase, PhaseInstance.Status status, boolean success) {
+      if (status == PhaseInstance.Status.TERMINATED && statsConsumer != null) {
+         publishStats(phase);
+      }
       statusLock.lock();
       try {
          statusCondition.signal();
       } finally {
          statusLock.unlock();
+      }
+   }
+
+   private void publishStats(String phase) {
+      Phase phaseDef = instances.get(phase).definition();
+      Map<String, StatisticsSnapshot> snapshots = new HashMap<>();
+      visitPhaseStatistics(phaseDef, statistics -> {
+         for (Map.Entry<String, Statistics> entry : statistics.entrySet()) {
+            StatisticsSnapshot snapshot = snapshots.computeIfAbsent(entry.getKey(), k -> new StatisticsSnapshot());
+            entry.getValue().addIntervalTo(snapshot);
+         }
+      });
+      for (Map.Entry<String, StatisticsSnapshot> entry : snapshots.entrySet()) {
+         statsConsumer.accept(phaseDef, entry.getKey(), entry.getValue(), null);
       }
    }
 

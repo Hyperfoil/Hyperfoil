@@ -168,6 +168,16 @@ public class SimulationRunnerImpl implements SimulationRunner {
         }
     }
 
+    public void visitPhaseStatistics(Phase phase, Consumer<Map<String, Statistics>> consumer) {
+        SharedResources sharedResources = this.sharedResources.get(phase.sharedResources);
+        if (sharedResources == null || sharedResources.statistics == null) {
+            return;
+        }
+        for (Map<String, Statistics> statistics : sharedResources.statistics.values()) {
+            consumer.accept(statistics);
+        }
+    }
+
     @Override
     public void startPhase(String phase) {
         PhaseInstance phaseInstance = instances.get(phase);

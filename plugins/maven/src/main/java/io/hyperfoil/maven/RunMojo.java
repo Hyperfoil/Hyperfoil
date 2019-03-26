@@ -1,11 +1,15 @@
 package io.hyperfoil.maven;
 
 import io.hyperfoil.api.config.Benchmark;
+import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
 import io.hyperfoil.core.impl.statistics.StatisticsCollector;
 import io.hyperfoil.core.parser.BenchmarkParser;
 import io.hyperfoil.core.parser.ParserException;
+import io.hyperfoil.core.util.CountDown;
+import io.hyperfoil.core.util.Util;
+
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -24,6 +28,8 @@ import java.io.InputStream;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static io.vertx.core.logging.LoggerFactory.LOGGER_DELEGATE_FACTORY_CLASS_NAME;
 
@@ -37,6 +43,8 @@ public class RunMojo extends AbstractMojo {
 
     @Parameter(defaultValue = "false", property = "hyperfoil.percentiles")
     private Boolean outputPercentileDistribution;
+
+    private ExecutorService printStatsExecutor = Executors.newFixedThreadPool(1, r -> new Thread(r, "statistics"));
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
@@ -54,19 +62,19 @@ public class RunMojo extends AbstractMojo {
             benchmark = buildBenchmark(new FileInputStream(yaml));
 
             if (benchmark != null) {
-                LocalSimulationRunner runner = new LocalSimulationRunner(benchmark);
+                // We want to log all stats in the same thread to not break the output layout too much.
+                LocalSimulationRunner runner = new LocalSimulationRunner(benchmark,
+                      (phase, name, snapshot, countDown) -> printStatsExecutor.submit(() -> printStats(phase, name, snapshot)));
                 logger.info("Running for " + benchmark.simulation().statisticsCollectionPeriod());
                 logger.info(benchmark.simulation().threads() + " threads");
                 runner.run();
-                StatisticsCollector collector = new StatisticsCollector(benchmark.simulation());
-                runner.visitStatistics(collector);
-                collector.visitStatistics((phase, name, stats, countDown) -> printStats(stats), null);
             }
         } catch (FileNotFoundException e) {
             logger.error("Couldn't find yaml file: " + e.getMessage());
             throw new MojoExecutionException("yaml not found: " + yaml.toPath());
         }
 
+        printStatsExecutor.shutdown();
         logger.info("Finished running simulation");
     }
 
@@ -95,12 +103,14 @@ public class RunMojo extends AbstractMojo {
         }
     }
 
-    private void printStats(StatisticsSnapshot stats) {
+    private void printStats(Phase phase, String statsName, StatisticsSnapshot stats) {
         double durationSeconds = (stats.histogram.getEndTimeStamp() - stats.histogram.getStartTimeStamp()) / 1000d;
-        logger.info(stats.histogram.getTotalCount() + " requests in " + durationSeconds + "s, ");
-        logger.info("                 Avg    Stdev      Max");
-        logger.info("Latency:      " + formatTime(stats.histogram.getMean()) + " " + formatTime(stats.histogram.getStdDeviation()) + " " + formatTime(stats.histogram.getMaxValue()));
-        logger.info("Requests/sec: " + stats.histogram.getTotalCount() / durationSeconds);
+        logger.infof("%s/%s: ", phase.name, statsName);
+        logger.infof("%d requests in %.2f s, ", stats.histogram.getTotalCount(), durationSeconds);
+        logger.info("                  Avg     Stdev       Max");
+        logger.infof("Latency:    %s %s %s", Util.prettyPrintNanos((long) stats.histogram.getMean()),
+              Util.prettyPrintNanos((long) stats.histogram.getStdDeviation()), Util.prettyPrintNanos(stats.histogram.getMaxValue()));
+        logger.infof("Requests/sec: %f", stats.histogram.getTotalCount() / durationSeconds);
 
         if (outputPercentileDistribution) {
             final ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -119,39 +129,4 @@ public class RunMojo extends AbstractMojo {
             logger.info("Non-2xx or 3xx responses: " + stats.status_4xx + stats.status_5xx + stats.status_other);
         }
     }
-
-    private String formatData(double value) {
-        double scaled;
-        String suffix;
-        if (value >= 1024 * 1024 * 1024) {
-            scaled = (double) value / (1024 * 1024 * 1024);
-            suffix = "GB";
-        } else if (value >= 1024 * 1024) {
-            scaled = (double) value / (1024 * 1024);
-            suffix = "MB";
-        } else if (value >= 1024) {
-            scaled = (double) value / 1024;
-            suffix = "kB";
-        } else {
-            scaled = value;
-            suffix = "B ";
-        }
-        return String.format("%6.2f%s", scaled, suffix);
-    }
-
-    private String formatTime(double value) {
-        String suffix = "ns";
-        if (value >= 1000_000_000) {
-            value /= 1000_000_000;
-            suffix = "s ";
-        } else if (value >= 1000_000) {
-            value /= 1000_000;
-            suffix = "ms";
-        } else if (value >= 1000) {
-            value /= 1000;
-            suffix = "us";
-        }
-        return String.format("%6.2f%s", value, suffix);
-    }
-
 }
