@@ -32,10 +32,10 @@ public class RunMojo extends AbstractMojo {
 
     private static final Logger logger = Logger.getLogger(RunMojo.class);
 
-    @Parameter(required = true)
+    @Parameter(required = true, property = "hyperfoil.yaml")
     private File yaml;
 
-    @Parameter(defaultValue = "false")
+    @Parameter(defaultValue = "false", property = "hyperfoil.percentiles")
     private Boolean outputPercentileDistribution;
 
     @Override
