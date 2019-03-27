@@ -101,6 +101,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
 
    @Override
    public void tryTerminate() {
+      assert status.isFinished();
       if (activeSessions.compareAndSet(0, Integer.MIN_VALUE)) {
          setTerminated();
       } else if (sessionList != null && status == Status.TERMINATING) {
@@ -143,7 +144,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       }
       if (numActive < 0)
          log.error("{} has {} active sessions", def.name, numActive);
-      if (numActive <= 0) {
+      if (numActive == 0 && status.isFinished() && activeSessions.compareAndSet(0, Integer.MIN_VALUE)) {
          setTerminated();
       }
    }
@@ -156,22 +157,20 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       }
       if (numActive < 0)
          log.error("{} has {} active sessions", def.name, numActive);
-      if (numActive <= 0) {
+      if (numActive == 0 && status.isFinished() && activeSessions.compareAndSet(0, Integer.MIN_VALUE)) {
          setTerminated();
       }
    }
 
    @Override
    public void setTerminated() {
-      if (status.isFinished()) {
-         status = Status.TERMINATED;
-         log.debug("{} changing status to TERMINATED", def.name);
-         long now = System.currentTimeMillis();
-         for (Statistics stats : statistics) {
-            stats.end(now);
-         }
-         phaseChangeHandler.onChange(def.name, status, true);
+      status = Status.TERMINATED;
+      log.debug("{} changing status to TERMINATED", def.name);
+      long now = System.currentTimeMillis();
+      for (Statistics stats : statistics) {
+         stats.end(now);
       }
+      phaseChangeHandler.onChange(def.name, status, true);
    }
 
    @Override

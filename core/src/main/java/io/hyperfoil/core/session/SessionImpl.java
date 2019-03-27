@@ -269,8 +269,8 @@ class SessionImpl implements Session, Callable<Void> {
                }
                for (int j = 0; j <= lastRunningSequence; ++j) {
                   sequencePool.release(runningSequences[j]);
-                  lastRunningSequence = -1;
                }
+               lastRunningSequence = -1;
                cancelRequests();
                reset();
                if (trace) {
