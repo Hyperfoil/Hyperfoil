@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.function.Function;
 
 class SessionImpl implements Session, Callable<Void> {
    private static final Logger log = LoggerFactory.getLogger(SessionImpl.class);
@@ -46,6 +47,7 @@ class SessionImpl implements Session, Callable<Void> {
    private Map<String, Statistics> statistics;
 
    private final int uniqueId;
+   private Function<String, Statistics> newStatistics = n -> new Statistics(phase.absoluteStartTime());
 
    SessionImpl(Scenario scenario, int uniqueId) {
       this.sequencePool = new LimitedPool<>(scenario.maxSequences(), SequenceInstance::new);
@@ -377,7 +379,7 @@ class SessionImpl implements Session, Callable<Void> {
 
    @Override
    public Statistics statistics(String name) {
-      return statistics.computeIfAbsent(name, n -> new Statistics());
+      return statistics.computeIfAbsent(name, newStatistics);
    }
 
    @Override

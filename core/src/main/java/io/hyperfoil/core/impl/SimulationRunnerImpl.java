@@ -30,12 +30,16 @@ import io.vertx.core.logging.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import javax.net.ssl.SSLException;
 
@@ -128,9 +132,7 @@ public class SimulationRunnerImpl implements SimulationRunner {
             }
             PhaseInstance phase = PhaseInstanceImpl.newInstance(def);
             instances.put(def.name(), phase);
-            Statistics[] allStats = sharedResources.statistics.values().stream()
-                  .map(Map::values).flatMap(Collection::stream).toArray(Statistics[]::new);
-            phase.setComponents(sharedResources.sessionPool, sharedResources.sessions, allStats, phaseChangeHandler);
+            phase.setComponents(sharedResources.sessionPool, sharedResources.sessions, sharedResources.allStatistics(), phaseChangeHandler);
             phase.reserveSessions();
             // at this point all session resources should be reserved
         }
@@ -245,6 +247,55 @@ public class SimulationRunnerImpl implements SimulationRunner {
                     this.data.put(executor, new SharedDataImpl());
                 }
             }
+        }
+
+        Iterable<Statistics> allStatistics() {
+            if (statistics.isEmpty()) {
+                return Collections.emptyList();
+            }
+            List<Collection<Statistics>> collections = statistics.values().stream()
+                  .map(map -> map.values()).collect(Collectors.toList());
+            return () -> new FlattenIterator<>(collections.iterator());
+        }
+    }
+
+    private static class FlattenIterator<T> implements Iterator<T> {
+        private final Iterator<? extends Iterable<T>> it1;
+        private Iterator<T> it2;
+
+        public FlattenIterator(Iterator<? extends Iterable<T>> iterator) {
+            it1 = iterator;
+        }
+
+        @Override
+        public boolean hasNext() {
+            if (it2 != null && it2.hasNext()) {
+                return true;
+            } else if (it1.hasNext()) {
+                boolean it2HasNext;
+                do {
+                    it2 = it1.next().iterator();
+                } while (!(it2HasNext = it2.hasNext()) && it1.hasNext());
+                return it2HasNext;
+            } else {
+                return false;
+            }
+        }
+
+        @Override
+        public T next() {
+            if (it2 != null && it2.hasNext()) {
+                return it2.next();
+            } else if (it1.hasNext()) {
+                boolean it2HasNext;
+                do {
+                    it2 = it1.next().iterator();
+                } while (!(it2HasNext = it2.hasNext()) && it1.hasNext());
+                if (it2HasNext) {
+                    return it2.next();
+                }
+            }
+            throw new NoSuchElementException();
         }
     }
 }

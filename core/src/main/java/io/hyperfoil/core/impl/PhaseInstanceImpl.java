@@ -28,7 +28,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
    protected D def;
    protected ElasticPool<Session> sessionPool;
    protected List<Session> sessionList;
-   private Statistics[] statistics;
+   private Iterable<Statistics> statistics;
    private PhaseChangeHandler phaseChangeHandler;
    // Reads are done without locks
    protected volatile Status status = Status.NOT_STARTED;
@@ -82,7 +82,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       status = Status.RUNNING;
       absoluteStartTime = now;
       log.debug("{} changing status to RUNNING", def.name);
-      phaseChangeHandler.onChange(def.name, status, true);
+      phaseChangeHandler.onChange(def.name, Status.RUNNING, true);
       proceed(executorGroup);
    }
 
@@ -96,7 +96,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       if (!successful) {
          log.info("Phase {} had {} active sessions, maximum is {}", def.name, active, def.maxUnfinishedSessions);
       }
-      phaseChangeHandler.onChange(def.name, status, successful);
+      phaseChangeHandler.onChange(def.name, Status.FINISHED, successful);
    }
 
    @Override
@@ -125,7 +125,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
 
    // TODO better name
    @Override
-   public void setComponents(ElasticPool<Session> sessionPool, List<Session> sessionList, Statistics[] statistics, PhaseChangeHandler phaseChangeHandler) {
+   public void setComponents(ElasticPool<Session> sessionPool, List<Session> sessionList, Iterable<Statistics> statistics, PhaseChangeHandler phaseChangeHandler) {
       this.sessionPool = sessionPool;
       this.sessionList = sessionList;
       this.statistics = statistics;

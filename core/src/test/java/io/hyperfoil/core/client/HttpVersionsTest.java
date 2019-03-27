@@ -109,7 +109,7 @@ public class HttpVersionsTest {
                         }).build();
                   request.method = HttpMethod.GET;
                   request.path = "/ping";
-                  request.start(handlers, new SequenceInstance(), new Statistics());
+                  request.start(handlers, new SequenceInstance(), new Statistics(System.currentTimeMillis()));
 
                   client.next().request(request, null, null);
                });

@@ -2,10 +2,10 @@ package io.hyperfoil.api.session;
 
 import java.util.List;
 
-import io.netty.util.concurrent.EventExecutorGroup;
 import io.hyperfoil.api.collection.ElasticPool;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.statistics.Statistics;
+import io.netty.util.concurrent.EventExecutorGroup;
 
 public interface PhaseInstance {
    Phase definition();
@@ -25,7 +25,7 @@ public interface PhaseInstance {
    void terminate();
 
    // TODO better name
-   void setComponents(ElasticPool<Session> sessionPool, List<Session> sessionList, Statistics[] statistics, PhaseChangeHandler phaseChangeHandler);
+   void setComponents(ElasticPool<Session> sessionPool, List<Session> sessionList, Iterable<Statistics> statistics, PhaseChangeHandler phaseChangeHandler);
 
    void reserveSessions();
 

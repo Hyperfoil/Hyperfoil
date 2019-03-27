@@ -14,11 +14,12 @@ public class Statistics {
 
    private volatile StatisticsSnapshot active;
    private StatisticsSnapshot inactive;
+   private boolean stopped;
 
-   public Statistics() {
+   public Statistics(long startTimestamp) {
       active = new StatisticsSnapshot();
       inactive = new StatisticsSnapshot();
-      active.histogram.setStartTimeStamp(System.currentTimeMillis());
+      active.histogram.setStartTimeStamp(startTimestamp);
    }
 
    public void recordResponse(long sendTime, long responseTime) {
@@ -138,12 +139,14 @@ public class Statistics {
       // we can modify start timestamp because writers are not accessing that
       // and readers are blocked by synchronized section
       active.histogram.setStartTimeStamp(now);
+      stopped = false;
    }
 
    public synchronized void end(long now) {
       // we can modify end timestamp because writers are not accessing that
       // and readers are blocked by synchronized section
       active.histogram.setEndTimeStamp(now);
+      stopped = true;
    }
 
    private void performIntervalSample() {
@@ -165,7 +168,9 @@ public class Statistics {
          // Mark end time of previous interval and start time of new one:
          long now = System.currentTimeMillis();
          active.histogram.setStartTimeStamp(now);
-         inactive.histogram.setEndTimeStamp(now);
+         if (!stopped) {
+            inactive.histogram.setEndTimeStamp(now);
+         }
 
          // Make sure we are not in the middle of recording a value on the previously active histogram:
 
