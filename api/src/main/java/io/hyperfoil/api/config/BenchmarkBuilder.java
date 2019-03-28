@@ -22,6 +22,8 @@ package io.hyperfoil.api.config;
 import java.util.ArrayList;
 import java.util.Collection;
 
+import io.hyperfoil.impl.FutureSupplier;
+
 /**
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
  */

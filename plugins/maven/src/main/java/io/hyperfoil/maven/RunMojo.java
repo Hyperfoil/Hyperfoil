@@ -1,12 +1,11 @@
 package io.hyperfoil.maven;
 
 import io.hyperfoil.api.config.Benchmark;
-import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
-import io.hyperfoil.core.impl.statistics.StatisticsCollector;
 import io.hyperfoil.core.parser.BenchmarkParser;
 import io.hyperfoil.core.parser.ParserException;
+import io.hyperfoil.core.steps.BaseStep;
 import io.hyperfoil.core.util.CountDown;
 import io.hyperfoil.core.util.Util;
 
@@ -45,6 +44,7 @@ public class RunMojo extends AbstractMojo {
     private Boolean outputPercentileDistribution;
 
     private ExecutorService printStatsExecutor = Executors.newFixedThreadPool(1, r -> new Thread(r, "statistics"));
+    private Benchmark benchmark;
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
@@ -57,14 +57,12 @@ public class RunMojo extends AbstractMojo {
         if (!yaml.exists())
             throw new MojoExecutionException("yaml not found: " + yaml.toPath());
 
-        Benchmark benchmark = null;
         try {
             benchmark = buildBenchmark(new FileInputStream(yaml));
 
             if (benchmark != null) {
                 // We want to log all stats in the same thread to not break the output layout too much.
-                LocalSimulationRunner runner = new LocalSimulationRunner(benchmark,
-                      (phase, name, snapshot, countDown) -> printStatsExecutor.submit(() -> printStats(phase, name, snapshot)));
+                LocalSimulationRunner runner = new LocalSimulationRunner(benchmark, this::printStats);
                 logger.info("Running for " + benchmark.simulation().statisticsCollectionPeriod());
                 logger.info(benchmark.simulation().threads() + " threads");
                 runner.run();
@@ -103,9 +101,17 @@ public class RunMojo extends AbstractMojo {
         }
     }
 
-    private void printStats(Phase phase, String statsName, StatisticsSnapshot stats) {
+    private void printStats(int stepId, String statsName, StatisticsSnapshot snapshot, CountDown ignored) {
+        StatisticsSnapshot copy = snapshot.clone();
+        printStatsExecutor.submit(() -> printStats(stepId, statsName, copy));
+    }
+
+    private void printStats(int stepId, String statsName, StatisticsSnapshot stats) {
+        String phase = benchmark.steps()
+              .filter(BaseStep.class::isInstance).map(BaseStep.class::cast)
+              .filter(s -> s.id() == stepId).map(s -> s.sequence().phase().name()).findFirst().get();
         double durationSeconds = (stats.histogram.getEndTimeStamp() - stats.histogram.getStartTimeStamp()) / 1000d;
-        logger.infof("%s/%s: ", phase.name, statsName);
+        logger.infof("%s/%s: ", phase, statsName);
         logger.infof("%d requests in %.2f s, ", stats.histogram.getTotalCount(), durationSeconds);
         logger.info("                  Avg     Stdev       Max");
         logger.infof("Latency:    %s %s %s", Util.prettyPrintNanos((long) stats.histogram.getMean()),

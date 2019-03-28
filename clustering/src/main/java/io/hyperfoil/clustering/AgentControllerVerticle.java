@@ -3,7 +3,6 @@ package io.hyperfoil.clustering;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.Host;
 import io.hyperfoil.api.config.Phase;
-import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.session.PhaseInstance;
 import io.hyperfoil.clustering.util.AgentControlMessage;
 import io.hyperfoil.clustering.util.AgentHello;
@@ -118,12 +117,12 @@ public class AgentControllerVerticle extends AbstractVerticle {
         eb.consumer(Feeds.STATS, message -> {
             ReportMessage reportMessage = (ReportMessage) message.body();
             log.trace("Run {}: Received stats from {}: {}/{} ({} requests)", reportMessage.runId,
-                  reportMessage.address, reportMessage.phase, reportMessage.sequence, reportMessage.statistics.requestCount);
+                  reportMessage.address, reportMessage.stepId, reportMessage.statisticsName, reportMessage.statistics.requestCount);
             Run run = runs.get(reportMessage.runId);
             if (run != null) {
                 // Agents start sending stats before the server processes the confirmation for initialization
                 if (run.statisticsStore != null) {
-                    run.statisticsStore.record(reportMessage.address, reportMessage.phase, reportMessage.sequence, reportMessage.statistics);
+                    run.statisticsStore.record(reportMessage.address, reportMessage.stepId, reportMessage.statisticsName, reportMessage.statistics);
                 }
             } else {
                 log.error("Unknown run {}", reportMessage.runId);
@@ -278,8 +277,7 @@ public class AgentControllerVerticle extends AbstractVerticle {
             run.phases.put(phase.name(), new ControllerPhase(phase));
         }
         run.statisticsStore = new StatisticsStore(run.benchmark, failure -> {
-            Sequence sequence = failure.sla().sequence();
-            log.warn("Failed verify SLA(s) for {}/{}", sequence.phase().name(), sequence.name());
+            log.warn("Failed verify SLA(s) for {}/{}", failure.phase(), failure.statisticsName());
         });
         runSimulation(run);
     }

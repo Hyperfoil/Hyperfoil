@@ -14,11 +14,11 @@ import org.yaml.snakeyaml.events.SequenceStartEvent;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.ListBuilder;
+import io.hyperfoil.api.config.MappingListBuilder;
 import io.hyperfoil.api.config.PairBuilder;
 import io.hyperfoil.api.config.PartialBuilder;
 import io.hyperfoil.api.config.ServiceLoadedContract;
 import io.hyperfoil.api.config.BaseSequenceBuilder;
-import io.hyperfoil.api.config.SequenceBuilder;
 import io.hyperfoil.core.builders.StepCatalog;
 import io.hyperfoil.core.steps.ServiceLoadedBuilderProvider;
 
@@ -70,15 +70,6 @@ class StepParser implements Parser<BaseSequenceBuilder> {
       }
 
       ScalarEvent stepEvent = ctx.expectEvent(ScalarEvent.class);
-      if ("sla".equals(stepEvent.getValue())) {
-         if (target instanceof SequenceBuilder) {
-            SLAParser.instance().parse(ctx, ((SequenceBuilder) target).sla());
-         } else {
-            throw new ParserException(stepEvent, "SLAs are allowed only as the top-level sequence element.");
-         }
-         ctx.expectEvent(MappingEndEvent.class);
-         return;
-      }
       if (!ctx.hasNext()) {
          throw ctx.noMoreEvents(ScalarEvent.class, MappingStartEvent.class, MappingEndEvent.class, SequenceStartEvent.class);
       }
@@ -144,6 +135,10 @@ class StepParser implements Parser<BaseSequenceBuilder> {
             }
             ctx.expectEvent(MappingEndEvent.class);
          } else {
+            if (builder instanceof MappingListBuilder) {
+               // MappingListBuilder allows specifying single mapping directly without embedding into a list
+               builder = ((MappingListBuilder) builder).addItem();
+            }
             applyMapping(ctx, builder);
          }
       } else if (defEvent instanceof SequenceStartEvent) {
@@ -157,20 +152,25 @@ class StepParser implements Parser<BaseSequenceBuilder> {
             ctx.parseList((BaseSequenceBuilder) builder, StepParser.instance());
          } else {
             ctx.consumePeeked(defEvent);
+            MappingListBuilder<?> mlb = null;
+            if (builder instanceof MappingListBuilder) {
+               mlb = (MappingListBuilder<?>) builder;
+            }
             while (ctx.hasNext()) {
                defEvent = ctx.next();
                if (defEvent instanceof SequenceEndEvent) {
                   break;
-               } else if (defEvent instanceof ScalarEvent) {
+               } else if (mlb != null) {
+                  builder = mlb.addItem();
+               }
+               if (defEvent instanceof ScalarEvent) {
                   if (builder instanceof ListBuilder) {
                      ((ListBuilder) builder).nextItem(((ScalarEvent) defEvent).getValue());
                   } else {
                      invokeWithParameters(ctx, builder, (ScalarEvent) defEvent);
                   }
                } else if (defEvent instanceof MappingStartEvent) {
-                  defEvent = ctx.expectEvent(ScalarEvent.class);
-                  invokeWithParameters(ctx, builder, (ScalarEvent) defEvent);
-                  ctx.expectEvent(MappingEndEvent.class);
+                  applyMapping(ctx, builder);
                } else {
                   throw ctx.unexpectedEvent(defEvent);
                }

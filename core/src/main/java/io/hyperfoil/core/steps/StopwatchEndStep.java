@@ -17,7 +17,7 @@ public class StopwatchEndStep extends BaseStep {
    public boolean invoke(Session session) {
       long now = System.nanoTime();
       StopwatchBeginStep.StartTime startTime = (StopwatchBeginStep.StartTime) session.getObject(key);
-      Statistics statistics = session.statistics(sequence().name());
+      Statistics statistics = session.statistics(id(), sequence().name());
       statistics.recordResponse(0, now - startTime.timestamp);
       // TODO: record any request/response counts?
       return true;

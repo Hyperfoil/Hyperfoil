@@ -1,6 +1,7 @@
 package io.hyperfoil.core.impl;
 
 import io.hyperfoil.api.session.SharedData;
+import io.hyperfoil.api.statistics.SessionStatistics;
 import io.hyperfoil.core.client.netty.HttpDestinationTableImpl;
 import io.hyperfoil.core.session.SharedDataImpl;
 import io.netty.channel.EventLoop;
@@ -36,10 +37,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 import javax.net.ssl.SSLException;
 
@@ -107,7 +106,7 @@ public class SimulationRunnerImpl implements SimulationRunner {
             } else if ((sharedResources = this.sharedResources.get(def.sharedResources)) == null) {
                 sharedResources = new SharedResources(eventLoopGroup, def.scenario.sequences().length);
                 List<Session> phaseSessions = sharedResources.sessions = new ArrayList<>();
-                Map<EventExecutor, Map<String, Statistics>> statistics = sharedResources.statistics;
+                Map<EventExecutor, SessionStatistics> statistics = sharedResources.statistics;
                 Map<EventExecutor, SharedData> data = sharedResources.data;
                 Supplier<Session> sessionSupplier = () -> {
                     Session session;
@@ -157,25 +156,24 @@ public class SimulationRunnerImpl implements SimulationRunner {
         }
     }
 
-    public void visitStatistics(BiConsumer<Phase, Map<String, Statistics>> consumer) {
+    public void visitStatistics(Consumer<SessionStatistics> consumer) {
         for (SharedResources sharedResources : this.sharedResources.values()) {
             if (sharedResources.currentPhase == null) {
                 // Phase(s) with these resources have not been started yet
                 continue;
             }
-            Phase phase = sharedResources.currentPhase.definition();
-            for (Map<String, Statistics> statistics : sharedResources.statistics.values()) {
-                consumer.accept(phase, statistics);
+            for (SessionStatistics statistics : sharedResources.statistics.values()) {
+                consumer.accept(statistics);
             }
         }
     }
 
-    public void visitPhaseStatistics(Phase phase, Consumer<Map<String, Statistics>> consumer) {
+    public void visitPhaseStatistics(Phase phase, Consumer<SessionStatistics> consumer) {
         SharedResources sharedResources = this.sharedResources.get(phase.sharedResources);
         if (sharedResources == null || sharedResources.statistics == null) {
             return;
         }
-        for (Map<String, Statistics> statistics : sharedResources.statistics.values()) {
+        for (SessionStatistics statistics : sharedResources.statistics.values()) {
             consumer.accept(statistics);
         }
     }
@@ -237,13 +235,13 @@ public class SimulationRunnerImpl implements SimulationRunner {
         PhaseInstance currentPhase;
         ElasticPoolImpl<Session> sessionPool;
         List<Session> sessions;
-        Map<EventExecutor, Map<String, Statistics>> statistics = new HashMap<>();
+        Map<EventExecutor, SessionStatistics> statistics = new HashMap<>();
         Map<EventExecutor, SharedData> data = new HashMap<>();
 
         SharedResources(EventExecutorGroup executors, int sequences) {
             if (executors != null) {
                 for (EventExecutor executor : executors) {
-                    this.statistics.put(executor, new HashMap<>());
+                    this.statistics.put(executor, new SessionStatistics());
                     this.data.put(executor, new SharedDataImpl());
                 }
             }
@@ -253,9 +251,7 @@ public class SimulationRunnerImpl implements SimulationRunner {
             if (statistics.isEmpty()) {
                 return Collections.emptyList();
             }
-            List<Collection<Statistics>> collections = statistics.values().stream()
-                  .map(map -> map.values()).collect(Collectors.toList());
-            return () -> new FlattenIterator<>(collections.iterator());
+            return () -> new FlattenIterator<>(statistics.values().iterator());
         }
     }
 

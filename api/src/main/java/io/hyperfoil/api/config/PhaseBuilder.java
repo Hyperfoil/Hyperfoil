@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import io.hyperfoil.function.SerializableSupplier;
+import io.hyperfoil.impl.FutureSupplier;
 import io.hyperfoil.util.Util;
 
 /**

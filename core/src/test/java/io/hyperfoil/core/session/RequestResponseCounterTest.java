@@ -98,11 +98,11 @@ public class RequestResponseCounterTest {
 
         LocalSimulationRunner runner = new LocalSimulationRunner(benchmark);
         runner.run();
-        StatisticsCollector collector = new StatisticsCollector(benchmark.simulation());
+        StatisticsCollector collector = new StatisticsCollector();
         runner.visitStatistics(collector);
 
         AtomicLong actualNumberOfRequests = new AtomicLong();
-        collector.visitStatistics((phase, name, snapshot, countDown) -> {
+        collector.visitStatistics((stepId, name, snapshot, countDown) -> {
             actualNumberOfRequests.set(snapshot.histogram.getTotalCount());
         }, null);
 

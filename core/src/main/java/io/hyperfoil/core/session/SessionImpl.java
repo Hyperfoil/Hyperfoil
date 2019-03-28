@@ -3,6 +3,7 @@ package io.hyperfoil.core.session;
 import io.hyperfoil.api.connection.HttpDestinationTable;
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.session.SharedData;
+import io.hyperfoil.api.statistics.SessionStatistics;
 import io.netty.util.concurrent.EventExecutor;
 import io.hyperfoil.api.collection.LimitedPool;
 import io.hyperfoil.api.config.Phase;
@@ -22,7 +23,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
-import java.util.function.Function;
 
 class SessionImpl implements Session, Callable<Void> {
    private static final Logger log = LoggerFactory.getLogger(SessionImpl.class);
@@ -44,10 +44,9 @@ class SessionImpl implements Session, Callable<Void> {
    private HttpDestinationTable httpDestinations;
    private EventExecutor executor;
    private SharedData sharedData;
-   private Map<String, Statistics> statistics;
+   private SessionStatistics statistics;
 
    private final int uniqueId;
-   private Function<String, Statistics> newStatistics = n -> new Statistics(phase.absoluteStartTime());
 
    SessionImpl(Scenario scenario, int uniqueId) {
       this.sequencePool = new LimitedPool<>(scenario.maxSequences(), SequenceInstance::new);
@@ -352,7 +351,7 @@ class SessionImpl implements Session, Callable<Void> {
    }
 
    @Override
-   public void attach(EventExecutor executor, SharedData sharedData, HttpDestinationTable httpDestinations, Map<String, Statistics> statistics) {
+   public void attach(EventExecutor executor, SharedData sharedData, HttpDestinationTable httpDestinations, SessionStatistics statistics) {
       assert this.executor == null;
       this.executor = executor;
       this.sharedData = sharedData;
@@ -378,8 +377,8 @@ class SessionImpl implements Session, Callable<Void> {
    }
 
    @Override
-   public Statistics statistics(String name) {
-      return statistics.computeIfAbsent(name, newStatistics);
+   public Statistics statistics(int stepId, String name) {
+      return statistics.getOrCreate(stepId, name, phase.absoluteStartTime());
    }
 
    @Override

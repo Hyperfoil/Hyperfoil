@@ -33,10 +33,15 @@ public class CookieTest extends BaseScenarioTest {
    @Test
    public void testRepeatCookie() {
       scenario().initialSequence("test")
-               .step(SC).httpRequest(HttpMethod.GET).path("/test1").endStep()
+               .step(SC).httpRequest(HttpMethod.GET)
+                  .path("/test1")
+                  .statistics("test1")
+               .endStep()
                .step(SC).awaitAllResponses()
-               .step(SC)
-                  .httpRequest(HttpMethod.GET).path("/test2").handler()
+               .step(SC).httpRequest(HttpMethod.GET)
+                  .path("/test2")
+                  .statistics("test2")
+                  .handler()
                      .status((request, status) -> {
                         if (status != 200) request.markInvalid();
                      })
@@ -46,8 +51,11 @@ public class CookieTest extends BaseScenarioTest {
             .endSequence();
 
       Map<String, List<StatisticsSnapshot>> stats = runScenario();
-      StatisticsSnapshot snapshot = assertSingleSessionStats(stats);
-      assertThat(snapshot.status_5xx).isEqualTo(0);
-      assertThat(snapshot.status_2xx).isEqualTo(2);
+      StatisticsSnapshot test1 = assertSingleItem(stats.get("test1"));
+      StatisticsSnapshot test2 = assertSingleItem(stats.get("test1"));
+      assertThat(test1.status_5xx).isEqualTo(0);
+      assertThat(test1.status_2xx).isEqualTo(1);
+      assertThat(test2.status_5xx).isEqualTo(0);
+      assertThat(test2.status_2xx).isEqualTo(1);
    }
 }

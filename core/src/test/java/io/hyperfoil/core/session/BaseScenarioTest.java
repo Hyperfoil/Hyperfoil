@@ -18,6 +18,7 @@ import org.junit.After;
 import org.junit.Before;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,8 +35,8 @@ public abstract class BaseScenarioTest {
       LocalSimulationRunner runner = new LocalSimulationRunner(benchmark());
       runner.run();
       Map<String, List<StatisticsSnapshot>> stats = new HashMap<>();
-      runner.visitStatistics((phase, map) -> map.entrySet().forEach(
-            e -> stats.computeIfAbsent(e.getKey(), l -> new ArrayList<>()).add(e.getValue().snapshot())));
+      runner.visitStatistics(statistics -> statistics.maps().map(Map::entrySet).flatMap(Collection::stream)
+            .forEach(e -> stats.computeIfAbsent(e.getKey(), l -> new ArrayList<>()).add(e.getValue().snapshot())));
       return stats;
    }
 
@@ -84,9 +85,8 @@ public abstract class BaseScenarioTest {
       return 3;
    }
 
-   protected StatisticsSnapshot assertSingleSessionStats(Map<String, List<StatisticsSnapshot>> stats) {
-      assertThat(stats.size()).isEqualTo(1);
-      List<StatisticsSnapshot> list = stats.values().iterator().next();
+   protected StatisticsSnapshot assertSingleItem(List<StatisticsSnapshot> list) {
+      assertThat(list).isNotNull();
       assertThat(list.size()).isEqualTo(1);
       return list.iterator().next();
    }

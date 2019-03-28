@@ -13,12 +13,18 @@ simulation:
           - testSequence:
             - httpRequest:
                 GET: /foo
+                sla:
+                  meanResponseTime: 1s
                 handler:
                   status:
                     range: 2xx
             - httpRequest:
                 PUT:
                   pattern: /foo?bar=${x}
+                sla:
+                - meanResponseTime: 500ms
+                - window: 10s
+                  meanResponseTime: 1s
                 handler:
                   status:
                     range:

@@ -1,7 +1,5 @@
 package io.hyperfoil.clustering;
 
-import io.hyperfoil.api.config.Phase;
-import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.Simulation;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.core.util.CountDown;
@@ -20,7 +18,7 @@ public class ReportSender extends StatisticsCollector {
    private final StatisticsConsumer sendReport = this::sendReport;
 
    public ReportSender(Simulation simulation, EventBus eb, String address, String runId) {
-      super(simulation);
+      super();
       this.eb = eb;
       this.address = address;
       this.runId = runId;
@@ -30,15 +28,15 @@ public class ReportSender extends StatisticsCollector {
       visitStatistics(sendReport, completion);
    }
 
-   private boolean sendReport(Phase phase, String name, StatisticsSnapshot statistics, CountDown countDown) {
+   private boolean sendReport(int stepId, String name, StatisticsSnapshot statistics, CountDown countDown) {
       if (statistics.histogram.getEndTimeStamp() >= statistics.histogram.getStartTimeStamp()) {
-         log.debug("Sending stats for {}/{}, {} requests", phase.name(), name, statistics.requestCount);
+         log.debug("Sending stats for {}/{}, {} requests", stepId, name, statistics.requestCount);
          // On clustered eventbus, ObjectCodec is not called synchronously so we *must* do a copy here.
          // (on a local eventbus we'd have to do a copy in transform() anyway)
          StatisticsSnapshot copy = new StatisticsSnapshot();
          statistics.copyInto(copy);
          countDown.increment();
-         eb.send(Feeds.STATS, new ReportMessage(address, runId, phase.name(), name, copy),
+         eb.send(Feeds.STATS, new ReportMessage(address, runId, stepId, name, copy),
                reply -> countDown.countDown());
       }
       return false;

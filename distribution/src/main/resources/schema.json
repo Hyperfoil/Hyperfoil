@@ -362,48 +362,7 @@
           "type": "array",
           "additionalItems": false,
           "minLength": 1,
-          "items": {
-            "anyOf": [
-              { "$ref" : "#/definitions/sla" },
-              { "$ref" : "#/definitions/step" }
-            ]
-          }
-        }
-      }
-    },
-    "sla": {
-      "description": "Service-level agreement thresholds",
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "sla": {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "window": {
-              "description": "Time window in which this SLA observes the statistics. Default is whole phase.",
-              "$ref": "#/definitions/timeMillis"
-            },
-            "errorRate": {
-              "description": "Maximum fraction of failed requests. Default is 1.0 (all).",
-              "type": "number"
-            },
-            "meanResponseTime": {
-              "description": "Maximum allowed mean response time. Default is unlimited.",
-              "$ref" : "#/definitions/timeNanos"
-            },
-            "limits": {
-              "description": "Limits for response times at given percentiles.",
-              "type": "array",
-              "additionalItems": false,
-              "items": {
-                "type": "object",
-                "patternProperties": {
-                  "^0.[0-9]+$" : { "$ref": "#/definitions/timeNanos" }
-                }
-              }
-            }
-          }
+          "items": { "$ref" : "#/definitions/step" }
         }
       }
     },

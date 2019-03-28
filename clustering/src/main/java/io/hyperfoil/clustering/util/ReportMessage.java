@@ -6,16 +6,16 @@ import io.hyperfoil.api.statistics.StatisticsSnapshot;
 
 public class ReportMessage implements Serializable {
    public final String address;
-   public final String phase;
-   public final String sequence;
+   public final int stepId;
+   public final String statisticsName;
    public final StatisticsSnapshot statistics;
    public final String runId;
 
-   public ReportMessage(String address, String runId, String phase, String sequence, StatisticsSnapshot statistics) {
+   public ReportMessage(String address, String runId, int stepId, String statisticsName, StatisticsSnapshot statistics) {
       this.address = address;
       this.runId = runId;
-      this.phase = phase;
-      this.sequence = sequence;
+      this.stepId = stepId;
+      this.statisticsName = statisticsName;
       this.statistics = statistics;
    }
 

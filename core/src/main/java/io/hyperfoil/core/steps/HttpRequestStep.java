@@ -8,10 +8,13 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 import io.hyperfoil.api.config.Http;
+import io.hyperfoil.api.config.SLA;
+import io.hyperfoil.api.config.SLABuilder;
 import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.Simulation;
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.session.SequenceInstance;
+import io.hyperfoil.api.statistics.Statistics;
 import io.hyperfoil.core.generators.StringGeneratorBuilder;
 import io.hyperfoil.core.http.CookieAppender;
 import io.hyperfoil.function.SerializableSupplier;
@@ -37,7 +40,7 @@ import io.hyperfoil.function.SerializableFunction;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-public class HttpRequestStep extends BaseStep implements ResourceUtilizer {
+public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.Provider {
    private static final Logger log = LoggerFactory.getLogger(HttpRequestStep.class);
    private static final boolean trace = log.isTraceEnabled();
 
@@ -49,6 +52,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer {
    final SerializableBiFunction<String, String, String> statisticsSelector;
    final long timeout;
    final HttpResponseHandlersImpl handler;
+   final SLA[] sla;
 
    public HttpRequestStep(SerializableSupplier<Sequence> sequence, HttpMethod method,
                           SerializableFunction<Session, String> baseUrl,
@@ -56,7 +60,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer {
                           SerializableBiFunction<Session, Connection, ByteBuf> bodyGenerator,
                           SerializableBiConsumer<Session, HttpRequestWriter>[] headerAppenders,
                           SerializableBiFunction<String, String, String> statisticsSelector,
-                          long timeout, HttpResponseHandlersImpl handler) {
+                          long timeout, HttpResponseHandlersImpl handler, SLA[] sla) {
       super(sequence);
       this.method = method;
       this.baseUrl = baseUrl;
@@ -66,6 +70,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer {
       this.statisticsSelector = statisticsSelector;
       this.timeout = timeout;
       this.handler = handler;
+      this.sla = sla;
    }
 
    @Override
@@ -90,19 +95,19 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer {
          }
          path = path.substring(baseUrl.length());
       }
-      String statistics = null;
+      String statsName = null;
       if (statisticsSelector != null) {
-         statistics = statisticsSelector.apply(baseUrl, path);
+         statsName = statisticsSelector.apply(baseUrl, path);
       }
-      if (statistics == null) {
-         statistics = sequence().name();
+      if (statsName == null) {
+         statsName = sequence().name();
       }
-
+      Statistics statistics = session.statistics(id(), statsName);
       SequenceInstance sequence = session.currentSequence();
       request.baseUrl = baseUrl;
       request.method = method;
       request.path = path;
-      request.start(handler, sequence, session.statistics(statistics));
+      request.start(handler, sequence, statistics);
 
       HttpConnectionPool connectionPool = session.httpDestinations().getConnectionPool(baseUrl);
       if (!connectionPool.request(request, headerAppenders, bodyGenerator)) {
@@ -144,6 +149,11 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer {
       handler.reserve(session);
    }
 
+   @Override
+   public SLA[] sla() {
+      return sla;
+   }
+
    public static class Builder extends BaseStepBuilder {
       private HttpMethod method;
       private SerializableFunction<Session, String> baseUrl;
@@ -154,6 +164,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer {
       private long timeout = Long.MIN_VALUE;
       private HttpResponseHandlersImpl.Builder handler = new HttpResponseHandlersImpl.Builder(this);
       private boolean sync = false;
+      private SLABuilder.ListBuilder<Builder> sla = null;
 
       public Builder(BaseSequenceBuilder parent) {
          super(parent);
@@ -306,6 +317,10 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer {
          return timeout(io.hyperfoil.util.Util.parseToMillis(timeout), TimeUnit.MILLISECONDS);
       }
 
+      public Builder statistics(String name) {
+         return statistics((baseUrl, path) -> name);
+      }
+
       public Builder statistics(SerializableBiFunction<String, String, String> selector) {
          this.statisticsSelector = selector;
          return this;
@@ -324,6 +339,13 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer {
       public Builder sync(boolean sync) {
          this.sync = sync;
          return this;
+      }
+
+      public SLABuilder.ListBuilder<Builder> sla() {
+         if (sla == null) {
+            sla = new SLABuilder.ListBuilder<>(this);
+         }
+         return sla;
       }
 
       @Override
@@ -363,7 +385,9 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer {
          }
          SerializableBiConsumer<Session, HttpRequestWriter>[] headerAppenders =
                this.headerAppenders.isEmpty() ? null : this.headerAppenders.toArray(new SerializableBiConsumer[0]);
-         return Collections.singletonList(new HttpRequestStep(sequence, method, baseUrl, pathGenerator, bodyGenerator, headerAppenders, statisticsSelector, timeout, handler.build()));
+
+         SLA[] sla = this.sla != null ? this.sla.build() : null;
+         return Collections.singletonList(new HttpRequestStep(sequence, method, baseUrl, pathGenerator, bodyGenerator, headerAppenders, statisticsSelector, timeout, handler.build(), sla));
       }
 
       @Override

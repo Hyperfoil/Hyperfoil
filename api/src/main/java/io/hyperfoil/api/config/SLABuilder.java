@@ -2,33 +2,33 @@ package io.hyperfoil.api.config;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.concurrent.TimeUnit;
 
-import io.hyperfoil.function.SerializableSupplier;
 import io.hyperfoil.util.Util;
 
-public class SLABuilder {
-   private final SequenceBuilder parent;
+public class SLABuilder<P> {
+   private final P parent;
    private long window = -1;
    private double errorRate = 1.01; // 101% of errors allowed
    private long meanResponseTime = Long.MAX_VALUE;
    private final Collection<SLA.PercentileLimit> limits = new ArrayList<>();
    private SLA sla;
 
-   public SLABuilder(SequenceBuilder parent) {
+   public SLABuilder(P parent) {
       this.parent = parent;
    }
 
    public void prepareBuild() {
    }
 
-   public SLA build(SerializableSupplier<Sequence> sequence) {
+   public SLA build() {
       if (sla != null) {
          return sla;
       }
-      return sla = new SLA(sequence, window, errorRate, meanResponseTime, limits);
+      return sla = new SLA(window, errorRate, meanResponseTime, limits);
    }
 
-   public SequenceBuilder endSLA() {
+   public P endSLA() {
       return parent;
    }
 
@@ -37,31 +37,70 @@ public class SLABuilder {
     * @param window
     * @return
     */
-   public SLABuilder window(long window) {
-      this.window = window;
+   public SLABuilder<P> window(long window, TimeUnit timeUnit) {
+      this.window = timeUnit.toMillis(window);
       return this;
    }
 
-   public SLABuilder window(String window) {
-      return window(Util.parseToMillis(window));
+   public SLABuilder<P> window(String window) {
+      return window(Util.parseToMillis(window), TimeUnit.MILLISECONDS);
    }
 
-   public SLABuilder errorRate(double errorRate) {
+   public SLABuilder<P> errorRate(double errorRate) {
       this.errorRate = errorRate;
       return this;
    }
 
-   public SLABuilder meanResponseTime(long meanResponseTime) {
-      this.meanResponseTime = meanResponseTime;
+   public SLABuilder<P> meanResponseTime(long meanResponseTime, TimeUnit timeUnit) {
+      this.meanResponseTime = timeUnit.toNanos(meanResponseTime);
       return this;
    }
 
-   public SLABuilder meanResponseTime(String meanResponseTime) {
-      return meanResponseTime(Util.parseToNanos(meanResponseTime));
+   public SLABuilder<P> meanResponseTime(String meanResponseTime) {
+      return meanResponseTime(Util.parseToNanos(meanResponseTime), TimeUnit.NANOSECONDS);
    }
 
-   public SLABuilder addPercentileLimit(double percentile, long responseTime) {
+   public SLABuilder<P> addPercentileLimit(double percentile, long responseTime) {
       this.limits.add(new SLA.PercentileLimit(percentile, responseTime));
       return this;
+   }
+
+   public LimitsBuilder limits() {
+      return new LimitsBuilder();
+   }
+
+   private class LimitsBuilder extends PairBuilder.String {
+      @Override
+      public void accept(java.lang.String percentileStr, java.lang.String responseTime) {
+         double percentile = Double.parseDouble(percentileStr);
+         if (percentile < 0 || percentile > 1) {
+            throw new BenchmarkDefinitionException("Percentile must be between 0.0 and 1.0");
+         }
+         addPercentileLimit(percentile, Util.parseToNanos(responseTime));
+      }
+   }
+
+   public static class ListBuilder<P> implements MappingListBuilder<SLABuilder<ListBuilder<P>>> {
+      private final P parent;
+      private final ArrayList<SLABuilder<ListBuilder<P>>> sla = new ArrayList<>();
+
+      public ListBuilder(P parent) {
+         this.parent = parent;
+      }
+
+      @Override
+      public SLABuilder<ListBuilder<P>> addItem() {
+         SLABuilder<ListBuilder<P>> sb = new SLABuilder<>(this);
+         sla.add(sb);
+         return sb;
+      }
+
+      public P endList() {
+         return parent;
+      }
+
+      public SLA[] build() {
+         return sla.stream().map(SLABuilder::build).toArray(SLA[]::new);
+      }
    }
 }

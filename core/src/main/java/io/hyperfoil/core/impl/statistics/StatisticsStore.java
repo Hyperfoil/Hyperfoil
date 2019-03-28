@@ -9,55 +9,61 @@ import java.io.PrintWriter;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import io.hyperfoil.api.config.Benchmark;
-import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.config.SLA;
-import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.api.statistics.StatisticsSummary;
 
 public class StatisticsStore {
    public static final double[] PERCENTILES = new double[]{0.5, 0.9, 0.99, 0.999, 0.9999};
 
+   private final Benchmark benchmark;
    private final int numAgents;
-   private final Map<PhaseSeq, Data> data = new HashMap<>();
+   private final Map<Integer, Data> data = new HashMap<>();
    private final Consumer<SLA.Failure> failureHandler;
    private final double[] percentiles;
    private final List<SLA.Failure> failures = new ArrayList<>();
    private final int maxFailures = 100;
+   private final Map<Integer, SLA.Provider> slaProviders;
 
    public StatisticsStore(Benchmark benchmark, Consumer<SLA.Failure> failureHandler, double[] percentiles) {
+      this.benchmark = benchmark;
       this.numAgents = Math.max(benchmark.agents().length, 1);
       this.failureHandler = failureHandler;
       this.percentiles = percentiles;
-      long collectionPeriod = benchmark.simulation().statisticsCollectionPeriod();
-      for (Phase phase : benchmark.simulation().phases()) {
-         for (Sequence sequence : phase.scenario().sequences()) {
-            Map<SLA, Window> rings = benchmark.slas()
-                  .filter(sla -> sla.sequence() == sequence && sla.window() > 0)
-                  .collect(Collectors.toMap(Function.identity(), sla -> new Window((int) (sla.window() / collectionPeriod))));
-            SLA[] total = benchmark.slas()
-                  .filter(sla -> sla.sequence() == sequence && sla.window() <= 0).toArray(SLA[]::new);
-            data.put(new PhaseSeq(phase.name, sequence.name()), new Data(rings, total));
-         }
-      }
+      this.slaProviders = benchmark.steps()
+            .filter(SLA.Provider.class::isInstance).map(SLA.Provider.class::cast)
+            .collect(Collectors.toMap(SLA.Provider::id, Function.identity()));
    }
 
    public StatisticsStore(Benchmark benchmark, Consumer<SLA.Failure> failureHandler) {
       this(benchmark, failureHandler, PERCENTILES);
    }
 
-   public void record(String address, String phase, String sequence, StatisticsSnapshot stats) {
-      Data data = this.data.get(new PhaseSeq(phase, sequence));
+   public void record(String address, int stepId, String statisticsName, StatisticsSnapshot stats) {
+      Data data = this.data.get(stepId);
+      if (data == null) {
+         long collectionPeriod = benchmark.simulation().statisticsCollectionPeriod();
+         SLA.Provider slaProvider = slaProviders.get(stepId);
+         Map<SLA, Window> rings = slaProvider == null ? Collections.emptyMap() :
+               Stream.of(slaProvider.sla()).filter(sla -> sla.window() > 0).collect(
+                  Collectors.toMap(Function.identity(),
+                  sla -> new Window((int) (sla.window() / collectionPeriod))));
+         SLA[] total = slaProvider == null ? new SLA[0] : Stream.of(slaProvider.sla())
+               .filter(sla -> sla.window() <= 0).toArray(SLA[]::new);
+         String phase = slaProvider.sequence().phase().name();
+         this.data.put(stepId, new Data(phase, stepId, statisticsName, rings, total));
+      }
       data.record(address, stats);
    }
 
@@ -66,59 +72,65 @@ public class StatisticsStore {
       if (!statsDir.exists() && !statsDir.mkdirs()) {
          throw new IOException("Cannot create directory " + dir);
       }
-      PhaseSeq[] phaseSeqs = data.keySet().toArray(new PhaseSeq[0]);
-      Arrays.sort(phaseSeqs);
+      Data[] sorted = this.data.values().toArray(new Data[0]);
+      Arrays.sort(sorted, (d1, d2) -> {
+         int cmp = d1.phase.compareTo(d2.phase);
+         if (cmp != 0) return cmp;
+         cmp = d1.statisticsName.compareTo(d2.statisticsName);
+         if (cmp != 0) return cmp;
+         return Integer.compare(d1.stepId, d2.stepId);
+      });
 
       try (PrintWriter writer = new PrintWriter(dir + File.separator + "total.csv")) {
-         writer.print("Phase,Sequence,");
+         writer.print("Phase,Name,");
          StatisticsSummary.printHeader(writer, percentiles);
          writer.println();
-         for (PhaseSeq phaseSeq : phaseSeqs) {
-            writer.print(phaseSeq.phase);
+         for (Data data : sorted) {
+            writer.print(data.phase);
             writer.print(',');
-            writer.print(phaseSeq.sequence);
+            writer.print(data.statisticsName);
             writer.print(',');
-            data.get(phaseSeq).total.summary(percentiles).printTo(writer);
+            data.total.summary(percentiles).printTo(writer);
             writer.println();
          }
       }
-      for (Map.Entry<PhaseSeq, Data> entry : data.entrySet()) {
-         String filePrefix = dir + File.separator + sanitize(entry.getKey().phase) + "." + sanitize(entry.getKey().sequence);
-         persistHistogramAndSeries(filePrefix, entry.getValue().total, entry.getValue().series);
+      for (Data data: this.data.values()) {
+         String filePrefix = dir + File.separator + sanitize(data.phase) + "." + sanitize(data.statisticsName) + "." + data.stepId;
+         persistHistogramAndSeries(filePrefix, data.total, data.series);
       }
-      String[] agents = data.values().stream().flatMap(d -> d.perAgent.keySet().stream())
+      String[] agents = this.data.values().stream().flatMap(d -> d.perAgent.keySet().stream())
             .distinct().sorted().toArray(String[]::new);
       for (String agent : agents) {
          try (PrintWriter writer = new PrintWriter(dir + File.separator + "agent." + sanitize(agent) + ".csv")) {
-            writer.print("Phase,Sequence,");
+            writer.print("Phase,Name,");
             StatisticsSummary.printHeader(writer, percentiles);
             writer.println();
-            for (PhaseSeq phaseSeq : phaseSeqs) {
-               StatisticsSnapshot agentStats = data.get(phaseSeq).perAgent.get(agent);
+            for (Data data : sorted) {
+               StatisticsSnapshot agentStats = data.perAgent.get(agent);
                if (agentStats == null) {
                   continue;
                }
-               writer.print(phaseSeq.phase);
+               writer.print(data.phase);
                writer.print(',');
-               writer.print(phaseSeq.sequence);
+               writer.print(data.statisticsName);
                writer.print(',');
                agentStats.summary(percentiles).printTo(writer);
                writer.println();
             }
          }
-         for (Map.Entry<PhaseSeq, Data> entry : data.entrySet()) {
-            String filePrefix = dir + File.separator + sanitize(entry.getKey().phase) + "." + sanitize(entry.getKey().sequence) + ".agent." + agent;
-            persistHistogramAndSeries(filePrefix, entry.getValue().perAgent.get(agent), entry.getValue().agentSeries.get(agent));
+         for (Data data : this.data.values()) {
+            String filePrefix = dir + File.separator + sanitize(data.phase) + "." + sanitize(data.statisticsName) + "." + data.stepId + ".agent." + agent;
+            persistHistogramAndSeries(filePrefix, data.perAgent.get(agent), data.agentSeries.get(agent));
          }
       }
       try (PrintWriter writer = new PrintWriter(dir + File.separator + "failures.csv")) {
-         writer.print("Phase,Sequence,Message,Start,End,");
+         writer.print("Phase,Statistics,Message,Start,End,");
          StatisticsSummary.printHeader(writer, percentiles);
          writer.println();
          for (SLA.Failure failure : failures) {
-            writer.print(failure.sla().sequence().phase().name());
+            writer.print(failure.phase());
             writer.print(',');
-            writer.print(failure.sla().sequence().name());
+            writer.print(failure.statisticsName());
             writer.print(",\"");
             writer.print(failure.message());
             writer.print("\",");
@@ -161,9 +173,9 @@ public class StatisticsStore {
    }
 
    public boolean validateSlas(String phase) {
-      for (Map.Entry<PhaseSeq, Data> entry : data.entrySet()) {
-         if (entry.getKey().phase.equals(phase)) {
-            entry.getValue().validateTotalSlas();
+      for (Data data : data.values()) {
+         if (data.phase.equals(phase)) {
+            data.validateTotalSlas();
          }
       }
       return failures.isEmpty();
@@ -171,8 +183,8 @@ public class StatisticsStore {
 
    public Map<String, Map<String, StatisticsSummary>> recentSummary(long minValidTimestamp) {
       Map<String, Map<String, StatisticsSummary>> result = new HashMap<>();
-      for (Map.Entry<PhaseSeq, Data> entry : data.entrySet()) {
-         List<StatisticsSummary> series = entry.getValue().series;
+      for (Data data : data.values()) {
+         List<StatisticsSummary> series = data.series;
          if (series.isEmpty()) {
             continue;
          }
@@ -180,16 +192,16 @@ public class StatisticsStore {
          if (last.startTime < minValidTimestamp) {
             continue;
          }
-         result.computeIfAbsent(entry.getKey().phase, p -> new HashMap<>()).put(entry.getKey().sequence, last);
+         result.computeIfAbsent(data.phase, p -> new HashMap<>()).put(data.statisticsName, last);
       }
       return result;
    }
 
    public Map<String, Map<String, StatisticsSummary>> totalSummary() {
       Map<String, Map<String, StatisticsSummary>> result = new HashMap<>();
-      for (Map.Entry<PhaseSeq, Data> entry : data.entrySet()) {
-         StatisticsSummary last = entry.getValue().total.summary(percentiles);
-         result.computeIfAbsent(entry.getKey().phase, p -> new HashMap<>()).put(entry.getKey().sequence, last);
+      for (Data data : data.values()) {
+         StatisticsSummary last = data.total.summary(percentiles);
+         result.computeIfAbsent(data.phase, p -> new HashMap<>()).put(data.statisticsName, last);
       }
       return result;
    }
@@ -223,6 +235,9 @@ public class StatisticsStore {
    }
 
    private final class Data {
+      private final String phase;
+      private final int stepId;
+      private final String statisticsName;
       // for reporting
       private final StatisticsSnapshot total = new StatisticsSnapshot();
       private final Map<String, StatisticsSnapshot> perAgent = new HashMap<>();
@@ -233,12 +248,15 @@ public class StatisticsStore {
       private final Map<SLA, Window> windowSlas;
       private final SLA[] totalSlas;
 
-      private Data(Map<SLA, Window> periodSlas, SLA[] totalSlas) {
+      private Data(String phase, int stepId, String statisticsName, Map<SLA, Window> periodSlas, SLA[] totalSlas) {
+         this.phase = phase;
+         this.stepId = stepId;
+         this.statisticsName = statisticsName;
          this.windowSlas = periodSlas;
          this.totalSlas = totalSlas;
       }
 
-      public void record(String address, StatisticsSnapshot stats) {
+      private void record(String address, StatisticsSnapshot stats) {
          stats.addInto(total);
          stats.addInto(perAgent.computeIfAbsent(address, a -> new StatisticsSnapshot()));
          lastStats.computeIfAbsent(address, a -> new LinkedList<>()).add(stats);
@@ -255,7 +273,7 @@ public class StatisticsStore {
                window.add(sum);
 
                // If we haven't filled full window the SLA won't be validated
-               SLA.Failure failure = sla.validate(window.current());
+               SLA.Failure failure = sla.validate(phase, statisticsName, window.current());
                if (window.isFull() && failure != null) {
                   if (failures.size() < maxFailures) {
                      failures.add(failure);
@@ -269,44 +287,13 @@ public class StatisticsStore {
 
       public void validateTotalSlas() {
          for (SLA sla : totalSlas) {
-            SLA.Failure failure = sla.validate(total);
+            SLA.Failure failure = sla.validate(phase, statisticsName, total);
             if (failure != null) {
                failures.add(failure);
                failureHandler.accept(failure);
                continue;
             }
          }
-      }
-   }
-
-   private static final class PhaseSeq implements Comparable<PhaseSeq> {
-      private final String phase;
-      private final String sequence;
-
-      private PhaseSeq(String phase, String sequence) {
-         this.phase = phase;
-         this.sequence = sequence;
-      }
-
-      @Override
-      public boolean equals(Object o) {
-         if (this == o) return true;
-         if (o == null || getClass() != o.getClass()) return false;
-         PhaseSeq phaseSeq = (PhaseSeq) o;
-         return Objects.equals(phase, phaseSeq.phase) &&
-               Objects.equals(sequence, phaseSeq.sequence);
-      }
-
-      @Override
-      public int hashCode() {
-
-         return Objects.hash(phase, sequence);
-      }
-
-      @Override
-      public int compareTo(PhaseSeq o) {
-         int pc = phase.compareTo(o.phase);
-         return pc != 0 ? pc : sequence.compareTo(o.sequence);
       }
    }
 }

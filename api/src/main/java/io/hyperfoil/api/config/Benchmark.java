@@ -49,12 +49,6 @@ public class Benchmark implements Serializable {
         return name;
     }
 
-    public Stream<SLA> slas() {
-        return simulation().phases().stream().flatMap(
-              phase -> Stream.of(phase.scenario.sequences()).flatMap(sequence -> Stream.of(sequence.slas()))
-        );
-    }
-
     public Host[] agents() {
         return agents;
     }
@@ -75,5 +69,11 @@ public class Benchmark implements Serializable {
                        ", simulation=" + simulation +
                        ", agents=" + Arrays.toString(agents) +
                        '}';
+    }
+
+    public Stream<Step> steps() {
+        return simulation.phases().stream()
+             .flatMap(phase -> Stream.of(phase.scenario().sequences()))
+             .flatMap(sequence -> Stream.of(sequence.steps()));
     }
 }

@@ -43,8 +43,5 @@ public interface Sequence extends Serializable {
 
     Phase phase();
 
-    SLA[] slas();
-
-    // for testing only
     Step[] steps();
 }

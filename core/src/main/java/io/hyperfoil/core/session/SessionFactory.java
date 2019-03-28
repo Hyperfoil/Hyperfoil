@@ -1,7 +1,6 @@
 package io.hyperfoil.core.session;
 
 import java.util.Collections;
-import java.util.HashMap;
 
 import io.netty.util.concurrent.EventExecutorGroup;
 import io.netty.util.concurrent.ImmediateEventExecutor;
@@ -30,7 +29,7 @@ public final class SessionFactory {
          public void reserveSessions() {
          }
       });
-      session.attach(ImmediateEventExecutor.INSTANCE, null, null, new HashMap<>());
+      session.attach(ImmediateEventExecutor.INSTANCE, null, null, null);
       session.reserve(dummyScenario);
       return session;
    }

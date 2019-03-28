@@ -1,10 +1,9 @@
 package io.hyperfoil.api.session;
 
-import java.util.Map;
-
 import io.hyperfoil.api.config.Scenario;
 import io.hyperfoil.api.connection.HttpDestinationTable;
 import io.hyperfoil.api.connection.HttpRequest;
+import io.hyperfoil.api.statistics.SessionStatistics;
 import io.netty.util.concurrent.EventExecutor;
 import io.hyperfoil.api.collection.LimitedPool;
 import io.hyperfoil.api.connection.HttpConnectionPool;
@@ -31,7 +30,7 @@ public interface Session {
 
    Phase phase();
 
-   Statistics statistics(String name);
+   Statistics statistics(int stepId, String name);
 
    /// Variable-related methods
    Session declare(Object key);
@@ -74,7 +73,7 @@ public interface Session {
 
    SequenceInstance currentSequence();
 
-   void attach(EventExecutor executor, SharedData sharedData, HttpDestinationTable httpDestinations, Map<String, Statistics> statistics);
+   void attach(EventExecutor executor, SharedData sharedData, HttpDestinationTable httpDestinations, SessionStatistics statistics);
 
    void start(PhaseInstance phase);
 

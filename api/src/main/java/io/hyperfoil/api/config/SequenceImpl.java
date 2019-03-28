@@ -13,14 +13,12 @@ class SequenceImpl implements Sequence {
    private final SerializableSupplier<Phase> phase;
    private final String name;
    private final int id;
-   private final SLA[] slas;
    private final Step[] steps;
 
-   public SequenceImpl(SerializableSupplier<Phase> phase, String name, int id, SLA[] slas, Step[] steps) {
+   public SequenceImpl(SerializableSupplier<Phase> phase, String name, int id, Step[] steps) {
       this.phase = phase;
       this.name = name;
       this.id = id;
-      this.slas = slas;
       this.steps = steps;
    }
 
@@ -59,11 +57,6 @@ class SequenceImpl implements Sequence {
    @Override
    public Phase phase() {
       return phase.get();
-   }
-
-   @Override
-   public SLA[] slas() {
-      return slas;
    }
 
    @Override

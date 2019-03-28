@@ -11,10 +11,12 @@ simulation:
         scenario: &scenario
           initialSequences:
           - testSequence:
-            - sla:
-                meanResponseTime: 1s
             - httpRequest:
                 GET: /foo
+                sla:
+                  meanResponseTime: 1s
+                  limits:
+                    0.9: 2s
                 handler:
                   status:
                     counter:

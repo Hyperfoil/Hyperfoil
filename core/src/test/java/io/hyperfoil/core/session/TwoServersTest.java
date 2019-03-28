@@ -46,10 +46,14 @@ public class TwoServersTest extends BaseScenarioTest {
    @Test
    public void test() {
       scenario().initialSequence("test")
-            .step(SC).httpRequest(HttpMethod.GET).path("/test").endStep()
+            .step(SC).httpRequest(HttpMethod.GET)
+               .path("/test")
+               .statistics("server1")
+            .endStep()
             .step(SC).httpRequest(HttpMethod.GET)
                .baseUrl("http://localhost:8081")
                .path("/test")
+               .statistics("server2")
                .handler()
                   .onCompletion(s -> latch.countDown())
                .endHandler()
@@ -57,8 +61,9 @@ public class TwoServersTest extends BaseScenarioTest {
             .step(SC).awaitAllResponses();
 
       Map<String, List<StatisticsSnapshot>> stats = runScenario();
-      StatisticsSnapshot snapshot = assertSingleSessionStats(stats);
-      assertThat(snapshot.status_2xx).isEqualTo(1);
-      assertThat(snapshot.status_3xx).isEqualTo(1);
+      StatisticsSnapshot s1 = assertSingleItem(stats.get("server1"));
+      assertThat(s1.status_2xx).isEqualTo(1);
+      StatisticsSnapshot s2 = assertSingleItem(stats.get("server2"));
+      assertThat(s2.status_3xx).isEqualTo(1);
    }
 }

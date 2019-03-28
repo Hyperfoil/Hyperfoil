@@ -21,10 +21,10 @@
 package io.hyperfoil.api.config;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 
 import io.hyperfoil.function.SerializableSupplier;
+import io.hyperfoil.impl.FutureSupplier;
 
 /**
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
@@ -34,7 +34,6 @@ public class SequenceBuilder extends BaseSequenceBuilder {
     private final String name;
     private int id;
     private Sequence sequence;
-    private List<SLABuilder> slas = new ArrayList<>();
 
     SequenceBuilder(ScenarioBuilder scenario, String name) {
         super(null);
@@ -51,7 +50,6 @@ public class SequenceBuilder extends BaseSequenceBuilder {
 
     public void prepareBuild() {
         // We need to make a defensive copy as prepareBuild() may trigger modifications
-        new ArrayList<>(slas).forEach(SLABuilder::prepareBuild);
         new ArrayList<>(steps).forEach(StepBuilder::prepareBuild);
     }
 
@@ -60,21 +58,13 @@ public class SequenceBuilder extends BaseSequenceBuilder {
             return sequence;
         }
         FutureSupplier<Sequence> ss = new FutureSupplier<>();
-        sequence = new SequenceImpl(phase, this.name, id,
-              slas.stream().map(builder -> builder.build(ss)).toArray(SLA[]::new),
-              buildSteps(ss).toArray(new Step[0]));
+        sequence = new SequenceImpl(phase, this.name, id, buildSteps(ss).toArray(new Step[0]));
         ss.set(sequence);
         return sequence;
     }
 
     void id(int id) {
         this.id = id;
-    }
-
-    public SLABuilder sla() {
-        SLABuilder builder = new SLABuilder(this);
-        slas.add(builder);
-        return builder;
     }
 
     @Override
