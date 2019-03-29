@@ -7,6 +7,7 @@ import org.yaml.snakeyaml.events.MappingStartEvent;
 import org.yaml.snakeyaml.events.ScalarEvent;
 import org.yaml.snakeyaml.events.SequenceStartEvent;
 
+import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.PhaseBuilder;
 import io.hyperfoil.api.config.PhaseReference;
 import io.hyperfoil.api.config.RelativeIteration;
@@ -39,6 +40,9 @@ class StartAfterParser implements Parser<PhaseBuilder> {
       } else if (event instanceof MappingStartEvent) {
          PhaseReferenceBuilder ms = new PhaseReferenceBuilder();
          MappingParser.INSTANCE.parse(ctx, ms);
+         if (ms.phase == null || ms.phase.isEmpty()) {
+            throw new BenchmarkDefinitionException("Missing name in phase reference.");
+         }
          consumer.accept(target, new PhaseReference(ms.phase, ms.iteration, null));
       } else {
          throw ctx.unexpectedEvent(event);
@@ -47,7 +51,7 @@ class StartAfterParser implements Parser<PhaseBuilder> {
 
    private static class PhaseReferenceBuilder {
       String phase;
-      RelativeIteration iteration;
+      RelativeIteration iteration = RelativeIteration.NONE;
       String fork;
    }
 
