@@ -18,7 +18,7 @@
  *
  */
 
-package io.hyperfoil.core.session;
+package io.hyperfoil.benchmark.standalone;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.http.HttpMethod;
@@ -34,6 +34,7 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 
 import java.text.SimpleDateFormat;
@@ -45,6 +46,7 @@ import static org.junit.Assert.assertEquals;
 /**
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
  */
+@Category(io.hyperfoil.test.Benchmark.class)
 @RunWith(VertxUnitRunner.class)
 public class RequestResponseCounterTest {
 
