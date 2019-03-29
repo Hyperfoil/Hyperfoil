@@ -42,46 +42,46 @@ public class HttpVersionsTest {
 
    @Test
    public void testAlpnUpgrade(TestContext ctx) throws Exception {
-      test(ctx, 8443, true, HttpVersion.ALL_VERSIONS, HTTP2_ONLY, 200);
+      test(ctx, true, HttpVersion.ALL_VERSIONS, HTTP2_ONLY, 200);
    }
 
    @Test
    public void testAlpnKeep(TestContext ctx) throws Exception {
-      test(ctx, 8443, true, HttpVersion.ALL_VERSIONS, HTTP1x_ONLY, 500);
+      test(ctx, true, HttpVersion.ALL_VERSIONS, HTTP1x_ONLY, 500);
    }
 
    @Test
    public void testAlpnForceHttp2(TestContext ctx) throws Exception {
-      test(ctx, 8443, true, new HttpVersion[]{HttpVersion.HTTP_2_0}, HTTP2_ONLY, 200);
+      test(ctx, true, new HttpVersion[]{HttpVersion.HTTP_2_0}, HTTP2_ONLY, 200);
    }
 
    @Test
    public void testAlpnForceHttp2ServerKeep(TestContext ctx) throws Exception {
-      test(ctx, 8443, true, new HttpVersion[]{HttpVersion.HTTP_2_0}, HTTP1x_ONLY, 500);
+      test(ctx, true, new HttpVersion[]{HttpVersion.HTTP_2_0}, HTTP1x_ONLY, 500);
    }
 
    @Test
    public void testAlpnForceHttp1x(TestContext ctx) throws Exception {
-      test(ctx, 8443, true, new HttpVersion[]{HttpVersion.HTTP_1_1}, HTTP2_ONLY, 500);
+      test(ctx, true, new HttpVersion[]{HttpVersion.HTTP_1_1}, HTTP2_ONLY, 500);
    }
 
    @Test
    public void testH2cUpgrade(TestContext ctx) throws Exception {
-      test(ctx, 8080, false, new HttpVersion[]{HttpVersion.HTTP_2_0}, HTTP2_ONLY, 200);
+      test(ctx, false, new HttpVersion[]{HttpVersion.HTTP_2_0}, HTTP2_ONLY, 200);
    }
 
    @Test
    public void testCleartextDefault(TestContext ctx) throws Exception {
-      test(ctx, 8080, false, HttpVersion.ALL_VERSIONS, HTTP2_ONLY, 500);
+      test(ctx, false, HttpVersion.ALL_VERSIONS, HTTP2_ONLY, 500);
    }
    @Test
    public void testCleartextDefaultServer1x(TestContext ctx) throws Exception {
-      test(ctx, 8080, false, HttpVersion.ALL_VERSIONS, HTTP1x_ONLY, 500);
+      test(ctx, false, HttpVersion.ALL_VERSIONS, HTTP1x_ONLY, 500);
    }
 
    @Test
    public void testCleartextForceHttp1x(TestContext ctx) throws Exception {
-      test(ctx, 8080, false, new HttpVersion[]{HttpVersion.HTTP_1_1}, HTTP2_ONLY, 500);
+      test(ctx, false, new HttpVersion[]{HttpVersion.HTTP_1_1}, HTTP2_ONLY, 500);
    }
 
    @After
@@ -90,16 +90,16 @@ public class HttpVersionsTest {
       cleanup.clear();
    }
 
-   private void test(TestContext ctx, int port, boolean ssl, HttpVersion[] clientVersions, List<io.vertx.core.http.HttpVersion> serverVersions, int expectedStatus) throws Exception {
+   private void test(TestContext ctx, boolean ssl, HttpVersion[] clientVersions, List<io.vertx.core.http.HttpVersion> serverVersions, int expectedStatus) throws Exception {
       Async async = ctx.async();
-      server(port, ssl, serverVersions, event -> {
+      server(ssl, serverVersions, event -> {
          if (event.failed()) {
             ctx.fail(event.cause());
          } else {
             HttpServer server = event.result();
             cleanup.add(server::close);
             try {
-               HttpClientPool client = client(port, ssl, clientVersions);
+               HttpClientPool client = client(server.actualPort(), ssl, clientVersions);
                client.start(result -> {
                   if (result.failed()) {
                      ctx.fail(result.cause());
@@ -145,7 +145,7 @@ public class HttpVersionsTest {
       return new HttpClientPoolImpl(1, builder.build(true));
    }
 
-   private void server(int port, boolean ssl, List<io.vertx.core.http.HttpVersion> serverVersions, Handler<AsyncResult<HttpServer>> handler) {
+   private void server(boolean ssl, List<io.vertx.core.http.HttpVersion> serverVersions, Handler<AsyncResult<HttpServer>> handler) {
       HttpServer httpServer;
       if (ssl) {
          JksOptions keyStoreOptions = new JksOptions().setPath("keystore.jks").setPassword("test123");
@@ -155,10 +155,10 @@ public class HttpVersionsTest {
                .setUseAlpn(true)
                .setAlpnVersions(serverVersions);
          httpServer = vertx.createHttpServer(httpServerOptions);
-         httpServer.requestHandler(HttpVersionsTest::requireHttp2).listen(port, "localhost", handler);
+         httpServer.requestHandler(HttpVersionsTest::requireHttp2).listen(0, "localhost", handler);
       } else {
          httpServer = vertx.createHttpServer();
-         httpServer.requestHandler(HttpVersionsTest::requireHttp2).listen(port, "localhost", handler);
+         httpServer.requestHandler(HttpVersionsTest::requireHttp2).listen(0, "localhost", handler);
       }
    }
 

@@ -3,6 +3,7 @@ package io.hyperfoil.benchmark.standalone;
 import java.util.concurrent.ThreadLocalRandom;
 
 import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpServer;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.junit.After;
@@ -15,12 +16,13 @@ public abstract class BaseBenchmarkTestCase {
     protected long unservedDelay;
     protected double servedRatio = 1.0;
     private Vertx vertx;
+    protected HttpServer server;
 
     @Before
     public void before(TestContext ctx) {
         count = 0;
         vertx = Vertx.vertx();
-        vertx.createHttpServer().requestHandler(req -> {
+        server = vertx.createHttpServer().requestHandler(req -> {
             count++;
             if (servedRatio >= 1.0 || ThreadLocalRandom.current().nextDouble() < servedRatio) {
                 req.response().end();
@@ -31,7 +33,7 @@ public abstract class BaseBenchmarkTestCase {
                     req.connection().close();
                 }
             }
-        }).listen(8080, "localhost", ctx.asyncAssertSuccess());
+        }).listen(0, "localhost", ctx.asyncAssertSuccess());
     }
 
     @After

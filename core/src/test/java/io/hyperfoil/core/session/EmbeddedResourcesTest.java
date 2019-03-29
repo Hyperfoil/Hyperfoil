@@ -23,7 +23,8 @@ public class EmbeddedResourcesTest extends BaseScenarioTest {
    protected Benchmark benchmark() {
       try {
          InputStream config = getClass().getClassLoader().getResourceAsStream("scenarios/downloadRefs.yaml");
-         return BenchmarkParser.instance().buildBenchmark(config);
+         String configString = Util.toString(config).replaceAll("http://localhost:8080", "http://localhost:" + server.actualPort());
+         return BenchmarkParser.instance().buildBenchmark(configString);
       } catch (IOException | ParserException e) {
          throw new AssertionError(e);
       }

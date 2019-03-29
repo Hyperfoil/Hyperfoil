@@ -18,6 +18,7 @@ import io.hyperfoil.core.builders.StepCatalog;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
 import io.hyperfoil.core.util.RandomConcurrentSet;
 import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpServer;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.ext.web.Router;
@@ -31,13 +32,14 @@ public class TwoScenariosTest {
    protected Router router;
 
    private ConcurrentMap<String, SailsState> serverState = new ConcurrentHashMap<>();
+   private HttpServer server;
 
    @Before
    public void before(TestContext ctx) {
       vertx = Vertx.vertx();
       router = Router.router(vertx);
       initRouter();
-      vertx.createHttpServer().requestHandler(router::accept).listen(8080, "localhost", ctx.asyncAssertSuccess());
+      server = vertx.createHttpServer().requestHandler(router).listen(0, "localhost", ctx.asyncAssertSuccess());
    }
 
    @After
@@ -93,7 +95,7 @@ public class TwoScenariosTest {
          .name("Test Benchmark")
          .simulation()
             .http()
-               .baseUrl("http://localhost:8080")
+               .baseUrl("http://localhost:" + server.actualPort())
                .sharedConnections(10)
             .endHttp()
             .addPhase("rig").constantPerSec(3)

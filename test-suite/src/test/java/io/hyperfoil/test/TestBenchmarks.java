@@ -9,10 +9,10 @@ import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.core.builders.StepCatalog;
 
 public class TestBenchmarks {
-   public static SimulationBuilder addTestSimulation(BenchmarkBuilder builder, int users) {
+   public static SimulationBuilder addTestSimulation(BenchmarkBuilder builder, int users, int port) {
       return builder.simulation()
             .http()
-               .baseUrl("http://localhost:8080")
+               .baseUrl("http://localhost:" + port)
                .sharedConnections(10)
             .endHttp()
             .addPhase("test").always(users)
@@ -36,12 +36,12 @@ public class TestBenchmarks {
             .endPhase();
    }
 
-   public static Benchmark testBenchmark(int agents) {
+   public static Benchmark testBenchmark(int agents, int port) {
       BenchmarkBuilder benchmarkBuilder = BenchmarkBuilder.builder().name("test");
       for (int i = 0; i < agents; ++i) {
          benchmarkBuilder.addAgent("agent" + i, "localhost:12345");
       }
-      addTestSimulation(benchmarkBuilder, agents);
+      addTestSimulation(benchmarkBuilder, agents, port);
       return benchmarkBuilder.build();
    }
 }

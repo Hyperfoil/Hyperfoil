@@ -17,6 +17,6 @@ public class WrkTest extends BaseBenchmarkTestCase {
 
    @Test
    public void test() throws CommandLineParserException {
-      Wrk.main(new String[] { "-c", "10", "-d", "5s", "-R", "20", "--latency", "--timeout", "1s", "localhost:8080/foo/bar" } );
+      Wrk.main(new String[] { "-c", "10", "-d", "5s", "-R", "20", "--latency", "--timeout", "1s", "localhost:" + server.actualPort() + "/foo/bar" } );
    }
 }

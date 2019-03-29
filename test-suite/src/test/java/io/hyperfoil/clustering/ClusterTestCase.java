@@ -6,6 +6,7 @@ import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpServer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
@@ -31,32 +32,27 @@ import static org.asynchttpclient.Dsl.asyncHttpClient;
 @Category(Benchmark.class)
 public class ClusterTestCase extends BaseClusteredTest {
 
-    public static final String BASE_URL = "http://localhost:8090";
-
-    private static final int CONTROLLERS = 1;
+    private static final String CONTROLLER_URL = "http://localhost:8090";
     private static final int AGENTS = 2;
 
     private final int EXPECTED_COUNT = AGENTS * 5000;
+    private HttpServer httpServer;
 
     @Before
     public void before(TestContext ctx) {
 
-        Async initAsync = ctx.async(AGENTS + 2);
         //dummy http server to test against
 
-        standalone().createHttpServer().requestHandler(req -> {
+        httpServer = standalone().createHttpServer().requestHandler(req -> {
             try {
                 Thread.sleep(10);
             } catch (InterruptedException e) {
                 e.printStackTrace();  // TODO: Customise this generated block
             }
             req.response().end("test");
-        }).listen(8080, "localhost", ar -> {
-            if (ar.succeeded()) initAsync.countDown();
-            else ctx.fail(ar.cause());
-        });
+        }).listen(0, "localhost", ctx.asyncAssertSuccess());
 
-
+        Async initAsync = ctx.async(AGENTS + 1);
         VertxOptions opts = new VertxOptions().setClustered(true);
 
         //configure multi node vert.x cluster
@@ -77,7 +73,7 @@ public class ClusterTestCase extends BaseClusteredTest {
         try (AsyncHttpClient asyncHttpClient = asyncHttpClient()) {
             //check expected number of nodes are running
             while (!asyncHttpClient
-                  .prepareGet(BASE_URL + "/agents")
+                  .prepareGet(CONTROLLER_URL + "/agents")
                   .execute()
                   .toCompletableFuture()
                   .thenApply(Response::getResponseBody)
@@ -88,20 +84,20 @@ public class ClusterTestCase extends BaseClusteredTest {
 
             // upload benchmark
             asyncHttpClient
-                  .preparePost(BASE_URL + "/benchmark")
+                  .preparePost(CONTROLLER_URL + "/benchmark")
                   .setHeader(HttpHeaders.CONTENT_TYPE, "application/java-serialized-object")
-                  .setBody(serialize(TestBenchmarks.testBenchmark(AGENTS)))
+                  .setBody(serialize(TestBenchmarks.testBenchmark(AGENTS, httpServer.actualPort())))
                   .execute()
                   .toCompletableFuture()
                   .thenAccept(response -> {
                       assertThat(response.getStatusCode()).isEqualTo(204);
-                      assertThat(response.getHeader(HttpHeaders.LOCATION)).isEqualTo(BASE_URL + "/benchmark/test");
+                      assertThat(response.getHeader(HttpHeaders.LOCATION)).isEqualTo(CONTROLLER_URL + "/benchmark/test");
                   })
                   .join();
 
             // list benchmarks
             asyncHttpClient
-                  .prepareGet(BASE_URL + "/benchmark")
+                  .prepareGet(CONTROLLER_URL + "/benchmark")
                   .execute()
                   .toCompletableFuture()
                   .thenAccept(response -> {
@@ -112,7 +108,7 @@ public class ClusterTestCase extends BaseClusteredTest {
 
             //start benchmark running
             String runLocation = asyncHttpClient
-                  .prepareGet(BASE_URL + "/benchmark/test/start")
+                  .prepareGet(CONTROLLER_URL + "/benchmark/test/start")
                   .execute()
                   .toCompletableFuture()
                   .thenApply(response -> {

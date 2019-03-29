@@ -10,6 +10,7 @@ import io.hyperfoil.api.config.ScenarioBuilder;
 import io.hyperfoil.core.builders.StepCatalog;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
 import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpServer;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.unit.TestContext;
@@ -30,6 +31,7 @@ public abstract class BaseScenarioTest {
    protected Vertx vertx;
    protected Router router;
    protected BenchmarkBuilder benchmarkBuilder;
+   protected HttpServer server;
 
    protected Map<String, List<StatisticsSnapshot>> runScenario() {
       LocalSimulationRunner runner = new LocalSimulationRunner(benchmark());
@@ -47,16 +49,19 @@ public abstract class BaseScenarioTest {
    @Before
    public void before(TestContext ctx) {
       benchmarkBuilder = BenchmarkBuilder.builder();
-      benchmarkBuilder.simulation()
-            .threads(threads())
-            .http().baseUrl("http://localhost:8080");
-
-      initHttp(benchmarkBuilder.simulation().http());
       vertx = Vertx.vertx();
       router = Router.router(vertx);
       initRouter();
-      vertx.createHttpServer().requestHandler(router::accept)
-            .listen(8080, "localhost", ctx.asyncAssertSuccess());
+      server = vertx.createHttpServer().requestHandler(router)
+            .listen(0, "localhost", ctx.asyncAssertSuccess(srv -> initWithServer(ctx)));
+   }
+
+   protected void initWithServer(TestContext ctx) {
+      benchmarkBuilder.simulation()
+            .threads(threads())
+            .http().baseUrl("http://localhost:" + server.actualPort());
+
+      initHttp(benchmarkBuilder.simulation().http());
    }
 
    protected void initHttp(HttpBuilder http) {

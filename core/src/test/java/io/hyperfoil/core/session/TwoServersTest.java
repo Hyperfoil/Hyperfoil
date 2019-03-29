@@ -12,6 +12,7 @@ import org.junit.runner.RunWith;
 
 import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
+import io.vertx.core.http.HttpServer;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.ext.web.Router;
@@ -19,6 +20,7 @@ import io.vertx.ext.web.Router;
 @RunWith(VertxUnitRunner.class)
 public class TwoServersTest extends BaseScenarioTest {
    CountDownLatch latch = new CountDownLatch(1);
+   HttpServer secondServer;
 
    @Override
    protected void initRouter() {
@@ -36,11 +38,11 @@ public class TwoServersTest extends BaseScenarioTest {
       super.before(ctx);
       Router secondRouter = Router.router(vertx);
       secondRouter.route("/test").handler(context -> context.response().setStatusCode(300).end());
-      vertx.createHttpServer().requestHandler(secondRouter::accept)
-            .listen(8081, "localhost", ctx.asyncAssertSuccess());
-      benchmarkBuilder.simulation()
-            .http().baseUrl("http://localhost:8080").endHttp()
-            .http("http://localhost:8081").endHttp();
+      secondServer = vertx.createHttpServer().requestHandler(secondRouter)
+            .listen(0, "localhost", ctx.asyncAssertSuccess(srv -> {
+         benchmarkBuilder.simulation()
+               .http("http://localhost:" + secondServer.actualPort()).endHttp();
+      }));
    }
 
    @Test
@@ -51,7 +53,7 @@ public class TwoServersTest extends BaseScenarioTest {
                .statistics("server1")
             .endStep()
             .step(SC).httpRequest(HttpMethod.GET)
-               .baseUrl("http://localhost:8081")
+               .baseUrl("http://localhost:" + secondServer.actualPort())
                .path("/test")
                .statistics("server2")
                .handler()
