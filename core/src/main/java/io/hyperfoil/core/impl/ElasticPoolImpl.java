@@ -3,6 +3,7 @@ package io.hyperfoil.core.impl;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -16,6 +17,8 @@ public class ElasticPoolImpl<T> implements ElasticPool<T> {
    private final Supplier<T> depletionSupplier;
    private BlockingQueue<T> primaryQueue;
    private final BlockingQueue<T> secondaryQueue = new LinkedBlockingQueue<>();
+   private final LongAdder used = new LongAdder();
+   private int minUsed = Integer.MAX_VALUE, maxUsed;
 
    public ElasticPoolImpl(Supplier<T> initSupplier, Supplier<T> depletionSupplier) {
       this.initSupplier = initSupplier;
@@ -26,11 +29,17 @@ public class ElasticPoolImpl<T> implements ElasticPool<T> {
    public T acquire() {
       T object = primaryQueue.poll();
       if (object != null) {
+         used.increment();
+         long currentlyUsed = used.longValue();
+         if (currentlyUsed > maxUsed) {
+            maxUsed = (int) currentlyUsed;
+         }
          return object;
       }
       secondaryQueue.drainTo(primaryQueue, primaryQueue.remainingCapacity());
       object = primaryQueue.poll();
       if (object != null) {
+         used.increment();
          return object;
       }
       return depletionSupplier.get();
@@ -38,6 +47,11 @@ public class ElasticPoolImpl<T> implements ElasticPool<T> {
 
    @Override
    public void release(T object) {
+      used.decrement();
+      long currentlyUsed = used.longValue();
+      if (currentlyUsed < minUsed) {
+         minUsed = (int) currentlyUsed;
+      }
       if (primaryQueue.offer(object)) {
          return;
       }
@@ -64,5 +78,21 @@ public class ElasticPoolImpl<T> implements ElasticPool<T> {
       secondaryQueue.drainTo(primaryQueue, primaryQueue.remainingCapacity());
       assert secondaryQueue.isEmpty();
       primaryQueue.forEach(consumer);
+   }
+
+   @Override
+   public int minUsed() {
+      return minUsed;
+   }
+
+   @Override
+   public int maxUsed() {
+      return maxUsed;
+   }
+
+   @Override
+   public void resetStats() {
+      minUsed = Integer.MAX_VALUE;
+      maxUsed = 0;
    }
 }

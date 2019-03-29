@@ -1,6 +1,5 @@
 package io.hyperfoil.clustering;
 
-import io.hyperfoil.api.config.Simulation;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.core.util.CountDown;
 import io.hyperfoil.core.impl.statistics.StatisticsCollector;
@@ -17,7 +16,7 @@ public class ReportSender extends StatisticsCollector {
    private final EventBus eb;
    private final StatisticsConsumer sendReport = this::sendReport;
 
-   public ReportSender(Simulation simulation, EventBus eb, String address, String runId) {
+   public ReportSender(EventBus eb, String address, String runId) {
       super();
       this.eb = eb;
       this.address = address;

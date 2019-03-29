@@ -2,19 +2,19 @@ package io.hyperfoil.core.steps;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.function.IntPredicate;
 
 import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.config.BaseSequenceBuilder;
+import io.hyperfoil.function.SerializableIntPredicate;
 import io.hyperfoil.function.SerializableSupplier;
 
 public class AwaitIntStep implements Step {
    private final String var;
-   private final IntPredicate predicate;
+   private final SerializableIntPredicate predicate;
 
-   public AwaitIntStep(String var, IntPredicate predicate) {
+   public AwaitIntStep(String var, SerializableIntPredicate predicate) {
       this.var = var;
       this.predicate = predicate;
    }

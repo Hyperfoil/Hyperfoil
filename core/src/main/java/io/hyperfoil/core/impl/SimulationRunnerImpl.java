@@ -52,7 +52,7 @@ public class SimulationRunnerImpl implements SimulationRunner {
     protected final Simulation simulation;
     protected final Map<String, PhaseInstance> instances = new HashMap<>();
     protected final List<Session> sessions = new ArrayList<>();
-    protected final Map<String, SharedResources> sharedResources = new HashMap<>();
+    private final Map<String, SharedResources> sharedResources = new HashMap<>();
     protected final EventLoopGroup eventLoopGroup;
     protected final Map<String, HttpClientPool> httpClientPools = new HashMap<>();
     protected final Map<EventExecutor, HttpDestinationTableImpl> httpDestinations = new HashMap<>();
@@ -168,7 +168,7 @@ public class SimulationRunnerImpl implements SimulationRunner {
         }
     }
 
-    public void visitPhaseStatistics(Phase phase, Consumer<SessionStatistics> consumer) {
+    public void visitStatistics(Phase phase, Consumer<SessionStatistics> consumer) {
         SharedResources sharedResources = this.sharedResources.get(phase.sharedResources);
         if (sharedResources == null || sharedResources.statistics == null) {
             return;
@@ -176,6 +176,33 @@ public class SimulationRunnerImpl implements SimulationRunner {
         for (SessionStatistics statistics : sharedResources.statistics.values()) {
             consumer.accept(statistics);
         }
+    }
+
+    public void visitSessionPoolStats(SessionStatsConsumer consumer) {
+       for (SharedResources sharedResources : this.sharedResources.values()) {
+          if (sharedResources.currentPhase == null) {
+             // Phase(s) with these resources have not been started yet
+             continue;
+          }
+          int minUsed = sharedResources.sessionPool.minUsed();
+          int maxUsed = sharedResources.sessionPool.maxUsed();
+          sharedResources.sessionPool.resetStats();
+          if (minUsed < maxUsed) {
+              consumer.accept(sharedResources.currentPhase.definition().name(), minUsed, maxUsed);
+          }
+       }
+    }
+
+    public void visitSessionPoolStats(Phase phase, SessionStatsConsumer consumer) {
+       SharedResources sharedResources = this.sharedResources.get(phase.sharedResources);
+       if (sharedResources != null) {
+          int minUsed = sharedResources.sessionPool.minUsed();
+          int maxUsed = sharedResources.sessionPool.maxUsed();
+          sharedResources.sessionPool.resetStats();
+          if (minUsed < maxUsed) {
+              consumer.accept(phase.name(), minUsed, maxUsed);
+          }
+       }
     }
 
     @Override

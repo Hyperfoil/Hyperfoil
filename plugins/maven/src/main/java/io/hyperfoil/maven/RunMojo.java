@@ -8,6 +8,8 @@ import io.hyperfoil.core.parser.ParserException;
 import io.hyperfoil.core.steps.BaseStep;
 import io.hyperfoil.core.util.CountDown;
 import io.hyperfoil.core.util.Util;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -16,7 +18,6 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
-import org.jboss.logging.Logger;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -35,7 +36,7 @@ import static io.vertx.core.logging.LoggerFactory.LOGGER_DELEGATE_FACTORY_CLASS_
 @Mojo(name = "run", defaultPhase = LifecyclePhase.INTEGRATION_TEST, requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME)
 public class RunMojo extends AbstractMojo {
 
-    private static final Logger logger = Logger.getLogger(RunMojo.class);
+    private static final Logger log;
 
     @Parameter(required = true, property = "hyperfoil.yaml")
     private File yaml;
@@ -46,13 +47,14 @@ public class RunMojo extends AbstractMojo {
     private ExecutorService printStatsExecutor = Executors.newFixedThreadPool(1, r -> new Thread(r, "statistics"));
     private Benchmark benchmark;
 
+    static {
+        System.setProperty(LOGGER_DELEGATE_FACTORY_CLASS_NAME, "io.vertx.core.logging.Log4j2LogDelegateFactory");
+        log = LoggerFactory.getLogger(RunMojo.class);
+    }
+
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
-
-        //set logger impl
-        System.setProperty(LOGGER_DELEGATE_FACTORY_CLASS_NAME, "io.vertx.core.logging.Log4j2LogDelegateFactory");
-
-        logger.info("Start running Hyperfoil simulation");
+        log.info("Start running Hyperfoil simulation");
 
         if (!yaml.exists())
             throw new MojoExecutionException("yaml not found: " + yaml.toPath());
@@ -62,24 +64,28 @@ public class RunMojo extends AbstractMojo {
 
             if (benchmark != null) {
                 // We want to log all stats in the same thread to not break the output layout too much.
-                LocalSimulationRunner runner = new LocalSimulationRunner(benchmark, this::printStats);
-                logger.info("Running for " + benchmark.simulation().statisticsCollectionPeriod());
-                logger.info(benchmark.simulation().threads() + " threads");
+                LocalSimulationRunner runner = new LocalSimulationRunner(benchmark, this::printStats, this::printSessionPoolInfo);
+                log.info("Running for {}", benchmark.simulation().statisticsCollectionPeriod());
+                log.info("{} threads", benchmark.simulation().threads());
                 runner.run();
             }
         } catch (FileNotFoundException e) {
-            logger.error("Couldn't find yaml file: " + e.getMessage());
+            log.error("Couldn't find yaml file: {}", e, yaml);
             throw new MojoExecutionException("yaml not found: " + yaml.toPath());
         }
 
         printStatsExecutor.shutdown();
-        logger.info("Finished running simulation");
+        log.info("Finished running simulation");
+    }
+
+    private void printSessionPoolInfo(String phase, int min, int max) {
+        printStatsExecutor.execute(() -> log.info("Phase {} used {} - {} sessions.", phase, min, max));
     }
 
 
     private Benchmark buildBenchmark(InputStream inputStream) throws MojoFailureException {
         if (inputStream == null)
-            logger.error("Could not find benchmark configuration");
+            log.error("Could not find benchmark configuration");
 
         try {
             ByteArrayOutputStream result = new ByteArrayOutputStream();
@@ -92,11 +98,11 @@ public class RunMojo extends AbstractMojo {
             Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(source);
 
             if (benchmark == null)
-                logger.info("Failed to parse benchmark configuration");
+                log.info("Failed to parse benchmark configuration");
 
             return benchmark;
         } catch (ParserException | IOException e) {
-            logger.error("Error occurred during parsing: " + e.getMessage());
+            log.error("Error occurred during parsing", e);
             throw new MojoFailureException("Error occurred during parsing: " + e.getMessage(), e);
         }
     }
@@ -111,12 +117,12 @@ public class RunMojo extends AbstractMojo {
               .filter(BaseStep.class::isInstance).map(BaseStep.class::cast)
               .filter(s -> s.id() == stepId).map(s -> s.sequence().phase().name()).findFirst().get();
         double durationSeconds = (stats.histogram.getEndTimeStamp() - stats.histogram.getStartTimeStamp()) / 1000d;
-        logger.infof("%s/%s: ", phase, statsName);
-        logger.infof("%d requests in %.2f s, ", stats.histogram.getTotalCount(), durationSeconds);
-        logger.info("                  Avg     Stdev       Max");
-        logger.infof("Latency:    %s %s %s", Util.prettyPrintNanos((long) stats.histogram.getMean()),
+        log.info("{}/{}: ", phase, statsName);
+        log.info("{} requests in {} s, ", stats.histogram.getTotalCount(), durationSeconds);
+        log.info("                  Avg     Stdev       Max");
+        log.info("Latency:    {} {} {}", Util.prettyPrintNanos((long) stats.histogram.getMean()),
               Util.prettyPrintNanos((long) stats.histogram.getStdDeviation()), Util.prettyPrintNanos(stats.histogram.getMaxValue()));
-        logger.infof("Requests/sec: %f", stats.histogram.getTotalCount() / durationSeconds);
+        log.info("Requests/sec: {}", String.format("%.2f", stats.histogram.getTotalCount() / durationSeconds));
 
         if (outputPercentileDistribution) {
             final ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -124,15 +130,15 @@ public class RunMojo extends AbstractMojo {
                 stats.histogram.outputPercentileDistribution(new PrintStream(baos, true, "UTF-8"), 1000.00);
                 String data = new String(baos.toByteArray(), StandardCharsets.UTF_8);
 
-                logger.info("\nPercentile Distribution\n\n" + data );
+                log.info("\nPercentile Distribution\n\n" + data );
             } catch (UnsupportedEncodingException e) {
-                logger.error("Could not write Percentile Distribution to log");
+                log.error("Could not write Percentile Distribution to log");
             }
         }
 
         if (stats.errors() > 0) {
-            logger.info("Socket errors: connect " + stats.connectFailureCount + ", reset " + stats.resetCount + ", timeout " + stats.timeouts);
-            logger.info("Non-2xx or 3xx responses: " + stats.status_4xx + stats.status_5xx + stats.status_other);
+            log.info("Socket errors: connect {}, reset {}, timeout {}", stats.connectFailureCount, stats.resetCount, stats.timeouts);
+            log.info("Non-2xx or 3xx responses: {}", stats.status_4xx + stats.status_5xx + stats.status_other);
         }
     }
 }

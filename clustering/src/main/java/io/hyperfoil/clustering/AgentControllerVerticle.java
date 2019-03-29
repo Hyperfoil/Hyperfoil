@@ -6,6 +6,8 @@ import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.session.PhaseInstance;
 import io.hyperfoil.clustering.util.AgentControlMessage;
 import io.hyperfoil.clustering.util.AgentHello;
+import io.hyperfoil.clustering.util.SessionStatsMessage;
+import io.hyperfoil.clustering.util.StatsMessage;
 import io.hyperfoil.core.impl.statistics.StatisticsStore;
 import io.hyperfoil.clustering.util.PersistenceUtil;
 import io.hyperfoil.clustering.util.PhaseChangeMessage;
@@ -115,17 +117,31 @@ public class AgentControllerVerticle extends AbstractVerticle {
         });
 
         eb.consumer(Feeds.STATS, message -> {
-            ReportMessage reportMessage = (ReportMessage) message.body();
-            log.trace("Run {}: Received stats from {}: {}/{} ({} requests)", reportMessage.runId,
-                  reportMessage.address, reportMessage.stepId, reportMessage.statisticsName, reportMessage.statistics.requestCount);
-            Run run = runs.get(reportMessage.runId);
+            if (!(message.body() instanceof StatsMessage)) {
+                log.error("Unknown message type: " + message.body());
+                return;
+            }
+            StatsMessage statsMessage = (StatsMessage) message.body();
+            Run run = runs.get(statsMessage.runId);
             if (run != null) {
                 // Agents start sending stats before the server processes the confirmation for initialization
                 if (run.statisticsStore != null) {
-                    run.statisticsStore.record(reportMessage.address, reportMessage.stepId, reportMessage.statisticsName, reportMessage.statistics);
+                    if (statsMessage instanceof ReportMessage) {
+                        ReportMessage reportMessage = (ReportMessage) statsMessage;
+                        log.trace("Run {}: Received stats from {}: {}/{} ({} requests)", reportMessage.runId,
+                              reportMessage.address, reportMessage.stepId, reportMessage.statisticsName, reportMessage.statistics.requestCount);
+                        run.statisticsStore.record(reportMessage.address, reportMessage.stepId, reportMessage.statisticsName, reportMessage.statistics);
+                    } else if (statsMessage instanceof SessionStatsMessage) {
+                        SessionStatsMessage sessionStatsMessage = (SessionStatsMessage) statsMessage;
+                        log.trace("Run {}: Received session pool stats from {}", sessionStatsMessage.runId, sessionStatsMessage.address);
+                        for (Map.Entry<String, SessionStatsMessage.MinMax> entry : sessionStatsMessage.sessionStats.entrySet()) {
+                            run.statisticsStore.recordSessionStats(sessionStatsMessage.address,
+                                  sessionStatsMessage.timestamp, entry.getKey(), entry.getValue().min, entry.getValue().max);
+                        }
+                    }
                 }
             } else {
-                log.error("Unknown run {}", reportMessage.runId);
+                log.error("Unknown run {}", statsMessage.runId);
             }
             message.reply("OK");
         });

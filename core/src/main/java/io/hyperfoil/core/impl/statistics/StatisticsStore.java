@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +36,7 @@ public class StatisticsStore {
    private final List<SLA.Failure> failures = new ArrayList<>();
    private final int maxFailures = 100;
    private final Map<Integer, SLA.Provider> slaProviders;
+   private final Map<String, SessionPoolStats> sessionPoolStats = new HashMap<>();
 
    public StatisticsStore(Benchmark benchmark, Consumer<SLA.Failure> failureHandler, double[] percentiles) {
       this.benchmark = benchmark;
@@ -55,14 +57,14 @@ public class StatisticsStore {
       if (data == null) {
          long collectionPeriod = benchmark.simulation().statisticsCollectionPeriod();
          SLA.Provider slaProvider = slaProviders.get(stepId);
-         Map<SLA, Window> rings = slaProvider == null ? Collections.emptyMap() :
+         Map<SLA, Window> rings = slaProvider == null || slaProvider.sla() == null ? Collections.emptyMap() :
                Stream.of(slaProvider.sla()).filter(sla -> sla.window() > 0).collect(
                   Collectors.toMap(Function.identity(),
                   sla -> new Window((int) (sla.window() / collectionPeriod))));
-         SLA[] total = slaProvider == null ? new SLA[0] : Stream.of(slaProvider.sla())
+         SLA[] total = slaProvider == null || slaProvider.sla() == null ? new SLA[0] : Stream.of(slaProvider.sla())
                .filter(sla -> sla.window() <= 0).toArray(SLA[]::new);
          String phase = slaProvider.sequence().phase().name();
-         this.data.put(stepId, new Data(phase, stepId, statisticsName, rings, total));
+         this.data.put(stepId, data = new Data(phase, stepId, statisticsName, rings, total));
       }
       data.record(address, stats);
    }
@@ -84,13 +86,24 @@ public class StatisticsStore {
       try (PrintWriter writer = new PrintWriter(dir + File.separator + "total.csv")) {
          writer.print("Phase,Name,");
          StatisticsSummary.printHeader(writer, percentiles);
-         writer.println();
+         writer.println(",MinSessions,MaxSessions");
          for (Data data : sorted) {
             writer.print(data.phase);
             writer.print(',');
             writer.print(data.statisticsName);
             writer.print(',');
             data.total.summary(percentiles).printTo(writer);
+
+            SessionPoolStats sps = this.sessionPoolStats.get(data.phase);
+            if (sps == null) {
+               writer.print(",,");
+            } else {
+               SessionPoolRecord minMax = sps.findMinMax();
+               writer.print(',');
+               writer.print(minMax.min);
+               writer.print(',');
+               writer.print(minMax.max);
+            }
             writer.println();
          }
       }
@@ -104,7 +117,7 @@ public class StatisticsStore {
          try (PrintWriter writer = new PrintWriter(dir + File.separator + "agent." + sanitize(agent) + ".csv")) {
             writer.print("Phase,Name,");
             StatisticsSummary.printHeader(writer, percentiles);
-            writer.println();
+            writer.println(",MinSessions,MaxSessions");
             for (Data data : sorted) {
                StatisticsSnapshot agentStats = data.perAgent.get(agent);
                if (agentStats == null) {
@@ -115,6 +128,18 @@ public class StatisticsStore {
                writer.print(data.statisticsName);
                writer.print(',');
                agentStats.summary(percentiles).printTo(writer);
+
+               SessionPoolStats sps = this.sessionPoolStats.get(data.phase);
+               if (sps == null || sps.records.get(agent) == null) {
+                  writer.print(",,");
+               } else {
+                  SessionPoolRecord minMax = sps.records.get(agent).stream().reduce(SessionPoolRecord::combine).orElse(new SessionPoolRecord(0, 0, 0));
+                  writer.print(',');
+                  writer.print(minMax.min);
+                  writer.print(',');
+                  writer.print(minMax.max);
+               }
+
                writer.println();
             }
          }
@@ -141,6 +166,37 @@ public class StatisticsStore {
             writer.print(',');
             summary.printTo(writer);
             writer.println();
+         }
+      }
+      for (Map.Entry<String, SessionPoolStats> entry : sessionPoolStats.entrySet()) {
+         try (PrintWriter writer = new PrintWriter(dir + File.separator + entry.getKey() + ".sessions.csv")) {
+            SessionPoolStats sps = entry.getValue();
+            writer.println("Timestamp,Address,MinSessions,MaxSessions");
+            String[] addresses = new String[sps.records.size()];
+            Iterator<SessionPoolRecord>[] iterators = new Iterator[sps.records.size()];
+            int counter = 0;
+            for (Map.Entry<String, List<SessionPoolRecord>> byAddress : sps.records.entrySet()) {
+               addresses[counter] = byAddress.getKey();
+               iterators[counter] = byAddress.getValue().iterator();
+               ++counter;
+            }
+            boolean hadNext;
+            do {
+               hadNext = false;
+               for (int i = 0; i < addresses.length; ++i) {
+                  if (iterators[i].hasNext()) {
+                     SessionPoolRecord record = iterators[i].next();
+                     writer.print(record.timestamp);
+                     writer.print(',');
+                     writer.print(addresses[i]);
+                     writer.print(',');
+                     writer.print(record.min);
+                     writer.print(',');
+                     writer.println(record.max);
+                     hadNext = true;
+                  }
+               }
+            } while (hadNext);
          }
       }
    }
@@ -204,6 +260,11 @@ public class StatisticsStore {
          result.computeIfAbsent(data.phase, p -> new HashMap<>()).put(data.statisticsName, last);
       }
       return result;
+   }
+
+   public void recordSessionStats(String address, long timestamp, String phase, int minSessions, int maxSessions) {
+      SessionPoolStats sps = this.sessionPoolStats.computeIfAbsent(phase, p -> new SessionPoolStats());
+      sps.records.computeIfAbsent(address, a -> new ArrayList<>()).add(new SessionPoolRecord(timestamp, minSessions, maxSessions));
    }
 
    private static final class Window {
@@ -294,6 +355,50 @@ public class StatisticsStore {
                continue;
             }
          }
+      }
+   }
+
+   private static class SessionPoolStats {
+      Map<String, List<SessionPoolRecord>> records = new HashMap<>();
+
+      SessionPoolRecord findMinMax() {
+         int min = Integer.MAX_VALUE;
+         int max = 0;
+         List<Iterator<SessionPoolRecord>> iterators = records.values().stream()
+               .map(List::iterator).collect(Collectors.toList());
+         for (;;) {
+            SessionPoolRecord combined = iterators.stream()
+                  .filter(Iterator::hasNext).map(Iterator::next)
+                  .reduce(SessionPoolRecord::sum).orElse(null);
+            if (combined == null) break;
+            min = Math.min(min, combined.min);
+            max = Math.max(max, combined.max);
+         }
+         return new SessionPoolRecord(0, min, max);
+      }
+   }
+
+   private static class SessionPoolRecord {
+      final long timestamp;
+      final int min;
+      final int max;
+
+      private SessionPoolRecord(long timestamp, int min, int max) {
+         this.timestamp = timestamp;
+         this.min = min;
+         this.max = max;
+      }
+
+      public static SessionPoolRecord sum(SessionPoolRecord r1, SessionPoolRecord r2) {
+         if (r1 == null) return r2;
+         if (r2 == null) return r1;
+         return new SessionPoolRecord(0, r1.min + r2.min, r1.max + r2.max);
+      }
+
+      public static SessionPoolRecord combine(SessionPoolRecord r1, SessionPoolRecord r2) {
+         if (r1 == null) return r2;
+         if (r2 == null) return r1;
+         return new SessionPoolRecord(0, Math.min(r1.min, r2.min), Math.max(r1.max, r2.max));
       }
    }
 }

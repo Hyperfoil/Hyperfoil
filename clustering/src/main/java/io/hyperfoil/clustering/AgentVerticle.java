@@ -34,6 +34,7 @@ public class AgentVerticle extends AbstractVerticle {
     private long statsTimerId = -1;
     private ReportSender reportSender;
     private CountDown statisticsCountDown;
+    private SessionStatsSender sessionStatsSender;
 
     @Override
     public void start() {
@@ -159,8 +160,9 @@ public class AgentVerticle extends AbstractVerticle {
         }
         runner = new SimulationRunnerImpl(simulation);
         controlFeedConsumer = listenOnControl();
-        reportSender = new ReportSender(simulation, eb, address, runId);
+        reportSender = new ReportSender(eb, address, runId);
         statisticsCountDown = new CountDown(1);
+        sessionStatsSender = new SessionStatsSender(eb, address, runId);
 
         runner.init((phase, status, succesful) -> {
             log.debug("{} changed phase {} to {}", address, phase, status);
@@ -170,6 +172,8 @@ public class AgentVerticle extends AbstractVerticle {
                 statsTimerId = vertx.setPeriodic(simulation.statisticsCollectionPeriod(), timerId -> {
                     runner.visitStatistics(reportSender);
                     reportSender.send(statisticsCountDown);
+                    runner.visitSessionPoolStats(sessionStatsSender);
+                    sessionStatsSender.send();
                 });
             }
             handler.handle(result);

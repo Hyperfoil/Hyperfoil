@@ -1,9 +1,8 @@
 package io.hyperfoil.core.steps;
 
-import java.util.function.IntPredicate;
-
 import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.core.builders.BaseStepBuilder;
+import io.hyperfoil.function.SerializableIntPredicate;
 
 public abstract class IntegerConditionBuilder<B extends IntegerConditionBuilder<B>> extends BaseStepBuilder {
    protected Integer equalTo;
@@ -17,8 +16,8 @@ public abstract class IntegerConditionBuilder<B extends IntegerConditionBuilder<
       super(parent);
    }
 
-   protected static IntPredicate and(IntPredicate p1, IntPredicate p2) {
-      return p1 == null ? p2 : (p2 == null ? null : p1.and(p2));
+   protected static SerializableIntPredicate and(SerializableIntPredicate p1, SerializableIntPredicate p2) {
+      return p1 == null ? p2 : (p2 == null ? null : x -> p1.test(x) && p2.test(x));
    }
 
    private B self() {
@@ -55,8 +54,8 @@ public abstract class IntegerConditionBuilder<B extends IntegerConditionBuilder<
       return self();
    }
 
-   protected IntPredicate buildPredicate() {
-      IntPredicate predicate = null;
+   protected SerializableIntPredicate buildPredicate() {
+      SerializableIntPredicate predicate = null;
       if (equalTo != null) {
          predicate = and(predicate, v -> v == equalTo.intValue());
       }

@@ -22,4 +22,10 @@ public interface ElasticPool<T> {
    void reserve(int capacity);
 
    void forEach(Consumer<T> consumer);
+
+   int minUsed();
+
+   int maxUsed();
+
+   void resetStats();
 }
