@@ -8,8 +8,8 @@
   </Appenders>
 
   <Loggers>
-    <Logger name="io.hyperfoil" level="TRACE"/>
-    <Logger name="io.vertx" level="TRACE"/>
+    <Logger name="io.hyperfoil" level="INFO"/>
+    <Logger name="io.vertx" level="INFO"/>
     <Logger name="io.netty" level="INFO"/>
 
     <Root level="DEBUG">
