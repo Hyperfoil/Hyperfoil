@@ -47,7 +47,7 @@ class HttpChannelInitializer extends ChannelInitializer<Channel> {
       this.clientPool = clientPool;
       this.connectionPool = connectionPool;
       this.handler = handler;
-      this.http2ConnectionHandlerBuilder = new Http2ConnectionHandlerBuilder(connectionPool, handler);
+      this.http2ConnectionHandlerBuilder = new Http2ConnectionHandlerBuilder(connectionPool, clientPool.sslContext == null, handler);
    }
 
    @Override

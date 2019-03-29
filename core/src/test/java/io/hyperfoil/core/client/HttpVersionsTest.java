@@ -1,9 +1,12 @@
 package io.hyperfoil.core.client;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 
+import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -35,6 +38,7 @@ public class HttpVersionsTest {
    private static final List<io.vertx.core.http.HttpVersion> HTTP1x_ONLY = Collections.singletonList(io.vertx.core.http.HttpVersion.HTTP_1_1);
    private static final List<io.vertx.core.http.HttpVersion> HTTP2_ONLY = Collections.singletonList(io.vertx.core.http.HttpVersion.HTTP_2);
    private Vertx vertx = Vertx.vertx();
+   private ArrayList<Runnable> cleanup = new ArrayList<>();
 
    @Test
    public void testAlpnUpgrade(TestContext ctx) throws Exception {
@@ -80,6 +84,12 @@ public class HttpVersionsTest {
       test(ctx, 8080, false, new HttpVersion[]{HttpVersion.HTTP_1_1}, HTTP2_ONLY, 500);
    }
 
+   @After
+   public void cleanup() {
+      cleanup.forEach(Runnable::run);
+      cleanup.clear();
+   }
+
    private void test(TestContext ctx, int port, boolean ssl, HttpVersion[] clientVersions, List<io.vertx.core.http.HttpVersion> serverVersions, int expectedStatus) throws Exception {
       Async async = ctx.async();
       server(port, ssl, serverVersions, event -> {
@@ -87,6 +97,7 @@ public class HttpVersionsTest {
             ctx.fail(event.cause());
          } else {
             HttpServer server = event.result();
+            cleanup.add(server::close);
             try {
                HttpClientPool client = client(port, ssl, clientVersions);
                client.start(result -> {
@@ -94,18 +105,24 @@ public class HttpVersionsTest {
                      ctx.fail(result.cause());
                      return;
                   }
+                  cleanup.add(client::shutdown);
                   Session session = SessionFactory.forTesting();
                   HttpRequest request = session.httpRequestPool().acquire();
+                  AtomicBoolean statusReceived = new AtomicBoolean(false);
                   HttpResponseHandlers handlers = HttpResponseHandlersImpl.Builder.forTesting()
                         .status((r, status) -> {
                            if (status != expectedStatus) {
                               ctx.fail();
+                           } else {
+                              statusReceived.set(true);
                            }
                         })
                         .onCompletion(s -> {
-                           client.shutdown();
-                           server.close();
-                           async.complete();
+                           if (statusReceived.get()) {
+                              async.complete();
+                           } else {
+                              ctx.fail("Status was not received.");
+                           }
                         }).build();
                   request.method = HttpMethod.GET;
                   request.path = "/ping";
