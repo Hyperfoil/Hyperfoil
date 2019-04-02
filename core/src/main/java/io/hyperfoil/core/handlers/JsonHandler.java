@@ -4,9 +4,14 @@ import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import org.kohsuke.MetaInfServices;
+
+import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.http.Processor;
+import io.hyperfoil.core.steps.ServiceLoadedBuilderProvider;
 import io.netty.buffer.ByteBuf;
 import io.hyperfoil.api.http.BodyHandler;
 import io.hyperfoil.api.session.Session;
@@ -466,6 +471,78 @@ public class JsonHandler implements BodyHandler, ResourceUtilizer, Session.Resou
       public void reset() {
          active = false;
          currentItem = 0;
+      }
+   }
+
+   public static class Builder implements BodyHandler.Builder {
+      private final Locator locator;
+      private String path;
+      private Processor.Builder<Request> processor;
+
+      public Builder(Locator locator) {
+         this.locator = locator;
+      }
+
+      @Override
+      public JsonHandler build() {
+         return new JsonHandler(path, processor.build());
+      }
+
+      public Builder path(String path) {
+         this.path = path;
+         return this;
+      }
+
+      public Builder processor(Processor<Request> processor) {
+         return processor(() -> processor);
+      }
+
+      public Builder processor(Processor.Builder<Request> processor) {
+         this.processor = processor;
+         return this;
+      }
+
+      public ServiceLoadedBuilderProvider<Processor.Builder<Request>, Request.ProcessorBuilderFactory> processor() {
+         return new ServiceLoadedBuilderProvider<>(Request.ProcessorBuilderFactory.class, locator, this::processor);
+      }
+
+      @Override
+      public BodyHandler.Builder copy(Locator locator) {
+         return new Builder(locator).path(path).processor(processor);
+      }
+   }
+
+   @MetaInfServices(BodyHandler.BuilderFactory.class)
+   public static class Factory implements BodyHandler.BuilderFactory {
+      @Override
+      public String name() {
+         return "json";
+      }
+
+      @Override
+      public boolean acceptsParam() {
+         return true;
+      }
+
+      @Override
+      public Builder newBuilder(Locator locator, String param) {
+         if (param != null && !param.isEmpty()) {
+            String path;
+            String var;
+            if (param.indexOf("->") >= 0) {
+               String[] parts = param.split("->");
+               path = parts[0];
+               var = parts[1];
+            } else if (param.indexOf("<-") >= 0) {
+               String[] parts = param.split("->");
+               path = parts[1];
+               var = parts[0];
+            } else {
+               throw new BenchmarkDefinitionException("Cannot parse json handler specification: '" + param + "', use 'path -> var' or 'var <- path'");
+            }
+            return new Builder(locator).path(path.trim()).processor(new DefragProcessor<>(new SimpleRecorder(var.trim())));
+         }
+         return new Builder(locator);
       }
    }
 }

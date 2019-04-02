@@ -161,7 +161,7 @@ public class StepCatalog implements Step.Catalog {
       return new RandomItemStep.Builder(parent);
    }
 
-   public ServiceLoadedBuilderProvider<StepBuilder> serviceLoaded() {
+   public ServiceLoadedBuilderProvider<StepBuilder, StepBuilder.Factory> serviceLoaded() {
       return new ServiceLoadedBuilderProvider<>(StepBuilder.Factory.class, new Locator() {
          @Override
          public StepBuilder step() {

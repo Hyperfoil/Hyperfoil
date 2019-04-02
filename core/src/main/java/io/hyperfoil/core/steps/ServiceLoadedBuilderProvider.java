@@ -1,8 +1,13 @@
 package io.hyperfoil.core.steps;
 
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.ServiceLoader;
+import java.util.Set;
 import java.util.function.Consumer;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
@@ -10,20 +15,45 @@ import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.ServiceLoadedContract;
 import io.hyperfoil.api.config.ServiceLoadedFactory;
 
-public class ServiceLoadedBuilderProvider<B> {
-   private static final Map<Class<ServiceLoadedFactory<?>>, ServiceLoader<ServiceLoadedFactory<?>>> SERVICE_LOADERS = new HashMap<>();
+public class ServiceLoadedBuilderProvider<B, BF extends ServiceLoadedFactory<B>> {
+   private static final Map<Class<? extends ServiceLoadedFactory<?>>, ServiceLoader<? extends ServiceLoadedFactory<?>>> SERVICE_LOADERS = new HashMap<>();
+   private static final Map<Class<ServiceLoadedFactory<?>>, Collection<ServiceLoadedFactory<?>>> FACTORIES = new HashMap<>();
 
-   private final Class<? extends ServiceLoadedFactory<B>> factoryClazz;
+   private final Class<BF> factoryClazz;
    private final Locator locator;
    private final Consumer<B> consumer;
 
-   public static Iterable<ServiceLoadedFactory<?>> factories(Class<ServiceLoadedFactory<?>> clazz) {
-      ServiceLoader<ServiceLoadedFactory<?>> loader = SERVICE_LOADERS.get(clazz);
-      if (loader == null) {
-         loader = ServiceLoader.load(clazz);
-         SERVICE_LOADERS.put(clazz, loader);
+   public static synchronized Iterable<ServiceLoadedFactory<?>> factories(Class<ServiceLoadedFactory<?>> clazz) {
+      Collection<ServiceLoadedFactory<?>> factories = FACTORIES.get(clazz);
+      if (factories != null) {
+         return factories;
       }
-      return loader;
+      Set<Class<? extends ServiceLoadedFactory<?>>> included = new HashSet<>();
+      ArrayDeque<Class<? extends ServiceLoadedFactory<?>>> deque = new ArrayDeque<>();
+      deque.add(clazz);
+      included.add(clazz);
+      factories = new ArrayList<>();
+      while (!deque.isEmpty()) {
+         Class<? extends ServiceLoadedFactory<?>> factoryClass = deque.poll();
+         ServiceLoader<? extends ServiceLoadedFactory<?>> loader = SERVICE_LOADERS.get(factoryClass);
+         if (loader == null) {
+            loader = ServiceLoader.load(factoryClass);
+            SERVICE_LOADERS.put(factoryClass, loader);
+         }
+         for (ServiceLoadedFactory<?> factory : loader) {
+            factories.add(factory);
+         }
+         ServiceLoadedFactory.Include include = factoryClass.getAnnotation(ServiceLoadedFactory.Include.class);
+         if (include != null) {
+            for (Class<? extends ServiceLoadedFactory<?>> incl : include.value()) {
+               if (!included.contains(incl)) {
+                  deque.add(incl);
+               }
+            }
+         }
+      }
+      FACTORIES.put(clazz, factories);
+      return factories;
    }
 
    private static ServiceLoadedFactory<?> factory(Class<ServiceLoadedFactory<?>> clazz, String name) {
@@ -45,7 +75,7 @@ public class ServiceLoadedBuilderProvider<B> {
       return factory;
    }
 
-   public ServiceLoadedBuilderProvider(Class<? extends ServiceLoadedFactory<B>> factoryClazz, Locator locator, Consumer<B> consumer) {
+   public ServiceLoadedBuilderProvider(Class<BF> factoryClazz, Locator locator, Consumer<B> consumer) {
       this.factoryClazz = factoryClazz;
       this.locator = locator;
       this.consumer = consumer;

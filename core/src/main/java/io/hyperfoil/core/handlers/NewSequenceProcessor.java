@@ -63,8 +63,8 @@ public class NewSequenceProcessor implements Processor<Request>, ResourceUtilize
       session.setObject(dataVar, ObjectVar.newArray(session, maxSequences));
    }
 
-   @MetaInfServices(Processor.BuilderFactory.class)
-   public static class BuilderFactory implements Processor.BuilderFactory {
+   @MetaInfServices(Request.ProcessorBuilderFactory.class)
+   public static class BuilderFactory implements Request.ProcessorBuilderFactory {
       @Override
       public String name() {
          return "newSequence";

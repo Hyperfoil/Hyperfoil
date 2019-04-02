@@ -4,13 +4,12 @@ import java.io.IOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Optional;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
 
 import io.hyperfoil.api.config.ListBuilder;
 import io.hyperfoil.api.config.Locator;
@@ -39,7 +38,7 @@ public class Generator {
    }
 
    @SuppressWarnings("unchecked")
-   private static Iterable<ServiceLoadedFactory<?>> getFactories(Class<?> factoryClass) {
+   private static Iterable<ServiceLoadedFactory<?>> getFactories(Class<? extends ServiceLoadedFactory<?>> factoryClass) {
       return ServiceLoadedBuilderProvider.factories((Class) factoryClass);
    }
 
@@ -182,13 +181,16 @@ public class Generator {
                .put("items", TYPE_STRING);
       } else if (ServiceLoadedBuilderProvider.class.isAssignableFrom(m.getReturnType())) {
          ParameterizedType type = (ParameterizedType) m.getAnnotatedReturnType().getType();
-         Class<?> builderType = (Class<?>) type.getActualTypeArguments()[0];
-         Optional<Method> buildMethod = Stream.of(builderType.getMethods()).filter(bm -> "build".equals(bm.getName())).findFirst();
-         if (!buildMethod.isPresent()) {
-            throw new IllegalStateException("ServiceLoadedBuilderProvider returned from " + m +
-                  " does not return a builder: " + builderType.getName());
+         Type builderFactory = type.getActualTypeArguments()[1];
+         Class<? extends ServiceLoadedFactory<?>> bfClass;
+         if (builderFactory instanceof Class) {
+            bfClass = (Class<? extends ServiceLoadedFactory<?>>) builderFactory;
+         } else if (builderFactory instanceof ParameterizedType){
+            bfClass = (Class<? extends ServiceLoadedFactory<?>>) ((ParameterizedType) builderFactory).getRawType();
+         } else {
+            throw new IllegalStateException("Cannot analyze factory type " + builderFactory);
          }
-         return getServiceLoadedImplementations(buildMethod.get().getReturnType());
+         return getServiceLoadedImplementations(bfClass);
       } else if (m.getReturnType().getName().endsWith("Builder")) {
          JsonObject builderReference = describeBuilder(m.getReturnType());
          return new JsonObject().put("oneOf",
@@ -213,35 +215,29 @@ public class Generator {
       }
    }
 
-   private JsonObject getServiceLoadedImplementations(Class<?> serviceLoadedClazz) {
-      // This is not ideal; there's no reason for the builder factory to be nested but it's 'convention'
-      // and ATM there's no other way
-      for (Class<?> nested : serviceLoadedClazz.getClasses()) {
-         if (ServiceLoadedFactory.class.isAssignableFrom(nested)) {
-            JsonObject serviceLoadedProperties = new JsonObject();
-            JsonObject property = new JsonObject()
-                  .put("type", "object")
-                  .put("additionalProperties", false)
-                  .put("minProperties", 1)
-                  .put("maxProperties", 1)
-                  .put("properties", serviceLoadedProperties);
-            for (ServiceLoadedFactory f : getFactories(nested)) {
-               try {
-                  Class<?> serviceLoadedBuilder = f.getClass().getMethod("newBuilder", Locator.class, String.class).getReturnType();
-                  JsonObject serviceLoadedProperty = describeBuilder(serviceLoadedBuilder);
-                  if (f.acceptsParam()) {
-                     serviceLoadedProperty = new JsonObject()
-                           .put("oneOf", new JsonArray().add(serviceLoadedProperty).add(TYPE_STRING));
-                  }
-                  addProperty(serviceLoadedProperties, f.name(), serviceLoadedProperty);
-               } catch (NoSuchMethodException e) {
-                  throw new IllegalStateException(e);
-               }
+   private JsonObject getServiceLoadedImplementations(Class<? extends ServiceLoadedFactory<?>> factoryClass) {
+      JsonObject serviceLoadedProperties = new JsonObject();
+      JsonObject property = new JsonObject()
+            .put("type", "object")
+            .put("additionalProperties", false)
+            .put("minProperties", 1)
+            .put("maxProperties", 1)
+            .put("properties", serviceLoadedProperties);
+      for (ServiceLoadedFactory f : getFactories(factoryClass)) {
+         try {
+            Class<?> serviceLoadedBuilder = f.getClass().getMethod("newBuilder", Locator.class, String.class).getReturnType();
+            JsonObject serviceLoadedProperty = describeBuilder(serviceLoadedBuilder);
+            if (f.acceptsParam()) {
+               serviceLoadedProperty = new JsonObject()
+                     .put("oneOf", new JsonArray().add(serviceLoadedProperty).add(TYPE_STRING));
             }
-            return property;
+            addProperty(serviceLoadedProperties, f.name(), serviceLoadedProperty);
+         } catch (NoSuchMethodException e) {
+            throw new IllegalStateException(e);
          }
       }
-      throw new IllegalStateException("No factory found for " + serviceLoadedClazz);
+      return property;
+
    }
 
    private static void addProperty(JsonObject properties, String name, JsonObject newProperty) {

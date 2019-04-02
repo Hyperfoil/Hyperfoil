@@ -1,6 +1,5 @@
 package io.hyperfoil.api.http;
 
-import io.hyperfoil.api.config.ServiceLoadedFactory;
 import io.hyperfoil.api.connection.Request;
 import io.netty.buffer.ByteBuf;
 
@@ -24,7 +23,6 @@ public interface Processor<R extends Request> {
    interface Builder<R extends Request> {
       Processor<R> build();
    }
-   interface BuilderFactory extends ServiceLoadedFactory<Builder> {}
 
    abstract class BaseDelegating<R extends Request> implements Processor<R> {
       protected final Processor<R> delegate;

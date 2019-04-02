@@ -1,5 +1,9 @@
 package io.hyperfoil.api.config;
 
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.util.ServiceLoader;
 
 /**
@@ -26,4 +30,13 @@ public interface ServiceLoadedFactory<B> {
     * @throws IllegalArgumentException if the loader does not expect any parameter and it is not <code>null</code>.
     */
    B newBuilder(Locator locator, String param);
+
+   /**
+    * Mark this class with this annotation to include covariant factories.
+    */
+   @Retention(RetentionPolicy.RUNTIME)
+   @Target(ElementType.TYPE)
+   @interface Include {
+      Class<? extends ServiceLoadedFactory<?>>[] value();
+   }
 }

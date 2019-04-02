@@ -371,8 +371,8 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
          return this;
       }
 
-      public ServiceLoadedBuilderProvider<Processor.Builder> processor() {
-         return new ServiceLoadedBuilderProvider<>(Processor.BuilderFactory.class, locator, p -> processor((Processor.Builder<HttpRequest>) p));
+      public ServiceLoadedBuilderProvider<Processor.Builder<HttpRequest>, HttpRequest.ProcessorBuilderFactory> processor() {
+         return new ServiceLoadedBuilderProvider<>(HttpRequest.ProcessorBuilderFactory.class, locator, this::processor);
       }
 
       public void prepareBuild() {
@@ -448,7 +448,7 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
          return this;
       }
 
-      public ServiceLoadedBuilderProvider<Action.Builder> onCompletion() {
+      public ServiceLoadedBuilderProvider<Action.Builder, Action.BuilderFactory> onCompletion() {
          return new ServiceLoadedBuilderProvider<>(Action.BuilderFactory.class, locator, this::onCompletion);
       }
 

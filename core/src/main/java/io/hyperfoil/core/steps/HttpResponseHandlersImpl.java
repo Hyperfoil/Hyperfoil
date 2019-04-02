@@ -241,7 +241,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          return this;
       }
 
-      public ServiceLoadedBuilderProvider<StatusHandler.Builder> status() {
+      public ServiceLoadedBuilderProvider<StatusHandler.Builder, StatusHandler.BuilderFactory> status() {
          return new ServiceLoadedBuilderProvider<>(StatusHandler.BuilderFactory.class, Locator.fromStep(parent), statusHandlers::add);
       }
 
@@ -250,7 +250,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          return this;
       }
 
-      public ServiceLoadedBuilderProvider<HeaderHandler.Builder> header() {
+      public ServiceLoadedBuilderProvider<HeaderHandler.Builder, HeaderHandler.BuilderFactory> header() {
          return new ServiceLoadedBuilderProvider<>(HeaderHandler.BuilderFactory.class, Locator.fromStep(parent), headerHandlers::add);
       }
 
@@ -259,7 +259,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          return this;
       }
 
-      public ServiceLoadedBuilderProvider<BodyHandler.Builder> body() {
+      public ServiceLoadedBuilderProvider<BodyHandler.Builder, BodyHandler.BuilderFactory> body() {
          return new ServiceLoadedBuilderProvider<>(BodyHandler.BuilderFactory.class, Locator.fromStep(parent), bodyHandlers::add);
       }
 
@@ -268,7 +268,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          return this;
       }
 
-      public ServiceLoadedBuilderProvider<Action.Builder> onCompletion() {
+      public ServiceLoadedBuilderProvider<Action.Builder, Action.BuilderFactory> onCompletion() {
          return new ServiceLoadedBuilderProvider<>(Action.BuilderFactory.class, Locator.fromStep(parent), completionHandlers::add);
       }
 

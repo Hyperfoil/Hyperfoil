@@ -112,7 +112,7 @@ class StepParser implements Parser<BaseSequenceBuilder> {
                throw new ParserException(defEvent, "Expecting builder type but found end of mapping.");
             } else if (defEvent instanceof ScalarEvent) {
                String name = ((ScalarEvent) defEvent).getValue();
-               ServiceLoadedBuilderProvider<?> provider = (ServiceLoadedBuilderProvider<?>) builder;
+               ServiceLoadedBuilderProvider<?, ?> provider = (ServiceLoadedBuilderProvider<?, ?>) builder;
                ServiceLoadedContract<?> slc;
                Event builderEvent = ctx.next();
                String param = null;

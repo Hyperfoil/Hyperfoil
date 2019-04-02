@@ -4,6 +4,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import io.hyperfoil.api.config.ServiceLoadedFactory;
+import io.hyperfoil.api.http.Processor;
 import io.hyperfoil.api.statistics.Statistics;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
@@ -106,4 +108,6 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
       // This is called when the request is written on the wire
       sendTime = System.nanoTime();
    }
+
+   public interface ProcessorBuilderFactory extends ServiceLoadedFactory<Processor.Builder<Request>> {}
 }

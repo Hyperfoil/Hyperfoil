@@ -2,6 +2,9 @@ package io.hyperfoil.core.handlers;
 
 import java.nio.charset.StandardCharsets;
 
+import org.kohsuke.MetaInfServices;
+
+import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.http.Processor;
 import io.netty.buffer.ByteBuf;
@@ -46,5 +49,43 @@ public class ArrayRecorder implements Processor<Request>, ResourceUtilizer {
       session.declare(var);
       session.setObject(var, ObjectVar.newArray(session, maxSize));
       session.unset(var);
+   }
+
+   public static class Builder implements Processor.Builder<Request> {
+      private String var;
+      private int maxSize;
+
+      @Override
+      public ArrayRecorder build() {
+         return new ArrayRecorder(var, maxSize);
+      }
+
+      public Builder var(String var) {
+         this.var = var;
+         return this;
+      }
+
+      public Builder maxSize(int maxSize) {
+         this.maxSize = maxSize;
+         return this;
+      }
+   }
+
+   @MetaInfServices(Request.ProcessorBuilderFactory.class)
+   public static class BuilderFactory implements Request.ProcessorBuilderFactory {
+      @Override
+      public String name() {
+         return "array";
+      }
+
+      @Override
+      public boolean acceptsParam() {
+         return false;
+      }
+
+      @Override
+      public Builder newBuilder(Locator locator, String param) {
+         return new Builder();
+      }
    }
 }
