@@ -212,12 +212,12 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
          count--;
          created--;
          closed++;
-         if (closed > size) {
-            // do cleanup
-            connections.removeIf(HttpConnection::isClosed);
-            closed = 0;
-         }
          if (!shutdown) {
+            if (closed > size) {
+               // do cleanup
+               connections.removeIf(HttpConnection::isClosed);
+               closed = 0;
+            }
             checkCreateConnections(0);
          }
       });
