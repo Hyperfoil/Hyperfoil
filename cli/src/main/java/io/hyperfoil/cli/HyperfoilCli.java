@@ -20,7 +20,7 @@
 
 package io.hyperfoil.cli;
 
-import io.hyperfoil.cli.commands.ReadYaml;
+import io.hyperfoil.cli.commands.RunLocal;
 import io.hyperfoil.cli.commands.Wrk;
 import io.hyperfoil.cli.context.HyperfoilCliContext;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
@@ -79,7 +79,7 @@ public class HyperfoilCli {
        CommandRegistry registry = new AeshCommandRegistryBuilder()
               .command(ExitCommand.class)
               .command(Wrk.WrkCommand.class)
-              .command(ReadYaml.class)
+              .command(RunLocal.class)
               .create();
 
        Settings settings = builder

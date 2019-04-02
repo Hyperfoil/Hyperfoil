@@ -21,12 +21,16 @@
 package io.hyperfoil.cli.commands;
 
 import io.hyperfoil.api.config.Benchmark;
+import io.hyperfoil.api.statistics.CustomValue;
 import io.hyperfoil.api.statistics.LongValue;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
 import io.hyperfoil.core.impl.statistics.StatisticsCollector;
 import io.hyperfoil.core.parser.BenchmarkParser;
 import io.hyperfoil.core.parser.ParserException;
+import io.hyperfoil.core.steps.BaseStep;
+import io.hyperfoil.core.util.Util;
+
 import org.aesh.command.AeshCommandRuntimeBuilder;
 import org.aesh.command.Command;
 import org.aesh.command.CommandDefinition;
@@ -47,12 +51,13 @@ import java.nio.charset.StandardCharsets;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
  */
-@CommandDefinition(name = "read-yaml", description = "read-yaml command to initiate a hyperfoil workload through a yaml file")
-public class ReadYaml implements Command<CommandInvocation> {
+@CommandDefinition(name = "run-local", description = "read-yaml command to initiate a hyperfoil workload through a yaml file")
+public class RunLocal implements Command<CommandInvocation> {
 
     //ignore logging when running in the console below severe
     static {
@@ -73,26 +78,27 @@ public class ReadYaml implements Command<CommandInvocation> {
     @Override
     public CommandResult execute(CommandInvocation commandInvocation) throws CommandException, InterruptedException {
         if(help) {
-            commandInvocation.println(commandInvocation.getHelpInfo("main"));
+            commandInvocation.println(commandInvocation.getHelpInfo("run-local"));
             return CommandResult.SUCCESS;
         }
 
-        Benchmark benchmark = null;
         try {
-            benchmark = buildBenchmark(yaml.read(), commandInvocation);
+            Benchmark benchmark = buildBenchmark(yaml.read(), commandInvocation);
 
             if(benchmark != null) {
                 LocalSimulationRunner runner = new LocalSimulationRunner(benchmark);
-                commandInvocation.println("Running for " + benchmark.simulation().statisticsCollectionPeriod());
-                commandInvocation.println(benchmark.simulation().threads() + " threads");
+                commandInvocation.println("Running benchmark '" + benchmark.name() + "'");
+                commandInvocation.println("Using " + benchmark.simulation().threads() + " thread(s)");
+                commandInvocation.print("Target servers: ");
+                commandInvocation.println(String.join(", ", benchmark.simulation().http().values().stream().map(http -> http.baseUrl() + " (" + http.sharedConnections() + " connections)").collect(Collectors.toList())));
                 runner.run();
                 StatisticsCollector collector = new StatisticsCollector();
                 runner.visitStatistics(collector);
-                collector.visitStatistics((stepId, name, stats, countDown) -> printStats(stats, commandInvocation), null);
+                collector.visitStatistics((stepId, name, stats, countDown) -> printStats(benchmark, stepId, name, stats, commandInvocation), null);
             }
         }
         catch(FileNotFoundException e){
-            commandInvocation.println("Couldn't find yaml file: "+e.getMessage());
+            commandInvocation.println("Couldn't find benchmark file: " + e.getMessage());
         }
         return CommandResult.SUCCESS;
     }
@@ -123,23 +129,40 @@ public class ReadYaml implements Command<CommandInvocation> {
         return null;
     }
 
-    private void printStats(StatisticsSnapshot stats, CommandInvocation invocation) {
-        long dataRead = ((LongValue) stats.custom.get("bytes")).value();
+    private void printStats(Benchmark benchmark, int stepId, String name, StatisticsSnapshot stats, CommandInvocation invocation) {
+        String phase = benchmark.steps()
+              .filter(BaseStep.class::isInstance).map(BaseStep.class::cast)
+              .filter(s -> s.id() == stepId).map(s -> s.sequence().phase().name()).findFirst().get();
+        invocation.println("Statistics for " + phase + "/" + name + ":");
+
         double durationSeconds = (stats.histogram.getEndTimeStamp() - stats.histogram.getStartTimeStamp()) / 1000d;
-        invocation.println(stats.histogram.getTotalCount()+" requests in "+durationSeconds+"s, "+formatData(dataRead)+" read");
+        invocation.print(stats.histogram.getTotalCount() + " requests in " + durationSeconds + "s");
+
+        CustomValue bytes = stats.custom.get("bytes");
+        String transferPerSec = null;
+        if (bytes != null && bytes instanceof LongValue) {
+            long numBytes = ((LongValue) bytes).value();
+            transferPerSec = Util.prettyPrintData(numBytes / durationSeconds);
+            invocation.println(", "+ Util.prettyPrintData(numBytes) +" read");
+        } else {
+            invocation.println("");
+        }
+
         invocation.println("                 Avg    Stdev      Max");
-        invocation.println("Latency:      "+formatTime(stats.histogram.getMean())+" "+formatTime(stats.histogram.getStdDeviation())+" "+formatTime(stats.histogram.getMaxValue()));
+        invocation.println("Latency:      "+ Util.prettyPrintNanos((long) stats.histogram.getMean())+" "
+              +Util.prettyPrintNanos((long)stats.histogram.getStdDeviation())+" "
+              +Util.prettyPrintNanos(stats.histogram.getMaxValue()));
          /*
          if (latency) {
             invocation.println("Latency Distribution");
             for (double percentile : new double[] { 0.5, 0.75, 0.9, 0.99, 0.999, 0.9999, 0.99999, 1.0}) {
-               invocation.println(String.format("%7.3f", 100 * percentile)+" "+formatTime(stats.histogram.getValueAtPercentile(100 * percentile)));
+               invocation.println(String.format("%7.3f", 100 * percentile)+" "+Util.prettyPrintNanos((long)stats.histogram.getValueAtPercentile(100 * percentile)));
             }
             invocation.println("----------------------------------------------------------");
             invocation.println("Detailed Percentile Spectrum");
             invocation.println("   Value  Percentile  TotalCount  1/(1-Percentile)");
             for (HistogramIterationValue value : stats.histogram.percentiles(5)) {
-               invocation.println(formatTime(value.getValueIteratedTo())+" "+String.format("%9.5f%%  %10d  %15.2f",
+               invocation.println(Util.prettyPrintNanos((long)value.getValueIteratedTo())+" "+String.format("%9.5f%%  %10d  %15.2f",
                      value.getPercentile(), value.getTotalCountToThisValue(), 100/(100 - value.getPercentile())));
             }
             invocation.println("----------------------------------------------------------");
@@ -148,50 +171,19 @@ public class ReadYaml implements Command<CommandInvocation> {
         invocation.println("Requests/sec: "+stats.histogram.getTotalCount() / durationSeconds);
         if (stats.errors() > 0) {
             invocation.println("Socket errors: connect "+stats.connectFailureCount+", reset "+stats.resetCount+", timeout "+stats.timeouts);
-            invocation.println("Non-2xx or 3xx responses: "+ stats.status_4xx + stats.status_5xx + stats.status_other);
+            invocation.println("Non-2xx or 3xx responses: "+ (stats.status_4xx + stats.status_5xx + stats.status_other));
         }
-        invocation.println("Transfer/sec: "+formatData(dataRead / durationSeconds));
-    }
-
-    private String formatData(double value) {
-        double scaled;
-        String suffix;
-        if (value >= 1024 * 1024 * 1024) {
-            scaled = (double) value / (1024 * 1024 * 1024);
-            suffix = "GB";
-        } else if (value >= 1024 * 1024) {
-            scaled = (double) value / (1024 * 1024);
-            suffix = "MB";
-        }  else if (value >= 1024) {
-            scaled = (double) value / 1024;
-            suffix = "kB";
-        } else {
-            scaled = value;
-            suffix = "B ";
+        if (transferPerSec != null) {
+            invocation.println("Transfer/sec: " + transferPerSec);
         }
-        return String.format("%6.2f%s", scaled, suffix);
-    }
-
-    private String formatTime(double value) {
-        String suffix = "ns";
-        if (value >= 1000_000_000) {
-            value /= 1000_000_000;
-            suffix = "s ";
-        } else if (value >= 1000_000) {
-            value /= 1000_000;
-            suffix = "ms";
-        } else if (value >= 1000) {
-            value /= 1000;
-            suffix = "us";
-        }
-        return String.format("%6.2f%s", value, suffix);
+        invocation.println("---");
     }
 
     public static void main(String[] args) throws Exception {
         CommandRuntime runtime =
                 AeshCommandRuntimeBuilder.builder()
                                          .commandRegistry(AeshCommandRegistryBuilder.builder()
-                                                                  .command(ReadYaml.class).create())
+                                                                  .command(RunLocal.class).create())
                                          .build();
 
         StringBuilder sb = new StringBuilder("main ");

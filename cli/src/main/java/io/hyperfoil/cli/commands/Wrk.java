@@ -87,7 +87,7 @@ public class Wrk {
                   .command(WrkCommand.class).create())
             .build();
 
-      StringBuilder sb = new StringBuilder("run-local ");
+      StringBuilder sb = new StringBuilder("wrk ");
       if (args.length == 1) {
          // When executed from mvn exec:exec -Pwrk -Dwrk.args="..." we don't want to quote the args
          sb.append(args[0]);
@@ -109,7 +109,7 @@ public class Wrk {
       }
    }
 
-   @CommandDefinition(name = "run-local", description = "Runs a workload simluation against one endpoint using the same vm")
+   @CommandDefinition(name = "wrk", description = "Runs a workload simluation against one endpoint using the same vm")
    public class WrkCommand implements Command<CommandInvocation> {
       @Option(shortName = 'c', description = "Total number of HTTP connections to keep open", required = true)
       int connections;
@@ -149,7 +149,7 @@ public class Wrk {
       @Override
       public CommandResult execute(CommandInvocation commandInvocation) throws CommandException, InterruptedException {
           if(help) {
-             commandInvocation.println(commandInvocation.getHelpInfo("run-local"));
+             commandInvocation.println(commandInvocation.getHelpInfo("wrk"));
              return CommandResult.SUCCESS;
           }
          if (script != null) {
