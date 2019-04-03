@@ -15,6 +15,7 @@ import io.hyperfoil.api.config.Simulation;
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.api.statistics.Statistics;
+import io.hyperfoil.core.generators.Pattern;
 import io.hyperfoil.core.generators.StringGeneratorBuilder;
 import io.hyperfoil.core.http.CookieAppender;
 import io.hyperfoil.function.SerializableSupplier;
@@ -503,6 +504,21 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
                return null;
             }
          });
+         return this;
+      }
+
+      public BodyBuilder pattern(String pattern) {
+         Pattern p = new Pattern(pattern);
+         parent.bodyGenerator((session, connection) -> {
+            String str = p.apply(session);
+            return Util.string2byteBuf(str, connection.context().alloc().buffer(str.length()));
+         });
+         return this;
+      }
+
+      public BodyBuilder text(String text) {
+         byte[] bytes = text.getBytes(StandardCharsets.UTF_8);
+         parent.bodyGenerator(((session, connection) -> Unpooled.wrappedBuffer(bytes)));
          return this;
       }
 

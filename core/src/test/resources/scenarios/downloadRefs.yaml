@@ -38,7 +38,7 @@ simulation:
                            maxSequences: 16
                            counterVar: downloadCounter
                            dataVar: downloadUrl
-                           template: embeddedResource
+                           sequence: embeddedResource
             # This probably won't wait for the embedded resources as the requests are not sent yet
             - awaitAllResponses
           sequences:

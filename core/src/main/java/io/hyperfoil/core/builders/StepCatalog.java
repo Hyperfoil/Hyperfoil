@@ -49,8 +49,8 @@ public class StepCatalog implements Step.Catalog {
 
    // control steps
 
-   public BreakSequenceStep.Builder breakSequence(Predicate<Session> condition) {
-      return new BreakSequenceStep.Builder(parent, condition);
+   public BreakSequenceStep.Builder breakSequence() {
+      return new BreakSequenceStep.Builder(parent);
    }
 
    public BaseSequenceBuilder nextSequence(String name) {

@@ -5,8 +5,10 @@ import java.util.List;
 
 import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.Step;
+import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.config.BaseSequenceBuilder;
+import io.hyperfoil.core.builders.IntCondition;
 import io.hyperfoil.function.SerializableIntPredicate;
 import io.hyperfoil.function.SerializableSupplier;
 
@@ -27,11 +29,15 @@ public class AwaitIntStep implements Step {
       return false;
    }
 
-   public static class Builder extends IntegerConditionBuilder<Builder> {
+   public static class Builder extends IntCondition.BaseBuilder<Builder> implements StepBuilder {
+      private final BaseSequenceBuilder parent;
       private String var;
 
       public Builder(BaseSequenceBuilder parent) {
-         super(parent);
+         this.parent = parent;
+         if (parent != null) {
+            parent.stepBuilder(this);
+         }
       }
 
       public Builder var(String var) {
@@ -42,6 +48,11 @@ public class AwaitIntStep implements Step {
       @Override
       public List<Step> build(SerializableSupplier<Sequence> sequence) {
          return Collections.singletonList(new AwaitIntStep(var, buildPredicate()));
+      }
+
+      @Override
+      public BaseSequenceBuilder endStep() {
+         return parent;
       }
    }
 }

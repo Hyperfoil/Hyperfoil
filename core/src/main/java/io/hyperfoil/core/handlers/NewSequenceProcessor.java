@@ -85,7 +85,7 @@ public class NewSequenceProcessor implements Processor<Request>, ResourceUtilize
       private int maxSequences = -1;
       private String counterVar;
       private String dataVar;
-      private String template;
+      private String sequence;
 
       public Builder maxSequences(int maxSequences) {
          this.maxSequences = maxSequences;
@@ -97,13 +97,13 @@ public class NewSequenceProcessor implements Processor<Request>, ResourceUtilize
          return this;
       }
 
-      public Builder dataVar(String sequenceVar) {
-         this.dataVar = sequenceVar;
+      public Builder dataVar(String dataVar) {
+         this.dataVar = dataVar;
          return this;
       }
 
-      public Builder template(String template) {
-         this.template = template;
+      public Builder sequence(String sequence) {
+         this.sequence = sequence;
          return this;
       }
 
@@ -118,10 +118,10 @@ public class NewSequenceProcessor implements Processor<Request>, ResourceUtilize
          if (dataVar == null) {
             throw new BenchmarkDefinitionException("Undefined dataVar");
          }
-         if (template == null) {
+         if (sequence == null) {
             throw new BenchmarkDefinitionException("Undefined sequence template");
          }
-         return new NewSequenceProcessor(maxSequences, counterVar, dataVar, template);
+         return new NewSequenceProcessor(maxSequences, counterVar, dataVar, sequence);
       }
    }
 }

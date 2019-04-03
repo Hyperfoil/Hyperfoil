@@ -17,13 +17,13 @@ import io.hyperfoil.function.SerializableSupplier;
 public class ForeachStep extends DependencyStep implements ResourceUtilizer {
    private final String dataVar;
    private final String counterVar;
-   private final String template;
+   private final String sequence;
 
    public ForeachStep(SerializableSupplier<Sequence> sequence, VarReference[] dependencies, String dataVar, String counterVar, String template) {
       super(sequence, dependencies);
       this.dataVar = dataVar;
       this.counterVar = counterVar;
-      this.template = template;
+      this.sequence = template;
    }
 
    @Override
@@ -40,7 +40,7 @@ public class ForeachStep extends DependencyStep implements ResourceUtilizer {
       int i = 0;
       for (; i < array.length; i++) {
          if (!array[i].isSet()) break;
-         session.phase().scenario().sequence(template).instantiate(session, i);
+         session.phase().scenario().sequence(sequence).instantiate(session, i);
       }
       if (counterVar != null) {
          session.setInt(counterVar, i);
@@ -56,7 +56,7 @@ public class ForeachStep extends DependencyStep implements ResourceUtilizer {
    public static class Builder extends DependencyStepBuilder {
       private String dataVar;
       private String counterVar;
-      private String sequenceTemplate;
+      private String sequence;
 
       public Builder(BaseSequenceBuilder parent, String dataVar, String counterVar) {
          super(parent);
@@ -75,17 +75,17 @@ public class ForeachStep extends DependencyStep implements ResourceUtilizer {
          return this;
       }
 
-      public Builder sequence(String sequenceTemplate) {
-         this.sequenceTemplate = sequenceTemplate;
+      public Builder sequence(String sequence) {
+         this.sequence = sequence;
          return this;
       }
 
       @Override
       public List<Step> build(SerializableSupplier<Sequence> sequence) {
-         if (sequenceTemplate == null) {
+         if (this.sequence == null) {
             throw new BenchmarkDefinitionException("Template sequence must be defined");
          }
-         return Collections.singletonList(new ForeachStep(sequence, dependencies(), dataVar, counterVar, sequenceTemplate));
+         return Collections.singletonList(new ForeachStep(sequence, dependencies(), dataVar, counterVar, this.sequence));
       }
    }
 }
