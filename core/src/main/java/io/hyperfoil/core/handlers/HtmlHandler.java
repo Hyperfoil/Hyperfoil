@@ -641,7 +641,7 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
       }
    }
 
-   private static class EmbeddedResourceProcessor extends Processor.BaseDelegating<HttpRequest> implements ResourceUtilizer {
+   private static class EmbeddedResourceProcessor extends Processor.BaseDelegating<HttpRequest> {
       private static final byte[] HTTP_PREFIX = "http".getBytes(StandardCharsets.UTF_8);
 
       private final boolean ignoreExternal;
@@ -710,13 +710,6 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
             }
          }
          return i == baseUrl.length;
-      }
-
-      @Override
-      public void reserve(Session session) {
-         if (delegate instanceof ResourceUtilizer) {
-            ((ResourceUtilizer) delegate).reserve(session);
-         }
       }
    }
 }

@@ -119,7 +119,9 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
 
    @Override
    public void terminate() {
-      status = Status.TERMINATING;
+      if (status != Status.TERMINATED) {
+         status = Status.TERMINATING;
+      }
       log.debug("{} changing status to TERMINATING", def.name);
       tryTerminate();
    }

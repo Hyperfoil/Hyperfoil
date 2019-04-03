@@ -11,6 +11,7 @@ import org.junit.runner.RunWith;
 import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.handlers.ArrayRecorder;
+import io.hyperfoil.core.handlers.ProcessorAssertion;
 import io.hyperfoil.core.handlers.SequenceScopedCountRecorder;
 import io.hyperfoil.core.handlers.DefragProcessor;
 import io.hyperfoil.core.handlers.JsonHandler;
@@ -70,6 +71,8 @@ public class FleetTest extends BaseScenarioTest {
       // We need to call async() to prevent termination when the test method completes
       Async async = ctx.async(2);
 
+      ProcessorAssertion shipAssertion = new ProcessorAssertion(3, true);
+      ProcessorAssertion crewAssertion = new ProcessorAssertion(2, true);
       scenario(2)
             .intVar("numberOfSunkShips")
             .initialSequence("fleet")
@@ -79,7 +82,7 @@ public class FleetTest extends BaseScenarioTest {
                })
                .step(SC).httpRequest(HttpMethod.GET).path("/fleet")
                   .handler()
-                     .body(new JsonHandler(".ships[].name", new DefragProcessor(new ArrayRecorder("shipNames", MAX_SHIPS))))
+                     .body(new JsonHandler(".ships[].name", shipAssertion.processor(new DefragProcessor(new ArrayRecorder("shipNames", MAX_SHIPS)))))
                   .endHandler()
                .endStep()
                .step(SC).foreach("shipNames", "numberOfShips").sequence("ship").endStep()
@@ -87,10 +90,11 @@ public class FleetTest extends BaseScenarioTest {
             .sequence("ship")
                .step(SC).httpRequest(HttpMethod.GET).pathGenerator(FleetTest::currentShipQuery)
                   .handler()
-                     .body(new JsonHandler(".crew[]", new SequenceScopedCountRecorder("crewCount", MAX_SHIPS)))
+                     .body(new JsonHandler(".crew[]", crewAssertion.processor(new SequenceScopedCountRecorder("crewCount", MAX_SHIPS))))
                   .endHandler()
                .endStep()
-               .step(SC).breakSequence(s -> currentCrewCount(s) > 0)
+               .step(SC).breakSequence()
+                  .condition(s -> currentCrewCount(s) > 0)
                   .onBreak(s -> s.addToInt("numberOfShips", -1))
                   .dependency(new SequenceScopedVarReference("crewCount"))
                .endStep()
@@ -115,6 +119,8 @@ public class FleetTest extends BaseScenarioTest {
                .step(new AwaitConditionStep(s -> s.getInt("numberOfSunkShips") <= 0))
                .step(s -> {
                   log.info("Test completed");
+                  shipAssertion.runAssertions(ctx);
+                  crewAssertion.runAssertions(ctx);
                   async.countDown();
                   return true;
                })

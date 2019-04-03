@@ -9,7 +9,7 @@ import io.hyperfoil.api.session.ResourceUtilizer;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-public class DefragProcessor<R extends Request> extends Processor.BaseDelegating<R> implements ResourceUtilizer, Session.ResourceKey<DefragProcessor.Context> {
+public class DefragProcessor<R extends Request> extends Processor.BaseDelegating<R> implements Session.ResourceKey<DefragProcessor.Context> {
    private static final Logger log = LoggerFactory.getLogger(DefragProcessor.class);
 
    public DefragProcessor(Processor<R> delegate) {

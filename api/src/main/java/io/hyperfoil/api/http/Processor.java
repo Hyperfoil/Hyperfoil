@@ -1,6 +1,8 @@
 package io.hyperfoil.api.http;
 
 import io.hyperfoil.api.connection.Request;
+import io.hyperfoil.api.session.ResourceUtilizer;
+import io.hyperfoil.api.session.Session;
 import io.netty.buffer.ByteBuf;
 
 public interface Processor<R extends Request> {
@@ -24,7 +26,7 @@ public interface Processor<R extends Request> {
       Processor<R> build();
    }
 
-   abstract class BaseDelegating<R extends Request> implements Processor<R> {
+   abstract class BaseDelegating<R extends Request> implements Processor<R>, ResourceUtilizer {
       protected final Processor<R> delegate;
 
       protected BaseDelegating(Processor<R> delegate) {
@@ -39,6 +41,13 @@ public interface Processor<R extends Request> {
       @Override
       public void after(R request) {
          delegate.after(request);
+      }
+
+      @Override
+      public void reserve(Session session) {
+         if (delegate instanceof ResourceUtilizer) {
+            ((ResourceUtilizer) delegate).reserve(session);
+         }
       }
    }
 }
