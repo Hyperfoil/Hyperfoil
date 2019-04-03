@@ -19,7 +19,9 @@ public class ExecutorsTest extends BaseScenarioTest {
       Set<Thread> threads = new HashSet<>();
       parallelScenario(10).initialSequence("foo")
             .step(s -> {
-               threads.add(Thread.currentThread());
+               synchronized (threads) {
+                  threads.add(Thread.currentThread());
+               }
                try {
                   Thread.sleep(100);
                } catch (InterruptedException e) {
