@@ -1,13 +1,18 @@
 package io.hyperfoil.core.generators;
 
+import java.io.IOException;
 import java.lang.reflect.Array;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 
+import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.ListBuilder;
 import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.Step;
@@ -65,6 +70,7 @@ public class RandomItemStep implements Step, ResourceUtilizer {
    public static class Builder extends BaseStepBuilder {
       private String fromVar;
       private List<String> list = new ArrayList<>();
+      private String file;
       private String var;
 
       public Builder(BaseSequenceBuilder parent) {
@@ -73,6 +79,21 @@ public class RandomItemStep implements Step, ResourceUtilizer {
 
       @Override
       public List<Step> build(SerializableSupplier<Sequence> sequence) {
+         if (fromVar != null && (!list.isEmpty() || file != null)) {
+            throw new BenchmarkDefinitionException("randomItem cannot combine `fromVar` and `list` or `file`");
+         } else if (!list.isEmpty() && file != null) {
+            throw new BenchmarkDefinitionException("randomItem cannot combine `list` and `file`");
+         }
+         if (file != null) {
+            try {
+               list = Files.readAllLines(Paths.get(file)).stream().filter(line -> !line.isEmpty()).collect(Collectors.toList());
+            } catch (IOException e) {
+               throw new BenchmarkDefinitionException("Cannot load file `" + file + "` for randomItem.", e);
+            }
+         }
+         if (fromVar == null && list.isEmpty()) {
+            throw new BenchmarkDefinitionException("randomItem has empty list and `fromVar` was not defined.");
+         }
          return Collections.singletonList(new RandomItemStep(fromVar, list.isEmpty() ? null : list.toArray(new String[0]), var));
       }
 
@@ -87,6 +108,11 @@ public class RandomItemStep implements Step, ResourceUtilizer {
 
       public Builder var(String var) {
          this.var = var;
+         return this;
+      }
+
+      public Builder file(String file) {
+         this.file = file;
          return this;
       }
    }
