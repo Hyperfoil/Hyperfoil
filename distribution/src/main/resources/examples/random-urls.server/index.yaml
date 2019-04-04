@@ -1,0 +1,5 @@
+request:
+  method: GET
+  path: /example/index.html
+response:
+  statusCode: 200

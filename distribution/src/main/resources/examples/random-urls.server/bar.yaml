@@ -1,0 +1,5 @@
+request:
+  method: GET
+  path: /example/bar.png
+response:
+  statusCode: 300

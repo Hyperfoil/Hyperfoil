@@ -1,0 +1,5 @@
+request:
+  method: GET
+  path: /movie/:name/watch
+response:
+  statusCode: 200

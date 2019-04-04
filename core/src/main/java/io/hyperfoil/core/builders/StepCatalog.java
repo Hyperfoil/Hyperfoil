@@ -136,6 +136,10 @@ public class StepCatalog implements Step.Catalog {
       return new SetStep.Builder(parent);
    }
 
+   public BaseSequenceBuilder set(String param) {
+      return new SetStep.Builder(parent, param).endStep();
+   }
+
    public <T> PollStep.Builder<T> poll(Function<Session, T> provider, String intoVar) {
       return new PollStep.Builder<>(parent, provider, intoVar);
    }

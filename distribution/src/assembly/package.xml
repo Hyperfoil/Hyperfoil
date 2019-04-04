@@ -10,6 +10,7 @@
 
     <target name="all">
         <mkdir dir="${dist.dir}/docs"/>
+        <mkdir dir="${dist.dir}/examples"/>
         <mkdir dir="${dist.dir}/bin"/>
         <mkdir dir="${dist.dir}/lib"/>
 
@@ -29,6 +30,12 @@
                 <include name="**/*.sh" />
             </fileset>
         </chmod>
+
+        <copy todir="${dist.dir}/examples" failonerror="true">
+            <fileset dir="src/main/resources/examples">
+                <include name="**/*"/>
+            </fileset>
+        </copy>
     </target>
 
     <macrodef name="copy-module">

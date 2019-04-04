@@ -1,0 +1,46 @@
+name: random-urls
+simulation:
+  http:
+    baseUrl: http://localhost:8080
+  phases:
+  - example:
+      # 10 users will be starting the scenario every second
+      constantPerSec:
+        usersPerSec: 10
+        duration: 5s
+        scenario:
+          orderedSequences:
+          - test:
+            # Step `randomItem` randomly picks one item from the list below...
+            - randomItem:
+                list:
+                  - index.html
+                  - foo.png
+                  - bar.png
+                  - this-returns-404.png
+                # ... and stores it in users's session under key `my-random-path`
+                var: my-random-path
+            - httpRequest:
+                # HTTP request will read the variable from the session and format
+                # the path for the GET request
+                GET:
+                  pattern: /example/${ my-random-path }
+                # We'll use different statistics for webpages and images
+                statistics:
+                - .*\.html -> pages
+                - .*\.png -> images
+                - -> other
+                # Handler processes the response
+                handler:
+                  # We'll check that the response was successful (status 200-299)
+                  status:
+                    range: 2xx
+                  # When the response is fully processed we'll set variable `completed`
+                  # in the session.
+                  onCompletion:
+                    set: completed <- yes
+            # Note that we haven't set `sync: true` in the httpRequest above.
+            # Next step is executed immediately after we fire the request, not
+            # waiting for the response. We'll wait for the `completed` var
+            # to be set in this step, though.
+            - awaitVar: completed

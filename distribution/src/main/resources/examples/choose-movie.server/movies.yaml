@@ -1,0 +1,12 @@
+request:
+  method: GET
+  path: /movies
+response:
+  statusCode: 200
+  body: >
+    [
+      { "name" : "Shanghai Knights", "quality": 73 },
+      { "name" : "Die Hard", "quality": 89 },
+      { "name" : "The Terminator", "quality": 87 },
+      { "name" : "Plump Fiction", "quality": 8 }
+    ]

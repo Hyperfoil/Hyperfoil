@@ -47,8 +47,8 @@ public class SetStep implements Action.Step, ResourceUtilizer {
       private Object value;
       private ObjectArrayBuilder objectArray;
 
-      public Builder(String param) {
-         super(null);
+      public Builder(BaseSequenceBuilder parent, String param) {
+         super(parent);
          int sep = param.indexOf("<-");
          if (sep < 0) {
             throw new BenchmarkDefinitionException("Invalid inline definition '" + param + "': should be 'var <- value'");
@@ -117,7 +117,7 @@ public class SetStep implements Action.Step, ResourceUtilizer {
 
       @Override
       public SetStep.Builder newBuilder(Locator locator, String param) {
-         return new SetStep.Builder(param);
+         return new SetStep.Builder(null, param);
       }
    }
 

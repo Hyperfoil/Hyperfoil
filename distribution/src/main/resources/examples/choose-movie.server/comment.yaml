@@ -1,0 +1,5 @@
+request:
+  method: POST
+  path: /movie/:name/comments
+response:
+  statusCode: 200
