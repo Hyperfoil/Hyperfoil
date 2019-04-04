@@ -17,7 +17,6 @@ import io.hyperfoil.api.session.PhaseInstance;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -67,7 +66,7 @@ class SessionImpl implements Session, Callable<Void> {
          sequence.reserve(this);
       }
       for (String var : scenario.objectVars()) {
-         declare(var);
+         declareObject(var);
       }
       for (String var : scenario.intVars()) {
          declareInt(var);
@@ -108,19 +107,16 @@ class SessionImpl implements Session, Callable<Void> {
       allVars.add(var);
    }
 
-   @Override
-   public Session declare(Object key) {
+   public Session declareObject(Object key) {
       ObjectVar var = new ObjectVar(this);
       vars.putIfAbsent(key, var);
       return this;
    }
 
-   @Override
    public Object getObject(Object key) {
       return ((ObjectVar) requireSet(key)).get();
    }
 
-   @Override
    public Session setObject(Object key, Object value) {
       if (trace) {
          log.trace("#{} {} <- {}", uniqueId, key, value);
@@ -131,15 +127,12 @@ class SessionImpl implements Session, Callable<Void> {
       return this;
    }
 
-
-   @Override
    public Session declareInt(Object key) {
       IntVar var = new IntVar(this);
       vars.put(key, var);
       return this;
    }
 
-   @Override
    public int getInt(Object key) {
       IntVar var = requireSet(key);
       if (!var.isSet()) {
@@ -148,41 +141,21 @@ class SessionImpl implements Session, Callable<Void> {
       return var.get();
    }
 
-   @Override
-   public Session setInt(Object key, int value) {
+   public void setInt(Object key, int value) {
       if (trace) {
          log.trace("#{} {} <- {}", uniqueId, key, value);
       }
       this.<IntVar>getVar(key).set(value);
-      return this;
    }
 
-   @Override
-   public Session addToInt(Object key, int delta) {
+   public int addToInt(Object key, int delta) {
       IntVar var = requireSet(key);
+      int prev = var.get();
       if (trace) {
-         log.trace("#{} {} <- {}", uniqueId, key, var.get() + delta);
+         log.trace("#{} {} <- {}", uniqueId, key, prev + delta);
       }
-      var.set(var.get() + delta);
-      return this;
-   }
-
-   @Override
-   public boolean isSet(Object key) {
-      return getVar(key).isSet();
-   }
-
-   @Override
-   public Object activate(Object key) {
-      ObjectVar var = getVar(key);
-      var.set = true;
-      return var.get();
-   }
-
-   @Override
-   public Session unset(Object key) {
-      getVar(key).unset();
-      return this;
+      var.set(prev + delta);
+      return prev;
    }
 
    @Override
@@ -196,27 +169,12 @@ class SessionImpl implements Session, Callable<Void> {
       return (R) resources.get(key);
    }
 
-   @Override
    public <V extends Var> V getVar(Object key) {
       Var var = vars.get(key);
       if (var == null) {
          throw new IllegalStateException("Variable " + key + " was not defined!");
       }
       return (V) var;
-   }
-
-   @Override
-   public <V extends Var> V getSequenceScopedVar(Object key) {
-      Object value = getObject(key);
-      if (value instanceof ObjectVar[]) {
-         int index = currentSequence.index();
-         return (V) Array.get(value, index);
-      } else if (value instanceof List) {
-         int index = currentSequence.index();
-         return (V) ((List) value).get(index);
-      } else {
-         throw new IllegalStateException(key + " does not constitute to sequence-scoped variable, it contains " + value);
-      }
    }
 
    private <V extends Var> V requireSet(Object key) {

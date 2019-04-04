@@ -30,6 +30,7 @@ public class HttpRequestTest extends BaseScenarioTest {
          String body = ctx.getBodyAsString();
          if (expect == null) {
             ctx.response().setStatusCode(400).end();
+            return;
          }
          ctx.response().setStatusCode(expect.equals(body) ? 200 : 412).end();
       });
@@ -66,10 +67,10 @@ public class HttpRequestTest extends BaseScenarioTest {
       scenario()
             .objectVar("x")
             .initialSequence("test")
-               .step(s -> {
-                  s.setObject("x", "bar");
-                  return true;
-               })
+               .step(SC).set()
+                  .var("x")
+                  .value("bar")
+               .endStep()
                .step(SC).httpRequest(HttpMethod.POST)
                   .path("/test?expect=bar")
                   .body().var("x").endBody()
@@ -91,10 +92,10 @@ public class HttpRequestTest extends BaseScenarioTest {
       scenario()
             .objectVar("x")
             .initialSequence("test")
-            .step(s -> {
-               s.setObject("x", chineseStr);
-               return true;
-            })
+            .step(SC).set()
+               .var("x")
+               .value(chineseStr)
+            .endStep()
             .step(SC).httpRequest(HttpMethod.POST)
             .path("/test?expect=" + URLEncoder.encode(chineseStr, StandardCharsets.UTF_8.name()))
             .body().var("x").endBody()
@@ -110,10 +111,10 @@ public class HttpRequestTest extends BaseScenarioTest {
       scenario()
             .objectVar("x")
             .initialSequence("test")
-               .step(s -> {
-                  s.setObject("x", "bar");
-                  return true;
-               })
+               .step(SC).set()
+                  .var("x")
+                  .value("bar")
+               .endStep()
                .step(SC).httpRequest(HttpMethod.POST)
                   .path().pattern("/test?expect=${x}").end()
                   .body("bar")
@@ -125,7 +126,7 @@ public class HttpRequestTest extends BaseScenarioTest {
    }
 
    @Test
-   public void testStatusValidator(TestContext ctx) {
+   public void testStatusValidator() {
       scenario()
             .initialSequence("expectOK")
                .step(SC).httpRequest(HttpMethod.GET)

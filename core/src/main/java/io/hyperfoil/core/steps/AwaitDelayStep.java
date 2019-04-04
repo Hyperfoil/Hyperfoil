@@ -4,22 +4,24 @@ import java.util.Collections;
 import java.util.List;
 
 import io.hyperfoil.api.config.Sequence;
+import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.core.builders.BaseStepBuilder;
+import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.function.SerializableSupplier;
 
 public class AwaitDelayStep implements Step {
-   private final Object key;
+   private final Access key;
 
    public AwaitDelayStep(Object key) {
-      this.key = key;
+      this.key = SessionFactory.access(key);
    }
 
    @Override
    public boolean invoke(Session session) {
-      ScheduleDelayStep.Timestamp blockedUntil = (ScheduleDelayStep.Timestamp) session.getObject(key);
+      ScheduleDelayStep.Timestamp blockedUntil = (ScheduleDelayStep.Timestamp) key.getObject(session);
       return System.currentTimeMillis() >= blockedUntil.timestamp;
    }
 

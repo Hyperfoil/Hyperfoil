@@ -16,21 +16,23 @@ import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.ListBuilder;
 import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.Step;
+import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.core.builders.BaseStepBuilder;
+import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.function.SerializableSupplier;
 
 public class RandomItemStep implements Step, ResourceUtilizer {
-   private final String fromVar;
+   private final Access fromVar;
    private final String[] list;
-   private final String var;
+   private final Access var;
 
    public RandomItemStep(String fromVar, String[] list, String var) {
-      this.fromVar = fromVar;
+      this.fromVar = SessionFactory.access(fromVar);
       this.list = list;
-      this.var = var;
+      this.var = SessionFactory.access(var);
    }
 
    @Override
@@ -40,7 +42,7 @@ public class RandomItemStep implements Step, ResourceUtilizer {
       if (list != null) {
          item = list[random.nextInt(list.length)];
       } else {
-         Object data = session.getObject(fromVar);
+         Object data = fromVar.getObject(session);
          if (data != null && data.getClass().isArray()) {
             int length = Array.getLength(data);
             item = Array.get(data, random.nextInt(length));
@@ -58,13 +60,13 @@ public class RandomItemStep implements Step, ResourceUtilizer {
             throw new IllegalStateException("Cannot fetch random item from collection stored under " + fromVar + ": " + data);
          }
       }
-      session.setObject(var, item);
+      var.setObject(session, item);
       return true;
    }
 
    @Override
    public void reserve(Session session) {
-      session.declare(var);
+      var.declareObject(session);
    }
 
    public static class Builder extends BaseStepBuilder {

@@ -7,9 +7,11 @@ import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.http.Processor;
+import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.core.session.ObjectVar;
+import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.util.Util;
 import io.netty.buffer.ByteBuf;
 import io.vertx.core.logging.Logger;
@@ -20,20 +22,20 @@ public class NewSequenceProcessor implements Processor<Request>, ResourceUtilize
    private static final boolean trace = log.isTraceEnabled();
 
    private final int maxSequences;
-   private final String counterVar;
-   private final String dataVar;
-   private final String template;
+   private final Access counterVar;
+   private final Access dataVar;
+   private final String sequence;
 
-   public NewSequenceProcessor(int maxSequences, String counterVar, String dataVar, String template) {
+   public NewSequenceProcessor(int maxSequences, String counterVar, String dataVar, String sequence) {
       this.maxSequences = maxSequences;
-      this.counterVar = counterVar;
-      this.dataVar = dataVar;
-      this.template = template;
+      this.counterVar = SessionFactory.access(counterVar);
+      this.dataVar = SessionFactory.access(dataVar);
+      this.sequence = sequence;
    }
 
    @Override
    public void before(Request request) {
-      request.session.setInt(counterVar, 0);
+      counterVar.setInt(request.session, 0);
    }
 
    @Override
@@ -41,26 +43,25 @@ public class NewSequenceProcessor implements Processor<Request>, ResourceUtilize
       if (!isLastPart) {
          throw new IllegalArgumentException("This processor expects already defragmented data.");
       }
-      Object obj = request.session.getObject(dataVar);
+      Object obj = dataVar.getObject(request.session);
       if (!(obj instanceof ObjectVar[])) {
          throw new IllegalStateException(dataVar + " must be a sequence-scoped variable!");
       }
-      int counter = request.session.getInt(counterVar);
+      int counter = counterVar.addToInt(request.session, 1);
       String value = Util.toString(data, offset, length);
       if (trace) {
-         log.trace("Creating new sequence {}, id {}, value {}", template, counter, value);
+         log.trace("Creating new sequence {}, id {}, value {}", sequence, counter, value);
       }
-      request.session.addToInt(counterVar, 1);
       ObjectVar[] vars = (ObjectVar[]) obj;
       vars[counter].set(value);
-      request.session.phase().scenario().sequence(template).instantiate(request.session, counter);
+      request.session.phase().scenario().sequence(sequence).instantiate(request.session, counter);
    }
 
    @Override
    public void reserve(Session session) {
-      session.declareInt(counterVar);
-      session.declare(dataVar);
-      session.setObject(dataVar, ObjectVar.newArray(session, maxSequences));
+      counterVar.declareInt(session);
+      dataVar.declareObject(session);
+      dataVar.setObject(session, ObjectVar.newArray(session, maxSequences));
    }
 
    @MetaInfServices(Request.ProcessorBuilderFactory.class)

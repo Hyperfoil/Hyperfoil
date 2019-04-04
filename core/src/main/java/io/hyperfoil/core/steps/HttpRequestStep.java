@@ -13,11 +13,13 @@ import io.hyperfoil.api.config.SLABuilder;
 import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.Simulation;
 import io.hyperfoil.api.connection.HttpRequest;
+import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.api.statistics.Statistics;
 import io.hyperfoil.core.generators.Pattern;
 import io.hyperfoil.core.generators.StringGeneratorBuilder;
 import io.hyperfoil.core.http.CookieAppender;
+import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.function.SerializableSupplier;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -356,8 +358,9 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
          }
          if (sync) {
             String var = String.format("%s_sync_%08x", endStep().name(), ThreadLocalRandom.current().nextInt());
+            Access access = SessionFactory.access(var);
             endStep().insertBefore(this).step(new SyncRequestIncrementStep(var));
-            handler.onCompletion(s -> s.addToInt(var, -1));
+            handler.onCompletion(s -> access.addToInt(s, -1));
             endStep().insertAfter(this).step(new AwaitIntStep(var, x -> x == 0));
          }
          handler.prepareBuild();
@@ -413,29 +416,29 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
    }
 
    private static class SyncRequestIncrementStep implements Step, ResourceUtilizer {
-      private final String var;
+      private final Access var;
 
       public SyncRequestIncrementStep(String var) {
-         this.var = var;
+         this.var = SessionFactory.access(var);
       }
 
       @Override
       public boolean invoke(Session s) {
-         if (s.isSet(var)) {
-            if (s.getInt(var) != 0) {
+         if (var.isSet(s)) {
+            if (var.getInt(s) != 0) {
                s.fail(new IllegalStateException("Synchronous HTTP request executed multiple times."));
             } else {
-               s.addToInt(var, 1);
+               var.addToInt(s, 1);
             }
          } else {
-            s.setInt(var, 1);
+            var.setInt(s, 1);
          }
          return true;
       }
 
       @Override
       public void reserve(Session session) {
-         session.declareInt(var);
+         var.declareInt(session);
       }
    }
 
@@ -471,12 +474,13 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
       }
 
       public PartialHeadersBuilder var(String var) {
+         Access access = SessionFactory.access(var);
          parent.headerAppenders.add((session, writer) -> {
-            Object value = session.getObject(var);
+            Object value = access.getObject(session);
             if (value instanceof CharSequence) {
                writer.putHeader(header, (CharSequence) value);
             } else {
-               log.error("#{} Cannot convert variable {}: {} to CharSequence", session.uniqueId(), var, value);
+               log.error("#{} Cannot convert variable {}: {} to CharSequence", session.uniqueId(), access, value);
             }
          });
          return this;
@@ -491,8 +495,9 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
       }
 
       public BodyBuilder var(String var) {
+         Access access = SessionFactory.access(var);
          parent.bodyGenerator((session, connection) -> {
-            Object value = session.getObject(var);
+            Object value = access.getObject(session);
             if (value instanceof ByteBuf) {
                return (ByteBuf) value;
             } else if (value instanceof String){
@@ -500,7 +505,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
                return Util.string2byteBuf(str, connection.context().alloc().buffer(str.length()));
 
             } else {
-               log.error("#{} Cannot encode request body from var {}: {}", session.uniqueId(), var, value);
+               log.error("#{} Cannot encode request body from var {}: {}", session.uniqueId(), access, value);
                return null;
             }
          });

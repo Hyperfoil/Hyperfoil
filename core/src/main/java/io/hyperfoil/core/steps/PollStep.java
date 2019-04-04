@@ -11,11 +11,13 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 import io.hyperfoil.api.config.Sequence;
+import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.core.builders.BaseStepBuilder;
+import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.function.SerializableSupplier;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -24,7 +26,7 @@ public class PollStep<T> implements Step, ResourceUtilizer {
    private static final Logger log = LoggerFactory.getLogger(PollStep.class);
 
    private final Function<Session, T> provider;
-   private final String var;
+   private final Access var;
    private final BiPredicate<Session, T> filter;
    private final BiConsumer<Session, T> recycler;
    private final long periodMs;
@@ -33,7 +35,7 @@ public class PollStep<T> implements Step, ResourceUtilizer {
    public PollStep(Function<Session, T> provider, String var, BiPredicate<Session, T> filter, BiConsumer<Session, T> recycler, long periodMs, int maxRetries) {
       this.provider = provider;
       this.filter = filter;
-      this.var = var;
+      this.var = SessionFactory.access(var);
       this.recycler = recycler;
       this.periodMs = periodMs;
       this.maxRetries = maxRetries;
@@ -49,7 +51,7 @@ public class PollStep<T> implements Step, ResourceUtilizer {
             session.executor().schedule((Runnable) session, periodMs, TimeUnit.MILLISECONDS);
             return false;
          } else if (filter.test(session, object)) {
-            session.setObject(var, object);
+            var.setObject(session, object);
             return true;
          } else {
             recycler.accept(session, object);
@@ -63,7 +65,7 @@ public class PollStep<T> implements Step, ResourceUtilizer {
 
    @Override
    public void reserve(Session session) {
-      session.declare(var);
+      var.declareObject(session);
    }
 
    public static class Builder<T> extends BaseStepBuilder {

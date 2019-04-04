@@ -9,12 +9,14 @@ import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.Step;
+import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.builders.BaseStepBuilder;
 import io.hyperfoil.core.handlers.ByteStream;
 import io.hyperfoil.core.data.DataFormat;
 import io.hyperfoil.core.handlers.JsonParser;
+import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.function.SerializableSupplier;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -23,21 +25,21 @@ public class JsonStep extends BaseStep implements ResourceUtilizer {
    private static final Logger log = LoggerFactory.getLogger(JsonStep.class);
 
    private final ByteArrayParser byteArrayParser;
-   private final String fromVar;
-   private final String toVar;
+   private final Access fromVar;
+   private final Access toVar;
    private final DataFormat format;
 
    private JsonStep(SerializableSupplier<Sequence> sequence, String fromVar, String query, String toVar, DataFormat format) {
       super(sequence);
-      this.fromVar = fromVar;
+      this.fromVar = SessionFactory.access(fromVar);
       this.byteArrayParser = new ByteArrayParser(query);
-      this.toVar = toVar;
+      this.toVar = SessionFactory.access(toVar);
       this.format = format;
    }
 
    @Override
    public boolean invoke(Session session) {
-      Object object = session.getObject(fromVar);
+      Object object = fromVar.getObject(session);
       if (object instanceof byte[]) {
          ByteArrayParser.Context ctx = session.getResource(byteArrayParser);
          ctx.parse(ctx.wrap((byte[]) object), session);
@@ -112,7 +114,7 @@ public class JsonStep extends BaseStep implements ResourceUtilizer {
          }
          Context ctx = (Context) context;
          if (!ctx.set) {
-            session.setObject(toVar, format.convert(((ByteArrayByteStream) data).array, offset, length));
+            toVar.setObject(session, format.convert(((ByteArrayByteStream) data).array, offset, length));
             ctx.set = true;
          } else {
             log.warn("Second match, dropping data!");

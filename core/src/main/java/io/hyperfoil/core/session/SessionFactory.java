@@ -2,6 +2,7 @@ package io.hyperfoil.core.session;
 
 import java.util.Collections;
 
+import io.hyperfoil.api.session.Access;
 import io.netty.util.concurrent.EventExecutorGroup;
 import io.netty.util.concurrent.ImmediateEventExecutor;
 import io.hyperfoil.api.config.Phase;
@@ -35,5 +36,20 @@ public final class SessionFactory {
    }
 
    private SessionFactory() {
+   }
+
+   public static Access access(Object key) {
+      if (key == null) {
+         return null;
+      } else if (key instanceof String) {
+         String expression = (String) key;
+         if (expression.endsWith("[.]")) {
+            return new SequenceScopedAccess(expression.substring(0, expression.length() - 3));
+         } else {
+            return new SimpleAccess(key);
+         }
+      } else {
+         return new SimpleAccess(key);
+      }
    }
 }

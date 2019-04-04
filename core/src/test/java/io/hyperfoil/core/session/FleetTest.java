@@ -9,6 +9,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import io.hyperfoil.api.http.HttpMethod;
+import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.data.DataFormat;
 import io.hyperfoil.core.handlers.ArrayRecorder;
@@ -38,7 +39,7 @@ public class FleetTest extends BaseScenarioTest {
          )
          .addShip(new Ship("Julius Fučík").dwt(7100))
          .addShip(new Ship("Lidice").dwt(8500));
-   public static final int MAX_SHIPS = 16;
+   private static final int MAX_SHIPS = 16;
 
    @Override
    protected void initRouter() {
@@ -68,22 +69,26 @@ public class FleetTest extends BaseScenarioTest {
     * Fetch a fleet (list of ships), then fetch each ship separately and if it has no crew, sink the ship.
     */
    @Test
-   public void testSinkEmptyShips(TestContext ctx) throws InterruptedException {
+   public void testSinkEmptyShips(TestContext ctx) {
       // We need to call async() to prevent termination when the test method completes
       Async async = ctx.async(2);
 
       ProcessorAssertion shipAssertion = new ProcessorAssertion(3, true);
       ProcessorAssertion crewAssertion = new ProcessorAssertion(2, true);
+
+      Access numberOfShips = SessionFactory.access("numberOfShips");
+      Access numberOfSunkShips = SessionFactory.access("numberOfSunkShips");
+
       scenario(2)
             .intVar("numberOfSunkShips")
             .initialSequence("fleet")
                .step(s -> {
-                  s.setInt("numberOfSunkShips", 0);
+                  numberOfSunkShips.setInt(s, 0);
                   return true;
                })
                .step(SC).httpRequest(HttpMethod.GET).path("/fleet")
                   .handler()
-                     .body(new JsonHandler(".ships[].name", shipAssertion.processor(new DefragProcessor(new ArrayRecorder("shipNames", DataFormat.STRING, MAX_SHIPS)))))
+                     .body(new JsonHandler(".ships[].name", shipAssertion.processor(new DefragProcessor<>(new ArrayRecorder("shipNames", DataFormat.STRING, MAX_SHIPS)))))
                   .endHandler()
                .endStep()
                .step(SC).foreach("shipNames", "numberOfShips").sequence("ship").endStep()
@@ -95,15 +100,15 @@ public class FleetTest extends BaseScenarioTest {
                   .endHandler()
                .endStep()
                .step(SC).breakSequence()
-                  .condition(s -> currentCrewCount(s) > 0)
-                  .onBreak(s -> s.addToInt("numberOfShips", -1))
-                  .dependency(new SequenceScopedVarReference("crewCount"))
+                  .dependency("crewCount[.]")
+                  .intCondition().var("crewCount[.]").greaterThan(0).endCondition()
+                  .onBreak(s -> numberOfShips.addToInt(s, -1))
                .endStep()
                .step(SC).httpRequest(HttpMethod.DELETE).pathGenerator(FleetTest::currentShipQuery)
                   .handler()
                      .status(((request, status) -> {
                         if (status == 204) {
-                           request.session.addToInt("numberOfSunkShips", -1);
+                           numberOfSunkShips.addToInt(request.session, -1);
                         } else {
                            ctx.fail("Unexpected status " + status);
                         }
@@ -111,13 +116,14 @@ public class FleetTest extends BaseScenarioTest {
                   .endHandler()
                .endStep()
                .step(s -> {
-                  s.addToInt("numberOfSunkShips", 1).addToInt("numberOfShips", -1);
+                  numberOfSunkShips.addToInt(s, 1);
+                  numberOfShips.addToInt(s, -1);
                   return true;
                })
             .endSequence()
             .initialSequence("final")
-               .step(new AwaitConditionStep(s -> s.isSet("numberOfShips") && s.getInt("numberOfShips") <= 0))
-               .step(new AwaitConditionStep(s -> s.getInt("numberOfSunkShips") <= 0))
+               .step(new AwaitConditionStep(s -> numberOfShips.isSet(s) && numberOfShips.getInt(s) <= 0))
+               .step(new AwaitConditionStep(s -> numberOfSunkShips.getInt(s) <= 0))
                .step(s -> {
                   log.info("Test completed");
                   shipAssertion.runAssertions(ctx);
@@ -130,14 +136,11 @@ public class FleetTest extends BaseScenarioTest {
       runScenario();
    }
 
-   private int currentCrewCount(Session session) {
-      return ((IntVar[]) session.getObject("crewCount"))[session.currentSequence().index()].get();
-   }
+   private static Access currentShipName = SessionFactory.access("shipNames[.]");
 
    private static String currentShipQuery(Session s) {
-      String shipName = (String) (((ObjectVar[]) s.getObject("shipNames"))[s.currentSequence().index()]).get();
       // TODO: avoid allocations when constructing URL
-      return "/ship?name=" + encode(shipName);
+      return "/ship?name=" + encode((String) currentShipName.getObject(s));
    }
 
    private static String encode(String string) {

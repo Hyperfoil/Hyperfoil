@@ -7,34 +7,28 @@ import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Sequence;
+import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.core.builders.BaseStepBuilder;
+import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.function.SerializableSupplier;
 
 public class UnsetStep implements Action.Step {
-   public final String var;
-   public final boolean sequenceScoped;
+   public final Access var;
 
-   public UnsetStep(String var, boolean sequenceScoped) {
-      this.var = var;
-      this.sequenceScoped = sequenceScoped;
+   public UnsetStep(String var) {
+      this.var = SessionFactory.access(var);
    }
 
    @Override
    public void run(Session session) {
-      if (sequenceScoped) {
-         Session.Var sequenceScopedVar = session.getSequenceScopedVar(var);
-         sequenceScopedVar.unset();
-      } else {
-         session.unset(var);
-      }
+      var.unset(session);
    }
 
    public static class Builder extends BaseStepBuilder implements Action.Builder {
       private String var;
-      private boolean sequenceScoped;
 
       public Builder(BaseSequenceBuilder parent) {
          super(parent);
@@ -47,13 +41,6 @@ public class UnsetStep implements Action.Step {
 
       public Builder var(String var) {
          this.var = var;
-         this.sequenceScoped = false;
-         return this;
-      }
-
-      public Builder sequenceVar(String var) {
-         this.var = var;
-         this.sequenceScoped = true;
          return this;
       }
 
@@ -64,12 +51,12 @@ public class UnsetStep implements Action.Step {
 
       @Override
       public List<io.hyperfoil.api.config.Step> build(SerializableSupplier<Sequence> sequence) {
-         return Collections.singletonList(new UnsetStep(var, sequenceScoped));
+         return Collections.singletonList(new UnsetStep(var));
       }
 
       @Override
       public Action build() {
-         return new UnsetStep(var, sequenceScoped);
+         return new UnsetStep(var);
       }
    }
 

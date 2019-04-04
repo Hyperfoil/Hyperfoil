@@ -40,15 +40,13 @@
  * <h2>Variables</h2>
  *
  * The {@link io.hyperfoil.api.session.Session} is provided as a parameter to most calls and stores all state of the scenario.
- * The state is operated using {@link io.hyperfoil.core.session.SessionImpl#getObject(java.lang.Object)} and
- * {@link io.hyperfoil.core.session.SessionImpl#setObject(java.lang.Object, java.lang.Object)} methods or their integer
+ * The state is operated using {@link io.hyperfoil.api.session.Access accessors}; these can be retrieved from
+ * {@link io.hyperfoil.core.session.SessionFactory#access(java.lang.Object)}.
  * counterparts.
  * <p>
  * Initially all variables are in undefined state; reading such variable is considered an error. The unset/set state
  * forms the basis of data-dependencies mentioned earlier: when a step requires the variable to be defined, you should
- * declare that with {@link io.hyperfoil.core.steps.DependencyStep#addDependency(VarReference)}.
- * <p>
- * It is possible to find out if the variable is set calling {@link io.hyperfoil.core.session.SessionImpl#isSet(java.lang.Object)}.
+ * declare that through {@link io.hyperfoil.core.steps.DependencyStep}.
  * <p>
  * Simple variables are scalar, these are useful for scenario-scoped data. Other variables are scoped for particular
  * {@link io.hyperfoil.api.session.SequenceInstance}; these should be implemented as arrays (or collections) with
@@ -66,5 +64,4 @@
 package io.hyperfoil.core.session;
 
 import io.hyperfoil.api.session.SequenceInstance;
-import io.hyperfoil.api.session.VarReference;
 import io.hyperfoil.api.session.Session;

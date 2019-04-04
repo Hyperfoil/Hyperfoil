@@ -1,22 +1,24 @@
 package io.hyperfoil.core.steps;
 
 import io.hyperfoil.api.config.Sequence;
+import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.statistics.Statistics;
+import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.function.SerializableSupplier;
 
 public class StopwatchEndStep extends BaseStep {
-   private final Object key;
+   private final Access key;
 
    public StopwatchEndStep(SerializableSupplier<Sequence> sequence, Object key) {
       super(sequence);
-      this.key = key;
+      this.key = SessionFactory.access(key);
    }
 
    @Override
    public boolean invoke(Session session) {
       long now = System.nanoTime();
-      StopwatchBeginStep.StartTime startTime = (StopwatchBeginStep.StartTime) session.getObject(key);
+      StopwatchBeginStep.StartTime startTime = (StopwatchBeginStep.StartTime) key.getObject(session);
       Statistics statistics = session.statistics(id(), sequence().name());
       statistics.recordResponse(0, now - startTime.timestamp);
       // TODO: record any request/response counts?

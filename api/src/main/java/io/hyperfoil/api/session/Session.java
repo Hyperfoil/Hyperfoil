@@ -32,37 +32,6 @@ public interface Session {
 
    Statistics statistics(int stepId, String name);
 
-   /// Variable-related methods
-   Session declare(Object key);
-
-   Object getObject(Object key);
-
-   Session setObject(Object key, Object value);
-
-   Session declareInt(Object key);
-
-   int getInt(Object key);
-
-   Session setInt(Object key, int value);
-
-   <V extends Var> V getVar(Object key);
-
-   <V extends Var> V getSequenceScopedVar(Object key);
-
-   default Session addToInt(Object key, int delta) {
-      setInt(key, getInt(key) + delta);
-      return this;
-   }
-
-   boolean isSet(Object key);
-
-   /**
-    * Make variable set without changing it's (pre-allocated) value.
-    */
-   Object activate(Object key);
-
-   Session unset(Object key);
-
    // Resources
    <R extends Session.Resource> void declareResource(ResourceKey<R> key, R resource);
 

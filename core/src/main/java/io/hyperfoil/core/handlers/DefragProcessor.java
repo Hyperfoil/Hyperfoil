@@ -9,7 +9,7 @@ import io.hyperfoil.api.session.ResourceUtilizer;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-public class DefragProcessor<R extends Request> extends Processor.BaseDelegating<R> implements Session.ResourceKey<DefragProcessor.Context> {
+public class DefragProcessor<R extends Request> extends Processor.BaseDelegating<R> implements Session.ResourceKey<DefragProcessor.Context<R>> {
    private static final Logger log = LoggerFactory.getLogger(DefragProcessor.class);
 
    public DefragProcessor(Processor<R> delegate) {
@@ -41,11 +41,10 @@ public class DefragProcessor<R extends Request> extends Processor.BaseDelegating
 
    @Override
    public void reserve(Session session) {
-      session.declare(this);
       // Note: contrary to the recommended pattern the Context won't reserve all objects ahead, the CompositeByteBuf
       // will be allocated only if needed (and only once). This is necessary since we don't know the type of allocator
       // that is used for the received buffers ahead.
-      session.declareResource(this, new Context());
+      session.declareResource(this, new Context<>());
       if (delegate instanceof ResourceUtilizer) {
          ((ResourceUtilizer) delegate).reserve(session);
       }
@@ -54,7 +53,7 @@ public class DefragProcessor<R extends Request> extends Processor.BaseDelegating
    static class Context<R extends Request> implements Session.Resource {
       CompositeByteBuf composite = null;
 
-      public boolean isBuffering() {
+      boolean isBuffering() {
          return composite != null && composite.isReadable();
       }
 
@@ -66,7 +65,7 @@ public class DefragProcessor<R extends Request> extends Processor.BaseDelegating
          composite.addComponent(true, data.retainedSlice(offset, length));
       }
 
-      public void flush(R request, Processor<R> processor) {
+      void flush(R request, Processor<R> processor) {
          log.debug("Flushing {} bytes", composite.writerIndex());
          processor.process(request, composite, 0, composite.writerIndex(), true);
          // Not sure if this is the right call to forget/reuse the components (if needed)

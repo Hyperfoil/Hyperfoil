@@ -4,21 +4,22 @@ import java.util.ArrayList;
 import java.util.Collection;
 
 import io.hyperfoil.api.config.BaseSequenceBuilder;
-import io.hyperfoil.api.session.VarReference;
+import io.hyperfoil.api.session.Access;
+import io.hyperfoil.core.session.SessionFactory;
 
-public abstract class DependencyStepBuilder extends BaseStepBuilder {
-   private Collection<VarReference> dependencies = new ArrayList<>();
+public abstract class DependencyStepBuilder<S extends DependencyStepBuilder<S>> extends BaseStepBuilder {
+   private Collection<Access> dependencies = new ArrayList<>();
 
    protected DependencyStepBuilder(BaseSequenceBuilder parent) {
       super(parent);
    }
 
-   public DependencyStepBuilder dependency(VarReference varReference) {
-      dependencies.add(varReference);
-      return this;
+   public S dependency(String var) {
+      dependencies.add(SessionFactory.access(var));
+      return (S) this;
    }
 
-   protected VarReference[] dependencies() {
-      return dependencies.toArray(new VarReference[0]);
+   protected Access[] dependencies() {
+      return dependencies.toArray(new Access[0]);
    }
 }

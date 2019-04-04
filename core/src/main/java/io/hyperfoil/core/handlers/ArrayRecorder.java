@@ -5,7 +5,9 @@ import org.kohsuke.MetaInfServices;
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.http.Processor;
+import io.hyperfoil.api.session.Access;
 import io.hyperfoil.core.data.DataFormat;
+import io.hyperfoil.core.session.SessionFactory;
 import io.netty.buffer.ByteBuf;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.ObjectVar;
@@ -15,18 +17,18 @@ import io.vertx.core.logging.LoggerFactory;
 
 public class ArrayRecorder implements Processor<Request>, ResourceUtilizer {
    private static final Logger log = LoggerFactory.getLogger(ArrayRecorder.class);
-   private final String var;
+   private final Access var;
    private final DataFormat format;
    private final int maxSize;
 
    public ArrayRecorder(String var, DataFormat format, int maxSize) {
-      this.var = var;
+      this.var = SessionFactory.access(var);
       this.format = format;
       this.maxSize = maxSize;
    }
 
    public void before(Request request) {
-      ObjectVar[] array = (ObjectVar[]) request.session.activate(var);
+      ObjectVar[] array = (ObjectVar[]) var.activate(request.session);
       for (int i = 0; i < array.length; ++i) {
          array[i].unset();
       }
@@ -35,7 +37,7 @@ public class ArrayRecorder implements Processor<Request>, ResourceUtilizer {
    @Override
    public void process(Request request, ByteBuf data, int offset, int length, boolean isLastPart) {
       assert isLastPart;
-      ObjectVar[] array = (ObjectVar[]) request.session.activate(var);
+      ObjectVar[] array = (ObjectVar[]) var.activate(request.session);
       Object value = format.convert(data, offset, length);
       for (int i = 0; i < array.length; ++i) {
          if (array[i].isSet()) continue;
@@ -47,9 +49,9 @@ public class ArrayRecorder implements Processor<Request>, ResourceUtilizer {
 
    @Override
    public void reserve(Session session) {
-      session.declare(var);
-      session.setObject(var, ObjectVar.newArray(session, maxSize));
-      session.unset(var);
+      var.declareObject(session);
+      var.setObject(session, ObjectVar.newArray(session, maxSize));
+      var.unset(session);
    }
 
    public static class Builder implements Processor.Builder<Request> {

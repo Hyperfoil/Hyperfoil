@@ -21,7 +21,6 @@ import io.hyperfoil.core.steps.AwaitAllResponsesStep;
 import io.hyperfoil.core.steps.AwaitConditionStep;
 import io.hyperfoil.core.steps.AwaitDelayStep;
 import io.hyperfoil.core.steps.AwaitIntStep;
-import io.hyperfoil.core.steps.AwaitSequenceVarStep;
 import io.hyperfoil.core.steps.AwaitVarStep;
 import io.hyperfoil.core.steps.BreakSequenceStep;
 import io.hyperfoil.core.steps.ForeachStep;
@@ -126,10 +125,6 @@ public class StepCatalog implements Step.Catalog {
 
    public BaseSequenceBuilder awaitVar(String var) {
       return parent.step(new AwaitVarStep(var));
-   }
-
-   public BaseSequenceBuilder awaitSequenceVar(String var) {
-      return parent.step(new AwaitSequenceVarStep(var));
    }
 
    public UnsetStep.Builder unset() {

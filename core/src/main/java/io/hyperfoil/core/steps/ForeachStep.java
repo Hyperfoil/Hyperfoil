@@ -7,22 +7,22 @@ import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.config.Step;
-import io.hyperfoil.api.session.VarReference;
+import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.core.builders.DependencyStepBuilder;
-import io.hyperfoil.core.session.SimpleVarReference;
+import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.function.SerializableSupplier;
 
 public class ForeachStep extends DependencyStep implements ResourceUtilizer {
-   private final String dataVar;
-   private final String counterVar;
+   private final Access dataVar;
+   private final Access counterVar;
    private final String sequence;
 
-   public ForeachStep(SerializableSupplier<Sequence> sequence, VarReference[] dependencies, String dataVar, String counterVar, String template) {
+   public ForeachStep(SerializableSupplier<Sequence> sequence, Access[] dependencies, String dataVar, String counterVar, String template) {
       super(sequence, dependencies);
-      this.dataVar = dataVar;
-      this.counterVar = counterVar;
+      this.dataVar = SessionFactory.access(dataVar);
+      this.counterVar = SessionFactory.access(counterVar);
       this.sequence = template;
    }
 
@@ -31,7 +31,7 @@ public class ForeachStep extends DependencyStep implements ResourceUtilizer {
       if (!super.invoke(session)) {
          return false;
       }
-      Object value = session.getObject(dataVar);
+      Object value = dataVar.getObject(session);
       if (!(value instanceof Session.Var[])) {
          throw new IllegalStateException("Variable " + dataVar + " does not contain var array: " + value);
       }
@@ -43,17 +43,17 @@ public class ForeachStep extends DependencyStep implements ResourceUtilizer {
          session.phase().scenario().sequence(sequence).instantiate(session, i);
       }
       if (counterVar != null) {
-         session.setInt(counterVar, i);
+         counterVar.setInt(session, i);
       }
       return true;
    }
 
    @Override
    public void reserve(Session session) {
-      session.declareInt(counterVar);
+      counterVar.declareInt(session);
    }
 
-   public static class Builder extends DependencyStepBuilder {
+   public static class Builder extends DependencyStepBuilder<Builder> {
       private String dataVar;
       private String counterVar;
       private String sequence;
@@ -62,7 +62,7 @@ public class ForeachStep extends DependencyStep implements ResourceUtilizer {
          super(parent);
          this.dataVar = dataVar;
          this.counterVar = counterVar;
-         dependency(new SimpleVarReference(dataVar));
+         dependency(dataVar);
       }
 
       public Builder dataVar(String dataVar) {

@@ -10,17 +10,20 @@ import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.BuilderBase;
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.SequenceBuilder;
+import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.api.http.Processor;
 import io.hyperfoil.api.http.BodyHandler;
+import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.core.generators.StringGeneratorBuilder;
+import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.steps.AwaitIntStep;
-import io.hyperfoil.core.steps.AwaitSequenceVarStep;
+import io.hyperfoil.core.steps.AwaitVarStep;
 import io.hyperfoil.core.steps.HttpRequestStep;
 import io.hyperfoil.core.steps.PathStatisticsSelector;
 import io.hyperfoil.core.steps.ServiceLoadedBuilderProvider;
@@ -470,29 +473,27 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
          // Constructor adds self into sequence
          HttpRequestStep.Builder requestBuilder = new HttpRequestStep.Builder(sequence).method(HttpMethod.GET);
          new StringGeneratorBuilder<>(requestBuilder, requestBuilder::pathGenerator)
-               .sequenceVar(downloadUrlVar()); // this sets the pathGenerator
+               .var(downloadUrlVar() + "[.]"); // this sets the pathGenerator
          if (statisticsSelector != null) {
             requestBuilder.statistics(statisticsSelector);
          } else {
             // Rather than using auto-generated sequence name we'll use the full path
             requestBuilder.statistics((baseUrl, path) -> baseUrl != null ? baseUrl + path : path);
          }
-         requestBuilder.handler().onCompletion(new UnsetStep(downloadUrlVar(), true)::run);
+         requestBuilder.handler().onCompletion(new UnsetStep(downloadUrlVar() + "[.]")::run);
 
+         Access latch = SessionFactory.access(completionLatch());
          sequence
-               .step(new AwaitSequenceVarStep("!" + downloadUrlVar()))
+               .step(new AwaitVarStep("!" + downloadUrlVar() + "[.]"))
                .step(s -> {
-                  s.addToInt(completionLatch(), -1);
+                  latch.addToInt(s, -1);
                   return true;
                });
 
          Action onCompletion = this.onCompletion.build();
          locator.sequence().insertAfter(locator.step())
                .step(new AwaitIntStep(completionLatch(), x -> x == 0))
-               .step(s -> {
-                  onCompletion.run(s);
-                  return true;
-               });
+               .step(new ResourceUtilizingStep(onCompletion));
       }
 
       @Override
@@ -503,41 +504,60 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
                .onCompletion(onCompletion);
       }
 
-      public Processor<HttpRequest> build() {
+      public FetchResourcesAdapter build() {
          return new FetchResourcesAdapter(completionLatch(), new NewSequenceProcessor(maxResources, generatedSeqName + "_cnt", downloadUrlVar(), generatedSeqName));
       }
    }
 
+   private static class ResourceUtilizingStep<A extends Action & ResourceUtilizer> implements Step, ResourceUtilizer {
+      private final A action;
+
+      public ResourceUtilizingStep(A action) {
+         this.action = action;
+      }
+
+      @Override
+      public boolean invoke(Session session) {
+         action.run(session);
+         return true;
+      }
+
+      @Override
+      public void reserve(Session session) {
+         action.reserve(session);
+      }
+   }
+
    private static class FetchResourcesAdapter implements Processor<HttpRequest>, ResourceUtilizer {
-      private final String completionCounter;
+      private final Access completionCounter;
       private final Processor<Request> delegate;
 
       private FetchResourcesAdapter(String completionCounter, Processor<Request> delegate) {
-         this.completionCounter = completionCounter;
+         this.completionCounter = SessionFactory.access(completionCounter);
          this.delegate = delegate;
       }
 
       @Override
       public void before(HttpRequest request) {
-         request.session.setInt(completionCounter, 1);
+         completionCounter.setInt(request.session, 1);
          delegate.before(request);
       }
 
       @Override
       public void process(HttpRequest request, ByteBuf data, int offset, int length, boolean isLastPart) {
-         request.session.addToInt(completionCounter, 1);
+         completionCounter.addToInt(request.session, 1);
          delegate.process(request, data, offset, length, isLastPart);
       }
 
       @Override
       public void after(HttpRequest request) {
-         request.session.addToInt(completionCounter, -1);
+         completionCounter.addToInt(request.session, -1);
          delegate.after(request);
       }
 
       @Override
       public void reserve(Session session) {
-         session.declareInt(completionCounter);
+         completionCounter.declareInt(session);
          if (delegate instanceof ResourceUtilizer) {
             ((ResourceUtilizer) delegate).reserve(session);
          }

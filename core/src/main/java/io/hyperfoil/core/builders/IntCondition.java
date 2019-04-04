@@ -1,23 +1,25 @@
 package io.hyperfoil.core.builders;
 
+import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.IntVar;
 import io.hyperfoil.core.session.ObjectVar;
+import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.function.SerializableIntPredicate;
 import io.hyperfoil.function.SerializablePredicate;
 
 public class IntCondition implements SerializablePredicate<Session> {
-   private final String var;
+   private final Access var;
    private final SerializableIntPredicate predicate;
 
    public IntCondition(String var, SerializableIntPredicate predicate) {
-      this.var = var;
+      this.var = SessionFactory.access(var);
       this.predicate = predicate;
    }
 
    @Override
    public boolean test(Session session) {
-      Session.Var var = session.getVar(this.var);
+      Session.Var var = this.var.getVar(session);
       if (!var.isSet()) {
          return false;
       }
@@ -40,7 +42,7 @@ public class IntCondition implements SerializablePredicate<Session> {
          this.parent = parent;
       }
 
-      public Builder var(String var) {
+      public Builder<P> var(String var) {
          this.var = var;
          return this;
       }

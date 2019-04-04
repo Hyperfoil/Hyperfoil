@@ -6,11 +6,13 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import org.junit.Test;
 
+import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.SharedData;
 
 public class SharedDataTest {
-
-   public static final String FOO = "foo";
+   private static final String FOO = "foo";
+   private static final Access FOOA = SessionFactory.access("foo");
+   private static final Access NUMBERA = SessionFactory.access("number");
 
    @Test
    public void testFlatData() {
@@ -18,14 +20,14 @@ public class SharedDataTest {
       data.reserveMap(FOO, null, 3);
       for (int i = 0; i < 10; ++i) {
          SharedData.SharedMap map = data.newMap(FOO);
-         map.put("foo", "bar" + i);
-         map.put("number", i);
+         map.put(FOOA, "bar" + i);
+         map.put(NUMBERA, i);
          data.pushMap(FOO, map);
       }
       int sum = 0;
       for (int i = 0; i < 10; ++i) {
          SharedData.SharedMap map = data.pullMap(FOO);
-         int number = (Integer) map.find("number");
+         int number = (Integer) map.find(NUMBERA);
          sum += number;
          data.releaseMap(FOO, map);
       }
@@ -37,15 +39,15 @@ public class SharedDataTest {
    public void testIndexedData() {
       SharedData data = new SharedDataImpl();
       data.reserveMap(FOO, null, 5);
-      data.reserveMap(FOO, "foo", 2);
-      data.reserveMap(FOO, "number", 3);
+      data.reserveMap(FOO, FOOA, 2);
+      data.reserveMap(FOO, NUMBERA, 3);
 
       int count = 0;
       for (int i = 0; i < 10; ++i) {
          for (int j = 0; j <=i; ++j) {
             SharedData.SharedMap map = data.newMap(FOO);
-            map.put("foo", "bar" + i);
-            map.put("number", j);
+            map.put(FOOA, "bar" + i);
+            map.put(NUMBERA, j);
             data.pushMap(FOO, map);
             count++;
          }
@@ -59,9 +61,9 @@ public class SharedDataTest {
             int j;
             do {
                j = ThreadLocalRandom.current().nextInt(10);
-               map = data.pullMap(FOO, "number", j);
+               map = data.pullMap(FOO, NUMBERA, j);
             } while (map == null);
-            assertThat(map.find("number")).isEqualTo(j);
+            assertThat(map.find(NUMBERA)).isEqualTo(j);
          }
       }
       assertThat(data.pullMap(FOO)).isNull();

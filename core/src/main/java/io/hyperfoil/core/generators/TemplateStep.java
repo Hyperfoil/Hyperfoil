@@ -6,30 +6,32 @@ import java.util.List;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.Step;
+import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.core.builders.BaseStepBuilder;
+import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.function.SerializableSupplier;
 
 public class TemplateStep implements Step, ResourceUtilizer {
    private final Pattern pattern;
-   private final String var;
+   private final Access var;
 
    public TemplateStep(Pattern pattern, String var) {
       this.pattern = pattern;
-      this.var = var;
+      this.var = SessionFactory.access(var);
    }
 
    @Override
    public boolean invoke(Session session) {
-      session.setObject(var, pattern.apply(session));
+      var.setObject(session, pattern.apply(session));
       return true;
    }
 
    @Override
    public void reserve(Session session) {
-      session.declare(var);
+      var.declareObject(session);
    }
 
    public static class Builder extends BaseStepBuilder {

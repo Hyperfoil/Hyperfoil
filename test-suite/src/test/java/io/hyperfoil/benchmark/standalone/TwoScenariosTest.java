@@ -14,8 +14,10 @@ import org.junit.runner.RunWith;
 
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.http.HttpMethod;
+import io.hyperfoil.api.session.Access;
 import io.hyperfoil.core.builders.StepCatalog;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
+import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.util.RandomConcurrentSet;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServer;
@@ -91,6 +93,8 @@ public class TwoScenariosTest {
       ships.put(new ShipInfo("Santiago", SailsState.FURLED));
       ships.put(new ShipInfo("Victoria", SailsState.FURLED));
 
+      Access ship = SessionFactory.access("ship");
+
       BenchmarkBuilder benchmark = BenchmarkBuilder.builder()
          .name("Test Benchmark")
          .simulation()
@@ -105,7 +109,7 @@ public class TwoScenariosTest {
                   .initialSequence("select-ship")
                      .step(SC).stopwatch()
                         .step(SC).poll(ships::fetch, "ship")
-                        .filter(ship -> ship.sailsState == SailsState.FURLED, ships::put)
+                        .filter(shipInfo -> shipInfo.sailsState == SailsState.FURLED, ships::put)
                         .endStep()
                      .end()
                      .step(SC).nextSequence("board")
@@ -117,10 +121,10 @@ public class TwoScenariosTest {
                   .endSequence()
                   .sequence("rig")
                      .step(SC).httpRequest(HttpMethod.GET)
-                        .pathGenerator(s -> "/rig?ship=" + encode(((ShipInfo) s.getObject("ship")).name))
+                        .pathGenerator(s -> "/rig?ship=" + encode(((ShipInfo) ship.getObject(s)).name))
                         .handler().status(((request, status) -> {
                            if (status == 200) {
-                              ((ShipInfo) request.session.getObject("ship")).sailsState = SailsState.RIGGED;
+                              ((ShipInfo) ship.getObject(request.session)).sailsState = SailsState.RIGGED;
                            } else {
                               request.markInvalid();
                            }
@@ -133,7 +137,7 @@ public class TwoScenariosTest {
                      .step(SC).httpRequest(HttpMethod.GET).path("/disembark").endStep()
                      .step(SC).awaitAllResponses()
                      .step(s -> {
-                        ships.put((ShipInfo) s.getObject("ship"));
+                        ships.put((ShipInfo) ship.getObject(s));
                         return true;
                      })
                   .endSequence()
@@ -145,7 +149,7 @@ public class TwoScenariosTest {
                   .initialSequence("select-ship")
                      .step(SC).stopwatch()
                         .step(SC).poll(ships::fetch, "ship")
-                        .filter(ship -> ship.sailsState == SailsState.RIGGED, ships::put)
+                        .filter(shipInfo -> shipInfo.sailsState == SailsState.RIGGED, ships::put)
                         .endStep()
                      .end()
                      .step(SC).nextSequence("board")
@@ -157,10 +161,10 @@ public class TwoScenariosTest {
                   .endSequence()
                   .sequence("furl")
                      .step(SC).httpRequest(HttpMethod.GET)
-                        .pathGenerator(s -> "/furl?ship=" + encode(((ShipInfo) s.getObject("ship")).name))
+                        .pathGenerator(s -> "/furl?ship=" + encode(((ShipInfo) ship.getObject(s)).name))
                         .handler().status((request, status) -> {
                            if (status == 200) {
-                              ((ShipInfo) request.session.getObject("ship")).sailsState = SailsState.RIGGED;
+                              ((ShipInfo) ship.getObject(request.session)).sailsState = SailsState.RIGGED;
                            } else {
                               request.markInvalid();
                            }
@@ -173,7 +177,7 @@ public class TwoScenariosTest {
                      .step(SC).httpRequest(HttpMethod.GET).path("/disembark").endStep()
                      .step(SC).awaitAllResponses()
                      .step(s -> {
-                        ships.put((ShipInfo) s.getObject("ship"));
+                        ships.put((ShipInfo) ship.getObject(s));
                         return true;
                      })
                   .endSequence()

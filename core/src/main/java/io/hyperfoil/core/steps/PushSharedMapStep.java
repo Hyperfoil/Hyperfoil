@@ -4,33 +4,36 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Stream;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.ListBuilder;
 import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.Step;
+import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.SharedData;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.core.builders.BaseStepBuilder;
+import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.function.SerializableSupplier;
 
 public class PushSharedMapStep implements Step, ResourceUtilizer {
    private final String key;
-   private final String[] vars;
+   private final Access[] vars;
 
    public PushSharedMapStep(String key, String[] vars) {
       this.key = key;
-      this.vars = vars;
+      this.vars = Stream.of(vars).map(SessionFactory::access).toArray(Access[]::new);
    }
 
    @Override
    public boolean invoke(Session session) {
       SharedData sharedData = session.sharedData();
       SharedData.SharedMap sharedMap = sharedData.newMap(key);
-      for (String var : vars) {
-         sharedMap.put(var, session.getObject(var));
+      for (int i = 0; i < vars.length; ++i) {
+         sharedMap.put(vars[i], vars[i].getObject(session));
       }
       sharedData.pushMap(key, sharedMap);
       return true;

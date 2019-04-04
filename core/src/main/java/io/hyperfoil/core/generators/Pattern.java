@@ -3,7 +3,9 @@ package io.hyperfoil.core.generators;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
+import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.function.SerializableBiConsumer;
 import io.hyperfoil.function.SerializableFunction;
 
@@ -32,17 +34,17 @@ public class Pattern implements SerializableFunction<Session,String> {
             int colon = str.indexOf(":", openPar);
             if (colon >= 0 && colon < closePar) {
                String format = str.substring(openPar + 2, colon).trim();
-               String key = str.substring(colon + 1, closePar).trim();
+               Access key = SessionFactory.access(str.substring(colon + 1, closePar).trim());
                // TODO: we can't pre-allocate formatters here but we could cache them in the session
                if (format.endsWith("d") || format.endsWith("o") || format.endsWith("x") || format.endsWith("X")) {
-                  components.add((s, sb) -> sb.append(String.format(format, s.getInt(key))));
+                  components.add((s, sb) -> sb.append(String.format(format, key.getInt(s))));
                } else {
                   throw new IllegalArgumentException("Cannot use format string '" + format + "', only integers are supported");
                }
             } else {
-               String key = str.substring(openPar + 2, closePar).trim();
+               Access key = SessionFactory.access(str.substring(openPar + 2, closePar).trim());
                components.add((s, sb) -> {
-                  Session.Var var = s.getVar(key);
+                  Session.Var var = key.getVar(s);
                   if (!var.isSet()) {
                      throw new IllegalArgumentException("Variable " + key + " is not set!");
                   } else {

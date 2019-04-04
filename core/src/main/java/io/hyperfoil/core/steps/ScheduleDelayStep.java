@@ -8,10 +8,12 @@ import java.util.concurrent.TimeUnit;
 
 import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.Step;
+import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.core.builders.BaseStepBuilder;
+import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.function.SerializableSupplier;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -19,13 +21,13 @@ import io.vertx.core.logging.LoggerFactory;
 public class ScheduleDelayStep implements Step, ResourceUtilizer {
    private static final Logger log = LoggerFactory.getLogger(ScheduleDelayStep.class);
 
-   private final Object key;
+   private final Access key;
    private final Type type;
    private final long duration, min, max;
    private final boolean negativeExponential;
 
    public ScheduleDelayStep(Object key, Type type, long duration, boolean negativeExponential, long min, long max) {
-      this.key = key;
+      this.key = SessionFactory.access(key);
       this.type = type;
       this.duration = duration;
       this.negativeExponential = negativeExponential;
@@ -35,7 +37,7 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
 
    @Override
    public boolean invoke(Session session) {
-      Timestamp blockedUntil = (Timestamp) session.activate(key);
+      Timestamp blockedUntil = (Timestamp) key.activate(session);
       long now = System.currentTimeMillis();
       long baseTimestamp;
       switch (type) {
@@ -72,8 +74,8 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
 
    @Override
    public void reserve(Session session) {
-      session.declare(key);
-      session.setObject(key, new Timestamp());
+      key.declareObject(session);
+      key.setObject(session, new Timestamp());
    }
 
    public enum Type {

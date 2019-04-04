@@ -4,25 +4,27 @@ import java.util.ArrayList;
 import java.util.List;
 
 import io.hyperfoil.api.config.Sequence;
+import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.api.config.StepBuilder;
+import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.function.SerializableSupplier;
 
 public class StopwatchBeginStep implements Step, ResourceUtilizer {
-   private final Object key;
+   private final Access key;
 
    public StopwatchBeginStep(Object key) {
-      this.key = key;
+      this.key = SessionFactory.access(key);
    }
 
    @Override
    public boolean invoke(Session session) {
       // Setting timestamp only when it's set allows looping into stopwatch
-      if (!session.isSet(key)) {
-         StartTime startTime = (StartTime) session.activate(key);
+      if (!key.isSet(session)) {
+         StartTime startTime = (StartTime) key.activate(session);
          startTime.timestamp = System.nanoTime();
       }
       return true;
@@ -30,9 +32,9 @@ public class StopwatchBeginStep implements Step, ResourceUtilizer {
 
    @Override
    public void reserve(Session session) {
-      session.declare(key);
-      session.setObject(key, new StartTime());
-      session.unset(key);
+      key.declareObject(session);
+      key.setObject(session, new StartTime());
+      key.unset(session);
    }
 
    static class StartTime {

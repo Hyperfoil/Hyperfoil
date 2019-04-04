@@ -8,7 +8,7 @@ import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.config.Step;
-import io.hyperfoil.api.session.VarReference;
+import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.core.builders.Condition;
 import io.hyperfoil.core.builders.DependencyStepBuilder;
@@ -20,7 +20,7 @@ public class BreakSequenceStep extends DependencyStep {
    private final SerializablePredicate<Session> condition;
    private final Action onBreak;
 
-   public BreakSequenceStep(SerializableSupplier<Sequence> sequence, VarReference[] dependencies, SerializablePredicate<Session> condition, Action onBreak) {
+   public BreakSequenceStep(SerializableSupplier<Sequence> sequence, Access[] dependencies, SerializablePredicate<Session> condition, Action onBreak) {
       super(sequence, dependencies);
       this.condition = condition;
       this.onBreak = onBreak;
@@ -40,7 +40,7 @@ public class BreakSequenceStep extends DependencyStep {
       return true;
    }
 
-   public static class Builder extends DependencyStepBuilder {
+   public static class Builder extends DependencyStepBuilder<Builder> {
       private Condition.Builder condition;
       private Action.Builder onBreak;
 
@@ -60,8 +60,8 @@ public class BreakSequenceStep extends DependencyStep {
          return condition(() -> condition);
       }
 
-      public IntCondition.Builder intCondition() {
-         IntCondition.Builder builder = new IntCondition.Builder(this);
+      public IntCondition.Builder<BreakSequenceStep.Builder> intCondition() {
+         IntCondition.Builder<BreakSequenceStep.Builder> builder = new IntCondition.Builder<>(this);
          condition(builder);
          return builder;
       }

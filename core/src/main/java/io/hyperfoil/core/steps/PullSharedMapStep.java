@@ -5,11 +5,13 @@ import java.util.List;
 
 import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.Step;
+import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.SharedData;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.core.builders.BaseStepBuilder;
+import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.function.SerializableSupplier;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -19,11 +21,11 @@ public class PullSharedMapStep implements Step, ResourceUtilizer {
    private static final boolean trace = log.isTraceEnabled();
 
    private final String key;
-   private final String match;
+   private final Access match;
 
    public PullSharedMapStep(String key, String match) {
       this.key = key;
-      this.match = match;
+      this.match = SessionFactory.access(match);
    }
 
    @Override
@@ -38,7 +40,7 @@ public class PullSharedMapStep implements Step, ResourceUtilizer {
             return true;
          }
       } else {
-         Object value = session.getObject(match);
+         Object value = match.getObject(session);
          sharedMap = session.sharedData().pullMap(key, match, value);
          if (sharedMap == null) {
             if (trace) {
@@ -48,7 +50,7 @@ public class PullSharedMapStep implements Step, ResourceUtilizer {
          }
       }
       for (int i = 0; i < sharedMap.size(); ++i) {
-         session.setObject(sharedMap.key(i), sharedMap.value(i));
+         sharedMap.key(i).setObject(session, sharedMap.value(i));
       }
       session.sharedData().releaseMap(key, sharedMap);
       return true;

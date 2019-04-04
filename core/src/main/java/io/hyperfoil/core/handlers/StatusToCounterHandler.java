@@ -6,19 +6,21 @@ import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.http.StatusHandler;
+import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.ResourceUtilizer;
+import io.hyperfoil.core.session.SessionFactory;
 
 public class StatusToCounterHandler implements StatusHandler, ResourceUtilizer {
    private final Integer expectStatus;
-   private final String var;
+   private final Access var;
    private final int init;
    private final Integer add;
    private final Integer set;
 
    public StatusToCounterHandler(int expectStatus, String var, int init, Integer add, Integer set) {
       this.expectStatus = expectStatus;
-      this.var = var;
+      this.var = SessionFactory.access(var);
       this.init = init;
       this.add = add;
       this.set = set;
@@ -30,13 +32,13 @@ public class StatusToCounterHandler implements StatusHandler, ResourceUtilizer {
          return;
       }
       if (add != null) {
-         if (request.session.isSet(var)) {
-            request.session.addToInt(var, add);
+         if (var.isSet(request.session)) {
+            var.addToInt(request.session, add);
          } else {
-            request.session.setInt(var, init + add);
+            var.setInt(request.session, init + add);
          }
       } else if (set != null) {
-         request.session.setInt(var, set);
+         var.setInt(request.session, set);
       } else {
          throw new IllegalStateException();
       }
@@ -44,7 +46,7 @@ public class StatusToCounterHandler implements StatusHandler, ResourceUtilizer {
 
    @Override
    public void reserve(Session session) {
-      session.declareInt(var);
+      var.declareInt(session);
    }
 
    public static class Builder implements StatusHandler.Builder {

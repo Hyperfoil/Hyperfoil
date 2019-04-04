@@ -7,19 +7,21 @@ import java.util.concurrent.ThreadLocalRandom;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.Step;
+import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.core.builders.BaseStepBuilder;
+import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.function.SerializableSupplier;
 
 public class RandomIntStep implements Step, ResourceUtilizer {
-   private final String var;
+   private final Access var;
    private final int minInclusive;
    private final int maxInclusive;
 
    public RandomIntStep(String var, int minInclusive, int maxInclusive) {
-      this.var = var;
+      this.var = SessionFactory.access(var);
       this.minInclusive = minInclusive;
       this.maxInclusive = maxInclusive;
    }
@@ -37,13 +39,13 @@ public class RandomIntStep implements Step, ResourceUtilizer {
       } else {
          r = random.nextInt(minInclusive, maxInclusive + 1);
       }
-      session.setInt(var, r);
+      var.setInt(session, r);
       return true;
    }
 
    @Override
    public void reserve(Session session) {
-      session.declareInt(var);
+      var.declareInt(session);
    }
 
    public static class Builder extends BaseStepBuilder {

@@ -45,7 +45,7 @@ simulation:
           - embeddedResource:
             - httpRequest:
                GET:
-                 sequenceVar: downloadUrl
+                 var: downloadUrl[.]
                statistics:
                # Use full url for those matching pattern
                - .*.js
@@ -58,5 +58,5 @@ simulation:
                handler:
                  onCompletion:
                    unset:
-                     sequenceVar: downloadUrl
-            - awaitSequenceVar: "!downloadUrl"
+                     var: downloadUrl[.]
+            - awaitVar: "!downloadUrl[.]"

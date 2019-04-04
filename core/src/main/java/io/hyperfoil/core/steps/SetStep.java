@@ -9,44 +9,35 @@ import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Sequence;
+import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Action;
+import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.builders.BaseStepBuilder;
-import io.hyperfoil.core.session.ObjectVar;
+import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.function.SerializableSupplier;
 
-public class SetStep implements Action.Step {
-   private final String var;
-   private final boolean sequenceScoped;
+public class SetStep implements Action.Step, ResourceUtilizer {
+   private final Access var;
    private final String value;
 
-   public SetStep(String var, boolean sequenceScoped, String value) {
-      this.var = var;
-      this.sequenceScoped = sequenceScoped;
+   public SetStep(String var, String value) {
+      this.var = SessionFactory.access(var);
       this.value = value;
    }
 
    @Override
    public void run(Session session) {
-      if (sequenceScoped) {
-         Object holder = session.activate(var);
-         if (!(holder instanceof ObjectVar[])) {
-            throw new IllegalStateException(var + " does not hold a sequence-scoped var!");
-         }
-         ObjectVar[] vars = (ObjectVar[]) holder;
-         int index = session.currentSequence().index();
-         if (index >= vars.length) {
-            throw new IllegalStateException("Sequence-scoped var is too short (" + vars.length + ") for this sequence!");
-         }
-         vars[index].set(value);
-      } else {
-         session.setObject(var, value);
-      }
+      var.setObject(session, value);
+   }
+
+   @Override
+   public void reserve(Session session) {
+      var.declareObject(session);
    }
 
    public static class Builder extends BaseStepBuilder implements Action.Builder {
       private String var;
-      private boolean sequenceScoped;
       private String value;
 
       public Builder(String param) {
@@ -65,13 +56,6 @@ public class SetStep implements Action.Step {
 
       public SetStep.Builder var(String var) {
          this.var = var;
-         this.sequenceScoped = false;
-         return this;
-      }
-
-      public SetStep.Builder sequenceVar(String var) {
-         this.var = var;
-         this.sequenceScoped = true;
          return this;
       }
 
@@ -88,7 +72,7 @@ public class SetStep implements Action.Step {
          if (value == null) {
             throw new BenchmarkDefinitionException("Value was not set!");
          }
-         return new SetStep(var, sequenceScoped, value);
+         return new SetStep(var, value);
       }
 
       @Override
