@@ -79,7 +79,7 @@ public class BreakSequenceStep extends DependencyStep {
          if (condition == null) {
             throw new BenchmarkDefinitionException("In breakSequence step the condition must be defined.");
          }
-         return Collections.singletonList(new BreakSequenceStep(sequence, dependencies(), condition.build(), onBreak.build()));
+         return Collections.singletonList(new BreakSequenceStep(sequence, dependencies(), condition.build(), onBreak != null ? onBreak.build() : null));
       }
    }
 

@@ -1,5 +1,6 @@
 package io.hyperfoil.core.handlers;
 
+import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -7,7 +8,7 @@ import java.util.function.Function;
 
 import io.hyperfoil.api.session.Session;
 
-public abstract class JsonParser<S> {
+public abstract class JsonParser<S> implements Serializable {
    protected static final int MAX_PARTS = 16;
 
    protected final String query;
@@ -24,7 +25,9 @@ public abstract class JsonParser<S> {
       for (int i = 1; i < queryBytes.length; ++i) {
          if (queryBytes[i] == '[' || queryBytes[i] == '.' && next < i) {
             while (queryBytes[next] == '.') ++next;
-            selectors.add(new AttribSelector(Arrays.copyOfRange(queryBytes, next, i)));
+            if (next != i) {
+               selectors.add(new AttribSelector(Arrays.copyOfRange(queryBytes, next, i)));
+            }
             next = i + 1;
          }
          if (queryBytes[i] == '[') {
@@ -75,7 +78,7 @@ public abstract class JsonParser<S> {
       }
    }
 
-   interface Selector {
+   interface Selector extends Serializable {
       Context newContext();
 
       interface Context {

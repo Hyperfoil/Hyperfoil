@@ -106,22 +106,28 @@ public class IntCondition implements SerializablePredicate<Session> {
       protected SerializableIntPredicate buildPredicate() {
          SerializableIntPredicate predicate = null;
          if (equalTo != null) {
-            predicate = and(predicate, v -> v == equalTo.intValue());
+            int val = equalTo;
+            predicate = v -> v == val;
          }
          if (notEqualTo != null) {
-            predicate = and(predicate, v -> v != notEqualTo.intValue());
+            int val = notEqualTo;
+            predicate = and(predicate, v -> v != val);
          }
          if (greaterThan != null) {
-            predicate = and(predicate, v -> v > greaterThan.intValue());
+            int val = greaterThan;
+            predicate = and(predicate, v -> v > val);
          }
          if (greaterOrEqualTo != null) {
-            predicate = and(predicate, v -> v >= greaterOrEqualTo.intValue());
+            int val = greaterOrEqualTo;
+            predicate = and(predicate, v -> v >= val);
          }
          if (lessThan != null) {
-            predicate = and(predicate, v -> v < lessThan.intValue());
+            int val = lessThan;
+            predicate = and(predicate, v -> v < val);
          }
          if (lessOrEqualTo != null) {
-            predicate = and(predicate, v -> v <= lessOrEqualTo.intValue());
+            int val = lessOrEqualTo;
+            predicate = and(predicate, v -> v <= val);
          }
          return predicate;
       }

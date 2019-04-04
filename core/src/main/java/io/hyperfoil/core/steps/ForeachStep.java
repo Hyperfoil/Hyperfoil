@@ -50,7 +50,9 @@ public class ForeachStep extends DependencyStep implements ResourceUtilizer {
 
    @Override
    public void reserve(Session session) {
-      counterVar.declareInt(session);
+      if (counterVar != null) {
+         counterVar.declareInt(session);
+      }
    }
 
    public static class Builder extends DependencyStepBuilder<Builder> {
@@ -58,15 +60,13 @@ public class ForeachStep extends DependencyStep implements ResourceUtilizer {
       private String counterVar;
       private String sequence;
 
-      public Builder(BaseSequenceBuilder parent, String dataVar, String counterVar) {
+      public Builder(BaseSequenceBuilder parent) {
          super(parent);
-         this.dataVar = dataVar;
-         this.counterVar = counterVar;
-         dependency(dataVar);
       }
 
       public Builder dataVar(String dataVar) {
          this.dataVar = dataVar;
+         dependency(dataVar);
          return this;
       }
 

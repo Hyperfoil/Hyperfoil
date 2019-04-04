@@ -1,11 +1,13 @@
 package io.hyperfoil.api.http;
 
+import java.io.Serializable;
+
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.netty.buffer.ByteBuf;
 
-public interface Processor<R extends Request> {
+public interface Processor<R extends Request> extends Serializable {
    /**
     * Invoked before we record first value from given response.
     * @param request

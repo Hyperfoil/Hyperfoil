@@ -1,5 +1,8 @@
 package io.hyperfoil.core.generators;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -36,7 +39,10 @@ public class Pattern implements SerializableFunction<Session,String> {
                String format = str.substring(openPar + 2, colon).trim();
                Access key = SessionFactory.access(str.substring(colon + 1, closePar).trim());
                // TODO: we can't pre-allocate formatters here but we could cache them in the session
-               if (format.endsWith("d") || format.endsWith("o") || format.endsWith("x") || format.endsWith("X")) {
+               // TODO: find a better place for this hack
+               if (format.equalsIgnoreCase("urlencode")) {
+                  components.add((s, sb) -> sb.append(urlencode(String.valueOf(key.getObject(s)))));
+               } else if (format.endsWith("d") || format.endsWith("o") || format.endsWith("x") || format.endsWith("X")) {
                   components.add((s, sb) -> sb.append(String.format(format, key.getInt(s))));
                } else {
                   throw new IllegalArgumentException("Cannot use format string '" + format + "', only integers are supported");
@@ -65,6 +71,14 @@ public class Pattern implements SerializableFunction<Session,String> {
          }
       }
       this.components = components.toArray(new Component[0]);
+   }
+
+   private static String urlencode(String string) {
+      try {
+         return URLEncoder.encode(string, StandardCharsets.UTF_8.name());
+      } catch (UnsupportedEncodingException e) {
+         throw new IllegalArgumentException(e);
+      }
    }
 
    @Override

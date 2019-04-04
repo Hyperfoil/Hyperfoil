@@ -35,6 +35,7 @@ import io.hyperfoil.core.steps.ServiceLoadedBuilderProvider;
 import io.hyperfoil.core.steps.SetStep;
 import io.hyperfoil.core.steps.StopwatchBeginStep;
 import io.hyperfoil.core.steps.UnsetStep;
+import io.hyperfoil.core.util.Unique;
 import io.hyperfoil.impl.StepCatalogFactory;
 
 /**
@@ -64,8 +65,8 @@ public class StepCatalog implements Step.Catalog {
       return parent.step(new LoopStep(counterVar, repeats, loopedSequence));
    }
 
-   public ForeachStep.Builder foreach(String dataVar, String counterVar) {
-      return new ForeachStep.Builder(parent, dataVar, counterVar);
+   public ForeachStep.Builder foreach() {
+      return new ForeachStep.Builder(parent);
    }
 
    public BaseSequenceBuilder stop() {
@@ -101,7 +102,7 @@ public class StepCatalog implements Step.Catalog {
 
    public ScheduleDelayStep.Builder thinkTime(long duration, TimeUnit timeUnit) {
       // We will schedule two steps bound by an unique key
-      Object key = new Object();
+      Unique key = new Unique();
       // thinkTime should expose builder to support configurable duration randomization in the future
       ScheduleDelayStep.Builder delayBuilder = new ScheduleDelayStep.Builder(parent, key, duration, timeUnit).fromNow();
       parent.stepBuilder(delayBuilder);

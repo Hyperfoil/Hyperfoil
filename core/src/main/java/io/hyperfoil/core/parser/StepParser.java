@@ -26,6 +26,11 @@ class StepParser implements Parser<BaseSequenceBuilder> {
    private static final StepParser INSTANCE = new StepParser();
 
    private static Method selectMethod(Method m1, Method m2) {
+      if (m1 == null) {
+         return m2;
+      } else if (m2 == null) {
+         return m1;
+      }
       boolean m1Primitive = hasPrimitiveParams(m1);
       boolean m2Primitive = hasPrimitiveParams(m2);
       if (m1Primitive && m2Primitive) {

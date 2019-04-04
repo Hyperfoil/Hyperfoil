@@ -15,7 +15,9 @@ public abstract class DependencyStepBuilder<S extends DependencyStepBuilder<S>> 
    }
 
    public S dependency(String var) {
-      dependencies.add(SessionFactory.access(var));
+      if (var != null) {
+         dependencies.add(SessionFactory.access(var));
+      }
       return (S) this;
    }
 

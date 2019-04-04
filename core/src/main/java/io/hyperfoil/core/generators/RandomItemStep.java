@@ -21,6 +21,7 @@ import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.core.builders.BaseStepBuilder;
+import io.hyperfoil.core.session.ObjectVar;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.function.SerializableSupplier;
 
@@ -43,21 +44,38 @@ public class RandomItemStep implements Step, ResourceUtilizer {
          item = list[random.nextInt(list.length)];
       } else {
          Object data = fromVar.getObject(session);
-         if (data != null && data.getClass().isArray()) {
+         Object element;
+         if (data instanceof ObjectVar[]) {
+            // Assume that first unset variable denotes end of set variables
+            ObjectVar[] array = (ObjectVar[]) data;
+            int length = array.length;
+            for (int i = 0; i < array.length; ++i) {
+               if (!array[i].isSet()) {
+                  length = i;
+                  break;
+               }
+            }
+            element = array[random.nextInt(length)];
+         } else if (data != null && data.getClass().isArray()) {
             int length = Array.getLength(data);
-            item = Array.get(data, random.nextInt(length));
+            element = Array.get(data, random.nextInt(length));
          } else if (data instanceof List) {
             List dataList = (List) data;
-            item = dataList.get(random.nextInt(dataList.size()));
+            element = dataList.get(random.nextInt(dataList.size()));
          } else if (data instanceof Collection) {
             Collection dataCollection = (Collection) data;
             Iterator iterator = dataCollection.iterator();
             for (int i = random.nextInt(dataCollection.size()) - 1; i > 0; --i) {
                iterator.next();
             }
-            item = iterator.next();
+            element = iterator.next();
          } else {
             throw new IllegalStateException("Cannot fetch random item from collection stored under " + fromVar + ": " + data);
+         }
+         if (element instanceof ObjectVar) {
+            item = ((ObjectVar) element).objectValue();
+         } else {
+            throw new IllegalStateException("Collection in " + fromVar + " should store ObjectVars, but it stores " + element);
          }
       }
       var.setObject(session, item);

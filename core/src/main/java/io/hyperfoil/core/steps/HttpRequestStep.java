@@ -425,7 +425,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
       @Override
       public boolean invoke(Session s) {
          if (var.isSet(s)) {
-            if (var.getInt(s) != 0) {
+            if (var.getInt(s) == 0) {
                s.fail(new IllegalStateException("Synchronous HTTP request executed multiple times."));
             } else {
                var.addToInt(s, 1);

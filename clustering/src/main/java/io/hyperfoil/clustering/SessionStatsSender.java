@@ -20,7 +20,10 @@ public class SessionStatsSender implements SessionStatsConsumer {
    }
 
    public void send() {
-      eb.send(Feeds.STATS, new SessionStatsMessage(address, runId, System.currentTimeMillis(), sessionStats));
+      if (sessionStats != null) {
+         eb.send(Feeds.STATS, new SessionStatsMessage(address, runId, System.currentTimeMillis(), sessionStats));
+         sessionStats = null;
+      }
    }
 
    @Override

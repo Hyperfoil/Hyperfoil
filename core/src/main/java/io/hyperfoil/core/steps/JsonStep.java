@@ -51,6 +51,7 @@ public class JsonStep extends BaseStep implements ResourceUtilizer {
    @Override
    public void reserve(Session session) {
       session.declareResource(byteArrayParser, byteArrayParser.newContext());
+      toVar.declareObject(session);
    }
 
    public static class Builder extends BaseStepBuilder {
