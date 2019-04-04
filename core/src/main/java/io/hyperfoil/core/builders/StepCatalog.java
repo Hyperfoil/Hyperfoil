@@ -26,6 +26,7 @@ import io.hyperfoil.core.steps.AwaitVarStep;
 import io.hyperfoil.core.steps.BreakSequenceStep;
 import io.hyperfoil.core.steps.ForeachStep;
 import io.hyperfoil.core.steps.HttpRequestStep;
+import io.hyperfoil.core.steps.JsonStep;
 import io.hyperfoil.core.steps.LoopStep;
 import io.hyperfoil.core.steps.PollStep;
 import io.hyperfoil.core.steps.PullSharedMapStep;
@@ -181,6 +182,10 @@ public class StepCatalog implements Step.Catalog {
    }
 
    // data
+
+   public JsonStep.Builder json() {
+      return new JsonStep.Builder(parent);
+   }
 
    public PullSharedMapStep.Builder pullSharedMap() {
       return new PullSharedMapStep.Builder(parent);

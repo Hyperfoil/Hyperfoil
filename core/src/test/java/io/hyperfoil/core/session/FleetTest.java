@@ -10,6 +10,7 @@ import org.junit.runner.RunWith;
 
 import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.api.session.Session;
+import io.hyperfoil.core.data.DataFormat;
 import io.hyperfoil.core.handlers.ArrayRecorder;
 import io.hyperfoil.core.handlers.ProcessorAssertion;
 import io.hyperfoil.core.handlers.SequenceScopedCountRecorder;
@@ -82,7 +83,7 @@ public class FleetTest extends BaseScenarioTest {
                })
                .step(SC).httpRequest(HttpMethod.GET).path("/fleet")
                   .handler()
-                     .body(new JsonHandler(".ships[].name", shipAssertion.processor(new DefragProcessor(new ArrayRecorder("shipNames", MAX_SHIPS)))))
+                     .body(new JsonHandler(".ships[].name", shipAssertion.processor(new DefragProcessor(new ArrayRecorder("shipNames", DataFormat.STRING, MAX_SHIPS)))))
                   .endHandler()
                .endStep()
                .step(SC).foreach("shipNames", "numberOfShips").sequence("ship").endStep()
