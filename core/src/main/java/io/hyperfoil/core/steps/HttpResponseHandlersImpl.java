@@ -207,6 +207,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       reserveAll(session, statusHandlers);
       reserveAll(session, headerHandlers);
       reserveAll(session, bodyHandlers);
+      reserveAll(session, completionHandlers);
       reserveAll(session, rawBytesHandlers);
    }
 
