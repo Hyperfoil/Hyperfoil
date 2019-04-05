@@ -22,6 +22,7 @@ import io.hyperfoil.api.config.ScenarioBuilder;
 
 import org.yaml.snakeyaml.events.AliasEvent;
 import org.yaml.snakeyaml.events.MappingStartEvent;
+import org.yaml.snakeyaml.events.SequenceStartEvent;
 
 class ScenarioParser extends AbstractParser<ScenarioBuilder, ScenarioBuilder> {
     ScenarioParser() {
@@ -35,8 +36,12 @@ class ScenarioParser extends AbstractParser<ScenarioBuilder, ScenarioBuilder> {
     @Override
     public void parse(Context ctx, ScenarioBuilder target) throws ParserException {
         if (!ctx.hasNext()) {
-            throw ctx.noMoreEvents(MappingStartEvent.class, AliasEvent.class);
+            throw ctx.noMoreEvents(MappingStartEvent.class, AliasEvent.class, SequenceStartEvent.class);
         }
-        ctx.parseAliased(ScenarioBuilder.class, target, this::callSubBuilders);
+        if (ctx.peek() instanceof SequenceStartEvent) {
+            new OrderedSequenceParser().parse(ctx, target);
+        } else {
+            ctx.parseAliased(ScenarioBuilder.class, target, this::callSubBuilders);
+        }
     }
 }

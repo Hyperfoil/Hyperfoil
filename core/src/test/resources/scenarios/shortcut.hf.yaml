@@ -1,0 +1,12 @@
+name: shortcut benchmark
+http:
+  baseUrl: http://localhost:8080
+usersPerSec: 100
+duration: 3s
+maxDuration: 5s
+maxSessionsEstimate: 1234
+scenario:
+- test:
+  - httpRequest:
+      GET: /foo
+      sync: true

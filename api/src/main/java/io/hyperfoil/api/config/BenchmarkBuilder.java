@@ -95,6 +95,17 @@ public class BenchmarkBuilder {
         return new PhaseBuilder.Catalog(this, name);
     }
 
+    public PhaseBuilder.ConstantPerSec singleConstantPerSecPhase() {
+        if (phaseBuilders.isEmpty()) {
+            return new PhaseBuilder.Catalog(this, "main").constantPerSec(0);
+        }
+        PhaseBuilder<?> builder = phaseBuilders.get("main");
+        if (builder == null || !(builder instanceof PhaseBuilder.ConstantPerSec)) {
+            throw new BenchmarkDefinitionException("Benchmark already has defined phases; cannot use single-phase definition");
+        }
+        return (PhaseBuilder.ConstantPerSec) builder;
+    }
+
     public void prepareBuild() {
         if (defaultHttp == null) {
             if (httpMap.isEmpty()) {

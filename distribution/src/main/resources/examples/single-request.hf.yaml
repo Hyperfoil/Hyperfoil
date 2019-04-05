@@ -13,15 +13,12 @@ phases:
     atOnce:
       users: 1
       scenario:
-        # The sequences below will be executed in the order as in this file.
-        # Since we define only one sequence the order does not matter.
-        orderedSequences:
-        # The following sequence is called `test`.
-        - test:
-          # In the only step in this sequence we'll do a HTTP GET request
-          # to `http://hyperofoil.io/`
-          - httpRequest:
-              GET: /
-              # Inject helpers to make this request synchronous, i.e. keep
-              # the sequence blocked until Hyperfoil processes the response.
-              sync: true
+      # The only sequence in this scenario is called `test`.
+      - test:
+        # In the only step in this sequence we'll do a HTTP GET request
+        # to `http://hyperofoil.io/`
+        - httpRequest:
+            GET: /
+            # Inject helpers to make this request synchronous, i.e. keep
+            # the sequence blocked until Hyperfoil processes the response.
+            sync: true

@@ -58,6 +58,12 @@ public class BenchmarkParser extends AbstractMappingParser<BenchmarkBuilder> {
         register("phases", new PhasesParser());
         register("threads", new PropertyParser.Int<>(BenchmarkBuilder::threads));
         register("statisticsCollectionPeriod", new PropertyParser.Int<>(BenchmarkBuilder::statisticsCollectionPeriod));
+        // simplified single-phase definition
+        register("usersPerSec", new PropertyParser.Double<>((bb, value) -> bb.singleConstantPerSecPhase().usersPerSec(value)));
+        register("duration", new PropertyParser.String<>((bb, value) -> bb.singleConstantPerSecPhase().duration(value)));
+        register("maxDuration", new PropertyParser.String<>((bb, value) -> bb.singleConstantPerSecPhase().maxDuration(value)));
+        register("maxSessionsEstimate", new PropertyParser.Int<>((bb, value) -> bb.singleConstantPerSecPhase().maxSessionsEstimate(value)));
+        register("scenario", (ctx, target) -> new ScenarioParser().parse(ctx, target.singleConstantPerSecPhase().scenario()));
     }
 
     private void checkSchema(BenchmarkBuilder builder, String schema) {

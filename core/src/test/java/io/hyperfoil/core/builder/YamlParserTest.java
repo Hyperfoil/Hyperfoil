@@ -92,6 +92,20 @@ public class YamlParserTest {
         return (T) phase;
     }
 
+   @Test
+   public void testShortcutYaml() {
+      Benchmark benchmark = buildBenchmark("scenarios/shortcut.hf.yaml");
+      assertThat(benchmark.name()).isEqualTo("shortcut benchmark");
+      assertThat(benchmark.phases().size()).isEqualTo(1);
+      Phase phase = benchmark.phases().stream().findFirst().get();
+      assertThat(phase.name()).isEqualTo("main");
+      assertThat(phase.duration()).isEqualTo(3000);
+      assertThat(phase.maxDuration()).isEqualTo(5000);
+      assertThat(((Phase.ConstantPerSec) phase).usersPerSec).isEqualTo(100);
+      assertThat(((Phase.ConstantPerSec) phase).maxSessionsEstimate).isEqualTo(1234);
+      assertThat(phase.scenario().initialSequences().length).isEqualTo(1);
+   }
+
     @Test
     public void testIterationYaml() {
         Benchmark benchmark = buildBenchmark("scenarios/iteration.hf.yaml");

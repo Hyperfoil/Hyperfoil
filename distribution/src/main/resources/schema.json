@@ -4,7 +4,7 @@
   "description": "Hyperfoil benchmark configuration",
   "type": "object",
   "additionalProperties": false,
-  "required": [ "name", "http", "phases" ],
+  "required": [ "name", "http" ],
   "properties": {
     "$schema": {
       "description": "This should point to either http://hyperfoil.io/schema or local file",
@@ -139,6 +139,26 @@
           }
         }
       }
+    },
+    "usersPerSec": {
+      "description": "Single-phase shortcut: Rate for new users",
+      "$ref": "#/definitions/incrementableNumber"
+    },
+    "maxSessionsEstimate": {
+      "description": "Single-phase shortcut: Estimate of maximum number of users executing this phase.",
+      "$ref": "#/definitions/positiveInteger"
+    },
+    "duration" : {
+      "description": "Single-phase shortcut: Time relative to phase start for the phase to be finished.",
+      "$ref": "#/definitions/timeMillis"
+    },
+    "maxDuration" : {
+      "description": "Single-phase shortcut: Hard limit, relative to phase start, after which the phase will be terminated.",
+      "$ref": "#/definitions/timeMillis"
+    },
+    "scenario": {
+      "description": "Single-phase shortcut: the scenario",
+      "$ref" : "#/definitions/scenario"
     }
   },
   "definitions": {
@@ -320,32 +340,50 @@
       ]
     },
     "scenario": {
-      "description": "Actions that a single user will execute.",
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "initialSequences": {
-          "description": "Sequences scheduled for execution with a new session",
-          "type": "array",
-          "additionalItems": false,
-          "minLength": 1,
-          "items": { "$ref" : "#/definitions/sequence" }
-        },
-        "sequences": {
-          "description": "Sequences that need to be explicitly triggered.",
-          "type": "array",
-          "additionalItems": false,
-          "minLength": 1,
-          "items": { "$ref" : "#/definitions/sequence" }
-        },
-        "orderedSequences": {
+      "oneOf": [
+        {
+          "description": "Actions that a single user will execute.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "initialSequences": {
+              "description": "Sequences scheduled for execution with a new session",
+              "type": "array",
+              "additionalItems": false,
+              "minLength": 1,
+              "items": {
+                "$ref": "#/definitions/sequence"
+              }
+            },
+            "sequences": {
+              "description": "Sequences that need to be explicitly triggered.",
+              "type": "array",
+              "additionalItems": false,
+              "minLength": 1,
+              "items": {
+                "$ref": "#/definitions/sequence"
+              }
+            },
+            "orderedSequences": {
+              "description": "Automatically chained sequences.",
+              "type": "array",
+              "additionalItems": false,
+              "minLength": 1,
+              "items": {
+                "$ref": "#/definitions/sequence"
+              }
+            }
+          }
+        }, {
           "description": "Automatically chained sequences.",
           "type": "array",
           "additionalItems": false,
-          "minLength": 1,
-          "items": { "$ref" : "#/definitions/sequence" }
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/sequence"
+          }
         }
-      }
+      ]
     },
     "sequence": {
       "type": "object",
