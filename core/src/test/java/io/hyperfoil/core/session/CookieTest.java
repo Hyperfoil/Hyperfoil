@@ -37,7 +37,6 @@ public class CookieTest extends BaseScenarioTest {
                   .path("/test1")
                   .statistics("test1")
                .endStep()
-               .step(SC).awaitAllResponses()
                .step(SC).httpRequest(HttpMethod.GET)
                   .path("/test2")
                   .statistics("test2")
@@ -47,7 +46,6 @@ public class CookieTest extends BaseScenarioTest {
                      })
                   .endHandler()
                .endStep()
-               .step(SC).awaitAllResponses()
             .endSequence();
 
       Map<String, List<StatisticsSnapshot>> stats = runScenario();

@@ -34,8 +34,9 @@ scenario:
         # in the session.
         onCompletion:
           set: completed <- yes
-  # Note that we haven't set `sync: true` in the httpRequest above.
-  # Next step is executed immediately after we fire the request, not
-  # waiting for the response. We'll wait for the `completed` var
-  # to be set in this step, though.
+      # For demonstration purposes we'lll set `sync: false`.
+      # Next step is executed immediately after we fire the request, not
+      # waiting for the response.
+      sync: false
+  # We'll wait for the `completed` var to be set in this step, though.
   - awaitVar: completed

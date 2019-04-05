@@ -115,7 +115,6 @@ public class TwoScenariosTest {
                .endSequence()
                .sequence("board")
                   .step(SC).httpRequest(HttpMethod.GET).path("/board").endStep()
-                  .step(SC).awaitAllResponses()
                   .step(SC).nextSequence("rig")
                .endSequence()
                .sequence("rig")
@@ -129,12 +128,10 @@ public class TwoScenariosTest {
                         }
                      })).endHandler()
                   .endStep()
-                  .step(SC).awaitAllResponses()
                   .step(SC).nextSequence("disembark")
                .endSequence()
                .sequence("disembark")
                   .step(SC).httpRequest(HttpMethod.GET).path("/disembark").endStep()
-                  .step(SC).awaitAllResponses()
                   .step(s -> {
                      ships.put((ShipInfo) ship.getObject(s));
                      return true;
@@ -155,7 +152,6 @@ public class TwoScenariosTest {
                .endSequence()
                .sequence("board")
                   .step(SC).httpRequest(HttpMethod.GET).path("/board").endStep()
-                  .step(SC).awaitAllResponses()
                   .step(SC).nextSequence("furl")
                .endSequence()
                .sequence("furl")
@@ -169,12 +165,10 @@ public class TwoScenariosTest {
                         }
                      }).endHandler()
                   .endStep()
-                  .step(SC).awaitAllResponses()
                   .step(SC).nextSequence("disembark")
                .endSequence()
                .sequence("disembark")
                   .step(SC).httpRequest(HttpMethod.GET).path("/disembark").endStep()
-                  .step(SC).awaitAllResponses()
                   .step(s -> {
                      ships.put((ShipInfo) ship.getObject(s));
                      return true;

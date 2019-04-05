@@ -16,9 +16,7 @@ phases:
               duration: 1s
           - httpRequest:
               GET: /index.html
-          - awaitAllResponses
           - httpRequest:
               GET: /api/fruits-normal
-          - awaitAllResponses
           - awaitDelay :
               key: thinkTime

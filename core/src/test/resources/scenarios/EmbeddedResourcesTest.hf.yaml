@@ -12,6 +12,7 @@ phases:
         - automatic:
           - httpRequest:
               GET: /foobar/index.html
+              sync: false
               handler:
                 body:
                   parseHtml:
@@ -27,6 +28,7 @@ phases:
         - manual:
           - httpRequest:
               GET: /foobar/index.html
+              sync: false
               handler:
                 body:
                   parseHtml:
@@ -43,19 +45,20 @@ phases:
         sequences:
         - embeddedResource:
           - httpRequest:
-             GET:
-               var: downloadUrl[.]
-             statistics:
-             # Use full url for those matching pattern
-             - .*.js
-             - .*.ico
-             - .*.css
-             # Truncate query parameters but keep the base
-             - (.*.php).* -> $1
-             # Default match (otherwise it would be sequence name)
-             - -> other
-             handler:
-               onCompletion:
-                 unset:
-                   var: downloadUrl[.]
+              GET:
+                var: downloadUrl[.]
+              sync: false
+              statistics:
+              # Use full url for those matching pattern
+              - .*.js
+              - .*.ico
+              - .*.css
+              # Truncate query parameters but keep the base
+              - (.*.php).* -> $1
+              # Default match (otherwise it would be sequence name)
+              - -> other
+              handler:
+                onCompletion:
+                  unset:
+                    var: downloadUrl[.]
           - awaitVar: "!downloadUrl[.]"

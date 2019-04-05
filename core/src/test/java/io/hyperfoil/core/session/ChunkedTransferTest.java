@@ -72,8 +72,12 @@ public class ChunkedTransferTest extends BaseScenarioTest {
                   }
                   rawBytesSeen.set(true);
                }).endHandler()
+               .sync(false)
             .endStep()
-            .step(SC).httpRequest(HttpMethod.GET).path("/test2").endStep()
+            .step(SC).httpRequest(HttpMethod.GET)
+               .path("/test2")
+               .sync(false)
+            .endStep()
             .step(SC).awaitAllResponses()
             .endSequence();
 

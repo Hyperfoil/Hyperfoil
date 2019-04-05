@@ -51,7 +51,6 @@ public class BuilderTest {
                                 .step(StepCatalog.class).httpRequest(HttpMethod.GET)
                                         .path("foo")
                                         .endStep()
-                                .step(StepCatalog.class).awaitAllResponses()
                                 .end()
                             .endSequence()
                         .endScenario()

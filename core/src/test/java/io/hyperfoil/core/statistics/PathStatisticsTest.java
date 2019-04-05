@@ -45,8 +45,8 @@ public class PathStatisticsTest extends BaseScenarioTest {
                         throw new IllegalStateException();
                   }
                })
-               .statistics(selector).endStep()
-            .step(SC).awaitAllResponses();
+               .statistics(selector)
+            .endStep();
 
       Map<String, List<StatisticsSnapshot>> stats = runScenario();
       verifyRequest(stats.get("/foo.js"));

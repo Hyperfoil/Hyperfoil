@@ -14,4 +14,3 @@ phases:
         - test:
           - httpRequest:
               GET: /foo
-          - awaitAllResponses

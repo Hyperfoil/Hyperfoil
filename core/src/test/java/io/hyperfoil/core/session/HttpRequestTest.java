@@ -56,8 +56,8 @@ public class HttpRequestTest extends BaseScenarioTest {
                   .path("/test?expect=bar")
                   .body("bar")
                   .handler().status(verifyStatus(ctx))
-                  .endHandler().endStep()
-               .step(SC).awaitAllResponses();
+                  .endHandler()
+               .endStep();
 
       runScenario();
    }
@@ -75,8 +75,8 @@ public class HttpRequestTest extends BaseScenarioTest {
                   .path("/test?expect=bar")
                   .body().var("x").endBody()
                   .handler().status(verifyStatus(ctx))
-                  .endHandler().endStep()
-               .step(SC).awaitAllResponses();
+                  .endHandler()
+               .endStep();
 
       runScenario();
    }
@@ -97,11 +97,10 @@ public class HttpRequestTest extends BaseScenarioTest {
                .value(chineseStr)
             .endStep()
             .step(SC).httpRequest(HttpMethod.POST)
-            .path("/test?expect=" + URLEncoder.encode(chineseStr, StandardCharsets.UTF_8.name()))
-            .body().var("x").endBody()
-            .handler().status(verifyStatus(ctx))
-            .endHandler().endStep()
-            .step(SC).awaitAllResponses();
+               .path("/test?expect=" + URLEncoder.encode(chineseStr, StandardCharsets.UTF_8.name()))
+               .body().var("x").endBody()
+               .handler().status(verifyStatus(ctx)).endHandler()
+            .endStep();
 
       runScenario();
    }
@@ -119,8 +118,8 @@ public class HttpRequestTest extends BaseScenarioTest {
                   .path().pattern("/test?expect=${x}").end()
                   .body("bar")
                   .handler().status(verifyStatus(ctx))
-                  .endHandler().endStep()
-               .step(SC).awaitAllResponses();
+                  .endHandler()
+               .endStep();
 
       runScenario();
    }
@@ -131,7 +130,6 @@ public class HttpRequestTest extends BaseScenarioTest {
             .initialSequence("expectOK")
                .step(SC).httpRequest(HttpMethod.GET)
                   .path("/status?s=205")
-                  .sync(true)
                   .handler()
                      .status(new RangeStatusValidator(205, 205))
                      .endHandler()
@@ -140,7 +138,6 @@ public class HttpRequestTest extends BaseScenarioTest {
             .initialSequence("expectFail")
                .step(SC).httpRequest(HttpMethod.GET)
                   .path("/status?s=406")
-                  .sync(true)
                   .handler()
                      .status(new RangeStatusValidator(200, 299))
                      .endHandler()

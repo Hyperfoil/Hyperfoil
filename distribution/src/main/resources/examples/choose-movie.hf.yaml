@@ -27,9 +27,11 @@ scenario:
     - httpRequest:
         GET:
           pattern: /profile?user=${username}
+        sync: false
     # Fetch movies user could watch
     - httpRequest:
         GET: /movies
+        sync: false
         handler:
           body:
             # Parse the returned JSON that is an array and for each

@@ -83,16 +83,14 @@ public class RequestResponseCounterTest {
                 .maxSessionsEstimate(500 * 15)
                 .scenario()
                 .initialSequence("request")
-                .step(StepCatalog.class).httpRequest(HttpMethod.GET)
-                .path("/")
-                .timeout("60s")
-                .handler()
-                .rawBytesHandler(new ByteBufSizeRecorder("bytes"))
-                .endHandler()
-                .endStep()
-                .step(StepCatalog.class).awaitAllResponses()
-                .endSequence()
-                .endScenario();
+                    .step(StepCatalog.class).httpRequest(HttpMethod.GET)
+                        .path("/")
+                        .timeout("60s")
+                        .handler()
+                        .rawBytesHandler(new ByteBufSizeRecorder("bytes"))
+                        .endHandler()
+                    .endStep()
+                .endSequence();
 
         Benchmark benchmark = builder.build();
 

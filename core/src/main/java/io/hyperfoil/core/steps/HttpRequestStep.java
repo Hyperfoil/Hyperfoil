@@ -166,7 +166,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
       private SerializableBiFunction<String, String, String> statisticsSelector;
       private long timeout = Long.MIN_VALUE;
       private HttpResponseHandlersImpl.Builder handler = new HttpResponseHandlersImpl.Builder(this);
-      private boolean sync = false;
+      private boolean sync = true;
       private SLABuilder.ListBuilder<Builder> sla = null;
 
       public Builder(BaseSequenceBuilder parent) {

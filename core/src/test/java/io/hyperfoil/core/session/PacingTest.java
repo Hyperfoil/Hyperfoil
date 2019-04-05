@@ -28,7 +28,6 @@ public class PacingTest extends BaseScenarioTest {
    public void testThinkTimes() {
       scenario().initialSequence("loop")
                .step(SC).httpRequest(HttpMethod.GET).path("/test").endStep()
-               .step(SC).awaitAllResponses()
                .step(SC).thinkTime(500, TimeUnit.MILLISECONDS).endStep()
                .step(SC).loop("counter", 5, "loop")
             .endSequence();
@@ -42,7 +41,6 @@ public class PacingTest extends BaseScenarioTest {
                // Delaying from now accumulates time skew as it always plans from this timestamp
                .step(SC).scheduleDelay("foo", 1, TimeUnit.SECONDS).fromNow().endStep()
                .step(SC).httpRequest(HttpMethod.GET).path("/test").endStep()
-               .step(SC).awaitAllResponses()
                .step(SC).awaitDelay("foo")
                .step(SC).loop("counter", 5, "loop")
             .endSequence();
@@ -56,7 +54,6 @@ public class PacingTest extends BaseScenarioTest {
                // Delaying from last does not accumulate time skew as it bases the delay on previous iteration
                .step(SC).scheduleDelay("foo", 1, TimeUnit.SECONDS).fromLast().endStep()
                .step(SC).httpRequest(HttpMethod.GET).path("/test").endStep()
-               .step(SC).awaitAllResponses()
                .step(SC).awaitDelay("foo")
                .step(SC).loop("counter", 5, "loop")
             .endSequence();

@@ -9,4 +9,3 @@ scenario:
 - test:
   - httpRequest:
       GET: /foo
-      sync: true

@@ -86,7 +86,9 @@ public class FleetTest extends BaseScenarioTest {
                   numberOfSunkShips.setInt(s, 0);
                   return true;
                })
-               .step(SC).httpRequest(HttpMethod.GET).path("/fleet")
+               .step(SC).httpRequest(HttpMethod.GET)
+                  .path("/fleet")
+                  .sync(false)
                   .handler()
                      .body(new JsonHandler(".ships[].name", shipAssertion.processor(new DefragProcessor<>(new ArrayRecorder("shipNames", DataFormat.STRING, MAX_SHIPS)))))
                   .endHandler()
@@ -98,7 +100,9 @@ public class FleetTest extends BaseScenarioTest {
                .endStep()
             .endSequence()
             .sequence("ship")
-               .step(SC).httpRequest(HttpMethod.GET).pathGenerator(FleetTest::currentShipQuery)
+               .step(SC).httpRequest(HttpMethod.GET)
+                  .pathGenerator(FleetTest::currentShipQuery)
+                  .sync(false)
                   .handler()
                      .body(new JsonHandler(".crew[]", crewAssertion.processor(new SequenceScopedCountRecorder("crewCount", MAX_SHIPS))))
                   .endHandler()
@@ -108,7 +112,9 @@ public class FleetTest extends BaseScenarioTest {
                   .intCondition().var("crewCount[.]").greaterThan(0).endCondition()
                   .onBreak(s -> numberOfShips.addToInt(s, -1))
                .endStep()
-               .step(SC).httpRequest(HttpMethod.DELETE).pathGenerator(FleetTest::currentShipQuery)
+               .step(SC).httpRequest(HttpMethod.DELETE)
+                  .pathGenerator(FleetTest::currentShipQuery)
+                  .sync(false)
                   .handler()
                      .status(((request, status) -> {
                         if (status == 204) {

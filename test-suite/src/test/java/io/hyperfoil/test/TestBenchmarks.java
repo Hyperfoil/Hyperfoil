@@ -29,7 +29,6 @@ public class TestBenchmarks {
                               .endSLA()
                            .endList()
                         .endStep()
-                        .step(StepCatalog.class).awaitAllResponses()
                   .endSequence()
                .endScenario()
             .endPhase();

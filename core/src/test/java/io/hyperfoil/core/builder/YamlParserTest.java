@@ -40,6 +40,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 import java.util.function.Predicate;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -130,20 +131,30 @@ public class YamlParserTest {
         Sequence testSequence = testPhase.scenario().sequences()[0];
         Iterator<Step> iterator = Arrays.asList(testSequence.steps()).iterator();
 
-        HttpRequestStep request1 = (HttpRequestStep) iterator.next();
+        HttpRequestStep request1 = next(HttpRequestStep.class, iterator);
         StatusHandler[] statusHandlers1 = HttpRequestStepUtil.statusHandlers(request1);
         assertThat(statusHandlers1).isNotNull().hasSize(1);
         assertCondition((RangeStatusValidator) statusHandlers1[0], v -> v.min == 200);
         assertCondition((RangeStatusValidator) statusHandlers1[0], v -> v.max == 299);
 
-        HttpRequestStep request2 = (HttpRequestStep) iterator.next();
+        HttpRequestStep request2 = next(HttpRequestStep.class, iterator);
         StatusHandler[] statusHandlers2 = HttpRequestStepUtil.statusHandlers(request2);
         assertThat(statusHandlers2).isNotNull().hasSize(1);
         assertCondition((RangeStatusValidator) statusHandlers2[0], v -> v.min == 201);
         assertCondition((RangeStatusValidator) statusHandlers2[0], v -> v.max == 259);
     }
 
-    private <T> void assertCondition(T object, Predicate<T> predicate) {
+   private <T extends Step> T next(Class<T> stepClass, Iterator<Step> iterator) {
+      while (iterator.hasNext()) {
+         Step step = iterator.next();
+         if (stepClass.isInstance(step)) {
+            return (T) step;
+         }
+      }
+      throw new NoSuchElementException();
+   }
+
+   private <T> void assertCondition(T object, Predicate<T> predicate) {
         assertThat(object).has(new Condition<>(predicate, ""));
     }
 

@@ -12,6 +12,7 @@ phases:
         - testSequence:
           - httpRequest:
               GET: /foo
+              sync: false
               sla:
                 meanResponseTime: 1s
                 limits:
@@ -26,6 +27,7 @@ phases:
           - httpRequest:
               method: GET
               path: /foo
+              sync: false
               headers:
               - Accept: text/plain
               - Foo:

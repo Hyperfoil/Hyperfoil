@@ -306,8 +306,6 @@ scenario:
   - login:
     - httpRequest:
         POST: /login
-    # Wait until all requests sent get the response
-    - awaitAllResponses
     # Enable instance of sequence 'wait5seconds'
     - next: wait5seconds
   sequences:
@@ -318,7 +316,6 @@ scenario:
   - logout:
     - httpRequest:
         POST: /logout
-    - awaitAllResponses
 ```
 
 While this generic approach is useful for complex scenarios with branching logic,
@@ -330,14 +327,12 @@ scenario:
   - login:
     - httpRequest:
         POST: /login
-    - awaitAllResponses
   - wait5seconds:
     - thinkTime:
         duration: 5s
   - logout:
     - httpRequest:
         POST: /logout
-    - awaitAllResponses
 ```
 
 You can use eiter well-known steps (those are defined as methods
@@ -365,7 +360,6 @@ phases:
         - login: &login
           - httpRequest:
               POST: /login
-          - awaitAllResponses
           ...
 - steadyState:
     constantPerSec:
