@@ -224,18 +224,20 @@ public class Wrk {
          thread.start();
 
          long startTime = System.currentTimeMillis();
+         StatisticsCollector collector = new StatisticsCollector();
+         StatisticsSnapshot total = new StatisticsSnapshot();
          while(latch.getCount() > 0) {
 
             long duration = System.currentTimeMillis() - startTime;
             if(duration % 800 == 0) {
                invocation.getShell().write(ANSI.CURSOR_START);
                invocation.getShell().write(ANSI.ERASE_WHOLE_LINE);
-               StatisticsCollector collector = new StatisticsCollector();
                runner.visitStatistics(collector);
                collector.visitStatistics((stepId, name, stats, countDown) -> {
                   if (stepId == testStepId) {
                      double durationSeconds = (stats.histogram.getEndTimeStamp() - stats.histogram.getStartTimeStamp()) / 1000d;
                      invocation.print("Requests/sec: " + String.format("%.02f", stats.histogram.getTotalCount() / durationSeconds));
+                     stats.addInto(total);
                   }
                }, null);
 
@@ -251,14 +253,13 @@ public class Wrk {
          }
          invocation.context().setRunning(false);
          invocation.println(Config.getLineSeparator()+"benchmark finished");
-         StatisticsCollector collector = new StatisticsCollector();
          runner.visitStatistics(collector);
          collector.visitStatistics((stepId, name, stats, countDown) -> {
             if (stepId == testStepId) {
-               printStats(stats, invocation);
+               stats.addInto(total);
             }
          }, null);
-
+         printStats(total, invocation);
       }
 
       private PhaseBuilder addPhase(SimulationBuilder simulationBuilder, String phase, String duration) {
