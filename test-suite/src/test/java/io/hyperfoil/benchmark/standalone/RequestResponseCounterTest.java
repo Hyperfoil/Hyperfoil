@@ -23,7 +23,6 @@ package io.hyperfoil.benchmark.standalone;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.api.config.BenchmarkBuilder;
-import io.hyperfoil.api.config.SimulationBuilder;
 import io.hyperfoil.core.builders.StepCatalog;
 import io.hyperfoil.core.handlers.ByteBufSizeRecorder;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
@@ -70,17 +69,16 @@ public class RequestResponseCounterTest {
     @Test
     public void testNumberOfRequestsAndResponsesMatch() {
 
-        SimulationBuilder simulationBuilder =
+        BenchmarkBuilder builder =
                 new BenchmarkBuilder(null)
                         .name("requestResponseCounter " + new SimpleDateFormat("YY/MM/dd HH:mm:ss").format(new Date()))
-                        .simulation()
                         .http()
                         .baseUrl("http://localhost:8088/")
                         .sharedConnections(50)
                         .endHttp()
                         .threads(2);
 
-        simulationBuilder.addPhase("run").constantPerSec(500)
+        builder.addPhase("run").constantPerSec(500)
                 .duration(5000)
                 .maxSessionsEstimate(500 * 15)
                 .scenario()
@@ -96,7 +94,7 @@ public class RequestResponseCounterTest {
                 .endSequence()
                 .endScenario();
 
-        Benchmark benchmark = simulationBuilder.endSimulation().build();
+        Benchmark benchmark = builder.build();
 
         LocalSimulationRunner runner = new LocalSimulationRunner(benchmark);
         runner.run();

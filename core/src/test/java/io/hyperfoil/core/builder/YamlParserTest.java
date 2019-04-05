@@ -51,7 +51,7 @@ public class YamlParserTest {
     public void testSimpleYaml() {
         Benchmark benchmark = buildBenchmark("scenarios/simple.hf.yaml");
         assertThat(benchmark.name()).isEqualTo("simple benchmark");
-        Phase[] phases = benchmark.simulation().phases().toArray(new Phase[0]);
+        Phase[] phases = benchmark.phases().toArray(new Phase[0]);
         assertThat(phases.length).isEqualTo(3);
         Sequence[] sequences = phases[0].scenario().sequences();
         assertThat(sequences.length).isEqualTo(1);
@@ -79,14 +79,14 @@ public class YamlParserTest {
               .isCloseTo(100.0 / 3 / sumWeights * 0.1, withPercentage(1));
         assertThat(phase(benchmark, "steadyState/viewUser", Phase.ConstantPerSec.class).usersPerSec)
               .isCloseTo(100.0 / 3 / sumWeights * 1.0, withPercentage(1));
-        assertThat(benchmark.simulation().phases().stream()
+        assertThat(benchmark.phases().stream()
               .filter(p -> p instanceof Phase.ConstantPerSec)
               .mapToDouble(p -> ((Phase.ConstantPerSec) p).usersPerSec)
               .sum()).isCloseTo(100.0 / 3, withPercentage(1));
     }
 
     private <T extends Phase> T phase(Benchmark benchmark, String name, Class<T> type) {
-        Phase phase = benchmark.simulation().phases().stream()
+        Phase phase = benchmark.phases().stream()
               .filter(p -> p.name().equals(name)).findFirst().get();
         assertThat(phase).isInstanceOf(type);
         return (T) phase;
@@ -112,7 +112,7 @@ public class YamlParserTest {
     @Test
     public void testHttpRequestYaml() {
         Benchmark benchmark = buildBenchmark("scenarios/httpRequest.hf.yaml");
-        Phase testPhase = benchmark.simulation().phases().iterator().next();
+        Phase testPhase = benchmark.phases().iterator().next();
         Sequence testSequence = testPhase.scenario().sequences()[0];
         Iterator<Step> iterator = Arrays.asList(testSequence.steps()).iterator();
 

@@ -4,7 +4,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 
-import io.hyperfoil.api.config.Simulation;
+import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.clustering.util.AgentControlMessage;
 import io.hyperfoil.clustering.util.AgentHello;
 import io.hyperfoil.core.util.CountDown;
@@ -58,7 +58,7 @@ public class AgentVerticle extends AbstractVerticle {
             switch (controlMessage.command()) {
                 case INITIALIZE:
                     log.info("Initializing agent, run {}", controlMessage.runId());
-                    initSimulation(controlMessage.runId(), controlMessage.simulation(), result -> {
+                    initBenchmark(controlMessage.runId(), controlMessage.benchmark(), result -> {
                         if (result.succeeded()) {
                             message.reply("OK");
                         } else {
@@ -152,13 +152,13 @@ public class AgentVerticle extends AbstractVerticle {
         }
     }
 
-    private void initSimulation(String runId, Simulation simulation, Handler<AsyncResult<Void>> handler) {
+    private void initBenchmark(String runId, Benchmark benchmark, Handler<AsyncResult<Void>> handler) {
         if (runner != null) {
             log.error("Another simulation is running!");
             handler.handle(Future.failedFuture("Another simulation is running"));
             return;
         }
-        runner = new SimulationRunnerImpl(simulation);
+        runner = new SimulationRunnerImpl(benchmark);
         controlFeedConsumer = listenOnControl();
         reportSender = new ReportSender(eb, address, runId);
         statisticsCountDown = new CountDown(1);
@@ -169,7 +169,7 @@ public class AgentVerticle extends AbstractVerticle {
             eb.send(Feeds.RESPONSE, new PhaseChangeMessage(address, runId, phase, status, succesful));
         }, result -> {
             if (result.succeeded()) {
-                statsTimerId = vertx.setPeriodic(simulation.statisticsCollectionPeriod(), timerId -> {
+                statsTimerId = vertx.setPeriodic(benchmark.statisticsCollectionPeriod(), timerId -> {
                     runner.visitStatistics(reportSender);
                     reportSender.send(statisticsCountDown);
                     runner.visitSessionPoolStats(sessionStatsSender);

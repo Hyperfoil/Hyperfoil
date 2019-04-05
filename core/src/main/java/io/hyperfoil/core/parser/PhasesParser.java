@@ -22,10 +22,10 @@ import org.yaml.snakeyaml.events.MappingEndEvent;
 import org.yaml.snakeyaml.events.MappingStartEvent;
 import org.yaml.snakeyaml.events.ScalarEvent;
 
+import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.PhaseBuilder;
-import io.hyperfoil.api.config.SimulationBuilder;
 
-class PhasesParser extends AbstractParser<SimulationBuilder, PhaseBuilder.Catalog> {
+class PhasesParser extends AbstractParser<BenchmarkBuilder, PhaseBuilder.Catalog> {
 
     PhasesParser() {
         register("atOnce", new PhaseParser.AtOnce());
@@ -35,11 +35,11 @@ class PhasesParser extends AbstractParser<SimulationBuilder, PhaseBuilder.Catalo
     }
 
     @Override
-    public void parse(Context ctx, SimulationBuilder target) throws ParserException {
+    public void parse(Context ctx, BenchmarkBuilder target) throws ParserException {
         ctx.parseList(target, this::parsePhase);
     }
 
-    private void parsePhase(Context ctx, SimulationBuilder target) throws ParserException {
+    private void parsePhase(Context ctx, BenchmarkBuilder target) throws ParserException {
         ctx.expectEvent(MappingStartEvent.class);
         ScalarEvent event = ctx.expectEvent(ScalarEvent.class);
         String name = event.getValue();

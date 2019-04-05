@@ -4,13 +4,12 @@ import java.util.concurrent.TimeUnit;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkBuilder;
-import io.hyperfoil.api.config.SimulationBuilder;
 import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.core.builders.StepCatalog;
 
 public class TestBenchmarks {
-   public static SimulationBuilder addTestSimulation(BenchmarkBuilder builder, int users, int port) {
-      return builder.simulation()
+   public static BenchmarkBuilder addTestSimulation(BenchmarkBuilder builder, int users, int port) {
+      return builder
             .http()
                .baseUrl("http://localhost:" + port)
                .sharedConnections(10)

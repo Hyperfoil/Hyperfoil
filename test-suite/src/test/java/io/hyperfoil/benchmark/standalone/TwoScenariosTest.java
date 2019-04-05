@@ -97,93 +97,91 @@ public class TwoScenariosTest {
 
       BenchmarkBuilder benchmark = BenchmarkBuilder.builder()
          .name("Test Benchmark")
-         .simulation()
-            .http()
-               .baseUrl("http://localhost:" + server.actualPort())
-               .sharedConnections(10)
-            .endHttp()
-            .addPhase("rig").constantPerSec(3)
-               .duration(5000)
-               .maxDuration(10000)
-               .scenario()
-                  .initialSequence("select-ship")
-                     .step(SC).stopwatch()
-                        .step(SC).poll(ships::fetch, "ship")
-                        .filter(shipInfo -> shipInfo.sailsState == SailsState.FURLED, ships::put)
-                        .endStep()
-                     .end()
-                     .step(SC).nextSequence("board")
-                  .endSequence()
-                  .sequence("board")
-                     .step(SC).httpRequest(HttpMethod.GET).path("/board").endStep()
-                     .step(SC).awaitAllResponses()
-                     .step(SC).nextSequence("rig")
-                  .endSequence()
-                  .sequence("rig")
-                     .step(SC).httpRequest(HttpMethod.GET)
-                        .pathGenerator(s -> "/rig?ship=" + encode(((ShipInfo) ship.getObject(s)).name))
-                        .handler().status(((request, status) -> {
-                           if (status == 200) {
-                              ((ShipInfo) ship.getObject(request.session)).sailsState = SailsState.RIGGED;
-                           } else {
-                              request.markInvalid();
-                           }
-                        })).endHandler()
+         .http()
+            .baseUrl("http://localhost:" + server.actualPort())
+            .sharedConnections(10)
+         .endHttp()
+         .addPhase("rig").constantPerSec(3)
+            .duration(5000)
+            .maxDuration(10000)
+            .scenario()
+               .initialSequence("select-ship")
+                  .step(SC).stopwatch()
+                     .step(SC).poll(ships::fetch, "ship")
+                     .filter(shipInfo -> shipInfo.sailsState == SailsState.FURLED, ships::put)
                      .endStep()
-                     .step(SC).awaitAllResponses()
-                     .step(SC).nextSequence("disembark")
-                  .endSequence()
-                  .sequence("disembark")
-                     .step(SC).httpRequest(HttpMethod.GET).path("/disembark").endStep()
-                     .step(SC).awaitAllResponses()
-                     .step(s -> {
-                        ships.put((ShipInfo) ship.getObject(s));
-                        return true;
-                     })
-                  .endSequence()
-               .endScenario()
-            .endPhase()
-            .addPhase("furl").constantPerSec(2) // intentionally less to trigger maxDuration
-               .duration(5000) // no max duration, should not need it
-               .scenario()
-                  .initialSequence("select-ship")
-                     .step(SC).stopwatch()
-                        .step(SC).poll(ships::fetch, "ship")
-                        .filter(shipInfo -> shipInfo.sailsState == SailsState.RIGGED, ships::put)
-                        .endStep()
-                     .end()
-                     .step(SC).nextSequence("board")
-                  .endSequence()
-                  .sequence("board")
-                     .step(SC).httpRequest(HttpMethod.GET).path("/board").endStep()
-                     .step(SC).awaitAllResponses()
-                     .step(SC).nextSequence("furl")
-                  .endSequence()
-                  .sequence("furl")
-                     .step(SC).httpRequest(HttpMethod.GET)
-                        .pathGenerator(s -> "/furl?ship=" + encode(((ShipInfo) ship.getObject(s)).name))
-                        .handler().status((request, status) -> {
-                           if (status == 200) {
-                              ((ShipInfo) ship.getObject(request.session)).sailsState = SailsState.RIGGED;
-                           } else {
-                              request.markInvalid();
-                           }
-                        }).endHandler()
+                  .end()
+                  .step(SC).nextSequence("board")
+               .endSequence()
+               .sequence("board")
+                  .step(SC).httpRequest(HttpMethod.GET).path("/board").endStep()
+                  .step(SC).awaitAllResponses()
+                  .step(SC).nextSequence("rig")
+               .endSequence()
+               .sequence("rig")
+                  .step(SC).httpRequest(HttpMethod.GET)
+                     .pathGenerator(s -> "/rig?ship=" + encode(((ShipInfo) ship.getObject(s)).name))
+                     .handler().status(((request, status) -> {
+                        if (status == 200) {
+                           ((ShipInfo) ship.getObject(request.session)).sailsState = SailsState.RIGGED;
+                        } else {
+                           request.markInvalid();
+                        }
+                     })).endHandler()
+                  .endStep()
+                  .step(SC).awaitAllResponses()
+                  .step(SC).nextSequence("disembark")
+               .endSequence()
+               .sequence("disembark")
+                  .step(SC).httpRequest(HttpMethod.GET).path("/disembark").endStep()
+                  .step(SC).awaitAllResponses()
+                  .step(s -> {
+                     ships.put((ShipInfo) ship.getObject(s));
+                     return true;
+                  })
+               .endSequence()
+            .endScenario()
+         .endPhase()
+         .addPhase("furl").constantPerSec(2) // intentionally less to trigger maxDuration
+            .duration(5000) // no max duration, should not need it
+            .scenario()
+               .initialSequence("select-ship")
+                  .step(SC).stopwatch()
+                     .step(SC).poll(ships::fetch, "ship")
+                     .filter(shipInfo -> shipInfo.sailsState == SailsState.RIGGED, ships::put)
                      .endStep()
-                     .step(SC).awaitAllResponses()
-                     .step(SC).nextSequence("disembark")
-                  .endSequence()
-                  .sequence("disembark")
-                     .step(SC).httpRequest(HttpMethod.GET).path("/disembark").endStep()
-                     .step(SC).awaitAllResponses()
-                     .step(s -> {
-                        ships.put((ShipInfo) ship.getObject(s));
-                        return true;
-                     })
-                  .endSequence()
-               .endScenario()
-            .endPhase()
-         .endSimulation();
+                  .end()
+                  .step(SC).nextSequence("board")
+               .endSequence()
+               .sequence("board")
+                  .step(SC).httpRequest(HttpMethod.GET).path("/board").endStep()
+                  .step(SC).awaitAllResponses()
+                  .step(SC).nextSequence("furl")
+               .endSequence()
+               .sequence("furl")
+                  .step(SC).httpRequest(HttpMethod.GET)
+                     .pathGenerator(s -> "/furl?ship=" + encode(((ShipInfo) ship.getObject(s)).name))
+                     .handler().status((request, status) -> {
+                        if (status == 200) {
+                           ((ShipInfo) ship.getObject(request.session)).sailsState = SailsState.RIGGED;
+                        } else {
+                           request.markInvalid();
+                        }
+                     }).endHandler()
+                  .endStep()
+                  .step(SC).awaitAllResponses()
+                  .step(SC).nextSequence("disembark")
+               .endSequence()
+               .sequence("disembark")
+                  .step(SC).httpRequest(HttpMethod.GET).path("/disembark").endStep()
+                  .step(SC).awaitAllResponses()
+                  .step(s -> {
+                     ships.put((ShipInfo) ship.getObject(s));
+                     return true;
+                  })
+               .endSequence()
+            .endScenario()
+         .endPhase();
 
       new LocalSimulationRunner(benchmark.build()).run();
    }

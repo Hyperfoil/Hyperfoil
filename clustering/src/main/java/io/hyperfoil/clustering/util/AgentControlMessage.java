@@ -2,7 +2,7 @@ package io.hyperfoil.clustering.util;
 
 import java.io.Serializable;
 
-import io.hyperfoil.api.config.Simulation;
+import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.util.Immutable;
 
 public class AgentControlMessage implements Serializable, Immutable {
@@ -24,8 +24,8 @@ public class AgentControlMessage implements Serializable, Immutable {
       return runId;
    }
 
-   public Simulation simulation() {
-      return (Simulation) param;
+   public Benchmark benchmark() {
+      return (Benchmark) param;
    }
 
    public boolean includeInactive() {

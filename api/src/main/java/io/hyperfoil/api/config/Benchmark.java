@@ -20,6 +20,8 @@ package io.hyperfoil.api.config;
 
 import java.io.Serializable;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Map;
 import java.util.stream.Stream;
 
 /**
@@ -31,18 +33,29 @@ public class Benchmark implements Serializable {
 
     protected final String name;
     protected final String originalSource;
-    protected final Simulation simulation;
     protected final Host[] agents;
+    private final int threads;
+    private final Ergonomics ergonomics;
+    private final Map<String, Http> http;
+    private final Http defaultHttp;
+    private final Collection<Phase> phases;
+    private final Map<String, Object> tags;
+    private final long statisticsCollectionPeriod;
 
-    public Benchmark(String name, String originalSource, Simulation simulation, Host[] agents) {
+
+    public Benchmark(String name, String originalSource, Host[] agents, int threads, Ergonomics ergonomics,
+                     Map<String, Http> http, Collection<Phase> phases,
+                     Map<String, Object> tags, long statisticsCollectionPeriod) {
         this.name = name;
         this.originalSource = originalSource;
-        this.simulation = simulation;
         this.agents = agents;
-    }
-
-    public Simulation simulation() {
-        return simulation;
+        this.threads = threads;
+        this.ergonomics = ergonomics;
+        this.http = http;
+        this.defaultHttp = http.values().stream().filter(Http::isDefault).findFirst().orElse(null);
+        this.phases = phases;
+        this.tags = tags;
+        this.statisticsCollectionPeriod = statisticsCollectionPeriod;
     }
 
     public String name() {
@@ -61,18 +74,45 @@ public class Benchmark implements Serializable {
         return originalSource;
     }
 
+    public int threads() {
+        return threads;
+    }
+
+    public Collection<Phase> phases() {
+        return phases;
+    }
+
+    public Map<String, Object> tags() {
+        return tags;
+    }
+
+    public Map<String, Http> http() {
+        return http;
+    }
+
+    public Http defaultHttp() {
+        return defaultHttp;
+    }
+
+    public long statisticsCollectionPeriod() {
+        return statisticsCollectionPeriod;
+    }
+
     @Override
     public String toString() {
-        return "Benchmark{" +
-                       "name='" + name + '\'' +
-                       ", originalSource='" + originalSource + '\'' +
-                       ", simulation=" + simulation +
-                       ", agents=" + Arrays.toString(agents) +
-                       '}';
+        return "Benchmark{name='" + name + '\'' +
+            ", originalSource='" + originalSource + '\'' +
+            ", agents=" + Arrays.toString(agents) +
+            ", threads=" + threads +
+            ", http=" + http +
+            ", phases=" + phases +
+            ", tags=" + tags +
+            ", statisticsCollectionPeriod=" + statisticsCollectionPeriod +
+        '}';
     }
 
     public Stream<Step> steps() {
-        return simulation.phases().stream()
+        return phases().stream()
              .flatMap(phase -> Stream.of(phase.scenario().sequences()))
              .flatMap(sequence -> Stream.of(sequence.steps()));
     }

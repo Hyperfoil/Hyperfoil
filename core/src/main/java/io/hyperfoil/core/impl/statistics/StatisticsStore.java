@@ -55,7 +55,7 @@ public class StatisticsStore {
    public void record(String address, int stepId, String statisticsName, StatisticsSnapshot stats) {
       Data data = this.data.get(stepId);
       if (data == null) {
-         long collectionPeriod = benchmark.simulation().statisticsCollectionPeriod();
+         long collectionPeriod = benchmark.statisticsCollectionPeriod();
          SLA.Provider slaProvider = slaProviders.get(stepId);
          Map<SLA, Window> rings = slaProvider == null || slaProvider.sla() == null ? Collections.emptyMap() :
                Stream.of(slaProvider.sla()).filter(sla -> sla.window() > 0).collect(

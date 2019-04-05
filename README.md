@@ -116,24 +116,21 @@ hosts:
   client1: user@driver1.my.lab.com
   client2: user@driver2.my.lab.com
   ...
-
-simulation:
-  http:
-    baseUrl: http://localhost:8080
-  phases: ...
+http:
+  baseUrl: http://localhost:8080
+phases: ...
 
 ```
 
 The `hosts` section defines which agents should execute the benchmark.
 **TODO** are hosts meant this way?
 
-The `simulation` part describes how should the load be driven. Here we can see the `http` configuration
-which sets base URL for all requests.
+The `http` configuration sets base URL for all requests.
 **TODO** common headers not implemented in parser
 
 ### Phases
 
-Conceptually the simulation consists of several phases. Phases can run independently of each other;
+Conceptually the benchmark consists of several phases. Phases can run independently of each other;
 these simulate certain load execute by a group of users. Within one phase all users execute the same `scenario`
 (e.g. logging into the system, selling all their stock and then logging off).
 
@@ -158,42 +155,42 @@ There are different types of phases based on the mode of starting new users:
 See the example of phases configuration:
 
 ```yaml
-  ...
-  phases:
-  # Over one minute ramp the number of users started each second from 1 to 100
-  - rampUp:
-      rampPerSec:
-        initialUsersPerSec: 1
-        targetUsersPerSec: 100
-        # We expect at most 200 users being active at one moment - see below
-        maxSessionsEstimate: 200
-        duration: 1m
-        scenario: ...
-  # After rampUp is finished, run for 5 minutes and start 100 new users each second
-  - steadyState:
-      constantPerSec:
-        usersPerSec: 100
-        maxSessionsEstimate: 200
-        startAfter: rampUp
-        duration: 5m
-        # If some users get stuck, forcefully terminate them after 6 minutes from the phase start
-        maxDuration: 6m
-        scenario: ...
-  # 2 minutes after the benchmark has started spawn 5 users constantly doing something for 2 minutes
-  - outOfBand:
-      always:
-        users: 5
-        startTime: 2m
-        duration: 2m
-        scenario: ...
-  - final:
-      atOnce:
-        users: 1
-        # Do something at the end: make sure that both rampUp and steadyState are terminated
-        startAfterStrict:
-        - rampUp
-        - steadyState
-        scenario: ...
+...
+phases:
+# Over one minute ramp the number of users started each second from 1 to 100
+- rampUp:
+    rampPerSec:
+      initialUsersPerSec: 1
+      targetUsersPerSec: 100
+      # We expect at most 200 users being active at one moment - see below
+      maxSessionsEstimate: 200
+      duration: 1m
+      scenario: ...
+# After rampUp is finished, run for 5 minutes and start 100 new users each second
+- steadyState:
+    constantPerSec:
+      usersPerSec: 100
+      maxSessionsEstimate: 200
+      startAfter: rampUp
+      duration: 5m
+      # If some users get stuck, forcefully terminate them after 6 minutes from the phase start
+      maxDuration: 6m
+      scenario: ...
+# 2 minutes after the benchmark has started spawn 5 users constantly doing something for 2 minutes
+- outOfBand:
+    always:
+      users: 5
+      startTime: 2m
+      duration: 2m
+      scenario: ...
+- final:
+    atOnce:
+      users: 1
+      # Do something at the end: make sure that both rampUp and steadyState are terminated
+      startAfterStrict:
+      - rampUp
+      - steadyState
+      scenario: ...
 ```
 
 The open-model phases specify rate of starting users using the `usersPerSec`, `initialUserPerSec` and `targetPerSec` properties.
@@ -215,21 +212,21 @@ These become regular phases of the same type, duration and dependencies (`startA
 phase but slice the users according to their `weight`:
 
 ```yaml
-  ...
-  phases:
-  - steadyState:
-      constantPerSec:
-        usersPerSec: 30
-        duration: 5m
-        forks:
-        - sellShares:
-            # This phase will start 10 users per second
-            weight: 1
-            scenario: ...
-        - buyShares:
-            # This phase will start 20 users per second
-            weight: 2
-            scenario: ...
+...
+phases:
+- steadyState:
+    constantPerSec:
+      usersPerSec: 30
+      duration: 5m
+      forks:
+      - sellShares:
+          # This phase will start 10 users per second
+          weight: 1
+          scenario: ...
+      - buyShares:
+          # This phase will start 20 users per second
+          weight: 2
+          scenario: ...
 ```
 
 These phases will be later identified as `steadyState/sellShares` and `steadyState/buyShares`. Other phases can still
@@ -239,36 +236,36 @@ as soon as both the forks *finish*, *finish* immediately and terminate once both
 In some types of tests it's useful to repeat given phase with increasing load - we call this concept *iterations*.
 
 ```yaml
-  ...
-  phases:
-  - rampUp:
-      rampPerSec:
-        # Create phases rampUp/000, rampUp/001 and rampUp/002
-        maxIterations: 3
-        # rampUp/000 will go from 1 to 100 users, rampUp will go from 101 to 200 users...
-        initialUsersPerSec:
-          base: 1
-          increment: 100
-        targetUsersPerSec:
-          base: 100
-          increment: 100
-        # rampUp/001 will start after steadyState/000 finishes
-        startAfter:
-          phase: steadyState
-          iteration: previous
-        duration: 1m
-        scenario: ...
-  - steadyState:
-      constantPerSec:
-        maxIterations: 3
-        usersPerSec:
-          base: 100
-          increment: 100
-        # steadyState/000 will start after rampUp/000 finishes
-        startAfter:
-          phase: rampUp
-          iteration: same
-        duration: 5m
+...
+phases:
+- rampUp:
+    rampPerSec:
+      # Create phases rampUp/000, rampUp/001 and rampUp/002
+      maxIterations: 3
+      # rampUp/000 will go from 1 to 100 users, rampUp will go from 101 to 200 users...
+      initialUsersPerSec:
+        base: 1
+        increment: 100
+      targetUsersPerSec:
+        base: 100
+        increment: 100
+      # rampUp/001 will start after steadyState/000 finishes
+      startAfter:
+        phase: steadyState
+        iteration: previous
+      duration: 1m
+      scenario: ...
+- steadyState:
+    constantPerSec:
+      maxIterations: 3
+      usersPerSec:
+        base: 100
+        increment: 100
+      # steadyState/000 will start after rampUp/000 finishes
+      startAfter:
+        phase: rampUp
+        iteration: same
+      duration: 5m
 ```
 
 Similar to forks, there will be a no-op phase `rampUp` that will start after all
@@ -359,24 +356,24 @@ Sequences such as logging into the systems will be likely used in different phas
 and it would be tedious to repeat these. That's where YAML anchors and aliases come into play:
 
 ```yaml
-  ...
-  phases:
-  - rampUp:
-      rampPerSec:
-        scenario:
-          orderedSequences:
-          - login: &login
-            - httpRequest:
-                POST: /login
-            - awaitAllResponses
-            ...
-  - steadyState:
-      constantPerSec:
-        ...
-        scenario:
-          orderedSequences:
-          - login: *login
+...
+phases:
+- rampUp:
+    rampPerSec:
+      scenario:
+        orderedSequences:
+        - login: &login
+          - httpRequest:
+              POST: /login
+          - awaitAllResponses
           ...
+- steadyState:
+    constantPerSec:
+      ...
+      scenario:
+        orderedSequences:
+        - login: *login
+        ...
 ```
 
 The steps from `steadyState/sellShares/login` will be copied verbatim to `steadyState/buyShares/login`.
@@ -384,38 +381,38 @@ The steps from `steadyState/sellShares/login` will be copied verbatim to `steady
 The same concept can be applied on whole scenarios:
 
 ```yaml
-  phases:
-  - rampUp:
-      rampPerSec:
+phases:
+- rampUp:
+    rampPerSec:
+      ...
+      scenario: &doSomething
+        orderedSequences:
         ...
-        scenario: &doSomething
-          orderedSequences:
-          ...
-  - steadyState:
-      constantPerSec:
-        ...
-        scenario: *doSomething
+- steadyState:
+    constantPerSec:
+      ...
+      scenario: *doSomething
 ```
 
 And forks as well:
 
 ```yaml
-  ...
-  phases:
-  - rampUp:
-      rampPerSec:
-        ...
-        forks:
-        - sellShares: &sellShares
-            weight: 1
-            scenario: ...
-        - buyShares: &buyShares
-            weight: 2
-            scenario: ...
-  - steadyState:
-      constantPerSec:
-        ...
-        forks:
-        - sellShares: *sellShares
-        - buyShares: *buyShares
+...
+phases:
+- rampUp:
+    rampPerSec:
+      ...
+      forks:
+      - sellShares: &sellShares
+          weight: 1
+          scenario: ...
+      - buyShares: &buyShares
+          weight: 2
+          scenario: ...
+- steadyState:
+    constantPerSec:
+      ...
+      forks:
+      - sellShares: *sellShares
+      - buyShares: *buyShares
 ```

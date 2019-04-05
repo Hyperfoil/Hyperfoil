@@ -1,5 +1,6 @@
 package io.hyperfoil.core.impl;
 
+import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.session.SharedData;
 import io.hyperfoil.api.statistics.SessionStatistics;
 import io.hyperfoil.core.client.netty.HttpDestinationTableImpl;
@@ -11,7 +12,6 @@ import io.netty.util.concurrent.EventExecutor;
 import io.netty.util.concurrent.EventExecutorGroup;
 import io.hyperfoil.api.config.Http;
 import io.hyperfoil.api.config.Phase;
-import io.hyperfoil.api.config.Simulation;
 import io.hyperfoil.api.connection.HttpClientPool;
 import io.hyperfoil.api.connection.HttpConnection;
 import io.hyperfoil.api.connection.HttpConnectionPool;
@@ -49,7 +49,7 @@ import javax.net.ssl.SSLException;
 public class SimulationRunnerImpl implements SimulationRunner {
     protected static final Logger log = LoggerFactory.getLogger(SimulationRunner.class);
 
-    protected final Simulation simulation;
+    protected final Benchmark benchmark;
     protected final Map<String, PhaseInstance> instances = new HashMap<>();
     protected final List<Session> sessions = new ArrayList<>();
     private final Map<String, SharedResources> sharedResources = new HashMap<>();
@@ -57,11 +57,11 @@ public class SimulationRunnerImpl implements SimulationRunner {
     protected final Map<String, HttpClientPool> httpClientPools = new HashMap<>();
     protected final Map<EventExecutor, HttpDestinationTableImpl> httpDestinations = new HashMap<>();
 
-    public SimulationRunnerImpl(Simulation simulation) {
-        this.eventLoopGroup = new NioEventLoopGroup(simulation.threads());
-        this.simulation = simulation;
+    public SimulationRunnerImpl(Benchmark benchmark) {
+        this.eventLoopGroup = new NioEventLoopGroup(benchmark.threads());
+        this.benchmark = benchmark;
         Map<EventExecutor, Map<String, HttpConnectionPool>> httpConnectionPools = new HashMap<>();
-        for (Map.Entry<String, Http> http : simulation.http().entrySet()) {
+        for (Map.Entry<String, Http> http : benchmark.http().entrySet()) {
             try {
                 HttpClientPool httpClientPool = new HttpClientPoolImpl(eventLoopGroup, http.getValue());
                 httpClientPools.put(http.getKey(), httpClientPool);
@@ -98,7 +98,7 @@ public class SimulationRunnerImpl implements SimulationRunner {
             }
         }
 
-        for (Phase def : simulation.phases()) {
+        for (Phase def : benchmark.phases()) {
             SharedResources sharedResources;
             if (def.sharedResources == null) {
                 // Noop phases don't use any resources

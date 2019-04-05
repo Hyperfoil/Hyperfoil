@@ -57,11 +57,11 @@ public abstract class BaseScenarioTest {
    }
 
    protected void initWithServer(TestContext ctx) {
-      benchmarkBuilder.simulation()
+      benchmarkBuilder
             .threads(threads())
             .http().baseUrl("http://localhost:" + server.actualPort());
 
-      initHttp(benchmarkBuilder.simulation().http());
+      initHttp(benchmarkBuilder.http());
    }
 
    protected void initHttp(HttpBuilder http) {
@@ -79,11 +79,11 @@ public abstract class BaseScenarioTest {
    }
 
    protected ScenarioBuilder scenario(int repeats) {
-      return benchmarkBuilder.simulation().addPhase("test").sequentially(repeats).duration(1).scenario();
+      return benchmarkBuilder.addPhase("test").sequentially(repeats).duration(1).scenario();
    }
 
    protected ScenarioBuilder parallelScenario(int concurrency) {
-      return benchmarkBuilder.simulation().addPhase("test").atOnce(concurrency).duration(1).scenario();
+      return benchmarkBuilder.addPhase("test").atOnce(concurrency).duration(1).scenario();
    }
 
    protected int threads() {

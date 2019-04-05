@@ -1,32 +1,31 @@
 # For parser testing
 name: generators
-simulation:
-  http:
-    baseUrl: http://localhost:8080
-  phases:
-  - testPhase:
-      atOnce:
-        users: 1
-        duration: 0
-        scenario:
-          initialSequences:
-          - testSequence:
-            - httpRequest:
-                GET: /foo
-                sla:
-                  meanResponseTime: 1s
-                handler:
-                  status:
-                    range: 2xx
-            - httpRequest:
-                PUT:
-                  pattern: /foo?bar=${x}
-                sla:
-                - meanResponseTime: 500ms
-                - window: 10s
-                  meanResponseTime: 1s
-                handler:
-                  status:
-                    range:
-                      min: 201
-                      max: 259
+http:
+  baseUrl: http://localhost:8080
+phases:
+- testPhase:
+    atOnce:
+      users: 1
+      duration: 0
+      scenario:
+        initialSequences:
+        - testSequence:
+          - httpRequest:
+              GET: /foo
+              sla:
+                meanResponseTime: 1s
+              handler:
+                status:
+                  range: 2xx
+          - httpRequest:
+              PUT:
+                pattern: /foo?bar=${x}
+              sla:
+              - meanResponseTime: 500ms
+              - window: 10s
+                meanResponseTime: 1s
+              handler:
+                status:
+                  range:
+                    min: 201
+                    max: 259

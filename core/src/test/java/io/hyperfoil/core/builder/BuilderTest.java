@@ -21,7 +21,6 @@
 package io.hyperfoil.core.builder;
 
 import io.hyperfoil.api.config.Benchmark;
-import io.hyperfoil.api.config.Simulation;
 import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.core.builders.StepCatalog;
@@ -41,31 +40,27 @@ public class BuilderTest {
         Benchmark benchmark =
               BenchmarkBuilder.builder()
                     .name("Test Benchmark")
-                    .simulation()
-                        .http()
-                            .baseUrl("http://localhost:8080")
-                            .sharedConnections(1)
-                        .endHttp()
-                        .addPhase("foo").always(1)
-                            .duration("3s")
-                            .scenario()
-                                .initialSequence("foo")
-                                    .step(StepCatalog.class).httpRequest(HttpMethod.GET)
-                                            .path("foo")
-                                            .endStep()
-                                    .step(StepCatalog.class).awaitAllResponses()
-                                    .end()
-                                .endSequence()
-                            .endScenario()
-                        .endPhase()
-                    .endSimulation()
+                    .http()
+                        .baseUrl("http://localhost:8080")
+                        .sharedConnections(1)
+                    .endHttp()
+                    .addPhase("foo").always(1)
+                        .duration("3s")
+                        .scenario()
+                            .initialSequence("foo")
+                                .step(StepCatalog.class).httpRequest(HttpMethod.GET)
+                                        .path("foo")
+                                        .endStep()
+                                .step(StepCatalog.class).awaitAllResponses()
+                                .end()
+                            .endSequence()
+                        .endScenario()
+                    .endPhase()
                     .build();
 
-        Simulation simulation = benchmark.simulation();
-
-        assertEquals("http://localhost:8080/", simulation.tags().get("url"));
-        assertEquals(1, simulation.phases().size());
-        assertEquals(3000L, simulation.phases().stream().findFirst().get().duration());
+        assertEquals("http://localhost:8080/", benchmark.tags().get("url"));
+        assertEquals(1, benchmark.phases().size());
+        assertEquals(3000L, benchmark.phases().stream().findFirst().get().duration());
 
 
     }

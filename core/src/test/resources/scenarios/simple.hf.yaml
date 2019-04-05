@@ -1,64 +1,63 @@
 name: simple benchmark
-simulation:
-  http:
-    baseUrl: http://localhost:8080
-  phases:
-  - rampUp:
-      rampPerSec:
-        initialUsersPerSec: 1
-        targetUsersPerSec: 100
-        duration: 3s
-        scenario: &scenario
-          initialSequences:
-          - testSequence:
-            - httpRequest:
-                GET: /foo
-                sla:
-                  meanResponseTime: 1s
-                  limits:
-                    0.9: 2s
-                handler:
-                  status:
-                    counter:
-                      expectStatus: 204
-                      var: testCounter
-                      init: 0
-                      add: 1
-            - httpRequest:
-                method: GET
-                path: /foo
-                headers:
-                - Accept: text/plain
-                - Foo:
-                    var: foo
-                handler:
-                # notice this is a list, for repeated invocations
-                - status:
-                    counter:
-                      expectStatus: 204
-                      var: testCounter
-                      init: 0
-                      add: 1
-            - noop
-            - awaitInt:
-                var: testCounter
-                greaterOrEqualTo: 2
-            - scheduleDelay:
-                key: k
-                fromNow:
-                duration: 5s
-  - steadyState:
-      constantPerSec:
-        usersPerSec: 100
-        startAfter: rampUp
-        duration: 6s
-        scenario: *scenario
-  - rampDown:
-      rampPerSec:
-        initialUsersPerSec: 100
-        targetUsersPerSec: 1
-        startAfter:
-          - rampUp # not needed, just to test list...
-          - steadyState
-        duration: 3s
-        scenario: *scenario
+http:
+  baseUrl: http://localhost:8080
+phases:
+- rampUp:
+    rampPerSec:
+      initialUsersPerSec: 1
+      targetUsersPerSec: 100
+      duration: 3s
+      scenario: &scenario
+        initialSequences:
+        - testSequence:
+          - httpRequest:
+              GET: /foo
+              sla:
+                meanResponseTime: 1s
+                limits:
+                  0.9: 2s
+              handler:
+                status:
+                  counter:
+                    expectStatus: 204
+                    var: testCounter
+                    init: 0
+                    add: 1
+          - httpRequest:
+              method: GET
+              path: /foo
+              headers:
+              - Accept: text/plain
+              - Foo:
+                  var: foo
+              handler:
+              # notice this is a list, for repeated invocations
+              - status:
+                  counter:
+                    expectStatus: 204
+                    var: testCounter
+                    init: 0
+                    add: 1
+          - noop
+          - awaitInt:
+              var: testCounter
+              greaterOrEqualTo: 2
+          - scheduleDelay:
+              key: k
+              fromNow:
+              duration: 5s
+- steadyState:
+    constantPerSec:
+      usersPerSec: 100
+      startAfter: rampUp
+      duration: 6s
+      scenario: *scenario
+- rampDown:
+    rampPerSec:
+      initialUsersPerSec: 100
+      targetUsersPerSec: 1
+      startAfter:
+        - rampUp # not needed, just to test list...
+        - steadyState
+      duration: 3s
+      scenario: *scenario

@@ -18,7 +18,7 @@ import io.hyperfoil.util.Util;
  */
 public abstract class PhaseBuilder<PB extends PhaseBuilder> {
    protected final String name;
-   protected final SimulationBuilder parent;
+   protected final BenchmarkBuilder parent;
    protected long startTime = -1;
    protected Collection<PhaseReference> startAfter = new ArrayList<>();
    protected Collection<PhaseReference> startAfterStrict = new ArrayList<>();
@@ -29,7 +29,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
    protected int maxIterations = 1;
    protected List<PhaseForkBuilder> forks = new ArrayList<>();
 
-   protected PhaseBuilder(SimulationBuilder parent, String name) {
+   protected PhaseBuilder(BenchmarkBuilder parent, String name) {
       this.name = name;
       this.parent = parent;
       parent.addPhase(name, this);
@@ -43,7 +43,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
       return phase;
    }
 
-   public SimulationBuilder endPhase() {
+   public BenchmarkBuilder endPhase() {
       return parent;
    }
 
@@ -192,7 +192,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
    }
 
    int numAgents() {
-      return Math.max(parent.endSimulation().numAgents(), 1);
+      return Math.max(parent.numAgents(), 1);
    }
 
    String iterationName(int iteration, String forkName) {
@@ -265,7 +265,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
       private int users;
       private int usersIncrement;
 
-      AtOnce(SimulationBuilder parent, String name, int users) {
+      AtOnce(BenchmarkBuilder parent, String name, int users) {
          super(parent, name);
          this.users = users;
       }
@@ -295,7 +295,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
       private int users;
       private int usersIncrement;
 
-      Always(SimulationBuilder parent, String name, int users) {
+      Always(BenchmarkBuilder parent, String name, int users) {
          super(parent, name);
          this.users = users;
       }
@@ -329,7 +329,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
       private int maxSessionsEstimate;
       private boolean variance = true;
 
-      RampPerSec(SimulationBuilder parent, String name, double initialUsersPerSec, double targetUsersPerSec) {
+      RampPerSec(BenchmarkBuilder parent, String name, double initialUsersPerSec, double targetUsersPerSec) {
          super(parent, name);
          this.initialUsersPerSec = initialUsersPerSec;
          this.targetUsersPerSec = targetUsersPerSec;
@@ -395,7 +395,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
       private int maxSessionsEstimate;
       private boolean variance = true;
 
-      ConstantPerSec(SimulationBuilder parent, String name, double usersPerSec) {
+      ConstantPerSec(BenchmarkBuilder parent, String name, double usersPerSec) {
          super(parent, name);
          this.usersPerSec = usersPerSec;
       }
@@ -440,7 +440,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
    public static class Sequentially extends PhaseBuilder<Sequentially> {
       private int repeats;
 
-      protected Sequentially(SimulationBuilder parent, String name, int repeats) {
+      protected Sequentially(BenchmarkBuilder parent, String name, int repeats) {
          super(parent, name);
          this.repeats = repeats;
       }
@@ -455,10 +455,10 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
    }
 
    public static class Catalog {
-      private final SimulationBuilder parent;
+      private final BenchmarkBuilder parent;
       private final String name;
 
-      Catalog(SimulationBuilder parent, String name) {
+      Catalog(BenchmarkBuilder parent, String name) {
          this.parent = parent;
          this.name = name;
       }

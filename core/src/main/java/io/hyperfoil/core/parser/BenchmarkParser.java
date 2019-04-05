@@ -53,7 +53,11 @@ public class BenchmarkParser extends AbstractMappingParser<BenchmarkBuilder> {
         register("$schema", new PropertyParser.String<>(this::checkSchema));
         register("name", new PropertyParser.String<>(BenchmarkBuilder::name));
         register("hosts", new AgentsParser());
-        register("simulation", new Adapter<>(BenchmarkBuilder::simulation, new SimulationParser()));
+        register("ergonomics", new ErgonomicsParser());
+        register("http", new HttpParser());
+        register("phases", new PhasesParser());
+        register("threads", new PropertyParser.Int<>(BenchmarkBuilder::threads));
+        register("statisticsCollectionPeriod", new PropertyParser.Int<>(BenchmarkBuilder::statisticsCollectionPeriod));
     }
 
     private void checkSchema(BenchmarkBuilder builder, String schema) {

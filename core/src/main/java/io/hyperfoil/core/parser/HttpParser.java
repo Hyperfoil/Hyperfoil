@@ -2,10 +2,10 @@ package io.hyperfoil.core.parser;
 
 import org.yaml.snakeyaml.events.SequenceStartEvent;
 
+import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.HttpBuilder;
-import io.hyperfoil.api.config.SimulationBuilder;
 
-class HttpParser extends AbstractParser<SimulationBuilder, HttpBuilder> {
+class HttpParser extends AbstractParser<BenchmarkBuilder, HttpBuilder> {
    HttpParser() {
       register("baseUrl", new PropertyParser.String<>(HttpBuilder::baseUrl));
       register("allowHttp1x", new PropertyParser.Boolean<>(HttpBuilder::allowHttp1x));
@@ -18,7 +18,7 @@ class HttpParser extends AbstractParser<SimulationBuilder, HttpBuilder> {
    }
 
    @Override
-   public void parse(Context ctx, SimulationBuilder target) throws ParserException {
+   public void parse(Context ctx, BenchmarkBuilder target) throws ParserException {
       if (ctx.peek() instanceof SequenceStartEvent) {
          ctx.parseList(target.decoupledHttp(), (ctx1, builder) -> {
             callSubBuilders(ctx1, builder);

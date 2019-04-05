@@ -33,7 +33,7 @@ import java.util.function.Consumer;
  */
 public class HttpBuilder {
 
-    private final SimulationBuilder parent;
+    private final BenchmarkBuilder parent;
     private Http http;
     private String baseUrl;
     private boolean allowHttp1x = true;
@@ -48,7 +48,7 @@ public class HttpBuilder {
         return new HttpBuilder(null);
     }
 
-    HttpBuilder(SimulationBuilder parent) {
+    HttpBuilder(BenchmarkBuilder parent) {
         this.parent = parent;
     }
 
@@ -75,7 +75,7 @@ public class HttpBuilder {
         return this;
     }
 
-    public SimulationBuilder endHttp() {
+    public BenchmarkBuilder endHttp() {
         return parent;
     }
 

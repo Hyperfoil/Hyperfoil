@@ -20,7 +20,7 @@ public class IterationsTest extends BaseBenchmarkTestCase {
 
    @Test
    public void test() throws IOException, ParserException {
-      InputStream inputStream = getClass().getClassLoader().getResourceAsStream("IterationsTest.yaml");
+      InputStream inputStream = getClass().getClassLoader().getResourceAsStream("IterationsTest.hf.yaml");
       String configStr = Util.toString(inputStream)
             .replaceAll("http://localhost:8080", "http://localhost:" + server.actualPort());
       Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(configStr);

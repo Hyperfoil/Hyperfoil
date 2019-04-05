@@ -167,7 +167,8 @@ public class AgentControllerVerticle extends AbstractVerticle {
                 log.error("Cannot read info for run {}", runId);
             }
         }
-        Run run = new Run(runId, new Benchmark(info.getString("benchmark", "<unknown>"), null, null, null), Collections.emptyList());
+        Run run = new Run(runId, new Benchmark(info.getString("benchmark", "<unknown>"), null, null, 0, null,
+              Collections.emptyMap(), Collections.emptyList(), Collections.emptyMap(), 0), Collections.emptyList());
         run.startTime = info.getLong("startTime", 0L);
         run.terminateTime = info.getLong("terminateTime", 0L);
         run.description = info.getString("description");
@@ -270,7 +271,7 @@ public class AgentControllerVerticle extends AbstractVerticle {
                 log.error("Already initializing {}, status is {}!", agent.address, agent.status);
             } else {
                 agent.status = AgentInfo.Status.INITIALIZING;
-                eb.send(agent.address, new AgentControlMessage(AgentControlMessage.Command.INITIALIZE, run.id, benchmark.simulation()), reply -> {
+                eb.send(agent.address, new AgentControlMessage(AgentControlMessage.Command.INITIALIZE, run.id, benchmark), reply -> {
                     if (reply.succeeded()) {
                         agent.status = AgentInfo.Status.INITIALIZED;
                         if (run.agents.stream().allMatch(a -> a.status == AgentInfo.Status.INITIALIZED)) {
@@ -289,7 +290,7 @@ public class AgentControllerVerticle extends AbstractVerticle {
     private void startSimulation(Run run) {
         assert run.startTime == Long.MIN_VALUE;
         run.startTime = System.currentTimeMillis();
-        for (Phase phase : run.benchmark.simulation().phases()) {
+        for (Phase phase : run.benchmark.phases()) {
             run.phases.put(phase.name(), new ControllerPhase(phase));
         }
         run.statisticsStore = new StatisticsStore(run.benchmark, failure -> {
@@ -306,21 +307,21 @@ public class AgentControllerVerticle extends AbstractVerticle {
         long now = System.currentTimeMillis();
         for (ControllerPhase phase : run.phases.values()) {
             if (phase.status() == ControllerPhase.Status.RUNNING && phase.absoluteStartTime() + phase.definition().duration() <= now) {
-                eb.publish(Feeds.CONTROL, new PhaseControlMessage(PhaseControlMessage.Command.FINISH, null, phase.definition().name));
+                eb.publish(Feeds.CONTROL, new PhaseControlMessage(PhaseControlMessage.Command.FINISH, phase.definition().name));
                 phase.status(ControllerPhase.Status.FINISHING);
             }
             if (phase.status() == ControllerPhase.Status.FINISHED) {
                 if (phase.definition().maxDuration() >= 0 && phase.absoluteStartTime() + phase.definition().maxDuration() <= now) {
-                    eb.publish(Feeds.CONTROL, new PhaseControlMessage(PhaseControlMessage.Command.TERMINATE, null, phase.definition().name));
+                    eb.publish(Feeds.CONTROL, new PhaseControlMessage(PhaseControlMessage.Command.TERMINATE, phase.definition().name));
                     phase.status(ControllerPhase.Status.TERMINATING);
                 } else if (phase.definition().terminateAfterStrict().stream().map(run.phases::get).allMatch(p -> p.status().isTerminated())) {
-                    eb.publish(Feeds.CONTROL, new PhaseControlMessage(PhaseControlMessage.Command.TRY_TERMINATE, null, phase.definition().name));
+                    eb.publish(Feeds.CONTROL, new PhaseControlMessage(PhaseControlMessage.Command.TRY_TERMINATE, phase.definition().name));
                 }
             }
         }
         ControllerPhase[] availablePhases = run.getAvailablePhases();
         for (ControllerPhase phase : availablePhases) {
-            eb.publish(Feeds.CONTROL, new PhaseControlMessage(PhaseControlMessage.Command.RUN, null, phase.definition().name));
+            eb.publish(Feeds.CONTROL, new PhaseControlMessage(PhaseControlMessage.Command.RUN, phase.definition().name));
             phase.absoluteStartTime(now);
             phase.status(ControllerPhase.Status.STARTING);
         }
@@ -409,7 +410,7 @@ public class AgentControllerVerticle extends AbstractVerticle {
                     entry.getValue().status(ControllerPhase.Status.CANCELLED);
                 } else {
                     entry.getValue().status(ControllerPhase.Status.TERMINATING);
-                    eb.publish(Feeds.CONTROL, new PhaseControlMessage(PhaseControlMessage.Command.TERMINATE, null, entry.getKey()));
+                    eb.publish(Feeds.CONTROL, new PhaseControlMessage(PhaseControlMessage.Command.TERMINATE, entry.getKey()));
                 }
             }
         }

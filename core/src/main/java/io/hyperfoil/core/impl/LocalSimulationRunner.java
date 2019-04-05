@@ -24,13 +24,13 @@ public class LocalSimulationRunner extends SimulationRunnerImpl {
    }
 
    public LocalSimulationRunner(Benchmark benchmark, StatisticsCollector.StatisticsConsumer statsConsumer, SessionStatsConsumer sessionPoolStatsConsumer) {
-      super(benchmark.simulation());
+      super(benchmark);
       this.statsConsumer = statsConsumer;
       this.sessionPoolStatsConsumer = sessionPoolStatsConsumer;
    }
 
    public void run() {
-      if (simulation.phases().isEmpty()) {
+      if (benchmark.phases().isEmpty()) {
          throw new BenchmarkDefinitionException("No phases/scenarios have been defined");
       }
 

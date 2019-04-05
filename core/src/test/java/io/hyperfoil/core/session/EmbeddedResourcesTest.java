@@ -22,7 +22,7 @@ public class EmbeddedResourcesTest extends BaseScenarioTest {
    @Override
    protected Benchmark benchmark() {
       try {
-         InputStream config = getClass().getClassLoader().getResourceAsStream("scenarios/downloadRefs.yaml");
+         InputStream config = getClass().getClassLoader().getResourceAsStream("scenarios/EmbeddedResourcesTest.hf.yaml");
          String configString = Util.toString(config).replaceAll("http://localhost:8080", "http://localhost:" + server.actualPort());
          return BenchmarkParser.instance().buildBenchmark(configString);
       } catch (IOException | ParserException e) {

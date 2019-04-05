@@ -7,11 +7,12 @@ import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
+import io.hyperfoil.api.config.Benchmark;
+import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.Http;
 import io.hyperfoil.api.config.SLA;
 import io.hyperfoil.api.config.SLABuilder;
 import io.hyperfoil.api.config.Sequence;
-import io.hyperfoil.api.config.Simulation;
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.SequenceInstance;
@@ -35,7 +36,6 @@ import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.core.builders.BaseStepBuilder;
 import io.hyperfoil.api.session.ResourceUtilizer;
-import io.hyperfoil.api.config.SimulationBuilder;
 import io.hyperfoil.core.util.Util;
 import io.hyperfoil.function.SerializableBiConsumer;
 import io.hyperfoil.function.SerializableBiFunction;
@@ -132,8 +132,8 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
          // TODO alloc!
          request.setTimeout(timeout, TimeUnit.MILLISECONDS);
       } else {
-         Simulation simulation = session.phase().benchmark().simulation();
-         Http http = baseUrl == null ? simulation.defaultHttp() : simulation.http().get(baseUrl);
+         Benchmark benchmark = session.phase().benchmark();
+         Http http = baseUrl == null ? benchmark.defaultHttp() : benchmark.http().get(baseUrl);
          long timeout = http.requestTimeout();
          if (timeout > 0) {
             request.setTimeout(timeout, TimeUnit.MILLISECONDS);
@@ -368,7 +368,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
       @Override
       public List<Step> build(SerializableSupplier<Sequence> sequence) {
-         SimulationBuilder simulation = endStep().endSequence().endScenario().endPhase();
+         BenchmarkBuilder simulation = endStep().endSequence().endScenario().endPhase();
          String guessedBaseUrl = null;
          boolean checkBaseUrl = true;
          try {

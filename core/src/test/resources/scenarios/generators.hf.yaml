@@ -1,22 +1,21 @@
 # For parser testing
 name: generators
-simulation:
-  http:
-    baseUrl: http://localhost:8080
-  phases:
-  - testPhase:
-      atOnce:
-        users: 1
-        duration: 0
-        scenario:
-          initialSequences:
-          - testSequence:
-            - randomItem:
-                list: [ "A", "B", "C" ]
-                var: x
-            - randomItem:
-                list:
-                - A
-                - B
-                - C
-                var: "y" # without the quotes `y` means `true` = boolean, not string
+http:
+  baseUrl: http://localhost:8080
+phases:
+- testPhase:
+    atOnce:
+      users: 1
+      duration: 0
+      scenario:
+        initialSequences:
+        - testSequence:
+          - randomItem:
+              list: [ "A", "B", "C" ]
+              var: x
+          - randomItem:
+              list:
+              - A
+              - B
+              - C
+              var: "y" # without the quotes `y` means `true` = boolean, not string

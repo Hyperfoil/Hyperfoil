@@ -4,7 +4,7 @@
   "description": "Hyperfoil benchmark configuration",
   "type": "object",
   "additionalProperties": false,
-  "required": [ "name", "simulation" ],
+  "required": [ "name", "http", "phases" ],
   "properties": {
     "$schema": {
       "description": "This should point to either http://hyperfoil.io/schema or local file",
@@ -22,127 +22,119 @@
         "pattern": ".*:[0-9]+"
       }
     },
-    "simulation": {
-      "description": "Describes what should the benchmark do.",
-      "type": "object",
-      "additionalProperties": false,
-      "required": [ "phases" ],
-      "properties": {
-        "threads": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "ergonomics": {
-          "$ref": "#/definitions/ergonomics"
-        },
-        "http": {
-          "oneOf": [
-            {
-              "type": "array",
-              "additionalItems": false,
-              "items": {
-                "$ref": "#/definitions/http"
-              }
-            },
-            {
-              "$ref": "#/definitions/http"
-            }
-          ]
-        },
-        "phases": {
-          "description": "Benchmark execution phases.",
+    "threads": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "ergonomics": {
+      "$ref": "#/definitions/ergonomics"
+    },
+    "http": {
+      "oneOf": [
+        {
           "type": "array",
           "additionalItems": false,
-          "minItems": 1,
           "items": {
-            "type": "object",
-            "minProperties": 1,
-            "maxProperties": 1,
-            "additionalProperties": {
-              "type" : "object",
-              "additionalProperties": false,
-              "properties": {
-                "always": {
-                  "description": "Run fixed number of concurrent users.",
-                  "allOf": [
-                    { "$ref": "#/definitions/phase" },
-                    {
-                      "required": [ "users" ],
-                      "properties": {
-                        "users": {
-                          "description": "Number of started users",
-                          "$ref": "#/definitions/incrementableInteger"
-                        }
-                      }
+            "$ref": "#/definitions/http"
+          }
+        },
+        {
+          "$ref": "#/definitions/http"
+        }
+      ]
+    },
+    "phases": {
+      "description": "Benchmark execution phases.",
+      "type": "array",
+      "additionalItems": false,
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "minProperties": 1,
+        "maxProperties": 1,
+        "additionalProperties": {
+          "type" : "object",
+          "additionalProperties": false,
+          "properties": {
+            "always": {
+              "description": "Run fixed number of concurrent users.",
+              "allOf": [
+                { "$ref": "#/definitions/phase" },
+                {
+                  "required": [ "users" ],
+                  "properties": {
+                    "users": {
+                      "description": "Number of started users",
+                      "$ref": "#/definitions/incrementableInteger"
                     }
-                  ]
-                },
-                "atOnce": {
-                  "description": "Start fixed number of concurrent users.",
-                  "allOf": [
-                    { "$ref": "#/definitions/phase" },
-                    {
-                      "required": [ "users" ],
-                      "properties": {
-                        "users": {
-                          "description": "Number of started users",
-                          "$ref": "#/definitions/incrementableInteger"
-                        }
-                      }
-                    }
-                  ]
-                },
-                "constantPerSec": {
-                  "description": "Add new users to the system at constant rate.",
-                  "allOf": [
-                    { "$ref": "#/definitions/phase" },
-                    {
-                      "required": [ "usersPerSec" ],
-                      "properties": {
-                        "usersPerSec": {
-                          "description": "Rate for new users",
-                          "$ref": "#/definitions/incrementableNumber"
-                        },
-                        "maxSessionsEstimate": {
-                          "description": "Estimate of maximum number of users executing this phase.",
-                          "$ref": "#/definitions/positiveInteger"
-                        },
-                        "variance": {
-                          "description": "Add new users randomly following Poisson process (true, default) or evenly (false).",
-                          "type": "boolean"
-                        }
-                      }
-                    }
-                  ]
-                },
-                "rampPerSec": {
-                  "description": "Add new users to the system at varying rate.",
-                  "allOf": [
-                    { "$ref": "#/definitions/phase" },
-                    {
-                      "required": [ "initialUsersPerSec", "targetUsersPerSec" ],
-                      "properties": {
-                        "initialUsersPerSec": {
-                          "description": "Rate for new users at the beginning of phase",
-                          "$ref": "#/definitions/incrementableNumber"
-                        },
-                        "targetUsersPerSec": {
-                          "description": "Rate for new users at the end of phase",
-                          "$ref": "#/definitions/incrementableNumber"
-                        },
-                        "maxSessionsEstimate": {
-                          "description": "Estimate of maximum number of users executing this phase.",
-                          "$ref": "#/definitions/positiveInteger"
-                        },
-                        "variance": {
-                          "description": "Add new users randomly following Poisson process (true, default) or evenly (false).",
-                          "type": "boolean"
-                        }
-                      }
-                    }
-                  ]
+                  }
                 }
-              }
+              ]
+            },
+            "atOnce": {
+              "description": "Start fixed number of concurrent users.",
+              "allOf": [
+                { "$ref": "#/definitions/phase" },
+                {
+                  "required": [ "users" ],
+                  "properties": {
+                    "users": {
+                      "description": "Number of started users",
+                      "$ref": "#/definitions/incrementableInteger"
+                    }
+                  }
+                }
+              ]
+            },
+            "constantPerSec": {
+              "description": "Add new users to the system at constant rate.",
+              "allOf": [
+                { "$ref": "#/definitions/phase" },
+                {
+                  "required": [ "usersPerSec" ],
+                  "properties": {
+                    "usersPerSec": {
+                      "description": "Rate for new users",
+                      "$ref": "#/definitions/incrementableNumber"
+                    },
+                    "maxSessionsEstimate": {
+                      "description": "Estimate of maximum number of users executing this phase.",
+                      "$ref": "#/definitions/positiveInteger"
+                    },
+                    "variance": {
+                      "description": "Add new users randomly following Poisson process (true, default) or evenly (false).",
+                      "type": "boolean"
+                    }
+                  }
+                }
+              ]
+            },
+            "rampPerSec": {
+              "description": "Add new users to the system at varying rate.",
+              "allOf": [
+                { "$ref": "#/definitions/phase" },
+                {
+                  "required": [ "initialUsersPerSec", "targetUsersPerSec" ],
+                  "properties": {
+                    "initialUsersPerSec": {
+                      "description": "Rate for new users at the beginning of phase",
+                      "$ref": "#/definitions/incrementableNumber"
+                    },
+                    "targetUsersPerSec": {
+                      "description": "Rate for new users at the end of phase",
+                      "$ref": "#/definitions/incrementableNumber"
+                    },
+                    "maxSessionsEstimate": {
+                      "description": "Estimate of maximum number of users executing this phase.",
+                      "$ref": "#/definitions/positiveInteger"
+                    },
+                    "variance": {
+                      "description": "Add new users randomly following Poisson process (true, default) or evenly (false).",
+                      "type": "boolean"
+                    }
+                  }
+                }
+              ]
             }
           }
         }

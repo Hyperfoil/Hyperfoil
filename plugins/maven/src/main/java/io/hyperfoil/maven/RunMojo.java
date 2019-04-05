@@ -65,8 +65,8 @@ public class RunMojo extends AbstractMojo {
             if (benchmark != null) {
                 // We want to log all stats in the same thread to not break the output layout too much.
                 LocalSimulationRunner runner = new LocalSimulationRunner(benchmark, this::printStats, this::printSessionPoolInfo);
-                log.info("Running for {}", benchmark.simulation().statisticsCollectionPeriod());
-                log.info("{} threads", benchmark.simulation().threads());
+                log.info("Running for {}", benchmark.statisticsCollectionPeriod());
+                log.info("{} threads", benchmark.threads());
                 runner.run();
             }
         } catch (FileNotFoundException e) {

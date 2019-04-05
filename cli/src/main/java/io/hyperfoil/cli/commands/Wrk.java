@@ -27,7 +27,6 @@ import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.PhaseBuilder;
-import io.hyperfoil.api.config.SimulationBuilder;
 import io.hyperfoil.core.builders.StepCatalog;
 import io.hyperfoil.core.handlers.ByteBufSizeRecorder;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
@@ -174,25 +173,24 @@ public class Wrk {
          if(commandInvocation instanceof HyperfoilCommandInvocation)
             executedInCli = true;
 
-         SimulationBuilder simulationBuilder = new BenchmarkBuilder(null)
+         BenchmarkBuilder builder = new BenchmarkBuilder(null)
                .name("wrk " + new SimpleDateFormat("YY/MM/dd HH:mm:ss").format(new Date()))
-               .simulation()
-                  .http()
-                     .baseUrl(baseUrl)
-                     .sharedConnections(connections)
-                  .endHttp()
-                  .threads(this.threads);
+               .http()
+                  .baseUrl(baseUrl)
+                  .sharedConnections(connections)
+               .endHttp()
+               .threads(this.threads);
 
-         addPhase(simulationBuilder, "calibration", "1s");
-         addPhase(simulationBuilder, "test", duration).startAfter("calibration").maxDuration(duration);
-         Benchmark benchmark = simulationBuilder.endSimulation().build();
+         addPhase(builder, "calibration", "1s");
+         addPhase(builder, "test", duration).startAfter("calibration").maxDuration(duration);
+         Benchmark benchmark = builder.build();
 
          // TODO: allow running the benchmark from remote instance
          LocalSimulationRunner runner = new LocalSimulationRunner(benchmark);
          commandInvocation.println("Running for " + duration + " test @ " + url);
          commandInvocation.println(threads + " threads and " + connections + " connections");
 
-         int testStepId = benchmark.simulation().phases().stream()
+         int testStepId = benchmark.phases().stream()
                .filter(phase -> phase.name().equals("test"))
                .flatMap(phase -> Stream.of(phase.scenario().sequences()))
                .flatMap(sequence -> Stream.of(sequence.steps()))
@@ -262,8 +260,8 @@ public class Wrk {
          printStats(total, invocation);
       }
 
-      private PhaseBuilder addPhase(SimulationBuilder simulationBuilder, String phase, String duration) {
-         return simulationBuilder.addPhase(phase).constantPerSec(rate)
+      private PhaseBuilder addPhase(BenchmarkBuilder benchmarkBuilder, String phase, String duration) {
+         return benchmarkBuilder.addPhase(phase).constantPerSec(rate)
                   .duration(duration)
                   .maxSessionsEstimate(rate * 15)
                   .scenario()
