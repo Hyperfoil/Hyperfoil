@@ -29,15 +29,11 @@ import org.aesh.command.parser.CommandLineParserException;
 import org.aesh.command.shell.Shell;
 import org.aesh.command.validator.CommandValidatorException;
 import org.aesh.command.validator.OptionValidatorException;
-import org.aesh.readline.AeshContext;
 import org.aesh.readline.Prompt;
 import org.aesh.readline.action.KeyAction;
 
 import java.io.IOException;
 
-/**
- * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
- */
 public class HyperfoilCommandInvocation implements CommandInvocation {
 
     private final CommandInvocation commandInvocation;
@@ -73,13 +69,13 @@ public class HyperfoilCommandInvocation implements CommandInvocation {
     }
 
     @Override
-    public void stop() {
-        commandInvocation.stop();
+    public String getHelpInfo() {
+        return commandInvocation.getHelpInfo();
     }
 
     @Override
-    public AeshContext getAeshContext() {
-        return commandInvocation.getAeshContext();
+    public void stop() {
+        commandInvocation.stop();
     }
 
     @Override

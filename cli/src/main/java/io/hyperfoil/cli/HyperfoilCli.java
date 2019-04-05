@@ -25,16 +25,21 @@ import io.hyperfoil.cli.commands.Wrk;
 import io.hyperfoil.cli.context.HyperfoilCliContext;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocationProvider;
+import org.aesh.AeshConsoleRunner;
 import org.aesh.command.Command;
 import org.aesh.command.CommandDefinition;
 import org.aesh.command.CommandResult;
+import org.aesh.command.activator.CommandActivator;
+import org.aesh.command.activator.OptionActivator;
+import org.aesh.command.completer.CompleterInvocation;
+import org.aesh.command.converter.ConverterInvocation;
 import org.aesh.command.impl.registry.AeshCommandRegistryBuilder;
-import org.aesh.command.parser.CommandLineParserException;
-import org.aesh.command.registry.CommandRegistry;
+import org.aesh.command.option.Option;
+import org.aesh.command.registry.CommandRegistryException;
 import org.aesh.command.settings.Settings;
 import org.aesh.command.settings.SettingsBuilder;
+import org.aesh.command.validator.ValidatorInvocation;
 import org.aesh.readline.Prompt;
-import org.aesh.readline.ReadlineConsole;
 import org.aesh.readline.terminal.formatting.Color;
 import org.aesh.readline.terminal.formatting.TerminalColor;
 import org.aesh.readline.terminal.formatting.TerminalString;
@@ -46,9 +51,6 @@ import java.util.logging.Logger;
 
 import static io.vertx.core.logging.LoggerFactory.LOGGER_DELEGATE_FACTORY_CLASS_NAME;
 
-/**
- * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
- */
 public class HyperfoilCli {
 
        //ignore logging when running in the console below severe
@@ -61,48 +63,50 @@ public class HyperfoilCli {
    }
 
 
-   public static void main(String[] args) throws CommandLineParserException, IOException {
+   public static void main(String[] args) throws IOException, CommandRegistryException {
 
        //set logger impl
        System.setProperty(LOGGER_DELEGATE_FACTORY_CLASS_NAME, "io.vertx.core.logging.Log4j2LogDelegateFactory");
 
-       HyperfoilCliContext context = new HyperfoilCliContext();
+       Settings<HyperfoilCommandInvocation, ConverterInvocation, CompleterInvocation, ValidatorInvocation,
+                       OptionActivator, CommandActivator> settings =
+               SettingsBuilder.<HyperfoilCommandInvocation, ConverterInvocation, CompleterInvocation,
+                                       ValidatorInvocation, OptionActivator, CommandActivator>builder()
+                       .logging(true)
+                       .enableMan(false)
+                       .enableAlias(false)
+                       .enableExport(false)
+                       .enableSearchInPaging(true)
+                       .readInputrc(true)
+                       .commandRegistry(
+                               AeshCommandRegistryBuilder.<HyperfoilCommandInvocation>builder()
+                                       .command(ExitCommand.class)
+                                       .command(Wrk.WrkCommand.class)
+                                       .command(RunLocal.class)
+                                       .create())
+                       .commandInvocationProvider(new HyperfoilCommandInvocationProvider(new HyperfoilCliContext()))
+                       .build();
 
-       SettingsBuilder builder = SettingsBuilder.builder()
-           .logging(true)
-           .enableMan(false)
-           .enableAlias(false)
-           .enableExport(false)
-           .enableSearchInPaging(true)
-           .readInputrc(true);
-
-       CommandRegistry registry = new AeshCommandRegistryBuilder()
-              .command(ExitCommand.class)
-              .command(Wrk.WrkCommand.class)
-              .command(RunLocal.class)
-              .create();
-
-       Settings settings = builder
-              .commandRegistry(registry)
-              .commandInvocationProvider(new HyperfoilCommandInvocationProvider(context))
-              .build();
-
-       ReadlineConsole console = new ReadlineConsole(settings);
-       console.setPrompt(new Prompt(new TerminalString("[hyperfoil@localhost]$ ",
+       AeshConsoleRunner runner = AeshConsoleRunner.builder().settings(settings);
+       runner.prompt(new Prompt(new TerminalString("[hyperfoil@localhost]$ ",
                         new TerminalColor(Color.GREEN, Color.DEFAULT, Color.Intensity.BRIGHT))));
 
-        console.start();
+        runner.start();
     }
 
     @CommandDefinition(name = "exit", description = "exit the program", aliases = {"quit"})
     public static class ExitCommand implements Command<HyperfoilCommandInvocation> {
 
+       @Option(shortName = 'f', hasValue = false)
+       private boolean force;
+
         @Override
         public CommandResult execute(HyperfoilCommandInvocation invocation) {
-            if(invocation.context().running())
+            if(force)
+                invocation.stop();
+            else if(invocation.context().running())
                 invocation.println("Benchmark "+invocation.context().benchmark().name()+
-                                           " is currently running, not possible to exit");
-
+                                           " is currently running, not possible to cleanly exit. To force an exit, use --force");
             else
                 invocation.stop();
             return CommandResult.SUCCESS;

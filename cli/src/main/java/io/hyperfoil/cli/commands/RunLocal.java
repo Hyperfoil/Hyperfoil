@@ -53,9 +53,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-/**
- * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
- */
 @CommandDefinition(name = "run-local", description = "read-yaml command to initiate a hyperfoil workload through a yaml file")
 public class RunLocal implements Command<CommandInvocation> {
 
@@ -76,7 +73,7 @@ public class RunLocal implements Command<CommandInvocation> {
     Resource yaml;
 
     @Override
-    public CommandResult execute(CommandInvocation commandInvocation) throws CommandException, InterruptedException {
+    public CommandResult execute(CommandInvocation commandInvocation) {
         if(help) {
             commandInvocation.println(commandInvocation.getHelpInfo("run-local"));
             return CommandResult.SUCCESS;

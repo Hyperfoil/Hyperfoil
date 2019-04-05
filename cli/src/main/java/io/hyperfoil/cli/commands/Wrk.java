@@ -36,18 +36,14 @@ import io.hyperfoil.core.steps.HttpRequestStep;
 import io.hyperfoil.core.util.Util;
 
 import org.HdrHistogram.HistogramIterationValue;
-import org.aesh.command.AeshCommandRuntimeBuilder;
+import org.aesh.AeshRuntimeRunner;
 import org.aesh.command.Command;
 import org.aesh.command.CommandDefinition;
-import org.aesh.command.CommandException;
 import org.aesh.command.CommandResult;
-import org.aesh.command.CommandRuntime;
-import org.aesh.command.impl.registry.AeshCommandRegistryBuilder;
 import org.aesh.command.invocation.CommandInvocation;
 import org.aesh.command.option.Argument;
 import org.aesh.command.option.Option;
 import org.aesh.command.option.OptionList;
-import org.aesh.command.parser.CommandLineParserException;
 import org.aesh.utils.ANSI;
 import org.aesh.utils.Config;
 
@@ -77,35 +73,19 @@ public class Wrk {
    }
 
 
-   public static void main(String[] args) throws CommandLineParserException {
+   public static void main(String[] args) {
 
       //set logger impl
       System.setProperty(LOGGER_DELEGATE_FACTORY_CLASS_NAME, "io.vertx.core.logging.Log4j2LogDelegateFactory");
 
-      CommandRuntime runtime = AeshCommandRuntimeBuilder.builder()
-            .commandRegistry(AeshCommandRegistryBuilder.builder()
-                  .command(WrkCommand.class).create())
-            .build();
-
-      StringBuilder sb = new StringBuilder("wrk ");
-      if (args.length == 1) {
-         // When executed from mvn exec:exec -Pwrk -Dwrk.args="..." we don't want to quote the args
-         sb.append(args[0]);
-      } else {
-         for (String arg : args) {
-            if (arg.indexOf(' ') >= 0) {
-               sb.append('"').append(arg).append("\" ");
-            } else {
-               sb.append(arg).append(' ');
-            }
-         }
-      }
       try {
-         runtime.executeCommand(sb.toString());
+         AeshRuntimeRunner.builder().command(WrkCommand.class).args(args).execute();
       }
       catch (Exception e) {
          System.out.println("Failed to execute command:"+ e.getMessage());
-         System.out.println(runtime.commandInfo("wrk"));
+         e.printStackTrace();
+         //todo: should provide help info here, will be added in newer version of æsh
+         //System.out.println(runtime.commandInfo("wrk"));
       }
    }
 
@@ -147,7 +127,7 @@ public class Wrk {
       private boolean executedInCli = false;
 
       @Override
-      public CommandResult execute(CommandInvocation commandInvocation) throws CommandException, InterruptedException {
+      public CommandResult execute(CommandInvocation commandInvocation) {
           if(help) {
              commandInvocation.println(commandInvocation.getHelpInfo("wrk"));
              return CommandResult.SUCCESS;
