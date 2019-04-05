@@ -305,14 +305,14 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
       }
 
       @Override
-      public BodyHandler.Builder copy(Locator locator) {
+      public Builder copy(Locator locator) {
          Builder newBuilder = new Builder(locator);
          newBuilder.embeddedResourceHandler = embeddedResourceHandler.copy(locator);
          return newBuilder;
       }
 
       @Override
-      public BodyHandler build() {
+      public HtmlHandler build() {
          return new HtmlHandler(embeddedResourceHandler.build());
       }
    }
@@ -330,7 +330,7 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
       }
 
       @Override
-      public BodyHandler.Builder newBuilder(Locator locator, String param) {
+      public Builder newBuilder(Locator locator, String param) {
          if (param != null) {
             throw new BenchmarkDefinitionException(HtmlHandler.class.getName() + " does not accept inline parameter");
          }

@@ -13,6 +13,7 @@ import java.util.regex.Pattern;
 
 import io.hyperfoil.api.config.ListBuilder;
 import io.hyperfoil.api.config.Locator;
+import io.hyperfoil.api.config.MappingListBuilder;
 import io.hyperfoil.api.config.PairBuilder;
 import io.hyperfoil.api.config.PartialBuilder;
 import io.hyperfoil.api.config.BaseSequenceBuilder;
@@ -128,6 +129,8 @@ public class Generator {
             continue;
          } else if (END_REGEXP.matcher(m.getName()).matches()) {
             continue; // do not go up
+         } else if (m.getName().equals("copy") && m.getParameterCount() == 1 && Locator.class == m.getParameters()[0].getType()) {
+            continue; // ignore BuilderBase.copy
          }
          JsonObject property = describeMethod(builder, m);
          if (property != null) {
@@ -179,6 +182,14 @@ public class Generator {
                .put("type", "array")
                .put("additionalItems", false)
                .put("items", TYPE_STRING);
+      } else if (MappingListBuilder.class.isAssignableFrom(m.getReturnType())) {
+         JsonObject item;
+         try {
+            item = describeBuilder(m.getReturnType().getMethod("addItem").getReturnType());
+         } catch (NoSuchMethodException e) {
+            throw new RuntimeException(e);
+         }
+         return new JsonObject().put("oneOf", new JsonArray().add(item).add(arrayOf(item)));
       } else if (ServiceLoadedBuilderProvider.class.isAssignableFrom(m.getReturnType())) {
          ParameterizedType type = (ParameterizedType) m.getAnnotatedReturnType().getType();
          Type builderFactory = type.getActualTypeArguments()[1];
