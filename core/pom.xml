@@ -25,7 +25,7 @@
     <parent>
         <groupId>io.hyperfoil</groupId>
         <artifactId>hyperfoil-all</artifactId>
-        <version>0.1</version>
+        <version>0.2-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -37,7 +37,7 @@
         <connection>scm:git:git://github.com/RedHatPerf/Hyperfoil.git</connection>
         <developerConnection>scm:git:ssh://git@github.com/RedHatPerf/Hyperfoil.git</developerConnection>
         <url>https://github.com/RedHatPerf/Hyperfoil/tree/master</url>
-      <tag>release-0.1</tag>
+      <tag>HEAD</tag>
   </scm>
 
     <!-- Licenses -->
