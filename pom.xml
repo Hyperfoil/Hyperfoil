@@ -43,6 +43,13 @@
         <url>https://github.com/Hyperfoil/Hyperfoil</url>
     </scm>
 
+    <distributionManagement>
+        <snapshotRepository>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
+    </distributionManagement>
+
     <modules>
         <module>api</module>
         <module>cli</module>
