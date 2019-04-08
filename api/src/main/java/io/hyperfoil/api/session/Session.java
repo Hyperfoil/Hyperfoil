@@ -15,7 +15,7 @@ public interface Session {
    void reserve(Scenario scenario);
 
    /**
-    * @return Integer >= 0 that's unique across whole simulation
+    * @return int &gt;= 0 that's unique across whole simulation
     */
    int uniqueId();
 

@@ -339,10 +339,10 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
    }
 
    /**
-    * Handles <img src="...">, <link href="...">, <embed src="...">, <frame src="...">,
-    *         <iframe src="...">, <object data="...">, <script src="...">
+    * Handles &lt;img src="..."&gt;, &lt;link href="..."&gt;, &lt;embed src="..."&gt;, &lt;frame src="..."&gt;,
+    *         &lt;iframe src="..."&gt;, &lt;object data="..."&gt;, &lt;script src="..."&gt;
     *
-    * Does not handle <source src="..."> or <track src="..."> because browser would choose only one of the options.
+    * Does not handle &lt;source src="..."&gt; or &lt;track src="..."&gt; because browser would choose only one of the options.
     */
    public static class EmbeddedResourceHandlerBuilder implements BuilderBase<EmbeddedResourceHandlerBuilder> {
       private static final String[] TAGS = { "img", "link", "embed", "frame", "iframe", "object", "script" };
