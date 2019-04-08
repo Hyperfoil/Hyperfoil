@@ -1,5 +1,6 @@
 package io.hyperfoil.clustering;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
@@ -12,13 +13,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
+import io.hyperfoil.client.Client;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.statistics.StatisticsSummary;
 import io.hyperfoil.core.parser.BenchmarkParser;
 import io.hyperfoil.core.parser.ParserException;
-import io.hyperfoil.clustering.util.PersistenceUtil;
 import io.hyperfoil.core.util.Util;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
@@ -28,8 +30,7 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.impl.NoStackTraceThrowable;
-import io.vertx.core.json.JsonArray;
-import io.vertx.core.json.JsonObject;
+import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Route;
@@ -88,7 +89,8 @@ class ControllerRestServer {
    }
 
    private void handlePostBenchmark(RoutingContext ctx) {
-      String contentType = ctx.request().getHeader(HttpHeaders.CONTENT_TYPE).trim();
+      String ctHeader = ctx.request().getHeader(HttpHeaders.CONTENT_TYPE);
+      String contentType = ctHeader == null ? "text/vnd.yaml" : ctHeader.trim();
       Charset charset = StandardCharsets.UTF_8;
       int semicolonIndex = contentType.indexOf(';');
       if (semicolonIndex >= 0) {
@@ -102,7 +104,13 @@ class ControllerRestServer {
       Benchmark benchmark;
       if (contentType.equals(MIME_TYPE_SERIALIZED)) {
          byte[] bytes = ctx.getBody().getBytes();
-         benchmark = PersistenceUtil.deserialize(bytes);
+         try {
+            benchmark = io.hyperfoil.util.Util.deserialize(bytes);
+         } catch (IOException | ClassNotFoundException e) {
+            log.error("Failed to serialize", e);
+            ctx.response().setStatusCode(400).end("Cannot read benchmark.");
+            return;
+         }
       } else if (MIME_TYPE_YAML.contains(contentType)) {
          String source = ctx.getBodyAsString(charset.name());
          try {
@@ -145,9 +153,7 @@ class ControllerRestServer {
    }
 
    private void handleListBenchmarks(RoutingContext routingContext) {
-      JsonArray array = new JsonArray();
-      controller.getBenchmarks().forEach(array::add);
-      routingContext.response().setStatusCode(200).end(array.toBuffer());
+      routingContext.response().setStatusCode(200).end(Json.encodePrettily(controller.getBenchmarks()));
    }
 
    private void handleGetBenchmark(RoutingContext ctx) {
@@ -164,13 +170,14 @@ class ControllerRestServer {
          acceptHeader = acceptHeader.substring(0, semicolonIndex).trim();
       }
       if (acceptHeader.equals(MIME_TYPE_SERIALIZED)) {
-         byte[] bytes = PersistenceUtil.serialize(benchmark);
-         if (bytes == null) {
-            ctx.response().setStatusCode(500).end("Error encoding benchmark.");
-         } else {
+         try {
+            byte[] bytes = io.hyperfoil.util.Util.serialize(benchmark);
             ctx.response().setStatusCode(200)
                   .putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_SERIALIZED)
                   .end(Buffer.buffer(bytes));
+         } catch (IOException e) {
+            log.error("Failed to serialize", e);
+            ctx.response().setStatusCode(500).end("Error encoding benchmark.");
          }
       } else if (MIME_TYPE_YAML.contains(acceptHeader) || "*/*".equals(acceptHeader)) {
          if (benchmark.source() == null) {
@@ -210,78 +217,69 @@ class ControllerRestServer {
    }
 
    private void handleGetAgents(RoutingContext routingContext) {
-      JsonArray agents = new JsonArray(Arrays.asList(controller.agents.values().stream().map(ai -> new JsonObject()
-            .put("name", ai.name)
-            .put("address", ai.address)
-            .put("status", ai.status)).toArray()));
-      routingContext.response().end(agents.encodePrettily());
+      Client.Agent[] agents = controller.agents.values().stream()
+            .map(ai -> new Client.Agent(ai.name, ai.address, ai.status.toString()))
+            .toArray(Client.Agent[]::new);
+      routingContext.response().end(Json.encodePrettily(agents));
    }
 
    private void handleListRuns(RoutingContext routingContext) {
-      JsonArray array = new JsonArray();
-      controller.runs().stream().map(run -> run.id).sorted().forEach(array::add);
-      routingContext.response().setStatusCode(200).end(array.toBuffer());
+      String[] ids = controller.runs().stream().map(run -> run.id).sorted().toArray(String[]::new);
+      routingContext.response().setStatusCode(200).end(Json.encodePrettily(ids));
    }
 
    private void handleGetRun(RoutingContext routingContext) {
-      JsonObject body = new JsonObject();
       Run run = getRun(routingContext);
       if (run == null) {
          routingContext.response().setStatusCode(404).end();
          return;
       }
-      body.put("runId", run.id);
-      SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.S");
+
+      String benchmark = null;
       if (run.benchmark != null) {
-         body.put("benchmark", run.benchmark.name());
+         benchmark = run.benchmark.name();
       }
+
+      SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.S");
+      Date started = null, terminated = null;
       if (run.startTime > Long.MIN_VALUE) {
-         body.put("started", simpleDateFormat.format(new Date(run.startTime)));
+         started = new Date(run.startTime);
       }
       if (run.terminateTime > Long.MIN_VALUE) {
-         body.put("terminated", simpleDateFormat.format(new Date(run.terminateTime)));
+         terminated = new Date(run.terminateTime);
       }
-      if (run.description != null) {
-         body.put("description", run.description);
-      }
-      JsonArray jsonPhases = new JsonArray();
-      body.put("phases", jsonPhases);
       long now = System.currentTimeMillis();
-      run.phases.values().stream().sorted(Comparator.comparing(p -> p.definition().name)).forEach(phase -> {
-         JsonObject jsonPhase = new JsonObject();
-         jsonPhases.add(jsonPhase);
-         jsonPhase.put("name", phase.definition().name);
-         jsonPhase.put("status", phase.status());
+      List<Client.Phase> phases = run.phases.values().stream().sorted(Comparator.comparing(p -> p.definition().name)).map(phase -> {
+         Date phaseStarted = null, phaseTerminated = null;
+         StringBuilder remaining = null;
+         StringBuilder totalDuration = null;
          if (phase.absoluteStartTime() > Long.MIN_VALUE) {
-            jsonPhase.put("started", simpleDateFormat.format(new Date(phase.absoluteStartTime())));
+            phaseStarted = new Date(phase.absoluteStartTime());
             if (!phase.status().isTerminated()) {
-               StringBuilder remaining = new StringBuilder()
+               remaining = new StringBuilder()
                      .append(phase.definition().duration() - (now - phase.absoluteStartTime())).append(" ms");
                if (phase.definition().maxDuration() >= 0) {
                   remaining.append(" (")
                         .append(phase.definition().maxDuration() - (now - phase.absoluteStartTime())).append(" ms)");
                }
-               jsonPhase.put("remaining", remaining.toString());
             } else {
-               jsonPhase.put("terminated", simpleDateFormat.format(new Date(phase.absoluteTerminateTime())));
-               long totalDuration = phase.absoluteTerminateTime() - phase.absoluteStartTime();
-               StringBuilder sb = new StringBuilder().append(totalDuration).append(" ms");
-               if (totalDuration > phase.definition().duration()) {
-                  sb.append(" (exceeded by ").append(totalDuration - phase.definition().duration()).append(" ms)");
+               phaseTerminated = new Date(phase.absoluteTerminateTime());
+               long totalDurationValue = phase.absoluteTerminateTime() - phase.absoluteStartTime();
+               totalDuration = new StringBuilder().append(totalDurationValue).append(" ms");
+               if (totalDurationValue > phase.definition().duration()) {
+                  totalDuration.append(" (exceeded by ").append(totalDurationValue - phase.definition().duration()).append(" ms)");
                }
-               jsonPhase.put("totalDuration", sb.toString());
             }
          }
-      });
-      JsonArray jsonAgents = new JsonArray();
-      body.put("agents", jsonAgents);
-      for (AgentInfo agent : run.agents) {
-         JsonObject jsonAgent = new JsonObject();
-         jsonAgents.add(jsonAgent);
-         jsonAgent.put("address", agent.address);
-         jsonAgent.put("status", agent.status);
-      }
-      String status = body.encodePrettily();
+         return new Client.Phase(phase.definition().name(), phase.status().toString(),
+               phaseStarted, remaining == null ? null : remaining.toString(),
+               phaseTerminated, totalDuration == null ? null : totalDuration.toString());
+      }).collect(Collectors.toList());
+      List<Client.Agent> agents = run.agents.stream()
+            .map(ai -> new Client.Agent(ai.name, ai.address, ai.status.toString()))
+            .collect(Collectors.toList());
+      Client.Run body = new Client.Run(run.id, benchmark, started, terminated, run.description, phases, agents);
+      String status = Json.encodePrettily(body);
       routingContext.response().end(status);
    }
 

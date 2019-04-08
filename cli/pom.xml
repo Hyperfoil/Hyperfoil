@@ -29,7 +29,17 @@
 
         <dependency>
             <groupId>io.hyperfoil</groupId>
+            <artifactId>hyperfoil-api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.hyperfoil</groupId>
             <artifactId>hyperfoil-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-web-client</artifactId>
         </dependency>
 
     </dependencies>

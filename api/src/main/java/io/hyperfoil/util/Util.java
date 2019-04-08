@@ -1,7 +1,13 @@
 package io.hyperfoil.util;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.concurrent.TimeUnit;
 
+import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 
 public final class Util {
@@ -56,5 +62,19 @@ public final class Util {
             break;
       }
       return unit.toMillis(Long.parseLong(prefix));
+   }
+
+   public static byte[] serialize(Benchmark benchmark) throws IOException {
+      ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+      try (ObjectOutputStream outputStream = new ObjectOutputStream(byteArrayOutputStream)) {
+         outputStream.writeObject(benchmark);
+      }
+      return byteArrayOutputStream.toByteArray();
+   }
+
+   public static Benchmark deserialize(byte[] bytes) throws IOException, ClassNotFoundException {
+      try (ObjectInputStream input = new ObjectInputStream(new ByteArrayInputStream(bytes))) {
+         return (Benchmark) input.readObject();
+      }
    }
 }
