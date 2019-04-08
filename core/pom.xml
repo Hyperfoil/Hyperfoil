@@ -19,14 +19,13 @@
   ~ limitations under the License.
   -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
     <!-- Parent -->
     <parent>
         <groupId>io.hyperfoil</groupId>
         <artifactId>hyperfoil-all</artifactId>
-        <version>0.1-SNAPSHOT</version>
+        <version>0.1</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -38,7 +37,8 @@
         <connection>scm:git:git://github.com/RedHatPerf/Hyperfoil.git</connection>
         <developerConnection>scm:git:ssh://git@github.com/RedHatPerf/Hyperfoil.git</developerConnection>
         <url>https://github.com/RedHatPerf/Hyperfoil/tree/master</url>
-    </scm>
+      <tag>release-0.1</tag>
+  </scm>
 
     <!-- Licenses -->
     <licenses>
@@ -132,7 +132,7 @@
                     <archive>
                         <manifest>
                             <addClasspath>true</addClasspath>
-                            <mainClass></mainClass>
+                            <mainClass />
                         </manifest>
                     </archive>
                 </configuration>

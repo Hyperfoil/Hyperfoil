@@ -18,15 +18,14 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
     <!-- Parent -->
     <parent>
         <groupId>org.jboss</groupId>
         <artifactId>jboss-parent</artifactId>
         <version>19</version>
-        <relativePath/>
+        <relativePath />
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
@@ -34,14 +33,15 @@
     <groupId>io.hyperfoil</groupId>
     <artifactId>hyperfoil-all</artifactId>
     <packaging>pom</packaging>
-    <version>0.1-SNAPSHOT</version>
+    <version>0.1</version>
     <name>Hyperfoil</name>
     <description>Hyperfoil will rock your application with load</description>
     <scm>
         <connection>scm:git:git://github.com/Hyperfoil/Hyperfoil.git</connection>
         <developerConnection>scm:git:ssh://git@github.com/Hyperfoil/Hyperfoil.git</developerConnection>
         <url>https://github.com/Hyperfoil/Hyperfoil</url>
-    </scm>
+      <tag>release-0.1</tag>
+  </scm>
 
     <distributionManagement>
         <snapshotRepository>
@@ -332,7 +332,7 @@
                                 <failsOnError>true</failsOnError>
                                 <!--<linkXRef>false</linkXRef>-->
                                 <!--
-                                <useFile/>
+                                <useFile />
     -->
                                 <includeTestSourceDirectory>true</includeTestSourceDirectory>
                             </configuration>
