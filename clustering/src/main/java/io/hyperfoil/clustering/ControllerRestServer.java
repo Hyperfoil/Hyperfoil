@@ -5,6 +5,8 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -15,6 +17,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.hyperfoil.api.config.BenchmarkData;
+import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.client.Client;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.hyperfoil.api.config.Benchmark;
@@ -33,6 +37,7 @@ import io.vertx.core.impl.NoStackTraceThrowable;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.Route;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -41,6 +46,7 @@ import io.vertx.ext.web.handler.BodyHandler;
 class ControllerRestServer {
    private static final Logger log = LoggerFactory.getLogger(ControllerRestServer.class);
    private static final String MIME_TYPE_SERIALIZED = "application/java-serialized-object";
+   private static final String MIME_TYPE_MULTIPART = "multipart/form-data";
    private static final Set<String> MIME_TYPE_YAML = new HashSet<>(
          Arrays.asList("text/vnd.yaml", "text/yaml", "text/x-yaml", "application/x-yaml"));
 
@@ -114,21 +120,41 @@ class ControllerRestServer {
       } else if (MIME_TYPE_YAML.contains(contentType)) {
          String source = ctx.getBodyAsString(charset.name());
          try {
-            benchmark = BenchmarkParser.instance().buildBenchmark(source);
-         } catch (ParserException e) {
-            log.error("Failed to read benchmark", e);
-            StringBuilder causes = new StringBuilder();
-            Set<Throwable> reported = new HashSet<>();
-            Throwable last = e;
-            while (last != null && !reported.contains(last)) {
-               if (causes.length() != 0) {
-                  causes.append(": ");
-               }
-               causes.append(last.getMessage());
-               reported.add(last);
-               last = last.getCause();
+            benchmark = BenchmarkParser.instance().buildBenchmark(source, BenchmarkData.EMPTY);
+         } catch (ParserException | BenchmarkDefinitionException e) {
+            respondParsingError(ctx, e);
+            return;
+         }
+      } else if (MIME_TYPE_MULTIPART.equals(contentType)) {
+         String source = null;
+         RequestBenchmarkData data = new RequestBenchmarkData();
+         for (FileUpload upload : ctx.fileUploads()) {
+            byte[] bytes;
+            try {
+               bytes = Files.readAllBytes(Paths.get(upload.uploadedFileName()));
+            } catch (IOException e) {
+               log.error("Cannot read uploaded file {}", e, upload.uploadedFileName());
+               ctx.response().setStatusCode(500).end();
+               return;
             }
-            ctx.response().setStatusCode(400).end("Cannot read benchmark: " + causes);
+            if (upload.name().equals("benchmark")) {
+               try {
+                  source = new String(bytes, upload.charSet());
+               } catch (UnsupportedEncodingException e) {
+                  source = new String(bytes, StandardCharsets.UTF_8);
+               }
+            } else {
+               data.addFile(upload.fileName(), bytes);
+            }
+         }
+         if (source == null) {
+            ctx.response().setStatusCode(400).end("Multi-part definition missing benchmark=source-file.yaml");
+            return;
+         }
+         try {
+            benchmark = BenchmarkParser.instance().buildBenchmark(source, data);
+         } catch (ParserException | BenchmarkDefinitionException e) {
+            respondParsingError(ctx, e);
             return;
          }
       } else {
@@ -150,6 +176,22 @@ class ControllerRestServer {
       } else {
          ctx.response().setStatusCode(400).end("Cannot read benchmark.");
       }
+   }
+
+   private void respondParsingError(RoutingContext ctx, Exception e) {
+      log.error("Failed to read benchmark", e);
+      StringBuilder causes = new StringBuilder();
+      Set<Throwable> reported = new HashSet<>();
+      Throwable last = e;
+      while (last != null && !reported.contains(last)) {
+         if (causes.length() != 0) {
+            causes.append(": ");
+         }
+         causes.append(last.getMessage());
+         reported.add(last);
+         last = last.getCause();
+      }
+      ctx.response().setStatusCode(400).end("Cannot read benchmark: " + causes);
    }
 
    private void handleListBenchmarks(RoutingContext routingContext) {

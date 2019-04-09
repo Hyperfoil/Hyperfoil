@@ -167,7 +167,7 @@ public class AgentControllerVerticle extends AbstractVerticle {
                 log.error("Cannot read info for run {}", runId);
             }
         }
-        Run run = new Run(runId, new Benchmark(info.getString("benchmark", "<unknown>"), null, null, 0, null,
+        Run run = new Run(runId, new Benchmark(info.getString("benchmark", "<unknown>"), null, Collections.emptyMap(), null, 0, null,
               Collections.emptyMap(), Collections.emptyList(), Collections.emptyMap(), 0), Collections.emptyList());
         run.startTime = info.getLong("startTime", 0L);
         run.terminateTime = info.getLong("terminateTime", 0L);

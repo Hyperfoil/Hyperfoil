@@ -8,6 +8,7 @@ import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 
 import io.hyperfoil.api.config.Benchmark;
+import io.hyperfoil.core.impl.LocalBenchmarkData;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
 import io.hyperfoil.core.parser.BenchmarkParser;
 import io.hyperfoil.core.parser.ParserException;
@@ -23,7 +24,7 @@ public class IterationsTest extends BaseBenchmarkTestCase {
       InputStream inputStream = getClass().getClassLoader().getResourceAsStream("IterationsTest.hf.yaml");
       String configStr = Util.toString(inputStream)
             .replaceAll("http://localhost:8080", "http://localhost:" + server.actualPort());
-      Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(configStr);
+      Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(configStr, new LocalBenchmarkData());
 
       new LocalSimulationRunner(benchmark).run();
    }

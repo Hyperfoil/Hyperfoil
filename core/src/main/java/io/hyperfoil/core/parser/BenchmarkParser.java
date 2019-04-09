@@ -20,6 +20,7 @@ package io.hyperfoil.core.parser;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkBuilder;
+import io.hyperfoil.api.config.BenchmarkData;
 import io.hyperfoil.core.util.Util;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -73,7 +74,7 @@ public class BenchmarkParser extends AbstractMappingParser<BenchmarkBuilder> {
         }
     }
 
-    public Benchmark buildBenchmark(String source) throws ParserException {
+    public Benchmark buildBenchmark(String source, BenchmarkData data) throws ParserException {
         Yaml yaml = new Yaml();
 
         Iterator<Event> events = yaml.parse(new StringReader(source)).iterator();
@@ -86,7 +87,7 @@ public class BenchmarkParser extends AbstractMappingParser<BenchmarkBuilder> {
         ctx.expectEvent(DocumentStartEvent.class);
 
         //instantiate new benchmark builder
-        BenchmarkBuilder benchmarkBuilder = new BenchmarkBuilder(source);
+        BenchmarkBuilder benchmarkBuilder = new BenchmarkBuilder(source, data);
         parse(ctx, benchmarkBuilder);
 
         ctx.expectEvent(DocumentEndEvent.class);
@@ -95,8 +96,8 @@ public class BenchmarkParser extends AbstractMappingParser<BenchmarkBuilder> {
         return benchmarkBuilder.build();
     }
 
-    public Benchmark buildBenchmark(InputStream inputStream) throws ParserException, IOException {
-        return buildBenchmark(Util.toString(inputStream));
+    public Benchmark buildBenchmark(InputStream inputStream, BenchmarkData data) throws ParserException, IOException {
+        return buildBenchmark(Util.toString(inputStream), data);
     }
 
     private static class DebugIterator<T> implements Iterator<T> {

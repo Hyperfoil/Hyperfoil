@@ -25,6 +25,7 @@ import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.core.builders.StepCatalog;
 import io.hyperfoil.core.handlers.ByteBufSizeRecorder;
+import io.hyperfoil.core.impl.LocalBenchmarkData;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
 import io.hyperfoil.core.impl.statistics.StatisticsCollector;
 import io.vertx.core.Vertx;
@@ -70,7 +71,7 @@ public class RequestResponseCounterTest {
     public void testNumberOfRequestsAndResponsesMatch() {
 
         BenchmarkBuilder builder =
-                new BenchmarkBuilder(null)
+                new BenchmarkBuilder(null, new LocalBenchmarkData())
                         .name("requestResponseCounter " + new SimpleDateFormat("YY/MM/dd HH:mm:ss").format(new Date()))
                         .http()
                         .baseUrl("http://localhost:8088/")

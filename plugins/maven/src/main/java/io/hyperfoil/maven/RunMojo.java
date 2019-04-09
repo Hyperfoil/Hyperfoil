@@ -2,6 +2,7 @@ package io.hyperfoil.maven;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
+import io.hyperfoil.core.impl.LocalBenchmarkData;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
 import io.hyperfoil.core.parser.BenchmarkParser;
 import io.hyperfoil.core.parser.ParserException;
@@ -95,7 +96,7 @@ public class RunMojo extends AbstractMojo {
                 result.write(buffer, 0, length);
             }
             String source = result.toString(StandardCharsets.UTF_8.name());
-            Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(source);
+            Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(source, new LocalBenchmarkData());
 
             if (benchmark == null)
                 log.info("Failed to parse benchmark configuration");

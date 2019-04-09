@@ -35,6 +35,7 @@ import io.hyperfoil.impl.FutureSupplier;
 public class BenchmarkBuilder {
 
     private final String originalSource;
+    private final BenchmarkData data;
     private String name;
     private Collection<Host> agents = new ArrayList<>();
     private ErgonomicsBuilder ergonomics = new ErgonomicsBuilder();
@@ -44,12 +45,13 @@ public class BenchmarkBuilder {
     private Map<String, PhaseBuilder<?>> phaseBuilders = new HashMap<>();
     private long statisticsCollectionPeriod = 1000;
 
-    public BenchmarkBuilder(String originalSource) {
+    public BenchmarkBuilder(String originalSource, BenchmarkData data) {
         this.originalSource = originalSource;
+        this.data = data;
     }
 
     public static BenchmarkBuilder builder() {
-        return new BenchmarkBuilder(null);
+        return new BenchmarkBuilder(null, BenchmarkData.EMPTY);
     }
 
     public BenchmarkBuilder name(String name) {
@@ -149,7 +151,11 @@ public class BenchmarkBuilder {
         }
         tags.put("threads", threads);
 
-        Benchmark benchmark = new Benchmark(name, originalSource, agents.toArray(new Host[0]), threads, ergonomics.build(),
+        // It is important to gather files only after all other potentially file-reading builders
+        // are done.
+        Map<String, byte[]> files = data.files();
+
+        Benchmark benchmark = new Benchmark(name, originalSource, files, agents.toArray(new Host[0]), threads, ergonomics.build(),
               http, phases, tags, statisticsCollectionPeriod);
         bs.set(benchmark);
         return benchmark;
@@ -197,5 +203,9 @@ public class BenchmarkBuilder {
         if (httpMap.putIfAbsent(builder.baseUrl(), builder) != null) {
             throw new BenchmarkDefinitionException("HTTP configuration for " + builder.baseUrl() + " already present!");
         }
+    }
+
+    public BenchmarkData data() {
+        return data;
     }
 }

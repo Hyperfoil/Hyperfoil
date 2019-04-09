@@ -31,9 +31,10 @@ import java.util.stream.Stream;
  */
 public class Benchmark implements Serializable {
 
-    protected final String name;
-    protected final String originalSource;
-    protected final Host[] agents;
+    private final String name;
+    private final String originalSource;
+    private final Map<String, byte[]> files;
+    private final Host[] agents;
     private final int threads;
     private final Ergonomics ergonomics;
     private final Map<String, Http> http;
@@ -42,12 +43,12 @@ public class Benchmark implements Serializable {
     private final Map<String, Object> tags;
     private final long statisticsCollectionPeriod;
 
-
-    public Benchmark(String name, String originalSource, Host[] agents, int threads, Ergonomics ergonomics,
+    public Benchmark(String name, String originalSource, Map<String, byte[]> files, Host[] agents, int threads, Ergonomics ergonomics,
                      Map<String, Http> http, Collection<Phase> phases,
                      Map<String, Object> tags, long statisticsCollectionPeriod) {
         this.name = name;
         this.originalSource = originalSource;
+        this.files = files;
         this.agents = agents;
         this.threads = threads;
         this.ergonomics = ergonomics;
@@ -72,6 +73,10 @@ public class Benchmark implements Serializable {
      */
     public String source() {
         return originalSource;
+    }
+
+    public Map<String, byte[]> files() {
+        return files;
     }
 
     public int threads() {

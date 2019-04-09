@@ -29,6 +29,7 @@ import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.PhaseBuilder;
 import io.hyperfoil.core.builders.StepCatalog;
 import io.hyperfoil.core.handlers.ByteBufSizeRecorder;
+import io.hyperfoil.core.impl.LocalBenchmarkData;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
 import io.hyperfoil.core.impl.statistics.StatisticsCollector;
 import io.hyperfoil.core.steps.HttpRequestStep;
@@ -173,7 +174,7 @@ public class Wrk {
          if(commandInvocation instanceof HyperfoilCommandInvocation)
             executedInCli = true;
 
-         BenchmarkBuilder builder = new BenchmarkBuilder(null)
+         BenchmarkBuilder builder = new BenchmarkBuilder(null, new LocalBenchmarkData())
                .name("wrk " + new SimpleDateFormat("YY/MM/dd HH:mm:ss").format(new Date()))
                .http()
                   .baseUrl(baseUrl)

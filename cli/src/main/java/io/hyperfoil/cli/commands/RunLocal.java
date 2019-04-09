@@ -24,6 +24,7 @@ import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.statistics.CustomValue;
 import io.hyperfoil.api.statistics.LongValue;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
+import io.hyperfoil.core.impl.LocalBenchmarkData;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
 import io.hyperfoil.core.impl.statistics.StatisticsCollector;
 import io.hyperfoil.core.parser.BenchmarkParser;
@@ -111,7 +112,7 @@ public class RunLocal implements Command<CommandInvocation> {
                 result.write(buffer, 0, length);
             }
             String source = result.toString(StandardCharsets.UTF_8.name());
-            Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(source);
+            Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(source, new LocalBenchmarkData());
 
             if(benchmark == null)
                 invocation.println("Failed to parse benchmark configuration");

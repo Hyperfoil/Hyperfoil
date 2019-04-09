@@ -1,16 +1,17 @@
 package io.hyperfoil.core.generators;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.lang.reflect.Array;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.stream.Collectors;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.ListBuilder;
@@ -106,8 +107,19 @@ public class RandomItemStep implements Step, ResourceUtilizer {
          }
          List<String> list = this.list;
          if (file != null) {
-            try {
-               list = Files.readAllLines(Paths.get(file)).stream().filter(line -> !line.isEmpty()).collect(Collectors.toList());
+            list = new ArrayList<>();
+            try (InputStream inputStream = endStep().endSequence().endScenario().endPhase().data().readFile(file)) {
+               if (inputStream == null) {
+                  throw new BenchmarkDefinitionException("Cannot load file `" + file + "` for randomItem (not found).");
+               }
+               try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
+                  String line;
+                  while ((line = reader.readLine()) != null) {
+                     if (!line.isEmpty()) {
+                        list.add(line);
+                     }
+                  }
+               }
             } catch (IOException e) {
                throw new BenchmarkDefinitionException("Cannot load file `" + file + "` for randomItem.", e);
             }
