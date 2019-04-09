@@ -274,7 +274,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
       public Builder pathGenerator(SerializableFunction<Session, String> pathGenerator) {
          if (this.pathGenerator != null) {
-            throw new IllegalStateException("Path generator already set.");
+            throw new BenchmarkDefinitionException("Path generator already set.");
          }
          this.pathGenerator = pathGenerator;
          return this;
@@ -291,7 +291,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
       public Builder bodyGenerator(SerializableBiFunction<Session, Connection, ByteBuf> bodyGenerator) {
          if (this.bodyGenerator != null) {
-            throw new IllegalStateException("Body generator already set.");
+            throw new BenchmarkDefinitionException("Body generator already set.");
          }
          this.bodyGenerator = bodyGenerator;
          return this;
@@ -308,9 +308,9 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
       public Builder timeout(long timeout, TimeUnit timeUnit) {
          if (timeout <= 0) {
-            throw new IllegalArgumentException("Timeout must be positive!");
+            throw new BenchmarkDefinitionException("Timeout must be positive!");
          } else if (this.timeout != Long.MIN_VALUE) {
-            throw new IllegalStateException("Timeout already set!");
+            throw new BenchmarkDefinitionException("Timeout already set!");
          }
          this.timeout = timeUnit.toMillis(timeout);
          return this;

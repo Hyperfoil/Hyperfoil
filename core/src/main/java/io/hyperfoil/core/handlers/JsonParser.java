@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.function.Function;
 
+import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.session.Session;
 
 public abstract class JsonParser<S> implements Serializable {
@@ -18,7 +19,7 @@ public abstract class JsonParser<S> implements Serializable {
       this.query = query;
       byte[] queryBytes = query.getBytes(StandardCharsets.UTF_8);
       if (queryBytes.length == 0 || queryBytes[0] != '.') {
-         throw new IllegalArgumentException("Path should start with '.'");
+         throw new BenchmarkDefinitionException("Path should start with '.'");
       }
       ArrayList<Selector> selectors = new ArrayList<>();
       int next = 1;
@@ -67,7 +68,7 @@ public abstract class JsonParser<S> implements Serializable {
       int value = 0;
       for (;;) {
          if (bytes[start] < '0' || bytes[start] > '9') {
-            throw new IllegalArgumentException("Invalid range specification: " + new String(bytes));
+            throw new BenchmarkDefinitionException("Invalid range specification: " + new String(bytes));
          }
          value += bytes[start] - '0';
          if (++start >= end) {

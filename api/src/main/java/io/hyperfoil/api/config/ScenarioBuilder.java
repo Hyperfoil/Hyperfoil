@@ -73,7 +73,7 @@ public class ScenarioBuilder implements Rewritable<ScenarioBuilder> {
 
     public SequenceBuilder findSequence(String name) {
         return sequences.stream().filter(sb -> name.equals(sb.name())).findFirst()
-              .orElseThrow(() -> new BenchmarkDefinitionException("No sequence " + name + " in phase " + endScenario().name));
+              .orElseThrow(() -> new BenchmarkDefinitionException("No sequence " + name + " in phase " + endScenario().name()));
     }
 
     public ScenarioBuilder objectVar(String var) {
@@ -97,7 +97,7 @@ public class ScenarioBuilder implements Rewritable<ScenarioBuilder> {
             return scenario;
         }
         if (initialSequences.isEmpty()) {
-            throw new IllegalArgumentException("No initial sequences.");
+            throw new BenchmarkDefinitionException("No initial sequences in phase " + endScenario().name());
         }
         return scenario = new Scenario(
               initialSequences.stream().map(sequenceBuilder -> sequenceBuilder.build(phase)).toArray(Sequence[]::new),
@@ -117,7 +117,7 @@ public class ScenarioBuilder implements Rewritable<ScenarioBuilder> {
     }
 
     private SequenceBuilder findMatchingSequence(String name) {
-        return this.sequences.stream().filter(s2 -> s2.name().equals(name)).findFirst().orElseThrow(() -> new IllegalStateException());
+        return this.sequences.stream().filter(s2 -> s2.name().equals(name)).findFirst().orElseThrow(IllegalStateException::new);
     }
 
     Collection<SequenceBuilder> sequences() {
