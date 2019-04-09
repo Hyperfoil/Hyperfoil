@@ -104,6 +104,7 @@ public class RandomItemStep implements Step, ResourceUtilizer {
          } else if (!list.isEmpty() && file != null) {
             throw new BenchmarkDefinitionException("randomItem cannot combine `list` and `file`");
          }
+         List<String> list = this.list;
          if (file != null) {
             try {
                list = Files.readAllLines(Paths.get(file)).stream().filter(line -> !line.isEmpty()).collect(Collectors.toList());

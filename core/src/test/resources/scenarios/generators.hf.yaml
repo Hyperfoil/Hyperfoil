@@ -7,7 +7,7 @@ phases:
     atOnce:
       users: 1
       duration: 0
-      scenario:
+      scenario: &s
         initialSequences:
         - testSequence:
           - randomItem:
@@ -19,3 +19,11 @@ phases:
               - B
               - C
               var: "y" # without the quotes `y` means `true` = boolean, not string
+          - randomItem:
+              file: src/test/resources/data/YamlParserTest_testGeneratorsYaml_foo.txt
+              var: z
+- anotherPhase:
+    atOnce:
+      users: 1
+      duration: 0
+      scenario: *s
