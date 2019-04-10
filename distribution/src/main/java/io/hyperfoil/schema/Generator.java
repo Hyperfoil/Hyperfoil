@@ -9,6 +9,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.regex.Pattern;
 
 import io.hyperfoil.api.config.ListBuilder;
@@ -119,18 +120,21 @@ public class Generator {
       return new JsonObject().put("$ref", "#/definitions/" + builder.getName());
    }
 
-
    private void describeBuilder(Class<?> builder, JsonObject step, JsonObject properties) {
       step.put("type", "object");
       step.put("additionalProperties", false);
       step.put("properties", properties);
       for (Method m : builder.getMethods()) {
-         if (Modifier.isStatic(m.getModifiers())) {
+         if (Modifier.isStatic(m.getModifiers()) || m.isDefault()) {
             continue;
          } else if (END_REGEXP.matcher(m.getName()).matches()) {
             continue; // do not go up
-         } else if (m.getName().equals("copy") && m.getParameterCount() == 1 && Locator.class == m.getParameters()[0].getType()) {
-            continue; // ignore BuilderBase.copy
+         } else if (PairBuilder.class.isAssignableFrom(builder) && m.getName().equals("accept") && m.getParameterCount() == 2) {
+            continue;
+         } else if (ListBuilder.class.isAssignableFrom(builder) && m.getName().equals("nextItem") && m.getParameterCount() == 1) {
+            continue;
+         } else if (MappingListBuilder.class.isAssignableFrom(builder) && m.getName().equals("addItem") && m.getParameterCount() == 0) {
+            continue;
          }
          JsonObject property = describeMethod(builder, m);
          if (property != null) {
@@ -149,7 +153,9 @@ public class Generator {
             // TODO: we could allow passing lists here
             return null;
          }
-      } else if (PairBuilder.class.isAssignableFrom(m.getReturnType())) {
+      }
+      ArrayList<JsonObject> options = new ArrayList<>();
+      if (PairBuilder.class.isAssignableFrom(m.getReturnType())) {
          // TODO: PairBuilder.valueType
          JsonObject valueType = TYPE_STRING;
          if (PartialBuilder.class.isAssignableFrom(m.getReturnType())) {
@@ -170,27 +176,32 @@ public class Generator {
                .put("minProperties", 1)
                .put("maxProperties", 1)
                .put("patternProperties", patternProperties);
-         JsonObject sequence = arrayOf(sequenceObject);
-         return new JsonObject().put("oneOf", new JsonArray().add(sequence).add(object));
-      } else if (BaseSequenceBuilder.class.isAssignableFrom(m.getReturnType())) {
-         return new JsonObject()
+         options.add(object);
+         options.add(arrayOf(sequenceObject));
+      }
+      if (BaseSequenceBuilder.class.isAssignableFrom(m.getReturnType())) {
+         options.add(new JsonObject()
                .put("type", "array")
                .put("additionalItems", false)
-               .put("items", new JsonObject().put("$ref", "#/definitions/step"));
-      } else if (ListBuilder.class.isAssignableFrom(m.getReturnType())) {
-         return new JsonObject()
+               .put("items", new JsonObject().put("$ref", "#/definitions/step")));
+      }
+      if (ListBuilder.class.isAssignableFrom(m.getReturnType())) {
+         options.add(new JsonObject()
                .put("type", "array")
                .put("additionalItems", false)
-               .put("items", TYPE_STRING);
-      } else if (MappingListBuilder.class.isAssignableFrom(m.getReturnType())) {
+               .put("items", TYPE_STRING));
+      }
+      if (MappingListBuilder.class.isAssignableFrom(m.getReturnType())) {
          JsonObject item;
          try {
             item = describeBuilder(m.getReturnType().getMethod("addItem").getReturnType());
          } catch (NoSuchMethodException e) {
             throw new RuntimeException(e);
          }
-         return new JsonObject().put("oneOf", new JsonArray().add(item).add(arrayOf(item)));
-      } else if (ServiceLoadedBuilderProvider.class.isAssignableFrom(m.getReturnType())) {
+         options.add(item);
+         options.add(arrayOf(item));
+      }
+      if (ServiceLoadedBuilderProvider.class.isAssignableFrom(m.getReturnType())) {
          ParameterizedType type = (ParameterizedType) m.getAnnotatedReturnType().getType();
          Type builderFactory = type.getActualTypeArguments()[1];
          Class<? extends ServiceLoadedFactory<?>> bfClass;
@@ -201,13 +212,20 @@ public class Generator {
          } else {
             throw new IllegalStateException("Cannot analyze factory type " + builderFactory);
          }
-         return getServiceLoadedImplementations(bfClass);
-      } else if (m.getReturnType().getName().endsWith("Builder")) {
+         options.add(getServiceLoadedImplementations(bfClass));
+      }
+      if (m.getReturnType().getName().endsWith("Builder")) {
          JsonObject builderReference = describeBuilder(m.getReturnType());
-         return new JsonObject().put("oneOf",
-               new JsonArray().add(builderReference).add(arrayOf(builderReference)));
-      } else {
+         options.add(builderReference);
+         options.add(arrayOf(builderReference));
+      }
+
+      if (options.isEmpty()) {
          return null;
+      } else if (options.size() == 1) {
+         return options.get(0);
+      } else {
+         return new JsonObject().put("oneOf", new JsonArray(options));
       }
    }
 
