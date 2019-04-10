@@ -2,6 +2,7 @@ package io.hyperfoil.core.handlers;
 
 import org.kohsuke.MetaInfServices;
 
+import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.http.Processor;
@@ -20,6 +21,21 @@ public class ArrayRecorder implements Processor<Request>, ResourceUtilizer {
    private final Access var;
    private final DataFormat format;
    private final int maxSize;
+
+   public static ArrayRecorder arrayVar(String varAndSize) {
+      int b1 = varAndSize.indexOf('[');
+      int b2 = varAndSize.indexOf(']');
+      if (b1 < 0 || b2 < 0 || b2 - b1 < 1) {
+         throw new BenchmarkDefinitionException("Array variable must have maximum size: use var[maxSize], e.g. 'foo[16]'");
+      }
+      int maxSize;
+      try {
+         maxSize = Integer.parseInt(varAndSize.substring(b1 + 1, b2));
+      } catch (NumberFormatException e) {
+         throw new BenchmarkDefinitionException("Cannot parse maximum size in '" + varAndSize + "'");
+      }
+      return new ArrayRecorder(varAndSize.substring(0, b1).trim(), DataFormat.STRING, maxSize);
+   }
 
    public ArrayRecorder(String var, DataFormat format, int maxSize) {
       this.var = SessionFactory.access(var);
