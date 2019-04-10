@@ -8,6 +8,7 @@ import java.nio.CharBuffer;
 import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CoderResult;
 import java.nio.charset.StandardCharsets;
+import java.util.BitSet;
 
 import io.netty.buffer.ByteBuf;
 
@@ -84,6 +85,47 @@ public class Util {
       }
    }
 
+   private static class URLEncoding {
+      private static final BitSet DONT_NEED_ENCODING = new BitSet();
+
+      static {
+         for (int i = 'a'; i <= 'z'; i++) {
+            DONT_NEED_ENCODING.set(i);
+         }
+         for (int i = 'A'; i <= 'Z'; i++) {
+            DONT_NEED_ENCODING.set(i);
+         }
+         for (int i = '0'; i <= '9'; i++) {
+            DONT_NEED_ENCODING.set(i);
+         }
+         DONT_NEED_ENCODING.set('-');
+         DONT_NEED_ENCODING.set('_');
+         DONT_NEED_ENCODING.set('.');
+         DONT_NEED_ENCODING.set('*');
+      }
+
+      private static final int[] HEX = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
+   }
+
+   public static void urlEncode(String string, ByteBuf buf) {
+      // TODO: more efficient implementation without allocation
+      byte[] bytes = string.getBytes(StandardCharsets.UTF_8);
+      for (byte b : bytes) {
+         if (URLEncoding.DONT_NEED_ENCODING.get(b)) {
+            buf.ensureWritable(1);
+            buf.writeByte(b);
+         } else if (b == ' ') {
+            buf.ensureWritable(1);
+            buf.writeByte('+');
+         } else {
+            buf.ensureWritable(3);
+            buf.writeByte('%');
+            buf.writeByte(URLEncoding.HEX[(b >> 4) & 0xF]);
+            buf.writeByte(URLEncoding.HEX[b & 0xF]);
+         }
+      }
+   }
+
    public static String prettyPrintData(double value) {
       double scaled;
       String suffix;
@@ -101,5 +143,28 @@ public class Util {
          suffix = "B ";
       }
       return String.format("%6.2f%s", scaled, suffix);
+   }
+
+   private static final int[] SIZE_TABLE = new int[] {
+         1_000_000_000, 100_000_000, 10_000_000, 1_000_000, 100_000, 10_000, 1000, 100, 10
+   };
+
+   public static void intAsText2byteBuf(int value, ByteBuf buf) {
+      if (value < 0) {
+         buf.writeByte('-');
+         value = -value;
+      }
+      int i = 0;
+      for (; i < SIZE_TABLE.length; ++i) {
+         if (value >= SIZE_TABLE[i]) break;
+      }
+      for (; i < SIZE_TABLE.length; ++i) {
+         int q = value / SIZE_TABLE[i];
+         assert q >= 0 && q <= 9;
+         buf.writeByte('0' + q);
+         value -= q * SIZE_TABLE[i];
+      }
+      assert value >= 0 && value <= 9;
+      buf.writeByte('0' + value);
    }
 }

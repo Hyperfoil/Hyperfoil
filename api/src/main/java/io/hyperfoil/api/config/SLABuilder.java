@@ -69,9 +69,9 @@ public class SLABuilder<P> {
       return new LimitsBuilder();
    }
 
-   private class LimitsBuilder extends PairBuilder.String {
+   private class LimitsBuilder extends PairBuilder.OfString {
       @Override
-      public void accept(java.lang.String percentileStr, java.lang.String responseTime) {
+      public void accept(String percentileStr, String responseTime) {
          double percentile = Double.parseDouble(percentileStr);
          if (percentile < 0 || percentile > 1) {
             throw new BenchmarkDefinitionException("Percentile must be between 0.0 and 1.0");

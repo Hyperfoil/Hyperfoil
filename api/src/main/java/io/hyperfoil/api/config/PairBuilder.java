@@ -5,10 +5,10 @@ import java.util.function.BiConsumer;
 public interface PairBuilder<V> extends BiConsumer<String, V> {
    Class<V> valueType();
 
-   abstract class String implements PairBuilder<java.lang.String> {
+   abstract class OfString implements PairBuilder<String> {
       @Override
-      public Class<java.lang.String> valueType() {
-         return java.lang.String.class;
+      public Class<String> valueType() {
+         return String.class;
       }
    }
 }

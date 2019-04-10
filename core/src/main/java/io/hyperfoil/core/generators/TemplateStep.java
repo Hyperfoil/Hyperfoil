@@ -43,7 +43,7 @@ public class TemplateStep implements Step, ResourceUtilizer {
       }
 
       public Builder pattern(String pattern) {
-         this.pattern = new Pattern(pattern);
+         this.pattern = new Pattern(pattern, false);
          return this;
       }
 

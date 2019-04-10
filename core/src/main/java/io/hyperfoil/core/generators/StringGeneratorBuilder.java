@@ -15,11 +15,13 @@ public class StringGeneratorBuilder<T> {
 
    private final T parent;
    private final Consumer<SerializableFunction<Session, String>> consumer;
+   private final boolean urlEncode;
    private boolean used;
 
-   public StringGeneratorBuilder(T parent, Consumer<SerializableFunction<Session, String>> consumer) {
+   public StringGeneratorBuilder(T parent, Consumer<SerializableFunction<Session, String>> consumer, boolean urlEncode) {
       this.parent = parent;
       this.consumer = consumer;
+      this.urlEncode = urlEncode;
    }
 
    private void ensureUnused() {
@@ -51,7 +53,7 @@ public class StringGeneratorBuilder<T> {
 
    public StringGeneratorBuilder<T> pattern(String pattern) {
       ensureUnused();
-      consumer.accept(new Pattern(pattern));
+      consumer.accept(new Pattern(pattern, urlEncode));
       return this;
    }
 
