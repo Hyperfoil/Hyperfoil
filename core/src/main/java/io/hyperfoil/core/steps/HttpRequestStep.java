@@ -22,6 +22,7 @@ import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.api.statistics.Statistics;
 import io.hyperfoil.core.generators.Pattern;
 import io.hyperfoil.core.generators.StringGeneratorBuilder;
+import io.hyperfoil.core.generators.StringGeneratorImplBuilder;
 import io.hyperfoil.core.http.CookieAppender;
 import io.hyperfoil.core.session.IntVar;
 import io.hyperfoil.core.session.ObjectVar;
@@ -165,8 +166,8 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
    public static class Builder extends BaseStepBuilder {
       private HttpMethod method;
-      private SerializableFunction<Session, String> baseUrl;
-      private SerializableFunction<Session, String> pathGenerator;
+      private StringGeneratorBuilder baseUrl;
+      private StringGeneratorBuilder pathGenerator;
       private BodyGeneratorBuilder bodyGenerator;
       private List<SerializableBiConsumer<Session, HttpRequestWriter>> headerAppenders = new ArrayList<>();
       private SerializableBiFunction<String, String, String> statisticsSelector;
@@ -189,7 +190,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
          return method(HttpMethod.GET).path(path);
       }
 
-      public StringGeneratorBuilder GET() {
+      public StringGeneratorImplBuilder GET() {
          return method(HttpMethod.GET).path();
       }
 
@@ -197,7 +198,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
          return method(HttpMethod.HEAD).path(path);
       }
 
-      public StringGeneratorBuilder HEAD() {
+      public StringGeneratorImplBuilder HEAD() {
          return method(HttpMethod.HEAD).path();
       }
 
@@ -205,7 +206,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
          return method(HttpMethod.POST).path(path);
       }
 
-      public StringGeneratorBuilder POST() {
+      public StringGeneratorImplBuilder POST() {
          return method(HttpMethod.POST).path();
       }
 
@@ -213,7 +214,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
          return method(HttpMethod.PUT).path(path);
       }
 
-      public StringGeneratorBuilder PUT() {
+      public StringGeneratorImplBuilder PUT() {
          return method(HttpMethod.PUT).path();
       }
 
@@ -221,7 +222,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
          return method(HttpMethod.DELETE).path(path);
       }
 
-      public StringGeneratorBuilder DELETE() {
+      public StringGeneratorImplBuilder DELETE() {
          return method(HttpMethod.DELETE).path();
       }
 
@@ -229,7 +230,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
          return method(HttpMethod.OPTIONS).path(path);
       }
 
-      public StringGeneratorBuilder OPTIONS() {
+      public StringGeneratorImplBuilder OPTIONS() {
          return method(HttpMethod.OPTIONS).path();
       }
 
@@ -237,7 +238,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
          return method(HttpMethod.PATCH).path(path);
       }
 
-      public StringGeneratorBuilder PATCH() {
+      public StringGeneratorImplBuilder PATCH() {
          return method(HttpMethod.PATCH).path();
       }
 
@@ -245,7 +246,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
          return method(HttpMethod.TRACE).path(path);
       }
 
-      public StringGeneratorBuilder TRACE() {
+      public StringGeneratorImplBuilder TRACE() {
          return method(HttpMethod.TRACE).path();
       }
 
@@ -253,7 +254,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
          return method(HttpMethod.CONNECT).path(path);
       }
 
-      public StringGeneratorBuilder CONNECT() {
+      public StringGeneratorImplBuilder CONNECT() {
          return method(HttpMethod.CONNECT).path();
       }
 
@@ -262,27 +263,39 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
       }
 
       public Builder baseUrl(SerializableFunction<Session, String> baseUrlGenerator) {
-         this.baseUrl = baseUrlGenerator;
-         return this;
+         return baseUrl(() -> baseUrlGenerator);
       }
 
-      public StringGeneratorBuilder<HttpRequestStep.Builder> baseUrl() {
-         return new StringGeneratorBuilder<>(this, this::baseUrl, false);
+      public StringGeneratorImplBuilder<Builder> baseUrl() {
+         StringGeneratorImplBuilder<Builder> builder = new StringGeneratorImplBuilder<>(this, false);
+         baseUrl(builder);
+         return builder;
+      }
+
+      public Builder baseUrl(StringGeneratorBuilder baseUrl) {
+         this.baseUrl = baseUrl;
+         return this;
       }
 
       public Builder path(String path) {
          return pathGenerator(s -> path);
       }
 
-      public StringGeneratorBuilder<HttpRequestStep.Builder> path() {
-         return new StringGeneratorBuilder<>(this, this::pathGenerator, false);
+      public StringGeneratorImplBuilder<Builder> path() {
+         StringGeneratorImplBuilder<Builder> builder = new StringGeneratorImplBuilder<>(this, false);
+         pathGenerator(builder);
+         return builder;
       }
 
       public Builder pathGenerator(SerializableFunction<Session, String> pathGenerator) {
+         return pathGenerator(() -> pathGenerator);
+      }
+
+      public Builder pathGenerator(StringGeneratorBuilder builder) {
          if (this.pathGenerator != null) {
             throw new BenchmarkDefinitionException("Path generator already set.");
          }
-         this.pathGenerator = pathGenerator;
+         this.pathGenerator = builder;
          return this;
       }
 
@@ -381,6 +394,8 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
          BenchmarkBuilder simulation = endStep().endSequence().endScenario().endPhase();
          String guessedBaseUrl = null;
          boolean checkBaseUrl = true;
+         SerializableFunction<Session, String> baseUrl = this.baseUrl != null ? this.baseUrl.build() : null;
+         SerializableFunction<Session, String> pathGenerator = this.pathGenerator != null ? this.pathGenerator.build() : null;
          try {
             guessedBaseUrl = baseUrl == null ? null : baseUrl.apply(null);
          } catch (Throwable e) {
@@ -394,7 +409,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
             if (baseUrl == null) {
                throw new BenchmarkDefinitionException(String.format("%s to <default route>/%s is invalid as we don't have a default route set.", method, guessedPath));
             } else {
-               throw new BenchmarkDefinitionException(String.format("%s to <default route>/%s is invalid - no HTTP configuration defined.", method, baseUrl, guessedPath));
+               throw new BenchmarkDefinitionException(String.format("%s to <default route>/%s is invalid - no HTTP configuration defined.", method, this.baseUrl, guessedPath));
             }
          }
          SerializableBiConsumer<Session, HttpRequestWriter>[] headerAppenders =

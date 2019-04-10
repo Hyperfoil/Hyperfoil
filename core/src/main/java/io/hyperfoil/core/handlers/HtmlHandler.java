@@ -20,7 +20,7 @@ import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.ResourceUtilizer;
-import io.hyperfoil.core.generators.StringGeneratorBuilder;
+import io.hyperfoil.core.generators.StringGeneratorImplBuilder;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.steps.AwaitIntStep;
 import io.hyperfoil.core.steps.AwaitVarStep;
@@ -472,8 +472,8 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
 
          // Constructor adds self into sequence
          HttpRequestStep.Builder requestBuilder = new HttpRequestStep.Builder(sequence).method(HttpMethod.GET);
-         new StringGeneratorBuilder<>(requestBuilder, requestBuilder::pathGenerator, false)
-               .var(downloadUrlVar() + "[.]"); // this sets the pathGenerator
+         requestBuilder.pathGenerator(
+               new StringGeneratorImplBuilder<>(requestBuilder, false).var(downloadUrlVar() + "[.]"));
          if (statisticsSelector != null) {
             requestBuilder.statistics(statisticsSelector);
          } else {
