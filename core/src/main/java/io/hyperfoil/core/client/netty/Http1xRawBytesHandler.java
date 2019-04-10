@@ -126,12 +126,12 @@ public class Http1xRawBytesHandler extends BaseRawBytesHandler {
                               break;
                            }
                         }
-                        status = readNumber(lineBuf, j);
+                        status = readDecNumber(lineBuf, j);
                         if (status >= 100 && status < 200 || status == 204 || status == 304) {
                            contentLength = 0;
                         }
                      } else if (matches(lineBuf, lineStartOffset, HttpHeaderNames.CONTENT_LENGTH)) {
-                        contentLength = readNumber(lineBuf, lineStartOffset + HttpHeaderNames.CONTENT_LENGTH.length() + 1);
+                        contentLength = readDecNumber(lineBuf, lineStartOffset + HttpHeaderNames.CONTENT_LENGTH.length() + 1);
                      } else if (matches(lineBuf, lineStartOffset, HttpHeaderNames.TRANSFER_ENCODING)) {
                         chunked = matches(lineBuf, lineStartOffset + HttpHeaderNames.TRANSFER_ENCODING.length() + 1, HttpHeaderValues.CHUNKED);
                      }
@@ -183,7 +183,7 @@ public class Http1xRawBytesHandler extends BaseRawBytesHandler {
                   lineBuf = lastLine;
                   lineStartOffset = 0;
                }
-               int partSize = readNumber(lineBuf, lineStartOffset);
+               int partSize = readHexNumber(lineBuf, lineStartOffset);
                if (partSize == 0) {
                   chunked = false;
                   expectTrailers = true;
@@ -268,7 +268,21 @@ public class Http1xRawBytesHandler extends BaseRawBytesHandler {
       return true;
    }
 
-   private int readNumber(ByteBuf buf, int index) {
+    private int readHexNumber(ByteBuf buf, int index) {
+        index = skipWhitespaces(buf, index);
+        int value = 0;
+        for (; index < buf.writerIndex(); ++index) {
+            byte b = buf.getByte(index);
+            if ( (b < '0' || b > '9') && (b < 'a' || b > 'f') ) {
+                return value;
+            }
+            value = value * 16 + (b > '9' ? (b - 'a') + 10 : (b - '0') );
+        }
+        // we expect that we've read the <CR><LF> and we should see them
+        throw new IllegalStateException();
+    }
+
+    private int readDecNumber(ByteBuf buf, int index) {
       index = skipWhitespaces(buf, index);
       int value = 0;
       for (; index < buf.writerIndex(); ++index) {
