@@ -74,7 +74,6 @@ public class JsonHandler extends JsonParser<Request>
       }
 
       public ByteStream wrap(ByteBuf data) {
-         assert actualStream.buffer == null;
          actualStream.buffer = data;
          return actualStream;
       }

@@ -147,7 +147,7 @@ public abstract class JsonParser<S> implements Serializable {
       int valueStartPart;
       int valueStartIndex;
       ByteStream[] parts = new ByteStream[MAX_PARTS];
-      int nextPart = 0;
+      int nextPart;
       ByteStream[] pool = new ByteStream[MAX_PARTS];
 
       protected Context(Function<Context, ByteStream> byteStreamSupplier) {
@@ -175,6 +175,7 @@ public abstract class JsonParser<S> implements Serializable {
          lastCharIndex = -1;
          valueStartPart = -1;
          valueStartIndex = -1;
+         nextPart = 0;
          for (int i = 0; i < parts.length; ++i) {
             if (parts[i] == null) break;
             parts[i].release();
@@ -293,40 +294,48 @@ public abstract class JsonParser<S> implements Serializable {
                   }
             }
          }
-         if (nextPart == parts.length) {
-            parts[0].release();
-            System.arraycopy(parts, 1, parts, 0, parts.length - 1);
-            --nextPart;
-            if (attribStartPart == 0 && attribStartIndex >= 0) {
-               attribStartPart = 0;
-               attribStartIndex = 0;
-            } else if (attribStartPart > 0) {
-               --attribStartPart;
+         if (attribStartIndex >= 0 || valueStartIndex >= 0 ) {
+            if (nextPart == parts.length) {
+               parts[0].release();
+               System.arraycopy(parts, 1, parts, 0, parts.length - 1);
+               --nextPart;
+               if (attribStartPart == 0 && attribStartIndex >= 0) {
+                  attribStartPart = 0;
+                  attribStartIndex = 0;
+               } else if (attribStartPart > 0) {
+                  --attribStartPart;
+               }
+               if (lastCharPart == 0 && lastCharIndex >= 0) {
+                  lastCharPart = 0;
+                  lastCharIndex = 0;
+               } else if (lastCharPart > 0) {
+                  --lastCharPart;
+               }
+               if (valueStartPart == 0 && valueStartIndex >= 0) {
+                  valueStartPart = 0;
+                  valueStartIndex = 0;
+               } else if (valueStartPart > 0) {
+                  --valueStartPart;
+               }
             }
-            if (lastCharPart == 0 && lastCharIndex >= 0) {
-               lastCharPart = 0;
-               lastCharIndex = 0;
-            } else if (lastCharPart > 0) {
-               --lastCharPart;
+            parts[nextPart] = data.retain();
+            if (attribStartPart < 0) {
+               attribStartPart = nextPart;
             }
-            if (valueStartPart == 0 && valueStartIndex >= 0) {
-               valueStartPart = 0;
-               valueStartIndex = 0;
-            } else if (valueStartPart > 0) {
-               --valueStartPart;
+            if (lastCharPart < 0) {
+               lastCharPart = nextPart;
             }
+            if (valueStartPart < 0) {
+               valueStartPart = nextPart;
+            }
+            ++nextPart;
+         } else {
+            for (int i = 0; i < parts.length && parts[i] != null; ++i) {
+               parts[i].release();
+               parts[i] = null;
+            }
+            nextPart = 0;
          }
-         parts[nextPart] = data.retain();
-         if (attribStartPart < 0) {
-            attribStartPart = nextPart;
-         }
-         if (lastCharPart < 0) {
-            lastCharPart = nextPart;
-         }
-         if (valueStartPart < 0) {
-            valueStartPart = nextPart;
-         }
-         ++nextPart;
       }
 
       private void onMatch(ByteStream data) {
@@ -343,20 +352,15 @@ public abstract class JsonParser<S> implements Serializable {
          if (selectorLevel == level && valueStartIndex >= 0) {
             // valueStartIndex is always before quotes here
             ByteStream buf = valueStartPart < 0 ? data : parts[valueStartPart];
-            LOOP: while (valueStartIndex < buf.writerIndex()) {
+            buf = tryAdvanceValueStart(data, buf);
+            LOOP: while (valueStartIndex < buf.writerIndex() || valueStartPart != -1) {
                switch (buf.getByte(valueStartIndex)) {
                   case ' ':
                   case '\n':
                   case '\r':
                   case '\t':
                      ++valueStartIndex;
-                     if (valueStartIndex >= buf.writerIndex() && valueStartPart >= 0) {
-                        valueStartPart++;
-                        if (valueStartPart >= parts.length || (buf = parts[valueStartPart]) == null) {
-                           buf = data;
-                           valueStartPart = -1;
-                        }
-                     }
+                     buf = tryAdvanceValueStart(data, buf);
                      break;
                   default:
                      break LOOP;
@@ -365,6 +369,11 @@ public abstract class JsonParser<S> implements Serializable {
             int end = data.readerIndex() - 1;
             int endPart = nextPart;
             buf = data;
+            if (end == 0) {
+               endPart--;
+               buf = parts[endPart];
+               end = buf.writerIndex();
+            }
             LOOP: while (end > valueStartIndex || valueStartPart >= 0 && endPart > valueStartPart) {
                switch (buf.getByte(end - 1)) {
                   case ' ':
@@ -407,7 +416,7 @@ public abstract class JsonParser<S> implements Serializable {
                }
             }
             while (valueStartPart >= 0 && valueStartPart != endPart) {
-               int valueEndIndex = endPart == valueStartPart ? end : parts[valueStartPart].writerIndex();
+               int valueEndIndex = parts[valueStartPart].writerIndex();
                fireMatch(this, source, parts[valueStartPart], valueStartIndex, valueEndIndex - valueStartIndex, false);
                incrementValueStartPart();
             }
@@ -415,6 +424,18 @@ public abstract class JsonParser<S> implements Serializable {
             valueStartIndex = -1;
             --selector;
          }
+      }
+
+      private ByteStream tryAdvanceValueStart(ByteStream data, ByteStream buf) {
+         if (valueStartIndex >= buf.writerIndex() && valueStartPart >= 0) {
+            valueStartPart++;
+            if (valueStartPart >= parts.length || (buf = parts[valueStartPart]) == null) {
+               buf = data;
+               valueStartPart = -1;
+            }
+            valueStartIndex = 0;
+         }
+         return buf;
       }
 
       private void incrementValueStartPart() {

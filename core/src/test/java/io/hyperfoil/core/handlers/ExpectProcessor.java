@@ -27,8 +27,12 @@ public class ExpectProcessor implements Processor<Request> {
       Invocation invocation = invocations.pollFirst();
       assertThat(invocation).isNotNull();
       if (invocation.data != null) assertThat(data).matches(invocation.data);
-      assertThat(offset).as("Invocation #%d", invoked).isEqualTo(invocation.offset);
-      assertThat(length).as("Invocation #%d", invoked).isEqualTo(invocation.length);
+      if (invocation.offset >= 0) {
+         assertThat(offset).as("Invocation #%d", invoked).isEqualTo(invocation.offset);
+      }
+      if (invocation.length >= 0) {
+         assertThat(length).as("Invocation #%d", invoked).isEqualTo(invocation.length);
+      }
       assertThat(isLastPart).as("Invocation #%d", invoked).isEqualTo(invocation.isLastPart);
       ++invoked;
    }
@@ -53,6 +57,9 @@ public class ExpectProcessor implements Processor<Request> {
       assertThat(beforeCalled).isEqualTo(1);
       assertThat(invocations).isEmpty();
       assertThat(afterCalled).isEqualTo(1);
+      beforeCalled = 0;
+      afterCalled = 0;
+      invoked = 0;
    }
 
    private class Invocation {
