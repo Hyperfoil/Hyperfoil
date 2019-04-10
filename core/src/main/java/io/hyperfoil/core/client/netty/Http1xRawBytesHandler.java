@@ -146,6 +146,7 @@ public class Http1xRawBytesHandler extends BaseRawBytesHandler {
             }
             if (!headersParsed) {
                copyLastLine(buf, lineStartOffset, buf.writerIndex());
+               passFullBuffer(ctx, buf);
             } else if (chunked) {
                // Here we're just after headers
                readChunks(ctx, buf, readerIndex, lineStartOffset);
