@@ -1,6 +1,7 @@
 #!/bin/bash
 DEBUG_MODE="${DEBUG:-false}"
 DEBUG_PORT="${DEBUG_PORT:-8000}"
+GREP="grep"
 while [ "$#" -gt 0 ]
 do
     case "$1" in
