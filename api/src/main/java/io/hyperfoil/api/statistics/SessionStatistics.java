@@ -8,17 +8,20 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.stream.Stream;
 
+import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.session.Session;
 
 /**
  * This instance holds common statistics shared between all {@link Session sessions} (in given phase) driven by the same executor.
  */
 public class SessionStatistics implements Iterable<Statistics> {
+   private Phase[] phases;
    private int[] stepIds;
    private Map<String, Statistics>[] maps;
    private int size;
 
    public SessionStatistics() {
+      phases = new Phase[4];
       stepIds = new int[4];
       maps = new Map[4];
    }
@@ -28,9 +31,9 @@ public class SessionStatistics implements Iterable<Statistics> {
       return new It();
    }
 
-   public Statistics getOrCreate(int stepId, String name, long startTime) {
+   public Statistics getOrCreate(Phase phase, int stepId, String name, long startTime) {
       for (int i = 0; i < size; ++i) {
-         if (stepIds[i] == stepId) {
+         if (stepIds[i] == stepId && phases[i] == phase) {
             Statistics s = maps[i].get(name);
             if (s == null) {
                s = new Statistics(startTime);
@@ -40,10 +43,12 @@ public class SessionStatistics implements Iterable<Statistics> {
          }
       }
       if (size == stepIds.length) {
+         phases = Arrays.copyOf(phases, size * 2);
          stepIds = Arrays.copyOf(stepIds, size * 2);
          maps = Arrays.copyOf(maps, size * 2);
       }
 
+      phases[size] = phase;
       stepIds[size] = stepId;
       Statistics s = new Statistics(startTime);
       HashMap<String, Statistics> map = new HashMap<>();
@@ -55,6 +60,10 @@ public class SessionStatistics implements Iterable<Statistics> {
 
    public int size() {
       return size;
+   }
+
+   public Phase phase(int index) {
+      return phases[index];
    }
 
    public int step(int index) {

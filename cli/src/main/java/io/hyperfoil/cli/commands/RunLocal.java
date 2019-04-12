@@ -21,15 +21,14 @@
 package io.hyperfoil.cli.commands;
 
 import io.hyperfoil.api.config.Benchmark;
+import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.statistics.CustomValue;
 import io.hyperfoil.api.statistics.LongValue;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.core.impl.LocalBenchmarkData;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
-import io.hyperfoil.core.impl.statistics.StatisticsCollector;
 import io.hyperfoil.core.parser.BenchmarkParser;
 import io.hyperfoil.core.parser.ParserException;
-import io.hyperfoil.core.steps.BaseStep;
 import io.hyperfoil.core.util.Util;
 
 import org.aesh.command.AeshCommandRuntimeBuilder;
@@ -83,15 +82,12 @@ public class RunLocal implements Command<CommandInvocation> {
             Benchmark benchmark = buildBenchmark(yaml.read(), commandInvocation);
 
             if(benchmark != null) {
-                LocalSimulationRunner runner = new LocalSimulationRunner(benchmark);
+                LocalSimulationRunner runner = new LocalSimulationRunner(benchmark, (phase, stepId, name, stats, countDown) -> printStats(phase, name, stats, commandInvocation), null);
                 commandInvocation.println("Running benchmark '" + benchmark.name() + "'");
                 commandInvocation.println("Using " + benchmark.threads() + " thread(s)");
                 commandInvocation.print("Target servers: ");
                 commandInvocation.println(String.join(", ", benchmark.http().values().stream().map(http -> http.baseUrl() + " (" + http.sharedConnections() + " connections)").collect(Collectors.toList())));
                 runner.run();
-                StatisticsCollector collector = new StatisticsCollector();
-                runner.visitStatistics(collector);
-                collector.visitStatistics((stepId, name, stats, countDown) -> printStats(benchmark, stepId, name, stats, commandInvocation), null);
             }
         }
         catch(FileNotFoundException e){
@@ -126,11 +122,12 @@ public class RunLocal implements Command<CommandInvocation> {
         return null;
     }
 
-    private void printStats(Benchmark benchmark, int stepId, String name, StatisticsSnapshot stats, CommandInvocation invocation) {
-        String phase = benchmark.steps()
-              .filter(BaseStep.class::isInstance).map(BaseStep.class::cast)
-              .filter(s -> s.id() == stepId).map(s -> s.sequence().phase().name()).findFirst().get();
-        invocation.println("Statistics for " + phase + "/" + name + ":");
+    private void printStats(Phase phase, String name, StatisticsSnapshot stats, CommandInvocation invocation) {
+        if (stats.requestCount == 0) {
+            return;
+        }
+
+        invocation.println("Statistics for " + phase.name() + "/" + name + ":");
 
         double durationSeconds = (stats.histogram.getEndTimeStamp() - stats.histogram.getStartTimeStamp()) / 1000d;
         invocation.print(stats.histogram.getTotalCount() + " requests in " + durationSeconds + "s");

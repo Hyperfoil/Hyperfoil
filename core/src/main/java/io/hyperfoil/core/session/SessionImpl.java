@@ -336,7 +336,7 @@ class SessionImpl implements Session, Callable<Void> {
 
    @Override
    public Statistics statistics(int stepId, String name) {
-      return statistics.getOrCreate(stepId, name, phase.absoluteStartTime());
+      return statistics.getOrCreate(phase.definition(), stepId, name, phase.absoluteStartTime());
    }
 
    @Override

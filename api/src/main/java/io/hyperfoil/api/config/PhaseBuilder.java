@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -35,10 +36,10 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
       parent.addPhase(name, this);
    }
 
-   public static Phase.Noop noop(SerializableSupplier<Benchmark> benchmark, String iterationName, List<String> startAfter, List<String> startAfterStrict, List<String> terminateAfterStrict) {
+   public static Phase.Noop noop(SerializableSupplier<Benchmark> benchmark, int id, String iterationName, List<String> startAfter, List<String> startAfterStrict, List<String> terminateAfterStrict) {
       FutureSupplier<Phase> ps = new FutureSupplier<>();
       Scenario scenario = new Scenario(new Sequence[0], new Sequence[0], new String[0], new String[0]);
-      Phase.Noop phase = new Phase.Noop(benchmark, iterationName, startAfter, startAfterStrict, terminateAfterStrict, scenario);
+      Phase.Noop phase = new Phase.Noop(benchmark, id, iterationName, startAfter, startAfterStrict, terminateAfterStrict, scenario);
       ps.set(phase);
       return phase;
    }
@@ -149,12 +150,13 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
       }
       double sumWeight = forks.stream().mapToDouble(f -> f.weight).sum();
       forks.forEach(f -> f.weight /= sumWeight);
+      AtomicInteger idCounter = new AtomicInteger(0);
 
       // create matrix of iteration|fork phases
       List<Phase> phases = IntStream.range(0, maxIterations)
             .mapToObj(iteration -> forks.stream().map(f -> {
                FutureSupplier<Phase> ps = new FutureSupplier<>();
-               Phase phase = buildPhase(benchmark, ps, iteration, f);
+               Phase phase = buildPhase(benchmark, ps, idCounter.getAndIncrement(), iteration, f);
                ps.set(phase);
                return phase;
             }))
@@ -165,22 +167,22 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
             IntStream.range(0, maxIterations).mapToObj(iteration -> {
                String iterationName = formatIteration(name, iteration);
                List<String> forks = this.forks.stream().map(f -> iterationName + "/" + f.name).collect(Collectors.toList());
-               return noop(benchmark, iterationName, forks, Collections.emptyList(), forks);
+               return noop(benchmark, idCounter.getAndIncrement(), iterationName, forks, Collections.emptyList(), forks);
             }).forEach(phases::add);
          }
          // Referencing phase with iterations with RelativeIteration.NONE means that it starts after all its iterations
          List<String> lastIteration = Collections.singletonList(formatIteration(name, maxIterations - 1));
-         phases.add(noop(benchmark, name, lastIteration, Collections.emptyList(), lastIteration));
+         phases.add(noop(benchmark, idCounter.getAndIncrement(), name, lastIteration, Collections.emptyList(), lastIteration));
       } else if (forks.size() > 1) {
          // add phase covering forks
          List<String> forks = this.forks.stream().map(f -> name + "/" + f.name).collect(Collectors.toList());
-         phases.add(noop(benchmark, name, forks, Collections.emptyList(), forks));
+         phases.add(noop(benchmark, idCounter.getAndIncrement(), name, forks, Collections.emptyList(), forks));
       }
       return phases;
    }
 
 
-   protected abstract Phase buildPhase(SerializableSupplier<Benchmark> benchmark, SerializableSupplier<Phase> ps, int iteration, PhaseForkBuilder f);
+   protected abstract Phase buildPhase(SerializableSupplier<Benchmark> benchmark, SerializableSupplier<Phase> ps, int phaseId, int iteration, PhaseForkBuilder f);
 
    int sliceValue(String property, int value, double ratio) {
       double sliced = value * ratio;
@@ -282,12 +284,12 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
       }
 
       @Override
-      public Phase.AtOnce buildPhase(SerializableSupplier<Benchmark> benchmark, SerializableSupplier<Phase> phase, int i, PhaseForkBuilder f) {
-         return new Phase.AtOnce(benchmark, iterationName(i, f.name), f.scenario.build(phase), iterationStartTime(i),
-               iterationReferences(startAfter, i, false), iterationReferences(startAfterStrict, i, true),
-               iterationReferences(terminateAfterStrict, i, false), duration, maxDuration,
-               (int) (maxUnfinishedSessions * f.weight / numAgents()), sharedResources(f),
-               sliceValue("users", users + usersIncrement * i, f.weight / numAgents()));
+      public Phase.AtOnce buildPhase(SerializableSupplier<Benchmark> benchmark, SerializableSupplier<Phase> phase, int id, int i, PhaseForkBuilder f) {
+         return new Phase.AtOnce(benchmark, id, iterationName(i, f.name), f.scenario.build(phase),
+               iterationStartTime(i), iterationReferences(startAfter, i, false),
+               iterationReferences(startAfterStrict, i, true), iterationReferences(terminateAfterStrict, i, false), duration,
+               maxDuration, (int) (maxUnfinishedSessions * f.weight / numAgents()),
+               sharedResources(f), sliceValue("users", users + usersIncrement * i, f.weight / numAgents()));
       }
    }
 
@@ -301,8 +303,8 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
       }
 
       @Override
-      public Phase.Always buildPhase(SerializableSupplier<Benchmark> benchmark, SerializableSupplier<Phase> phase, int i, PhaseForkBuilder f) {
-         return new Phase.Always(benchmark, iterationName(i, f.name), f.scenario.build(phase), iterationStartTime(i),
+      public Phase.Always buildPhase(SerializableSupplier<Benchmark> benchmark, SerializableSupplier<Phase> phase, int id, int i, PhaseForkBuilder f) {
+         return new Phase.Always(benchmark, id, iterationName(i, f.name), f.scenario.build(phase), iterationStartTime(i),
                iterationReferences(startAfter, i, false), iterationReferences(startAfterStrict, i, true),
                iterationReferences(terminateAfterStrict, i, false), duration, maxDuration,
                (int) (maxUnfinishedSessions * f.weight / numAgents()), sharedResources(f),
@@ -341,7 +343,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
       }
 
       @Override
-      public Phase.RampPerSec buildPhase(SerializableSupplier<Benchmark> benchmark, SerializableSupplier<Phase> phase, int i, PhaseForkBuilder f) {
+      public Phase.RampPerSec buildPhase(SerializableSupplier<Benchmark> benchmark, SerializableSupplier<Phase> phase, int id, int i, PhaseForkBuilder f) {
          int maxSessionsEstimate;
          if (this.maxSessionsEstimate > 0) {
              maxSessionsEstimate = sliceValue("maxSessionsEstimate", this.maxSessionsEstimate, f.weight / numAgents());
@@ -350,7 +352,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
             double maxTargetUsers = targetUsersPerSec + targetUsersPerSecIncrement * (maxIterations - 1);
             maxSessionsEstimate = (int) Math.ceil(Math.max(maxInitialUsers, maxTargetUsers) * f.weight / numAgents());
          }
-         return new Phase.RampPerSec(benchmark, iterationName(i, f.name), f.scenario.build(phase),
+         return new Phase.RampPerSec(benchmark, id, iterationName(i, f.name), f.scenario.build(phase),
                iterationStartTime(i), iterationReferences(startAfter, i, false),
                iterationReferences(startAfterStrict, i, true), iterationReferences(terminateAfterStrict, i, false),
                duration, maxDuration, (int) (maxUnfinishedSessions * f.weight / numAgents()),
@@ -406,14 +408,14 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
       }
 
       @Override
-      public Phase.ConstantPerSec buildPhase(SerializableSupplier<Benchmark> benchmark, SerializableSupplier<Phase> phase, int i, PhaseForkBuilder f) {
+      public Phase.ConstantPerSec buildPhase(SerializableSupplier<Benchmark> benchmark, SerializableSupplier<Phase> phase, int id, int i, PhaseForkBuilder f) {
          int maxSessionsEstimate;
          if (this.maxSessionsEstimate <= 0) {
             maxSessionsEstimate = (int) Math.ceil(f.weight / numAgents() * (usersPerSec + usersPerSecIncrement * (maxIterations - 1)));
          } else {
             maxSessionsEstimate = sliceValue("maxSessionsEstimate", this.maxSessionsEstimate, f.weight / numAgents());
          }
-         return new Phase.ConstantPerSec(benchmark, iterationName(i, f.name), f.scenario.build(phase), iterationStartTime(i),
+         return new Phase.ConstantPerSec(benchmark, id, iterationName(i, f.name), f.scenario.build(phase), iterationStartTime(i),
                iterationReferences(startAfter, i, false), iterationReferences(startAfterStrict, i, true),
                iterationReferences(terminateAfterStrict, i, false), duration, maxDuration,
                (int) (maxUnfinishedSessions * f.weight / numAgents()), sharedResources(f),
@@ -446,8 +448,8 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
       }
 
       @Override
-      protected Phase buildPhase(SerializableSupplier<Benchmark> benchmark, SerializableSupplier<Phase> phase, int i, PhaseForkBuilder f) {
-         return new Phase.Sequentially(benchmark, iterationName(i, f.name), f.scenario().build(phase), iterationStartTime(i),
+      protected Phase buildPhase(SerializableSupplier<Benchmark> benchmark, SerializableSupplier<Phase> phase, int id, int i, PhaseForkBuilder f) {
+         return new Phase.Sequentially(benchmark, id, iterationName(i, f.name), f.scenario().build(phase), iterationStartTime(i),
                iterationReferences(startAfter, i, false), iterationReferences(startAfterStrict, i, true),
                iterationReferences(terminateAfterStrict, i, false), duration, maxDuration,
                (int) (maxUnfinishedSessions * f.weight / numAgents()), sharedResources(f), repeats);

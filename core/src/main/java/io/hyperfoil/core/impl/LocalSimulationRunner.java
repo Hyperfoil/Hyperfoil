@@ -99,7 +99,7 @@ public class LocalSimulationRunner extends SimulationRunnerImpl {
    }
 
    private void phaseChanged(String phase, PhaseInstance.Status status, boolean success) {
-      if (status == PhaseInstance.Status.TERMINATED && statsConsumer != null) {
+      if (status == PhaseInstance.Status.TERMINATED) {
          publishStats(phase);
       }
       statusLock.lock();
@@ -112,10 +112,14 @@ public class LocalSimulationRunner extends SimulationRunnerImpl {
 
    private void publishStats(String phase) {
       Phase phaseDef = instances.get(phase).definition();
-      StatisticsCollector collector = new StatisticsCollector();
-      visitStatistics(phaseDef, collector);
-      collector.visitStatistics(statsConsumer, null);
-      visitSessionPoolStats(phaseDef, sessionPoolStatsConsumer);
+      if (statsConsumer != null) {
+         StatisticsCollector collector = new StatisticsCollector(benchmark);
+         visitStatistics(phaseDef, collector);
+         collector.visitStatistics(statsConsumer, null);
+      }
+      if (sessionPoolStatsConsumer != null) {
+         visitSessionPoolStats(phaseDef, sessionPoolStatsConsumer);
+      }
    }
 
    private PhaseInstance[] getAvailablePhases() {

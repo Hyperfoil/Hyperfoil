@@ -1,6 +1,7 @@
 package io.hyperfoil.maven;
 
 import io.hyperfoil.api.config.Benchmark;
+import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.core.impl.LocalBenchmarkData;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
@@ -108,17 +109,14 @@ public class RunMojo extends AbstractMojo {
         }
     }
 
-    private void printStats(int stepId, String statsName, StatisticsSnapshot snapshot, CountDown ignored) {
+    private void printStats(Phase phase, int stepId, String statsName, StatisticsSnapshot snapshot, CountDown ignored) {
         StatisticsSnapshot copy = snapshot.clone();
-        printStatsExecutor.submit(() -> printStats(stepId, statsName, copy));
+        printStatsExecutor.submit(() -> printStats(phase, stepId, statsName, copy));
     }
 
-    private void printStats(int stepId, String statsName, StatisticsSnapshot stats) {
-        String phase = benchmark.steps()
-              .filter(BaseStep.class::isInstance).map(BaseStep.class::cast)
-              .filter(s -> s.id() == stepId).map(s -> s.sequence().phase().name()).findFirst().get();
+    private void printStats(Phase phase, int stepId, String statsName, StatisticsSnapshot stats) {
         double durationSeconds = (stats.histogram.getEndTimeStamp() - stats.histogram.getStartTimeStamp()) / 1000d;
-        log.info("{}/{}: ", phase, statsName);
+        log.info("{}/{}: ", phase.name(), statsName);
         log.info("{} requests in {} s, ", stats.histogram.getTotalCount(), durationSeconds);
         log.info("                  Avg     Stdev       Max");
         log.info("Latency:    {} {} {}", Util.prettyPrintNanos((long) stats.histogram.getMean()),

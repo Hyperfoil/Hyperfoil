@@ -160,7 +160,7 @@ public class AgentVerticle extends AbstractVerticle {
         }
         runner = new SimulationRunnerImpl(benchmark);
         controlFeedConsumer = listenOnControl();
-        reportSender = new ReportSender(eb, address, runId);
+        reportSender = new ReportSender(benchmark, eb, address, runId);
         statisticsCountDown = new CountDown(1);
         sessionStatsSender = new SessionStatsSender(eb, address, runId);
 

@@ -45,15 +45,18 @@ public class StatisticsStore {
       this.percentiles = percentiles;
       this.slaProviders = benchmark.steps()
             .filter(SLA.Provider.class::isInstance).map(SLA.Provider.class::cast)
-            .collect(Collectors.toMap(SLA.Provider::id, Function.identity()));
+            .collect(Collectors.toMap(SLA.Provider::id, Function.identity(), (s1, s2) -> {
+               if (s1 != s2) throw new IllegalStateException();
+               return s1;
+            }));
    }
 
    public StatisticsStore(Benchmark benchmark, Consumer<SLA.Failure> failureHandler) {
       this(benchmark, failureHandler, PERCENTILES);
    }
 
-   public void record(String address, int stepId, String statisticsName, StatisticsSnapshot stats) {
-      Data data = this.data.get(stepId);
+   public void record(String address, int phaseId, int stepId, String statisticsName, StatisticsSnapshot stats) {
+      Data data = this.data.get((phaseId << 16) + stepId);
       if (data == null) {
          long collectionPeriod = benchmark.statisticsCollectionPeriod();
          SLA.Provider slaProvider = slaProviders.get(stepId);
@@ -63,8 +66,8 @@ public class StatisticsStore {
                   sla -> new Window((int) (sla.window() / collectionPeriod))));
          SLA[] total = slaProvider == null || slaProvider.sla() == null ? new SLA[0] : Stream.of(slaProvider.sla())
                .filter(sla -> sla.window() <= 0).toArray(SLA[]::new);
-         String phase = slaProvider.sequence().phase().name();
-         this.data.put(stepId, data = new Data(phase, stepId, statisticsName, rings, total));
+         String phase = benchmark.phases().stream().filter(p -> p.id() == phaseId).findFirst().get().name();
+         this.data.put((phaseId << 16) + stepId, data = new Data(phase, stepId, statisticsName, rings, total));
       }
       data.record(address, stats);
    }
@@ -169,7 +172,7 @@ public class StatisticsStore {
          }
       }
       for (Map.Entry<String, SessionPoolStats> entry : sessionPoolStats.entrySet()) {
-         try (PrintWriter writer = new PrintWriter(dir + File.separator + entry.getKey() + ".sessions.csv")) {
+         try (PrintWriter writer = new PrintWriter(dir + File.separator + sanitize(entry.getKey()) + ".sessions.csv")) {
             SessionPoolStats sps = entry.getValue();
             writer.println("Timestamp,Address,MinSessions,MaxSessions");
             String[] addresses = new String[sps.records.size()];

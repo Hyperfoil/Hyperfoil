@@ -32,7 +32,6 @@ import io.hyperfoil.core.handlers.ByteBufSizeRecorder;
 import io.hyperfoil.core.impl.LocalBenchmarkData;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
 import io.hyperfoil.core.impl.statistics.StatisticsCollector;
-import io.hyperfoil.core.steps.HttpRequestStep;
 import io.hyperfoil.core.util.Util;
 
 import org.HdrHistogram.HistogramIterationValue;
@@ -56,7 +55,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Stream;
 
 import static io.vertx.core.logging.LoggerFactory.LOGGER_DELEGATE_FACTORY_CLASS_NAME;
 
@@ -191,22 +189,15 @@ public class Wrk {
          commandInvocation.println("Running for " + duration + " test @ " + url);
          commandInvocation.println(threads + " threads and " + connections + " connections");
 
-         int testStepId = benchmark.phases().stream()
-               .filter(phase -> phase.name().equals("test"))
-               .flatMap(phase -> Stream.of(phase.scenario().sequences()))
-               .flatMap(sequence -> Stream.of(sequence.steps()))
-               .filter(HttpRequestStep.class::isInstance).map(HttpRequestStep.class::cast)
-               .mapToInt(HttpRequestStep::id).findFirst().getAsInt();
-
          if(executedInCli) {
             ((HyperfoilCommandInvocation) commandInvocation).context().setBenchmark(benchmark);
-            startRunnerInCliMode(runner, benchmark, testStepId, (HyperfoilCommandInvocation) commandInvocation);
+            startRunnerInCliMode(runner, benchmark, (HyperfoilCommandInvocation) commandInvocation);
          } else {
             runner.run();
-            StatisticsCollector collector = new StatisticsCollector();
+            StatisticsCollector collector = new StatisticsCollector(benchmark);
             runner.visitStatistics(collector);
-            collector.visitStatistics((stepId, name, stats, countDown) -> {
-               if (stepId == testStepId) {
+            collector.visitStatistics((phase, stepId, name, stats, countDown) -> {
+               if ("test".equals(phase.name())) {
                   printStats(stats, commandInvocation);
                }
             }, null);
@@ -216,14 +207,14 @@ public class Wrk {
       }
 
       private void startRunnerInCliMode(LocalSimulationRunner runner, Benchmark benchmark,
-                                        int testStepId, HyperfoilCommandInvocation invocation) {
+                                        HyperfoilCommandInvocation invocation) {
 
          CountDownLatch latch = new CountDownLatch(1);
          Thread thread  = new Thread(() -> {runner.run(); latch.countDown();});
          thread.start();
 
          long startTime = System.currentTimeMillis();
-         StatisticsCollector collector = new StatisticsCollector();
+         StatisticsCollector collector = new StatisticsCollector(benchmark);
          StatisticsSnapshot total = new StatisticsSnapshot();
          while(latch.getCount() > 0) {
 
@@ -232,8 +223,8 @@ public class Wrk {
                invocation.getShell().write(ANSI.CURSOR_START);
                invocation.getShell().write(ANSI.ERASE_WHOLE_LINE);
                runner.visitStatistics(collector);
-               collector.visitStatistics((stepId, name, stats, countDown) -> {
-                  if (stepId == testStepId) {
+               collector.visitStatistics((phase, stepId, name, stats, countDown) -> {
+                  if ("test".equals(phase.name())) {
                      double durationSeconds = (stats.histogram.getEndTimeStamp() - stats.histogram.getStartTimeStamp()) / 1000d;
                      invocation.print("Requests/sec: " + String.format("%.02f", stats.histogram.getTotalCount() / durationSeconds));
                      stats.addInto(total);
@@ -253,8 +244,8 @@ public class Wrk {
          invocation.context().setRunning(false);
          invocation.println(Config.getLineSeparator()+"benchmark finished");
          runner.visitStatistics(collector);
-         collector.visitStatistics((stepId, name, stats, countDown) -> {
-            if (stepId == testStepId) {
+         collector.visitStatistics((phase, stepId, name, stats, countDown) -> {
+            if ("test".equals(phase.name())) {
                stats.addInto(total);
             }
          }, null);

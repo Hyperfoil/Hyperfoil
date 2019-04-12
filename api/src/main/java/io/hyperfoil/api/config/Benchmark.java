@@ -121,4 +121,10 @@ public class Benchmark implements Serializable {
              .flatMap(phase -> Stream.of(phase.scenario().sequences()))
              .flatMap(sequence -> Stream.of(sequence.steps()));
     }
+
+    public Phase[] phasesById() {
+        Phase[] phases = new Phase[this.phases.size()];
+        this.phases.forEach(p -> phases[p.id()] = p);
+        return phases;
+    }
 }
