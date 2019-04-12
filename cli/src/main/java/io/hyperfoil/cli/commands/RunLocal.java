@@ -42,11 +42,9 @@ import org.aesh.command.option.Argument;
 import org.aesh.command.option.Option;
 import org.aesh.io.Resource;
 
-import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -101,13 +99,7 @@ public class RunLocal implements Command<CommandInvocation> {
             invocation.println("Could not find benchmark configuration");
 
         try {
-            ByteArrayOutputStream result = new ByteArrayOutputStream();
-            byte[] buffer = new byte[1024];
-            int length;
-            while ((length = inputStream.read(buffer)) != -1) {
-                result.write(buffer, 0, length);
-            }
-            String source = result.toString(StandardCharsets.UTF_8.name());
+            String source = Util.toString(inputStream);
             Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(source, new LocalBenchmarkData());
 
             if(benchmark == null)

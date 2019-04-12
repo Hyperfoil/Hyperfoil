@@ -44,8 +44,15 @@ class BenchmarkRefImpl implements Client.BenchmarkRef {
    @Override
    public Client.RunRef start() {
       return client.sync(
-            handler -> client.client.request(HttpMethod.GET, "/benchmark/" + encode(name)).send(handler),
-            response -> new RunRefImpl(client, response.getHeader(HttpHeaders.LOCATION.toString()))
+            handler -> client.client.request(HttpMethod.GET, "/benchmark/" + encode(name) + "/start").send(handler),
+            response -> {
+               RestClient.expectStatus(response, 202);
+               String location = response.getHeader(HttpHeaders.LOCATION.toString());
+               if (location == null) {
+                  throw new RestClientException("Server did not respond with run location!");
+               }
+               return new RunRefImpl(client, location);
+            }
       );
    }
 

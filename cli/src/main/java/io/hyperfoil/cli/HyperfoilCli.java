@@ -20,7 +20,10 @@
 
 package io.hyperfoil.cli;
 
+import io.hyperfoil.cli.commands.Connect;
+import io.hyperfoil.cli.commands.Run;
 import io.hyperfoil.cli.commands.RunLocal;
+import io.hyperfoil.cli.commands.Upload;
 import io.hyperfoil.cli.commands.Wrk;
 import io.hyperfoil.cli.context.HyperfoilCliContext;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
@@ -80,9 +83,12 @@ public class HyperfoilCli {
                        .readInputrc(true)
                        .commandRegistry(
                                AeshCommandRegistryBuilder.<HyperfoilCommandInvocation>builder()
+                                       .command(Connect.class)
                                        .command(ExitCommand.class)
-                                       .command(Wrk.WrkCommand.class)
                                        .command(RunLocal.class)
+                                       .command(Run.class)
+                                       .command(Upload.class)
+                                       .command(Wrk.WrkCommand.class)
                                        .create())
                        .commandInvocationProvider(new HyperfoilCommandInvocationProvider(new HyperfoilCliContext()))
                        .build();
@@ -102,13 +108,16 @@ public class HyperfoilCli {
 
         @Override
         public CommandResult execute(HyperfoilCommandInvocation invocation) {
-            if(force)
-                invocation.stop();
-            else if(invocation.context().running())
-                invocation.println("Benchmark "+invocation.context().benchmark().name()+
-                                           " is currently running, not possible to cleanly exit. To force an exit, use --force");
-            else
-                invocation.stop();
+            if (invocation.context().running() && !force) {
+               invocation.println("Benchmark " + invocation.context().benchmark().name() +
+                     " is currently running, not possible to cleanly exit. To force an exit, use --force");
+            } else {
+               invocation.stop();
+            }
+
+            if (invocation.context().client() != null) {
+               invocation.context().client().close();
+            }
             return CommandResult.SUCCESS;
         }
     }

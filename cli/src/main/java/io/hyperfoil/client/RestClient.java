@@ -1,5 +1,6 @@
 package io.hyperfoil.client;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
@@ -20,14 +21,29 @@ import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 
-public class RestClient implements Client {
+public class RestClient implements Client, Closeable {
    private final Vertx vertx = Vertx.vertx();
+   final WebClientOptions options;
    final WebClient client;
 
    public RestClient(String host, int port) {
       // Actually there's little point in using async client, but let's stay in Vert.x libs
-      WebClientOptions webClientOptions = new WebClientOptions().setDefaultHost(host).setDefaultPort(port);
-      client = WebClient.create(vertx, webClientOptions.setFollowRedirects(false));
+      options = new WebClientOptions().setDefaultHost(host).setDefaultPort(port);
+      client = WebClient.create(vertx, options.setFollowRedirects(false));
+   }
+
+   static void expectStatus(HttpResponse<Buffer> response, int statusCode) {
+      if (response.statusCode() != statusCode) {
+         throw new RestClientException("Server responded with unexpected code: " + response.statusCode() + ", " + response.statusMessage());
+      }
+   }
+
+   public String host() {
+      return options.getDefaultHost();
+   }
+
+   public int port() {
+      return options.getDefaultPort();
    }
 
    @Override
@@ -49,7 +65,10 @@ public class RestClient implements Client {
             handler -> client.request(HttpMethod.POST, "/benchmark")
                   .putHeader(HttpHeaders.CONTENT_TYPE.toString(), "application/java-serialized-object")
                   .sendBuffer(Buffer.buffer(bytes), handler),
-            response -> new BenchmarkRefImpl(this, benchmark.name())
+            response -> {
+               expectStatus(response, 204);
+               return new BenchmarkRefImpl(this, benchmark.name());
+            }
       );
    }
 
@@ -95,5 +114,15 @@ public class RestClient implements Client {
          });
       });
       return future.join();
+   }
+
+   @Override
+   public void close() {
+      client.close();
+      vertx.close();
+   }
+
+   public String toString() {
+      return options.getDefaultHost() + ":" + options.getDefaultPort();
    }
 }

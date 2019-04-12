@@ -207,6 +207,10 @@ class ControllerRestServer {
       }
 
       String acceptHeader = ctx.request().getHeader(HttpHeaders.ACCEPT);
+      if (acceptHeader == null) {
+         ctx.response().setStatusCode(400).setStatusMessage("Missing Accept header in the request.").end();
+         return;
+      }
       int semicolonIndex = acceptHeader.indexOf(';');
       if (semicolonIndex >= 0) {
          acceptHeader = acceptHeader.substring(0, semicolonIndex).trim();

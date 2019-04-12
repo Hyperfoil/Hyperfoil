@@ -21,14 +21,18 @@
 package io.hyperfoil.cli.context;
 
 import io.hyperfoil.api.config.Benchmark;
+import io.hyperfoil.client.Client;
+import io.hyperfoil.client.RestClient;
 
 /**
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
  */
 public class HyperfoilCliContext {
-
     private Benchmark benchmark;
     private boolean running;
+    private RestClient client;
+    private Client.BenchmarkRef serverBenchmark;
+    private Client.RunRef serverRun;
 
     public HyperfoilCliContext() {
     }
@@ -50,5 +54,29 @@ public class HyperfoilCliContext {
 
     public void setRunning(boolean running) {
         this.running = running;
+    }
+
+    public RestClient client() {
+        return client;
+    }
+
+    public void setClient(RestClient client) {
+        this.client = client;
+    }
+
+    public void setServerBenchmark(Client.BenchmarkRef ref) {
+        this.serverBenchmark = ref;
+    }
+
+    public Client.BenchmarkRef serverBenchmark() {
+        return serverBenchmark;
+    }
+
+    public void setServerRun(Client.RunRef ref) {
+        serverRun = ref;
+    }
+
+    public Client.RunRef serverRun() {
+        return serverRun;
     }
 }

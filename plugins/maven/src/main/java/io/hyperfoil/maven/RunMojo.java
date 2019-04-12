@@ -7,7 +7,6 @@ import io.hyperfoil.core.impl.LocalBenchmarkData;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
 import io.hyperfoil.core.parser.BenchmarkParser;
 import io.hyperfoil.core.parser.ParserException;
-import io.hyperfoil.core.steps.BaseStep;
 import io.hyperfoil.core.util.CountDown;
 import io.hyperfoil.core.util.Util;
 import io.vertx.core.logging.Logger;
@@ -90,13 +89,7 @@ public class RunMojo extends AbstractMojo {
             log.error("Could not find benchmark configuration");
 
         try {
-            ByteArrayOutputStream result = new ByteArrayOutputStream();
-            byte[] buffer = new byte[1024];
-            int length;
-            while ((length = inputStream.read(buffer)) != -1) {
-                result.write(buffer, 0, length);
-            }
-            String source = result.toString(StandardCharsets.UTF_8.name());
+            String source = Util.toString(inputStream);
             Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(source, new LocalBenchmarkData());
 
             if (benchmark == null)
