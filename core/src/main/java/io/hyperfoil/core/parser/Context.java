@@ -119,6 +119,10 @@ class Context {
       }
       Event event = next();
       if (event instanceof SequenceStartEvent) {
+         String anchor = ((SequenceStartEvent) event).getAnchor();
+         if (anchor != null) {
+            setAnchor(event, anchor, target);
+         }
          while (hasNext()) {
             Event itemEvent = peek();
             if (itemEvent instanceof SequenceEndEvent) {

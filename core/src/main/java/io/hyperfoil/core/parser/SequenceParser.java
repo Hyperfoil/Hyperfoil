@@ -53,10 +53,6 @@ class SequenceParser implements Parser<ScenarioBuilder> {
     static void parseSequence(Context ctx, SequenceBuilder sequenceBuilder) throws ParserException {
         Event event = ctx.peek();
         if (event instanceof SequenceStartEvent) {
-            String anchor = ((SequenceStartEvent) event).getAnchor();
-            if (anchor != null) {
-                ctx.setAnchor(event, anchor, sequenceBuilder);
-            }
             ctx.parseList(sequenceBuilder, StepParser.instance());
         } else if (event instanceof ScalarEvent) {
             String value = ((ScalarEvent) event).getValue();
