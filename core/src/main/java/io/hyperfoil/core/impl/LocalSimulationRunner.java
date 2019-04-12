@@ -90,6 +90,9 @@ public class LocalSimulationRunner extends SimulationRunnerImpl {
             try {
                statusCondition.await(delay, TimeUnit.MILLISECONDS);
             } catch (InterruptedException e) {
+               for (PhaseInstance phase : instances.values()) {
+                  terminatePhase(phase.definition().name());
+               }
                Thread.currentThread().interrupt();
             } finally {
                statusLock.unlock();
