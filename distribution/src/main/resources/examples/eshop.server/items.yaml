@@ -1,0 +1,11 @@
+request:
+  method: GET
+  path: /items
+response:
+  statusCode: 200
+  body: >
+    [
+      { "id" : 418, "product" : "Teapots", "units" : 123 },
+      { "id" : 420, "product" : "Various herbs", "units" : 321  },
+      { "id" : 450, "product" : "Magazines", "units": 456 }
+    ]
