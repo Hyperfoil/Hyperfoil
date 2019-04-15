@@ -11,6 +11,7 @@ import org.aesh.io.Resource;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.cli.context.HyperfoilCliContext;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
+import io.hyperfoil.client.RestClientException;
 import io.hyperfoil.core.impl.LocalBenchmarkData;
 import io.hyperfoil.core.parser.BenchmarkParser;
 import io.hyperfoil.core.parser.ParserException;
@@ -39,7 +40,7 @@ public class Upload extends ServerCommand {
          ctx.setServerBenchmark(ctx.client().register(benchmark));
          invocation.println("... done.");
          return CommandResult.SUCCESS;
-      } catch (Exception e) {
+      } catch (RestClientException e) {
          throw new CommandException("Failed to upload the benchmark.", e);
       }
    }

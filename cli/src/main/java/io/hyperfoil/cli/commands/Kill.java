@@ -6,6 +6,7 @@ import org.aesh.command.CommandResult;
 
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.client.Client;
+import io.hyperfoil.client.RestClientException;
 
 @CommandDefinition(name = "kill", description = "Terminate run.")
 public class Kill extends BaseRunIdCommand {
@@ -36,7 +37,7 @@ public class Kill extends BaseRunIdCommand {
       }
       try {
          runRef.kill();
-      } catch (Exception e) {
+      } catch (RestClientException e) {
          throw new CommandException("Failed to kill run " + run.id, e);
       }
       invocation.println("Killed.");

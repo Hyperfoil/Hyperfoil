@@ -10,6 +10,7 @@ import org.aesh.command.option.Option;
 import io.hyperfoil.cli.Table;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.client.Client;
+import io.hyperfoil.client.RestClientException;
 
 @CommandDefinition(name = "status", description = "Prints information about executing or completed run.")
 public class Status extends BaseRunIdCommand {
@@ -32,7 +33,7 @@ public class Status extends BaseRunIdCommand {
       Client.Run run;
       try {
          run = runRef.get();
-      } catch (Exception e) {
+      } catch (RestClientException e) {
          throw new CommandException("Cannot fetch status for run " + runRef.id(), e);
       }
       invocation.println("Run " + run.id + ", benchmark " + run.benchmark);
@@ -62,7 +63,7 @@ public class Status extends BaseRunIdCommand {
          Thread.sleep(1000);
          try {
             run = runRef.get();
-         } catch (Exception e) {
+         } catch (RestClientException e) {
             throw new CommandException("Cannot fetch status for run " + runRef.id(), e);
          }
          clearLines(invocation, 3 + (int) r.phases.stream().filter(p -> showPhase(r, p)).count());

@@ -8,6 +8,7 @@ import org.aesh.command.completer.OptionCompleter;
 import io.hyperfoil.cli.context.HyperfoilCliContext;
 import io.hyperfoil.cli.context.HyperfoilCompleterData;
 import io.hyperfoil.client.RestClient;
+import io.hyperfoil.client.RestClientException;
 
 public class ServerOptionCompleter implements OptionCompleter<HyperfoilCompleterData> {
    private final Function<RestClient, Stream<String>> provider;
@@ -25,7 +26,7 @@ public class ServerOptionCompleter implements OptionCompleter<HyperfoilCompleter
       Stream<String> benchmarks;
       try {
          benchmarks = provider.apply(context.client());
-      } catch (Exception e) {
+      } catch (RestClientException e) {
          return;
       }
       String prefix = completerInvocation.getGivenCompleteValue();

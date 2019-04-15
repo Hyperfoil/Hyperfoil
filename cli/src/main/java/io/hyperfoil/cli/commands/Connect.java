@@ -12,6 +12,7 @@ import io.hyperfoil.cli.context.HyperfoilCliContext;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.client.Client;
 import io.hyperfoil.client.RestClient;
+import io.hyperfoil.client.RestClientException;
 
 @CommandDefinition(name = "connect", description = "Connects CLI to Hyperfoil Controller server")
 public class Connect implements Command<HyperfoilCommandInvocation> {
@@ -41,7 +42,7 @@ public class Connect implements Command<HyperfoilCommandInvocation> {
             commandInvocation.println("* " + agent.name + "[" + agent.status + "]");
          }
          return CommandResult.SUCCESS;
-      } catch (Exception e) {
+      } catch (RestClientException e) {
          ctx.client().close();
          ctx.setClient(null);
          throw new CommandException("Failed connecting to " + host + ":" + port, e);

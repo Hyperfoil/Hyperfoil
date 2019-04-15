@@ -7,6 +7,7 @@ import org.aesh.command.option.Option;
 
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.client.Client;
+import io.hyperfoil.client.RestClientException;
 
 @CommandDefinition(name = "stats", description = "Show run statistics")
 public class Stats extends BaseRunIdCommand {
@@ -22,7 +23,7 @@ public class Stats extends BaseRunIdCommand {
          String stats;
          try {
             stats = total || terminated ? runRef.statsTotal() : runRef.statsRecent();
-         } catch (Exception e) {
+         } catch (RestClientException e) {
             throw new CommandException("Cannot fetch stats for run " + runRef.id(), e);
          }
          int lines = numLines(stats);
@@ -46,7 +47,7 @@ public class Stats extends BaseRunIdCommand {
                if (runRef.get().terminated != null) {
                   terminated = true;
                }
-            } catch (Exception e) {
+            } catch (RestClientException e) {
                return CommandResult.FAILURE;
             }
             invocation.println("Press Ctr+C to stop watching...");
