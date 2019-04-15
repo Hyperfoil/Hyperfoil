@@ -1,4 +1,4 @@
-package io.hyperfoil.clustering.util;
+package io.hyperfoil.clustering.messages;
 
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 

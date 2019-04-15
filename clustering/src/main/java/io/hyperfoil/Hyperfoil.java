@@ -3,7 +3,7 @@ package io.hyperfoil;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
-import io.hyperfoil.clustering.AgentControllerVerticle;
+import io.hyperfoil.clustering.ControllerVerticle;
 import io.hyperfoil.clustering.AgentVerticle;
 import io.hyperfoil.clustering.Codecs;
 import io.vertx.core.DeploymentOptions;
@@ -58,7 +58,7 @@ class Hyperfoil {
 
    public static class Controller extends Hyperfoil {
       public static void main(String[] args) {
-         clusteredVertx(vertx -> deploy(vertx, AgentControllerVerticle.class));
+         clusteredVertx(vertx -> deploy(vertx, ControllerVerticle.class));
       }
    }
 
@@ -68,7 +68,7 @@ class Hyperfoil {
          log.info("Starting non-clustered Vert.x with controller and single agent...");
          Vertx vertx = Vertx.vertx();
          Codecs.register(vertx);
-         deploy(vertx, AgentControllerVerticle.class);
+         deploy(vertx, ControllerVerticle.class);
          deploy(vertx, AgentVerticle.class);
       }
    }

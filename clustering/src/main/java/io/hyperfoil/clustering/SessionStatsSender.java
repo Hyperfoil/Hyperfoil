@@ -3,7 +3,7 @@ package io.hyperfoil.clustering;
 import java.util.HashMap;
 import java.util.Map;
 
-import io.hyperfoil.clustering.util.SessionStatsMessage;
+import io.hyperfoil.clustering.messages.SessionStatsMessage;
 import io.hyperfoil.core.impl.SessionStatsConsumer;
 import io.vertx.core.eventbus.EventBus;
 

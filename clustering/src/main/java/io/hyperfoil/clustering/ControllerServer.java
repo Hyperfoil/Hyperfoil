@@ -43,8 +43,8 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 
-class ControllerRestServer {
-   private static final Logger log = LoggerFactory.getLogger(ControllerRestServer.class);
+class ControllerServer {
+   private static final Logger log = LoggerFactory.getLogger(ControllerServer.class);
    private static final String MIME_TYPE_SERIALIZED = "application/java-serialized-object";
    private static final String MIME_TYPE_MULTIPART = "multipart/form-data";
    private static final Set<String> MIME_TYPE_YAML = new HashSet<>(
@@ -54,11 +54,11 @@ class ControllerRestServer {
    private static final int CONTROLLER_PORT = Integer.parseInt(System.getProperty(Properties.CONTROLLER_PORT, "8090"));
    private static final String BASE_URL = "http://" + CONTROLLER_HOST + ":" + CONTROLLER_PORT;
 
-   private final AgentControllerVerticle controller;
+   private final ControllerVerticle controller;
    private final HttpServer httpServer;
    private final Router router;
 
-   ControllerRestServer(AgentControllerVerticle controller) {
+   ControllerServer(ControllerVerticle controller) {
       this.controller = controller;
       router = Router.router(controller.getVertx());
 

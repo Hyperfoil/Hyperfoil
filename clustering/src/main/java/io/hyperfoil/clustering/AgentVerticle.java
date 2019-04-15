@@ -5,12 +5,12 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 
 import io.hyperfoil.api.config.Benchmark;
-import io.hyperfoil.clustering.util.AgentControlMessage;
-import io.hyperfoil.clustering.util.AgentHello;
+import io.hyperfoil.clustering.messages.AgentControlMessage;
+import io.hyperfoil.clustering.messages.AgentHello;
 import io.hyperfoil.core.util.CountDown;
 import io.hyperfoil.core.impl.SimulationRunnerImpl;
-import io.hyperfoil.clustering.util.PhaseChangeMessage;
-import io.hyperfoil.clustering.util.PhaseControlMessage;
+import io.hyperfoil.clustering.messages.PhaseChangeMessage;
+import io.hyperfoil.clustering.messages.PhaseControlMessage;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;

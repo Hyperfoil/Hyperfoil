@@ -4,15 +4,15 @@ import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.Host;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.session.PhaseInstance;
-import io.hyperfoil.clustering.util.AgentControlMessage;
-import io.hyperfoil.clustering.util.AgentHello;
-import io.hyperfoil.clustering.util.SessionStatsMessage;
-import io.hyperfoil.clustering.util.StatsMessage;
+import io.hyperfoil.clustering.messages.AgentControlMessage;
+import io.hyperfoil.clustering.messages.AgentHello;
+import io.hyperfoil.clustering.messages.SessionStatsMessage;
+import io.hyperfoil.clustering.messages.StatsMessage;
 import io.hyperfoil.core.impl.statistics.StatisticsStore;
 import io.hyperfoil.clustering.util.PersistenceUtil;
-import io.hyperfoil.clustering.util.PhaseChangeMessage;
-import io.hyperfoil.clustering.util.PhaseControlMessage;
-import io.hyperfoil.clustering.util.ReportMessage;
+import io.hyperfoil.clustering.messages.PhaseChangeMessage;
+import io.hyperfoil.clustering.messages.PhaseControlMessage;
+import io.hyperfoil.clustering.messages.ReportMessage;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
@@ -41,14 +41,14 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 
-public class AgentControllerVerticle extends AbstractVerticle {
-    private static final Logger log = LoggerFactory.getLogger(AgentControllerVerticle.class);
+public class ControllerVerticle extends AbstractVerticle {
+    private static final Logger log = LoggerFactory.getLogger(ControllerVerticle.class);
     private static final Path ROOT_DIR = getConfiguredPath(Properties.ROOT_DIR, Paths.get(System.getProperty("java.io.tmpdir"), "hyperfoil"));
     private static final Path RUN_DIR = getConfiguredPath(Properties.RUN_DIR, ROOT_DIR.resolve("run"));
     private static final Path BENCHMARK_DIR = getConfiguredPath(Properties.BENCHMARK_DIR, ROOT_DIR.resolve("benchmark"));
 
     private EventBus eb;
-    private ControllerRestServer server;
+    private ControllerServer server;
     private AtomicInteger runIds = new AtomicInteger();
     private Map<String, Benchmark> benchmarks = new HashMap<>();
     private long timerId = -1;
@@ -71,7 +71,7 @@ public class AgentControllerVerticle extends AbstractVerticle {
     @Override
     public void start(Future<Void> future) {
         log.info("Starting in directory {}...", RUN_DIR);
-        server = new ControllerRestServer(this);
+        server = new ControllerServer(this);
         vertx.exceptionHandler(throwable -> log.error("Uncaught error: ", throwable));
         if (Files.exists(RUN_DIR)) {
             try {

@@ -18,7 +18,7 @@
  * limitations under the License.
  */
 
-package io.hyperfoil.clustering.util;
+package io.hyperfoil.clustering.messages;
 
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.eventbus.MessageCodec;

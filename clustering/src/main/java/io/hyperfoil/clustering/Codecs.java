@@ -2,13 +2,13 @@ package io.hyperfoil.clustering;
 
 import java.util.ArrayList;
 
-import io.hyperfoil.clustering.util.AgentControlMessage;
-import io.hyperfoil.clustering.util.AgentHello;
-import io.hyperfoil.clustering.util.ObjectCodec;
-import io.hyperfoil.clustering.util.PhaseChangeMessage;
-import io.hyperfoil.clustering.util.PhaseControlMessage;
-import io.hyperfoil.clustering.util.ReportMessage;
-import io.hyperfoil.clustering.util.SessionStatsMessage;
+import io.hyperfoil.clustering.messages.AgentControlMessage;
+import io.hyperfoil.clustering.messages.AgentHello;
+import io.hyperfoil.clustering.messages.ObjectCodec;
+import io.hyperfoil.clustering.messages.PhaseChangeMessage;
+import io.hyperfoil.clustering.messages.PhaseControlMessage;
+import io.hyperfoil.clustering.messages.ReportMessage;
+import io.hyperfoil.clustering.messages.SessionStatsMessage;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
 

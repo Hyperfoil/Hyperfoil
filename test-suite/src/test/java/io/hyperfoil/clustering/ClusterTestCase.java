@@ -148,7 +148,7 @@ public class ClusterTestCase extends BaseClusteredTest {
     }
 
     private void initiateController(VertxOptions opts, JsonObject config, TestContext ctx, Async initAsync) {
-        initiateClustered(opts, AgentControllerVerticle.class, new DeploymentOptions().setConfig(config).setWorker(false), ctx, initAsync);
+        initiateClustered(opts, ControllerVerticle.class, new DeploymentOptions().setConfig(config).setWorker(false), ctx, initAsync);
     }
 
     private void initiateRunner(VertxOptions opts, JsonObject config, TestContext ctx, Async initAsync) {
