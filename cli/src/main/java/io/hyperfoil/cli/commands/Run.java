@@ -1,20 +1,24 @@
 package io.hyperfoil.cli.commands;
 
 import java.util.Collection;
+import java.util.stream.Stream;
 
 import org.aesh.command.CommandDefinition;
 import org.aesh.command.CommandException;
 import org.aesh.command.CommandResult;
+import org.aesh.command.completer.OptionCompleter;
 import org.aesh.command.option.Argument;
 
+import io.hyperfoil.cli.context.HyperfoilCliContext;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
+import io.hyperfoil.cli.context.HyperfoilCompleterData;
 import io.hyperfoil.client.Client;
 
 @CommandDefinition(name = "run", description = "Starts benchmark on Hyperfoil Controller server")
 public class Run extends ServerCommand {
    // TODO: add completer
-   @Argument(description = "Name of the benchmark to be run.")
-   String benchmark;
+   @Argument(description = "Name of the benchmark to be run.", completer = BenchmarkCompleter.class)
+   private String benchmark;
 
    @Override
    public CommandResult execute(HyperfoilCommandInvocation invocation) throws CommandException, InterruptedException {
@@ -49,6 +53,27 @@ public class Run extends ServerCommand {
          invocation.println("Failed to start benchmark " + benchmarkRef.name());
          e.printStackTrace();
          return CommandResult.FAILURE;
+      }
+   }
+
+   public static class BenchmarkCompleter implements OptionCompleter<HyperfoilCompleterData> {
+      @Override
+      public void complete(HyperfoilCompleterData completerInvocation) {
+         HyperfoilCliContext context = completerInvocation.getContext();
+         if (context.client() == null) {
+            return;
+         }
+         Stream<String> benchmarks;
+         try {
+            benchmarks = context.client().benchmarks().stream();
+         } catch (Exception e) {
+            return;
+         }
+         String prefix = completerInvocation.getGivenCompleteValue();
+         if (prefix != null) {
+            benchmarks = benchmarks.filter(b -> b.startsWith(prefix));
+         }
+         benchmarks.forEach(completerInvocation::addCompleterValue);
       }
    }
 }

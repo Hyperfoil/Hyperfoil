@@ -28,6 +28,8 @@ import io.hyperfoil.cli.commands.Wrk;
 import io.hyperfoil.cli.context.HyperfoilCliContext;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocationProvider;
+import io.hyperfoil.cli.context.HyperfoilCompleterData;
+
 import org.aesh.AeshConsoleRunner;
 import org.aesh.command.Command;
 import org.aesh.command.CommandDefinition;
@@ -71,7 +73,8 @@ public class HyperfoilCli {
        //set logger impl
        System.setProperty(LOGGER_DELEGATE_FACTORY_CLASS_NAME, "io.vertx.core.logging.Log4j2LogDelegateFactory");
 
-       Settings<HyperfoilCommandInvocation, ConverterInvocation, CompleterInvocation, ValidatorInvocation,
+      HyperfoilCliContext context = new HyperfoilCliContext();
+      Settings<HyperfoilCommandInvocation, ConverterInvocation, CompleterInvocation, ValidatorInvocation,
                        OptionActivator, CommandActivator> settings =
                SettingsBuilder.<HyperfoilCommandInvocation, ConverterInvocation, CompleterInvocation,
                                        ValidatorInvocation, OptionActivator, CommandActivator>builder()
@@ -90,7 +93,8 @@ public class HyperfoilCli {
                                        .command(Upload.class)
                                        .command(Wrk.WrkCommand.class)
                                        .create())
-                       .commandInvocationProvider(new HyperfoilCommandInvocationProvider(new HyperfoilCliContext()))
+                       .commandInvocationProvider(new HyperfoilCommandInvocationProvider(context))
+                       .completerInvocationProvider(completerInvocation -> new HyperfoilCompleterData(completerInvocation, context))
                        .build();
 
        AeshConsoleRunner runner = AeshConsoleRunner.builder().settings(settings);
