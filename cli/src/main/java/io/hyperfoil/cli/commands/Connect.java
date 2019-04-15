@@ -42,11 +42,9 @@ public class Connect implements Command<HyperfoilCommandInvocation> {
          }
          return CommandResult.SUCCESS;
       } catch (Exception e) {
-         commandInvocation.println("Failed connecting to " + ctx.client());
-         e.printStackTrace();
          ctx.client().close();
          ctx.setClient(null);
-         return CommandResult.FAILURE;
+         throw new CommandException("Failed connecting to " + ctx.client(), e);
       }
    }
 }

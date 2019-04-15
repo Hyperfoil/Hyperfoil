@@ -30,30 +30,27 @@ class BenchmarkRefImpl implements Client.BenchmarkRef {
       return client.sync(
             handler -> client.client.request(HttpMethod.GET, "/benchmark/" + encode(name))
                .putHeader(HttpHeaders.ACCEPT.toString(), "application/java-serialized-object")
-               .send(handler),
+               .send(handler), 200,
             response -> {
                try {
                   return Util.deserialize(response.bodyAsBuffer().getBytes());
                } catch (IOException | ClassNotFoundException e) {
                   throw new CompletionException(e);
                }
-            }
-      );
+            });
    }
 
    @Override
    public Client.RunRef start() {
       return client.sync(
-            handler -> client.client.request(HttpMethod.GET, "/benchmark/" + encode(name) + "/start").send(handler),
+            handler -> client.client.request(HttpMethod.GET, "/benchmark/" + encode(name) + "/start").send(handler), 202,
             response -> {
-               RestClient.expectStatus(response, 202);
                String location = response.getHeader(HttpHeaders.LOCATION.toString());
                if (location == null) {
                   throw new RestClientException("Server did not respond with run location!");
                }
                return new RunRefImpl(client, location);
-            }
-      );
+            });
    }
 
    private String encode(String name) {

@@ -21,8 +21,11 @@
 package io.hyperfoil.cli;
 
 import io.hyperfoil.cli.commands.Connect;
+import io.hyperfoil.cli.commands.Kill;
 import io.hyperfoil.cli.commands.Run;
 import io.hyperfoil.cli.commands.RunLocal;
+import io.hyperfoil.cli.commands.Stats;
+import io.hyperfoil.cli.commands.Status;
 import io.hyperfoil.cli.commands.Upload;
 import io.hyperfoil.cli.commands.Wrk;
 import io.hyperfoil.cli.context.HyperfoilCliContext;
@@ -88,8 +91,11 @@ public class HyperfoilCli {
                                AeshCommandRegistryBuilder.<HyperfoilCommandInvocation>builder()
                                        .command(Connect.class)
                                        .command(ExitCommand.class)
+                                       .command(Kill.class)
                                        .command(RunLocal.class)
                                        .command(Run.class)
+                                       .command(Stats.class)
+                                       .command(Status.class)
                                        .command(Upload.class)
                                        .command(Wrk.WrkCommand.class)
                                        .create())

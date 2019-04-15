@@ -23,21 +23,16 @@ public class Upload extends ServerCommand {
    Resource benchmarkResource;
 
    @Override
-   public CommandResult execute(HyperfoilCommandInvocation invocation) throws CommandException, InterruptedException {
-      if (!ensureConnection(invocation)) {
-         return CommandResult.FAILURE;
-      }
+   public CommandResult execute(HyperfoilCommandInvocation invocation) throws CommandException {
+      ensureConnection(invocation);
       HyperfoilCliContext ctx = invocation.context();
       Benchmark benchmark;
       try {
          benchmark = BenchmarkParser.instance().buildBenchmark(Util.toString(benchmarkResource.read()), new LocalBenchmarkData());
       } catch (ParserException e) {
-         invocation.println("Failed to parse the benchmark.");
-         e.printStackTrace();
-         return CommandResult.FAILURE;
+         throw new CommandException("Failed to parse the benchmark.", e);
       } catch (IOException e) {
-         invocation.println("Failed to load the benchmark.");
-         return CommandResult.FAILURE;
+         throw new CommandException("Failed to load the benchmark.", e);
       }
       invocation.println("Loaded benchmark " + benchmark.name() + ", uploading...");
       try {
@@ -45,9 +40,7 @@ public class Upload extends ServerCommand {
          invocation.println("... done.");
          return CommandResult.SUCCESS;
       } catch (Exception e) {
-         invocation.println("Failed to upload the benchmark.");
-         e.printStackTrace();
-         return CommandResult.FAILURE;
+         throw new CommandException("Failed to upload the benchmark.", e);
       }
    }
 

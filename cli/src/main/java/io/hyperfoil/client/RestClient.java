@@ -4,6 +4,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -49,7 +50,7 @@ public class RestClient implements Client, Closeable {
    @Override
    public Collection<Agent> agents() {
       return sync(
-            handler -> client.request(HttpMethod.GET, "/agents").send(handler),
+            handler -> client.request(HttpMethod.GET, "/agents").send(handler), 200,
             response -> Arrays.asList(Json.decodeValue(response.body(), Agent[].class)));
    }
 
@@ -64,20 +65,15 @@ public class RestClient implements Client, Closeable {
       return sync(
             handler -> client.request(HttpMethod.POST, "/benchmark")
                   .putHeader(HttpHeaders.CONTENT_TYPE.toString(), "application/java-serialized-object")
-                  .sendBuffer(Buffer.buffer(bytes), handler),
-            response -> {
-               expectStatus(response, 204);
-               return new BenchmarkRefImpl(this, benchmark.name());
-            }
-      );
+                  .sendBuffer(Buffer.buffer(bytes), handler), 204,
+            response -> new BenchmarkRefImpl(this, benchmark.name()));
    }
 
    @Override
-   public Collection<String> benchmarks() {
+   public List<String> benchmarks() {
       return sync(
-            handler -> client.request(HttpMethod.GET, "/benchmark").send(handler),
-            response -> Arrays.asList(Json.decodeValue(response.body(), String[].class))
-      );
+            handler -> client.request(HttpMethod.GET, "/benchmark").send(handler), 200,
+            response -> Arrays.asList(Json.decodeValue(response.body(), String[].class)));
    }
 
    @Override
@@ -86,11 +82,10 @@ public class RestClient implements Client, Closeable {
    }
 
    @Override
-   public Collection<String> runs() {
+   public List<String> runs() {
       return sync(
-            handler -> client.request(HttpMethod.GET, "/run").send(handler),
-            response -> Arrays.asList(Json.decodeValue(response.body(), String[].class))
-      );
+            handler -> client.request(HttpMethod.GET, "/run").send(handler), 200,
+            response -> Arrays.asList(Json.decodeValue(response.body(), String[].class)));
    }
 
    @Override
@@ -98,13 +93,18 @@ public class RestClient implements Client, Closeable {
       return new RunRefImpl(this, id);
    }
 
-   <T> T sync(Consumer<Handler<AsyncResult<HttpResponse<Buffer>>>> invoker, Function<HttpResponse<Buffer>, T> f) {
+   <T> T sync(Consumer<Handler<AsyncResult<HttpResponse<Buffer>>>> invoker, int statusCode, Function<HttpResponse<Buffer>, T> f) {
       CompletableFuture<T> future = new CompletableFuture<>();
       vertx.runOnContext(ctx -> {
          invoker.accept(rsp -> {
             if (rsp.succeeded()) {
+               HttpResponse<Buffer> response = rsp.result();
+               if (statusCode != 0 && response.statusCode() != statusCode) {
+                  future.completeExceptionally(new RestClientException("Server responded with unexpected code: "
+                        + response.statusCode() + ", " + response.statusMessage()));
+               }
                try {
-                  future.complete(f.apply(rsp.result()));
+                  future.complete(f.apply(response));
                } catch (Throwable t) {
                   future.completeExceptionally(t);
                }

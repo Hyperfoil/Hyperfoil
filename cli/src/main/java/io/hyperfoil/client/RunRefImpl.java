@@ -25,50 +25,44 @@ public class RunRefImpl implements Client.RunRef {
    @Override
    public Client.Run get() {
       return client.sync(
-            handler -> client.client.request(HttpMethod.GET, "/run/" + id).send(handler),
-            response -> Json.decodeValue(response.body(), Client.Run.class)
-      );
+            handler -> client.client.request(HttpMethod.GET, "/run/" + id).send(handler), 200,
+            response -> Json.decodeValue(response.body(), Client.Run.class));
    }
 
    @Override
    public Client.RunRef kill() {
       client.sync(
-            handler -> client.client.request(HttpMethod.GET, "/run/" + id + "/kill").send(handler),
-            response -> null
-      );
+            handler -> client.client.request(HttpMethod.GET, "/run/" + id + "/kill").send(handler), 202,
+            response -> null);
       return this;
    }
 
    @Override
    public Collection<String> sessions() {
       return client.sync(
-            handler -> client.client.request(HttpMethod.GET, "/run/" + id + "/sessions").send(handler),
-            response -> Arrays.asList(response.bodyAsString().split("\n"))
-      );
+            handler -> client.client.request(HttpMethod.GET, "/run/" + id + "/sessions").send(handler), 200,
+            response -> Arrays.asList(response.bodyAsString().split("\n")));
    }
 
    @Override
    public Collection<String> connections() {
       return client.sync(
-            handler -> client.client.request(HttpMethod.GET, "/run/" + id + "/connections").send(handler),
-            response -> Arrays.asList(response.bodyAsString().split("\n"))
-      );
+            handler -> client.client.request(HttpMethod.GET, "/run/" + id + "/connections").send(handler), 200,
+            response -> Arrays.asList(response.bodyAsString().split("\n")));
 
    }
 
    @Override
    public String statsRecent() {
       return client.sync(
-            handler -> client.client.request(HttpMethod.GET, "/run/" + id + "/stats/recent").send(handler),
-            response -> response.bodyAsString()
-      );
+            handler -> client.client.request(HttpMethod.GET, "/run/" + id + "/stats/recent").send(handler), 200,
+            response -> response.bodyAsString());
    }
 
    @Override
    public String statsTotal() {
       return client.sync(
-            handler -> client.client.request(HttpMethod.GET, "/run/" + id + "/stats/total").send(handler),
-            response -> response.bodyAsString()
-      );
+            handler -> client.client.request(HttpMethod.GET, "/run/" + id + "/stats/total").send(handler), 200,
+            response -> response.bodyAsString());
    }
 }

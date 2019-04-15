@@ -2,6 +2,7 @@ package io.hyperfoil.client;
 
 import java.util.Collection;
 import java.util.Date;
+import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -17,11 +18,11 @@ public interface Client {
 
    BenchmarkRef register(Benchmark benchmark);
 
-   Collection<String> benchmarks();
+   List<String> benchmarks();
 
    BenchmarkRef benchmark(String name);
 
-   Collection<String> runs();
+   List<String> runs();
 
    RunRef run(String id);
 
@@ -65,7 +66,10 @@ public interface Client {
       public final Date finished;
       public final String totalDuration;
 
-      public Phase(String name, String status, Date started, String remaining, Date finished, String totalDuration) {
+      @JsonCreator
+      public Phase(@JsonProperty("name") String name, @JsonProperty("status") String status,
+                   @JsonProperty("started") Date started, @JsonProperty("remaining") String remaining,
+                   @JsonProperty("finished") Date finished, @JsonProperty("totalDuration") String totalDuration) {
          this.name = name;
          this.status = status;
          this.started = started;
@@ -86,7 +90,12 @@ public interface Client {
       public final Collection<Phase> phases;
       public final Collection<Agent> agents;
 
-      public Run(String id, String benchmark, Date started, Date terminated, String description, Collection<Phase> phases, Collection<Agent> agents) {
+      @JsonCreator
+      public Run(@JsonProperty("id") String id, @JsonProperty("benchmark") String benchmark,
+                 @JsonProperty("started") Date started, @JsonProperty("terminated") Date terminated,
+                 @JsonProperty("description") String description,
+                 @JsonProperty("phases") Collection<Phase> phases,
+                 @JsonProperty("agents") Collection<Agent> agents) {
          this.id = id;
          this.benchmark = benchmark;
          this.started = started;

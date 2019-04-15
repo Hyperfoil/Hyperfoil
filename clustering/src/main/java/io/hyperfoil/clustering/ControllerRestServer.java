@@ -401,7 +401,7 @@ class ControllerRestServer {
    private void handleRecentStats(RoutingContext ctx) {
       Run run = getRun(ctx);
       if (run == null || run.statisticsStore == null) {
-         ctx.response().setStatusCode(HttpResponseStatus.NOT_FOUND.code());
+         ctx.response().setStatusCode(HttpResponseStatus.NOT_FOUND.code()).end();
          return;
       }
       Map<String, Map<String, StatisticsSummary>> stats = run.statisticsStore.recentSummary(System.currentTimeMillis() - 3000);
@@ -412,7 +412,7 @@ class ControllerRestServer {
    private void handleTotalStats(RoutingContext ctx) {
       Run run = getRun(ctx);
       if (run == null || run.statisticsStore == null) {
-         ctx.response().setStatusCode(HttpResponseStatus.NOT_FOUND.code());
+         ctx.response().setStatusCode(HttpResponseStatus.NOT_FOUND.code()).end();
          return;
       }
       Map<String, Map<String, StatisticsSummary>> stats = run.statisticsStore.totalSummary();
