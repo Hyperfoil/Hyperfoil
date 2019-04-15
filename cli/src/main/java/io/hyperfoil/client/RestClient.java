@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -31,12 +32,6 @@ public class RestClient implements Client, Closeable {
       // Actually there's little point in using async client, but let's stay in Vert.x libs
       options = new WebClientOptions().setDefaultHost(host).setDefaultPort(port);
       client = WebClient.create(vertx, options.setFollowRedirects(false));
-   }
-
-   static void expectStatus(HttpResponse<Buffer> response, int statusCode) {
-      if (response.statusCode() != statusCode) {
-         throw new RestClientException("Server responded with unexpected code: " + response.statusCode() + ", " + response.statusMessage());
-      }
    }
 
    public String host() {
@@ -113,7 +108,14 @@ public class RestClient implements Client, Closeable {
             }
          });
       });
-      return future.join();
+      try {
+         return future.get();
+      } catch (InterruptedException e) {
+         Thread.currentThread().interrupt();
+         throw new RestClientException(e);
+      } catch (ExecutionException e) {
+         throw new RestClientException(e.getCause() == null ? e : e.getCause());
+      }
    }
 
    @Override

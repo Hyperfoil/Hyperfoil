@@ -44,7 +44,7 @@ public class Connect implements Command<HyperfoilCommandInvocation> {
       } catch (Exception e) {
          ctx.client().close();
          ctx.setClient(null);
-         throw new CommandException("Failed connecting to " + ctx.client(), e);
+         throw new CommandException("Failed connecting to " + host + ":" + port, e);
       }
    }
 }
