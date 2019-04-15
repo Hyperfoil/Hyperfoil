@@ -248,6 +248,9 @@ public class ControllerVerticle extends AbstractVerticle {
             if (agents.isEmpty()) {
                 log.error("Cannot start benchmark, no agents available.");
                 return null;
+            } else if (agents.size() > 1) {
+                log.error("The benchmark defines no agents and multiple agents are registered!");
+                return null;
             }
             runAgents.add(agents.values().iterator().next());
         } else {
