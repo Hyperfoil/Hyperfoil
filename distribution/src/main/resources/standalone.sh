@@ -2,8 +2,7 @@
 DEBUG_MODE="${DEBUG:-false}"
 DEBUG_PORT="${DEBUG_PORT:-8000}"
 GREP="grep"
-while [ "$#" -gt 0 ]
-do
+if [ "$#" -gt 0 ]; then
     case "$1" in
       --debug)
           DEBUG_MODE=true
@@ -11,10 +10,10 @@ do
               DEBUG_PORT=$2
               shift
           fi
+          shift
           ;;
     esac
-    shift
-done
+fi
 
 # Set debug settings if not already set
 if [ "$DEBUG_MODE" = "true" ]; then
