@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import io.hyperfoil.impl.FutureSupplier;
@@ -135,8 +136,9 @@ public class BenchmarkBuilder {
         Map<String, Http> http = httpMap.entrySet().stream()
               .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().build(entry.getValue() == defaultHttp)));
 
+        AtomicInteger phaseIdCounter = new AtomicInteger(0);
         Collection<Phase> phases = phaseBuilders.values().stream()
-              .flatMap(builder -> builder.build(bs).stream()).collect(Collectors.toList());
+              .flatMap(builder -> builder.build(bs, phaseIdCounter).stream()).collect(Collectors.toList());
         Set<String> phaseNames = phases.stream().map(Phase::name).collect(Collectors.toSet());
         for (Phase phase : phases) {
             checkDependencies(phase, phase.startAfter, phaseNames);

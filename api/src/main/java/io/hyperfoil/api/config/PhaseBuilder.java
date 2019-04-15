@@ -141,7 +141,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
       forks.forEach(fork -> fork.scenario.prepareBuild());
    }
 
-   public Collection<Phase> build(SerializableSupplier<Benchmark> benchmark) {
+   public Collection<Phase> build(SerializableSupplier<Benchmark> benchmark, AtomicInteger idCounter) {
       // normalize fork weights first
       if (forks.isEmpty()) {
          throw new BenchmarkDefinitionException("Scenario for " + name + " is not defined.");
@@ -150,7 +150,6 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
       }
       double sumWeight = forks.stream().mapToDouble(f -> f.weight).sum();
       forks.forEach(f -> f.weight /= sumWeight);
-      AtomicInteger idCounter = new AtomicInteger(0);
 
       // create matrix of iteration|fork phases
       List<Phase> phases = IntStream.range(0, maxIterations)
