@@ -14,8 +14,8 @@
       "description": "Name of the benchmark.",
       "type": "string"
     },
-    "hosts": {
-      "description": "Agent nodes that should drive the load. Use format `name: host:port`",
+    "agents": {
+      "description": "Agent nodes that should drive the load. Use format `name: hostname:port`",
       "type": "object",
       "additionalProperties": {
         "type": "string",

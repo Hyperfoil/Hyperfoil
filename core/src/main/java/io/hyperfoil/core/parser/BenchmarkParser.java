@@ -53,7 +53,7 @@ public class BenchmarkParser extends AbstractMappingParser<BenchmarkBuilder> {
     private BenchmarkParser() {
         register("$schema", new PropertyParser.String<>(this::checkSchema));
         register("name", new PropertyParser.String<>(BenchmarkBuilder::name));
-        register("hosts", new AgentsParser());
+        register("agents", new AgentsParser());
         register("ergonomics", new ErgonomicsParser());
         register("http", new HttpParser());
         register("phases", new PhasesParser());

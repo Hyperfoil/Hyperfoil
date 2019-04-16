@@ -38,7 +38,7 @@ public class BenchmarkBuilder {
     private final String originalSource;
     private final BenchmarkData data;
     private String name;
-    private Collection<Host> agents = new ArrayList<>();
+    private Collection<Agent> agents = new ArrayList<>();
     private ErgonomicsBuilder ergonomics = new ErgonomicsBuilder();
     private HttpBuilder defaultHttp;
     private Map<String, HttpBuilder> httpMap = new HashMap<>();
@@ -60,14 +60,20 @@ public class BenchmarkBuilder {
         return this;
     }
 
-    public BenchmarkBuilder addAgent(String name, String hostname, String username, int port){
-        agents.add(new Host(name, hostname, username, port));
+    private BenchmarkBuilder addAgent(Agent agent) {
+        if (agents.stream().filter(a -> a.name.equals(agent.name)).findAny().isPresent()) {
+            throw new BenchmarkDefinitionException("Benchmark already contains agent '" + agent.name + "'");
+        }
+        agents.add(agent);
         return this;
     }
 
+    public BenchmarkBuilder addAgent(String name, String hostname, String username, int port){
+        return addAgent(new Agent(name, hostname, username, port));
+    }
+
     public BenchmarkBuilder addAgent(String name, String usernameHostPort) {
-        agents.add(Host.parse(name, usernameHostPort));
-        return this;
+        return addAgent(Agent.parse(name, usernameHostPort));
     }
 
     int numAgents() {
@@ -157,7 +163,7 @@ public class BenchmarkBuilder {
         // are done.
         Map<String, byte[]> files = data.files();
 
-        Benchmark benchmark = new Benchmark(name, originalSource, files, agents.toArray(new Host[0]), threads, ergonomics.build(),
+        Benchmark benchmark = new Benchmark(name, originalSource, files, agents.toArray(new Agent[0]), threads, ergonomics.build(),
               http, phases, tags, statisticsCollectionPeriod);
         bs.set(benchmark);
         return benchmark;

@@ -1,5 +1,5 @@
 name: complex benchmark
-hosts:
+agents:
   client1: benchuser@benchclient1.perf.lab.eng.rdu.redhat.com:22
   client2: benchuser@benchclient2.perf.lab.eng.rdu.redhat.com:22
   client3: benchuser@benchclient3.perf.lab.eng.rdu.redhat.com:22

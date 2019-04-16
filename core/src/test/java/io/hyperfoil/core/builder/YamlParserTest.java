@@ -145,6 +145,18 @@ public class YamlParserTest {
         assertCondition((RangeStatusValidator) statusHandlers2[0], v -> v.max == 259);
     }
 
+    @Test
+    public void testAgents1() {
+       Benchmark benchmark = buildBenchmark("scenarios/agents1.hf.yaml");
+       assertThat(benchmark.agents().length).isEqualTo(2);
+    }
+
+    @Test
+    public void testAgents2() {
+        Benchmark benchmark = buildBenchmark("scenarios/agents2.hf.yaml");
+        assertThat(benchmark.agents().length).isEqualTo(3);
+    }
+
    private <T extends Step> T next(Class<T> stepClass, Iterator<Step> iterator) {
       while (iterator.hasNext()) {
          Step step = iterator.next();

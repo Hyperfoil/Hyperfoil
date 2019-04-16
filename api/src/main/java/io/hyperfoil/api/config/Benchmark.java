@@ -34,7 +34,7 @@ public class Benchmark implements Serializable {
     private final String name;
     private final String originalSource;
     private final Map<String, byte[]> files;
-    private final Host[] agents;
+    private final Agent[] agents;
     private final int threads;
     private final Ergonomics ergonomics;
     private final Map<String, Http> http;
@@ -43,7 +43,7 @@ public class Benchmark implements Serializable {
     private final Map<String, Object> tags;
     private final long statisticsCollectionPeriod;
 
-    public Benchmark(String name, String originalSource, Map<String, byte[]> files, Host[] agents, int threads, Ergonomics ergonomics,
+    public Benchmark(String name, String originalSource, Map<String, byte[]> files, Agent[] agents, int threads, Ergonomics ergonomics,
                      Map<String, Http> http, Collection<Phase> phases,
                      Map<String, Object> tags, long statisticsCollectionPeriod) {
         this.name = name;
@@ -63,7 +63,7 @@ public class Benchmark implements Serializable {
         return name;
     }
 
-    public Host[] agents() {
+    public Agent[] agents() {
         return agents;
     }
 

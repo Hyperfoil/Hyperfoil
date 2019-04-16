@@ -24,6 +24,7 @@ import org.yaml.snakeyaml.events.Event;
 import org.yaml.snakeyaml.events.MappingEndEvent;
 import org.yaml.snakeyaml.events.MappingStartEvent;
 import org.yaml.snakeyaml.events.ScalarEvent;
+import org.yaml.snakeyaml.events.SequenceEndEvent;
 import org.yaml.snakeyaml.events.SequenceStartEvent;
 
 class AgentsParser implements Parser<BenchmarkBuilder> {
@@ -34,26 +35,46 @@ class AgentsParser implements Parser<BenchmarkBuilder> {
         if (event instanceof ScalarEvent) {
             String value = ((ScalarEvent) event).getValue();
             if (value == null || value.isEmpty()) {
-                // `hosts:` without a value should be equal to omitting agents declaration completely
+                // `agents:` without a value should be equal to omitting agents declaration completely
                 return;
             }
         } else if (event instanceof SequenceStartEvent) {
-            throw new ParserException(event, "Agent hosts should user properties, not a sequence; each agent name must be unique.");
-        } else if (!(event instanceof MappingStartEvent)) {
+            while (ctx.hasNext()) {
+                Event next = ctx.next();
+                if (next instanceof SequenceEndEvent) {
+                    break;
+                } else if (next instanceof ScalarEvent) {
+                    parseAgent(ctx, builder, ((ScalarEvent) next).getValue());
+                } else if (next instanceof MappingStartEvent) {
+                    ScalarEvent nameEvent = ctx.expectEvent(ScalarEvent.class);
+                    parseAgent(ctx, builder, nameEvent.getValue());
+                    ctx.expectEvent(MappingEndEvent.class);
+                } else {
+                    throw ctx.unexpectedEvent(next);
+                }
+            }
+        } else if (event instanceof MappingStartEvent) {
+            while (ctx.hasNext()) {
+                Event next = ctx.next();
+                if (next instanceof MappingEndEvent) {
+                    break;
+                } else if (next instanceof ScalarEvent) {
+                    parseAgent(ctx, builder, ((ScalarEvent) next).getValue());
+                } else {
+                    throw ctx.unexpectedEvent(next);
+                }
+            }
+        } else {
             throw ctx.unexpectedEvent(event);
         }
-        while (ctx.hasNext()) {
-            Event next = ctx.next();
-            if (next instanceof MappingEndEvent) {
-                break;
-            } else if (next instanceof ScalarEvent) {
-                String name = ((ScalarEvent) next).getValue();
-                String hostPort = ctx.expectEvent(ScalarEvent.class).getValue();
-                builder.addAgent(name, hostPort);
-            } else {
-                throw ctx.unexpectedEvent(next);
-            }
+    }
+
+    private void parseAgent(Context ctx, BenchmarkBuilder builder, String name) throws ParserException {
+        String hostPort = "";
+        if (ctx.hasNext() && ctx.peek() instanceof ScalarEvent) {
+            hostPort = ctx.expectEvent(ScalarEvent.class).getValue();
         }
+        builder.addAgent(name, hostPort);
     }
 
 }

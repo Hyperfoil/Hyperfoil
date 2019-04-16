@@ -1,0 +1,7 @@
+name: foo
+agents:
+- agent-one: user@host:1234
+- agent-two:
+- agent-three
+http:
+  baseUrl: http://localhost:8080

@@ -112,7 +112,7 @@ Here is an example of benchmark configuration:
 
 ```yaml
 name: complex benchmark
-hosts:
+agents:
   client1: user@driver1.my.lab.com
   client2: user@driver2.my.lab.com
   ...
@@ -122,7 +122,7 @@ phases: ...
 
 ```
 
-The `hosts` section defines which agents should execute the benchmark.
+The `agents` section defines which agents should execute the benchmark.
 **TODO** are hosts meant this way?
 
 The `http` configuration sets base URL for all requests.

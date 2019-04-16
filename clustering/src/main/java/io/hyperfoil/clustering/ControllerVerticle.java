@@ -1,7 +1,7 @@
 package io.hyperfoil.clustering;
 
 import io.hyperfoil.api.config.Benchmark;
-import io.hyperfoil.api.config.Host;
+import io.hyperfoil.api.config.Agent;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.session.PhaseInstance;
 import io.hyperfoil.clustering.messages.AgentControlMessage;
@@ -254,12 +254,12 @@ public class ControllerVerticle extends AbstractVerticle {
             }
             runAgents.add(agents.values().iterator().next());
         } else {
-            for (Host host : benchmark.agents()) {
-                Optional<AgentInfo> opt = agents.values().stream().filter(a -> Objects.equals(a.name, host.name)).findFirst();
+            for (Agent agent : benchmark.agents()) {
+                Optional<AgentInfo> opt = agents.values().stream().filter(a -> Objects.equals(a.name, agent.name)).findFirst();
                 if (opt.isPresent()) {
                     runAgents.add(opt.get());
                 } else {
-                    log.error("Agent {} ({}:{}) not registered", host.name, host.hostname, host.username);
+                    log.error("Agent {} ({}:{}) not registered", agent.name, agent.hostname, agent.username);
                     return null;
                 }
             }
