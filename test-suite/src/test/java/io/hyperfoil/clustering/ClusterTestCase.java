@@ -9,11 +9,9 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.asynchttpclient.AsyncHttpClient;
-import org.asynchttpclient.Response;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -23,11 +21,13 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
-import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.asynchttpclient.Dsl.asyncHttpClient;
 
+// Note: this test won't run from IDE (probably) as SshDeployer copies just .jar files for the agents;
+// since it inspects classpath for .jars it won't copy the class files in the hyperfoil-clustering module.
+// It runs from Maven just fine.
 @RunWith(VertxUnitRunner.class)
 @Category(Benchmark.class)
 public class ClusterTestCase extends BaseClusteredTest {
@@ -52,14 +52,10 @@ public class ClusterTestCase extends BaseClusteredTest {
             req.response().end("test");
         }).listen(0, "localhost", ctx.asyncAssertSuccess());
 
-        Async initAsync = ctx.async(AGENTS + 1);
         VertxOptions opts = new VertxOptions().setClustered(true);
 
         //configure multi node vert.x cluster
-        initiateController(opts, null, ctx, initAsync);
-
-        //create multiple runner nodes
-        IntStream.range(0, AGENTS).forEach(id -> initiateRunner(opts, new JsonObject().put("name", "agent" + id), ctx, initAsync));
+        initiateClustered(opts, ControllerVerticle.class, new DeploymentOptions().setConfig(null).setWorker(false), ctx, ctx.async());
     }
 
     Vertx standalone() {
@@ -71,17 +67,6 @@ public class ClusterTestCase extends BaseClusteredTest {
     @Test(timeout = 120_000)
     public void startClusteredBenchmarkTest() throws IOException, InterruptedException {
         try (AsyncHttpClient asyncHttpClient = asyncHttpClient()) {
-            //check expected number of nodes are running
-            while (!asyncHttpClient
-                  .prepareGet(CONTROLLER_URL + "/agents")
-                  .execute()
-                  .toCompletableFuture()
-                  .thenApply(Response::getResponseBody)
-                  .thenApply(response -> AGENTS == new JsonArray(response).size())
-                  .join()) {
-                Thread.sleep(1000);
-            }
-
             // upload benchmark
             asyncHttpClient
                   .preparePost(CONTROLLER_URL + "/benchmark")
@@ -127,7 +112,15 @@ public class ClusterTestCase extends BaseClusteredTest {
                       JsonObject status = new JsonObject(responseBody);
                       assertThat(status.getString("benchmark")).isEqualTo("test");
                       System.out.println(status.encodePrettily());
-                      return status.getString("terminated") != null;
+                     boolean terminated = status.getString("terminated") != null;
+                     if (terminated) {
+                        assertThat(status.getString("started")).isNotNull();
+                        JsonArray agents = status.getJsonArray("agents");
+                        for (int i = 0; i < agents.size(); ++i) {
+                           assertThat(agents.getJsonObject(i).getString("status")).isNotEqualTo("STARTING");
+                        }
+                     }
+                     return terminated;
                   }).join()) {
                 Thread.sleep(1000);
             }
@@ -145,14 +138,6 @@ public class ClusterTestCase extends BaseClusteredTest {
         } catch (IOException e) {
             throw new AssertionError(e);
         }
-    }
-
-    private void initiateController(VertxOptions opts, JsonObject config, TestContext ctx, Async initAsync) {
-        initiateClustered(opts, ControllerVerticle.class, new DeploymentOptions().setConfig(config).setWorker(false), ctx, initAsync);
-    }
-
-    private void initiateRunner(VertxOptions opts, JsonObject config, TestContext ctx, Async initAsync) {
-        initiateClustered(opts, AgentVerticle.class, new DeploymentOptions().setConfig(config).setWorker(true), ctx, initAsync);
     }
 
 }
