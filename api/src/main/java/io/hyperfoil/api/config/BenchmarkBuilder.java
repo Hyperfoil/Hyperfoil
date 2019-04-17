@@ -60,20 +60,13 @@ public class BenchmarkBuilder {
         return this;
     }
 
-    private BenchmarkBuilder addAgent(Agent agent) {
+    public BenchmarkBuilder addAgent(String name, String inlineConfig, Map<String, String> properties) {
+        Agent agent = new Agent(name, inlineConfig, properties);
         if (agents.stream().filter(a -> a.name.equals(agent.name)).findAny().isPresent()) {
             throw new BenchmarkDefinitionException("Benchmark already contains agent '" + agent.name + "'");
         }
         agents.add(agent);
         return this;
-    }
-
-    public BenchmarkBuilder addAgent(String name, String hostname, String username, int port){
-        return addAgent(new Agent(name, hostname, username, port));
-    }
-
-    public BenchmarkBuilder addAgent(String name, String usernameHostPort) {
-        return addAgent(Agent.parse(name, usernameHostPort));
     }
 
     int numAgents() {

@@ -3,23 +3,26 @@ package io.hyperfoil.clustering;
 import java.util.HashMap;
 import java.util.Map;
 
+import io.hyperfoil.api.deployment.DeployedAgent;
 import io.hyperfoil.api.session.PhaseInstance;
 
-public class AgentInfo {
+class AgentInfo {
    final String name;
-   final String address;
-   Status status = Status.REGISTERED;
+   String address;
+   Status status = Status.STARTING;
    Map<String, PhaseInstance.Status> phases = new HashMap<>();
+   DeployedAgent deployedAgent;
 
-   public AgentInfo(String name, String address) {
+   public AgentInfo(String name) {
       this.name = name;
-      this.address = address;
    }
 
    public enum Status {
+      STARTING,
       REGISTERED,
       INITIALIZING,
       INITIALIZED,
+      STOPPED,
       FAILED
    }
 }

@@ -65,11 +65,10 @@ class Hyperfoil {
    public static class Standalone extends Hyperfoil {
       public static void main(String[] args) {
          logJavaVersion();
-         log.info("Starting non-clustered Vert.x with controller and single agent...");
+         log.info("Starting non-clustered Vert.x...");
          Vertx vertx = Vertx.vertx();
          Codecs.register(vertx);
          deploy(vertx, ControllerVerticle.class);
-         deploy(vertx, AgentVerticle.class);
       }
    }
 

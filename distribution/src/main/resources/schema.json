@@ -15,12 +15,31 @@
       "type": "string"
     },
     "agents": {
-      "description": "Agent nodes that should drive the load. Use format `name: hostname:port`",
-      "type": "object",
-      "additionalProperties": {
-        "type": "string",
-        "pattern": ".*:[0-9]+"
-      }
+      "description": "Agent nodes that should drive the load.",
+      "oneOf": [
+        {
+          "type": "object",
+          "patternProperties": {
+            ".*" : {
+              "$ref": "#/definitions/agent"
+            }
+          }
+        },
+        {
+          "type": "array",
+          "additionalItems": false,
+          "items": {
+            "type": "object",
+            "minProperties" : 1,
+            "maxProperties" : 1,
+            "patternProperties": {
+              ".*" : {
+                "$ref": "#/definitions/agent"
+              }
+            }
+          }
+        }
+      ]
     },
     "threads": {
       "type": "integer",
@@ -162,6 +181,21 @@
     }
   },
   "definitions": {
+    "agent": {
+      "oneOf": [
+        {
+          "type": [ "string", "number", "boolean" ]
+        },
+        {
+          "type": "object",
+          "patternProperties": {
+            ".*": {
+              "type": [ "string", "number", "boolean" ]
+            }
+          }
+        }
+      ]
+    },
     "ergonomics": {
       "description": "Adjust scenario to implement common functionality out-of-the-box.",
       "type": "object",

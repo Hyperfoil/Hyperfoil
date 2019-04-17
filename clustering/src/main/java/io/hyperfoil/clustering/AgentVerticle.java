@@ -27,6 +27,7 @@ public class AgentVerticle extends AbstractVerticle {
 
     private String name;
     private String address;
+    private String runId;
     private EventBus eb;
 
     private SimulationRunnerImpl runner;
@@ -51,14 +52,21 @@ public class AgentVerticle extends AbstractVerticle {
                 name = address;
             }
         }
+        runId = context.config().getString("runId");
+        if (runId == null) {
+            runId = System.getProperty(Properties.RUN_ID);
+            if (runId == null) {
+                throw new IllegalStateException("No run ID defined for this agent.");
+            }
+        }
         eb = vertx.eventBus();
 
         eb.consumer(address, message -> {
             AgentControlMessage controlMessage = (AgentControlMessage) message.body();
             switch (controlMessage.command()) {
                 case INITIALIZE:
-                    log.info("Initializing agent, run {}", controlMessage.runId());
-                    initBenchmark(controlMessage.runId(), controlMessage.benchmark(), result -> {
+                    log.info("Initializing agent");
+                    initBenchmark(controlMessage.benchmark(), result -> {
                         if (result.succeeded()) {
                             message.reply("OK");
                         } else {
@@ -66,13 +74,21 @@ public class AgentVerticle extends AbstractVerticle {
                         }
                     });
                     break;
-                case RESET:
+                case STOP:
                     // collect stats one last time before acknowledging termination
                     log.info("Received agent reset");
                     if (statsTimerId >= 0) {
                         vertx.cancelTimer(statsTimerId);
                     }
-                    CountDown completion = new CountDown(result -> message.reply(result.succeeded() ? "OK" : result.cause()), 1);
+                    CountDown completion = new CountDown(result -> {
+                        message.reply(result.succeeded() ? "OK" : result.cause());
+                        if (vertx.isClustered()) {
+                            // Give the message some time to be sent
+                            vertx.setTimer(1000, id -> vertx.close());
+                        } else {
+                            vertx.undeploy(deploymentID());
+                        }
+                    }, 1);
                     if (runner != null) {
                         runner.visitStatistics(reportSender);
                         reportSender.send(completion);
@@ -106,7 +122,7 @@ public class AgentVerticle extends AbstractVerticle {
         });
 
         vertx.setPeriodic(1000, timerId -> {
-            eb.send(Feeds.DISCOVERY, new AgentHello(name, address), reply -> {
+            eb.send(Feeds.DISCOVERY, new AgentHello(name, address, runId), reply -> {
                 log.trace("{} Pinging controller", address);
                 if (reply.succeeded()) {
                     log.info("{} Got reply from controller.", address);
@@ -152,7 +168,7 @@ public class AgentVerticle extends AbstractVerticle {
         }
     }
 
-    private void initBenchmark(String runId, Benchmark benchmark, Handler<AsyncResult<Void>> handler) {
+    private void initBenchmark(Benchmark benchmark, Handler<AsyncResult<Void>> handler) {
         if (runner != null) {
             log.error("Another simulation is running!");
             handler.handle(Future.failedFuture("Another simulation is running"));

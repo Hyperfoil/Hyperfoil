@@ -68,7 +68,6 @@ class ControllerServer {
       router.get("/benchmark").handler(this::handleListBenchmarks);
       router.get("/benchmark/:benchmarkname").handler(this::handleGetBenchmark);
       router.get("/benchmark/:benchmarkname/start").handler(this::handleBenchmarkStart);
-      router.get("/agents").handler(this::handleGetAgents);
       router.get("/run").handler(this::handleListRuns);
       router.get("/run/:runid").handler(this::handleGetRun);
       router.get("/run/:runid/kill").handler(this::handleRunKill);
@@ -247,26 +246,19 @@ class ControllerServer {
          description = descList.iterator().next();
       }
       if (benchmark != null) {
-         String runId = controller.startBenchmark(benchmark, description);
-         if (runId != null) {
+         ControllerVerticle.StartResult result = controller.startBenchmark(benchmark, description);
+         if (result.runId != null) {
             routingContext.response().setStatusCode(HttpResponseStatus.ACCEPTED.code()).
-                  putHeader(HttpHeaders.LOCATION, BASE_URL + "/run/" + runId)
-                  .end("Starting benchmark " + benchmarkName + ", run ID " + runId);
+                  putHeader(HttpHeaders.LOCATION, BASE_URL + "/run/" + result.runId)
+                  .end("Starting benchmark " + benchmarkName + ", run ID " + result.runId);
          } else {
             routingContext.response()
-                  .setStatusCode(HttpResponseStatus.FORBIDDEN.code()).end("Cannot start benchmark.");
+                  .setStatusCode(HttpResponseStatus.FORBIDDEN.code()).end(result.error);
          }
       } else {
          routingContext.response()
                .setStatusCode(HttpResponseStatus.NOT_FOUND.code()).end("Benchmark not found");
       }
-   }
-
-   private void handleGetAgents(RoutingContext routingContext) {
-      Client.Agent[] agents = controller.agents.values().stream()
-            .map(ai -> new Client.Agent(ai.name, ai.address, ai.status.toString()))
-            .toArray(Client.Agent[]::new);
-      routingContext.response().end(Json.encodePrettily(agents));
    }
 
    private void handleListRuns(RoutingContext routingContext) {

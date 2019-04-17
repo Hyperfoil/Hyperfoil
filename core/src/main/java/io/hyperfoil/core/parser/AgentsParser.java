@@ -18,6 +18,9 @@
  */
 package io.hyperfoil.core.parser;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import io.hyperfoil.api.config.BenchmarkBuilder;
 
 import org.yaml.snakeyaml.events.Event;
@@ -70,11 +73,32 @@ class AgentsParser implements Parser<BenchmarkBuilder> {
     }
 
     private void parseAgent(Context ctx, BenchmarkBuilder builder, String name) throws ParserException {
-        String hostPort = "";
-        if (ctx.hasNext() && ctx.peek() instanceof ScalarEvent) {
-            hostPort = ctx.expectEvent(ScalarEvent.class).getValue();
+        if (!ctx.hasNext()) {
+            builder.addAgent(name, null, null);
+            return;
         }
-        builder.addAgent(name, hostPort);
+        Event next = ctx.peek();
+        if (next instanceof ScalarEvent) {
+            builder.addAgent(name, ctx.expectEvent(ScalarEvent.class).getValue(), null);
+        } else if (next instanceof MappingStartEvent) {
+            ctx.expectEvent(MappingStartEvent.class);
+            Map<String, String> properties = new HashMap<>();
+            while (ctx.hasNext()) {
+                Event event = ctx.next();
+                if (event instanceof MappingEndEvent) {
+                    break;
+                } else if (event instanceof ScalarEvent) {
+                    String propertyName = ((ScalarEvent) event).getValue();
+                    String propertyValue = ctx.expectEvent(ScalarEvent.class).getValue();
+                    properties.put(propertyName, propertyValue);
+                } else {
+                    throw ctx.unexpectedEvent(event);
+                }
+            }
+            builder.addAgent(name, null, properties);
+        } else {
+            builder.addAgent(name, null, null);
+        }
     }
 
 }

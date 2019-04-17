@@ -73,8 +73,8 @@
         <!-- maven-compiler-plugin -->
         <maven.compiler.target>1.8</maven.compiler.target>
         <maven.compiler.source>1.8</maven.compiler.source>
-        <hyperfoil.version>0.1-SNAPSHOT</hyperfoil.version>
 
+        <version.apache.sshd>2.2.0</version.apache.sshd>
         <version.assertj>3.10.0</version.assertj>
         <version.hdrhistogram>2.1.11</version.hdrhistogram>
         <version.junit>4.12</version.junit>
@@ -215,6 +215,18 @@
                 <groupId>junit</groupId>
                 <artifactId>junit</artifactId>
                 <version>${version.junit}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.sshd</groupId>
+                <artifactId>sshd-core</artifactId>
+                <version>${version.apache.sshd}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.sshd</groupId>
+                <artifactId>sshd-scp</artifactId>
+                <version>${version.apache.sshd}</version>
             </dependency>
 
             <dependency>

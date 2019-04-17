@@ -3,7 +3,6 @@ package io.hyperfoil.client;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -42,12 +41,6 @@ public class RestClient implements Client, Closeable {
       return options.getDefaultPort();
    }
 
-   @Override
-   public Collection<Agent> agents() {
-      return sync(
-            handler -> client.request(HttpMethod.GET, "/agents").send(handler), 200,
-            response -> Arrays.asList(Json.decodeValue(response.body(), Agent[].class)));
-   }
 
    @Override
    public BenchmarkRef register(Benchmark benchmark) {
@@ -86,6 +79,11 @@ public class RestClient implements Client, Closeable {
    @Override
    public RunRef run(String id) {
       return new RunRefImpl(this, id);
+   }
+
+   @Override
+   public void ping() {
+      sync(handler -> client.request(HttpMethod.GET, "/").send(handler), 200, response -> null);
    }
 
    <T> T sync(Consumer<Handler<AsyncResult<HttpResponse<Buffer>>>> invoker, int statusCode, Function<HttpResponse<Buffer>, T> f) {

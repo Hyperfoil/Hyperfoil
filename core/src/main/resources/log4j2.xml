@@ -11,6 +11,8 @@
     <Logger name="io.hyperfoil" level="INFO"/>
     <Logger name="io.vertx" level="INFO"/>
     <Logger name="io.netty" level="INFO"/>
+    <!-- Infinispan is too noisy with all those rebalances -->
+    <Logger name="org.infinispan" level="WARN"/>
 
     <Root level="INFO">
       <AppenderRef ref="STDOUT" level="TRACE"/>

@@ -1,5 +1,6 @@
 package io.hyperfoil.clustering;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -11,7 +12,8 @@ class Run {
    final String id;
    final Benchmark benchmark;
    final Map<String, ControllerPhase> phases = new HashMap<>();
-   final List<AgentInfo> agents;
+   final List<AgentInfo> agents = new ArrayList<>();
+   long deployTimerId;
    String description;
 
    long startTime = Long.MIN_VALUE;
@@ -19,10 +21,9 @@ class Run {
    StatisticsStore statisticsStore;
 
 
-   Run(String id, Benchmark benchmark, List<AgentInfo> agents) {
+   Run(String id, Benchmark benchmark) {
       this.id = id;
       this.benchmark = benchmark;
-      this.agents = agents;
    }
 
    long nextTimestamp() {

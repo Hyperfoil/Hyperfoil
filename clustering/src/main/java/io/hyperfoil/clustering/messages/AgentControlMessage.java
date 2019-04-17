@@ -7,21 +7,15 @@ import io.hyperfoil.util.Immutable;
 
 public class AgentControlMessage implements Serializable, Immutable {
    private Command command;
-   private String runId;
    private Object param;
 
-   public AgentControlMessage(Command command, String runId, Object param) {
+   public AgentControlMessage(Command command, Object param) {
       this.command = command;
-      this.runId = runId;
       this.param = param;
    }
 
    public Command command() {
       return command;
-   }
-
-   public String runId() {
-      return runId;
    }
 
    public Benchmark benchmark() {
@@ -34,7 +28,7 @@ public class AgentControlMessage implements Serializable, Immutable {
 
    public enum Command {
       INITIALIZE,
-      RESET,
+      STOP,
       LIST_SESSIONS,
       LIST_CONNECTIONS
    }

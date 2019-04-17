@@ -1,7 +1,5 @@
 package io.hyperfoil.cli.commands;
 
-import java.util.Collection;
-
 import org.aesh.command.Command;
 import org.aesh.command.CommandDefinition;
 import org.aesh.command.CommandException;
@@ -10,7 +8,6 @@ import org.aesh.command.option.Option;
 
 import io.hyperfoil.cli.context.HyperfoilCliContext;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
-import io.hyperfoil.client.Client;
 import io.hyperfoil.client.RestClient;
 import io.hyperfoil.client.RestClientException;
 
@@ -36,11 +33,8 @@ public class Connect implements Command<HyperfoilCommandInvocation> {
       }
       ctx.setClient(new RestClient(host, port));
       try {
-         Collection<Client.Agent> agents = ctx.client().agents();
-         commandInvocation.println("Connected! Server has these agents connected:");
-         for (Client.Agent agent : agents) {
-            commandInvocation.println("* " + agent.name + "[" + agent.status + "]");
-         }
+         ctx.client().ping();
+         commandInvocation.println("Connected!");
          return CommandResult.SUCCESS;
       } catch (RestClientException e) {
          ctx.client().close();

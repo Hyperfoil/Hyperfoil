@@ -14,8 +14,6 @@ import io.hyperfoil.api.config.Benchmark;
  * API for server control
  */
 public interface Client {
-   Collection<Agent> agents();
-
    BenchmarkRef register(Benchmark benchmark);
 
    List<String> benchmarks();
@@ -25,6 +23,8 @@ public interface Client {
    List<String> runs();
 
    RunRef run(String id);
+
+   void ping();
 
    interface BenchmarkRef {
       String name();

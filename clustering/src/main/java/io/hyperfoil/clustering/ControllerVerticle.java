@@ -3,6 +3,7 @@ package io.hyperfoil.clustering;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.Agent;
 import io.hyperfoil.api.config.Phase;
+import io.hyperfoil.api.deployment.Deployer;
 import io.hyperfoil.api.session.PhaseInstance;
 import io.hyperfoil.clustering.messages.AgentControlMessage;
 import io.hyperfoil.clustering.messages.AgentHello;
@@ -15,6 +16,7 @@ import io.hyperfoil.clustering.messages.PhaseControlMessage;
 import io.hyperfoil.clustering.messages.ReportMessage;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.AsyncResult;
+import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.eventbus.EventBus;
@@ -30,14 +32,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.ServiceLoader;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 
@@ -46,14 +48,16 @@ public class ControllerVerticle extends AbstractVerticle {
     private static final Path ROOT_DIR = getConfiguredPath(Properties.ROOT_DIR, Paths.get(System.getProperty("java.io.tmpdir"), "hyperfoil"));
     private static final Path RUN_DIR = getConfiguredPath(Properties.RUN_DIR, ROOT_DIR.resolve("run"));
     private static final Path BENCHMARK_DIR = getConfiguredPath(Properties.BENCHMARK_DIR, ROOT_DIR.resolve("benchmark"));
+    private static final String DEPLOYER = System.getProperty(Properties.DEPLOYER, "ssh");
+    private static final long DEPLOY_TIMEOUT = Long.getLong(Properties.DEPLOY_TIMEOUT, 15000);
 
     private EventBus eb;
     private ControllerServer server;
+    private Deployer deployer;
     private AtomicInteger runIds = new AtomicInteger();
     private Map<String, Benchmark> benchmarks = new HashMap<>();
     private long timerId = -1;
 
-    Map<String, AgentInfo> agents = new HashMap<>();
     Map<String, Run> runs = new HashMap<>();
 
     private static Path getConfiguredPath(String property, Path def) {
@@ -85,24 +89,43 @@ public class ControllerVerticle extends AbstractVerticle {
 
         eb.consumer(Feeds.DISCOVERY, message -> {
             AgentHello hello = (AgentHello) message.body();
-            String address = hello.address();
-            if (agents.containsKey(address) || agents.putIfAbsent(address, new AgentInfo(hello.name(), address)) != null) {
-                message.fail(1, "Agent already present");
-            } else {
-                message.reply("Registered");
+            String runId = hello.runId();
+            Run run = runs.get(runId);
+            if (run == null) {
+                log.error("Unknown run ID {}" + runId);
+                message.fail(1, "Unknown run ID");
+                return;
+            }
+            AgentInfo agentInfo = run.agents.stream().filter(a -> a.name.equals(hello.name())).findAny().orElse(null);
+            if (agentInfo == null) {
+                log.error("Unknown agent {} ({})", hello.name(), hello.address());
+                message.fail(1, "Unknown agent");
+                return;
+            }
+            if (agentInfo.status != AgentInfo.Status.STARTING) {
+                log.info("Ignoring message, {} is not starting", agentInfo.name);
+                message.reply("Ignoring");
+                return;
+            }
+            agentInfo.address = hello.address();
+            agentInfo.status = AgentInfo.Status.REGISTERED;
+            message.reply("Registered");
+
+            if (run.agents.stream().allMatch(a -> a.status != AgentInfo.Status.STARTING)) {
+                handleAgentsStarted(run);
             }
         });
 
         eb.consumer(Feeds.RESPONSE, message -> {
             PhaseChangeMessage phaseChange = (PhaseChangeMessage) message.body();
-            AgentInfo agent = agents.get(phaseChange.senderId());
-            if (agent == null) {
-               log.error("No agent {}", phaseChange.senderId());
-               return;
-            }
             Run run = runs.get(phaseChange.runId());
             if (run == null) {
                 log.error("No run {}", phaseChange.runId());
+                return;
+            }
+            AgentInfo agent = run.agents.stream().filter(a -> a.address.equals(phaseChange.senderId())).findAny().orElse(null);
+            if (agent == null) {
+                log.error("No agent {}", phaseChange.senderId());
                 return;
             }
             String phase = phaseChange.phase();
@@ -147,6 +170,19 @@ public class ControllerVerticle extends AbstractVerticle {
             message.reply("OK");
         });
 
+        if (vertx.isClustered()) {
+            for (Deployer.Factory deployerFactory : ServiceLoader.load(Deployer.Factory.class)) {
+                log.debug("Found deployer {}", deployerFactory.name());
+                if (DEPLOYER.equals(deployerFactory.name())) {
+                    deployer = deployerFactory.create();
+                    break;
+                }
+            }
+            if (deployer == null) {
+                throw new IllegalStateException("Hyperfoil is running in clustered mode but it couldn't load deployer '" + DEPLOYER + "'");
+            }
+        }
+
         BENCHMARK_DIR.toFile().mkdirs();
         loadBenchmarks(event -> future.complete());
     }
@@ -169,7 +205,7 @@ public class ControllerVerticle extends AbstractVerticle {
             }
         }
         Run run = new Run(runId, new Benchmark(info.getString("benchmark", "<unknown>"), null, Collections.emptyMap(), null, 0, null,
-              Collections.emptyMap(), Collections.emptyList(), Collections.emptyMap(), 0), Collections.emptyList());
+              Collections.emptyMap(), Collections.emptyList(), Collections.emptyMap(), 0));
         run.startTime = info.getLong("startTime", 0L);
         run.terminateTime = info.getLong("terminateTime", 0L);
         run.description = info.getString("description");
@@ -178,6 +214,9 @@ public class ControllerVerticle extends AbstractVerticle {
 
     @Override
     public void stop(Future<Void> stopFuture) throws Exception {
+        if (deployer != null) {
+            deployer.close();
+        }
         server.stop(stopFuture);
     }
 
@@ -242,32 +281,60 @@ public class ControllerVerticle extends AbstractVerticle {
         }
     }
 
-    String startBenchmark(Benchmark benchmark, String description) {
-        List<AgentInfo> runAgents = new ArrayList<>();
-        if (benchmark.agents().length == 0) {
-            if (agents.isEmpty()) {
-                log.error("Cannot start benchmark, no agents available.");
-                return null;
-            } else if (agents.size() > 1) {
-                log.error("The benchmark defines no agents and multiple agents are registered!");
-                return null;
-            }
-            runAgents.add(agents.values().iterator().next());
-        } else {
-            for (Agent agent : benchmark.agents()) {
-                Optional<AgentInfo> opt = agents.values().stream().filter(a -> Objects.equals(a.name, agent.name)).findFirst();
-                if (opt.isPresent()) {
-                    runAgents.add(opt.get());
-                } else {
-                    log.error("Agent {} ({}:{}) not registered", agent.name, agent.hostname, agent.username);
-                    return null;
+    StartResult startBenchmark(Benchmark benchmark, String description) {
+        Set<String> activeAgents = new HashSet<>();
+        for (Run run : runs.values()) {
+            if (run.terminateTime == Long.MIN_VALUE) {
+                for (AgentInfo agent : run.agents) {
+                    activeAgents.add(agent.name);
                 }
             }
         }
+        for (Agent agent : benchmark.agents()) {
+            if (activeAgents.contains(agent.name)) {
+                return new StartResult(null, "Agent " + agent + " is already used; try starting the benchmark later");
+            }
+        }
 
-        Run run = new Run(String.format("%04X", runIds.getAndIncrement()), benchmark, runAgents);
+        String runId = String.format("%04X", runIds.getAndIncrement());
+        Run run = new Run(runId, benchmark);
         run.description = description;
         runs.put(run.id, run);
+
+        if (benchmark.agents().length == 0) {
+            if (vertx.isClustered()) {
+                return new StartResult(null, "Server is started in clustered mode; benchmarks must define agents.");
+            } else {
+                run.agents.add(new AgentInfo("in-vm"));
+                JsonObject config = new JsonObject().put("runId", runId).put("name", "in-vm");
+                vertx.deployVerticle(AgentVerticle.class, new DeploymentOptions().setConfig(config));
+            }
+        } else {
+            if (!vertx.isClustered()) {
+                return new StartResult(null, "Server is not started as clustered and does not accept benchmarks with agents defined.");
+            }
+            for (Agent agent : benchmark.agents()) {
+                AgentInfo agentInfo = new AgentInfo(agent.name);
+                run.agents.add(agentInfo);
+                log.debug("Starting agent {}", agent.name);
+                vertx.executeBlocking(future -> agentInfo.deployedAgent = deployer.start(agent, runId, exception -> {
+                    log.error("Failed to deploy agent {}", exception, agent.name);
+                    vertx.runOnContext(nil -> stopSimulation(run));
+                }), false, result -> {});
+            }
+        }
+
+        run.deployTimerId = vertx.setTimer(DEPLOY_TIMEOUT, id -> {
+            log.error("Deployment timed out.");
+            stopSimulation(run);
+        });
+
+        return new StartResult(run.id, null);
+    }
+
+    private void handleAgentsStarted(Run run) {
+        vertx.cancelTimer(run.deployTimerId);
+
         log.info("Starting benchmark {} - run {}", run.benchmark.name(), run.id);
 
         for (AgentInfo agent : run.agents) {
@@ -275,7 +342,7 @@ public class ControllerVerticle extends AbstractVerticle {
                 log.error("Already initializing {}, status is {}!", agent.address, agent.status);
             } else {
                 agent.status = AgentInfo.Status.INITIALIZING;
-                eb.send(agent.address, new AgentControlMessage(AgentControlMessage.Command.INITIALIZE, run.id, benchmark), reply -> {
+                eb.send(agent.address, new AgentControlMessage(AgentControlMessage.Command.INITIALIZE, run.benchmark), reply -> {
                     if (reply.succeeded()) {
                         agent.status = AgentInfo.Status.INITIALIZED;
                         if (run.agents.stream().allMatch(a -> a.status == AgentInfo.Status.INITIALIZED)) {
@@ -288,7 +355,6 @@ public class ControllerVerticle extends AbstractVerticle {
                 });
             }
         }
-        return run.id;
     }
 
     private void startSimulation(Run run) {
@@ -353,17 +419,26 @@ public class ControllerVerticle extends AbstractVerticle {
     private void stopSimulation(Run run) {
         run.terminateTime = System.currentTimeMillis();
         for (AgentInfo agent : run.agents) {
-            eb.send(agent.address, new AgentControlMessage(AgentControlMessage.Command.RESET, run.id, null), reply -> {
+            if (agent.address == null) {
+                assert agent.status == AgentInfo.Status.STARTING;
+                if (agent.deployedAgent != null) {
+                    agent.deployedAgent.stop();
+                }
+                continue;
+            }
+            eb.send(agent.address, new AgentControlMessage(AgentControlMessage.Command.STOP, null), reply -> {
                 if (reply.succeeded()) {
-                    agent.status = AgentInfo.Status.REGISTERED;
+                    agent.status = AgentInfo.Status.STOPPED;
                     if (run.agents.stream().allMatch(a -> a.status != AgentInfo.Status.INITIALIZED)) {
-                        run.agents.clear();
                         persistRun(run);
                         log.info("Run {} completed", run.id);
                     }
                 } else {
                     agent.status = AgentInfo.Status.FAILED;
                     log.error("Agent {} failed to stop", reply.cause(), agent.address);
+                }
+                if (agent.deployedAgent != null) {
+                    agent.deployedAgent.stop();
                 }
             });
         }
@@ -472,7 +547,7 @@ public class ControllerVerticle extends AbstractVerticle {
       AtomicInteger agentCounter = new AtomicInteger(1);
       for (AgentInfo agent : run.agents) {
          agentCounter.incrementAndGet();
-         eb.send(agent.address, new AgentControlMessage(command, run.id, param), result -> {
+         eb.send(agent.address, new AgentControlMessage(command, param), result -> {
             if (result.failed()) {
                log.error("Failed to retrieve sessions", result.cause());
                completionHandler.handle(Future.failedFuture(result.cause()));
@@ -487,5 +562,15 @@ public class ControllerVerticle extends AbstractVerticle {
       if (agentCounter.decrementAndGet() == 0) {
          completionHandler.handle(Future.succeededFuture());
       }
+   }
+
+   static class StartResult {
+      final String runId;
+      final String error;
+
+       StartResult(String runId, String error) {
+           this.runId = runId;
+           this.error = error;
+       }
    }
 }

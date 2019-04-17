@@ -36,6 +36,11 @@
 
         <dependency>
             <groupId>io.vertx</groupId>
+            <artifactId>vertx-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.vertx</groupId>
             <artifactId>vertx-web</artifactId>
         </dependency>
 
@@ -48,10 +53,23 @@
             <groupId>io.hyperfoil</groupId>
             <artifactId>hyperfoil-core</artifactId>
         </dependency>
+
         <dependency>
-            <groupId>io.vertx</groupId>
-            <artifactId>vertx-core</artifactId>
+            <groupId>org.kohsuke.metainf-services</groupId>
+            <artifactId>metainf-services</artifactId>
+            <optional>true</optional>
         </dependency>
+
+        <dependency>
+            <groupId>org.apache.sshd</groupId>
+            <artifactId>sshd-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.sshd</groupId>
+            <artifactId>sshd-scp</artifactId>
+        </dependency>
+
     </dependencies>
 
     <build>

@@ -20,7 +20,6 @@
 
 package io.hyperfoil.cli;
 
-import io.hyperfoil.cli.commands.Agents;
 import io.hyperfoil.cli.commands.Connect;
 import io.hyperfoil.cli.commands.Kill;
 import io.hyperfoil.cli.commands.Run;
@@ -90,7 +89,6 @@ public class HyperfoilCli {
                        .readInputrc(true)
                        .commandRegistry(
                                AeshCommandRegistryBuilder.<HyperfoilCommandInvocation>builder()
-                                       .command(Agents.class)
                                        .command(Connect.class)
                                        .command(ExitCommand.class)
                                        .command(Kill.class)
