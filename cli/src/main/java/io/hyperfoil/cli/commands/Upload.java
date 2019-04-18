@@ -31,6 +31,7 @@ public class Upload extends ServerCommand {
       try {
          benchmark = BenchmarkParser.instance().buildBenchmark(Util.toString(benchmarkResource.read()), new LocalBenchmarkData());
       } catch (ParserException e) {
+         invocation.println("ERROR: " + Util.explainCauses(e));
          throw new CommandException("Failed to parse the benchmark.", e);
       } catch (IOException e) {
          throw new CommandException("Failed to load the benchmark.", e);

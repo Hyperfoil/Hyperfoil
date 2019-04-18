@@ -179,18 +179,7 @@ class ControllerServer {
 
    private void respondParsingError(RoutingContext ctx, Exception e) {
       log.error("Failed to read benchmark", e);
-      StringBuilder causes = new StringBuilder();
-      Set<Throwable> reported = new HashSet<>();
-      Throwable last = e;
-      while (last != null && !reported.contains(last)) {
-         if (causes.length() != 0) {
-            causes.append(": ");
-         }
-         causes.append(last.getMessage());
-         reported.add(last);
-         last = last.getCause();
-      }
-      ctx.response().setStatusCode(400).end("Cannot read benchmark: " + causes);
+      ctx.response().setStatusCode(400).end("Cannot read benchmark: " + Util.explainCauses(e));
    }
 
    private void handleListBenchmarks(RoutingContext routingContext) {

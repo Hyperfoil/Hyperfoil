@@ -9,6 +9,8 @@ import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CoderResult;
 import java.nio.charset.StandardCharsets;
 import java.util.BitSet;
+import java.util.HashSet;
+import java.util.Set;
 
 import io.netty.buffer.ByteBuf;
 
@@ -83,6 +85,20 @@ public class Util {
             throw new IllegalStateException();
          }
       }
+   }
+
+   public static String explainCauses(Throwable e) {
+      StringBuilder causes = new StringBuilder();
+      Set<Throwable> reported = new HashSet<>();
+      while (e != null && !reported.contains(e)) {
+         if (causes.length() != 0) {
+            causes.append(": ");
+         }
+         causes.append(e.getMessage());
+         reported.add(e);
+         e = e.getCause();
+      }
+      return causes.toString();
    }
 
    private static class URLEncoding {
