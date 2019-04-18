@@ -1,8 +1,4 @@
 #!/bin/bash
 
-ROOT=$(dirname $0)/..
-CP=$(find $ROOT/lib $ROOT/extensions | tr '\n' ':')
-java $@ -cp $CP \
-   -Djava.net.preferIPv4Stack=true \
-   -Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.Log4j2LogDelegateFactory \
-   io.hyperfoil.cli.HyperfoilCli
+source $(dirname $0)/parse-opts.sh
+java $@ -cp $CP $JAVA_OPTS io.hyperfoil.cli.HyperfoilCli
