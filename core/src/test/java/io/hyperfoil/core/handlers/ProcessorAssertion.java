@@ -1,7 +1,7 @@
 package io.hyperfoil.core.handlers;
 
 import io.hyperfoil.api.connection.Request;
-import io.hyperfoil.api.http.Processor;
+import io.hyperfoil.api.connection.Processor;
 import io.netty.buffer.ByteBuf;
 import io.vertx.ext.unit.TestContext;
 
@@ -25,7 +25,7 @@ public class ProcessorAssertion {
    }
 
    private class Instance<T extends Request> extends Processor.BaseDelegating<T> {
-      protected Instance(io.hyperfoil.api.http.Processor<T> delegate) {
+      protected Instance(Processor<T> delegate) {
          super(delegate);
       }
 

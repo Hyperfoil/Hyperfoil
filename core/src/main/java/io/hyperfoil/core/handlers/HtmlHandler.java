@@ -14,7 +14,7 @@ import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.http.HttpMethod;
-import io.hyperfoil.api.http.Processor;
+import io.hyperfoil.api.connection.Processor;
 import io.hyperfoil.api.http.BodyHandler;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Action;

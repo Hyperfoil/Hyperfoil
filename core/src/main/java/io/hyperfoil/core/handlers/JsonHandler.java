@@ -9,7 +9,7 @@ import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.connection.Request;
-import io.hyperfoil.api.http.Processor;
+import io.hyperfoil.api.connection.Processor;
 import io.hyperfoil.core.steps.ServiceLoadedBuilderProvider;
 import io.netty.buffer.ByteBuf;
 import io.hyperfoil.api.http.BodyHandler;

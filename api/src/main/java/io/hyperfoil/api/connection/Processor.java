@@ -1,8 +1,7 @@
-package io.hyperfoil.api.http;
+package io.hyperfoil.api.connection;
 
 import java.io.Serializable;
 
-import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.netty.buffer.ByteBuf;
