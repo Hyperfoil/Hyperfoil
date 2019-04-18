@@ -36,6 +36,12 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>hyperfoil-clustering</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>org.kohsuke.metainf-services</groupId>
+            <artifactId>metainf-services</artifactId>
+            <optional>true</optional>
+        </dependency>
     </dependencies>
 
     <build>
@@ -45,10 +51,30 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <executions>
                     <execution>
+                        <id>compile</id>
                         <phase>compile</phase>
                         <goals>
                             <goal>compile</goal>
                         </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                        <configuration>
+                            <includes>
+                                <include>io/hyperfoil/example/**</include>
+                                <include>META-INF/**</include>
+                            </includes>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>

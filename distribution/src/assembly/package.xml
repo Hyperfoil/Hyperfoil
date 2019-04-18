@@ -13,6 +13,7 @@
         <mkdir dir="${dist.dir}/examples"/>
         <mkdir dir="${dist.dir}/bin"/>
         <mkdir dir="${dist.dir}/lib"/>
+        <mkdir dir="${dist.dir}/extensions"/>
 
         <copy-module module="api"/>
         <copy-module module="cli"/>
@@ -34,6 +35,12 @@
         <copy todir="${dist.dir}/examples" failonerror="true">
             <fileset dir="src/main/resources/examples">
                 <include name="**/*"/>
+            </fileset>
+        </copy>
+
+        <copy tofile="${dist.dir}/extensions/example-extension.jar" failonerror="true">
+            <fileset dir="target">
+                <include name="hyperfoil-distribution-*.jar"/>
             </fileset>
         </copy>
     </target>

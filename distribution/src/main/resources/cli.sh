@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ROOT=$(dirname $0)/..
-CP=$(find $ROOT/lib | tr '\n' ':')
+CP=$(find $ROOT/lib $ROOT/extensions | tr '\n' ':')
 java $@ -cp $CP \
    -Djava.net.preferIPv4Stack=true \
    -Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.Log4j2LogDelegateFactory \
