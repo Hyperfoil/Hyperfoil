@@ -26,12 +26,14 @@ import io.hyperfoil.core.steps.BreakSequenceStep;
 import io.hyperfoil.core.steps.ForeachStep;
 import io.hyperfoil.core.steps.HttpRequestStep;
 import io.hyperfoil.core.steps.JsonStep;
+import io.hyperfoil.core.steps.LogStep;
 import io.hyperfoil.core.steps.LoopStep;
 import io.hyperfoil.core.steps.PollStep;
 import io.hyperfoil.core.steps.PullSharedMapStep;
 import io.hyperfoil.core.steps.PushSharedMapStep;
 import io.hyperfoil.core.steps.ScheduleDelayStep;
 import io.hyperfoil.core.steps.ServiceLoadedBuilderProvider;
+import io.hyperfoil.core.steps.SetIntStep;
 import io.hyperfoil.core.steps.SetStep;
 import io.hyperfoil.core.steps.StopwatchBeginStep;
 import io.hyperfoil.core.steps.UnsetStep;
@@ -136,6 +138,10 @@ public class StepCatalog implements Step.Catalog {
       return new SetStep.Builder(parent);
    }
 
+   public SetIntStep.Builder setInt(String param) {
+      return new SetIntStep.Builder(parent, param);
+   }
+
    public BaseSequenceBuilder set(String param) {
       return new SetStep.Builder(parent, param).endStep();
    }
@@ -193,6 +199,12 @@ public class StepCatalog implements Step.Catalog {
 
    public PushSharedMapStep.Builder pushSharedMap() {
       return new PushSharedMapStep.Builder(parent);
+   }
+
+   // utility
+
+   public LogStep.Builder log(String message) {
+      return new LogStep.Builder(parent);
    }
 
    @MetaInfServices(StepCatalogFactory.class)
