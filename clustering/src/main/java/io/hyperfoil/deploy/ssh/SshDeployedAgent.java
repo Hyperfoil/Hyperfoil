@@ -36,10 +36,12 @@ public class SshDeployedAgent implements DeployedAgent {
    private static final Logger log = LoggerFactory.getLogger(SshDeployedAgent.class);
    private static final String PROMPT = "<_#%@_hyperfoil_@%#_>";
    private static final long TIMEOUT = 10000;
-   public static final String AGENTLIB_DIR = "/tmp/hyperfoil/agentlib";
+   public static final String AGENTLIB = "/agentlib";
 
    private final String name;
    private final String runId;
+   private final String dir;
+   private final String extras;
    private ClientSession session;
    private ChannelShell shellChannel;
    private Consumer<Throwable> exceptionHandler;
@@ -47,9 +49,11 @@ public class SshDeployedAgent implements DeployedAgent {
    private PrintStream commandStream;
    private BufferedReader reader;
 
-   public SshDeployedAgent(String name, String runId) {
+   public SshDeployedAgent(String name, String runId, String dir, String extras) {
       this.name = name;
       this.runId = runId;
+      this.dir = dir;
+      this.extras = extras;
    }
 
    @Override
@@ -131,7 +135,7 @@ public class SshDeployedAgent implements DeployedAgent {
       commandStream = new PrintStream(shellChannel.getInvertedIn());
       runCommand("unset PROMPT_COMMAND; export PS1='" + PROMPT + "'", true);
 
-      runCommand("mkdir -p " + AGENTLIB_DIR, true);
+      runCommand("mkdir -p " + dir + AGENTLIB, true);
 
       Map<String, String> remoteMd5 = getRemoteMd5();
       Map<String, String> localMd5 = getLocalMd5();
@@ -148,29 +152,32 @@ public class SshDeployedAgent implements DeployedAgent {
          if (!entry.getValue().equals(remoteChecksum)) {
             log.debug("MD5 mismatch {}/{}, copying {}", entry.getValue(), remoteChecksum, entry.getKey());
             try {
-               scpClient.upload(entry.getKey(), AGENTLIB_DIR + "/" + filename, ScpClient.Option.PreserveAttributes);
+               scpClient.upload(entry.getKey(), dir + AGENTLIB + "/" + filename, ScpClient.Option.PreserveAttributes);
             } catch (IOException e) {
                exceptionHandler.accept(e);
                return;
             }
          }
-         startAgentCommmand.append(AGENTLIB_DIR).append('/').append(filename).append(':');
+         startAgentCommmand.append(dir).append(AGENTLIB).append('/').append(filename).append(':');
       }
       if (!remoteMd5.isEmpty()) {
          StringBuilder rmCommand = new StringBuilder();
          // Drop those files that are not on classpath
          rmCommand.append("rm ");
          for (Map.Entry<String, String> entry : remoteMd5.entrySet()) {
-            rmCommand.append(' ' + AGENTLIB_DIR + '/' + entry.getKey());
+            rmCommand.append(' ' + dir + AGENTLIB + '/' + entry.getKey());
          }
          runCommand(rmCommand.toString(), true);
       }
 
-      startAgentCommmand.append(" -Djava.net.preferIPv4Stack=true ");
+      startAgentCommmand.append(" -Djava.net.preferIPv4Stack=true");
       startAgentCommmand.append(" -Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.Log4j2LogDelegateFactory");
       startAgentCommmand.append(" -D").append(Properties.AGENT_NAME).append('=').append(name);
       startAgentCommmand.append(" -D").append(Properties.RUN_ID).append('=').append(runId);
-      startAgentCommmand.append(" io.hyperfoil.Hyperfoil\\$Agent &> /tmp/hyperfoil/agent." + name + ".log");
+      if (extras != null) {
+         startAgentCommmand.append(" ").append(extras);
+      }
+      startAgentCommmand.append(" io.hyperfoil.Hyperfoil\\$Agent &> ").append(dir).append("agent.").append(name).append(".log");
       String startAgent = startAgentCommmand.toString();
       log.debug("Starting agent {}: {}", name, startAgent);
       runCommand(startAgent, false);
@@ -243,7 +250,7 @@ public class SshDeployedAgent implements DeployedAgent {
    }
 
    private Map<String, String> getRemoteMd5() {
-      List<String> lines = runCommand("md5sum " + AGENTLIB_DIR + "/*", true);
+      List<String> lines = runCommand("md5sum " + dir + AGENTLIB + "/*", true);
       Map<String, String> md5map = new HashMap<>();
       for (String line : lines) {
          if (line.endsWith("No such file or directory")) {

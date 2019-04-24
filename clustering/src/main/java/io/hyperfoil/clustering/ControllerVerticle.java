@@ -45,11 +45,11 @@ import java.util.function.BiConsumer;
 
 public class ControllerVerticle extends AbstractVerticle {
     private static final Logger log = LoggerFactory.getLogger(ControllerVerticle.class);
-    private static final Path ROOT_DIR = getConfiguredPath(Properties.ROOT_DIR, Paths.get(System.getProperty("java.io.tmpdir"), "hyperfoil"));
-    private static final Path RUN_DIR = getConfiguredPath(Properties.RUN_DIR, ROOT_DIR.resolve("run"));
-    private static final Path BENCHMARK_DIR = getConfiguredPath(Properties.BENCHMARK_DIR, ROOT_DIR.resolve("benchmark"));
-    private static final String DEPLOYER = System.getProperty(Properties.DEPLOYER, "ssh");
-    private static final long DEPLOY_TIMEOUT = Long.getLong(Properties.DEPLOY_TIMEOUT, 15000);
+    private static final Path ROOT_DIR = Properties.get(Properties.ROOT_DIR, Paths::get, Paths.get(System.getProperty("java.io.tmpdir"), "hyperfoil"));
+    private static final Path RUN_DIR = Properties.get(Properties.RUN_DIR, Paths::get, ROOT_DIR.resolve("run"));
+    private static final Path BENCHMARK_DIR = Properties.get(Properties.BENCHMARK_DIR, Paths::get, ROOT_DIR.resolve("benchmark"));
+    private static final String DEPLOYER = Properties.get(Properties.DEPLOYER, "ssh");
+    private static final long DEPLOY_TIMEOUT = Properties.getLong(Properties.DEPLOY_TIMEOUT, 15000);
 
     private EventBus eb;
     private ControllerServer server;
@@ -59,18 +59,6 @@ public class ControllerVerticle extends AbstractVerticle {
     private long timerId = -1;
 
     Map<String, Run> runs = new HashMap<>();
-
-    private static Path getConfiguredPath(String property, Path def) {
-        String path = System.getProperty(property);
-        if (path != null) {
-            return Paths.get(path);
-        }
-        path = System.getenv(property.replaceAll("\\.", "_").toUpperCase());
-        if (path != null) {
-            return Paths.get(path);
-        }
-        return def;
-    }
 
     @Override
     public void start(Future<Void> future) {

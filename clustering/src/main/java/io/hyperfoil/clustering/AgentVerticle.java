@@ -42,7 +42,7 @@ public class AgentVerticle extends AbstractVerticle {
         address = deploymentID();
         name = context.config().getString("name");
         if (name == null) {
-            name = System.getProperty(Properties.AGENT_NAME);
+            name = Properties.get(Properties.AGENT_NAME, null);
         }
         if (name == null) {
             try {
@@ -54,7 +54,7 @@ public class AgentVerticle extends AbstractVerticle {
         }
         runId = context.config().getString("runId");
         if (runId == null) {
-            runId = System.getProperty(Properties.RUN_ID);
+            runId = Properties.get(Properties.RUN_ID, null);
             if (runId == null) {
                 throw new IllegalStateException("No run ID defined for this agent.");
             }

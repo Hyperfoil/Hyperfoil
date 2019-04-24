@@ -50,8 +50,8 @@ class ControllerServer {
    private static final Set<String> MIME_TYPE_YAML = new HashSet<>(
          Arrays.asList("text/vnd.yaml", "text/yaml", "text/x-yaml", "application/x-yaml"));
 
-   private static final String CONTROLLER_HOST = System.getProperty(Properties.CONTROLLER_HOST, "localhost");
-   private static final int CONTROLLER_PORT = Integer.parseInt(System.getProperty(Properties.CONTROLLER_PORT, "8090"));
+   private static final String CONTROLLER_HOST = Properties.get(Properties.CONTROLLER_HOST, "localhost");
+   private static final int CONTROLLER_PORT = Properties.getInt(Properties.CONTROLLER_PORT, 8090);
    private static final String BASE_URL = "http://" + CONTROLLER_HOST + ":" + CONTROLLER_PORT;
 
    private final ControllerVerticle controller;

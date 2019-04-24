@@ -1,6 +1,8 @@
 package io.hyperfoil.deploy.ssh;
 
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.function.Consumer;
 
 import org.apache.sshd.client.SshClient;
@@ -11,6 +13,7 @@ import io.hyperfoil.api.config.Agent;
 import io.hyperfoil.api.deployment.DeployedAgent;
 import io.hyperfoil.api.deployment.Deployer;
 import io.hyperfoil.api.deployment.DeploymentException;
+import io.hyperfoil.clustering.Properties;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
@@ -29,6 +32,7 @@ public class SshDeployer implements Deployer {
    public DeployedAgent start(Agent agent, String runId, Consumer<Throwable> exceptionHandler) {
       String hostname = null, username = null;
       int port = -1;
+      String dir = null, extras = null;
       if (agent.inlineConfig != null) {
          int atIndex = agent.inlineConfig.indexOf('@');
          int colonIndex = agent.inlineConfig.lastIndexOf(':');
@@ -47,6 +51,8 @@ public class SshDeployer implements Deployer {
                log.error("Failed to parse port number for " + agent.name + ": " + portString);
             }
          }
+         dir = agent.properties.get("dir");
+         extras = agent.properties.get("extras");
       }
       if (hostname == null) {
          hostname = agent.name;
@@ -57,8 +63,12 @@ public class SshDeployer implements Deployer {
       if (username == null) {
          username = System.getProperty("user.name");
       }
+      if (dir == null) {
+         Path defaultRoot = Paths.get(System.getProperty("java.io.tmpdir"), "hyperfoil");
+         dir = Properties.get(Properties.ROOT_DIR, Paths::get, defaultRoot).toString();
+      }
       try {
-         SshDeployedAgent deployedAgent = new SshDeployedAgent(agent.name, runId);
+         SshDeployedAgent deployedAgent = new SshDeployedAgent(agent.name, runId, dir, extras);
          ConnectFuture connect = client.connect(username, hostname, port).verify(15000);
          deployedAgent.deploy(connect.getSession(), exceptionHandler);
          return deployedAgent;
