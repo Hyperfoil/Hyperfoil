@@ -76,7 +76,7 @@ class ControllerServer {
       router.get("/run/:runid/stats/recent").handler(this::handleRecentStats);
       router.get("/run/:runid/stats/total").handler(this::handleTotalStats);
 
-      httpServer = controller.getVertx().createHttpServer().requestHandler(router::accept).listen(CONTROLLER_PORT);
+      httpServer = controller.getVertx().createHttpServer().requestHandler(router).listen(CONTROLLER_PORT);
    }
 
    void stop(Future<Void> stopFuture) {

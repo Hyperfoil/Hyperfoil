@@ -509,10 +509,10 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
       }
    }
 
-   private static class ResourceUtilizingStep<A extends Action & ResourceUtilizer> implements Step, ResourceUtilizer {
-      private final A action;
+   private static class ResourceUtilizingStep implements Step, ResourceUtilizer {
+      private final Action action;
 
-      public ResourceUtilizingStep(A action) {
+      public ResourceUtilizingStep(Action action) {
          this.action = action;
       }
 
@@ -524,7 +524,9 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
 
       @Override
       public void reserve(Session session) {
-         action.reserve(session);
+         if (action instanceof ResourceUtilizer) {
+            ((ResourceUtilizer) action).reserve(session);
+         }
       }
    }
 

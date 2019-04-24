@@ -102,6 +102,7 @@ public class Statistics {
       }
    }
 
+   @SuppressWarnings("unchecked")
    public <T extends CustomValue> T getCustom(String key, Supplier<T> identitySupplier) {
       long criticalValueAtEnter = recordingPhaser.writerCriticalSectionEnter();
       try {

@@ -179,12 +179,14 @@ public class SharedDataImpl implements SharedData {
       private Access[] indices;
       private Function<Object, Positions> acquirePosition = ignored -> acquirePosition();
 
+      @SuppressWarnings("unchecked")
       IndexedSharedMapSet(Access index, int entries) {
          super(entries);
          this.indices = new Access[] { index };
          this.positions = new Map[] { new HashMap<>() };
       }
 
+      @SuppressWarnings("unchecked")
       IndexedSharedMapSet(SharedMapSet set, Access index, int entries) {
          super(set, entries);
          this.indices = new Access[] { index };

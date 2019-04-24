@@ -517,7 +517,9 @@ public class ControllerVerticle extends AbstractVerticle {
 
    public void listSessions(Run run, boolean includeInactive, BiConsumer<AgentInfo, String> sessionStateHandler, Handler<AsyncResult<Void>> completionHandler) {
       invokeOnAgents(run, AgentControlMessage.Command.LIST_SESSIONS, includeInactive, completionHandler, (agent, result) -> {
-         for (String state : (List<String>) result.result().body()) {
+          @SuppressWarnings("unchecked")
+          List<String> sessions = (List<String>) result.result().body();
+          for (String state : sessions) {
             sessionStateHandler.accept(agent, state);
          }
       });
@@ -525,7 +527,9 @@ public class ControllerVerticle extends AbstractVerticle {
 
    public void listConnections(Run run, BiConsumer<AgentInfo, String> connectionHandler, Handler<AsyncResult<Void>> completionHandler) {
      invokeOnAgents(run, AgentControlMessage.Command.LIST_CONNECTIONS, null, completionHandler, (agent, result) -> {
-        for (String state : (List<String>) result.result().body()) {
+         @SuppressWarnings("unchecked")
+         List<String> connections = (List<String>) result.result().body();
+         for (String state : connections) {
            connectionHandler.accept(agent, state);
         }
      });

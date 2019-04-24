@@ -20,6 +20,7 @@ public class SessionStatistics implements Iterable<Statistics> {
    private Map<String, Statistics>[] maps;
    private int size;
 
+   @SuppressWarnings("unchecked")
    public SessionStatistics() {
       phases = new Phase[4];
       stepIds = new int[4];

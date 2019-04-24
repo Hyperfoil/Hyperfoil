@@ -82,6 +82,7 @@ public class ServiceLoadedBuilderProvider<B, BF extends ServiceLoadedFactory<B>>
    }
 
    public ServiceLoadedContract<B> forName(String name, String param) {
+      @SuppressWarnings("unchecked")
       ServiceLoadedFactory<B> factory = factory((Class) factoryClazz, name);
       if (param != null && !factory.acceptsParam()) {
          throw new BenchmarkDefinitionException(factory.name() + " does not accept inline parameter");

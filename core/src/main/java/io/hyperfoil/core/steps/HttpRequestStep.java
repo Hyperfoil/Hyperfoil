@@ -412,6 +412,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
                throw new BenchmarkDefinitionException(String.format("%s to <default route>/%s is invalid - no HTTP configuration defined.", method, this.baseUrl, guessedPath));
             }
          }
+         @SuppressWarnings("unchecked")
          SerializableBiConsumer<Session, HttpRequestWriter>[] headerAppenders =
                this.headerAppenders.isEmpty() ? null : this.headerAppenders.toArray(new SerializableBiConsumer[0]);
 
@@ -581,6 +582,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
          return input;
       }
 
+      @SuppressWarnings("unchecked")
       @Override
       public SerializableBiFunction<Session, Connection, ByteBuf> build() {
          return new FormGenerator(inputs.stream().map(FormInputBuilder::build).toArray(SerializableBiConsumer[]::new));

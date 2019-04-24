@@ -92,7 +92,7 @@ public class SimulationRunnerImpl implements SimulationRunner {
         for (Map.Entry<String, HttpClientPool> entry : httpClientPools.entrySet()) {
             // default client pool is initialized by name
             if (entry.getKey() != null) {
-                Future f = Future.future();
+                Future<Void> f = Future.future();
                 futures.add(f);
                 entry.getValue().start(f);
             }

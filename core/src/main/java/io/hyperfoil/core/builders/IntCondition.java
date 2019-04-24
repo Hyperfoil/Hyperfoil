@@ -69,6 +69,7 @@ public class IntCondition implements SerializablePredicate<Session> {
          return p1 == null ? p2 : (p2 == null ? null : x -> p1.test(x) && p2.test(x));
       }
 
+      @SuppressWarnings("unchecked")
       private B self() {
          return (B) this;
       }

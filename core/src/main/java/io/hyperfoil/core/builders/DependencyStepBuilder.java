@@ -14,6 +14,7 @@ public abstract class DependencyStepBuilder<S extends DependencyStepBuilder<S>> 
       super(parent);
    }
 
+   @SuppressWarnings("unchecked")
    public S dependency(String var) {
       if (var != null) {
          dependencies.add(SessionFactory.access(var));

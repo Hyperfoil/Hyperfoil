@@ -107,6 +107,7 @@ public class ObjectCodec<T> implements MessageCodec<T, T> {
     }
 
     public static class ArrayList extends ObjectCodec<java.util.ArrayList> {
+       @SuppressWarnings("unchecked")
        @Override
        public java.util.ArrayList transform(java.util.ArrayList object) {
           return new java.util.ArrayList(object);

@@ -176,6 +176,7 @@ public class StatisticsStore {
             SessionPoolStats sps = entry.getValue();
             writer.println("Timestamp,Address,MinSessions,MaxSessions");
             String[] addresses = new String[sps.records.size()];
+            @SuppressWarnings("unchecked")
             Iterator<SessionPoolRecord>[] iterators = new Iterator[sps.records.size()];
             int counter = 0;
             for (Map.Entry<String, List<SessionPoolRecord>> byAddress : sps.records.entrySet()) {

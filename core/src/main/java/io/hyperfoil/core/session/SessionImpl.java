@@ -169,6 +169,7 @@ class SessionImpl implements Session, Callable<Void> {
       return (R) resources.get(key);
    }
 
+   @SuppressWarnings("unchecked")
    public <V extends Var> V getVar(Object key) {
       Var var = vars.get(key);
       if (var == null) {
@@ -177,6 +178,7 @@ class SessionImpl implements Session, Callable<Void> {
       return (V) var;
    }
 
+   @SuppressWarnings("unchecked")
    private <V extends Var> V requireSet(Object key) {
       Var var = vars.get(key);
       if (var == null) {

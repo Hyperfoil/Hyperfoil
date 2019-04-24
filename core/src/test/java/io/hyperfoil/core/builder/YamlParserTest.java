@@ -91,7 +91,7 @@ public class YamlParserTest {
         Phase phase = benchmark.phases().stream()
               .filter(p -> p.name().equals(name)).findFirst().get();
         assertThat(phase).isInstanceOf(type);
-        return (T) phase;
+        return type.cast(phase);
     }
 
    @Test
@@ -161,7 +161,7 @@ public class YamlParserTest {
       while (iterator.hasNext()) {
          Step step = iterator.next();
          if (stepClass.isInstance(step)) {
-            return (T) step;
+            return stepClass.cast(step);
          }
       }
       throw new NoSuchElementException();

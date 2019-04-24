@@ -203,15 +203,7 @@ public class Generator {
       }
       if (ServiceLoadedBuilderProvider.class.isAssignableFrom(m.getReturnType())) {
          ParameterizedType type = (ParameterizedType) m.getAnnotatedReturnType().getType();
-         Type builderFactory = type.getActualTypeArguments()[1];
-         Class<? extends ServiceLoadedFactory<?>> bfClass;
-         if (builderFactory instanceof Class) {
-            bfClass = (Class<? extends ServiceLoadedFactory<?>>) builderFactory;
-         } else if (builderFactory instanceof ParameterizedType){
-            bfClass = (Class<? extends ServiceLoadedFactory<?>>) ((ParameterizedType) builderFactory).getRawType();
-         } else {
-            throw new IllegalStateException("Cannot analyze factory type " + builderFactory);
-         }
+         Class<? extends ServiceLoadedFactory<?>> bfClass = getBuilderFactoryClass(type.getActualTypeArguments()[1]);
          options.add(getServiceLoadedImplementations(bfClass));
       }
       if (m.getReturnType().getName().endsWith("Builder")) {
@@ -227,6 +219,19 @@ public class Generator {
       } else {
          return new JsonObject().put("oneOf", new JsonArray(options));
       }
+   }
+
+   @SuppressWarnings("unchecked")
+   private Class<? extends ServiceLoadedFactory<?>> getBuilderFactoryClass(Type builderFactory) {
+      Class<? extends ServiceLoadedFactory<?>> bfClass;
+      if (builderFactory instanceof Class) {
+         bfClass = (Class<? extends ServiceLoadedFactory<?>>) builderFactory;
+      } else if (builderFactory instanceof ParameterizedType){
+         bfClass = (Class<? extends ServiceLoadedFactory<?>>) ((ParameterizedType) builderFactory).getRawType();
+      } else {
+         throw new IllegalStateException("Cannot analyze factory type " + builderFactory);
+      }
+      return bfClass;
    }
 
    private JsonObject getType(Method m) {

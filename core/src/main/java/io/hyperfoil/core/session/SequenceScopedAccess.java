@@ -99,6 +99,7 @@ class SequenceScopedAccess implements Access {
       }
    }
 
+   @SuppressWarnings("unchecked")
    @Override
    public <V extends Session.Var> V getVar(Session session) {
       Object o = getItem(session);

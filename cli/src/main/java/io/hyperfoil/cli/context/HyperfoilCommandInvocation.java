@@ -110,6 +110,7 @@ public class HyperfoilCommandInvocation implements CommandInvocation {
         commandInvocation.println(msg, paging);
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public Executor<? extends CommandInvocation> buildExecutor(String line) throws CommandNotFoundException,
             CommandLineParserException, OptionValidatorException, CommandValidatorException, IOException {
