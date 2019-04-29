@@ -11,4 +11,11 @@ public interface PairBuilder<V> extends BiConsumer<String, V> {
          return String.class;
       }
    }
+
+   abstract class OfDouble implements PairBuilder<Double> {
+      @Override
+      public Class<Double> valueType() {
+         return double.class;
+      }
+   }
 }

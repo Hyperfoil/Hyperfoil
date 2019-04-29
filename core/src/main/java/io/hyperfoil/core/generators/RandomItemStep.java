@@ -7,14 +7,18 @@ import java.io.InputStreamReader;
 import java.lang.reflect.Array;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.ListBuilder;
+import io.hyperfoil.api.config.PairBuilder;
 import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.session.Access;
@@ -28,11 +32,13 @@ import io.hyperfoil.function.SerializableSupplier;
 
 public class RandomItemStep implements Step, ResourceUtilizer {
    private final Access fromVar;
+   private final double[] cummulativeProbs;
    private final String[] list;
    private final Access var;
 
-   public RandomItemStep(String fromVar, String[] list, String var) {
+   public RandomItemStep(String fromVar, double[] cummulativeProbs, String[] list, String var) {
       this.fromVar = SessionFactory.access(fromVar);
+      this.cummulativeProbs = cummulativeProbs;
       this.list = list;
       this.var = SessionFactory.access(var);
    }
@@ -42,8 +48,19 @@ public class RandomItemStep implements Step, ResourceUtilizer {
       ThreadLocalRandom random = ThreadLocalRandom.current();
       Object item;
       if (list != null) {
-         item = list[random.nextInt(list.length)];
+         int index;
+         if (cummulativeProbs != null) {
+            assert cummulativeProbs.length == list.length - 1;
+            index = Arrays.binarySearch(cummulativeProbs, random.nextDouble());
+            if (index < 0) {
+               index = -index - 1;
+            }
+         } else {
+            index = random.nextInt(list.length);
+         }
+         item = list[index];
       } else {
+         assert cummulativeProbs == null;
          Object data = fromVar.getObject(session);
          Object element;
          if (data instanceof ObjectVar[]) {
@@ -91,6 +108,7 @@ public class RandomItemStep implements Step, ResourceUtilizer {
    public static class Builder extends BaseStepBuilder {
       private String fromVar;
       private List<String> list = new ArrayList<>();
+      private Map<String, Double> weighted = new HashMap<>();
       private String file;
       private String var;
 
@@ -100,14 +118,13 @@ public class RandomItemStep implements Step, ResourceUtilizer {
 
       @Override
       public List<Step> build(SerializableSupplier<Sequence> sequence) {
-         if (fromVar != null && (!list.isEmpty() || file != null)) {
+         if (fromVar != null && (!list.isEmpty() || !weighted.isEmpty() || file != null)) {
             throw new BenchmarkDefinitionException("randomItem cannot combine `fromVar` and `list` or `file`");
-         } else if (!list.isEmpty() && file != null) {
+         } else if (file != null && !(list.isEmpty() && weighted.isEmpty())) {
             throw new BenchmarkDefinitionException("randomItem cannot combine `list` and `file`");
          }
-         List<String> list = this.list;
+         List<String> list = new ArrayList<>(this.list);
          if (file != null) {
-            list = new ArrayList<>();
             try (InputStream inputStream = endStep().endSequence().endScenario().endPhase().data().readFile(file)) {
                if (inputStream == null) {
                   throw new BenchmarkDefinitionException("Cannot load file `" + file + "` for randomItem (not found).");
@@ -124,10 +141,29 @@ public class RandomItemStep implements Step, ResourceUtilizer {
                throw new BenchmarkDefinitionException("Cannot load file `" + file + "` for randomItem.", e);
             }
          }
+         double[] cummulativeProbs = null;
+         if (!weighted.isEmpty()) {
+            if (!list.isEmpty()) {
+               throw new BenchmarkDefinitionException("Cannot combine weighted and not-weighted items.");
+            }
+            cummulativeProbs = new double[weighted.size() - 1];
+            double normalizer = weighted.values().stream().mapToDouble(Double::doubleValue).sum();
+            double acc = 0;
+            int i = 0;
+            for (Map.Entry<String, Double> entry : weighted.entrySet()) {
+               acc += entry.getValue() / normalizer;
+               if (i < weighted.size() - 1) {
+                  cummulativeProbs[i++] = acc;
+               } else {
+                  assert acc > 0.999 && acc <= 1.001;
+               }
+               list.add(entry.getKey());
+            }
+         }
          if (fromVar == null && list.isEmpty()) {
             throw new BenchmarkDefinitionException("randomItem has empty list and `fromVar` was not defined.");
          }
-         return Collections.singletonList(new RandomItemStep(fromVar, list.isEmpty() ? null : list.toArray(new String[0]), var));
+         return Collections.singletonList(new RandomItemStep(fromVar, cummulativeProbs, list.isEmpty() ? null : list.toArray(new String[0]), var));
       }
 
       public Builder fromVar(String fromVar) {
@@ -135,8 +171,8 @@ public class RandomItemStep implements Step, ResourceUtilizer {
          return this;
       }
 
-      public ListBuilder list() {
-         return list::add;
+      public ItemBuilder list() {
+         return new ItemBuilder();
       }
 
       public Builder var(String var) {
@@ -147,6 +183,20 @@ public class RandomItemStep implements Step, ResourceUtilizer {
       public Builder file(String file) {
          this.file = file;
          return this;
+      }
+
+      public class ItemBuilder extends PairBuilder.OfDouble implements ListBuilder {
+         @Override
+         public void nextItem(String item) {
+            list.add(item);
+         }
+
+         @Override
+         public void accept(String item, Double weight) {
+            if (weighted.putIfAbsent(item, weight) != null) {
+               throw new BenchmarkDefinitionException("Duplicate item '" + item + "' in randomItem step!");
+            }
+         }
       }
    }
 }
