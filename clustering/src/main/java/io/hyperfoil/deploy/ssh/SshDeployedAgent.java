@@ -36,6 +36,7 @@ public class SshDeployedAgent implements DeployedAgent {
    private static final Logger log = LoggerFactory.getLogger(SshDeployedAgent.class);
    private static final String PROMPT = "<_#%@_hyperfoil_@%#_>";
    private static final long TIMEOUT = 10000;
+   private static final int DEBUG_PORT = Properties.getInt(Properties.AGENT_DEBUG_PORT, -1);
    public static final String AGENTLIB = "/agentlib";
 
    private final String name;
@@ -174,6 +175,9 @@ public class SshDeployedAgent implements DeployedAgent {
       startAgentCommmand.append(" -Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.Log4j2LogDelegateFactory");
       startAgentCommmand.append(" -D").append(Properties.AGENT_NAME).append('=').append(name);
       startAgentCommmand.append(" -D").append(Properties.RUN_ID).append('=').append(runId);
+      if (DEBUG_PORT > 0) {
+         startAgentCommmand.append(" -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=").append(DEBUG_PORT);
+      }
       if (extras != null) {
          startAgentCommmand.append(" ").append(extras);
       }

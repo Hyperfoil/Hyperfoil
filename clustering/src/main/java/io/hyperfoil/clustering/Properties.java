@@ -13,6 +13,7 @@ public interface Properties {
    String DEPLOYER = "io.hyperfoil.deployer";
    String DEPLOY_TIMEOUT = "io.hyperfoil.deploy.timeout";
    String RUN_ID = "io.hyperfoil.runid";
+   String AGENT_DEBUG_PORT = "io.hyperfoil.agent.debug.port";
 
    static String get(String property, String def) {
       return get(property, Function.identity(), def);
