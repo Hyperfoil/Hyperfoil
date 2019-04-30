@@ -503,10 +503,11 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
       public PartialHeadersBuilder var(String var) {
          Access access = SessionFactory.access(var);
+         String myHeader = header;
          parent.headerAppenders.add((session, writer) -> {
             Object value = access.getObject(session);
             if (value instanceof CharSequence) {
-               writer.putHeader(header, (CharSequence) value);
+               writer.putHeader(myHeader, (CharSequence) value);
             } else {
                log.error("#{} Cannot convert variable {}: {} to CharSequence", session.uniqueId(), access, value);
             }
