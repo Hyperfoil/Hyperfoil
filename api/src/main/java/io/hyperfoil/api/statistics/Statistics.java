@@ -5,11 +5,15 @@ import java.util.function.Supplier;
 import org.HdrHistogram.SingleWriterRecorder;
 import org.HdrHistogram.WriterReaderPhaser;
 
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
+
 /**
  * This is a copy/subset of {@link SingleWriterRecorder} but uses {@link StatisticsSnapshot} instead of only
  * the histogram.
  */
 public class Statistics {
+   private static final Logger log = LoggerFactory.getLogger(Statistics.class);
    private final WriterReaderPhaser recordingPhaser = new WriterReaderPhaser();
 
    private volatile StatisticsSnapshot active;
@@ -23,6 +27,12 @@ public class Statistics {
    }
 
    public void recordResponse(long sendTime, long responseTime) {
+      long highestTrackableValue = active.histogram.getHighestTrackableValue();
+      if (responseTime > highestTrackableValue) {
+         // we don't use auto-resize histograms
+         log.warn("Response time {} exceeded maximum trackable response time {}", responseTime, highestTrackableValue);
+         responseTime = highestTrackableValue;
+      }
       long criticalValueAtEnter = recordingPhaser.writerCriticalSectionEnter();
       try {
          active.histogram.recordValue(responseTime);
