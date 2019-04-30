@@ -17,7 +17,7 @@ phases:
       duration: 3s
       # Forks don't have its own hierarchy, these just split the users into new phases. For
       forks:
-      - foo: &foo
+        foo: &foo
           weight: 0.2
           scenario:
             initialSequences:
@@ -25,7 +25,7 @@ phases:
               - thinkTime:
                  duration: 1s
               # TODO
-      - bar: &bar
+        bar: &bar
           weight: 0.8
           scenario:
             initialSequences:
@@ -45,5 +45,5 @@ phases:
         iteration: same
       duration: 6s
       forks:
-      - foo: *foo
-      - bar: *bar
+        foo: *foo
+        bar: *bar

@@ -1,8 +1,10 @@
 package io.hyperfoil.core.parser;
 
+import org.yaml.snakeyaml.events.Event;
 import org.yaml.snakeyaml.events.MappingEndEvent;
 import org.yaml.snakeyaml.events.MappingStartEvent;
 import org.yaml.snakeyaml.events.ScalarEvent;
+import org.yaml.snakeyaml.events.SequenceStartEvent;
 
 import io.hyperfoil.api.config.PhaseBuilder;
 import io.hyperfoil.api.config.PhaseForkBuilder;
@@ -18,7 +20,12 @@ import io.hyperfoil.api.config.PhaseForkBuilder;
 class PhaseForkParser implements Parser<PhaseBuilder> {
    @Override
    public void parse(Context ctx, PhaseBuilder target) throws ParserException {
-      ctx.parseList(target, this::parseFork);
+      Event event = ctx.peek();
+      if (event instanceof SequenceStartEvent) {
+         ctx.parseList(target, this::parseFork);
+      } else if (event instanceof MappingStartEvent) {
+         ctx.parseMapping(target, ForkBuilderParser::new);
+      }
    }
 
    private void parseFork(Context ctx, PhaseBuilder phaseBuilder) throws ParserException {
@@ -36,6 +43,22 @@ class PhaseForkParser implements Parser<PhaseBuilder> {
       ForkParser() {
          register("weight", new PropertyParser.Double<>(PhaseForkBuilder::weight));
          register("scenario", new Adapter<>(PhaseForkBuilder::scenario, new ScenarioParser()));
+      }
+   }
+
+   static class ForkBuilderParser implements Parser<PhaseBuilder> {
+      private final PhaseBuilder phaseBuilder;
+      private final ScalarEvent forkNameEvent;
+
+      ForkBuilderParser(PhaseBuilder phaseBuilder, ScalarEvent forkNameEvent) {
+         this.phaseBuilder = phaseBuilder;
+         this.forkNameEvent = forkNameEvent;
+      }
+
+      @Override
+      public void parse(Context ctx, PhaseBuilder target) throws ParserException {
+         PhaseForkBuilder forkBuilder = phaseBuilder.fork(forkNameEvent.getValue());
+         ctx.parseAliased(PhaseForkBuilder.class, forkBuilder, ForkParser.INSTANCE);
       }
    }
 }

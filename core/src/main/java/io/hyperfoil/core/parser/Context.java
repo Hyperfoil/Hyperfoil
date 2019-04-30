@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 
 import org.yaml.snakeyaml.events.AliasEvent;
 import org.yaml.snakeyaml.events.Event;
+import org.yaml.snakeyaml.events.MappingEndEvent;
 import org.yaml.snakeyaml.events.MappingStartEvent;
 import org.yaml.snakeyaml.events.ScalarEvent;
 import org.yaml.snakeyaml.events.SequenceEndEvent;
@@ -171,6 +172,24 @@ class Context {
       }
    }
 
+   <S> void parseMapping(S target, BuilderProvider<S> builderProvider) throws ParserException {
+      expectEvent(MappingStartEvent.class);
+      while (hasNext()) {
+         Event next = next();
+         if (MappingEndEvent.class.isInstance(next)) {
+            return;
+         } else if (next instanceof ScalarEvent) {
+            ScalarEvent event = (ScalarEvent) next;
+            Parser<S> builder = builderProvider.apply(target, event);
+            builder.parse(this, target);
+         } else {
+            throw unexpectedEvent(next);
+         }
+      }
+      throw noMoreEvents(MappingEndEvent.class);
+   }
+
+
    void pushVar(Object var) {
       vars.push(var);
    }
@@ -193,6 +212,11 @@ class Context {
       @SuppressWarnings("unchecked")
       T peeked = (T) top;
       return peeked;
+   }
+
+   @FunctionalInterface
+   public interface BuilderProvider<S> {
+       Parser<S> apply(S target, ScalarEvent event) throws ParserException;
    }
 
    private static class Anchor {

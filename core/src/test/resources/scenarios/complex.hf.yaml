@@ -14,7 +14,7 @@ phases:
       targetUsersPerSec: 100
       duration: 3s
       forks:
-      - invalidRegistration: &invalidRegistration
+        invalidRegistration: &invalidRegistration
           weight: 0.2
           scenario:
             initialSequences:
@@ -22,7 +22,7 @@ phases:
               - thinkTime:
                  duration: 1s
               # TODO
-      - validRegistration: &validRegistration
+        validRegistration: &validRegistration
           weight: 0.8
           scenario:
             initialSequences:
@@ -30,7 +30,7 @@ phases:
               - thinkTime:
                  duration: 1s
               # TODO
-      - unregister: &unregister
+        unregister: &unregister
           weight: 0.1
           scenario:
             # ordered sequences is just a syntax-sugar, this has no counterpart in programmatic configuration
@@ -42,7 +42,7 @@ phases:
             - unregister: &unregisterSeq
               - thinkTime:
                  duration: 1s
-      - viewUser: &viewUser
+        viewUser: &viewUser
           weight: 1
           scenario:
             orderedSequences:
@@ -61,10 +61,10 @@ phases:
       startAfter: rampUp
       duration: 6s
       forks:
-      - invalidRegistration: *invalidRegistration
-      - validRegistration: *validRegistration
-      - unregister: *unregister
-      - viewUser: *viewUser
+        invalidRegistration: *invalidRegistration
+        validRegistration: *validRegistration
+        unregister: *unregister
+        viewUser: *viewUser
 
 #  sequences:
 #    - registerInvalid:

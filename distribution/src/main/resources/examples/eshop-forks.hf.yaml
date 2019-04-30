@@ -19,13 +19,13 @@ phases:
         phase: steadyState
         iteration: previous
       forks:
-      - browsingUser:
+        browsingUser:
           weight: 2
           scenario: &browsingUser
           - browse:
             - httpRequest:
                 GET: /items
-      - buyingUser:
+        buyingUser:
           weight: 1
           scenario: &buyingUser
           - browse:
@@ -54,10 +54,10 @@ phases:
         phase: rampUp
         iteration: same
       forks:
-      - browsingUser:
+        browsingUser:
           weight: 2
           scenario: *browsingUser
-      - buyingUser:
+        buyingUser:
           weight: 1
           scenario: *buyingUser
 # Operator phase is omitted for brevity as we wouldn't scale that up

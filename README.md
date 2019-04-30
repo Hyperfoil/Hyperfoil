@@ -219,11 +219,11 @@ phases:
       usersPerSec: 30
       duration: 5m
       forks:
-      - sellShares:
+        sellShares:
           # This phase will start 10 users per second
           weight: 1
           scenario: ...
-      - buyShares:
+        buyShares:
           # This phase will start 20 users per second
           weight: 2
           scenario: ...
@@ -397,16 +397,16 @@ phases:
     rampPerSec:
       ...
       forks:
-      - sellShares: &sellShares
+        sellShares: &sellShares
           weight: 1
           scenario: ...
-      - buyShares: &buyShares
+        buyShares: &buyShares
           weight: 2
           scenario: ...
 - steadyState:
     constantPerSec:
       ...
       forks:
-      - sellShares: *sellShares
-      - buyShares: *buyShares
+        sellShares: *sellShares
+        buyShares: *buyShares
 ```

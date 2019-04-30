@@ -21,36 +21,26 @@ package io.hyperfoil.core.parser;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.yaml.snakeyaml.events.Event;
-import org.yaml.snakeyaml.events.MappingEndEvent;
-import org.yaml.snakeyaml.events.MappingStartEvent;
 import org.yaml.snakeyaml.events.ScalarEvent;
 
 abstract class AbstractParser<T, S> implements Parser<T> {
     Map<String, Parser<S>> subBuilders = new HashMap<>();
 
     void callSubBuilders(Context ctx, S target) throws ParserException {
-        ctx.expectEvent(MappingStartEvent.class);
-        while (ctx.hasNext()) {
-            Event next = ctx.next();
-            if (MappingEndEvent.class.isInstance(next)) {
-                return;
-            } else if (next instanceof ScalarEvent) {
-                ScalarEvent event = (ScalarEvent) next;
-                Parser<S> builder = subBuilders.get(event.getValue());
-                if (builder == null) {
-                    throw new ParserException(event, "Invalid configuration label: '" + event.getValue() + "', expected one of " + subBuilders.keySet());
-                }
-                builder.parse(ctx, target);
-            } else {
-                throw ctx.unexpectedEvent(next);
-            }
+        ctx.parseMapping(target, this::getSubBuilder);
+    }
+
+    private Parser<S> getSubBuilder(S target, ScalarEvent event) throws ParserException {
+        Parser<S> builder = subBuilders.get(event.getValue());
+        if (builder == null) {
+            throw new ParserException(event, "Invalid configuration label: '" + event.getValue() + "', expected one of " + subBuilders.keySet());
         }
-        throw ctx.noMoreEvents(MappingEndEvent.class);
+        return builder;
     }
 
     protected void register(String property, Parser<S> parser) {
         Parser<S> prev = subBuilders.put(property, parser);
         assert prev == null;
     }
+
 }

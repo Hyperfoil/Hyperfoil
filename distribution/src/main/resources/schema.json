@@ -324,24 +324,36 @@
         "scenario": { "$ref" : "#/definitions/scenario" },
         "forks": {
           "description": "Concurrent sub-phases sharing the limits and users arrivals.",
-          "type" : "array",
-          "minItems": 1,
-          "additionalItems": false,
-          "items": {
-            "type": "object",
-            "minProperties": 1,
-            "maxProperties": 1,
-            "additionalProperties": {
+          "oneOf": [
+            {
+              "type" : "array",
+              "minItems": 1,
+              "additionalItems": false,
+              "items": {
+                "type": "object",
+                "minProperties": 1,
+                "maxProperties": 1,
+                "additionalProperties": {
+                  "$ref": "#/definitions/fork"
+                }
+              }
+            }, {
               "type": "object",
-              "additionalProperties": false,
-              "properties": {
-                "weight" : { "type": "number" },
-                "scenario" : { "$ref": "#/definitions/scenario" }
+              "additionalProperties": {
+                "$ref": "#/definitions/fork"
               }
             }
-          }
+          ]
         }
       }
+    },
+    "fork": {
+      "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "weight" : { "type": "number" },
+          "scenario" : { "$ref": "#/definitions/scenario" }
+        }
     },
     "phaseReferenceList": {
       "oneOf": [
