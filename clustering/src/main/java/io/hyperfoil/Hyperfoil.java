@@ -23,7 +23,9 @@ class Hyperfoil {
       VertxOptions options = new VertxOptions().setClustered(true);
       try {
          String hostName = InetAddress.getLocalHost().getHostName();
+         log.debug("Using host name {}", hostName);
          options.setClusterHost(hostName);
+         System.setProperty("jgroups.tcp.address", hostName);
       } catch (UnknownHostException e) {
          log.error("Cannot lookup hostname", e);
       }

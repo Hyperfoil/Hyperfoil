@@ -2,6 +2,7 @@ package io.hyperfoil.deploy.ssh;
 
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -37,6 +38,7 @@ public class SshDeployedAgent implements DeployedAgent {
    private static final String PROMPT = "<_#%@_hyperfoil_@%#_>";
    private static final long TIMEOUT = 10000;
    private static final int DEBUG_PORT = Properties.getInt(Properties.AGENT_DEBUG_PORT, -1);
+   private static final String DEBUG_SUSPEND = Properties.get(Properties.AGENT_DEBUG_SUSPEND, "n");
    public static final String AGENTLIB = "/agentlib";
 
    private final String name;
@@ -60,6 +62,11 @@ public class SshDeployedAgent implements DeployedAgent {
    @Override
    public void stop() {
       log.info("Stopping agent " + name);
+      try {
+         reader.close();
+      } catch (IOException e) {
+         log.error("Failed closing output reader", e);
+      }
       commandStream.close();
       try {
          shellChannel.close();
@@ -176,22 +183,16 @@ public class SshDeployedAgent implements DeployedAgent {
       startAgentCommmand.append(" -D").append(Properties.AGENT_NAME).append('=').append(name);
       startAgentCommmand.append(" -D").append(Properties.RUN_ID).append('=').append(runId);
       if (DEBUG_PORT > 0) {
-         startAgentCommmand.append(" -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=").append(DEBUG_PORT);
+         startAgentCommmand.append(" -agentlib:jdwp=transport=dt_socket,server=y,suspend=").append(DEBUG_SUSPEND).append(",address=").append(DEBUG_PORT);
       }
       if (extras != null) {
          startAgentCommmand.append(" ").append(extras);
       }
-      startAgentCommmand.append(" io.hyperfoil.Hyperfoil\\$Agent &> ").append(dir).append("agent.").append(name).append(".log");
+      startAgentCommmand.append(" io.hyperfoil.Hyperfoil\\$Agent &> ")
+            .append(dir).append(File.separatorChar).append("agent.").append(name).append(".log");
       String startAgent = startAgentCommmand.toString();
       log.debug("Starting agent {}: {}", name, startAgent);
       runCommand(startAgent, false);
-
-      try {
-         reader.close();
-      } catch (IOException e) {
-         log.error("Failed closing output reader", e);
-      }
-      reader = null;
    }
 
    private List<String> runCommand(String cmd, boolean wait) {
