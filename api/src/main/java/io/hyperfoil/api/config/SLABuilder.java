@@ -6,7 +6,7 @@ import java.util.concurrent.TimeUnit;
 
 import io.hyperfoil.util.Util;
 
-public class SLABuilder<P> {
+public class SLABuilder<P> implements Rewritable<SLABuilder<P>> {
    private final P parent;
    private long window = -1;
    private double errorRate = 1.01; // 101% of errors allowed
@@ -69,6 +69,15 @@ public class SLABuilder<P> {
       return new LimitsBuilder();
    }
 
+   @Override
+   public void readFrom(SLABuilder<P> other) {
+      window = other.window;
+      errorRate = other.errorRate;
+      meanResponseTime = other.meanResponseTime;
+      limits.clear();
+      limits.addAll(limits);
+   }
+
    private class LimitsBuilder extends PairBuilder.OfString {
       @Override
       public void accept(String percentileStr, String responseTime) {
@@ -80,7 +89,7 @@ public class SLABuilder<P> {
       }
    }
 
-   public static class ListBuilder<P> implements MappingListBuilder<SLABuilder<ListBuilder<P>>> {
+   public static class ListBuilder<P> implements MappingListBuilder<SLABuilder<ListBuilder<P>>>, Rewritable<ListBuilder<P>> {
       private final P parent;
       private final ArrayList<SLABuilder<ListBuilder<P>>> sla = new ArrayList<>();
 
@@ -101,6 +110,14 @@ public class SLABuilder<P> {
 
       public SLA[] build() {
          return sla.stream().map(SLABuilder::build).toArray(SLA[]::new);
+      }
+
+      @Override
+      public void readFrom(ListBuilder<P> other) {
+         sla.clear();
+         for (SLABuilder<ListBuilder<P>> builder : other.sla) {
+            addItem().readFrom(builder);
+         }
       }
    }
 }

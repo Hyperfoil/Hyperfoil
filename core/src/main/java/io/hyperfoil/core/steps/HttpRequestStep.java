@@ -431,6 +431,10 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
                .bodyGenerator(bodyGenerator)
                .statistics(statisticsSelector)
                .sync(sync);
+         headerAppenders.forEach(newBuilder::headerAppender);
+         if (sla != null) {
+            newBuilder.sla().readFrom(sla);
+         }
          if (timeout > 0) {
             newBuilder.timeout(timeout, TimeUnit.MILLISECONDS);
          }
