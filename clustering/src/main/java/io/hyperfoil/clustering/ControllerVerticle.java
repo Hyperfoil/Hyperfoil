@@ -31,7 +31,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -235,36 +234,11 @@ public class ControllerVerticle extends AbstractVerticle {
                 controllerPhase.absoluteTerminateTime(System.currentTimeMillis());
                 break;
         }
-        cancelDependentPhases(run, controllerPhase);
-    }
-
-    private void cancelDependentPhases(Run run, ControllerPhase controllerPhase) {
         if (controllerPhase.isFailed()) {
-            ArrayDeque<ControllerPhase> queue = new ArrayDeque<>(run.phases.values());
-            boolean changed = true;
-            OUTER: while (changed && !queue.isEmpty()) {
-                ControllerPhase p = queue.pollFirst();
-                if (p.status() != ControllerPhase.Status.NOT_STARTED) {
-                    continue;
+            for (ControllerPhase p : run.phases.values()) {
+                if (p.status() == ControllerPhase.Status.NOT_STARTED) {
+                    p.status(ControllerPhase.Status.CANCELLED);
                 }
-                for (String dep : p.definition().startAfter) {
-                    ControllerPhase depPhase = run.phases.get(dep);
-                    if (depPhase.isFailed() || depPhase.status() == ControllerPhase.Status.CANCELLED) {
-                        changed = true;
-                        p.status(ControllerPhase.Status.CANCELLED);
-                        continue OUTER;
-                    }
-                }
-                for (String dep : p.definition().startAfterStrict) {
-                    ControllerPhase depPhase = run.phases.get(dep);
-                    if (depPhase.isFailed() || depPhase.status() == ControllerPhase.Status.CANCELLED) {
-                        changed = true;
-                        p.status(ControllerPhase.Status.CANCELLED);
-                        continue OUTER;
-                    }
-                }
-                queue.addLast(p);
-                // let's ignore terminateAfterStrict as this might be already started
             }
         }
     }
