@@ -103,7 +103,10 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
 
       Http2Headers headers = new DefaultHttp2Headers().method(request.method.name()).scheme(httpClientPool.scheme())
             .path(request.path).authority(httpClientPool.authority());
-      headers.add(HttpHeaderNames.HOST, httpClientPool.authority());
+      // HTTPS selects host via SNI headers, duplicate Host header could confuse the server/proxy
+      if (!pool.clientPool().config().baseUrl().protocol().secure()) {
+         headers.add(HttpHeaderNames.HOST, httpClientPool.authority());
+      }
       if (buf != null && buf.readableBytes() > 0) {
          headers.add(HttpHeaderNames.CONTENT_LENGTH, String.valueOf(buf.readableBytes()));
       }
