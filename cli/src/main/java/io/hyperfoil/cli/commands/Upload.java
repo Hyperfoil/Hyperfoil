@@ -34,6 +34,7 @@ public class Upload extends ServerCommand {
          invocation.println("ERROR: " + Util.explainCauses(e));
          throw new CommandException("Failed to parse the benchmark.", e);
       } catch (IOException e) {
+         invocation.println("ERROR: " + Util.explainCauses(e));
          throw new CommandException("Failed to load the benchmark.", e);
       }
       invocation.println("Loaded benchmark " + benchmark.name() + ", uploading...");
@@ -42,6 +43,7 @@ public class Upload extends ServerCommand {
          invocation.println("... done.");
          return CommandResult.SUCCESS;
       } catch (RestClientException e) {
+         invocation.println("ERROR: " + Util.explainCauses(e));
          throw new CommandException("Failed to upload the benchmark.", e);
       }
    }

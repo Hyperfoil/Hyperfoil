@@ -228,13 +228,15 @@ public class ControllerVerticle extends AbstractVerticle {
                 break;
             case TERMINATED:
                 if (!run.statisticsStore.validateSlas(phase)) {
+                    log.info("SLA validation failed for {}", phase);
                     controllerPhase.setFailed();
                 }
                 controllerPhase.status(ControllerPhase.Status.TERMINATED);
-                controllerPhase.absoluteTerminateTime(System.currentTimeMillis());
+                controllerPhase.absoluteCompletionTime(System.currentTimeMillis());
                 break;
         }
         if (controllerPhase.isFailed()) {
+            log.info("Phase {} failed, cancelling other phases...", controllerPhase.definition().name());
             for (ControllerPhase p : run.phases.values()) {
                 if (p.status() == ControllerPhase.Status.NOT_STARTED) {
                     p.status(ControllerPhase.Status.CANCELLED);
@@ -326,7 +328,7 @@ public class ControllerVerticle extends AbstractVerticle {
             run.phases.put(phase.name(), new ControllerPhase(phase));
         }
         run.statisticsStore = new StatisticsStore(run.benchmark, failure -> {
-            log.warn("Failed verify SLA(s) for {}/{}", failure.phase(), failure.statisticsName());
+            log.warn("Failed verify SLA(s) for {}/{}: {}", failure.phase(), failure.statisticsName(), failure.message());
         });
         runSimulation(run);
     }
@@ -359,6 +361,7 @@ public class ControllerVerticle extends AbstractVerticle {
         }
 
         if (run.phases.values().stream().allMatch(phase -> phase.status().isTerminated())) {
+            log.info("All phases are terminated.");
             stopSimulation(run);
             return;
         }

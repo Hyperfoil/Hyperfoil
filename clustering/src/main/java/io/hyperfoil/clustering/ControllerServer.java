@@ -7,7 +7,6 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Date;
@@ -19,6 +18,7 @@ import java.util.stream.Collectors;
 
 import io.hyperfoil.api.config.BenchmarkData;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.client.Client;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.hyperfoil.api.config.Benchmark;
@@ -267,7 +267,6 @@ class ControllerServer {
          benchmark = run.benchmark.name();
       }
 
-      SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.S");
       Date started = null, terminated = null;
       if (run.startTime > Long.MIN_VALUE) {
          started = new Date(run.startTime);
@@ -276,7 +275,10 @@ class ControllerServer {
          terminated = new Date(run.terminateTime);
       }
       long now = System.currentTimeMillis();
-      List<Client.Phase> phases = run.phases.values().stream().sorted(Comparator.comparing(p -> p.definition().name)).map(phase -> {
+      List<Client.Phase> phases = run.phases.values().stream()
+            .filter(p -> !(p.definition() instanceof Phase.Noop))
+            .sorted(Comparator.comparing(p -> p.definition().name))
+            .map(phase -> {
          Date phaseStarted = null, phaseTerminated = null;
          StringBuilder remaining = null;
          StringBuilder totalDuration = null;
@@ -290,15 +292,17 @@ class ControllerServer {
                         .append(phase.definition().maxDuration() - (now - phase.absoluteStartTime())).append(" ms)");
                }
             } else {
-               phaseTerminated = new Date(phase.absoluteTerminateTime());
-               long totalDurationValue = phase.absoluteTerminateTime() - phase.absoluteStartTime();
+               phaseTerminated = new Date(phase.absoluteCompletionTime());
+               long totalDurationValue = phase.absoluteCompletionTime() - phase.absoluteStartTime();
                totalDuration = new StringBuilder().append(totalDurationValue).append(" ms");
                if (totalDurationValue > phase.definition().duration()) {
                   totalDuration.append(" (exceeded by ").append(totalDurationValue - phase.definition().duration()).append(" ms)");
                }
             }
          }
-         return new Client.Phase(phase.definition().name(), phase.status().toString(),
+         String type = phase.definition().getClass().getSimpleName();
+         type = Character.toLowerCase(type.charAt(0)) + type.substring(1);
+         return new Client.Phase(phase.definition().name(), phase.status().toString(), type,
                phaseStarted, remaining == null ? null : remaining.toString(),
                phaseTerminated, totalDuration == null ? null : totalDuration.toString());
       }).collect(Collectors.toList());

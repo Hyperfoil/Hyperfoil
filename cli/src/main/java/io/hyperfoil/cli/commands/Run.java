@@ -8,10 +8,10 @@ import org.aesh.command.option.Argument;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.client.Client;
 import io.hyperfoil.client.RestClientException;
+import io.hyperfoil.core.util.Util;
 
 @CommandDefinition(name = "run", description = "Starts benchmark on Hyperfoil Controller server")
-public class   Run extends ServerCommand {
-   // TODO: add completer
+public class Run extends ServerCommand {
    @Argument(description = "Name of the benchmark to be run.", completer = BenchmarkCompleter.class)
    private String benchmark;
 
@@ -33,10 +33,17 @@ public class   Run extends ServerCommand {
       try {
          invocation.context().setServerRun(benchmarkRef.start());
          invocation.println("Started run " + invocation.context().serverRun().id());
-         return CommandResult.SUCCESS;
       } catch (RestClientException e) {
+         invocation.println("ERROR: " + Util.explainCauses(e));
          throw new CommandException("Failed to start benchmark " + benchmarkRef.name(), e);
       }
+      try {
+         invocation.executeCommand("status");
+      } catch (Exception e) {
+         invocation.println("ERROR: " + Util.explainCauses(e));
+         throw new CommandException(e);
+      }
+      return CommandResult.SUCCESS;
    }
 
    public static class BenchmarkCompleter extends ServerOptionCompleter {

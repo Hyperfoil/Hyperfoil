@@ -11,6 +11,7 @@ import io.hyperfoil.cli.Table;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.client.Client;
 import io.hyperfoil.client.RestClientException;
+import io.hyperfoil.core.util.Util;
 
 @CommandDefinition(name = "status", description = "Prints information about executing or completed run.")
 public class Status extends BaseRunIdCommand {
@@ -21,7 +22,7 @@ public class Status extends BaseRunIdCommand {
          .column("STATUS", p -> p.status)
          .column("STARTED", p -> p.started == null ? null : TIME_FORMATTER.format(p.started))
          .column("REMAINING", p -> p.remaining)
-         .column("FINISHED", p -> p.finished == null ? null : TIME_FORMATTER.format(p.finished))
+         .column("COMPLETED", p -> p.completed == null ? null : TIME_FORMATTER.format(p.completed))
          .column("TOTAL DURATION", p -> p.totalDuration);
 
    @Option(name = "all", shortName = 'a', description = "Show all phases", hasValue = false)
@@ -34,6 +35,7 @@ public class Status extends BaseRunIdCommand {
       try {
          run = runRef.get();
       } catch (RestClientException e) {
+         invocation.println("ERROR: " + Util.explainCauses(e));
          throw new CommandException("Cannot fetch status for run " + runRef.id(), e);
       }
       invocation.println("Run " + run.id + ", benchmark " + run.benchmark);
@@ -56,6 +58,10 @@ public class Status extends BaseRunIdCommand {
 
          Client.Run r = run;
          invocation.print(PHASE_TABLE.print(run.phases.stream().filter(p -> showPhase(r, p))));
+         long cancelled = run.phases.stream().filter(p -> "CANCELLED".equals(p.status)).count();
+         if (cancelled > 0) {
+            invocation.println(cancelled + " phases were cancelled.");
+         }
          if (run.terminated != null) {
             return CommandResult.SUCCESS;
          }
@@ -64,14 +70,16 @@ public class Status extends BaseRunIdCommand {
          try {
             run = runRef.get();
          } catch (RestClientException e) {
+            invocation.println("ERROR: " + Util.explainCauses(e));
             throw new CommandException("Cannot fetch status for run " + runRef.id(), e);
          }
-         clearLines(invocation, 3 + (int) r.phases.stream().filter(p -> showPhase(r, p)).count());
+         clearLines(invocation, 3 + (int) r.phases.stream().filter(p -> showPhase(r, p)).count() + (cancelled > 0 ? 1 : 0));
       }
    }
 
    private boolean showPhase(Client.Run run, Client.Phase phase) {
-      return all || run.terminated != null || "RUNNING".equals(phase.status) || "FINISHED".equals(phase.status);
+      return ((all || run.terminated != null) && !"CANCELLED".equals(phase.status))
+            || "RUNNING".equals(phase.status) || "FINISHED".equals(phase.status);
    }
 
 }

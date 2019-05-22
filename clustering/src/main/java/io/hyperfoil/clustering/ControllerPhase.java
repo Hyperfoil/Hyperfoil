@@ -10,7 +10,7 @@ public class ControllerPhase {
    private final Phase definition;
    private Status status = Status.NOT_STARTED;
    private long absoluteStartTime = Long.MIN_VALUE;
-   private long absoluteTerminateTime = Long.MIN_VALUE;
+   private long absoluteCompletionTime = Long.MIN_VALUE;
    private boolean failed;
 
    public ControllerPhase(Phase definition) {
@@ -40,12 +40,12 @@ public class ControllerPhase {
       absoluteStartTime = time;
    }
 
-   public long absoluteTerminateTime() {
-      return absoluteTerminateTime;
+   public long absoluteCompletionTime() {
+      return absoluteCompletionTime;
    }
 
-   public void absoluteTerminateTime(long absoluteTerminateTime) {
-      this.absoluteTerminateTime = absoluteTerminateTime;
+   public void absoluteCompletionTime(long absoluteCompletionTime) {
+      this.absoluteCompletionTime = absoluteCompletionTime;
    }
 
    public void setFailed() {

@@ -6,15 +6,31 @@ import java.util.Collection;
 import org.aesh.command.Command;
 import org.aesh.command.CommandException;
 
+import io.hyperfoil.cli.context.HyperfoilCliContext;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
+import io.hyperfoil.client.RestClient;
+import io.hyperfoil.client.RestClientException;
+import io.hyperfoil.core.util.Util;
 
 public abstract class ServerCommand implements Command<HyperfoilCommandInvocation> {
    protected static final String MOVE_LINE_UP = new String(new byte[] {27, 91, 49, 65}, StandardCharsets.US_ASCII);
    protected static final String ERASE_WHOLE_LINE = new String(new byte[]{27, 91, 50, 75}, StandardCharsets.US_ASCII);
 
    protected void ensureConnection(HyperfoilCommandInvocation invocation) throws CommandException {
-      if (invocation.context().client() == null) {
-         throw new CommandException("Not connected! Use `connect [-h host] [-p port]`");
+      HyperfoilCliContext ctx = invocation.context();
+      if (ctx.client() != null) {
+         return;
+      }
+      invocation.println("Not connected, trying to connect to localhost:8090...");
+      ctx.setClient(new RestClient("localhost", 8090));
+      try {
+         ctx.client().ping();
+         invocation.println("Connected!");
+      } catch (RestClientException e) {
+         ctx.client().close();
+         ctx.setClient(null);
+         invocation.println("ERROR: " + Util.explainCauses(e));
+         throw new CommandException("Failed connecting to localhost:8090", e);
       }
    }
 

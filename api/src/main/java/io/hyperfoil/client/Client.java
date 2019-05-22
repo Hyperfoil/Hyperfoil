@@ -59,22 +59,25 @@ public interface Client {
    class Phase {
       public final String name;
       public final String status;
+      public final String type;
       @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy/MM/dd HH:mm:ss.S")
       public final Date started;
       public final String remaining;
       @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy/MM/dd HH:mm:ss.S")
-      public final Date finished;
+      public final Date completed;
       public final String totalDuration;
 
       @JsonCreator
       public Phase(@JsonProperty("name") String name, @JsonProperty("status") String status,
+                   @JsonProperty("type") String type,
                    @JsonProperty("started") Date started, @JsonProperty("remaining") String remaining,
-                   @JsonProperty("finished") Date finished, @JsonProperty("totalDuration") String totalDuration) {
+                   @JsonProperty("completed") Date completed, @JsonProperty("totalDuration") String totalDuration) {
          this.name = name;
          this.status = status;
+         this.type = type;
          this.started = started;
          this.remaining = remaining;
-         this.finished = finished;
+         this.completed = completed;
          this.totalDuration = totalDuration;
       }
    }
