@@ -6,7 +6,6 @@ import org.yaml.snakeyaml.events.ScalarEvent;
 
 import io.hyperfoil.api.config.ScenarioBuilder;
 import io.hyperfoil.api.config.SequenceBuilder;
-import io.hyperfoil.core.builders.StepCatalog;
 
 /**
  * This provides a syntax-sugar automatically following one sequence with another
@@ -31,7 +30,7 @@ class OrderedSequenceParser implements Parser<ScenarioBuilder> {
       }
       SequenceParser.parseSequence(ctx, sequenceBuilder);
       if (lastBuilder != null) {
-         lastBuilder.step(StepCatalog.class).nextSequence(sequenceNameEvent.getValue());
+         lastBuilder.nextSequence(sequenceNameEvent.getValue());
       }
       ctx.pushVar(sequenceBuilder);
       ctx.expectEvent(MappingEndEvent.class);

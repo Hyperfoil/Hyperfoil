@@ -34,6 +34,9 @@ public class SequenceBuilder extends BaseSequenceBuilder {
     private final String name;
     private int id;
     private Sequence sequence;
+    // Next sequence as set by parser. It's not possible to add this as nextSequence step
+    // since that would break anchors - we can insert it only after parsing is complete.
+    private String nextSequence;
 
     SequenceBuilder(ScenarioBuilder scenario, String name) {
         super(null);
@@ -46,9 +49,18 @@ public class SequenceBuilder extends BaseSequenceBuilder {
         this.scenario = scenario;
         this.name = other.name;
         readFrom(other);
+        this.nextSequence = other.nextSequence;
     }
 
     public void prepareBuild() {
+        // capture local var to prevent SequenceBuilder serialization
+        String nextSequence = this.nextSequence;
+        if (nextSequence != null) {
+            step(s -> {
+                s.nextSequence(nextSequence);
+                return true;
+            });
+        }
         // We need to make a defensive copy as prepareBuild() may trigger modifications
         new ArrayList<>(steps).forEach(StepBuilder::prepareBuild);
     }
@@ -78,5 +90,9 @@ public class SequenceBuilder extends BaseSequenceBuilder {
 
     public String name() {
         return name;
+    }
+
+    public void nextSequence(String nextSequence) {
+        this.nextSequence = nextSequence;
     }
 }
