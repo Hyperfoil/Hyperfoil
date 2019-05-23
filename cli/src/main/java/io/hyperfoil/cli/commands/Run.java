@@ -46,9 +46,4 @@ public class Run extends ServerCommand {
       return CommandResult.SUCCESS;
    }
 
-   public static class BenchmarkCompleter extends ServerOptionCompleter {
-      public BenchmarkCompleter() {
-         super(client -> client.benchmarks().stream());
-      }
-   }
 }

@@ -21,7 +21,7 @@ public class Status extends BaseRunIdCommand {
          .column("NAME", p -> p.name)
          .column("STATUS", p -> p.status)
          .column("STARTED", p -> p.started == null ? null : TIME_FORMATTER.format(p.started))
-         .column("REMAINING", p -> p.remaining)
+         .column("REMAINING", p -> p.remaining, Table.Align.RIGHT)
          .column("COMPLETED", p -> p.completed == null ? null : TIME_FORMATTER.format(p.completed))
          .column("TOTAL DURATION", p -> p.totalDuration);
 
@@ -29,7 +29,7 @@ public class Status extends BaseRunIdCommand {
    boolean all;
 
    @Override
-   public CommandResult execute(HyperfoilCommandInvocation invocation) throws CommandException, InterruptedException {
+   public CommandResult execute(HyperfoilCommandInvocation invocation) throws CommandException {
       Client.RunRef runRef = getRunRef(invocation);
       Client.Run run;
       try {
@@ -66,7 +66,13 @@ public class Status extends BaseRunIdCommand {
             return CommandResult.SUCCESS;
          }
          invocation.println("Press Ctrl+C to stop watching...");
-         Thread.sleep(1000);
+         try {
+            Thread.sleep(1000);
+         } catch (InterruptedException e) {
+            clearLines(invocation, 1);
+            invocation.println("");
+            return CommandResult.SUCCESS;
+         }
          try {
             run = runRef.get();
          } catch (RestClientException e) {

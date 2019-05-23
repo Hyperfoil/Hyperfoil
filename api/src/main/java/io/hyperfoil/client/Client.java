@@ -3,6 +3,7 @@ package io.hyperfoil.client;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -36,11 +37,14 @@ public interface Client {
       String id();
       Run get();
       RunRef kill();
+      Map<String, Map<String, MinMax>> sessionStatsRecent();
+      Map<String, Map<String, MinMax>> sessionStatsTotal();
       // TODO: server should expose JSON-formatted variants
       Collection<String> sessions();
       Collection<String> connections();
       String statsRecent();
       String statsTotal();
+
    }
 
    class Agent {
@@ -108,5 +112,16 @@ public interface Client {
          this.agents = agents;
       }
 
+   }
+
+   class MinMax {
+      public final int min;
+      public final int max;
+
+      @JsonCreator
+      public MinMax(@JsonProperty("min") int min, @JsonProperty("max") int max) {
+         this.min = min;
+         this.max = max;
+      }
    }
 }

@@ -2,6 +2,9 @@ package io.hyperfoil.client;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Map;
+
+import com.fasterxml.jackson.core.type.TypeReference;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
@@ -35,6 +38,22 @@ public class RunRefImpl implements Client.RunRef {
             handler -> client.client.request(HttpMethod.GET, "/run/" + id + "/kill").send(handler), 202,
             response -> null);
       return this;
+   }
+
+   @Override
+   public Map<String, Map<String, Client.MinMax>> sessionStatsRecent() {
+      return client.sync(
+            handler -> client.client.request(HttpMethod.GET, "/run/" + id + "/sessions/recent").send(handler), 200,
+            response -> Json.decodeValue(response.body(), new TypeReference<Map<String, Map<String, Client.MinMax>>>() {})
+      );
+   }
+
+   @Override
+   public Map<String, Map<String, Client.MinMax>> sessionStatsTotal() {
+      return client.sync(
+            handler -> client.client.request(HttpMethod.GET, "/run/" + id + "/sessions/total").send(handler), 200,
+            response -> Json.decodeValue(response.body(), new TypeReference<Map<String, Map<String, Client.MinMax>>>() {})
+      );
    }
 
    @Override

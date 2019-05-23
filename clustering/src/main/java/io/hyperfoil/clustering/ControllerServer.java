@@ -14,12 +14,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import io.hyperfoil.api.config.BenchmarkData;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.client.Client;
+import io.hyperfoil.core.util.LowHigh;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.statistics.StatisticsSummary;
@@ -35,6 +37,7 @@ import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.impl.NoStackTraceThrowable;
 import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.FileUpload;
@@ -72,6 +75,8 @@ class ControllerServer {
       router.get("/run/:runid").handler(this::handleGetRun);
       router.get("/run/:runid/kill").handler(this::handleRunKill);
       router.get("/run/:runid/sessions").handler(this::handleListSessions);
+      router.get("/run/:runid/sessions/recent").handler(this::handleRecentSessions);
+      router.get("/run/:runid/sessions/total").handler(this::handleTotalSessions);
       router.get("/run/:runid/connections").handler(this::handleListConnections);
       router.get("/run/:runid/stats/recent").handler(this::handleRecentStats);
       router.get("/run/:runid/stats/total").handler(this::handleTotalStats);
@@ -413,7 +418,8 @@ class ControllerServer {
       sb.append("  Requests      Mean       p50       p90       p99     p99.9    p99.99    2xx    3xx    4xx    5xx Timeouts Errors\n");
       for (Map.Entry<String, Map<String, StatisticsSummary>> phaseEntry : stats.entrySet()) {
          sb.append(phaseEntry.getKey()).append(':').append('\n');
-         for (Map.Entry<String, StatisticsSummary> sequenceEntry : phaseEntry.getValue().entrySet()) {
+         Map<String, StatisticsSummary> phaseStats = phaseEntry.getValue();
+         for (Map.Entry<String, StatisticsSummary> sequenceEntry : phaseStats.entrySet()) {
             StatisticsSummary summary = sequenceEntry.getValue();
             sb.append('\t').append(sequenceEntry.getKey()).append(": ");
             printSpaces(sb, longestSequenceName - sequenceEntry.getKey().length());
@@ -435,12 +441,40 @@ class ControllerServer {
       return sb.toString();
    }
 
+   private void handleRecentSessions(RoutingContext ctx) {
+      handleSessionPoolStats(ctx, run -> run.statisticsStore.recentSessionPoolSummary(System.currentTimeMillis() - 3000));
+   }
+
+   private void handleTotalSessions(RoutingContext ctx) {
+      handleSessionPoolStats(ctx, run -> run.statisticsStore.totalSessionPoolSummary());
+   }
+
+   private void handleSessionPoolStats(RoutingContext ctx, Function<Run, Map<String, Map<String, LowHigh>>> func) {
+      Run run = getRun(ctx);
+      if (run == null) {
+         ctx.response().setStatusCode(HttpResponseStatus.NOT_FOUND.code()).end();
+         return;
+      } else if (run.statisticsStore == null) {
+         ctx.response().end("{}");
+      }
+      Map<String, Map<String, LowHigh>> stats = func.apply(run);
+      JsonObject reply = new JsonObject();
+      stats.forEach((phase, addressStats) -> {
+         JsonObject phaseStats = new JsonObject();
+         reply.put(phase, phaseStats);
+         addressStats.forEach((address, lowHigh) -> {
+            String agent = run.agents.stream().filter(a -> a.address.equals(address)).map(a -> a.name).findFirst().orElse("unknown");
+            phaseStats.put(agent, new JsonObject().put("min", lowHigh.low).put("max", lowHigh.high));
+         });
+      });
+      ctx.response().end(reply.encodePrettily());
+   }
+
    private void printSpaces(StringBuilder sb, int i) {
       for (;i > 0; --i) {
          sb.append(' ');
       }
    }
-
 
    private static String encode(String string) {
       try {

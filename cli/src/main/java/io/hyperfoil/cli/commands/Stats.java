@@ -17,7 +17,7 @@ public class Stats extends BaseRunIdCommand {
    private boolean total;
 
    @Override
-   public CommandResult execute(HyperfoilCommandInvocation invocation) throws CommandException, InterruptedException {
+   public CommandResult execute(HyperfoilCommandInvocation invocation) throws CommandException {
       Client.RunRef runRef = getRunRef(invocation);
       boolean terminated = false;
       for (;;) {
@@ -54,7 +54,13 @@ public class Stats extends BaseRunIdCommand {
             }
             invocation.println("Press Ctr+C to stop watching...");
             if (!terminated) {
-               Thread.sleep(1000);
+               try {
+                  Thread.sleep(1000);
+               } catch (InterruptedException e) {
+                  clearLines(invocation, 1);
+                  invocation.println("");
+                  return CommandResult.SUCCESS;
+               }
             }
             clearLines(invocation, lines + 2);
          }

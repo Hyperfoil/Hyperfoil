@@ -15,6 +15,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -24,9 +25,10 @@ import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.SLA;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.api.statistics.StatisticsSummary;
+import io.hyperfoil.core.util.LowHigh;
 
 public class StatisticsStore {
-   public static final double[] PERCENTILES = new double[]{0.5, 0.9, 0.99, 0.999, 0.9999};
+   private static final double[] PERCENTILES = new double[]{0.5, 0.9, 0.99, 0.999, 0.9999};
 
    private final Benchmark benchmark;
    private final int numAgents;
@@ -101,11 +103,11 @@ public class StatisticsStore {
             if (sps == null) {
                writer.print(",,");
             } else {
-               SessionPoolRecord minMax = sps.findMinMax();
+               LowHigh minMax = sps.findMinMax();
                writer.print(',');
-               writer.print(minMax.min);
+               writer.print(minMax.low);
                writer.print(',');
-               writer.print(minMax.max);
+               writer.print(minMax.high);
             }
             writer.println();
          }
@@ -136,11 +138,12 @@ public class StatisticsStore {
                if (sps == null || sps.records.get(agent) == null) {
                   writer.print(",,");
                } else {
-                  SessionPoolRecord minMax = sps.records.get(agent).stream().reduce(SessionPoolRecord::combine).orElse(new SessionPoolRecord(0, 0, 0));
+                  LowHigh lohi = sps.records.get(agent).stream().map(LowHigh.class::cast)
+                        .reduce(LowHigh::combine).orElse(new LowHigh(0, 0));
                   writer.print(',');
-                  writer.print(minMax.min);
+                  writer.print(lohi.low);
                   writer.print(',');
-                  writer.print(minMax.max);
+                  writer.print(lohi.high);
                }
 
                writer.println();
@@ -194,9 +197,9 @@ public class StatisticsStore {
                      writer.print(',');
                      writer.print(addresses[i]);
                      writer.print(',');
-                     writer.print(record.min);
+                     writer.print(record.low);
                      writer.print(',');
-                     writer.println(record.max);
+                     writer.println(record.high);
                      hadNext = true;
                   }
                }
@@ -242,7 +245,7 @@ public class StatisticsStore {
    }
 
    public Map<String, Map<String, StatisticsSummary>> recentSummary(long minValidTimestamp) {
-      Map<String, Map<String, StatisticsSummary>> result = new HashMap<>();
+      Map<String, Map<String, StatisticsSummary>> result = new TreeMap<>();
       for (Data data : data.values()) {
          List<StatisticsSummary> series = data.series;
          if (series.isEmpty()) {
@@ -252,16 +255,16 @@ public class StatisticsStore {
          if (last.startTime < minValidTimestamp) {
             continue;
          }
-         result.computeIfAbsent(data.phase, p -> new HashMap<>()).put(data.statisticsName, last);
+         result.computeIfAbsent(data.phase, p -> new TreeMap<>()).put(data.statisticsName, last);
       }
       return result;
    }
 
    public Map<String, Map<String, StatisticsSummary>> totalSummary() {
-      Map<String, Map<String, StatisticsSummary>> result = new HashMap<>();
+      Map<String, Map<String, StatisticsSummary>> result = new TreeMap<>();
       for (Data data : data.values()) {
          StatisticsSummary last = data.total.summary(percentiles);
-         result.computeIfAbsent(data.phase, p -> new HashMap<>()).put(data.statisticsName, last);
+         result.computeIfAbsent(data.phase, p -> new TreeMap<>()).put(data.statisticsName, last);
       }
       return result;
    }
@@ -269,6 +272,42 @@ public class StatisticsStore {
    public void recordSessionStats(String address, long timestamp, String phase, int minSessions, int maxSessions) {
       SessionPoolStats sps = this.sessionPoolStats.computeIfAbsent(phase, p -> new SessionPoolStats());
       sps.records.computeIfAbsent(address, a -> new ArrayList<>()).add(new SessionPoolRecord(timestamp, minSessions, maxSessions));
+   }
+
+   public Map<String, Map<String, LowHigh>> recentSessionPoolSummary(long minValidTimestamp) {
+      return sessionPoolSummary(records -> {
+         SessionPoolRecord record = records.get(records.size() - 1);
+         return record.timestamp >= minValidTimestamp ? record : null;
+      });
+   }
+
+   public Map<String, Map<String, LowHigh>> totalSessionPoolSummary() {
+      return sessionPoolSummary(records -> {
+         int low = records.stream().mapToInt(r -> r.low).min().orElse(0);
+         int high = records.stream().mapToInt(r -> r.high).max().orElse(0);
+         return new LowHigh(low, high);
+      });
+   }
+
+   private Map<String, Map<String, LowHigh>> sessionPoolSummary(Function<List<SessionPoolRecord>, LowHigh> function) {
+      Map<String, Map<String, LowHigh>> result = new HashMap<>();
+      for (Map.Entry<String, SessionPoolStats> phaseEntry : sessionPoolStats.entrySet()) {
+         Map<String, LowHigh> addressSummary = new HashMap<>();
+         for (Map.Entry<String, List<SessionPoolRecord>> addressEntry : phaseEntry.getValue().records.entrySet()) {
+            List<SessionPoolRecord> records = addressEntry.getValue();
+            if (records.isEmpty()) {
+               continue;
+            }
+            LowHigh lohi = function.apply(records);
+            if (lohi != null) {
+               addressSummary.put(addressEntry.getKey(), lohi);
+            }
+         }
+         if (!addressSummary.isEmpty()) {
+            result.put(phaseEntry.getKey(), addressSummary);
+         }
+      }
+      return result;
    }
 
    private static final class Window {
@@ -365,44 +404,29 @@ public class StatisticsStore {
    private static class SessionPoolStats {
       Map<String, List<SessionPoolRecord>> records = new HashMap<>();
 
-      SessionPoolRecord findMinMax() {
+      LowHigh findMinMax() {
          int min = Integer.MAX_VALUE;
          int max = 0;
          List<Iterator<SessionPoolRecord>> iterators = records.values().stream()
                .map(List::iterator).collect(Collectors.toList());
          for (;;) {
-            SessionPoolRecord combined = iterators.stream()
-                  .filter(Iterator::hasNext).map(Iterator::next)
-                  .reduce(SessionPoolRecord::sum).orElse(null);
+            LowHigh combined = iterators.stream()
+                  .filter(Iterator::hasNext).map(Iterator::next).map(LowHigh.class::cast)
+                  .reduce(LowHigh::sum).orElse(null);
             if (combined == null) break;
-            min = Math.min(min, combined.min);
-            max = Math.max(max, combined.max);
+            min = Math.min(min, combined.low);
+            max = Math.max(max, combined.high);
          }
-         return new SessionPoolRecord(0, min, max);
+         return new LowHigh(min, max);
       }
    }
 
-   private static class SessionPoolRecord {
+   private static class SessionPoolRecord extends LowHigh {
       final long timestamp;
-      final int min;
-      final int max;
 
       private SessionPoolRecord(long timestamp, int min, int max) {
+         super(min, max);
          this.timestamp = timestamp;
-         this.min = min;
-         this.max = max;
-      }
-
-      public static SessionPoolRecord sum(SessionPoolRecord r1, SessionPoolRecord r2) {
-         if (r1 == null) return r2;
-         if (r2 == null) return r1;
-         return new SessionPoolRecord(0, r1.min + r2.min, r1.max + r2.max);
-      }
-
-      public static SessionPoolRecord combine(SessionPoolRecord r1, SessionPoolRecord r2) {
-         if (r1 == null) return r2;
-         if (r2 == null) return r1;
-         return new SessionPoolRecord(0, Math.min(r1.min, r2.min), Math.max(r1.max, r2.max));
       }
    }
 }
