@@ -138,8 +138,10 @@ public class ControllerVerticle extends AbstractVerticle {
                 if (run.statisticsStore != null) {
                     if (statsMessage instanceof ReportMessage) {
                         ReportMessage reportMessage = (ReportMessage) statsMessage;
-                        log.trace("Run {}: Received stats from {}: {}/{} ({} requests)", reportMessage.runId,
-                              reportMessage.address, reportMessage.stepId, reportMessage.statisticsName, reportMessage.statistics.requestCount);
+                        log.trace("Run {}: Received stats from {}: {}/{}/{} ({} requests)",
+                              reportMessage.runId, reportMessage.address,
+                              run.phase(reportMessage.phaseId), reportMessage.stepId, reportMessage.statisticsName,
+                              reportMessage.statistics.requestCount);
                         run.statisticsStore.record(reportMessage.address, reportMessage.phaseId, reportMessage.stepId,
                               reportMessage.statisticsName, reportMessage.statistics);
                     } else if (statsMessage instanceof SessionStatsMessage) {

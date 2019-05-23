@@ -77,4 +77,22 @@ public final class Util {
          return (Benchmark) input.readObject();
       }
    }
+
+   public static long parseLong(CharSequence string) {
+      return parseLong(string, 0);
+   }
+
+   public static long parseLong(CharSequence string, long defaultValue) {
+      long value = 0;
+      int i = 0;
+      char sign = string.charAt(0);
+      if (sign == '-' || sign == '+') ++i;
+      for (; i < string.length(); ++i) {
+         int digit = string.charAt(i);
+         if (digit < '0' || digit > '9') return defaultValue;
+         value *= 10;
+         value += digit - '0';
+      }
+      return sign == '-' ? -value : value;
+   }
 }

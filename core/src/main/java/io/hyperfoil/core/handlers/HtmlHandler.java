@@ -31,6 +31,7 @@ import io.hyperfoil.core.steps.UnsetStep;
 import io.hyperfoil.core.util.Trie;
 import io.hyperfoil.core.util.Util;
 import io.hyperfoil.function.SerializableBiFunction;
+import io.hyperfoil.function.SerializableSupplier;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.vertx.core.logging.Logger;
@@ -312,7 +313,7 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
       }
 
       @Override
-      public HtmlHandler build() {
+      public HtmlHandler build(SerializableSupplier<? extends Step> step) {
          return new HtmlHandler(embeddedResourceHandler.build());
       }
    }

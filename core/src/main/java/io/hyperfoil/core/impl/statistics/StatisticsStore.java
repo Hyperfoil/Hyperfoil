@@ -32,7 +32,7 @@ public class StatisticsStore {
 
    private final Benchmark benchmark;
    private final int numAgents;
-   private final Map<Integer, Data> data = new HashMap<>();
+   private final Map<Integer, Map<String, Data>> data = new HashMap<>();
    private final Consumer<SLA.Failure> failureHandler;
    private final double[] percentiles;
    private final List<SLA.Failure> failures = new ArrayList<>();
@@ -58,7 +58,8 @@ public class StatisticsStore {
    }
 
    public void record(String address, int phaseId, int stepId, String statisticsName, StatisticsSnapshot stats) {
-      Data data = this.data.get((phaseId << 16) + stepId);
+      Map<String, Data> map = this.data.computeIfAbsent((phaseId << 16) + stepId, phaseStep -> new HashMap<>());
+      Data data = map.get(statisticsName);
       if (data == null) {
          long collectionPeriod = benchmark.statisticsCollectionPeriod();
          SLA.Provider slaProvider = slaProviders.get(stepId);
@@ -69,7 +70,7 @@ public class StatisticsStore {
          SLA[] total = slaProvider == null || slaProvider.sla() == null ? new SLA[0] : Stream.of(slaProvider.sla())
                .filter(sla -> sla.window() <= 0).toArray(SLA[]::new);
          String phase = benchmark.phases().stream().filter(p -> p.id() == phaseId).findFirst().get().name();
-         this.data.put((phaseId << 16) + stepId, data = new Data(phase, stepId, statisticsName, rings, total));
+         map.put(statisticsName, data = new Data(phase, stepId, statisticsName, rings, total));
       }
       data.record(address, stats);
    }
@@ -112,11 +113,15 @@ public class StatisticsStore {
             writer.println();
          }
       }
-      for (Data data: this.data.values()) {
-         String filePrefix = dir + File.separator + sanitize(data.phase) + "." + sanitize(data.statisticsName) + "." + data.stepId;
-         persistHistogramAndSeries(filePrefix, data.total, data.series);
+      for (Map<String, Data> m : this.data.values()) {
+         for (Data data : m.values()) {
+            String filePrefix = dir + File.separator + sanitize(data.phase) + "." + sanitize(data.statisticsName) + "." + data.stepId;
+            persistHistogramAndSeries(filePrefix, data.total, data.series);
+         }
       }
-      String[] agents = this.data.values().stream().flatMap(d -> d.perAgent.keySet().stream())
+      String[] agents = this.data.values().stream()
+            .flatMap(m -> m.values().stream())
+            .flatMap(d -> d.perAgent.keySet().stream())
             .distinct().sorted().toArray(String[]::new);
       for (String agent : agents) {
          try (PrintWriter writer = new PrintWriter(dir + File.separator + "agent." + sanitize(agent) + ".csv")) {
@@ -149,9 +154,11 @@ public class StatisticsStore {
                writer.println();
             }
          }
-         for (Data data : this.data.values()) {
-            String filePrefix = dir + File.separator + sanitize(data.phase) + "." + sanitize(data.statisticsName) + "." + data.stepId + ".agent." + agent;
-            persistHistogramAndSeries(filePrefix, data.perAgent.get(agent), data.agentSeries.get(agent));
+         for (Map<String, Data> m : this.data.values()) {
+            for (Data data : m.values()) {
+               String filePrefix = dir + File.separator + sanitize(data.phase) + "." + sanitize(data.statisticsName) + "." + data.stepId + ".agent." + agent;
+               persistHistogramAndSeries(filePrefix, data.perAgent.get(agent), data.agentSeries.get(agent));
+            }
          }
       }
       try (PrintWriter writer = new PrintWriter(dir + File.separator + "failures.csv")) {
@@ -236,9 +243,11 @@ public class StatisticsStore {
    }
 
    public boolean validateSlas(String phase) {
-      for (Data data : data.values()) {
-         if (data.phase.equals(phase)) {
-            data.validateTotalSlas();
+      for (Map<String, Data> m : this.data.values()) {
+         for (Data data : m.values()) {
+            if (data.phase.equals(phase)) {
+               data.validateTotalSlas();
+            }
          }
       }
       return failures.isEmpty();
@@ -246,25 +255,29 @@ public class StatisticsStore {
 
    public Map<String, Map<String, StatisticsSummary>> recentSummary(long minValidTimestamp) {
       Map<String, Map<String, StatisticsSummary>> result = new TreeMap<>();
-      for (Data data : data.values()) {
-         List<StatisticsSummary> series = data.series;
-         if (series.isEmpty()) {
-            continue;
+      for (Map<String, Data> m : this.data.values()) {
+         for (Data data : m.values()) {
+            List<StatisticsSummary> series = data.series;
+            if (series.isEmpty()) {
+               continue;
+            }
+            StatisticsSummary last = series.get(series.size() - 1);
+            if (last.startTime < minValidTimestamp) {
+               continue;
+            }
+            result.computeIfAbsent(data.phase, p -> new TreeMap<>()).put(data.statisticsName, last);
          }
-         StatisticsSummary last = series.get(series.size() - 1);
-         if (last.startTime < minValidTimestamp) {
-            continue;
-         }
-         result.computeIfAbsent(data.phase, p -> new TreeMap<>()).put(data.statisticsName, last);
       }
       return result;
    }
 
    public Map<String, Map<String, StatisticsSummary>> totalSummary() {
       Map<String, Map<String, StatisticsSummary>> result = new TreeMap<>();
-      for (Data data : data.values()) {
-         StatisticsSummary last = data.total.summary(percentiles);
-         result.computeIfAbsent(data.phase, p -> new TreeMap<>()).put(data.statisticsName, last);
+      for (Map<String, Data> m : this.data.values()) {
+         for (Data data : m.values()) {
+            StatisticsSummary last = data.total.summary(percentiles);
+            result.computeIfAbsent(data.phase, p -> new TreeMap<>()).put(data.statisticsName, last);
+         }
       }
       return result;
    }

@@ -1,6 +1,7 @@
 package io.hyperfoil.core.client.netty;
 
 import java.io.IOException;
+import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 
@@ -181,13 +182,16 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
       public void onHeadersRead(ChannelHandlerContext ctx, int streamId, Http2Headers headers, int streamDependency, short weight, boolean exclusive, int padding, boolean endStream) {
          HttpRequest request = streams.get(streamId);
          if (request != null) {
-            HttpResponseHandlers handlers = (HttpResponseHandlers) request.handlers();
+            HttpResponseHandlers handlers = request.handlers();
             int code = -1;
             try {
                code = Integer.parseInt(headers.status().toString());
             } catch (NumberFormatException ignore) {
             }
             handlers.handleStatus(request, code, "");
+            for (Map.Entry<CharSequence, CharSequence> header : headers) {
+               handlers.handleHeader(request, header.getKey(), header.getValue());
+            }
             if (endStream) {
                endStream(streamId);
             }

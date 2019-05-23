@@ -4,12 +4,14 @@ import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Locator;
+import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.http.StatusHandler;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.core.session.SessionFactory;
+import io.hyperfoil.function.SerializableSupplier;
 
 public class StatusToCounterHandler implements StatusHandler, ResourceUtilizer {
    private final Integer expectStatus;
@@ -82,7 +84,7 @@ public class StatusToCounterHandler implements StatusHandler, ResourceUtilizer {
       }
 
       @Override
-      public StatusHandler build() {
+      public StatusHandler build(SerializableSupplier<? extends Step> step) {
          if (add != null && set != null) {
             throw new BenchmarkDefinitionException("Use either 'add' or 'set' (not both)");
          } else if (add == null && set == null) {

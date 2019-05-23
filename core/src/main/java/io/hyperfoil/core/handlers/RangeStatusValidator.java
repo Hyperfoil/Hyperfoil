@@ -5,8 +5,10 @@ import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Locator;
+import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.http.StatusHandler;
+import io.hyperfoil.function.SerializableSupplier;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
@@ -36,7 +38,7 @@ public class RangeStatusValidator implements StatusHandler {
       private int max = 299;
 
       @Override
-      public RangeStatusValidator build() {
+      public RangeStatusValidator build(SerializableSupplier<? extends Step> step) {
          return new RangeStatusValidator(min, max);
       }
 

@@ -7,10 +7,12 @@ import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Locator;
+import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.connection.Processor;
 import io.hyperfoil.core.steps.ServiceLoadedBuilderProvider;
+import io.hyperfoil.function.SerializableSupplier;
 import io.netty.buffer.ByteBuf;
 import io.hyperfoil.api.http.BodyHandler;
 import io.hyperfoil.api.session.Session;
@@ -89,7 +91,7 @@ public class JsonHandler extends JsonParser<Request>
       }
 
       @Override
-      public JsonHandler build() {
+      public JsonHandler build(SerializableSupplier<? extends Step> step) {
          return new JsonHandler(query, processor.build());
       }
 

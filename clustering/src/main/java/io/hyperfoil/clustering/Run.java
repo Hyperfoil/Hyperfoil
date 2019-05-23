@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import io.hyperfoil.api.config.Benchmark;
+import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.core.impl.statistics.StatisticsStore;
 
 class Run {
@@ -13,6 +14,7 @@ class Run {
    final Benchmark benchmark;
    final Map<String, ControllerPhase> phases = new HashMap<>();
    final List<AgentInfo> agents = new ArrayList<>();
+   final Phase[] phasesById;
    long deployTimerId;
    String description;
 
@@ -24,6 +26,7 @@ class Run {
    Run(String id, Benchmark benchmark) {
       this.id = id;
       this.benchmark = benchmark;
+      this.phasesById = benchmark.phasesById();
    }
 
    long nextTimestamp() {
@@ -45,5 +48,9 @@ class Run {
             phase.definition().startAfter().stream().allMatch(dep -> phases.get(dep).status().isFinished()) &&
             phase.definition().startAfterStrict().stream().allMatch(dep -> phases.get(dep).status().isTerminated()))
             .toArray(ControllerPhase[]::new);
+   }
+
+   public String phase(int phaseId) {
+      return phasesById[phaseId].name();
    }
 }

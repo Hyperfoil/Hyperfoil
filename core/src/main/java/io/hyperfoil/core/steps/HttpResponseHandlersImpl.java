@@ -13,6 +13,7 @@ import io.hyperfoil.api.config.Rewritable;
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.core.http.CookieRecorder;
+import io.hyperfoil.impl.FutureSupplier;
 import io.netty.buffer.ByteBuf;
 import io.hyperfoil.api.http.BodyHandler;
 import io.hyperfoil.api.http.HeaderHandler;
@@ -81,7 +82,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
    }
 
    @Override
-   public void handleHeader(HttpRequest request, String header, String value) {
+   public void handleHeader(HttpRequest request, CharSequence header, CharSequence value) {
       Session session = request.session;
       if (request.isCompleted()) {
          if (trace) {
@@ -238,7 +239,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       }
 
       public Builder status(StatusHandler handler) {
-         statusHandlers.add(() -> handler);
+         statusHandlers.add(step -> handler);
          return this;
       }
 
@@ -247,7 +248,11 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       }
 
       public Builder header(HeaderHandler handler) {
-         headerHandlers.add(() -> handler);
+         return header(step -> handler);
+      }
+
+      public Builder header(HeaderHandler.Builder builder) {
+         headerHandlers.add(builder);
          return this;
       }
 
@@ -256,7 +261,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       }
 
       public Builder body(BodyHandler handler) {
-         bodyHandlers.add(() -> handler);
+         bodyHandlers.add(step -> handler);
          return this;
       }
 
@@ -293,11 +298,11 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          completionHandlers.forEach(Action.Builder::prepareBuild);
       }
 
-      public HttpResponseHandlersImpl build() {
+      public HttpResponseHandlersImpl build(FutureSupplier<HttpRequestStep> fs) {
          return new HttpResponseHandlersImpl(
-               toArray(statusHandlers, StatusHandler.Builder::build, StatusHandler[]::new),
-               toArray(headerHandlers, HeaderHandler.Builder::build, HeaderHandler[]::new),
-               toArray(bodyHandlers, BodyHandler.Builder::build, BodyHandler[]::new),
+               toArray(statusHandlers, builder -> builder.build(fs), StatusHandler[]::new),
+               toArray(headerHandlers, builder1 -> builder1.build(fs), HeaderHandler[]::new),
+               toArray(bodyHandlers, builder2 -> builder2.build(fs), BodyHandler[]::new),
                toArray(completionHandlers, Action.Builder::build, Action[]::new),
                toArray(rawBytesHandlers, Function.identity(), RawBytesHandler[]::new));
       }

@@ -12,9 +12,9 @@ public class CookieStore implements Session.Resource {
 
    private static final int MAX_SITES = 16;
    private final String[] sites = new String[MAX_SITES];
-   private final String[] cookies = new String[MAX_SITES];
+   private final CharSequence[] cookies = new CharSequence[MAX_SITES];
 
-   public void setCookie(String site, String cookie) {
+   public void setCookie(String site, CharSequence cookie) {
       for (int i = 0; i < sites.length; ++i) {
          if (sites[i] == null) {
             sites[i] = site;
@@ -28,7 +28,7 @@ public class CookieStore implements Session.Resource {
       log.error("Exceeded number of cookies, dropping one for {}: {}", site, cookie);
    }
 
-   public String getCookie(String site) {
+   public CharSequence getCookie(String site) {
       for (int i = 0; i < sites.length; ++i) {
          if (sites[i] == null) {
             return null;

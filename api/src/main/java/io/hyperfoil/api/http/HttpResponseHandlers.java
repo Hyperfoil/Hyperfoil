@@ -7,7 +7,7 @@ import io.netty.buffer.ByteBuf;
 public interface HttpResponseHandlers extends ResponseHandlers<HttpRequest> {
    void handleStatus(HttpRequest request, int status, String reason);
 
-   void handleHeader(HttpRequest request, String header, String value);
+   void handleHeader(HttpRequest request, CharSequence header, CharSequence value);
 
    void handleBodyPart(HttpRequest request, ByteBuf buf);
 

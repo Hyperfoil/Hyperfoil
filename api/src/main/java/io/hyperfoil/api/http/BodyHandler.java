@@ -22,7 +22,9 @@ import java.io.Serializable;
 
 import io.hyperfoil.api.config.BuilderBase;
 import io.hyperfoil.api.config.ServiceLoadedFactory;
+import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.connection.HttpRequest;
+import io.hyperfoil.function.SerializableSupplier;
 import io.netty.buffer.ByteBuf;
 
 public interface BodyHandler extends Serializable {
@@ -32,7 +34,7 @@ public interface BodyHandler extends Serializable {
     default void afterData(HttpRequest request) {}
 
     interface Builder extends BuilderBase<Builder> {
-        BodyHandler build();
+        BodyHandler build(SerializableSupplier<? extends Step> step);
     }
     interface BuilderFactory extends ServiceLoadedFactory<Builder> {}
 }

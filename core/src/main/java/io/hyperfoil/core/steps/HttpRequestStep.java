@@ -28,6 +28,7 @@ import io.hyperfoil.core.session.IntVar;
 import io.hyperfoil.core.session.ObjectVar;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.function.SerializableSupplier;
+import io.hyperfoil.impl.FutureSupplier;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.hyperfoil.api.config.PairBuilder;
@@ -391,6 +392,8 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
       @Override
       public List<Step> build(SerializableSupplier<Sequence> sequence) {
+         FutureSupplier<HttpRequestStep> fs = new FutureSupplier<>();
+
          BenchmarkBuilder simulation = endStep().endSequence().endScenario().endPhase();
          String guessedBaseUrl = null;
          boolean checkBaseUrl = true;
@@ -419,7 +422,9 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
          SLA[] sla = this.sla != null ? this.sla.build() : null;
          SerializableBiFunction<Session, Connection, ByteBuf> bodyGenerator = this.bodyGenerator != null ? this.bodyGenerator.build() : null;
 
-         return Collections.singletonList(new HttpRequestStep(sequence, method, baseUrl, pathGenerator, bodyGenerator, headerAppenders, statisticsSelector, timeout, handler.build(), sla));
+         HttpRequestStep step = new HttpRequestStep(sequence, method, baseUrl, pathGenerator, bodyGenerator, headerAppenders, statisticsSelector, timeout, handler.build(fs), sla);
+         fs.set(step);
+         return Collections.singletonList(step);
       }
 
       @Override

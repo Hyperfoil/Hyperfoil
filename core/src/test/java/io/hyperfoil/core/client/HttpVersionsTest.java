@@ -123,7 +123,7 @@ public class HttpVersionsTest {
                            } else {
                               ctx.fail("Status was not received.");
                            }
-                        }).build();
+                        }).build(null);
                   request.method = HttpMethod.GET;
                   request.path = "/ping";
                   request.start(handlers, new SequenceInstance(), new Statistics(System.currentTimeMillis()));

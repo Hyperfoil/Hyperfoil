@@ -29,6 +29,6 @@ public class RangeStatusValidatorTest {
    }
 
    private RangeStatusValidator create(String inline) {
-      return factory.newBuilder(null, inline).build();
+      return factory.newBuilder(null, inline).build(null);
    }
 }

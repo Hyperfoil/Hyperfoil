@@ -8,6 +8,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -16,6 +17,7 @@ import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.api.http.StatusHandler;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.core.handlers.RangeStatusValidator;
+import io.hyperfoil.core.handlers.RecordHeaderTimeHandler;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.ext.web.handler.BodyHandler;
@@ -38,6 +40,7 @@ public class HttpRequestTest extends BaseScenarioTest {
          String s = ctx.request().getParam("s");
          ctx.response().setStatusCode(Integer.parseInt(s)).end();
       });
+      router.get("/test").handler(ctx -> ctx.response().putHeader("x-foo", "5").end());
    }
 
    private StatusHandler verifyStatus(TestContext ctx) {
@@ -154,5 +157,25 @@ public class HttpRequestTest extends BaseScenarioTest {
       // TODO issue #5
 //      assertThat(session.validatorResults().statusValid()).isEqualTo(1);
 //      assertThat(session.validatorResults().statusInvalid()).isEqualTo(1);
+   }
+
+   @Test
+   public void testRecordHeaderValueHandler() {
+      scenario()
+            .initialSequence("test")
+               .step(SC).httpRequest(HttpMethod.GET)
+                  .path("/test")
+                  .handler()
+                     .header(new RecordHeaderTimeHandler.Builder().header("x-foo").unit("ms"))
+                  .endHandler()
+               .endStep()
+            .endSequence();
+
+      Map<String, List<StatisticsSnapshot>> stats = runScenario();
+      assertThat(assertSingleItem(stats.get("test")).requestCount).isEqualTo(1);
+      List<StatisticsSnapshot> foo = stats.get("x-foo");
+      assertThat(foo.size()).isEqualTo(1);
+      StatisticsSnapshot snapshot = foo.iterator().next();
+      assertThat(snapshot.histogram.getCountAtValue(TimeUnit.MILLISECONDS.toNanos(5))).isEqualTo(1);
    }
 }
