@@ -4,6 +4,7 @@ import org.aesh.command.Command;
 import org.aesh.command.CommandDefinition;
 import org.aesh.command.CommandException;
 import org.aesh.command.CommandResult;
+import org.aesh.command.option.Argument;
 import org.aesh.command.option.Option;
 
 import io.hyperfoil.cli.context.HyperfoilCliContext;
@@ -14,7 +15,7 @@ import io.hyperfoil.core.util.Util;
 
 @CommandDefinition(name = "connect", description = "Connects CLI to Hyperfoil Controller server")
 public class Connect implements Command<HyperfoilCommandInvocation> {
-   @Option(shortName = 'h', name = "host", description = "Hyperfoil host", defaultValue = "localhost")
+   @Argument(description = "Hyperfoil host", defaultValue = "localhost")
    String host;
 
    @Option(shortName = 'p', name = "port", description = "Hyperfoil port", defaultValue = "8090")
