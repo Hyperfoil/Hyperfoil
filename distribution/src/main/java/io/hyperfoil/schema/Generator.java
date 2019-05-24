@@ -204,7 +204,9 @@ public class Generator {
       if (ServiceLoadedBuilderProvider.class.isAssignableFrom(m.getReturnType())) {
          ParameterizedType type = (ParameterizedType) m.getAnnotatedReturnType().getType();
          Class<? extends ServiceLoadedFactory<?>> bfClass = getBuilderFactoryClass(type.getActualTypeArguments()[1]);
-         options.add(getServiceLoadedImplementations(bfClass));
+         JsonObject discriminator = getServiceLoadedImplementations(bfClass);
+         options.add(discriminator);
+         options.add(arrayOf(discriminator));
       }
       if (m.getReturnType().getName().endsWith("Builder")) {
          JsonObject builderReference = describeBuilder(m.getReturnType());
@@ -250,13 +252,13 @@ public class Generator {
    }
 
    private JsonObject getServiceLoadedImplementations(Class<? extends ServiceLoadedFactory<?>> factoryClass) {
-      JsonObject serviceLoadedProperties = new JsonObject();
-      JsonObject property = new JsonObject()
+      JsonObject implementations = new JsonObject();
+      JsonObject discriminator = new JsonObject()
             .put("type", "object")
             .put("additionalProperties", false)
             .put("minProperties", 1)
             .put("maxProperties", 1)
-            .put("properties", serviceLoadedProperties);
+            .put("properties", implementations);
       for (ServiceLoadedFactory f : getFactories(factoryClass)) {
          try {
             Class<?> serviceLoadedBuilder = f.getClass().getMethod("newBuilder", Locator.class, String.class).getReturnType();
@@ -265,13 +267,13 @@ public class Generator {
                serviceLoadedProperty = new JsonObject()
                      .put("oneOf", new JsonArray().add(serviceLoadedProperty).add(TYPE_STRING));
             }
-            addProperty(serviceLoadedProperties, f.name(), serviceLoadedProperty);
+            addProperty(implementations, f.name(), serviceLoadedProperty);
          } catch (NoSuchMethodException e) {
             throw new IllegalStateException(e);
          }
       }
-      return property;
-
+      definitions.put(factoryClass.getName(), discriminator);
+      return new JsonObject().put("$ref", "#/definitions/" + factoryClass.getName());
    }
 
    private static void addProperty(JsonObject properties, String name, JsonObject newProperty) {

@@ -42,15 +42,12 @@ public class Sessions extends BaseRunIdCommand {
                }
             }
             invocation.print(SESSION_STATS.print("PHASE", toMapOfStreams(sessionStats)));
-            invocation.println("Press Ctrl+C to stop watching...");
-            Thread.sleep(1000);
+            if (interruptibleDelay(invocation)) {
+               return CommandResult.SUCCESS;
+            }
          } catch (RestClientException e) {
             invocation.println("ERROR: " + Util.explainCauses(e));
             throw new CommandException("Cannot display session stats.", e);
-         } catch (InterruptedException e) {
-            clearLines(invocation, 1);
-            invocation.println("");
-            return CommandResult.SUCCESS;
          }
       }
    }

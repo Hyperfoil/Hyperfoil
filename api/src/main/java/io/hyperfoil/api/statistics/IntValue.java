@@ -40,4 +40,9 @@ public class IntValue implements CustomValue {
    public int value() {
       return value;
    }
+
+   @Override
+   public String toString() {
+      return String.valueOf(value);
+   }
 }

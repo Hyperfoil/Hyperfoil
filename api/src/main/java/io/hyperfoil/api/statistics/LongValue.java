@@ -40,4 +40,9 @@ public class LongValue implements CustomValue {
    public long value() {
       return value;
    }
+
+   @Override
+   public String toString() {
+      return String.valueOf(value);
+   }
 }

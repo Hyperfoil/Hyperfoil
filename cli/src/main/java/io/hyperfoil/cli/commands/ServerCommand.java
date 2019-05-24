@@ -54,4 +54,16 @@ public abstract class ServerCommand implements Command<HyperfoilCommandInvocatio
          invocation.print(ERASE_WHOLE_LINE);
       }
    }
+
+   protected boolean interruptibleDelay(HyperfoilCommandInvocation invocation) {
+      invocation.println("Press Ctr+C to stop watching...");
+      try {
+         Thread.sleep(1000);
+      } catch (InterruptedException e) {
+         clearLines(invocation, 1);
+         invocation.println("");
+         return true;
+      }
+      return false;
+   }
 }

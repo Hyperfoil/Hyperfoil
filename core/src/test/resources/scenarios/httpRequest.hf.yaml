@@ -26,6 +26,8 @@ phases:
                 meanResponseTime: 1s
               handler:
                 status:
-                  range:
+                # Check list syntax
+                - range:
                     min: 201
                     max: 259
+                - range: 200-210

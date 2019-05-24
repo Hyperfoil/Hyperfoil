@@ -37,6 +37,7 @@ import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.impl.NoStackTraceThrowable;
 import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -80,6 +81,7 @@ class ControllerServer {
       router.get("/run/:runid/connections").handler(this::handleListConnections);
       router.get("/run/:runid/stats/recent").handler(this::handleRecentStats);
       router.get("/run/:runid/stats/total").handler(this::handleTotalStats);
+      router.get("/run/:runid/stats/custom").handler(this::handleCustomStats);
 
       httpServer = controller.getVertx().createHttpServer().requestHandler(router).listen(CONTROLLER_PORT);
    }
@@ -441,6 +443,21 @@ class ControllerServer {
       return sb.toString();
    }
 
+   private void handleCustomStats(RoutingContext ctx) {
+      Run run = getRun(ctx);
+      if (run == null) {
+         ctx.response().setStatusCode(HttpResponseStatus.NOT_FOUND.code()).end();
+         return;
+      } else if (run.statisticsStore == null) {
+         ctx.response().end("{}");
+         return;
+      }
+      List<Client.CustomStats> stats = run.statisticsStore.customStats();
+      // TODO: add json response format based on 'Accept' header
+      ctx.response().end(new JsonArray(stats).encodePrettily());
+   }
+
+
    private void handleRecentSessions(RoutingContext ctx) {
       handleSessionPoolStats(ctx, run -> run.statisticsStore.recentSessionPoolSummary(System.currentTimeMillis() - 3000));
    }
@@ -456,6 +473,7 @@ class ControllerServer {
          return;
       } else if (run.statisticsStore == null) {
          ctx.response().end("{}");
+         return;
       }
       Map<String, Map<String, LowHigh>> stats = func.apply(run);
       JsonObject reply = new JsonObject();

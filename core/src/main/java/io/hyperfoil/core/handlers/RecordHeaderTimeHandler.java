@@ -67,7 +67,7 @@ public class RecordHeaderTimeHandler implements HeaderHandler {
       private String unit;
 
       @Override
-      public HeaderHandler build(SerializableSupplier<? extends Step> step) {
+      public RecordHeaderTimeHandler build(SerializableSupplier<? extends Step> step) {
          if (header == null || header.isEmpty()) {
             throw new BenchmarkDefinitionException("Must define the header.");
          } else if (header.chars().anyMatch(c -> c > 0xFF)) {
@@ -120,7 +120,7 @@ public class RecordHeaderTimeHandler implements HeaderHandler {
       }
 
       @Override
-      public HeaderHandler.Builder newBuilder(Locator locator, String param) {
+      public Builder newBuilder(Locator locator, String param) {
          return new Builder().header(param);
       }
    }

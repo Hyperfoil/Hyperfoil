@@ -84,4 +84,11 @@ public class RunRefImpl implements Client.RunRef {
             handler -> client.client.request(HttpMethod.GET, "/run/" + id + "/stats/total").send(handler), 200,
             response -> response.bodyAsString());
    }
+
+   @Override
+   public Collection<Client.CustomStats> customStats() {
+      return client.sync(
+            handler -> client.client.request(HttpMethod.GET, "/run/" + id + "/stats/custom").send(handler), 200,
+            response -> Json.decodeValue(response.body(), new TypeReference<Collection<Client.CustomStats>>() {}));
+   }
 }

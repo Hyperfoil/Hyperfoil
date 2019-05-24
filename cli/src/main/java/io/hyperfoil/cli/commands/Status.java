@@ -65,12 +65,7 @@ public class Status extends BaseRunIdCommand {
          if (run.terminated != null) {
             return CommandResult.SUCCESS;
          }
-         invocation.println("Press Ctrl+C to stop watching...");
-         try {
-            Thread.sleep(1000);
-         } catch (InterruptedException e) {
-            clearLines(invocation, 1);
-            invocation.println("");
+         if (interruptibleDelay(invocation)) {
             return CommandResult.SUCCESS;
          }
          try {

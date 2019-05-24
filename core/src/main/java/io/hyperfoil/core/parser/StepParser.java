@@ -112,32 +112,8 @@ class StepParser implements Parser<BaseSequenceBuilder> {
             applyMapping(ctx, serviceLoadedContract.builder());
             serviceLoadedContract.complete();
          } else if (builder instanceof ServiceLoadedBuilderProvider) {
-            defEvent = ctx.next();
-            if (defEvent instanceof MappingEndEvent) {
-               throw new ParserException(defEvent, "Expecting builder type but found end of mapping.");
-            } else if (defEvent instanceof ScalarEvent) {
-               String name = ((ScalarEvent) defEvent).getValue();
-               ServiceLoadedBuilderProvider<?, ?> provider = (ServiceLoadedBuilderProvider<?, ?>) builder;
-               ServiceLoadedContract<?> slc;
-               Event builderEvent = ctx.next();
-               String param = null;
-               if (builderEvent instanceof ScalarEvent) {
-                  param = ((ScalarEvent) builderEvent).getValue();
-               }
-               try {
-                  slc = provider.forName(name, param);
-               } catch (BenchmarkDefinitionException e) {
-                  throw new ParserException(defEvent, "Failed to instantiate service-loaded builder " + name, e);
-               }
-               if (builderEvent instanceof MappingStartEvent) {
-                  applyMapping(ctx, slc.builder());
-               } else if (!(builderEvent instanceof ScalarEvent)) {
-                  throw ctx.unexpectedEvent(builderEvent);
-               }
-               slc.complete();
-            } else {
-               throw ctx.unexpectedEvent(defEvent);
-            }
+            ScalarEvent nameEvent = ctx.expectEvent(ScalarEvent.class);
+            fillSLBP(ctx, nameEvent, (ServiceLoadedBuilderProvider<?, ?>) builder);
             ctx.expectEvent(MappingEndEvent.class);
          } else {
             if (builder instanceof MappingListBuilder) {
@@ -155,6 +131,28 @@ class StepParser implements Parser<BaseSequenceBuilder> {
          }
          if (builder instanceof BaseSequenceBuilder) {
             ctx.parseList((BaseSequenceBuilder) builder, StepParser.instance());
+         } else if (builder instanceof ServiceLoadedBuilderProvider) {
+            ctx.consumePeeked(defEvent);
+            while (ctx.hasNext()) {
+               Event itemEvent = ctx.next();
+               if (itemEvent instanceof SequenceEndEvent) {
+                  break;
+               } else if (itemEvent instanceof ScalarEvent) {
+                  String name = ((ScalarEvent) itemEvent).getValue();
+                  ServiceLoadedBuilderProvider<?, ?> provider = (ServiceLoadedBuilderProvider<?, ?>) builder;
+                  try {
+                     provider.forName(name, null).complete();
+                  } catch (BenchmarkDefinitionException e) {
+                     throw new ParserException(itemEvent, "Failed to instantiate service-loaded builder " + name, e);
+                  }
+               } else if (itemEvent instanceof MappingStartEvent) {
+                  ScalarEvent nameEvent = ctx.expectEvent(ScalarEvent.class);
+                  fillSLBP(ctx, nameEvent, (ServiceLoadedBuilderProvider<?, ?>) builder);
+                  ctx.expectEvent(MappingEndEvent.class);
+               } else {
+                  throw ctx.unexpectedEvent(defEvent);
+               }
+            }
          } else {
             ctx.consumePeeked(defEvent);
             MappingListBuilder<?> mlb = null;
@@ -162,22 +160,22 @@ class StepParser implements Parser<BaseSequenceBuilder> {
                mlb = (MappingListBuilder<?>) builder;
             }
             while (ctx.hasNext()) {
-               defEvent = ctx.next();
-               if (defEvent instanceof SequenceEndEvent) {
+               Event itemEvent = ctx.next();
+               if (itemEvent instanceof SequenceEndEvent) {
                   break;
                } else if (mlb != null) {
                   builder = mlb.addItem();
                }
-               if (defEvent instanceof ScalarEvent) {
+               if (itemEvent instanceof ScalarEvent) {
                   if (builder instanceof ListBuilder) {
-                     ((ListBuilder) builder).nextItem(((ScalarEvent) defEvent).getValue());
+                     ((ListBuilder) builder).nextItem(((ScalarEvent) itemEvent).getValue());
                   } else {
-                     invokeWithParameters(ctx, builder, (ScalarEvent) defEvent);
+                     invokeWithParameters(ctx, builder, (ScalarEvent) itemEvent);
                   }
-               } else if (defEvent instanceof MappingStartEvent) {
+               } else if (itemEvent instanceof MappingStartEvent) {
                   applyMapping(ctx, builder);
                } else {
-                  throw ctx.unexpectedEvent(defEvent);
+                  throw ctx.unexpectedEvent(itemEvent);
                }
             }
          }
@@ -185,6 +183,28 @@ class StepParser implements Parser<BaseSequenceBuilder> {
             slc.complete();
          }
       }
+   }
+
+   private void fillSLBP(Context ctx, ScalarEvent nameEvent, ServiceLoadedBuilderProvider<?, ?> provider) throws ParserException {
+      ServiceLoadedContract<?> slc;
+      Event builderEvent = ctx.next();
+      String param = null;
+      if (builderEvent instanceof ScalarEvent) {
+         param = ((ScalarEvent) builderEvent).getValue();
+      }
+      try {
+         slc = provider.forName(nameEvent.getValue(), param);
+      } catch (BenchmarkDefinitionException e) {
+         throw new ParserException(nameEvent, "Failed to instantiate service-loaded builder " + nameEvent.getValue(), e);
+      }
+      if (builderEvent instanceof MappingStartEvent) {
+         applyMapping(ctx, slc.builder());
+      } else if (builderEvent instanceof ScalarEvent) {
+         // already handled as param
+      } else {
+         throw ctx.unexpectedEvent(builderEvent);
+      }
+      slc.complete();
    }
 
    private void invokeWithSingleParam(Object target, ScalarEvent keyEvent, String key, Event valueEvent, String value) throws ParserException {

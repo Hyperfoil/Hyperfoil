@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -23,8 +24,10 @@ import java.util.stream.Stream;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.SLA;
+import io.hyperfoil.api.statistics.CustomValue;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.api.statistics.StatisticsSummary;
+import io.hyperfoil.client.Client;
 import io.hyperfoil.core.util.LowHigh;
 
 public class StatisticsStore {
@@ -281,6 +284,22 @@ public class StatisticsStore {
       }
       return result;
    }
+
+   public List<Client.CustomStats> customStats() {
+      ArrayList<Client.CustomStats> list = new ArrayList<>();
+      for (Map<String, Data> m : this.data.values()) {
+         for (Data data : m.values()) {
+            for (Map.Entry<Object, CustomValue> entry : data.total.custom.entrySet()) {
+               list.add(new Client.CustomStats(data.phase, data.stepId, data.statisticsName, entry.getKey().toString(), entry.getValue().toString()));
+            }
+         }
+      }
+      Comparator<Client.CustomStats> c = Comparator.comparing(s -> s.phase);
+      c = c.thenComparing(s -> s.stepId).thenComparing(s -> s.statsName).thenComparing(s -> s.customName);
+      Collections.sort(list, c);
+      return list;
+   }
+
 
    public void recordSessionStats(String address, long timestamp, String phase, int minSessions, int maxSessions) {
       SessionPoolStats sps = this.sessionPoolStats.computeIfAbsent(phase, p -> new SessionPoolStats());

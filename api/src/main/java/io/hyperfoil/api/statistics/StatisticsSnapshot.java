@@ -27,7 +27,7 @@ public class StatisticsSnapshot implements Serializable {
    public int timeouts;
    public int blockedCount;
    public long blockedTime;
-   public final Map<String, CustomValue> custom = new HashMap<>();
+   public final Map<Object, CustomValue> custom = new HashMap<>();
 
    public int[] statuses() {
       return new int[] { status_2xx, status_3xx, status_4xx, status_5xx, status_other };
@@ -78,8 +78,10 @@ public class StatisticsSnapshot implements Serializable {
       target.timeouts = timeouts;
       target.blockedCount = blockedCount;
       target.blockedTime = blockedTime;
-      for (String key : custom.keySet()) {
+      for (Object key : custom.keySet()) {
          CustomValue a = custom.get(key);
+         // We must make sure that the key is serializable
+         key = key.toString();
          CustomValue b = target.custom.get(key);
          if (a == null) {
             if (b != null) {
@@ -110,8 +112,10 @@ public class StatisticsSnapshot implements Serializable {
       target.timeouts += timeouts;
       target.blockedCount += blockedCount;
       target.blockedTime += blockedTime;
-      for (String key : custom.keySet()) {
+      for (Object key : custom.keySet()) {
          CustomValue a = custom.get(key);
+         // We must make sure that the key is serializable
+         key = key.toString();
          CustomValue b = target.custom.get(key);
          if (a == null) {
             // noop
@@ -139,8 +143,10 @@ public class StatisticsSnapshot implements Serializable {
       target.timeouts -= timeouts;
       target.blockedCount -= blockedCount;
       target.blockedTime -= blockedTime;
-      for (String key : custom.keySet()) {
+      for (Object key : custom.keySet()) {
          CustomValue a = custom.get(key);
+         // We must make sure that the key is serializable
+         key = key.toString();
          CustomValue b = target.custom.get(key);
          if (a == null) {
             // noop

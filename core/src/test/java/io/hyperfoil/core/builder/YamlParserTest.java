@@ -140,9 +140,11 @@ public class YamlParserTest {
 
         HttpRequestStep request2 = next(HttpRequestStep.class, iterator);
         StatusHandler[] statusHandlers2 = HttpRequestStepUtil.statusHandlers(request2);
-        assertThat(statusHandlers2).isNotNull().hasSize(1);
+        assertThat(statusHandlers2).isNotNull().hasSize(2);
         assertCondition((RangeStatusValidator) statusHandlers2[0], v -> v.min == 201);
         assertCondition((RangeStatusValidator) statusHandlers2[0], v -> v.max == 259);
+        assertCondition((RangeStatusValidator) statusHandlers2[1], v -> v.min == 200);
+        assertCondition((RangeStatusValidator) statusHandlers2[1], v -> v.max == 210);
     }
 
     @Test
