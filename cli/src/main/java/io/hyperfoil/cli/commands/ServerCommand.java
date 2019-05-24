@@ -56,7 +56,7 @@ public abstract class ServerCommand implements Command<HyperfoilCommandInvocatio
    }
 
    protected boolean interruptibleDelay(HyperfoilCommandInvocation invocation) {
-      invocation.println("Press Ctr+C to stop watching...");
+      invocation.println("Press Ctrl+C to stop watching...");
       try {
          Thread.sleep(1000);
       } catch (InterruptedException e) {
