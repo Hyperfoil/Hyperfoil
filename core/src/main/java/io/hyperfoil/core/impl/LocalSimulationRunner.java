@@ -24,7 +24,7 @@ public class LocalSimulationRunner extends SimulationRunnerImpl {
    }
 
    public LocalSimulationRunner(Benchmark benchmark, StatisticsCollector.StatisticsConsumer statsConsumer, SessionStatsConsumer sessionPoolStatsConsumer) {
-      super(benchmark);
+      super(benchmark, null);
       this.statsConsumer = statsConsumer;
       this.sessionPoolStatsConsumer = sessionPoolStatsConsumer;
    }
@@ -35,7 +35,7 @@ public class LocalSimulationRunner extends SimulationRunnerImpl {
       }
 
       CountDownLatch latch = new CountDownLatch(1);
-      init(this::phaseChanged, result -> latch.countDown());
+      init(result -> latch.countDown());
       try {
          latch.await();
          // Exec is blocking and therefore must not run on the event-loop thread
@@ -101,7 +101,9 @@ public class LocalSimulationRunner extends SimulationRunnerImpl {
       } while (instances.values().stream().anyMatch(phase -> phase.status() != PhaseInstance.Status.TERMINATED));
    }
 
-   private void phaseChanged(String phase, PhaseInstance.Status status, boolean success) {
+   @Override
+   protected void phaseChanged(Phase phase, PhaseInstance.Status status, boolean successful) {
+      super.phaseChanged(phase, status, successful);
       if (status == PhaseInstance.Status.TERMINATED) {
          publishStats(phase);
       }
@@ -113,15 +115,14 @@ public class LocalSimulationRunner extends SimulationRunnerImpl {
       }
    }
 
-   private void publishStats(String phase) {
-      Phase phaseDef = instances.get(phase).definition();
+   private void publishStats(Phase phase) {
       if (statsConsumer != null) {
          StatisticsCollector collector = new StatisticsCollector(benchmark);
-         visitStatistics(phaseDef, collector);
+         visitStatistics(phase, collector);
          collector.visitStatistics(statsConsumer, null);
       }
       if (sessionPoolStatsConsumer != null) {
-         visitSessionPoolStats(phaseDef, sessionPoolStatsConsumer);
+         visitSessionPoolStats(phase, sessionPoolStatsConsumer);
       }
    }
 

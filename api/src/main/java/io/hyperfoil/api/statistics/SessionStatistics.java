@@ -79,6 +79,31 @@ public class SessionStatistics implements Iterable<Statistics> {
       return Stream.of(maps).filter(Objects::nonNull);
    }
 
+   public void prune(Phase phase) {
+      int lastGood = size - 1;
+      while (lastGood >= 0 && phases[lastGood] == phase) {
+         lastGood--;
+      }
+      int lastSize = size;
+      for (int i = 0; i < lastSize; ++i) {
+         if (phases[i] == phase) {
+            if (lastGood > i) {
+               phases[i] = phases[lastGood];
+               stepIds[i] = stepIds[lastGood];
+               maps[i] = maps[lastGood];
+               while (lastGood > i && phases[lastGood] == phase) {
+                  lastGood--;
+               }
+            } else {
+               phases[i] = null;
+               stepIds[i] = 0;
+               maps[i] = null;
+            }
+            --size;
+         }
+      }
+   }
+
    private class It implements Iterator<Statistics> {
       int i;
       Iterator<Statistics> it;

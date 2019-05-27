@@ -342,6 +342,11 @@ class SessionImpl implements Session, Callable<Void> {
    }
 
    @Override
+   public void pruneStats(Phase phase) {
+      statistics.prune(phase);
+   }
+
+   @Override
    public void reset() {
       assert sequencePool.isFull();
       assert requestPool.isFull();

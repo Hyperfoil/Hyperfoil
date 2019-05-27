@@ -32,6 +32,8 @@ public interface Session {
 
    Statistics statistics(int stepId, String name);
 
+   void pruneStats(Phase phase);
+
    // Resources
    <R extends Session.Resource> void declareResource(ResourceKey<R> key, R resource);
 

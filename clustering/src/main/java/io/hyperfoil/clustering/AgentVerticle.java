@@ -174,16 +174,16 @@ public class AgentVerticle extends AbstractVerticle {
             handler.handle(Future.failedFuture("Another simulation is running"));
             return;
         }
-        runner = new SimulationRunnerImpl(benchmark);
+        runner = new SimulationRunnerImpl(benchmark, (phase, status, succesful) -> {
+            log.debug("{} changed phase {} to {}", address, phase, status);
+            eb.send(Feeds.RESPONSE, new PhaseChangeMessage(address, runId, phase.name(), status, succesful));
+        });
         controlFeedConsumer = listenOnControl();
         reportSender = new ReportSender(benchmark, eb, address, runId);
         statisticsCountDown = new CountDown(1);
         sessionStatsSender = new SessionStatsSender(eb, address, runId);
 
-        runner.init((phase, status, succesful) -> {
-            log.debug("{} changed phase {} to {}", address, phase, status);
-            eb.send(Feeds.RESPONSE, new PhaseChangeMessage(address, runId, phase, status, succesful));
-        }, result -> {
+        runner.init(result -> {
             if (result.succeeded()) {
                 statsTimerId = vertx.setPeriodic(benchmark.statisticsCollectionPeriod(), timerId -> {
                     runner.visitStatistics(reportSender);

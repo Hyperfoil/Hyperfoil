@@ -29,6 +29,7 @@ import io.vertx.core.Handler;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -37,6 +38,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Queue;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -56,10 +58,13 @@ public class SimulationRunnerImpl implements SimulationRunner {
     protected final EventLoopGroup eventLoopGroup;
     protected final Map<String, HttpClientPool> httpClientPools = new HashMap<>();
     protected final Map<EventExecutor, HttpDestinationTableImpl> httpDestinations = new HashMap<>();
+    private final PhaseChangeHandler phaseChangeHandler;
+    private final Queue<Phase> toPrune = new ArrayDeque<>();
 
-    public SimulationRunnerImpl(Benchmark benchmark) {
+    public SimulationRunnerImpl(Benchmark benchmark, PhaseChangeHandler phaseChangeHandler) {
         this.eventLoopGroup = new NioEventLoopGroup(benchmark.threads());
         this.benchmark = benchmark;
+        this.phaseChangeHandler = phaseChangeHandler;
         Map<EventExecutor, Map<String, HttpConnectionPool>> httpConnectionPools = new HashMap<>();
         for (Map.Entry<String, Http> http : benchmark.http().entrySet()) {
             try {
@@ -86,7 +91,7 @@ public class SimulationRunnerImpl implements SimulationRunner {
     }
 
     @Override
-    public void init(PhaseChangeHandler phaseChangeHandler, Handler<AsyncResult<Void>> handler) {
+    public void init(Handler<AsyncResult<Void>> handler) {
         //Initialise HttpClientPool
         ArrayList<Future> futures = new ArrayList<>();
         for (Map.Entry<String, HttpClientPool> entry : httpClientPools.entrySet()) {
@@ -131,13 +136,22 @@ public class SimulationRunnerImpl implements SimulationRunner {
             }
             PhaseInstance phase = PhaseInstanceImpl.newInstance(def);
             instances.put(def.name(), phase);
-            phase.setComponents(sharedResources.sessionPool, sharedResources.sessions, sharedResources.allStatistics(), phaseChangeHandler);
+            phase.setComponents(sharedResources.sessionPool, sharedResources.sessions, sharedResources.allStatistics(), (phase1, status, successful) -> phaseChanged(phase1, status, successful));
             phase.reserveSessions();
             // at this point all session resources should be reserved
         }
 
         CompositeFuture composite = CompositeFuture.join(futures);
         composite.setHandler(result -> handler.handle(result.mapEmpty()));
+    }
+
+    protected void phaseChanged(Phase phase, PhaseInstance.Status status, boolean successful) {
+        if (phaseChangeHandler != null) {
+            phaseChangeHandler.onChange(phase, status, successful);
+        }
+        if (status == PhaseInstance.Status.TERMINATED) {
+            toPrune.add(phase);
+        }
     }
 
     @Override
@@ -156,6 +170,7 @@ public class SimulationRunnerImpl implements SimulationRunner {
         }
     }
 
+    // This method should be invoked only from vert.x eventpool thread
     public void visitStatistics(Consumer<SessionStatistics> consumer) {
         for (SharedResources sharedResources : this.sharedResources.values()) {
             if (sharedResources.currentPhase == null) {
@@ -164,6 +179,17 @@ public class SimulationRunnerImpl implements SimulationRunner {
             }
             for (SessionStatistics statistics : sharedResources.statistics.values()) {
                 consumer.accept(statistics);
+            }
+        }
+        while (!toPrune.isEmpty()) {
+            Phase phase = toPrune.poll();
+            for (SharedResources sharedResources : this.sharedResources.values()) {
+                if (sharedResources.statistics == null) {
+                    continue;
+                }
+                for (SessionStatistics statistics : sharedResources.statistics.values()) {
+                    statistics.prune(phase);
+                }
             }
         }
     }

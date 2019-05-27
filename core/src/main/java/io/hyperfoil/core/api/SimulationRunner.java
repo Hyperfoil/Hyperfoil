@@ -2,14 +2,13 @@ package io.hyperfoil.core.api;
 
 import java.util.function.Consumer;
 
-import io.hyperfoil.api.session.PhaseChangeHandler;
 import io.hyperfoil.api.session.Session;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 
 public interface SimulationRunner {
 
-   void init(PhaseChangeHandler phaseChangeHook, Handler<AsyncResult<Void>> handler);
+   void init(Handler<AsyncResult<Void>> handler);
 
    void visitSessions(Consumer<Session> consumer);
 

@@ -9,6 +9,7 @@ import io.hyperfoil.api.config.HttpBuilder;
 import io.hyperfoil.api.config.ScenarioBuilder;
 import io.hyperfoil.core.builders.StepCatalog;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
+import io.hyperfoil.core.impl.statistics.StatisticsCollector;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.logging.Logger;
@@ -19,7 +20,6 @@ import org.junit.After;
 import org.junit.Before;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,11 +34,11 @@ public abstract class BaseScenarioTest {
    protected HttpServer server;
 
    protected Map<String, List<StatisticsSnapshot>> runScenario() {
-      LocalSimulationRunner runner = new LocalSimulationRunner(benchmark());
-      runner.run();
       Map<String, List<StatisticsSnapshot>> stats = new HashMap<>();
-      runner.visitStatistics(statistics -> statistics.maps().map(Map::entrySet).flatMap(Collection::stream)
-            .forEach(e -> stats.computeIfAbsent(e.getKey(), l -> new ArrayList<>()).add(e.getValue().snapshot())));
+      StatisticsCollector.StatisticsConsumer statisticsConsumer = (phase, stepId, name, snapshot, countDown)
+            -> stats.computeIfAbsent(name, n -> new ArrayList<>()).add(snapshot.clone());
+      LocalSimulationRunner runner = new LocalSimulationRunner(benchmark(), statisticsConsumer, null);
+      runner.run();
       return stats;
    }
 

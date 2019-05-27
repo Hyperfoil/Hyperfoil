@@ -27,7 +27,6 @@ import io.hyperfoil.core.builders.StepCatalog;
 import io.hyperfoil.core.handlers.ByteBufSizeRecorder;
 import io.hyperfoil.core.impl.LocalBenchmarkData;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
-import io.hyperfoil.core.impl.statistics.StatisticsCollector;
 import io.vertx.core.Vertx;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -95,15 +94,10 @@ public class RequestResponseCounterTest {
 
         Benchmark benchmark = builder.build();
 
-        LocalSimulationRunner runner = new LocalSimulationRunner(benchmark);
+        AtomicLong actualNumberOfRequests = new AtomicLong(0);
+        LocalSimulationRunner runner = new LocalSimulationRunner(benchmark,
+              (phase, stepId, name, snapshot, countDown) -> actualNumberOfRequests.addAndGet(snapshot.histogram.getTotalCount()), null);
         runner.run();
-        StatisticsCollector collector = new StatisticsCollector(benchmark);
-        runner.visitStatistics(collector);
-
-        AtomicLong actualNumberOfRequests = new AtomicLong();
-        collector.visitStatistics((phase, stepId, name, snapshot, countDown) -> {
-            actualNumberOfRequests.set(snapshot.histogram.getTotalCount());
-        }, null);
 
         assertEquals(counter.get(), actualNumberOfRequests.get());
     }
