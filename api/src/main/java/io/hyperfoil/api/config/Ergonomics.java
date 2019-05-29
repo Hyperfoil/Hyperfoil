@@ -7,12 +7,18 @@ import java.io.Serializable;
  */
 public class Ergonomics implements Serializable {
    private final boolean repeatCookies;
+   private final boolean userAgentFromSession;
 
-   public Ergonomics(boolean repeatCookies) {
+   public Ergonomics(boolean repeatCookies, boolean userAgentFromSession) {
       this.repeatCookies = repeatCookies;
+      this.userAgentFromSession = userAgentFromSession;
    }
 
    public boolean repeatCookies() {
       return repeatCookies;
+   }
+
+   public boolean userAgentFromSession() {
+      return userAgentFromSession;
    }
 }

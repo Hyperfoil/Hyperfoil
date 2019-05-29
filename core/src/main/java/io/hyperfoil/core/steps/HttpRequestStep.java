@@ -11,6 +11,7 @@ import java.util.concurrent.TimeUnit;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkBuilder;
+import io.hyperfoil.api.config.ErgonomicsBuilder;
 import io.hyperfoil.api.config.Http;
 import io.hyperfoil.api.config.MappingListBuilder;
 import io.hyperfoil.api.config.SLA;
@@ -24,6 +25,7 @@ import io.hyperfoil.core.generators.Pattern;
 import io.hyperfoil.core.generators.StringGeneratorBuilder;
 import io.hyperfoil.core.generators.StringGeneratorImplBuilder;
 import io.hyperfoil.core.http.CookieAppender;
+import io.hyperfoil.core.http.UserAgentAppender;
 import io.hyperfoil.core.session.IntVar;
 import io.hyperfoil.core.session.ObjectVar;
 import io.hyperfoil.core.session.SessionFactory;
@@ -157,6 +159,8 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
    @Override
    public void reserve(Session session) {
+      ResourceUtilizer.reserve(session, baseUrl, pathGenerator, bodyGenerator);
+      ResourceUtilizer.reserve(session, headerAppenders);
       handler.reserve(session);
    }
 
@@ -377,8 +381,12 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
       @Override
       public void prepareBuild() {
-         if (endStep().endSequence().endScenario().endPhase().ergonomics().repeatCookies()) {
+         ErgonomicsBuilder ergonomics = endStep().endSequence().endScenario().endPhase().ergonomics();
+         if (ergonomics.repeatCookies()) {
             headerAppender(new CookieAppender());
+         }
+         if (ergonomics.userAgentFromSession()) {
+            headerAppender(new UserAgentAppender());
          }
          if (sync) {
             String var = String.format("%s_sync_%08x", endStep().name(), ThreadLocalRandom.current().nextInt());
