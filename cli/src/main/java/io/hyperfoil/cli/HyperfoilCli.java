@@ -21,6 +21,7 @@
 package io.hyperfoil.cli;
 
 import io.hyperfoil.cli.commands.Connect;
+import io.hyperfoil.cli.commands.Edit;
 import io.hyperfoil.cli.commands.Info;
 import io.hyperfoil.cli.commands.Kill;
 import io.hyperfoil.cli.commands.Run;
@@ -92,6 +93,7 @@ public class HyperfoilCli {
                        .commandRegistry(
                                AeshCommandRegistryBuilder.<HyperfoilCommandInvocation>builder()
                                        .command(Connect.class)
+                                       .command(Edit.class)
                                        .command(ExitCommand.class)
                                        .command(Info.class)
                                        .command(Kill.class)
