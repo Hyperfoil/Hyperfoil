@@ -42,7 +42,10 @@ public class ElasticPoolImpl<T> implements ElasticPool<T> {
          used.increment();
          return object;
       }
-      return depletionSupplier.get();
+      object = depletionSupplier.get();
+      assert object != null;
+      used.increment();
+      return object;
    }
 
    @Override
