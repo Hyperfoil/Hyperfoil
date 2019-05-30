@@ -23,7 +23,8 @@ public class Status extends BaseRunIdCommand {
          .column("STARTED", p -> p.started == null ? null : TIME_FORMATTER.format(p.started))
          .column("REMAINING", p -> p.remaining, Table.Align.RIGHT)
          .column("COMPLETED", p -> p.completed == null ? null : TIME_FORMATTER.format(p.completed))
-         .column("TOTAL DURATION", p -> p.totalDuration);
+         .column("TOTAL DURATION", p -> p.totalDuration)
+         .column("DESCRIPTION", p -> p.description);
 
    @Option(name = "all", shortName = 'a', description = "Show all phases", hasValue = false)
    boolean all;

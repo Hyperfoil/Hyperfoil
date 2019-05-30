@@ -123,6 +123,8 @@ public abstract class Phase implements Serializable {
       return value;
    }
 
+   public abstract String description();
+
    public static class AtOnce extends Phase {
       public final int users;
 
@@ -135,6 +137,11 @@ public abstract class Phase implements Serializable {
          }
          this.users = requirePositive(users, "Phase " + name + " requires positive number of users!");
       }
+
+      @Override
+      public String description() {
+         return users + " users at once";
+      }
    }
 
    public static class Always extends Phase {
@@ -145,6 +152,11 @@ public abstract class Phase implements Serializable {
                     Collection<String> terminateAfterStrict, long duration, long maxDuration, int maxUnfinishedSessions, String sharedResources, int users) {
          super(benchmark, id, name, scenario, startTime, startAfter, startAfterStrict, terminateAfterStrict, duration, maxDuration, maxUnfinishedSessions, sharedResources);
          this.users = requirePositive(users, "Phase " + name + " requires positive number of users!");;
+      }
+
+      @Override
+      public String description() {
+         return users + " users always";
       }
    }
 
@@ -166,6 +178,11 @@ public abstract class Phase implements Serializable {
          this.variance = variance;
          this.maxSessionsEstimate = maxSessionsEstimate;
       }
+
+      @Override
+      public String description() {
+         return String.format("%.2f - %.2f users per second", initialUsersPerSec, targetUsersPerSec);
+      }
    }
 
    public static class ConstantPerSec extends Phase {
@@ -182,6 +199,11 @@ public abstract class Phase implements Serializable {
          this.variance = variance;
          this.maxSessionsEstimate = maxSessionsEstimate;
       }
+
+      @Override
+      public String description() {
+         return String.format("%.2f users per second", usersPerSec);
+      }
    }
 
    public static class Sequentially extends Phase {
@@ -194,11 +216,21 @@ public abstract class Phase implements Serializable {
          super(benchmark, id, name, scenario, startTime, startAfter, startAfterStrict, terminateAfterStrict, duration, maxDuration, maxUnfinishedSessions, sharedResources);
          this.repeats = Phase.requirePositive(repeats, "Phase " + name + " requires positive number of repeats!");
       }
+
+      @Override
+      public String description() {
+         return repeats + " times";
+      }
    }
 
    public static class Noop extends Phase {
       public Noop(SerializableSupplier<Benchmark> benchmark, int id, String name, Collection<String> startAfter, Collection<String> startAfterStrict, Collection<String> terminateAfterStrict, Scenario scenario) {
          super(benchmark, id, name, scenario, -1, startAfter, startAfterStrict, terminateAfterStrict, 0, -1, 0, null);
+      }
+
+      @Override
+      public String description() {
+         return "";
       }
    }
 }

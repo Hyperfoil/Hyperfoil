@@ -70,12 +70,14 @@ public interface Client {
       @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy/MM/dd HH:mm:ss.S")
       public final Date completed;
       public final String totalDuration;
+      public final String description;
 
       @JsonCreator
       public Phase(@JsonProperty("name") String name, @JsonProperty("status") String status,
                    @JsonProperty("type") String type,
                    @JsonProperty("started") Date started, @JsonProperty("remaining") String remaining,
-                   @JsonProperty("completed") Date completed, @JsonProperty("totalDuration") String totalDuration) {
+                   @JsonProperty("completed") Date completed, @JsonProperty("totalDuration") String totalDuration,
+                   @JsonProperty("description") String description) {
          this.name = name;
          this.status = status;
          this.type = type;
@@ -83,6 +85,7 @@ public interface Client {
          this.remaining = remaining;
          this.completed = completed;
          this.totalDuration = totalDuration;
+         this.description = description;
       }
    }
 

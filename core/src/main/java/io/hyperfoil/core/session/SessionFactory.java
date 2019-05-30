@@ -20,6 +20,10 @@ public final class SessionFactory {
       Scenario dummyScenario = new Scenario(new Sequence[0], new Sequence[0], new String[0], new String[0]);
       SessionImpl session = new SessionImpl(dummyScenario, 0);
       Phase dummyPhase = new Phase(() -> null, 0, "dummy", dummyScenario, 0, Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), 0, -1, 0, null) {
+         @Override
+         public String description() {
+            return "dummy";
+         }
       };
       session.resetPhase(new PhaseInstanceImpl<Phase>(dummyPhase) {
          @Override
