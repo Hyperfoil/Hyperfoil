@@ -83,7 +83,7 @@ public class StatisticsStore {
       if (!statsDir.exists() && !statsDir.mkdirs()) {
          throw new IOException("Cannot create directory " + dir);
       }
-      Data[] sorted = this.data.values().toArray(new Data[0]);
+      Data[] sorted = this.data.values().stream().flatMap(map -> map.values().stream()).toArray(Data[]::new);
       Arrays.sort(sorted, (d1, d2) -> {
          int cmp = d1.phase.compareTo(d2.phase);
          if (cmp != 0) return cmp;

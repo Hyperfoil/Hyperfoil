@@ -396,10 +396,7 @@ public class ControllerVerticle extends AbstractVerticle {
             eb.send(agent.address, new AgentControlMessage(AgentControlMessage.Command.STOP, null), reply -> {
                 if (reply.succeeded()) {
                     agent.status = AgentInfo.Status.STOPPED;
-                    if (run.agents.stream().allMatch(a -> a.status != AgentInfo.Status.INITIALIZED)) {
-                        persistRun(run);
-                        log.info("Run {} completed", run.id);
-                    }
+                    checkAgentsStopped(run);
                 } else {
                     agent.status = AgentInfo.Status.FAILED;
                     log.error("Agent {} failed to stop", reply.cause(), agent.address);
@@ -408,6 +405,14 @@ public class ControllerVerticle extends AbstractVerticle {
                     agent.deployedAgent.stop();
                 }
             });
+        }
+        checkAgentsStopped(run);
+    }
+
+    private void checkAgentsStopped(Run run) {
+        if (run.agents.stream().allMatch(a -> a.status != AgentInfo.Status.INITIALIZED)) {
+            persistRun(run);
+            log.info("Run {} completed", run.id);
         }
     }
 
