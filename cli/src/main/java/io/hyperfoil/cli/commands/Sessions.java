@@ -29,10 +29,9 @@ public class Sessions extends BaseRunIdCommand {
       Map<String, Map<String, Client.MinMax>> sessionStats = null;
       for (;;) {
          try {
-            if (sessionStats != null) {
-               clearLines(invocation, sessionStats.values().stream().mapToInt(Map::size).sum() + 2);
-            }
+            int numLines = sessionStats == null ? 0 : sessionStats.values().stream().mapToInt(Map::size).sum() + 2;
             sessionStats = runRef.sessionStatsRecent();
+            clearLines(invocation, numLines);
             if (sessionStats == null || sessionStats.isEmpty()) {
                Client.Run run = runRef.get();
                if (run.terminated != null) {

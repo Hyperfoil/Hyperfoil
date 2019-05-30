@@ -95,7 +95,8 @@ public class ElasticPoolImpl<T> implements ElasticPool<T> {
 
    @Override
    public void resetStats() {
-      minUsed = Integer.MAX_VALUE;
-      maxUsed = 0;
+      int current = used.intValue();
+      minUsed = current;
+      maxUsed = current;
    }
 }

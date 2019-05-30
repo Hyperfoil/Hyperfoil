@@ -213,7 +213,7 @@ public class SimulationRunnerImpl implements SimulationRunner {
           int minUsed = sharedResources.sessionPool.minUsed();
           int maxUsed = sharedResources.sessionPool.maxUsed();
           sharedResources.sessionPool.resetStats();
-          if (minUsed < maxUsed) {
+          if (minUsed <= maxUsed && maxUsed != 0) {
               consumer.accept(sharedResources.currentPhase.definition().name(), minUsed, maxUsed);
           }
        }
