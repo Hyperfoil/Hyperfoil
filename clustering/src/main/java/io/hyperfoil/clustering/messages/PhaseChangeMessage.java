@@ -31,13 +31,15 @@ public class PhaseChangeMessage implements Serializable, Immutable {
   private final String phase;
   private final PhaseInstance.Status status;
   private final boolean successful;
+  private final String note;
 
-  public PhaseChangeMessage(String senderId, String runId, String phase, PhaseInstance.Status status, boolean successful) {
+  public PhaseChangeMessage(String senderId, String runId, String phase, PhaseInstance.Status status, boolean successful, String note) {
     this.senderId = senderId;
     this.runId = runId;
     this.phase = phase;
     this.status = status;
     this.successful = successful;
+    this.note = note;
   }
 
   @Override
@@ -69,6 +71,10 @@ public class PhaseChangeMessage implements Serializable, Immutable {
 
   public boolean isSuccessful() {
     return successful;
+  }
+
+  public String note() {
+    return note;
   }
 
   public static class Codec extends ObjectCodec<PhaseChangeMessage> {}

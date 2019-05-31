@@ -136,7 +136,7 @@ public class SimulationRunnerImpl implements SimulationRunner {
             }
             PhaseInstance phase = PhaseInstanceImpl.newInstance(def);
             instances.put(def.name(), phase);
-            phase.setComponents(sharedResources.sessionPool, sharedResources.sessions, sharedResources.allStatistics(), (phase1, status, successful) -> phaseChanged(phase1, status, successful));
+            phase.setComponents(sharedResources.sessionPool, sharedResources.sessions, sharedResources.allStatistics(), this::phaseChanged);
             phase.reserveSessions();
             // at this point all session resources should be reserved
         }
@@ -145,9 +145,9 @@ public class SimulationRunnerImpl implements SimulationRunner {
         composite.setHandler(result -> handler.handle(result.mapEmpty()));
     }
 
-    protected void phaseChanged(Phase phase, PhaseInstance.Status status, boolean successful) {
+    protected void phaseChanged(Phase phase, PhaseInstance.Status status, boolean successful, String note) {
         if (phaseChangeHandler != null) {
-            phaseChangeHandler.onChange(phase, status, successful);
+            phaseChangeHandler.onChange(phase, status, successful, note);
         }
         if (status == PhaseInstance.Status.TERMINATED) {
             toPrune.add(phase);

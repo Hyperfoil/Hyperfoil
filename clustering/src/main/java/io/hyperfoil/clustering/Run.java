@@ -15,6 +15,7 @@ class Run {
    final Map<String, ControllerPhase> phases = new HashMap<>();
    final List<AgentInfo> agents = new ArrayList<>();
    final Phase[] phasesById;
+   final List<String> notes = new ArrayList<>();
    long deployTimerId;
    String description;
 

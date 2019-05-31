@@ -99,13 +99,15 @@ public interface Client {
       public final String description;
       public final Collection<Phase> phases;
       public final Collection<Agent> agents;
+      public final Collection<String> notes;
 
       @JsonCreator
       public Run(@JsonProperty("id") String id, @JsonProperty("benchmark") String benchmark,
                  @JsonProperty("started") Date started, @JsonProperty("terminated") Date terminated,
                  @JsonProperty("description") String description,
                  @JsonProperty("phases") Collection<Phase> phases,
-                 @JsonProperty("agents") Collection<Agent> agents) {
+                 @JsonProperty("agents") Collection<Agent> agents,
+                 @JsonProperty("notes") Collection<String> notes) {
          this.id = id;
          this.benchmark = benchmark;
          this.started = started;
@@ -113,6 +115,7 @@ public interface Client {
          this.description = description;
          this.phases = phases;
          this.agents = agents;
+         this.notes = notes;
       }
 
    }

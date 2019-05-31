@@ -122,6 +122,9 @@ public class ControllerVerticle extends AbstractVerticle {
             if (!phaseChange.isSuccessful()) {
                 run.phases.get(phase).setFailed();
             }
+            if (phaseChange.note() != null) {
+                run.notes.add(agent.name + ": " + phaseChange.note());
+            }
             tryProgressStatus(run, phase);
             runSimulation(run);
         });
@@ -232,6 +235,7 @@ public class ControllerVerticle extends AbstractVerticle {
                 if (!run.statisticsStore.validateSlas(phase)) {
                     log.info("SLA validation failed for {}", phase);
                     controllerPhase.setFailed();
+                    run.notes.add("SLA validation failed for phase " + phase);
                 }
                 controllerPhase.status(ControllerPhase.Status.TERMINATED);
                 controllerPhase.absoluteCompletionTime(System.currentTimeMillis());

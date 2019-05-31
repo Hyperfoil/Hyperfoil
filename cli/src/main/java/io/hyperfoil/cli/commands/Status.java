@@ -63,6 +63,12 @@ public class Status extends BaseRunIdCommand {
          if (cancelled > 0) {
             invocation.println(cancelled + " phases were cancelled.");
          }
+         if (!run.notes.isEmpty()) {
+            invocation.println("Notes:");
+            for (String note : run.notes) {
+               invocation.println(note);
+            }
+         }
          if (run.terminated != null) {
             return CommandResult.SUCCESS;
          }
@@ -75,7 +81,11 @@ public class Status extends BaseRunIdCommand {
             invocation.println("ERROR: " + Util.explainCauses(e));
             throw new CommandException("Cannot fetch status for run " + runRef.id(), e);
          }
-         clearLines(invocation, 3 + (int) r.phases.stream().filter(p -> showPhase(r, p)).count() + (cancelled > 0 ? 1 : 0));
+         int lines = 3;
+         lines += (int) r.phases.stream().filter(p -> showPhase(r, p)).count();
+         lines += cancelled > 0 ? 1 : 0;
+         lines += run.notes.isEmpty() ? 0 : run.notes.size() + 1;
+         clearLines(invocation, lines);
       }
    }
 

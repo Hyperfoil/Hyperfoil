@@ -57,6 +57,8 @@ class ControllerServer {
    private static final String CONTROLLER_HOST = Properties.get(Properties.CONTROLLER_HOST, "localhost");
    private static final int CONTROLLER_PORT = Properties.getInt(Properties.CONTROLLER_PORT, 8090);
    private static final String BASE_URL = "http://" + CONTROLLER_HOST + ":" + CONTROLLER_PORT;
+   private static final Comparator<ControllerPhase> PHASE_COMPARATOR =
+         Comparator.<ControllerPhase, Long>comparing(p -> p.absoluteStartTime()).thenComparing(p -> p.definition().name);
 
    private final ControllerVerticle controller;
    private final HttpServer httpServer;
@@ -287,7 +289,7 @@ class ControllerServer {
       long now = System.currentTimeMillis();
       List<Client.Phase> phases = run.phases.values().stream()
             .filter(p -> !(p.definition() instanceof Phase.Noop))
-            .sorted(Comparator.comparing(p -> p.definition().name))
+            .sorted(PHASE_COMPARATOR)
             .map(phase -> {
          Date phaseStarted = null, phaseTerminated = null;
          StringBuilder remaining = null;
@@ -320,7 +322,7 @@ class ControllerServer {
       List<Client.Agent> agents = run.agents.stream()
             .map(ai -> new Client.Agent(ai.name, ai.address, ai.status.toString()))
             .collect(Collectors.toList());
-      Client.Run body = new Client.Run(run.id, benchmark, started, terminated, run.description, phases, agents);
+      Client.Run body = new Client.Run(run.id, benchmark, started, terminated, run.description, phases, agents, run.notes);
       String status = Json.encodePrettily(body);
       routingContext.response().end(status);
    }
