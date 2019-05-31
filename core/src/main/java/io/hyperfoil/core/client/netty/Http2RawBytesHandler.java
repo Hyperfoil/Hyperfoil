@@ -47,7 +47,7 @@ public class Http2RawBytesHandler extends BaseRawBytesHandler {
                   HttpRequest request = connection.peekRequest(streamId);
                   invokeHandler(request, wrapped);
                   ctx.fireChannelRead(wrapped);
-
+                  frameHeaderIndex = 0;
                   handleBuffer(ctx, buf, streamId);
                }
             } else if (buf.readableBytes() >= FRAME_HEADER_LENGTH) {
