@@ -159,6 +159,41 @@
         }
       }
     },
+    "stairCase": {
+      "desription": "Shortcut for alternating rampPerSec and constPerSec phases",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "initialRampUpDuration": {
+          "description": "Duration of the first ramp-up.",
+          "$ref": "#/definitions/timeMillis"
+        },
+        "steadyStateDuration": {
+          "description": "Duration of each steady-state iteration.",
+          "$ref": "#/definitions/timeMillis"
+        },
+        "rampUpDuration": {
+          "description": "Duration of each ramp-up iteration between steady-states.",
+          "$ref": "#/definitions/timeMillis"
+        },
+        "initialUsersPerSec": {
+          "description": "Number of users per second after initial ramp-up.",
+          "$ref": "#/definitions/positiveNumber"
+        },
+        "incrementUsersPerSec": {
+          "description": "Number of users added in each iteration.",
+          "$ref": "#/definitions/positiveNumber"
+        },
+        "maxIterations": {
+          "description": "Maximum number of steady-state phases.",
+          "$ref": "#/definitions/positiveInteger"
+        },
+        "maxUnfinishedSessions": {
+          "description": "Maximum allowed number of active sessions when each phase finishes.",
+          "$ref": "#/definitions/positiveInteger"
+        }
+      }
+    },
     "usersPerSec": {
       "description": "Single-phase shortcut: Rate for new users",
       "$ref": "#/definitions/incrementableNumber"
@@ -268,19 +303,13 @@
     },
     "incrementableNumber": {
       "oneOf": [
-        {
-          "type": "number",
-          "exclusiveMinimum": 0
-        },
+        { "$ref": "#/definitions/positiveNumber" },
         {
           "type": "object",
           "additionalProperties": false,
           "required": [ "base", "increment" ],
           "properties": {
-            "base" : {
-              "type" : "number",
-              "exclusiveMinimum": 0
-            },
+            "base" : { "$ref": "#/definitions/positiveNumber" },
             "increment" : { "type" : "number" }
           }
         }
@@ -289,6 +318,10 @@
     "positiveInteger" : {
       "type" : "integer",
       "minimum": 1
+    },
+    "positiveNumber" : {
+      "type" : "number",
+      "exclusiveMinimum": 0
     },
     "phase": {
       "type": "object",

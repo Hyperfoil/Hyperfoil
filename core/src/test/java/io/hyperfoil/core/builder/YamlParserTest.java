@@ -159,6 +159,19 @@ public class YamlParserTest {
         assertThat(benchmark.agents().length).isEqualTo(3);
     }
 
+    @Test
+    public void testStaircase() {
+       Benchmark benchmark = buildBenchmark("scenarios/staircase.hf.yaml");
+       assertThat(benchmark.phases().stream().filter(Phase.RampPerSec.class::isInstance).count()).isEqualTo(3);
+       assertThat(benchmark.phases().stream().filter(Phase.ConstantPerSec.class::isInstance).count()).isEqualTo(3);
+       for (Phase phase : benchmark.phases()) {
+          if (phase instanceof Phase.Noop) {
+             continue;
+          }
+          assertThat(phase.scenario.initialSequences().length).isEqualTo(1);
+       }
+    }
+
    private <T extends Step> T next(Class<T> stepClass, Iterator<Step> iterator) {
       while (iterator.hasNext()) {
          Step step = iterator.next();

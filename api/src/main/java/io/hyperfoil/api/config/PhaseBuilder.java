@@ -262,6 +262,12 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
       return names;
    }
 
+   public void readForksFrom(PhaseBuilder<?> other) {
+      for (PhaseForkBuilder builder : other.forks) {
+         fork(builder.name).readFrom(builder);
+      }
+   }
+
    public static class AtOnce extends PhaseBuilder<AtOnce> {
       private int users;
       private int usersIncrement;
