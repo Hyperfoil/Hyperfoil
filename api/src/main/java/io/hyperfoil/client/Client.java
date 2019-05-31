@@ -25,7 +25,7 @@ public interface Client {
 
    RunRef run(String id);
 
-   void ping();
+   long ping();
 
    interface BenchmarkRef {
       String name();

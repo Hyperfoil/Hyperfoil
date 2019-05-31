@@ -35,8 +35,13 @@ public class Connect implements Command<HyperfoilCommandInvocation> {
       }
       ctx.setClient(new RestClient(host, port));
       try {
-         ctx.client().ping();
+         long preMillis = System.currentTimeMillis();
+         long serverEpochTime = ctx.client().ping();
+         long postMillis = System.currentTimeMillis();
          invocation.println("Connected!");
+         if (serverEpochTime != 0 && (serverEpochTime < preMillis || serverEpochTime > postMillis)) {
+            invocation.println("WARNING: Server time seems to be off by " + (postMillis + preMillis - 2 * serverEpochTime) / 2 + " ms");
+         }
          return CommandResult.SUCCESS;
       } catch (RestClientException e) {
          ctx.client().close();

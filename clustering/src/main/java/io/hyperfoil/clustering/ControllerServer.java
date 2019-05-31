@@ -97,7 +97,10 @@ class ControllerServer {
             sb.append(route.getPath()).append('\n');
          }
       }
-      ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, "text/plain").end(sb.toString());
+      ctx.response()
+            .putHeader(HttpHeaders.CONTENT_TYPE, "text/plain")
+            .putHeader("x-epoch-millis", String.valueOf(System.currentTimeMillis()))
+            .end(sb.toString());
    }
 
    private void handlePostBenchmark(RoutingContext ctx) {

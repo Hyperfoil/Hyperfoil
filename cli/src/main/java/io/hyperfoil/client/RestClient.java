@@ -82,8 +82,15 @@ public class RestClient implements Client, Closeable {
    }
 
    @Override
-   public void ping() {
-      sync(handler -> client.request(HttpMethod.GET, "/").send(handler), 200, response -> null);
+   public long ping() {
+      return sync(handler -> client.request(HttpMethod.GET, "/").send(handler), 200, response -> {
+         try {
+            String header = response.getHeader("x-epoch-millis");
+            return header != null ? Long.parseLong(header) : 0L;
+         } catch (NumberFormatException e) {
+            return 0L;
+         }
+      });
    }
 
    <T> T sync(Consumer<Handler<AsyncResult<HttpResponse<Buffer>>>> invoker, int statusCode, Function<HttpResponse<Buffer>, T> f) {
