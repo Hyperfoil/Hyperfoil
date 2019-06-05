@@ -34,13 +34,13 @@ public class RandomItemStep implements Step, ResourceUtilizer {
    private final Access fromVar;
    private final double[] cummulativeProbs;
    private final String[] list;
-   private final Access var;
+   private final Access toVar;
 
-   public RandomItemStep(String fromVar, double[] cummulativeProbs, String[] list, String var) {
+   public RandomItemStep(String fromVar, double[] cummulativeProbs, String[] list, String toVar) {
       this.fromVar = SessionFactory.access(fromVar);
       this.cummulativeProbs = cummulativeProbs;
       this.list = list;
-      this.var = SessionFactory.access(var);
+      this.toVar = SessionFactory.access(toVar);
    }
 
    @Override
@@ -96,13 +96,13 @@ public class RandomItemStep implements Step, ResourceUtilizer {
             throw new IllegalStateException("Collection in " + fromVar + " should store ObjectVars, but it stores " + element);
          }
       }
-      var.setObject(session, item);
+      toVar.setObject(session, item);
       return true;
    }
 
    @Override
    public void reserve(Session session) {
-      var.declareObject(session);
+      toVar.declareObject(session);
    }
 
    public static class Builder extends BaseStepBuilder {
@@ -110,7 +110,7 @@ public class RandomItemStep implements Step, ResourceUtilizer {
       private List<String> list = new ArrayList<>();
       private Map<String, Double> weighted = new HashMap<>();
       private String file;
-      private String var;
+      private String toVar;
 
       public Builder(BaseSequenceBuilder parent) {
          super(parent);
@@ -163,7 +163,7 @@ public class RandomItemStep implements Step, ResourceUtilizer {
          if (fromVar == null && list.isEmpty()) {
             throw new BenchmarkDefinitionException("randomItem has empty list and `fromVar` was not defined.");
          }
-         return Collections.singletonList(new RandomItemStep(fromVar, cummulativeProbs, list.isEmpty() ? null : list.toArray(new String[0]), var));
+         return Collections.singletonList(new RandomItemStep(fromVar, cummulativeProbs, list.isEmpty() ? null : list.toArray(new String[0]), toVar));
       }
 
       public Builder fromVar(String fromVar) {
@@ -175,8 +175,8 @@ public class RandomItemStep implements Step, ResourceUtilizer {
          return new ItemBuilder();
       }
 
-      public Builder var(String var) {
-         this.var = var;
+      public Builder toVar(String var) {
+         this.toVar = var;
          return this;
       }
 

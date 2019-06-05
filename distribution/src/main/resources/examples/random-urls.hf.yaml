@@ -14,7 +14,7 @@ scenario:
         - bar.png
         - this-returns-404.png
       # ... and stores it in users's session under key `my-random-path`
-      var: my-random-path
+      toVar: my-random-path
   - httpRequest:
       # HTTP request will read the variable from the session and format
       # the path for the GET request

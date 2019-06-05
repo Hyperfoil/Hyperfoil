@@ -23,13 +23,13 @@ public class NewSequenceProcessor implements Processor<Request>, ResourceUtilize
 
    private final int maxSequences;
    private final Access counterVar;
-   private final Access dataVar;
+   private final Access toVar;
    private final String sequence;
 
-   public NewSequenceProcessor(int maxSequences, String counterVar, String dataVar, String sequence) {
+   public NewSequenceProcessor(int maxSequences, String counterVar, String toVar, String sequence) {
       this.maxSequences = maxSequences;
       this.counterVar = SessionFactory.access(counterVar);
-      this.dataVar = SessionFactory.access(dataVar);
+      this.toVar = SessionFactory.access(toVar);
       this.sequence = sequence;
    }
 
@@ -43,9 +43,9 @@ public class NewSequenceProcessor implements Processor<Request>, ResourceUtilize
       if (!isLastPart) {
          throw new IllegalArgumentException("This processor expects already defragmented data.");
       }
-      Object obj = dataVar.getObject(request.session);
+      Object obj = toVar.getObject(request.session);
       if (!(obj instanceof ObjectVar[])) {
-         throw new IllegalStateException(dataVar + " must be a sequence-scoped variable!");
+         throw new IllegalStateException(toVar + " must be a sequence-scoped variable!");
       }
       int counter = counterVar.addToInt(request.session, 1);
       String value = Util.toString(data, offset, length);
@@ -60,8 +60,8 @@ public class NewSequenceProcessor implements Processor<Request>, ResourceUtilize
    @Override
    public void reserve(Session session) {
       counterVar.declareInt(session);
-      dataVar.declareObject(session);
-      dataVar.setObject(session, ObjectVar.newArray(session, maxSequences));
+      toVar.declareObject(session);
+      toVar.setObject(session, ObjectVar.newArray(session, maxSequences));
    }
 
    @MetaInfServices(Request.ProcessorBuilderFactory.class)
@@ -85,7 +85,7 @@ public class NewSequenceProcessor implements Processor<Request>, ResourceUtilize
    public static class Builder implements Processor.Builder<Request> {
       private int maxSequences = -1;
       private String counterVar;
-      private String dataVar;
+      private String toVar;
       private String sequence;
 
       public Builder maxSequences(int maxSequences) {
@@ -98,8 +98,8 @@ public class NewSequenceProcessor implements Processor<Request>, ResourceUtilize
          return this;
       }
 
-      public Builder dataVar(String dataVar) {
-         this.dataVar = dataVar;
+      public Builder toVar(String toVar) {
+         this.toVar = toVar;
          return this;
       }
 
@@ -116,13 +116,13 @@ public class NewSequenceProcessor implements Processor<Request>, ResourceUtilize
          if (counterVar == null) {
             throw new BenchmarkDefinitionException("Undefined counterVar");
          }
-         if (dataVar == null) {
+         if (toVar == null) {
             throw new BenchmarkDefinitionException("Undefined dataVar");
          }
          if (sequence == null) {
             throw new BenchmarkDefinitionException("Undefined sequence template");
          }
-         return new NewSequenceProcessor(maxSequences, counterVar, dataVar, sequence);
+         return new NewSequenceProcessor(maxSequences, counterVar, toVar, sequence);
       }
    }
 }

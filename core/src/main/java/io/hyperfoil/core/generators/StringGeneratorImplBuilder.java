@@ -46,7 +46,7 @@ public class StringGeneratorImplBuilder<T> implements StringGeneratorBuilder {
       return this;
    }
 
-   public StringGeneratorImplBuilder<T> var(String var) {
+   public StringGeneratorImplBuilder<T> fromVar(String var) {
       Access access = SessionFactory.access(var);
       set(session -> {
          Object value = access.getObject(session);
@@ -69,7 +69,7 @@ public class StringGeneratorImplBuilder<T> implements StringGeneratorBuilder {
 
    @Deprecated
    public StringGeneratorImplBuilder<T> sequenceVar(String var) {
-      return var(var + "[.]");
+      return fromVar(var + "[.]");
    }
 
    public StringGeneratorImplBuilder<T> pattern(String pattern) {

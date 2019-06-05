@@ -26,16 +26,16 @@ public class PollStep<T> implements Step, ResourceUtilizer {
    private static final Logger log = LoggerFactory.getLogger(PollStep.class);
 
    private final Function<Session, T> provider;
-   private final Access var;
+   private final Access toVar;
    private final BiPredicate<Session, T> filter;
    private final BiConsumer<Session, T> recycler;
    private final long periodMs;
    private final int maxRetries;
 
-   public PollStep(Function<Session, T> provider, String var, BiPredicate<Session, T> filter, BiConsumer<Session, T> recycler, long periodMs, int maxRetries) {
+   public PollStep(Function<Session, T> provider, String toVar, BiPredicate<Session, T> filter, BiConsumer<Session, T> recycler, long periodMs, int maxRetries) {
       this.provider = provider;
       this.filter = filter;
-      this.var = SessionFactory.access(var);
+      this.toVar = SessionFactory.access(toVar);
       this.recycler = recycler;
       this.periodMs = periodMs;
       this.maxRetries = maxRetries;
@@ -51,7 +51,7 @@ public class PollStep<T> implements Step, ResourceUtilizer {
             session.executor().schedule((Runnable) session, periodMs, TimeUnit.MILLISECONDS);
             return false;
          } else if (filter.test(session, object)) {
-            var.setObject(session, object);
+            toVar.setObject(session, object);
             return true;
          } else {
             recycler.accept(session, object);
@@ -65,7 +65,7 @@ public class PollStep<T> implements Step, ResourceUtilizer {
 
    @Override
    public void reserve(Session session) {
-      var.declareObject(session);
+      toVar.declareObject(session);
    }
 
    public static class Builder<T> extends BaseStepBuilder {

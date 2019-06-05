@@ -76,7 +76,7 @@ public class HttpRequestTest extends BaseScenarioTest {
                .endStep()
                .step(SC).httpRequest(HttpMethod.POST)
                   .path("/test?expect=bar")
-                  .body().var("x").endBody()
+                  .body().fromVar("x").endBody()
                   .handler().status(verifyStatus(ctx))
                   .endHandler()
                .endStep();
@@ -101,7 +101,7 @@ public class HttpRequestTest extends BaseScenarioTest {
             .endStep()
             .step(SC).httpRequest(HttpMethod.POST)
                .path("/test?expect=" + URLEncoder.encode(chineseStr, StandardCharsets.UTF_8.name()))
-               .body().var("x").endBody()
+               .body().fromVar("x").endBody()
                .handler().status(verifyStatus(ctx)).endHandler()
             .endStep();
 

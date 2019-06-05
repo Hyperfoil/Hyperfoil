@@ -41,7 +41,7 @@ phases:
         # Pick id for a random item
         - randomItem:
             fromVar: itemIds
-            var: itemId
+            toVar: itemId
         - httpRequest:
             POST:
               pattern: /items/${itemId}/buy
@@ -60,18 +60,18 @@ phases:
             min: 1
             max: 999
             # Variables in different scenarios are completely unrelated.
-            var: itemId
+            toVar: itemId
         - randomInt:
             min: 1
             max: 10
-            var: units
+            toVar: units
         - httpRequest:
             POST: /items/${itemId}/restock
             body:
               # We are using url-encoded form data
               form:
               - name: addUnits
-                var: units
+                fromVar: units
         # Operators need some pauses - otherwise we would start another
         # scenario execution (and fire another request) right away.
         - thinkTime:

@@ -11,20 +11,20 @@ import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.ResourceUtilizer;
 
 public class SimpleRecorder implements Processor<Request>, ResourceUtilizer {
-   private final Access var;
+   private final Access toVar;
 
-   public SimpleRecorder(String var) {
-      this.var = SessionFactory.access(var);
+   public SimpleRecorder(String toVar) {
+      this.toVar = SessionFactory.access(toVar);
    }
 
    @Override
    public void process(Request request, ByteBuf data, int offset, int length, boolean isLastPart) {
       assert isLastPart;
-      var.setObject(request.session, data.toString(offset, length, StandardCharsets.UTF_8));
+      toVar.setObject(request.session, data.toString(offset, length, StandardCharsets.UTF_8));
    }
 
    @Override
    public void reserve(Session session) {
-      var.declareObject(session);
+      toVar.declareObject(session);
    }
 }

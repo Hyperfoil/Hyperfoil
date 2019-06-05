@@ -16,12 +16,12 @@ import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.function.SerializableSupplier;
 
 public class RandomIntStep implements Step, ResourceUtilizer {
-   private final Access var;
+   private final Access toVar;
    private final int minInclusive;
    private final int maxInclusive;
 
-   public RandomIntStep(String var, int minInclusive, int maxInclusive) {
-      this.var = SessionFactory.access(var);
+   public RandomIntStep(String toVar, int minInclusive, int maxInclusive) {
+      this.toVar = SessionFactory.access(toVar);
       this.minInclusive = minInclusive;
       this.maxInclusive = maxInclusive;
    }
@@ -39,17 +39,17 @@ public class RandomIntStep implements Step, ResourceUtilizer {
       } else {
          r = random.nextInt(minInclusive, maxInclusive + 1);
       }
-      var.setInt(session, r);
+      toVar.setInt(session, r);
       return true;
    }
 
    @Override
    public void reserve(Session session) {
-      var.declareInt(session);
+      toVar.declareInt(session);
    }
 
    public static class Builder extends BaseStepBuilder {
-      private String var;
+      private String toVar;
       private int min = 0;
       private int max = Integer.MAX_VALUE;
 
@@ -57,8 +57,8 @@ public class RandomIntStep implements Step, ResourceUtilizer {
          super(parent);
       }
 
-      public Builder var(String var) {
-         this.var = var;
+      public Builder toVar(String var) {
+         this.toVar = var;
          return this;
       }
 
@@ -74,13 +74,13 @@ public class RandomIntStep implements Step, ResourceUtilizer {
 
       @Override
       public List<Step> build(SerializableSupplier<Sequence> sequence) {
-         if (var == null) {
+         if (toVar == null) {
             throw new BenchmarkDefinitionException("Missing target var.");
          }
          if (min >= max) {
             throw new BenchmarkDefinitionException("min must be less than max");
          }
-         return Collections.singletonList(new RandomIntStep(var, min, max));
+         return Collections.singletonList(new RandomIntStep(toVar, min, max));
       }
    }
 }

@@ -16,27 +16,27 @@ import io.hyperfoil.function.SerializableSupplier;
 
 public class TemplateStep implements Step, ResourceUtilizer {
    private final Pattern pattern;
-   private final Access var;
+   private final Access toVar;
 
-   public TemplateStep(Pattern pattern, String var) {
+   public TemplateStep(Pattern pattern, String toVar) {
       this.pattern = pattern;
-      this.var = SessionFactory.access(var);
+      this.toVar = SessionFactory.access(toVar);
    }
 
    @Override
    public boolean invoke(Session session) {
-      var.setObject(session, pattern.apply(session));
+      toVar.setObject(session, pattern.apply(session));
       return true;
    }
 
    @Override
    public void reserve(Session session) {
-      var.declareObject(session);
+      toVar.declareObject(session);
    }
 
    public static class Builder extends BaseStepBuilder {
       private Pattern pattern;
-      private String var;
+      private String toVar;
 
       public Builder(BaseSequenceBuilder parent) {
          super(parent);
@@ -47,8 +47,8 @@ public class TemplateStep implements Step, ResourceUtilizer {
          return this;
       }
 
-      public Builder var(String var) {
-         this.var = var;
+      public Builder toVar(String var) {
+         this.toVar = var;
          return this;
       }
 
@@ -57,10 +57,10 @@ public class TemplateStep implements Step, ResourceUtilizer {
          if (pattern == null) {
             throw new BenchmarkDefinitionException("Missing pattern for template.");
          }
-         if (var == null) {
+         if (toVar == null) {
             throw new BenchmarkDefinitionException("Missing target var for template.");
          }
-         return Collections.singletonList(new TemplateStep(pattern, var));
+         return Collections.singletonList(new TemplateStep(pattern, toVar));
       }
    }
 }

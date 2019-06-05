@@ -85,7 +85,7 @@ phases:
       - buy:
         - randomItem:
             fromVar: itemIds
-            var: itemId
+            toVar: itemId
         - httpRequest:
             POST:
               pattern: /items/${itemId}/buy

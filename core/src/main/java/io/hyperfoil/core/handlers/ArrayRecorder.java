@@ -18,7 +18,7 @@ import io.vertx.core.logging.LoggerFactory;
 
 public class ArrayRecorder implements Processor<Request>, ResourceUtilizer {
    private static final Logger log = LoggerFactory.getLogger(ArrayRecorder.class);
-   private final Access var;
+   private final Access toVar;
    private final DataFormat format;
    private final int maxSize;
 
@@ -37,14 +37,14 @@ public class ArrayRecorder implements Processor<Request>, ResourceUtilizer {
       return new ArrayRecorder(varAndSize.substring(0, b1).trim(), DataFormat.STRING, maxSize);
    }
 
-   public ArrayRecorder(String var, DataFormat format, int maxSize) {
-      this.var = SessionFactory.access(var);
+   public ArrayRecorder(String toVar, DataFormat format, int maxSize) {
+      this.toVar = SessionFactory.access(toVar);
       this.format = format;
       this.maxSize = maxSize;
    }
 
    public void before(Request request) {
-      ObjectVar[] array = (ObjectVar[]) var.activate(request.session);
+      ObjectVar[] array = (ObjectVar[]) toVar.activate(request.session);
       for (int i = 0; i < array.length; ++i) {
          array[i].unset();
       }
@@ -53,35 +53,35 @@ public class ArrayRecorder implements Processor<Request>, ResourceUtilizer {
    @Override
    public void process(Request request, ByteBuf data, int offset, int length, boolean isLastPart) {
       assert isLastPart;
-      ObjectVar[] array = (ObjectVar[]) var.activate(request.session);
+      ObjectVar[] array = (ObjectVar[]) toVar.activate(request.session);
       Object value = format.convert(data, offset, length);
       for (int i = 0; i < array.length; ++i) {
          if (array[i].isSet()) continue;
          array[i].set(value);
          return;
       }
-      log.warn("Exceed maximum size of the array {} ({}), dropping value {}", var, maxSize, value);
+      log.warn("Exceed maximum size of the array {} ({}), dropping value {}", toVar, maxSize, value);
    }
 
    @Override
    public void reserve(Session session) {
-      var.declareObject(session);
-      var.setObject(session, ObjectVar.newArray(session, maxSize));
-      var.unset(session);
+      toVar.declareObject(session);
+      toVar.setObject(session, ObjectVar.newArray(session, maxSize));
+      toVar.unset(session);
    }
 
    public static class Builder implements Processor.Builder<Request> {
-      private String var;
+      private String toVar;
       private DataFormat format = DataFormat.STRING;
       private int maxSize;
 
       @Override
       public ArrayRecorder build() {
-         return new ArrayRecorder(var, format, maxSize);
+         return new ArrayRecorder(toVar, format, maxSize);
       }
 
-      public Builder var(String var) {
-         this.var = var;
+      public Builder toVar(String var) {
+         this.toVar = var;
          return this;
       }
 

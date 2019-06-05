@@ -22,7 +22,7 @@ scenario:
     # Pick a random username from a file
     - randomItem:
         file: examples/usernames.txt
-        var: username
+        toVar: username
     # The page would load a profile, e.g. to display full name.
     - httpRequest:
         GET:
@@ -41,7 +41,7 @@ scenario:
               processor:
                 # Store each element in a collection `movies`
                 array:
-                  var: movies
+                  toVar: movies
                   # Store as byte[] to avoid encoding UTF-8 into String
                   format: BYTES
                   # Every data structure in session has maximum size.
@@ -66,7 +66,7 @@ scenario:
     # of sequence `movies`, defined below. These instances differ in
     # one intrinsic "variable" - their index.
     - foreach:
-        dataVar: movies
+        fromVar: movies
         sequence: addComment
     # Schedule one more sequence
     - nextSequence: watchMovie
@@ -89,7 +89,7 @@ scenario:
     # the sequence prematurely.
     - breakSequence:
         intCondition:
-          var: quality[.]
+          fromVar: quality[.]
           # Note: ideally we could filter the JSON directly using query
           #     .[] | select(.quality >= 80)
           # but this feature is not implemented yet.
@@ -121,7 +121,7 @@ scenario:
     # Choose one of the movies (including the bad ones, for simplicity)
     - randomItem:
         fromVar: movies
-        var: selectedMovie
+        toVar: selectedMovie
     - json:
         fromVar: selectedMovie
         query: .name

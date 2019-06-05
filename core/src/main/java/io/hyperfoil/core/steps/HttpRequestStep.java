@@ -518,7 +518,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
          this.header = header;
       }
 
-      public PartialHeadersBuilder var(String var) {
+      public PartialHeadersBuilder fromVar(String var) {
          Access access = SessionFactory.access(var);
          String myHeader = header;
          parent.headerAppenders.add((session, writer) -> {
@@ -545,7 +545,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
          this.parent = parent;
       }
 
-      public BodyBuilder var(String var) {
+      public BodyBuilder fromVar(String var) {
          Access access = SessionFactory.access(var);
          parent.bodyGenerator((session, connection) -> {
             Object value = access.getObject(session);
@@ -638,13 +638,13 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
    public static class FormInputBuilder {
       private String name;
       private String value;
-      private String var;
+      private String fromVar;
       private String pattern;
 
       public SerializableBiConsumer<Session, ByteBuf> build() {
-         if (value != null && var != null && pattern != null) {
+         if (value != null && fromVar != null && pattern != null) {
             throw new BenchmarkDefinitionException("Form input: Must set only one of 'value', 'var', 'pattern'");
-         } else if (value == null && var == null && pattern == null) {
+         } else if (value == null && fromVar == null && pattern == null) {
             throw new BenchmarkDefinitionException("Form input: Must set one of 'value' or 'var' or 'pattern'");
          } else if (name == null) {
             throw new BenchmarkDefinitionException("Form input: 'name' must be set.");
@@ -654,9 +654,9 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
             if (value != null) {
                byte[] valueBytes = URLEncoder.encode(value, StandardCharsets.UTF_8.name()).getBytes(StandardCharsets.UTF_8);
                return (session, buf) -> buf.writeBytes(nameBytes).writeByte('=').writeBytes(valueBytes);
-            } else if (var != null) {
-               String myVar = this.var; // avoid this capture
-               Access access = SessionFactory.access(var);
+            } else if (fromVar != null) {
+               String myVar = this.fromVar; // avoid this capture
+               Access access = SessionFactory.access(fromVar);
                return (session, buf) -> {
                   buf.writeBytes(nameBytes).writeByte('=');
                   Session.Var var = access.getVar(session);
@@ -697,7 +697,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
       }
 
       public FormInputBuilder var(String var) {
-         this.var = var;
+         this.fromVar = var;
          return this;
       }
 

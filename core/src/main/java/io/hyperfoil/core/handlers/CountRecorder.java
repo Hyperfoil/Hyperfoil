@@ -9,26 +9,26 @@ import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.ResourceUtilizer;
 
 public class CountRecorder implements Processor<Request>, ResourceUtilizer {
-   private final Access var;
+   private final Access toVar;
 
-   public CountRecorder(String var) {
-      this.var = SessionFactory.access(var);
+   public CountRecorder(String toVar) {
+      this.toVar = SessionFactory.access(toVar);
    }
 
    @Override
    public void before(Request request) {
-      var.setInt(request.session, 0);
+      toVar.setInt(request.session, 0);
    }
 
    @Override
    public void process(Request request, ByteBuf data, int offset, int length, boolean isLastPart) {
       if (isLastPart) {
-         var.addToInt(request.session, 1);
+         toVar.addToInt(request.session, 1);
       }
    }
 
    @Override
    public void reserve(Session session) {
-      var.declareInt(session);
+      toVar.declareInt(session);
    }
 }

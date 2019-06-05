@@ -15,13 +15,13 @@ import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.function.SerializableSupplier;
 
 public class ForeachStep extends DependencyStep implements ResourceUtilizer {
-   private final Access dataVar;
+   private final Access fromVar;
    private final Access counterVar;
    private final String sequence;
 
-   public ForeachStep(SerializableSupplier<Sequence> sequence, Access[] dependencies, String dataVar, String counterVar, String template) {
+   public ForeachStep(SerializableSupplier<Sequence> sequence, Access[] dependencies, String fromVar, String counterVar, String template) {
       super(sequence, dependencies);
-      this.dataVar = SessionFactory.access(dataVar);
+      this.fromVar = SessionFactory.access(fromVar);
       this.counterVar = SessionFactory.access(counterVar);
       this.sequence = template;
    }
@@ -31,9 +31,9 @@ public class ForeachStep extends DependencyStep implements ResourceUtilizer {
       if (!super.invoke(session)) {
          return false;
       }
-      Object value = dataVar.getObject(session);
+      Object value = fromVar.getObject(session);
       if (!(value instanceof Session.Var[])) {
-         throw new IllegalStateException("Variable " + dataVar + " does not contain var array: " + value);
+         throw new IllegalStateException("Variable " + fromVar + " does not contain var array: " + value);
       }
       // Java array polymorphism is useful at times...
       Session.Var[] array = (Session.Var[]) value;
@@ -56,7 +56,7 @@ public class ForeachStep extends DependencyStep implements ResourceUtilizer {
    }
 
    public static class Builder extends DependencyStepBuilder<Builder> {
-      private String dataVar;
+      private String fromVar;
       private String counterVar;
       private String sequence;
 
@@ -64,9 +64,9 @@ public class ForeachStep extends DependencyStep implements ResourceUtilizer {
          super(parent);
       }
 
-      public Builder dataVar(String dataVar) {
-         this.dataVar = dataVar;
-         dependency(dataVar);
+      public Builder fromVar(String fromVar) {
+         this.fromVar = fromVar;
+         dependency(fromVar);
          return this;
       }
 
@@ -85,7 +85,7 @@ public class ForeachStep extends DependencyStep implements ResourceUtilizer {
          if (this.sequence == null) {
             throw new BenchmarkDefinitionException("Template sequence must be defined");
          }
-         return Collections.singletonList(new ForeachStep(sequence, dependencies(), dataVar, counterVar, this.sequence));
+         return Collections.singletonList(new ForeachStep(sequence, dependencies(), fromVar, counterVar, this.sequence));
       }
    }
 }

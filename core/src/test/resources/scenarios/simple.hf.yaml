@@ -31,7 +31,7 @@ phases:
               headers:
               - Accept: text/plain
               - Foo:
-                  var: foo
+                  fromVar: foo
               handler:
               # notice this is a list, for repeated invocations
               - status:

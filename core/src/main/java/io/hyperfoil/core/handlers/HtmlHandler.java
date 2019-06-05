@@ -474,7 +474,7 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
          // Constructor adds self into sequence
          HttpRequestStep.Builder requestBuilder = new HttpRequestStep.Builder(sequence).method(HttpMethod.GET);
          requestBuilder.pathGenerator(
-               new StringGeneratorImplBuilder<>(requestBuilder, false).var(downloadUrlVar() + "[.]"));
+               new StringGeneratorImplBuilder<>(requestBuilder, false).fromVar(downloadUrlVar() + "[.]"));
          if (statisticsSelector != null) {
             requestBuilder.statistics(statisticsSelector);
          } else {

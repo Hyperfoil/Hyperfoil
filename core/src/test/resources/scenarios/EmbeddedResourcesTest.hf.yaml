@@ -38,7 +38,7 @@ phases:
                         newSequence:
                          maxSequences: 16
                          counterVar: downloadCounter
-                         dataVar: downloadUrl
+                         toVar: downloadUrl
                          sequence: embeddedResource
           # This probably won't wait for the embedded resources as the requests are not sent yet
           - awaitAllResponses
@@ -46,7 +46,7 @@ phases:
         - embeddedResource:
           - httpRequest:
               GET:
-                var: downloadUrl[.]
+                fromVar: downloadUrl[.]
               sync: false
               statistics:
               # Use full url for those matching pattern

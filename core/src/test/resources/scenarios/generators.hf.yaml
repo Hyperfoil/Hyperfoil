@@ -12,26 +12,26 @@ phases:
         - testSequence:
           - randomItem:
               list: [ "A", "B", "C" ]
-              var: x
+              toVar: x
           - randomItem:
               list:
               - A
               - B
               - C
-              var: "y" # without the quotes `y` means `true` = boolean, not string
+              toVar: "y" # without the quotes `y` means `true` = boolean, not string
           - randomItem:
               file: src/test/resources/data/YamlParserTest_testGeneratorsYaml_foo.txt
-              var: z
+              toVar: z
           - randomItem:
               list:
               - foo: 1
               - bar: 0.5
-              var: zz
+              toVar: zz
           - randomItem:
               list:
                 foo: 0.9
                 bar: 0.1
-              var: zzz
+              toVar: zzz
 - anotherPhase:
     atOnce:
       users: 1
