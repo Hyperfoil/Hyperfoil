@@ -17,6 +17,7 @@ import io.hyperfoil.core.handlers.ProcessorAssertion;
 import io.hyperfoil.core.handlers.SequenceScopedCountRecorder;
 import io.hyperfoil.core.handlers.DefragProcessor;
 import io.hyperfoil.core.handlers.JsonHandler;
+import io.hyperfoil.core.steps.AddToIntStep;
 import io.hyperfoil.core.steps.AwaitConditionStep;
 import io.hyperfoil.core.test.CrewMember;
 import io.hyperfoil.core.test.Fleet;
@@ -40,6 +41,8 @@ public class FleetTest extends BaseScenarioTest {
          .addShip(new Ship("Julius Fučík").dwt(7100))
          .addShip(new Ship("Lidice").dwt(8500));
    private static final int MAX_SHIPS = 16;
+   private static final String NUMBER_OF_SHIPS = "numberOfShips";
+   private static final String NUMBER_OF_SUNK_SHIPS = "numberOfSunkShips";
 
    @Override
    protected void initRouter() {
@@ -76,16 +79,13 @@ public class FleetTest extends BaseScenarioTest {
       ProcessorAssertion shipAssertion = new ProcessorAssertion(3, true);
       ProcessorAssertion crewAssertion = new ProcessorAssertion(2, true);
 
-      Access numberOfShips = SessionFactory.access("numberOfShips");
-      Access numberOfSunkShips = SessionFactory.access("numberOfSunkShips");
+      Access numberOfShips = SessionFactory.access(NUMBER_OF_SHIPS);
+      Access numberOfSunkShips = SessionFactory.access(NUMBER_OF_SUNK_SHIPS);
 
       scenario(2)
-            .intVar("numberOfSunkShips")
+            .intVar(NUMBER_OF_SUNK_SHIPS)
             .initialSequence("fleet")
-               .step(s -> {
-                  numberOfSunkShips.setInt(s, 0);
-                  return true;
-               })
+               .step(SC).setInt().var(NUMBER_OF_SUNK_SHIPS).value(0).endStep()
                .step(SC).httpRequest(HttpMethod.GET)
                   .path("/fleet")
                   .sync(false)
@@ -95,7 +95,7 @@ public class FleetTest extends BaseScenarioTest {
                .endStep()
                .step(SC).foreach()
                   .fromVar("shipNames")
-                  .counterVar("numberOfShips")
+                  .counterVar(NUMBER_OF_SHIPS)
                   .sequence("ship")
                .endStep()
             .endSequence()
@@ -110,7 +110,7 @@ public class FleetTest extends BaseScenarioTest {
                .step(SC).breakSequence()
                   .dependency("crewCount[.]")
                   .intCondition().fromVar("crewCount[.]").greaterThan(0).endCondition()
-                  .onBreak(s -> numberOfShips.addToInt(s, -1))
+                  .onBreak(new AddToIntStep(NUMBER_OF_SHIPS, -1))
                .endStep()
                .step(SC).httpRequest(HttpMethod.DELETE)
                   .pathGenerator(FleetTest::currentShipQuery)
@@ -125,11 +125,8 @@ public class FleetTest extends BaseScenarioTest {
                      }))
                   .endHandler()
                .endStep()
-               .step(s -> {
-                  numberOfSunkShips.addToInt(s, 1);
-                  numberOfShips.addToInt(s, -1);
-                  return true;
-               })
+               .step(SC).addToInt().var(NUMBER_OF_SUNK_SHIPS).value(1).endStep()
+               .step(SC).addToInt().var(NUMBER_OF_SHIPS).value(-1).endStep()
             .endSequence()
             .initialSequence("final")
                .step(new AwaitConditionStep(s -> numberOfShips.isSet(s) && numberOfShips.getInt(s) <= 0))

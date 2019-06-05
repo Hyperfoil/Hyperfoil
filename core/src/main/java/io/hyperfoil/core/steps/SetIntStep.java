@@ -1,21 +1,16 @@
 package io.hyperfoil.core.steps;
 
-import java.util.Collections;
-import java.util.List;
-
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Locator;
-import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.core.builders.BaseStepBuilder;
+import io.hyperfoil.core.builders.ActionStepBuilder;
 import io.hyperfoil.core.session.SessionFactory;
-import io.hyperfoil.function.SerializableSupplier;
 
 public class SetIntStep implements Action.Step, ResourceUtilizer {
    private final Access var;
@@ -36,7 +31,7 @@ public class SetIntStep implements Action.Step, ResourceUtilizer {
       var.declareInt(session);
    }
 
-   public static class Builder extends BaseStepBuilder implements Action.Builder {
+   public static class Builder extends ActionStepBuilder {
       private String var;
       private int value;
 
@@ -64,16 +59,6 @@ public class SetIntStep implements Action.Step, ResourceUtilizer {
       public Builder value(int value) {
          this.value = value;
          return this;
-      }
-
-      @Override
-      public void prepareBuild() {
-         // noop
-      }
-
-      @Override
-      public List<io.hyperfoil.api.config.Step> build(SerializableSupplier<Sequence> sequence) {
-         return Collections.singletonList(build());
       }
 
       @Override

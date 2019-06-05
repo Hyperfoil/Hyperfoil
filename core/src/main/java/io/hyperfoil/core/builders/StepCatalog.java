@@ -17,6 +17,7 @@ import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.generators.RandomIntStep;
 import io.hyperfoil.core.generators.RandomItemStep;
 import io.hyperfoil.core.generators.TemplateStep;
+import io.hyperfoil.core.steps.AddToIntStep;
 import io.hyperfoil.core.steps.AwaitAllResponsesStep;
 import io.hyperfoil.core.steps.AwaitConditionStep;
 import io.hyperfoil.core.steps.AwaitDelayStep;
@@ -135,15 +136,27 @@ public class StepCatalog implements Step.Catalog {
    }
 
    public SetStep.Builder set() {
-      return new SetStep.Builder(parent);
-   }
-
-   public SetIntStep.Builder setInt(String param) {
-      return new SetIntStep.Builder(parent, param);
+      return new SetStep.Builder(parent, null);
    }
 
    public BaseSequenceBuilder set(String param) {
       return new SetStep.Builder(parent, param).endStep();
+   }
+
+   public BaseSequenceBuilder setInt(String param) {
+      return new SetIntStep.Builder(parent, param).endStep();
+   }
+
+   public SetIntStep.Builder setInt() {
+      return new SetIntStep.Builder(parent, null);
+   }
+
+   public AddToIntStep.Builder addToInt() {
+      return new AddToIntStep.Builder(parent, null);
+   }
+
+   public BaseSequenceBuilder addToInt(String param) {
+      return new AddToIntStep.Builder(parent, param).endStep();
    }
 
    public <T> PollStep.Builder<T> poll(Function<Session, T> provider, String intoVar) {

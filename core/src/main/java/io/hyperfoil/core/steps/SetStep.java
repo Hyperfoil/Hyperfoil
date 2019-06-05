@@ -1,24 +1,19 @@
 package io.hyperfoil.core.steps;
 
-import java.util.Collections;
-import java.util.List;
-
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Locator;
-import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.core.builders.BaseStepBuilder;
+import io.hyperfoil.core.builders.ActionStepBuilder;
 import io.hyperfoil.core.session.ObjectVar;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.function.SerializableConsumer;
 import io.hyperfoil.function.SerializableFunction;
-import io.hyperfoil.function.SerializableSupplier;
 
 public class SetStep implements Action.Step, ResourceUtilizer {
    private final Access var;
@@ -42,24 +37,22 @@ public class SetStep implements Action.Step, ResourceUtilizer {
       }
    }
 
-   public static class Builder extends BaseStepBuilder implements Action.Builder {
+   public static class Builder extends ActionStepBuilder {
       private String var;
       private Object value;
       private ObjectArrayBuilder objectArray;
 
       public Builder(BaseSequenceBuilder parent, String param) {
          super(parent);
-         int sep = param.indexOf("<-");
-         if (sep < 0) {
-            throw new BenchmarkDefinitionException("Invalid inline definition '" + param + "': should be 'var <- value'");
+         if (param != null) {
+            int sep = param.indexOf("<-");
+            if (sep < 0) {
+               throw new BenchmarkDefinitionException("Invalid inline definition '" + param + "': should be 'var <- value'");
+            }
+            this.var = param.substring(0, sep).trim();
+            Object value = param.substring(sep + 2).trim();
+            this.value = value;
          }
-         this.var = param.substring(0, sep).trim();
-         Object value = param.substring(sep + 2).trim();
-         this.value = value;
-      }
-
-      public Builder(BaseSequenceBuilder parent) {
-         super(parent);
       }
 
       public SetStep.Builder var(String var) {
@@ -90,16 +83,6 @@ public class SetStep implements Action.Step, ResourceUtilizer {
          } else {
             return new SetStep(var, objectArray.build());
          }
-      }
-
-      @Override
-      public void prepareBuild() {
-         // We need to override unrelated default methods
-      }
-
-      @Override
-      public List<io.hyperfoil.api.config.Step> build(SerializableSupplier<Sequence> sequence) {
-         return Collections.singletonList(build());
       }
    }
 
