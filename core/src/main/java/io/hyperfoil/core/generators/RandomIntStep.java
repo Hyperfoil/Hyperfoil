@@ -53,8 +53,18 @@ public class RandomIntStep implements Step, ResourceUtilizer {
       private int min = 0;
       private int max = Integer.MAX_VALUE;
 
-      public Builder(BaseSequenceBuilder parent) {
+      public Builder(BaseSequenceBuilder parent, String rangeToVar) {
          super(parent);
+         if (rangeToVar != null) {
+            int arrowIndex = rangeToVar.indexOf("<-");
+            int dotdotIndex = rangeToVar.indexOf("..");
+            if (arrowIndex < 0 || dotdotIndex < arrowIndex) {
+               throw new BenchmarkDefinitionException("Expecting format var <- min .. max");
+            }
+            toVar = rangeToVar.substring(0, arrowIndex).trim();
+            min = Integer.parseInt(rangeToVar.substring(arrowIndex + 2, dotdotIndex).trim());
+            max = Integer.parseInt(rangeToVar.substring(dotdotIndex + 2).trim());
+         }
       }
 
       public Builder toVar(String var) {
@@ -74,7 +84,7 @@ public class RandomIntStep implements Step, ResourceUtilizer {
 
       @Override
       public List<Step> build(SerializableSupplier<Sequence> sequence) {
-         if (toVar == null) {
+         if (toVar == null || toVar.isEmpty()) {
             throw new BenchmarkDefinitionException("Missing target var.");
          }
          if (min >= max) {

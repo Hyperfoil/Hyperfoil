@@ -39,9 +39,7 @@ phases:
                   arrayVar: itemIds[10]
       - buy:
         # Pick id for a random item
-        - randomItem:
-            fromVar: itemIds
-            toVar: itemId
+        - randomItem: itemId <- itemIds
         - httpRequest:
             POST:
               pattern: /items/${itemId}/buy
@@ -56,15 +54,9 @@ phases:
       scenario:
       - restock:
         # Select an id for random item to restock
-        - randomInt:
-            min: 1
-            max: 999
-            # Variables in different scenarios are completely unrelated.
-            toVar: itemId
-        - randomInt:
-            min: 1
-            max: 10
-            toVar: units
+        # Variables in different scenarios are completely unrelated.
+        - randomInt: itemId <- 1 .. 999
+        - randomInt: units <- 1 .. 10
         - httpRequest:
             POST: /items/${itemId}/restock
             body:

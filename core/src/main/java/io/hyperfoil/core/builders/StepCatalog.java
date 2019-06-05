@@ -161,11 +161,19 @@ public class StepCatalog implements Step.Catalog {
    }
 
    public RandomIntStep.Builder randomInt() {
-      return new RandomIntStep.Builder(parent);
+      return new RandomIntStep.Builder(parent, null);
+   }
+
+   public RandomIntStep.Builder randomInt(String rangeToVar) {
+      return new RandomIntStep.Builder(parent, rangeToVar);
    }
 
    public RandomItemStep.Builder randomItem() {
-      return new RandomItemStep.Builder(parent);
+      return new RandomItemStep.Builder(parent, null);
+   }
+
+   public RandomItemStep.Builder randomItem(String toFrom) {
+      return new RandomItemStep.Builder(parent, toFrom);
    }
 
    public ServiceLoadedBuilderProvider<StepBuilder, StepBuilder.Factory> serviceLoaded() {

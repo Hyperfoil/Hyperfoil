@@ -119,9 +119,7 @@ scenario:
     # the `nextSequence` step at the end of `home` sequence.
     - awaitVar: commented
     # Choose one of the movies (including the bad ones, for simplicity)
-    - randomItem:
-        fromVar: movies
-        toVar: selectedMovie
+    - randomItem: selectedMovie <- movies
     - json:
         fromVar: selectedMovie
         query: .name

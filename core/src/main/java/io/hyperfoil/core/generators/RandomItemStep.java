@@ -112,8 +112,16 @@ public class RandomItemStep implements Step, ResourceUtilizer {
       private String file;
       private String toVar;
 
-      public Builder(BaseSequenceBuilder parent) {
+      public Builder(BaseSequenceBuilder parent, String toFrom) {
          super(parent);
+         if (toFrom != null) {
+            String[] parts = toFrom.split("<-");
+            if (parts.length != 2) {
+               throw new BenchmarkDefinitionException("Expecting format toVar <- fromVar");
+            }
+            toVar = parts[0].trim();
+            fromVar = parts[1].trim();
+         }
       }
 
       @Override
@@ -162,6 +170,11 @@ public class RandomItemStep implements Step, ResourceUtilizer {
          }
          if (fromVar == null && list.isEmpty()) {
             throw new BenchmarkDefinitionException("randomItem has empty list and `fromVar` was not defined.");
+         }
+         if (fromVar != null && fromVar.isEmpty()) {
+            throw new BenchmarkDefinitionException("fromVar is empty");
+         } else if (toVar.isEmpty()) {
+            throw new BenchmarkDefinitionException("toVar is empty");
          }
          return Collections.singletonList(new RandomItemStep(fromVar, cummulativeProbs, list.isEmpty() ? null : list.toArray(new String[0]), toVar));
       }
