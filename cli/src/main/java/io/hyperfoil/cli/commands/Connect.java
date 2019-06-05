@@ -6,6 +6,10 @@ import org.aesh.command.CommandException;
 import org.aesh.command.CommandResult;
 import org.aesh.command.option.Argument;
 import org.aesh.command.option.Option;
+import org.aesh.readline.Prompt;
+import org.aesh.readline.terminal.formatting.Color;
+import org.aesh.readline.terminal.formatting.TerminalColor;
+import org.aesh.readline.terminal.formatting.TerminalString;
 
 import io.hyperfoil.cli.context.HyperfoilCliContext;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
@@ -22,7 +26,7 @@ public class Connect implements Command<HyperfoilCommandInvocation> {
    int port;
 
    @Override
-   public CommandResult execute(HyperfoilCommandInvocation invocation) throws CommandException, InterruptedException {
+   public CommandResult execute(HyperfoilCommandInvocation invocation) throws CommandException {
       HyperfoilCliContext ctx = invocation.context();
       if (ctx.client() != null) {
          if (ctx.client().host().equals(host) && ctx.client().port() == port) {
@@ -42,6 +46,9 @@ public class Connect implements Command<HyperfoilCommandInvocation> {
          if (serverEpochTime != 0 && (serverEpochTime < preMillis || serverEpochTime > postMillis)) {
             invocation.println("WARNING: Server time seems to be off by " + (postMillis + preMillis - 2 * serverEpochTime) / 2 + " ms");
          }
+         String shortHost = host.contains(".") ? host.substring(0, host.indexOf('.')) : host;
+         invocation.setPrompt(new Prompt(new TerminalString("[hyperfoil@" + shortHost + "]$ ",
+               new TerminalColor(Color.GREEN, Color.DEFAULT, Color.Intensity.BRIGHT))));
          return CommandResult.SUCCESS;
       } catch (RestClientException e) {
          ctx.client().close();

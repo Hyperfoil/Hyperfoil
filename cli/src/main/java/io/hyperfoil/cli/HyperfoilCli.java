@@ -110,7 +110,7 @@ public class HyperfoilCli {
                        .build();
 
        AeshConsoleRunner runner = AeshConsoleRunner.builder().settings(settings);
-       runner.prompt(new Prompt(new TerminalString("[hyperfoil@localhost]$ ",
+       runner.prompt(new Prompt(new TerminalString("[hyperfoil]$ ",
                         new TerminalColor(Color.GREEN, Color.DEFAULT, Color.Intensity.BRIGHT))));
 
         runner.start();
