@@ -20,14 +20,15 @@ import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.ResourceUtilizer;
+import io.hyperfoil.core.data.DataFormat;
 import io.hyperfoil.core.generators.StringGeneratorImplBuilder;
 import io.hyperfoil.core.session.SessionFactory;
+import io.hyperfoil.core.steps.AddToIntStep;
 import io.hyperfoil.core.steps.AwaitIntStep;
-import io.hyperfoil.core.steps.AwaitVarStep;
 import io.hyperfoil.core.steps.HttpRequestStep;
 import io.hyperfoil.core.steps.PathStatisticsSelector;
 import io.hyperfoil.core.steps.ServiceLoadedBuilderProvider;
-import io.hyperfoil.core.steps.UnsetStep;
+import io.hyperfoil.core.steps.SetIntStep;
 import io.hyperfoil.core.util.Trie;
 import io.hyperfoil.core.util.Util;
 import io.hyperfoil.function.SerializableBiFunction;
@@ -368,10 +369,13 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
       }
 
       public EmbeddedResourceHandlerBuilder processor(Processor.Builder<HttpRequest> processor) {
-         if (this.processor != null) {
-            throw new BenchmarkDefinitionException("Processor already set! " + processor);
+         if (this.processor == null) {
+            this.processor = processor;
+         } else if (this.processor instanceof MultiProcessor.Builder) {
+            ((MultiProcessor.Builder<HttpRequest>) this.processor).add(processor);
+         } else {
+            this.processor = new MultiProcessor.Builder().add(this.processor).add(processor);
          }
-         this.processor = processor;
          return this;
       }
 
@@ -388,7 +392,10 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
       @Override
       public EmbeddedResourceHandlerBuilder copy(Locator locator) {
          EmbeddedResourceHandlerBuilder builder = new EmbeddedResourceHandlerBuilder(locator);
-         builder.ignoreExternal(ignoreExternal).processor(processor);
+         builder.ignoreExternal(ignoreExternal);
+         if (processor != null) {
+            builder.processor(processor.copy(locator));
+         }
          if (fetchResource != null) {
             builder.fetchResource = fetchResource.copy(locator);
          }
@@ -470,9 +477,11 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
          }
 
          SequenceBuilder sequence = locator.scenario().sequence(generatedSeqName);
+         // Constructor adds self into sequence
+         new SetIntStep.Builder(sequence, null).var(completionLatch()).value(0);
 
          // Constructor adds self into sequence
-         HttpRequestStep.Builder requestBuilder = new HttpRequestStep.Builder(sequence).method(HttpMethod.GET);
+         HttpRequestStep.Builder requestBuilder = new HttpRequestStep.Builder(sequence).sync(false).method(HttpMethod.GET);
          requestBuilder.pathGenerator(
                new StringGeneratorImplBuilder<>(requestBuilder, false).fromVar(downloadUrlVar() + "[.]"));
          if (statisticsSelector != null) {
@@ -481,15 +490,7 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
             // Rather than using auto-generated sequence name we'll use the full path
             requestBuilder.statistics((baseUrl, path) -> baseUrl != null ? baseUrl + path : path);
          }
-         requestBuilder.handler().onCompletion(new UnsetStep(downloadUrlVar() + "[.]")::run);
-
-         Access latch = SessionFactory.access(completionLatch());
-         sequence
-               .step(new AwaitVarStep("!" + downloadUrlVar() + "[.]"))
-               .step(s -> {
-                  latch.addToInt(s, -1);
-                  return true;
-               });
+         requestBuilder.handler().onCompletion(new AddToIntStep.Builder(null, null).var(completionLatch()).value(-1));
 
          Action onCompletion = this.onCompletion.build();
          locator.sequence().insertAfter(locator.step())
@@ -506,7 +507,9 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
       }
 
       public FetchResourcesAdapter build() {
-         return new FetchResourcesAdapter(completionLatch(), new NewSequenceProcessor(maxResources, generatedSeqName + "_cnt", downloadUrlVar(), generatedSeqName));
+         return new FetchResourcesAdapter(completionLatch(), new MultiProcessor<>(
+               new ArrayRecorder(downloadUrlVar(), DataFormat.STRING, maxResources),
+               new NewSequenceProcessor(maxResources, generatedSeqName + "_cnt", generatedSeqName)));
       }
    }
 

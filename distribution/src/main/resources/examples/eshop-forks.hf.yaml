@@ -35,7 +35,7 @@ phases:
                   body:
                     json:
                       query: .[].id
-                      arrayVar: itemIds[10]
+                      toArray: itemIds[10]
           - buy:
             - randomItem: itemId <- itemIds
             - httpRequest:

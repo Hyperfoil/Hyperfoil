@@ -100,8 +100,8 @@ public class JsonHandler extends JsonParser<Request>
          return this;
       }
 
-      public Builder arrayVar(String varAndSize) {
-         return processor(ArrayRecorder.arrayVar(varAndSize));
+      public Builder toArray(String varAndSize) {
+         return processor(new ArrayRecorder.Builder(varAndSize));
       }
 
       public Builder processor(Processor<Request> processor) {

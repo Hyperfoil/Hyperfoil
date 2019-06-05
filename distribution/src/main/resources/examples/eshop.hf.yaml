@@ -36,7 +36,7 @@ phases:
                   query: .[].id
                   # This is a shortcut to store in array-typed variable
                   # `itemIds` holding at most 10 elements.
-                  arrayVar: itemIds[10]
+                  toArray: itemIds[10]
       - buy:
         # Pick id for a random item
         - randomItem: itemId <- itemIds

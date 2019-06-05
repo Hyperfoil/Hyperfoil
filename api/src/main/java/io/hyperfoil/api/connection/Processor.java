@@ -2,6 +2,7 @@ package io.hyperfoil.api.connection;
 
 import java.io.Serializable;
 
+import io.hyperfoil.api.config.BuilderBase;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.netty.buffer.ByteBuf;
@@ -23,7 +24,7 @@ public interface Processor<R extends Request> extends Serializable {
    default void after(R request) {
    }
 
-   interface Builder<R extends Request> {
+   interface Builder<R extends Request> extends BuilderBase<Builder<R>> {
       Processor<R> build();
    }
 

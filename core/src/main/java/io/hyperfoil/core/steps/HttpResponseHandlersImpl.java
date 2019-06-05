@@ -270,7 +270,11 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       }
 
       public Builder onCompletion(Action handler) {
-         completionHandlers.add(() -> handler);
+         return onCompletion(() -> handler);
+      }
+
+      public Builder onCompletion(Action.Builder builder) {
+         completionHandlers.add(builder);
          return this;
       }
 

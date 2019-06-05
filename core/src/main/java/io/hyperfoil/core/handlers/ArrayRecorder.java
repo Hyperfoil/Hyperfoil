@@ -22,21 +22,6 @@ public class ArrayRecorder implements Processor<Request>, ResourceUtilizer {
    private final DataFormat format;
    private final int maxSize;
 
-   public static ArrayRecorder arrayVar(String varAndSize) {
-      int b1 = varAndSize.indexOf('[');
-      int b2 = varAndSize.indexOf(']');
-      if (b1 < 0 || b2 < 0 || b2 - b1 < 1) {
-         throw new BenchmarkDefinitionException("Array variable must have maximum size: use var[maxSize], e.g. 'foo[16]'");
-      }
-      int maxSize;
-      try {
-         maxSize = Integer.parseInt(varAndSize.substring(b1 + 1, b2));
-      } catch (NumberFormatException e) {
-         throw new BenchmarkDefinitionException("Cannot parse maximum size in '" + varAndSize + "'");
-      }
-      return new ArrayRecorder(varAndSize.substring(0, b1).trim(), DataFormat.STRING, maxSize);
-   }
-
    public ArrayRecorder(String toVar, DataFormat format, int maxSize) {
       this.toVar = SessionFactory.access(toVar);
       this.format = format;
@@ -75,6 +60,23 @@ public class ArrayRecorder implements Processor<Request>, ResourceUtilizer {
       private DataFormat format = DataFormat.STRING;
       private int maxSize;
 
+      public Builder(String varAndSize) {
+         if (varAndSize == null) {
+            return;
+         }
+         int b1 = varAndSize.indexOf('[');
+         int b2 = varAndSize.indexOf(']');
+         if (b1 < 0 || b2 < 0 || b2 - b1 < 1) {
+            throw new BenchmarkDefinitionException("Array variable must have maximum size: use var[maxSize], e.g. 'foo[16]'");
+         }
+         try {
+            maxSize = Integer.parseInt(varAndSize.substring(b1 + 1, b2));
+         } catch (NumberFormatException e) {
+            throw new BenchmarkDefinitionException("Cannot parse maximum size in '" + varAndSize + "'");
+         }
+         toVar = varAndSize.substring(0, b1).trim();
+      }
+
       @Override
       public ArrayRecorder build() {
          return new ArrayRecorder(toVar, format, maxSize);
@@ -105,12 +107,12 @@ public class ArrayRecorder implements Processor<Request>, ResourceUtilizer {
 
       @Override
       public boolean acceptsParam() {
-         return false;
+         return true;
       }
 
       @Override
       public Builder newBuilder(Locator locator, String param) {
-         return new Builder();
+         return new Builder(param);
       }
    }
 }

@@ -12,7 +12,6 @@ phases:
         - automatic:
           - httpRequest:
               GET: /foobar/index.html
-              sync: false
               handler:
                 body:
                   parseHtml:
@@ -28,26 +27,21 @@ phases:
         - manual:
           - httpRequest:
               GET: /foobar/index.html
-              sync: false
               handler:
                 body:
                   parseHtml:
                     onEmbeddedResource:
                       ignoreExternal: true
                       processor:
-                        newSequence:
-                         maxSequences: 16
-                         counterVar: downloadCounter
-                         toVar: downloadUrl
-                         sequence: embeddedResource
-          # This probably won't wait for the embedded resources as the requests are not sent yet
-          - awaitAllResponses
+                      - array: downloadUrl[16]
+                      - newSequence:
+                          maxSequences: 16
+                          sequence: embeddedResource
         sequences:
         - embeddedResource:
           - httpRequest:
               GET:
                 fromVar: downloadUrl[.]
-              sync: false
               statistics:
               # Use full url for those matching pattern
               - .*.js
@@ -57,8 +51,3 @@ phases:
               - (.*.php).* -> $1
               # Default match (otherwise it would be sequence name)
               - -> other
-              handler:
-                onCompletion:
-                  unset:
-                    var: downloadUrl[.]
-          - awaitVar: "!downloadUrl[.]"
