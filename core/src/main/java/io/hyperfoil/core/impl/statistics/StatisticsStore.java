@@ -93,13 +93,17 @@ public class StatisticsStore {
       });
 
       try (PrintWriter writer = new PrintWriter(dir + File.separator + "total.csv")) {
-         writer.print("Phase,Name,");
+         writer.print("Phase,Name,Start,End,");
          StatisticsSummary.printHeader(writer, percentiles);
          writer.println(",MinSessions,MaxSessions");
          for (Data data : sorted) {
             writer.print(data.phase);
             writer.print(',');
             writer.print(data.statisticsName);
+            writer.print(',');
+            writer.print(data.total.histogram.getStartTimeStamp());
+            writer.print(',');
+            writer.print(data.total.histogram.getEndTimeStamp());
             writer.print(',');
             data.total.summary(percentiles).printTo(writer);
 
@@ -128,7 +132,7 @@ public class StatisticsStore {
             .distinct().sorted().toArray(String[]::new);
       for (String agent : agents) {
          try (PrintWriter writer = new PrintWriter(dir + File.separator + "agent." + sanitize(agent) + ".csv")) {
-            writer.print("Phase,Name,");
+            writer.print("Phase,Name,Start,End,");
             StatisticsSummary.printHeader(writer, percentiles);
             writer.println(",MinSessions,MaxSessions");
             for (Data data : sorted) {
@@ -139,6 +143,10 @@ public class StatisticsStore {
                writer.print(data.phase);
                writer.print(',');
                writer.print(data.statisticsName);
+               writer.print(',');
+               writer.print(data.total.histogram.getStartTimeStamp());
+               writer.print(',');
+               writer.print(data.total.histogram.getEndTimeStamp());
                writer.print(',');
                agentStats.summary(percentiles).printTo(writer);
 
