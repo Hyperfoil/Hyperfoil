@@ -80,7 +80,7 @@ public class RunLocal implements Command<CommandInvocation> {
             Benchmark benchmark = buildBenchmark(yaml.read(), commandInvocation);
 
             if(benchmark != null) {
-                LocalSimulationRunner runner = new LocalSimulationRunner(benchmark, (phase, stepId, name, stats, countDown) -> printStats(phase, name, stats, commandInvocation), null);
+                LocalSimulationRunner runner = new LocalSimulationRunner(benchmark, (phase, stepId, metric, stats, countDown) -> printStats(phase, metric, stats, commandInvocation), null);
                 commandInvocation.println("Running benchmark '" + benchmark.name() + "'");
                 commandInvocation.println("Using " + benchmark.threads() + " thread(s)");
                 commandInvocation.print("Target servers: ");
@@ -114,12 +114,12 @@ public class RunLocal implements Command<CommandInvocation> {
         return null;
     }
 
-    private void printStats(Phase phase, String name, StatisticsSnapshot stats, CommandInvocation invocation) {
+    private void printStats(Phase phase, String metric, StatisticsSnapshot stats, CommandInvocation invocation) {
         if (stats.requestCount == 0) {
             return;
         }
 
-        invocation.println("Statistics for " + phase.name() + "/" + name + ":");
+        invocation.println("Statistics for " + phase.name() + "/" + metric + ":");
 
         double durationSeconds = (stats.histogram.getEndTimeStamp() - stats.histogram.getStartTimeStamp()) / 1000d;
         invocation.print(stats.histogram.getTotalCount() + " requests in " + durationSeconds + "s");

@@ -18,7 +18,7 @@ public class Stats extends BaseRunIdCommand {
    private static final Table<Client.CustomStats> CUSTOM_STATS_TABLE = new Table<Client.CustomStats>()
          .column("PHASE", c -> c.phase)
          .column("STEP", c -> String.valueOf(c.stepId))
-         .column("STATISTICS", c -> c.statsName)
+         .column("METRIC", c -> c.metric)
          .column("NAME", c -> c.customName)
          .column("VALUE", c -> c.value);
 

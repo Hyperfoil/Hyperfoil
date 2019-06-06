@@ -134,17 +134,17 @@ public interface Client {
    class CustomStats {
       public final String phase;
       public final int stepId;
-      public final String statsName;
+      public final String metric;
       public final String customName;
       public final String value;
 
       @JsonCreator
       public CustomStats(@JsonProperty("phase") String phase, @JsonProperty("stepId") int stepId,
-                         @JsonProperty("statsName") String statsName, @JsonProperty("customName") String customName,
+                         @JsonProperty("metric") String metric, @JsonProperty("customName") String customName,
                          @JsonProperty("value") String value) {
          this.phase = phase;
          this.stepId = stepId;
-         this.statsName = statsName;
+         this.metric = metric;
          this.customName = customName;
          this.value = value;
       }

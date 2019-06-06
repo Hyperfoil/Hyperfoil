@@ -143,10 +143,10 @@ public class ControllerVerticle extends AbstractVerticle {
                         ReportMessage reportMessage = (ReportMessage) statsMessage;
                         log.trace("Run {}: Received stats from {}: {}/{}/{} ({} requests)",
                               reportMessage.runId, reportMessage.address,
-                              run.phase(reportMessage.phaseId), reportMessage.stepId, reportMessage.statisticsName,
+                              run.phase(reportMessage.phaseId), reportMessage.stepId, reportMessage.metric,
                               reportMessage.statistics.requestCount);
                         run.statisticsStore.record(reportMessage.address, reportMessage.phaseId, reportMessage.stepId,
-                              reportMessage.statisticsName, reportMessage.statistics);
+                              reportMessage.metric, reportMessage.statistics);
                     } else if (statsMessage instanceof SessionStatsMessage) {
                         SessionStatsMessage sessionStatsMessage = (SessionStatsMessage) statsMessage;
                         log.trace("Run {}: Received session pool stats from {}", sessionStatsMessage.runId, sessionStatsMessage.address);
@@ -334,7 +334,7 @@ public class ControllerVerticle extends AbstractVerticle {
             run.phases.put(phase.name(), new ControllerPhase(phase));
         }
         run.statisticsStore = new StatisticsStore(run.benchmark, failure -> {
-            log.warn("Failed verify SLA(s) for {}/{}: {}", failure.phase(), failure.statisticsName(), failure.message());
+            log.warn("Failed verify SLA(s) for {}/{}: {}", failure.phase(), failure.metric(), failure.message());
         });
         runSimulation(run);
     }

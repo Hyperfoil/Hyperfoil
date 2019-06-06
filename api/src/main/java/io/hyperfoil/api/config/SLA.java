@@ -53,23 +53,23 @@ public class SLA implements Serializable {
       return Collections.unmodifiableCollection(limits);
    }
 
-   public SLA.Failure validate(String phase, String statisticsName, StatisticsSnapshot statistics) {
+   public SLA.Failure validate(String phase, String metric, StatisticsSnapshot statistics) {
       double actualErrorRate = (double) statistics.errors() / statistics.requestCount;
       if (actualErrorRate >= errorRate) {
-         return new SLA.Failure(this, phase, statisticsName, statistics.clone(),
+         return new SLA.Failure(this, phase, metric, statistics.clone(),
                String.format("Error rate exceeded: required %.3f, actual %.3f", errorRate, actualErrorRate));
       }
       if (meanResponseTime < Long.MAX_VALUE) {
          double mean = statistics.histogram.getMean();
          if (mean >= meanResponseTime) {
-            return new SLA.Failure(this, phase, statisticsName, statistics.clone(),
+            return new SLA.Failure(this, phase, metric, statistics.clone(),
                   String.format("Mean response time exceeded: required %d, actual %f", meanResponseTime, mean));
          }
       }
       for (SLA.PercentileLimit limit : limits) {
          long value = statistics.histogram.getValueAtPercentile(limit.percentile());
          if (value >= limit.responseTime()) {
-            return new SLA.Failure(this, phase, statisticsName, statistics.clone(),
+            return new SLA.Failure(this, phase, metric, statistics.clone(),
                   String.format("Response time at percentile %f exceeded: required %d, actual %d", limit.percentile, limit.responseTime, value));
          }
       }
@@ -100,14 +100,14 @@ public class SLA implements Serializable {
    public static class Failure {
       private final SLA sla;
       private final String phase;
-      private final String statisticsName;
+      private final String metric;
       private final StatisticsSnapshot statistics;
       private final String message;
 
-      public Failure(SLA sla, String phase, String statisticsName, StatisticsSnapshot statistics, String message) {
+      public Failure(SLA sla, String phase, String metric, StatisticsSnapshot statistics, String message) {
          this.sla = sla;
          this.phase = phase;
-         this.statisticsName = statisticsName;
+         this.metric = metric;
          this.statistics = statistics;
          this.message = message;
       }
@@ -120,8 +120,8 @@ public class SLA implements Serializable {
          return phase;
       }
 
-      public String statisticsName() {
-         return statisticsName;
+      public String metric() {
+         return metric;
       }
 
       public StatisticsSnapshot statistics() {

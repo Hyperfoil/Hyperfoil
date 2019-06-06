@@ -108,14 +108,14 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
          }
          path = path.substring(baseUrl.length());
       }
-      String statsName = null;
+      String metric = null;
       if (statisticsSelector != null) {
-         statsName = statisticsSelector.apply(baseUrl, path);
+         metric = statisticsSelector.apply(baseUrl, path);
       }
-      if (statsName == null) {
-         statsName = sequence().name();
+      if (metric == null) {
+         metric = sequence().name();
       }
-      Statistics statistics = session.statistics(id(), statsName);
+      Statistics statistics = session.statistics(id(), metric);
       SequenceInstance sequence = session.currentSequence();
       request.baseUrl = baseUrl;
       request.method = method;

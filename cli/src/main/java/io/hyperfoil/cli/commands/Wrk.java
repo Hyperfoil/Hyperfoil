@@ -196,7 +196,7 @@ public class Wrk {
             runner.run();
             StatisticsCollector collector = new StatisticsCollector(benchmark);
             runner.visitStatistics(collector);
-            collector.visitStatistics((phase, stepId, name, stats, countDown) -> {
+            collector.visitStatistics((phase, stepId, metric, stats, countDown) -> {
                if ("test".equals(phase.name())) {
                   printStats(stats, commandInvocation);
                }
@@ -223,7 +223,7 @@ public class Wrk {
                invocation.getShell().write(ANSI.CURSOR_START);
                invocation.getShell().write(ANSI.ERASE_WHOLE_LINE);
                runner.visitStatistics(collector);
-               collector.visitStatistics((phase, stepId, name, stats, countDown) -> {
+               collector.visitStatistics((phase, stepId, metric, stats, countDown) -> {
                   if ("test".equals(phase.name())) {
                      double durationSeconds = (stats.histogram.getEndTimeStamp() - stats.histogram.getStartTimeStamp()) / 1000d;
                      invocation.print("Requests/sec: " + String.format("%.02f", stats.histogram.getTotalCount() / durationSeconds));
@@ -244,7 +244,7 @@ public class Wrk {
          invocation.context().setRunning(false);
          invocation.println(Config.getLineSeparator()+"benchmark finished");
          runner.visitStatistics(collector);
-         collector.visitStatistics((phase, stepId, name, stats, countDown) -> {
+         collector.visitStatistics((phase, stepId, metric, stats, countDown) -> {
             if ("test".equals(phase.name())) {
                stats.addInto(total);
             }

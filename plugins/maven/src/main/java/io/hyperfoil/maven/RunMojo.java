@@ -102,14 +102,14 @@ public class RunMojo extends AbstractMojo {
         }
     }
 
-    private void printStats(Phase phase, int stepId, String statsName, StatisticsSnapshot snapshot, CountDown ignored) {
+    private void printStats(Phase phase, int stepId, String metric, StatisticsSnapshot snapshot, CountDown ignored) {
         StatisticsSnapshot copy = snapshot.clone();
-        printStatsExecutor.submit(() -> printStats(phase, stepId, statsName, copy));
+        printStatsExecutor.submit(() -> printStats(phase, stepId, metric, copy));
     }
 
-    private void printStats(Phase phase, int stepId, String statsName, StatisticsSnapshot stats) {
+    private void printStats(Phase phase, int stepId, String metric, StatisticsSnapshot stats) {
         double durationSeconds = (stats.histogram.getEndTimeStamp() - stats.histogram.getStartTimeStamp()) / 1000d;
-        log.info("{}/{}: ", phase.name(), statsName);
+        log.info("{}/{}: ", phase.name(), metric);
         log.info("{} requests in {} s, ", stats.histogram.getTotalCount(), durationSeconds);
         log.info("                  Avg     Stdev       Max");
         log.info("Latency:    {} {} {}", Util.prettyPrintNanos((long) stats.histogram.getMean()),

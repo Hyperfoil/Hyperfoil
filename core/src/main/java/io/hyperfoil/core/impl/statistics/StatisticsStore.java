@@ -60,9 +60,9 @@ public class StatisticsStore {
       this(benchmark, failureHandler, PERCENTILES);
    }
 
-   public void record(String address, int phaseId, int stepId, String statisticsName, StatisticsSnapshot stats) {
+   public void record(String address, int phaseId, int stepId, String metric, StatisticsSnapshot stats) {
       Map<String, Data> map = this.data.computeIfAbsent((phaseId << 16) + stepId, phaseStep -> new HashMap<>());
-      Data data = map.get(statisticsName);
+      Data data = map.get(metric);
       if (data == null) {
          long collectionPeriod = benchmark.statisticsCollectionPeriod();
          SLA.Provider slaProvider = slaProviders.get(stepId);
@@ -73,7 +73,7 @@ public class StatisticsStore {
          SLA[] total = slaProvider == null || slaProvider.sla() == null ? new SLA[0] : Stream.of(slaProvider.sla())
                .filter(sla -> sla.window() <= 0).toArray(SLA[]::new);
          String phase = benchmark.phases().stream().filter(p -> p.id() == phaseId).findFirst().get().name();
-         map.put(statisticsName, data = new Data(phase, stepId, statisticsName, rings, total));
+         map.put(metric, data = new Data(phase, stepId, metric, rings, total));
       }
       data.record(address, stats);
    }
@@ -87,19 +87,19 @@ public class StatisticsStore {
       Arrays.sort(sorted, (d1, d2) -> {
          int cmp = d1.phase.compareTo(d2.phase);
          if (cmp != 0) return cmp;
-         cmp = d1.statisticsName.compareTo(d2.statisticsName);
+         cmp = d1.metric.compareTo(d2.metric);
          if (cmp != 0) return cmp;
          return Integer.compare(d1.stepId, d2.stepId);
       });
 
       try (PrintWriter writer = new PrintWriter(dir + File.separator + "total.csv")) {
-         writer.print("Phase,Name,Start,End,");
+         writer.print("Phase,Metric,Start,End,");
          StatisticsSummary.printHeader(writer, percentiles);
          writer.println(",MinSessions,MaxSessions");
          for (Data data : sorted) {
             writer.print(data.phase);
             writer.print(',');
-            writer.print(data.statisticsName);
+            writer.print(data.metric);
             writer.print(',');
             writer.print(data.total.histogram.getStartTimeStamp());
             writer.print(',');
@@ -122,7 +122,7 @@ public class StatisticsStore {
       }
       for (Map<String, Data> m : this.data.values()) {
          for (Data data : m.values()) {
-            String filePrefix = dir + File.separator + sanitize(data.phase) + "." + sanitize(data.statisticsName) + "." + data.stepId;
+            String filePrefix = dir + File.separator + sanitize(data.phase) + "." + sanitize(data.metric) + "." + data.stepId;
             persistHistogramAndSeries(filePrefix, data.total, data.series);
          }
       }
@@ -132,7 +132,7 @@ public class StatisticsStore {
             .distinct().sorted().toArray(String[]::new);
       for (String agent : agents) {
          try (PrintWriter writer = new PrintWriter(dir + File.separator + "agent." + sanitize(agent) + ".csv")) {
-            writer.print("Phase,Name,Start,End,");
+            writer.print("Phase,Metric,Start,End,");
             StatisticsSummary.printHeader(writer, percentiles);
             writer.println(",MinSessions,MaxSessions");
             for (Data data : sorted) {
@@ -142,7 +142,7 @@ public class StatisticsStore {
                }
                writer.print(data.phase);
                writer.print(',');
-               writer.print(data.statisticsName);
+               writer.print(data.metric);
                writer.print(',');
                writer.print(data.total.histogram.getStartTimeStamp());
                writer.print(',');
@@ -167,19 +167,19 @@ public class StatisticsStore {
          }
          for (Map<String, Data> m : this.data.values()) {
             for (Data data : m.values()) {
-               String filePrefix = dir + File.separator + sanitize(data.phase) + "." + sanitize(data.statisticsName) + "." + data.stepId + ".agent." + agent;
+               String filePrefix = dir + File.separator + sanitize(data.phase) + "." + sanitize(data.metric) + "." + data.stepId + ".agent." + agent;
                persistHistogramAndSeries(filePrefix, data.perAgent.get(agent), data.agentSeries.get(agent));
             }
          }
       }
       try (PrintWriter writer = new PrintWriter(dir + File.separator + "failures.csv")) {
-         writer.print("Phase,Statistics,Message,Start,End,");
+         writer.print("Phase,Metric,Message,Start,End,");
          StatisticsSummary.printHeader(writer, percentiles);
          writer.println();
          for (SLA.Failure failure : failures) {
             writer.print(failure.phase());
             writer.print(',');
-            writer.print(failure.statisticsName());
+            writer.print(failure.metric());
             writer.print(",\"");
             writer.print(failure.message());
             writer.print("\",");
@@ -276,7 +276,7 @@ public class StatisticsStore {
             if (last.startTime < minValidTimestamp) {
                continue;
             }
-            result.computeIfAbsent(data.phase, p -> new TreeMap<>()).put(data.statisticsName, last);
+            result.computeIfAbsent(data.phase, p -> new TreeMap<>()).put(data.metric, last);
          }
       }
       return result;
@@ -287,7 +287,7 @@ public class StatisticsStore {
       for (Map<String, Data> m : this.data.values()) {
          for (Data data : m.values()) {
             StatisticsSummary last = data.total.summary(percentiles);
-            result.computeIfAbsent(data.phase, p -> new TreeMap<>()).put(data.statisticsName, last);
+            result.computeIfAbsent(data.phase, p -> new TreeMap<>()).put(data.metric, last);
          }
       }
       return result;
@@ -298,12 +298,12 @@ public class StatisticsStore {
       for (Map<String, Data> m : this.data.values()) {
          for (Data data : m.values()) {
             for (Map.Entry<Object, CustomValue> entry : data.total.custom.entrySet()) {
-               list.add(new Client.CustomStats(data.phase, data.stepId, data.statisticsName, entry.getKey().toString(), entry.getValue().toString()));
+               list.add(new Client.CustomStats(data.phase, data.stepId, data.metric, entry.getKey().toString(), entry.getValue().toString()));
             }
          }
       }
       Comparator<Client.CustomStats> c = Comparator.comparing(s -> s.phase);
-      c = c.thenComparing(s -> s.stepId).thenComparing(s -> s.statsName).thenComparing(s -> s.customName);
+      c = c.thenComparing(s -> s.stepId).thenComparing(s -> s.metric).thenComparing(s -> s.customName);
       Collections.sort(list, c);
       return list;
    }
@@ -381,7 +381,7 @@ public class StatisticsStore {
    private final class Data {
       private final String phase;
       private final int stepId;
-      private final String statisticsName;
+      private final String metric;
       // for reporting
       private final StatisticsSnapshot total = new StatisticsSnapshot();
       private final Map<String, StatisticsSnapshot> perAgent = new HashMap<>();
@@ -392,10 +392,10 @@ public class StatisticsStore {
       private final Map<SLA, Window> windowSlas;
       private final SLA[] totalSlas;
 
-      private Data(String phase, int stepId, String statisticsName, Map<SLA, Window> periodSlas, SLA[] totalSlas) {
+      private Data(String phase, int stepId, String metric, Map<SLA, Window> periodSlas, SLA[] totalSlas) {
          this.phase = phase;
          this.stepId = stepId;
-         this.statisticsName = statisticsName;
+         this.metric = metric;
          this.windowSlas = periodSlas;
          this.totalSlas = totalSlas;
       }
@@ -417,7 +417,7 @@ public class StatisticsStore {
                window.add(sum);
 
                // If we haven't filled full window the SLA won't be validated
-               SLA.Failure failure = sla.validate(phase, statisticsName, window.current());
+               SLA.Failure failure = sla.validate(phase, metric, window.current());
                if (window.isFull() && failure != null) {
                   if (failures.size() < maxFailures) {
                      failures.add(failure);
@@ -431,7 +431,7 @@ public class StatisticsStore {
 
       public void validateTotalSlas() {
          for (SLA sla : totalSlas) {
-            SLA.Failure failure = sla.validate(phase, statisticsName, total);
+            SLA.Failure failure = sla.validate(phase, metric, total);
             if (failure != null) {
                failures.add(failure);
                failureHandler.accept(failure);

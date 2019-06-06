@@ -29,15 +29,15 @@ public class ReportSender extends StatisticsCollector {
       visitStatistics(sendReport, completion);
    }
 
-   private void sendReport(Phase phase, int stepId, String name, StatisticsSnapshot statistics, CountDown countDown) {
+   private void sendReport(Phase phase, int stepId, String metric, StatisticsSnapshot statistics, CountDown countDown) {
       if (statistics.histogram.getEndTimeStamp() >= statistics.histogram.getStartTimeStamp()) {
-         log.debug("Sending stats for {} {}/{}, {} requests", phase.name(), stepId, name, statistics.requestCount);
+         log.debug("Sending stats for {} {}/{}, {} requests", phase.name(), stepId, metric, statistics.requestCount);
          // On clustered eventbus, ObjectCodec is not called synchronously so we *must* do a copy here.
          // (on a local eventbus we'd have to do a copy in transform() anyway)
          StatisticsSnapshot copy = new StatisticsSnapshot();
          statistics.copyInto(copy);
          countDown.increment();
-         eb.send(Feeds.STATS, new ReportMessage(address, runId, phase.id(), stepId, name, copy),
+         eb.send(Feeds.STATS, new ReportMessage(address, runId, phase.id(), stepId, metric, copy),
                reply -> countDown.countDown());
       }
    }
