@@ -232,7 +232,8 @@ public class ControllerVerticle extends AbstractVerticle {
                 controllerPhase.status(ControllerPhase.Status.FINISHED);
                 break;
             case TERMINATED:
-                if (!run.statisticsStore.validateSlas(phase)) {
+                run.statisticsStore.completePhase(phase);
+                if (!run.statisticsStore.validateSlas()) {
                     log.info("SLA validation failed for {}", phase);
                     controllerPhase.setFailed();
                     run.notes.add("SLA validation failed for phase " + phase);

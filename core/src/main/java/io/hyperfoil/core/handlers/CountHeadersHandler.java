@@ -12,7 +12,7 @@ import io.hyperfoil.function.SerializableSupplier;
 public class CountHeadersHandler implements HeaderHandler {
    @Override
    public void handleHeader(Request request, CharSequence header, CharSequence value) {
-      IntValue custom = request.statistics().getCustom(header, IntValue::new);
+      IntValue custom = request.statistics().getCustom(request.startTimestampMillis(), header, IntValue::new);
       custom.add(1);
    }
 

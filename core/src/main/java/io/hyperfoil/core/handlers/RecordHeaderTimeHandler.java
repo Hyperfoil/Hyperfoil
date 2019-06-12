@@ -54,8 +54,8 @@ public class RecordHeaderTimeHandler implements HeaderHandler {
       if (step instanceof BaseStep) {
          Statistics statistics = request.session.statistics(((BaseStep) step).id(), this.statistics);
          // we need to set both requests and responses to calculate stats properly
-         statistics.incrementRequests();
-         statistics.recordResponse(0, longValue);
+         statistics.incrementRequests(request.startTimestampMillis());
+         statistics.recordResponse(request.startTimestampMillis(), 0, longValue);
       } else {
          throw new IllegalStateException("Cannot find ID for current step");
       }

@@ -11,6 +11,8 @@ import io.hyperfoil.api.statistics.SessionStatistics;
 import io.hyperfoil.api.statistics.Statistics;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.core.util.CountDown;
+import io.netty.util.collection.IntObjectHashMap;
+import io.netty.util.collection.IntObjectMap;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
@@ -19,7 +21,7 @@ public class StatisticsCollector implements Consumer<SessionStatistics> {
    private static final boolean trace = log.isTraceEnabled();
 
    private final Phase[] phases;
-   protected Map<Integer, Map<String, StatisticsSnapshot>> aggregated = new HashMap<>();
+   protected IntObjectMap<Map<String, IntObjectMap<StatisticsSnapshot>>> aggregated = new IntObjectHashMap<>();
 
    public StatisticsCollector(Benchmark benchmark) {
       this.phases = benchmark.phasesById();
@@ -28,29 +30,59 @@ public class StatisticsCollector implements Consumer<SessionStatistics> {
    @Override
    public void accept(SessionStatistics statistics) {
       for (int i = 0; i < statistics.size(); ++i) {
-         Map<String, StatisticsSnapshot> snapshots = aggregated.computeIfAbsent(
-               (statistics.phase(i).id() << 16) + statistics.step(i), s -> new HashMap<>());
+         int phaseAndStepId = (statistics.phase(i).id() << 16) + statistics.step(i);
+
+         Map<String, IntObjectMap<StatisticsSnapshot>> metricMap = aggregated.get(phaseAndStepId);
+         if (metricMap == null) {
+            metricMap = new HashMap<>();
+            aggregated.put(phaseAndStepId, metricMap);
+         }
+
          for (Map.Entry<String, Statistics> entry : statistics.stats(i).entrySet()) {
-            StatisticsSnapshot snapshot = snapshots.computeIfAbsent(entry.getKey(), k -> new StatisticsSnapshot());
-            entry.getValue().addIntervalTo(snapshot);
+            String metric = entry.getKey();
+            IntObjectMap<StatisticsSnapshot> snapshots = metricMap.computeIfAbsent(metric, k -> new IntObjectHashMap<>());
+            entry.getValue().visitSnapshots(snapshot -> {
+               assert snapshot.order >= 0;
+               StatisticsSnapshot existing = snapshots.get(snapshot.order);
+               if (existing == null) {
+                  existing = new StatisticsSnapshot();
+                  existing.order = snapshot.order;
+                  snapshots.put(snapshot.order, existing);
+               }
+               snapshot.addInto(existing);
+            });
          }
       }
    }
 
    public void visitStatistics(StatisticsConsumer consumer, CountDown countDown) {
-      for (Iterator<Map.Entry<Integer, Map<String, StatisticsSnapshot>>> iterator = aggregated.entrySet().iterator(); iterator.hasNext(); ) {
-         Map.Entry<Integer, Map<String, StatisticsSnapshot>> entry = iterator.next();
+      for (Iterator<Map.Entry<Integer, Map<String, IntObjectMap<StatisticsSnapshot>>>> it1 = aggregated.entrySet().iterator(); it1.hasNext(); ) {
+         Map.Entry<Integer, Map<String, IntObjectMap<StatisticsSnapshot>>> entry = it1.next();
          int phaseAndStepId = entry.getKey();
-         boolean empty = true;
-         for (Map.Entry<String, StatisticsSnapshot> se : entry.getValue().entrySet()) {
-            StatisticsSnapshot snapshot = se.getValue();
-            consumer.accept(phases[phaseAndStepId >> 16], phaseAndStepId & 0xFFFF, se.getKey(), snapshot, countDown);
-            empty = empty && snapshot.requestCount == 0;
-            snapshot.reset();
+         Map<String, IntObjectMap<StatisticsSnapshot>> metricMap = entry.getValue();
+
+         for (Iterator<Map.Entry<String, IntObjectMap<StatisticsSnapshot>>> it2 = metricMap.entrySet().iterator(); it2.hasNext(); ) {
+            Map.Entry<String, IntObjectMap<StatisticsSnapshot>> se = it2.next();
+            String metric = se.getKey();
+            IntObjectMap<StatisticsSnapshot> snapshots = se.getValue();
+
+            for (Iterator<IntObjectMap.PrimitiveEntry<StatisticsSnapshot>> it3 = snapshots.entries().iterator(); it3.hasNext(); ) {
+               IntObjectMap.PrimitiveEntry<StatisticsSnapshot> pe = it3.next();
+               if (pe.value().requestCount == 0) {
+                  it3.remove();
+               } else {
+                  consumer.accept(phases[phaseAndStepId >> 16], phaseAndStepId & 0xFFFF, metric, pe.value(), countDown);
+                  pe.value().reset();
+               }
+            }
+
+            if (snapshots.isEmpty()) {
+               it2.remove();
+            }
          }
-         if (empty) {
-            // get rid of it when empty - the phase has probably ended
-            iterator.remove();
+
+         if (metricMap.isEmpty()) {
+            it1.remove();
          }
       }
    }

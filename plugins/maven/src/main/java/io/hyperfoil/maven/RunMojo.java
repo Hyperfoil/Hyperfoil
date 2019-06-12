@@ -1,13 +1,11 @@
 package io.hyperfoil.maven;
 
 import io.hyperfoil.api.config.Benchmark;
-import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.core.impl.LocalBenchmarkData;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
 import io.hyperfoil.core.parser.BenchmarkParser;
 import io.hyperfoil.core.parser.ParserException;
-import io.hyperfoil.core.util.CountDown;
 import io.hyperfoil.core.util.Util;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -29,8 +27,7 @@ import java.io.InputStream;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.HashMap;
 
 import static io.vertx.core.logging.LoggerFactory.LOGGER_DELEGATE_FACTORY_CLASS_NAME;
 
@@ -45,7 +42,6 @@ public class RunMojo extends AbstractMojo {
     @Parameter(defaultValue = "false", property = "hyperfoil.percentiles")
     private Boolean outputPercentileDistribution;
 
-    private ExecutorService printStatsExecutor = Executors.newFixedThreadPool(1, r -> new Thread(r, "statistics"));
     private Benchmark benchmark;
 
     static {
@@ -60,12 +56,16 @@ public class RunMojo extends AbstractMojo {
         if (!yaml.exists())
             throw new MojoExecutionException("yaml not found: " + yaml.toPath());
 
+        // TODO: as we're aggregating snapshots for the same stage we're printing the stats only at the end
+        HashMap<String, StatisticsSnapshot> total = new HashMap<>();
         try {
             benchmark = buildBenchmark(new FileInputStream(yaml));
 
             if (benchmark != null) {
                 // We want to log all stats in the same thread to not break the output layout too much.
-                LocalSimulationRunner runner = new LocalSimulationRunner(benchmark, this::printStats, this::printSessionPoolInfo);
+                LocalSimulationRunner runner = new LocalSimulationRunner(benchmark, (phase, stepId, metric, snapshot, ignored) -> {
+                    snapshot.addInto(total.computeIfAbsent(phase.name() + "/" + metric, k -> new StatisticsSnapshot()));
+                }, this::printSessionPoolInfo);
                 log.info("Running for {}", benchmark.statisticsCollectionPeriod());
                 log.info("{} threads", benchmark.threads());
                 runner.run();
@@ -74,13 +74,13 @@ public class RunMojo extends AbstractMojo {
             log.error("Couldn't find yaml file: {}", e, yaml);
             throw new MojoExecutionException("yaml not found: " + yaml.toPath());
         }
+        total.forEach(this::printStats);
 
-        printStatsExecutor.shutdown();
         log.info("Finished running simulation");
     }
 
     private void printSessionPoolInfo(String phase, int min, int max) {
-        printStatsExecutor.execute(() -> log.info("Phase {} used {} - {} sessions.", phase, min, max));
+        log.info("Phase {} used {} - {} sessions.", phase, min, max);
     }
 
 
@@ -102,14 +102,9 @@ public class RunMojo extends AbstractMojo {
         }
     }
 
-    private void printStats(Phase phase, int stepId, String metric, StatisticsSnapshot snapshot, CountDown ignored) {
-        StatisticsSnapshot copy = snapshot.clone();
-        printStatsExecutor.submit(() -> printStats(phase, stepId, metric, copy));
-    }
-
-    private void printStats(Phase phase, int stepId, String metric, StatisticsSnapshot stats) {
+    private void printStats(String phaseAndMetric, StatisticsSnapshot stats) {
         double durationSeconds = (stats.histogram.getEndTimeStamp() - stats.histogram.getStartTimeStamp()) / 1000d;
-        log.info("{}/{}: ", phase.name(), metric);
+        log.info("{}: ", phaseAndMetric);
         log.info("{} requests in {} s, ", stats.histogram.getTotalCount(), durationSeconds);
         log.info("                  Avg     Stdev       Max");
         log.info("Latency:    {} {} {}", Util.prettyPrintNanos((long) stats.histogram.getMean()),

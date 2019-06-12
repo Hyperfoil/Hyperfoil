@@ -196,11 +196,13 @@ public class Wrk {
             runner.run();
             StatisticsCollector collector = new StatisticsCollector(benchmark);
             runner.visitStatistics(collector);
+            StatisticsSnapshot total = new StatisticsSnapshot();
             collector.visitStatistics((phase, stepId, metric, stats, countDown) -> {
                if ("test".equals(phase.name())) {
-                  printStats(stats, commandInvocation);
+                  stats.addInto(total);
                }
             }, null);
+            printStats(total, commandInvocation);
          }
 
          return CommandResult.SUCCESS;

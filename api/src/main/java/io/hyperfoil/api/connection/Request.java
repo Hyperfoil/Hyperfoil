@@ -16,8 +16,9 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
    private static final TimeoutException TIMEOUT_EXCEPTION = new TimeoutException();
 
    public final Session session;
-   private long startTime;
-   private long sendTime;
+   private long startTimestampMillis;
+   private long startTimestampNanos;
+   private long sendTimestampNanos;
    private SequenceInstance sequence;
    private Statistics statistics;
    private ScheduledFuture<?> timeoutFuture;
@@ -36,7 +37,7 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
    public Void call() {
       timeoutFuture = null;
       if (!isCompleted()) {
-         statistics.incrementTimeouts();
+         statistics.incrementTimeouts(startTimestampNanos);
          handleThrowable(TIMEOUT_EXCEPTION);
          // handleThrowable sets the request completed
       }
@@ -46,7 +47,8 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
    protected abstract void handleThrowable(Throwable throwable);
 
    public void start(SequenceInstance sequence, Statistics statistics) {
-      this.startTime = System.nanoTime();
+      this.startTimestampMillis = System.currentTimeMillis();
+      this.startTimestampNanos = System.nanoTime();
       this.sequence = sequence;
       this.statistics = statistics;
       this.completed = false;
@@ -90,12 +92,16 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
       return statistics;
    }
 
-   public long startTime() {
-      return startTime;
+   public long startTimestampMillis() {
+      return startTimestampMillis;
    }
 
-   public long sendTime() {
-      return sendTime;
+   public long startTimestampNanos() {
+      return startTimestampNanos;
+   }
+
+   public long sendTimestampNanos() {
+      return sendTimestampNanos;
    }
 
    public void setTimeout(long timeout, TimeUnit timeUnit) {
@@ -105,7 +111,7 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
    @Override
    public void operationComplete(Future<Void> future) {
       // This is called when the request is written on the wire
-      sendTime = System.nanoTime();
+      sendTimestampNanos = System.nanoTime();
    }
 
    public interface ProcessorBuilderFactory extends ServiceLoadedFactory<Processor.Builder<Request>> {}

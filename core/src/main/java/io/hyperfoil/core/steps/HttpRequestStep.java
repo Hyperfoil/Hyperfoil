@@ -130,12 +130,12 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
          // we'll be waiting here forever. Maybe there should be a (default) timeout to obtain the connection.
          connectionPool.registerWaitingSession(session);
          sequence.setBlockedTimestamp();
-         request.statistics().incrementBlockedCount();
+         request.statistics().incrementBlockedCount(request.startTimestampMillis());
          return false;
       }
       long blockedTime = sequence.getBlockedTime();
       if (blockedTime > 0) {
-         request.statistics().incrementBlockedTime(blockedTime);
+         request.statistics().incrementBlockedTime(request.startTimestampMillis(), blockedTime);
       }
       // Set up timeout only after successful request
       if (timeout > 0) {
@@ -153,7 +153,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
       if (trace) {
          log.trace("#{} sent to {} request on {}", session.uniqueId(), path, request.connection());
       }
-      request.statistics().incrementRequests();
+      request.statistics().incrementRequests(request.startTimestampMillis());
       return true;
    }
 

@@ -13,7 +13,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -29,9 +28,14 @@ import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.api.statistics.StatisticsSummary;
 import io.hyperfoil.client.Client;
 import io.hyperfoil.core.util.LowHigh;
+import io.netty.util.collection.IntObjectHashMap;
+import io.netty.util.collection.IntObjectMap;
 
 public class StatisticsStore {
    private static final double[] PERCENTILES = new double[]{0.5, 0.9, 0.99, 0.999, 0.9999};
+   // When we receive snapshot with order #N we will attempt to compact agent snapshots #(N-60)
+   // We are delaying this because the statistics for outlier may come with a significant delay
+   private static final int MERGE_DELAY = 60;
 
    private final Benchmark benchmark;
    private final int numAgents;
@@ -253,14 +257,17 @@ public class StatisticsStore {
       }
    }
 
-   public boolean validateSlas(String phase) {
+   public void completePhase(String phase) {
       for (Map<String, Data> m : this.data.values()) {
          for (Data data : m.values()) {
             if (data.phase.equals(phase)) {
-               data.validateTotalSlas();
+               data.completePhase();
             }
          }
       }
+   }
+
+   public boolean validateSlas() {
       return failures.isEmpty();
    }
 
@@ -385,12 +392,13 @@ public class StatisticsStore {
       // for reporting
       private final StatisticsSnapshot total = new StatisticsSnapshot();
       private final Map<String, StatisticsSnapshot> perAgent = new HashMap<>();
-      private final Map<String, List<StatisticsSnapshot>> lastStats = new HashMap<>();
+      private final Map<String, IntObjectMap<StatisticsSnapshot>> lastStats = new HashMap<>();
       private final List<StatisticsSummary> series = new ArrayList<>();
       private final Map<String, List<StatisticsSummary>> agentSeries = new HashMap<>();
       // floating statistics for SLAs
       private final Map<SLA, Window> windowSlas;
       private final SLA[] totalSlas;
+      private int highestOrder = 0;
 
       private Data(String phase, int stepId, String metric, Map<SLA, Window> periodSlas, SLA[] totalSlas) {
          this.phase = phase;
@@ -403,39 +411,61 @@ public class StatisticsStore {
       private void record(String address, StatisticsSnapshot stats) {
          stats.addInto(total);
          stats.addInto(perAgent.computeIfAbsent(address, a -> new StatisticsSnapshot()));
-         lastStats.computeIfAbsent(address, a -> new LinkedList<>()).add(stats);
-         if (lastStats.values().stream().filter(l -> !l.isEmpty()).count() == numAgents) {
-            StatisticsSnapshot sum = new StatisticsSnapshot();
-            for (List<StatisticsSnapshot> list : lastStats.values()) {
-               list.remove(0).addInto(sum);
-            }
-            series.add(sum.summary(percentiles));
-            for (Map.Entry<SLA, Window> entry : windowSlas.entrySet()) {
-               SLA sla = entry.getKey();
-               Window window = entry.getValue();
-
-               window.add(sum);
-
-               // If we haven't filled full window the SLA won't be validated
-               SLA.Failure failure = sla.validate(phase, metric, window.current());
-               if (window.isFull() && failure != null) {
-                  if (failures.size() < maxFailures) {
-                     failures.add(failure);
-                  }
-                  failureHandler.accept(failure);
-               }
-            }
+         IntObjectMap<StatisticsSnapshot> partialSnapshots = lastStats.computeIfAbsent(address, a -> new IntObjectHashMap<>());
+         StatisticsSnapshot partialSnapshot = partialSnapshots.get(stats.order);
+         if (partialSnapshot == null) {
+            partialSnapshots.put(stats.order, stats);
+         } else {
+            stats.addInto(partialSnapshot);
          }
-         agentSeries.computeIfAbsent(address, a -> new ArrayList<>()).add(stats.summary(percentiles));
+         while (stats.order > highestOrder) {
+            ++highestOrder;
+            int mergedOrder = highestOrder - MERGE_DELAY;
+            if (mergedOrder < 0) {
+               continue;
+            }
+            mergeSnapshots(mergedOrder);
+         }
       }
 
-      public void validateTotalSlas() {
+      private void mergeSnapshots(int mergedOrder) {
+         StatisticsSnapshot sum = new StatisticsSnapshot();
+         for (Map.Entry<String, IntObjectMap<StatisticsSnapshot>> entry : lastStats.entrySet()) {
+            StatisticsSnapshot snapshot = entry.getValue().remove(mergedOrder);
+            if (snapshot != null) {
+               snapshot.addInto(sum);
+               agentSeries.computeIfAbsent(entry.getKey(), a -> new ArrayList<>()).add(snapshot.summary(percentiles));
+            }
+         }
+         if (sum.requestCount > 0) {
+            series.add(sum.summary(percentiles));
+         }
+         for (Map.Entry<SLA, Window> entry : windowSlas.entrySet()) {
+            SLA sla = entry.getKey();
+            Window window = entry.getValue();
+
+            window.add(sum);
+
+            // If we haven't filled full window the SLA won't be validated
+            SLA.Failure failure = sla.validate(phase, metric, window.current());
+            if (window.isFull() && failure != null) {
+               if (failures.size() < maxFailures) {
+                  failures.add(failure);
+               }
+               failureHandler.accept(failure);
+            }
+         }
+      }
+
+      void completePhase() {
+         for (int i = Math.max(0, highestOrder - MERGE_DELAY); i <= highestOrder; ++i) {
+            mergeSnapshots(i);
+         }
          for (SLA sla : totalSlas) {
             SLA.Failure failure = sla.validate(phase, metric, total);
             if (failure != null) {
                failures.add(failure);
                failureHandler.accept(failure);
-               continue;
             }
          }
       }

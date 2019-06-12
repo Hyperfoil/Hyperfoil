@@ -25,7 +25,8 @@ public class StopwatchBeginStep implements Step, ResourceUtilizer {
       // Setting timestamp only when it's set allows looping into stopwatch
       if (!key.isSet(session)) {
          StartTime startTime = (StartTime) key.activate(session);
-         startTime.timestamp = System.nanoTime();
+         startTime.timestampMillis = System.currentTimeMillis();
+         startTime.timestampNanos = System.nanoTime();
       }
       return true;
    }
@@ -38,7 +39,8 @@ public class StopwatchBeginStep implements Step, ResourceUtilizer {
    }
 
    static class StartTime {
-      long timestamp;
+      long timestampMillis;
+      long timestampNanos;
    }
 
    public static class Builder extends BaseSequenceBuilder implements StepBuilder {

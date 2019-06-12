@@ -62,7 +62,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          log.trace("#{} Received status {}: {}", session.uniqueId(), status, reason);
       }
 
-      request.statistics().addStatus(status);
+      request.statistics().addStatus(request.startTimestampMillis(), status);
       if (statusHandlers != null) {
          for (StatusHandler handler : statusHandlers) {
             handler.handleStatus(request, status);
@@ -118,7 +118,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
             handler.run(session);
          }
       }
-      request.statistics().incrementResets();
+      request.statistics().incrementResets(request.startTimestampMillis());
       request.setCompleted();
       session.httpRequestPool().release(request);
       session.currentSequence(null);
@@ -168,7 +168,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       }
 
       long endTime = System.nanoTime();
-      request.statistics().recordResponse(request.sendTime() - request.startTime(), endTime - request.startTime());
+      request.statistics().recordResponse(request.startTimestampMillis(), request.sendTimestampNanos() - request.startTimestampNanos(), endTime - request.startTimestampNanos());
 
       if (headerHandlers != null) {
          for (HeaderHandler handler : headerHandlers) {
@@ -187,7 +187,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       }
 
       if (!request.isValid()) {
-         request.statistics().addInvalid();
+         request.statistics().addInvalid(request.startTimestampMillis());
       }
       request.setCompleted();
       session.httpRequestPool().release(request);
