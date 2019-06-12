@@ -398,7 +398,7 @@ public class StatisticsStore {
       // floating statistics for SLAs
       private final Map<SLA, Window> windowSlas;
       private final SLA[] totalSlas;
-      private int highestOrder = 0;
+      private int highestSequenceId = 0;
 
       private Data(String phase, int stepId, String metric, Map<SLA, Window> periodSlas, SLA[] totalSlas) {
          this.phase = phase;
@@ -412,26 +412,26 @@ public class StatisticsStore {
          stats.addInto(total);
          stats.addInto(perAgent.computeIfAbsent(address, a -> new StatisticsSnapshot()));
          IntObjectMap<StatisticsSnapshot> partialSnapshots = lastStats.computeIfAbsent(address, a -> new IntObjectHashMap<>());
-         StatisticsSnapshot partialSnapshot = partialSnapshots.get(stats.order);
+         StatisticsSnapshot partialSnapshot = partialSnapshots.get(stats.sequenceId);
          if (partialSnapshot == null) {
-            partialSnapshots.put(stats.order, stats);
+            partialSnapshots.put(stats.sequenceId, stats);
          } else {
             stats.addInto(partialSnapshot);
          }
-         while (stats.order > highestOrder) {
-            ++highestOrder;
-            int mergedOrder = highestOrder - MERGE_DELAY;
-            if (mergedOrder < 0) {
+         while (stats.sequenceId > highestSequenceId) {
+            ++highestSequenceId;
+            int mergedSequenceId = highestSequenceId - MERGE_DELAY;
+            if (mergedSequenceId < 0) {
                continue;
             }
-            mergeSnapshots(mergedOrder);
+            mergeSnapshots(mergedSequenceId);
          }
       }
 
-      private void mergeSnapshots(int mergedOrder) {
+      private void mergeSnapshots(int sequenceId) {
          StatisticsSnapshot sum = new StatisticsSnapshot();
          for (Map.Entry<String, IntObjectMap<StatisticsSnapshot>> entry : lastStats.entrySet()) {
-            StatisticsSnapshot snapshot = entry.getValue().remove(mergedOrder);
+            StatisticsSnapshot snapshot = entry.getValue().remove(sequenceId);
             if (snapshot != null) {
                snapshot.addInto(sum);
                agentSeries.computeIfAbsent(entry.getKey(), a -> new ArrayList<>()).add(snapshot.summary(percentiles));
@@ -458,7 +458,7 @@ public class StatisticsStore {
       }
 
       void completePhase() {
-         for (int i = Math.max(0, highestOrder - MERGE_DELAY); i <= highestOrder; ++i) {
+         for (int i = Math.max(0, highestSequenceId - MERGE_DELAY); i <= highestSequenceId; ++i) {
             mergeSnapshots(i);
          }
          for (SLA sla : totalSlas) {

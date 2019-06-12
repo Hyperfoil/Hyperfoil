@@ -46,7 +46,7 @@ public class Statistics {
       active = new AtomicReferenceArray<>(16);
       inactive = new AtomicReferenceArray<>(16);
       StatisticsSnapshot first = new StatisticsSnapshot();
-      first.order = 0;
+      first.sequenceId = 0;
       active.set(0, first);
       highestTrackableValue = first.histogram.getHighestTrackableValue();
    }
@@ -250,7 +250,7 @@ public class Statistics {
          snapshot = new StatisticsSnapshot();
          snapshot.histogram.setStartTimeStamp(startTimestamp + index * SAMPLING_PERIOD_MILLIS);
          snapshot.histogram.setEndTimeStamp(startTimestamp + (index + 1) * SAMPLING_PERIOD_MILLIS);
-         snapshot.order = index;
+         snapshot.sequenceId = index;
          active.set(index, snapshot);
       }
       lowestActiveUpdater.accumulateAndGet(this, index, Math::min);

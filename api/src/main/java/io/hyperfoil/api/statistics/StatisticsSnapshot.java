@@ -12,7 +12,7 @@ import org.HdrHistogram.Histogram;
  * Non-thread safe mutable set of values.
  */
 public class StatisticsSnapshot implements Serializable {
-   public int order = -1;
+   public int sequenceId = -1;
    public final Histogram histogram = new Histogram(TimeUnit.MINUTES.toNanos(1), 2);
    public long totalSendTime;
    public int connectFailureCount;
@@ -64,7 +64,7 @@ public class StatisticsSnapshot implements Serializable {
    }
 
    public void copyInto(StatisticsSnapshot target) {
-      copyOrder(target);
+      copySequenceId(target);
       histogram.copyInto(target.histogram);
       target.totalSendTime = totalSendTime;
       target.connectFailureCount = connectFailureCount;
@@ -129,12 +129,12 @@ public class StatisticsSnapshot implements Serializable {
       }
    }
 
-   private void copyOrder(StatisticsSnapshot target) {
-      if (order >= 0) {
-         if (target.order >= 0 && order != target.order) {
-            throw new IllegalArgumentException("Snapshot order numbers don't match");
+   private void copySequenceId(StatisticsSnapshot target) {
+      if (sequenceId >= 0) {
+         if (target.sequenceId >= 0 && sequenceId != target.sequenceId) {
+            throw new IllegalArgumentException("Snapshot sequence IDs don't match");
          }
-         target.order = order;
+         target.sequenceId = sequenceId;
       }
    }
 
