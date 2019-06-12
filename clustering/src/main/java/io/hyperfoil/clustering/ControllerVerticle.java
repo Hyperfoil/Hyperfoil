@@ -13,7 +13,7 @@ import io.hyperfoil.core.impl.statistics.StatisticsStore;
 import io.hyperfoil.clustering.util.PersistenceUtil;
 import io.hyperfoil.clustering.messages.PhaseChangeMessage;
 import io.hyperfoil.clustering.messages.PhaseControlMessage;
-import io.hyperfoil.clustering.messages.ReportMessage;
+import io.hyperfoil.clustering.messages.RequestStatsMessage;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.DeploymentOptions;
@@ -139,14 +139,14 @@ public class ControllerVerticle extends AbstractVerticle {
             if (run != null) {
                 // Agents start sending stats before the server processes the confirmation for initialization
                 if (run.statisticsStore != null) {
-                    if (statsMessage instanceof ReportMessage) {
-                        ReportMessage reportMessage = (ReportMessage) statsMessage;
+                    if (statsMessage instanceof RequestStatsMessage) {
+                        RequestStatsMessage requestStatsMessage = (RequestStatsMessage) statsMessage;
                         log.trace("Run {}: Received stats from {}: {}/{}/{} ({} requests)",
-                              reportMessage.runId, reportMessage.address,
-                              run.phase(reportMessage.phaseId), reportMessage.stepId, reportMessage.metric,
-                              reportMessage.statistics.requestCount);
-                        run.statisticsStore.record(reportMessage.address, reportMessage.phaseId, reportMessage.stepId,
-                              reportMessage.metric, reportMessage.statistics);
+                              requestStatsMessage.runId, requestStatsMessage.address,
+                              run.phase(requestStatsMessage.phaseId), requestStatsMessage.stepId, requestStatsMessage.metric,
+                              requestStatsMessage.statistics.requestCount);
+                        run.statisticsStore.record(requestStatsMessage.address, requestStatsMessage.phaseId, requestStatsMessage.stepId,
+                              requestStatsMessage.metric, requestStatsMessage.statistics);
                     } else if (statsMessage instanceof SessionStatsMessage) {
                         SessionStatsMessage sessionStatsMessage = (SessionStatsMessage) statsMessage;
                         log.trace("Run {}: Received session pool stats from {}", sessionStatsMessage.runId, sessionStatsMessage.address);

@@ -33,7 +33,7 @@ public class AgentVerticle extends AbstractVerticle {
     private SimulationRunnerImpl runner;
     private MessageConsumer<Object> controlFeedConsumer;
     private long statsTimerId = -1;
-    private ReportSender reportSender;
+    private RequestStatsSender requestStatsSender;
     private CountDown statisticsCountDown;
     private SessionStatsSender sessionStatsSender;
 
@@ -90,8 +90,8 @@ public class AgentVerticle extends AbstractVerticle {
                         }
                     }, 1);
                     if (runner != null) {
-                        runner.visitStatistics(reportSender);
-                        reportSender.send(completion);
+                        runner.visitStatistics(requestStatsSender);
+                        requestStatsSender.send(completion);
                         runner.shutdown();
                     }
                     if (controlFeedConsumer != null) {
@@ -99,7 +99,7 @@ public class AgentVerticle extends AbstractVerticle {
                     }
                     controlFeedConsumer = null;
                     runner = null;
-                    reportSender = null;
+                    requestStatsSender = null;
                     statisticsCountDown.setHandler(result -> completion.countDown());
                     statisticsCountDown.countDown();
                     break;
@@ -179,15 +179,15 @@ public class AgentVerticle extends AbstractVerticle {
             eb.send(Feeds.RESPONSE, new PhaseChangeMessage(address, runId, phase.name(), status, succesful, note));
         });
         controlFeedConsumer = listenOnControl();
-        reportSender = new ReportSender(benchmark, eb, address, runId);
+        requestStatsSender = new RequestStatsSender(benchmark, eb, address, runId);
         statisticsCountDown = new CountDown(1);
         sessionStatsSender = new SessionStatsSender(eb, address, runId);
 
         runner.init(result -> {
             if (result.succeeded()) {
                 statsTimerId = vertx.setPeriodic(benchmark.statisticsCollectionPeriod(), timerId -> {
-                    runner.visitStatistics(reportSender);
-                    reportSender.send(statisticsCountDown);
+                    runner.visitStatistics(requestStatsSender);
+                    requestStatsSender.send(statisticsCountDown);
                     runner.visitSessionPoolStats(sessionStatsSender);
                     sessionStatsSender.send();
                 });

@@ -5,20 +5,20 @@ import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.core.util.CountDown;
 import io.hyperfoil.core.impl.statistics.StatisticsCollector;
-import io.hyperfoil.clustering.messages.ReportMessage;
+import io.hyperfoil.clustering.messages.RequestStatsMessage;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-public class ReportSender extends StatisticsCollector {
-   private static final Logger log = LoggerFactory.getLogger(ReportSender.class);
+public class RequestStatsSender extends StatisticsCollector {
+   private static final Logger log = LoggerFactory.getLogger(RequestStatsSender.class);
 
    private final String address;
    private final String runId;
    private final EventBus eb;
-   private final StatisticsConsumer sendReport = this::sendReport;
+   private final StatisticsConsumer sendStats = this::sendStats;
 
-   public ReportSender(Benchmark benchmark, EventBus eb, String address, String runId) {
+   public RequestStatsSender(Benchmark benchmark, EventBus eb, String address, String runId) {
       super(benchmark);
       this.eb = eb;
       this.address = address;
@@ -26,10 +26,10 @@ public class ReportSender extends StatisticsCollector {
    }
 
    public void send(CountDown completion) {
-      visitStatistics(sendReport, completion);
+      visitStatistics(sendStats, completion);
    }
 
-   private void sendReport(Phase phase, int stepId, String metric, StatisticsSnapshot statistics, CountDown countDown) {
+   private void sendStats(Phase phase, int stepId, String metric, StatisticsSnapshot statistics, CountDown countDown) {
       if (statistics.histogram.getEndTimeStamp() >= statistics.histogram.getStartTimeStamp()) {
          log.debug("Sending stats for {} {}/{}, {} requests", phase.name(), stepId, metric, statistics.requestCount);
          // On clustered eventbus, ObjectCodec is not called synchronously so we *must* do a copy here.
@@ -37,7 +37,7 @@ public class ReportSender extends StatisticsCollector {
          StatisticsSnapshot copy = new StatisticsSnapshot();
          statistics.copyInto(copy);
          countDown.increment();
-         eb.send(Feeds.STATS, new ReportMessage(address, runId, phase.id(), stepId, metric, copy),
+         eb.send(Feeds.STATS, new RequestStatsMessage(address, runId, phase.id(), stepId, metric, copy),
                reply -> countDown.countDown());
       }
    }

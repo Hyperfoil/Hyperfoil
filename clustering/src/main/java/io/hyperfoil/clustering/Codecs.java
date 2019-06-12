@@ -7,7 +7,7 @@ import io.hyperfoil.clustering.messages.AgentHello;
 import io.hyperfoil.clustering.messages.ObjectCodec;
 import io.hyperfoil.clustering.messages.PhaseChangeMessage;
 import io.hyperfoil.clustering.messages.PhaseControlMessage;
-import io.hyperfoil.clustering.messages.ReportMessage;
+import io.hyperfoil.clustering.messages.RequestStatsMessage;
 import io.hyperfoil.clustering.messages.SessionStatsMessage;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
@@ -22,7 +22,7 @@ public final class Codecs {
       eb.registerDefaultCodec(AgentControlMessage.class, new AgentControlMessage.Codec());
       eb.registerDefaultCodec(PhaseChangeMessage.class, new PhaseChangeMessage.Codec());
       eb.registerDefaultCodec(PhaseControlMessage.class, new PhaseControlMessage.Codec());
-      eb.registerDefaultCodec(ReportMessage.class, new ReportMessage.Codec());
+      eb.registerDefaultCodec(RequestStatsMessage.class, new RequestStatsMessage.Codec());
       eb.registerDefaultCodec(ArrayList.class, new ObjectCodec.ArrayList());
       eb.registerDefaultCodec(SessionStatsMessage.class, new SessionStatsMessage.Codec());
    }
