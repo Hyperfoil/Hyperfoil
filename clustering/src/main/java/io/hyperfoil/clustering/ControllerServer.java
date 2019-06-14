@@ -24,7 +24,6 @@ import io.hyperfoil.client.Client;
 import io.hyperfoil.core.util.LowHigh;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.hyperfoil.api.config.Benchmark;
-import io.hyperfoil.api.statistics.StatisticsSummary;
 import io.hyperfoil.core.parser.BenchmarkParser;
 import io.hyperfoil.core.parser.ParserException;
 import io.hyperfoil.core.util.Util;
@@ -58,7 +57,7 @@ class ControllerServer {
    private static final int CONTROLLER_PORT = Properties.getInt(Properties.CONTROLLER_PORT, 8090);
    private static final String BASE_URL = "http://" + CONTROLLER_HOST + ":" + CONTROLLER_PORT;
    private static final Comparator<ControllerPhase> PHASE_COMPARATOR =
-         Comparator.<ControllerPhase, Long>comparing(p -> p.absoluteStartTime()).thenComparing(p -> p.definition().name);
+         Comparator.<ControllerPhase, Long>comparing(ControllerPhase::absoluteStartTime).thenComparing(p -> p.definition().name);
 
    private final ControllerVerticle controller;
    private final HttpServer httpServer;
@@ -402,9 +401,20 @@ class ControllerServer {
          ctx.response().setStatusCode(HttpResponseStatus.NOT_FOUND.code()).end();
          return;
       }
-      Map<String, Map<String, StatisticsSummary>> stats = run.statisticsStore.recentSummary(System.currentTimeMillis() - 3000);
-      // TODO: add json response format based on 'Accept' header
-      ctx.response().end(formatStatsSummary(stats));
+      List<Client.RequestStats> stats = run.statisticsStore.recentSummary(System.currentTimeMillis() - 3000);
+      ctx.response().end(Json.encodePrettily(statsToJson(run, stats)));
+   }
+
+   private Client.RequestStatisticsResponse statsToJson(Run run, List<Client.RequestStats> stats) {
+      String status;
+      if (run.terminateTime > Long.MIN_VALUE) {
+         status = "TERMINATED";
+      } else if (run.startTime > Long.MIN_VALUE) {
+         status = "RUNNING";
+      } else {
+         status = "INITIALIZING";
+      }
+      return new Client.RequestStatisticsResponse(status, stats);
    }
 
    private void handleTotalStats(RoutingContext ctx) {
@@ -413,40 +423,8 @@ class ControllerServer {
          ctx.response().setStatusCode(HttpResponseStatus.NOT_FOUND.code()).end();
          return;
       }
-      Map<String, Map<String, StatisticsSummary>> stats = run.statisticsStore.totalSummary();
-      // TODO: add json response format based on 'Accept' header
-      ctx.response().end(formatStatsSummary(stats));
-   }
-
-   private String formatStatsSummary(Map<String, Map<String, StatisticsSummary>> stats) {
-      StringBuilder sb = new StringBuilder();
-      sb.append("Phase   Sequence");
-      int longestSequenceName = Math.max(stats.values().stream().flatMap(m -> m.keySet().stream()).mapToInt(String::length).max().orElse(8), 8);
-      printSpaces(sb, longestSequenceName - 8);
-      sb.append("  Requests      Mean       p50       p90       p99     p99.9    p99.99    2xx    3xx    4xx    5xx Timeouts Errors\n");
-      for (Map.Entry<String, Map<String, StatisticsSummary>> phaseEntry : stats.entrySet()) {
-         sb.append(phaseEntry.getKey()).append(':').append('\n');
-         Map<String, StatisticsSummary> phaseStats = phaseEntry.getValue();
-         for (Map.Entry<String, StatisticsSummary> sequenceEntry : phaseStats.entrySet()) {
-            StatisticsSummary summary = sequenceEntry.getValue();
-            sb.append('\t').append(sequenceEntry.getKey()).append(": ");
-            printSpaces(sb, longestSequenceName - sequenceEntry.getKey().length());
-            sb.append(String.format("%8d ", summary.requestCount));
-            sb.append(Util.prettyPrintNanos(summary.meanResponseTime));
-            sb.append(' ');
-            for (int i = 0; i < summary.percentileResponseTime.length; ++i) {
-               sb.append(Util.prettyPrintNanos(summary.percentileResponseTime[i])).append(' ');
-            }
-            sb.append(String.format("%6d", summary.status_2xx))
-                  .append(String.format(" %6d", summary.status_3xx))
-                  .append(String.format(" %6d", summary.status_4xx))
-                  .append(String.format(" %6d", summary.status_5xx))
-                  .append(String.format(" %8d", summary.timeouts))
-                  .append(String.format(" %6d", summary.status_other + summary.connectFailureCount + summary.resetCount));
-            sb.append('\n');
-         }
-      }
-      return sb.toString();
+      List<Client.RequestStats> stats = run.statisticsStore.totalSummary();
+      ctx.response().end(Json.encodePrettily(statsToJson(run, stats)));
    }
 
    private void handleCustomStats(RoutingContext ctx) {
@@ -462,7 +440,6 @@ class ControllerServer {
       // TODO: add json response format based on 'Accept' header
       ctx.response().end(new JsonArray(stats).encodePrettily());
    }
-
 
    private void handleRecentSessions(RoutingContext ctx) {
       handleSessionPoolStats(ctx, run -> run.statisticsStore.recentSessionPoolSummary(System.currentTimeMillis() - 3000));
@@ -492,12 +469,6 @@ class ControllerServer {
          });
       });
       ctx.response().end(reply.encodePrettily());
-   }
-
-   private void printSpaces(StringBuilder sb, int i) {
-      for (;i > 0; --i) {
-         sb.append(' ');
-      }
    }
 
    private static String encode(String string) {

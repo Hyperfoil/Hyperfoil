@@ -16,7 +16,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
-import java.util.TreeMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -272,8 +271,8 @@ public class StatisticsStore {
       return failures.isEmpty();
    }
 
-   public Map<String, Map<String, StatisticsSummary>> recentSummary(long minValidTimestamp) {
-      Map<String, Map<String, StatisticsSummary>> result = new TreeMap<>();
+   public List<Client.RequestStats> recentSummary(long minValidTimestamp) {
+      ArrayList<Client.RequestStats> result = new ArrayList<>();
       for (Map<String, Data> m : this.data.values()) {
          for (Data data : m.values()) {
             OptionalInt lastSequenceId = data.lastStats.values().stream()
@@ -290,18 +289,18 @@ public class StatisticsStore {
             if (sum.requestCount == 0 || sum.histogram.getStartTimeStamp() < minValidTimestamp) {
                continue;
             }
-            result.computeIfAbsent(data.phase, p -> new TreeMap<>()).put(data.metric, sum.summary(PERCENTILES));
+            result.add(new Client.RequestStats(data.phase, data.metric, sum.summary(PERCENTILES)));
          }
       }
       return result;
    }
 
-   public Map<String, Map<String, StatisticsSummary>> totalSummary() {
-      Map<String, Map<String, StatisticsSummary>> result = new TreeMap<>();
+   public List<Client.RequestStats> totalSummary() {
+      ArrayList<Client.RequestStats> result = new ArrayList<>();
       for (Map<String, Data> m : this.data.values()) {
          for (Data data : m.values()) {
             StatisticsSummary last = data.total.summary(percentiles);
-            result.computeIfAbsent(data.phase, p -> new TreeMap<>()).put(data.metric, last);
+            result.add(new Client.RequestStats(data.phase, data.metric, last));
          }
       }
       return result;

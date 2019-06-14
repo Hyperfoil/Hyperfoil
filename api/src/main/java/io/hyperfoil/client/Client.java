@@ -10,6 +10,7 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.hyperfoil.api.config.Benchmark;
+import io.hyperfoil.api.statistics.StatisticsSummary;
 
 /**
  * API for server control
@@ -42,8 +43,8 @@ public interface Client {
       // TODO: server should expose JSON-formatted variants
       Collection<String> sessions();
       Collection<String> connections();
-      String statsRecent();
-      String statsTotal();
+      RequestStatisticsResponse statsRecent();
+      RequestStatisticsResponse statsTotal();
       Collection<CustomStats> customStats();
    }
 
@@ -128,6 +129,32 @@ public interface Client {
       public MinMax(@JsonProperty("min") int min, @JsonProperty("max") int max) {
          this.min = min;
          this.max = max;
+      }
+   }
+
+   class RequestStatisticsResponse {
+      public final String status;
+      public final List<RequestStats> statistics;
+
+      @JsonCreator
+      public RequestStatisticsResponse(@JsonProperty("status") String status,
+                                       @JsonProperty("statistics") List<RequestStats> statistics) {
+         this.status = status;
+         this.statistics = statistics;
+      }
+   }
+
+   class RequestStats {
+      public final String phase;
+      public final String metric;
+      public final StatisticsSummary summary;
+
+      @JsonCreator
+      public RequestStats(@JsonProperty("phase") String phase, @JsonProperty("metric") String metric,
+                          @JsonProperty("summary") StatisticsSummary summary) {
+         this.phase = phase;
+         this.metric = metric;
+         this.summary = summary;
       }
    }
 

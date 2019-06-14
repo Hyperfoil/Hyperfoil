@@ -15,9 +15,25 @@ import io.hyperfoil.core.util.Util;
 
 @CommandDefinition(name = "stats", description = "Show run statistics")
 public class Stats extends BaseRunIdCommand {
+   private static final Table<Client.RequestStats> REQUEST_STATS_TABLE = new Table<Client.RequestStats>()
+         .column("PHASE", r -> r.phase)
+         .column("METRIC", r -> r.metric)
+         .columnInt("REQUESTS", r -> r.summary.requestCount)
+         .columnNanos("MEAN", r -> r.summary.meanResponseTime)
+         .columnNanos("p50", r -> r.summary.percentileResponseTime[0])
+         .columnNanos("p90", r -> r.summary.percentileResponseTime[1])
+         .columnNanos("p99", r -> r.summary.percentileResponseTime[2])
+         .columnNanos("p99.9", r -> r.summary.percentileResponseTime[3])
+         .columnNanos("p99.99", r -> r.summary.percentileResponseTime[4])
+         .columnInt("2xx", r -> r.summary.status_2xx)
+         .columnInt("3xx", r -> r.summary.status_3xx)
+         .columnInt("4xx", r -> r.summary.status_4xx)
+         .columnInt("5xx", r -> r.summary.status_5xx)
+         .columnInt("TIMEOUTS", r -> r.summary.timeouts)
+         .columnInt("ERRORS", r -> r.summary.resetCount + r.summary.connectFailureCount + r.summary.status_other);
    private static final Table<Client.CustomStats> CUSTOM_STATS_TABLE = new Table<Client.CustomStats>()
          .column("PHASE", c -> c.phase)
-         .column("STEP", c -> String.valueOf(c.stepId))
+         .columnInt("STEP", c -> c.stepId)
          .column("METRIC", c -> c.metric)
          .column("NAME", c -> c.customName)
          .column("VALUE", c -> c.value);
@@ -43,15 +59,14 @@ public class Stats extends BaseRunIdCommand {
       boolean terminated = false;
       int prevLines = -2;
       for (;;) {
-         String stats;
+         Client.RequestStatisticsResponse stats;
          try {
             stats = total || terminated ? runRef.statsTotal() : runRef.statsRecent();
          } catch (RestClientException e) {
             invocation.println("ERROR: " + Util.explainCauses(e));
             throw new CommandException("Cannot fetch stats for run " + runRef.id(), e);
          }
-         int lines = numLines(stats);
-         if (lines == 1) {
+         if ("TERMINATED".equals(stats.status)) {
             // There are no (recent) stats, the run has probably terminated
             stats = runRef.statsTotal();
             terminated = true;
@@ -62,17 +77,9 @@ public class Stats extends BaseRunIdCommand {
          } else {
             invocation.println("Recent stats from run " + runRef.id());
          }
-         invocation.print(stats);
-         prevLines = lines;
+         invocation.println(REQUEST_STATS_TABLE.print(stats.statistics.stream()));
+         prevLines = stats.statistics.size() + 2;
          if (terminated || interruptibleDelay(invocation)) {
-            return;
-         }
-         try {
-            if (runRef.get().terminated != null) {
-               terminated = true;
-            }
-         } catch (RestClientException e) {
-            invocation.println("ERROR: " + Util.explainCauses(e));
             return;
          }
       }

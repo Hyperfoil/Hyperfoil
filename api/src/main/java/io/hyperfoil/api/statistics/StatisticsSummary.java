@@ -2,6 +2,9 @@ package io.hyperfoil.api.statistics;
 
 import java.io.PrintWriter;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class StatisticsSummary {
    public final long startTime;
    public final long endTime;
@@ -24,10 +27,27 @@ public class StatisticsSummary {
    public final int blockedCount;
    public final long blockedTime;
 
-   public StatisticsSummary(long startTime, long endTime, long minResponseTime, long meanResponseTime, long maxResponseTime,
-                            long meanSendTime, long[] percentileResponseTime, int connectFailureCount, int requestCount, int responseCount,
-                            int status_2xx, int status_3xx, int status_4xx, int status_5xx, int status_other,
-                            int invalid, int resetCount, int timeouts, int blockedCount, long blockedTime) {
+   @JsonCreator
+   public StatisticsSummary(@JsonProperty("startTime") long startTime,
+                            @JsonProperty("endTime") long endTime,
+                            @JsonProperty("minResponseTime") long minResponseTime,
+                            @JsonProperty("meanResponseTime") long meanResponseTime,
+                            @JsonProperty("maxResponseTime") long maxResponseTime,
+                            @JsonProperty("meanSendTime") long meanSendTime,
+                            @JsonProperty("percentileResponseTime") long[] percentileResponseTime,
+                            @JsonProperty("connectFailureCount") int connectFailureCount,
+                            @JsonProperty("requestCount") int requestCount,
+                            @JsonProperty("responseCount") int responseCount,
+                            @JsonProperty("status_2xx") int status_2xx,
+                            @JsonProperty("status_3xx") int status_3xx,
+                            @JsonProperty("status_4xx") int status_4xx,
+                            @JsonProperty("status_5xx") int status_5xx,
+                            @JsonProperty("status_other") int status_other,
+                            @JsonProperty("invalid") int invalid,
+                            @JsonProperty("resetCount") int resetCount,
+                            @JsonProperty("timeouts") int timeouts,
+                            @JsonProperty("blockedCount") int blockedCount,
+                            @JsonProperty("blockedTime") long blockedTime) {
       this.startTime = startTime;
       this.endTime = endTime;
       this.minResponseTime = minResponseTime;

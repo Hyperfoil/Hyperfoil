@@ -6,6 +6,7 @@ import java.util.Map;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
 
@@ -72,17 +73,19 @@ public class RunRefImpl implements Client.RunRef {
    }
 
    @Override
-   public String statsRecent() {
+   public Client.RequestStatisticsResponse statsRecent() {
       return client.sync(
-            handler -> client.client.request(HttpMethod.GET, "/run/" + id + "/stats/recent").send(handler), 200,
-            response -> response.bodyAsString());
+            handler -> client.client.request(HttpMethod.GET, "/run/" + id + "/stats/recent")
+                  .putHeader(HttpHeaders.ACCEPT.toString(), "application/json").send(handler), 200,
+            response -> Json.decodeValue(response.body(), Client.RequestStatisticsResponse.class));
    }
 
    @Override
-   public String statsTotal() {
+   public Client.RequestStatisticsResponse statsTotal() {
       return client.sync(
-            handler -> client.client.request(HttpMethod.GET, "/run/" + id + "/stats/total").send(handler), 200,
-            response -> response.bodyAsString());
+            handler -> client.client.request(HttpMethod.GET, "/run/" + id + "/stats/total")
+                  .putHeader(HttpHeaders.ACCEPT.toString(), "application/json").send(handler), 200,
+            response -> Json.decodeValue(response.body(), Client.RequestStatisticsResponse.class));
    }
 
    @Override

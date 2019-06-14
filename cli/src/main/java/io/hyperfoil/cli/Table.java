@@ -7,6 +7,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
+import io.hyperfoil.core.util.Util;
+
 public class Table<T> {
    private final List<String> titles = new ArrayList<>();
    private final List<Function<T, String>> functions = new ArrayList<>();
@@ -14,6 +16,18 @@ public class Table<T> {
 
    public Table<T> column(String title, Function<T, String> func) {
       return column(title, func, Align.LEFT);
+   }
+
+   public Table<T> columnInt(String title, Function<T, Integer> func) {
+      return column(title, value -> String.valueOf(func.apply(value)), Align.RIGHT);
+   }
+
+   public Table<T> columnLong(String title, Function<T, Long> func) {
+      return column(title, value -> String.valueOf(func.apply(value)), Align.RIGHT);
+   }
+
+   public Table<T> columnNanos(String title, Function<T, Long> func) {
+      return column(title, value -> Util.prettyPrintNanos(func.apply(value)), Align.RIGHT);
    }
 
    public Table<T> column(String title, Function<T, String> func, Align align) {
