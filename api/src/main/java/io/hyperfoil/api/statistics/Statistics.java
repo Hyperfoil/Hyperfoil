@@ -173,9 +173,9 @@ public class Statistics {
       try {
          recordingPhaser.readerLock();
 
-         if (numSamples++ > inactive.length()) {
+         if (++numSamples >= inactive.length()) {
             AtomicReferenceArray<StatisticsSnapshot> temp = new AtomicReferenceArray<>(inactive.length() * 2);
-            for (int i = lastLowestIndex; i < numSamples; ++i) {
+            for (int i = lastLowestIndex; i < inactive.length(); ++i) {
                temp.set(i, inactive.get(i));
             }
             inactive = temp;
@@ -203,7 +203,6 @@ public class Statistics {
          lastLowestIndex = Math.min(LU1.get(this), LU2.get(this));
          inactiveUpdater.set(this, Integer.MAX_VALUE);
 
-         // Check few samples 'in the future' in case the readers have fallen behind the schedule
          int maxSamples = Math.min(inactive.length(), numSamples);
          for (int i = lastLowestIndex; i < maxSamples; ++i) {
             StatisticsSnapshot snapshot = inactive.get(i);

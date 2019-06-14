@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalInt;
 import java.util.TreeMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -275,15 +276,21 @@ public class StatisticsStore {
       Map<String, Map<String, StatisticsSummary>> result = new TreeMap<>();
       for (Map<String, Data> m : this.data.values()) {
          for (Data data : m.values()) {
-            List<StatisticsSummary> series = data.series;
-            if (series.isEmpty()) {
+            OptionalInt lastSequenceId = data.lastStats.values().stream()
+                  .flatMapToInt(map -> map.keySet().stream().mapToInt(Integer::intValue)).max();
+            if (!lastSequenceId.isPresent()) {
                continue;
             }
-            StatisticsSummary last = series.get(series.size() - 1);
-            if (last.startTime < minValidTimestamp) {
+            // We'll use one id before the last one since the last one is likely not completed yet
+            int penultimateId = lastSequenceId.getAsInt() - 1;
+            StatisticsSnapshot sum = new StatisticsSnapshot();
+            data.lastStats.values().stream().map(map -> map.get(penultimateId))
+                  .filter(snapshot -> snapshot != null)
+                  .forEach(snapshot -> snapshot.addInto(sum));
+            if (sum.requestCount == 0 || sum.histogram.getStartTimeStamp() < minValidTimestamp) {
                continue;
             }
-            result.computeIfAbsent(data.phase, p -> new TreeMap<>()).put(data.metric, last);
+            result.computeIfAbsent(data.phase, p -> new TreeMap<>()).put(data.metric, sum.summary(PERCENTILES));
          }
       }
       return result;
