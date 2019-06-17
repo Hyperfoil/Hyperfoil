@@ -7,7 +7,7 @@ import org.kohsuke.MetaInfServices;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Step;
-import io.hyperfoil.api.connection.Request;
+import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.http.HeaderHandler;
 import io.hyperfoil.api.statistics.Statistics;
 import io.hyperfoil.core.steps.BaseStep;
@@ -41,7 +41,7 @@ public class RecordHeaderTimeHandler implements HeaderHandler {
    }
 
    @Override
-   public void handleHeader(Request request, CharSequence header, CharSequence value) {
+   public void handleHeader(HttpRequest request, CharSequence header, CharSequence value) {
       if (!asciiHeader.contentEqualsIgnoreCase(header)) {
          return;
       }

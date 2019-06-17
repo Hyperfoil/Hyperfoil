@@ -46,4 +46,6 @@ public interface HttpClientPool {
     CharSequence authority();
 
     String scheme();
+
+    boolean isSecure();
 }

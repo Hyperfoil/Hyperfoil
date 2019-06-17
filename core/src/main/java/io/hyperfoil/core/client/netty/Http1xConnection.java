@@ -154,7 +154,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
       }
       if (headerAppenders != null) {
          // TODO: allocation, if it's not eliminated we could store a reusable object
-         HttpRequestWriter writer = new HttpRequestWriterImpl(msg);
+         HttpRequestWriter writer = new HttpRequestWriterImpl(request, msg);
          for (BiConsumer<Session, HttpRequestWriter> headerAppender : headerAppenders) {
             headerAppender.accept(request.session, writer);
          }
@@ -180,6 +180,11 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    @Override
    public boolean isClosed() {
       return closed;
+   }
+
+   @Override
+   public boolean isSecure() {
+      return pool.clientPool().isSecure();
    }
 
    @Override
@@ -219,15 +224,22 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    }
 
    private class HttpRequestWriterImpl implements HttpRequestWriter {
+      private final HttpRequest request;
       private final DefaultFullHttpRequest msg;
 
-      HttpRequestWriterImpl(DefaultFullHttpRequest msg) {
+      HttpRequestWriterImpl(HttpRequest request, DefaultFullHttpRequest msg) {
+         this.request = request;
          this.msg = msg;
       }
 
       @Override
-      public Connection connection() {
+      public HttpConnection connection() {
          return Http1xConnection.this;
+      }
+
+      @Override
+      public HttpRequest request() {
+         return request;
       }
 
       @Override

@@ -79,15 +79,19 @@ public final class Util {
    }
 
    public static long parseLong(CharSequence string) {
-      return parseLong(string, 0);
+      return parseLong(string, 0, string.length(), 0);
    }
 
-   public static long parseLong(CharSequence string, long defaultValue) {
+   public static long parseLong(CharSequence string, int begin, int end) {
+      return parseLong(string, begin, end, 0);
+   }
+
+   public static long parseLong(CharSequence string, int begin, int end, long defaultValue) {
       long value = 0;
-      int i = 0;
-      char sign = string.charAt(0);
+      int i = begin;
+      char sign = string.charAt(begin);
       if (sign == '-' || sign == '+') ++i;
-      for (; i < string.length(); ++i) {
+      for (; i < end; ++i) {
          int digit = string.charAt(i);
          if (digit < '0' || digit > '9') return defaultValue;
          value *= 10;

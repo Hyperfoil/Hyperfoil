@@ -20,4 +20,6 @@ public interface HttpConnection extends Connection {
     void setClosed();
 
     boolean isClosed();
+
+    boolean isSecure();
 }

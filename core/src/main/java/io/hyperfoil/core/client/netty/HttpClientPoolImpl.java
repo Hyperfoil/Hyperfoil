@@ -192,4 +192,9 @@ public class HttpClientPoolImpl implements HttpClientPool {
    public String scheme() {
       return scheme;
    }
+
+   @Override
+   public boolean isSecure() {
+      return sslContext != null;
+   }
 }

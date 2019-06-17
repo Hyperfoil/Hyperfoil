@@ -1,6 +1,5 @@
 package io.hyperfoil.core.http;
 
-import io.netty.handler.codec.http.HttpHeaderNames;
 import io.hyperfoil.api.connection.HttpRequestWriter;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.function.SerializableBiConsumer;
@@ -11,15 +10,12 @@ public class CookieAppender implements SerializableBiConsumer<Session, HttpReque
    private static final Logger log = LoggerFactory.getLogger(CookieAppender.class);
 
    @Override
-   public void accept(Session session, HttpRequestWriter httpRequest) {
+   public void accept(Session session, HttpRequestWriter writer) {
       CookieStore cookies = session.getResource(CookieStore.COOKIES);
       if (cookies == null) {
          log.error("No cookie store in the session. Did you add CookieRecorder?");
          return;
       }
-      CharSequence cookie = cookies.getCookie(httpRequest.connection().host());
-      if (cookie != null) {
-         httpRequest.putHeader(HttpHeaderNames.COOKIE.toString(), cookie);
-      }
+      cookies.appendCookies(writer);
    }
 }

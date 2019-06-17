@@ -113,7 +113,7 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
       }
 
       if (headerAppenders != null) {
-         HttpRequestWriter writer = new HttpRequestWriterImpl(headers);
+         HttpRequestWriter writer = new HttpRequestWriterImpl(request, headers);
          for (BiConsumer<Session, HttpRequestWriter> headerAppender : headerAppenders) {
             headerAppender.accept(request.session, writer);
          }
@@ -145,6 +145,11 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
    @Override
    public boolean isClosed() {
       return closed;
+   }
+
+   @Override
+   public boolean isSecure() {
+      return pool.clientPool().isSecure();
    }
 
    private int nextStreamId() {
@@ -244,15 +249,22 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
    }
 
    private class HttpRequestWriterImpl implements HttpRequestWriter {
+      private final HttpRequest request;
       private final Http2Headers headers;
 
-      HttpRequestWriterImpl(Http2Headers headers) {
+      HttpRequestWriterImpl(HttpRequest request, Http2Headers headers) {
+         this.request = request;
          this.headers = headers;
       }
 
       @Override
-      public Connection connection() {
+      public HttpConnection connection() {
          return Http2Connection.this;
+      }
+
+      @Override
+      public HttpRequest request() {
+         return request;
       }
 
       @Override

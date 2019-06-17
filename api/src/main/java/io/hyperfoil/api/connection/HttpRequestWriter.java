@@ -1,7 +1,8 @@
 package io.hyperfoil.api.connection;
 
 public interface HttpRequestWriter {
-   Connection connection();
+   HttpConnection connection();
+   HttpRequest request();
 
    void putHeader(CharSequence header, CharSequence value);
 }
