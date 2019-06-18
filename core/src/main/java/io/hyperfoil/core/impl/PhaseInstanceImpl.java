@@ -174,7 +174,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       for (Statistics stats : statistics) {
          stats.end(now);
       }
-      phaseChangeHandler.onChange(def, status, true, null);
+      phaseChangeHandler.onChange(def, status, error == null, null);
    }
 
    @Override

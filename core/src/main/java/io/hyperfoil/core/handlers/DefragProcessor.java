@@ -28,7 +28,9 @@ public class DefragProcessor<R extends Request> extends Processor.BaseDelegating
          delegate.process(request, data, offset, length, true);
          return;
       }
-      ctx.buffer(data, offset, length);
+      if (data.isReadable()) {
+         ctx.buffer(data, offset, length);
+      }
       if (isLastPart) {
          ctx.flush(request, delegate);
       }
@@ -45,9 +47,7 @@ public class DefragProcessor<R extends Request> extends Processor.BaseDelegating
       // will be allocated only if needed (and only once). This is necessary since we don't know the type of allocator
       // that is used for the received buffers ahead.
       session.declareResource(this, new Context<>());
-      if (delegate instanceof ResourceUtilizer) {
-         ((ResourceUtilizer) delegate).reserve(session);
-      }
+      ResourceUtilizer.reserve(session, delegate);
    }
 
    static class Context<R extends Request> implements Session.Resource {
@@ -68,8 +68,10 @@ public class DefragProcessor<R extends Request> extends Processor.BaseDelegating
       void flush(R request, Processor<R> processor) {
          log.debug("Flushing {} bytes", composite.writerIndex());
          processor.process(request, composite, 0, composite.writerIndex(), true);
-         // Not sure if this is the right call to forget/reuse the components (if needed)
-         composite.clear();
+         // Note that processors generally don't modify readerIndex in the ByteBuf
+         // so we cannot expect `data.isReadable() == false` at this point.
+         composite.readerIndex(composite.writerIndex());
+         composite.discardReadComponents();
       }
    }
 }

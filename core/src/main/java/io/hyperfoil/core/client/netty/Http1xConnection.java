@@ -75,7 +75,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
       if (msg instanceof HttpResponse) {
          HttpResponse response = (HttpResponse) msg;
          HttpRequest request = inflights.peek();
-         HttpResponseHandlers handlers = (HttpResponseHandlers) request.handlers();
+         HttpResponseHandlers handlers = request.handlers();
          try {
             handlers.handleStatus(request, response.status().code(), response.status().reasonPhrase());
             for (Map.Entry<String, String> header : response.headers()) {
@@ -88,12 +88,12 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
       }
       if (msg instanceof HttpContent) {
          HttpRequest request = inflights.peek();
-         HttpResponseHandlers handlers = (HttpResponseHandlers) request.handlers();
+         HttpResponseHandlers handlers = request.handlers();
          try {
             handlers.handleBodyPart(request, ((HttpContent) msg).content());
          } catch (Throwable t) {
             log.error("Response processing failed on {}", t, this);
-            request.session.fail(t);
+            handlers.handleThrowable(request, t);
          }
       }
       if (msg instanceof LastHttpContent) {
