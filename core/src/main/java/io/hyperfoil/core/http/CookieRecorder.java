@@ -2,7 +2,6 @@ package io.hyperfoil.core.http;
 
 import io.hyperfoil.api.connection.HttpRequest;
 import io.netty.handler.codec.http.HttpHeaderNames;
-import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.http.HeaderHandler;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.ResourceUtilizer;
