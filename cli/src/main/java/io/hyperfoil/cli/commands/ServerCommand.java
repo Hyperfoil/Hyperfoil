@@ -5,6 +5,10 @@ import java.util.Collection;
 
 import org.aesh.command.Command;
 import org.aesh.command.CommandException;
+import org.aesh.readline.Prompt;
+import org.aesh.readline.terminal.formatting.Color;
+import org.aesh.readline.terminal.formatting.TerminalColor;
+import org.aesh.readline.terminal.formatting.TerminalString;
 
 import io.hyperfoil.cli.context.HyperfoilCliContext;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
@@ -22,15 +26,28 @@ public abstract class ServerCommand implements Command<HyperfoilCommandInvocatio
          return;
       }
       invocation.println("Not connected, trying to connect to localhost:8090...");
-      ctx.setClient(new RestClient("localhost", 8090));
+      connect(invocation, "localhost", 8090);
+   }
+
+   protected void connect(HyperfoilCommandInvocation invocation, String host, int port) throws CommandException {
+      HyperfoilCliContext ctx = invocation.context();
+      ctx.setClient(new RestClient(host, port));
       try {
-         ctx.client().ping();
+         long preMillis = System.currentTimeMillis();
+         long serverEpochTime = ctx.client().ping();
+         long postMillis = System.currentTimeMillis();
          invocation.println("Connected!");
+         if (serverEpochTime != 0 && (serverEpochTime < preMillis || serverEpochTime > postMillis)) {
+            invocation.println("WARNING: Server time seems to be off by " + (postMillis + preMillis - 2 * serverEpochTime) / 2 + " ms");
+         }
+         String shortHost = host.contains(".") ? host.substring(0, host.indexOf('.')) : host;
+         invocation.setPrompt(new Prompt(new TerminalString("[hyperfoil@" + shortHost + "]$ ",
+               new TerminalColor(Color.GREEN, Color.DEFAULT, Color.Intensity.BRIGHT))));
       } catch (RestClientException e) {
          ctx.client().close();
          ctx.setClient(null);
          invocation.println("ERROR: " + Util.explainCauses(e));
-         throw new CommandException("Failed connecting to localhost:8090", e);
+         throw new CommandException("Failed connecting to " + host + ":" + port, e);
       }
    }
 

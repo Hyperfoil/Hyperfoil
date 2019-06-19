@@ -1,24 +1,16 @@
 package io.hyperfoil.cli.commands;
 
-import org.aesh.command.Command;
 import org.aesh.command.CommandDefinition;
 import org.aesh.command.CommandException;
 import org.aesh.command.CommandResult;
 import org.aesh.command.option.Argument;
 import org.aesh.command.option.Option;
-import org.aesh.readline.Prompt;
-import org.aesh.readline.terminal.formatting.Color;
-import org.aesh.readline.terminal.formatting.TerminalColor;
-import org.aesh.readline.terminal.formatting.TerminalString;
 
 import io.hyperfoil.cli.context.HyperfoilCliContext;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
-import io.hyperfoil.client.RestClient;
-import io.hyperfoil.client.RestClientException;
-import io.hyperfoil.core.util.Util;
 
 @CommandDefinition(name = "connect", description = "Connects CLI to Hyperfoil Controller server")
-public class Connect implements Command<HyperfoilCommandInvocation> {
+public class Connect extends ServerCommand {
    @Argument(description = "Hyperfoil host", defaultValue = "localhost")
    String host;
 
@@ -37,24 +29,7 @@ public class Connect implements Command<HyperfoilCommandInvocation> {
             ctx.client().close();
          }
       }
-      ctx.setClient(new RestClient(host, port));
-      try {
-         long preMillis = System.currentTimeMillis();
-         long serverEpochTime = ctx.client().ping();
-         long postMillis = System.currentTimeMillis();
-         invocation.println("Connected!");
-         if (serverEpochTime != 0 && (serverEpochTime < preMillis || serverEpochTime > postMillis)) {
-            invocation.println("WARNING: Server time seems to be off by " + (postMillis + preMillis - 2 * serverEpochTime) / 2 + " ms");
-         }
-         String shortHost = host.contains(".") ? host.substring(0, host.indexOf('.')) : host;
-         invocation.setPrompt(new Prompt(new TerminalString("[hyperfoil@" + shortHost + "]$ ",
-               new TerminalColor(Color.GREEN, Color.DEFAULT, Color.Intensity.BRIGHT))));
-         return CommandResult.SUCCESS;
-      } catch (RestClientException e) {
-         ctx.client().close();
-         ctx.setClient(null);
-         invocation.println("ERROR: " + Util.explainCauses(e));
-         throw new CommandException("Failed connecting to " + host + ":" + port, e);
-      }
+      connect(invocation, host, port);
+      return CommandResult.SUCCESS;
    }
 }
