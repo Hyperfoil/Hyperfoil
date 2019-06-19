@@ -79,7 +79,7 @@
         <version.hdrhistogram>2.1.11</version.hdrhistogram>
         <version.junit>4.12</version.junit>
         <version.log4j2>2.11.1</version.log4j2>
-        <version.metainf-services>1.4</version.metainf-services>
+        <version.metainf-services>1.8</version.metainf-services>
         <version.netty.tcnative.boringssl>2.0.25.Final</version.netty.tcnative.boringssl>
         <version.slf4j>1.7.12</version.slf4j>
         <version.snakeyaml>1.22</version.snakeyaml>
