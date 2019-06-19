@@ -81,7 +81,7 @@ public class RunLocal implements Command<CommandInvocation> {
         }
 
         try {
-            Benchmark benchmark = buildBenchmark(yaml.read(), commandInvocation);
+            Benchmark benchmark = buildBenchmark(io.hyperfoil.cli.Util.sanitize(yaml).read(), commandInvocation);
 
             HashMap<String, StatisticsSnapshot> aggregated = new HashMap<>();
             if(benchmark != null) {
