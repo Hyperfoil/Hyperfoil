@@ -21,7 +21,7 @@ public class Statistics {
    private static final long SAMPLING_PERIOD_MILLIS = TimeUnit.SECONDS.toMillis(1);
 
    private static final AtomicIntegerFieldUpdater<Statistics> LU1 =
-         AtomicIntegerFieldUpdater.newUpdater(Statistics.class, "lowestActive2");
+         AtomicIntegerFieldUpdater.newUpdater(Statistics.class, "lowestActive1");
    private static final AtomicIntegerFieldUpdater<Statistics> LU2 =
          AtomicIntegerFieldUpdater.newUpdater(Statistics.class, "lowestActive2");
 
@@ -33,6 +33,7 @@ public class Statistics {
 
    private volatile int lowestActive1;
    private volatile int lowestActive2;
+   private volatile int highestActive;
    private volatile AtomicIntegerFieldUpdater<Statistics> lowestActiveUpdater = LU1;
    private volatile AtomicReferenceArray<StatisticsSnapshot> active;
    private AtomicReferenceArray<StatisticsSnapshot> inactive;
@@ -47,6 +48,8 @@ public class Statistics {
       inactive = new AtomicReferenceArray<>(16);
       StatisticsSnapshot first = new StatisticsSnapshot();
       first.sequenceId = 0;
+      first.histogram.setStartTimeStamp(startTimestamp);
+      first.histogram.setEndTimeStamp(startTimestamp + SAMPLING_PERIOD_MILLIS);
       active.set(0, first);
       highestTrackableValue = first.histogram.getHighestTrackableValue();
    }
@@ -203,7 +206,7 @@ public class Statistics {
          lastLowestIndex = Math.min(LU1.get(this), LU2.get(this));
          inactiveUpdater.set(this, Integer.MAX_VALUE);
 
-         int maxSamples = Math.min(inactive.length(), numSamples);
+         int maxSamples = Math.min(inactive.length(), highestActive + 1);
          for (int i = lastLowestIndex; i < maxSamples; ++i) {
             StatisticsSnapshot snapshot = inactive.get(i);
             if (snapshot == null) {
@@ -239,10 +242,11 @@ public class Statistics {
    }
 
    private StatisticsSnapshot active(long timestamp) {
-      int index = (int) ((timestamp - startTimestamp) / SAMPLING_PERIOD_MILLIS);
+      int sample = (int) ((timestamp - startTimestamp) / SAMPLING_PERIOD_MILLIS);
+      int index = sample;
       AtomicReferenceArray<StatisticsSnapshot> active = this.active;
-      if (index > active.length()) {
-         index = active.length();
+      if (index >= active.length()) {
+         index = active.length() - 1;
       }
       StatisticsSnapshot snapshot = active.get(index);
       if (snapshot == null) {
@@ -252,7 +256,16 @@ public class Statistics {
          snapshot.sequenceId = index;
          active.set(index, snapshot);
       }
+      if (sample != index) {
+         // stretch the period if we're including longer intervals due to visitSnapshots not keeping up
+         snapshot.histogram.setEndTimeStamp(startTimestamp + (sample + 1) * SAMPLING_PERIOD_MILLIS);
+      }
       lowestActiveUpdater.accumulateAndGet(this, index, Math::min);
+      // Highest active is increasing monotonically and it is updated only by the event-loop thread;
+      // therefore we don't have to use CAS operation
+      if (index > highestActive) {
+         highestActive = index;
+      }
       return snapshot;
    }
 }

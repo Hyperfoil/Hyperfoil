@@ -22,6 +22,7 @@ package io.hyperfoil.cli.commands;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.Phase;
+import io.hyperfoil.api.session.PhaseInstance;
 import io.hyperfoil.api.statistics.CustomValue;
 import io.hyperfoil.api.statistics.LongValue;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
@@ -45,6 +46,9 @@ import org.aesh.io.Resource;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -79,8 +83,30 @@ public class RunLocal implements Command<CommandInvocation> {
         try {
             Benchmark benchmark = buildBenchmark(yaml.read(), commandInvocation);
 
+            HashMap<String, StatisticsSnapshot> aggregated = new HashMap<>();
             if(benchmark != null) {
-                LocalSimulationRunner runner = new LocalSimulationRunner(benchmark, (phase, stepId, metric, stats, countDown) -> printStats(phase, metric, stats, commandInvocation), null);
+                LocalSimulationRunner runner = new LocalSimulationRunner(benchmark, (phase, stepId, metric, stats, countDown) -> {
+                    synchronized (aggregated) {
+                        stats.addInto(aggregated.computeIfAbsent(phase.name() + "/" + metric, pm -> new StatisticsSnapshot()));
+                    }
+                }, null) {
+                    @Override
+                    protected void phaseChanged(Phase phase, PhaseInstance.Status status, boolean successful, String note) {
+                        super.phaseChanged(phase, status, successful, note);
+                        if (status == PhaseInstance.Status.TERMINATED) {
+                            synchronized (aggregated) {
+                                Iterator<Map.Entry<String, StatisticsSnapshot>> it = aggregated.entrySet().iterator();
+                                while (it.hasNext()) {
+                                    Map.Entry<String, StatisticsSnapshot> entry = it.next();
+                                    if (entry.getKey().startsWith(phase.name() + "/")) {
+                                        printStats(entry.getKey(), entry.getValue(), commandInvocation);
+                                    }
+                                    it.remove();
+                                }
+                            }
+                        }
+                    }
+                };
                 commandInvocation.println("Running benchmark '" + benchmark.name() + "'");
                 commandInvocation.println("Using " + benchmark.threads() + " thread(s)");
                 commandInvocation.print("Target servers: ");
@@ -114,12 +140,12 @@ public class RunLocal implements Command<CommandInvocation> {
         return null;
     }
 
-    private void printStats(Phase phase, String metric, StatisticsSnapshot stats, CommandInvocation invocation) {
+    private void printStats(String phaseAndMetric, StatisticsSnapshot stats, CommandInvocation invocation) {
         if (stats.requestCount == 0) {
             return;
         }
 
-        invocation.println("Statistics for " + phase.name() + "/" + metric + ":");
+        invocation.println("Statistics for " + phaseAndMetric + ":");
 
         double durationSeconds = (stats.histogram.getEndTimeStamp() - stats.histogram.getStartTimeStamp()) / 1000d;
         invocation.print(stats.histogram.getTotalCount() + " requests in " + durationSeconds + "s");
