@@ -1,6 +1,6 @@
 name: await delay benchmark
 http:
-  baseUrl: http://localhost:8080
+  host: http://localhost:8080
   sharedConnections: 200
 phases:
 - steadyState:

@@ -54,7 +54,7 @@ public class TwoServersTest extends BaseScenarioTest {
                .statistics("server1")
             .endStep()
             .step(SC).httpRequest(HttpMethod.GET)
-               .baseUrl("http://localhost:" + secondServer.actualPort())
+               .authority("localhost:" + secondServer.actualPort())
                .path("/test")
                .sync(false)
                .statistics("server2")

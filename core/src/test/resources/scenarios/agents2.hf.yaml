@@ -4,4 +4,4 @@ agents:
 - agent-two:
 - agent-three
 http:
-  baseUrl: http://localhost:8080
+  host: http://localhost:8080

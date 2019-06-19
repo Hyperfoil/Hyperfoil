@@ -37,8 +37,8 @@ public class PathStatisticsSelector implements ListBuilder, SerializableBiFuncti
    }
 
    @Override
-   public String apply(String baseUrl, String path) {
-      String combined = baseUrl != null ? baseUrl + path : path;
+   public String apply(String authority, String path) {
+      String combined = authority != null ? authority + path : path;
       for (SerializableFunction<String, String> test : tests) {
          String result = test.apply(combined);
          if (result != null) {

@@ -84,8 +84,14 @@ public class BenchmarkBuilder {
         return defaultHttp;
     }
 
-    public HttpBuilder http(String baseUrl) {
-        return httpMap.computeIfAbsent(Objects.requireNonNull(baseUrl), url -> new HttpBuilder(this).baseUrl(url));
+    public HttpBuilder http(String host) {
+        String authority = Objects.requireNonNull(host);
+        for (Protocol protocol : Protocol.values()) {
+            if (authority.startsWith(protocol.scheme) && authority.regionMatches(protocol.scheme.length(), "://", 0, 3)) {
+                authority = authority.substring(protocol.scheme.length() + 3);
+            }
+        }
+        return httpMap.computeIfAbsent(authority, h -> new HttpBuilder(this).host(h));
     }
 
     public BenchmarkBuilder threads(int threads) {
@@ -119,11 +125,11 @@ public class BenchmarkBuilder {
                 // Validate that base url is always set in steps
             }
         } else {
-            if (httpMap.containsKey(defaultHttp.baseUrl())) {
+            if (httpMap.containsKey(defaultHttp.authority())) {
                 throw new BenchmarkDefinitionException("Ambiguous HTTP definition for "
-                      + defaultHttp.baseUrl() + ": defined both as default and non-default");
+                      + defaultHttp.authority() + ": defined both as default and non-default");
             }
-            httpMap.put(defaultHttp.baseUrl(), defaultHttp);
+            httpMap.put(defaultHttp.authority(), defaultHttp);
         }
         httpMap.values().forEach(HttpBuilder::prepareBuild);
         phaseBuilders.values().forEach(PhaseBuilder::prepareBuild);
@@ -147,8 +153,8 @@ public class BenchmarkBuilder {
         Map<String, Object> tags = new HashMap<>();
         if (defaultHttp != null) {
             Http defaultHttp = this.defaultHttp.build(true);
-            tags.put("url", defaultHttp.baseUrl().toString());
-            tags.put("protocol", defaultHttp.baseUrl().protocol().scheme);
+            tags.put("url", defaultHttp.protocol().scheme + "://" + defaultHttp.host() + ":" + defaultHttp.port());
+            tags.put("protocol", defaultHttp.protocol().scheme);
         }
         tags.put("threads", threads);
 
@@ -189,8 +195,8 @@ public class BenchmarkBuilder {
         return phaseBuilders.values();
     }
 
-    public boolean validateBaseUrl(String baseUrl) {
-        return baseUrl == null && defaultHttp != null || httpMap.containsKey(baseUrl);
+    public boolean validateAuthority(String authority) {
+        return authority == null && defaultHttp != null || httpMap.containsKey(authority);
     }
 
     public HttpBuilder decoupledHttp() {
@@ -198,11 +204,11 @@ public class BenchmarkBuilder {
     }
 
     public void addHttp(HttpBuilder builder) {
-        if (builder.baseUrl() == null) {
-            throw new BenchmarkDefinitionException("Missing baseUrl!");
+        if (builder.authority() == null) {
+            throw new BenchmarkDefinitionException("Missing hostname!");
         }
-        if (httpMap.putIfAbsent(builder.baseUrl(), builder) != null) {
-            throw new BenchmarkDefinitionException("HTTP configuration for " + builder.baseUrl() + " already present!");
+        if (httpMap.putIfAbsent(builder.authority(), builder) != null) {
+            throw new BenchmarkDefinitionException("HTTP configuration for " + builder.authority() + " already present!");
         }
     }
 

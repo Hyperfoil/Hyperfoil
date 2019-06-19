@@ -4,9 +4,9 @@ package io.hyperfoil.api.connection;
  * Manages all {@link HttpConnectionPool http connection pools} for sessions in single executor.
  */
 public interface HttpDestinationTable {
-   HttpConnectionPool getConnectionPool(String baseUrl);
+   HttpConnectionPool getConnectionPool(String authority);
 
-   String[] baseUrls();
+   String[] authorities();
 
-   byte[][] baseUrlBytes();
+   byte[][] authorityBytes();
 }

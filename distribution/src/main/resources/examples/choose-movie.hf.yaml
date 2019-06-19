@@ -1,6 +1,6 @@
 name: choose-movie
 http:
-  baseUrl: http://localhost:8080
+  host: http://localhost:8080
   # Use 80 concurrent HTTP connections to the server. Default is 1,
   # therefore we couldn't issue two concurrent requests (as HTTP pipelining
   # is disabled by default and we use HTTP 1.1 connections).

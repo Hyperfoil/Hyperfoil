@@ -117,7 +117,7 @@ agents:
   client2: user@driver2.my.lab.com
   ...
 http:
-  baseUrl: http://localhost:8080
+  host: localhost:8080
 phases: ...
 
 ```

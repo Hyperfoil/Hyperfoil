@@ -25,8 +25,6 @@ import io.hyperfoil.util.Util;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
-import java.util.function.Consumer;
 
 /**
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
@@ -35,7 +33,9 @@ public class HttpBuilder {
 
     private final BenchmarkBuilder parent;
     private Http http;
-    private String baseUrl;
+    private Protocol protocol;
+    private String host;
+    private int port = -1;
     private boolean allowHttp1x = true;
     private boolean allowHttp2 = true;
     private int sharedConnections = 1;
@@ -52,18 +52,51 @@ public class HttpBuilder {
         this.parent = parent;
     }
 
-    private HttpBuilder apply(Consumer<HttpBuilder> consumer) {
-        consumer.accept(this);
+    String authority() {
+        if (host == null) {
+            return null;
+        } else if (protocol != null) {
+            return host + ":" + protocol.portOrDefault(port);
+        } else {
+            return host + ":" + Protocol.fromPort(port).portOrDefault(port);
+        }
+    }
+
+    public HttpBuilder protocol(Protocol protocol) {
+        this.protocol = protocol;
         return this;
     }
 
-    String baseUrl() {
-        return baseUrl;
+    public HttpBuilder host(String host) {
+        int lastColon = host.lastIndexOf(':');
+        if (lastColon < 0) {
+            this.host = host;
+            return this;
+        }
+        int firstColon = host.indexOf(':');
+        if (firstColon == lastColon) {
+            String maybePort = host.substring(lastColon + 1);
+            try {
+                this.port = Integer.parseInt(maybePort);
+                this.host = host.substring(0, lastColon);
+            } catch (NumberFormatException e) {
+                this.protocol = Protocol.fromScheme(host.substring(0, firstColon));
+                this.host = host.substring(firstColon + 3);
+            }
+        } else {
+            this.protocol = Protocol.fromScheme(host.substring(0, firstColon));
+            this.host = host.substring(firstColon + 3, lastColon);
+            String portString = host.substring(lastColon + 1);
+            this.port = Integer.parseInt(portString);
+        }
+        return this;
     }
 
-    public HttpBuilder baseUrl(String url) {
-        return apply(clone -> clone.baseUrl = Objects.requireNonNull(url));
+    public HttpBuilder port(int port) {
+        this.port = port;
+        return this;
     }
+
 
     public HttpBuilder allowHttp1x(boolean allowHttp1x) {
         this.allowHttp1x = allowHttp1x;
@@ -139,6 +172,9 @@ public class HttpBuilder {
         if (directHttp2) {
             throw new UnsupportedOperationException("Direct HTTP/2 not implemented");
         }
-        return http = new Http(isDefault, baseUrl, httpVersions.toArray(new HttpVersion[0]), maxHttp2Streams, pipeliningLimit, sharedConnections, directHttp2, requestTimeout);
+        Protocol protocol = this.protocol != null ? this.protocol : Protocol.fromPort(port);
+        return http = new Http(isDefault, protocol, host, protocol.portOrDefault(port),
+              httpVersions.toArray(new HttpVersion[0]), maxHttp2Streams, pipeliningLimit,
+              sharedConnections, directHttp2, requestTimeout);
     }
 }

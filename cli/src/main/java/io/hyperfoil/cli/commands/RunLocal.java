@@ -84,7 +84,7 @@ public class RunLocal implements Command<CommandInvocation> {
                 commandInvocation.println("Running benchmark '" + benchmark.name() + "'");
                 commandInvocation.println("Using " + benchmark.threads() + " thread(s)");
                 commandInvocation.print("Target servers: ");
-                commandInvocation.println(String.join(", ", benchmark.http().values().stream().map(http -> http.baseUrl() + " (" + http.sharedConnections() + " connections)").collect(Collectors.toList())));
+                commandInvocation.println(String.join(", ", benchmark.http().values().stream().map(http -> http.host() + ":" + http.port() + " (" + http.sharedConnections() + " connections)").collect(Collectors.toList())));
                 runner.run();
             }
         }

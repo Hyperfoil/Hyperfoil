@@ -1,6 +1,6 @@
 name: io.hyperfoil.benchmark.standalone.IterationsTest
 http:
-  baseUrl: http://localhost:8080
+  host: http://localhost:8080
 phases:
 - test:
     constantPerSec:

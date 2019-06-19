@@ -4,10 +4,13 @@ import org.yaml.snakeyaml.events.SequenceStartEvent;
 
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.HttpBuilder;
+import io.hyperfoil.api.config.Protocol;
 
 class HttpParser extends AbstractParser<BenchmarkBuilder, HttpBuilder> {
    HttpParser() {
-      register("baseUrl", new PropertyParser.String<>(HttpBuilder::baseUrl));
+      register("protocol", new PropertyParser.String<>((builder, scheme) -> builder.protocol(Protocol.fromScheme(scheme))));
+      register("host", new PropertyParser.String<>(HttpBuilder::host));
+      register("port", new PropertyParser.Int<>(HttpBuilder::port));
       register("allowHttp1x", new PropertyParser.Boolean<>(HttpBuilder::allowHttp1x));
       register("allowHttp2", new PropertyParser.Boolean<>(HttpBuilder::allowHttp2));
       register("maxHttp2Streams", new PropertyParser.Int<>(HttpBuilder::maxHttp2Streams));

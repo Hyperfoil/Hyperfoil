@@ -11,7 +11,7 @@ public class TestBenchmarks {
    public static BenchmarkBuilder addTestSimulation(BenchmarkBuilder builder, int users, int port) {
       return builder
             .http()
-               .baseUrl("http://localhost:" + port)
+               .host("localhost").port(port)
                .sharedConnections(10)
             .endHttp()
             .addPhase("test").always(users)

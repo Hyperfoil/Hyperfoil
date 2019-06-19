@@ -10,6 +10,7 @@ import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import io.hyperfoil.api.config.Protocol;
 import io.hyperfoil.api.connection.HttpClientPool;
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.http.HttpMethod;
@@ -139,7 +140,7 @@ public class HttpVersionsTest {
 
    private HttpClientPool client(int port, boolean ssl, HttpVersion[] versions) throws Exception {
       HttpBuilder builder = HttpBuilder.forTesting()
-            .baseUrl((ssl ? "https" : "http") + "://localhost:" + port);
+            .protocol(ssl ? Protocol.HTTPS : Protocol.HTTP).host("localhost").port(port);
       builder.allowHttp2(Stream.of(versions).anyMatch(v -> v == HttpVersion.HTTP_2_0));
       builder.allowHttp1x(Stream.of(versions).anyMatch(v -> v == HttpVersion.HTTP_1_1));
       return new HttpClientPoolImpl(1, builder.build(true));

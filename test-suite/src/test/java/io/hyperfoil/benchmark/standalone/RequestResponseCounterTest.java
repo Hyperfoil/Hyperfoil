@@ -28,6 +28,7 @@ import io.hyperfoil.core.handlers.ByteBufSizeRecorder;
 import io.hyperfoil.core.impl.LocalBenchmarkData;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
 import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpServer;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.junit.After;
@@ -51,14 +52,15 @@ public class RequestResponseCounterTest {
 
     private AtomicLong counter;
     private Vertx vertx = Vertx.vertx();
+    private HttpServer httpServer;
 
     @Before
     public void before(TestContext ctx) {
         counter = new AtomicLong();
-        vertx.createHttpServer().requestHandler(req -> {
+        httpServer = vertx.createHttpServer().requestHandler(req -> {
             counter.getAndIncrement();
             req.response().end("hello from server");
-        }).listen(8088, "localhost", ctx.asyncAssertSuccess());
+        }).listen(0, "localhost", ctx.asyncAssertSuccess());
     }
 
     @After
@@ -73,7 +75,7 @@ public class RequestResponseCounterTest {
                 new BenchmarkBuilder(null, new LocalBenchmarkData())
                         .name("requestResponseCounter " + new SimpleDateFormat("YY/MM/dd HH:mm:ss").format(new Date()))
                         .http()
-                        .baseUrl("http://localhost:8088/")
+                        .host("localhost").port(httpServer.actualPort())
                         .sharedConnections(50)
                         .endHttp()
                         .threads(2);

@@ -98,7 +98,7 @@ public class TwoScenariosTest {
       BenchmarkBuilder benchmark = BenchmarkBuilder.builder()
          .name("Test Benchmark")
          .http()
-            .baseUrl("http://localhost:" + server.actualPort())
+            .host("localhost").port(server.actualPort())
             .sharedConnections(10)
          .endHttp()
          .addPhase("rig").constantPerSec(3)

@@ -2,7 +2,7 @@
 # and operators restocking the warehouse.
 name: eshop
 http:
-  baseUrl: http://localhost:8080
+  host: http://localhost:8080
   sharedConnections: 80
 phases:
 # This defines a workload where users just look through the pages.

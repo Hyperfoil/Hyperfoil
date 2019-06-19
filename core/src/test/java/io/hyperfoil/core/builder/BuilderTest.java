@@ -41,7 +41,7 @@ public class BuilderTest {
               BenchmarkBuilder.builder()
                     .name("Test Benchmark")
                     .http()
-                        .baseUrl("http://localhost:8080")
+                        .host("localhost").port(8080)
                         .sharedConnections(1)
                     .endHttp()
                     .addPhase("foo").always(1)
@@ -57,7 +57,7 @@ public class BuilderTest {
                     .endPhase()
                     .build();
 
-        assertEquals("http://localhost:8080/", benchmark.tags().get("url"));
+        assertEquals("http://localhost:8080", benchmark.tags().get("url"));
         assertEquals(1, benchmark.phases().size());
         assertEquals(3000L, benchmark.phases().stream().findFirst().get().duration());
 

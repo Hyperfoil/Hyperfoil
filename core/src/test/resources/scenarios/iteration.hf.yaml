@@ -1,6 +1,6 @@
 name: iteration benchmark
 http:
-  baseUrl: http://localhost:8080
+  host: http://localhost:8080
 phases:
 - rampUp: # When forks are in this should create a no-op phase that will be started after all the forks
     rampPerSec:

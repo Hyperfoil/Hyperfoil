@@ -21,6 +21,14 @@ public enum Protocol {
               .orElseThrow(() -> new IllegalArgumentException("Unknown scheme '"+ scheme + "'"));
     }
 
+    public static Protocol fromPort(int port) {
+        if (port == HTTPS.defaultPort) {
+            return HTTPS;
+        } else {
+            return HTTP;
+        }
+    }
+
     public int portOrDefault(int port) {
         return port < 0 ? defaultPort : port;
     }

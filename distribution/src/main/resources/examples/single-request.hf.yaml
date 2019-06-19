@@ -4,7 +4,7 @@ name: single-request
 # We must define at least one HTTP target, in this case it becomes a default
 # for all HTTP requests.
 http:
-  baseUrl: http://hyperfoil.io
+  host: http://hyperfoil.io
 # Simulation consists of phases - potentially independent workloads.
 # We'll discuss phases more in detail in next quickstarts.
 phases:

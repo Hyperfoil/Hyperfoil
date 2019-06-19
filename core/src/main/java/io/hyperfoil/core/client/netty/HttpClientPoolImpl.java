@@ -63,9 +63,9 @@ public class HttpClientPoolImpl implements HttpClientPool {
    public HttpClientPoolImpl(EventLoopGroup eventLoopGroup, Http http) throws SSLException {
         this.eventLoopGroup = eventLoopGroup;
         this.http = http;
-        this.sslContext = http.baseUrl().protocol().secure() ? createSslContext(http.versions()) : null;
-        this.host = http.baseUrl().host();
-        this.port = http.baseUrl().port();
+        this.sslContext = http.protocol().secure() ? createSslContext(http.versions()) : null;
+        this.host = http.host();
+        this.port = http.port();
         this.scheme = sslContext == null ? "http" : "https";
         this.authority = host + ":" + port;
         this.forceH2c = http.versions().length == 1 && http.versions()[0] == HttpVersion.HTTP_2_0;

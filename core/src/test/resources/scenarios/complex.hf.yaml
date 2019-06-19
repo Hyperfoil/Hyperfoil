@@ -5,8 +5,8 @@ agents:
   client3: benchuser@benchclient3.perf.lab.eng.rdu.redhat.com:22
 
 http:
-- baseUrl: http://localhost:8080
-- baseUrl: https://localhost:8443
+- host: http://localhost:8080
+- host: https://localhost:8443
 phases:
 - rampUp: # When forks are in this should create a no-op phase that will be started after all the forks
     rampPerSec:

@@ -20,7 +20,7 @@ public interface Session {
    int uniqueId();
 
    /// Common utility objects
-   HttpConnectionPool httpConnectionPool(String baseUrl);
+   HttpConnectionPool httpConnectionPool(String authority);
 
    HttpDestinationTable httpDestinations();
 

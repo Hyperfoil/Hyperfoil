@@ -1,6 +1,6 @@
 name: simple benchmark
 http:
-  baseUrl: http://localhost:8080
+  host: http://localhost:8080
 staircase:
   initialRampUpDuration: 10s
   steadyStateDuration: 10s

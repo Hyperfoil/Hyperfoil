@@ -82,7 +82,7 @@ public class SimulationRunnerImpl implements SimulationRunner {
                     }
                 }
             } catch (SSLException e) {
-                throw new IllegalStateException("Failed creating connection pool to " + http.getValue().baseUrl(), e);
+                throw new IllegalStateException("Failed creating connection pool to " + http.getValue().host() + ":" + http.getValue().port(), e);
             }
         }
         for (Map.Entry<EventExecutor, Map<String, HttpConnectionPool>> entry : httpConnectionPools.entrySet()) {

@@ -8,7 +8,7 @@ agents:
     host: localhost
     port: 22
 http:
-  baseUrl: http://localhost:8080
+  host: http://localhost:8080
 usersPerSec: 10
 duration: 10s
 scenario:

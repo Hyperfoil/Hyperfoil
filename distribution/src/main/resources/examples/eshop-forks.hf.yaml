@@ -1,6 +1,6 @@
 name: eshop-forks
 http:
-  baseUrl: http://localhost:8080
+  host: http://localhost:8080
   sharedConnections: 80
 phases:
 - rampUp:

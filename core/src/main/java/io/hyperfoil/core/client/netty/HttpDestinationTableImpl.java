@@ -10,29 +10,29 @@ import io.hyperfoil.api.connection.HttpDestinationTable;
 
 public class HttpDestinationTableImpl implements HttpDestinationTable {
    private final Map<String, HttpConnectionPool> pools;
-   private final String[] baseUrls;
-   private final byte[][] baseUrlBytes;
+   private final String[] authorities;
+   private final byte[][] authorityBytes;
 
 
    public HttpDestinationTableImpl(Map<String, HttpConnectionPool> pools) {
       this.pools = pools;
-      this.baseUrls = pools.keySet().stream().filter(Objects::nonNull).toArray(String[]::new);
-      this.baseUrlBytes = Stream.of(baseUrls).map(url -> url.getBytes(StandardCharsets.UTF_8)).toArray(byte[][]::new);
+      this.authorities = pools.keySet().stream().filter(Objects::nonNull).toArray(String[]::new);
+      this.authorityBytes = Stream.of(authorities).map(url -> url.getBytes(StandardCharsets.UTF_8)).toArray(byte[][]::new);
    }
 
    @Override
-   public String[] baseUrls() {
-      return baseUrls;
+   public String[] authorities() {
+      return authorities;
    }
 
    @Override
-   public byte[][] baseUrlBytes() {
-      return baseUrlBytes;
+   public byte[][] authorityBytes() {
+      return authorityBytes;
    }
 
    @Override
-   public HttpConnectionPool getConnectionPool(String baseUrl) {
-      return pools.get(baseUrl);
+   public HttpConnectionPool getConnectionPool(String authority) {
+      return pools.get(authority);
    }
 
    public Iterable<Map.Entry<String, HttpConnectionPool>> iterable() {

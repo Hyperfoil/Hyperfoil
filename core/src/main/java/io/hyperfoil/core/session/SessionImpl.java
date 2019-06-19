@@ -79,8 +79,8 @@ class SessionImpl implements Session, Callable<Void> {
    }
 
    @Override
-   public HttpConnectionPool httpConnectionPool(String baseUrl) {
-      return httpDestinations.getConnectionPool(baseUrl);
+   public HttpConnectionPool httpConnectionPool(String authority) {
+      return httpDestinations.getConnectionPool(authority);
    }
 
    @Override

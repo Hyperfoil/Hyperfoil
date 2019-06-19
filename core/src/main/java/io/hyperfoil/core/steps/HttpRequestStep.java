@@ -58,7 +58,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
    private static final boolean trace = log.isTraceEnabled();
 
    final HttpMethod method;
-   final SerializableFunction<Session, String> baseUrl;
+   final SerializableFunction<Session, String> authority;
    final SerializableFunction<Session, String> pathGenerator;
    final SerializableBiFunction<Session, Connection, ByteBuf> bodyGenerator;
    final SerializableBiConsumer<Session, HttpRequestWriter>[] headerAppenders;
@@ -68,7 +68,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
    final SLA[] sla;
 
    public HttpRequestStep(SerializableSupplier<Sequence> sequence, HttpMethod method,
-                          SerializableFunction<Session, String> baseUrl,
+                          SerializableFunction<Session, String> authority,
                           SerializableFunction<Session, String> pathGenerator,
                           SerializableBiFunction<Session, Connection, ByteBuf> bodyGenerator,
                           SerializableBiConsumer<Session, HttpRequestWriter>[] headerAppenders,
@@ -76,7 +76,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
                           long timeout, HttpResponseHandlersImpl handler, SLA[] sla) {
       super(sequence);
       this.method = method;
-      this.baseUrl = baseUrl;
+      this.authority = authority;
       this.pathGenerator = pathGenerator;
       this.bodyGenerator = bodyGenerator;
       this.headerAppenders = headerAppenders;
@@ -94,35 +94,36 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
          return false;
       }
 
-      String baseUrl = this.baseUrl == null ? null : this.baseUrl.apply(session);
+      String authority = this.authority == null ? null : this.authority.apply(session);
       String path = pathGenerator.apply(session);
-      if (baseUrl == null && (path.startsWith("http://") || path.startsWith("https://"))) {
-         for (String url : session.httpDestinations().baseUrls()) {
-            if (path.startsWith(url)) {
-               baseUrl = url;
+      boolean isHttp;
+      if (authority == null && (isHttp = path.startsWith("http://") || path.startsWith("https://"))) {
+         for (String hostPort : session.httpDestinations().authorities()) {
+            if (path.startsWith(hostPort)) {
+               authority = hostPort;
             }
          }
-         if (baseUrl == null) {
+         if (authority == null) {
             log.error("Cannot access {}: no base url configured", path);
             return true;
          }
-         path = path.substring(baseUrl.length());
+         path = path.substring((isHttp ? 7 : 8) + authority.length());
       }
       String metric = null;
       if (statisticsSelector != null) {
-         metric = statisticsSelector.apply(baseUrl, path);
+         metric = statisticsSelector.apply(authority, path);
       }
       if (metric == null) {
          metric = sequence().name();
       }
       Statistics statistics = session.statistics(id(), metric);
       SequenceInstance sequence = session.currentSequence();
-      request.baseUrl = baseUrl;
+      request.authority = authority;
       request.method = method;
       request.path = path;
       request.start(handler, sequence, statistics);
 
-      HttpConnectionPool connectionPool = session.httpDestinations().getConnectionPool(baseUrl);
+      HttpConnectionPool connectionPool = session.httpDestinations().getConnectionPool(authority);
       if (!connectionPool.request(request, headerAppenders, bodyGenerator)) {
          request.setCompleted();
          session.httpRequestPool().release(request);
@@ -143,7 +144,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
          request.setTimeout(timeout, TimeUnit.MILLISECONDS);
       } else {
          Benchmark benchmark = session.phase().benchmark();
-         Http http = baseUrl == null ? benchmark.defaultHttp() : benchmark.http().get(baseUrl);
+         Http http = authority == null ? benchmark.defaultHttp() : benchmark.http().get(authority);
          long timeout = http.requestTimeout();
          if (timeout > 0) {
             request.setTimeout(timeout, TimeUnit.MILLISECONDS);
@@ -159,7 +160,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
    @Override
    public void reserve(Session session) {
-      ResourceUtilizer.reserve(session, baseUrl, pathGenerator, bodyGenerator);
+      ResourceUtilizer.reserve(session, authority, pathGenerator, bodyGenerator);
       ResourceUtilizer.reserve(session, headerAppenders);
       handler.reserve(session);
    }
@@ -171,7 +172,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
    public static class Builder extends BaseStepBuilder {
       private HttpMethod method;
-      private StringGeneratorBuilder baseUrl;
+      private StringGeneratorBuilder authority;
       private StringGeneratorBuilder pathGenerator;
       private BodyGeneratorBuilder bodyGenerator;
       private List<SerializableBiConsumer<Session, HttpRequestWriter>> headerAppenders = new ArrayList<>();
@@ -263,22 +264,22 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
          return method(HttpMethod.CONNECT).path();
       }
 
-      public Builder baseUrl(String baseUrl) {
-         return baseUrl(session -> baseUrl);
+      public Builder authority(String authority) {
+         return authority(session -> authority);
       }
 
-      public Builder baseUrl(SerializableFunction<Session, String> baseUrlGenerator) {
-         return baseUrl(() -> baseUrlGenerator);
+      public Builder authority(SerializableFunction<Session, String> authorityGenerator) {
+         return authority(() -> authorityGenerator);
       }
 
-      public StringGeneratorImplBuilder<Builder> baseUrl() {
+      public StringGeneratorImplBuilder<Builder> authority() {
          StringGeneratorImplBuilder<Builder> builder = new StringGeneratorImplBuilder<>(this, false);
-         baseUrl(builder);
+         authority(builder);
          return builder;
       }
 
-      public Builder baseUrl(StringGeneratorBuilder baseUrl) {
-         this.baseUrl = baseUrl;
+      public Builder authority(StringGeneratorBuilder authority) {
+         this.authority = authority;
          return this;
       }
 
@@ -349,7 +350,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
       }
 
       public Builder statistics(String name) {
-         return statistics((baseUrl, path) -> name);
+         return statistics((authority, path) -> name);
       }
 
       public Builder statistics(SerializableBiFunction<String, String, String> selector) {
@@ -403,24 +404,24 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
          FutureSupplier<HttpRequestStep> fs = new FutureSupplier<>();
 
          BenchmarkBuilder simulation = endStep().endSequence().endScenario().endPhase();
-         String guessedBaseUrl = null;
-         boolean checkBaseUrl = true;
-         SerializableFunction<Session, String> baseUrl = this.baseUrl != null ? this.baseUrl.build() : null;
+         String guessedAuthority = null;
+         boolean checkAuthority = true;
+         SerializableFunction<Session, String> authority = this.authority != null ? this.authority.build() : null;
          SerializableFunction<Session, String> pathGenerator = this.pathGenerator != null ? this.pathGenerator.build() : null;
          try {
-            guessedBaseUrl = baseUrl == null ? null : baseUrl.apply(null);
+            guessedAuthority = authority == null ? null : authority.apply(null);
          } catch (Throwable e) {
-            checkBaseUrl = false;
+            checkAuthority = false;
          }
-         if (checkBaseUrl && !simulation.validateBaseUrl(guessedBaseUrl)) {
+         if (checkAuthority && !simulation.validateAuthority(guessedAuthority)) {
             String guessedPath = "<unknown path>";
             try {
                guessedPath = pathGenerator.apply(null);
             } catch (Throwable e) {}
-            if (baseUrl == null) {
-               throw new BenchmarkDefinitionException(String.format("%s to <default route>/%s is invalid as we don't have a default route set.", method, guessedPath));
+            if (authority == null) {
+               throw new BenchmarkDefinitionException(String.format("%s to <default route>%s is invalid as we don't have a default route set.", method, guessedPath));
             } else {
-               throw new BenchmarkDefinitionException(String.format("%s to <default route>/%s is invalid - no HTTP configuration defined.", method, this.baseUrl, guessedPath));
+               throw new BenchmarkDefinitionException(String.format("%s to %s%s is invalid - no HTTP configuration defined.", method, guessedAuthority, guessedPath));
             }
          }
          @SuppressWarnings("unchecked")
@@ -430,7 +431,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
          SLA[] sla = this.sla != null ? this.sla.build() : null;
          SerializableBiFunction<Session, Connection, ByteBuf> bodyGenerator = this.bodyGenerator != null ? this.bodyGenerator.build() : null;
 
-         HttpRequestStep step = new HttpRequestStep(sequence, method, baseUrl, pathGenerator, bodyGenerator, headerAppenders, statisticsSelector, timeout, handler.build(fs), sla);
+         HttpRequestStep step = new HttpRequestStep(sequence, method, authority, pathGenerator, bodyGenerator, headerAppenders, statisticsSelector, timeout, handler.build(fs), sla);
          fs.set(step);
          return Collections.singletonList(step);
       }
@@ -439,7 +440,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
       public void addCopyTo(BaseSequenceBuilder newParent) {
          Builder newBuilder = new Builder(newParent)
                .method(method)
-               .baseUrl(baseUrl)
+               .authority(authority)
                .pathGenerator(pathGenerator)
                .bodyGenerator(bodyGenerator)
                .statistics(statisticsSelector)

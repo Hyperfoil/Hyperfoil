@@ -1,7 +1,7 @@
 # For parser testing
 name: generators
 http:
-  baseUrl: http://localhost:8080
+  host: http://localhost:8080
 phases:
 - testPhase:
     atOnce:

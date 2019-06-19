@@ -10,7 +10,7 @@ import io.hyperfoil.api.statistics.Statistics;
 public class HttpRequest extends Request {
    public HttpResponseHandlers handlers;
    public HttpMethod method;
-   public String baseUrl;
+   public String authority;
    public String path;
 
    public HttpRequest(Session session) {

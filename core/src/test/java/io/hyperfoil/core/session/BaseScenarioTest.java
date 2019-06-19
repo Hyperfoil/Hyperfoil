@@ -59,7 +59,7 @@ public abstract class BaseScenarioTest {
    protected void initWithServer(TestContext ctx) {
       benchmarkBuilder
             .threads(threads())
-            .http().baseUrl("http://localhost:" + server.actualPort());
+            .http().host("localhost").port(server.actualPort());
 
       initHttp(benchmarkBuilder.http());
    }

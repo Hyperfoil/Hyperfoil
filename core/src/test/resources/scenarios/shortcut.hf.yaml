@@ -1,6 +1,6 @@
 name: shortcut benchmark
 http:
-  baseUrl: http://localhost:8080
+  host: http://localhost:8080
 usersPerSec: 100
 duration: 3s
 maxDuration: 5s

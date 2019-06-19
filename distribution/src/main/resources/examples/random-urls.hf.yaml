@@ -1,6 +1,6 @@
 name: random-urls
 http:
-  baseUrl: http://localhost:8080
+  host: http://localhost:8080
 # 10 users will be starting the scenario every second
 usersPerSec: 10
 duration: 5s

@@ -488,7 +488,7 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
             requestBuilder.statistics(statisticsSelector);
          } else {
             // Rather than using auto-generated sequence name we'll use the full path
-            requestBuilder.statistics((baseUrl, path) -> baseUrl != null ? baseUrl + path : path);
+            requestBuilder.statistics((authority, path) -> authority != null ? authority + path : path);
          }
          requestBuilder.handler().onCompletion(new AddToIntStep.Builder(null, null).var(completionLatch()).value(-1));
 
@@ -685,9 +685,10 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
          boolean isAbsolute = hasPrefix(data, offset, length, HTTP_PREFIX);
          if (isAbsolute) {
             if (ignoreExternal) {
+               int authorityStart = indexOf(data, offset, length, ':') + 3;
                boolean external = true;
-               for (byte[] baseUrl : request.session.httpDestinations().baseUrlBytes()) {
-                  if (hasPrefix(data, offset, length, baseUrl)) {
+               for (byte[] authority : request.session.httpDestinations().authorityBytes()) {
+                  if (hasPrefix(data, offset + authorityStart, length, authority)) {
                      external = false;
                      break;
                   }
@@ -728,14 +729,23 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
          }
       }
 
-      private boolean hasPrefix(ByteBuf data, int offset, int length, byte[] baseUrl) {
+      private int indexOf(ByteBuf data, int offset, int length, char c) {
+         for (int i = 0; i <= length; ++i) {
+            if (data.getByte(offset + i) == c) {
+               return i;
+            }
+         }
+         return -1;
+      }
+
+      private boolean hasPrefix(ByteBuf data, int offset, int length, byte[] authority) {
          int i = 0;
-         for (; i < baseUrl.length && i < length; i++) {
-            if (data.getByte(offset + i) != baseUrl[i]) {
+         for (; i < authority.length && i < length; i++) {
+            if (data.getByte(offset + i) != authority[i]) {
                return false;
             }
          }
-         return i == baseUrl.length;
+         return i == authority.length;
       }
    }
 }

@@ -250,12 +250,20 @@
       "description": "HTTP connection pool configuration.",
       "type": "object",
       "additionalProperties": false,
-      "required": [ "baseUrl" ],
+      "required": [ "host" ],
       "properties": {
-        "baseUrl": {
-          "description": "Prefix for URLs to the target server, including schema.",
-          "type": "string",
-          "pattern": "^https?://.*"
+        "protocol": {
+          "enum": [ "http", "https" ]
+        },
+        "host": {
+          "description": "Target hostname. For simplicity this can include scheme and port, too.",
+          "type": "string"
+        },
+        "port": {
+          "description": "Target TCP port",
+          "type": "integer",
+          "minimum": "1",
+          "maximum": "65535"
         },
         "allowHttp1x": {
           "description": "Allow using HTTP 1.0 and HTTP 1.1 connections. Default is true.",

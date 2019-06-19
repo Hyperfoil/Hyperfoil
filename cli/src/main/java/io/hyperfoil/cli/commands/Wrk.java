@@ -21,6 +21,7 @@
 package io.hyperfoil.cli.commands;
 
 import io.hyperfoil.api.config.Benchmark;
+import io.hyperfoil.api.config.Protocol;
 import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.api.statistics.LongValue;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
@@ -143,7 +144,6 @@ public class Wrk {
             commandInvocation.println("Failed to parse URL: "+ e.getMessage());
             return CommandResult.FAILURE;
          }
-         String baseUrl = uri.getScheme() + "://" + uri.getHost() + (uri.getPort() >=0 ? ":" + uri.getPort() : "");
          path = uri.getPath();
          if (uri.getQuery() != null) {
             path = path + "?" + uri.getQuery();
@@ -172,10 +172,11 @@ public class Wrk {
          if(commandInvocation instanceof HyperfoilCommandInvocation)
             executedInCli = true;
 
+         Protocol protocol = Protocol.fromScheme(uri.getScheme());
          BenchmarkBuilder builder = new BenchmarkBuilder(null, new LocalBenchmarkData())
                .name("wrk " + new SimpleDateFormat("YY/MM/dd HH:mm:ss").format(new Date()))
                .http()
-                  .baseUrl(baseUrl)
+                  .protocol(protocol).host(uri.getHost()).port(protocol.portOrDefault(uri.getPort()))
                   .sharedConnections(connections)
                .endHttp()
                .threads(this.threads);

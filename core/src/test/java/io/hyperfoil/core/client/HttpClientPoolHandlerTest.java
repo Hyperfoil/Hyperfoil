@@ -33,6 +33,7 @@ import io.hyperfoil.core.client.netty.HttpClientPoolImpl;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.steps.HttpResponseHandlersImpl;
 import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpServer;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.junit.After;
@@ -46,17 +47,18 @@ import java.util.concurrent.TimeUnit;
 @RunWith(VertxUnitRunner.class)
 public class HttpClientPoolHandlerTest {
 
-    protected volatile int count;
-    private Vertx vertx = Vertx.vertx();
+   protected volatile int count;
+   private Vertx vertx = Vertx.vertx();
+   private HttpServer httpServer;
 
-    @Before
-    public void before(TestContext ctx) {
-        count = 0;
-        vertx.createHttpServer().requestHandler(req -> {
-            count++;
-            req.response().putHeader("foo", "bar").end("hello from server");
-        }).listen(8088, "localhost", ctx.asyncAssertSuccess());
-    }
+   @Before
+   public void before(TestContext ctx) {
+      count = 0;
+      httpServer = vertx.createHttpServer().requestHandler(req -> {
+         count++;
+         req.response().putHeader("foo", "bar").end("hello from server");
+      }).listen(0, "localhost", ctx.asyncAssertSuccess());
+   }
 
     @After
     public void after(TestContext ctx) {
@@ -66,7 +68,7 @@ public class HttpClientPoolHandlerTest {
     @Test
     public void simpleHeaderRequest(TestContext ctx) throws Exception {
         HttpClientPool client = new HttpClientPoolImpl(1,
-              HttpBuilder.forTesting().baseUrl("http://localhost:8088").build(true));
+              HttpBuilder.forTesting().host("localhost").port(httpServer.actualPort()).build(true));
 
         CountDownLatch startLatch = new CountDownLatch(1);
         client.start(result -> {
