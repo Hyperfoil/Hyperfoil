@@ -61,7 +61,7 @@ public class SimpleRecorder implements Processor<Request>, ResourceUtilizer {
    public static class BuilderFactory implements Request.ProcessorBuilderFactory {
       @Override
       public String name() {
-         return "simpleRecorder";
+         return "simple";
       }
 
       @Override
