@@ -5,13 +5,15 @@ import java.io.Serializable;
 import io.hyperfoil.util.Immutable;
 
 public class AgentHello implements Serializable, Immutable {
-   private String name;
-   private String address;
-   private String runId;
+   private final String name;
+   private final String nodeId;
+   private final String deploymentId;
+   private final String runId;
 
-   public AgentHello(String name, String address, String runId) {
+   public AgentHello(String name, String nodeId, String deploymentId, String runId) {
       this.name = name;
-      this.address = address;
+      this.nodeId = nodeId;
+      this.deploymentId = deploymentId;
       this.runId = runId;
    }
 
@@ -19,8 +21,12 @@ public class AgentHello implements Serializable, Immutable {
       return name;
    }
 
-   public String address() {
-      return address;
+   public String nodeId() {
+      return nodeId;
+   }
+
+   public String deploymentId() {
+      return deploymentId;
    }
 
    public String runId() {

@@ -19,6 +19,7 @@ import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.eventbus.MessageConsumer;
 import io.vertx.core.eventbus.ReplyException;
 import io.vertx.core.eventbus.ReplyFailure;
+import io.vertx.core.impl.VertxInternal;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
@@ -26,7 +27,8 @@ public class AgentVerticle extends AbstractVerticle {
     private static Logger log = LoggerFactory.getLogger(AgentVerticle.class);
 
     private String name;
-    private String address;
+    private String deploymentId;
+    private String nodeId = "in-vm";
     private String runId;
     private EventBus eb;
 
@@ -39,7 +41,7 @@ public class AgentVerticle extends AbstractVerticle {
 
     @Override
     public void start() {
-        address = deploymentID();
+        deploymentId = deploymentID();
         name = context.config().getString("name");
         if (name == null) {
             name = Properties.get(Properties.AGENT_NAME, null);
@@ -49,7 +51,7 @@ public class AgentVerticle extends AbstractVerticle {
                 name = InetAddress.getLocalHost().getHostName();
             } catch (UnknownHostException e) {
                 log.debug("Cannot deduce name from host name", e);
-                name = address;
+                name = deploymentId;
             }
         }
         runId = context.config().getString("runId");
@@ -61,7 +63,7 @@ public class AgentVerticle extends AbstractVerticle {
         }
         eb = vertx.eventBus();
 
-        eb.consumer(address, message -> {
+        eb.consumer(deploymentId, message -> {
             AgentControlMessage controlMessage = (AgentControlMessage) message.body();
             switch (controlMessage.command()) {
                 case INITIALIZE:
@@ -121,19 +123,24 @@ public class AgentVerticle extends AbstractVerticle {
             }
         });
 
+        if (vertx.isClustered()) {
+            if (vertx instanceof VertxInternal) {
+                nodeId = ((VertxInternal) vertx).getClusterManager().getNodeID();
+            }
+        }
         vertx.setPeriodic(1000, timerId -> {
-            eb.send(Feeds.DISCOVERY, new AgentHello(name, address, runId), reply -> {
-                log.trace("{} Pinging controller", address);
+            eb.send(Feeds.DISCOVERY, new AgentHello(name, nodeId, deploymentId, runId), reply -> {
+                log.trace("{} Pinging controller", deploymentId);
                 if (reply.succeeded()) {
-                    log.info("{} Got reply from controller.", address);
+                    log.info("{} Got reply from controller.", deploymentId);
                     vertx.cancelTimer(timerId);
                 } else {
                     if (reply.cause() instanceof ReplyException) {
                         ReplyFailure replyFailure = ((ReplyException) reply.cause()).failureType();
                         if (replyFailure == ReplyFailure.RECIPIENT_FAILURE) {
-                            log.error("{} Failed to register, already registered!", address);
+                            log.error("{} Failed to register, already registered!", deploymentId);
                         } else {
-                            log.info("{} Failed to register: {}", address, replyFailure);
+                            log.info("{} Failed to register: {}", deploymentId, replyFailure);
                         }
                     }
                 }
@@ -175,13 +182,13 @@ public class AgentVerticle extends AbstractVerticle {
             return;
         }
         runner = new SimulationRunnerImpl(benchmark, (phase, status, error) -> {
-            log.debug("{} changed phase {} to {}", address, phase, status);
-            eb.send(Feeds.RESPONSE, new PhaseChangeMessage(address, runId, phase.name(), status, error));
+            log.debug("{} changed phase {} to {}", deploymentId, phase, status);
+            eb.send(Feeds.RESPONSE, new PhaseChangeMessage(deploymentId, runId, phase.name(), status, error));
         });
         controlFeedConsumer = listenOnControl();
-        requestStatsSender = new RequestStatsSender(benchmark, eb, address, runId);
+        requestStatsSender = new RequestStatsSender(benchmark, eb, deploymentId, runId);
         statisticsCountDown = new CountDown(1);
-        sessionStatsSender = new SessionStatsSender(eb, address, runId);
+        sessionStatsSender = new SessionStatsSender(eb, deploymentId, runId);
 
         runner.init(result -> {
             if (result.succeeded()) {

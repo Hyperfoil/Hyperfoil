@@ -8,7 +8,8 @@ import io.hyperfoil.api.session.PhaseInstance;
 
 class AgentInfo {
    final String name;
-   String address;
+   String nodeId;
+   String deploymentId;
    Status status = Status.STARTING;
    Map<String, PhaseInstance.Status> phases = new HashMap<>();
    DeployedAgent deployedAgent;

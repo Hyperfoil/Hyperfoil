@@ -22,9 +22,12 @@ import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.eventbus.Message;
+import io.vertx.core.impl.VertxInternal;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import io.vertx.core.spi.cluster.ClusterManager;
+import io.vertx.core.spi.cluster.NodeListener;
 
 import java.io.File;
 import java.io.IOException;
@@ -43,7 +46,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 
-public class ControllerVerticle extends AbstractVerticle {
+public class ControllerVerticle extends AbstractVerticle implements NodeListener {
     private static final Logger log = LoggerFactory.getLogger(ControllerVerticle.class);
     private static final Path ROOT_DIR = Properties.get(Properties.ROOT_DIR, Paths::get, Paths.get(System.getProperty("java.io.tmpdir"), "hyperfoil"));
     private static final Path RUN_DIR = Properties.get(Properties.RUN_DIR, Paths::get, ROOT_DIR.resolve("run"));
@@ -86,7 +89,7 @@ public class ControllerVerticle extends AbstractVerticle {
             }
             AgentInfo agentInfo = run.agents.stream().filter(a -> a.name.equals(hello.name())).findAny().orElse(null);
             if (agentInfo == null) {
-                log.error("Unknown agent {} ({})", hello.name(), hello.address());
+                log.error("Unknown agent {} ({}/{})", hello.name(), hello.nodeId(), hello.deploymentId());
                 message.fail(1, "Unknown agent");
                 return;
             }
@@ -95,7 +98,8 @@ public class ControllerVerticle extends AbstractVerticle {
                 message.reply("Ignoring");
                 return;
             }
-            agentInfo.address = hello.address();
+            agentInfo.nodeId = hello.nodeId();
+            agentInfo.deploymentId = hello.deploymentId();
             agentInfo.status = AgentInfo.Status.REGISTERED;
             message.reply("Registered");
 
@@ -111,7 +115,7 @@ public class ControllerVerticle extends AbstractVerticle {
                 log.error("No run {}", phaseChange.runId());
                 return;
             }
-            AgentInfo agent = run.agents.stream().filter(a -> a.address.equals(phaseChange.senderId())).findAny().orElse(null);
+            AgentInfo agent = run.agents.stream().filter(a -> a.deploymentId.equals(phaseChange.senderId())).findAny().orElse(null);
             if (agent == null) {
                 log.error("No agent {}", phaseChange.senderId());
                 return;
@@ -172,10 +176,37 @@ public class ControllerVerticle extends AbstractVerticle {
             if (deployer == null) {
                 throw new IllegalStateException("Hyperfoil is running in clustered mode but it couldn't load deployer '" + DEPLOYER + "'");
             }
+
+            if (vertx instanceof VertxInternal) {
+                ClusterManager clusterManager = ((VertxInternal) vertx).getClusterManager();
+                clusterManager.nodeListener(this);
+            }
         }
 
         BENCHMARK_DIR.toFile().mkdirs();
         loadBenchmarks(event -> future.complete());
+    }
+
+    @Override
+    public void nodeAdded(String nodeID) {
+    }
+
+    @Override
+    public void nodeLeft(String nodeID) {
+        for (Run run : runs.values()) {
+            if (run.terminateTime > Long.MIN_VALUE) {
+                continue;
+            }
+            for (AgentInfo agent : run.agents) {
+                if (agent.nodeId.equals(nodeID)) {
+                    agent.status = AgentInfo.Status.FAILED;
+                    run.errors.add(new Run.Error(agent, new BenchmarkExecutionException("Agent unexpectedly left the cluster.")));
+                    kill(run);
+                    stopSimulation(run);
+                    break;
+                }
+            }
+        }
     }
 
     private void updateRuns(Path runDir) {
@@ -309,17 +340,17 @@ public class ControllerVerticle extends AbstractVerticle {
 
         for (AgentInfo agent : run.agents) {
             if (agent.status != AgentInfo.Status.REGISTERED) {
-                log.error("Already initializing {}, status is {}!", agent.address, agent.status);
+                log.error("Already initializing {}, status is {}!", agent.deploymentId, agent.status);
             } else {
                 agent.status = AgentInfo.Status.INITIALIZING;
-                eb.send(agent.address, new AgentControlMessage(AgentControlMessage.Command.INITIALIZE, run.benchmark), reply -> {
+                eb.send(agent.deploymentId, new AgentControlMessage(AgentControlMessage.Command.INITIALIZE, run.benchmark), reply -> {
                     if (reply.succeeded()) {
                         agent.status = AgentInfo.Status.INITIALIZED;
                         if (run.agents.stream().allMatch(a -> a.status == AgentInfo.Status.INITIALIZED)) {
                             startSimulation(run);
                         }
                     } else {
-                        log.error("Agent {} failed to initialize", reply.cause(), agent.address);
+                        log.error("Agent {} failed to initialize", reply.cause(), agent.deploymentId);
                         stopSimulation(run);
                     }
                 });
@@ -390,20 +421,20 @@ public class ControllerVerticle extends AbstractVerticle {
     private void stopSimulation(Run run) {
         run.terminateTime = System.currentTimeMillis();
         for (AgentInfo agent : run.agents) {
-            if (agent.address == null) {
+            if (agent.deploymentId == null) {
                 assert agent.status == AgentInfo.Status.STARTING;
                 if (agent.deployedAgent != null) {
                     agent.deployedAgent.stop();
                 }
                 continue;
             }
-            eb.send(agent.address, new AgentControlMessage(AgentControlMessage.Command.STOP, null), reply -> {
+            eb.send(agent.deploymentId, new AgentControlMessage(AgentControlMessage.Command.STOP, null), reply -> {
                 if (reply.succeeded()) {
                     agent.status = AgentInfo.Status.STOPPED;
                     checkAgentsStopped(run);
                 } else {
                     agent.status = AgentInfo.Status.FAILED;
-                    log.error("Agent {} failed to stop", reply.cause(), agent.address);
+                    log.error("Agent {} failed to stop", reply.cause(), agent.deploymentId);
                 }
                 if (agent.deployedAgent != null) {
                     agent.deployedAgent.stop();
@@ -527,7 +558,7 @@ public class ControllerVerticle extends AbstractVerticle {
       AtomicInteger agentCounter = new AtomicInteger(1);
       for (AgentInfo agent : run.agents) {
          agentCounter.incrementAndGet();
-         eb.send(agent.address, new AgentControlMessage(command, param), result -> {
+         eb.send(agent.deploymentId, new AgentControlMessage(command, param), result -> {
             if (result.failed()) {
                log.error("Failed to retrieve sessions", result.cause());
                completionHandler.handle(Future.failedFuture(result.cause()));

@@ -319,7 +319,7 @@ class ControllerServer {
                phase.definition().description());
       }).collect(Collectors.toList());
       List<Client.Agent> agents = run.agents.stream()
-            .map(ai -> new Client.Agent(ai.name, ai.address, ai.status.toString()))
+            .map(ai -> new Client.Agent(ai.name, ai.deploymentId, ai.status.toString()))
             .collect(Collectors.toList());
       Client.Run body = new Client.Run(run.id, benchmark, started, terminated, run.description, phases, agents,
             run.errors.stream().map(Run.Error::toString).collect(Collectors.toList()));
@@ -465,7 +465,7 @@ class ControllerServer {
          JsonObject phaseStats = new JsonObject();
          reply.put(phase, phaseStats);
          addressStats.forEach((address, lowHigh) -> {
-            String agent = run.agents.stream().filter(a -> a.address.equals(address)).map(a -> a.name).findFirst().orElse("unknown");
+            String agent = run.agents.stream().filter(a -> a.deploymentId.equals(address)).map(a -> a.name).findFirst().orElse("unknown");
             phaseStats.put(agent, new JsonObject().put("min", lowHigh.low).put("max", lowHigh.high));
          });
       });
