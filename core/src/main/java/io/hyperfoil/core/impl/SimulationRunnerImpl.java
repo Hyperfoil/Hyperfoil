@@ -145,9 +145,9 @@ public class SimulationRunnerImpl implements SimulationRunner {
         composite.setHandler(result -> handler.handle(result.mapEmpty()));
     }
 
-    protected void phaseChanged(Phase phase, PhaseInstance.Status status, boolean successful, String note) {
+    protected void phaseChanged(Phase phase, PhaseInstance.Status status, Throwable error) {
         if (phaseChangeHandler != null) {
-            phaseChangeHandler.onChange(phase, status, successful, note);
+            phaseChangeHandler.onChange(phase, status, error);
         }
         if (status == PhaseInstance.Status.TERMINATED) {
             toPrune.add(phase);

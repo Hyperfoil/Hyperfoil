@@ -321,7 +321,8 @@ class ControllerServer {
       List<Client.Agent> agents = run.agents.stream()
             .map(ai -> new Client.Agent(ai.name, ai.address, ai.status.toString()))
             .collect(Collectors.toList());
-      Client.Run body = new Client.Run(run.id, benchmark, started, terminated, run.description, phases, agents, run.notes);
+      Client.Run body = new Client.Run(run.id, benchmark, started, terminated, run.description, phases, agents,
+            run.errors.stream().map(Run.Error::toString).collect(Collectors.toList()));
       String status = Json.encodePrettily(body);
       routingContext.response().end(status);
    }

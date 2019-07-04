@@ -23,6 +23,7 @@ package io.hyperfoil.clustering.messages;
 import java.io.Serializable;
 
 import io.hyperfoil.api.session.PhaseInstance;
+import io.hyperfoil.core.util.Util;
 import io.hyperfoil.util.Immutable;
 
 public class PhaseChangeMessage implements Serializable, Immutable {
@@ -30,25 +31,23 @@ public class PhaseChangeMessage implements Serializable, Immutable {
   private final String runId;
   private final String phase;
   private final PhaseInstance.Status status;
-  private final boolean successful;
-  private final String note;
+  private final Throwable error;
 
-  public PhaseChangeMessage(String senderId, String runId, String phase, PhaseInstance.Status status, boolean successful, String note) {
+  public PhaseChangeMessage(String senderId, String runId, String phase, PhaseInstance.Status status, Throwable error) {
     this.senderId = senderId;
     this.runId = runId;
     this.phase = phase;
     this.status = status;
-    this.successful = successful;
-    this.note = note;
+    this.error = error;
   }
 
   @Override
   public String toString() {
     final StringBuilder sb = new StringBuilder("SimulationMessage{");
-
     sb.append("senderId='").append(senderId).append('\'');
     sb.append(", phase=").append(phase);
     sb.append(", status=").append(status);
+    sb.append(", error=").append(Util.explainCauses(error));
     sb.append('}');
     return sb.toString();
   }
@@ -69,12 +68,8 @@ public class PhaseChangeMessage implements Serializable, Immutable {
     return status;
   }
 
-  public boolean isSuccessful() {
-    return successful;
-  }
-
-  public String note() {
-    return note;
+  public Throwable getError() {
+    return error;
   }
 
   public static class Codec extends ObjectCodec<PhaseChangeMessage> {}

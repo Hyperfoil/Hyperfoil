@@ -8,6 +8,7 @@ import java.util.Map;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.core.impl.statistics.StatisticsStore;
+import io.hyperfoil.core.util.Util;
 
 class Run {
    final String id;
@@ -15,7 +16,7 @@ class Run {
    final Map<String, ControllerPhase> phases = new HashMap<>();
    final List<AgentInfo> agents = new ArrayList<>();
    final Phase[] phasesById;
-   final List<String> notes = new ArrayList<>();
+   final List<Error> errors = new ArrayList<>();
    long deployTimerId;
    String description;
 
@@ -53,5 +54,20 @@ class Run {
 
    public String phase(int phaseId) {
       return phasesById[phaseId].name();
+   }
+
+   public static class Error {
+      public final AgentInfo agent;
+      public final Throwable error;
+
+      public Error(AgentInfo agent, Throwable error) {
+         this.agent = agent;
+         this.error = error;
+      }
+
+      @Override
+      public String toString() {
+         return (agent == null ? "" : agent.name + ": ") + Util.explainCauses(error);
+      }
    }
 }

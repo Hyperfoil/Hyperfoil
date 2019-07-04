@@ -63,9 +63,9 @@ public class Status extends BaseRunIdCommand {
          if (cancelled > 0) {
             invocation.println(cancelled + " phases were cancelled.");
          }
-         if (!run.notes.isEmpty()) {
-            invocation.println("Notes:");
-            for (String note : run.notes) {
+         if (!run.errors.isEmpty()) {
+            invocation.println("Errors:");
+            for (String note : run.errors) {
                invocation.println(note);
             }
          }
@@ -84,7 +84,7 @@ public class Status extends BaseRunIdCommand {
          int lines = 3;
          lines += (int) r.phases.stream().filter(p -> showPhase(r, p)).count();
          lines += cancelled > 0 ? 1 : 0;
-         lines += run.notes.isEmpty() ? 0 : run.notes.size() + 1;
+         lines += run.errors.isEmpty() ? 0 : run.errors.size() + 1;
          clearLines(invocation, lines);
       }
    }

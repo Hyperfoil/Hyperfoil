@@ -1,5 +1,6 @@
 package io.hyperfoil.clustering;
 
+import io.hyperfoil.api.BenchmarkExecutionException;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.Agent;
 import io.hyperfoil.api.config.Phase;
@@ -117,13 +118,11 @@ public class ControllerVerticle extends AbstractVerticle {
             }
             String phase = phaseChange.phase();
             log.debug("Received phase change from {}: {} is {} (success={})",
-                  phaseChange.senderId(), phase, phaseChange.status(), phaseChange.isSuccessful());
+                  phaseChange.senderId(), phase, phaseChange.status(), phaseChange.getError());
             agent.phases.put(phase, phaseChange.status());
-            if (!phaseChange.isSuccessful()) {
+            if (phaseChange.getError() != null) {
                 run.phases.get(phase).setFailed();
-            }
-            if (phaseChange.note() != null) {
-                run.notes.add(agent.name + ": " + phaseChange.note());
+                run.errors.add(new Run.Error(agent, phaseChange.getError()));
             }
             tryProgressStatus(run, phase);
             runSimulation(run);
@@ -236,7 +235,7 @@ public class ControllerVerticle extends AbstractVerticle {
                 if (!run.statisticsStore.validateSlas()) {
                     log.info("SLA validation failed for {}", phase);
                     controllerPhase.setFailed();
-                    run.notes.add("SLA validation failed for phase " + phase);
+                    run.errors.add(new Run.Error(null, new BenchmarkExecutionException("SLA validation failed for phase " + phase)));
                 }
                 controllerPhase.status(ControllerPhase.Status.TERMINATED);
                 controllerPhase.absoluteCompletionTime(System.currentTimeMillis());

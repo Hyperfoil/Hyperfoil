@@ -100,7 +100,7 @@ public interface Client {
       public final String description;
       public final Collection<Phase> phases;
       public final Collection<Agent> agents;
-      public final Collection<String> notes;
+      public final Collection<String> errors;
 
       @JsonCreator
       public Run(@JsonProperty("id") String id, @JsonProperty("benchmark") String benchmark,
@@ -108,7 +108,7 @@ public interface Client {
                  @JsonProperty("description") String description,
                  @JsonProperty("phases") Collection<Phase> phases,
                  @JsonProperty("agents") Collection<Agent> agents,
-                 @JsonProperty("notes") Collection<String> notes) {
+                 @JsonProperty("errors") Collection<String> errors) {
          this.id = id;
          this.benchmark = benchmark;
          this.started = started;
@@ -116,7 +116,7 @@ public interface Client {
          this.description = description;
          this.phases = phases;
          this.agents = agents;
-         this.notes = notes;
+         this.errors = errors;
       }
 
    }

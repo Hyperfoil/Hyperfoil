@@ -82,7 +82,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       status = Status.RUNNING;
       absoluteStartTime = now;
       log.debug("{} changing status to RUNNING", def.name);
-      phaseChangeHandler.onChange(def, Status.RUNNING, true, null);
+      phaseChangeHandler.onChange(def, Status.RUNNING, error);
       proceed(executorGroup);
    }
 
@@ -93,12 +93,13 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       log.debug("{} changing status to FINISHED", def.name);
       int active = activeSessions.get();
       boolean successful = active <= def.maxUnfinishedSessions;
-      String note = null;
+      BenchmarkDefinitionException error = null;
       if (!successful) {
-         note = String.format("On finish phase %s had %d active sessions, maximum is %d", def.name, active, def.maxUnfinishedSessions);
-         log.info(note);
+         error = new BenchmarkDefinitionException(String.format("On finish phase %s had %d active sessions, maximum is %d",
+               def.name, active, def.maxUnfinishedSessions));
+         log.info("Phase {} finished with error", error, def.name);
       }
-      phaseChangeHandler.onChange(def, Status.FINISHED, successful, note);
+      phaseChangeHandler.onChange(def, Status.FINISHED, error);
    }
 
    @Override
@@ -174,7 +175,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       for (Statistics stats : statistics) {
          stats.end(now);
       }
-      phaseChangeHandler.onChange(def, status, error == null, null);
+      phaseChangeHandler.onChange(def, status, error);
    }
 
    @Override
