@@ -3,6 +3,7 @@ package io.hyperfoil.api.session;
 import io.hyperfoil.api.config.Scenario;
 import io.hyperfoil.api.connection.HttpDestinationTable;
 import io.hyperfoil.api.connection.HttpRequest;
+import io.hyperfoil.api.http.HttpCache;
 import io.hyperfoil.api.statistics.SessionStatistics;
 import io.netty.util.concurrent.EventExecutor;
 import io.hyperfoil.api.collection.LimitedPool;
@@ -64,6 +65,8 @@ public interface Session {
    boolean isActive();
 
    LimitedPool<HttpRequest> httpRequestPool();
+
+   HttpCache httpCache();
 
    SequenceInstance acquireSequence();
 

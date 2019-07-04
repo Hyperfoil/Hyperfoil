@@ -2,8 +2,10 @@ package io.hyperfoil.core.session;
 
 import io.hyperfoil.api.connection.HttpDestinationTable;
 import io.hyperfoil.api.connection.HttpRequest;
+import io.hyperfoil.api.http.HttpCache;
 import io.hyperfoil.api.session.SharedData;
 import io.hyperfoil.api.statistics.SessionStatistics;
+import io.hyperfoil.core.http.HttpCacheImpl;
 import io.netty.util.concurrent.EventExecutor;
 import io.hyperfoil.api.collection.LimitedPool;
 import io.hyperfoil.api.config.Phase;
@@ -17,6 +19,7 @@ import io.hyperfoil.api.session.PhaseInstance;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -35,6 +38,7 @@ class SessionImpl implements Session, Callable<Void> {
    private final LimitedPool<SequenceInstance> sequencePool;
    private final LimitedPool<HttpRequest> requestPool;
    private final HttpRequest[] requests;
+   private final HttpCacheImpl httpCache;
    private final SequenceInstance[] runningSequences;
    private PhaseInstance phase;
    private int lastRunningSequence = -1;
@@ -47,7 +51,7 @@ class SessionImpl implements Session, Callable<Void> {
 
    private final int uniqueId;
 
-   SessionImpl(Scenario scenario, int uniqueId) {
+   SessionImpl(Scenario scenario, int uniqueId, Clock clock) {
       this.sequencePool = new LimitedPool<>(scenario.maxSequences(), SequenceInstance::new);
       this.requests = new HttpRequest[16];
       for (int i = 0; i < requests.length; ++i) {
@@ -56,6 +60,7 @@ class SessionImpl implements Session, Callable<Void> {
       this.requestPool = new LimitedPool<>(this.requests);
       this.runningSequences = new SequenceInstance[scenario.maxSequences()];
       this.uniqueId = uniqueId;
+      this.httpCache = new HttpCacheImpl(clock);
    }
 
    @Override
@@ -353,6 +358,7 @@ class SessionImpl implements Session, Callable<Void> {
       for (int i = 0; i < allVars.size(); ++i) {
          allVars.get(i).unset();
       }
+      httpCache.clear();
    }
 
    public void resetPhase(PhaseInstance newPhase) {
@@ -398,6 +404,11 @@ class SessionImpl implements Session, Callable<Void> {
    @Override
    public LimitedPool<HttpRequest> httpRequestPool() {
       return requestPool;
+   }
+
+   @Override
+   public HttpCache httpCache() {
+      return httpCache;
    }
 
    @Override

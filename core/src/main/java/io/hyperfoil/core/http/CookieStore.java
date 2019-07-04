@@ -1,9 +1,5 @@
 package io.hyperfoil.core.http;
 
-import java.time.ZoneId;
-import java.util.Calendar;
-import java.util.TimeZone;
-
 import io.hyperfoil.api.connection.HttpRequestWriter;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.util.Util;
@@ -11,7 +7,6 @@ import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.util.AsciiString;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import sun.util.calendar.ZoneInfo;
 
 class CookieStore implements Session.Resource {
    private static final Logger log = LoggerFactory.getLogger(CookieRecorder.class);
@@ -22,8 +17,6 @@ class CookieStore implements Session.Resource {
 
    private static final Attribute[] ATTRIBUTES = Attribute.values();
    private static final int MAX_SITES = 16;
-   private static final CharSequence[] MONTHS = { "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec" };
-   private static final TimeZone UTC = ZoneInfo.getTimeZone(ZoneId.of("UTC"));
    private final Cookie[] cookies = new Cookie[MAX_SITES];
 
 
@@ -34,13 +27,13 @@ class CookieStore implements Session.Resource {
    }
 
    public void setCookie(CharSequence requestOrigin, CharSequence requestPath, CharSequence seq) {
-      int nameEnd = indexOf(seq, 0, '=');
+      int nameEnd = HttpUtil.indexOf(seq, 0, '=');
       if (nameEnd < 0) {
          log.warn("Invalid cookie value (no name): {}", seq);
          return;
       }
       CharSequence name = seq.subSequence(0, nameEnd);
-      int valueEnd = indexOf(seq, nameEnd + 1, ';');
+      int valueEnd = HttpUtil.indexOf(seq, nameEnd + 1, ';');
       CharSequence nameValue = seq.subSequence(0, valueEnd);
       CharSequence domain = null;
       CharSequence path = null;
@@ -50,13 +43,13 @@ class CookieStore implements Session.Resource {
       ++valueEnd;
       while (valueEnd < seq.length()) {
          for ( ; valueEnd < seq.length() && seq.charAt(valueEnd) == ' '; ++valueEnd);
-         int semIndex = indexOf(seq, valueEnd, ';');
+         int semIndex = HttpUtil.indexOf(seq, valueEnd, ';');
          for (int a = 0; a < ATTRIBUTES.length; ++a) {
             Attribute attribute = ATTRIBUTES[a];
             if (matchPrefix(attribute.text, seq, valueEnd)) {
                switch (attribute) {
                   case EXPIRES:
-                     expires = parseDate(seq, valueEnd + attribute.text.length(), semIndex);
+                     expires = HttpUtil.parseDate(seq, valueEnd + attribute.text.length(), semIndex);
                      break;
                   case MAX_AGE:
                      maxAge = Util.parseLong(seq, valueEnd + attribute.text.length(), semIndex, Long.MAX_VALUE);
@@ -95,7 +88,7 @@ class CookieStore implements Session.Resource {
          log.trace("Refusing to store cookie for domain {}, origin is {}", domain, requestOrigin);
          return;
       }
-      int requestPathLastSlashIndex = lastIndexOf(requestPath, requestPath.length(), '/');
+      int requestPathLastSlashIndex = HttpUtil.lastIndexOf(requestPath, requestPath.length(), '/');
       if (path == null) {
          path = requestPath.subSequence(0, requestPathLastSlashIndex + 1);
       } else if (!isSubpath(requestPath, requestPathLastSlashIndex, path, path.length())) {
@@ -154,110 +147,6 @@ class CookieStore implements Session.Resource {
          }
       }
       return true;
-   }
-
-   private static int indexOf(CharSequence seq, int begin, char c) {
-      int length = seq.length();
-      for (int i = begin; i < length; ++i) {
-         if (seq.charAt(i) == c) {
-            return i;
-         }
-      }
-      return length;
-   }
-
-   private static int lastIndexOf(CharSequence seq, int end, char c) {
-      for (int i = end - 1; i >= 0; --i) {
-         if (seq.charAt(i) == c) {
-            return i;
-         }
-      }
-      return -1;
-   }
-
-   private static long parseDate(CharSequence seq, int begin, int end) {
-      int i = begin;
-      for (; i < end && seq.charAt(i) != ','; ++i) ; // skip day-of-week
-      ++i; // skip the comma
-      for (; i < end && seq.charAt(i) == ' '; ++i) ; // skip spaces
-      if (i + 2 >= end) {
-         log.warn("Cannot parse date {}", seq.subSequence(begin, end));
-         return 0;
-      }
-      int dayOfMonth = twoDigits(seq, i);
-      if (dayOfMonth < 1 || dayOfMonth > 31) {
-         log.warn("Cannot parse date {}", seq.subSequence(begin, end));
-         return 0;
-      }
-      i += 3; // two digits and '-'
-      if (i + 3 >= end) {
-         log.warn("Cannot parse date {}", seq.subSequence(begin, end));
-         return 0;
-      }
-      int month = 0;
-      for (int m = 0; m < MONTHS.length; ++m) {
-         if (Character.toLowerCase(seq.charAt(i)) == MONTHS[m].charAt(0) &&
-               Character.toLowerCase(seq.charAt(i + 1)) == MONTHS[m].charAt(1) &&
-               Character.toLowerCase(seq.charAt(i + 2)) == MONTHS[m].charAt(2)) {
-            month = m + 1;
-            break;
-         }
-      }
-      if (month == 0) {
-         log.warn("Cannot parse month in date {}", seq.subSequence(begin, end));
-         return 0;
-      }
-      i+= 4; // skip month and '-'
-      int nextSpace = indexOf(seq, i, ' ');
-      int year;
-      if (nextSpace - i == 4) {
-         year = (int) Util.parseLong(seq, i, nextSpace);
-         if (year < 1600 || year >= 3000) {
-            log.warn("Cannot parse year in date {}", seq.subSequence(begin, end));
-            return 0;
-         }
-      } else if (nextSpace - i == 2) {
-         year = twoDigits(seq, i);
-         if (year < 0 || year > 100) {
-            log.warn("Cannot parse year in date {}", seq.subSequence(begin, end));
-            return 0;
-         }
-         if (year < 70) {
-            year += 2000;
-         } else {
-            year += 1900;
-         }
-      } else {
-         log.warn("Cannot parse year in date {}", seq.subSequence(begin, end));
-         return 0;
-      }
-      for (i = nextSpace + 1; i < end && seq.charAt(i) == ' '; ++i); // skip spaces
-
-      if (i + 8 >= end || seq.charAt(i + 2) != ':' || seq.charAt(i + 5) != ':') {
-         log.warn("Cannot parse time in date {}", seq.subSequence(begin, end));
-         return 0;
-      }
-      int hour = twoDigits(seq, i);
-      int minute = twoDigits(seq, i + 3);
-      int second = twoDigits(seq, i + 6);
-      if (hour < 0 || hour > 23 || minute < 0 || minute > 59 || second < 0 || second > 59) {
-         log.warn("Cannot parse time in date {}", seq.subSequence(begin, end));
-         return 0;
-      }
-      for (i += 8; i < end && seq.charAt(i) == ' '; ++i); // skip spaces
-
-      TimeZone timeZone = UTC;
-      if (i < end) {
-         timeZone = ZoneInfo.getTimeZone(ZoneId.of(seq.subSequence(i, end).toString()));
-      }
-      // TODO: calculate epoch millis without allocation
-      Calendar calendar = Calendar.getInstance(timeZone);
-      calendar.set(year, month, dayOfMonth, hour, minute, second);
-      return calendar.getTimeInMillis();
-   }
-
-   private static int twoDigits(CharSequence seq, int i) {
-      return 10 * (seq.charAt(i) - '0') + (seq.charAt(i) - '0');
    }
 
    public void appendCookies(HttpRequestWriter requestWriter) {

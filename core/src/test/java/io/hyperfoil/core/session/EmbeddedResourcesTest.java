@@ -61,9 +61,10 @@ public class EmbeddedResourcesTest extends BaseScenarioTest {
          }
          List<StatisticsSnapshot> list = entry.getValue();
          assertThat(list.size()).isEqualTo(hits);
-         StatisticsSnapshot snapshot = list.iterator().next();
-         assertThat(snapshot.requestCount).isEqualTo(1);
-         assertThat(snapshot.status_2xx).isEqualTo(1);
+         for (StatisticsSnapshot snapshot : list) {
+            assertThat(snapshot.requestCount).isEqualTo(1);
+            assertThat(snapshot.status_2xx).isEqualTo(1);
+         }
       }
    }
 }

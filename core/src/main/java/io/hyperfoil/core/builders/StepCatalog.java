@@ -24,6 +24,7 @@ import io.hyperfoil.core.steps.AwaitDelayStep;
 import io.hyperfoil.core.steps.AwaitIntStep;
 import io.hyperfoil.core.steps.AwaitVarStep;
 import io.hyperfoil.core.steps.BreakSequenceStep;
+import io.hyperfoil.core.steps.ClearHttpCacheStep;
 import io.hyperfoil.core.steps.ForeachStep;
 import io.hyperfoil.core.steps.HttpRequestStep;
 import io.hyperfoil.core.steps.JsonStep;
@@ -87,6 +88,10 @@ public class StepCatalog implements Step.Catalog {
 
    public BaseSequenceBuilder awaitAllResponses() {
       return parent.step(new AwaitAllResponsesStep());
+   }
+
+   public BaseSequenceBuilder clearHttpCache() {
+      return parent.step(new ClearHttpCacheStep());
    }
 
    // timing

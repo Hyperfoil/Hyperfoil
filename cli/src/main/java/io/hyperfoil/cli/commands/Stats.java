@@ -29,6 +29,7 @@ public class Stats extends BaseRunIdCommand {
          .columnInt("3xx", r -> r.summary.status_3xx)
          .columnInt("4xx", r -> r.summary.status_4xx)
          .columnInt("5xx", r -> r.summary.status_5xx)
+         .columnInt("CACHE", r -> r.summary.cacheHits)
          .columnInt("TIMEOUTS", r -> r.summary.timeouts)
          .columnInt("ERRORS", r -> r.summary.resetCount + r.summary.connectFailureCount + r.summary.status_other);
    private static final Table<Client.CustomStats> CUSTOM_STATS_TABLE = new Table<Client.CustomStats>()

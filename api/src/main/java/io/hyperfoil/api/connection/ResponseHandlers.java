@@ -3,5 +3,9 @@ package io.hyperfoil.api.connection;
 public interface ResponseHandlers<R extends Request> {
    void handleThrowable(R request, Throwable throwable);
 
-   void handleEnd(R request);
+   /**
+    * @param request
+    * @param executed True if the request was sent to the server, false if it was intercepted and cancelled.
+    */
+   void handleEnd(R request, boolean executed);
 }

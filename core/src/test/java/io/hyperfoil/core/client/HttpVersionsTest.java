@@ -1,12 +1,10 @@
 package io.hyperfoil.core.client;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 
-import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -20,12 +18,12 @@ import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.statistics.Statistics;
 import io.hyperfoil.api.config.HttpBuilder;
+import io.hyperfoil.core.VertxBaseTest;
 import io.hyperfoil.core.client.netty.HttpClientPoolImpl;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.steps.HttpResponseHandlersImpl;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
-import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.http.HttpServerRequest;
@@ -35,11 +33,9 @@ import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 
 @RunWith(VertxUnitRunner.class)
-public class HttpVersionsTest {
+public class HttpVersionsTest extends VertxBaseTest {
    private static final List<io.vertx.core.http.HttpVersion> HTTP1x_ONLY = Collections.singletonList(io.vertx.core.http.HttpVersion.HTTP_1_1);
    private static final List<io.vertx.core.http.HttpVersion> HTTP2_ONLY = Collections.singletonList(io.vertx.core.http.HttpVersion.HTTP_2);
-   private Vertx vertx = Vertx.vertx();
-   private ArrayList<Runnable> cleanup = new ArrayList<>();
 
    @Test
    public void testAlpnUpgrade(TestContext ctx) throws Exception {
@@ -83,12 +79,6 @@ public class HttpVersionsTest {
    @Test
    public void testCleartextForceHttp1x(TestContext ctx) throws Exception {
       test(ctx, false, new HttpVersion[]{HttpVersion.HTTP_1_1}, HTTP2_ONLY, 500);
-   }
-
-   @After
-   public void cleanup() {
-      cleanup.forEach(Runnable::run);
-      cleanup.clear();
    }
 
    private void test(TestContext ctx, boolean ssl, HttpVersion[] clientVersions, List<io.vertx.core.http.HttpVersion> serverVersions, int expectedStatus) throws Exception {

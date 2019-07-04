@@ -184,7 +184,7 @@ public class HttpClientPoolImpl implements HttpClientPool {
    }
 
    @Override
-   public CharSequence authority() {
+   public String authority() {
       return authority;
    }
 

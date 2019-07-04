@@ -112,11 +112,17 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
          headers.add(HttpHeaderNames.CONTENT_LENGTH, String.valueOf(buf.readableBytes()));
       }
 
+      HttpRequestWriterImpl writer = new HttpRequestWriterImpl(request, headers);
       if (headerAppenders != null) {
-         HttpRequestWriter writer = new HttpRequestWriterImpl(request, headers);
          for (BiConsumer<Session, HttpRequestWriter> headerAppender : headerAppenders) {
             headerAppender.accept(request.session, writer);
          }
+      }
+      if (request.session.httpCache().isCached(request, writer)) {
+         request.handlers().handleEnd(request, false);
+         pool.release(this);
+         --numStreams;
+         return;
       }
 
       assert context.executor().inEventLoop();
@@ -233,7 +239,7 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
          HttpRequest request = streams.remove(streamId);
          if (request != null) {
             numStreams--;
-            request.handlers().handleEnd(request);
+            request.handlers().handleEnd(request, true);
             log.trace("Completed response on {}", this);
             tryReleaseToPool();
          }
@@ -270,6 +276,7 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
       @Override
       public void putHeader(CharSequence header, CharSequence value) {
          headers.add(header, value);
+         request.session.httpCache().requestHeader(request, header, value);
       }
    }
 }

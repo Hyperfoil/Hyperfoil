@@ -28,7 +28,7 @@ import io.hyperfoil.core.steps.AwaitIntStep;
 import io.hyperfoil.core.steps.HttpRequestStep;
 import io.hyperfoil.core.steps.PathStatisticsSelector;
 import io.hyperfoil.core.steps.ServiceLoadedBuilderProvider;
-import io.hyperfoil.core.steps.SetIntStep;
+import io.hyperfoil.core.steps.UnsetStep;
 import io.hyperfoil.core.util.Trie;
 import io.hyperfoil.core.util.Util;
 import io.hyperfoil.function.SerializableBiFunction;
@@ -477,8 +477,6 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
          }
 
          SequenceBuilder sequence = locator.scenario().sequence(generatedSeqName);
-         // Constructor adds self into sequence
-         new SetIntStep.Builder(sequence, null).var(completionLatch()).value(0);
 
          // Constructor adds self into sequence
          HttpRequestStep.Builder requestBuilder = new HttpRequestStep.Builder(sequence).sync(false).method(HttpMethod.GET);
@@ -493,8 +491,10 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
          requestBuilder.handler().onCompletion(new AddToIntStep.Builder(null, null).var(completionLatch()).value(-1));
 
          Action onCompletion = this.onCompletion.build();
+         // We add unset step for cases where the step is retried and it's not sync
          locator.sequence().insertAfter(locator.step())
                .step(new AwaitIntStep(completionLatch(), x -> x == 0))
+               .step(new UnsetStep(completionLatch()))
                .step(new ResourceUtilizingStep(onCompletion));
       }
 

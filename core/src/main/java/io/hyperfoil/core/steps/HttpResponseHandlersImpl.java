@@ -22,6 +22,8 @@ import io.hyperfoil.api.http.RawBytesHandler;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.http.StatusHandler;
 import io.hyperfoil.api.session.ResourceUtilizer;
+import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.util.AsciiString;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
@@ -62,6 +64,27 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          log.trace("#{} Received status {}: {}", session.uniqueId(), status, reason);
       }
 
+      switch (request.method) {
+         case GET:
+         case HEAD:
+            // TODO: should we store 203, 300, 301 and 410?
+            // TODO: partial response 206
+            if (status != 200) {
+               request.cacheControl.noStore = true;
+            }
+            break;
+         case POST:
+         case PUT:
+         case DELETE:
+         case PATCH:
+            if (status >= 200 && status <= 399) {
+               request.session.httpCache().invalidate(request.authority, request.path);
+               request.cacheControl.invalidate = true;
+            }
+            request.cacheControl.noStore = true;
+            break;
+      }
+
       request.statistics().addStatus(request.startTimestampMillis(), status);
       if (statusHandlers != null) {
          for (StatusHandler handler : statusHandlers) {
@@ -93,11 +116,18 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       if (trace) {
          log.trace("#{} Received header {}: {}", session.uniqueId(), header, value);
       }
+      if (request.cacheControl.invalidate) {
+         if (AsciiString.contentEqualsIgnoreCase(header, HttpHeaderNames.LOCATION)
+               || AsciiString.contentEqualsIgnoreCase(header, HttpHeaderNames.CONTENT_LOCATION)) {
+            session.httpCache().invalidate(request.authority, value);
+         }
+      }
       if (headerHandlers != null) {
          for (HeaderHandler handler : headerHandlers) {
             handler.handleHeader(request, header, value);
          }
       }
+      request.session.httpCache().responseHeader(request, header, value);
    }
 
    @Override
@@ -155,7 +185,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
    }
 
    @Override
-   public void handleEnd(HttpRequest request) {
+   public void handleEnd(HttpRequest request, boolean executed) {
       Session session = request.session;
       if (request.isCompleted()) {
          if (trace) {
@@ -167,26 +197,30 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          log.trace("#{} Completed request on {}", session.uniqueId(), request.connection());
       }
 
-      long endTime = System.nanoTime();
-      request.statistics().recordResponse(request.startTimestampMillis(), request.sendTimestampNanos() - request.startTimestampNanos(), endTime - request.startTimestampNanos());
+      if (executed) {
+         long endTime = System.nanoTime();
+         request.statistics().recordResponse(request.startTimestampMillis(), request.sendTimestampNanos() - request.startTimestampNanos(), endTime - request.startTimestampNanos());
 
-      if (headerHandlers != null) {
-         for (HeaderHandler handler : headerHandlers) {
-            handler.afterHeaders(request);
+         if (headerHandlers != null) {
+            for (HeaderHandler handler : headerHandlers) {
+               handler.afterHeaders(request);
+            }
          }
-      }
-      if (bodyHandlers != null) {
-         for (BodyHandler handler : bodyHandlers) {
-            handler.afterData(request);
+         if (bodyHandlers != null) {
+            for (BodyHandler handler : bodyHandlers) {
+               handler.afterData(request);
+            }
          }
+         request.session.httpCache().tryStore(request);
       }
+
       if (completionHandlers != null) {
          for (Action handler : completionHandlers) {
             handler.run(session);
          }
       }
 
-      if (!request.isValid()) {
+      if (executed && !request.isValid()) {
          request.statistics().addInvalid(request.startTimestampMillis());
       }
       request.setCompleted();

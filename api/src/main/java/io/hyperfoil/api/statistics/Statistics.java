@@ -172,6 +172,16 @@ public class Statistics {
       }
    }
 
+   public void addCacheHit(long timestamp) {
+      long criticalValueAtEnter = recordingPhaser.writerCriticalSectionEnter();
+      try {
+         StatisticsSnapshot active = active(timestamp);
+         active.cacheHits++;
+      } finally {
+         recordingPhaser.writerCriticalSectionExit(criticalValueAtEnter);
+      }
+   }
+
    public void visitSnapshots(Consumer<StatisticsSnapshot> consumer) {
       try {
          recordingPhaser.readerLock();

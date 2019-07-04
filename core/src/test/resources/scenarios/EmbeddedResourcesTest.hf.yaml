@@ -24,6 +24,7 @@ phases:
                         onCompletion:
                           set: allFetched <- true
           - awaitVar: allFetched
+          - clearHttpCache # otherwise we wouldn't download index second time
         - manual:
           - httpRequest:
               GET: /foobar/index.html

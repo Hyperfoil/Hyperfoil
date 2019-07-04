@@ -25,6 +25,7 @@ import io.hyperfoil.core.generators.Pattern;
 import io.hyperfoil.core.generators.StringGeneratorBuilder;
 import io.hyperfoil.core.generators.StringGeneratorImplBuilder;
 import io.hyperfoil.core.http.CookieAppender;
+import io.hyperfoil.core.http.HttpUtil;
 import io.hyperfoil.core.http.UserAgentAppender;
 import io.hyperfoil.core.session.IntVar;
 import io.hyperfoil.core.session.ObjectVar;
@@ -97,9 +98,10 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
       String authority = this.authority == null ? null : this.authority.apply(session);
       String path = pathGenerator.apply(session);
       boolean isHttp;
-      if (authority == null && (isHttp = path.startsWith("http://") || path.startsWith("https://"))) {
+      if (authority == null && (isHttp = path.startsWith(HttpUtil.HTTP_PREFIX) || path.startsWith(HttpUtil.HTTPS_PREFIX))) {
          for (String hostPort : session.httpDestinations().authorities()) {
-            if (path.startsWith(hostPort)) {
+            // TODO: fixme: this does consider default port match
+            if (path.regionMatches(prefixLength(isHttp), hostPort, 0, hostPort.length())) {
                authority = hostPort;
             }
          }
@@ -107,7 +109,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
             log.error("Cannot access {}: no base url configured", path);
             return true;
          }
-         path = path.substring((isHttp ? 7 : 8) + authority.length());
+         path = path.substring(prefixLength(isHttp) + authority.length());
       }
       String metric = null;
       if (statisticsSelector != null) {
@@ -118,12 +120,12 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
       }
       Statistics statistics = session.statistics(id(), metric);
       SequenceInstance sequence = session.currentSequence();
-      request.authority = authority;
       request.method = method;
       request.path = path;
       request.start(handler, sequence, statistics);
 
       HttpConnectionPool connectionPool = session.httpDestinations().getConnectionPool(authority);
+      request.authority = authority == null ? connectionPool.clientPool().authority() : authority;
       if (!connectionPool.request(request, headerAppenders, bodyGenerator)) {
          request.setCompleted();
          session.httpRequestPool().release(request);
@@ -156,6 +158,10 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
       }
       request.statistics().incrementRequests(request.startTimestampMillis());
       return true;
+   }
+
+   private int prefixLength(boolean isHttp) {
+      return isHttp ? HttpUtil.HTTP_PREFIX.length() : HttpUtil.HTTPS_PREFIX.length();
    }
 
    @Override

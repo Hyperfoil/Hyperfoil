@@ -100,7 +100,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
          size--;
          HttpRequest request = inflights.poll();
          try {
-            request.handlers().handleEnd(request);
+            request.handlers().handleEnd(request, true);
             if (trace) {
                log.trace("Completed response on {}", this);
             }
@@ -152,14 +152,21 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
       if (buf.readableBytes() > 0) {
          msg.headers().add(HttpHeaderNames.CONTENT_LENGTH, String.valueOf(buf.readableBytes()));
       }
+      request.session.httpCache().beforeRequestHeaders(request);
+      HttpRequestWriterImpl writer = new HttpRequestWriterImpl(request, msg);
       if (headerAppenders != null) {
          // TODO: allocation, if it's not eliminated we could store a reusable object
-         HttpRequestWriter writer = new HttpRequestWriterImpl(request, msg);
          for (BiConsumer<Session, HttpRequestWriter> headerAppender : headerAppenders) {
             headerAppender.accept(request.session, writer);
          }
       }
       assert ctx.executor().inEventLoop();
+      if (request.session.httpCache().isCached(request, writer)) {
+         request.handlers().handleEnd(request, false);
+         --size;
+         pool.release(this);
+         return;
+      }
       inflights.add(request);
       ChannelPromise writePromise = ctx.newPromise();
       writePromise.addListener(request);
@@ -245,6 +252,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
       @Override
       public void putHeader(CharSequence header, CharSequence value) {
          msg.headers().add(header, value);
+         request.session.httpCache().requestHeader(request, header, value);
       }
    }
 }

@@ -24,6 +24,7 @@ public class StatisticsSnapshot implements Serializable {
    public int status_5xx;
    public int status_other;
    public int invalid;
+   public int cacheHits;
    public int resetCount;
    public int timeouts;
    public int blockedCount;
@@ -46,6 +47,7 @@ public class StatisticsSnapshot implements Serializable {
       status_5xx = 0;
       status_other = 0;
       invalid = 0;
+      cacheHits = 0;
       resetCount = 0;
       timeouts = 0;
       blockedCount = 0;
@@ -76,6 +78,7 @@ public class StatisticsSnapshot implements Serializable {
       target.status_5xx = status_5xx;
       target.status_other = status_other;
       target.invalid = invalid;
+      target.cacheHits = cacheHits;
       target.resetCount = resetCount;
       target.timeouts = timeouts;
       target.blockedCount = blockedCount;
@@ -110,6 +113,7 @@ public class StatisticsSnapshot implements Serializable {
       target.status_5xx += status_5xx;
       target.status_other += status_other;
       target.invalid += invalid;
+      target.cacheHits += cacheHits;
       target.resetCount += resetCount;
       target.timeouts += timeouts;
       target.blockedCount += blockedCount;
@@ -150,6 +154,7 @@ public class StatisticsSnapshot implements Serializable {
       target.status_5xx -= status_5xx;
       target.status_other -= status_other;
       target.invalid -= invalid;
+      target.cacheHits -= cacheHits;
       target.resetCount -= resetCount;
       target.timeouts -= timeouts;
       target.blockedCount -= blockedCount;
@@ -178,7 +183,7 @@ public class StatisticsSnapshot implements Serializable {
             histogram.getMinValue(), (long) histogram.getMean(), histogram.getMaxValue(),
             responseCount > 0 ? totalSendTime / responseCount : resetCount,
             percentileValues, connectFailureCount, requestCount, responseCount,
-            status_2xx, status_3xx, status_4xx, status_5xx, status_other, invalid, resetCount, timeouts, blockedCount, blockedTime);
+            status_2xx, status_3xx, status_4xx, status_5xx, status_other, invalid, cacheHits, resetCount, timeouts, blockedCount, blockedTime);
    }
 
    public long errors() {
