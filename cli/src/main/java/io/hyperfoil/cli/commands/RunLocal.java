@@ -93,6 +93,9 @@ public class RunLocal implements Command<CommandInvocation> {
                     @Override
                     protected void phaseChanged(Phase phase, PhaseInstance.Status status, Throwable error) {
                         super.phaseChanged(phase, status, error);
+                        if (error != null) {
+                            commandInvocation.println("Phase " + phase + " execution failed: " + Util.explainCauses(error));
+                        }
                         if (status == PhaseInstance.Status.TERMINATED) {
                             synchronized (aggregated) {
                                 Iterator<Map.Entry<String, StatisticsSnapshot>> it = aggregated.entrySet().iterator();
