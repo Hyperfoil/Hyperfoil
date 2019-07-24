@@ -84,6 +84,7 @@
         <version.slf4j>1.7.12</version.slf4j>
         <version.snakeyaml>1.22</version.snakeyaml>
         <version.vertx>3.7.1</version.vertx>
+        <version.eddsa>0.3.0</version.eddsa>
 
         <version.sonatype.nexus>1.6.8</version.sonatype.nexus>
         <version.maven.source>3.0.1</version.maven.source>
@@ -227,6 +228,12 @@
                 <groupId>org.apache.sshd</groupId>
                 <artifactId>sshd-scp</artifactId>
                 <version>${version.apache.sshd}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>net.i2p.crypto</groupId>
+                <artifactId>eddsa</artifactId>
+                <version>${version.eddsa}</version>
             </dependency>
 
             <dependency>

@@ -37,7 +37,7 @@ public class SshDeployedAgent implements DeployedAgent {
    private static final Logger log = LoggerFactory.getLogger(SshDeployedAgent.class);
    private static final String PROMPT = "<_#%@_hyperfoil_@%#_>";
    private static final long TIMEOUT = 10000;
-   private static final int DEBUG_PORT = Properties.getInt(Properties.AGENT_DEBUG_PORT, -1);
+   private static final String DEBUG_ADDRESS = System.getProperty(Properties.AGENT_DEBUG_PORT);
    private static final String DEBUG_SUSPEND = Properties.get(Properties.AGENT_DEBUG_SUSPEND, "n");
    public static final String AGENTLIB = "/agentlib";
 
@@ -63,13 +63,19 @@ public class SshDeployedAgent implements DeployedAgent {
    public void stop() {
       log.info("Stopping agent " + name);
       try {
-         reader.close();
+         if (reader != null) {
+            reader.close();
+         }
       } catch (IOException e) {
          log.error("Failed closing output reader", e);
       }
-      commandStream.close();
+      if (commandStream != null) {
+         commandStream.close();
+      }
       try {
-         shellChannel.close();
+         if (shellChannel != null) {
+            shellChannel.close();
+         }
       } catch (IOException e) {
          log.error("Failed closing shell", e);
       }
@@ -171,19 +177,34 @@ public class SshDeployedAgent implements DeployedAgent {
       if (!remoteMd5.isEmpty()) {
          StringBuilder rmCommand = new StringBuilder();
          // Drop those files that are not on classpath
-         rmCommand.append("rm ");
+         rmCommand.append("rm --interactive=never ");
          for (Map.Entry<String, String> entry : remoteMd5.entrySet()) {
             rmCommand.append(' ' + dir + AGENTLIB + '/' + entry.getKey());
          }
          runCommand(rmCommand.toString(), true);
+      }
+      String log4jConfigurationFile = System.getProperty(Properties.LOG4J2_CONFIGURATION_FILE);
+      if (log4jConfigurationFile != null) {
+         if (log4jConfigurationFile.startsWith("file://")) {
+            log4jConfigurationFile = log4jConfigurationFile.substring("file://".length());
+         }
+         String filename = log4jConfigurationFile.substring(log4jConfigurationFile.lastIndexOf(File.separatorChar) + 1);
+         try {
+            String targetFile = dir + AGENTLIB + "/" + filename;
+            scpClient.upload(log4jConfigurationFile, targetFile, ScpClient.Option.PreserveAttributes);
+            startAgentCommmand.append(" -D").append(Properties.LOG4J2_CONFIGURATION_FILE)
+                  .append("=file://").append(targetFile);
+         } catch (IOException e) {
+            log.error("Cannot copy log4j2 configuration file.", e);
+         }
       }
 
       startAgentCommmand.append(" -Djava.net.preferIPv4Stack=true");
       startAgentCommmand.append(" -Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.Log4j2LogDelegateFactory");
       startAgentCommmand.append(" -D").append(Properties.AGENT_NAME).append('=').append(name);
       startAgentCommmand.append(" -D").append(Properties.RUN_ID).append('=').append(runId);
-      if (DEBUG_PORT > 0) {
-         startAgentCommmand.append(" -agentlib:jdwp=transport=dt_socket,server=y,suspend=").append(DEBUG_SUSPEND).append(",address=").append(DEBUG_PORT);
+      if (DEBUG_ADDRESS != null) {
+         startAgentCommmand.append(" -agentlib:jdwp=transport=dt_socket,server=y,suspend=").append(DEBUG_SUSPEND).append(",address=").append(DEBUG_ADDRESS);
       }
       if (extras != null) {
          startAgentCommmand.append(" ").append(extras);
@@ -196,6 +217,7 @@ public class SshDeployedAgent implements DeployedAgent {
    }
 
    private List<String> runCommand(String cmd, boolean wait) {
+      log.trace("Running command {}", cmd);
       commandStream.println(cmd);
       // add one more empty command so that we get PROMPT on the line alone
       commandStream.println();

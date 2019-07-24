@@ -15,6 +15,7 @@ public interface Properties {
    String RUN_ID = "io.hyperfoil.runid";
    String AGENT_DEBUG_PORT = "io.hyperfoil.agent.debug.port";
    String AGENT_DEBUG_SUSPEND = "io.hyperfoil.agent.debug.suspend";
+   String LOG4J2_CONFIGURATION_FILE = "log4j.configurationFile";
 
    static String get(String property, String def) {
       return get(property, Function.identity(), def);

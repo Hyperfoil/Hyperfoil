@@ -1,5 +1,6 @@
 package io.hyperfoil.core.client.netty;
 
+import java.io.IOException;
 import java.util.function.BiConsumer;
 
 import io.netty.channel.Channel;
@@ -40,6 +41,12 @@ class HttpChannelInitializer extends ChannelInitializer<Channel> {
             ctx.close();
             throw new IllegalStateException("unknown protocol: " + protocol);
          }
+      }
+
+      @Override
+      protected void handshakeFailure(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+         handler.accept(null, new IOException("TLS handshake failure", cause));
+         ctx.close();
       }
    };
 
