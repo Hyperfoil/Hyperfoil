@@ -36,6 +36,9 @@ public class StatisticsStore {
    // When we receive snapshot with order #N we will attempt to compact agent snapshots #(N-60)
    // We are delaying this because the statistics for outlier may come with a significant delay
    private static final int MERGE_DELAY = 60;
+   private static final Comparator<Client.RequestStats> REQUEST_STATS_COMPARATOR =
+         Comparator.<Client.RequestStats, Long>comparing(rs -> rs.summary.startTime)
+               .thenComparing(rs -> rs.phase).thenComparing(rs -> rs.metric);
 
    private final Benchmark benchmark;
    private final int numAgents;
@@ -292,6 +295,7 @@ public class StatisticsStore {
             result.add(new Client.RequestStats(data.phase, data.metric, sum.summary(PERCENTILES)));
          }
       }
+      result.sort(REQUEST_STATS_COMPARATOR);
       return result;
    }
 
@@ -303,6 +307,7 @@ public class StatisticsStore {
             result.add(new Client.RequestStats(data.phase, data.metric, last));
          }
       }
+      result.sort(REQUEST_STATS_COMPARATOR);
       return result;
    }
 
