@@ -33,6 +33,7 @@ public class Http implements Serializable {
     private final Protocol protocol;
     private final String host;
     private final int port;
+    private final String[] addresses;
     private final HttpVersion[] versions;
     private final int maxHttp2Streams;
     private final int pipeliningLimit;
@@ -40,11 +41,13 @@ public class Http implements Serializable {
     private final boolean directHttp2;
     private final long requestTimeout;
 
-    public Http(boolean isDefault, Protocol protocol, String host, int port, HttpVersion[] versions, int maxHttp2Streams, int pipeliningLimit, int sharedConnections, boolean directHttp2, long requestTimeout) {
+   public Http(boolean isDefault, Protocol protocol, String host, int port, String[] addresses,
+                HttpVersion[] versions, int maxHttp2Streams, int pipeliningLimit, int sharedConnections, boolean directHttp2, long requestTimeout) {
         this.isDefault = isDefault;
         this.protocol = protocol;
         this.host = host;
         this.port = port;
+        this.addresses = addresses;
         this.versions = versions;
         this.maxHttp2Streams = maxHttp2Streams;
         this.pipeliningLimit = pipeliningLimit;
@@ -91,5 +94,9 @@ public class Http implements Serializable {
 
     public long requestTimeout() {
         return requestTimeout;
+    }
+
+    public String[] addresses() {
+        return addresses;
     }
 }

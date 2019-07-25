@@ -36,6 +36,7 @@ public class HttpBuilder {
     private Protocol protocol;
     private String host;
     private int port = -1;
+    private List<String> addresses = new ArrayList<>();
     private boolean allowHttp1x = true;
     private boolean allowHttp2 = true;
     private int sharedConnections = 1;
@@ -150,6 +151,10 @@ public class HttpBuilder {
         return requestTimeout;
     }
 
+    public void addAddress(String address) {
+        addresses.add(address);
+    }
+
     public void prepareBuild() {
     }
 
@@ -173,7 +178,7 @@ public class HttpBuilder {
             throw new UnsupportedOperationException("Direct HTTP/2 not implemented");
         }
         Protocol protocol = this.protocol != null ? this.protocol : Protocol.fromPort(port);
-        return http = new Http(isDefault, protocol, host, protocol.portOrDefault(port),
+        return http = new Http(isDefault, protocol, host, protocol.portOrDefault(port), addresses.toArray(new String[0]),
               httpVersions.toArray(new HttpVersion[0]), maxHttp2Streams, pipeliningLimit,
               sharedConnections, directHttp2, requestTimeout);
     }

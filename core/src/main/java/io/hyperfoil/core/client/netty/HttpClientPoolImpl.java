@@ -29,6 +29,7 @@ import io.vertx.core.logging.LoggerFactory;
 
 import java.net.InetSocketAddress;
 import java.util.Iterator;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
@@ -150,7 +151,12 @@ public class HttpClientPoolImpl implements HttpClientPool {
 
        bootstrap.handler(new HttpChannelInitializer(this, pool, handler));
 
-       ChannelFuture fut = bootstrap.connect(new InetSocketAddress(host, port));
+       String address = this.host;
+       if (http.addresses().length != 0) {
+          address = http.addresses()[ThreadLocalRandom.current().nextInt(http.addresses().length)];
+       }
+
+       ChannelFuture fut = bootstrap.connect(new InetSocketAddress(address, port));
        fut.addListener(v -> {
           if (!v.isSuccess()) {
              handler.accept(null, v.cause());

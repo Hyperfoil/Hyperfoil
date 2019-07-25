@@ -265,6 +265,14 @@
           "minimum": "1",
           "maximum": "65535"
         },
+        "addresses": {
+          "description": "List of IP addresses that should be used. The connections will be randomly created to addresses in this list, or using `host` if it's empty.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "additionalItems": false
+        },
         "allowHttp1x": {
           "description": "Allow using HTTP 1.0 and HTTP 1.1 connections. Default is true.",
           "type": "boolean"

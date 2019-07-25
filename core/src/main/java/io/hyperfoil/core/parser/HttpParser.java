@@ -1,5 +1,6 @@
 package io.hyperfoil.core.parser;
 
+import org.yaml.snakeyaml.events.ScalarEvent;
 import org.yaml.snakeyaml.events.SequenceStartEvent;
 
 import io.hyperfoil.api.config.BenchmarkBuilder;
@@ -7,6 +8,8 @@ import io.hyperfoil.api.config.HttpBuilder;
 import io.hyperfoil.api.config.Protocol;
 
 class HttpParser extends AbstractParser<BenchmarkBuilder, HttpBuilder> {
+   private static AddressParser ADDRESS_PARSER = new AddressParser();
+
    HttpParser() {
       register("protocol", new PropertyParser.String<>((builder, scheme) -> builder.protocol(Protocol.fromScheme(scheme))));
       register("host", new PropertyParser.String<>(HttpBuilder::host));
@@ -18,6 +21,7 @@ class HttpParser extends AbstractParser<BenchmarkBuilder, HttpBuilder> {
       register("pipeliningLimit", new PropertyParser.Int<>(HttpBuilder::pipeliningLimit));
       register("directHttp2", new PropertyParser.Boolean<>(HttpBuilder::directHttp2));
       register("requestTimeout", new PropertyParser.String<>(HttpBuilder::requestTimeout));
+      register("addresses", (ctx, builder) -> ctx.parseList(builder, ADDRESS_PARSER));
    }
 
    @Override
@@ -29,6 +33,14 @@ class HttpParser extends AbstractParser<BenchmarkBuilder, HttpBuilder> {
          });
       } else {
          callSubBuilders(ctx, target.http());
+      }
+   }
+
+   private static class AddressParser implements Parser<HttpBuilder> {
+      @Override
+      public void parse(Context ctx, HttpBuilder target) throws ParserException {
+         ScalarEvent event = ctx.expectEvent(ScalarEvent.class);
+         target.addAddress(event.getValue());
       }
    }
 }
