@@ -71,7 +71,9 @@ class CustomHttp2ConnectionHandler extends io.netty.handler.codec.http2.Http2Con
          connection = new Http2Connection(ctx, connection(), encoder(), decoder(), connectionPool);
          // Use a very large stream window size
          connection.incrementConnectionWindowSize(1073676288 - 65535);
-         ctx.pipeline().addBefore(generateName(CustomHttp2ConnectionHandler.class), null, new Http2RawBytesHandler(connection));
+         if (connectionPool.clientPool().config().rawBytesHandlers()) {
+            ctx.pipeline().addBefore(generateName(CustomHttp2ConnectionHandler.class), null, new Http2RawBytesHandler(connection));
+         }
          activationHandler.accept(connection, null);
       }
    }

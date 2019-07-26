@@ -40,9 +40,10 @@ public class Http implements Serializable {
     private final int sharedConnections;
     private final boolean directHttp2;
     private final long requestTimeout;
+    private final boolean rawBytesHandlers;
 
    public Http(boolean isDefault, Protocol protocol, String host, int port, String[] addresses,
-                HttpVersion[] versions, int maxHttp2Streams, int pipeliningLimit, int sharedConnections, boolean directHttp2, long requestTimeout) {
+               HttpVersion[] versions, int maxHttp2Streams, int pipeliningLimit, int sharedConnections, boolean directHttp2, long requestTimeout, boolean rawBytesHandlers) {
         this.isDefault = isDefault;
         this.protocol = protocol;
         this.host = host;
@@ -54,7 +55,8 @@ public class Http implements Serializable {
         this.sharedConnections = sharedConnections;
         this.directHttp2 = directHttp2;
         this.requestTimeout = requestTimeout;
-    }
+        this.rawBytesHandlers = rawBytesHandlers;
+   }
 
     public Protocol protocol() {
         return protocol;
@@ -98,5 +100,9 @@ public class Http implements Serializable {
 
     public String[] addresses() {
         return addresses;
+    }
+
+    public boolean rawBytesHandlers() {
+       return rawBytesHandlers;
     }
 }

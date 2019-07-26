@@ -300,6 +300,10 @@
         "requestTimeout" : {
           "description": "Default timeout for all HTTP requests. Default is 30 seconds.",
           "$ref": "#/definitions/timeMillis"
+        },
+        "rawBytesHandlers": {
+          "description": "Add handlers to support parsing raw HTTP responses. Default is true.",
+          "type": "boolean"
         }
       }
     },

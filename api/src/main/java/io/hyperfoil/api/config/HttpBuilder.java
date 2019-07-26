@@ -44,6 +44,7 @@ public class HttpBuilder {
     private int pipeliningLimit = 1;
     private boolean directHttp2 = false;
     private long requestTimeout = 30000;
+    private boolean rawBytesHandlers = true;
 
     public static HttpBuilder forTesting() {
         return new HttpBuilder(null);
@@ -155,6 +156,11 @@ public class HttpBuilder {
         addresses.add(address);
     }
 
+    public HttpBuilder rawBytesHandlers(boolean rawBytesHandlers) {
+        this.rawBytesHandlers = rawBytesHandlers;
+        return this;
+    }
+
     public void prepareBuild() {
     }
 
@@ -180,6 +186,6 @@ public class HttpBuilder {
         Protocol protocol = this.protocol != null ? this.protocol : Protocol.fromPort(port);
         return http = new Http(isDefault, protocol, host, protocol.portOrDefault(port), addresses.toArray(new String[0]),
               httpVersions.toArray(new HttpVersion[0]), maxHttp2Streams, pipeliningLimit,
-              sharedConnections, directHttp2, requestTimeout);
+              sharedConnections, directHttp2, requestTimeout, rawBytesHandlers);
     }
 }
