@@ -91,7 +91,7 @@ class CookieStore implements Session.Resource {
       int requestPathLastSlashIndex = HttpUtil.lastIndexOf(requestPath, requestPath.length(), '/');
       if (path == null) {
          path = requestPath.subSequence(0, requestPathLastSlashIndex + 1);
-      } else if (!isSubpath(requestPath, requestPathLastSlashIndex, path, path.length())) {
+      } else if (!isSubpath(requestPath, requestPathLastSlashIndex + 1, path, path.length())) {
          log.trace("Refusing to store cookie for path {}, origin is {}", path, requestPath);
          return;
       }

@@ -60,7 +60,7 @@ public class CookieStoreTest {
    }
 
    @Test
-   public void testSubpathRequst() {
+   public void testSubpathRequest() {
       CookieStore store = new CookieStore();
       store.setCookie("hyperfoil.io", "/foo/", "foo=bar; path=/foo");
 
@@ -72,6 +72,17 @@ public class CookieStoreTest {
       MockWriter writer2 = new MockWriter("foo.hyperfoil.io", "/");
       store.appendCookies(writer2);
       assertThat(writer2.values.size()).isEqualTo(0);
+   }
+
+   @Test
+   public void testRootPath() {
+      CookieStore store = new CookieStore();
+      store.setCookie("hyperfoil.io", "/foo.php", "foo=bar; path=/");
+
+      MockWriter writer1 = new MockWriter("hyperfoil.io", "/foo/bar.php");
+      store.appendCookies(writer1);
+      assertThat(writer1.values.size()).isEqualTo(1);
+      assertThat(writer1.values.get(0)).isEqualTo("foo=bar");
    }
 
    @Test
