@@ -12,7 +12,6 @@ import io.hyperfoil.api.connection.HttpRequest;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.EventLoop;
-import io.netty.util.concurrent.EventExecutor;
 import io.netty.util.concurrent.ScheduledFuture;
 import io.hyperfoil.api.connection.Connection;
 import io.hyperfoil.api.connection.HttpClientPool;
@@ -99,7 +98,7 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
    }
 
    @Override
-   public EventExecutor executor() {
+   public EventLoop executor() {
       return eventLoop;
    }
 
@@ -163,25 +162,10 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
                   });
                }
             } else {
-               if (conn.context().executor() != eventLoop) {
-                  log.debug("Connection {} created, re-registering...", conn);
-                  conn.context().channel().deregister().addListener(future -> {
-                     if (future.isSuccess()) {
-                        eventLoop.register(conn.context().channel()).addListener(regFuture -> {
-                           if (regFuture.isSuccess()) {
-                              connectionCreated(conn);
-                           } else {
-                              connectionFailed(retry, conn, regFuture.cause());
-                           }
-                        });
-                     } else {
-                        connectionFailed(retry, conn, future.cause());
-                     }
-                  });
-               } else {
-                  log.debug("Connection {} created ({}/{}, currently), in correct event loop.", conn, created, size, count);
-                  connectionCreated(conn);
-               }
+               // we are using this eventloop as the bootstrap group so the connection should be created for us
+               assert conn.context().executor() == eventLoop;
+               log.debug("Connection {} created ({}/{}, currently)", conn, created, size, count);
+               connectionCreated(conn);
             }
          });
          eventLoop.schedule(() -> checkCreateConnections(retry), 2, TimeUnit.MILLISECONDS);

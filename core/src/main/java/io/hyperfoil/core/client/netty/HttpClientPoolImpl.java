@@ -145,7 +145,7 @@ public class HttpClientPoolImpl implements HttpClientPool {
     void connect(final HttpConnectionPool pool, BiConsumer<HttpConnection, Throwable> handler) {
        Bootstrap bootstrap = new Bootstrap();
        bootstrap.channel(NioSocketChannel.class);
-       bootstrap.group(eventLoopGroup);
+       bootstrap.group(pool.executor());
        bootstrap.option(ChannelOption.SO_KEEPALIVE, true);
        bootstrap.option(ChannelOption.SO_REUSEADDR, true);
 

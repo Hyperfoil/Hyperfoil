@@ -5,7 +5,7 @@ import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.util.concurrent.EventExecutor;
+import io.netty.channel.EventLoop;
 import io.hyperfoil.api.session.Session;
 
 public interface HttpConnectionPool {
@@ -19,7 +19,7 @@ public interface HttpConnectionPool {
 
    int waitingSessions();
 
-   EventExecutor executor();
+   EventLoop executor();
 
    void pulse();
 
