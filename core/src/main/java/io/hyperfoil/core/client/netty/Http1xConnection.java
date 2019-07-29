@@ -5,6 +5,7 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelPromise;
 import io.netty.handler.codec.http.HttpContent;
 import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import io.hyperfoil.api.connection.Connection;
 import io.hyperfoil.api.connection.HttpConnection;
@@ -75,6 +76,15 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
       if (msg instanceof HttpResponse) {
          HttpResponse response = (HttpResponse) msg;
          HttpRequest request = inflights.peek();
+         if (request == null) {
+            if (response.status() == HttpResponseStatus.REQUEST_TIMEOUT) {
+               // HAProxy sends 408 when we allocate the connection but do not use it within 10 seconds.
+               log.debug("Closing connection {} as server timed out waiting for our first request.", this);
+            } else {
+               log.error("Received unsolicited response on {}, discarding: {}", this, msg);
+            }
+            return;
+         }
          HttpResponseHandlers handlers = request.handlers();
          try {
             handlers.handleStatus(request, response.status().code(), response.status().reasonPhrase());
