@@ -1,5 +1,6 @@
 package io.hyperfoil.core.impl;
 
+import io.hyperfoil.api.BenchmarkExecutionException;
 import io.netty.util.concurrent.EventExecutorGroup;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.collection.ElasticPool;
@@ -93,9 +94,9 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       log.debug("{} changing status to FINISHED", def.name);
       int active = activeSessions.get();
       boolean successful = active <= def.maxUnfinishedSessions;
-      BenchmarkDefinitionException error = null;
+      BenchmarkExecutionException error = null;
       if (!successful) {
-         error = new BenchmarkDefinitionException(String.format("On finish phase %s had %d active sessions, maximum is %d",
+         error = new BenchmarkExecutionException(String.format("On finish phase %s had %d active sessions, maximum is %d",
                def.name, active, def.maxUnfinishedSessions));
          log.info("Phase {} finished with error", error, def.name);
       }
