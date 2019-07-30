@@ -31,7 +31,8 @@ public class Stats extends BaseRunIdCommand {
          .columnInt("5xx", r -> r.summary.status_5xx)
          .columnInt("CACHE", r -> r.summary.cacheHits)
          .columnInt("TIMEOUTS", r -> r.summary.timeouts)
-         .columnInt("ERRORS", r -> r.summary.resetCount + r.summary.connectFailureCount + r.summary.status_other);
+         .columnInt("ERRORS", r -> r.summary.resetCount + r.summary.connectFailureCount + r.summary.status_other)
+         .columnNanos("BLOCKED", r -> r.summary.blockedTime);
    private static final Table<Client.CustomStats> CUSTOM_STATS_TABLE = new Table<Client.CustomStats>()
          .column("PHASE", c -> c.phase)
          .columnInt("STEP", c -> c.stepId)
