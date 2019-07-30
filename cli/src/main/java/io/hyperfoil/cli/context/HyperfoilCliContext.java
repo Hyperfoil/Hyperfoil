@@ -20,6 +20,11 @@
 
 package io.hyperfoil.cli.context;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import org.aesh.command.CommandException;
+
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.client.Client;
 import io.hyperfoil.client.RestClient;
@@ -33,6 +38,8 @@ public class HyperfoilCliContext {
     private RestClient client;
     private Client.BenchmarkRef serverBenchmark;
     private Client.RunRef serverRun;
+    private Map<String, String> logFiles = new HashMap<>();
+    private Map<String, String> logIds = new HashMap<>();
 
     public HyperfoilCliContext() {
     }
@@ -78,5 +85,25 @@ public class HyperfoilCliContext {
 
     public Client.RunRef serverRun() {
         return serverRun;
+    }
+
+    public String getLogFile(String node) {
+        return logFiles.get(node);
+    }
+
+    public String getLogId(String node) {
+        return logIds.get(node);
+    }
+
+    public void addLog(String node, String file, String id) throws CommandException {
+        if (logFiles.containsKey(node) || logIds.containsKey(node)) {
+            throw new CommandException("Log file for " + node + " already present");
+        }
+        logFiles.put(node, file);
+        logIds.put(node, id);
+    }
+
+    public void updateLogId(String node, String logId) {
+        logIds.put(node, logId);
     }
 }

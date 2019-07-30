@@ -2,10 +2,16 @@ package io.hyperfoil.client;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -93,6 +99,88 @@ public class RestClient implements Client, Closeable {
       });
    }
 
+   @Override
+   public Collection<String> agents() {
+      return sync(handler -> client.request(HttpMethod.GET, "/agents").send(handler), 200,
+            response -> Arrays.asList(Json.decodeValue(response.body(), String[].class)));
+   }
+
+   @Override
+   public String downloadLog(String node, String logId, long offset, String destinationFile) {
+      String url = "/log" + (node == null ? "" : "/" + node);
+      // When there's no more data, content-length won't be present and the body is null
+      // the etag does not match
+      CompletableFuture<String> future = new CompletableFuture<>();
+      vertx.runOnContext(ctx -> {
+         client.request(HttpMethod.GET, url + "?offset=" + offset).send(rsp -> {
+            if (rsp.failed()) {
+               future.completeExceptionally(rsp.cause());
+               return;
+            }
+            HttpResponse<Buffer> response = rsp.result();
+            if (response.statusCode() != 200) {
+               future.completeExceptionally(new RestClientException("Server responded with unexpected code: "
+                     + response.statusCode() + ", " + response.statusMessage()));
+               return;
+            }
+            try {
+               String etag = response.getHeader(HttpHeaders.ETAG.toString());
+               if (logId == null) {
+                  try {
+                     Files.write(Paths.get(destinationFile), response.body().getBytes());
+                  } catch (IOException e) {
+                     throw new RestClientException(e);
+                  }
+                  future.complete(etag);
+               } else if (etag != null && etag.equals(logId)) {
+                  if (response.body() != null) {
+                     // When there's no more data, content-length won't be present and the body is null
+                     try (RandomAccessFile rw = new RandomAccessFile(destinationFile, "rw")) {
+                        rw.seek(offset);
+                        rw.write(response.body().getBytes());
+                     } catch (IOException e) {
+                        throw new RestClientException(e);
+                     }
+                  }
+                  future.complete(etag);
+               } else {
+                  // the etag does not match
+                  client.request(HttpMethod.GET, url).send(rsp2 -> {
+                     if (rsp2.failed()) {
+                        future.completeExceptionally(rsp2.cause());
+                        return;
+                     }
+                     HttpResponse<Buffer> response2 = rsp2.result();
+                     if (response2.statusCode() != 200) {
+                        future.completeExceptionally(new RestClientException("Server responded with unexpected code: "
+                              + response2.statusCode() + ", " + response2.statusMessage()));
+                        return;
+                     }
+                     try {
+                        Files.write(Paths.get(destinationFile), response2.body().getBytes());
+                        future.complete(response2.getHeader(HttpHeaders.ETAG.toString()));
+                     } catch (Throwable t) {
+                        future.completeExceptionally(t);
+                     }
+                  });
+               }
+            } catch (Throwable t) {
+               future.completeExceptionally(t);
+            }
+         });
+      });
+      try {
+         return future.get(30, TimeUnit.SECONDS);
+      } catch (InterruptedException e1) {
+         Thread.currentThread().interrupt();
+         throw new RestClientException(e1);
+      } catch (ExecutionException e1) {
+         throw new RestClientException(e1.getCause() == null ? e1 : e1.getCause());
+      } catch (TimeoutException e) {
+         throw new RestClientException("Could not fetch log within 30 seconds.");
+      }
+   }
+
    <T> T sync(Consumer<Handler<AsyncResult<HttpResponse<Buffer>>>> invoker, int statusCode, Function<HttpResponse<Buffer>, T> f) {
       CompletableFuture<T> future = new CompletableFuture<>();
       vertx.runOnContext(ctx -> {
@@ -102,6 +190,7 @@ public class RestClient implements Client, Closeable {
                if (statusCode != 0 && response.statusCode() != statusCode) {
                   future.completeExceptionally(new RestClientException("Server responded with unexpected code: "
                         + response.statusCode() + ", " + response.statusMessage()));
+                  return;
                }
                try {
                   future.complete(f.apply(response));
@@ -114,12 +203,14 @@ public class RestClient implements Client, Closeable {
          });
       });
       try {
-         return future.get();
+         return future.get(30, TimeUnit.SECONDS);
       } catch (InterruptedException e) {
          Thread.currentThread().interrupt();
          throw new RestClientException(e);
       } catch (ExecutionException e) {
          throw new RestClientException(e.getCause() == null ? e : e.getCause());
+      } catch (TimeoutException e) {
+         throw new RestClientException("Could not complete request within 30 seconds.");
       }
    }
 

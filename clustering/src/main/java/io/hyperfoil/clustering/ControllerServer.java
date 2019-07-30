@@ -1,5 +1,6 @@
 package io.hyperfoil.clustering;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -13,6 +14,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -83,6 +85,9 @@ class ControllerServer {
       router.get("/run/:runid/stats/recent").handler(this::handleRecentStats);
       router.get("/run/:runid/stats/total").handler(this::handleTotalStats);
       router.get("/run/:runid/stats/custom").handler(this::handleCustomStats);
+      router.get("/agents").handler(this::handleAgents);
+      router.get("/log").handler(this::handleLog);
+      router.get("/log/:agent").handler(this::handleAgentLog);
 
       httpServer = controller.getVertx().createHttpServer().requestHandler(router).listen(CONTROLLER_PORT);
    }
@@ -470,6 +475,87 @@ class ControllerServer {
          });
       });
       ctx.response().end(reply.encodePrettily());
+   }
+
+   private void handleAgents(RoutingContext ctx) {
+      ctx.response().end(new JsonArray(controller.runs.values().stream()
+            .flatMap(run -> run.agents.stream().map(agentInfo -> agentInfo.name))
+            .distinct().collect(Collectors.toList())).encodePrettily());
+   }
+
+   private void handleLog(RoutingContext ctx) {
+      String logPath = System.getProperty(Properties.CONTROLLER_LOG);
+      if (logPath == null) {
+         ctx.response().setStatusCode(404).setStatusMessage("Log file not defined.").end();
+         return;
+      }
+      File logFile = new File(logPath);
+      if (!logFile.exists()) {
+         ctx.response().setStatusCode(404).setStatusMessage("Log file does not exist.").end();
+      } else {
+         long offset = getOffset(ctx);
+         if (offset >= 0) {
+            ctx.response().putHeader(HttpHeaders.ETAG, controller.deploymentID());
+            ctx.response().sendFile(logPath, offset);
+         }
+      }
+   }
+
+   private void handleAgentLog(RoutingContext ctx) {
+      String agent = ctx.pathParam("agent");
+      if (agent == null || "controller".equals(agent)) {
+         handleLog(ctx);
+         return;
+      }
+      long offset = getOffset(ctx);
+      if (offset < 0) {
+         return;
+      }
+      Optional<AgentInfo> agentInfo = controller.runs.values().stream()
+            .sorted(Comparator.<Run, Long>comparing(run -> run.startTime).reversed())
+            .flatMap(run -> run.agents.stream())
+            .filter(ai -> agent.equals(ai.name)).findFirst();
+      if (!agentInfo.isPresent()) {
+         ctx.response().setStatusCode(404).setStatusMessage("Agent " + agent + " not found.").end();
+         return;
+      }
+      try {
+         File tempFile = File.createTempFile("agent." + agent, ".log");
+         tempFile.deleteOnExit();
+         controller.downloadAgentLog(agentInfo.get().deployedAgent, offset, tempFile, result -> {
+            if (result.succeeded()) {
+               ctx.response().putHeader(HttpHeaders.ETAG, agentInfo.get().deploymentId);
+               ctx.response().sendFile(tempFile.toString(), r -> tempFile.delete());
+            } else {
+               log.error("Failed to download agent log for " + agentInfo.get(), result.cause());
+               ctx.response().setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code())
+                     .setStatusMessage("Cannot download agent log").end();
+            }
+         });
+      } catch (IOException e) {
+         log.error("Failed to create temporary file", e);
+         ctx.response().setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code()).end();
+      }
+   }
+
+   private long getOffset(RoutingContext ctx) {
+      long offset = 0;
+      String offsetParam = ctx.request().getParam("offset");
+      if (offsetParam != null) {
+         try {
+            offset = Long.parseLong(offsetParam);
+         } catch (NumberFormatException e) {
+            ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
+                  .setStatusMessage("Malformed offset").end();
+            return -1;
+         }
+      }
+      if (offset < 0) {
+         ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
+               .setStatusMessage("Offset must be non-negative").end();
+         return -1;
+      }
+      return offset;
    }
 
    private static String encode(String string) {

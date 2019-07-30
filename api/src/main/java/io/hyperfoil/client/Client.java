@@ -28,6 +28,10 @@ public interface Client {
 
    long ping();
 
+   Collection<String> agents();
+
+   String downloadLog(String node, String logId, long offset, String destinationFile);
+
    interface BenchmarkRef {
       String name();
       Benchmark get();

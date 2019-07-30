@@ -3,13 +3,10 @@ package io.hyperfoil.deploy.ssh;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
-import java.net.MalformedURLException;
-import java.nio.file.Paths;
-import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -17,34 +14,38 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 import org.apache.sshd.client.channel.ChannelShell;
-import org.apache.sshd.client.future.AuthFuture;
 import org.apache.sshd.client.future.OpenFuture;
 import org.apache.sshd.client.scp.ScpClient;
 import org.apache.sshd.client.scp.ScpClientCreator;
 import org.apache.sshd.client.session.ClientSession;
-import org.apache.sshd.common.util.GenericUtils;
+import org.apache.sshd.client.subsystem.sftp.SftpClient;
+import org.apache.sshd.client.subsystem.sftp.SftpClientFactory;
 import org.apache.sshd.common.util.io.NullOutputStream;
-import org.apache.sshd.common.util.io.resource.URLResource;
-import org.apache.sshd.common.util.security.SecurityUtils;
 
 import io.hyperfoil.api.deployment.DeployedAgent;
 import io.hyperfoil.api.deployment.DeploymentException;
 import io.hyperfoil.clustering.Properties;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Future;
+import io.vertx.core.Handler;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
 public class SshDeployedAgent implements DeployedAgent {
    private static final Logger log = LoggerFactory.getLogger(SshDeployedAgent.class);
    private static final String PROMPT = "<_#%@_hyperfoil_@%#_>";
-   private static final long TIMEOUT = 10000;
    private static final String DEBUG_ADDRESS = System.getProperty(Properties.AGENT_DEBUG_PORT);
    private static final String DEBUG_SUSPEND = Properties.get(Properties.AGENT_DEBUG_SUSPEND, "n");
-   public static final String AGENTLIB = "/agentlib";
+   private static final String AGENTLIB = "/agentlib";
 
-   private final String name;
-   private final String runId;
-   private final String dir;
-   private final String extras;
+   final String name;
+   final String runId;
+   final String username;
+   final String hostname;
+   final int port;
+   final String dir;
+   final String extras;
+
    private ClientSession session;
    private ChannelShell shellChannel;
    private Consumer<Throwable> exceptionHandler;
@@ -52,9 +53,12 @@ public class SshDeployedAgent implements DeployedAgent {
    private PrintStream commandStream;
    private BufferedReader reader;
 
-   public SshDeployedAgent(String name, String runId, String dir, String extras) {
+   public SshDeployedAgent(String name, String runId, String username, String hostname, int port, String dir, String extras) {
       this.name = name;
       this.runId = runId;
+      this.username = username;
+      this.hostname = hostname;
+      this.port = port;
       this.dir = dir;
       this.extras = extras;
    }
@@ -90,52 +94,13 @@ public class SshDeployedAgent implements DeployedAgent {
       this.session = session;
       this.exceptionHandler = exceptionHandler;
 
-      String userHome = System.getProperty("user.home");
-      URLResource identity;
-      try {
-         identity = new URLResource(Paths.get(userHome, ".ssh", "id_rsa").toUri().toURL());
-      } catch (MalformedURLException e) {
-         exceptionHandler.accept(e);
-         return;
-      }
-
-      try (InputStream inputStream = identity.openInputStream()) {
-         session.addPublicKeyIdentity(GenericUtils.head(SecurityUtils.loadKeyPairIdentities(
-               session,
-               identity,
-               inputStream,
-               (s, resourceKey, retryIndex) -> null
-         )));
-      } catch (IOException e) {
-         exceptionHandler.accept(e);
-         return;
-      } catch (GeneralSecurityException e) {
-         exceptionHandler.accept(e);
-         return;
-      }
-
-      try {
-         AuthFuture auth = session.auth();
-         if (!auth.await(TIMEOUT)) {
-            exceptionHandler.accept(new DeploymentException("Not authenticated within timeout", null));
-            return;
-         }
-         if (!auth.isSuccess()) {
-            exceptionHandler.accept(new DeploymentException("Failed to authenticate", auth.getException()));
-            return;
-         }
-      } catch (IOException e) {
-         exceptionHandler.accept(e);
-         return;
-      }
-
       this.scpClient = ScpClientCreator.instance().createScpClient(session);
 
       try {
          this.shellChannel = session.createShellChannel();
          shellChannel.setErr(new NullOutputStream());
          OpenFuture open = shellChannel.open();
-         if (!open.await(TIMEOUT)) {
+         if (!open.await(SshDeployer.TIMEOUT)) {
             exceptionHandler.accept(new DeploymentException("Shell not opened within timeout", null));
          }
          if (!open.isOpened()) {
@@ -294,5 +259,27 @@ public class SshDeployedAgent implements DeployedAgent {
          md5map.put(file, checksum);
       }
       return md5map;
+   }
+
+   public void downloadLog(ClientSession session, long offset, String destinationFile, Handler<AsyncResult<Void>> handler) {
+      try (SftpClient sftpClient = SftpClientFactory.instance().createSftpClient(session)) {
+         try (SftpClient.CloseableHandle handle = sftpClient.open(dir + File.separatorChar + "agent." + name + ".log")) {
+            byte[] buffer = new byte[65536];
+            try (FileOutputStream output = new FileOutputStream(destinationFile)) {
+               long readOffset = offset;
+               for (; ; ) {
+                  int nread = sftpClient.read(handle, readOffset, buffer);
+                  if (nread < 0) {
+                     break;
+                  }
+                  output.write(buffer, 0, nread);
+                  readOffset += nread;
+               }
+            }
+         }
+         handler.handle(Future.succeededFuture());
+      } catch (IOException e) {
+         handler.handle(Future.failedFuture(e));
+      }
    }
 }

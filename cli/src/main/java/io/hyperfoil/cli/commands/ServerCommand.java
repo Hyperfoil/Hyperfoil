@@ -1,6 +1,11 @@
 package io.hyperfoil.cli.commands;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 
 import org.aesh.command.Command;
@@ -19,6 +24,51 @@ import io.hyperfoil.core.util.Util;
 public abstract class ServerCommand implements Command<HyperfoilCommandInvocation> {
    protected static final String MOVE_LINE_UP = new String(new byte[] {27, 91, 49, 65}, StandardCharsets.US_ASCII);
    protected static final String ERASE_WHOLE_LINE = new String(new byte[]{27, 91, 50, 75}, StandardCharsets.US_ASCII);
+   protected static final String EDITOR;
+   protected static final String PAGER;
+
+   static {
+      String editor = System.getenv("VISUAL");
+      if (editor == null || editor.isEmpty()) {
+         editor = System.getenv("EDITOR");
+      }
+      if (editor == null || editor.isEmpty()) {
+         editor = fromCommand("update-alternatives", "--display", "editor");
+      }
+      if (editor == null || editor.isEmpty()) {
+         editor = fromCommand("git", "var", "GIT_EDITOR");
+      }
+      if (editor == null || editor.isEmpty()) {
+         editor = "vi";
+      }
+      EDITOR = editor;
+
+      String pager = System.getenv("PAGER");
+      if (pager == null || pager.isEmpty()) {
+         pager = fromCommand("update-alternatives", "--display", "pager");
+      }
+      if (pager == null || pager.isEmpty()) {
+         pager = fromCommand("git", "var", "GIT_PAGER");
+      }
+      if (pager == null || pager.isEmpty()) {
+         pager = "less";
+      }
+      PAGER = pager;
+   }
+
+   private static String fromCommand(String... command) {
+      String editor = null;
+      try {
+         Process gitEditor = new ProcessBuilder(command).start();
+         try (BufferedReader reader = new BufferedReader(new InputStreamReader(gitEditor.getInputStream()))) {
+            editor = reader.readLine();
+         }
+         gitEditor.destroy();
+      } catch (IOException e) {
+         // ignore error
+      }
+      return editor;
+   }
 
    protected void ensureConnection(HyperfoilCommandInvocation invocation) throws CommandException {
       HyperfoilCliContext ctx = invocation.context();
@@ -82,5 +132,21 @@ public abstract class ServerCommand implements Command<HyperfoilCommandInvocatio
          return true;
       }
       return false;
+   }
+
+   protected void execProcess(HyperfoilCommandInvocation invocation, String command, String... params) throws IOException {
+      Process process = null;
+      try {
+         invocation.println("Press Ctrl+C when done...");
+         ArrayList<String> cmdline = new ArrayList<>();
+         cmdline.addAll(Arrays.asList(command.split("[\t \n]+", 0)));
+         cmdline.addAll(Arrays.asList(params));
+         process = new ProcessBuilder(cmdline.toArray(new String[0])).inheritIO().start();
+         process.waitFor();
+      } catch (InterruptedException e) {
+         if (process != null) {
+            process.destroy();
+         }
+      }
    }
 }

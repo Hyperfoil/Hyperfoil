@@ -1,14 +1,10 @@
 package io.hyperfoil.cli.commands;
 
-import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.Arrays;
 
 import org.aesh.command.CommandDefinition;
 import org.aesh.command.CommandException;
@@ -26,38 +22,6 @@ import io.hyperfoil.core.util.Util;
 
 @CommandDefinition(name = "edit", description = "Edit benchmark definition.")
 public class Edit extends BenchmarkCommand {
-   private static final String EDITOR;
-
-   static {
-      String editor = System.getenv("VISUAL");
-      if (editor == null || editor.isEmpty()) {
-         editor = System.getenv("EDITOR");
-      }
-      if (editor == null || editor.isEmpty()) {
-         editor = fromCommand("update-alternatives", "--display", "editor");
-      }
-      if (editor == null || editor.isEmpty()) {
-         editor = fromCommand("git", "var", "GIT_EDITOR");
-      }
-      if (editor == null || editor.isEmpty()) {
-         editor = "vi";
-      }
-      EDITOR = editor;
-   }
-
-   private static String fromCommand(String... command) {
-      String editor = null;
-      try {
-         Process gitEditor = new ProcessBuilder(command).start();
-         try (BufferedReader reader = new BufferedReader(new InputStreamReader(gitEditor.getInputStream()))) {
-            editor = reader.readLine();
-         }
-         gitEditor.destroy();
-      } catch (IOException e) {
-         // ignore error
-      }
-      return editor;
-   }
 
    @Option(name = "editor", shortName = 'e', description = "Editor used.")
    private String editor;
@@ -84,19 +48,8 @@ public class Edit extends BenchmarkCommand {
       }
       Benchmark updated;
       for (;;) {
-         Process process = null;
          try {
-            invocation.println("Press Ctrl+C when done with edits...");
-            String editor = this.editor == null ? EDITOR : this.editor;
-            ArrayList<String> command = new ArrayList<>();
-            command.addAll(Arrays.asList(editor.split("[\t \n]+", 0)));
-            command.add(sourceFile.getAbsolutePath());
-            process = new ProcessBuilder(command.toArray(new String[0])).inheritIO().start();
-            process.waitFor();
-         } catch (InterruptedException e) {
-            if (process != null) {
-               process.destroy();
-            }
+            execProcess(invocation, this.editor == null ? EDITOR : this.editor, sourceFile.getAbsolutePath());
          } catch (IOException e) {
             sourceFile.delete();
             throw new CommandException("Failed to invoke the editor.", e);

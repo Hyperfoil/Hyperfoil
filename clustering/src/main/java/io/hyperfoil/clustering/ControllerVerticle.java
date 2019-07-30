@@ -4,6 +4,7 @@ import io.hyperfoil.api.BenchmarkExecutionException;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.Agent;
 import io.hyperfoil.api.config.Phase;
+import io.hyperfoil.api.deployment.DeployedAgent;
 import io.hyperfoil.api.deployment.Deployer;
 import io.hyperfoil.api.session.PhaseInstance;
 import io.hyperfoil.clustering.messages.AgentControlMessage;
@@ -581,7 +582,17 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       }
    }
 
-   static class StartResult {
+    public void downloadAgentLog(DeployedAgent deployedAgent, long offset, File tempFile, Handler<AsyncResult<Void>> handler) {
+        vertx.executeBlocking(future -> {
+            deployer.downloadAgentLog(deployedAgent, offset, tempFile.toString(), handler);
+        }, result -> {
+            if (result.failed()) {
+                handler.handle(Future.failedFuture(result.cause()));
+            }
+        });
+    }
+
+    static class StartResult {
       final String runId;
       final String error;
 

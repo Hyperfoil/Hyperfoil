@@ -231,6 +231,12 @@
             </dependency>
 
             <dependency>
+                <groupId>org.apache.sshd</groupId>
+                <artifactId>sshd-sftp</artifactId>
+                <version>${version.apache.sshd}</version>
+            </dependency>
+
+            <dependency>
                 <groupId>net.i2p.crypto</groupId>
                 <artifactId>eddsa</artifactId>
                 <version>${version.eddsa}</version>
