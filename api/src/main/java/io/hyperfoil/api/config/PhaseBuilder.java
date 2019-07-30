@@ -293,7 +293,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
          return new Phase.AtOnce(benchmark, id, iterationName(i, f.name), f.scenario.build(phase),
                iterationStartTime(i), iterationReferences(startAfter, i, false),
                iterationReferences(startAfterStrict, i, true), iterationReferences(terminateAfterStrict, i, false), duration,
-               maxDuration, (int) (maxUnfinishedSessions * f.weight / numAgents()),
+               maxDuration, (int) Math.ceil(maxUnfinishedSessions * f.weight / numAgents()),
                sharedResources(f), sliceValue("users", users + usersIncrement * i, f.weight / numAgents()));
       }
    }
@@ -312,7 +312,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
          return new Phase.Always(benchmark, id, iterationName(i, f.name), f.scenario.build(phase), iterationStartTime(i),
                iterationReferences(startAfter, i, false), iterationReferences(startAfterStrict, i, true),
                iterationReferences(terminateAfterStrict, i, false), duration, maxDuration,
-               (int) (maxUnfinishedSessions * f.weight / numAgents()), sharedResources(f),
+               (int) Math.ceil(maxUnfinishedSessions * f.weight / numAgents()), sharedResources(f),
                sliceValue("users", this.users + usersIncrement * i, f.weight / numAgents()));
       }
 
@@ -360,7 +360,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
          return new Phase.RampPerSec(benchmark, id, iterationName(i, f.name), f.scenario.build(phase),
                iterationStartTime(i), iterationReferences(startAfter, i, false),
                iterationReferences(startAfterStrict, i, true), iterationReferences(terminateAfterStrict, i, false),
-               duration, maxDuration, (int) (maxUnfinishedSessions * f.weight / numAgents()),
+               duration, maxDuration, (int) Math.ceil(maxUnfinishedSessions * f.weight / numAgents()),
                sharedResources(f), (initialUsersPerSec + initialUsersPerSecIncrement * i) * f.weight / numAgents(),
                (targetUsersPerSec + targetUsersPerSecIncrement * i) * f.weight / numAgents(),
                variance, maxSessionsEstimate);
@@ -423,7 +423,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
          return new Phase.ConstantPerSec(benchmark, id, iterationName(i, f.name), f.scenario.build(phase), iterationStartTime(i),
                iterationReferences(startAfter, i, false), iterationReferences(startAfterStrict, i, true),
                iterationReferences(terminateAfterStrict, i, false), duration, maxDuration,
-               (int) (maxUnfinishedSessions * f.weight / numAgents()), sharedResources(f),
+               (int) Math.ceil(maxUnfinishedSessions * f.weight / numAgents()), sharedResources(f),
                (usersPerSec + usersPerSecIncrement * i) * f.weight / numAgents(), variance, maxSessionsEstimate);
       }
 
@@ -457,7 +457,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
          return new Phase.Sequentially(benchmark, id, iterationName(i, f.name), f.scenario().build(phase), iterationStartTime(i),
                iterationReferences(startAfter, i, false), iterationReferences(startAfterStrict, i, true),
                iterationReferences(terminateAfterStrict, i, false), duration, maxDuration,
-               (int) (maxUnfinishedSessions * f.weight / numAgents()), sharedResources(f), repeats);
+               (int) Math.ceil(maxUnfinishedSessions * f.weight / numAgents()), sharedResources(f), repeats);
       }
    }
 
