@@ -7,10 +7,12 @@ import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
 import java.util.function.Consumer;
 
+import org.apache.sshd.client.ClientFactoryManager;
 import org.apache.sshd.client.SshClient;
 import org.apache.sshd.client.future.AuthFuture;
 import org.apache.sshd.client.future.ConnectFuture;
 import org.apache.sshd.client.session.ClientSession;
+import org.apache.sshd.common.PropertyResolverUtils;
 import org.apache.sshd.common.util.GenericUtils;
 import org.apache.sshd.common.util.io.resource.URLResource;
 import org.apache.sshd.common.util.security.SecurityUtils;
@@ -35,6 +37,11 @@ public class SshDeployer implements Deployer {
 
    private SshDeployer() {
       client = SshClient.setUpDefaultClient();
+
+      PropertyResolverUtils.updateProperty(client, ClientFactoryManager.IDLE_TIMEOUT, Long.MAX_VALUE);
+      PropertyResolverUtils.updateProperty(client, ClientFactoryManager.NIO2_READ_TIMEOUT, Long.MAX_VALUE);
+      PropertyResolverUtils.updateProperty(client, ClientFactoryManager.NIO_WORKERS, 1);
+
       client.start();
       client.setServerKeyVerifier((clientSession1, remoteAddress, serverKey) -> true);
    }
