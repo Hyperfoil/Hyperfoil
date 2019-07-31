@@ -54,6 +54,7 @@ class ControllerServer {
    private static final String MIME_TYPE_MULTIPART = "multipart/form-data";
    private static final Set<String> MIME_TYPE_YAML = new HashSet<>(
          Arrays.asList("text/vnd.yaml", "text/yaml", "text/x-yaml", "application/x-yaml"));
+   private static final String MIME_TYPE_JSON = "application/json";
 
    private static final String CONTROLLER_HOST = Properties.get(Properties.CONTROLLER_HOST, "localhost");
    private static final int CONTROLLER_PORT = Properties.getInt(Properties.CONTROLLER_PORT, 8090);
@@ -132,7 +133,7 @@ class ControllerServer {
             ctx.response().setStatusCode(400).end("Cannot read benchmark.");
             return;
          }
-      } else if (MIME_TYPE_YAML.contains(contentType)) {
+      } else if (MIME_TYPE_YAML.contains(contentType) || MIME_TYPE_JSON.equals(contentType)) {
          String source = ctx.getBodyAsString(charset.name());
          try {
             benchmark = BenchmarkParser.instance().buildBenchmark(source, BenchmarkData.EMPTY);
