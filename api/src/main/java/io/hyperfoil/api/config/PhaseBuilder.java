@@ -148,6 +148,9 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
       } else if (forks.size() == 1 && forks.get(0).name != null) {
          throw new BenchmarkDefinitionException(name + " has single fork: define scenario directly.");
       }
+      boolean hasForks = forks.size() > 1;
+      forks.removeIf(fork -> fork.weight <= 0);
+
       double sumWeight = forks.stream().mapToDouble(f -> f.weight).sum();
       forks.forEach(f -> f.weight /= sumWeight);
 
@@ -161,7 +164,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
             }))
             .flatMap(Function.identity()).collect(Collectors.toList());
       if (maxIterations > 1) {
-         if (forks.size() > 1) {
+         if (hasForks) {
             // add phase covering forks in each iteration
             IntStream.range(0, maxIterations).mapToObj(iteration -> {
                String iterationName = formatIteration(name, iteration);
@@ -172,7 +175,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
          // Referencing phase with iterations with RelativeIteration.NONE means that it starts after all its iterations
          List<String> lastIteration = Collections.singletonList(formatIteration(name, maxIterations - 1));
          phases.add(noop(benchmark, idCounter.getAndIncrement(), name, lastIteration, Collections.emptyList(), lastIteration));
-      } else if (forks.size() > 1) {
+      } else if (hasForks) {
          // add phase covering forks
          List<String> forks = this.forks.stream().map(f -> name + "/" + f.name).collect(Collectors.toList());
          phases.add(noop(benchmark, idCounter.getAndIncrement(), name, forks, Collections.emptyList(), forks));

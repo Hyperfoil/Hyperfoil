@@ -172,7 +172,7 @@ public class BenchmarkBuilder {
         for (String dep : references) {
             if (!phaseNames.contains(dep)) {
                 String suggestion = phaseNames.stream()
-                      .filter(name -> name.toLowerCase().startsWith(phase.name.toLowerCase())).findAny()
+                      .filter(name -> name.toLowerCase().startsWith(dep)).findAny()
                       .map(name -> " Did you mean " + name + "?").orElse("");
                 throw new BenchmarkDefinitionException("Phase " + dep + " referenced from " + phase.name() + " is not defined." + suggestion);
             }
