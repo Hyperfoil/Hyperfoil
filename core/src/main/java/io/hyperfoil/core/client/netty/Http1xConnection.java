@@ -77,11 +77,11 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
          HttpResponse response = (HttpResponse) msg;
          HttpRequest request = inflights.peek();
          if (request == null) {
-            if (response.status() == HttpResponseStatus.REQUEST_TIMEOUT) {
+            if (HttpResponseStatus.REQUEST_TIMEOUT.equals(response.status())) {
                // HAProxy sends 408 when we allocate the connection but do not use it within 10 seconds.
                log.debug("Closing connection {} as server timed out waiting for our first request.", this);
             } else {
-               log.error("Received unsolicited response on {}, discarding: {}", this, msg);
+               log.error("Received unsolicited response (status {}) on {}, discarding: {}", response.status(), this, msg);
             }
             return;
          }
