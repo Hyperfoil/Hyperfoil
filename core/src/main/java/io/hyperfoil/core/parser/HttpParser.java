@@ -28,9 +28,10 @@ class HttpParser extends AbstractParser<BenchmarkBuilder, HttpBuilder> {
    @Override
    public void parse(Context ctx, BenchmarkBuilder target) throws ParserException {
       if (ctx.peek() instanceof SequenceStartEvent) {
-         ctx.parseList(target.decoupledHttp(), (ctx1, builder) -> {
-            callSubBuilders(ctx1, builder);
-            target.addHttp(builder);
+         ctx.parseList(target, (ctx1, builder) -> {
+            HttpBuilder http = builder.decoupledHttp();
+            callSubBuilders(ctx1, http);
+            builder.addHttp(http);
          });
       } else {
          callSubBuilders(ctx, target.http());
