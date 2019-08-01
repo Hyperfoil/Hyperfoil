@@ -25,15 +25,18 @@ import java.util.Collections;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 
 public class SLA implements Serializable {
+   public static final SLA[] DEFAULT = new SLA[] { new SLABuilder<>(null).build() };
    private final long window;
-   private final double errorRate;
+   private final double errorRatio;
    private final long meanResponseTime;
+   private final double blockedRatio;
    private final Collection<PercentileLimit> limits;
 
-   public SLA(long window, double errorRate, long meanResponseTime, Collection<PercentileLimit> limits) {
+   public SLA(long window, double errorRatio, long meanResponseTime, double blockedRatio, Collection<PercentileLimit> limits) {
       this.window = window;
       this.meanResponseTime = meanResponseTime;
-      this.errorRate = errorRate;
+      this.errorRatio = errorRatio;
+      this.blockedRatio = blockedRatio;
       this.limits = limits;
    }
 
@@ -41,12 +44,16 @@ public class SLA implements Serializable {
       return window;
    }
 
-   public double errorRate() {
-      return errorRate;
+   public double errorRatio() {
+      return errorRatio;
    }
 
    public long meanResponseTime() {
       return meanResponseTime;
+   }
+
+   public double blockedRatio() {
+      return blockedRatio;
    }
 
    public Collection<PercentileLimit> percentileLimits() {
@@ -54,16 +61,23 @@ public class SLA implements Serializable {
    }
 
    public SLA.Failure validate(String phase, String metric, StatisticsSnapshot statistics) {
-      double actualErrorRate = (double) statistics.errors() / statistics.requestCount;
-      if (actualErrorRate >= errorRate) {
+      double actualErrorRatio = (double) statistics.errors() / statistics.requestCount;
+      if (actualErrorRatio >= errorRatio) {
          return new SLA.Failure(this, phase, metric, statistics.clone(),
-               String.format("Error rate exceeded: required %.3f, actual %.3f", errorRate, actualErrorRate));
+               String.format("Error ratio exceeded: required %.3f, actual %.3f", errorRatio, actualErrorRatio));
       }
       if (meanResponseTime < Long.MAX_VALUE) {
          double mean = statistics.histogram.getMean();
          if (mean >= meanResponseTime) {
             return new SLA.Failure(this, phase, metric, statistics.clone(),
-                  String.format("Mean response time exceeded: required %d, actual %f", meanResponseTime, mean));
+                  String.format("Mean response time exceeded: required %d, actual %.3f", meanResponseTime, mean));
+         }
+      }
+      if (statistics.blockedTime > 0) {
+         double actualBlockedRatio = statistics.blockedTime / (statistics.histogram.getMean() * statistics.histogram.getTotalCount());
+         if (actualBlockedRatio > blockedRatio) {
+            return new SLA.Failure(this, phase, metric, statistics.clone(),
+                  String.format("Progress was blocked waiting for a free connection. Hint: increase http.sharedConnections."));
          }
       }
       for (SLA.PercentileLimit limit : limits) {

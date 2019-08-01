@@ -24,7 +24,7 @@ public class TestBenchmarks {
                               .addItem()
                                  .meanResponseTime(10, TimeUnit.MILLISECONDS)
                                  .addPercentileLimit(0.99, TimeUnit.MILLISECONDS.toNanos(100))
-                                 .errorRate(0.02)
+                                 .errorRatio(0.02)
                                  .window(3000, TimeUnit.MILLISECONDS)
                               .endSLA()
                            .endList()

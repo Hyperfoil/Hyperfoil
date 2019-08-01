@@ -434,7 +434,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
          SerializableBiConsumer<Session, HttpRequestWriter>[] headerAppenders =
                this.headerAppenders.isEmpty() ? null : this.headerAppenders.toArray(new SerializableBiConsumer[0]);
 
-         SLA[] sla = this.sla != null ? this.sla.build() : null;
+         SLA[] sla = this.sla != null ? this.sla.build() : SLA.DEFAULT;
          SerializableBiFunction<Session, Connection, ByteBuf> bodyGenerator = this.bodyGenerator != null ? this.bodyGenerator.build() : null;
 
          HttpRequestStep step = new HttpRequestStep(sequence, method, authority, pathGenerator, bodyGenerator, headerAppenders, statisticsSelector, timeout, handler.build(fs), sla);

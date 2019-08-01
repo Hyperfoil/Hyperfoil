@@ -9,9 +9,10 @@ import io.hyperfoil.util.Util;
 public class SLABuilder<P> implements Rewritable<SLABuilder<P>> {
    private final P parent;
    private long window = -1;
-   private double errorRate = 1.01; // 101% of errors allowed
+   private double errorRatio = 1.01; // 101% of errors allowed
    private long meanResponseTime = Long.MAX_VALUE;
    private final Collection<SLA.PercentileLimit> limits = new ArrayList<>();
+   private double blockedRatio = 0; // do not allow blocking
    private SLA sla;
 
    public SLABuilder(P parent) {
@@ -25,7 +26,7 @@ public class SLABuilder<P> implements Rewritable<SLABuilder<P>> {
       if (sla != null) {
          return sla;
       }
-      return sla = new SLA(window, errorRate, meanResponseTime, limits);
+      return sla = new SLA(window, errorRatio, meanResponseTime, blockedRatio, limits);
    }
 
    public P endSLA() {
@@ -46,8 +47,8 @@ public class SLABuilder<P> implements Rewritable<SLABuilder<P>> {
       return window(Util.parseToMillis(window), TimeUnit.MILLISECONDS);
    }
 
-   public SLABuilder<P> errorRate(double errorRate) {
-      this.errorRate = errorRate;
+   public SLABuilder<P> errorRatio(double errorRatio) {
+      this.errorRatio = errorRatio;
       return this;
    }
 
@@ -58,6 +59,11 @@ public class SLABuilder<P> implements Rewritable<SLABuilder<P>> {
 
    public SLABuilder<P> meanResponseTime(String meanResponseTime) {
       return meanResponseTime(Util.parseToNanos(meanResponseTime), TimeUnit.NANOSECONDS);
+   }
+
+   public SLABuilder<P> blockedRatio(double blockedRatio) {
+      this.blockedRatio = blockedRatio;
+      return this;
    }
 
    public SLABuilder<P> addPercentileLimit(double percentile, long responseTime) {
@@ -72,8 +78,9 @@ public class SLABuilder<P> implements Rewritable<SLABuilder<P>> {
    @Override
    public void readFrom(SLABuilder<P> other) {
       window = other.window;
-      errorRate = other.errorRate;
+      errorRatio = other.errorRatio;
       meanResponseTime = other.meanResponseTime;
+      blockedRatio = other.blockedRatio;
       limits.clear();
       limits.addAll(limits);
    }
