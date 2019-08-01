@@ -4,11 +4,13 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
+import io.hyperfoil.api.BenchmarkExecutionException;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.ErgonomicsBuilder;
@@ -125,6 +127,10 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
       request.start(handler, sequence, statistics);
 
       HttpConnectionPool connectionPool = session.httpDestinations().getConnectionPool(authority);
+      if (connectionPool == null) {
+         session.fail(new BenchmarkExecutionException("There is no connection pool with authority '" + authority +
+               "', available pools are: " + Arrays.asList(session.httpDestinations().authorities())));
+      }
       request.authority = authority == null ? connectionPool.clientPool().authority() : authority;
       if (!connectionPool.request(request, headerAppenders, bodyGenerator)) {
          request.setCompleted();
