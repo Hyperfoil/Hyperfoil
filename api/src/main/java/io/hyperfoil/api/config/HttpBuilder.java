@@ -65,11 +65,17 @@ public class HttpBuilder {
     }
 
     public HttpBuilder protocol(Protocol protocol) {
+        if (this.protocol != null) {
+            throw new BenchmarkDefinitionException("Duplicate 'protocol'");
+        }
         this.protocol = protocol;
         return this;
     }
 
     public HttpBuilder host(String host) {
+        if (this.host != null) {
+            throw new BenchmarkDefinitionException("Duplicate 'host'. Are you missing '-'s?");
+        }
         int lastColon = host.lastIndexOf(':');
         if (lastColon < 0) {
             this.host = host;
@@ -95,6 +101,9 @@ public class HttpBuilder {
     }
 
     public HttpBuilder port(int port) {
+        if (this.port > 0) {
+            throw new BenchmarkDefinitionException("Duplicate 'port'");
+        }
         this.port = port;
         return this;
     }
