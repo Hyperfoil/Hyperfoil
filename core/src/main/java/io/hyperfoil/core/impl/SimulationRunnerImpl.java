@@ -39,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Queue;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -268,6 +269,7 @@ public class SimulationRunnerImpl implements SimulationRunner {
                 }
                 HttpConnectionPool pool = entry.getValue();
                 Collection<? extends HttpConnection> connections = pool.connections();
+                Map<String, AtomicInteger> byType = new HashMap<>();
                 int available = 0;
                 int inFlight = 0;
                 for (HttpConnection conn : connections) {
@@ -275,8 +277,9 @@ public class SimulationRunnerImpl implements SimulationRunner {
                         available++;
                     }
                     inFlight += conn.inFlight();
+                    byType.computeIfAbsent(conn.getClass().getSimpleName() + (conn.isSecure() ? "(SSL)" : ""), k -> new AtomicInteger()).incrementAndGet();
                 }
-                list.add(String.format("%s: %d/%d available, %d in-flight requests, %d waiting sessions (estimate)", entry.getKey(), available, connections.size(), inFlight, pool.waitingSessions()));
+                list.add(String.format("%s: %d/%d available, %d in-flight requests, %d waiting sessions (estimate), types: %s", entry.getKey(), available, connections.size(), inFlight, pool.waitingSessions(), byType));
             }
         }
         return list;
