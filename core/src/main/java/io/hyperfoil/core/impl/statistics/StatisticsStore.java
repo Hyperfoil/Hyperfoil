@@ -292,7 +292,10 @@ public class StatisticsStore {
             if (sum.requestCount == 0 || sum.histogram.getStartTimeStamp() < minValidTimestamp) {
                continue;
             }
-            result.add(new Client.RequestStats(data.phase, data.metric, sum.summary(PERCENTILES)));
+            List<String> failures = this.failures.stream()
+                  .filter(f -> f.phase().equals(data.phase) && f.metric().equals(data.metric))
+                  .map(f -> f.message()).collect(Collectors.toList());
+            result.add(new Client.RequestStats(data.phase, data.metric, sum.summary(PERCENTILES), failures));
          }
       }
       result.sort(REQUEST_STATS_COMPARATOR);
@@ -304,7 +307,10 @@ public class StatisticsStore {
       for (Map<String, Data> m : this.data.values()) {
          for (Data data : m.values()) {
             StatisticsSummary last = data.total.summary(percentiles);
-            result.add(new Client.RequestStats(data.phase, data.metric, last));
+            List<String> failures = this.failures.stream()
+                  .filter(f -> f.phase().equals(data.phase) && f.metric().equals(data.metric))
+                  .map(f -> f.message()).collect(Collectors.toList());
+            result.add(new Client.RequestStats(data.phase, data.metric, last, failures));
          }
       }
       result.sort(REQUEST_STATS_COMPARATOR);

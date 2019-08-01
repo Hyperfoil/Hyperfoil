@@ -152,13 +152,15 @@ public interface Client {
       public final String phase;
       public final String metric;
       public final StatisticsSummary summary;
+      public final List<String> failedSLAs;
 
       @JsonCreator
       public RequestStats(@JsonProperty("phase") String phase, @JsonProperty("metric") String metric,
-                          @JsonProperty("summary") StatisticsSummary summary) {
+                          @JsonProperty("summary") StatisticsSummary summary, @JsonProperty("failedSLAs") List<String> failedSLAs) {
          this.phase = phase;
          this.metric = metric;
          this.summary = summary;
+         this.failedSLAs = failedSLAs;
       }
    }
 

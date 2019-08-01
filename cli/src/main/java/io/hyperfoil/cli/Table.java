@@ -3,16 +3,43 @@ package io.hyperfoil.cli;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
+import org.aesh.utils.ANSI;
+
 import io.hyperfoil.core.util.Util;
 
 public class Table<T> {
+   private boolean boldHeader = true;
+   private Function<T, String> rowPrefix;
+   private Function<T, String> rowSuffix;
    private final List<String> titles = new ArrayList<>();
    private final List<Function<T, String>> functions = new ArrayList<>();
    private final List<Align> aligns = new ArrayList<>();
+
+   public Table<T> boldHeader(boolean boldHeader) {
+      this.boldHeader = boldHeader;
+      return this;
+   }
+
+   public Table<T> rowPrefix(Function<T, String> rowPrefix) {
+      if (this.rowPrefix != null) {
+         throw new IllegalStateException("Row prefix already set.");
+      }
+      this.rowPrefix = rowPrefix;
+      return this;
+   }
+
+   public Table<T> rowSuffix(Function<T, String> rowSuffix) {
+      if (this.rowSuffix != null) {
+         throw new IllegalStateException("Row suffix already set.");
+      }
+      this.rowSuffix = rowSuffix;
+      return this;
+   }
 
    public Table<T> column(String title, Function<T, String> func) {
       return column(title, func, Align.LEFT);
@@ -46,11 +73,19 @@ public class Table<T> {
       aligns.add(Align.LEFT);
       aligns.addAll(this.aligns);
 
+      ArrayList<String> prefixes = rowPrefix == null ? null : new ArrayList<>();
+      ArrayList<String> suffixes = rowSuffix == null ? null : new ArrayList<>();
       ArrayList<String[]> values = new ArrayList<>();
       int[] width = titles.stream().mapToInt(String::length).toArray();
       map.forEach((key, value) -> {
          AtomicBoolean first = new AtomicBoolean(true);
          value.forEach(item -> {
+            if (rowPrefix != null) {
+               prefixes.add(rowPrefix.apply(item));
+            }
+            if (rowSuffix != null) {
+               suffixes.add(rowSuffix.apply(item));
+            }
             String[] row = new String[functions.size() + 1];
             row[0] = first.compareAndSet(true, false) ? key : "";
             width[0] = Math.max(width[0], key.length());
@@ -64,13 +99,21 @@ public class Table<T> {
             values.add(row);
          });
       });
-      return print(titles, values, aligns, width);
+      return print(titles, prefixes, values, suffixes, aligns, width);
    }
 
    public String print(Stream<T> stream) {
       ArrayList<String[]> values = new ArrayList<>();
+      ArrayList<String> prefixes = rowPrefix == null ? null : new ArrayList<>();
+      ArrayList<String> suffixes = rowSuffix == null ? null : new ArrayList<>();
       int[] width = titles.stream().mapToInt(String::length).toArray();
       stream.forEach(item -> {
+         if (rowPrefix != null) {
+            prefixes.add(rowPrefix.apply(item));
+         }
+         if (rowSuffix != null) {
+            suffixes.add(rowSuffix.apply(item));
+         }
          String[] row = new String[functions.size()];
          for (int i = 0; i < row.length; ++i) {
             row[i] = functions.get(i).apply(item);
@@ -81,18 +124,33 @@ public class Table<T> {
          }
          values.add(row);
       });
-      return print(titles, values, aligns, width);
+      return print(titles, prefixes, values, suffixes, aligns, width);
    }
 
-   private static String print(List<String> titles, List<String[]> values, List<Align> aligns, int[] width) {
+   private String print(List<String> titles, List<String> prefixes, List<String[]> values, List<String> suffixes, List<Align> aligns, int[] width) {
       StringBuilder sb = new StringBuilder();
+      if (boldHeader) {
+         sb.append(ANSI.BOLD);
+      }
       for (int i = 0; i < titles.size() - 1; ++i) {
          String title = titles.get(i);
          sb.append(title);
          pad(sb, width[i] - title.length() + 2);
       }
-      sb.append(titles.get(titles.size() - 1)).append('\n');
+      sb.append(titles.get(titles.size() - 1));
+      if (boldHeader) {
+         sb.append(ANSI.RESET);
+      }
+      sb.append('\n');
+      int prefixLength = prefixes == null ? 0 : prefixes.stream().filter(Objects::nonNull).mapToInt(String::length).max().orElse(0);
+      int suffixLength = prefixes == null ? 0 : prefixes.stream().filter(Objects::nonNull).mapToInt(String::length).max().orElse(0);
+      int rowNumber = 0;
       for (String[] row : values) {
+         String prefix = prefixes == null ? null : prefixes.get(rowNumber);
+         if (prefix != null) {
+            sb.append(prefix);
+            pad(sb, prefixLength - prefix.length());
+         }
          for (int i = 0; i < row.length; ++i) {
             Align align = aligns.get(i);
             if (align == Align.RIGHT) {
@@ -103,6 +161,11 @@ public class Table<T> {
                pad(sb, width[i] - row[i].length());
             }
             sb.append("  ");
+         }
+         String suffix = suffixes == null ? null : suffixes.get(rowNumber);
+         if (suffix != null) {
+            sb.append(suffix);
+            pad(sb, suffixLength - suffix.length());
          }
          sb.append('\n');
       }

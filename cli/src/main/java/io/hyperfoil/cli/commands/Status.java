@@ -15,8 +15,8 @@ import io.hyperfoil.core.util.Util;
 
 @CommandDefinition(name = "status", description = "Prints information about executing or completed run.")
 public class Status extends BaseRunIdCommand {
-   private static final SimpleDateFormat TIME_FORMATTER = new SimpleDateFormat("HH:mm:ss.S");
-   private static final SimpleDateFormat DATE_FORMATTER = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.S");
+   private static final SimpleDateFormat TIME_FORMATTER = new SimpleDateFormat("HH:mm:ss.SSS");
+   private static final SimpleDateFormat DATE_FORMATTER = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
    private static final Table<Client.Phase> PHASE_TABLE = new Table<Client.Phase>()
          .column("NAME", p -> p.name)
          .column("STATUS", p -> p.status)

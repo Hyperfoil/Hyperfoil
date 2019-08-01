@@ -6,6 +6,7 @@ import org.aesh.command.CommandDefinition;
 import org.aesh.command.CommandException;
 import org.aesh.command.CommandResult;
 import org.aesh.command.option.Option;
+import org.aesh.utils.ANSI;
 
 import io.hyperfoil.cli.Table;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
@@ -16,6 +17,8 @@ import io.hyperfoil.core.util.Util;
 @CommandDefinition(name = "stats", description = "Show run statistics")
 public class Stats extends BaseRunIdCommand {
    private static final Table<Client.RequestStats> REQUEST_STATS_TABLE = new Table<Client.RequestStats>()
+         .rowPrefix(r -> r.failedSLAs.isEmpty() ? null : ANSI.RED_TEXT)
+         .rowSuffix(r -> ANSI.RESET)
          .column("PHASE", r -> r.phase)
          .column("METRIC", r -> r.metric)
          .columnInt("REQUESTS", r -> r.summary.requestCount)
