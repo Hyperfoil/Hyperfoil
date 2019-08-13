@@ -162,7 +162,7 @@ public class Http implements Serializable {
        }
     }
 
-    public static class TrustManager {
+    public static class TrustManager implements Serializable {
        private final String storeType;
        private final byte[] storeBytes;
        private final String password;
