@@ -3,6 +3,7 @@ package io.hyperfoil.util;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.concurrent.TimeUnit;
@@ -98,5 +99,17 @@ public final class Util {
          value += digit - '0';
       }
       return sign == '-' ? -value : value;
+   }
+
+   public static byte[] toByteArray(InputStream stream) throws IOException {
+      ByteArrayOutputStream result = new ByteArrayOutputStream();
+      byte[] buffer = new byte[1024];
+      int length;
+      while ((length = stream.read(buffer)) != -1) {
+         result.write(buffer, 0, length);
+      }
+      byte[] bytes = result.toByteArray();
+      stream.close();
+      return bytes;
    }
 }

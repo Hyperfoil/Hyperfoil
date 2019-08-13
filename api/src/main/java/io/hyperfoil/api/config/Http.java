@@ -41,9 +41,13 @@ public class Http implements Serializable {
     private final boolean directHttp2;
     private final long requestTimeout;
     private final boolean rawBytesHandlers;
+   private final KeyManager keyManager;
+   private final TrustManager trustManager;
 
    public Http(boolean isDefault, Protocol protocol, String host, int port, String[] addresses,
-               HttpVersion[] versions, int maxHttp2Streams, int pipeliningLimit, int sharedConnections, boolean directHttp2, long requestTimeout, boolean rawBytesHandlers) {
+               HttpVersion[] versions, int maxHttp2Streams, int pipeliningLimit, int sharedConnections,
+               boolean directHttp2, long requestTimeout, boolean rawBytesHandlers,
+               KeyManager keyManager, TrustManager trustManager) {
         this.isDefault = isDefault;
         this.protocol = protocol;
         this.host = host;
@@ -56,6 +60,8 @@ public class Http implements Serializable {
         this.directHttp2 = directHttp2;
         this.requestTimeout = requestTimeout;
         this.rawBytesHandlers = rawBytesHandlers;
+        this.keyManager = keyManager;
+        this.trustManager = trustManager;
    }
 
     public Protocol protocol() {
@@ -104,5 +110,85 @@ public class Http implements Serializable {
 
     public boolean rawBytesHandlers() {
        return rawBytesHandlers;
+    }
+
+   public TrustManager trustManager() {
+      return trustManager;
+   }
+
+   public KeyManager keyManager() {
+      return keyManager;
+   }
+
+   public static class KeyManager implements Serializable {
+       private final String storeType;
+       private final byte[] storeBytes;
+       private final String password;
+       private final String alias;
+       private final byte[] certBytes;
+       private final byte[] keyBytes;
+
+       public KeyManager(String storeType, byte[] storeBytes, String password, String alias, byte[] certBytes, byte[] keyBytes) {
+          this.storeType = storeType;
+          this.storeBytes = storeBytes;
+          this.password = password;
+          this.alias = alias;
+          this.certBytes = certBytes;
+          this.keyBytes = keyBytes;
+       }
+
+       public String storeType() {
+          return storeType;
+       }
+
+       public byte[] storeBytes() {
+          return storeBytes;
+       }
+
+       public String password() {
+          return password;
+       }
+
+       public String alias() {
+          return alias;
+       }
+
+       public byte[] certBytes() {
+          return certBytes;
+       }
+
+       public byte[] keyBytes() {
+          return keyBytes;
+       }
+    }
+
+    public static class TrustManager {
+       private final String storeType;
+       private final byte[] storeBytes;
+       private final String password;
+       private final byte[] certBytes;
+
+       public TrustManager(String storeType, byte[] storeBytes, String password, byte[] certBytes) {
+          this.storeType = storeType;
+          this.storeBytes = storeBytes;
+          this.password = password;
+          this.certBytes = certBytes;
+       }
+
+       public String storeType() {
+          return storeType;
+       }
+
+       public byte[] storeBytes() {
+          return storeBytes;
+       }
+
+       public String password() {
+          return password;
+       }
+
+       public byte[] certBytes() {
+          return certBytes;
+       }
     }
 }

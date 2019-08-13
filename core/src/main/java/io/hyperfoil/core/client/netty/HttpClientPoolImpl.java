@@ -1,5 +1,6 @@
 package io.hyperfoil.core.client.netty;
 
+import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelOption;
@@ -27,7 +28,21 @@ import io.vertx.core.Handler;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import java.security.GeneralSecurityException;
+import java.security.KeyFactory;
+import java.security.KeyStore;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.util.Base64;
 import java.util.Iterator;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
@@ -37,7 +52,9 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLException;
+import javax.net.ssl.TrustManagerFactory;
 
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
@@ -64,7 +81,7 @@ public class HttpClientPoolImpl implements HttpClientPool {
    public HttpClientPoolImpl(EventLoopGroup eventLoopGroup, Http http) throws SSLException {
         this.eventLoopGroup = eventLoopGroup;
         this.http = http;
-        this.sslContext = http.protocol().secure() ? createSslContext(http.versions()) : null;
+        this.sslContext = http.protocol().secure() ? createSslContext() : null;
         this.host = http.host();
         this.port = http.port();
         this.scheme = sslContext == null ? "http" : "https";
@@ -95,23 +112,118 @@ public class HttpClientPoolImpl implements HttpClientPool {
         }
     }
 
-   private SslContext createSslContext(HttpVersion[] versions) throws SSLException {
+   private SslContext createSslContext() throws SSLException {
       SslProvider provider = OpenSsl.isAlpnSupported() ? SslProvider.OPENSSL : SslProvider.JDK;
+      TrustManagerFactory trustManagerFactory = createTrustManagerFactory();
+
       SslContextBuilder builder = SslContextBuilder.forClient()
             .sslProvider(provider)
             /* NOTE: the cipher filter may not include all ciphers required by the HTTP/2 specification.
              * Please refer to the HTTP/2 specification for cipher requirements. */
             .ciphers(Http2SecurityUtil.CIPHERS, SupportedCipherSuiteFilter.INSTANCE)
-            .trustManager(InsecureTrustManagerFactory.INSTANCE);
+            .trustManager(trustManagerFactory)
+            .keyManager(createKeyManagerFactory());
       builder.applicationProtocolConfig(new ApplicationProtocolConfig(
             ApplicationProtocolConfig.Protocol.ALPN,
             // NO_ADVERTISE is currently the only mode supported by both OpenSsl and JDK providers.
             ApplicationProtocolConfig.SelectorFailureBehavior.NO_ADVERTISE,
             // ACCEPT is currently the only mode supported by both OpenSsl and JDK providers.
             ApplicationProtocolConfig.SelectedListenerFailureBehavior.ACCEPT,
-            Stream.of(versions).map(HttpVersion::protocolName).toArray(String[]::new)
+            Stream.of(http.versions()).map(HttpVersion::protocolName).toArray(String[]::new)
       ));
       return builder.build();
+   }
+
+   private KeyManagerFactory createKeyManagerFactory() {
+      Http.KeyManager config = http.keyManager();
+      if (config.storeBytes() == null && config.certBytes() == null && config.keyBytes() == null) {
+         return null;
+      }
+      try {
+         KeyStore ks = KeyStore.getInstance(config.storeType());
+         if (config.storeBytes() != null) {
+            ks.load(new ByteArrayInputStream(config.storeBytes()), config.password() == null ? null : config.password().toCharArray());
+            if (config.alias() != null) {
+               if (ks.containsAlias(config.alias()) && ks.isKeyEntry(config.alias())) {
+                  KeyStore.PasswordProtection password = new KeyStore.PasswordProtection(config.password().toCharArray());
+                  KeyStore.Entry entry = ks.getEntry(config.alias(), password);
+                  ks = KeyStore.getInstance(config.storeType());
+                  ks.load(null);
+                  ks.setEntry(config.alias(), entry, password);
+               } else {
+                  throw new BenchmarkDefinitionException("Store file " + config.storeBytes() + " does not contain any entry for alias " + config.alias());
+               }
+            }
+         } else {
+            ks.load(null, null);
+         }
+         if (config.certBytes() != null || config.keyBytes() != null) {
+            if (config.certBytes() == null || config.keyBytes() == null) {
+               throw new BenchmarkDefinitionException("You should provide both certificate and private key for " + http.host() + ":" + http.port());
+            }
+            ks.setKeyEntry(config.alias() == null ? "default" : config.alias(), toPrivateKey(config.keyBytes()),
+                  config.password().toCharArray(), new Certificate[] { loadCertificate(config.certBytes()) });
+         }
+         KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+         keyManagerFactory.init(ks, config.password().toCharArray());
+         return keyManagerFactory;
+      } catch (IOException | GeneralSecurityException e) {
+         throw new BenchmarkDefinitionException("Cannot create key manager for " + http.host() + ":" + http.port(), e);
+      }
+   }
+
+   private PrivateKey toPrivateKey(byte[] bytes) throws NoSuchAlgorithmException, InvalidKeySpecException {
+      int pos = 0, lastPos = bytes.length - 1;
+      // Truncate first and last lines and any newlines.
+      while (pos < bytes.length && isWhite(bytes[pos])) ++pos;
+      while (pos < bytes.length && bytes[pos] != '\n') ++pos;
+      while (lastPos >= 0 && isWhite(bytes[lastPos])) --lastPos;
+      while (lastPos >= 0 && bytes[lastPos] != '\n') --lastPos;
+      ByteBuffer buffer = ByteBuffer.allocate(lastPos - pos);
+      while (pos < lastPos) {
+         if (!isWhite(bytes[pos])) buffer.put(bytes[pos]);
+         ++pos;
+      }
+      buffer.flip();
+      ByteBuffer rawBuffer = Base64.getDecoder().decode(buffer);
+      byte[] decoded = new byte[rawBuffer.limit()];
+      rawBuffer.get(decoded);
+
+      PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(decoded);
+      KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+      return keyFactory.generatePrivate(keySpec);
+   }
+
+   private boolean isWhite(byte b) {
+      return b == ' ' || b == '\n' || b == '\r';
+   }
+
+   private TrustManagerFactory createTrustManagerFactory() {
+      Http.TrustManager config = http.trustManager();
+      if (config.storeBytes() == null && config.certBytes() == null) {
+         return InsecureTrustManagerFactory.INSTANCE;
+      }
+      try {
+         KeyStore ks = KeyStore.getInstance(config.storeType());
+         if (config.storeBytes() != null) {
+            ks.load(new ByteArrayInputStream(config.storeBytes()), config.password() == null ? null : config.password().toCharArray());
+         } else {
+            ks.load(null, null);
+         }
+         if (config.certBytes() != null) {
+            ks.setCertificateEntry("default", loadCertificate(config.certBytes()));
+         }
+         TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+         trustManagerFactory.init(ks);
+         return trustManagerFactory;
+      } catch (GeneralSecurityException | IOException e) {
+         throw new BenchmarkDefinitionException("Cannot create trust manager for " + http.host() + ":" + http.port(), e);
+      }
+   }
+
+   private static Certificate loadCertificate(byte[] bytes) throws CertificateException, IOException {
+      CertificateFactory cf = CertificateFactory.getInstance("X.509");
+      return cf.generateCertificate(new ByteArrayInputStream(bytes));
    }
 
    @Override
