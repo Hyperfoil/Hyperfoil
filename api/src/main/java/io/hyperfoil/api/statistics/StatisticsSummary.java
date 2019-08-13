@@ -1,6 +1,7 @@
 package io.hyperfoil.api.statistics;
 
 import java.io.PrintWriter;
+import java.util.SortedMap;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -12,7 +13,7 @@ public class StatisticsSummary {
    public final long meanResponseTime;
    public final long maxResponseTime;
    public final long meanSendTime;
-   public final long[] percentileResponseTime; // the percentiles depend on configuration
+   public final SortedMap<Double, Long> percentileResponseTime; // the percentiles depend on configuration
    public final int connectFailureCount;
    public final int requestCount;
    public final int responseCount;
@@ -35,7 +36,7 @@ public class StatisticsSummary {
                             @JsonProperty("meanResponseTime") long meanResponseTime,
                             @JsonProperty("maxResponseTime") long maxResponseTime,
                             @JsonProperty("meanSendTime") long meanSendTime,
-                            @JsonProperty("percentileResponseTime") long[] percentileResponseTime,
+                            @JsonProperty("percentileResponseTime") SortedMap<Double, Long> percentileResponseTime,
                             @JsonProperty("connectFailureCount") int connectFailureCount,
                             @JsonProperty("requestCount") int requestCount,
                             @JsonProperty("responseCount") int responseCount,
@@ -92,7 +93,7 @@ public class StatisticsSummary {
       writer.print(',');
       writer.print(minResponseTime);
       writer.print(',');
-      for (long prt : percentileResponseTime) {
+      for (long prt : percentileResponseTime.values()) {
          writer.print(prt);
          writer.print(',');
       }

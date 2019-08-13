@@ -3,6 +3,7 @@ package io.hyperfoil.api.statistics;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.DoubleStream;
 
@@ -178,11 +179,12 @@ public class StatisticsSnapshot implements Serializable {
    }
 
    public StatisticsSummary summary(double[] percentiles) {
-      long[] percentileValues = DoubleStream.of(percentiles).map(p -> p * 100).mapToLong(histogram::getValueAtPercentile).toArray();
+      TreeMap<Double, Long> percentilesMap = DoubleStream.of(percentiles).collect(TreeMap::new,
+            (map, p) -> map.put(p * 100, histogram.getValueAtPercentile(p * 100)), TreeMap::putAll);
       return new StatisticsSummary(histogram.getStartTimeStamp(), histogram.getEndTimeStamp(),
             histogram.getMinValue(), (long) histogram.getMean(), histogram.getMaxValue(),
             responseCount > 0 ? totalSendTime / responseCount : resetCount,
-            percentileValues, connectFailureCount, requestCount, responseCount,
+            percentilesMap, connectFailureCount, requestCount, responseCount,
             status_2xx, status_3xx, status_4xx, status_5xx, status_other, invalid, cacheHits, resetCount, timeouts, blockedCount, blockedTime);
    }
 
