@@ -22,8 +22,9 @@ package io.hyperfoil.api.config;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -41,7 +42,7 @@ public class BenchmarkBuilder {
     private Collection<Agent> agents = new ArrayList<>();
     private ErgonomicsBuilder ergonomics = new ErgonomicsBuilder();
     private HttpBuilder defaultHttp;
-    private Map<String, HttpBuilder> httpMap = new HashMap<>();
+    private List<HttpBuilder> httpList = new ArrayList<>();
     private int threads = 1;
     private Map<String, PhaseBuilder<?>> phaseBuilders = new HashMap<>();
     private long statisticsCollectionPeriod = 1000;
@@ -62,7 +63,7 @@ public class BenchmarkBuilder {
 
     public BenchmarkBuilder addAgent(String name, String inlineConfig, Map<String, String> properties) {
         Agent agent = new Agent(name, inlineConfig, properties);
-        if (agents.stream().filter(a -> a.name.equals(agent.name)).findAny().isPresent()) {
+        if (agents.stream().anyMatch(a -> a.name.equals(agent.name))) {
             throw new BenchmarkDefinitionException("Benchmark already contains agent '" + agent.name + "'");
         }
         agents.add(agent);
@@ -85,13 +86,9 @@ public class BenchmarkBuilder {
     }
 
     public HttpBuilder http(String host) {
-        String authority = Objects.requireNonNull(host);
-        for (Protocol protocol : Protocol.values()) {
-            if (authority.startsWith(protocol.scheme) && authority.regionMatches(protocol.scheme.length(), "://", 0, 3)) {
-                authority = authority.substring(protocol.scheme.length() + 3);
-            }
-        }
-        return httpMap.computeIfAbsent(authority, h -> new HttpBuilder(this).host(h));
+        HttpBuilder builder = new HttpBuilder(this).host(host);
+        httpList.add(builder);
+        return builder;
     }
 
     public BenchmarkBuilder threads(int threads) {
@@ -108,7 +105,7 @@ public class BenchmarkBuilder {
             return new PhaseBuilder.Catalog(this, "main").constantPerSec(0);
         }
         PhaseBuilder<?> builder = phaseBuilders.get("main");
-        if (builder == null || !(builder instanceof PhaseBuilder.ConstantPerSec)) {
+        if (!(builder instanceof PhaseBuilder.ConstantPerSec)) {
             throw new BenchmarkDefinitionException("Benchmark already has defined phases; cannot use single-phase definition");
         }
         return (PhaseBuilder.ConstantPerSec) builder;
@@ -116,30 +113,34 @@ public class BenchmarkBuilder {
 
     public void prepareBuild() {
         if (defaultHttp == null) {
-            if (httpMap.isEmpty()) {
+            if (httpList.isEmpty()) {
                 // may be removed in the future when we define more than HTTP connections
                 throw new BenchmarkDefinitionException("No default HTTP target set!");
-            } else if (httpMap.size() == 1) {
-                defaultHttp = httpMap.values().iterator().next();
-            } else {
-                // Validate that base url is always set in steps
+            } else if (httpList.size() == 1) {
+                defaultHttp = httpList.iterator().next();
             }
         } else {
-            if (httpMap.containsKey(defaultHttp.authority())) {
+            if (httpList.stream().anyMatch(http -> http.authority().equals(defaultHttp.authority()))) {
                 throw new BenchmarkDefinitionException("Ambiguous HTTP definition for "
                       + defaultHttp.authority() + ": defined both as default and non-default");
             }
-            httpMap.put(defaultHttp.authority(), defaultHttp);
+            httpList.add(defaultHttp);
         }
-        httpMap.values().forEach(HttpBuilder::prepareBuild);
+        HashSet<String> authorities = new HashSet<>();
+        for (HttpBuilder http : httpList) {
+            if (!authorities.add(http.authority())) {
+                throw new BenchmarkDefinitionException("Duplicit HTTP definition for " + http.authority());
+            }
+        }
+        httpList.forEach(HttpBuilder::prepareBuild);
         phaseBuilders.values().forEach(PhaseBuilder::prepareBuild);
     }
 
     public Benchmark build() {
         prepareBuild();
         FutureSupplier<Benchmark> bs = new FutureSupplier<>();
-        Map<String, Http> http = httpMap.entrySet().stream()
-              .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().build(entry.getValue() == defaultHttp)));
+        Map<String, Http> httpMap = httpList.stream()
+              .collect(Collectors.toMap(HttpBuilder::authority, http -> http.build(http == defaultHttp)));
 
         AtomicInteger phaseIdCounter = new AtomicInteger(0);
         Collection<Phase> phases = phaseBuilders.values().stream()
@@ -163,7 +164,7 @@ public class BenchmarkBuilder {
         Map<String, byte[]> files = data.files();
 
         Benchmark benchmark = new Benchmark(name, originalSource, files, agents.toArray(new Agent[0]), threads, ergonomics.build(),
-              http, phases, tags, statisticsCollectionPeriod);
+              httpMap, phases, tags, statisticsCollectionPeriod);
         bs.set(benchmark);
         return benchmark;
     }
@@ -196,7 +197,7 @@ public class BenchmarkBuilder {
     }
 
     public boolean validateAuthority(String authority) {
-        return authority == null && defaultHttp != null || httpMap.containsKey(authority);
+        return authority == null && defaultHttp != null || httpList.stream().anyMatch(http -> http.authority().equals(authority));
     }
 
     public HttpBuilder decoupledHttp() {
@@ -207,9 +208,7 @@ public class BenchmarkBuilder {
         if (builder.authority() == null) {
             throw new BenchmarkDefinitionException("Missing hostname!");
         }
-        if (httpMap.putIfAbsent(builder.authority(), builder) != null) {
-            throw new BenchmarkDefinitionException("HTTP configuration for " + builder.authority() + " already present!");
-        }
+        httpList.add(builder);
     }
 
     public BenchmarkData data() {
