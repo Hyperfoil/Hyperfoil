@@ -1,6 +1,7 @@
 package io.hyperfoil.core.client.netty;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.util.Util;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelOption;
@@ -264,8 +265,15 @@ public class HttpClientPoolImpl implements HttpClientPool {
        bootstrap.handler(new HttpChannelInitializer(this, pool, handler));
 
        String address = this.host;
+       int port = this.port;
        if (http.addresses().length != 0) {
           address = http.addresses()[ThreadLocalRandom.current().nextInt(http.addresses().length)];
+          // TODO: IPv6 addresses
+          int colonIndex = address.lastIndexOf(':');
+          if (colonIndex >= 0) {
+             port = (int) Util.parseLong(address, colonIndex + 1, address.length(), port);
+          }
+          address = address.substring(0, colonIndex);
        }
 
        ChannelFuture fut = bootstrap.connect(new InetSocketAddress(address, port));
