@@ -21,7 +21,7 @@ class HttpParser extends AbstractParser<BenchmarkBuilder, HttpBuilder> {
       register("pipeliningLimit", new PropertyParser.Int<>(HttpBuilder::pipeliningLimit));
       register("directHttp2", new PropertyParser.Boolean<>(HttpBuilder::directHttp2));
       register("requestTimeout", new PropertyParser.String<>(HttpBuilder::requestTimeout));
-      register("addresses", (ctx, builder) -> ctx.parseList(builder, ADDRESS_PARSER));
+      register("addresses", HttpParser::parseAddresses);
       register("rawBytesHandlers", new PropertyParser.Boolean<>(HttpBuilder::rawBytesHandlers));
       register("keyManager", new ReflectionParser<>(HttpBuilder::keyManager, HttpBuilder.KeyManagerBuilder.class));
       register("trustManager", new ReflectionParser<>(HttpBuilder::trustManager, HttpBuilder.TrustManagerBuilder.class));
@@ -37,6 +37,17 @@ class HttpParser extends AbstractParser<BenchmarkBuilder, HttpBuilder> {
          });
       } else {
          callSubBuilders(ctx, target.http());
+      }
+   }
+
+   private static void parseAddresses(Context ctx, HttpBuilder builder) throws ParserException {
+      if (ctx.peek() instanceof ScalarEvent) {
+         String value = ctx.expectEvent(ScalarEvent.class).getValue();
+         if (value != null && !value.isEmpty()) {
+            builder.addAddress(value);
+         }
+      } else {
+         ctx.parseList(builder, ADDRESS_PARSER);
       }
    }
 
