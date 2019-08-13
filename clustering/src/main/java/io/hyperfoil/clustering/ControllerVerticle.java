@@ -357,7 +357,8 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                             startSimulation(run);
                         }
                     } else {
-                        log.error("Agent {} failed to initialize", reply.cause(), agent.deploymentId);
+                        log.error("Agent {}({}) failed to initialize", reply.cause(), agent.name, agent.deploymentId);
+                        run.errors.add(new Run.Error(agent, reply.cause()));
                         stopSimulation(run);
                     }
                 });
