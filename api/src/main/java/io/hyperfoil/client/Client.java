@@ -42,6 +42,7 @@ public interface Client {
       String id();
       Run get();
       RunRef kill();
+      Benchmark benchmark();
       Map<String, Map<String, MinMax>> sessionStatsRecent();
       Map<String, Map<String, MinMax>> sessionStatsTotal();
       // TODO: server should expose JSON-formatted variants

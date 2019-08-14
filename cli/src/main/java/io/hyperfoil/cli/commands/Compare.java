@@ -31,7 +31,7 @@ public class Compare extends ServerCommand {
          .column("p99.9", c -> compareNanos(c, ss -> ss.percentileResponseTime.get(99.9)), Table.Align.RIGHT)
          .column("p99.99", c -> compareNanos(c, ss -> ss.percentileResponseTime.get(99.99)), Table.Align.RIGHT);
 
-   @Arguments(required = true, description = "Runs that should be compared.", completer = BaseRunIdCommand.RunCompleter.class)
+   @Arguments(required = true, description = "Runs that should be compared.", completer = RunCompleter.class)
    private List<String> runIds;
 
    @Option(name = "threshold", shortName = '\t', description = "Difference threshold for coloring.", defaultValue = "0.05")

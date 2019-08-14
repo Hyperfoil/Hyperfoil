@@ -12,7 +12,7 @@ import io.hyperfoil.core.util.Util;
 
 class Run {
    final String id;
-   final Benchmark benchmark;
+   Benchmark benchmark;
    final Map<String, ControllerPhase> phases = new HashMap<>();
    final List<AgentInfo> agents = new ArrayList<>();
    final Phase[] phasesById;

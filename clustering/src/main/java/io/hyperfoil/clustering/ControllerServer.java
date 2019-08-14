@@ -86,6 +86,7 @@ class ControllerServer {
       router.get("/run/:runid/stats/recent").handler(this::handleRecentStats);
       router.get("/run/:runid/stats/total").handler(this::handleTotalStats);
       router.get("/run/:runid/stats/custom").handler(this::handleCustomStats);
+      router.get("/run/:runid/benchmark").handler(this::handleRunBenchmark);
       router.get("/agents").handler(this::handleAgents);
       router.get("/log").handler(this::handleLog);
       router.get("/log/:agent").handler(this::handleAgentLog);
@@ -211,6 +212,19 @@ class ControllerServer {
          return;
       }
 
+      sendBenchmark(ctx, benchmark);
+   }
+
+   private void handleRunBenchmark(RoutingContext ctx) {
+      Run run = getRun(ctx);
+      if (run == null) {
+         ctx.response().setStatusCode(HttpResponseStatus.NOT_FOUND.code()).end();
+         return;
+      }
+      sendBenchmark(ctx, controller.ensureBenchmark(run));
+   }
+
+   private void sendBenchmark(RoutingContext ctx, Benchmark benchmark) {
       String acceptHeader = ctx.request().getHeader(HttpHeaders.ACCEPT);
       if (acceptHeader == null) {
          ctx.response().setStatusCode(400).setStatusMessage("Missing Accept header in the request.").end();

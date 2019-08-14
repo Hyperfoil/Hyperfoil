@@ -1,11 +1,15 @@
 package io.hyperfoil.client;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
+import java.util.concurrent.CompletionException;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 
+import io.hyperfoil.api.config.Benchmark;
+import io.hyperfoil.util.Util;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
@@ -39,6 +43,21 @@ public class RunRefImpl implements Client.RunRef {
             handler -> client.client.request(HttpMethod.GET, "/run/" + id + "/kill").send(handler), 202,
             response -> null);
       return this;
+   }
+
+   @Override
+   public Benchmark benchmark() {
+      return client.sync(
+            handler -> client.client.request(HttpMethod.GET, "/run/" + id + "/benchmark")
+                  .putHeader(HttpHeaders.ACCEPT.toString(), "application/java-serialized-object")
+                  .send(handler), 200,
+            response -> {
+               try {
+                  return Util.deserialize(response.bodyAsBuffer().getBytes());
+               } catch (IOException | ClassNotFoundException e) {
+                  throw new CompletionException(e);
+               }
+            });
    }
 
    @Override

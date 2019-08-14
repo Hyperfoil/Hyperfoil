@@ -33,9 +33,4 @@ public abstract class BaseRunIdCommand extends ServerCommand {
       return runRef;
    }
 
-   public static class RunCompleter extends ServerOptionCompleter {
-      public RunCompleter() {
-         super(client -> client.runs().stream().sorted(Comparator.reverseOrder()));
-      }
-   }
 }

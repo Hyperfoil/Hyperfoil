@@ -21,11 +21,24 @@ public class Info extends BenchmarkCommand {
    @Option(name = "pager", shortName = 'p', description = "Pager used.")
    private String pager;
 
+   @Option(name = "run", shortName = 'r', description = "Show benchmark used for specific run.", completer = RunCompleter.class)
+   private String runId;
+
    @Override
    public CommandResult execute(HyperfoilCommandInvocation invocation) throws CommandException {
-      Client.BenchmarkRef benchmarkRef = ensureBenchmark(invocation);
+      ensureConnection(invocation);
+      String benchmarkName = "<unknown>";
+      Benchmark benchmark;
       try {
-         Benchmark benchmark = benchmarkRef.get();
+         if (runId != null) {
+            Client.RunRef run = invocation.context().client().run(runId);
+            benchmarkName = run.get().benchmark;
+            benchmark = run.benchmark();
+         } else {
+            Client.BenchmarkRef benchmarkRef = ensureBenchmark(invocation);
+            benchmarkName = benchmarkRef.name();
+            benchmark = benchmarkRef.get();
+         }
          if (benchmark.source() == null) {
             invocation.println("No source available for benchmark '" + benchmark.name() + "'.");
          } else {
@@ -48,7 +61,7 @@ public class Info extends BenchmarkCommand {
          return CommandResult.SUCCESS;
       } catch (RestClientException e) {
          invocation.println("ERROR: " + Util.explainCauses(e));
-         throw new CommandException("Cannot get benchmark " + benchmarkRef.name());
+         throw new CommandException("Cannot get benchmark " + benchmarkName);
       }
    }
 }

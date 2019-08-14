@@ -593,6 +593,23 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
         });
     }
 
+    public Benchmark ensureBenchmark(Run run) {
+        if (run.benchmark.source() == null) {
+            File serializedSource = RUN_DIR.resolve(run.id).resolve(run.benchmark.name() + ".serialized").toFile();
+            if (serializedSource.exists() && serializedSource.isFile()) {
+                run.benchmark = PersistenceUtil.load(serializedSource.toPath());
+                return run.benchmark;
+            }
+            File yamlSource = RUN_DIR.resolve(run.id).resolve(run.benchmark.name() + ".yaml").toFile();
+            if (yamlSource.exists() && yamlSource.isFile()) {
+                run.benchmark = PersistenceUtil.load(yamlSource.toPath());
+                return run.benchmark;
+            }
+            log.warn("Cannot find benchmark source for run " + run.id + ", benchmark " + run.benchmark.name());
+        }
+        return run.benchmark;
+    }
+
     static class StartResult {
       final String runId;
       final String error;
