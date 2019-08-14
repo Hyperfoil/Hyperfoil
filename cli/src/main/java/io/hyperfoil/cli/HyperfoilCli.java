@@ -20,6 +20,7 @@
 
 package io.hyperfoil.cli;
 
+import io.hyperfoil.cli.commands.Compare;
 import io.hyperfoil.cli.commands.Connect;
 import io.hyperfoil.cli.commands.Edit;
 import io.hyperfoil.cli.commands.Info;
@@ -94,6 +95,7 @@ public class HyperfoilCli {
                        .commandRegistry(
                                AeshCommandRegistryBuilder.<HyperfoilCommandInvocation>builder()
                                        .command(Connect.class)
+                                       .command(Compare.class)
                                        .command(Edit.class)
                                        .command(ExitCommand.class)
                                        .command(Info.class)
