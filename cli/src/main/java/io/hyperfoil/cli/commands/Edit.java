@@ -46,6 +46,7 @@ public class Edit extends BenchmarkCommand {
          invocation.println("ERROR: " + Util.explainCauses(e));
          throw new CommandException("Cannot get benchmark " + benchmarkRef.name());
       }
+      long modifiedTimestamp = sourceFile.lastModified();
       Benchmark updated;
       for (;;) {
          try {
@@ -53,6 +54,11 @@ public class Edit extends BenchmarkCommand {
          } catch (IOException e) {
             sourceFile.delete();
             throw new CommandException("Failed to invoke the editor.", e);
+         }
+         if (sourceFile.lastModified() == modifiedTimestamp) {
+            invocation.println("No changes, not uploading.");
+            sourceFile.delete();
+            return CommandResult.SUCCESS;
          }
          try {
             updated = BenchmarkParser.instance().buildBenchmark(new ByteArrayInputStream(Files.readAllBytes(sourceFile.toPath())), new LocalBenchmarkData());
