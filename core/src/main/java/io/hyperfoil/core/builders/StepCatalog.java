@@ -14,6 +14,7 @@ import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.api.session.Session;
+import io.hyperfoil.core.generators.RandomCsvRowStep;
 import io.hyperfoil.core.generators.RandomIntStep;
 import io.hyperfoil.core.generators.RandomItemStep;
 import io.hyperfoil.core.generators.TemplateStep;
@@ -192,6 +193,10 @@ public class StepCatalog implements Step.Catalog {
 
    public RandomItemStep.Builder randomItem(String toFrom) {
       return new RandomItemStep.Builder(parent, toFrom);
+   }
+
+   public RandomCsvRowStep.Builder randomCsvRow() {
+      return new RandomCsvRowStep.Builder((parent));
    }
 
    public ServiceLoadedBuilderProvider<StepBuilder, StepBuilder.Factory> serviceLoaded() {
