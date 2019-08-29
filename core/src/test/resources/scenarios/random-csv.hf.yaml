@@ -12,7 +12,7 @@ phases:
         - testSequence:
           - randomCsvRow:
              file: core/src/test/resources/data/random-sample-test.csv
-             headers: true
+             skipComments: true
              removeQuotes: true
              columns:
                0: target-host

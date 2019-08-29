@@ -124,7 +124,7 @@ public class RandomCsvRowStep implements Step, ResourceUtilizer  {
          return this;
       }
 
-      public Builder headers(boolean hasHeader) {
+      public Builder skipComments(boolean hasHeader) {
          this.skipComments = hasHeader;
          return this;
       }
