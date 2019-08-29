@@ -167,8 +167,9 @@ public class HttpBuilder {
         return requestTimeout;
     }
 
-    public void addAddress(String address) {
+    public HttpBuilder addAddress(String address) {
         addresses.add(address);
+        return this;
     }
 
     public HttpBuilder rawBytesHandlers(boolean rawBytesHandlers) {
