@@ -62,3 +62,5 @@ ScratchPad.java
 src/main/resources/ext-js/*.js
 src/main/java/io/vertx/java/**/*.java
 *.swp
+/bin/
+/eclipsebin/

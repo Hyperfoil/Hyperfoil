@@ -1,17 +1,17 @@
 name: simple benchmark
 http:
-  - host: http://localhost:8099
+- host: http://localhost:8099
 phases:
 - rampUp:
     rampPerSec:
       initialUsersPerSec: 1
       targetUsersPerSec: 100
-      duration: 3s
+      duration: 30s
       scenario: &scenario
         initialSequences:
         - testSequence:
           - randomCsvRow:
-             file: src/test/resources/data/random-sample-test.csv
+             file: core/src/test/resources/data/random-sample-test.csv
              headers: true
              removeQuotes: true
              columns:

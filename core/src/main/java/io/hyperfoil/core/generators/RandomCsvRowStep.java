@@ -16,7 +16,6 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import io.hyperfoil.api.config.BaseSequenceBuilder;
-import io.hyperfoil.api.config.BenchmarkDataException;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.PairBuilder;
 import io.hyperfoil.api.config.Sequence;
@@ -74,8 +73,8 @@ public class RandomCsvRowStep implements Step, ResourceUtilizer  {
 
    public static class Builder extends BaseStepBuilder {
       private String file;
-      private Boolean isHeaderRemoved;
-      private Boolean isQuotesRemoved;
+      private boolean skipComments;
+      private boolean isQuotesRemoved;
       private Map<String, Integer> builderColumns = new HashMap<>();
       private int maxSize = 0;
 
@@ -91,7 +90,7 @@ public class RandomCsvRowStep implements Step, ResourceUtilizer  {
          }
          List<String[]> rows;
          try ( BufferedReader reader = Files.newBufferedReader(Paths.get(f.getAbsolutePath())) ){
-            Predicate<String> comments = s -> (isHeaderRemoved ? !(s.trim().startsWith("#")) : true );
+            Predicate<String> comments = s -> (skipComments ? !(s.trim().startsWith("#")) : true );
             rows = reader.lines()
                   .filter(comments)
                   .map(s -> isQuotesRemoved ? s.replaceAll("\"","") : s)
@@ -101,13 +100,15 @@ public class RandomCsvRowStep implements Step, ResourceUtilizer  {
             throw new BenchmarkDefinitionException(ioe.getMessage());
          }
          if (rows.isEmpty()) {
-            throw new BenchmarkDataException("Missing CSV row data. Rows were not detected after initial processing of file.");
+            throw new BenchmarkDefinitionException("Missing CSV row data. Rows were not detected after initial processing of file.");
          }
-         rows.forEach(arr -> {for (int i = 0 ; i < arr.length; i += 1) {
-            if (!builderColumns.containsValue(i)) {
-               arr[i] = null;
+         rows.forEach(arr -> {
+            for (int i = 0 ; i < arr.length; i += 1) {
+               if (!builderColumns.containsValue(i)) {
+                  arr[i] = null;
+               }
             }
-         }});
+         });
          List<String> cols = new ArrayList<>();
          cols.addAll(builderColumns.keySet());
 
@@ -123,13 +124,13 @@ public class RandomCsvRowStep implements Step, ResourceUtilizer  {
          return this;
       }
 
-      public Builder headers(String hasHeader) {
-         this.isHeaderRemoved = Boolean.parseBoolean(hasHeader);
+      public Builder headers(boolean hasHeader) {
+         this.skipComments = hasHeader;
          return this;
       }
 
-      public Builder removeQuotes(String isQuotesRemoved) {
-         this.isQuotesRemoved = Boolean.parseBoolean(isQuotesRemoved);
+      public Builder removeQuotes(boolean isQuotesRemoved) {
+         this.isQuotesRemoved = isQuotesRemoved;
          return this;
       }
 
