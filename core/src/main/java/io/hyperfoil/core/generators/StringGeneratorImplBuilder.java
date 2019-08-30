@@ -48,6 +48,7 @@ public class StringGeneratorImplBuilder<T> implements StringGeneratorBuilder {
 
    public StringGeneratorImplBuilder<T> fromVar(String var) {
       Access access = SessionFactory.access(var);
+      boolean urlEncode = this.urlEncode;
       set(session -> {
          Object value = access.getObject(session);
          if (value instanceof String) {
