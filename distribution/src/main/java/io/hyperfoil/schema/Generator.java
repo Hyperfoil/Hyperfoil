@@ -25,7 +25,7 @@ import io.hyperfoil.core.steps.ServiceLoadedBuilderProvider;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
-public class Generator {
+public class Generator extends BaseGenerator {
 
    private static final Pattern END_REGEXP = Pattern.compile("^end(\\p{javaUpperCase}.*|$)");
    private static final JsonObject TYPE_NULL = new JsonObject().put("type", "null");
@@ -37,11 +37,6 @@ public class Generator {
 
    public static void main(String[] args) throws IOException {
       new Generator(Paths.get(args[0]), Paths.get(args[1])).run();
-   }
-
-   @SuppressWarnings("unchecked")
-   private static Iterable<ServiceLoadedFactory<?>> getFactories(Class<? extends ServiceLoadedFactory<?>> factoryClass) {
-      return ServiceLoadedBuilderProvider.factories((Class) factoryClass);
    }
 
    private Generator(Path input, Path output) {
@@ -221,19 +216,6 @@ public class Generator {
       } else {
          return new JsonObject().put("oneOf", new JsonArray(options));
       }
-   }
-
-   @SuppressWarnings("unchecked")
-   private Class<? extends ServiceLoadedFactory<?>> getBuilderFactoryClass(Type builderFactory) {
-      Class<? extends ServiceLoadedFactory<?>> bfClass;
-      if (builderFactory instanceof Class) {
-         bfClass = (Class<? extends ServiceLoadedFactory<?>>) builderFactory;
-      } else if (builderFactory instanceof ParameterizedType){
-         bfClass = (Class<? extends ServiceLoadedFactory<?>>) ((ParameterizedType) builderFactory).getRawType();
-      } else {
-         throw new IllegalStateException("Cannot analyze factory type " + builderFactory);
-      }
-      return bfClass;
    }
 
    private JsonObject getType(Method m) {

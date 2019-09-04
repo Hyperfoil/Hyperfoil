@@ -101,7 +101,7 @@ public class FleetTest extends BaseScenarioTest {
             .endSequence()
             .sequence("ship")
                .step(SC).httpRequest(HttpMethod.GET)
-                  .pathGenerator(FleetTest::currentShipQuery)
+                  .path(FleetTest::currentShipQuery)
                   .sync(false)
                   .handler()
                      .body(new JsonHandler(".crew[]", crewAssertion.processor(new SequenceScopedCountRecorder("crewCount", MAX_SHIPS))))
@@ -113,7 +113,7 @@ public class FleetTest extends BaseScenarioTest {
                   .onBreak(new AddToIntStep(NUMBER_OF_SHIPS, -1))
                .endStep()
                .step(SC).httpRequest(HttpMethod.DELETE)
-                  .pathGenerator(FleetTest::currentShipQuery)
+                  .path(FleetTest::currentShipQuery)
                   .sync(false)
                   .handler()
                      .status(((request, status) -> {

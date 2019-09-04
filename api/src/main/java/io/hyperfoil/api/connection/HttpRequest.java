@@ -44,6 +44,9 @@ public class HttpRequest extends Request {
       handlers.handleThrowable(this, throwable);
    }
 
+   /**
+    * Processors for HTTP requests.
+    */
    @ServiceLoadedFactory.Include(Request.ProcessorBuilderFactory.class)
    public interface ProcessorBuilderFactory extends ServiceLoadedFactory<Processor.Builder<HttpRequest>> {}
 }

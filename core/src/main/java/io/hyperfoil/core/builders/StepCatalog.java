@@ -59,6 +59,11 @@ public class StepCatalog implements Step.Catalog {
       return new BreakSequenceStep.Builder(parent);
    }
 
+   /**
+    * Schedules a new sequence instance to be executed.
+    *
+    * @param name Name of the instantiated sequence.
+    */
    public BaseSequenceBuilder nextSequence(String name) {
       return parent.step(s -> {
          s.nextSequence(name);
@@ -74,6 +79,9 @@ public class StepCatalog implements Step.Catalog {
       return new ForeachStep.Builder(parent);
    }
 
+   /**
+    * Immediately stop the user session (break all running sequences).
+    */
    public BaseSequenceBuilder stop() {
       return parent.step(s -> {
          s.stop();
@@ -83,24 +91,40 @@ public class StepCatalog implements Step.Catalog {
 
    // requests
 
+   /**
+    * Issue a HTTP request.
+    */
    public HttpRequestStep.Builder httpRequest(HttpMethod method) {
       return new HttpRequestStep.Builder(parent).method(method);
    }
 
+   /**
+    * Block current sequence until all requests receive the response.
+    */
    public BaseSequenceBuilder awaitAllResponses() {
       return parent.step(new AwaitAllResponsesStep());
    }
 
+   /**
+    * Drop all entries from HTTP cache in the session.
+    */
    public BaseSequenceBuilder clearHttpCache() {
       return parent.step(new ClearHttpCacheStep());
    }
 
    // timing
 
+   /**
+    * Define a point in future until which we should wait. Do not wait yet.
+    */
    public ScheduleDelayStep.Builder scheduleDelay(String key, long duration, TimeUnit timeUnit) {
       return new ScheduleDelayStep.Builder(parent, key, duration, timeUnit);
    }
 
+   /**
+    * Block this sequence until referenced delay point.
+    * @param key Delay point created in <code>scheduleDelay.key</code>.
+    */
    public BaseSequenceBuilder awaitDelay(String key) {
       return parent.step(new AwaitDelayStep(key));
    }
@@ -109,6 +133,9 @@ public class StepCatalog implements Step.Catalog {
       return new AwaitDelayStep.Builder(parent);
    }
 
+   /**
+    * Block the current sequence for specified duration.
+    */
    public ScheduleDelayStep.Builder thinkTime(long duration, TimeUnit timeUnit) {
       // We will schedule two steps bound by an unique key
       Unique key = new Unique();
@@ -125,14 +152,25 @@ public class StepCatalog implements Step.Catalog {
 
    // general
 
+   /**
+    * Block current sequence until condition becomes true.
+    */
    public BaseSequenceBuilder awaitCondition(Predicate<Session> condition) {
       return parent.step(new AwaitConditionStep(condition));
    }
 
+   /**
+    * Block current sequence until condition becomes true.
+    */
    public AwaitIntStep.Builder awaitInt() {
       return new AwaitIntStep.Builder(parent);
    }
 
+   /**
+    * Block current sequence until this variable gets set/unset.
+    *
+    * @param var Variable name or <code>!variable</code> if we are waiting for it to be unset.
+    */
    public BaseSequenceBuilder awaitVar(String var) {
       return parent.step(new AwaitVarStep(var));
    }
@@ -145,10 +183,20 @@ public class StepCatalog implements Step.Catalog {
       return new SetStep.Builder(parent, null);
    }
 
+   /**
+    * Set variable to given value.
+    *
+    * @param param Use <code>var <- value</code>.
+    */
    public BaseSequenceBuilder set(String param) {
       return new SetStep.Builder(parent, param).endStep();
    }
 
+   /**
+    * Set variable to given value.
+    *
+    * @param param Use <code>var <- value</code>.
+    */
    public BaseSequenceBuilder setInt(String param) {
       return new SetIntStep.Builder(parent, param).endStep();
    }
@@ -161,6 +209,10 @@ public class StepCatalog implements Step.Catalog {
       return new AddToIntStep.Builder(parent, null);
    }
 
+   /**
+    * Add integral value to variable.
+    * @param param One of: <code>var++</code>, <code>var--</code>, <code>var += value</code>, <code>var -= value</code>.
+    */
    public BaseSequenceBuilder addToInt(String param) {
       return new AddToIntStep.Builder(parent, param).endStep();
    }
@@ -183,6 +235,10 @@ public class StepCatalog implements Step.Catalog {
       return new RandomIntStep.Builder(parent, null);
    }
 
+   /**
+    * Stores random (linearly distributed) integer into session variable.
+    * @param rangeToVar Use <code>var <- min..max</code>
+    */
    public RandomIntStep.Builder randomInt(String rangeToVar) {
       return new RandomIntStep.Builder(parent, rangeToVar);
    }
@@ -191,6 +247,10 @@ public class StepCatalog implements Step.Catalog {
       return new RandomItemStep.Builder(parent, null);
    }
 
+   /**
+    * Stores random item from a list or array into session variable.
+    * @param toFrom Use <code>var <- arrayVariable</code>
+    */
    public RandomItemStep.Builder randomItem(String toFrom) {
       return new RandomItemStep.Builder(parent, toFrom);
    }
@@ -224,17 +284,23 @@ public class StepCatalog implements Step.Catalog {
       return new JsonStep.Builder(parent);
    }
 
+   /**
+    * Move values from a map shared across all sessions using the same executor into session variables.
+    */
    public PullSharedMapStep.Builder pullSharedMap() {
       return new PullSharedMapStep.Builder(parent);
    }
 
+   /**
+    * Store values from session variables into a map shared across all sessions using the same executor into session variables.
+    */
    public PushSharedMapStep.Builder pushSharedMap() {
       return new PushSharedMapStep.Builder(parent);
    }
 
    // utility
 
-   public LogStep.Builder log(String message) {
+   public LogStep.Builder log() {
       return new LogStep.Builder(parent);
    }
 

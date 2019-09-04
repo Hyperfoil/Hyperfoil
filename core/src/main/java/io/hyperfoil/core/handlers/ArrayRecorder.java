@@ -55,6 +55,9 @@ public class ArrayRecorder implements Processor<Request>, ResourceUtilizer {
       toVar.unset(session);
    }
 
+   /**
+    * Stores data in an array stored as session variable.
+    */
    public static class Builder implements Processor.Builder<Request> {
       private String toVar;
       private DataFormat format = DataFormat.STRING;
@@ -82,16 +85,25 @@ public class ArrayRecorder implements Processor<Request>, ResourceUtilizer {
          return new ArrayRecorder(toVar, format, maxSize);
       }
 
+      /**
+       * Variable name.
+       */
       public Builder toVar(String var) {
          this.toVar = var;
          return this;
       }
 
+      /**
+       * Maximum size of the array.
+       */
       public Builder maxSize(int maxSize) {
          this.maxSize = maxSize;
          return this;
       }
 
+      /**
+       * Format into which should this processor convert the buffers before storing. Default is <code>STRING</code>.
+       */
       public Builder format(DataFormat format) {
          this.format = format;
          return this;
@@ -110,6 +122,9 @@ public class ArrayRecorder implements Processor<Request>, ResourceUtilizer {
          return true;
       }
 
+      /**
+       * @param param Use format <code>variable[maxSize]</code>
+       */
       @Override
       public Builder newBuilder(Locator locator, String param) {
          return new Builder(param);

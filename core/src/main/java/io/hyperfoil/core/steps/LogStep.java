@@ -57,6 +57,9 @@ public class LogStep implements Step {
       return true;
    }
 
+   /**
+    * Log a message and variable values.
+    */
    public static class Builder extends BaseStepBuilder {
       String message;
       List<String> vars = new ArrayList<>();
@@ -65,11 +68,17 @@ public class LogStep implements Step {
          super(parent);
       }
 
+      /**
+       * Message format pattern. Use <code>{}</code> to mark the positions for variables in the logged message.
+       */
       public Builder message(String message) {
          this.message = message;
          return this;
       }
 
+      /**
+       * List of variables to be logged.
+       */
       public ListBuilder vars() {
          return vars::add;
       }

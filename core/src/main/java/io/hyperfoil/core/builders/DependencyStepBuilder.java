@@ -14,6 +14,9 @@ public abstract class DependencyStepBuilder<S extends DependencyStepBuilder<S>> 
       super(parent);
    }
 
+   /**
+    * This step is blocked if this variable does not have set value (none by default).
+    */
    @SuppressWarnings("unchecked")
    public S dependency(String var) {
       if (var != null) {

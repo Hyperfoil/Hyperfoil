@@ -256,6 +256,9 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       }
    }
 
+   /**
+    * Manages processing of HTTP responses.
+    */
    public static class Builder implements Rewritable<Builder> {
       private final HttpRequestStep.Builder parent;
       private List<StatusHandler.Builder> statusHandlers = new ArrayList<>();
@@ -277,6 +280,9 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          return this;
       }
 
+      /**
+       * Handle HTTP response status.
+       */
       public ServiceLoadedBuilderProvider<StatusHandler.Builder, StatusHandler.BuilderFactory> status() {
          return new ServiceLoadedBuilderProvider<>(StatusHandler.BuilderFactory.class, Locator.fromStep(parent), statusHandlers::add);
       }
@@ -290,6 +296,9 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          return this;
       }
 
+      /**
+       * Handle HTTP response headers.
+       */
       public ServiceLoadedBuilderProvider<HeaderHandler.Builder, HeaderHandler.BuilderFactory> header() {
          return new ServiceLoadedBuilderProvider<>(HeaderHandler.BuilderFactory.class, Locator.fromStep(parent), headerHandlers::add);
       }
@@ -299,6 +308,9 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          return this;
       }
 
+      /**
+       * Handle HTTP response body.
+       */
       public ServiceLoadedBuilderProvider<BodyHandler.Builder, BodyHandler.BuilderFactory> body() {
          return new ServiceLoadedBuilderProvider<>(BodyHandler.BuilderFactory.class, Locator.fromStep(parent), bodyHandlers::add);
       }
@@ -312,10 +324,16 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          return this;
       }
 
+      /**
+       * Action executed when the HTTP response is fully received.
+       */
       public ServiceLoadedBuilderProvider<Action.Builder, Action.BuilderFactory> onCompletion() {
          return new ServiceLoadedBuilderProvider<>(Action.BuilderFactory.class, Locator.fromStep(parent), completionHandlers::add);
       }
 
+      /**
+       * Handler processing not parsed HTTP response.
+       */
       public Builder rawBytesHandler(RawBytesHandler handler) {
          rawBytesHandlers.add(handler);
          return this;

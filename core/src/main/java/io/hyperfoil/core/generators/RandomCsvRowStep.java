@@ -71,6 +71,9 @@ public class RandomCsvRowStep implements Step, ResourceUtilizer  {
       Arrays.asList(columnVars).forEach(var -> var.declareObject(session));
    }
 
+   /**
+    * Stores random row from a CSV-formatted file to variables.
+    */
    public static class Builder extends BaseStepBuilder {
       private String file;
       private boolean skipComments;
@@ -115,26 +118,42 @@ public class RandomCsvRowStep implements Step, ResourceUtilizer  {
          return Collections.singletonList(new RandomCsvRowStep(rows.toArray(new String[][]{}), cols));
       }
 
+      /**
+       * Defines mapping from columns to session variables.
+       */
       public ColumnsBuilder columns() {
          return new ColumnsBuilder();
       }
 
+      /**
+       * Path to the CSV file that should be loaded.
+       */
       public Builder file(String file) {
          this.file = file;
          return this;
       }
 
+      /**
+       * Skip lines starting with character '#'.
+       */
       public Builder skipComments(boolean hasHeader) {
          this.skipComments = hasHeader;
          return this;
       }
 
+      /**
+       * Automatically unquote the columns.
+       */
       public Builder removeQuotes(boolean isQuotesRemoved) {
          this.isQuotesRemoved = isQuotesRemoved;
          return this;
       }
 
       public class ColumnsBuilder extends PairBuilder.OfString{
+         /**
+          * Use 0-based column as the key and variable name as the value.
+          */
+         @Override
          public void accept(String position, String columnVar) {
             Integer pos = Integer.parseInt(position);
             maxSize = (maxSize > pos ? maxSize : pos);

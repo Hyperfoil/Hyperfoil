@@ -68,6 +68,9 @@ public class PollStep<T> implements Step, ResourceUtilizer {
       toVar.declareObject(session);
    }
 
+   /**
+    * Periodically tries to insert object into session variable.
+    */
    public static class Builder<T> extends BaseStepBuilder {
       private final Function<Session, T> provider;
       private final String var;
@@ -96,11 +99,17 @@ public class PollStep<T> implements Step, ResourceUtilizer {
          return this;
       }
 
+      /**
+       * Polling period.
+       */
       public Builder<T> periodMs(long periodMs) {
          this.periodMs = periodMs;
          return this;
       }
 
+      /**
+       * Maximum number of retries before giving up (and waiting for next period).
+       */
       public Builder<T> maxRetries(int maxRetries) {
          this.maxRetries = maxRetries;
          return this;

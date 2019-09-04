@@ -23,8 +23,11 @@ public class NoopStep implements Step {
       return true;
    }
 
-   /**
+   /*
     * The builder can be both service-loaded and used programmatically in {@link BaseSequenceBuilder#stepBuilder(StepBuilder)}.
+    */
+   /**
+    * Does nothing. Only for demonstration purposes.
     */
    public static class Builder extends BaseStepBuilder implements StepBuilder {
       public Builder(BaseSequenceBuilder parent) {
@@ -50,7 +53,7 @@ public class NoopStep implements Step {
       }
 
       @Override
-      public StepBuilder newBuilder(Locator locator, String param) {
+      public Builder newBuilder(Locator locator, String param) {
          return new Builder(null);
       }
    }

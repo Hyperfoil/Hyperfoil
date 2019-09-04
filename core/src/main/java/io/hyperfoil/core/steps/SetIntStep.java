@@ -31,6 +31,9 @@ public class SetIntStep implements Action.Step, ResourceUtilizer {
       var.declareInt(session);
    }
 
+   /**
+    * Set session variable to an integral value.
+    */
    public static class Builder extends ActionStepBuilder {
       private String var;
       private int value;
@@ -51,11 +54,17 @@ public class SetIntStep implements Action.Step, ResourceUtilizer {
          }
       }
 
+      /**
+       * Variable name.
+       */
       public Builder var(String var) {
          this.var = var;
          return this;
       }
 
+      /**
+       * Value (integer).
+       */
       public Builder value(int value) {
          this.value = value;
          return this;
@@ -82,6 +91,9 @@ public class SetIntStep implements Action.Step, ResourceUtilizer {
          return true;
       }
 
+      /**
+       * @param param Use <code>var <- value</code>.
+       */
       @Override
       public Builder newBuilder(Locator locator, String param) {
          return new Builder(null, param);

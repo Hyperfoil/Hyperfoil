@@ -43,6 +43,9 @@ public class PassthroughHandler implements BodyHandler, ResourceUtilizer {
       ResourceUtilizer.reserve(session, delegate);
    }
 
+   /**
+    * Adapter sending the body to a processor.
+    */
    public static class Builder implements BodyHandler.Builder {
       private Processor.Builder<? super HttpRequest> processor;
       private boolean defrag = true;
@@ -52,10 +55,16 @@ public class PassthroughHandler implements BodyHandler, ResourceUtilizer {
          return this;
       }
 
+      /**
+       * Processor that this handler delegates to.
+       */
       public ServiceLoadedBuilderProvider<Processor.Builder<HttpRequest>, HttpRequest.ProcessorBuilderFactory> processor() {
          return new ServiceLoadedBuilderProvider<>(HttpRequest.ProcessorBuilderFactory.class, null, this::processor);
       }
 
+      /**
+       * Automatically defragment the body, passing the whole response in single chunk.
+       */
       public Builder defrag(boolean defrag) {
          this.defrag = defrag;
          return this;

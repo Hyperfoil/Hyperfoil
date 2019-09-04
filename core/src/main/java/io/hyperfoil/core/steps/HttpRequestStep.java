@@ -182,11 +182,14 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
       return sla;
    }
 
+   /**
+    * Issues a HTTP request and registers handlers for the response.
+    */
    public static class Builder extends BaseStepBuilder {
       private HttpMethod method;
       private StringGeneratorBuilder authority;
-      private StringGeneratorBuilder pathGenerator;
-      private BodyGeneratorBuilder bodyGenerator;
+      private StringGeneratorBuilder path;
+      private BodyGeneratorBuilder body;
       private List<SerializableBiConsumer<Session, HttpRequestWriter>> headerAppenders = new ArrayList<>();
       private SerializableBiFunction<String, String, String> statisticsSelector;
       private long timeout = Long.MIN_VALUE;
@@ -198,84 +201,143 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
          super(parent);
       }
 
+      /**
+       * HTTP method used for the request.
+       */
       public Builder method(HttpMethod method) {
          this.method = method;
          return this;
       }
 
-      // Methods below allow more brevity in the YAML
+      /**
+       * Issue HTTP GET request to given path.
+       */
       public Builder GET(String path) {
          return method(HttpMethod.GET).path(path);
       }
 
+      /**
+       * Issue HTTP GET request to given path.
+       */
       public StringGeneratorImplBuilder GET() {
          return method(HttpMethod.GET).path();
       }
 
+      /**
+       * Issue HTTP HEAD request to given path.
+       */
       public Builder HEAD(String path) {
          return method(HttpMethod.HEAD).path(path);
       }
 
+      /**
+       * Issue HTTP HEAD request to given path.
+       */
       public StringGeneratorImplBuilder HEAD() {
          return method(HttpMethod.HEAD).path();
       }
 
+      /**
+       * Issue HTTP POST request to given path.
+       */
       public Builder POST(String path) {
          return method(HttpMethod.POST).path(path);
       }
 
+      /**
+       * Issue HTTP POST request to given path.
+       */
       public StringGeneratorImplBuilder POST() {
          return method(HttpMethod.POST).path();
       }
 
+      /**
+       * Issue HTTP PUT request to given path.
+       */
       public Builder PUT(String path) {
          return method(HttpMethod.PUT).path(path);
       }
 
+      /**
+       * Issue HTTP PUT request to given path.
+       */
       public StringGeneratorImplBuilder PUT() {
          return method(HttpMethod.PUT).path();
       }
 
+      /**
+       * Issue HTTP DELETE request to given path.
+       */
       public Builder DELETE(String path) {
          return method(HttpMethod.DELETE).path(path);
       }
 
+      /**
+       * Issue HTTP DELETE request to given path.
+       */
       public StringGeneratorImplBuilder DELETE() {
          return method(HttpMethod.DELETE).path();
       }
 
+      /**
+       * Issue HTTP OPTIONS request to given path.
+       */
       public Builder OPTIONS(String path) {
          return method(HttpMethod.OPTIONS).path(path);
       }
 
+      /**
+       * Issue HTTP OPTIONS request to given path.
+       */
       public StringGeneratorImplBuilder OPTIONS() {
          return method(HttpMethod.OPTIONS).path();
       }
 
+      /**
+       * Issue HTTP PATCH request to given path.
+       */
       public Builder PATCH(String path) {
          return method(HttpMethod.PATCH).path(path);
       }
 
+      /**
+       * Issue HTTP PATCH request to given path.
+       */
       public StringGeneratorImplBuilder PATCH() {
          return method(HttpMethod.PATCH).path();
       }
 
+      /**
+       * Issue HTTP TRACE request to given path.
+       */
       public Builder TRACE(String path) {
          return method(HttpMethod.TRACE).path(path);
       }
 
+      /**
+       * Issue HTTP TRACE request to given path.
+       */
       public StringGeneratorImplBuilder TRACE() {
          return method(HttpMethod.TRACE).path();
       }
 
+      /**
+       * Issue HTTP CONNECT request to given path.
+       */
       public Builder CONNECT(String path) {
          return method(HttpMethod.CONNECT).path(path);
       }
 
+      /**
+       * Issue HTTP CONNECT request to given path.
+       */
       public StringGeneratorImplBuilder CONNECT() {
          return method(HttpMethod.CONNECT).path();
       }
 
+      /**
+       * HTTP authority (host:port) this request should target. Must match one of the entries in <code>http</code> section.
+       */
       public Builder authority(String authority) {
          return authority(session -> authority);
       }
@@ -284,6 +346,9 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
          return authority(() -> authorityGenerator);
       }
 
+      /**
+       * HTTP authority (host:port) this request should target. Must match one of the entries in <code>http</code> section.
+       */
       public StringGeneratorImplBuilder<Builder> authority() {
          StringGeneratorImplBuilder<Builder> builder = new StringGeneratorImplBuilder<>(this, false);
          authority(builder);
@@ -296,45 +361,54 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
       }
 
       public Builder path(String path) {
-         return pathGenerator(s -> path);
+         return path(s -> path);
       }
 
+      /**
+       * HTTP path (absolute or relative), including query and fragment.
+       */
       public StringGeneratorImplBuilder<Builder> path() {
          StringGeneratorImplBuilder<Builder> builder = new StringGeneratorImplBuilder<>(this, false);
-         pathGenerator(builder);
+         path(builder);
          return builder;
       }
 
-      public Builder pathGenerator(SerializableFunction<Session, String> pathGenerator) {
-         return pathGenerator(() -> pathGenerator);
+      public Builder path(SerializableFunction<Session, String> pathGenerator) {
+         return path(() -> pathGenerator);
       }
 
-      public Builder pathGenerator(StringGeneratorBuilder builder) {
-         if (this.pathGenerator != null) {
+      public Builder path(StringGeneratorBuilder builder) {
+         if (this.path != null) {
             throw new BenchmarkDefinitionException("Path generator already set.");
          }
-         this.pathGenerator = builder;
+         this.path = builder;
          return this;
       }
 
+      /**
+       * HTTP request body (specified as string).
+       */
       public Builder body(String string) {
          ByteBuf buf = Unpooled.wrappedBuffer(string.getBytes(StandardCharsets.UTF_8));
-         return bodyGenerator((s, c) -> buf);
+         return body((s, c) -> buf);
       }
 
+      /**
+       * HTTP request body.
+       */
       public BodyBuilder body() {
          return new BodyBuilder(this);
       }
 
-      public Builder bodyGenerator(SerializableBiFunction<Session, Connection, ByteBuf> bodyGenerator) {
-         return bodyGenerator(() -> bodyGenerator);
+      public Builder body(SerializableBiFunction<Session, Connection, ByteBuf> bodyGenerator) {
+         return body(() -> bodyGenerator);
       }
 
-      public Builder bodyGenerator(BodyGeneratorBuilder bodyGenerator) {
-         if (this.bodyGenerator != null) {
+      public Builder body(BodyGeneratorBuilder bodyGenerator) {
+         if (this.body != null) {
             throw new BenchmarkDefinitionException("Body generator already set.");
          }
-         this.bodyGenerator = bodyGenerator;
+         this.body = bodyGenerator;
          return this;
       }
 
@@ -343,6 +417,9 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
          return this;
       }
 
+      /**
+       * HTTP headers sent in the request.
+       */
       public HeadersBuilder headers() {
          return new HeadersBuilder(this);
       }
@@ -357,10 +434,18 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
          return this;
       }
 
+      /**
+       * Request timeout - after this time the request will be marked as failed and connection will be closed.
+       *
+       * Defaults to value set globally in <code>http</code> section.
+       */
       public Builder timeout(String timeout) {
          return timeout(io.hyperfoil.util.Util.parseToMillis(timeout), TimeUnit.MILLISECONDS);
       }
 
+      /**
+       * Requests statistics will use this metric name.
+       */
       public Builder statistics(String name) {
          return statistics((authority, path) -> name);
       }
@@ -370,21 +455,37 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
          return this;
       }
 
+      /**
+       * Allows categorizing request statistics into metrics based on the request path.
+       */
       public PathStatisticsSelector statistics() {
          PathStatisticsSelector selector = new PathStatisticsSelector();
          this.statisticsSelector = selector;
          return selector;
       }
 
+      /**
+       * HTTP response handlers.
+       */
       public HttpResponseHandlersImpl.Builder handler() {
          return handler;
       }
 
+      /**
+       * This request is synchronous; execution of the sequence does not continue until the full response
+       * is received. If this step is executed from multiple parallel instances of this sequence the progress
+       * of all sequences is blocked until there is a request in flight without response.
+       *
+       * Default is <code>true</code>.
+       */
       public Builder sync(boolean sync) {
          this.sync = sync;
          return this;
       }
 
+      /**
+       * List of SLAs the requests are subject to.
+       */
       public SLABuilder.ListBuilder<Builder> sla() {
          if (sla == null) {
             sla = new SLABuilder.ListBuilder<>(this);
@@ -419,7 +520,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
          String guessedAuthority = null;
          boolean checkAuthority = true;
          SerializableFunction<Session, String> authority = this.authority != null ? this.authority.build() : null;
-         SerializableFunction<Session, String> pathGenerator = this.pathGenerator != null ? this.pathGenerator.build() : null;
+         SerializableFunction<Session, String> pathGenerator = this.path != null ? this.path.build() : null;
          try {
             guessedAuthority = authority == null ? null : authority.apply(null);
          } catch (Throwable e) {
@@ -441,7 +542,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
                this.headerAppenders.isEmpty() ? null : this.headerAppenders.toArray(new SerializableBiConsumer[0]);
 
          SLA[] sla = this.sla != null ? this.sla.build() : SLA.DEFAULT;
-         SerializableBiFunction<Session, Connection, ByteBuf> bodyGenerator = this.bodyGenerator != null ? this.bodyGenerator.build() : null;
+         SerializableBiFunction<Session, Connection, ByteBuf> bodyGenerator = this.body != null ? this.body.build() : null;
 
          HttpRequestStep step = new HttpRequestStep(sequence, method, authority, pathGenerator, bodyGenerator, headerAppenders, statisticsSelector, timeout, handler.build(fs), sla);
          fs.set(step);
@@ -453,8 +554,8 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
          Builder newBuilder = new Builder(newParent)
                .method(method)
                .authority(authority)
-               .pathGenerator(pathGenerator)
-               .bodyGenerator(bodyGenerator)
+               .path(path)
+               .body(body)
                .statistics(statisticsSelector)
                .sync(sync);
          headerAppenders.forEach(newBuilder::headerAppender);
@@ -507,6 +608,9 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
          this.parent = builder;
       }
 
+      /**
+       * Use header name (e.g. <code>Content-Type</code>) as key and value verbatim.
+       */
       @Override
       public void accept(String header, String value) {
          parent.headerAppenders.add((session, writer) -> writer.putHeader(header, value));
@@ -516,12 +620,18 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
          return parent;
       }
 
+      /**
+       * Use header name (e.g. <code>Content-Type</code>) as key and specify value in the mapping.
+       */
       @Override
       public PartialHeadersBuilder withKey(java.lang.String key) {
          return new PartialHeadersBuilder(parent, key);
       }
    }
 
+   /**
+    * Specifies value that should be sent in headers.
+    */
    public static class PartialHeadersBuilder {
       private final Builder parent;
       private final String header;
@@ -531,6 +641,9 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
          this.header = header;
       }
 
+      /**
+       * Load header value from session variable.
+       */
       public PartialHeadersBuilder fromVar(String var) {
          Access access = SessionFactory.access(var);
          String myHeader = header;
@@ -550,6 +663,9 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
       SerializableBiFunction<Session, Connection, ByteBuf> build();
    }
 
+   /**
+    * Allows building HTTP request body from session variables.
+    */
    public static class BodyBuilder {
       private static final String APPLICATION_X_WWW_FORM_URLENCODED = "application/x-www-form-urlencoded";
       private final Builder parent;
@@ -558,9 +674,12 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
          this.parent = parent;
       }
 
+      /**
+       * Use variable content as request body.
+       */
       public BodyBuilder fromVar(String var) {
          Access access = SessionFactory.access(var);
-         parent.bodyGenerator((session, connection) -> {
+         parent.body((session, connection) -> {
             Object value = access.getObject(session);
             if (value instanceof ByteBuf) {
                return (ByteBuf) value;
@@ -576,25 +695,35 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
          return this;
       }
 
+      /**
+       * Pattern replacing <code>${sessionvar}</code> with variable contents in a string.
+       */
       public BodyBuilder pattern(String pattern) {
          Pattern p = new Pattern(pattern, false);
-         parent.bodyGenerator((session, connection) -> {
+         parent.body((session, connection) -> {
             String str = p.apply(session);
             return Util.string2byteBuf(str, connection.context().alloc().buffer(str.length()));
          });
          return this;
       }
 
+      /**
+       * String sent as-is.
+       */
       public BodyBuilder text(String text) {
          byte[] bytes = text.getBytes(StandardCharsets.UTF_8);
-         parent.bodyGenerator(((session, connection) -> Unpooled.wrappedBuffer(bytes)));
+         parent.body(((session, connection) -> Unpooled.wrappedBuffer(bytes)));
          return this;
       }
 
+      /**
+       * Build form as if we were sending the request using HTML form. This option automatically adds
+       * <code>Content-Type: application/x-www-form-urlencoded</code> to the request headers.
+       */
       public FormBuilder form() {
          FormBuilder builder = new FormBuilder();
          parent.headerAppender((session, writer) -> writer.putHeader(HttpHeaderNames.CONTENT_TYPE, APPLICATION_X_WWW_FORM_URLENCODED));
-         parent.bodyGenerator(builder);
+         parent.body(builder);
          return builder;
       }
 
@@ -603,9 +732,15 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
       }
    }
 
+   /**
+    * Build an URL-encoded HTML form body.
+    */
    private static class FormBuilder extends PairBuilder.OfString implements BodyGeneratorBuilder, MappingListBuilder<FormInputBuilder> {
       private final ArrayList<FormInputBuilder> inputs = new ArrayList<>();
 
+      /**
+       * Add input pair described in the mapping.
+       */
       @Override
       public FormInputBuilder addItem() {
          FormInputBuilder input = new FormInputBuilder();
@@ -619,6 +754,9 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
          return new FormGenerator(inputs.stream().map(FormInputBuilder::build).toArray(SerializableBiConsumer[]::new));
       }
 
+      /**
+       * Add simple name=value input pair.
+       */
       @Override
       public void accept(String name, String value) {
          inputs.add(new FormInputBuilder().name(name).value(value));
@@ -648,6 +786,9 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
       }
    }
 
+   /**
+    * Form element (e.g. as if coming from an INPUT field).
+    */
    public static class FormInputBuilder {
       private String name;
       private String value;
@@ -699,21 +840,33 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
          }
       }
 
+      /**
+       * Input field name.
+       */
       public FormInputBuilder name(String name) {
          this.name = name;
          return this;
       }
 
+      /**
+       * Input field value (verbatim).
+       */
       public FormInputBuilder value(String value) {
          this.value = value;
          return this;
       }
 
+      /**
+       * Input field value from session variable.
+       */
       public FormInputBuilder var(String var) {
          this.fromVar = var;
          return this;
       }
 
+      /**
+       * Input field value replacing session variables in a pattern, e.g. <code>foo${myvariable}var</code>
+       */
       public FormInputBuilder pattern(String pattern) {
          this.pattern = pattern;
          return this;

@@ -31,6 +31,9 @@ public class AwaitIntStep implements Step {
       return false;
    }
 
+   /**
+    * Block current sequence until condition becomes true.
+    */
    public static class Builder extends IntCondition.BaseBuilder<Builder> implements StepBuilder {
       private final BaseSequenceBuilder parent;
       private String var;
@@ -42,6 +45,9 @@ public class AwaitIntStep implements Step {
          }
       }
 
+      /**
+       * Variable name storing the compared value.
+       */
       public Builder var(String var) {
          this.var = var;
          return this;

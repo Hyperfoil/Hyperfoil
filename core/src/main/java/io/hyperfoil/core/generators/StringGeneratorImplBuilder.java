@@ -13,6 +13,9 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
 // To be recognized as a builder by Generator the class name must end with 'Builder'
+/**
+ * Generic builder for generating a string.
+ */
 public class StringGeneratorImplBuilder<T> implements StringGeneratorBuilder {
    private static final Logger log = LoggerFactory.getLogger(StringGeneratorImplBuilder.class);
 
@@ -32,6 +35,9 @@ public class StringGeneratorImplBuilder<T> implements StringGeneratorBuilder {
       this.function = function;
    }
 
+   /**
+    * String value provided verbatim.
+    */
    public StringGeneratorImplBuilder<T> value(String value) {
       if (urlEncode) {
          try {
@@ -46,6 +52,9 @@ public class StringGeneratorImplBuilder<T> implements StringGeneratorBuilder {
       return this;
    }
 
+   /**
+    * Load the string from session variable.
+    */
    public StringGeneratorImplBuilder<T> fromVar(String var) {
       Access access = SessionFactory.access(var);
       boolean urlEncode = this.urlEncode;
@@ -68,11 +77,17 @@ public class StringGeneratorImplBuilder<T> implements StringGeneratorBuilder {
       return this;
    }
 
+   /**
+    * Deprecated.
+    */
    @Deprecated
    public StringGeneratorImplBuilder<T> sequenceVar(String var) {
       return fromVar(var + "[.]");
    }
 
+   /**
+    * Use pattern replacing session variables.
+    */
    public StringGeneratorImplBuilder<T> pattern(String pattern) {
       set(new Pattern(pattern, urlEncode));
       return this;

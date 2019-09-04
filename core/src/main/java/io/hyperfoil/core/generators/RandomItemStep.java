@@ -105,6 +105,9 @@ public class RandomItemStep implements Step, ResourceUtilizer {
       toVar.declareObject(session);
    }
 
+   /**
+    * Stores random item from a list or array into session variable.
+    */
    public static class Builder extends BaseStepBuilder {
       private String fromVar;
       private List<String> list = new ArrayList<>();
@@ -179,20 +182,32 @@ public class RandomItemStep implements Step, ResourceUtilizer {
          return Collections.singletonList(new RandomItemStep(fromVar, cummulativeProbs, list.isEmpty() ? null : list.toArray(new String[0]), toVar));
       }
 
+      /**
+       * Variable containing an array or list.
+       */
       public Builder fromVar(String fromVar) {
          this.fromVar = fromVar;
          return this;
       }
 
+      /**
+       * Potentially weighted list of items to choose from.
+       */
       public ItemBuilder list() {
          return new ItemBuilder();
       }
 
+      /**
+       * Variable where the chosen item should be stored.
+       */
       public Builder toVar(String var) {
          this.toVar = var;
          return this;
       }
 
+      /**
+       * This file will be loaded into memory and the step will choose on line as the item.
+       */
       public Builder file(String file) {
          this.file = file;
          return this;
@@ -204,6 +219,9 @@ public class RandomItemStep implements Step, ResourceUtilizer {
             list.add(item);
          }
 
+         /**
+          * Item as the key and weight (arbitrary floating-point number, defaults to 1.0) as the value.
+          */
          @Override
          public void accept(String item, Double weight) {
             if (weighted.putIfAbsent(item, weight) != null) {

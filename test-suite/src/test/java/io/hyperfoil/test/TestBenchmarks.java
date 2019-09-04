@@ -23,7 +23,7 @@ public class TestBenchmarks {
                            .sla()
                               .addItem()
                                  .meanResponseTime(10, TimeUnit.MILLISECONDS)
-                                 .addPercentileLimit(0.99, TimeUnit.MILLISECONDS.toNanos(100))
+                                 .limits().add(0.99, TimeUnit.MILLISECONDS.toNanos(100)).end()
                                  .errorRatio(0.02)
                                  .window(3000, TimeUnit.MILLISECONDS)
                               .endSLA()

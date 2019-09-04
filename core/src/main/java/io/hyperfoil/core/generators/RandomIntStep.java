@@ -48,6 +48,9 @@ public class RandomIntStep implements Step, ResourceUtilizer {
       toVar.declareInt(session);
    }
 
+   /**
+    * Stores random (linearly distributed) integer into session variable.
+    */
    public static class Builder extends BaseStepBuilder {
       private String toVar;
       private int min = 0;
@@ -67,16 +70,25 @@ public class RandomIntStep implements Step, ResourceUtilizer {
          }
       }
 
+      /**
+       * Variable name to store the result.
+       */
       public Builder toVar(String var) {
          this.toVar = var;
          return this;
       }
 
+      /**
+       * Lowest possible value (inclusive)
+       */
       public Builder min(int min) {
          this.min = min;
          return this;
       }
 
+      /**
+       * Highest possible value (inclusive)
+       */
       public Builder max(int max) {
          this.max = max;
          return this;

@@ -61,6 +61,14 @@ public class PullSharedMapStep implements Step, ResourceUtilizer {
       session.sharedData().reserveMap(key, match, 0);
    }
 
+   /**
+    * Move values from a map shared across all sessions using the same executor into session variables.
+    *
+    * The executor can host multiple shared maps, each holding an entry with several variables.
+    * This step moves variables from either a random entry (if no <code>match</code> is set) or with an entry
+    * that has the same value for given variable as the current session.
+    * When data is moved to the current session the entry is dropped from the shared map.
+    */
    public static class Builder extends BaseStepBuilder {
       private String key;
       private String match;
@@ -74,11 +82,17 @@ public class PullSharedMapStep implements Step, ResourceUtilizer {
          return Collections.singletonList(new PullSharedMapStep(key, match));
       }
 
+      /**
+       * Key identifying the shared map.
+       */
       public Builder key(String key) {
          this.key = key;
          return this;
       }
 
+      /**
+       * Name of the session variable that stores value identifying the entry in the shared map.
+       */
       public Builder match(String match) {
          this.match = match;
          return this;

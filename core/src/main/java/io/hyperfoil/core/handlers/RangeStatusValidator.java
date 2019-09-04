@@ -33,6 +33,9 @@ public class RangeStatusValidator implements StatusHandler {
       }
    }
 
+   /**
+    * Marks requests that don't fall into the desired range as invalid.
+    */
    public static class Builder implements StatusHandler.Builder {
       private int min = 200;
       private int max = 299;
@@ -42,11 +45,17 @@ public class RangeStatusValidator implements StatusHandler {
          return new RangeStatusValidator(min, max);
       }
 
+      /**
+       * Lowest accepted status code.
+       */
       public Builder min(int min) {
          this.min = min;
          return this;
       }
 
+      /**
+       * Highest accepted status code.
+       */
       public Builder max(int max) {
          this.max = max;
          return this;
@@ -65,6 +74,9 @@ public class RangeStatusValidator implements StatusHandler {
          return true;
       }
 
+      /**
+       * @param param Single status code (<code>204</code>), masked code (<code>2xx</code>) or range (<code>200-399</code>).
+       */
       @Override
       public Builder newBuilder(Locator locator, String param) {
          if (param != null) {

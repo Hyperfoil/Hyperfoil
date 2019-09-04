@@ -12,6 +12,9 @@ public class ClearHttpCacheStep implements Action.Step {
       session.httpCache().clear();
    }
 
+   /**
+    * Drops all entries from HTTP cache in the session.
+    */
    public static class Builder implements Action.Builder {
       @Override
       public ClearHttpCacheStep build() {

@@ -6,6 +6,9 @@ import java.util.concurrent.TimeUnit;
 
 import io.hyperfoil.util.Util;
 
+/**
+ * Defines a Service Level Agreement (SLA) - conditions that must hold for benchmark to be deemed successful.
+ */
 public class SLABuilder<P> implements Rewritable<SLABuilder<P>> {
    private final P parent;
    private long window = -1;
@@ -33,20 +36,21 @@ public class SLABuilder<P> implements Rewritable<SLABuilder<P>> {
       return parent;
    }
 
-   /**
-    * Period over which the stats should be collected, in milliseconds.
-    * @param window
-    * @return
-    */
    public SLABuilder<P> window(long window, TimeUnit timeUnit) {
       this.window = timeUnit.toMillis(window);
       return this;
    }
 
+   /**
+    * Period over which the stats should be collected, in milliseconds. By default the SLA applies to stats from whole phase.
+    */
    public SLABuilder<P> window(String window) {
       return window(Util.parseToMillis(window), TimeUnit.MILLISECONDS);
    }
 
+   /**
+    * Maximum allowed ratio of errors. Valid values are 0.0 - 1.0 (inclusive).
+    */
    public SLABuilder<P> errorRatio(double errorRatio) {
       this.errorRatio = errorRatio;
       return this;
@@ -57,20 +61,25 @@ public class SLABuilder<P> implements Rewritable<SLABuilder<P>> {
       return this;
    }
 
+   /**
+    * Maximum allowed mean (average) response time. Use suffix `ns`, `us`, `ms` or `s` to specify units.
+    */
    public SLABuilder<P> meanResponseTime(String meanResponseTime) {
       return meanResponseTime(Util.parseToNanos(meanResponseTime), TimeUnit.NANOSECONDS);
    }
 
+   /**
+    * Maximum allowed ratio of time spent waiting for usable connection to sum of response latencies.
+    * Default is 0 - client must not be blocked.
+    */
    public SLABuilder<P> blockedRatio(double blockedRatio) {
       this.blockedRatio = blockedRatio;
       return this;
    }
 
-   public SLABuilder<P> addPercentileLimit(double percentile, long responseTime) {
-      this.limits.add(new SLA.PercentileLimit(percentile, responseTime));
-      return this;
-   }
-
+   /**
+    * Percentile limits.
+    */
    public LimitsBuilder limits() {
       return new LimitsBuilder();
    }
@@ -85,17 +94,35 @@ public class SLABuilder<P> implements Rewritable<SLABuilder<P>> {
       limits.addAll(limits);
    }
 
-   private class LimitsBuilder extends PairBuilder.OfString {
+   /**
+    * Percentile limits.
+    */
+   public class LimitsBuilder extends PairBuilder.OfString {
+      /**
+       * Use percentile (value between 0.0 and 1.0) as key and response time with unit (e.g. `ms`) in suffix as value.
+       */
       @Override
       public void accept(String percentileStr, String responseTime) {
          double percentile = Double.parseDouble(percentileStr);
          if (percentile < 0 || percentile > 1) {
             throw new BenchmarkDefinitionException("Percentile must be between 0.0 and 1.0");
          }
-         addPercentileLimit(percentile, Util.parseToNanos(responseTime));
+         limits.add(new SLA.PercentileLimit(percentile, Util.parseToNanos(responseTime)));
+      }
+
+      public LimitsBuilder add(double percentile, long responseTime) {
+         limits.add(new SLA.PercentileLimit(percentile, responseTime));
+         return this;
+      }
+
+      public SLABuilder<P> end() {
+         return SLABuilder.this;
       }
    }
 
+   /**
+    * Defines a list of Service Level Agreements (SLAs) - conditions that must hold for benchmark to be deemed successful.
+    */
    public static class ListBuilder<P> implements MappingListBuilder<SLABuilder<ListBuilder<P>>>, Rewritable<ListBuilder<P>> {
       private final P parent;
       private final ArrayList<SLABuilder<ListBuilder<P>>> sla = new ArrayList<>();

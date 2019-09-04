@@ -6,7 +6,9 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 
 public enum DataFormat {
-   // Make sure to release the buffer when done!
+   /**
+    * Store the buffer directly. Beware that this may cause memory leaks!
+    */
    BYTEBUF {
       @Override
       public Object convert(ByteBuf data, int offset, int length) {
@@ -20,6 +22,9 @@ public enum DataFormat {
          return buffer;
       }
    },
+   /**
+    * Store data as byte array.
+    */
    BYTES {
       @Override
       public Object convert(ByteBuf data, int offset, int length) {
@@ -38,6 +43,9 @@ public enum DataFormat {
          return bytes;
       }
    },
+   /**
+    * Interprets the bytes as UTF-8 string.
+    */
    STRING {
       @Override
       public Object convert(ByteBuf data, int offset, int length) {

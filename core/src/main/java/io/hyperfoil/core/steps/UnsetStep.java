@@ -22,6 +22,9 @@ public class UnsetStep implements Action.Step {
       var.unset(session);
    }
 
+   /**
+    * Undefine variable name.
+    */
    public static class Builder extends ActionStepBuilder {
       private String var;
 
@@ -34,6 +37,9 @@ public class UnsetStep implements Action.Step {
          var = param;
       }
 
+      /**
+       * Variable name.
+       */
       public Builder var(String var) {
          this.var = var;
          return this;
@@ -57,6 +63,9 @@ public class UnsetStep implements Action.Step {
          return true;
       }
 
+      /**
+       * @param param Variable name.
+       */
       @Override
       public UnsetStep.Builder newBuilder(Locator locator, String param) {
          return new Builder(param);

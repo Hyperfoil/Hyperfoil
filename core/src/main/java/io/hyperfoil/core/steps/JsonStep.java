@@ -54,6 +54,9 @@ public class JsonStep extends BaseStep implements ResourceUtilizer {
       toVar.declareObject(session);
    }
 
+   /**
+    * Parse JSON in variable into another variable.
+    */
    public static class Builder extends BaseStepBuilder {
       private String fromVar;
       private String query;
@@ -64,21 +67,33 @@ public class JsonStep extends BaseStep implements ResourceUtilizer {
          super(parent);
       }
 
+      /**
+       * Variable to load JSON from.
+       */
       public Builder fromVar(String fromVar) {
          this.fromVar = fromVar;
          return this;
       }
 
+      /**
+       * JSON query to apply.
+       */
       public Builder query(String query) {
          this.query = query;
          return this;
       }
 
+      /**
+       * Variable to store the result. If there are multiple matches, the variable will be overwritten and last match wins.
+       */
       public Builder toVar(String toVar) {
          this.toVar = toVar;
          return this;
       }
 
+      /**
+       * Conversion to apply on the matching parts.
+       */
       public Builder format(DataFormat format) {
          this.format = format;
          return this;

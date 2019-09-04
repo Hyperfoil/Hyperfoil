@@ -61,6 +61,9 @@ public class RecordHeaderTimeHandler implements HeaderHandler {
       }
    }
 
+   /**
+    * Records alternative metric based on values from a header (e.g. when a proxy reports processing time).
+    */
    public static class Builder implements HeaderHandler.Builder {
       private String header;
       private String statistics;
@@ -91,16 +94,25 @@ public class RecordHeaderTimeHandler implements HeaderHandler {
          return new RecordHeaderTimeHandler(step, header, statistics, transform);
       }
 
+      /**
+       * Header carrying the time.
+       */
       public Builder header(String header) {
          this.header = header;
          return this;
       }
 
+      /**
+       * Name of the created metric.
+       */
       public Builder statistics(String statistics) {
          this.statistics = statistics;
          return this;
       }
 
+      /**
+       * Time unit in the header; use either `ms` or `ns`.
+       */
       public Builder unit(String unit) {
          this.unit = unit;
          return this;

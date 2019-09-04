@@ -34,6 +34,9 @@ public class IntCondition implements SerializablePredicate<Session> {
       return predicate.test(value);
    }
 
+   /**
+    * Condition comparing integer in session variable.
+    */
    public static class Builder<P> extends BaseBuilder<Builder<P>> implements Condition.Builder {
       private final P parent;
       private String fromVar;
@@ -42,6 +45,9 @@ public class IntCondition implements SerializablePredicate<Session> {
          this.parent = parent;
       }
 
+      /**
+       * Variable name.
+       */
       public Builder<P> fromVar(String var) {
          this.fromVar = var;
          return this;
@@ -74,31 +80,49 @@ public class IntCondition implements SerializablePredicate<Session> {
          return (B) this;
       }
 
+      /**
+       * Compared variable must be equal to this value.
+       */
       public B equalTo(int equalTo) {
          this.equalTo = equalTo;
          return self();
       }
 
+      /**
+       * Compared variable must not be equal to this value.
+       */
       public B notEqualTo(int notEqualTo) {
          this.notEqualTo = notEqualTo;
          return self();
       }
 
+      /**
+       * Compared variable must be greater than this value.
+       */
       public B greaterThan(int greaterThan) {
          this.greaterThan = greaterThan;
          return self();
       }
 
+      /**
+       * Compared variable must be greater or equal to this value.
+       */
       public B greaterOrEqualTo(int greaterOrEqualTo) {
          this.greaterOrEqualTo = greaterOrEqualTo;
          return self();
       }
 
+      /**
+       * Compared variable must be lower than this value.
+       */
       public B lessThan(int lessThan) {
          this.lessThan = lessThan;
          return self();
       }
 
+      /**
+       * Compared variable must be lower or equal to this value.
+       */
       public B lessOrEqualTo(int lessOrEqualTo) {
          this.lessOrEqualTo = lessOrEqualTo;
          return self();

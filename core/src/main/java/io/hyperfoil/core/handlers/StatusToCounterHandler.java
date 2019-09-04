@@ -51,6 +51,9 @@ public class StatusToCounterHandler implements StatusHandler, ResourceUtilizer {
       var.declareInt(session);
    }
 
+   /**
+    * Counts how many times given status is received.
+    */
    public static class Builder implements StatusHandler.Builder {
       private Integer expectStatus;
       private String var;
@@ -58,26 +61,41 @@ public class StatusToCounterHandler implements StatusHandler, ResourceUtilizer {
       private Integer add;
       private Integer set;
 
+      /**
+       * Expected status (others are ignored). All status codes match by default.
+       */
       public Builder expectStatus(int expectStatus) {
          this.expectStatus = expectStatus;
          return this;
       }
 
+      /**
+       * Variable name.
+       */
       public Builder var(String var) {
          this.var = var;
          return this;
       }
 
+      /**
+       * Initial value for the session variable.
+       */
       public Builder init(int init) {
          this.init = init;
          return this;
       }
 
+      /**
+       * Number to be added to the session variable.
+       */
       public Builder add(int add) {
          this.add = add;
          return this;
       }
 
+      /**
+       * Do not accumulate (add), just set the variable to this value.
+       */
       public Builder set(int set) {
          this.set = set;
          return this;

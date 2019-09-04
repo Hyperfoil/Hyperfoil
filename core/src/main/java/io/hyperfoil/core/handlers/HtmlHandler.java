@@ -286,6 +286,9 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
       void endTag(HttpRequest request);
    }
 
+   /**
+    * Parses HTML tags and invokes handlers based on criteria.
+    */
    public static class Builder implements BodyHandler.Builder {
       private final Locator locator;
       private EmbeddedResourceHandlerBuilder embeddedResourceHandler;
@@ -294,6 +297,9 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
          this.locator = locator;
       }
 
+      /**
+       * Handler firing upon reference to other resource, e.g. image, stylesheet...
+       */
       public EmbeddedResourceHandlerBuilder onEmbeddedResource() {
          if (embeddedResourceHandler != null) {
             throw new BenchmarkDefinitionException("Embedded resource handler already set!");
@@ -341,10 +347,12 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
    }
 
    /**
-    * Handles &lt;img src="..."&gt;, &lt;link href="..."&gt;, &lt;embed src="..."&gt;, &lt;frame src="..."&gt;,
-    *         &lt;iframe src="..."&gt;, &lt;object data="..."&gt;, &lt;script src="..."&gt;
+    * Handles <code>&lt;img src="..."&gt;</code>, <code>&lt;link href="..."&gt;</code>,
+    * <code>&lt;embed src="..."&gt;</code>, <code>&lt;frame src="..."&gt;</code>,
+    * <code>&lt;iframe src="..."&gt;</code>, <code>&lt;object data="..."&gt;<code> and <code>&lt;script src="..."&gt;</code>.
     *
-    * Does not handle &lt;source src="..."&gt; or &lt;track src="..."&gt; because browser would choose only one of the options.
+    * Does not handle <code>&lt;source src="..."&gt;</code> or <code>&lt;track src="..."&gt;</code> because browser
+    * would choose only one of the options.
     */
    public static class EmbeddedResourceHandlerBuilder implements BuilderBase<EmbeddedResourceHandlerBuilder> {
       private static final String[] TAGS = { "img", "link", "embed", "frame", "iframe", "object", "script" };
@@ -359,11 +367,17 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
          this.locator = locator;
       }
 
+      /**
+       * Ignore resources hosted on servers that are not covered in the <code>http</code> section.
+       */
       public EmbeddedResourceHandlerBuilder ignoreExternal(boolean ignoreExternal) {
          this.ignoreExternal = ignoreExternal;
          return this;
       }
 
+      /**
+       * Automatically download referenced resource.
+       */
       public FetchResourceBuilder fetchResource() {
          return this.fetchResource = new FetchResourceBuilder(locator);
       }
@@ -379,6 +393,10 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
          return this;
       }
 
+      /**
+       * Custom processor invoked pointing to attribute data - e.g. in case of <code>&lt;img&gt;</code> tag
+       * the processor gets contents of the <code>src</code> attribute.
+       */
       public ServiceLoadedBuilderProvider<Processor.Builder<HttpRequest>, HttpRequest.ProcessorBuilderFactory> processor() {
          return new ServiceLoadedBuilderProvider<>(HttpRequest.ProcessorBuilderFactory.class, locator, this::processor);
       }
@@ -418,6 +436,9 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
       }
    }
 
+   /**
+    * Automates download of embedded resources.
+    */
    public static class FetchResourceBuilder implements BuilderBase<FetchResourceBuilder> {
       private final Locator locator;
       private final String generatedSeqName;
@@ -440,11 +461,17 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
          return generatedSeqName + "_url";
       }
 
+      /**
+       * Maximum number of resources that can be fetched.
+       */
       public FetchResourceBuilder maxResources(int maxResources) {
          this.maxResources = maxResources;
          return this;
       }
 
+      /**
+       * Metrics selector for downloaded resources.
+       */
       public PathStatisticsSelector statistics() {
          PathStatisticsSelector statisticsSelector = new PathStatisticsSelector();
          statistics(statisticsSelector);
@@ -459,6 +486,9 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
          return this;
       }
 
+      /**
+       * Action performed when the download of all resources completes.
+       */
       public ServiceLoadedBuilderProvider<Action.Builder, Action.BuilderFactory> onCompletion() {
          return new ServiceLoadedBuilderProvider<>(Action.BuilderFactory.class, locator, this::onCompletion);
       }
@@ -480,7 +510,7 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
 
          // Constructor adds self into sequence
          HttpRequestStep.Builder requestBuilder = new HttpRequestStep.Builder(sequence).sync(false).method(HttpMethod.GET);
-         requestBuilder.pathGenerator(
+         requestBuilder.path(
                new StringGeneratorImplBuilder<>(requestBuilder, false).fromVar(downloadUrlVar() + "[.]"));
          if (statisticsSelector != null) {
             requestBuilder.statistics(statisticsSelector);

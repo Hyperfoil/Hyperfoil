@@ -26,6 +26,9 @@ public class AddToIntStep implements Action.Step {
       var.setInt(session, prev + value);
    }
 
+   /**
+    * Add value to integer variable in the session.
+    */
    public static class Builder extends ActionStepBuilder {
       private String var;
       private int value;
@@ -55,11 +58,17 @@ public class AddToIntStep implements Action.Step {
          }
       }
 
+      /**
+       * Variable name.
+       */
       public Builder var(String var) {
          this.var = var;
          return this;
       }
 
+      /**
+       * Value added (can be negative).
+       */
       public Builder value(int value) {
          this.value = value;
          return this;
@@ -89,6 +98,9 @@ public class AddToIntStep implements Action.Step {
          return true;
       }
 
+      /**
+       * @param param Accepting one of: <code>var++</code>, <code>var--</code>, <code>var += value</code>, <code>var -= value</code>.
+       */
       @Override
       public Builder newBuilder(Locator locator, String param) {
          return new Builder(null, param);

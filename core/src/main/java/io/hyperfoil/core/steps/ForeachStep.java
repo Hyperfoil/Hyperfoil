@@ -55,6 +55,9 @@ public class ForeachStep extends DependencyStep implements ResourceUtilizer {
       }
    }
 
+   /**
+    * Instantiate new sequences based on array variable content.
+    */
    public static class Builder extends DependencyStepBuilder<Builder> {
       private String fromVar;
       private String counterVar;
@@ -64,17 +67,26 @@ public class ForeachStep extends DependencyStep implements ResourceUtilizer {
          super(parent);
       }
 
+      /**
+       * Variable holding the array.
+       */
       public Builder fromVar(String fromVar) {
          this.fromVar = fromVar;
          dependency(fromVar);
          return this;
       }
 
+      /**
+       * Variable to be set to the number of created sequences (optional).
+       */
       public Builder counterVar(String counterVar) {
          this.counterVar = counterVar;
          return this;
       }
 
+      /**
+       * Name of the instantiated sequence.
+       */
       public Builder sequence(String sequence) {
          this.sequence = sequence;
          return this;

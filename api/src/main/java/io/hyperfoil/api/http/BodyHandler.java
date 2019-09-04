@@ -36,5 +36,9 @@ public interface BodyHandler extends Serializable {
     interface Builder extends BuilderBase<Builder> {
         BodyHandler build(SerializableSupplier<? extends Step> step);
     }
+
+    /**
+     * Handlers parsing HTTP response body.
+     */
     interface BuilderFactory extends ServiceLoadedFactory<Builder> {}
 }

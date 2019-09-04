@@ -43,6 +43,9 @@ public class StopwatchBeginStep implements Step, ResourceUtilizer {
       long timestampNanos;
    }
 
+   /**
+    * Run nested sequence of steps, recording execution time.
+    */
    public static class Builder extends BaseSequenceBuilder implements StepBuilder {
       public Builder(BaseSequenceBuilder parent) {
          super(parent);

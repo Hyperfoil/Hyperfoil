@@ -33,7 +33,7 @@ public class PathStatisticsTest extends BaseScenarioTest {
       selector.nextItem("-> others");
       scenario(3).initialSequence("test")
             .step(SC).httpRequest(HttpMethod.GET)
-               .pathGenerator(s -> {
+               .path(s -> {
                   switch (counter.getAndIncrement()) {
                      case 0:
                         return "/foo.js";

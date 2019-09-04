@@ -77,6 +77,9 @@ public class NewSequenceProcessor implements Processor<Request>, ResourceUtilize
       }
    }
 
+   /**
+    * Instantiates a sequence for each invocation. The sequences will have increasing sequence ID.
+    */
    public static class Builder implements Processor.Builder<Request> {
       private final Locator locator;
       private int maxSequences = -1;
@@ -87,16 +90,25 @@ public class NewSequenceProcessor implements Processor<Request>, ResourceUtilize
          this.locator = locator;
       }
 
+      /**
+       * Maximum number of sequences instantiated.
+       */
       public Builder maxSequences(int maxSequences) {
          this.maxSequences = maxSequences;
          return this;
       }
 
+      /**
+       * Variable storing the counter for sequence IDs.
+       */
       public Builder counterVar(String counterVar) {
          this.counterVar = counterVar;
          return this;
       }
 
+      /**
+       * Name of the instantiated sequence.
+       */
       public Builder sequence(String sequence) {
          this.sequence = sequence;
          return this;

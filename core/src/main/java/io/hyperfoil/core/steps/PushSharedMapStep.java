@@ -44,6 +44,12 @@ public class PushSharedMapStep implements Step, ResourceUtilizer {
       session.sharedData().reserveMap(key, null, vars.length);
    }
 
+   /**
+    * Store values from session variables into a map shared across all sessions using the same executor into session variables.
+    *
+    * The executor can host multiple shared maps, each holding an entry with several variables.
+    * This step creates one entry in the map, copying values from session variables into the entry.
+    */
    public static class Builder extends BaseStepBuilder {
       private String key;
       private Collection<String> vars = new ArrayList<>();
@@ -60,11 +66,17 @@ public class PushSharedMapStep implements Step, ResourceUtilizer {
          return Collections.singletonList(new PushSharedMapStep(key, vars.toArray(new String[0])));
       }
 
+      /**
+       * Key identifying the shared map.
+       */
       public Builder key(String key) {
          this.key = key;
          return this;
       }
 
+      /**
+       * List of variable names that should be stored in the entry.
+       */
       public ListBuilder vars() {
          return vars::add;
       }

@@ -114,5 +114,8 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
       sendTimestampNanos = System.nanoTime();
    }
 
+   /**
+    * Processors for any type of request.
+    */
    public interface ProcessorBuilderFactory extends ServiceLoadedFactory<Processor.Builder<Request>> {}
 }

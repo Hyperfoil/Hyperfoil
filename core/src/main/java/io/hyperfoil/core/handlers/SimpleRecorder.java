@@ -33,6 +33,9 @@ public class SimpleRecorder implements Processor<Request>, ResourceUtilizer {
       toVar.declareObject(session);
    }
 
+   /**
+    * Stores data in a session variable (overwriting on multiple occurences).
+    */
    public static class Builder implements Processor.Builder<Request> {
       private String toVar;
       private DataFormat format = DataFormat.STRING;
@@ -41,11 +44,17 @@ public class SimpleRecorder implements Processor<Request>, ResourceUtilizer {
          this.toVar = toVar;
       }
 
+      /**
+       * Variable name.
+       */
       public Builder toVar(String toVar) {
          this.toVar = toVar;
          return this;
       }
 
+      /**
+       * Format into which should this processor convert the buffers before storing. Default is <code>STRING</code>.
+       */
       public Builder format(DataFormat format) {
          this.format = format;
          return this;

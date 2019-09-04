@@ -34,6 +34,9 @@ public class TemplateStep implements Step, ResourceUtilizer {
       toVar.declareObject(session);
    }
 
+   /**
+    * Format pattern into session variable.
+    */
    public static class Builder extends BaseStepBuilder {
       private Pattern pattern;
       private String toVar;
@@ -42,11 +45,17 @@ public class TemplateStep implements Step, ResourceUtilizer {
          super(parent);
       }
 
+      /**
+       * Pattern to be encoded, e.g. <code>foo${variable}bar${another-variable}</code>
+       */
       public Builder pattern(String pattern) {
          this.pattern = new Pattern(pattern, false);
          return this;
       }
 
+      /**
+       * Variable name to store the result.
+       */
       public Builder toVar(String var) {
          this.toVar = var;
          return this;

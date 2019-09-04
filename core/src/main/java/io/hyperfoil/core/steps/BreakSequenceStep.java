@@ -40,6 +40,9 @@ public class BreakSequenceStep extends DependencyStep {
       return true;
    }
 
+   /**
+    * Prematurely stops execution of this sequence if the condition is satisfied.
+    */
    public static class Builder extends DependencyStepBuilder<Builder> {
       private Condition.Builder condition;
       private Action.Builder onBreak;
@@ -60,12 +63,18 @@ public class BreakSequenceStep extends DependencyStep {
          return condition(() -> condition);
       }
 
+      /**
+       * Action performed when the condition is true and the sequence is to be ended.
+       */
       public IntCondition.Builder<BreakSequenceStep.Builder> intCondition() {
          IntCondition.Builder<BreakSequenceStep.Builder> builder = new IntCondition.Builder<>(this);
          condition(builder);
          return builder;
       }
 
+      /**
+       * Action performed when the condition is true and the sequence is to be ended.
+       */
       public Builder onBreak(Action onBreak) {
          if (this.onBreak != null) {
             throw new BenchmarkDefinitionException("Break action already set");

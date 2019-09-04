@@ -25,6 +25,9 @@ public class AwaitDelayStep implements Step {
       return System.currentTimeMillis() >= blockedUntil.timestamp;
    }
 
+   /**
+    * Block this sequence until referenced delay point.
+    */
    public static class Builder extends BaseStepBuilder {
       private Object key;
 
@@ -32,6 +35,9 @@ public class AwaitDelayStep implements Step {
          super(parent);
       }
 
+      /**
+       * Delay point created in <code>scheduleDelay.key</code>.
+       */
       public Builder key(String key) {
          this.key = key;
          return this;

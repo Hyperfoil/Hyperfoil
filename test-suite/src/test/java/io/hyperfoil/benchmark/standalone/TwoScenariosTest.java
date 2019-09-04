@@ -119,7 +119,7 @@ public class TwoScenariosTest {
                .endSequence()
                .sequence("rig")
                   .step(SC).httpRequest(HttpMethod.GET)
-                     .pathGenerator(s -> "/rig?ship=" + encode(((ShipInfo) ship.getObject(s)).name))
+                     .path(s -> "/rig?ship=" + encode(((ShipInfo) ship.getObject(s)).name))
                      .handler().status(((request, status) -> {
                         if (status == 200) {
                            ((ShipInfo) ship.getObject(request.session)).sailsState = SailsState.RIGGED;
@@ -156,7 +156,7 @@ public class TwoScenariosTest {
                .endSequence()
                .sequence("furl")
                   .step(SC).httpRequest(HttpMethod.GET)
-                     .pathGenerator(s -> "/furl?ship=" + encode(((ShipInfo) ship.getObject(s)).name))
+                     .path(s -> "/furl?ship=" + encode(((ShipInfo) ship.getObject(s)).name))
                      .handler().status((request, status) -> {
                         if (status == 200) {
                            ((ShipInfo) ship.getObject(request.session)).sailsState = SailsState.RIGGED;

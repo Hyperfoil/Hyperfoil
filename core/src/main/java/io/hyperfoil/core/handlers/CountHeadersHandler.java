@@ -16,6 +16,9 @@ public class CountHeadersHandler implements HeaderHandler {
       custom.add(1);
    }
 
+   /**
+    * Stores number of occurences of each header in custom statistics (these can be displayed in CLI using the <code>stats -c</code> command).
+    */
    public static class Builder implements HeaderHandler.Builder {
       @Override
       public CountHeadersHandler build(SerializableSupplier<? extends Step> step) {

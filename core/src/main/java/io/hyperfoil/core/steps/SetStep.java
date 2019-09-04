@@ -37,6 +37,9 @@ public class SetStep implements Action.Step, ResourceUtilizer {
       }
    }
 
+   /**
+    * Set variable in session to certain value.
+    */
    public static class Builder extends ActionStepBuilder {
       private String var;
       private Object value;
@@ -55,16 +58,25 @@ public class SetStep implements Action.Step, ResourceUtilizer {
          }
       }
 
+      /**
+       * Variable name.
+       */
       public SetStep.Builder var(String var) {
          this.var = var;
          return this;
       }
 
+      /**
+       * String value.
+       */
       public Builder value(String value) {
          this.value = value;
          return this;
       }
 
+      /**
+       * Set variable to an (empty) array.
+       */
       public ObjectArrayBuilder objectArray() {
          return objectArray = new ObjectArrayBuilder();
       }
@@ -98,6 +110,9 @@ public class SetStep implements Action.Step, ResourceUtilizer {
          return true;
       }
 
+      /**
+       * @param param Use <code>var <- value</code>.
+       */
       @Override
       public SetStep.Builder newBuilder(Locator locator, String param) {
          return new SetStep.Builder(null, param);
@@ -134,9 +149,15 @@ public class SetStep implements Action.Step, ResourceUtilizer {
       }
    }
 
+   /**
+    * Creates object arrays to be stored in the session.
+    */
    public static class ObjectArrayBuilder {
       private int size;
 
+      /**
+       * Size of the array.
+       */
       public ObjectArrayBuilder size(int size) {
          this.size = size;
          return this;
