@@ -75,7 +75,7 @@ public final class HttpUtil {
          log.warn("Cannot parse month in date {}", seq.subSequence(begin, end));
          return 0;
       }
-      i+= 4; // skip month and '-'
+      i += 4; // skip month and '-'
       int nextSpace = indexOf(seq, i, ' ');
       int year;
       if (nextSpace - i == 4) {
@@ -163,8 +163,8 @@ public final class HttpUtil {
       }
       bytes[3] = ','; bytes[4] = ' ';
       int dayOfMonth = calendar.get(Calendar.DAY_OF_MONTH);
-      bytes[5] = (byte)('0' + dayOfMonth / 10);
-      bytes[6] = (byte)('0' + dayOfMonth % 10);
+      bytes[5] = (byte) ('0' + dayOfMonth / 10);
+      bytes[6] = (byte) ('0' + dayOfMonth % 10);
       bytes[7] = '-';
       CharSequence month = MONTHS[calendar.get(Calendar.MONTH) - 1];
       bytes[8] = (byte) month.charAt(0);

@@ -51,7 +51,7 @@ public class Log extends ServerCommand {
       String newLogId = invocation.context().client().downloadLog(node, logId, offset, logFile);
       if (logId == null) {
          invocation.context().addLog(node, logFile, newLogId);
-      } else if (!logId.equals(newLogId)){
+      } else if (!logId.equals(newLogId)) {
          invocation.context().updateLogId(node, newLogId);
       }
       try {

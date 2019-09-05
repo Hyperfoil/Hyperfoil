@@ -37,6 +37,6 @@ public class HyperfoilCommandInvocationProvider implements CommandInvocationProv
 
     @Override
     public HyperfoilCommandInvocation enhanceCommandInvocation(CommandInvocation commandInvocation) {
-        return new HyperfoilCommandInvocation(context,commandInvocation);
+        return new HyperfoilCommandInvocation(context, commandInvocation);
     }
 }

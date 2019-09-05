@@ -444,7 +444,7 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
       private final String generatedSeqName;
 
       private int maxResources;
-      private SerializableBiFunction<String,String,String> statisticsSelector;
+      private SerializableBiFunction<String, String, String> statisticsSelector;
       private Action.Builder onCompletion;
 
       FetchResourceBuilder(Locator locator) {
@@ -478,7 +478,7 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
          return statisticsSelector;
       }
 
-      public FetchResourceBuilder statistics(SerializableBiFunction<String,String,String> statistics) {
+      public FetchResourceBuilder statistics(SerializableBiFunction<String, String, String> statistics) {
          if (this.statisticsSelector != null) {
             throw new BenchmarkDefinitionException("Statistics already set!");
          }

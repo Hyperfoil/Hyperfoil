@@ -294,7 +294,7 @@ public abstract class JsonParser<S> implements Serializable {
                   }
             }
          }
-         if (attribStartIndex >= 0 || valueStartIndex >= 0 ) {
+         if (attribStartIndex >= 0 || valueStartIndex >= 0) {
             if (nextPart == parts.length) {
                parts[0].release();
                System.arraycopy(parts, 1, parts, 0, parts.length - 1);

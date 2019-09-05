@@ -355,10 +355,6 @@
                                 <configLocation>${project.basedir}/../config/checkstyle/checkstyle.xml</configLocation>
                                 <consoleOutput>true</consoleOutput>
                                 <failsOnError>true</failsOnError>
-                                <!--<linkXRef>false</linkXRef>-->
-                                <!--
-                                <useFile />
-    -->
                                 <includeTestSourceDirectory>true</includeTestSourceDirectory>
                             </configuration>
                             <goals>

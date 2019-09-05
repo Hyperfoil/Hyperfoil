@@ -221,7 +221,7 @@ class StepParser implements Parser<BaseSequenceBuilder> {
          } catch (IllegalAccessException | InvocationTargetException e) {
             throw cannotCreate(keyEvent, e);
          }
-      } else if (target instanceof StepCatalog){
+      } else if (target instanceof StepCatalog) {
          getLoadedBuilder((StepCatalog) target, keyEvent, key, value, result.exception).complete();
       } else {
          throw result.exception;
@@ -333,7 +333,7 @@ class StepParser implements Parser<BaseSequenceBuilder> {
 
    @SuppressWarnings("unchecked")
    private Enum parseEnum(String str, Class<?> type) {
-      return Enum.valueOf( (Class<Enum>) type, str);
+      return Enum.valueOf((Class<Enum>) type, str);
    }
 
    private Object defaultValue(Class<?> clazz) {

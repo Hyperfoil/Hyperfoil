@@ -57,7 +57,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
          PhaseForkBuilder fork = new PhaseForkBuilder(this, null);
          forks.add(fork);
          return fork.scenario;
-      } else if (forks.size() == 1 && forks.get(0).name == null){
+      } else if (forks.size() == 1 && forks.get(0).name == null) {
          throw new BenchmarkDefinitionException("Scenario for " + name + " already set!");
       } else {
          throw new BenchmarkDefinitionException("Scenario is forked; you need to specify another fork.");

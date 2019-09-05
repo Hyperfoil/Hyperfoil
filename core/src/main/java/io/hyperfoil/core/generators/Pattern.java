@@ -16,7 +16,7 @@ import io.hyperfoil.function.SerializableBiConsumer;
 import io.hyperfoil.function.SerializableFunction;
 import io.netty.buffer.ByteBuf;
 
-public class Pattern implements SerializableFunction<Session,String>, SerializableBiConsumer<Session, ByteBuf> {
+public class Pattern implements SerializableFunction<Session, String>, SerializableBiConsumer<Session, ByteBuf> {
    private static final int VAR_LENGTH_ESTIMATE = 32;
    private final Component[] components;
    private int lengthEstimate;

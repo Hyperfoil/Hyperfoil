@@ -530,7 +530,8 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
             String guessedPath = "<unknown path>";
             try {
                guessedPath = pathGenerator.apply(null);
-            } catch (Throwable e) {}
+            } catch (Throwable e) {
+            }
             if (authority == null) {
                throw new BenchmarkDefinitionException(String.format("%s to <default route>%s is invalid as we don't have a default route set.", method, guessedPath));
             } else {
@@ -683,7 +684,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
             Object value = access.getObject(session);
             if (value instanceof ByteBuf) {
                return (ByteBuf) value;
-            } else if (value instanceof String){
+            } else if (value instanceof String) {
                String str = (String) value;
                return Util.string2byteBuf(str, connection.context().alloc().buffer(str.length()));
 

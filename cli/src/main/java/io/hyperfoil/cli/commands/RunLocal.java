@@ -59,10 +59,9 @@ public class RunLocal implements Command<CommandInvocation> {
 
     //ignore logging when running in the console below severe
     static {
-        Handler[] handlers =
-                Logger.getLogger( "" ).getHandlers();
-        for ( int index = 0; index < handlers.length; index++ ) {
-            handlers[index].setLevel( Level.SEVERE);
+        Handler[] handlers = Logger.getLogger("").getHandlers();
+        for (int index = 0; index < handlers.length; index++) {
+            handlers[index].setLevel(Level.SEVERE);
         }
     }
 
@@ -75,7 +74,7 @@ public class RunLocal implements Command<CommandInvocation> {
 
     @Override
     public CommandResult execute(CommandInvocation commandInvocation) {
-        if(help) {
+        if (help) {
             commandInvocation.println(commandInvocation.getHelpInfo("run-local"));
             return CommandResult.SUCCESS;
         }
@@ -84,7 +83,7 @@ public class RunLocal implements Command<CommandInvocation> {
             Benchmark benchmark = buildBenchmark(io.hyperfoil.cli.Util.sanitize(yaml).read(), commandInvocation);
 
             HashMap<String, StatisticsSnapshot> aggregated = new HashMap<>();
-            if(benchmark != null) {
+            if (benchmark != null) {
                 LocalSimulationRunner runner = new LocalSimulationRunner(benchmark, (phase, stepId, metric, stats, countDown) -> {
                     synchronized (aggregated) {
                         stats.addInto(aggregated.computeIfAbsent(phase.name() + "/" + metric, pm -> new StatisticsSnapshot()));
@@ -116,14 +115,13 @@ public class RunLocal implements Command<CommandInvocation> {
                 commandInvocation.println(String.join(", ", benchmark.http().values().stream().map(http -> http.host() + ":" + http.port() + " (" + http.sharedConnections() + " connections)").collect(Collectors.toList())));
                 runner.run();
             }
-        }
-        catch(FileNotFoundException e){
+        } catch (FileNotFoundException e) {
             commandInvocation.println("Couldn't find benchmark file: " + e.getMessage());
         }
         return CommandResult.SUCCESS;
     }
 
-    private Benchmark buildBenchmark(InputStream inputStream, CommandInvocation invocation){
+    private Benchmark buildBenchmark(InputStream inputStream, CommandInvocation invocation) {
         if (inputStream == null)
             invocation.println("Could not find benchmark configuration");
 
@@ -131,13 +129,13 @@ public class RunLocal implements Command<CommandInvocation> {
             String source = Util.toString(inputStream);
             Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(source, new LocalBenchmarkData());
 
-            if(benchmark == null)
+            if (benchmark == null)
                 invocation.println("Failed to parse benchmark configuration");
 
             return benchmark;
         }
         catch (ParserException | IOException e) {
-            invocation.println("Error occurred during parsing: "+e.getMessage());
+            invocation.println("Error occurred during parsing: " + e.getMessage());
             e.printStackTrace();
         }
         return null;
@@ -158,35 +156,35 @@ public class RunLocal implements Command<CommandInvocation> {
         if (bytes != null && bytes instanceof LongValue) {
             long numBytes = ((LongValue) bytes).value();
             transferPerSec = Util.prettyPrintData(numBytes / durationSeconds);
-            invocation.println(", "+ Util.prettyPrintData(numBytes) +" read");
+            invocation.println(", " + Util.prettyPrintData(numBytes) + " read");
         } else {
             invocation.println("");
         }
 
         invocation.println("                 Avg    Stdev      Max");
-        invocation.println("Latency:      "+ Util.prettyPrintNanos((long) stats.histogram.getMean())+" "
-              +Util.prettyPrintNanos((long)stats.histogram.getStdDeviation())+" "
-              +Util.prettyPrintNanos(stats.histogram.getMaxValue()));
+        invocation.println("Latency:      " + Util.prettyPrintNanos((long) stats.histogram.getMean()) + " "
+              + Util.prettyPrintNanos((long) stats.histogram.getStdDeviation()) + " "
+              + Util.prettyPrintNanos(stats.histogram.getMaxValue()));
          /*
          if (latency) {
             invocation.println("Latency Distribution");
             for (double percentile : new double[] { 0.5, 0.75, 0.9, 0.99, 0.999, 0.9999, 0.99999, 1.0}) {
-               invocation.println(String.format("%7.3f", 100 * percentile)+" "+Util.prettyPrintNanos((long)stats.histogram.getValueAtPercentile(100 * percentile)));
+               invocation.println(String.format("%7.3f", 100 * percentile) + " " + Util.prettyPrintNanos((long)stats.histogram.getValueAtPercentile(100 * percentile)));
             }
             invocation.println("----------------------------------------------------------");
             invocation.println("Detailed Percentile Spectrum");
             invocation.println("   Value  Percentile  TotalCount  1/(1-Percentile)");
             for (HistogramIterationValue value : stats.histogram.percentiles(5)) {
-               invocation.println(Util.prettyPrintNanos((long)value.getValueIteratedTo())+" "+String.format("%9.5f%%  %10d  %15.2f",
+               invocation.println(Util.prettyPrintNanos((long)value.getValueIteratedTo()) + " " + String.format("%9.5f%%  %10d  %15.2f",
                      value.getPercentile(), value.getTotalCountToThisValue(), 100/(100 - value.getPercentile())));
             }
             invocation.println("----------------------------------------------------------");
          }
          */
-        invocation.println("Requests/sec: "+stats.histogram.getTotalCount() / durationSeconds);
+        invocation.println("Requests/sec: " + stats.histogram.getTotalCount() / durationSeconds);
         if (stats.errors() > 0) {
-            invocation.println("Socket errors: connect "+stats.connectFailureCount+", reset "+stats.resetCount+", timeout "+stats.timeouts);
-            invocation.println("Non-2xx or 3xx responses: "+ (stats.status_4xx + stats.status_5xx + stats.status_other));
+            invocation.println("Socket errors: connect " + stats.connectFailureCount + ", reset " + stats.resetCount + ", timeout " + stats.timeouts);
+            invocation.println("Non-2xx or 3xx responses: " + (stats.status_4xx + stats.status_5xx + stats.status_other));
         }
         if (transferPerSec != null) {
             invocation.println("Transfer/sec: " + transferPerSec);
@@ -218,7 +216,7 @@ public class RunLocal implements Command<CommandInvocation> {
             runtime.executeCommand(sb.toString());
         }
         catch (Exception e) {
-            System.out.println("Failed to execute command:"+ e.getMessage());
+            System.out.println("Failed to execute command:" + e.getMessage());
             System.out.println(runtime.commandInfo("main"));
         }
     }

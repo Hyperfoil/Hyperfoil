@@ -130,7 +130,7 @@ public class ClusterTestCase extends BaseClusteredTest {
     private byte[] serialize(Serializable object) {
         try {
             ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-            try (ObjectOutputStream objectOutputStream = new ObjectOutputStream(byteArrayOutputStream)){
+            try (ObjectOutputStream objectOutputStream = new ObjectOutputStream(byteArrayOutputStream)) {
                 objectOutputStream.writeObject(object);
             }
             byteArrayOutputStream.flush();

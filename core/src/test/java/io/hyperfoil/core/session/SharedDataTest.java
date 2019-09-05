@@ -44,7 +44,7 @@ public class SharedDataTest {
 
       int count = 0;
       for (int i = 0; i < 10; ++i) {
-         for (int j = 0; j <=i; ++j) {
+         for (int j = 0; j <= i; ++j) {
             SharedData.SharedMap map = data.newMap(FOO);
             map.put(FOOA, "bar" + i);
             map.put(NUMBERA, j);

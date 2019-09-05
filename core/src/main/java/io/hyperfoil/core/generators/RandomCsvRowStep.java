@@ -88,15 +88,15 @@ public class RandomCsvRowStep implements Step, ResourceUtilizer  {
       @Override
       public List<Step> build(SerializableSupplier<Sequence> sequence) {
          File f = new File(file);
-         if ( !f.exists() ) {
+         if (!f.exists()) {
             throw new BenchmarkDefinitionException("Supplied file cannot be found on system");
          }
          List<String[]> rows;
-         try ( BufferedReader reader = Files.newBufferedReader(Paths.get(f.getAbsolutePath())) ){
-            Predicate<String> comments = s -> (skipComments ? !(s.trim().startsWith("#")) : true );
+         try (BufferedReader reader = Files.newBufferedReader(Paths.get(f.getAbsolutePath()))) {
+            Predicate<String> comments = s -> (skipComments ? !(s.trim().startsWith("#")) : true);
             rows = reader.lines()
                   .filter(comments)
-                  .map(s -> isQuotesRemoved ? s.replaceAll("\"","") : s)
+                  .map(s -> isQuotesRemoved ? s.replaceAll("\"", "") : s)
                   .map(line -> line.split(","))
                   .collect(Collectors.toList());
          } catch (IOException ioe) {
@@ -157,7 +157,7 @@ public class RandomCsvRowStep implements Step, ResourceUtilizer  {
          public void accept(String position, String columnVar) {
             Integer pos = Integer.parseInt(position);
             maxSize = (maxSize > pos ? maxSize : pos);
-            if ((builderColumns.put(columnVar, pos) != null)){
+            if ((builderColumns.put(columnVar, pos) != null)) {
                throw new BenchmarkDefinitionException("Duplicate item '" + columnVar + "' in randomCSVrow step!");
             }
          }

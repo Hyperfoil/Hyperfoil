@@ -68,10 +68,9 @@ public class HyperfoilCli {
 
        //ignore logging when running in the console below severe
    static {
-      Handler[] handlers =
-              Logger.getLogger( "" ).getHandlers();
-      for ( int index = 0; index < handlers.length; index++ ) {
-         handlers[index].setLevel( Level.SEVERE);
+      Handler[] handlers = Logger.getLogger("").getHandlers();
+      for (int index = 0; index < handlers.length; index++) {
+         handlers[index].setLevel(Level.SEVERE);
       }
    }
 

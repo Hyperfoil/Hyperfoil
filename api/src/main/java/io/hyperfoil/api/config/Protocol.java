@@ -18,7 +18,7 @@ public enum Protocol {
 
     public static Protocol fromScheme(String scheme) {
         return Stream.of(values()).filter(p -> p.scheme.equals(scheme)).findFirst()
-              .orElseThrow(() -> new IllegalArgumentException("Unknown scheme '"+ scheme + "'"));
+              .orElseThrow(() -> new IllegalArgumentException("Unknown scheme '" + scheme + "'"));
     }
 
     public static Protocol fromPort(int port) {

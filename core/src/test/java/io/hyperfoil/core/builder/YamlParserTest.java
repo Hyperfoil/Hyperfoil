@@ -190,7 +190,7 @@ public class YamlParserTest {
         return buildBenchmark(this.getClass().getClassLoader().getResourceAsStream(s));
     }
 
-    private Benchmark buildBenchmark(InputStream inputStream){
+    private Benchmark buildBenchmark(InputStream inputStream) {
         if (inputStream == null)
             fail("Could not find benchmark configuration");
 

@@ -19,5 +19,5 @@ public interface BenchmarkData {
 
    InputStream readFile(String file);
 
-   Map<String,byte[]> files();
+   Map<String, byte[]> files();
 }

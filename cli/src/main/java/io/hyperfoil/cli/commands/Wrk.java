@@ -64,10 +64,9 @@ public class Wrk {
 
     //ignore logging when running in the console below severe
    static {
-      Handler[] handlers =
-              Logger.getLogger( "" ).getHandlers();
-      for ( int index = 0; index < handlers.length; index++ ) {
-         handlers[index].setLevel( Level.SEVERE);
+      Handler[] handlers = Logger.getLogger("").getHandlers();
+      for (int index = 0; index < handlers.length; index++) {
+         handlers[index].setLevel(Level.SEVERE);
       }
    }
 
@@ -81,7 +80,7 @@ public class Wrk {
          AeshRuntimeRunner.builder().command(WrkCommand.class).args(args).execute();
       }
       catch (Exception e) {
-         System.out.println("Failed to execute command:"+ e.getMessage());
+         System.out.println("Failed to execute command:" + e.getMessage());
          e.printStackTrace();
          //todo: should provide help info here, will be added in newer version of æsh
          //System.out.println(runtime.commandInfo("wrk"));
@@ -127,10 +126,10 @@ public class Wrk {
 
       @Override
       public CommandResult execute(CommandInvocation commandInvocation) {
-          if(help) {
-             commandInvocation.println(commandInvocation.getHelpInfo("wrk"));
-             return CommandResult.SUCCESS;
-          }
+         if (help) {
+            commandInvocation.println(commandInvocation.getHelpInfo("wrk"));
+            return CommandResult.SUCCESS;
+         }
          if (script != null) {
             commandInvocation.println("Scripting is not supported at this moment.");
          }
@@ -141,7 +140,7 @@ public class Wrk {
          try {
             uri = new URI(url);
          } catch (URISyntaxException e) {
-            commandInvocation.println("Failed to parse URL: "+ e.getMessage());
+            commandInvocation.println("Failed to parse URL: " + e.getMessage());
             return CommandResult.FAILURE;
          }
          path = uri.getPath();
@@ -169,7 +168,7 @@ public class Wrk {
             parsedHeaders = null;
          }
          //check if we're running in the cli
-         if(commandInvocation instanceof HyperfoilCommandInvocation)
+         if (commandInvocation instanceof HyperfoilCommandInvocation)
             executedInCli = true;
 
          Protocol protocol = Protocol.fromScheme(uri.getScheme());
@@ -190,7 +189,7 @@ public class Wrk {
          commandInvocation.println("Running for " + duration + " test @ " + url);
          commandInvocation.println(threads + " threads and " + connections + " connections");
 
-         if(executedInCli) {
+         if (executedInCli) {
             ((HyperfoilCommandInvocation) commandInvocation).context().setBenchmark(benchmark);
             startRunnerInCliMode(runner, benchmark, (HyperfoilCommandInvocation) commandInvocation);
          } else {
@@ -213,16 +212,19 @@ public class Wrk {
                                         HyperfoilCommandInvocation invocation) {
 
          CountDownLatch latch = new CountDownLatch(1);
-         Thread thread  = new Thread(() -> {runner.run(); latch.countDown();});
+         Thread thread  = new Thread(() -> {
+            runner.run();
+            latch.countDown();
+         });
          thread.start();
 
          long startTime = System.currentTimeMillis();
          StatisticsCollector collector = new StatisticsCollector(benchmark);
          StatisticsSnapshot total = new StatisticsSnapshot();
-         while(latch.getCount() > 0) {
+         while (latch.getCount() > 0) {
 
             long duration = System.currentTimeMillis() - startTime;
-            if(duration % 800 == 0) {
+            if (duration % 800 == 0) {
                invocation.getShell().write(ANSI.CURSOR_START);
                invocation.getShell().write(ANSI.ERASE_WHOLE_LINE);
                runner.visitStatistics(collector);
@@ -236,7 +238,7 @@ public class Wrk {
 
                try {
                   Thread.sleep(10);
-               } catch(InterruptedException e) {
+               } catch (InterruptedException e) {
                   //if we're interrupted, lets try to interrupt the benchmark...
                   invocation.println("Interrupt received, trying to abort run...");
                   thread.interrupt();
@@ -245,7 +247,7 @@ public class Wrk {
             }
          }
          invocation.context().setRunning(false);
-         invocation.println(Config.getLineSeparator()+"benchmark finished");
+         invocation.println(Config.getLineSeparator() + "benchmark finished");
          runner.visitStatistics(collector);
          collector.visitStatistics((phase, stepId, metric, stats, countDown) -> {
             if ("test".equals(phase.name())) {
@@ -289,24 +291,24 @@ public class Wrk {
          if (latency) {
             invocation.println("Latency Distribution");
             for (double percentile : new double[] { 0.5, 0.75, 0.9, 0.99, 0.999, 0.9999, 0.99999, 1.0}) {
-               invocation.println(String.format("%7.3f", 100 * percentile)+" "+Util.prettyPrintNanos(stats.histogram.getValueAtPercentile(100 * percentile)));
+               invocation.println(String.format("%7.3f", 100 * percentile) + " " + Util.prettyPrintNanos(stats.histogram.getValueAtPercentile(100 * percentile)));
             }
             invocation.println("----------------------------------------------------------");
             invocation.println("Detailed Percentile Spectrum");
             invocation.println("    Value  Percentile  TotalCount  1/(1-Percentile)");
             for (HistogramIterationValue value : stats.histogram.percentiles(5)) {
-               invocation.println(Util.prettyPrintNanos(value.getValueIteratedTo())+" "+String.format("%9.5f%%  %10d  %15.2f",
-                     value.getPercentile(), value.getTotalCountToThisValue(), 100/(100 - value.getPercentile())));
+               invocation.println(Util.prettyPrintNanos(value.getValueIteratedTo()) + " " + String.format("%9.5f%%  %10d  %15.2f",
+                     value.getPercentile(), value.getTotalCountToThisValue(), 100 / (100 - value.getPercentile())));
             }
             invocation.println("----------------------------------------------------------");
          }
-         invocation.println(stats.histogram.getTotalCount()+" requests in "+durationSeconds+"s, "+ Util.prettyPrintData(dataRead)+" read");
-         invocation.println("Requests/sec: "+String.format("%.02f", stats.histogram.getTotalCount() / durationSeconds));
+         invocation.println(stats.histogram.getTotalCount() + " requests in " + durationSeconds + "s, " + Util.prettyPrintData(dataRead) + " read");
+         invocation.println("Requests/sec: " + String.format("%.02f", stats.histogram.getTotalCount() / durationSeconds));
          if (stats.errors() > 0) {
-            invocation.println("Socket errors: connect "+stats.connectFailureCount+", reset "+stats.resetCount+", timeout "+stats.timeouts);
-            invocation.println("Non-2xx or 3xx responses: "+ stats.status_4xx + stats.status_5xx + stats.status_other);
+            invocation.println("Socket errors: connect " + stats.connectFailureCount + ", reset " + stats.resetCount + ", timeout " + stats.timeouts);
+            invocation.println("Non-2xx or 3xx responses: " + stats.status_4xx + stats.status_5xx + stats.status_other);
          }
-         invocation.println("Transfer/sec: "+ Util.prettyPrintData(dataRead / durationSeconds));
+         invocation.println("Transfer/sec: " + Util.prettyPrintData(dataRead / durationSeconds));
       }
 
    }

@@ -147,7 +147,7 @@ public class HttpCacheImpl implements HttpCache {
             return;
          } else if (c == '"') {
             int start = ++i;
-            for (;i < value.length() && value.charAt(i) != '"'; ++i);
+            for (; i < value.length() && value.charAt(i) != '"'; ++i);
             int length = i - start;
             List<HttpCache.Record> matchingCached = request.cacheControl.matchingCached;
             for (Iterator<HttpCache.Record> it = matchingCached.iterator(); it.hasNext(); ) {
@@ -190,7 +190,7 @@ public class HttpCacheImpl implements HttpCache {
             --i;
          } else {
             int pos = i + 1;
-            switch (state.next((byte)(c & 0xFF))) {
+            switch (state.next((byte) (c & 0xFF))) {
                case MAX_AGE:
                   i = skipNumbers(value, pos);
                   maxAge = parseIntSaturated(value, pos, i);
@@ -388,7 +388,7 @@ public class HttpCacheImpl implements HttpCache {
                --i;
             } else {
                int pos = i + 1;
-               switch (state.next((byte)(c & 0xFF))) {
+               switch (state.next((byte) (c & 0xFF))) {
                   case MAX_AGE:
                      i = skipNumbers(value, pos);
                      request.cacheControl.responseMaxAge = parseIntSaturated(value, pos, i);

@@ -273,10 +273,10 @@ public class Http1xRawBytesHandler extends BaseRawBytesHandler {
         int value = 0;
         for (; index < buf.writerIndex(); ++index) {
             byte b = buf.getByte(index);
-            if ( (b < '0' || b > '9') && (b < 'a' || b > 'f') ) {
+            if ((b < '0' || b > '9') && (b < 'a' || b > 'f')) {
                 return value;
             }
-            value = value * 16 + (b > '9' ? (b - 'a') + 10 : (b - '0') );
+            value = value * 16 + (b > '9' ? (b - 'a') + 10 : (b - '0'));
         }
         // we expect that we've read the <CR><LF> and we should see them
         throw new IllegalStateException();
