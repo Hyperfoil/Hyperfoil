@@ -20,5 +20,6 @@ public interface HeaderHandler extends Serializable {
    interface Builder extends BuilderBase<Builder> {
       HeaderHandler build(SerializableSupplier<? extends Step> step);
    }
+
    interface BuilderFactory extends ServiceLoadedFactory<HeaderHandler.Builder> {}
 }

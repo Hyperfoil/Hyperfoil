@@ -14,5 +14,6 @@ public interface StatusHandler extends Serializable {
    interface Builder extends BuilderBase<Builder> {
       StatusHandler build(SerializableSupplier<? extends Step> step);
    }
+
    interface BuilderFactory extends ServiceLoadedFactory<StatusHandler.Builder> {}
 }

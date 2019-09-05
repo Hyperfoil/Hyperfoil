@@ -20,6 +20,7 @@ public class Util {
    public static boolean compareIgnoreCase(byte b1, byte b2) {
       return b1 == b2 || toUpperCase(b1) == toUpperCase(b2) || toLowerCase(b1) == toLowerCase(b2);
    }
+
    private static byte toLowerCase(byte b) {
       return b >= 'A' && b <= 'Z' ? (byte) (b + 32) : b;
    }

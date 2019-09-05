@@ -71,6 +71,7 @@ public class HttpVersionsTest extends VertxBaseTest {
    public void testCleartextDefault(TestContext ctx) throws Exception {
       test(ctx, false, HttpVersion.ALL_VERSIONS, HTTP2_ONLY, 500);
    }
+
    @Test
    public void testCleartextDefaultServer1x(TestContext ctx) throws Exception {
       test(ctx, false, HttpVersion.ALL_VERSIONS, HTTP1x_ONLY, 500);

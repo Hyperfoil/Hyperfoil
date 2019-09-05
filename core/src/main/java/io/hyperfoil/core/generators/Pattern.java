@@ -92,6 +92,7 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
 
    interface Component extends Serializable {
       void accept(Session session, StringBuilder sb);
+
       void accept(Session session, ByteBuf buf);
    }
 

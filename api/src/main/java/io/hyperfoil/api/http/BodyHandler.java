@@ -30,7 +30,9 @@ import io.netty.buffer.ByteBuf;
 public interface BodyHandler extends Serializable {
 
     default void beforeData(HttpRequest request) {}
+
     void handleData(HttpRequest request, ByteBuf data);
+
     default void afterData(HttpRequest request) {}
 
     interface Builder extends BuilderBase<Builder> {

@@ -79,7 +79,9 @@ public interface Session {
 
    interface Var {
       boolean isSet();
+
       void unset();
+
       VarType type();
 
       default int intValue() {

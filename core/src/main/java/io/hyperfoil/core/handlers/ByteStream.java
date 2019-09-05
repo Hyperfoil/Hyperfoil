@@ -5,6 +5,7 @@ package io.hyperfoil.core.handlers;
  */
 public interface ByteStream {
    boolean isReadable();
+
    byte readByte();
 
    int getByte(int index);

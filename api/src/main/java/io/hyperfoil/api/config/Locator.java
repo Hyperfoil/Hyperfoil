@@ -3,7 +3,9 @@ package io.hyperfoil.api.config;
 public interface Locator {
 
    StepBuilder step();
+
    BaseSequenceBuilder sequence();
+
    ScenarioBuilder scenario();
 
    static Locator fromStep(StepBuilder step) {

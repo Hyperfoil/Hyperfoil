@@ -15,6 +15,7 @@ public interface Action extends Serializable {
    interface Builder extends BuilderBase<Builder> {
       Action build();
    }
+
    interface BuilderFactory extends ServiceLoadedFactory<Builder> {}
 
    /**

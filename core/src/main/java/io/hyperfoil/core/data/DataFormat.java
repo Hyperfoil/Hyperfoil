@@ -59,5 +59,6 @@ public enum DataFormat {
    };
 
    public abstract Object convert(ByteBuf data, int offset, int length);
+
    public abstract Object convert(byte[] data, int offset, int length);
 }

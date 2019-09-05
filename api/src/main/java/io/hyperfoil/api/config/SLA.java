@@ -152,7 +152,9 @@ public class SLA implements Serializable {
        * @return Step ID that will allow us to match against the SLA.
        */
       int id();
+
       SLA[] sla();
+
       Sequence sequence();
    }
 }

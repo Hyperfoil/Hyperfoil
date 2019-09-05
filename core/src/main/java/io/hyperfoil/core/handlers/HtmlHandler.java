@@ -214,6 +214,7 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
 
    interface TagHandler {
       Processor<HttpRequest> processor();
+
       HandlerContext newContext();
    }
 
@@ -281,8 +282,11 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
 
    interface HandlerContext {
       void onTag(HttpRequest request, boolean close, ByteBuf data, int offset, int length, boolean isLast);
+
       void onAttr(HttpRequest request, ByteBuf data, int offset, int length, boolean isLast);
+
       void onValue(HttpRequest request, ByteBuf data, int offset, int length, boolean isLast);
+
       void endTag(HttpRequest request);
    }
 

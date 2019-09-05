@@ -34,22 +34,34 @@ public interface Client {
 
    interface BenchmarkRef {
       String name();
+
       Benchmark get();
+
       RunRef start();
    }
 
    interface RunRef {
       String id();
+
       Run get();
+
       RunRef kill();
+
       Benchmark benchmark();
+
       Map<String, Map<String, MinMax>> sessionStatsRecent();
+
       Map<String, Map<String, MinMax>> sessionStatsTotal();
+
       // TODO: server should expose JSON-formatted variants
       Collection<String> sessions();
+
       Collection<String> connections();
+
       RequestStatisticsResponse statsRecent();
+
       RequestStatisticsResponse statsTotal();
+
       Collection<CustomStats> customStats();
    }
 
