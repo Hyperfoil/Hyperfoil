@@ -35,11 +35,11 @@ public class CookieTest extends BaseScenarioTest {
       scenario().initialSequence("test")
                .step(SC).httpRequest(HttpMethod.GET)
                   .path("/test1")
-                  .statistics("test1")
+                  .metric("test1")
                .endStep()
                .step(SC).httpRequest(HttpMethod.GET)
                   .path("/test2")
-                  .statistics("test2")
+                  .metric("test2")
                   .handler()
                      .status((request, status) -> {
                         if (status != 200) request.markInvalid();

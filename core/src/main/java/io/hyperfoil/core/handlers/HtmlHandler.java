@@ -26,7 +26,7 @@ import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.steps.AddToIntStep;
 import io.hyperfoil.core.steps.AwaitIntStep;
 import io.hyperfoil.core.steps.HttpRequestStep;
-import io.hyperfoil.core.steps.PathStatisticsSelector;
+import io.hyperfoil.core.steps.PathMetricSelector;
 import io.hyperfoil.core.steps.ServiceLoadedBuilderProvider;
 import io.hyperfoil.core.steps.UnsetStep;
 import io.hyperfoil.core.util.Trie;
@@ -444,7 +444,7 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
       private final String generatedSeqName;
 
       private int maxResources;
-      private SerializableBiFunction<String, String, String> statisticsSelector;
+      private SerializableBiFunction<String, String, String> metricSelector;
       private Action.Builder onCompletion;
 
       FetchResourceBuilder(Locator locator) {
@@ -472,17 +472,17 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
       /**
        * Metrics selector for downloaded resources.
        */
-      public PathStatisticsSelector statistics() {
-         PathStatisticsSelector statisticsSelector = new PathStatisticsSelector();
-         statistics(statisticsSelector);
-         return statisticsSelector;
+      public PathMetricSelector metric() {
+         PathMetricSelector metricSelector = new PathMetricSelector();
+         metric(metricSelector);
+         return metricSelector;
       }
 
-      public FetchResourceBuilder statistics(SerializableBiFunction<String, String, String> statistics) {
-         if (this.statisticsSelector != null) {
-            throw new BenchmarkDefinitionException("Statistics already set!");
+      public FetchResourceBuilder metric(SerializableBiFunction<String, String, String> metricSelector) {
+         if (this.metricSelector != null) {
+            throw new BenchmarkDefinitionException("Metric already set!");
          }
-         this.statisticsSelector = statistics;
+         this.metricSelector = metricSelector;
          return this;
       }
 
@@ -512,11 +512,11 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
          HttpRequestStep.Builder requestBuilder = new HttpRequestStep.Builder(sequence).sync(false).method(HttpMethod.GET);
          requestBuilder.path(
                new StringGeneratorImplBuilder<>(requestBuilder, false).fromVar(downloadUrlVar() + "[.]"));
-         if (statisticsSelector != null) {
-            requestBuilder.statistics(statisticsSelector);
+         if (metricSelector != null) {
+            requestBuilder.metric(metricSelector);
          } else {
             // Rather than using auto-generated sequence name we'll use the full path
-            requestBuilder.statistics((authority, path) -> authority != null ? authority + path : path);
+            requestBuilder.metric((authority, path) -> authority != null ? authority + path : path);
          }
          requestBuilder.handler().onCompletion(new AddToIntStep.Builder(null, null).var(completionLatch()).value(-1));
 
@@ -532,7 +532,7 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
       public FetchResourceBuilder copy(Locator locator) {
          return new FetchResourceBuilder(locator)
                .maxResources(maxResources)
-               .statistics(statisticsSelector)
+               .metric(metricSelector)
                .onCompletion(onCompletion);
       }
 

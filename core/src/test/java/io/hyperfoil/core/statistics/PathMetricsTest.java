@@ -12,11 +12,11 @@ import org.junit.runner.RunWith;
 import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.core.session.BaseScenarioTest;
-import io.hyperfoil.core.steps.PathStatisticsSelector;
+import io.hyperfoil.core.steps.PathMetricSelector;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 
 @RunWith(VertxUnitRunner.class)
-public class PathStatisticsTest extends BaseScenarioTest {
+public class PathMetricsTest extends BaseScenarioTest {
    @Override
    protected void initRouter() {
       router.route("/foo.js").handler(ctx -> ctx.response().setStatusCode(200).end());
@@ -27,7 +27,7 @@ public class PathStatisticsTest extends BaseScenarioTest {
    @Test
    public void test() {
       AtomicInteger counter = new AtomicInteger(0);
-      PathStatisticsSelector selector = new PathStatisticsSelector();
+      PathMetricSelector selector = new PathMetricSelector();
       selector.nextItem(".*\\.js");
       selector.nextItem("(.*\\.php).* -> $1");
       selector.nextItem("-> others");
@@ -45,7 +45,7 @@ public class PathStatisticsTest extends BaseScenarioTest {
                         throw new IllegalStateException();
                   }
                })
-               .statistics(selector)
+               .metric(selector)
             .endStep();
 
       Map<String, List<StatisticsSnapshot>> stats = runScenario();

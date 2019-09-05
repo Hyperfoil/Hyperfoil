@@ -20,8 +20,8 @@ scenario:
       # the path for the GET request
       GET:
         pattern: /example/${ my-random-path }
-      # We'll use different statistics for webpages and images
-      statistics:
+      # We'll use different statistics metric for webpages and images
+      metric:
       - .*\.html -> pages
       - .*\.png -> images
       - -> other

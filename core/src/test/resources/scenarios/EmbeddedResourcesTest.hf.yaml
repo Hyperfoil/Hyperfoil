@@ -18,7 +18,7 @@ phases:
                     onEmbeddedResource:
                       fetchResource:
                         maxResources: 16
-                        statistics:
+                        metric:
                         # Drop the query part
                         - ([^?]*)(\?.*)? -> $1
                         onCompletion:
@@ -43,7 +43,7 @@ phases:
           - httpRequest:
               GET:
                 fromVar: downloadUrl[.]
-              statistics:
+              metric:
               # Use full url for those matching pattern
               - .*.js
               - .*.ico

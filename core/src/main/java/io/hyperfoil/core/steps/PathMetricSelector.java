@@ -18,7 +18,7 @@ import io.hyperfoil.function.SerializableFunction;
  * <li><code>-> name</code> (metric applied if none of the previous expressions match).
  * </ul>
  */
-public class PathStatisticsSelector implements ListBuilder, SerializableBiFunction<String, String, String> {
+public class PathMetricSelector implements ListBuilder, SerializableBiFunction<String, String, String> {
    public List<SerializableFunction<String, String>> tests = new ArrayList<>();
 
    @Override

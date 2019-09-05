@@ -65,7 +65,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
    final SerializableFunction<Session, String> pathGenerator;
    final SerializableBiFunction<Session, Connection, ByteBuf> bodyGenerator;
    final SerializableBiConsumer<Session, HttpRequestWriter>[] headerAppenders;
-   final SerializableBiFunction<String, String, String> statisticsSelector;
+   final SerializableBiFunction<String, String, String> metricSelector;
    final long timeout;
    final HttpResponseHandlersImpl handler;
    final SLA[] sla;
@@ -75,7 +75,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
                           SerializableFunction<Session, String> pathGenerator,
                           SerializableBiFunction<Session, Connection, ByteBuf> bodyGenerator,
                           SerializableBiConsumer<Session, HttpRequestWriter>[] headerAppenders,
-                          SerializableBiFunction<String, String, String> statisticsSelector,
+                          SerializableBiFunction<String, String, String> metricSelector,
                           long timeout, HttpResponseHandlersImpl handler, SLA[] sla) {
       super(sequence);
       this.method = method;
@@ -83,7 +83,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
       this.pathGenerator = pathGenerator;
       this.bodyGenerator = bodyGenerator;
       this.headerAppenders = headerAppenders;
-      this.statisticsSelector = statisticsSelector;
+      this.metricSelector = metricSelector;
       this.timeout = timeout;
       this.handler = handler;
       this.sla = sla;
@@ -114,8 +114,8 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
          path = path.substring(prefixLength(isHttp) + authority.length());
       }
       String metric = null;
-      if (statisticsSelector != null) {
-         metric = statisticsSelector.apply(authority, path);
+      if (metricSelector != null) {
+         metric = metricSelector.apply(authority, path);
       }
       if (metric == null) {
          metric = sequence().name();
@@ -191,7 +191,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
       private StringGeneratorBuilder path;
       private BodyGeneratorBuilder body;
       private List<SerializableBiConsumer<Session, HttpRequestWriter>> headerAppenders = new ArrayList<>();
-      private SerializableBiFunction<String, String, String> statisticsSelector;
+      private SerializableBiFunction<String, String, String> metricSelector;
       private long timeout = Long.MIN_VALUE;
       private HttpResponseHandlersImpl.Builder handler = new HttpResponseHandlersImpl.Builder(this);
       private boolean sync = true;
@@ -446,21 +446,21 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
       /**
        * Requests statistics will use this metric name.
        */
-      public Builder statistics(String name) {
-         return statistics((authority, path) -> name);
+      public Builder metric(String name) {
+         return metric((authority, path) -> name);
       }
 
-      public Builder statistics(SerializableBiFunction<String, String, String> selector) {
-         this.statisticsSelector = selector;
+      public Builder metric(SerializableBiFunction<String, String, String> selector) {
+         this.metricSelector = selector;
          return this;
       }
 
       /**
        * Allows categorizing request statistics into metrics based on the request path.
        */
-      public PathStatisticsSelector statistics() {
-         PathStatisticsSelector selector = new PathStatisticsSelector();
-         this.statisticsSelector = selector;
+      public PathMetricSelector metric() {
+         PathMetricSelector selector = new PathMetricSelector();
+         this.metricSelector = selector;
          return selector;
       }
 
@@ -545,7 +545,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
          SLA[] sla = this.sla != null ? this.sla.build() : SLA.DEFAULT;
          SerializableBiFunction<Session, Connection, ByteBuf> bodyGenerator = this.body != null ? this.body.build() : null;
 
-         HttpRequestStep step = new HttpRequestStep(sequence, method, authority, pathGenerator, bodyGenerator, headerAppenders, statisticsSelector, timeout, handler.build(fs), sla);
+         HttpRequestStep step = new HttpRequestStep(sequence, method, authority, pathGenerator, bodyGenerator, headerAppenders, metricSelector, timeout, handler.build(fs), sla);
          fs.set(step);
          return Collections.singletonList(step);
       }
@@ -557,7 +557,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
                .authority(authority)
                .path(path)
                .body(body)
-               .statistics(statisticsSelector)
+               .metric(metricSelector)
                .sync(sync);
          headerAppenders.forEach(newBuilder::headerAppender);
          if (sla != null) {
