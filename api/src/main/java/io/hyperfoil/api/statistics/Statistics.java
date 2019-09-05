@@ -221,7 +221,7 @@ public class Statistics {
             StatisticsSnapshot snapshot = inactive.get(i);
             if (snapshot == null) {
                // nothing to do
-            } else if (snapshot.requestCount == 0) {
+            } else if (snapshot.isEmpty()) {
                inactive.set(i, null);
             } else {
                consumer.accept(snapshot);

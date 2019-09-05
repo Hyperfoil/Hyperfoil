@@ -289,7 +289,7 @@ public class StatisticsStore {
             data.lastStats.values().stream().map(map -> map.get(penultimateId))
                   .filter(snapshot -> snapshot != null)
                   .forEach(snapshot -> snapshot.addInto(sum));
-            if (sum.requestCount == 0 || sum.histogram.getStartTimeStamp() < minValidTimestamp) {
+            if (sum.isEmpty() || sum.histogram.getStartTimeStamp() < minValidTimestamp) {
                continue;
             }
             List<String> failures = this.failures.stream()
@@ -454,7 +454,7 @@ public class StatisticsStore {
                agentSeries.computeIfAbsent(entry.getKey(), a -> new ArrayList<>()).add(snapshot.summary(percentiles));
             }
          }
-         if (sum.requestCount > 0) {
+         if (!sum.isEmpty()) {
             series.add(sum.summary(percentiles));
          }
          for (Map.Entry<SLA, Window> entry : windowSlas.entrySet()) {

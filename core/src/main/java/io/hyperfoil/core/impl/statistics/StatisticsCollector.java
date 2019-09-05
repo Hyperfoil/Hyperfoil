@@ -68,7 +68,7 @@ public class StatisticsCollector implements Consumer<SessionStatistics> {
 
             for (Iterator<IntObjectMap.PrimitiveEntry<StatisticsSnapshot>> it3 = snapshots.entries().iterator(); it3.hasNext(); ) {
                IntObjectMap.PrimitiveEntry<StatisticsSnapshot> pe = it3.next();
-               if (pe.value().requestCount == 0) {
+               if (pe.value().isEmpty()) {
                   it3.remove();
                } else {
                   consumer.accept(phases[phaseAndStepId >> 16], phaseAndStepId & 0xFFFF, metric, pe.value(), countDown);

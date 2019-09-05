@@ -36,6 +36,12 @@ public class StatisticsSnapshot implements Serializable {
       return new int[] { status_2xx, status_3xx, status_4xx, status_5xx, status_other };
    }
 
+   public boolean isEmpty() {
+      return connectFailureCount + requestCount + responseCount +
+            status_2xx + status_3xx + status_4xx + status_5xx + status_other +
+            invalid + cacheHits + resetCount + timeouts + blockedCount == 0 && custom.isEmpty();
+   }
+
    public void reset() {
       histogram.reset();
       totalSendTime = 0;

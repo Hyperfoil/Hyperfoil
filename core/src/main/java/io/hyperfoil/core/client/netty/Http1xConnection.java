@@ -32,8 +32,8 @@ import java.util.function.BiFunction;
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
  */
 class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
-   private static Logger log = LoggerFactory.getLogger(Http1xConnection.class);
-   private static boolean trace = log.isTraceEnabled();
+   private static final Logger log = LoggerFactory.getLogger(Http1xConnection.class);
+   private static final boolean trace = log.isTraceEnabled();
 
    private final HttpConnectionPool pool;
    private final Deque<HttpRequest> inflights;
@@ -172,6 +172,9 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
       }
       assert ctx.executor().inEventLoop();
       if (request.session.httpCache().isCached(request, writer)) {
+         if (trace) {
+            log.trace("#{} Request is completed from cache", request.session.uniqueId());
+         }
          request.handlers().handleEnd(request, false);
          --size;
          pool.release(this);

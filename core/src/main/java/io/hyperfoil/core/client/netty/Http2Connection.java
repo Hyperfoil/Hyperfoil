@@ -34,6 +34,7 @@ import io.vertx.core.logging.LoggerFactory;
  */
 class Http2Connection extends Http2EventAdapter implements HttpConnection {
    private static final Logger log = LoggerFactory.getLogger(Http2Connection.class);
+   private static final boolean trace = log.isTraceEnabled();
 
    private final HttpConnectionPool pool;
    private final ChannelHandlerContext context;
@@ -119,6 +120,9 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
          }
       }
       if (request.session.httpCache().isCached(request, writer)) {
+         if (trace) {
+            log.trace("#{} Request is completed from cache", request.session.uniqueId());
+         }
          request.handlers().handleEnd(request, false);
          pool.release(this);
          --numStreams;

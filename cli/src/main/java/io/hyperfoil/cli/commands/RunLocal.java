@@ -142,7 +142,7 @@ public class RunLocal implements Command<CommandInvocation> {
     }
 
     private void printStats(String phaseAndMetric, StatisticsSnapshot stats, CommandInvocation invocation) {
-        if (stats.requestCount == 0) {
+        if (stats.isEmpty()) {
             return;
         }
 
