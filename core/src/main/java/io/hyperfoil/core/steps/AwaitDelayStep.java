@@ -37,6 +37,9 @@ public class AwaitDelayStep implements Step {
 
       /**
        * Delay point created in <code>scheduleDelay.key</code>.
+       *
+       * @param key Key.
+       * @return Self.
        */
       public Builder key(String key) {
          this.key = key;

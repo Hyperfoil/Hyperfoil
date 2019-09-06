@@ -66,7 +66,7 @@ public class RecordHeaderTimeHandler implements HeaderHandler {
     */
    public static class Builder implements HeaderHandler.Builder {
       private String header;
-      private String statistics;
+      private String metric;
       private String unit;
 
       @Override
@@ -76,8 +76,8 @@ public class RecordHeaderTimeHandler implements HeaderHandler {
          } else if (header.chars().anyMatch(c -> c > 0xFF)) {
             throw new BenchmarkDefinitionException("Header contains non-ASCII characters.");
          }
-         if (statistics == null) {
-            statistics = header;
+         if (metric == null) {
+            metric = header;
          }
          SerializableToLongFunction<CharSequence> transform = Util::parseLong;
          if (unit != null) {
@@ -91,11 +91,14 @@ public class RecordHeaderTimeHandler implements HeaderHandler {
                   throw new BenchmarkDefinitionException("Unknown unit '" + unit + "'");
             }
          }
-         return new RecordHeaderTimeHandler(step, header, statistics, transform);
+         return new RecordHeaderTimeHandler(step, header, metric, transform);
       }
 
       /**
        * Header carrying the time.
+       *
+       * @param header Header name.
+       * @return Self.
        */
       public Builder header(String header) {
          this.header = header;
@@ -104,14 +107,20 @@ public class RecordHeaderTimeHandler implements HeaderHandler {
 
       /**
        * Name of the created metric.
+       *
+       * @param metric Metric name.
+       * @return Self.
        */
-      public Builder statistics(String statistics) {
-         this.statistics = statistics;
+      public Builder metric(String metric) {
+         this.metric = metric;
          return this;
       }
 
       /**
        * Time unit in the header; use either `ms` or `ns`.
+       *
+       * @param unit Ms or ns.
+       * @return Self.
        */
       public Builder unit(String unit) {
          this.unit = unit;

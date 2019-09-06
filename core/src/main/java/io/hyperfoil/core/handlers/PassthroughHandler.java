@@ -57,6 +57,8 @@ public class PassthroughHandler implements BodyHandler, ResourceUtilizer {
 
       /**
        * Processor that this handler delegates to.
+       *
+       * @return Builder.
        */
       public ServiceLoadedBuilderProvider<Processor.Builder<HttpRequest>, HttpRequest.ProcessorBuilderFactory> processor() {
          return new ServiceLoadedBuilderProvider<>(HttpRequest.ProcessorBuilderFactory.class, null, this::processor);
@@ -64,6 +66,9 @@ public class PassthroughHandler implements BodyHandler, ResourceUtilizer {
 
       /**
        * Automatically defragment the body, passing the whole response in single chunk.
+       *
+       * @param defrag Do defrag?
+       * @return Self.
        */
       public Builder defrag(boolean defrag) {
          this.defrag = defrag;

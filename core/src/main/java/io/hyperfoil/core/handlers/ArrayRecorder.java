@@ -87,6 +87,9 @@ public class ArrayRecorder implements Processor<Request>, ResourceUtilizer {
 
       /**
        * Variable name.
+       *
+       * @param var Variable name.
+       * @return Self.
        */
       public Builder toVar(String var) {
          this.toVar = var;
@@ -95,6 +98,9 @@ public class ArrayRecorder implements Processor<Request>, ResourceUtilizer {
 
       /**
        * Maximum size of the array.
+       *
+       * @param maxSize Max number of elements.
+       * @return Self.
        */
       public Builder maxSize(int maxSize) {
          this.maxSize = maxSize;
@@ -103,6 +109,9 @@ public class ArrayRecorder implements Processor<Request>, ResourceUtilizer {
 
       /**
        * Format into which should this processor convert the buffers before storing. Default is <code>STRING</code>.
+       *
+       * @param format Data format.
+       * @return Self.
        */
       public Builder format(DataFormat format) {
          this.format = format;
@@ -124,6 +133,7 @@ public class ArrayRecorder implements Processor<Request>, ResourceUtilizer {
 
       /**
        * @param param Use format <code>variable[maxSize]</code>
+       * @return Builder.
        */
       @Override
       public Builder newBuilder(Locator locator, String param) {

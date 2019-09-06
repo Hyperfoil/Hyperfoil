@@ -92,6 +92,9 @@ public class NewSequenceProcessor implements Processor<Request>, ResourceUtilize
 
       /**
        * Maximum number of sequences instantiated.
+       *
+       * @param maxSequences Number of sequences.
+       * @return Self.
        */
       public Builder maxSequences(int maxSequences) {
          this.maxSequences = maxSequences;
@@ -100,6 +103,9 @@ public class NewSequenceProcessor implements Processor<Request>, ResourceUtilize
 
       /**
        * Variable storing the counter for sequence IDs.
+       *
+       * @param counterVar Variable name.
+       * @return Self.
        */
       public Builder counterVar(String counterVar) {
          this.counterVar = counterVar;
@@ -108,6 +114,9 @@ public class NewSequenceProcessor implements Processor<Request>, ResourceUtilize
 
       /**
        * Name of the instantiated sequence.
+       *
+       * @param sequence Sequence name.
+       * @return Self.
        */
       public Builder sequence(String sequence) {
          this.sequence = sequence;

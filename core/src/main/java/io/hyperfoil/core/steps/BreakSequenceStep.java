@@ -65,6 +65,8 @@ public class BreakSequenceStep extends DependencyStep {
 
       /**
        * Action performed when the condition is true and the sequence is to be ended.
+       *
+       * @return Builder.
        */
       public IntCondition.Builder<BreakSequenceStep.Builder> intCondition() {
          IntCondition.Builder<BreakSequenceStep.Builder> builder = new IntCondition.Builder<>(this);
@@ -74,6 +76,9 @@ public class BreakSequenceStep extends DependencyStep {
 
       /**
        * Action performed when the condition is true and the sequence is to be ended.
+       *
+       * @param onBreak Action.
+       * @return Self.
        */
       public Builder onBreak(Action onBreak) {
          if (this.onBreak != null) {

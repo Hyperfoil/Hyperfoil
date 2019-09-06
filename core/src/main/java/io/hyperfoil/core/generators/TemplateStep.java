@@ -47,6 +47,9 @@ public class TemplateStep implements Step, ResourceUtilizer {
 
       /**
        * Pattern to be encoded, e.g. <code>foo${variable}bar${another-variable}</code>
+       *
+       * @param pattern Template pattern.
+       * @return Self.
        */
       public Builder pattern(String pattern) {
          this.pattern = new Pattern(pattern, false);
@@ -55,6 +58,9 @@ public class TemplateStep implements Step, ResourceUtilizer {
 
       /**
        * Variable name to store the result.
+       *
+       * @param var Variable name.
+       * @return Self.
        */
       public Builder toVar(String var) {
          this.toVar = var;

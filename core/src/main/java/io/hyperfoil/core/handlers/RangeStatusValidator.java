@@ -47,6 +47,9 @@ public class RangeStatusValidator implements StatusHandler {
 
       /**
        * Lowest accepted status code.
+       *
+       * @param min Minimum status (inclusive).
+       * @return Self.
        */
       public Builder min(int min) {
          this.min = min;
@@ -55,6 +58,9 @@ public class RangeStatusValidator implements StatusHandler {
 
       /**
        * Highest accepted status code.
+       *
+       * @param max Maximum status (inclusive)
+       * @return Self.
        */
       public Builder max(int max) {
          this.max = max;
@@ -75,7 +81,9 @@ public class RangeStatusValidator implements StatusHandler {
       }
 
       /**
+       * @param locator Locator.
        * @param param Single status code (<code>204</code>), masked code (<code>2xx</code>) or range (<code>200-399</code>).
+       * @return Builder.
        */
       @Override
       public Builder newBuilder(Locator locator, String param) {

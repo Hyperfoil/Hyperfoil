@@ -60,6 +60,9 @@ public class AddToIntStep implements Action.Step {
 
       /**
        * Variable name.
+       *
+       * @param var Variable name.
+       * @return Self.
        */
       public Builder var(String var) {
          this.var = var;
@@ -68,6 +71,9 @@ public class AddToIntStep implements Action.Step {
 
       /**
        * Value added (can be negative).
+       *
+       * @param value Value.
+       * @return Self.
        */
       public Builder value(int value) {
          this.value = value;
@@ -99,7 +105,9 @@ public class AddToIntStep implements Action.Step {
       }
 
       /**
+       * @param locator Locator.
        * @param param Accepting one of: <code>var++</code>, <code>var--</code>, <code>var += value</code>, <code>var -= value</code>.
+       * @return Builder.
        */
       @Override
       public Builder newBuilder(Locator locator, String param) {

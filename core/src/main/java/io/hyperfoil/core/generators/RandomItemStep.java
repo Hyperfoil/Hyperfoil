@@ -184,6 +184,9 @@ public class RandomItemStep implements Step, ResourceUtilizer {
 
       /**
        * Variable containing an array or list.
+       *
+       * @param fromVar Variable name.
+       * @return Self.
        */
       public Builder fromVar(String fromVar) {
          this.fromVar = fromVar;
@@ -192,6 +195,8 @@ public class RandomItemStep implements Step, ResourceUtilizer {
 
       /**
        * Potentially weighted list of items to choose from.
+       *
+       * @return Builder.
        */
       public ItemBuilder list() {
          return new ItemBuilder();
@@ -199,6 +204,9 @@ public class RandomItemStep implements Step, ResourceUtilizer {
 
       /**
        * Variable where the chosen item should be stored.
+       *
+       * @param var Variable name.
+       * @return Self.
        */
       public Builder toVar(String var) {
          this.toVar = var;
@@ -207,6 +215,9 @@ public class RandomItemStep implements Step, ResourceUtilizer {
 
       /**
        * This file will be loaded into memory and the step will choose on line as the item.
+       *
+       * @param file Path to the file.
+       * @return Self.
        */
       public Builder file(String file) {
          this.file = file;
@@ -221,6 +232,9 @@ public class RandomItemStep implements Step, ResourceUtilizer {
 
          /**
           * Item as the key and weight (arbitrary floating-point number, defaults to 1.0) as the value.
+          *
+          * @param item Item.
+          * @param weight Weight.
           */
          @Override
          public void accept(String item, Double weight) {

@@ -101,6 +101,9 @@ public class PollStep<T> implements Step, ResourceUtilizer {
 
       /**
        * Polling period.
+       *
+       * @param periodMs Period in milliseconds.
+       * @return Self.
        */
       public Builder<T> periodMs(long periodMs) {
          this.periodMs = periodMs;
@@ -109,6 +112,9 @@ public class PollStep<T> implements Step, ResourceUtilizer {
 
       /**
        * Maximum number of retries before giving up (and waiting for next period).
+       *
+       * @param maxRetries Number of retries.
+       * @return Self.
        */
       public Builder<T> maxRetries(int maxRetries) {
          this.maxRetries = maxRetries;

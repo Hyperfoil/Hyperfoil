@@ -100,6 +100,9 @@ public class JsonHandler extends JsonParser<Request>
 
       /**
        * Query selecting the part of JSON.
+       *
+       * @param query Query.
+       * @return Self.
        */
       public Builder query(String query) {
          this.query = query;
@@ -108,6 +111,9 @@ public class JsonHandler extends JsonParser<Request>
 
       /**
        * Shortcut to store selected parts in an array in the session. Must follow the pattern <code>variable[maxSize]</code>
+       *
+       * @param varAndSize Array name.
+       * @return Self.
        */
       public Builder toArray(String varAndSize) {
          return processor(new ArrayRecorder.Builder(varAndSize));
@@ -124,6 +130,8 @@ public class JsonHandler extends JsonParser<Request>
 
       /**
        * Pass the selected parts to another processor.
+       *
+       * @return Builder.
        */
       public ServiceLoadedBuilderProvider<Processor.Builder<Request>, Request.ProcessorBuilderFactory> processor() {
          return new ServiceLoadedBuilderProvider<>(Request.ProcessorBuilderFactory.class, locator, this::processor);
@@ -148,7 +156,7 @@ public class JsonHandler extends JsonParser<Request>
       }
 
       /**
-       * @param param Either <code>query -> variable</code> or <code>variable <- query</code>.
+       * @param param Either <code>query -&gt; variable</code> or <code>variable &lt;- query</code>.
        */
       @Override
       public Builder newBuilder(Locator locator, String param) {

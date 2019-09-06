@@ -56,6 +56,9 @@ public class SetIntStep implements Action.Step, ResourceUtilizer {
 
       /**
        * Variable name.
+       *
+       * @param var Variable name.
+       * @return Self.
        */
       public Builder var(String var) {
          this.var = var;
@@ -64,6 +67,9 @@ public class SetIntStep implements Action.Step, ResourceUtilizer {
 
       /**
        * Value (integer).
+       *
+       * @param value Value.
+       * @return Self.
        */
       public Builder value(int value) {
          this.value = value;
@@ -92,7 +98,9 @@ public class SetIntStep implements Action.Step, ResourceUtilizer {
       }
 
       /**
-       * @param param Use <code>var <- value</code>.
+       * @param locator Locator.
+       * @param param Use <code>var &lt;- value</code>.
+       * @return Builder.
        */
       @Override
       public Builder newBuilder(Locator locator, String param) {

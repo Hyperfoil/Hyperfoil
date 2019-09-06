@@ -303,6 +303,8 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
 
       /**
        * Handler firing upon reference to other resource, e.g. image, stylesheet...
+       *
+       * @return Builder.
        */
       public EmbeddedResourceHandlerBuilder onEmbeddedResource() {
          if (embeddedResourceHandler != null) {
@@ -353,7 +355,7 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
    /**
     * Handles <code>&lt;img src="..."&gt;</code>, <code>&lt;link href="..."&gt;</code>,
     * <code>&lt;embed src="..."&gt;</code>, <code>&lt;frame src="..."&gt;</code>,
-    * <code>&lt;iframe src="..."&gt;</code>, <code>&lt;object data="..."&gt;<code> and <code>&lt;script src="..."&gt;</code>.
+    * <code>&lt;iframe src="..."&gt;</code>, <code>&lt;object data="..."&gt;</code> and <code>&lt;script src="..."&gt;</code>.
     *
     * Does not handle <code>&lt;source src="..."&gt;</code> or <code>&lt;track src="..."&gt;</code> because browser
     * would choose only one of the options.
@@ -373,6 +375,9 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
 
       /**
        * Ignore resources hosted on servers that are not covered in the <code>http</code> section.
+       *
+       * @param ignoreExternal Ignore?
+       * @return Self.
        */
       public EmbeddedResourceHandlerBuilder ignoreExternal(boolean ignoreExternal) {
          this.ignoreExternal = ignoreExternal;
@@ -381,6 +386,8 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
 
       /**
        * Automatically download referenced resource.
+       *
+       * @return Builder.
        */
       public FetchResourceBuilder fetchResource() {
          return this.fetchResource = new FetchResourceBuilder(locator);
@@ -400,6 +407,8 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
       /**
        * Custom processor invoked pointing to attribute data - e.g. in case of <code>&lt;img&gt;</code> tag
        * the processor gets contents of the <code>src</code> attribute.
+       *
+       * @return Builder.
        */
       public ServiceLoadedBuilderProvider<Processor.Builder<HttpRequest>, HttpRequest.ProcessorBuilderFactory> processor() {
          return new ServiceLoadedBuilderProvider<>(HttpRequest.ProcessorBuilderFactory.class, locator, this::processor);
@@ -467,6 +476,9 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
 
       /**
        * Maximum number of resources that can be fetched.
+       *
+       * @param maxResources Max resources.
+       * @return Self.
        */
       public FetchResourceBuilder maxResources(int maxResources) {
          this.maxResources = maxResources;
@@ -475,6 +487,8 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
 
       /**
        * Metrics selector for downloaded resources.
+       *
+       * @return Builder.
        */
       public PathMetricSelector metric() {
          PathMetricSelector metricSelector = new PathMetricSelector();
@@ -492,6 +506,8 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
 
       /**
        * Action performed when the download of all resources completes.
+       *
+       * @return Builder.
        */
       public ServiceLoadedBuilderProvider<Action.Builder, Action.BuilderFactory> onCompletion() {
          return new ServiceLoadedBuilderProvider<>(Action.BuilderFactory.class, locator, this::onCompletion);

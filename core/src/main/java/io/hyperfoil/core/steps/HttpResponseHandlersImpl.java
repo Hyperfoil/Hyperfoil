@@ -282,6 +282,8 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
 
       /**
        * Handle HTTP response status.
+       *
+       * @return Builder.
        */
       public ServiceLoadedBuilderProvider<StatusHandler.Builder, StatusHandler.BuilderFactory> status() {
          return new ServiceLoadedBuilderProvider<>(StatusHandler.BuilderFactory.class, Locator.fromStep(parent), statusHandlers::add);
@@ -298,6 +300,8 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
 
       /**
        * Handle HTTP response headers.
+       *
+       * @return Builder.
        */
       public ServiceLoadedBuilderProvider<HeaderHandler.Builder, HeaderHandler.BuilderFactory> header() {
          return new ServiceLoadedBuilderProvider<>(HeaderHandler.BuilderFactory.class, Locator.fromStep(parent), headerHandlers::add);
@@ -310,6 +314,8 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
 
       /**
        * Handle HTTP response body.
+       *
+       * @return Builder.
        */
       public ServiceLoadedBuilderProvider<BodyHandler.Builder, BodyHandler.BuilderFactory> body() {
          return new ServiceLoadedBuilderProvider<>(BodyHandler.BuilderFactory.class, Locator.fromStep(parent), bodyHandlers::add);
@@ -326,6 +332,8 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
 
       /**
        * Action executed when the HTTP response is fully received.
+       *
+       * @return Builder.
        */
       public ServiceLoadedBuilderProvider<Action.Builder, Action.BuilderFactory> onCompletion() {
          return new ServiceLoadedBuilderProvider<>(Action.BuilderFactory.class, Locator.fromStep(parent), completionHandlers::add);
@@ -333,6 +341,9 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
 
       /**
        * Handler processing not parsed HTTP response.
+       *
+       * @param handler Handler.
+       * @return Self.
        */
       public Builder rawBytesHandler(RawBytesHandler handler) {
          rawBytesHandlers.add(handler);

@@ -84,6 +84,9 @@ public class PullSharedMapStep implements Step, ResourceUtilizer {
 
       /**
        * Key identifying the shared map.
+       *
+       * @param key Identifier.
+       * @return Self.
        */
       public Builder key(String key) {
          this.key = key;
@@ -92,6 +95,9 @@ public class PullSharedMapStep implements Step, ResourceUtilizer {
 
       /**
        * Name of the session variable that stores value identifying the entry in the shared map.
+       *
+       * @param match Variable name.
+       * @return Self.
        */
       public Builder match(String match) {
          this.match = match;

@@ -47,6 +47,9 @@ public class AwaitIntStep implements Step {
 
       /**
        * Variable name storing the compared value.
+       *
+       * @param var Variable name.
+       * @return Self.
        */
       public Builder var(String var) {
          this.var = var;

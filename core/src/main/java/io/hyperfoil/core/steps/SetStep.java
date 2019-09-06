@@ -60,14 +60,20 @@ public class SetStep implements Action.Step, ResourceUtilizer {
 
       /**
        * Variable name.
+       *
+       * @param var Variable name.
+       * @return Self.
        */
-      public SetStep.Builder var(String var) {
+      public Builder var(String var) {
          this.var = var;
          return this;
       }
 
       /**
        * String value.
+       *
+       * @param value Value.
+       * @return Self.
        */
       public Builder value(String value) {
          this.value = value;
@@ -76,6 +82,8 @@ public class SetStep implements Action.Step, ResourceUtilizer {
 
       /**
        * Set variable to an (empty) array.
+       *
+       * @return Builder.
        */
       public ObjectArrayBuilder objectArray() {
          return objectArray = new ObjectArrayBuilder();
@@ -111,7 +119,9 @@ public class SetStep implements Action.Step, ResourceUtilizer {
       }
 
       /**
-       * @param param Use <code>var <- value</code>.
+       * @param locator Locator.
+       * @param param Use <code>var &lt;- value</code>.
+       * @return Builder.
        */
       @Override
       public SetStep.Builder newBuilder(Locator locator, String param) {
@@ -157,6 +167,9 @@ public class SetStep implements Action.Step, ResourceUtilizer {
 
       /**
        * Size of the array.
+       *
+       * @param size Array size.
+       * @return Self.
        */
       public ObjectArrayBuilder size(int size) {
          this.size = size;

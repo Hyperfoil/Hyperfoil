@@ -69,6 +69,9 @@ public class JsonStep extends BaseStep implements ResourceUtilizer {
 
       /**
        * Variable to load JSON from.
+       *
+       * @param fromVar Variable name.
+       * @return Self.
        */
       public Builder fromVar(String fromVar) {
          this.fromVar = fromVar;
@@ -77,6 +80,9 @@ public class JsonStep extends BaseStep implements ResourceUtilizer {
 
       /**
        * JSON query to apply.
+       *
+       * @param query Query.
+       * @return Self.
        */
       public Builder query(String query) {
          this.query = query;
@@ -85,6 +91,9 @@ public class JsonStep extends BaseStep implements ResourceUtilizer {
 
       /**
        * Variable to store the result. If there are multiple matches, the variable will be overwritten and last match wins.
+       *
+       * @param toVar Variable name.
+       * @return Self.
        */
       public Builder toVar(String toVar) {
          this.toVar = toVar;
@@ -93,6 +102,9 @@ public class JsonStep extends BaseStep implements ResourceUtilizer {
 
       /**
        * Conversion to apply on the matching parts.
+       *
+       * @param format Data format.
+       * @return Self.
        */
       public Builder format(DataFormat format) {
          this.format = format;

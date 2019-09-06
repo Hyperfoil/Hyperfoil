@@ -46,6 +46,9 @@ public class SimpleRecorder implements Processor<Request>, ResourceUtilizer {
 
       /**
        * Variable name.
+       *
+       * @param toVar Variable name.
+       * @return Self.
        */
       public Builder toVar(String toVar) {
          this.toVar = toVar;
@@ -54,6 +57,9 @@ public class SimpleRecorder implements Processor<Request>, ResourceUtilizer {
 
       /**
        * Format into which should this processor convert the buffers before storing. Default is <code>STRING</code>.
+       *
+       * @param format Data format.
+       * @return Self.
        */
       public Builder format(DataFormat format) {
          this.format = format;

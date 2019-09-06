@@ -72,6 +72,9 @@ public class RandomIntStep implements Step, ResourceUtilizer {
 
       /**
        * Variable name to store the result.
+       *
+       * @param var Variable name.
+       * @return Self.
        */
       public Builder toVar(String var) {
          this.toVar = var;
@@ -80,6 +83,9 @@ public class RandomIntStep implements Step, ResourceUtilizer {
 
       /**
        * Lowest possible value (inclusive)
+       *
+       * @param min Min value.
+       * @return Self.
        */
       public Builder min(int min) {
          this.min = min;
@@ -88,6 +94,9 @@ public class RandomIntStep implements Step, ResourceUtilizer {
 
       /**
        * Highest possible value (inclusive)
+       *
+       * @param max Max value.
+       * @return Self.
        */
       public Builder max(int max) {
          this.max = max;

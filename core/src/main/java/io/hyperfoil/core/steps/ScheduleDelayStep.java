@@ -107,6 +107,9 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
       /**
        * Key that is referenced later in `awaitDelay` step.
        * If you're introducing the delay through `thinkTime` do not use this property.
+       *
+       * @param key Identifier.
+       * @return Self.
        */
       public Builder key(String key) {
          this.key = key;
@@ -115,6 +118,9 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
 
       /**
        * Duration of the delay with appropriate suffix (e.g. `ms` or `s`).
+       *
+       * @param duration Delay duration.
+       * @return Self.
        */
       public Builder duration(String duration) {
          this.duration = io.hyperfoil.util.Util.parseToMillis(duration);
@@ -123,6 +129,8 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
 
       /**
        * Set this step invocation as the delay point reference; it will be computed as <code>now + duration</code>.
+       *
+       * @return Self.
        */
       public Builder fromNow() {
          type = Type.FROM_NOW;
@@ -131,6 +139,8 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
 
       /**
        * Set previous delay point reference as the reference for next delay point; it will be computed as <code>(previous delay point or now) + duration</code>.
+       *
+       * @return Self.
        */
       public Builder fromLast() {
          type = Type.FROM_LAST;
@@ -139,6 +149,8 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
 
       /**
        * Randomize the duration with negative-exponential distribution, using <code>duration</code> as the mean value.
+       *
+       * @return Self.
        */
       public Builder negativeExponential() {
          this.negativeExponential = true;
@@ -147,6 +159,9 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
 
       /**
        * Lower cap on the duration (if randomized).
+       *
+       * @param min Minimum duration.
+       * @return Self.
        */
       public Builder min(String min) {
          this.min = io.hyperfoil.util.Util.parseToMillis(min);
@@ -155,6 +170,9 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
 
       /**
        * Upper cap on the duration (if randomized).
+       *
+       * @param max Maximum duration.
+       * @return Self.
        */
       public Builder max(String max) {
          this.max = io.hyperfoil.util.Util.parseToMillis(max);
@@ -168,6 +186,9 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
 
       /**
        * Alternative way to set delay reference point. See `fromNow` and `fromLast` property setters.
+       *
+       * @param type Reference point type.
+       * @return Self.
        */
       public Builder type(Type type) {
          this.type = type;

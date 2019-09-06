@@ -39,6 +39,9 @@ public class UnsetStep implements Action.Step {
 
       /**
        * Variable name.
+       *
+       * @param var Variable name.
+       * @return Self.
        */
       public Builder var(String var) {
          this.var = var;
@@ -64,7 +67,9 @@ public class UnsetStep implements Action.Step {
       }
 
       /**
+       * @param locator Locator.
        * @param param Variable name.
+       * @return Builder.
        */
       @Override
       public UnsetStep.Builder newBuilder(Locator locator, String param) {

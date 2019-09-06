@@ -21,6 +21,7 @@ public class SearchValidator implements BodyHandler, ResourceUtilizer, Session.R
 
    /**
     * @param text Search pattern.
+    * @param match Expected number of matches.
     */
    public SearchValidator(String text, IntPredicate match) {
       this.text = text.getBytes(StandardCharsets.UTF_8);

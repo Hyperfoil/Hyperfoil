@@ -71,7 +71,7 @@ public class RandomConcurrentSet<T> {
 
    /**
     * Insert a new object or an object previously returned by {@link #fetch()} to the set.
-    * @param object
+    * @param object Any object.
     */
    public void put(T object) {
       ThreadLocalRandom random = ThreadLocalRandom.current();

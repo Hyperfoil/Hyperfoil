@@ -63,6 +63,9 @@ public class StatusToCounterHandler implements StatusHandler, ResourceUtilizer {
 
       /**
        * Expected status (others are ignored). All status codes match by default.
+       *
+       * @param expectStatus Status code.
+       * @return Self.
        */
       public Builder expectStatus(int expectStatus) {
          this.expectStatus = expectStatus;
@@ -71,6 +74,9 @@ public class StatusToCounterHandler implements StatusHandler, ResourceUtilizer {
 
       /**
        * Variable name.
+       *
+       * @param var Variable name.
+       * @return Self.
        */
       public Builder var(String var) {
          this.var = var;
@@ -79,6 +85,9 @@ public class StatusToCounterHandler implements StatusHandler, ResourceUtilizer {
 
       /**
        * Initial value for the session variable.
+       *
+       * @param init Initial value.
+       * @return Self.
        */
       public Builder init(int init) {
          this.init = init;
@@ -87,6 +96,9 @@ public class StatusToCounterHandler implements StatusHandler, ResourceUtilizer {
 
       /**
        * Number to be added to the session variable.
+       *
+       * @param add Value.
+       * @return Self.
        */
       public Builder add(int add) {
          this.add = add;
@@ -95,6 +107,9 @@ public class StatusToCounterHandler implements StatusHandler, ResourceUtilizer {
 
       /**
        * Do not accumulate (add), just set the variable to this value.
+       *
+       * @param set Value.
+       * @return Self.
        */
       public Builder set(int set) {
          this.set = set;

@@ -203,6 +203,9 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
       /**
        * HTTP method used for the request.
+       *
+       * @param method HTTP method.
+       * @return Self.
        */
       public Builder method(HttpMethod method) {
          this.method = method;
@@ -211,6 +214,9 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
       /**
        * Issue HTTP GET request to given path.
+       *
+       * @param path HTTP path.
+       * @return Self.
        */
       public Builder GET(String path) {
          return method(HttpMethod.GET).path(path);
@@ -218,6 +224,8 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
       /**
        * Issue HTTP GET request to given path.
+       *
+       * @return Builder.
        */
       public StringGeneratorImplBuilder GET() {
          return method(HttpMethod.GET).path();
@@ -225,6 +233,9 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
       /**
        * Issue HTTP HEAD request to given path.
+       *
+       * @param path HTTP path.
+       * @return Self.
        */
       public Builder HEAD(String path) {
          return method(HttpMethod.HEAD).path(path);
@@ -232,6 +243,8 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
       /**
        * Issue HTTP HEAD request to given path.
+       *
+       * @return Builder.
        */
       public StringGeneratorImplBuilder HEAD() {
          return method(HttpMethod.HEAD).path();
@@ -239,6 +252,9 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
       /**
        * Issue HTTP POST request to given path.
+       *
+       * @param path HTTP path.
+       * @return Self.
        */
       public Builder POST(String path) {
          return method(HttpMethod.POST).path(path);
@@ -246,6 +262,8 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
       /**
        * Issue HTTP POST request to given path.
+       *
+       * @return Builder.
        */
       public StringGeneratorImplBuilder POST() {
          return method(HttpMethod.POST).path();
@@ -253,6 +271,9 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
       /**
        * Issue HTTP PUT request to given path.
+       *
+       * @param path HTTP path.
+       * @return Self.
        */
       public Builder PUT(String path) {
          return method(HttpMethod.PUT).path(path);
@@ -260,6 +281,8 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
       /**
        * Issue HTTP PUT request to given path.
+       *
+       * @return Builder.
        */
       public StringGeneratorImplBuilder PUT() {
          return method(HttpMethod.PUT).path();
@@ -267,6 +290,9 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
       /**
        * Issue HTTP DELETE request to given path.
+       *
+       * @param path HTTP path.
+       * @return Self.
        */
       public Builder DELETE(String path) {
          return method(HttpMethod.DELETE).path(path);
@@ -274,6 +300,8 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
       /**
        * Issue HTTP DELETE request to given path.
+       *
+       * @return Builder.
        */
       public StringGeneratorImplBuilder DELETE() {
          return method(HttpMethod.DELETE).path();
@@ -281,6 +309,9 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
       /**
        * Issue HTTP OPTIONS request to given path.
+       *
+       * @param path HTTP path.
+       * @return Self.
        */
       public Builder OPTIONS(String path) {
          return method(HttpMethod.OPTIONS).path(path);
@@ -288,6 +319,8 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
       /**
        * Issue HTTP OPTIONS request to given path.
+       *
+       * @return Builder.
        */
       public StringGeneratorImplBuilder OPTIONS() {
          return method(HttpMethod.OPTIONS).path();
@@ -295,6 +328,9 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
       /**
        * Issue HTTP PATCH request to given path.
+       *
+       * @param path HTTP path.
+       * @return Self.
        */
       public Builder PATCH(String path) {
          return method(HttpMethod.PATCH).path(path);
@@ -302,6 +338,8 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
       /**
        * Issue HTTP PATCH request to given path.
+       *
+       * @return Builder.
        */
       public StringGeneratorImplBuilder PATCH() {
          return method(HttpMethod.PATCH).path();
@@ -309,6 +347,9 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
       /**
        * Issue HTTP TRACE request to given path.
+       *
+       * @param path HTTP path.
+       * @return Self.
        */
       public Builder TRACE(String path) {
          return method(HttpMethod.TRACE).path(path);
@@ -316,6 +357,8 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
       /**
        * Issue HTTP TRACE request to given path.
+       *
+       * @return Builder.
        */
       public StringGeneratorImplBuilder TRACE() {
          return method(HttpMethod.TRACE).path();
@@ -323,6 +366,9 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
       /**
        * Issue HTTP CONNECT request to given path.
+       *
+       * @param path HTTP path.
+       * @return Self.
        */
       public Builder CONNECT(String path) {
          return method(HttpMethod.CONNECT).path(path);
@@ -330,6 +376,8 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
       /**
        * Issue HTTP CONNECT request to given path.
+       *
+       * @return Builder.
        */
       public StringGeneratorImplBuilder CONNECT() {
          return method(HttpMethod.CONNECT).path();
@@ -337,6 +385,9 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
       /**
        * HTTP authority (host:port) this request should target. Must match one of the entries in <code>http</code> section.
+       *
+       * @param authority Host:port.
+       * @return Self.
        */
       public Builder authority(String authority) {
          return authority(session -> authority);
@@ -348,6 +399,8 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
       /**
        * HTTP authority (host:port) this request should target. Must match one of the entries in <code>http</code> section.
+       *
+       * @return Builder.
        */
       public StringGeneratorImplBuilder<Builder> authority() {
          StringGeneratorImplBuilder<Builder> builder = new StringGeneratorImplBuilder<>(this, false);
@@ -366,6 +419,8 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
       /**
        * HTTP path (absolute or relative), including query and fragment.
+       *
+       * @return Builder.
        */
       public StringGeneratorImplBuilder<Builder> path() {
          StringGeneratorImplBuilder<Builder> builder = new StringGeneratorImplBuilder<>(this, false);
@@ -387,6 +442,9 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
       /**
        * HTTP request body (specified as string).
+       *
+       * @param string Body as string.
+       * @return Self.
        */
       public Builder body(String string) {
          ByteBuf buf = Unpooled.wrappedBuffer(string.getBytes(StandardCharsets.UTF_8));
@@ -395,6 +453,8 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
       /**
        * HTTP request body.
+       *
+       * @return Builder.
        */
       public BodyBuilder body() {
          return new BodyBuilder(this);
@@ -419,6 +479,8 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
       /**
        * HTTP headers sent in the request.
+       *
+       * @return Builder.
        */
       public HeadersBuilder headers() {
          return new HeadersBuilder(this);
@@ -438,6 +500,9 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
        * Request timeout - after this time the request will be marked as failed and connection will be closed.
        *
        * Defaults to value set globally in <code>http</code> section.
+       *
+       * @param timeout Timeout.
+       * @return Self.
        */
       public Builder timeout(String timeout) {
          return timeout(io.hyperfoil.util.Util.parseToMillis(timeout), TimeUnit.MILLISECONDS);
@@ -445,6 +510,9 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
       /**
        * Requests statistics will use this metric name.
+       *
+       * @param name Metric name.
+       * @return Self.
        */
       public Builder metric(String name) {
          return metric((authority, path) -> name);
@@ -457,6 +525,8 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
       /**
        * Allows categorizing request statistics into metrics based on the request path.
+       *
+       * @return Builder.
        */
       public PathMetricSelector metric() {
          PathMetricSelector selector = new PathMetricSelector();
@@ -466,6 +536,8 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
       /**
        * HTTP response handlers.
+       *
+       * @return Builder.
        */
       public HttpResponseHandlersImpl.Builder handler() {
          return handler;
@@ -477,6 +549,9 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
        * of all sequences is blocked until there is a request in flight without response.
        *
        * Default is <code>true</code>.
+       *
+       * @param sync Synchronous?
+       * @return Self.
        */
       public Builder sync(boolean sync) {
          this.sync = sync;
@@ -485,6 +560,8 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
       /**
        * List of SLAs the requests are subject to.
+       *
+       * @return Builder.
        */
       public SLABuilder.ListBuilder<Builder> sla() {
          if (sla == null) {
@@ -677,6 +754,9 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
       /**
        * Use variable content as request body.
+       *
+       * @param var Variable name.
+       * @return Self.
        */
       public BodyBuilder fromVar(String var) {
          Access access = SessionFactory.access(var);
@@ -698,6 +778,9 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
       /**
        * Pattern replacing <code>${sessionvar}</code> with variable contents in a string.
+       *
+       * @param pattern Pattern.
+       * @return Self.
        */
       public BodyBuilder pattern(String pattern) {
          Pattern p = new Pattern(pattern, false);
@@ -710,6 +793,9 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
       /**
        * String sent as-is.
+       *
+       * @param text String.
+       * @return Self.
        */
       public BodyBuilder text(String text) {
          byte[] bytes = text.getBytes(StandardCharsets.UTF_8);
@@ -720,6 +806,8 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
       /**
        * Build form as if we were sending the request using HTML form. This option automatically adds
        * <code>Content-Type: application/x-www-form-urlencoded</code> to the request headers.
+       *
+       * @return Builder.
        */
       public FormBuilder form() {
          FormBuilder builder = new FormBuilder();
@@ -741,6 +829,8 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
       /**
        * Add input pair described in the mapping.
+       *
+       * @return Builder.
        */
       @Override
       public FormInputBuilder addItem() {
@@ -757,6 +847,9 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
       /**
        * Add simple name=value input pair.
+       *
+       * @param name Input name.
+       * @param value Input value.
        */
       @Override
       public void accept(String name, String value) {
@@ -843,6 +936,9 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
       /**
        * Input field name.
+       *
+       * @param name Input name.
+       * @return Self.
        */
       public FormInputBuilder name(String name) {
          this.name = name;
@@ -851,6 +947,9 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
       /**
        * Input field value (verbatim).
+       *
+       * @param value Input value.
+       * @return Self.
        */
       public FormInputBuilder value(String value) {
          this.value = value;
@@ -859,6 +958,9 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
       /**
        * Input field value from session variable.
+       *
+       * @param var Variable name.
+       * @return Self.
        */
       public FormInputBuilder var(String var) {
          this.fromVar = var;
@@ -867,6 +969,9 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
       /**
        * Input field value replacing session variables in a pattern, e.g. <code>foo${myvariable}var</code>
+       *
+       * @param pattern Template pattern.
+       * @return Self.
        */
       public FormInputBuilder pattern(String pattern) {
          this.pattern = pattern;

@@ -68,6 +68,9 @@ public class PushSharedMapStep implements Step, ResourceUtilizer {
 
       /**
        * Key identifying the shared map.
+       *
+       * @param key Identifier.
+       * @return Self.
        */
       public Builder key(String key) {
          this.key = key;
@@ -76,6 +79,8 @@ public class PushSharedMapStep implements Step, ResourceUtilizer {
 
       /**
        * List of variable names that should be stored in the entry.
+       *
+       * @return Builder.
        */
       public ListBuilder vars() {
          return vars::add;

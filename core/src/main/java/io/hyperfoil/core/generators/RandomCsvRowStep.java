@@ -32,21 +32,12 @@ import io.vertx.core.logging.LoggerFactory;
 /**
  * A class that will initialise, build and randomly select a single row of data.
  * The row is exposed as columns.
- *
  */
 public class RandomCsvRowStep implements Step, ResourceUtilizer  {
    private static final Logger log = LoggerFactory.getLogger(RandomCsvRowStep.class);
    private String[][] rows ;
    private final Access[] columnVars;
 
-   /**
-    * ctor
-    * @param fromVar data provided to step via a variable
-    * @param cummulativeProbs
-    * @param rowsList processed declarative data
-    * @param columns currently active columns
-    * @param var declarative data
-    */
    public RandomCsvRowStep(String[][] rows, List<String> vars) {
       this.rows = rows;
       this.columnVars = vars.stream().map(SessionFactory::access).toArray(Access[]::new);
@@ -77,7 +68,7 @@ public class RandomCsvRowStep implements Step, ResourceUtilizer  {
    public static class Builder extends BaseStepBuilder {
       private String file;
       private boolean skipComments;
-      private boolean isQuotesRemoved;
+      private boolean removeQuotes;
       private Map<String, Integer> builderColumns = new HashMap<>();
       private int maxSize = 0;
 
@@ -96,7 +87,7 @@ public class RandomCsvRowStep implements Step, ResourceUtilizer  {
             Predicate<String> comments = s -> (skipComments ? !(s.trim().startsWith("#")) : true);
             rows = reader.lines()
                   .filter(comments)
-                  .map(s -> isQuotesRemoved ? s.replaceAll("\"", "") : s)
+                  .map(s -> removeQuotes ? s.replaceAll("\"", "") : s)
                   .map(line -> line.split(","))
                   .collect(Collectors.toList());
          } catch (IOException ioe) {
@@ -120,6 +111,8 @@ public class RandomCsvRowStep implements Step, ResourceUtilizer  {
 
       /**
        * Defines mapping from columns to session variables.
+       *
+       * @return Builder.
        */
       public ColumnsBuilder columns() {
          return new ColumnsBuilder();
@@ -127,6 +120,9 @@ public class RandomCsvRowStep implements Step, ResourceUtilizer  {
 
       /**
        * Path to the CSV file that should be loaded.
+       *
+       * @param file Path to file.
+       * @return Self.
        */
       public Builder file(String file) {
          this.file = file;
@@ -135,23 +131,32 @@ public class RandomCsvRowStep implements Step, ResourceUtilizer  {
 
       /**
        * Skip lines starting with character '#'.
+       *
+       * @param skipComments Skip?
+       * @return Self.
        */
-      public Builder skipComments(boolean hasHeader) {
-         this.skipComments = hasHeader;
+      public Builder skipComments(boolean skipComments) {
+         this.skipComments = skipComments;
          return this;
       }
 
       /**
        * Automatically unquote the columns.
+       *
+       * @param removeQuotes Remove?
+       * @return Self.
        */
-      public Builder removeQuotes(boolean isQuotesRemoved) {
-         this.isQuotesRemoved = isQuotesRemoved;
+      public Builder removeQuotes(boolean removeQuotes) {
+         this.removeQuotes = removeQuotes;
          return this;
       }
 
       public class ColumnsBuilder extends PairBuilder.OfString{
          /**
           * Use 0-based column as the key and variable name as the value.
+          *
+          * @param position 0-based column number.
+          * @param columnVar Variable name.
           */
          @Override
          public void accept(String position, String columnVar) {

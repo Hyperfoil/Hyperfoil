@@ -63,6 +63,7 @@ public class StepCatalog implements Step.Catalog {
     * Schedules a new sequence instance to be executed.
     *
     * @param name Name of the instantiated sequence.
+    * @return This sequence.
     */
    public BaseSequenceBuilder nextSequence(String name) {
       return parent.step(s -> {
@@ -81,6 +82,8 @@ public class StepCatalog implements Step.Catalog {
 
    /**
     * Immediately stop the user session (break all running sequences).
+    *
+    * @return This sequence.
     */
    public BaseSequenceBuilder stop() {
       return parent.step(s -> {
@@ -93,6 +96,9 @@ public class StepCatalog implements Step.Catalog {
 
    /**
     * Issue a HTTP request.
+    *
+    * @param method HTTP method.
+    * @return Builder.
     */
    public HttpRequestStep.Builder httpRequest(HttpMethod method) {
       return new HttpRequestStep.Builder(parent).method(method);
@@ -100,6 +106,8 @@ public class StepCatalog implements Step.Catalog {
 
    /**
     * Block current sequence until all requests receive the response.
+    *
+    * @return This sequence.
     */
    public BaseSequenceBuilder awaitAllResponses() {
       return parent.step(new AwaitAllResponsesStep());
@@ -107,6 +115,8 @@ public class StepCatalog implements Step.Catalog {
 
    /**
     * Drop all entries from HTTP cache in the session.
+    *
+    * @return This sequence.
     */
    public BaseSequenceBuilder clearHttpCache() {
       return parent.step(new ClearHttpCacheStep());
@@ -116,6 +126,11 @@ public class StepCatalog implements Step.Catalog {
 
    /**
     * Define a point in future until which we should wait. Do not wait yet.
+    *
+    * @param key Identifier.
+    * @param duration Delay duration.
+    * @param timeUnit Time unit.
+    * @return Builder.
     */
    public ScheduleDelayStep.Builder scheduleDelay(String key, long duration, TimeUnit timeUnit) {
       return new ScheduleDelayStep.Builder(parent, key, duration, timeUnit);
@@ -123,7 +138,9 @@ public class StepCatalog implements Step.Catalog {
 
    /**
     * Block this sequence until referenced delay point.
+    *
     * @param key Delay point created in <code>scheduleDelay.key</code>.
+    * @return This sequence.
     */
    public BaseSequenceBuilder awaitDelay(String key) {
       return parent.step(new AwaitDelayStep(key));
@@ -135,6 +152,10 @@ public class StepCatalog implements Step.Catalog {
 
    /**
     * Block the current sequence for specified duration.
+    *
+    * @param duration Delay duration.
+    * @param timeUnit Time unit.
+    * @return Builder.
     */
    public ScheduleDelayStep.Builder thinkTime(long duration, TimeUnit timeUnit) {
       // We will schedule two steps bound by an unique key
@@ -154,6 +175,9 @@ public class StepCatalog implements Step.Catalog {
 
    /**
     * Block current sequence until condition becomes true.
+    *
+    * @param condition Condition predicate.
+    * @return This sequence.
     */
    public BaseSequenceBuilder awaitCondition(Predicate<Session> condition) {
       return parent.step(new AwaitConditionStep(condition));
@@ -161,6 +185,8 @@ public class StepCatalog implements Step.Catalog {
 
    /**
     * Block current sequence until condition becomes true.
+    *
+    * @return Builder.
     */
    public AwaitIntStep.Builder awaitInt() {
       return new AwaitIntStep.Builder(parent);
@@ -170,6 +196,7 @@ public class StepCatalog implements Step.Catalog {
     * Block current sequence until this variable gets set/unset.
     *
     * @param var Variable name or <code>!variable</code> if we are waiting for it to be unset.
+    * @return This sequence.
     */
    public BaseSequenceBuilder awaitVar(String var) {
       return parent.step(new AwaitVarStep(var));
@@ -186,7 +213,8 @@ public class StepCatalog implements Step.Catalog {
    /**
     * Set variable to given value.
     *
-    * @param param Use <code>var <- value</code>.
+    * @param param Use <code>var &lt;- value</code>.
+    * @return This sequence.
     */
    public BaseSequenceBuilder set(String param) {
       return new SetStep.Builder(parent, param).endStep();
@@ -195,7 +223,8 @@ public class StepCatalog implements Step.Catalog {
    /**
     * Set variable to given value.
     *
-    * @param param Use <code>var <- value</code>.
+    * @param param Use <code>var &lt;- value</code>.
+    * @return This sequence.
     */
    public BaseSequenceBuilder setInt(String param) {
       return new SetIntStep.Builder(parent, param).endStep();
@@ -211,7 +240,9 @@ public class StepCatalog implements Step.Catalog {
 
    /**
     * Add integral value to variable.
+    *
     * @param param One of: <code>var++</code>, <code>var--</code>, <code>var += value</code>, <code>var -= value</code>.
+    * @return This sequence.
     */
    public BaseSequenceBuilder addToInt(String param) {
       return new AddToIntStep.Builder(parent, param).endStep();
@@ -237,7 +268,8 @@ public class StepCatalog implements Step.Catalog {
 
    /**
     * Stores random (linearly distributed) integer into session variable.
-    * @param rangeToVar Use <code>var <- min..max</code>
+    * @param rangeToVar Use <code>var &lt;- min..max</code>
+    * @return Builder.
     */
    public RandomIntStep.Builder randomInt(String rangeToVar) {
       return new RandomIntStep.Builder(parent, rangeToVar);
@@ -249,7 +281,9 @@ public class StepCatalog implements Step.Catalog {
 
    /**
     * Stores random item from a list or array into session variable.
-    * @param toFrom Use <code>var <- arrayVariable</code>
+    *
+    * @param toFrom Use <code>var &lt;- arrayVariable</code>
+    * @return Builder.
     */
    public RandomItemStep.Builder randomItem(String toFrom) {
       return new RandomItemStep.Builder(parent, toFrom);
@@ -286,6 +320,8 @@ public class StepCatalog implements Step.Catalog {
 
    /**
     * Move values from a map shared across all sessions using the same executor into session variables.
+    *
+    * @return Builder.
     */
    public PullSharedMapStep.Builder pullSharedMap() {
       return new PullSharedMapStep.Builder(parent);
@@ -293,6 +329,8 @@ public class StepCatalog implements Step.Catalog {
 
    /**
     * Store values from session variables into a map shared across all sessions using the same executor into session variables.
+    *
+    * @return Builder.
     */
    public PushSharedMapStep.Builder pushSharedMap() {
       return new PushSharedMapStep.Builder(parent);

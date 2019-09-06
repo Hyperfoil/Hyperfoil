@@ -36,7 +36,10 @@ public class StringGeneratorImplBuilder<T> implements StringGeneratorBuilder {
    }
 
    /**
-    * String value provided verbatim.
+    * String value used verbatim.
+    *
+    * @param value String value.
+    * @return Self.
     */
    public StringGeneratorImplBuilder<T> value(String value) {
       if (urlEncode) {
@@ -54,6 +57,9 @@ public class StringGeneratorImplBuilder<T> implements StringGeneratorBuilder {
 
    /**
     * Load the string from session variable.
+    *
+    * @param var Variable name.
+    * @return Self.
     */
    public StringGeneratorImplBuilder<T> fromVar(String var) {
       Access access = SessionFactory.access(var);
@@ -78,15 +84,10 @@ public class StringGeneratorImplBuilder<T> implements StringGeneratorBuilder {
    }
 
    /**
-    * Deprecated.
-    */
-   @Deprecated
-   public StringGeneratorImplBuilder<T> sequenceVar(String var) {
-      return fromVar(var + "[.]");
-   }
-
-   /**
     * Use pattern replacing session variables.
+    *
+    * @param pattern Template pattern.
+    * @return Self.
     */
    public StringGeneratorImplBuilder<T> pattern(String pattern) {
       set(new Pattern(pattern, urlEncode));

@@ -70,6 +70,9 @@ public class LogStep implements Step {
 
       /**
        * Message format pattern. Use <code>{}</code> to mark the positions for variables in the logged message.
+       *
+       * @param message Message format pattern.
+       * @return Self.
        */
       public Builder message(String message) {
          this.message = message;
@@ -78,6 +81,8 @@ public class LogStep implements Step {
 
       /**
        * List of variables to be logged.
+       *
+       * @return Builder.
        */
       public ListBuilder vars() {
          return vars::add;

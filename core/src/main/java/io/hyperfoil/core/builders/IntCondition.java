@@ -47,6 +47,9 @@ public class IntCondition implements SerializablePredicate<Session> {
 
       /**
        * Variable name.
+       *
+       * @param var Variable name.
+       * @return Self.
        */
       public Builder<P> fromVar(String var) {
          this.fromVar = var;
@@ -82,6 +85,9 @@ public class IntCondition implements SerializablePredicate<Session> {
 
       /**
        * Compared variable must be equal to this value.
+       *
+       * @param equalTo Value.
+       * @return Self.
        */
       public B equalTo(int equalTo) {
          this.equalTo = equalTo;
@@ -90,6 +96,9 @@ public class IntCondition implements SerializablePredicate<Session> {
 
       /**
        * Compared variable must not be equal to this value.
+       *
+       * @param notEqualTo Value.
+       * @return Self.
        */
       public B notEqualTo(int notEqualTo) {
          this.notEqualTo = notEqualTo;
@@ -98,6 +107,9 @@ public class IntCondition implements SerializablePredicate<Session> {
 
       /**
        * Compared variable must be greater than this value.
+       *
+       * @param greaterThan Value.
+       * @return Self.
        */
       public B greaterThan(int greaterThan) {
          this.greaterThan = greaterThan;
@@ -106,6 +118,9 @@ public class IntCondition implements SerializablePredicate<Session> {
 
       /**
        * Compared variable must be greater or equal to this value.
+       *
+       * @param greaterOrEqualTo Value.
+       * @return Self.
        */
       public B greaterOrEqualTo(int greaterOrEqualTo) {
          this.greaterOrEqualTo = greaterOrEqualTo;
@@ -114,6 +129,9 @@ public class IntCondition implements SerializablePredicate<Session> {
 
       /**
        * Compared variable must be lower than this value.
+       *
+       * @param lessThan Value.
+       * @return Self.
        */
       public B lessThan(int lessThan) {
          this.lessThan = lessThan;
@@ -122,6 +140,9 @@ public class IntCondition implements SerializablePredicate<Session> {
 
       /**
        * Compared variable must be lower or equal to this value.
+       *
+       * @param lessOrEqualTo Value.
+       * @return Self.
        */
       public B lessOrEqualTo(int lessOrEqualTo) {
          this.lessOrEqualTo = lessOrEqualTo;

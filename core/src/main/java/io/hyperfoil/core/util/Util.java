@@ -31,6 +31,9 @@ public class Util {
 
    /**
     * Pretty prints time in 9 spaces
+    *
+    * @param meanResponseTime Time in nanoseconds.
+    * @return Formatted string.
     */
    public static String prettyPrintNanos(long meanResponseTime) {
       if (meanResponseTime < 1000) {
