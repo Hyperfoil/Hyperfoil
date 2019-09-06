@@ -31,7 +31,8 @@ public class RequestStatsSender extends StatisticsCollector {
 
    private void sendStats(Phase phase, int stepId, String metric, StatisticsSnapshot statistics, CountDown countDown) {
       if (statistics.histogram.getEndTimeStamp() >= statistics.histogram.getStartTimeStamp()) {
-         log.debug("Sending stats for {} {}/{}, {} requests", phase.name(), stepId, metric, statistics.requestCount);
+         log.debug("Sending stats for {} {}/{}, id {}: {} requests, {} responses", phase.name(), stepId, metric,
+               statistics.sequenceId, statistics.requestCount, statistics.responseCount);
          // On clustered eventbus, ObjectCodec is not called synchronously so we *must* do a copy here.
          // (on a local eventbus we'd have to do a copy in transform() anyway)
          StatisticsSnapshot copy = new StatisticsSnapshot();

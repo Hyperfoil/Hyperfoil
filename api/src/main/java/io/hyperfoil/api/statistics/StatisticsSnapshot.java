@@ -39,7 +39,8 @@ public class StatisticsSnapshot implements Serializable {
    public boolean isEmpty() {
       return connectFailureCount + requestCount + responseCount +
             status_2xx + status_3xx + status_4xx + status_5xx + status_other +
-            invalid + cacheHits + resetCount + timeouts + blockedCount == 0 && custom.isEmpty();
+            invalid + cacheHits + resetCount + timeouts + blockedCount == 0 &&
+            custom.values().stream().allMatch(CustomValue::isNull);
    }
 
    public void reset() {
@@ -198,5 +199,30 @@ public class StatisticsSnapshot implements Serializable {
       // TODO
 
       return status_4xx + status_5xx + connectFailureCount + resetCount + timeouts;
+   }
+
+   @Override
+   public String toString() {
+      return "StatisticsSnapshot{" +
+            "sequenceId=" + sequenceId +
+            ", start=" + histogram.getStartTimeStamp() +
+            ", end=" + histogram.getEndTimeStamp() +
+            ", totalSendTime=" + totalSendTime +
+            ", connectFailureCount=" + connectFailureCount +
+            ", requestCount=" + requestCount +
+            ", responseCount=" + responseCount +
+            ", status_2xx=" + status_2xx +
+            ", status_3xx=" + status_3xx +
+            ", status_4xx=" + status_4xx +
+            ", status_5xx=" + status_5xx +
+            ", status_other=" + status_other +
+            ", invalid=" + invalid +
+            ", cacheHits=" + cacheHits +
+            ", resetCount=" + resetCount +
+            ", timeouts=" + timeouts +
+            ", blockedCount=" + blockedCount +
+            ", blockedTime=" + blockedTime +
+            ", custom=" + custom +
+            '}';
    }
 }

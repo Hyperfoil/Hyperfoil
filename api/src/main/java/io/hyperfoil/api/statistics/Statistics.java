@@ -197,6 +197,8 @@ public class Statistics {
             StatisticsSnapshot snapshot = inactive.get(i);
             if (snapshot != null) {
                snapshot.reset();
+               snapshot.histogram.setStartTimeStamp(startTimestamp + i * SAMPLING_PERIOD_MILLIS);
+               snapshot.histogram.setEndTimeStamp(startTimestamp + (i + 1) * SAMPLING_PERIOD_MILLIS);
             }
          }
 

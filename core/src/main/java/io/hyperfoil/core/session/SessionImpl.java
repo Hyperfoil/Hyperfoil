@@ -294,6 +294,7 @@ class SessionImpl implements Session, Callable<Void> {
                request.connection().close();
                // Connection close should complete the request
                if (!request.isCompleted()) {
+                  log.warn("#{} Connection close should have completed the request!", request.session != null ? request.session.uniqueId() : 0);
                   request.setCompleted();
                   requestPool.release(request);
                }

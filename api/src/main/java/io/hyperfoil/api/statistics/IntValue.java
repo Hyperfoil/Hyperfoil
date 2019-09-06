@@ -8,6 +8,11 @@ public class IntValue implements CustomValue {
    }
 
    @Override
+   public boolean isNull() {
+      return value == 0;
+   }
+
+   @Override
    public void add(CustomValue other) {
       value += val(other);
    }
