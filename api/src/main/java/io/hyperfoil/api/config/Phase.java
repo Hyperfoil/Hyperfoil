@@ -70,21 +70,21 @@ public abstract class Phase implements Serializable {
    }
 
    /**
-    * Phases that must be finished (not starting any further user sessions) in order to start.
+    * @return Phases that must be finished (not starting any further user sessions) in order to start.
     */
    public Collection<String> startAfter() {
       return startAfter;
    }
 
    /**
-    * Phases that must be terminated (not running any user sessions) in order to start.
+    * @return Phases that must be terminated (not running any user sessions) in order to start.
     */
    public Collection<String> startAfterStrict() {
       return startAfterStrict;
    }
 
    /**
-    * Phases that must be terminated in order to terminate this phase.
+    * @return Phases that must be terminated in order to terminate this phase.
     */
    public Collection<String> terminateAfterStrict() {
       return terminateAfterStrict;

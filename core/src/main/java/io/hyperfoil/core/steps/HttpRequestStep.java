@@ -721,6 +721,9 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
       /**
        * Load header value from session variable.
+       *
+       * @param var Variable name.
+       * @return Self.
        */
       public PartialHeadersBuilder fromVar(String var) {
          Access access = SessionFactory.access(var);

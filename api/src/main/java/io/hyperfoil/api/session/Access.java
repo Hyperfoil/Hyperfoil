@@ -23,7 +23,8 @@ public interface Access extends Serializable {
 
    /**
     * Make variable set without changing its (pre-allocated) value.
-    * @param session
+    *
+    * @param session Session with variables.
     * @return Variable value
     */
    Object activate(Session session);

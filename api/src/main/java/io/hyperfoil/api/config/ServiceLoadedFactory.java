@@ -24,9 +24,9 @@ public interface ServiceLoadedFactory<B> {
    /**
     * Constructs the builder, usually passing the build target as a constructor arg to the builder instance.
     *
-    * @param locator
-    * @param param
-    * @return
+    * @param locator Locator identifying the place for insertion.
+    * @param param Custom parameter for inline definition.
+    * @return Builder.
     * @throws IllegalArgumentException if the loader does not expect any parameter and it is not <code>null</code>.
     */
    B newBuilder(Locator locator, String param);

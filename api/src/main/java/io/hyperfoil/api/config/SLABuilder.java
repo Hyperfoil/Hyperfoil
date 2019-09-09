@@ -42,7 +42,10 @@ public class SLABuilder<P> implements Rewritable<SLABuilder<P>> {
    }
 
    /**
-    * Period over which the stats should be collected, in milliseconds. By default the SLA applies to stats from whole phase.
+    * Period over which the stats should be collected. By default the SLA applies to stats from whole phase.
+    *
+    * @param window Window size with suffix ('s', 'm' or 'h') or just in milliseconds.
+    * @return Self.
     */
    public SLABuilder<P> window(String window) {
       return window(Util.parseToMillis(window), TimeUnit.MILLISECONDS);
@@ -50,6 +53,9 @@ public class SLABuilder<P> implements Rewritable<SLABuilder<P>> {
 
    /**
     * Maximum allowed ratio of errors. Valid values are 0.0 - 1.0 (inclusive).
+    *
+    * @param errorRatio Ratio.
+    * @return Self.
     */
    public SLABuilder<P> errorRatio(double errorRatio) {
       this.errorRatio = errorRatio;
@@ -63,6 +69,9 @@ public class SLABuilder<P> implements Rewritable<SLABuilder<P>> {
 
    /**
     * Maximum allowed mean (average) response time. Use suffix `ns`, `us`, `ms` or `s` to specify units.
+    *
+    * @param meanResponseTime Mean response time.
+    * @return Self.
     */
    public SLABuilder<P> meanResponseTime(String meanResponseTime) {
       return meanResponseTime(Util.parseToNanos(meanResponseTime), TimeUnit.NANOSECONDS);
@@ -71,6 +80,9 @@ public class SLABuilder<P> implements Rewritable<SLABuilder<P>> {
    /**
     * Maximum allowed ratio of time spent waiting for usable connection to sum of response latencies.
     * Default is 0 - client must not be blocked.
+    *
+    * @param blockedRatio Maximum ratio.
+    * @return Self.
     */
    public SLABuilder<P> blockedRatio(double blockedRatio) {
       this.blockedRatio = blockedRatio;
@@ -79,6 +91,8 @@ public class SLABuilder<P> implements Rewritable<SLABuilder<P>> {
 
    /**
     * Percentile limits.
+    *
+    * @return Builder.
     */
    public LimitsBuilder limits() {
       return new LimitsBuilder();
@@ -100,6 +114,9 @@ public class SLABuilder<P> implements Rewritable<SLABuilder<P>> {
    public class LimitsBuilder extends PairBuilder.OfString {
       /**
        * Use percentile (value between 0.0 and 1.0) as key and response time with unit (e.g. `ms`) in suffix as value.
+       *
+       * @param percentileStr Percentile (value between 0.0 and 1.0).
+       * @param responseTime Response time threshold.
        */
       @Override
       public void accept(String percentileStr, String responseTime) {

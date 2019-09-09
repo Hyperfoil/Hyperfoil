@@ -40,6 +40,8 @@ public interface StepBuilder {
     * If this builder does not use its position (calling {@link #endStep()} either directly or
     * e.g. through {@link Locator#fromStep(StepBuilder)}) it can just add <code>this</code>
     * without doing actual copy.
+    *
+    * @param newParent New parent sequence.
     */
    default void addCopyTo(BaseSequenceBuilder newParent) {
       if (canBeLocated()) {
@@ -50,6 +52,8 @@ public interface StepBuilder {
 
    /**
     * Override this along with {@link #addCopyTo(BaseSequenceBuilder)}.
+    *
+    * @return True if the object supports deep copy.
     */
    default boolean canBeLocated() {
       return false;

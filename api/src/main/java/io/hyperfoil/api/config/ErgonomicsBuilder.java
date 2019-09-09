@@ -6,6 +6,9 @@ public class ErgonomicsBuilder {
 
    /**
     * Set global cookie-repeating behaviour for all steps.
+    *
+    * @param repeatCookies Auto repeat?
+    * @return Self.
     */
    public ErgonomicsBuilder repeatCookies(boolean repeatCookies) {
       this.repeatCookies = repeatCookies;

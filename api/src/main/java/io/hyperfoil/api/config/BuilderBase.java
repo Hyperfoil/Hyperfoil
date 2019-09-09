@@ -14,7 +14,7 @@ public interface BuilderBase<S extends BuilderBase<S>> {
     * Should be overridden if the <code>locator</code> parameter in {@link ServiceLoadedFactory#newBuilder(Locator, String)}
     * is used. If the locator is not used it is legal to return <code>this</code>.
     *
-    * @param locator
+    * @param locator The place where the copy should be inserted.
     * @return Deep copy of this object.
     */
    @SuppressWarnings("unchecked")

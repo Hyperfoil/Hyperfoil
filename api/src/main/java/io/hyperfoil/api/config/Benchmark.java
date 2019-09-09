@@ -70,6 +70,8 @@ public class Benchmark implements Serializable {
     /**
      *  As the transformation from YAML is one-way (due to forks and iterations)
      *  here we store the original source (be it YAML or JSON)
+     *
+     * @return Source YAML for the benchmark.
      */
     public String source() {
         return originalSource;
