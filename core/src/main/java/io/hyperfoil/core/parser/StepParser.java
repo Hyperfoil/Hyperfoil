@@ -3,6 +3,7 @@ package io.hyperfoil.core.parser;
 import java.lang.reflect.Array;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.stream.Stream;
 
 import org.yaml.snakeyaml.events.Event;
@@ -306,8 +307,14 @@ class StepParser implements Parser<BaseSequenceBuilder> {
       if (candidates.length == 0) {
          return new Result<>(new ParserException(event, "Cannot find method '" + name + "' on '" + target + "'"));
       } else if (params >= 0) {
-         return Stream.of(candidates).filter(m -> m.getParameterCount() == params).findAny().map(Result::new)
-               .orElseGet(() -> new Result<>(new ParserException(event, "Wrong number of parameters to '" + name + "', expecting " + params)));
+         candidates = Stream.of(candidates).filter(m -> m.getParameterCount() == params)
+               .filter(m -> Stream.of(m.getParameterTypes()).allMatch(this::isParamConvertible)).toArray(Method[]::new);
+         if (candidates.length > 1) {
+            return new Result<>(new ParserException(event, "Ambiguous candidates for '" + name + "' on '" + target + "': " + Arrays.asList(candidates)));
+         } else if (candidates.length == 0) {
+            return new Result<>(new ParserException(event, "Cannot find method '" + name + "' on '" + target + "'"));
+         }
+         return new Result<>(candidates[0]);
       } else {
          return new Result<>(Stream.of(candidates).reduce(StepParser::selectMethod).get());
       }
@@ -329,6 +336,10 @@ class StepParser implements Parser<BaseSequenceBuilder> {
       } else {
          throw new ParserException(event, "Cannot convert " + str + " to " + type);
       }
+   }
+
+   private boolean isParamConvertible(Class<?> type) {
+      return type == String.class || type.isPrimitive() || type.isEnum();
    }
 
    @SuppressWarnings("unchecked")
