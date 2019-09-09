@@ -8,6 +8,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Date;
@@ -30,6 +31,7 @@ import io.hyperfoil.core.parser.BenchmarkParser;
 import io.hyperfoil.core.parser.ParserException;
 import io.hyperfoil.core.util.Util;
 import io.vertx.core.AsyncResult;
+import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
@@ -90,6 +92,7 @@ class ControllerServer {
       router.get("/agents").handler(this::handleAgents);
       router.get("/log").handler(this::handleLog);
       router.get("/log/:agent").handler(this::handleAgentLog);
+      router.get("/shutdown").handler(this::handleShutdown);
 
       httpServer = controller.getVertx().createHttpServer().requestHandler(router).listen(CONTROLLER_PORT);
    }
@@ -302,8 +305,8 @@ class ControllerServer {
       if (run.startTime > Long.MIN_VALUE) {
          started = new Date(run.startTime);
       }
-      if (run.terminateTime > Long.MIN_VALUE) {
-         terminated = new Date(run.terminateTime);
+      if (run.terminateTime.isComplete()) {
+         terminated = new Date(run.terminateTime.result());
       }
       long now = System.currentTimeMillis();
       List<Client.Phase> phases = run.phases.values().stream()
@@ -409,8 +412,13 @@ class ControllerServer {
    private void handleRunKill(RoutingContext routingContext) {
       Run run = getRun(routingContext);
       if (run != null) {
-         controller.kill(run);
-         routingContext.response().setStatusCode(202).end();
+         controller.kill(run, result -> {
+            if (result.succeeded()) {
+               routingContext.response().setStatusCode(202).end();
+            } else {
+               routingContext.response().setStatusCode(500).setStatusMessage(result.cause().getMessage()).end();
+            }
+         });
       } else {
          routingContext.response().setStatusCode(404).end();
       }
@@ -428,7 +436,7 @@ class ControllerServer {
 
    private Client.RequestStatisticsResponse statsToJson(Run run, List<Client.RequestStats> stats) {
       String status;
-      if (run.terminateTime > Long.MIN_VALUE) {
+      if (run.terminateTime.isComplete()) {
          status = "TERMINATED";
       } else if (run.startTime > Long.MIN_VALUE) {
          status = "RUNNING";
@@ -580,4 +588,30 @@ class ControllerServer {
          throw new IllegalArgumentException(e);
       }
    }
+
+   private void handleShutdown(RoutingContext ctx) {
+      boolean force = !ctx.queryParam("force").isEmpty();
+      List<Run> runs = controller.runs.values().stream().filter(run -> !run.terminateTime.isComplete()).collect(Collectors.toList());
+      if (force) {
+         // We don't allow concurrent runs ATM, but...
+         List<Future> futures = new ArrayList<>();
+         for (Run run: runs) {
+            Future<Void> future = Future.future();
+            futures.add(future);
+            controller.kill(run, result -> future.complete());
+         }
+         CompositeFuture.all(futures).setHandler(nil -> {
+            ctx.response().setStatusCode(200).end();
+            controller.shutdown();
+         });
+      } else if (runs.isEmpty()) {
+         ctx.response().setStatusCode(200).end();
+         controller.shutdown();
+      } else {
+         String running = runs.stream().map(run -> run.id).collect(Collectors.joining(", "));
+         ctx.response().setStatusCode(403)
+               .setStatusMessage("These runs are still in progress: " + running).end();
+      }
+   }
+
 }

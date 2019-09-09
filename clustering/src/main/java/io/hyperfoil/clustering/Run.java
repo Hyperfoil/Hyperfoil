@@ -9,6 +9,7 @@ import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.core.impl.statistics.StatisticsStore;
 import io.hyperfoil.core.util.Util;
+import io.vertx.core.Future;
 
 class Run {
    final String id;
@@ -21,7 +22,7 @@ class Run {
    String description;
 
    long startTime = Long.MIN_VALUE;
-   long terminateTime = Long.MIN_VALUE;
+   Future<Long> terminateTime = Future.future();
    StatisticsStore statisticsStore;
 
 

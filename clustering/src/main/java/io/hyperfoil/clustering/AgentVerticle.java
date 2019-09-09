@@ -72,6 +72,7 @@ public class AgentVerticle extends AbstractVerticle {
                         if (result.succeeded()) {
                             message.reply("OK");
                         } else {
+                            log.error("Replying with error result", result.cause());
                             message.fail(1, result.cause().getMessage());
                         }
                     });
@@ -198,6 +199,8 @@ public class AgentVerticle extends AbstractVerticle {
                     runner.visitSessionPoolStats(sessionStatsSender);
                     sessionStatsSender.send();
                 });
+            } else {
+                log.error("Initialization failed.");
             }
             handler.handle(result);
         });

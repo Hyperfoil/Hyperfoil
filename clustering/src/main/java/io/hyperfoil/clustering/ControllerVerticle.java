@@ -195,14 +195,14 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
     @Override
     public void nodeLeft(String nodeID) {
         for (Run run : runs.values()) {
-            if (run.terminateTime > Long.MIN_VALUE) {
+            if (run.terminateTime.isComplete()) {
                 continue;
             }
             for (AgentInfo agent : run.agents) {
                 if (agent.nodeId.equals(nodeID)) {
                     agent.status = AgentInfo.Status.FAILED;
                     run.errors.add(new Run.Error(agent, new BenchmarkExecutionException("Agent unexpectedly left the cluster.")));
-                    kill(run);
+                    kill(run, result -> {});
                     stopSimulation(run);
                     break;
                 }
@@ -230,7 +230,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
         Run run = new Run(runId, new Benchmark(info.getString("benchmark", "<unknown>"), null, Collections.emptyMap(), null, 0, null,
               Collections.emptyMap(), Collections.emptyList(), Collections.emptyMap(), 0));
         run.startTime = info.getLong("startTime", 0L);
-        run.terminateTime = info.getLong("terminateTime", 0L);
+        run.terminateTime.complete(info.getLong("terminateTime", 0L));
         run.description = info.getString("description");
         runs.put(runId, run);
     }
@@ -286,7 +286,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
     StartResult startBenchmark(Benchmark benchmark, String description) {
         Set<String> activeAgents = new HashSet<>();
         for (Run run : runs.values()) {
-            if (run.terminateTime == Long.MIN_VALUE) {
+            if (!run.terminateTime.isComplete()) {
                 for (AgentInfo agent : run.agents) {
                     activeAgents.add(agent.name);
                 }
@@ -427,7 +427,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
     }
 
     private void stopSimulation(Run run) {
-        run.terminateTime = System.currentTimeMillis();
+        run.terminateTime.complete(System.currentTimeMillis());
         for (AgentInfo agent : run.agents) {
             if (agent.deploymentId == null) {
                 assert agent.status == AgentInfo.Status.STARTING;
@@ -473,7 +473,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                   .put("id", run.id)
                   .put("benchmark", run.benchmark.name())
                   .put("startTime", run.startTime)
-                  .put("terminateTime", run.terminateTime)
+                  .put("terminateTime", run.terminateTime.result())
                   .put("description", run.description);
             try {
                 Files.write(runDir.resolve("info.json"), info.encodePrettily().getBytes(StandardCharsets.UTF_8));
@@ -496,17 +496,22 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
         return runs.values();
     }
 
-    public void kill(Run run) {
-        for (Map.Entry<String, ControllerPhase> entry : run.phases.entrySet()) {
-            ControllerPhase.Status status = entry.getValue().status();
-            if (!status.isTerminated()) {
-                if (status == ControllerPhase.Status.NOT_STARTED) {
+    public void kill(Run run, Handler<AsyncResult<Void>> handler) {
+        try {
+           for (Map.Entry<String, ControllerPhase> entry : run.phases.entrySet()) {
+              ControllerPhase.Status status = entry.getValue().status();
+              if (!status.isTerminated()) {
+                 if (status == ControllerPhase.Status.NOT_STARTED) {
                     entry.getValue().status(ControllerPhase.Status.CANCELLED);
-                } else {
+                 } else {
                     entry.getValue().status(ControllerPhase.Status.TERMINATING);
                     eb.publish(Feeds.CONTROL, new PhaseControlMessage(PhaseControlMessage.Command.TERMINATE, entry.getKey()));
-                }
-            }
+                 }
+              }
+           }
+           run.terminateTime.setHandler(result -> handler.handle(result.mapEmpty()));
+        } catch (Throwable e) {
+           handler.handle(Future.failedFuture(e));
         }
     }
 
@@ -610,7 +615,11 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
         return run.benchmark;
     }
 
-    static class StartResult {
+   public void shutdown() {
+      vertx.close();
+   }
+
+   static class StartResult {
       final String runId;
       final String error;
 

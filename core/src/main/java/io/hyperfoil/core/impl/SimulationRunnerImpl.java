@@ -143,7 +143,12 @@ public class SimulationRunnerImpl implements SimulationRunner {
         }
 
         CompositeFuture composite = CompositeFuture.join(futures);
-        composite.setHandler(result -> handler.handle(result.mapEmpty()));
+        composite.setHandler(result -> {
+            if (result.failed()) {
+                log.error("One of the HTTP client pools failed to start.");
+            }
+            handler.handle(result.mapEmpty());
+        });
     }
 
     protected void phaseChanged(Phase phase, PhaseInstance.Status status, Throwable error) {
