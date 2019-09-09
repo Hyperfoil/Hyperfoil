@@ -528,14 +528,8 @@ public class DocsGenerator extends BaseGenerator {
    }
 
    private Docs describeMethod(Class<?> builder, Method m, MethodDeclaration declaration) {
-      StringBuilder description = declaration == null ? new StringBuilder() : declaration.getJavadoc().map(javadoc -> {
-         StringBuilder sb = new StringBuilder(trimEmptyLines(javadoc.getDescription().toText()));
-         javadoc.getBlockTags().stream()
-               .filter(tag -> tag.getType() == JavadocBlockTag.Type.PARAM)
-               .map(tag -> tag.getContent())
-               .forEach(sb::append);
-         return sb;
-      }).orElse(new StringBuilder());
+      StringBuilder description = declaration == null ? new StringBuilder() : declaration.getJavadoc()
+            .map(javadoc -> new StringBuilder(trimEmptyLines(javadoc.getDescription().toText()))).orElse(new StringBuilder());
 
       // Return early to not recurse into self
       if (m.getReturnType().isAssignableFrom(builder)) {
