@@ -28,6 +28,8 @@ public interface Client {
 
    long ping();
 
+   String pingId();
+
    Collection<String> agents();
 
    String downloadLog(String node, String logId, long offset, String destinationFile);

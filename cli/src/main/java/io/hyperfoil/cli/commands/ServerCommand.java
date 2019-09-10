@@ -7,6 +7,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.concurrent.TimeUnit;
 
 import org.aesh.command.Command;
 import org.aesh.command.CommandException;
@@ -14,6 +15,7 @@ import org.aesh.readline.Prompt;
 import org.aesh.readline.terminal.formatting.Color;
 import org.aesh.readline.terminal.formatting.TerminalColor;
 import org.aesh.readline.terminal.formatting.TerminalString;
+import org.aesh.utils.ANSI;
 
 import io.hyperfoil.cli.context.HyperfoilCliContext;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
@@ -93,6 +95,20 @@ public abstract class ServerCommand implements Command<HyperfoilCommandInvocatio
          String shortHost = host.contains(".") ? host.substring(0, host.indexOf('.')) : host;
          invocation.setPrompt(new Prompt(new TerminalString("[hyperfoil@" + shortHost + "]$ ",
                new TerminalColor(Color.GREEN, Color.DEFAULT, Color.Intensity.BRIGHT))));
+         ctx.setControllerId(null);
+         ctx.setControllerPollTask(ctx.executor().scheduleAtFixedRate(() -> {
+            try {
+               String currentId = ctx.client().pingId();
+               if (ctx.controllerId() == null) {
+                  ctx.setControllerId(currentId);
+               } else if (!ctx.controllerId().equals(currentId)) {
+                  invocation.print("\n" + ANSI.RED_TEXT + ANSI.BOLD + "Warning: controller was restarted." + ANSI.RESET + "\n");
+                  ctx.setControllerId(currentId);
+               }
+            } catch (RestClientException e) {
+               invocation.print("\n" + ANSI.YELLOW_TEXT + ANSI.BOLD + "Warning: controller seems offline." + ANSI.RESET + "\n");
+            }
+         }, 0, 15, TimeUnit.SECONDS));
       } catch (RestClientException e) {
          ctx.client().close();
          ctx.setClient(null);

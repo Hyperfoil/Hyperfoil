@@ -22,6 +22,9 @@ package io.hyperfoil.cli.context;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 
 import org.aesh.command.CommandException;
 
@@ -40,6 +43,13 @@ public class HyperfoilCliContext {
     private Client.RunRef serverRun;
     private Map<String, String> logFiles = new HashMap<>();
     private Map<String, String> logIds = new HashMap<>();
+    private ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread thread = new Thread(r, "CLI-scheduled-executor");
+        thread.setDaemon(true);
+        return thread;
+    });
+    private String controllerId;
+    private ScheduledFuture<?> controllerPollTask;
 
     public HyperfoilCliContext() {
     }
@@ -105,5 +115,24 @@ public class HyperfoilCliContext {
 
     public void updateLogId(String node, String logId) {
         logIds.put(node, logId);
+    }
+
+    public ScheduledExecutorService executor() {
+        return executor;
+    }
+
+    public String controllerId() {
+        return controllerId;
+    }
+
+    public void setControllerId(String id) {
+        controllerId = id;
+    }
+
+    public void setControllerPollTask(ScheduledFuture<?> future) {
+        if (controllerPollTask != null) {
+            controllerPollTask.cancel(false);
+        }
+        controllerPollTask = future;
     }
 }

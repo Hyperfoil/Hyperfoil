@@ -68,14 +68,19 @@ public class AgentVerticle extends AbstractVerticle {
             switch (controlMessage.command()) {
                 case INITIALIZE:
                     log.info("Initializing agent");
-                    initBenchmark(controlMessage.benchmark(), result -> {
-                        if (result.succeeded()) {
-                            message.reply("OK");
-                        } else {
-                            log.error("Replying with error result", result.cause());
-                            message.fail(1, result.cause().getMessage());
-                        }
-                    });
+                    try {
+                        initBenchmark(controlMessage.benchmark(), result -> {
+                            if (result.succeeded()) {
+                                message.reply("OK");
+                            } else {
+                                log.error("Replying with error result", result.cause());
+                                message.fail(1, result.cause().getMessage());
+                            }
+                        });
+                    } catch (Throwable e) {
+                        log.error("Failed to initialize agent", e);
+                        message.fail(1, e.getMessage());
+                    }
                     break;
                 case STOP:
                     // collect stats one last time before acknowledging termination

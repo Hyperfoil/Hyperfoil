@@ -100,6 +100,12 @@ public class RestClient implements Client, Closeable {
    }
 
    @Override
+   public String pingId() {
+      return sync(handler -> client.request(HttpMethod.GET, "/").send(handler), 200,
+            response -> response.getHeader("x-controller-id"));
+   }
+
+   @Override
    public Collection<String> agents() {
       return sync(handler -> client.request(HttpMethod.GET, "/agents").send(handler), 200,
             response -> Arrays.asList(Json.decodeValue(response.body(), String[].class)));

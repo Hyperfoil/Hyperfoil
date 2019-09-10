@@ -72,7 +72,10 @@ class ControllerServer {
       this.controller = controller;
       router = Router.router(controller.getVertx());
 
-      router.route().handler(BodyHandler.create());
+      router.route().handler(BodyHandler.create()).handler(ctx -> {
+         ctx.response().putHeader("x-controller-id", controller.deploymentID());
+         ctx.next();
+      });
       router.get("/").handler(this::handleIndex);
       router.post("/benchmark").handler(this::handlePostBenchmark);
       router.get("/benchmark").handler(this::handleListBenchmarks);
