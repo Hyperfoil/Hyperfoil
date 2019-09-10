@@ -33,12 +33,6 @@
     <packaging>jar</packaging>
     <name>Hyperfoil Core</name>
     <description>The core of Hyperfoil</description>
-    <scm>
-        <connection>scm:git:git://github.com/RedHatPerf/Hyperfoil.git</connection>
-        <developerConnection>scm:git:ssh://git@github.com/RedHatPerf/Hyperfoil.git</developerConnection>
-        <url>https://github.com/RedHatPerf/Hyperfoil/tree/master</url>
-      <tag>HEAD</tag>
-  </scm>
 
     <!-- Licenses -->
     <licenses>
@@ -47,21 +41,6 @@
             <url>http://www.apache.org/licenses/LICENSE-2.0</url>
         </license>
     </licenses>
-
-    <developers>
-        <developer>
-            <name>Ståle Pedersen</name>
-            <email>spederse@redhat.com</email>
-            <organization>Red Hat</organization>
-            <organizationUrl>http://www.redhat.com</organizationUrl>
-        </developer>
-        <developer>
-            <name>John O'Hara</name>
-            <email>johara@redhat.com</email>
-            <organization>Red Hat</organization>
-            <organizationUrl>http://www.redhat.com</organizationUrl>
-        </developer>
-    </developers>
 
     <dependencies>
 

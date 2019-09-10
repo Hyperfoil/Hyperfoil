@@ -41,7 +41,7 @@
         <developerConnection>scm:git:ssh://git@github.com/Hyperfoil/Hyperfoil.git</developerConnection>
         <url>https://github.com/Hyperfoil/Hyperfoil</url>
       <tag>HEAD</tag>
-  </scm>
+    </scm>
 
     <distributionManagement>
         <snapshotRepository>
@@ -111,6 +111,18 @@
         <developer>
             <name>Radim Vansa</name>
             <email>rvansa@redhat.com</email>
+            <organization>Red Hat</organization>
+            <organizationUrl>http://www.redhat.com</organizationUrl>
+        </developer>
+        <developer>
+            <name>Will Reichert</name>
+            <email>wreicher@redhat.com</email>
+            <organization>Red Hat</organization>
+            <organizationUrl>http://www.redhat.com</organizationUrl>
+        </developer>
+        <developer>
+            <name>Jeremy Whiting</name>
+            <email>jwhiting@redhat.com</email>
             <organization>Red Hat</organization>
             <organizationUrl>http://www.redhat.com</organizationUrl>
         </developer>
