@@ -20,7 +20,7 @@
             xmlns="urn:infinispan:config:9.1">
 
     <jgroups>
-        <stack-file name="jgroups" path="default-configs/default-jgroups-tcp.xml"/>
+        <stack-file name="jgroups" path="jgroups-tcp.xml"/>
     </jgroups>
 
     <cache-container default-cache="distributed-cache" statistics="false">
