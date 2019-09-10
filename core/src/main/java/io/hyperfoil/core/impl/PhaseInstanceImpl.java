@@ -317,6 +317,10 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       private double nextSession() {
          // we're solving quadratic equation coming from t = (duration * -log(rand))/(((t + now) * (target - initial)) + initial * duration)
          double aCoef = (def.targetUsersPerSec - def.initialUsersPerSec);
+         if (aCoef < 0.000001) {
+            // prevent division 0f/0f
+            return 1000 * -Math.log(Math.max(1e-20, random.nextDouble())) / def.initialUsersPerSec;
+         }
          double bCoef = nextScheduled * (def.targetUsersPerSec - def.initialUsersPerSec) + def.initialUsersPerSec * def.duration;
          double cCoef = def.duration * 1000 * Math.log(random.nextDouble());
          return (-bCoef + Math.sqrt(bCoef * bCoef - 4 * aCoef * cCoef)) / (2 * aCoef);
