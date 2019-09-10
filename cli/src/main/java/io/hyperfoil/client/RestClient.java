@@ -100,9 +100,9 @@ public class RestClient implements Client, Closeable {
    }
 
    @Override
-   public String pingId() {
-      return sync(handler -> client.request(HttpMethod.GET, "/").send(handler), 200,
-            response -> response.getHeader("x-controller-id"));
+   public Version version() {
+      return sync(handler -> client.request(HttpMethod.GET, "/version").send(handler), 200,
+            response -> Json.decodeValue(response.body(), Version.class));
    }
 
    @Override

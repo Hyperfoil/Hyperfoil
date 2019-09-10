@@ -32,6 +32,7 @@ import io.hyperfoil.cli.commands.Sessions;
 import io.hyperfoil.cli.commands.Stats;
 import io.hyperfoil.cli.commands.Status;
 import io.hyperfoil.cli.commands.Upload;
+import io.hyperfoil.cli.commands.Version;
 import io.hyperfoil.cli.commands.Wrk;
 import io.hyperfoil.cli.context.HyperfoilCliContext;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
@@ -106,6 +107,7 @@ public class HyperfoilCli {
                                        .command(Stats.class)
                                        .command(Status.class)
                                        .command(Upload.class)
+                                       .command(Version.class)
                                        .command(Wrk.WrkCommand.class)
                                        .create())
                        .commandInvocationProvider(new HyperfoilCommandInvocationProvider(context))

@@ -24,6 +24,7 @@ import io.hyperfoil.api.config.BenchmarkData;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.client.Client;
+import io.hyperfoil.core.Version;
 import io.hyperfoil.core.util.LowHigh;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.hyperfoil.api.config.Benchmark;
@@ -72,10 +73,7 @@ class ControllerServer {
       this.controller = controller;
       router = Router.router(controller.getVertx());
 
-      router.route().handler(BodyHandler.create()).handler(ctx -> {
-         ctx.response().putHeader("x-controller-id", controller.deploymentID());
-         ctx.next();
-      });
+      router.route().handler(BodyHandler.create());
       router.get("/").handler(this::handleIndex);
       router.post("/benchmark").handler(this::handlePostBenchmark);
       router.get("/benchmark").handler(this::handleListBenchmarks);
@@ -96,6 +94,7 @@ class ControllerServer {
       router.get("/log").handler(this::handleLog);
       router.get("/log/:agent").handler(this::handleAgentLog);
       router.get("/shutdown").handler(this::handleShutdown);
+      router.get("/version").handler(this::handleVersion);
 
       httpServer = controller.getVertx().createHttpServer().requestHandler(router).listen(CONTROLLER_PORT);
    }
@@ -617,4 +616,7 @@ class ControllerServer {
       }
    }
 
+   private void handleVersion(RoutingContext ctx) {
+      ctx.response().end(Json.encodePrettily(new Client.Version(Version.VERSION, Version.COMMIT_ID, controller.deploymentID())));
+   }
 }

@@ -98,7 +98,7 @@ public abstract class ServerCommand implements Command<HyperfoilCommandInvocatio
          ctx.setControllerId(null);
          ctx.setControllerPollTask(ctx.executor().scheduleAtFixedRate(() -> {
             try {
-               String currentId = ctx.client().pingId();
+               String currentId = ctx.client().version().deploymentId;
                if (ctx.controllerId() == null) {
                   ctx.setControllerId(currentId);
                } else if (!ctx.controllerId().equals(currentId)) {

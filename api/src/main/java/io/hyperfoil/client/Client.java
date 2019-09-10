@@ -28,7 +28,7 @@ public interface Client {
 
    long ping();
 
-   String pingId();
+   Version version();
 
    Collection<String> agents();
 
@@ -195,6 +195,21 @@ public interface Client {
          this.metric = metric;
          this.customName = customName;
          this.value = value;
+      }
+   }
+
+   class Version {
+      public final String version;
+      public final String commitId;
+      public final String deploymentId;
+
+      @JsonCreator
+      public Version(@JsonProperty("version") String version,
+                     @JsonProperty("commitId") String commitId,
+                     @JsonProperty("deploymentId") String deploymentId) {
+         this.version = version;
+         this.commitId = commitId;
+         this.deploymentId = deploymentId;
       }
    }
 }
