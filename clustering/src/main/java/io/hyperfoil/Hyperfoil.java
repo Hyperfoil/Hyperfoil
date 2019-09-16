@@ -1,7 +1,15 @@
 package io.hyperfoil;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+
+import org.infinispan.commons.util.FileLookupFactory;
+import org.infinispan.configuration.parsing.ConfigurationBuilderHolder;
+import org.infinispan.configuration.parsing.ParserRegistry;
+import org.infinispan.manager.DefaultCacheManager;
+import org.infinispan.remoting.transport.jgroups.JGroupsTransport;
 
 import io.hyperfoil.clustering.ControllerVerticle;
 import io.hyperfoil.clustering.AgentVerticle;
@@ -13,6 +21,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import io.vertx.ext.cluster.infinispan.InfinispanClusterManager;
 
 class Hyperfoil {
    static final Logger log = LoggerFactory.getLogger(Controller.class);
@@ -24,7 +33,9 @@ class Hyperfoil {
       try {
          String hostName = InetAddress.getLocalHost().getHostName();
          log.debug("Using host name {}", hostName);
-         options.setClusterHost(hostName);
+         options.getEventBusOptions().setHost(hostName);
+         DefaultCacheManager cacheManager = createCacheManager();
+         options.setClusterManager(new InfinispanClusterManager(cacheManager));
          System.setProperty("jgroups.tcp.address", hostName);
       } catch (UnknownHostException e) {
          log.error("Cannot lookup hostname", e);
@@ -38,6 +49,20 @@ class Hyperfoil {
          Codecs.register(vertx);
          startedHandler.handle(vertx);
       });
+   }
+
+   private static DefaultCacheManager createCacheManager() {
+      try (InputStream stream = FileLookupFactory.newInstance().lookupFile("infinispan.xml", Thread.currentThread().getContextClassLoader())) {
+         ConfigurationBuilderHolder holder = new ParserRegistry().parse(stream);
+         holder.getGlobalConfigurationBuilder().transport().defaultTransport()
+               .addProperty(JGroupsTransport.CHANNEL_LOOKUP, HyperfoilChannelLookup.class.getName())
+               .initialClusterSize(1);
+         return new DefaultCacheManager(holder, true);
+      } catch (IOException e) {
+         log.error("Cannot load Infinispan configuration");
+         System.exit(1);
+         return null;
+      }
    }
 
    static void deploy(Vertx vertx, Class<? extends Verticle> verticleClass) {

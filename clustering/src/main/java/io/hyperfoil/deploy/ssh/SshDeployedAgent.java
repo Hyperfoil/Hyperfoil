@@ -168,6 +168,8 @@ public class SshDeployedAgent implements DeployedAgent {
       startAgentCommmand.append(" -Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.Log4j2LogDelegateFactory");
       startAgentCommmand.append(" -D").append(Properties.AGENT_NAME).append('=').append(name);
       startAgentCommmand.append(" -D").append(Properties.RUN_ID).append('=').append(runId);
+      startAgentCommmand.append(" -D").append(Properties.CONTROLLER_CLUSTER_IP).append('=').append(System.getProperty(Properties.CONTROLLER_CLUSTER_IP));
+      startAgentCommmand.append(" -D").append(Properties.CONTROLLER_CLUSTER_PORT).append('=').append(System.getProperty(Properties.CONTROLLER_CLUSTER_PORT));
       if (DEBUG_ADDRESS != null) {
          startAgentCommmand.append(" -agentlib:jdwp=transport=dt_socket,server=y,suspend=").append(DEBUG_SUSPEND).append(",address=").append(DEBUG_ADDRESS);
       }

@@ -13,11 +13,8 @@
         thread_pool.max_threads="${jgroups.thread_pool.max_threads:200}"
         thread_pool.keep_alive_time="60000"
    />
-   <MPING bind_addr="${jgroups.tcp.address:127.0.0.1}"
-          mcast_addr="${jgroups.mping.mcast_addr:228.2.4.6}"
-          mcast_port="${jgroups.mping.mcast_port:43366}"
-          ip_ttl="${jgroups.udp.ip_ttl:2}" 
-   />
+   <TCPPING send_cache_on_join="true"/>
+
    <!-- MERGE3 interval reduced to 1-3 seconds: that gives better chance to cluster the agents
         in cases when the GET_MBRS_REQ send by FIND_INIT_MBRS is lost. -->
    <MERGE3 min_interval="1000"
