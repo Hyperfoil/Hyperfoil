@@ -10,6 +10,7 @@ import org.infinispan.remoting.transport.jgroups.JGroupsChannelLookup;
 import org.jgroups.JChannel;
 import org.jgroups.protocols.TCP;
 import org.jgroups.protocols.TCPPING;
+import org.jgroups.protocols.pbcast.GMS;
 
 public class HyperfoilChannelLookup implements JGroupsChannelLookup {
 
@@ -22,6 +23,9 @@ public class HyperfoilChannelLookup implements JGroupsChannelLookup {
          String controllerPort = System.getProperty(io.hyperfoil.clustering.Properties.CONTROLLER_CLUSTER_PORT);
          if (controllerIP != null && controllerPort != null) {
             ping.initialHosts(Collections.singletonList(InetSocketAddress.createUnresolved(controllerIP, Integer.parseInt(controllerPort))));
+         } else {
+            GMS gms = channel.getProtocolStack().findProtocol(GMS.class);
+            gms.joinTimeout(0);
          }
          TCP tcp = channel.getProtocolStack().findProtocol(TCP.class);
          System.setProperty(io.hyperfoil.clustering.Properties.CONTROLLER_CLUSTER_IP, tcp.getBindAddress().getHostAddress());
