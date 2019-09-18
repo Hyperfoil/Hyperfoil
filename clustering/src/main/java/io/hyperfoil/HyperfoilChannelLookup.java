@@ -12,7 +12,11 @@ import org.jgroups.protocols.TCP;
 import org.jgroups.protocols.TCPPING;
 import org.jgroups.protocols.pbcast.GMS;
 
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
+
 public class HyperfoilChannelLookup implements JGroupsChannelLookup {
+   private static final Logger log = LoggerFactory.getLogger(HyperfoilChannelLookup.class);
 
    @Override
    public JChannel getJGroupsChannel(Properties p) {
@@ -22,8 +26,10 @@ public class HyperfoilChannelLookup implements JGroupsChannelLookup {
          String controllerIP = System.getProperty(io.hyperfoil.clustering.Properties.CONTROLLER_CLUSTER_IP);
          String controllerPort = System.getProperty(io.hyperfoil.clustering.Properties.CONTROLLER_CLUSTER_PORT);
          if (controllerIP != null && controllerPort != null) {
-            ping.initialHosts(Collections.singletonList(InetSocketAddress.createUnresolved(controllerIP, Integer.parseInt(controllerPort))));
+            log.info("Connecting to controller {}:{}", controllerIP, controllerPort);
+            ping.initialHosts(Collections.singletonList(new InetSocketAddress(controllerIP, Integer.parseInt(controllerPort))));
          } else {
+            log.info("Reducing join timeout.");
             GMS gms = channel.getProtocolStack().findProtocol(GMS.class);
             gms.joinTimeout(0);
          }
