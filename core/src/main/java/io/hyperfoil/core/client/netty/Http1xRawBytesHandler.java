@@ -187,17 +187,24 @@ public class Http1xRawBytesHandler extends BaseRawBytesHandler {
                if (partSize == 0) {
                   chunked = false;
                   expectTrailers = true;
+                  lineStartOffset = readerIndex + 1;
                   break;
-               } else if (readerIndex + 1 + partSize < buf.writerIndex()) {
+               } else if (readerIndex + 3 + partSize < buf.writerIndex()) {
                   readerIndex += partSize; // + 1 from for loop
+                  if (buf.getByte(++readerIndex) != CR || buf.getByte(++readerIndex) != LF) {
+                     throw new IllegalStateException("Chunk must end with CRLF!");
+                  }
+                  lineStartOffset = readerIndex + 1;
+                  skipChunkBytes = 0;
                } else {
-                  skipChunkBytes = readerIndex + 1 + partSize - buf.writerIndex();
+                  skipChunkBytes = readerIndex + 3 + partSize - buf.writerIndex();
+                  // do not copy chunk to last line
+                  lineStartOffset = buf.writerIndex();
                   break;
                }
             } finally {
                crRead = false;
                lastLine.writerIndex(0);
-               lineStartOffset = readerIndex + 1;
             }
          } else {
             crRead = false;
@@ -274,6 +281,9 @@ public class Http1xRawBytesHandler extends BaseRawBytesHandler {
         for (; index < buf.writerIndex(); ++index) {
             byte b = buf.getByte(index);
             if ((b < '0' || b > '9') && (b < 'a' || b > 'f')) {
+                if (b != CR) {
+                   throw new IllegalStateException("Part size must be followed by CRLF!");
+                }
                 return value;
             }
             value = value * 16 + (b > '9' ? (b - 'a') + 10 : (b - '0'));
@@ -302,5 +312,18 @@ public class Http1xRawBytesHandler extends BaseRawBytesHandler {
          if (b != ' ' && b != '\t') break;
       }
       return index;
+   }
+
+   @Override
+   public String toString() {
+      return "Http1xRawBytesHandler{" +
+            "crRead=" + crRead +
+            ", contentLength=" + contentLength +
+            ", status=" + status +
+            ", chunked=" + chunked +
+            ", headersParsed=" + headersParsed +
+            ", expectTrailers=" + expectTrailers +
+            ", skipChunkBytes=" + skipChunkBytes +
+            '}';
    }
 }

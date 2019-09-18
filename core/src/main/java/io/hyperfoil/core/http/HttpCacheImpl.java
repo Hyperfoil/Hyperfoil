@@ -259,7 +259,7 @@ public class HttpCacheImpl implements HttpCache {
          Record mostRecent = null;
          for (HttpCache.Record r : request.cacheControl.matchingCached) {
             Record record = (Record) r;
-            if (mostRecent == null | record.date < mostRecent.date) {
+            if (mostRecent == null || record.date < mostRecent.date) {
                mostRecent = record;
             }
          }
