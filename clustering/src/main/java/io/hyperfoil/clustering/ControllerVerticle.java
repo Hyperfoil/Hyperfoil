@@ -301,6 +301,9 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
         String runId = String.format("%04X", runIds.getAndIncrement());
         Run run = new Run(runId, benchmark);
         run.description = description;
+        run.statisticsStore = new StatisticsStore(run.benchmark, failure -> {
+            log.warn("Failed verify SLA(s) for {}/{}: {}", failure.phase(), failure.metric(), failure.message());
+        });
         runs.put(run.id, run);
 
         if (benchmark.agents().length == 0) {
@@ -372,9 +375,6 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
         for (Phase phase : run.benchmark.phases()) {
             run.phases.put(phase.name(), new ControllerPhase(phase));
         }
-        run.statisticsStore = new StatisticsStore(run.benchmark, failure -> {
-            log.warn("Failed verify SLA(s) for {}/{}: {}", failure.phase(), failure.metric(), failure.message());
-        });
         runSimulation(run);
     }
 
