@@ -18,13 +18,13 @@ class Run {
    final List<AgentInfo> agents = new ArrayList<>();
    final Phase[] phasesById;
    final List<Error> errors = new ArrayList<>();
+   final List<RunHookOutput> hookResults = new ArrayList<>();
    long deployTimerId;
    String description;
 
    long startTime = Long.MIN_VALUE;
    Future<Long> terminateTime = Future.future();
    StatisticsStore statisticsStore;
-
 
    Run(String id, Benchmark benchmark) {
       this.id = id;
@@ -69,6 +69,16 @@ class Run {
       @Override
       public String toString() {
          return (agent == null ? "" : agent.name + ": ") + Util.explainCauses(error);
+      }
+   }
+
+   public static class RunHookOutput {
+      public final String name;
+      public final String output;
+
+      public RunHookOutput(String name, String output) {
+         this.name = name;
+         this.output = output;
       }
    }
 }

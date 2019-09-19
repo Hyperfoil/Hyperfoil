@@ -4,6 +4,7 @@ import io.hyperfoil.api.BenchmarkExecutionException;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.Agent;
 import io.hyperfoil.api.config.Phase;
+import io.hyperfoil.api.config.RunHook;
 import io.hyperfoil.api.deployment.DeployedAgent;
 import io.hyperfoil.api.deployment.Deployer;
 import io.hyperfoil.api.session.PhaseInstance;
@@ -11,6 +12,7 @@ import io.hyperfoil.clustering.messages.AgentControlMessage;
 import io.hyperfoil.clustering.messages.AgentHello;
 import io.hyperfoil.clustering.messages.SessionStatsMessage;
 import io.hyperfoil.clustering.messages.StatsMessage;
+import io.hyperfoil.core.hooks.ExecRunHook;
 import io.hyperfoil.core.impl.statistics.StatisticsStore;
 import io.hyperfoil.clustering.util.PersistenceUtil;
 import io.hyperfoil.clustering.messages.PhaseChangeMessage;
@@ -24,6 +26,7 @@ import io.vertx.core.Handler;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.eventbus.Message;
 import io.vertx.core.impl.VertxInternal;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -47,6 +50,7 @@ import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
 
 import org.infinispan.commons.api.BasicCacheContainer;
 
@@ -55,6 +59,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
     private static final Path ROOT_DIR = Properties.get(Properties.ROOT_DIR, Paths::get, Paths.get(System.getProperty("java.io.tmpdir"), "hyperfoil"));
     private static final Path RUN_DIR = Properties.get(Properties.RUN_DIR, Paths::get, ROOT_DIR.resolve("run"));
     private static final Path BENCHMARK_DIR = Properties.get(Properties.BENCHMARK_DIR, Paths::get, ROOT_DIR.resolve("benchmark"));
+    private static final Path HOOKS_DIR = ROOT_DIR.resolve("hooks");
     private static final String DEPLOYER = Properties.get(Properties.DEPLOYER, "ssh");
     private static final long DEPLOY_TIMEOUT = Properties.getLong(Properties.DEPLOY_TIMEOUT, 15000);
 
@@ -79,6 +84,8 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                 log.error("Could not list run dir contents", e);
             }
         }
+        HOOKS_DIR.resolve("pre").toFile().mkdirs();
+        HOOKS_DIR.resolve("post").toFile().mkdirs();
 
         eb = vertx.eventBus();
 
@@ -231,7 +238,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             }
         }
         Run run = new Run(runId, new Benchmark(info.getString("benchmark", "<unknown>"), null, Collections.emptyMap(), null, 0, null,
-              Collections.emptyMap(), Collections.emptyList(), Collections.emptyMap(), 0));
+              Collections.emptyMap(), Collections.emptyList(), Collections.emptyMap(), 0, Collections.emptyList(), Collections.emptyList()));
         run.startTime = info.getLong("startTime", 0L);
         run.terminateTime.complete(info.getLong("terminateTime", 0L));
         run.description = info.getString("description");
@@ -373,12 +380,37 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
     }
 
     private void startSimulation(Run run) {
-        assert run.startTime == Long.MIN_VALUE;
-        run.startTime = System.currentTimeMillis();
-        for (Phase phase : run.benchmark.phases()) {
-            run.phases.put(phase.name(), new ControllerPhase(phase));
-        }
-        runSimulation(run);
+        vertx.executeBlocking(future -> {
+            // combine shared and benchmark-private hooks
+            List<RunHook> hooks = loadHooks("pre");
+            hooks.addAll(run.benchmark.preHooks());
+            Collections.sort(hooks);
+
+            for (RunHook hook : hooks) {
+                StringBuilder sb = new StringBuilder();
+                boolean success = hook.run(run.id, sb::append);
+                run.hookResults.add(new Run.RunHookOutput(hook.name(), sb.toString()));
+                if (!success) {
+                    future.fail("Execution of pre-hook " + hook.name() + " failed.");
+                    break;
+                }
+            }
+            future.complete();
+        }, result -> {
+            if (result.succeeded()) {
+                vertx.runOnContext(nil -> {
+                    assert run.startTime == Long.MIN_VALUE;
+                    run.startTime = System.currentTimeMillis();
+                    for (Phase phase : run.benchmark.phases()) {
+                        run.phases.put(phase.name(), new ControllerPhase(phase));
+                    }
+                    runSimulation(run);
+                });
+            } else {
+                log.error("Failed to start the simulation", result.cause());
+                stopSimulation(run);
+            }
+        });
     }
 
     private void runSimulation(Run run) {
@@ -472,12 +504,35 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                 log.error("Failed to persist statistics", e);
                 future.fail(e);
             }
+
+            // combine shared and benchmark-private hooks
+            List<RunHook> hooks = loadHooks("post");
+            hooks.addAll(run.benchmark.postHooks());
+            Collections.sort(hooks);
+
+            for (RunHook hook : hooks) {
+                StringBuilder sb = new StringBuilder();
+                boolean success = hook.run(run.id, sb::append);
+                run.hookResults.add(new Run.RunHookOutput(hook.name(), sb.toString()));
+                if (!success) {
+                    log.error("Execution of post-hook " + hook.name() + " failed.");
+                    // stop executing further hooks but persist info
+                    break;
+                }
+            }
+
             JsonObject info = new JsonObject()
                   .put("id", run.id)
                   .put("benchmark", run.benchmark.name())
                   .put("startTime", run.startTime)
                   .put("terminateTime", run.terminateTime.result())
-                  .put("description", run.description);
+                  .put("description", run.description)
+                  .put("errors", new JsonArray(run.errors.stream()
+                        .map(e -> new JsonObject().put("agent", e.agent.name).put("msg", e.error.getMessage()))
+                        .collect(Collectors.toList())))
+                  .put("hooks", new JsonArray(run.hookResults.stream()
+                        .map(r -> new JsonObject().put("name", r.name).put("output", r.output))
+                        .collect(Collectors.toList())));
             try {
                 Files.write(runDir.resolve("info.json"), info.encodePrettily().getBytes(StandardCharsets.UTF_8));
             } catch (IOException e) {
@@ -550,7 +605,23 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
         }, handler);
     }
 
-   public void listSessions(Run run, boolean includeInactive, BiConsumer<AgentInfo, String> sessionStateHandler, Handler<AsyncResult<Void>> completionHandler) {
+    private List<RunHook> loadHooks(String subdir) {
+        try {
+            File preHookDir = HOOKS_DIR.resolve(subdir).toFile();
+            if (preHookDir.exists() && preHookDir.isDirectory()) {
+                return Files.list(preHookDir.toPath()).map(path -> {
+                    File file = path.toFile();
+                    return new ExecRunHook(file.getName(), file.getAbsolutePath());
+                }).collect(Collectors.toList());
+            }
+        } catch (IOException e) {
+            log.error("Failed to list hooks.");
+        }
+        return Collections.emptyList();
+    }
+
+
+    public void listSessions(Run run, boolean includeInactive, BiConsumer<AgentInfo, String> sessionStateHandler, Handler<AsyncResult<Void>> completionHandler) {
       invokeOnAgents(run, AgentControlMessage.Command.LIST_SESSIONS, includeInactive, completionHandler, (agent, result) -> {
           @SuppressWarnings("unchecked")
           List<String> sessions = (List<String>) result.result().body();

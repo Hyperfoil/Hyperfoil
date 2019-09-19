@@ -46,6 +46,8 @@ public class BenchmarkBuilder {
     private int threads = 1;
     private Map<String, PhaseBuilder<?>> phaseBuilders = new HashMap<>();
     private long statisticsCollectionPeriod = 1000;
+    private List<RunHook> preHooks = new ArrayList<>();
+    private List<RunHook> postHooks = new ArrayList<>();
 
     public BenchmarkBuilder(String originalSource, BenchmarkData data) {
         this.originalSource = originalSource;
@@ -111,6 +113,16 @@ public class BenchmarkBuilder {
         return (PhaseBuilder.ConstantPerSec) builder;
     }
 
+    public BenchmarkBuilder addPreHook(RunHook runHook) {
+        preHooks.add(runHook);
+        return this;
+    }
+
+    public BenchmarkBuilder addPostHook(RunHook runHook) {
+        postHooks.add(runHook);
+        return this;
+    }
+
     public void prepareBuild() {
         if (defaultHttp == null) {
             if (httpList.isEmpty()) {
@@ -164,7 +176,7 @@ public class BenchmarkBuilder {
         Map<String, byte[]> files = data.files();
 
         Benchmark benchmark = new Benchmark(name, originalSource, files, agents.toArray(new Agent[0]), threads, ergonomics.build(),
-              httpMap, phases, tags, statisticsCollectionPeriod);
+              httpMap, phases, tags, statisticsCollectionPeriod, preHooks, postHooks);
         bs.set(benchmark);
         return benchmark;
     }

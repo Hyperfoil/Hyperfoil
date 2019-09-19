@@ -21,6 +21,7 @@ package io.hyperfoil.api.config;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
@@ -42,10 +43,12 @@ public class Benchmark implements Serializable {
     private final Collection<Phase> phases;
     private final Map<String, Object> tags;
     private final long statisticsCollectionPeriod;
+    private final List<RunHook> preHooks;
+    private final List<RunHook> postHooks;
 
     public Benchmark(String name, String originalSource, Map<String, byte[]> files, Agent[] agents, int threads, Ergonomics ergonomics,
                      Map<String, Http> http, Collection<Phase> phases,
-                     Map<String, Object> tags, long statisticsCollectionPeriod) {
+                     Map<String, Object> tags, long statisticsCollectionPeriod, List<RunHook> preHooks, List<RunHook> postHooks) {
         this.name = name;
         this.originalSource = originalSource;
         this.files = files;
@@ -57,6 +60,8 @@ public class Benchmark implements Serializable {
         this.phases = phases;
         this.tags = tags;
         this.statisticsCollectionPeriod = statisticsCollectionPeriod;
+        this.preHooks = preHooks;
+        this.postHooks = postHooks;
     }
 
     public String name() {
@@ -103,6 +108,14 @@ public class Benchmark implements Serializable {
 
     public long statisticsCollectionPeriod() {
         return statisticsCollectionPeriod;
+    }
+
+    public List<RunHook> preHooks() {
+        return preHooks;
+    }
+
+    public List<RunHook> postHooks() {
+        return postHooks;
     }
 
     @Override
