@@ -15,10 +15,12 @@ import io.hyperfoil.clustering.ControllerVerticle;
 import io.hyperfoil.clustering.AgentVerticle;
 import io.hyperfoil.clustering.Codecs;
 import io.vertx.core.DeploymentOptions;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Verticle;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
+import io.vertx.core.impl.VertxInternal;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.cluster.infinispan.InfinispanClusterManager;
@@ -29,16 +31,18 @@ class Hyperfoil {
    static void clusteredVertx(Handler<Vertx> startedHandler) {
       logJavaVersion();
       log.info("Starting Vert.x...");
-      VertxOptions options = new VertxOptions().setClustered(true);
+      VertxOptions options = new VertxOptions();
+      options.getEventBusOptions().setClustered(true);
+      DefaultCacheManager cacheManager = createCacheManager();
+      options.setClusterManager(new InfinispanClusterManager(cacheManager));
       try {
          String hostName = InetAddress.getLocalHost().getHostName();
          log.debug("Using host name {}", hostName);
          options.getEventBusOptions().setHost(hostName);
-         DefaultCacheManager cacheManager = createCacheManager();
-         options.setClusterManager(new InfinispanClusterManager(cacheManager));
          System.setProperty("jgroups.tcp.address", hostName);
       } catch (UnknownHostException e) {
          log.error("Cannot lookup hostname", e);
+         System.exit(1);
       }
       Vertx.clusteredVertx(options, result -> {
          if (result.failed()) {

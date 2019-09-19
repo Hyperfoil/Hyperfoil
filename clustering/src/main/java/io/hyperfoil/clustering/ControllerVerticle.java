@@ -29,6 +29,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.spi.cluster.ClusterManager;
 import io.vertx.core.spi.cluster.NodeListener;
+import io.vertx.ext.cluster.infinispan.InfinispanClusterManager;
 
 import java.io.File;
 import java.io.IOException;
@@ -46,6 +47,8 @@ import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
+
+import org.infinispan.commons.api.BasicCacheContainer;
 
 public class ControllerVerticle extends AbstractVerticle implements NodeListener {
     private static final Logger log = LoggerFactory.getLogger(ControllerVerticle.class);
@@ -616,7 +619,8 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
     }
 
    public void shutdown() {
-      vertx.close();
+       BasicCacheContainer cacheManager = ((InfinispanClusterManager) ((VertxInternal) vertx).getClusterManager()).getCacheContainer();
+       vertx.close(ar -> cacheManager.stop());
    }
 
    static class StartResult {
