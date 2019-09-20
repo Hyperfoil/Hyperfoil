@@ -68,6 +68,11 @@ public class Stats extends BaseRunIdCommand {
          try {
             stats = total || terminated ? runRef.statsTotal() : runRef.statsRecent();
          } catch (RestClientException e) {
+            if (e.getCause() instanceof InterruptedException) {
+               clearLines(invocation, 1);
+               invocation.println("");
+               return;
+            }
             invocation.println("ERROR: " + Util.explainCauses(e));
             throw new CommandException("Cannot fetch stats for run " + runRef.id(), e);
          }

@@ -45,6 +45,11 @@ public class Sessions extends BaseRunIdCommand {
                return CommandResult.SUCCESS;
             }
          } catch (RestClientException e) {
+            if (e.getCause() instanceof InterruptedException) {
+               clearLines(invocation, 1);
+               invocation.println("");
+               return CommandResult.SUCCESS;
+            }
             invocation.println("ERROR: " + Util.explainCauses(e));
             throw new CommandException("Cannot display session stats.", e);
          }

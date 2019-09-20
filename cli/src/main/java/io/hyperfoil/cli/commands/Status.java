@@ -78,6 +78,11 @@ public class Status extends BaseRunIdCommand {
          try {
             run = runRef.get();
          } catch (RestClientException e) {
+            if (e.getCause() instanceof InterruptedException) {
+               clearLines(invocation, 1);
+               invocation.println("");
+               return CommandResult.SUCCESS;
+            }
             invocation.println("ERROR: " + Util.explainCauses(e));
             throw new CommandException("Cannot fetch status for run " + runRef.id(), e);
          }
