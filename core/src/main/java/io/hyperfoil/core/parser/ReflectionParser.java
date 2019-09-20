@@ -1,45 +1,33 @@
 package io.hyperfoil.core.parser;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.function.Function;
 
-import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import org.yaml.snakeyaml.events.Event;
+import org.yaml.snakeyaml.events.MappingEndEvent;
+import org.yaml.snakeyaml.events.MappingStartEvent;
+import org.yaml.snakeyaml.events.ScalarEvent;
 
-class ReflectionParser<T, S> extends AbstractParser<T, S> {
+class ReflectionParser<T, S> extends BaseReflectionParser implements Parser<T>  {
    private final Function<T, S> selector;
 
-   ReflectionParser(Function<T, S> selector, Class<S> builderClazz) {
+   ReflectionParser(Function<T, S> selector) {
       this.selector = selector;
-      for (Method m : builderClazz.getMethods()) {
-         if (m.getParameterCount() != 1 || m.getReturnType() != builderClazz) {
-            continue;
-         }
-         Class<?> param = m.getParameterTypes()[0];
-         if (param == String.class) {
-            register(m.getName(), new PropertyParser.String<>((builder, value) -> invoke(m, builder, value)));
-         } else if (param == Boolean.class || param == boolean.class) {
-            register(m.getName(), new PropertyParser.Boolean<>((builder, value) -> invoke(m, builder, value)));
-         } else if (param == Integer.class || param == int.class) {
-            register(m.getName(), new PropertyParser.Int<>((builder, value) -> invoke(m, builder, value)));
-         } else if (param == Double.class || param == double.class) {
-            register(m.getName(), new PropertyParser.Double<>((builder, value) -> invoke(m, builder, value)));
-         } else if (param == Long.class || param == long.class) {
-            register(m.getName(), new PropertyParser.Long<>((builder, value) -> invoke(m, builder, value)));
-         }
-      }
-   }
-
-   private void invoke(Method m, S builder, Object value) {
-      try {
-         m.invoke(builder, value);
-      } catch (IllegalAccessException | InvocationTargetException e) {
-         throw new BenchmarkDefinitionException("Cannot set property " + m.getName() + " on " + builder.getClass().getSimpleName(), e);
-      }
    }
 
    @Override
    public void parse(Context ctx, T target) throws ParserException {
-      callSubBuilders(ctx, selector.apply(target));
+      S builder = selector.apply(target);
+      ctx.expectEvent(MappingStartEvent.class);
+      while (ctx.hasNext()) {
+         Event next = ctx.next();
+         if (next instanceof MappingEndEvent) {
+            return;
+         } else if (next instanceof ScalarEvent) {
+            invokeWithParameters(ctx, builder, (ScalarEvent) next);
+         } else {
+            throw ctx.unexpectedEvent(next);
+         }
+      }
+      throw ctx.noMoreEvents(MappingEndEvent.class);
    }
 }

@@ -12,6 +12,7 @@ import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Rewritable;
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.session.Action;
+import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 import io.hyperfoil.core.http.CookieRecorder;
 import io.hyperfoil.impl.FutureSupplier;
 import io.netty.buffer.ByteBuf;

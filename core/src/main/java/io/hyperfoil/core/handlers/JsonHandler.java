@@ -11,7 +11,7 @@ import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.connection.Processor;
-import io.hyperfoil.core.steps.ServiceLoadedBuilderProvider;
+import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 import io.hyperfoil.function.SerializableSupplier;
 import io.netty.buffer.ByteBuf;
 import io.hyperfoil.api.http.BodyHandler;

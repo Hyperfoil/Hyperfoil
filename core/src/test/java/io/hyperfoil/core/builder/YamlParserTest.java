@@ -172,6 +172,13 @@ public class YamlParserTest {
        }
     }
 
+   @Test
+   public void testMutualTls() {
+      Benchmark benchmark = buildBenchmark("scenarios/mutualTls.hf.yaml");
+      assertThat(benchmark.defaultHttp().keyManager().password()).isEqualTo("foobar");
+      assertThat(benchmark.defaultHttp().trustManager().storeType()).isEqualTo("FOO");
+   }
+
    private <T extends Step> T next(Class<T> stepClass, Iterator<Step> iterator) {
       while (iterator.hasNext()) {
          Step step = iterator.next();

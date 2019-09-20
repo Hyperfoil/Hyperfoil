@@ -35,7 +35,6 @@ import io.hyperfoil.core.steps.PollStep;
 import io.hyperfoil.core.steps.PullSharedMapStep;
 import io.hyperfoil.core.steps.PushSharedMapStep;
 import io.hyperfoil.core.steps.ScheduleDelayStep;
-import io.hyperfoil.core.steps.ServiceLoadedBuilderProvider;
 import io.hyperfoil.core.steps.SetIntStep;
 import io.hyperfoil.core.steps.SetStep;
 import io.hyperfoil.core.steps.StopwatchBeginStep;
@@ -46,7 +45,7 @@ import io.hyperfoil.impl.StepCatalogFactory;
 /**
  * Helper class to gather well-known step builders
  */
-public class StepCatalog implements Step.Catalog {
+public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.Owner<StepBuilder, StepBuilder.Factory> {
    private final BaseSequenceBuilder parent;
 
    StepCatalog(BaseSequenceBuilder parent) {
@@ -293,6 +292,7 @@ public class StepCatalog implements Step.Catalog {
       return new RandomCsvRowStep.Builder((parent));
    }
 
+   @Override
    public ServiceLoadedBuilderProvider<StepBuilder, StepBuilder.Factory> serviceLoaded() {
       return new ServiceLoadedBuilderProvider<>(StepBuilder.Factory.class, new Locator() {
          @Override

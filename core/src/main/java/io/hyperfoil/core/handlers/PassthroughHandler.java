@@ -10,7 +10,7 @@ import io.hyperfoil.api.connection.Processor;
 import io.hyperfoil.api.http.BodyHandler;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.core.steps.ServiceLoadedBuilderProvider;
+import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 import io.hyperfoil.function.SerializableSupplier;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;

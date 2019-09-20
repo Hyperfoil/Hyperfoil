@@ -24,7 +24,7 @@ class RunHooksParser implements Parser<BenchmarkBuilder> {
    public void parse(Context ctx, BenchmarkBuilder target) throws ParserException {
       Event event = ctx.peek();
       if (event instanceof MappingStartEvent) {
-         ctx.parseMapping(target, (builder, e) -> new RunHookParser(e.getValue()));
+         ctx.parseMapping(target, e -> new RunHookParser(e.getValue()));
       } else if (event instanceof SequenceStartEvent) {
          ctx.parseList(target, this::parseRunHook);
       }

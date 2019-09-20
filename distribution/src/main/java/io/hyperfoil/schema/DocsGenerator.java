@@ -54,7 +54,7 @@ import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.core.builders.StepCatalog;
-import io.hyperfoil.core.steps.ServiceLoadedBuilderProvider;
+import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 
 public class DocsGenerator extends BaseGenerator {
    private static final Set<Class<?>> BLACKLIST = new HashSet<>(Arrays.asList(

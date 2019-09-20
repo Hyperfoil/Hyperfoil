@@ -30,7 +30,7 @@ abstract class AbstractParser<T, S> implements Parser<T> {
         ctx.parseMapping(target, this::getSubBuilder);
     }
 
-    private Parser<S> getSubBuilder(S target, ScalarEvent event) throws ParserException {
+    private Parser<S> getSubBuilder(ScalarEvent event) throws ParserException {
         Parser<S> builder = subBuilders.get(event.getValue());
         if (builder == null) {
             throw new ParserException(event, "Invalid configuration label: '" + event.getValue() + "', expected one of " + subBuilders.keySet());

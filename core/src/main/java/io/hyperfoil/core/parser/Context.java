@@ -176,11 +176,11 @@ class Context {
       expectEvent(MappingStartEvent.class);
       while (hasNext()) {
          Event next = next();
-         if (MappingEndEvent.class.isInstance(next)) {
+         if (next instanceof MappingEndEvent) {
             return;
          } else if (next instanceof ScalarEvent) {
             ScalarEvent event = (ScalarEvent) next;
-            Parser<S> builder = builderProvider.apply(target, event);
+            Parser<S> builder = builderProvider.apply(event);
             builder.parse(this, target);
          } else {
             throw unexpectedEvent(next);
@@ -216,7 +216,7 @@ class Context {
 
    @FunctionalInterface
    public interface BuilderProvider<S> {
-       Parser<S> apply(S target, ScalarEvent event) throws ParserException;
+       Parser<S> apply(ScalarEvent event) throws ParserException;
    }
 
    private static class Anchor {

@@ -23,8 +23,8 @@ class HttpParser extends AbstractParser<BenchmarkBuilder, HttpBuilder> {
       register("requestTimeout", new PropertyParser.String<>(HttpBuilder::requestTimeout));
       register("addresses", HttpParser::parseAddresses);
       register("rawBytesHandlers", new PropertyParser.Boolean<>(HttpBuilder::rawBytesHandlers));
-      register("keyManager", new ReflectionParser<>(HttpBuilder::keyManager, HttpBuilder.KeyManagerBuilder.class));
-      register("trustManager", new ReflectionParser<>(HttpBuilder::trustManager, HttpBuilder.TrustManagerBuilder.class));
+      register("keyManager", new ReflectionParser<>(HttpBuilder::keyManager));
+      register("trustManager", new ReflectionParser<>(HttpBuilder::trustManager));
    }
 
    @Override

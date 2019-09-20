@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -21,7 +20,7 @@ import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.api.config.ServiceLoadedFactory;
 import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.core.builders.StepCatalog;
-import io.hyperfoil.core.steps.ServiceLoadedBuilderProvider;
+import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 

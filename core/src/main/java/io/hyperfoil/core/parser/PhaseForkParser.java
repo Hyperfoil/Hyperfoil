@@ -47,17 +47,15 @@ class PhaseForkParser implements Parser<PhaseBuilder> {
    }
 
    static class ForkBuilderParser implements Parser<PhaseBuilder> {
-      private final PhaseBuilder phaseBuilder;
       private final ScalarEvent forkNameEvent;
 
-      ForkBuilderParser(PhaseBuilder phaseBuilder, ScalarEvent forkNameEvent) {
-         this.phaseBuilder = phaseBuilder;
+      ForkBuilderParser(ScalarEvent forkNameEvent) {
          this.forkNameEvent = forkNameEvent;
       }
 
       @Override
       public void parse(Context ctx, PhaseBuilder target) throws ParserException {
-         PhaseForkBuilder forkBuilder = phaseBuilder.fork(forkNameEvent.getValue());
+         PhaseForkBuilder forkBuilder = target.fork(forkNameEvent.getValue());
          ctx.parseAliased(PhaseForkBuilder.class, forkBuilder, ForkParser.INSTANCE);
       }
    }

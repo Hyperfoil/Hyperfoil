@@ -1,4 +1,4 @@
-package io.hyperfoil.core.steps;
+package io.hyperfoil.core.builders;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -89,5 +89,9 @@ public class ServiceLoadedBuilderProvider<B, BF extends ServiceLoadedFactory<B>>
       }
       B builder = factory.newBuilder(locator, param);
       return new ServiceLoadedContract<>(builder, consumer);
+   }
+
+   public interface Owner<B, BF extends ServiceLoadedFactory<B>> {
+      ServiceLoadedBuilderProvider<B, BF> serviceLoaded();
    }
 }

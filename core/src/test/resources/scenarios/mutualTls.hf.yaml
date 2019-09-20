@@ -1,0 +1,13 @@
+name: shortcut benchmark
+http:
+  host: http://localhost:8080
+  keyManager:
+    password: foobar
+  trustManager:
+    storeType: FOO
+usersPerSec: 100
+duration: 3s
+maxDuration: 5s
+scenario:
+- test:
+  - noop

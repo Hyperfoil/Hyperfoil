@@ -3,7 +3,7 @@ package io.hyperfoil.schema;
 import java.lang.reflect.ParameterizedType;
 
 import io.hyperfoil.api.config.ServiceLoadedFactory;
-import io.hyperfoil.core.steps.ServiceLoadedBuilderProvider;
+import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 
 class BaseGenerator {
    @SuppressWarnings("unchecked")

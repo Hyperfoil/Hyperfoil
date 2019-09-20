@@ -27,7 +27,7 @@ import io.hyperfoil.core.steps.AddToIntStep;
 import io.hyperfoil.core.steps.AwaitIntStep;
 import io.hyperfoil.core.steps.HttpRequestStep;
 import io.hyperfoil.core.steps.PathMetricSelector;
-import io.hyperfoil.core.steps.ServiceLoadedBuilderProvider;
+import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 import io.hyperfoil.core.steps.UnsetStep;
 import io.hyperfoil.core.util.Trie;
 import io.hyperfoil.core.util.Util;
