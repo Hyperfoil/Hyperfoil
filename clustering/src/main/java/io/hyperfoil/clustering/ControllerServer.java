@@ -432,7 +432,7 @@ class ControllerServer {
          ctx.response().setStatusCode(HttpResponseStatus.NOT_FOUND.code()).end();
          return;
       }
-      List<Client.RequestStats> stats = run.statisticsStore.recentSummary(System.currentTimeMillis() - 3000);
+      List<Client.RequestStats> stats = run.statisticsStore.recentSummary(System.currentTimeMillis() - 5000);
       ctx.response().end(Json.encodePrettily(statsToJson(run, stats)));
    }
 
@@ -473,7 +473,7 @@ class ControllerServer {
    }
 
    private void handleRecentSessions(RoutingContext ctx) {
-      handleSessionPoolStats(ctx, run -> run.statisticsStore.recentSessionPoolSummary(System.currentTimeMillis() - 3000));
+      handleSessionPoolStats(ctx, run -> run.statisticsStore.recentSessionPoolSummary(System.currentTimeMillis() - 5000));
    }
 
    private void handleTotalSessions(RoutingContext ctx) {
