@@ -179,6 +179,13 @@ public class YamlParserTest {
       assertThat(benchmark.defaultHttp().trustManager().storeType()).isEqualTo("FOO");
    }
 
+   @Test
+   public void testHooks() {
+      Benchmark benchmark = buildBenchmark("scenarios/hooks.hf.yaml");
+      assertThat(benchmark.preHooks().size()).isEqualTo(2);
+      assertThat(benchmark.postHooks().size()).isEqualTo(1);
+   }
+
    private <T extends Step> T next(Class<T> stepClass, Iterator<Step> iterator) {
       while (iterator.hasNext()) {
          Step step = iterator.next();

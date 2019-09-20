@@ -9,8 +9,8 @@ import org.yaml.snakeyaml.events.ScalarEvent;
 import org.yaml.snakeyaml.events.SequenceStartEvent;
 
 import io.hyperfoil.api.config.BenchmarkBuilder;
-import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.RunHook;
+import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 import io.hyperfoil.core.hooks.ExecRunHook;
 
 class RunHooksParser implements Parser<BenchmarkBuilder> {
@@ -37,7 +37,7 @@ class RunHooksParser implements Parser<BenchmarkBuilder> {
       ctx.expectEvent(MappingEndEvent.class);
    }
 
-   private class RunHookParser implements Parser<BenchmarkBuilder> {
+   private class RunHookParser extends BaseReflectionParser implements Parser<BenchmarkBuilder> {
       private final String name;
 
       public RunHookParser(String name) {
@@ -49,10 +49,15 @@ class RunHooksParser implements Parser<BenchmarkBuilder> {
          Event next = ctx.next();
          if (next instanceof ScalarEvent) {
             consumer.accept(target, new ExecRunHook(name, ((ScalarEvent) next).getValue()));
+         } else if (next instanceof MappingStartEvent) {
+            ScalarEvent typeEvent = ctx.expectEvent(ScalarEvent.class);
+            ServiceLoadedBuilderProvider<RunHook.Builder, RunHook.Factory> slbp =
+                  new ServiceLoadedBuilderProvider<>(RunHook.Factory.class, null, builder -> consumer.accept(target, builder.build(name)));
+            fillSLBP(ctx, typeEvent, slbp);
+            ctx.expectEvent(MappingEndEvent.class);
          } else {
-            throw new BenchmarkDefinitionException("Malformed run hook definition, expecting inline command.");
+            throw new ParserException(next, "Malformed run hook definition, expecting inline command.");
          }
-         // TODO: mapping through `exec`, or `java`...
       }
    }
 }

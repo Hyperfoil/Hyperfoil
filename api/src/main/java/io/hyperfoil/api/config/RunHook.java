@@ -21,4 +21,11 @@ public abstract class RunHook implements Serializable, Comparable<RunHook> {
    public int compareTo(RunHook other) {
       return name.compareTo(other.name);
    }
+
+   public interface Builder {
+      RunHook build(String name);
+   }
+
+   public interface Factory extends ServiceLoadedFactory<RunHook.Builder> {
+   }
 }

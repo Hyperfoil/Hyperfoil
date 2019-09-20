@@ -1,0 +1,16 @@
+name: shortcut benchmark
+pre:
+  01-direct: foobar
+  02-service-loaded:
+    exec: goo
+http:
+  host: http://localhost:8080
+usersPerSec: 100
+duration: 3s
+maxDuration: 5s
+maxSessionsEstimate: 1234
+scenario:
+- test:
+  - noop
+post:
+- 99-using-list: foobar

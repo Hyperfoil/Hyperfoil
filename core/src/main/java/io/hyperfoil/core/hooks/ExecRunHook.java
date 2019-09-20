@@ -5,6 +5,9 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.function.Consumer;
 
+import org.kohsuke.MetaInfServices;
+
+import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.RunHook;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -41,6 +44,42 @@ public class ExecRunHook extends RunHook {
       } catch (InterruptedException e) {
          log.error("Interrupted during hook execution", e);
          return false;
+      }
+   }
+
+   public static class Builder implements RunHook.Builder {
+      private String cmd;
+
+      public Builder(String cmd) {
+         this.cmd = cmd;
+      }
+
+      public Builder cmd(String cmd) {
+         this.cmd = cmd;
+         return this;
+      }
+
+      @Override
+      public RunHook build(String name) {
+         return new ExecRunHook(name, cmd);
+      }
+   }
+
+   @MetaInfServices(RunHook.Factory.class)
+   public static class BuilderFactory implements RunHook.Factory {
+      @Override
+      public String name() {
+         return "exec";
+      }
+
+      @Override
+      public boolean acceptsParam() {
+         return true;
+      }
+
+      @Override
+      public RunHook.Builder newBuilder(Locator locator, String param) {
+         return new Builder(param);
       }
    }
 }

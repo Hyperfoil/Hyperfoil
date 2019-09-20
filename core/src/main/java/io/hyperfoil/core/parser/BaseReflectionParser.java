@@ -154,7 +154,7 @@ class BaseReflectionParser {
       }
    }
 
-   private void fillSLBP(Context ctx, ScalarEvent nameEvent, ServiceLoadedBuilderProvider<?, ?> provider) throws ParserException {
+   protected void fillSLBP(Context ctx, ScalarEvent nameEvent, ServiceLoadedBuilderProvider<?, ?> provider) throws ParserException {
       ServiceLoadedContract<?> slc;
       Event builderEvent = ctx.next();
       String param = null;
