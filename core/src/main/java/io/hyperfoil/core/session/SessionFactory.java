@@ -15,8 +15,8 @@ import io.hyperfoil.core.impl.PhaseInstanceImpl;
 public final class SessionFactory {
    private static final Clock DEFAULT_CLOCK = Clock.systemDefaultZone();
 
-   public static Session create(Scenario scenario, int uniqueId) {
-      return new SessionImpl(scenario, uniqueId, DEFAULT_CLOCK);
+   public static Session create(Scenario scenario, int agentId, int executorId, int uniqueId) {
+      return new SessionImpl(scenario, agentId, executorId, uniqueId, DEFAULT_CLOCK);
    }
 
    public static Session forTesting() {
@@ -25,7 +25,7 @@ public final class SessionFactory {
 
    public static Session forTesting(Clock clock) {
       Scenario dummyScenario = new Scenario(new Sequence[0], new Sequence[0], new String[0], new String[0]);
-      SessionImpl session = new SessionImpl(dummyScenario, 0, clock);
+      SessionImpl session = new SessionImpl(dummyScenario, 0, 0, 0, clock);
       Phase dummyPhase = new Phase(() -> null, 0, "dummy", dummyScenario, 0, Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), 0, -1, 0, null) {
          @Override
          public String description() {

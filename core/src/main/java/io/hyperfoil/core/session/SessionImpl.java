@@ -1,5 +1,6 @@
 package io.hyperfoil.core.session;
 
+import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.connection.HttpDestinationTable;
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.http.HttpCache;
@@ -49,10 +50,14 @@ class SessionImpl implements Session, Callable<Void> {
    private SharedData sharedData;
    private SessionStatistics statistics;
 
+   private final int agentId;
+   private final int threadId;
    private final int uniqueId;
 
-   SessionImpl(Scenario scenario, int uniqueId, Clock clock) {
+   SessionImpl(Scenario scenario, int agentId, int threadId, int uniqueId, Clock clock) {
       this.sequencePool = new LimitedPool<>(scenario.maxSequences(), SequenceInstance::new);
+      this.agentId = agentId;
+      this.threadId = threadId;
       this.requests = new HttpRequest[16];
       for (int i = 0; i < requests.length; ++i) {
          this.requests[i] = new HttpRequest(this);
@@ -81,6 +86,32 @@ class SessionImpl implements Session, Callable<Void> {
    @Override
    public int uniqueId() {
       return uniqueId;
+   }
+
+   @Override
+   public int agentThreadId() {
+      return threadId;
+   }
+
+   @Override
+   public int agentThreads() {
+      return phase.definition().benchmark().threads();
+   }
+
+   @Override
+   public int globalThreadId() {
+      return phase.definition().benchmark().threads() * agentId + threadId;
+   }
+
+   @Override
+   public int globalThreads() {
+      Benchmark benchmark = phase.definition().benchmark();
+      return benchmark.threads() * benchmark.agents().length;
+   }
+
+   @Override
+   public int agentId() {
+      return agentId;
    }
 
    @Override

@@ -20,6 +20,16 @@ public interface Session {
     */
    int uniqueId();
 
+   int agentThreadId();
+
+   int agentThreads();
+
+   int globalThreadId();
+
+   int globalThreads();
+
+   int agentId();
+
    /// Common utility objects
    HttpConnectionPool httpConnectionPool(String authority);
 

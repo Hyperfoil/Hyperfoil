@@ -69,7 +69,7 @@ public class AgentVerticle extends AbstractVerticle {
                 case INITIALIZE:
                     log.info("Initializing agent");
                     try {
-                        initBenchmark(controlMessage.benchmark(), result -> {
+                        initBenchmark(controlMessage.benchmark(), controlMessage.agentId(), result -> {
                             if (result.succeeded()) {
                                 message.reply("OK");
                             } else {
@@ -181,13 +181,13 @@ public class AgentVerticle extends AbstractVerticle {
         }
     }
 
-    private void initBenchmark(Benchmark benchmark, Handler<AsyncResult<Void>> handler) {
+    private void initBenchmark(Benchmark benchmark, int agentId, Handler<AsyncResult<Void>> handler) {
         if (runner != null) {
             log.error("Another simulation is running!");
             handler.handle(Future.failedFuture("Another simulation is running"));
             return;
         }
-        runner = new SimulationRunnerImpl(benchmark, (phase, status, error) -> {
+        runner = new SimulationRunnerImpl(benchmark, agentId, (phase, status, error) -> {
             log.debug("{} changed phase {} to {}", deploymentId, phase, status);
             eb.send(Feeds.RESPONSE, new PhaseChangeMessage(deploymentId, runId, phase.name(), status, error));
         });

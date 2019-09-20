@@ -7,10 +7,12 @@ import io.hyperfoil.util.Immutable;
 
 public class AgentControlMessage implements Serializable, Immutable {
    private Command command;
+   private int agentId;
    private Object param;
 
-   public AgentControlMessage(Command command, Object param) {
+   public AgentControlMessage(Command command, int agentId, Object param) {
       this.command = command;
+      this.agentId = agentId;
       this.param = param;
    }
 
@@ -24,6 +26,10 @@ public class AgentControlMessage implements Serializable, Immutable {
 
    public boolean includeInactive() {
       return (Boolean) param;
+   }
+
+   public int agentId() {
+      return agentId;
    }
 
    public enum Command {

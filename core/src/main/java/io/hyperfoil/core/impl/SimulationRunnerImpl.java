@@ -5,11 +5,8 @@ import io.hyperfoil.api.session.SharedData;
 import io.hyperfoil.api.statistics.SessionStatistics;
 import io.hyperfoil.core.client.netty.HttpDestinationTableImpl;
 import io.hyperfoil.core.session.SharedDataImpl;
-import io.netty.channel.EventLoop;
-import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.util.concurrent.EventExecutor;
-import io.netty.util.concurrent.EventExecutorGroup;
 import io.hyperfoil.api.config.Http;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.connection.HttpClientPool;
@@ -31,6 +28,7 @@ import io.vertx.core.logging.LoggerFactory;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -42,6 +40,7 @@ import java.util.Queue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.stream.StreamSupport;
 
 import javax.net.ssl.SSLException;
 
@@ -53,20 +52,25 @@ public class SimulationRunnerImpl implements SimulationRunner {
     protected static final Logger log = LoggerFactory.getLogger(SimulationRunner.class);
 
     protected final Benchmark benchmark;
+    protected final int agentId;
     protected final Map<String, PhaseInstance> instances = new HashMap<>();
     protected final List<Session> sessions = new ArrayList<>();
     private final Map<String, SharedResources> sharedResources = new HashMap<>();
-    protected final EventLoopGroup eventLoopGroup;
+    protected final NioEventLoopGroup eventLoopGroup;
+    protected final EventExecutor[] executors;
     protected final Map<String, HttpClientPool> httpClientPools = new HashMap<>();
-    protected final Map<EventExecutor, HttpDestinationTableImpl> httpDestinations = new HashMap<>();
+    protected final HttpDestinationTableImpl[] httpDestinations;
     private final PhaseChangeHandler phaseChangeHandler;
     private final Queue<Phase> toPrune = new ArrayDeque<>();
 
-    public SimulationRunnerImpl(Benchmark benchmark, PhaseChangeHandler phaseChangeHandler) {
+    public SimulationRunnerImpl(Benchmark benchmark, int agentId, PhaseChangeHandler phaseChangeHandler) {
         this.eventLoopGroup = new NioEventLoopGroup(benchmark.threads());
+        this.executors = StreamSupport.stream(eventLoopGroup.spliterator(), false).toArray(EventExecutor[]::new);
         this.benchmark = benchmark;
+        this.agentId = agentId;
         this.phaseChangeHandler = phaseChangeHandler;
-        Map<EventExecutor, Map<String, HttpConnectionPool>> httpConnectionPools = new HashMap<>();
+        this.httpDestinations = new HttpDestinationTableImpl[executors.length];
+        Map<String, HttpConnectionPool>[] httpConnectionPools = new Map[executors.length];
         for (Map.Entry<String, Http> http : benchmark.http().entrySet()) {
             try {
                 HttpClientPool httpClientPool = new HttpClientPoolImpl(eventLoopGroup, http.getValue());
@@ -74,9 +78,13 @@ public class SimulationRunnerImpl implements SimulationRunner {
                 if (http.getValue().isDefault()) {
                     httpClientPools.put(null, httpClientPool);
                 }
-                for (EventExecutor executor : eventLoopGroup) {
-                    HttpConnectionPool httpConnectionPool = httpClientPool.connectionPool(executor);
-                    Map<String, HttpConnectionPool> pools = httpConnectionPools.computeIfAbsent(executor, e -> new HashMap<>());
+
+                for (int executorId = 0; executorId < executors.length; ++executorId) {
+                    HttpConnectionPool httpConnectionPool = httpClientPool.connectionPool(executors[executorId]);
+                    Map<String, HttpConnectionPool> pools = httpConnectionPools[executorId];
+                    if (pools == null) {
+                        httpConnectionPools[executorId] = pools = new HashMap<>();
+                    }
                     pools.put(http.getKey(), httpConnectionPool);
                     if (http.getValue().isDefault()) {
                         pools.put(null, httpConnectionPool);
@@ -86,8 +94,9 @@ public class SimulationRunnerImpl implements SimulationRunner {
                 throw new IllegalStateException("Failed creating connection pool to " + http.getValue().host() + ":" + http.getValue().port(), e);
             }
         }
-        for (Map.Entry<EventExecutor, Map<String, HttpConnectionPool>> entry : httpConnectionPools.entrySet()) {
-            httpDestinations.put(entry.getKey(), new HttpDestinationTableImpl(entry.getValue()));
+        for (int executorId = 0; executorId < httpConnectionPools.length; executorId++) {
+            Map<String, HttpConnectionPool> pools = httpConnectionPools[executorId];
+            httpDestinations[executorId] = new HttpDestinationTableImpl(pools);
         }
     }
 
@@ -110,22 +119,24 @@ public class SimulationRunnerImpl implements SimulationRunner {
                 // Noop phases don't use any resources
                 sharedResources = SharedResources.NONE;
             } else if ((sharedResources = this.sharedResources.get(def.sharedResources)) == null) {
-                sharedResources = new SharedResources(eventLoopGroup, def.scenario.sequences().length);
+                sharedResources = new SharedResources(executors.length);
                 List<Session> phaseSessions = sharedResources.sessions = new ArrayList<>();
-                Map<EventExecutor, SessionStatistics> statistics = sharedResources.statistics;
-                Map<EventExecutor, SharedData> data = sharedResources.data;
+                SessionStatistics[] statistics = sharedResources.statistics;
+                SharedData[] data = sharedResources.data;
                 Supplier<Session> sessionSupplier = () -> {
                     Session session;
+                    int executorId;
                     synchronized (this.sessions) {
-                        session = SessionFactory.create(def.scenario, this.sessions.size());
+                        int sessionId = this.sessions.size();
+                        executorId = sessionId % executors.length;
+                        session = SessionFactory.create(def.scenario, agentId, executorId, sessionId);
                         this.sessions.add(session);
                     }
                     // We probably don't need to synchronize
                     synchronized (phaseSessions) {
                         phaseSessions.add(session);
                     }
-                    EventLoop eventLoop = eventLoopGroup.next();
-                    session.attach(eventLoop, data.get(eventLoop), httpDestinations.get(eventLoop), statistics.get(eventLoop));
+                    session.attach(executors[executorId], data[executorId], httpDestinations[executorId], statistics[executorId]);
                     session.reserve(def.scenario);
                     return session;
                 };
@@ -183,7 +194,7 @@ public class SimulationRunnerImpl implements SimulationRunner {
                 // Phase(s) with these resources have not been started yet
                 continue;
             }
-            for (SessionStatistics statistics : sharedResources.statistics.values()) {
+            for (SessionStatistics statistics : sharedResources.statistics) {
                 consumer.accept(statistics);
             }
         }
@@ -193,7 +204,7 @@ public class SimulationRunnerImpl implements SimulationRunner {
                 if (sharedResources.statistics == null) {
                     continue;
                 }
-                for (SessionStatistics statistics : sharedResources.statistics.values()) {
+                for (SessionStatistics statistics : sharedResources.statistics) {
                     statistics.prune(phase);
                 }
             }
@@ -205,7 +216,7 @@ public class SimulationRunnerImpl implements SimulationRunner {
         if (sharedResources == null || sharedResources.statistics == null) {
             return;
         }
-        for (SessionStatistics statistics : sharedResources.statistics.values()) {
+        for (SessionStatistics statistics : sharedResources.statistics) {
             consumer.accept(statistics);
         }
     }
@@ -266,7 +277,7 @@ public class SimulationRunnerImpl implements SimulationRunner {
     public List<String> listConnections() {
         ArrayList<String> list = new ArrayList<>();
         // Connection pools should be accessed only from the executor, but since we're only publishing stats...
-        for (HttpDestinationTableImpl destinations : httpDestinations.values()) {
+        for (HttpDestinationTableImpl destinations : httpDestinations) {
             for (Map.Entry<String, HttpConnectionPool> entry : destinations.iterable()) {
                 if (entry.getKey() == null) {
                     // Ignore default pool: it's there twice
@@ -291,28 +302,28 @@ public class SimulationRunnerImpl implements SimulationRunner {
     }
 
     private static class SharedResources {
-        static final SharedResources NONE = new SharedResources(null, 0);
+        static final SharedResources NONE = new SharedResources(0);
 
         PhaseInstance currentPhase;
         ElasticPoolImpl<Session> sessionPool;
         List<Session> sessions;
-        Map<EventExecutor, SessionStatistics> statistics = new HashMap<>();
-        Map<EventExecutor, SharedData> data = new HashMap<>();
+        SessionStatistics[] statistics;
+        SharedData[] data;
 
-        SharedResources(EventExecutorGroup executors, int sequences) {
-            if (executors != null) {
-                for (EventExecutor executor : executors) {
-                    this.statistics.put(executor, new SessionStatistics());
-                    this.data.put(executor, new SharedDataImpl());
-                }
+        SharedResources(int executorCount) {
+            statistics = new SessionStatistics[executorCount];
+            data = new SharedData[executorCount];
+            for (int executorId = 0; executorId < executorCount; ++executorId) {
+                this.statistics[executorId] = new SessionStatistics();
+                this.data[executorId] = new SharedDataImpl();
             }
         }
 
         Iterable<Statistics> allStatistics() {
-            if (statistics.isEmpty()) {
+            if (statistics.length == 0) {
                 return Collections.emptyList();
             }
-            return () -> new FlattenIterator<>(statistics.values().iterator());
+            return () -> new FlattenIterator<>(Arrays.asList(statistics).iterator());
         }
     }
 

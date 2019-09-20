@@ -320,7 +320,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             if (vertx.isClustered()) {
                 return new StartResult(null, "Server is started in clustered mode; benchmarks must define agents.");
             } else {
-                run.agents.add(new AgentInfo("in-vm"));
+                run.agents.add(new AgentInfo("in-vm", 0));
                 JsonObject config = new JsonObject().put("runId", runId).put("name", "in-vm");
                 vertx.deployVerticle(AgentVerticle.class, new DeploymentOptions().setConfig(config));
             }
@@ -328,8 +328,9 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             if (!vertx.isClustered()) {
                 return new StartResult(null, "Server is not started as clustered and does not accept benchmarks with agents defined.");
             }
+            int agentCounter = 0;
             for (Agent agent : benchmark.agents()) {
-                AgentInfo agentInfo = new AgentInfo(agent.name);
+                AgentInfo agentInfo = new AgentInfo(agent.name, agentCounter++);
                 run.agents.add(agentInfo);
                 log.debug("Starting agent {}", agent.name);
                 vertx.executeBlocking(future -> agentInfo.deployedAgent = deployer.start(agent, runId, exception -> {
@@ -363,7 +364,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                 log.error("Already initializing {}, status is {}!", agent.deploymentId, agent.status);
             } else {
                 agent.status = AgentInfo.Status.INITIALIZING;
-                eb.send(agent.deploymentId, new AgentControlMessage(AgentControlMessage.Command.INITIALIZE, run.benchmark), reply -> {
+                eb.send(agent.deploymentId, new AgentControlMessage(AgentControlMessage.Command.INITIALIZE, agent.id, run.benchmark), reply -> {
                     if (reply.succeeded()) {
                         agent.status = AgentInfo.Status.INITIALIZED;
                         if (run.agents.stream().allMatch(a -> a.status == AgentInfo.Status.INITIALIZED)) {
@@ -471,7 +472,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                 }
                 continue;
             }
-            eb.send(agent.deploymentId, new AgentControlMessage(AgentControlMessage.Command.STOP, null), reply -> {
+            eb.send(agent.deploymentId, new AgentControlMessage(AgentControlMessage.Command.STOP, agent.id, null), reply -> {
                 if (reply.succeeded()) {
                     agent.status = AgentInfo.Status.STOPPED;
                     checkAgentsStopped(run);
@@ -645,7 +646,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       AtomicInteger agentCounter = new AtomicInteger(1);
       for (AgentInfo agent : run.agents) {
          agentCounter.incrementAndGet();
-         eb.send(agent.deploymentId, new AgentControlMessage(command, param), result -> {
+         eb.send(agent.deploymentId, new AgentControlMessage(command, agent.id, param), result -> {
             if (result.failed()) {
                log.error("Failed to retrieve sessions", result.cause());
                completionHandler.handle(Future.failedFuture(result.cause()));

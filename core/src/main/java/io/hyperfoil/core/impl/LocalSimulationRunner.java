@@ -24,7 +24,7 @@ public class LocalSimulationRunner extends SimulationRunnerImpl {
    }
 
    public LocalSimulationRunner(Benchmark benchmark, StatisticsCollector.StatisticsConsumer statsConsumer, SessionStatsConsumer sessionPoolStatsConsumer) {
-      super(benchmark, null);
+      super(benchmark, 0, null);
       this.statsConsumer = statsConsumer;
       this.sessionPoolStatsConsumer = sessionPoolStatsConsumer;
    }
