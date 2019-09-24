@@ -1,5 +1,22 @@
 package io.hyperfoil.core.impl.statistics;
 
+import com.fasterxml.jackson.core.JsonEncoding;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.hyperfoil.api.config.Benchmark;
+import io.hyperfoil.api.config.SLA;
+import io.hyperfoil.api.statistics.CustomValue;
+import io.hyperfoil.api.statistics.StatisticsSnapshot;
+import io.hyperfoil.api.statistics.StatisticsSummary;
+import io.hyperfoil.client.Client;
+import io.hyperfoil.core.util.LowHigh;
+import io.netty.util.collection.IntObjectHashMap;
+import io.netty.util.collection.IntObjectMap;
+import org.HdrHistogram.AbstractHistogram;
+import org.HdrHistogram.Histogram;
+import org.HdrHistogram.HistogramIterationValue;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -21,23 +38,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import com.fasterxml.jackson.core.JsonEncoding;
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.hyperfoil.api.config.Benchmark;
-import io.hyperfoil.api.config.SLA;
-import io.hyperfoil.api.statistics.CustomValue;
-import io.hyperfoil.api.statistics.StatisticsSnapshot;
-import io.hyperfoil.api.statistics.StatisticsSummary;
-import io.hyperfoil.client.Client;
-import io.hyperfoil.core.util.LowHigh;
-import io.netty.util.collection.IntObjectHashMap;
-import io.netty.util.collection.IntObjectMap;
-import org.HdrHistogram.AbstractHistogram;
-import org.HdrHistogram.Histogram;
-import org.HdrHistogram.HistogramIterationValue;
 
 public class StatisticsStore {
 
@@ -302,81 +302,82 @@ public class StatisticsStore {
       }
       jGenerator.writeEndArray(); //end failure array
 
-      //per phase.metric histogram and series
-      jGenerator.writeFieldName("phase");
-      walkPhaseIterFork(jGenerator, sorted, (data) -> data.phase,
-         new PhaseIterForkWalker<Data>() {
-            @Override
-            public void onNewFork(String phaseName, String iterName, String forkName) {
-               try {
-                  jGenerator.writeFieldName("metric");
-                  jGenerator.writeStartObject();
-               } catch (IOException e) {
-                  e.printStackTrace();
-               }
-            }
-
-            @Override
-            public void onEndFork(String phaseName, String iterName, String forkName) {
-               String fullName = toPhaseName(phaseName, iterName, forkName);
-               try {
-                  jGenerator.writeEndObject(); //end metric
-                  if (sessionPoolStats.containsKey(fullName)) { //there are session data for the fully qualified forkName
-                     SessionPoolStats sps = sessionPoolStats.get(fullName);
-                     String[] addresses = new String[sps.records.size()];
-                     @SuppressWarnings("unchecked")
-                     Iterator<SessionPoolRecord>[] iterators = new Iterator[sps.records.size()];
-                     int counter = 0;
-                     for (Map.Entry<String, List<SessionPoolRecord>> byAddress : sps.records.entrySet()) {
-                        addresses[counter] = byAddress.getKey();
-                        iterators[counter] = byAddress.getValue().iterator();
-                        ++counter;
-                     }
-                     boolean hadNext;
-                     jGenerator.writeFieldName("sessions");
-                     jGenerator.writeStartArray();
-                     do {
-                        hadNext = false;
-                        for (int i = 0; i < addresses.length; ++i) {
-                           if (iterators[i].hasNext()) {
-                              SessionPoolRecord record = iterators[i].next();
-                              jGenerator.writeStartObject();
-                              jGenerator.writeNumberField("timestamp", record.timestamp);
-                              jGenerator.writeStringField("address", addresses[i]);
-                              jGenerator.writeNumberField("minSessions", record.low);
-                              jGenerator.writeNumberField("maxSessions", record.high);
-                              jGenerator.writeEndObject();
-                              hadNext = true;
-                           }
-                        }
-                     } while (hadNext);
-                     jGenerator.writeEndArray(); //sessions array
-
+      if (sorted.length > 0) {
+         //per phase.metric histogram and series
+         jGenerator.writeFieldName("phase");
+         walkPhaseIterFork(jGenerator, sorted, (data) -> data.phase,
+            new PhaseIterForkWalker<Data>() {
+               @Override
+               public void onNewFork(String phaseName, String iterName, String forkName) {
+                  try {
+                     jGenerator.writeFieldName("metric");
+                     jGenerator.writeStartObject();
+                  } catch (IOException e) {
+                     throw new RuntimeException(e);
                   }
-               } catch (IOException e) {
-                  e.printStackTrace();
                }
-            }
 
-            @Override
-            public void accept(String key, Data data) {
-               try {
-                  jGenerator.writeFieldName(data.metric);
-                  jGenerator.writeStartObject(); //start metric
+               @Override
+               public void onEndFork(String phaseName, String iterName, String forkName) {
+                  String fullName = toPhaseName(phaseName, iterName, forkName);
+                  try {
+                     jGenerator.writeEndObject(); //end metric
+                     if (sessionPoolStats.containsKey(fullName)) { //there are session data for the fully qualified forkName
+                        SessionPoolStats sps = sessionPoolStats.get(fullName);
+                        String[] addresses = new String[sps.records.size()];
+                        @SuppressWarnings("unchecked")
+                        Iterator<SessionPoolRecord>[] iterators = new Iterator[sps.records.size()];
+                        int counter = 0;
+                        for (Map.Entry<String, List<SessionPoolRecord>> byAddress : sps.records.entrySet()) {
+                           addresses[counter] = byAddress.getKey();
+                           iterators[counter] = byAddress.getValue().iterator();
+                           ++counter;
+                        }
+                        boolean hadNext;
+                        jGenerator.writeFieldName("sessions");
+                        jGenerator.writeStartArray();
+                        do {
+                           hadNext = false;
+                           for (int i = 0; i < addresses.length; ++i) {
+                              if (iterators[i].hasNext()) {
+                                 SessionPoolRecord record = iterators[i].next();
+                                 jGenerator.writeStartObject();
+                                 jGenerator.writeNumberField("timestamp", record.timestamp);
+                                 jGenerator.writeStringField("address", addresses[i]);
+                                 jGenerator.writeNumberField("minSessions", record.low);
+                                 jGenerator.writeNumberField("maxSessions", record.high);
+                                 jGenerator.writeEndObject();
+                                 hadNext = true;
+                              }
+                           }
+                        } while (hadNext);
+                        jGenerator.writeEndArray(); //sessions array
 
-                  jGenerator.writeFieldName("histogram");
-
-                  histogramArray(jGenerator, data.total.histogram, OUTPUT_VALUE_UNIT_SCALING_RATIO);
-                  jGenerator.writeFieldName("series");
-                  seriesArray(jGenerator, data.series);
-                  jGenerator.writeEndObject(); //end metric
-
-               } catch (IOException e) {
-                  throw new RuntimeException(e);
+                     }
+                  } catch (IOException e) {
+                     throw new RuntimeException(e);
+                  }
                }
-            }
-         });
 
+               @Override
+               public void accept(String key, Data data) {
+                  try {
+                     jGenerator.writeFieldName(data.metric);
+                     jGenerator.writeStartObject(); //start metric
+
+                     jGenerator.writeFieldName("histogram");
+
+                     histogramArray(jGenerator, data.total.histogram, OUTPUT_VALUE_UNIT_SCALING_RATIO);
+                     jGenerator.writeFieldName("series");
+                     seriesArray(jGenerator, data.series);
+                     jGenerator.writeEndObject(); //end metric
+
+                  } catch (IOException e) {
+                     throw new RuntimeException(e);
+                  }
+               }
+            });
+      }
       String[] agents = this.data.values().stream()
          .flatMap(m -> m.values().stream())
          .flatMap(d -> d.perAgent.keySet().stream())
@@ -402,60 +403,62 @@ public class StatisticsStore {
                }
             }
          });
-         jGenerator.writeFieldName("phase");
-         walkPhaseIterFork(jGenerator, sorted, data -> data.phase,
-            new PhaseIterForkWalker<Data>() {
-               @Override
-               public void onNewFork(String phaseName, String iterName, String forkName) {
-                  try {
-                     jGenerator.writeFieldName("metric");
-                     jGenerator.writeStartObject();
-                  } catch (IOException e) {
-                     e.printStackTrace();
-                  }
-               }
-
-               @Override
-               public void onEndFork(String phaseName, String iterName, String forkName) {
-                  try {
-                     jGenerator.writeEndObject();
-                     if (sessionPoolStats.containsKey(forkName)) {
-                        SessionPoolStats sps = sessionPoolStats.get(forkName);
-                        if (sps.records.containsKey(agent)) {
-                           List<SessionPoolRecord> records = sps.records.get(agent);
-                           jGenerator.writeFieldName("sessions");
-                           jGenerator.writeStartArray();
-                           for (SessionPoolRecord record : records) {
-                              jGenerator.writeStartObject();
-                              jGenerator.writeNumberField("timestamp", record.timestamp);
-                              jGenerator.writeNumberField("minSessions", record.low);
-                              jGenerator.writeNumberField("maxSessions", record.high);
-                              jGenerator.writeEndObject();
-                           }
-                           jGenerator.writeEndArray();
-                        }
+         if (sorted.length > 0) {
+            jGenerator.writeFieldName("phase");
+            walkPhaseIterFork(jGenerator, sorted, data -> data.phase,
+               new PhaseIterForkWalker<Data>() {
+                  @Override
+                  public void onNewFork(String phaseName, String iterName, String forkName) {
+                     try {
+                        jGenerator.writeFieldName("metric");
+                        jGenerator.writeStartObject();
+                     } catch (IOException e) {
+                        throw new RuntimeException(e);
                      }
-                  } catch (IOException e) {
-                     e.printStackTrace();
                   }
-               }
 
-               @Override
-               public void accept(String key, Data data) {
-                  try {
-                     jGenerator.writeFieldName(data.metric);
-                     jGenerator.writeStartObject();
-                     jGenerator.writeFieldName("histogram");
-                     histogramArray(jGenerator, data.perAgent.get(agent).histogram, OUTPUT_VALUE_UNIT_SCALING_RATIO);
-                     jGenerator.writeFieldName("series");
-                     seriesArray(jGenerator, data.agentSeries.get(agent));
-
-                     jGenerator.writeEndObject();
-                  } catch (IOException e) {
-                     throw new RuntimeException(e);
+                  @Override
+                  public void onEndFork(String phaseName, String iterName, String forkName) {
+                     try {
+                        jGenerator.writeEndObject();
+                        if (sessionPoolStats.containsKey(forkName)) {
+                           SessionPoolStats sps = sessionPoolStats.get(forkName);
+                           if (sps.records.containsKey(agent)) {
+                              List<SessionPoolRecord> records = sps.records.get(agent);
+                              jGenerator.writeFieldName("sessions");
+                              jGenerator.writeStartArray();
+                              for (SessionPoolRecord record : records) {
+                                 jGenerator.writeStartObject();
+                                 jGenerator.writeNumberField("timestamp", record.timestamp);
+                                 jGenerator.writeNumberField("minSessions", record.low);
+                                 jGenerator.writeNumberField("maxSessions", record.high);
+                                 jGenerator.writeEndObject();
+                              }
+                              jGenerator.writeEndArray();
+                           }
+                        }
+                     } catch (IOException e) {
+                        throw new RuntimeException(e);
+                     }
                   }
-               }
-            });
+
+                  @Override
+                  public void accept(String key, Data data) {
+                     try {
+                        jGenerator.writeFieldName(data.metric);
+                        jGenerator.writeStartObject();
+                        jGenerator.writeFieldName("histogram");
+                        histogramArray(jGenerator, data.perAgent.get(agent).histogram, OUTPUT_VALUE_UNIT_SCALING_RATIO);
+                        jGenerator.writeFieldName("series");
+                        seriesArray(jGenerator, data.agentSeries.get(agent));
+
+                        jGenerator.writeEndObject();
+                     } catch (IOException e) {
+                        throw new RuntimeException(e);
+                     }
+                  }
+               });
+         }
          jGenerator.writeEndObject(); //each agent
       }
       jGenerator.writeEndObject(); //all agents
