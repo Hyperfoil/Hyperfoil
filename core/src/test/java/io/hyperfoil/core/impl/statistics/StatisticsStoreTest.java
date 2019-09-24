@@ -46,6 +46,34 @@ public class StatisticsStoreTest {
    }
 
    @Test
+   public void allJson_empty_issue45() {
+      ErgonomicsBuilder ergonomicsBuilder = new ErgonomicsBuilder();
+      ergonomicsBuilder.repeatCookies(true).userAgentFromSession(true);
+      Benchmark benchmark = new BenchmarkBuilder("originalSource", BenchmarkData.EMPTY)
+         .name("benchmarkName")
+         .http().host("localhost").endHttp()
+         .build();
+      StatisticsStore store = new StatisticsStore(benchmark, failure -> {
+      });
+
+
+      ByteArrayOutputStream baos = new ByteArrayOutputStream(10_000);
+      JsonFactory jsonFactory = new JsonFactory();
+      jsonFactory.setCodec(new ObjectMapper());
+
+      try {
+         JsonGenerator jsonGenerator = jsonFactory.createGenerator(baos);
+         store.writeJson(jsonGenerator);
+         jsonGenerator.close();
+         String out = new String(baos.toByteArray());
+
+      } catch (Exception e) {
+         fail("Should not throw an Exception writing an empty StatisticsStore");
+         e.printStackTrace();
+      }
+   }
+
+   @Test
    public void allJson() {
       ErgonomicsBuilder ergonomicsBuilder = new ErgonomicsBuilder();
       ergonomicsBuilder.repeatCookies(true).userAgentFromSession(true);
