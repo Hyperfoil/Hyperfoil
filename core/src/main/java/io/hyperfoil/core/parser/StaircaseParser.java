@@ -41,6 +41,7 @@ class StaircaseParser extends AbstractParser<BenchmarkBuilder, StaircaseParser.S
       private long initialRampUpDuration;
       private long steadyStateDuration;
       private long rampUpDuration;
+      private long maxOverrun;
       private double initialUsersPerSec;
       private double incrementUsersPerSec;
       private int maxIterations;
@@ -61,6 +62,10 @@ class StaircaseParser extends AbstractParser<BenchmarkBuilder, StaircaseParser.S
 
       public void rampUpDuration(String duration) {
          this.rampUpDuration = Util.parseToMillis(duration);
+      }
+
+      public void maxOverrun(String duration) {
+         this.maxOverrun = Util.parseToMillis(duration);
       }
 
       public void initialUsersPerSec(double usersPerSec) {
@@ -104,6 +109,9 @@ class StaircaseParser extends AbstractParser<BenchmarkBuilder, StaircaseParser.S
                .duration(steadyStateDuration)
                .usersPerSec(initialUsersPerSec, incrementUsersPerSec)
                .maxIterations(maxIterations);
+         if (maxOverrun > 0) {
+            steadyState.maxDuration(steadyStateDuration + maxOverrun);
+         }
          if (maxUnfinishedSessions > 0) {
             steadyState.maxUnfinishedSessions(maxUnfinishedSessions);
          }
@@ -113,6 +121,9 @@ class StaircaseParser extends AbstractParser<BenchmarkBuilder, StaircaseParser.S
          if (initialRampUpDuration > 0) {
             PhaseBuilder.RampPerSec initialRampUp = benchmark.addPhase("initialRampUp").rampPerSec(0, 0)
                   .targetUsersPerSec(initialUsersPerSec).duration(initialRampUpDuration);
+            if (maxOverrun > 0) {
+               initialRampUp.maxDuration(initialRampUpDuration + maxOverrun);
+            }
             if (maxUnfinishedSessions > 0) {
                initialRampUp.maxUnfinishedSessions(maxUnfinishedSessions);
             }
@@ -126,6 +137,9 @@ class StaircaseParser extends AbstractParser<BenchmarkBuilder, StaircaseParser.S
                   .targetUsersPerSec(initialUsersPerSec + incrementUsersPerSec, incrementUsersPerSec)
                   .maxIterations(maxIterations - 1)
                   .startAfter(new PhaseReference(steadyState.name(), RelativeIteration.SAME, null));
+            if (maxOverrun > 0) {
+               rampUp.maxDuration(rampUpDuration + maxOverrun);
+            }
             if (maxUnfinishedSessions > 0) {
                rampUp.maxUnfinishedSessions(maxUnfinishedSessions);
             }
