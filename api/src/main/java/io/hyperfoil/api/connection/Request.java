@@ -5,15 +5,18 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import io.hyperfoil.api.config.ServiceLoadedFactory;
+import io.hyperfoil.api.session.SequenceInstance;
+import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.statistics.Statistics;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
 import io.netty.util.concurrent.ScheduledFuture;
-import io.hyperfoil.api.session.SequenceInstance;
-import io.hyperfoil.api.session.Session;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 
 public abstract class Request implements Callable<Void>, GenericFutureListener<Future<Void>> {
    private static final TimeoutException TIMEOUT_EXCEPTION = new TimeoutException();
+   private static final Logger log = LoggerFactory.getLogger(Request.class);
 
    public final Session session;
    private long startTimestampMillis;
@@ -35,11 +38,15 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
     */
    @Override
    public Void call() {
+      int uniqueId = session == null ? -1 : session.uniqueId();
+      log.error("#{} Firing timeout on connection {}", uniqueId, connection);
       timeoutFuture = null;
       if (!isCompleted()) {
          statistics.incrementTimeouts(startTimestampNanos);
          handleThrowable(TIMEOUT_EXCEPTION);
          // handleThrowable sets the request completed
+      } else {
+         log.error("#{} Request {} is already completed.", uniqueId, this);
       }
       return null;
    }
