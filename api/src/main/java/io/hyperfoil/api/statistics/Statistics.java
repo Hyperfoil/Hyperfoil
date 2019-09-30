@@ -259,6 +259,9 @@ public class Statistics {
       AtomicReferenceArray<StatisticsSnapshot> active = this.active;
       if (index >= active.length()) {
          index = active.length() - 1;
+      } else if (index < 0) {
+         log.error("Record start timestamp {} predates statistics start {}", timestamp, startTimestamp);
+         index = 0;
       }
       StatisticsSnapshot snapshot = active.get(index);
       if (snapshot == null) {

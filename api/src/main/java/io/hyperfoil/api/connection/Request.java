@@ -14,8 +14,13 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
 public abstract class Request implements Callable<Void>, GenericFutureListener<Future<Void>> {
-   private static final TimeoutException TIMEOUT_EXCEPTION = new TimeoutException();
    private static final Logger log = LoggerFactory.getLogger(Request.class);
+   private static final TimeoutException TIMEOUT_EXCEPTION = new TimeoutException();
+   private static final GenericFutureListener<Future<Object>> FAILURE_LISTENER = future -> {
+      if (!future.isSuccess() && !future.isCancelled()) {
+         log.error("Timeout task failed", future.cause());
+      }
+   };
 
    public final Session session;
    private long startTimestampMillis;
@@ -38,14 +43,14 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
    @Override
    public Void call() {
       int uniqueId = session == null ? -1 : session.uniqueId();
-      log.error("#{} Firing timeout on connection {}", uniqueId, connection);
+      log.warn("#{} Request timeout on connection {}", uniqueId, connection);
       timeoutFuture = null;
       if (!isCompleted()) {
-         statistics.incrementTimeouts(startTimestampNanos);
+         statistics.incrementTimeouts(startTimestampMillis);
          handleThrowable(TIMEOUT_EXCEPTION);
          // handleThrowable sets the request completed
       } else {
-         log.error("#{} Request {} is already completed.", uniqueId, this);
+         log.trace("#{} Request {} is already completed.", uniqueId, this);
       }
       return null;
    }
@@ -112,6 +117,7 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
 
    public void setTimeout(long timeout, TimeUnit timeUnit) {
       timeoutFuture = session.executor().schedule(this, timeout, timeUnit);
+      timeoutFuture.addListener(FAILURE_LISTENER);
    }
 
    @Override

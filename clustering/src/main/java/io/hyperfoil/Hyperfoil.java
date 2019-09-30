@@ -30,6 +30,7 @@ class Hyperfoil {
 
    static void clusteredVertx(Handler<Vertx> startedHandler) {
       logJavaVersion();
+      Thread.setDefaultUncaughtExceptionHandler(Hyperfoil::defaultUncaughtExceptionHandler);
       log.info("Starting Vert.x...");
       VertxOptions options = new VertxOptions();
       options.getEventBusOptions().setClustered(true);
@@ -96,11 +97,16 @@ class Hyperfoil {
    public static class Standalone extends Hyperfoil {
       public static void main(String[] args) {
          logJavaVersion();
+         Thread.setDefaultUncaughtExceptionHandler(Hyperfoil::defaultUncaughtExceptionHandler);
          log.info("Starting non-clustered Vert.x...");
          Vertx vertx = Vertx.vertx();
          Codecs.register(vertx);
          deploy(vertx, ControllerVerticle.class);
       }
+   }
+
+   private static void defaultUncaughtExceptionHandler(Thread thread, Throwable throwable) {
+      log.error("Uncaught exception in thread {}({})", throwable, thread.getName(), thread.getId());
    }
 
    private static void logJavaVersion() {
