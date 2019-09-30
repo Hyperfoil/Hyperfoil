@@ -7,6 +7,7 @@ import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Locator;
+import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.connection.Processor;
 import io.hyperfoil.api.session.Access;
@@ -59,35 +60,21 @@ public class NewSequenceProcessor implements Processor<Request>, ResourceUtilize
       counterVar.declareInt(session);
    }
 
-   @MetaInfServices(Request.ProcessorBuilderFactory.class)
-   public static class BuilderFactory implements Request.ProcessorBuilderFactory {
-      @Override
-      public String name() {
-         return "newSequence";
-      }
-
-      @Override
-      public boolean acceptsParam() {
-         return false;
-      }
-
-      @Override
-      public Builder newBuilder(Locator locator, String param) {
-         return new Builder(locator);
-      }
-   }
-
    /**
     * Instantiates a sequence for each invocation. The sequences will have increasing sequence ID.
     */
-   public static class Builder implements Processor.Builder<Request> {
-      private final Locator locator;
+   @MetaInfServices(Request.ProcessorBuilder.class)
+   @Name("newSequence")
+   public static class Builder implements Request.ProcessorBuilder {
+      private Locator locator;
       private int maxSequences = -1;
       private String counterVar;
       private String sequence;
 
-      public Builder(Locator locator) {
+      @Override
+      public Builder setLocator(Locator locator) {
          this.locator = locator;
+         return this;
       }
 
       /**
@@ -125,7 +112,7 @@ public class NewSequenceProcessor implements Processor<Request>, ResourceUtilize
 
       @Override
       public Processor.Builder<Request> copy(Locator locator) {
-         return new Builder(locator).sequence(sequence).maxSequences(maxSequences).counterVar(counterVar);
+         return new Builder().setLocator(locator).sequence(sequence).maxSequences(maxSequences).counterVar(counterVar);
       }
 
       @Override

@@ -286,8 +286,8 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
        *
        * @return Builder.
        */
-      public ServiceLoadedBuilderProvider<StatusHandler.Builder, StatusHandler.BuilderFactory> status() {
-         return new ServiceLoadedBuilderProvider<>(StatusHandler.BuilderFactory.class, Locator.fromStep(parent), statusHandlers::add);
+      public ServiceLoadedBuilderProvider<StatusHandler.Builder> status() {
+         return new ServiceLoadedBuilderProvider<>(StatusHandler.Builder.class, Locator.fromStep(parent), statusHandlers::add);
       }
 
       public Builder header(HeaderHandler handler) {
@@ -304,8 +304,8 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
        *
        * @return Builder.
        */
-      public ServiceLoadedBuilderProvider<HeaderHandler.Builder, HeaderHandler.BuilderFactory> header() {
-         return new ServiceLoadedBuilderProvider<>(HeaderHandler.BuilderFactory.class, Locator.fromStep(parent), headerHandlers::add);
+      public ServiceLoadedBuilderProvider<HeaderHandler.Builder> header() {
+         return new ServiceLoadedBuilderProvider<>(HeaderHandler.Builder.class, Locator.fromStep(parent), headerHandlers::add);
       }
 
       public Builder body(BodyHandler handler) {
@@ -318,8 +318,8 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
        *
        * @return Builder.
        */
-      public ServiceLoadedBuilderProvider<BodyHandler.Builder, BodyHandler.BuilderFactory> body() {
-         return new ServiceLoadedBuilderProvider<>(BodyHandler.BuilderFactory.class, Locator.fromStep(parent), bodyHandlers::add);
+      public ServiceLoadedBuilderProvider<BodyHandler.Builder> body() {
+         return new ServiceLoadedBuilderProvider<>(BodyHandler.Builder.class, Locator.fromStep(parent), bodyHandlers::add);
       }
 
       public Builder onCompletion(Action handler) {
@@ -336,8 +336,8 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
        *
        * @return Builder.
        */
-      public ServiceLoadedBuilderProvider<Action.Builder, Action.BuilderFactory> onCompletion() {
-         return new ServiceLoadedBuilderProvider<>(Action.BuilderFactory.class, Locator.fromStep(parent), completionHandlers::add);
+      public ServiceLoadedBuilderProvider<Action.Builder> onCompletion() {
+         return new ServiceLoadedBuilderProvider<>(Action.Builder.class, Locator.fromStep(parent), completionHandlers::add);
       }
 
       /**

@@ -9,6 +9,7 @@ import org.kohsuke.MetaInfServices;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.BuilderBase;
 import io.hyperfoil.api.config.Locator;
+import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.SequenceBuilder;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.connection.HttpRequest;
@@ -293,12 +294,16 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
    /**
     * Parses HTML tags and invokes handlers based on criteria.
     */
+   @MetaInfServices(BodyHandler.Builder.class)
+   @Name("parseHtml")
    public static class Builder implements BodyHandler.Builder {
-      private final Locator locator;
+      private Locator locator;
       private EmbeddedResourceHandlerBuilder embeddedResourceHandler;
 
-      protected Builder(Locator locator) {
+      @Override
+      public Builder setLocator(Locator locator) {
          this.locator = locator;
+         return this;
       }
 
       /**
@@ -310,7 +315,7 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
          if (embeddedResourceHandler != null) {
             throw new BenchmarkDefinitionException("Embedded resource handler already set!");
          }
-         return embeddedResourceHandler = new EmbeddedResourceHandlerBuilder(locator);
+         return embeddedResourceHandler = new EmbeddedResourceHandlerBuilder().setLocator(locator);
       }
 
       @Override
@@ -320,7 +325,7 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
 
       @Override
       public Builder copy(Locator locator) {
-         Builder newBuilder = new Builder(locator);
+         Builder newBuilder = new Builder().setLocator(locator);
          newBuilder.embeddedResourceHandler = embeddedResourceHandler.copy(locator);
          return newBuilder;
       }
@@ -328,27 +333,6 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
       @Override
       public HtmlHandler build(SerializableSupplier<? extends Step> step) {
          return new HtmlHandler(embeddedResourceHandler.build());
-      }
-   }
-
-   @MetaInfServices(BodyHandler.BuilderFactory.class)
-   public static class BuilderFactory implements BodyHandler.BuilderFactory {
-      @Override
-      public String name() {
-         return "parseHtml";
-      }
-
-      @Override
-      public boolean acceptsParam() {
-         return false;
-      }
-
-      @Override
-      public Builder newBuilder(Locator locator, String param) {
-         if (param != null) {
-            throw new BenchmarkDefinitionException(HtmlHandler.class.getName() + " does not accept inline parameter");
-         }
-         return new Builder(locator);
       }
    }
 
@@ -364,13 +348,15 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
       private static final String[] TAGS = { "img", "link", "embed", "frame", "iframe", "object", "script" };
       private static final String[] ATTRS = { "src", "href", "src", "src", "src", "data", "src" };
 
-      private final Locator locator;
+      private Locator locator;
       private boolean ignoreExternal = true;
       private Processor.Builder<HttpRequest> processor;
       private FetchResourceBuilder fetchResource;
 
-      EmbeddedResourceHandlerBuilder(Locator locator) {
+      @Override
+      public EmbeddedResourceHandlerBuilder setLocator(Locator locator) {
          this.locator = locator;
+         return this;
       }
 
       /**
@@ -410,8 +396,8 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
        *
        * @return Builder.
        */
-      public ServiceLoadedBuilderProvider<Processor.Builder<HttpRequest>, HttpRequest.ProcessorBuilderFactory> processor() {
-         return new ServiceLoadedBuilderProvider<>(HttpRequest.ProcessorBuilderFactory.class, locator, this::processor);
+      public ServiceLoadedBuilderProvider<HttpRequest.ProcessorBuilder> processor() {
+         return new ServiceLoadedBuilderProvider<>(HttpRequest.ProcessorBuilder.class, locator, this::processor);
       }
 
       public void prepareBuild() {
@@ -422,7 +408,7 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
 
       @Override
       public EmbeddedResourceHandlerBuilder copy(Locator locator) {
-         EmbeddedResourceHandlerBuilder builder = new EmbeddedResourceHandlerBuilder(locator);
+         EmbeddedResourceHandlerBuilder builder = new EmbeddedResourceHandlerBuilder().setLocator(locator);
          builder.ignoreExternal(ignoreExternal);
          if (processor != null) {
             builder.processor(processor.copy(locator));
@@ -509,8 +495,8 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
        *
        * @return Builder.
        */
-      public ServiceLoadedBuilderProvider<Action.Builder, Action.BuilderFactory> onCompletion() {
-         return new ServiceLoadedBuilderProvider<>(Action.BuilderFactory.class, locator, this::onCompletion);
+      public ServiceLoadedBuilderProvider<Action.Builder> onCompletion() {
+         return new ServiceLoadedBuilderProvider<>(Action.Builder.class, locator, this::onCompletion);
       }
 
       public FetchResourceBuilder onCompletion(Action.Builder a) {
@@ -538,7 +524,7 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
             // Rather than using auto-generated sequence name we'll use the full path
             requestBuilder.metric((authority, path) -> authority != null ? authority + path : path);
          }
-         requestBuilder.handler().onCompletion(new AddToIntStep.Builder(null, null).var(completionLatch()).value(-1));
+         requestBuilder.handler().onCompletion(new AddToIntStep.Builder().var(completionLatch()).value(-1));
 
          Action onCompletion = this.onCompletion.build();
          // We add unset step for cases where the step is retried and it's not sync

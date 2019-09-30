@@ -10,6 +10,9 @@ import io.hyperfoil.api.session.Action;
 import io.hyperfoil.function.SerializableSupplier;
 
 public abstract class ActionStepBuilder extends BaseStepBuilder implements Action.Builder {
+   protected ActionStepBuilder() {
+   }
+
    protected ActionStepBuilder(BaseSequenceBuilder parent) {
       super(parent);
    }

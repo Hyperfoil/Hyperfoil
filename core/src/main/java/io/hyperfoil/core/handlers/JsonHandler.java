@@ -6,7 +6,9 @@ import java.util.function.Function;
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Locator;
+import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.connection.Request;
@@ -84,13 +86,40 @@ public class JsonHandler extends JsonParser<Request>
    /**
     * Parses JSON responses using simple queries.
     */
-   public static class Builder implements BodyHandler.Builder {
-      private final Locator locator;
+   @MetaInfServices(BodyHandler.Builder.class)
+   @Name("json")
+   public static class Builder implements BodyHandler.Builder, InitFromParam<Builder> {
+      private Locator locator;
       private String query;
       private Processor.Builder<Request> processor;
 
-      public Builder(Locator locator) {
+      @Override
+      public Builder setLocator(Locator locator) {
          this.locator = locator;
+         return this;
+      }
+
+      /**
+       * @param param Either <code>query -&gt; variable</code> or <code>variable &lt;- query</code>.
+       * @return Self.
+       */
+      @Override
+      public Builder init(String param) {
+         String query;
+         String var;
+         if (param.contains("->")) {
+            String[] parts = param.split("->");
+            query = parts[0];
+            var = parts[1];
+         } else if (param.contains("<-")) {
+            String[] parts = param.split("->");
+            query = parts[1];
+            var = parts[0];
+         } else {
+            throw new BenchmarkDefinitionException("Cannot parse json handler specification: '" + param + "', use 'query -> var' or 'var <- query'");
+         }
+         return query(query.trim())
+               .processor(new DefragProcessor<>(new SimpleRecorder.Builder().init(var.trim()).build()));
       }
 
       @Override
@@ -116,7 +145,7 @@ public class JsonHandler extends JsonParser<Request>
        * @return Self.
        */
       public Builder toArray(String varAndSize) {
-         return processor(new ArrayRecorder.Builder(varAndSize));
+         return processor(new ArrayRecorder.Builder().init(varAndSize));
       }
 
       public Builder processor(Processor<Request> processor) {
@@ -133,51 +162,13 @@ public class JsonHandler extends JsonParser<Request>
        *
        * @return Builder.
        */
-      public ServiceLoadedBuilderProvider<Processor.Builder<Request>, Request.ProcessorBuilderFactory> processor() {
-         return new ServiceLoadedBuilderProvider<>(Request.ProcessorBuilderFactory.class, locator, this::processor);
+      public ServiceLoadedBuilderProvider<Request.ProcessorBuilder> processor() {
+         return new ServiceLoadedBuilderProvider<>(Request.ProcessorBuilder.class, locator, this::processor);
       }
 
       @Override
       public BodyHandler.Builder copy(Locator locator) {
-         return new Builder(locator).query(query).processor(processor);
-      }
-   }
-
-   @MetaInfServices(BodyHandler.BuilderFactory.class)
-   public static class Factory implements BodyHandler.BuilderFactory {
-      @Override
-      public String name() {
-         return "json";
-      }
-
-      @Override
-      public boolean acceptsParam() {
-         return true;
-      }
-
-      /**
-       * @param param Either <code>query -&gt; variable</code> or <code>variable &lt;- query</code>.
-       */
-      @Override
-      public Builder newBuilder(Locator locator, String param) {
-         if (param != null && !param.isEmpty()) {
-            String query;
-            String var;
-            if (param.indexOf("->") >= 0) {
-               String[] parts = param.split("->");
-               query = parts[0];
-               var = parts[1];
-            } else if (param.indexOf("<-") >= 0) {
-               String[] parts = param.split("->");
-               query = parts[1];
-               var = parts[0];
-            } else {
-               throw new BenchmarkDefinitionException("Cannot parse json handler specification: '" + param + "', use 'query -> var' or 'var <- query'");
-            }
-            DefragProcessor<Request> processor = new DefragProcessor<>(new SimpleRecorder.Builder(var.trim()).build());
-            return new Builder(locator).query(query.trim()).processor(processor);
-         }
-         return new Builder(locator);
+         return new Builder().setLocator(locator).query(query).processor(processor);
       }
    }
 

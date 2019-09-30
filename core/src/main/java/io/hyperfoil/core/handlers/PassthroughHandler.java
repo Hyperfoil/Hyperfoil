@@ -3,7 +3,7 @@ package io.hyperfoil.core.handlers;
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
-import io.hyperfoil.api.config.Locator;
+import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.connection.Processor;
@@ -46,6 +46,8 @@ public class PassthroughHandler implements BodyHandler, ResourceUtilizer {
    /**
     * Adapter sending the body to a processor.
     */
+   @MetaInfServices(BodyHandler.Builder.class)
+   @Name("passthrough")
    public static class Builder implements BodyHandler.Builder {
       private Processor.Builder<? super HttpRequest> processor;
       private boolean defrag = true;
@@ -60,8 +62,8 @@ public class PassthroughHandler implements BodyHandler, ResourceUtilizer {
        *
        * @return Builder.
        */
-      public ServiceLoadedBuilderProvider<Processor.Builder<HttpRequest>, HttpRequest.ProcessorBuilderFactory> processor() {
-         return new ServiceLoadedBuilderProvider<>(HttpRequest.ProcessorBuilderFactory.class, null, this::processor);
+      public ServiceLoadedBuilderProvider<HttpRequest.ProcessorBuilder> processor() {
+         return new ServiceLoadedBuilderProvider<>(HttpRequest.ProcessorBuilder.class, null, this::processor);
       }
 
       /**
@@ -82,24 +84,6 @@ public class PassthroughHandler implements BodyHandler, ResourceUtilizer {
          }
          Processor<? super HttpRequest> processor = this.processor.build();
          return new PassthroughHandler(defrag ? new DefragProcessor<>(processor) : processor);
-      }
-   }
-
-   @MetaInfServices(BodyHandler.BuilderFactory.class)
-   public static class BuilderFactory implements BodyHandler.BuilderFactory {
-      @Override
-      public String name() {
-         return "passthrough";
-      }
-
-      @Override
-      public boolean acceptsParam() {
-         return false;
-      }
-
-      @Override
-      public PassthroughHandler.Builder newBuilder(Locator locator, String param) {
-         return new PassthroughHandler.Builder();
       }
    }
 }

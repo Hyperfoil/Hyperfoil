@@ -58,6 +58,4 @@ public interface StepBuilder {
    default boolean canBeLocated() {
       return false;
    }
-
-   interface Factory extends ServiceLoadedFactory<StepBuilder> {}
 }

@@ -10,9 +10,13 @@ import java.util.stream.Collectors;
 public interface BuilderBase<S extends BuilderBase<S>> {
    default void prepareBuild() {}
 
+   default S setLocator(Locator locator) {
+      return (S) this;
+   }
+
    /**
-    * Should be overridden if the <code>locator</code> parameter in {@link ServiceLoadedFactory#newBuilder(Locator, String)}
-    * is used. If the locator is not used it is legal to return <code>this</code>.
+    * Should be overridden if the {@link #setLocator(Locator)} is used.
+    * If the locator is not used it is legal to return <code>this</code>.
     *
     * @param locator The place where the copy should be inserted.
     * @return Deep copy of this object.

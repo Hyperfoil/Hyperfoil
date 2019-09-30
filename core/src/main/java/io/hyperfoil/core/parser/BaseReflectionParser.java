@@ -58,7 +58,7 @@ class BaseReflectionParser {
          // end of list item -> no arg step
          Object builder = invokeWithNoParams(target, keyEvent, key);
          if (builder instanceof ServiceLoadedContract) {
-            ((ServiceLoadedContract<?>) builder).complete();
+            ((ServiceLoadedContract) builder).complete();
          }
          // we'll expect the mapping end at the end
       } else if (defEvent instanceof ScalarEvent) {
@@ -69,7 +69,7 @@ class BaseReflectionParser {
          } else {
             Object builder = invokeWithNoParams(target, keyEvent, key);
             if (builder instanceof ServiceLoadedContract) {
-               ((ServiceLoadedContract<?>) builder).complete();
+               ((ServiceLoadedContract) builder).complete();
             }
          }
          ctx.consumePeeked(defEvent);
@@ -77,12 +77,12 @@ class BaseReflectionParser {
          Object builder = invokeWithDefaultParams(target, keyEvent, key);
          ctx.consumePeeked(defEvent);
          if (builder instanceof ServiceLoadedContract) {
-            ServiceLoadedContract<?> serviceLoadedContract = (ServiceLoadedContract<?>) builder;
+            ServiceLoadedContract serviceLoadedContract = (ServiceLoadedContract) builder;
             applyMapping(ctx, serviceLoadedContract.builder());
             serviceLoadedContract.complete();
          } else if (builder instanceof ServiceLoadedBuilderProvider) {
             ScalarEvent nameEvent = ctx.expectEvent(ScalarEvent.class);
-            fillSLBP(ctx, nameEvent, (ServiceLoadedBuilderProvider<?, ?>) builder);
+            fillSLBP(ctx, nameEvent, (ServiceLoadedBuilderProvider<?>) builder);
             ctx.expectEvent(MappingEndEvent.class);
          } else {
             if (builder instanceof MappingListBuilder) {
@@ -93,9 +93,9 @@ class BaseReflectionParser {
          }
       } else if (defEvent instanceof SequenceStartEvent) {
          Object builder = invokeWithNoParams(target, keyEvent, key);
-         ServiceLoadedContract<?> slc = null;
+         ServiceLoadedContract slc = null;
          if (builder instanceof ServiceLoadedContract) {
-            slc = (ServiceLoadedContract<?>) builder;
+            slc = (ServiceLoadedContract) builder;
             builder = slc.builder();
          }
          if (builder instanceof BaseSequenceBuilder) {
@@ -108,7 +108,7 @@ class BaseReflectionParser {
                   break;
                } else if (itemEvent instanceof ScalarEvent) {
                   String name = ((ScalarEvent) itemEvent).getValue();
-                  ServiceLoadedBuilderProvider<?, ?> provider = (ServiceLoadedBuilderProvider<?, ?>) builder;
+                  ServiceLoadedBuilderProvider<?> provider = (ServiceLoadedBuilderProvider<?>) builder;
                   try {
                      provider.forName(name, null).complete();
                   } catch (BenchmarkDefinitionException e) {
@@ -116,7 +116,7 @@ class BaseReflectionParser {
                   }
                } else if (itemEvent instanceof MappingStartEvent) {
                   ScalarEvent nameEvent = ctx.expectEvent(ScalarEvent.class);
-                  fillSLBP(ctx, nameEvent, (ServiceLoadedBuilderProvider<?, ?>) builder);
+                  fillSLBP(ctx, nameEvent, (ServiceLoadedBuilderProvider<?>) builder);
                   ctx.expectEvent(MappingEndEvent.class);
                } else {
                   throw ctx.unexpectedEvent(defEvent);
@@ -154,8 +154,8 @@ class BaseReflectionParser {
       }
    }
 
-   protected void fillSLBP(Context ctx, ScalarEvent nameEvent, ServiceLoadedBuilderProvider<?, ?> provider) throws ParserException {
-      ServiceLoadedContract<?> slc;
+   protected void fillSLBP(Context ctx, ScalarEvent nameEvent, ServiceLoadedBuilderProvider<?> provider) throws ParserException {
+      ServiceLoadedContract slc;
       Event builderEvent = ctx.next();
       String param = null;
       if (builderEvent instanceof ScalarEvent) {
@@ -191,7 +191,7 @@ class BaseReflectionParser {
             throw cannotCreate(keyEvent, e);
          }
       } else if (target instanceof ServiceLoadedBuilderProvider.Owner) {
-         getLoadedBuilder((ServiceLoadedBuilderProvider.Owner<?, ?>) target, keyEvent, key, value, result.exception).complete();
+         getLoadedBuilder((ServiceLoadedBuilderProvider.Owner<?>) target, keyEvent, key, value, result.exception).complete();
       } else {
          throw result.exception;
       }
@@ -203,8 +203,8 @@ class BaseReflectionParser {
       builder.accept(key, param);
    }
 
-   private ServiceLoadedContract<?> getLoadedBuilder(ServiceLoadedBuilderProvider.Owner<?, ?> target, ScalarEvent keyEvent, String key, String value, ParserException exception) throws ParserException {
-      ServiceLoadedContract<?> serviceLoadedContract;
+   private ServiceLoadedContract getLoadedBuilder(ServiceLoadedBuilderProvider.Owner<?> target, ScalarEvent keyEvent, String key, String value, ParserException exception) throws ParserException {
+      ServiceLoadedContract serviceLoadedContract;
       try {
          serviceLoadedContract = target.serviceLoaded().forName(key, value);
       } catch (BenchmarkDefinitionException e) {
@@ -233,7 +233,7 @@ class BaseReflectionParser {
             throw cannotCreate(keyEvent, e);
          }
       } else if (target instanceof ServiceLoadedBuilderProvider.Owner) {
-         return getLoadedBuilder((ServiceLoadedBuilderProvider.Owner<?, ?>) target, keyEvent, key, null, result.exception);
+         return getLoadedBuilder((ServiceLoadedBuilderProvider.Owner<?>) target, keyEvent, key, null, result.exception);
       } else {
          throw result.exception;
       }
@@ -251,7 +251,7 @@ class BaseReflectionParser {
             throw cannotCreate(keyEvent, e);
          }
       } else if (target instanceof ServiceLoadedBuilderProvider.Owner) {
-         return getLoadedBuilder((ServiceLoadedBuilderProvider.Owner<?, ?>) target, keyEvent, key, null, result.exception);
+         return getLoadedBuilder((ServiceLoadedBuilderProvider.Owner<?>) target, keyEvent, key, null, result.exception);
       } else {
          throw result.exception;
       }

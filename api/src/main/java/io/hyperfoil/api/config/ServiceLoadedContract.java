@@ -1,24 +1,22 @@
 package io.hyperfoil.api.config;
 
-import java.util.function.Consumer;
-
 /**
  * Fill-in the builder provided in {@link #builder()} and then call {@link #complete()}.
  */
-public final class ServiceLoadedContract<B> {
-   private final B builder;
-   private final Consumer<B> consumer;
+public final class ServiceLoadedContract {
+   private final Object builder;
+   private final Runnable completion;
 
-   public ServiceLoadedContract(B builder, Consumer<B> consumer) {
+   public ServiceLoadedContract(Object builder, Runnable completion) {
       this.builder = builder;
-      this.consumer = consumer;
+      this.completion = completion;
    }
 
-   public B builder() {
+   public Object builder() {
       return builder;
    }
 
    public void complete() {
-      consumer.accept(builder);
+      completion.run();
    }
 }

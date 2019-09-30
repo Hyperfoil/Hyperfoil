@@ -2,7 +2,8 @@ package io.hyperfoil.core.handlers;
 
 import org.kohsuke.MetaInfServices;
 
-import io.hyperfoil.api.config.Locator;
+import io.hyperfoil.api.config.InitFromParam;
+import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.connection.Processor;
 import io.hyperfoil.api.session.Access;
@@ -36,12 +37,16 @@ public class SimpleRecorder implements Processor<Request>, ResourceUtilizer {
    /**
     * Stores data in a session variable (overwriting on multiple occurences).
     */
-   public static class Builder implements Processor.Builder<Request> {
+   @MetaInfServices(Request.ProcessorBuilder.class)
+   @Name("simple")
+   public static class Builder implements Request.ProcessorBuilder, InitFromParam<Builder> {
       private String toVar;
       private DataFormat format = DataFormat.STRING;
 
-      public Builder(String toVar) {
-         this.toVar = toVar;
+      @Override
+      public Builder init(String param) {
+         this.toVar = param;
+         return this;
       }
 
       /**
@@ -69,24 +74,6 @@ public class SimpleRecorder implements Processor<Request>, ResourceUtilizer {
       @Override
       public Processor<Request> build() {
          return new SimpleRecorder(toVar, format);
-      }
-   }
-
-   @MetaInfServices(Request.ProcessorBuilderFactory.class)
-   public static class BuilderFactory implements Request.ProcessorBuilderFactory {
-      @Override
-      public String name() {
-         return "simple";
-      }
-
-      @Override
-      public boolean acceptsParam() {
-         return true;
-      }
-
-      @Override
-      public Builder newBuilder(Locator locator, String param) {
-         return new Builder(param);
       }
    }
 }

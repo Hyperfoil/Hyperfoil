@@ -4,7 +4,8 @@ import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
-import io.hyperfoil.api.config.Locator;
+import io.hyperfoil.api.config.InitFromParam;
+import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.Session;
@@ -29,15 +30,25 @@ public class AddToIntStep implements Action.Step {
    /**
     * Add value to integer variable in the session.
     */
-   public static class Builder extends ActionStepBuilder {
+   @MetaInfServices(Action.Builder.class)
+   @Name("addToInt")
+   public static class Builder extends ActionStepBuilder implements InitFromParam<Builder> {
       private String var;
       private int value;
 
-      public Builder(BaseSequenceBuilder parent, String param) {
+      public Builder() {
+      }
+
+      public Builder(BaseSequenceBuilder parent) {
          super(parent);
-         if (param == null) {
-            return;
-         }
+      }
+
+      /**
+       * @param param Accepting one of: <code>var++</code>, <code>var--</code>, <code>var += value</code>, <code>var -= value</code>.
+       * @return Self.
+       */
+      @Override
+      public Builder init(String param) {
          param = param.trim();
          if (param.endsWith("++")) {
             var = param.substring(0, param.length() - 2).trim();
@@ -56,6 +67,7 @@ public class AddToIntStep implements Action.Step {
          } else {
             throw new BenchmarkDefinitionException("Accepting one of: var++, var--, var += value, var -= value");
          }
+         return this;
       }
 
       /**
@@ -89,29 +101,6 @@ public class AddToIntStep implements Action.Step {
             throw new BenchmarkDefinitionException("It makes no sense to add 0.");
          }
          return new AddToIntStep(var, value);
-      }
-   }
-
-   @MetaInfServices(Action.BuilderFactory.class)
-   public static class BuilderFactory implements Action.BuilderFactory {
-      @Override
-      public String name() {
-         return "addToInt";
-      }
-
-      @Override
-      public boolean acceptsParam() {
-         return true;
-      }
-
-      /**
-       * @param locator Locator.
-       * @param param Accepting one of: <code>var++</code>, <code>var--</code>, <code>var += value</code>, <code>var -= value</code>.
-       * @return Builder.
-       */
-      @Override
-      public Builder newBuilder(Locator locator, String param) {
-         return new Builder(null, param);
       }
    }
 }

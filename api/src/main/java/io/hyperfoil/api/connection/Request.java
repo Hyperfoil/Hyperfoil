@@ -4,7 +4,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import io.hyperfoil.api.config.ServiceLoadedFactory;
 import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.statistics.Statistics;
@@ -124,5 +123,5 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
    /**
     * Processors for any type of request.
     */
-   public interface ProcessorBuilderFactory extends ServiceLoadedFactory<Processor.Builder<Request>> {}
+   public interface ProcessorBuilder extends Processor.Builder<Request> {}
 }

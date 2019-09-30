@@ -43,16 +43,17 @@ import com.github.javaparser.javadoc.Javadoc;
 import com.github.javaparser.javadoc.JavadocBlockTag;
 
 import io.hyperfoil.api.config.BaseSequenceBuilder;
+import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.ListBuilder;
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.MappingListBuilder;
 import io.hyperfoil.api.config.PairBuilder;
 import io.hyperfoil.api.config.PartialBuilder;
-import io.hyperfoil.api.config.ServiceLoadedFactory;
 import io.hyperfoil.api.config.StepBuilder;
-import io.hyperfoil.api.connection.HttpRequest;
+import io.hyperfoil.api.connection.Processor;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.session.Action;
+import io.hyperfoil.core.builders.BuilderInfo;
 import io.hyperfoil.core.builders.StepCatalog;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 
@@ -101,17 +102,12 @@ public class DocsGenerator extends BaseGenerator {
             addSimpleStep(method, declaration);
          }
       }
-      for (Object f : getFactories(StepBuilder.Factory.class)) {
-         StepBuilder.Factory factory = (StepBuilder.Factory) f;
-         try {
-            Class<?> newBuilder = factory.getClass().getMethod("newBuilder", Locator.class, String.class).getReturnType();
-            ClassOrInterfaceDeclaration cd = findClass(factory.getClass());
-            if (cd != null) {
-               String inlineParamDocs = findInlineParamDocs(cd);
-               addStep(factory.name(), newBuilder, null, factory.acceptsParam(), inlineParamDocs);
-            }
-         } catch (NoSuchMethodException e) {
-            throw new IllegalStateException(e);
+      for (Map.Entry<String, BuilderInfo<?>> entry : ServiceLoadedBuilderProvider.builders(StepBuilder.class).entrySet()) {
+         Class<? extends StepBuilder> newBuilder = (Class<? extends StepBuilder>) entry.getValue().implClazz;
+         ClassOrInterfaceDeclaration cd = findClass(newBuilder.getClass());
+         if (cd != null) {
+            String inlineParamDocs = findInlineParamDocs(cd);
+            addStep(entry.getKey(), newBuilder, null, InitFromParam.class.isAssignableFrom(newBuilder), inlineParamDocs);
          }
       }
       for (Map.Entry<Class<?>, Docs> entry : docs.entrySet()) {
@@ -134,11 +130,11 @@ public class DocsGenerator extends BaseGenerator {
             printDocs("step", step.getKey(), step.getValue(), out);
          }
          out.println("\n\n## Actions");
-         for (Map.Entry<String, List<Docs>> action : docs.get(Action.BuilderFactory.class).params.entrySet()) {
+         for (Map.Entry<String, List<Docs>> action : docs.get(Action.Builder.class).params.entrySet()) {
             printDocs("action", action.getKey(), action.getValue().iterator().next(), out);
          }
          out.println("\n\n## Processors");
-         for (Map.Entry<String, List<Docs>> action : docs.get(Request.ProcessorBuilderFactory.class).params.entrySet()) {
+         for (Map.Entry<String, List<Docs>> action : docs.get(Request.ProcessorBuilder.class).params.entrySet()) {
             printDocs("processor", action.getKey(), action.getValue().iterator().next(), out);
          }
       } catch (IOException e) {
@@ -153,12 +149,12 @@ public class DocsGenerator extends BaseGenerator {
             System.err.printf("Cannot write file %s: %s%n", filePath, e);
          }
       }
-      printRootType("action", Action.BuilderFactory.class);
-      printRootType("processor", Request.ProcessorBuilderFactory.class);
+      printRootType("action", Action.Builder.class);
+      printRootType("processor", Request.ProcessorBuilder.class);
    }
 
-   private void printRootType(String type, Class<? extends ServiceLoadedFactory> factoryClass) {
-      for (Map.Entry<String, List<Docs>> entry : docs.get(factoryClass).params.entrySet()) {
+   private void printRootType(String type, Class<?> builderClazz) {
+      for (Map.Entry<String, List<Docs>> entry : docs.get(builderClazz).params.entrySet()) {
          Path filePath = output.resolve(type + "_" + entry.getKey() + ".md");
          try (PrintStream out = new PrintStream(new FileOutputStream(filePath.toFile()))) {
             out.printf("# %s%n%n", entry.getKey());
@@ -270,7 +266,7 @@ public class DocsGenerator extends BaseGenerator {
    }
 
    private String findInlineParamDocs(ClassOrInterfaceDeclaration cd) {
-      return cd.findFirst(MethodDeclaration.class, md -> matches(md, "newBuilder", Locator.class, String.class))
+      return cd.findFirst(MethodDeclaration.class, md -> matches(md, "init", String.class))
             .map(md -> getJavadocParams(md.getJavadoc()).get("param")).orElse(null);
    }
 
@@ -609,13 +605,13 @@ public class DocsGenerator extends BaseGenerator {
       }
       if (ServiceLoadedBuilderProvider.class.isAssignableFrom(m.getReturnType())) {
          ParameterizedType returnType = (ParameterizedType) m.getAnnotatedReturnType().getType();
-         Class<? extends ServiceLoadedFactory<?>> bfClass = getBuilderFactoryClass(returnType.getActualTypeArguments()[1]);
-         if (bfClass == Action.BuilderFactory.class) {
+         Class<?> builderClazz = getRawClass(returnType.getActualTypeArguments()[0]);
+         if (builderClazz == Action.Builder.class) {
             param.link = "index.html#actions";
-         } else if (bfClass == Request.ProcessorBuilderFactory.class || bfClass == HttpRequest.ProcessorBuilderFactory.class) {
+         } else if (Processor.Builder.class.isAssignableFrom(builderClazz)) {
             param.link = "index.html#processors";
          }
-         param.addParams(getServiceLoadedImplementations(bfClass).params);
+         param.addParams(getServiceLoadedImplementations(builderClazz).params);
       }
       if (m.getReturnType().getName().endsWith("Builder")) {
          Docs inner = describeBuilder(m.getReturnType());
@@ -631,28 +627,26 @@ public class DocsGenerator extends BaseGenerator {
       }
    }
 
-   private Docs getServiceLoadedImplementations(Class<? extends ServiceLoadedFactory<?>> factoryClass) {
-      Docs implementations = docs.get(factoryClass);
+   private Docs getServiceLoadedImplementations(Class<?> builderClazz) {
+      Docs implementations = docs.get(builderClazz);
       if (implementations != null) {
          return implementations;
       }
       implementations = new Docs(null);
-      docs.put(factoryClass, implementations);
-      ClassOrInterfaceDeclaration fd = findClass(factoryClass);
+      docs.put(builderClazz, implementations);
+      ClassOrInterfaceDeclaration fd = findClass(builderClazz);
       implementations.typeDescription = getJavadocDescription(fd);
-      for (ServiceLoadedFactory f : getFactories(factoryClass)) {
-         try {
-            Class<?> serviceLoadedBuilder = f.getClass().getMethod("newBuilder", Locator.class, String.class).getReturnType();
-            Docs docs = describeBuilder(serviceLoadedBuilder);
-            docs.ownerDescription = docs.typeDescription;
-            ClassOrInterfaceDeclaration cd = findClass(f.getClass());
-            if (cd != null && f.acceptsParam()) {
+      for (Map.Entry<String, BuilderInfo<?>> entry : ServiceLoadedBuilderProvider.builders(builderClazz).entrySet()) {
+         Class<?> newBuilder = entry.getValue().implClazz;
+         Docs docs = describeBuilder(newBuilder);
+         docs.ownerDescription = docs.typeDescription;
+         if (InitFromParam.class.isAssignableFrom(newBuilder)) {
+            ClassOrInterfaceDeclaration cd = findClass(newBuilder.getClass());
+            if (cd != null) {
                docs.inlineParam = findInlineParamDocs(cd);
             }
-            implementations.addParam(f.name(), docs);
-         } catch (NoSuchMethodException e) {
-            throw new IllegalStateException(e);
          }
+         implementations.addParam(entry.getKey(), docs);
       }
       return implementations;
    }

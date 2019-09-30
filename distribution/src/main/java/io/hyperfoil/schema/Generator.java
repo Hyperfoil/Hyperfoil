@@ -9,16 +9,17 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.regex.Pattern;
 
+import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.ListBuilder;
-import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.MappingListBuilder;
 import io.hyperfoil.api.config.PairBuilder;
 import io.hyperfoil.api.config.PartialBuilder;
 import io.hyperfoil.api.config.BaseSequenceBuilder;
-import io.hyperfoil.api.config.ServiceLoadedFactory;
 import io.hyperfoil.api.config.StepBuilder;
+import io.hyperfoil.core.builders.BuilderInfo;
 import io.hyperfoil.core.builders.StepCatalog;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 import io.vertx.core.json.JsonArray;
@@ -62,14 +63,9 @@ public class Generator extends BaseGenerator {
             addSimpleBuilder(builders, simpleBuilders, method);
          }
       }
-      for (Object f : getFactories(StepBuilder.Factory.class)) {
-         StepBuilder.Factory factory = (StepBuilder.Factory) f;
-         try {
-            Class<?> newBuilder = factory.getClass().getMethod("newBuilder", Locator.class, String.class).getReturnType();
-            addBuilder(builders, simpleBuilders, factory.name(), newBuilder, factory.acceptsParam());
-         } catch (NoSuchMethodException e) {
-            throw new IllegalStateException(e);
-         }
+      for (Map.Entry<String, BuilderInfo<?>> entry : ServiceLoadedBuilderProvider.builders(StepBuilder.class).entrySet()) {
+         Class<StepBuilder> implClazz = (Class<StepBuilder>) entry.getValue().implClazz;
+         addBuilder(builders, simpleBuilders, entry.getKey(), implClazz, InitFromParam.class.isAssignableFrom(implClazz));
       }
 
       if (simpleBuilders.size() == 0) {
@@ -197,8 +193,8 @@ public class Generator extends BaseGenerator {
       }
       if (ServiceLoadedBuilderProvider.class.isAssignableFrom(m.getReturnType())) {
          ParameterizedType type = (ParameterizedType) m.getAnnotatedReturnType().getType();
-         Class<? extends ServiceLoadedFactory<?>> bfClass = getBuilderFactoryClass(type.getActualTypeArguments()[1]);
-         JsonObject discriminator = getServiceLoadedImplementations(bfClass);
+         Class<?> builderClazz = getRawClass(type.getActualTypeArguments()[0]);
+         JsonObject discriminator = getServiceLoadedImplementations(builderClazz);
          options.add(discriminator);
          options.add(arrayOf(discriminator));
       }
@@ -232,7 +228,7 @@ public class Generator extends BaseGenerator {
       }
    }
 
-   private JsonObject getServiceLoadedImplementations(Class<? extends ServiceLoadedFactory<?>> factoryClass) {
+   private JsonObject getServiceLoadedImplementations(Class<?> builderClazz) {
       JsonObject implementations = new JsonObject();
       JsonObject discriminator = new JsonObject()
             .put("type", "object")
@@ -240,21 +236,17 @@ public class Generator extends BaseGenerator {
             .put("minProperties", 1)
             .put("maxProperties", 1)
             .put("properties", implementations);
-      for (ServiceLoadedFactory f : getFactories(factoryClass)) {
-         try {
-            Class<?> serviceLoadedBuilder = f.getClass().getMethod("newBuilder", Locator.class, String.class).getReturnType();
-            JsonObject serviceLoadedProperty = describeBuilder(serviceLoadedBuilder);
-            if (f.acceptsParam()) {
-               serviceLoadedProperty = new JsonObject()
-                     .put("oneOf", new JsonArray().add(serviceLoadedProperty).add(TYPE_STRING));
-            }
-            addProperty(implementations, f.name(), serviceLoadedProperty);
-         } catch (NoSuchMethodException e) {
-            throw new IllegalStateException(e);
+      for (Map.Entry<String, BuilderInfo<?>> entry : ServiceLoadedBuilderProvider.builders(builderClazz).entrySet()) {
+         Class<?> implClazz = entry.getValue().implClazz;
+         JsonObject serviceLoadedProperty = describeBuilder(implClazz);
+         if (InitFromParam.class.isAssignableFrom(implClazz)) {
+            serviceLoadedProperty = new JsonObject()
+                  .put("oneOf", new JsonArray().add(serviceLoadedProperty).add(TYPE_STRING));
          }
+         addProperty(implementations, entry.getKey(), serviceLoadedProperty);
       }
-      definitions.put(factoryClass.getName(), discriminator);
-      return new JsonObject().put("$ref", "#/definitions/" + factoryClass.getName());
+      definitions.put(builderClazz.getName(), discriminator);
+      return new JsonObject().put("$ref", "#/definitions/" + builderClazz.getName());
    }
 
    private static void addProperty(JsonObject properties, String name, JsonObject newProperty) {

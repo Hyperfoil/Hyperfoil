@@ -5,9 +5,9 @@ import java.util.List;
 
 import org.kohsuke.MetaInfServices;
 
-import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
-import io.hyperfoil.api.config.Locator;
+import io.hyperfoil.api.config.InitFromParam;
+import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.config.StepBuilder;
@@ -60,14 +60,34 @@ public class DivideStep implements Step, ResourceUtilizer {
       toVar.declareInt(session);
    }
 
-   public static class Builder extends BaseStepBuilder  {
+   // Make this builder loadable as service
+   @MetaInfServices(StepBuilder.class)
+   // This is the step name that will be used in the YAML
+   @Name("divide")
+   public static class Builder extends BaseStepBuilder implements InitFromParam {
       // Contrary to the step fields in builder are mutable
       private String fromVar;
       private String toVar;
       private int divisor;
 
-      Builder(BaseSequenceBuilder parent) {
-         super(parent);
+      // Let's permit a short-form definition that will store the result
+      // in the same variable. Note that the javadoc @param is used to generate external documentation.
+      /**
+       * @param param Use myVar /= constant
+       */
+      @Override
+      public Builder init(String param) {
+         int divIndex = param.indexOf("/=");
+         if (divIndex < 0) {
+            throw new BenchmarkDefinitionException("Invalid inline definition: " + param);
+         }
+         try {
+            divisor(Integer.parseInt(param.substring(divIndex + 2).trim()));
+         } catch (NumberFormatException e) {
+            throw new BenchmarkDefinitionException("Invalid inline definition: " + param, e);
+         }
+         String var = param.substring(0, divIndex).trim();
+         return fromVar(var).toVar(var);
       }
 
       // All fields are set in fluent setters - this helps when the scenario
@@ -101,48 +121,6 @@ public class DivideStep implements Step, ResourceUtilizer {
          // The builder has a bit more flexibility and it can create more than
          // one step at once.
          return Collections.singletonList(new DivideStep(fromVar, toVar, divisor));
-      }
-   }
-
-   @MetaInfServices(StepBuilder.Factory.class)
-   public static class BuiderFactory implements StepBuilder.Factory {
-      @Override
-      public String name() {
-         // This is the step name that will be used in the YAML
-         return "divide";
-      }
-
-      @Override
-      public boolean acceptsParam() {
-         // Let's permit a short-form definition that will store the result
-         // in the same variable
-         // - divide: foo /= 3
-         return true;
-      }
-
-      @Override
-      public Builder newBuilder(Locator locator, String param) {
-         // Locator is used when the builder inserts steps to other parts
-         // of the scenario. We won't need it here.
-         // We will pass null as the parent as the builder is not planted
-         // into the scenario yet.
-         Builder builder = new Builder(null);
-         if (param != null) {
-            int divIndex = param.indexOf("/=");
-            if (divIndex < 0) {
-               throw new BenchmarkDefinitionException("Invalid inline definition: " + param);
-            }
-            try {
-               builder.divisor(Integer.parseInt(param.substring(divIndex + 2).trim()));
-            } catch (NumberFormatException e) {
-               throw new BenchmarkDefinitionException("Invalid inline definition: " + param, e);
-            }
-            String var = param.substring(0, divIndex).trim();
-            builder.fromVar(var).toVar(var);
-         }
-         // If the user did not use the inline definition but mapping
-         // the builder will be filled through reflection.
-         return builder;
       }
    }
 }

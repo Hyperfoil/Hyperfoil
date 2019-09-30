@@ -2,7 +2,7 @@ package io.hyperfoil.core.handlers;
 
 import org.kohsuke.MetaInfServices;
 
-import io.hyperfoil.api.config.Locator;
+import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.http.HeaderHandler;
@@ -19,28 +19,12 @@ public class CountHeadersHandler implements HeaderHandler {
    /**
     * Stores number of occurences of each header in custom statistics (these can be displayed in CLI using the <code>stats -c</code> command).
     */
+   @MetaInfServices(HeaderHandler.Builder.class)
+   @Name("countHeaders")
    public static class Builder implements HeaderHandler.Builder {
       @Override
       public CountHeadersHandler build(SerializableSupplier<? extends Step> step) {
          return new CountHeadersHandler();
-      }
-   }
-
-   @MetaInfServices(HeaderHandler.BuilderFactory.class)
-   public static class BuilderFactory implements HeaderHandler.BuilderFactory {
-      @Override
-      public String name() {
-         return "countHeaders";
-      }
-
-      @Override
-      public boolean acceptsParam() {
-         return false;
-      }
-
-      @Override
-      public Builder newBuilder(Locator locator, String param) {
-         return new Builder();
       }
    }
 }

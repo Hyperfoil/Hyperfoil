@@ -4,7 +4,8 @@ import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
-import io.hyperfoil.api.config.Locator;
+import io.hyperfoil.api.config.InitFromParam;
+import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.ResourceUtilizer;
@@ -40,22 +41,34 @@ public class SetStep implements Action.Step, ResourceUtilizer {
    /**
     * Set variable in session to certain value.
     */
-   public static class Builder extends ActionStepBuilder {
+   @MetaInfServices(Action.Builder.class)
+   @Name("set")
+   public static class Builder extends ActionStepBuilder implements InitFromParam<Builder> {
       private String var;
       private Object value;
       private ObjectArrayBuilder objectArray;
 
-      public Builder(BaseSequenceBuilder parent, String param) {
+      public Builder() {
+      }
+
+      public Builder(BaseSequenceBuilder parent) {
          super(parent);
-         if (param != null) {
-            int sep = param.indexOf("<-");
-            if (sep < 0) {
-               throw new BenchmarkDefinitionException("Invalid inline definition '" + param + "': should be 'var <- value'");
-            }
-            this.var = param.substring(0, sep).trim();
-            Object value = param.substring(sep + 2).trim();
-            this.value = value;
+      }
+
+      /**
+       * @param param  Use <code>var &lt;- value</code>.
+       * @return Self.
+       */
+      @Override
+      public Builder init(String param) {
+         int sep = param.indexOf("<-");
+         if (sep < 0) {
+            throw new BenchmarkDefinitionException("Invalid inline definition '" + param + "': should be 'var <- value'");
          }
+         this.var = param.substring(0, sep).trim();
+         Object value = param.substring(sep + 2).trim();
+         this.value = value;
+         return this;
       }
 
       /**
@@ -103,29 +116,6 @@ public class SetStep implements Action.Step, ResourceUtilizer {
          } else {
             return new SetStep(var, objectArray.build());
          }
-      }
-   }
-
-   @MetaInfServices(Action.BuilderFactory.class)
-   public static class ActionFactory implements Action.BuilderFactory {
-      @Override
-      public String name() {
-         return "set";
-      }
-
-      @Override
-      public boolean acceptsParam() {
-         return true;
-      }
-
-      /**
-       * @param locator Locator.
-       * @param param Use <code>var &lt;- value</code>.
-       * @return Builder.
-       */
-      @Override
-      public SetStep.Builder newBuilder(Locator locator, String param) {
-         return new SetStep.Builder(null, param);
       }
    }
 

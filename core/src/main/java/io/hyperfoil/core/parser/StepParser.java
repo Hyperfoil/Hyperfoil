@@ -27,7 +27,7 @@ class StepParser extends BaseReflectionParser implements Parser<BaseSequenceBuil
          ScalarEvent stepEvent = (ScalarEvent) firstEvent;
          Object builder = invokeWithNoParams(catalog, stepEvent, stepEvent.getValue());
          if (builder instanceof ServiceLoadedContract) {
-            ((ServiceLoadedContract<?>) builder).complete();
+            ((ServiceLoadedContract) builder).complete();
          }
          return;
       } else if (!(firstEvent instanceof MappingStartEvent)) {

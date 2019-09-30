@@ -7,7 +7,8 @@ import java.util.function.Consumer;
 
 import org.kohsuke.MetaInfServices;
 
-import io.hyperfoil.api.config.Locator;
+import io.hyperfoil.api.config.InitFromParam;
+import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.RunHook;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -47,39 +48,20 @@ public class ExecRunHook extends RunHook {
       }
    }
 
-   public static class Builder implements RunHook.Builder {
+   @MetaInfServices(RunHook.Builder.class)
+   @Name("exec")
+   public static class Builder implements RunHook.Builder, InitFromParam<Builder> {
       private String cmd;
 
-      public Builder(String cmd) {
-         this.cmd = cmd;
-      }
-
-      public Builder cmd(String cmd) {
-         this.cmd = cmd;
+      @Override
+      public Builder init(String param) {
+         this.cmd = param;
          return this;
       }
 
       @Override
       public RunHook build(String name) {
          return new ExecRunHook(name, cmd);
-      }
-   }
-
-   @MetaInfServices(RunHook.Factory.class)
-   public static class BuilderFactory implements RunHook.Factory {
-      @Override
-      public String name() {
-         return "exec";
-      }
-
-      @Override
-      public boolean acceptsParam() {
-         return true;
-      }
-
-      @Override
-      public RunHook.Builder newBuilder(Locator locator, String param) {
-         return new Builder(param);
       }
    }
 }

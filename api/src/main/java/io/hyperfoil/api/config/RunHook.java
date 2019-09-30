@@ -25,7 +25,4 @@ public abstract class RunHook implements Serializable, Comparable<RunHook> {
    public interface Builder {
       RunHook build(String name);
    }
-
-   public interface Factory extends ServiceLoadedFactory<RunHook.Builder> {
-   }
 }

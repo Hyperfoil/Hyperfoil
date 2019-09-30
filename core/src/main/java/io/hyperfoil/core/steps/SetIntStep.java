@@ -4,7 +4,8 @@ import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
-import io.hyperfoil.api.config.Locator;
+import io.hyperfoil.api.config.InitFromParam;
+import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.ResourceUtilizer;
@@ -34,24 +35,36 @@ public class SetIntStep implements Action.Step, ResourceUtilizer {
    /**
     * Set session variable to an integral value.
     */
-   public static class Builder extends ActionStepBuilder {
+   @MetaInfServices(Action.Builder.class)
+   @Name("setInt")
+   public static class Builder extends ActionStepBuilder implements InitFromParam<Builder> {
       private String var;
       private int value;
 
-      public Builder(BaseSequenceBuilder parent, String param) {
+      public Builder() {
+      }
+
+      public Builder(BaseSequenceBuilder parent) {
          super(parent);
-         if (param != null) {
-            int sep = param.indexOf("<-");
-            if (sep < 0) {
-               throw new BenchmarkDefinitionException("Invalid inline definition '" + param + "': should be 'var <- value'");
-            }
-            this.var = param.substring(0, sep).trim();
-            try {
-               this.value = Integer.parseInt(param.substring(sep + 2).trim());
-            } catch (NumberFormatException e) {
-               throw new BenchmarkDefinitionException("Cannot parse value as int: " + param.substring(sep + 2), e);
-            }
+      }
+
+      /**
+       * @param param Use <code>var &lt;- value</code>.
+       * @return Self.
+       */
+      @Override
+      public Builder init(String param) {
+         int sep = param.indexOf("<-");
+         if (sep < 0) {
+            throw new BenchmarkDefinitionException("Invalid inline definition '" + param + "': should be 'var <- value'");
          }
+         this.var = param.substring(0, sep).trim();
+         try {
+            this.value = Integer.parseInt(param.substring(sep + 2).trim());
+         } catch (NumberFormatException e) {
+            throw new BenchmarkDefinitionException("Cannot parse value as int: " + param.substring(sep + 2), e);
+         }
+         return this;
       }
 
       /**
@@ -82,29 +95,6 @@ public class SetIntStep implements Action.Step, ResourceUtilizer {
             throw new BenchmarkDefinitionException("No variable set!");
          }
          return new SetIntStep(var, value);
-      }
-   }
-
-   @MetaInfServices(Action.BuilderFactory.class)
-   public static class ActionFactory implements Action.BuilderFactory {
-      @Override
-      public String name() {
-         return "setInt";
-      }
-
-      @Override
-      public boolean acceptsParam() {
-         return true;
-      }
-
-      /**
-       * @param locator Locator.
-       * @param param Use <code>var &lt;- value</code>.
-       * @return Builder.
-       */
-      @Override
-      public Builder newBuilder(Locator locator, String param) {
-         return new Builder(null, param);
       }
    }
 }

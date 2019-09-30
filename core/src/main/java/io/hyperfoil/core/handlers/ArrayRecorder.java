@@ -3,7 +3,8 @@ package io.hyperfoil.core.handlers;
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
-import io.hyperfoil.api.config.Locator;
+import io.hyperfoil.api.config.InitFromParam;
+import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.connection.Processor;
 import io.hyperfoil.api.session.Access;
@@ -58,15 +59,15 @@ public class ArrayRecorder implements Processor<Request>, ResourceUtilizer {
    /**
     * Stores data in an array stored as session variable.
     */
-   public static class Builder implements Processor.Builder<Request> {
+   @MetaInfServices(Request.ProcessorBuilder.class)
+   @Name("array")
+   public static class Builder implements Request.ProcessorBuilder, InitFromParam<Builder> {
       private String toVar;
       private DataFormat format = DataFormat.STRING;
       private int maxSize;
 
-      public Builder(String varAndSize) {
-         if (varAndSize == null) {
-            return;
-         }
+      @Override
+      public Builder init(String varAndSize) {
          int b1 = varAndSize.indexOf('[');
          int b2 = varAndSize.indexOf(']');
          if (b1 < 0 || b2 < 0 || b2 - b1 < 1) {
@@ -78,6 +79,7 @@ public class ArrayRecorder implements Processor<Request>, ResourceUtilizer {
             throw new BenchmarkDefinitionException("Cannot parse maximum size in '" + varAndSize + "'");
          }
          toVar = varAndSize.substring(0, b1).trim();
+         return this;
       }
 
       @Override
@@ -116,28 +118,6 @@ public class ArrayRecorder implements Processor<Request>, ResourceUtilizer {
       public Builder format(DataFormat format) {
          this.format = format;
          return this;
-      }
-   }
-
-   @MetaInfServices(Request.ProcessorBuilderFactory.class)
-   public static class BuilderFactory implements Request.ProcessorBuilderFactory {
-      @Override
-      public String name() {
-         return "array";
-      }
-
-      @Override
-      public boolean acceptsParam() {
-         return true;
-      }
-
-      /**
-       * @param param Use format <code>variable[maxSize]</code>
-       * @return Builder.
-       */
-      @Override
-      public Builder newBuilder(Locator locator, String param) {
-         return new Builder(param);
       }
    }
 }

@@ -5,7 +5,8 @@ import java.util.concurrent.TimeUnit;
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
-import io.hyperfoil.api.config.Locator;
+import io.hyperfoil.api.config.InitFromParam;
+import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.http.HeaderHandler;
@@ -64,10 +65,18 @@ public class RecordHeaderTimeHandler implements HeaderHandler {
    /**
     * Records alternative metric based on values from a header (e.g. when a proxy reports processing time).
     */
-   public static class Builder implements HeaderHandler.Builder {
+   @MetaInfServices(HeaderHandler.Builder.class)
+   @Name("recordHeaderTime")
+   public static class Builder implements HeaderHandler.Builder, InitFromParam<Builder> {
       private String header;
       private String metric;
       private String unit;
+
+      @Override
+      public Builder init(String param) {
+         header = param;
+         return this;
+      }
 
       @Override
       public RecordHeaderTimeHandler build(SerializableSupplier<? extends Step> step) {
@@ -127,24 +136,4 @@ public class RecordHeaderTimeHandler implements HeaderHandler {
          return this;
       }
    }
-
-   @MetaInfServices(HeaderHandler.BuilderFactory.class)
-   public static class BuilderFactory implements HeaderHandler.BuilderFactory {
-      @Override
-      public String name() {
-         return "recordHeaderTime";
-      }
-
-      @Override
-      public boolean acceptsParam() {
-         return true;
-      }
-
-      @Override
-      public Builder newBuilder(Locator locator, String param) {
-         return new Builder().header(param);
-      }
-   }
-
-
 }

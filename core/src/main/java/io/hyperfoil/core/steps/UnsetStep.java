@@ -2,7 +2,8 @@ package io.hyperfoil.core.steps;
 
 import org.kohsuke.MetaInfServices;
 
-import io.hyperfoil.api.config.Locator;
+import io.hyperfoil.api.config.InitFromParam;
+import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.Session;
@@ -25,16 +26,26 @@ public class UnsetStep implements Action.Step {
    /**
     * Undefine variable name.
     */
-   public static class Builder extends ActionStepBuilder {
+   @MetaInfServices(Action.Builder.class)
+   @Name("unset")
+   public static class Builder extends ActionStepBuilder implements InitFromParam<Builder> {
       private String var;
+
+      public Builder() {
+      }
 
       public Builder(BaseSequenceBuilder parent) {
          super(parent);
       }
 
-      public Builder(String param) {
-         super(null);
+      /**
+       * @param param Variable name.
+       * @return Self.
+       */
+      @Override
+      public Builder init(String param) {
          var = param;
+         return this;
       }
 
       /**
@@ -51,29 +62,6 @@ public class UnsetStep implements Action.Step {
       @Override
       public UnsetStep build() {
          return new UnsetStep(var);
-      }
-   }
-
-   @MetaInfServices(Action.BuilderFactory.class)
-   public static class ActionFactory implements Action.BuilderFactory {
-      @Override
-      public String name() {
-         return "unset";
-      }
-
-      @Override
-      public boolean acceptsParam() {
-         return true;
-      }
-
-      /**
-       * @param locator Locator.
-       * @param param Variable name.
-       * @return Builder.
-       */
-      @Override
-      public UnsetStep.Builder newBuilder(Locator locator, String param) {
-         return new Builder(param);
       }
    }
 }

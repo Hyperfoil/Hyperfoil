@@ -5,8 +5,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.Test;
 
 public class RangeStatusValidatorTest {
-   RangeStatusValidator.BuilderFactory factory = new RangeStatusValidator.BuilderFactory();
-
    @Test
    public void test1() {
       RangeStatusValidator validator = create("200");
@@ -29,6 +27,6 @@ public class RangeStatusValidatorTest {
    }
 
    private RangeStatusValidator create(String inline) {
-      return factory.newBuilder(null, inline).build(null);
+      return new RangeStatusValidator.Builder().init(inline).build(null);
    }
 }

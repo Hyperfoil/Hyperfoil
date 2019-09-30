@@ -45,7 +45,7 @@ import io.hyperfoil.impl.StepCatalogFactory;
 /**
  * Helper class to gather well-known step builders
  */
-public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.Owner<StepBuilder, StepBuilder.Factory> {
+public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.Owner<StepBuilder> {
    private final BaseSequenceBuilder parent;
 
    StepCatalog(BaseSequenceBuilder parent) {
@@ -206,7 +206,7 @@ public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.O
    }
 
    public SetStep.Builder set() {
-      return new SetStep.Builder(parent, null);
+      return new SetStep.Builder(parent);
    }
 
    /**
@@ -216,7 +216,7 @@ public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.O
     * @return This sequence.
     */
    public BaseSequenceBuilder set(String param) {
-      return new SetStep.Builder(parent, param).endStep();
+      return new SetStep.Builder(parent).init(param).endStep();
    }
 
    /**
@@ -226,15 +226,15 @@ public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.O
     * @return This sequence.
     */
    public BaseSequenceBuilder setInt(String param) {
-      return new SetIntStep.Builder(parent, param).endStep();
+      return new SetIntStep.Builder(parent).init(param).endStep();
    }
 
    public SetIntStep.Builder setInt() {
-      return new SetIntStep.Builder(parent, null);
+      return new SetIntStep.Builder(parent);
    }
 
    public AddToIntStep.Builder addToInt() {
-      return new AddToIntStep.Builder(parent, null);
+      return new AddToIntStep.Builder(parent);
    }
 
    /**
@@ -244,7 +244,7 @@ public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.O
     * @return This sequence.
     */
    public BaseSequenceBuilder addToInt(String param) {
-      return new AddToIntStep.Builder(parent, param).endStep();
+      return new AddToIntStep.Builder(parent).init(param).endStep();
    }
 
    public <T> PollStep.Builder<T> poll(Function<Session, T> provider, String intoVar) {
@@ -293,8 +293,8 @@ public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.O
    }
 
    @Override
-   public ServiceLoadedBuilderProvider<StepBuilder, StepBuilder.Factory> serviceLoaded() {
-      return new ServiceLoadedBuilderProvider<>(StepBuilder.Factory.class, new Locator() {
+   public ServiceLoadedBuilderProvider<StepBuilder> serviceLoaded() {
+      return new ServiceLoadedBuilderProvider<>(StepBuilder.class, new Locator() {
          @Override
          public StepBuilder step() {
             throw new UnsupportedOperationException();

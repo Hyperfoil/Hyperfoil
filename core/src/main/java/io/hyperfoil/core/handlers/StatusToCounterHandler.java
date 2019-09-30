@@ -3,7 +3,7 @@ package io.hyperfoil.core.handlers;
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
-import io.hyperfoil.api.config.Locator;
+import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.http.StatusHandler;
@@ -54,6 +54,8 @@ public class StatusToCounterHandler implements StatusHandler, ResourceUtilizer {
    /**
     * Counts how many times given status is received.
     */
+   @MetaInfServices(StatusHandler.Builder.class)
+   @Name("counter")
    public static class Builder implements StatusHandler.Builder {
       private Integer expectStatus;
       private String var;
@@ -124,24 +126,6 @@ public class StatusToCounterHandler implements StatusHandler, ResourceUtilizer {
             throw new BenchmarkDefinitionException("Use either 'add' or 'set'");
          }
          return new StatusToCounterHandler(expectStatus, var, init, add, set);
-      }
-   }
-
-   @MetaInfServices(StatusHandler.BuilderFactory.class)
-   public static class BuilderFactory implements StatusHandler.BuilderFactory {
-      @Override
-      public String name() {
-         return "counter";
-      }
-
-      @Override
-      public boolean acceptsParam() {
-         return false;
-      }
-
-      @Override
-      public Builder newBuilder(Locator locator, String param) {
-         return new Builder();
       }
    }
 }

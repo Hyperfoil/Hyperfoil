@@ -4,7 +4,7 @@ import org.kohsuke.MetaInfServices;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.hyperfoil.api.config.Locator;
+import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.http.BodyHandler;
@@ -34,6 +34,8 @@ public class LogInvalidHandler implements BodyHandler, HeaderHandler {
    /**
     * Logs body chunks from requests marked as invalid.
     */
+   @MetaInfServices(BodyHandler.Builder.class)
+   @Name("logInvalid")
    public static class BodyHandlerBuilder implements BodyHandler.Builder {
       @Override
       public LogInvalidHandler build(SerializableSupplier<? extends Step> step) {
@@ -44,46 +46,12 @@ public class LogInvalidHandler implements BodyHandler, HeaderHandler {
    /**
     * Logs headers from requests marked as invalid.
     */
+   @MetaInfServices(HeaderHandler.Builder.class)
+   @Name("logInvalid")
    public static class HeaderHandlerBuilder implements HeaderHandler.Builder {
       @Override
       public LogInvalidHandler build(SerializableSupplier<? extends Step> step) {
          return new LogInvalidHandler();
-      }
-   }
-
-   @MetaInfServices(BodyHandler.BuilderFactory.class)
-   public static class BodyHandlerBuilderFactory implements BodyHandler.BuilderFactory {
-      @Override
-      public String name() {
-         return "logInvalid";
-      }
-
-      @Override
-      public boolean acceptsParam() {
-         return false;
-      }
-
-      @Override
-      public BodyHandlerBuilder newBuilder(Locator locator, String param) {
-         return new BodyHandlerBuilder();
-      }
-   }
-
-   @MetaInfServices(HeaderHandler.BuilderFactory.class)
-   public static class HeaderHandlerBuilderFactory implements HeaderHandler.BuilderFactory {
-      @Override
-      public String name() {
-         return "logInvalid";
-      }
-
-      @Override
-      public boolean acceptsParam() {
-         return false;
-      }
-
-      @Override
-      public HeaderHandlerBuilder newBuilder(Locator locator, String param) {
-         return new HeaderHandlerBuilder();
       }
    }
 }
