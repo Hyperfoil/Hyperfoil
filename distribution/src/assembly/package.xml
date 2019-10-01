@@ -1,11 +1,11 @@
 <project name="hyperfoil-package" basedir="." default="package">
-    <property name="root.dir" value=".." />
-    <property name="dist.dir" value="${project.build.directory}/distribution" />
+    <property name="root.dir" value=".."/>
+    <property name="dist.dir" value="${project.build.directory}/distribution"/>
 
-    <target name="package" depends="clean, all" />
+    <target name="package" depends="clean, all"/>
 
     <target name="clean">
-        <delete dir="${dist.dir}" />
+        <delete dir="${dist.dir}"/>
     </target>
 
     <target name="all">
@@ -28,7 +28,7 @@
 
         <chmod perm="755">
             <fileset dir="${dist.dir}/bin">
-                <include name="**/*.sh" />
+                <include name="**/*.sh"/>
             </fileset>
         </chmod>
 
@@ -46,10 +46,10 @@
     </target>
 
     <macrodef name="copy-module">
-        <attribute name="module" />
+        <attribute name="module"/>
         <sequential>
             <copy todir="${dist.dir}/lib" failonerror="true" flatten="true">
-                <file file="${io.hyperfoil:hyperfoil-@{module}:jar}" />
+                <file file="${io.hyperfoil:hyperfoil-@{module}:jar}"/>
                 <fileset dir="${root.dir}/@{module}/target/dependency"/>
             </copy>
         </sequential>

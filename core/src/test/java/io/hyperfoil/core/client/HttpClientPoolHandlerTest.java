@@ -36,6 +36,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServer;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -60,60 +61,60 @@ public class HttpClientPoolHandlerTest {
       }).listen(0, "localhost", ctx.asyncAssertSuccess());
    }
 
-    @After
-    public void after(TestContext ctx) {
-        vertx.close(ctx.asyncAssertSuccess());
-    }
+   @After
+   public void after(TestContext ctx) {
+      vertx.close(ctx.asyncAssertSuccess());
+   }
 
-    @Test
-    public void simpleHeaderRequest(TestContext ctx) throws Exception {
-        HttpClientPool client = new HttpClientPoolImpl(1,
-              HttpBuilder.forTesting().host("localhost").port(httpServer.actualPort()).build(true));
+   @Test
+   public void simpleHeaderRequest(TestContext ctx) throws Exception {
+      HttpClientPool client = new HttpClientPoolImpl(1,
+            HttpBuilder.forTesting().host("localhost").port(httpServer.actualPort()).build(true));
 
-        CountDownLatch startLatch = new CountDownLatch(1);
-        client.start(result -> {
-           if (result.failed()) {
-              ctx.fail(result.cause());
-           } else {
-              startLatch.countDown();
-           }
-        });
-        assertThat(startLatch.await(10, TimeUnit.SECONDS)).isTrue();
+      CountDownLatch startLatch = new CountDownLatch(1);
+      client.start(result -> {
+         if (result.failed()) {
+            ctx.fail(result.cause());
+         } else {
+            startLatch.countDown();
+         }
+      });
+      assertThat(startLatch.await(10, TimeUnit.SECONDS)).isTrue();
 
 
-        CountDownLatch latch = new CountDownLatch(4);
-        HttpConnectionPool pool = client.next();
-        pool.executor().execute(() -> {
-           Session session = SessionFactory.forTesting();
-           HttpRequest request = session.httpRequestPool().acquire();
-           HttpResponseHandlersImpl handlers = HttpResponseHandlersImpl.Builder.forTesting()
-                 .status((r, code) -> {
-                    assertThat(code).isEqualTo(200);
-                    latch.countDown();
-                 })
-                 .header((req, header, value) -> {
-                    if ("foo".equals(header)) {
-                       assertThat(value).isEqualTo("bar");
-                       latch.countDown();
-                    }
-                 })
-                 .body((r, input) -> {
-                    byte[] bytes = new byte[input.readableBytes()];
-                    input.readBytes(bytes, 0, bytes.length);
-                    assertThat(new String(bytes)).isEqualTo("hello from server");
-                    latch.countDown();
-                 })
-                 .onCompletion(s -> latch.countDown())
-                 .build(null);
-           request.method = HttpMethod.GET;
-           request.path = "/";
-           request.start(handlers, new SequenceInstance(), new Statistics(System.currentTimeMillis()));
-           pool.request(request, null, null);
-        });
+      CountDownLatch latch = new CountDownLatch(4);
+      HttpConnectionPool pool = client.next();
+      pool.executor().execute(() -> {
+         Session session = SessionFactory.forTesting();
+         HttpRequest request = session.httpRequestPool().acquire();
+         HttpResponseHandlersImpl handlers = HttpResponseHandlersImpl.Builder.forTesting()
+               .status((r, code) -> {
+                  assertThat(code).isEqualTo(200);
+                  latch.countDown();
+               })
+               .header((req, header, value) -> {
+                  if ("foo".equals(header)) {
+                     assertThat(value).isEqualTo("bar");
+                     latch.countDown();
+                  }
+               })
+               .body((r, input) -> {
+                  byte[] bytes = new byte[input.readableBytes()];
+                  input.readBytes(bytes, 0, bytes.length);
+                  assertThat(new String(bytes)).isEqualTo("hello from server");
+                  latch.countDown();
+               })
+               .onCompletion(s -> latch.countDown())
+               .build(null);
+         request.method = HttpMethod.GET;
+         request.path = "/";
+         request.start(handlers, new SequenceInstance(), new Statistics(System.currentTimeMillis()));
+         pool.request(request, null, null);
+      });
 
-        assertThat(latch.await(3, TimeUnit.SECONDS)).isTrue();
-        assertThat(count).isEqualTo(1);
+      assertThat(latch.await(3, TimeUnit.SECONDS)).isTrue();
+      assertThat(count).isEqualTo(1);
 
-        client.shutdown();
-    }
+      client.shutdown();
+   }
 }

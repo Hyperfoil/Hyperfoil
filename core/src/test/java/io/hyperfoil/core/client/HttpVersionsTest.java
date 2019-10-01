@@ -49,22 +49,22 @@ public class HttpVersionsTest extends VertxBaseTest {
 
    @Test
    public void testAlpnForceHttp2(TestContext ctx) throws Exception {
-      test(ctx, true, new HttpVersion[]{HttpVersion.HTTP_2_0}, HTTP2_ONLY, 200);
+      test(ctx, true, new HttpVersion[]{ HttpVersion.HTTP_2_0 }, HTTP2_ONLY, 200);
    }
 
    @Test
    public void testAlpnForceHttp2ServerKeep(TestContext ctx) throws Exception {
-      test(ctx, true, new HttpVersion[]{HttpVersion.HTTP_2_0}, HTTP1x_ONLY, 500);
+      test(ctx, true, new HttpVersion[]{ HttpVersion.HTTP_2_0 }, HTTP1x_ONLY, 500);
    }
 
    @Test
    public void testAlpnForceHttp1x(TestContext ctx) throws Exception {
-      test(ctx, true, new HttpVersion[]{HttpVersion.HTTP_1_1}, HTTP2_ONLY, 500);
+      test(ctx, true, new HttpVersion[]{ HttpVersion.HTTP_1_1 }, HTTP2_ONLY, 500);
    }
 
    @Test
    public void testH2cUpgrade(TestContext ctx) throws Exception {
-      test(ctx, false, new HttpVersion[]{HttpVersion.HTTP_2_0}, HTTP2_ONLY, 200);
+      test(ctx, false, new HttpVersion[]{ HttpVersion.HTTP_2_0 }, HTTP2_ONLY, 200);
    }
 
    @Test
@@ -79,7 +79,7 @@ public class HttpVersionsTest extends VertxBaseTest {
 
    @Test
    public void testCleartextForceHttp1x(TestContext ctx) throws Exception {
-      test(ctx, false, new HttpVersion[]{HttpVersion.HTTP_1_1}, HTTP2_ONLY, 500);
+      test(ctx, false, new HttpVersion[]{ HttpVersion.HTTP_1_1 }, HTTP2_ONLY, 500);
    }
 
    private void test(TestContext ctx, boolean ssl, HttpVersion[] clientVersions, List<io.vertx.core.http.HttpVersion> serverVersions, int expectedStatus) throws Exception {

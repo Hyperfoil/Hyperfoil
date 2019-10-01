@@ -315,34 +315,34 @@ class ControllerServer {
             .filter(p -> !(p.definition() instanceof Phase.Noop))
             .sorted(PHASE_COMPARATOR)
             .map(phase -> {
-         Date phaseStarted = null, phaseTerminated = null;
-         StringBuilder remaining = null;
-         StringBuilder totalDuration = null;
-         if (phase.absoluteStartTime() > Long.MIN_VALUE) {
-            phaseStarted = new Date(phase.absoluteStartTime());
-            if (!phase.status().isTerminated()) {
-               remaining = new StringBuilder()
-                     .append(phase.definition().duration() - (now - phase.absoluteStartTime())).append(" ms");
-               if (phase.definition().maxDuration() >= 0) {
-                  remaining.append(" (")
-                        .append(phase.definition().maxDuration() - (now - phase.absoluteStartTime())).append(" ms)");
+               Date phaseStarted = null, phaseTerminated = null;
+               StringBuilder remaining = null;
+               StringBuilder totalDuration = null;
+               if (phase.absoluteStartTime() > Long.MIN_VALUE) {
+                  phaseStarted = new Date(phase.absoluteStartTime());
+                  if (!phase.status().isTerminated()) {
+                     remaining = new StringBuilder()
+                           .append(phase.definition().duration() - (now - phase.absoluteStartTime())).append(" ms");
+                     if (phase.definition().maxDuration() >= 0) {
+                        remaining.append(" (")
+                              .append(phase.definition().maxDuration() - (now - phase.absoluteStartTime())).append(" ms)");
+                     }
+                  } else {
+                     phaseTerminated = new Date(phase.absoluteCompletionTime());
+                     long totalDurationValue = phase.absoluteCompletionTime() - phase.absoluteStartTime();
+                     totalDuration = new StringBuilder().append(totalDurationValue).append(" ms");
+                     if (totalDurationValue > phase.definition().duration()) {
+                        totalDuration.append(" (exceeded by ").append(totalDurationValue - phase.definition().duration()).append(" ms)");
+                     }
+                  }
                }
-            } else {
-               phaseTerminated = new Date(phase.absoluteCompletionTime());
-               long totalDurationValue = phase.absoluteCompletionTime() - phase.absoluteStartTime();
-               totalDuration = new StringBuilder().append(totalDurationValue).append(" ms");
-               if (totalDurationValue > phase.definition().duration()) {
-                  totalDuration.append(" (exceeded by ").append(totalDurationValue - phase.definition().duration()).append(" ms)");
-               }
-            }
-         }
-         String type = phase.definition().getClass().getSimpleName();
-         type = Character.toLowerCase(type.charAt(0)) + type.substring(1);
-         return new Client.Phase(phase.definition().name(), phase.status().toString(), type,
-               phaseStarted, remaining == null ? null : remaining.toString(),
-               phaseTerminated, totalDuration == null ? null : totalDuration.toString(),
-               phase.definition().description());
-      }).collect(Collectors.toList());
+               String type = phase.definition().getClass().getSimpleName();
+               type = Character.toLowerCase(type.charAt(0)) + type.substring(1);
+               return new Client.Phase(phase.definition().name(), phase.status().toString(), type,
+                     phaseStarted, remaining == null ? null : remaining.toString(),
+                     phaseTerminated, totalDuration == null ? null : totalDuration.toString(),
+                     phase.definition().description());
+            }).collect(Collectors.toList());
       List<Client.Agent> agents = run.agents.stream()
             .map(ai -> new Client.Agent(ai.name, ai.deploymentId, ai.status.toString()))
             .collect(Collectors.toList());
@@ -403,7 +403,7 @@ class ControllerServer {
       return result -> {
          if (result.succeeded()) {
             response.setStatusCode(HttpResponseStatus.OK.code()).end();
-         } else if (result.cause() instanceof NoStackTraceThrowable){
+         } else if (result.cause() instanceof NoStackTraceThrowable) {
             response.setStatusCode(HttpResponseStatus.NOT_FOUND.code()).end();
          } else {
             response.setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code()).end(result.cause().getMessage());
@@ -597,7 +597,7 @@ class ControllerServer {
       if (force) {
          // We don't allow concurrent runs ATM, but...
          List<Future> futures = new ArrayList<>();
-         for (Run run: runs) {
+         for (Run run : runs) {
             Future<Void> future = Future.future();
             futures.add(future);
             controller.kill(run, result -> future.complete());

@@ -36,89 +36,89 @@ import java.io.IOException;
 
 public class HyperfoilCommandInvocation implements CommandInvocation {
 
-    private final CommandInvocation commandInvocation;
-    private final HyperfoilCliContext context;
+   private final CommandInvocation commandInvocation;
+   private final HyperfoilCliContext context;
 
-    HyperfoilCommandInvocation(HyperfoilCliContext context, CommandInvocation commandInvocation) {
-        this.context = context;
-        this.commandInvocation = commandInvocation;
-    }
+   HyperfoilCommandInvocation(HyperfoilCliContext context, CommandInvocation commandInvocation) {
+      this.context = context;
+      this.commandInvocation = commandInvocation;
+   }
 
-    public HyperfoilCliContext context() {
-        return context;
-    }
+   public HyperfoilCliContext context() {
+      return context;
+   }
 
-    @Override
-    public Shell getShell() {
-        return commandInvocation.getShell();
-    }
+   @Override
+   public Shell getShell() {
+      return commandInvocation.getShell();
+   }
 
-    @Override
-    public void setPrompt(Prompt prompt) {
-        commandInvocation.setPrompt(prompt);
-    }
+   @Override
+   public void setPrompt(Prompt prompt) {
+      commandInvocation.setPrompt(prompt);
+   }
 
-    @Override
-    public Prompt getPrompt() {
-        return commandInvocation.getPrompt();
-    }
+   @Override
+   public Prompt getPrompt() {
+      return commandInvocation.getPrompt();
+   }
 
-    @Override
-    public String getHelpInfo(String commandName) {
-        return commandInvocation.getHelpInfo(commandName);
-    }
+   @Override
+   public String getHelpInfo(String commandName) {
+      return commandInvocation.getHelpInfo(commandName);
+   }
 
-    @Override
-    public String getHelpInfo() {
-        return commandInvocation.getHelpInfo();
-    }
+   @Override
+   public String getHelpInfo() {
+      return commandInvocation.getHelpInfo();
+   }
 
-    @Override
-    public void stop() {
-        commandInvocation.stop();
-    }
+   @Override
+   public void stop() {
+      commandInvocation.stop();
+   }
 
-    @Override
-    public KeyAction input() throws InterruptedException {
-        return commandInvocation.input();
-    }
+   @Override
+   public KeyAction input() throws InterruptedException {
+      return commandInvocation.input();
+   }
 
-    @Override
-    public String inputLine() throws InterruptedException {
-        return commandInvocation.inputLine();
-    }
+   @Override
+   public String inputLine() throws InterruptedException {
+      return commandInvocation.inputLine();
+   }
 
-    @Override
-    public String inputLine(Prompt prompt) throws InterruptedException {
-        return commandInvocation.inputLine(prompt);
-    }
+   @Override
+   public String inputLine(Prompt prompt) throws InterruptedException {
+      return commandInvocation.inputLine(prompt);
+   }
 
-    @Override
-    public void executeCommand(String input) throws CommandNotFoundException,
-                                                            CommandLineParserException, OptionValidatorException,
-                                                            CommandValidatorException, CommandException, InterruptedException, IOException {
-        commandInvocation.executeCommand(input);
-    }
+   @Override
+   public void executeCommand(String input) throws CommandNotFoundException,
+         CommandLineParserException, OptionValidatorException,
+         CommandValidatorException, CommandException, InterruptedException, IOException {
+      commandInvocation.executeCommand(input);
+   }
 
-    @Override
-    public void print(String msg, boolean paging) {
-        commandInvocation.print(msg, paging);
-    }
+   @Override
+   public void print(String msg, boolean paging) {
+      commandInvocation.print(msg, paging);
+   }
 
-    @Override
-    public void println(String msg, boolean paging) {
-        commandInvocation.println(msg, paging);
-    }
+   @Override
+   public void println(String msg, boolean paging) {
+      commandInvocation.println(msg, paging);
+   }
 
-    @SuppressWarnings("unchecked")
-    @Override
-    public Executor<? extends CommandInvocation> buildExecutor(String line) throws CommandNotFoundException,
-            CommandLineParserException, OptionValidatorException, CommandValidatorException, IOException {
-        return commandInvocation.buildExecutor(line);
-    }
+   @SuppressWarnings("unchecked")
+   @Override
+   public Executor<? extends CommandInvocation> buildExecutor(String line) throws CommandNotFoundException,
+         CommandLineParserException, OptionValidatorException, CommandValidatorException, IOException {
+      return commandInvocation.buildExecutor(line);
+   }
 
-    @Override
-    public CommandInvocationConfiguration getConfiguration() {
-        return commandInvocation.getConfiguration();
-    }
+   @Override
+   public CommandInvocationConfiguration getConfiguration() {
+      return commandInvocation.getConfiguration();
+   }
 }

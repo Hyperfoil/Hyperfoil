@@ -24,8 +24,8 @@ import io.hyperfoil.client.RestClientException;
 import io.hyperfoil.core.util.Util;
 
 public abstract class ServerCommand implements Command<HyperfoilCommandInvocation> {
-   protected static final String MOVE_LINE_UP = new String(new byte[] {27, 91, 49, 65}, StandardCharsets.US_ASCII);
-   protected static final String ERASE_WHOLE_LINE = new String(new byte[]{27, 91, 50, 75}, StandardCharsets.US_ASCII);
+   protected static final String MOVE_LINE_UP = new String(new byte[]{ 27, 91, 49, 65 }, StandardCharsets.US_ASCII);
+   protected static final String ERASE_WHOLE_LINE = new String(new byte[]{ 27, 91, 50, 75 }, StandardCharsets.US_ASCII);
    protected static final String EDITOR;
    protected static final String PAGER;
 

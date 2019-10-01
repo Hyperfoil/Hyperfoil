@@ -56,7 +56,7 @@ public class SetStep implements Action.Step, ResourceUtilizer {
       }
 
       /**
-       * @param param  Use <code>var &lt;- value</code>.
+       * @param param Use <code>var &lt;- value</code>.
        * @return Self.
        */
       @Override
@@ -172,10 +172,11 @@ public class SetStep implements Action.Step, ResourceUtilizer {
          }
          // prevent capturing this object reference in the lambda
          int mySize = size;
-         return new ValueSupplier<>(session-> ObjectVar.newArray(session, mySize), array -> {
+         return new ValueSupplier<>(session -> ObjectVar.newArray(session, mySize), array -> {
             for (int i = 0; i < array.length; ++i) {
                array[i].unset();
-            };
+            }
+            ;
          });
       }
    }

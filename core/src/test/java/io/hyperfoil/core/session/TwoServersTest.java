@@ -40,9 +40,9 @@ public class TwoServersTest extends BaseScenarioTest {
       secondRouter.route("/test").handler(context -> context.response().setStatusCode(300).end());
       secondServer = vertx.createHttpServer().requestHandler(secondRouter)
             .listen(0, "localhost", ctx.asyncAssertSuccess(srv -> {
-         benchmarkBuilder
-               .http("http://localhost:" + secondServer.actualPort()).endHttp();
-      }));
+               benchmarkBuilder
+                     .http("http://localhost:" + secondServer.actualPort()).endHttp();
+            }));
    }
 
    @Test

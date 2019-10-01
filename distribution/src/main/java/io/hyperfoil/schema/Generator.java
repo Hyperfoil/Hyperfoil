@@ -258,7 +258,7 @@ public class Generator extends BaseGenerator {
          return;
       }
       JsonArray oneOf = existingProperty.getJsonArray("oneOf");
-      if (oneOf == null){
+      if (oneOf == null) {
          properties.put(name, new JsonObject().put("oneOf", new JsonArray().add(existingProperty).add(newProperty)));
       } else {
          oneOf.add(newProperty);

@@ -22,9 +22,9 @@ import java.io.Serializable;
 import java.util.Map;
 
 public class Agent implements Serializable {
-    public final String name;
-    public final String inlineConfig;
-    public final Map<String, String> properties;
+   public final String name;
+   public final String inlineConfig;
+   public final Map<String, String> properties;
 
    public Agent(String name, String inlineConfig, Map<String, String> properties) {
       this.name = name;

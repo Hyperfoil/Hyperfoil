@@ -35,317 +35,317 @@ import java.util.List;
  */
 public class HttpBuilder {
 
-    private final BenchmarkBuilder parent;
-    private Http http;
-    private Protocol protocol;
-    private String host;
-    private int port = -1;
-    private List<String> addresses = new ArrayList<>();
-    private boolean allowHttp1x = true;
-    private boolean allowHttp2 = true;
-    private int sharedConnections = 1;
-    private int maxHttp2Streams = 100;
-    private int pipeliningLimit = 1;
-    private boolean directHttp2 = false;
-    private long requestTimeout = 30000;
-    private boolean rawBytesHandlers = true;
-    private KeyManagerBuilder keyManager = new KeyManagerBuilder();
-    private TrustManagerBuilder trustManager = new TrustManagerBuilder();
+   private final BenchmarkBuilder parent;
+   private Http http;
+   private Protocol protocol;
+   private String host;
+   private int port = -1;
+   private List<String> addresses = new ArrayList<>();
+   private boolean allowHttp1x = true;
+   private boolean allowHttp2 = true;
+   private int sharedConnections = 1;
+   private int maxHttp2Streams = 100;
+   private int pipeliningLimit = 1;
+   private boolean directHttp2 = false;
+   private long requestTimeout = 30000;
+   private boolean rawBytesHandlers = true;
+   private KeyManagerBuilder keyManager = new KeyManagerBuilder();
+   private TrustManagerBuilder trustManager = new TrustManagerBuilder();
 
-    public static HttpBuilder forTesting() {
-        return new HttpBuilder(null);
-    }
+   public static HttpBuilder forTesting() {
+      return new HttpBuilder(null);
+   }
 
-    HttpBuilder(BenchmarkBuilder parent) {
-        this.parent = parent;
-    }
+   HttpBuilder(BenchmarkBuilder parent) {
+      this.parent = parent;
+   }
 
-    String authority() {
-        if (host == null) {
-            return null;
-        } else if (protocol != null) {
-            return host + ":" + protocol.portOrDefault(port);
-        } else {
-            return host + ":" + Protocol.fromPort(port).portOrDefault(port);
-        }
-    }
+   String authority() {
+      if (host == null) {
+         return null;
+      } else if (protocol != null) {
+         return host + ":" + protocol.portOrDefault(port);
+      } else {
+         return host + ":" + Protocol.fromPort(port).portOrDefault(port);
+      }
+   }
 
-    public HttpBuilder protocol(Protocol protocol) {
-        if (this.protocol != null) {
-            throw new BenchmarkDefinitionException("Duplicate 'protocol'");
-        }
-        this.protocol = protocol;
-        return this;
-    }
+   public HttpBuilder protocol(Protocol protocol) {
+      if (this.protocol != null) {
+         throw new BenchmarkDefinitionException("Duplicate 'protocol'");
+      }
+      this.protocol = protocol;
+      return this;
+   }
 
-    public HttpBuilder host(String host) {
-        if (this.host != null) {
-            throw new BenchmarkDefinitionException("Duplicate 'host'. Are you missing '-'s?");
-        }
-        int lastColon = host.lastIndexOf(':');
-        if (lastColon < 0) {
-            this.host = host;
-            return this;
-        }
-        int firstColon = host.indexOf(':');
-        if (firstColon == lastColon) {
-            String maybePort = host.substring(lastColon + 1);
-            try {
-                this.port = Integer.parseInt(maybePort);
-                this.host = host.substring(0, lastColon);
-            } catch (NumberFormatException e) {
-                this.protocol = Protocol.fromScheme(host.substring(0, firstColon));
-                this.host = host.substring(firstColon + 3);
-            }
-        } else {
+   public HttpBuilder host(String host) {
+      if (this.host != null) {
+         throw new BenchmarkDefinitionException("Duplicate 'host'. Are you missing '-'s?");
+      }
+      int lastColon = host.lastIndexOf(':');
+      if (lastColon < 0) {
+         this.host = host;
+         return this;
+      }
+      int firstColon = host.indexOf(':');
+      if (firstColon == lastColon) {
+         String maybePort = host.substring(lastColon + 1);
+         try {
+            this.port = Integer.parseInt(maybePort);
+            this.host = host.substring(0, lastColon);
+         } catch (NumberFormatException e) {
             this.protocol = Protocol.fromScheme(host.substring(0, firstColon));
-            this.host = host.substring(firstColon + 3, lastColon);
-            String portString = host.substring(lastColon + 1);
-            this.port = Integer.parseInt(portString);
-        }
-        return this;
-    }
+            this.host = host.substring(firstColon + 3);
+         }
+      } else {
+         this.protocol = Protocol.fromScheme(host.substring(0, firstColon));
+         this.host = host.substring(firstColon + 3, lastColon);
+         String portString = host.substring(lastColon + 1);
+         this.port = Integer.parseInt(portString);
+      }
+      return this;
+   }
 
-    public HttpBuilder port(int port) {
-        if (this.port > 0) {
-            throw new BenchmarkDefinitionException("Duplicate 'port'");
-        }
-        this.port = port;
-        return this;
-    }
+   public HttpBuilder port(int port) {
+      if (this.port > 0) {
+         throw new BenchmarkDefinitionException("Duplicate 'port'");
+      }
+      this.port = port;
+      return this;
+   }
 
 
-    public HttpBuilder allowHttp1x(boolean allowHttp1x) {
-        this.allowHttp1x = allowHttp1x;
-        return this;
-    }
+   public HttpBuilder allowHttp1x(boolean allowHttp1x) {
+      this.allowHttp1x = allowHttp1x;
+      return this;
+   }
 
-    public HttpBuilder allowHttp2(boolean allowHttp2) {
-        this.allowHttp2 = allowHttp2;
-        return this;
-    }
+   public HttpBuilder allowHttp2(boolean allowHttp2) {
+      this.allowHttp2 = allowHttp2;
+      return this;
+   }
 
-    public BenchmarkBuilder endHttp() {
-        return parent;
-    }
+   public BenchmarkBuilder endHttp() {
+      return parent;
+   }
 
-    public HttpBuilder sharedConnections(int sharedConnections) {
-        this.sharedConnections = sharedConnections;
-        return this;
-    }
+   public HttpBuilder sharedConnections(int sharedConnections) {
+      this.sharedConnections = sharedConnections;
+      return this;
+   }
 
-    public HttpBuilder maxHttp2Streams(int maxStreams) {
-        this.maxHttp2Streams = maxStreams;
-        return this;
-    }
+   public HttpBuilder maxHttp2Streams(int maxStreams) {
+      this.maxHttp2Streams = maxStreams;
+      return this;
+   }
 
-    public HttpBuilder pipeliningLimit(int limit) {
-        this.pipeliningLimit = limit;
-        return this;
-    }
+   public HttpBuilder pipeliningLimit(int limit) {
+      this.pipeliningLimit = limit;
+      return this;
+   }
 
-    public HttpBuilder directHttp2(boolean directHttp2) {
-        this.directHttp2 = directHttp2;
-        return this;
-    }
+   public HttpBuilder directHttp2(boolean directHttp2) {
+      this.directHttp2 = directHttp2;
+      return this;
+   }
 
-    public HttpBuilder requestTimeout(long requestTimeout) {
-        this.requestTimeout = requestTimeout;
-        return this;
-    }
+   public HttpBuilder requestTimeout(long requestTimeout) {
+      this.requestTimeout = requestTimeout;
+      return this;
+   }
 
-    public HttpBuilder requestTimeout(String requestTimeout) {
-        if ("none".equals(requestTimeout)) {
-            this.requestTimeout = -1;
-        } else {
-            this.requestTimeout = Util.parseToMillis(requestTimeout);
-        }
-        return this;
-    }
+   public HttpBuilder requestTimeout(String requestTimeout) {
+      if ("none".equals(requestTimeout)) {
+         this.requestTimeout = -1;
+      } else {
+         this.requestTimeout = Util.parseToMillis(requestTimeout);
+      }
+      return this;
+   }
 
-    public long requestTimeout() {
-        return requestTimeout;
-    }
+   public long requestTimeout() {
+      return requestTimeout;
+   }
 
-    public HttpBuilder addAddress(String address) {
-        addresses.add(address);
-        return this;
-    }
+   public HttpBuilder addAddress(String address) {
+      addresses.add(address);
+      return this;
+   }
 
-    public HttpBuilder rawBytesHandlers(boolean rawBytesHandlers) {
-        this.rawBytesHandlers = rawBytesHandlers;
-        return this;
-    }
+   public HttpBuilder rawBytesHandlers(boolean rawBytesHandlers) {
+      this.rawBytesHandlers = rawBytesHandlers;
+      return this;
+   }
 
-    public KeyManagerBuilder keyManager() {
-        return keyManager;
-    }
+   public KeyManagerBuilder keyManager() {
+      return keyManager;
+   }
 
-    public TrustManagerBuilder trustManager() {
-        return trustManager;
-    }
+   public TrustManagerBuilder trustManager() {
+      return trustManager;
+   }
 
-    public void prepareBuild() {
-    }
+   public void prepareBuild() {
+   }
 
-    public Http build(boolean isDefault) {
-        if (http != null) {
-            if (isDefault != http.isDefault()) {
-                throw new IllegalArgumentException("Already built as isDefault=" + http.isDefault());
-            }
-            return http;
-        }
-        List<HttpVersion> httpVersions = new ArrayList<>();
-        // The order is important here because it will be provided to the ALPN
-        if (allowHttp2) {
-            httpVersions.add(HttpVersion.HTTP_2_0);
-        }
-        if (allowHttp1x) {
-            httpVersions.add(HttpVersion.HTTP_1_1);
-            httpVersions.add(HttpVersion.HTTP_1_0);
-        }
-        if (directHttp2) {
-            throw new UnsupportedOperationException("Direct HTTP/2 not implemented");
-        }
-        Protocol protocol = this.protocol != null ? this.protocol : Protocol.fromPort(port);
-        return http = new Http(isDefault, protocol, host, protocol.portOrDefault(port), addresses.toArray(new String[0]),
-              httpVersions.toArray(new HttpVersion[0]), maxHttp2Streams, pipeliningLimit,
-              sharedConnections, directHttp2, requestTimeout, rawBytesHandlers, keyManager.build(), trustManager.build());
-    }
+   public Http build(boolean isDefault) {
+      if (http != null) {
+         if (isDefault != http.isDefault()) {
+            throw new IllegalArgumentException("Already built as isDefault=" + http.isDefault());
+         }
+         return http;
+      }
+      List<HttpVersion> httpVersions = new ArrayList<>();
+      // The order is important here because it will be provided to the ALPN
+      if (allowHttp2) {
+         httpVersions.add(HttpVersion.HTTP_2_0);
+      }
+      if (allowHttp1x) {
+         httpVersions.add(HttpVersion.HTTP_1_1);
+         httpVersions.add(HttpVersion.HTTP_1_0);
+      }
+      if (directHttp2) {
+         throw new UnsupportedOperationException("Direct HTTP/2 not implemented");
+      }
+      Protocol protocol = this.protocol != null ? this.protocol : Protocol.fromPort(port);
+      return http = new Http(isDefault, protocol, host, protocol.portOrDefault(port), addresses.toArray(new String[0]),
+            httpVersions.toArray(new HttpVersion[0]), maxHttp2Streams, pipeliningLimit,
+            sharedConnections, directHttp2, requestTimeout, rawBytesHandlers, keyManager.build(), trustManager.build());
+   }
 
-    public class KeyManagerBuilder {
-        private String storeType = "JKS";
-        private byte[] storeBytes;
-        private String password;
-        private String alias;
-        private byte[] certBytes;
-        private byte[] keyBytes;
+   public class KeyManagerBuilder {
+      private String storeType = "JKS";
+      private byte[] storeBytes;
+      private String password;
+      private String alias;
+      private byte[] certBytes;
+      private byte[] keyBytes;
 
-        public KeyManagerBuilder storeType(String type) {
-            this.storeType = type;
-            return this;
-        }
+      public KeyManagerBuilder storeType(String type) {
+         this.storeType = type;
+         return this;
+      }
 
-        public KeyManagerBuilder storeFile(String filename) {
-            try {
-                this.storeBytes = readBytes(filename);
-            } catch (IOException e) {
-                throw new BenchmarkDefinitionException("Cannot read key store file " + filename, e);
-            }
-            return this;
-        }
+      public KeyManagerBuilder storeFile(String filename) {
+         try {
+            this.storeBytes = readBytes(filename);
+         } catch (IOException e) {
+            throw new BenchmarkDefinitionException("Cannot read key store file " + filename, e);
+         }
+         return this;
+      }
 
-        public KeyManagerBuilder storeBytes(byte[] storeBytes) {
-            this.storeBytes = storeBytes;
-            return this;
-        }
+      public KeyManagerBuilder storeBytes(byte[] storeBytes) {
+         this.storeBytes = storeBytes;
+         return this;
+      }
 
-        public KeyManagerBuilder password(String password) {
-            this.password = password;
-            return this;
-        }
+      public KeyManagerBuilder password(String password) {
+         this.password = password;
+         return this;
+      }
 
-        public KeyManagerBuilder alias(String alias) {
-            this.alias = alias;
-            return this;
-        }
+      public KeyManagerBuilder alias(String alias) {
+         this.alias = alias;
+         return this;
+      }
 
-        public KeyManagerBuilder certFile(String certFile) {
-            try {
-                this.certBytes = readBytes(certFile);
-            } catch (IOException e) {
-                throw new BenchmarkDefinitionException("Cannot read certificate file " + certFile, e);
-            }
-            return this;
-        }
+      public KeyManagerBuilder certFile(String certFile) {
+         try {
+            this.certBytes = readBytes(certFile);
+         } catch (IOException e) {
+            throw new BenchmarkDefinitionException("Cannot read certificate file " + certFile, e);
+         }
+         return this;
+      }
 
-        public KeyManagerBuilder certBytes(byte[] certBytes) {
-            this.certBytes = certBytes;
-            return this;
-        }
+      public KeyManagerBuilder certBytes(byte[] certBytes) {
+         this.certBytes = certBytes;
+         return this;
+      }
 
-        public KeyManagerBuilder keyFile(String keyFile) {
-            try {
-                this.keyBytes = readBytes(keyFile);
-            } catch (IOException e) {
-                throw new BenchmarkDefinitionException("Cannot read private key file " + keyFile, e);
-            }
-            return this;
-        }
+      public KeyManagerBuilder keyFile(String keyFile) {
+         try {
+            this.keyBytes = readBytes(keyFile);
+         } catch (IOException e) {
+            throw new BenchmarkDefinitionException("Cannot read private key file " + keyFile, e);
+         }
+         return this;
+      }
 
-        public KeyManagerBuilder keyBytes(byte[] keyBytes) {
-            this.keyBytes = keyBytes;
-            return this;
-        }
+      public KeyManagerBuilder keyBytes(byte[] keyBytes) {
+         this.keyBytes = keyBytes;
+         return this;
+      }
 
-        public HttpBuilder end() {
-            return HttpBuilder.this;
-        }
+      public HttpBuilder end() {
+         return HttpBuilder.this;
+      }
 
-        public Http.KeyManager build() {
-            return new Http.KeyManager(storeType, storeBytes, password, alias, certBytes, keyBytes);
-        }
-    }
+      public Http.KeyManager build() {
+         return new Http.KeyManager(storeType, storeBytes, password, alias, certBytes, keyBytes);
+      }
+   }
 
-    public class TrustManagerBuilder {
-        private String storeType = "JKS";
-        private byte[] storeBytes;
-        private String password;
-        private byte[] certBytes;
+   public class TrustManagerBuilder {
+      private String storeType = "JKS";
+      private byte[] storeBytes;
+      private String password;
+      private byte[] certBytes;
 
-        public TrustManagerBuilder storeType(String type) {
-            this.storeType = type;
-            return this;
-        }
+      public TrustManagerBuilder storeType(String type) {
+         this.storeType = type;
+         return this;
+      }
 
-        public TrustManagerBuilder storeFile(String filename) {
-            try {
-                this.storeBytes = readBytes(filename);
-            } catch (IOException e) {
-                throw new BenchmarkDefinitionException("Cannot read keystore file " + filename, e);
-            }
-            return this;
-        }
+      public TrustManagerBuilder storeFile(String filename) {
+         try {
+            this.storeBytes = readBytes(filename);
+         } catch (IOException e) {
+            throw new BenchmarkDefinitionException("Cannot read keystore file " + filename, e);
+         }
+         return this;
+      }
 
-        public TrustManagerBuilder storeBytes(byte[] storeBytes) {
-            this.storeBytes = storeBytes;
-            return this;
-        }
+      public TrustManagerBuilder storeBytes(byte[] storeBytes) {
+         this.storeBytes = storeBytes;
+         return this;
+      }
 
-        public TrustManagerBuilder password(String password) {
-            this.password = password;
-            return this;
-        }
+      public TrustManagerBuilder password(String password) {
+         this.password = password;
+         return this;
+      }
 
-        public TrustManagerBuilder certFile(String certFile) {
-            try {
-                this.certBytes = readBytes(certFile);
-            } catch (IOException e) {
-                throw new BenchmarkDefinitionException("Cannot read certificate file " + certFile, e);
-            }
-            return this;
-        }
+      public TrustManagerBuilder certFile(String certFile) {
+         try {
+            this.certBytes = readBytes(certFile);
+         } catch (IOException e) {
+            throw new BenchmarkDefinitionException("Cannot read certificate file " + certFile, e);
+         }
+         return this;
+      }
 
-        public TrustManagerBuilder certBytes(byte[] certBytes) {
-            this.certBytes = certBytes;
-            return this;
-        }
+      public TrustManagerBuilder certBytes(byte[] certBytes) {
+         this.certBytes = certBytes;
+         return this;
+      }
 
-        public HttpBuilder end() {
-            return HttpBuilder.this;
-        }
+      public HttpBuilder end() {
+         return HttpBuilder.this;
+      }
 
-        public Http.TrustManager build() {
-            return new Http.TrustManager(storeType, storeBytes, password, certBytes);
-        }
-    }
+      public Http.TrustManager build() {
+         return new Http.TrustManager(storeType, storeBytes, password, certBytes);
+      }
+   }
 
-    private static byte[] readBytes(String filename) throws IOException {
-        try (InputStream stream = Thread.currentThread().getContextClassLoader().getResourceAsStream(filename)) {
-            if (stream != null) {
-                return Util.toByteArray(stream);
-            }
-        }
-        return Files.readAllBytes(Paths.get(filename));
-    }
+   private static byte[] readBytes(String filename) throws IOException {
+      try (InputStream stream = Thread.currentThread().getContextClassLoader().getResourceAsStream(filename)) {
+         if (stream != null) {
+            return Util.toByteArray(stream);
+         }
+      }
+      return Files.readAllBytes(Paths.get(filename));
+   }
 }

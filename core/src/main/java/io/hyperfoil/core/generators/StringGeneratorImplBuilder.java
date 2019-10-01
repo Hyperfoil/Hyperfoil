@@ -13,6 +13,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
 // To be recognized as a builder by Generator the class name must end with 'Builder'
+
 /**
  * Generic builder for generating a string.
  */

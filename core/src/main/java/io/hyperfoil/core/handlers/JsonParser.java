@@ -66,7 +66,7 @@ public abstract class JsonParser<S> implements Serializable {
 
    private static int bytesToInt(byte[] bytes, int start, int end) {
       int value = 0;
-      for (;;) {
+      for (; ; ) {
          if (bytes[start] < '0' || bytes[start] > '9') {
             throw new BenchmarkDefinitionException("Invalid range specification: " + new String(bytes));
          }
@@ -353,7 +353,8 @@ public abstract class JsonParser<S> implements Serializable {
             // valueStartIndex is always before quotes here
             ByteStream buf = valueStartPart < 0 ? data : parts[valueStartPart];
             buf = tryAdvanceValueStart(data, buf);
-            LOOP: while (valueStartIndex < buf.writerIndex() || valueStartPart != -1) {
+            LOOP:
+            while (valueStartIndex < buf.writerIndex() || valueStartPart != -1) {
                switch (buf.getByte(valueStartIndex)) {
                   case ' ':
                   case '\n':
@@ -374,7 +375,8 @@ public abstract class JsonParser<S> implements Serializable {
                buf = parts[endPart];
                end = buf.writerIndex();
             }
-            LOOP: while (end > valueStartIndex || valueStartPart >= 0 && endPart > valueStartPart) {
+            LOOP:
+            while (end > valueStartIndex || valueStartPart >= 0 && endPart > valueStartPart) {
                switch (buf.getByte(end - 1)) {
                   case ' ':
                   case '\n':

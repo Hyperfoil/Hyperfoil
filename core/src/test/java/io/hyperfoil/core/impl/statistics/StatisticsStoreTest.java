@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.BenchmarkData;
@@ -15,6 +16,7 @@ import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.core.builders.StepCatalog;
 import io.hyperfoil.core.steps.HttpRequestStep;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -50,9 +52,9 @@ public class StatisticsStoreTest {
       ErgonomicsBuilder ergonomicsBuilder = new ErgonomicsBuilder();
       ergonomicsBuilder.repeatCookies(true).userAgentFromSession(true);
       Benchmark benchmark = new BenchmarkBuilder("originalSource", BenchmarkData.EMPTY)
-         .name("benchmarkName")
-         .http().host("localhost").endHttp()
-         .build();
+            .name("benchmarkName")
+            .http().host("localhost").endHttp()
+            .build();
       StatisticsStore store = new StatisticsStore(benchmark, failure -> {
       });
 
@@ -78,32 +80,32 @@ public class StatisticsStoreTest {
       ErgonomicsBuilder ergonomicsBuilder = new ErgonomicsBuilder();
       ergonomicsBuilder.repeatCookies(true).userAgentFromSession(true);
       Benchmark benchmark = new BenchmarkBuilder("originalSource", BenchmarkData.EMPTY)
-         .name("benchmarkName")
-         .http().host("localhost").endHttp()
-         .addPhase("phaseName/001/test").always(1)
-         .duration(60_000)
-         .scenario().initialSequence("test")
-         .step(StepCatalog.class).httpRequest(HttpMethod.GET)
-         .sla().addItem().meanResponseTime(1, TimeUnit.MILLISECONDS).endSLA().endList()
-         .endStep()
-         .endSequence().endScenario()
-         .endPhase()
-         .build();
+            .name("benchmarkName")
+            .http().host("localhost").endHttp()
+            .addPhase("phaseName/001/test").always(1)
+            .duration(60_000)
+            .scenario().initialSequence("test")
+            .step(StepCatalog.class).httpRequest(HttpMethod.GET)
+            .sla().addItem().meanResponseTime(1, TimeUnit.MILLISECONDS).endSLA().endList()
+            .endStep()
+            .endSequence().endScenario()
+            .endPhase()
+            .build();
       Phase phase = benchmark.phases().stream().findAny().get();
       HttpRequestStep step = (HttpRequestStep) Stream.of(phase.scenario().sequences())
-         .flatMap(s -> Stream.of(s.steps()))
-         .filter(HttpRequestStep.class::isInstance)
-         .findAny().get();
+            .flatMap(s -> Stream.of(s.steps()))
+            .filter(HttpRequestStep.class::isInstance)
+            .findAny().get();
 
       StatisticsStore store = new StatisticsStore(benchmark, failure -> {
       });
 
       store.record("address", phase.id(), step.id(), "metric1",
-         makeSnapshot(101, 0 * 60_000, 1 * 60_000, 1_000, 10_000, 30_000, 60_000, 120_000, 666_000_000)
+            makeSnapshot(101, 0 * 60_000, 1 * 60_000, 1_000, 10_000, 30_000, 60_000, 120_000, 666_000_000)
       );
       store.recordSessionStats("address", 0 * 60_000, "phaseName/001/test", 1, 10);
       store.record("address", phase.id(), step.id(), "metric1",
-         makeSnapshot(201, 1 * 60_000, 2 * 60_000, 1_000, 10_000, 30_000, 60_000, 120_000, 666_000_000)
+            makeSnapshot(201, 1 * 60_000, 2 * 60_000, 1_000, 10_000, 30_000, 60_000, 120_000, 666_000_000)
       );
       store.recordSessionStats("address", 1 * 60_000, "phaseName/001/test", 10, 20);
 

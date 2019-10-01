@@ -42,92 +42,92 @@ import java.io.StringReader;
 import java.util.Iterator;
 
 public class BenchmarkParser extends AbstractMappingParser<BenchmarkBuilder> {
-    private static final Logger log = LoggerFactory.getLogger(BenchmarkParser.class);
-    private static final BenchmarkParser INSTANCE = new BenchmarkParser();
-    private static final boolean DEBUG_PARSER = Boolean.getBoolean("io.hyperfoil.parser.debug");
+   private static final Logger log = LoggerFactory.getLogger(BenchmarkParser.class);
+   private static final BenchmarkParser INSTANCE = new BenchmarkParser();
+   private static final boolean DEBUG_PARSER = Boolean.getBoolean("io.hyperfoil.parser.debug");
 
-    public static BenchmarkParser instance() {
-        return INSTANCE;
-    }
+   public static BenchmarkParser instance() {
+      return INSTANCE;
+   }
 
-    private BenchmarkParser() {
-        register("$schema", new PropertyParser.String<>(this::checkSchema));
-        register("name", new PropertyParser.String<>(BenchmarkBuilder::name));
-        register("agents", new AgentsParser());
-        register("ergonomics", new ErgonomicsParser());
-        register("http", new HttpParser());
-        register("phases", new PhasesParser());
-        register("threads", new PropertyParser.Int<>(BenchmarkBuilder::threads));
-        register("statisticsCollectionPeriod", new PropertyParser.Int<>(BenchmarkBuilder::statisticsCollectionPeriod));
-        // simplified single-phase definition
-        register("usersPerSec", new PropertyParser.Double<>((bb, value) -> bb.singleConstantPerSecPhase().usersPerSec(value)));
-        register("duration", new PropertyParser.String<>((bb, value) -> bb.singleConstantPerSecPhase().duration(value)));
-        register("maxDuration", new PropertyParser.String<>((bb, value) -> bb.singleConstantPerSecPhase().maxDuration(value)));
-        register("maxSessionsEstimate", new PropertyParser.Int<>((bb, value) -> bb.singleConstantPerSecPhase().maxSessionsEstimate(value)));
-        register("scenario", (ctx, target) -> new ScenarioParser().parse(ctx, target.singleConstantPerSecPhase().scenario()));
-        register("staircase", new StaircaseParser());
-        register("pre", new RunHooksParser(BenchmarkBuilder::addPreHook));
-        register("post", new RunHooksParser(BenchmarkBuilder::addPostHook));
-    }
+   private BenchmarkParser() {
+      register("$schema", new PropertyParser.String<>(this::checkSchema));
+      register("name", new PropertyParser.String<>(BenchmarkBuilder::name));
+      register("agents", new AgentsParser());
+      register("ergonomics", new ErgonomicsParser());
+      register("http", new HttpParser());
+      register("phases", new PhasesParser());
+      register("threads", new PropertyParser.Int<>(BenchmarkBuilder::threads));
+      register("statisticsCollectionPeriod", new PropertyParser.Int<>(BenchmarkBuilder::statisticsCollectionPeriod));
+      // simplified single-phase definition
+      register("usersPerSec", new PropertyParser.Double<>((bb, value) -> bb.singleConstantPerSecPhase().usersPerSec(value)));
+      register("duration", new PropertyParser.String<>((bb, value) -> bb.singleConstantPerSecPhase().duration(value)));
+      register("maxDuration", new PropertyParser.String<>((bb, value) -> bb.singleConstantPerSecPhase().maxDuration(value)));
+      register("maxSessionsEstimate", new PropertyParser.Int<>((bb, value) -> bb.singleConstantPerSecPhase().maxSessionsEstimate(value)));
+      register("scenario", (ctx, target) -> new ScenarioParser().parse(ctx, target.singleConstantPerSecPhase().scenario()));
+      register("staircase", new StaircaseParser());
+      register("pre", new RunHooksParser(BenchmarkBuilder::addPreHook));
+      register("post", new RunHooksParser(BenchmarkBuilder::addPostHook));
+   }
 
-    private void checkSchema(BenchmarkBuilder builder, String schema) {
-        if (schema.startsWith("http") && !schema.startsWith("http://hyperfoil.io/schema") &&
-              !schema.startsWith("https://hyperfoil.io/schema")) {
-            log.warn("Unexpected schema: should start with `http://hyperfoil.io/schema`!");
-        }
-    }
+   private void checkSchema(BenchmarkBuilder builder, String schema) {
+      if (schema.startsWith("http") && !schema.startsWith("http://hyperfoil.io/schema") &&
+            !schema.startsWith("https://hyperfoil.io/schema")) {
+         log.warn("Unexpected schema: should start with `http://hyperfoil.io/schema`!");
+      }
+   }
 
-    public Benchmark buildBenchmark(String source, BenchmarkData data) throws ParserException {
-        Yaml yaml = new Yaml();
+   public Benchmark buildBenchmark(String source, BenchmarkData data) throws ParserException {
+      Yaml yaml = new Yaml();
 
-        Iterator<Event> events = yaml.parse(new StringReader(source)).iterator();
-        if (DEBUG_PARSER) {
-            events = new DebugIterator<>(events);
-        }
-        Context ctx = new Context(events);
+      Iterator<Event> events = yaml.parse(new StringReader(source)).iterator();
+      if (DEBUG_PARSER) {
+         events = new DebugIterator<>(events);
+      }
+      Context ctx = new Context(events);
 
-        ctx.expectEvent(StreamStartEvent.class);
-        ctx.expectEvent(DocumentStartEvent.class);
+      ctx.expectEvent(StreamStartEvent.class);
+      ctx.expectEvent(DocumentStartEvent.class);
 
-        //instantiate new benchmark builder
-        BenchmarkBuilder benchmarkBuilder = new BenchmarkBuilder(source, data);
-        parse(ctx, benchmarkBuilder);
+      //instantiate new benchmark builder
+      BenchmarkBuilder benchmarkBuilder = new BenchmarkBuilder(source, data);
+      parse(ctx, benchmarkBuilder);
 
-        ctx.expectEvent(DocumentEndEvent.class);
-        ctx.expectEvent(StreamEndEvent.class);
+      ctx.expectEvent(DocumentEndEvent.class);
+      ctx.expectEvent(StreamEndEvent.class);
 
-        return benchmarkBuilder.build();
-    }
+      return benchmarkBuilder.build();
+   }
 
-    public Benchmark buildBenchmark(InputStream inputStream, BenchmarkData data) throws ParserException, IOException {
-        return buildBenchmark(Util.toString(inputStream), data);
-    }
+   public Benchmark buildBenchmark(InputStream inputStream, BenchmarkData data) throws ParserException, IOException {
+      return buildBenchmark(Util.toString(inputStream), data);
+   }
 
-    private static class DebugIterator<T> implements Iterator<T> {
-        private final Iterator<T> it;
-        private String indent = "";
+   private static class DebugIterator<T> implements Iterator<T> {
+      private final Iterator<T> it;
+      private String indent = "";
 
-        private DebugIterator(Iterator<T> it) {
-            this.it = it;
-        }
+      private DebugIterator(Iterator<T> it) {
+         this.it = it;
+      }
 
-        @Override
-        public boolean hasNext() {
-            return it.hasNext();
-        }
+      @Override
+      public boolean hasNext() {
+         return it.hasNext();
+      }
 
-        @Override
-        public T next() {
-            T event = it.next();
-            if (event instanceof MappingEndEvent || event instanceof SequenceEndEvent) {
-                indent = indent.substring(2);
-            }
-            StackTraceElement[] stackTrace = new Exception().fillInStackTrace().getStackTrace();
-            System.out.println(indent + event + " fetched from " + stackTrace[1] + "\t" + stackTrace[2] + "\t" + stackTrace[3]);
-            if (event instanceof MappingStartEvent || event instanceof SequenceStartEvent) {
-                indent += "| ";
-            }
-            return event;
-        }
-    }
+      @Override
+      public T next() {
+         T event = it.next();
+         if (event instanceof MappingEndEvent || event instanceof SequenceEndEvent) {
+            indent = indent.substring(2);
+         }
+         StackTraceElement[] stackTrace = new Exception().fillInStackTrace().getStackTrace();
+         System.out.println(indent + event + " fetched from " + stackTrace[1] + "\t" + stackTrace[2] + "\t" + stackTrace[3]);
+         if (event instanceof MappingStartEvent || event instanceof SequenceStartEvent) {
+            indent += "| ";
+         }
+         return event;
+      }
+   }
 }

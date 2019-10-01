@@ -63,7 +63,7 @@ public class PullSharedMapStep implements Step, ResourceUtilizer {
 
    /**
     * Move values from a map shared across all sessions using the same executor into session variables.
-    *
+    * <p>
     * The executor can host multiple shared maps, each holding an entry with several variables.
     * This step moves variables from either a random entry (if no <code>match</code> is set) or with an entry
     * that has the same value for given variable as the current session.

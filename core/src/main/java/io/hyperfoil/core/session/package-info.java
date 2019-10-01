@@ -1,13 +1,13 @@
 /**
  * <h1>Design</h1>
- *
+ * <p>
  * There are two main components:
  * <ul>
  * <li>{@link io.hyperfoil.api.config.Sequence Sequence templates} - instructions 'what to do'
  * <li>Session (execution context) holds any state, including current state of the state machine and variables
  * </ul>
  * <h2>Memory allocation</h2>
- *
+ * <p>
  * In order to keep object allocations at minimum we're expected to know all variables in advance and pre-allocate
  * these in the Session object. During consecutive repetitions of the user scenario
  * the {@link io.hyperfoil.core.session.SessionImpl} is {@link io.hyperfoil.core.session.SessionImpl#reset()}
@@ -20,7 +20,7 @@
  * {@link io.hyperfoil.api.connection.Processor processors} or any other handlers.
  *
  * <h2>Execution</h2>
- *
+ * <p>
  * After the session is constructed or reset you should create {@link io.hyperfoil.api.session.SequenceInstance sequence instances}
  * from the {@link io.hyperfoil.api.config.Sequence templates} and subsequently
  * {@link io.hyperfoil.core.session.SessionImpl#enableSequence(SequenceInstance) enable}
@@ -38,7 +38,7 @@
  * Execution is terminated when there are no enabled sequences in the session.
  *
  * <h2>Variables</h2>
- *
+ * <p>
  * The {@link io.hyperfoil.api.session.Session} is provided as a parameter to most calls and stores all state of the scenario.
  * The state is operated using {@link io.hyperfoil.api.session.Access accessors}; these can be retrieved from
  * {@link io.hyperfoil.core.session.SessionFactory#access(java.lang.Object)}.
@@ -57,7 +57,7 @@
  * the same index, but in that case these should not use the same variable names for sequence-scoped data.
  *
  * <h2>Threading model</h2>
- *
+ * <p>
  * There's no internal synchronization of anything; we rely on the event-loop model.
  * Each {@link io.hyperfoil.api.session.Session session} is tied to a single-threaded {@link io.netty.channel.EventLoop event loop}.
  */

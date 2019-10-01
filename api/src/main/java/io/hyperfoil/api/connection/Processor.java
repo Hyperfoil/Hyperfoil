@@ -10,6 +10,7 @@ import io.netty.buffer.ByteBuf;
 public interface Processor<R extends Request> extends Serializable {
    /**
     * Invoked before we record first value from given response.
+    *
     * @param request Request.
     */
    default void before(R request) {
@@ -19,6 +20,7 @@ public interface Processor<R extends Request> extends Serializable {
 
    /**
     * Invoked after we record the last value from given response.
+    *
     * @param request Request.
     */
    default void after(R request) {

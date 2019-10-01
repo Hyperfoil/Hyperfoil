@@ -23,95 +23,95 @@ import java.util.function.BiConsumer;
 import org.yaml.snakeyaml.events.ScalarEvent;
 
 class PropertyParser {
-    private PropertyParser() {}
+   private PropertyParser() {}
 
-    static class String<T> implements Parser<T> {
-        private final BiConsumer<T, java.lang.String> consumer;
+   static class String<T> implements Parser<T> {
+      private final BiConsumer<T, java.lang.String> consumer;
 
-        String(BiConsumer<T, java.lang.String> consumer) {
-            this.consumer = consumer;
-        }
+      String(BiConsumer<T, java.lang.String> consumer) {
+         this.consumer = consumer;
+      }
 
-        @Override
-        public void parse(Context ctx, T target) throws ParserException {
-            ScalarEvent event = ctx.expectEvent(ScalarEvent.class);
-            consumer.accept(target, event.getValue());
-        }
-    }
+      @Override
+      public void parse(Context ctx, T target) throws ParserException {
+         ScalarEvent event = ctx.expectEvent(ScalarEvent.class);
+         consumer.accept(target, event.getValue());
+      }
+   }
 
-    static class Int<T> implements Parser<T> {
-        private final BiConsumer<T, Integer> consumer;
+   static class Int<T> implements Parser<T> {
+      private final BiConsumer<T, Integer> consumer;
 
-        Int(BiConsumer<T, Integer> consumer) {
-            this.consumer = consumer;
-        }
+      Int(BiConsumer<T, Integer> consumer) {
+         this.consumer = consumer;
+      }
 
-        @Override
-        public void parse(Context ctx, T target) throws ParserException {
-            ScalarEvent event = ctx.expectEvent(ScalarEvent.class);
-            try {
-                consumer.accept(target, Integer.parseInt(event.getValue()));
-            } catch (NumberFormatException e) {
-                throw new ParserException(event, "Failed to parse as integer: " + event.getValue());
-            }
-        }
-    }
+      @Override
+      public void parse(Context ctx, T target) throws ParserException {
+         ScalarEvent event = ctx.expectEvent(ScalarEvent.class);
+         try {
+            consumer.accept(target, Integer.parseInt(event.getValue()));
+         } catch (NumberFormatException e) {
+            throw new ParserException(event, "Failed to parse as integer: " + event.getValue());
+         }
+      }
+   }
 
-    static class Long<T> implements Parser<T> {
-        private final BiConsumer<T, java.lang.Long> consumer;
+   static class Long<T> implements Parser<T> {
+      private final BiConsumer<T, java.lang.Long> consumer;
 
-        Long(BiConsumer<T, java.lang.Long> consumer) {
-            this.consumer = consumer;
-        }
+      Long(BiConsumer<T, java.lang.Long> consumer) {
+         this.consumer = consumer;
+      }
 
-        @Override
-        public void parse(Context ctx, T target) throws ParserException {
-            ScalarEvent event = ctx.expectEvent(ScalarEvent.class);
-            try {
-                consumer.accept(target, java.lang.Long.parseLong(event.getValue()));
-            } catch (NumberFormatException e) {
-                throw new ParserException(event, "Failed to parse as long: " + event.getValue());
-            }
-        }
-    }
+      @Override
+      public void parse(Context ctx, T target) throws ParserException {
+         ScalarEvent event = ctx.expectEvent(ScalarEvent.class);
+         try {
+            consumer.accept(target, java.lang.Long.parseLong(event.getValue()));
+         } catch (NumberFormatException e) {
+            throw new ParserException(event, "Failed to parse as long: " + event.getValue());
+         }
+      }
+   }
 
-    static class Double<T> implements Parser<T> {
-        private final BiConsumer<T, java.lang.Double> consumer;
+   static class Double<T> implements Parser<T> {
+      private final BiConsumer<T, java.lang.Double> consumer;
 
-        Double(BiConsumer<T, java.lang.Double> consumer) {
-            this.consumer = consumer;
-        }
+      Double(BiConsumer<T, java.lang.Double> consumer) {
+         this.consumer = consumer;
+      }
 
-        @Override
-        public void parse(Context ctx, T target) throws ParserException {
-            ScalarEvent event = ctx.expectEvent(ScalarEvent.class);
-            try {
-                consumer.accept(target, java.lang.Double.parseDouble(event.getValue()));
-            } catch (NumberFormatException e) {
-                throw new ParserException(event, "Failed to parse as long: " + event.getValue());
-            }
-        }
-    }
+      @Override
+      public void parse(Context ctx, T target) throws ParserException {
+         ScalarEvent event = ctx.expectEvent(ScalarEvent.class);
+         try {
+            consumer.accept(target, java.lang.Double.parseDouble(event.getValue()));
+         } catch (NumberFormatException e) {
+            throw new ParserException(event, "Failed to parse as long: " + event.getValue());
+         }
+      }
+   }
 
-    static class Boolean<T> implements Parser<T> {
-        private final BiConsumer<T, java.lang.Boolean> consumer;
+   static class Boolean<T> implements Parser<T> {
+      private final BiConsumer<T, java.lang.Boolean> consumer;
 
-        Boolean(BiConsumer<T, java.lang.Boolean> consumer) {
-            this.consumer = consumer;
-        }
+      Boolean(BiConsumer<T, java.lang.Boolean> consumer) {
+         this.consumer = consumer;
+      }
 
-        @Override
-        public void parse(Context ctx, T target) throws ParserException {
-            ScalarEvent event = ctx.expectEvent(ScalarEvent.class);
-            boolean value;
-            if (event.getValue().equalsIgnoreCase("true")) {
-                value = true;
-            } else if (event.getValue().equalsIgnoreCase("false")) {
-                value = false;
-            } else {
-                throw new ParserException("Failed to parse as boolean: " + event.getValue());
-            }
-            consumer.accept(target, value);
-        }
-    }
+      @Override
+      public void parse(Context ctx, T target) throws ParserException {
+         ScalarEvent event = ctx.expectEvent(ScalarEvent.class);
+         boolean value;
+         if (event.getValue().equalsIgnoreCase("true")) {
+            value = true;
+         } else if (event.getValue().equalsIgnoreCase("false")) {
+            value = false;
+         } else {
+            throw new ParserException("Failed to parse as boolean: " + event.getValue());
+         }
+         consumer.accept(target, value);
+      }
+   }
 }

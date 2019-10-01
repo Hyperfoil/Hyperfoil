@@ -97,7 +97,7 @@
                         </goals>
                         <configuration>
                             <target>
-                                <ant antfile="src/assembly/package.xml" inheritRefs="true" />
+                                <ant antfile="src/assembly/package.xml" inheritRefs="true"/>
                             </target>
                         </configuration>
                     </execution>
@@ -120,7 +120,7 @@
                     <executable>java</executable>
                     <arguments>
                         <argument>-cp</argument>
-                        <classpath />
+                        <classpath/>
                         <argument>io.hyperfoil.schema.Generator</argument>
                         <argument>${project.basedir}/src/main/resources/schema.json</argument>
                         <argument>${project.build.directory}/distribution/docs/schema.json</argument>

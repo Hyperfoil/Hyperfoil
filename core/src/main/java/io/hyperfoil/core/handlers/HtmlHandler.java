@@ -340,7 +340,7 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
     * Handles <code>&lt;img src="..."&gt;</code>, <code>&lt;link href="..."&gt;</code>,
     * <code>&lt;embed src="..."&gt;</code>, <code>&lt;frame src="..."&gt;</code>,
     * <code>&lt;iframe src="..."&gt;</code>, <code>&lt;object data="..."&gt;</code> and <code>&lt;script src="..."&gt;</code>.
-    *
+    * <p>
     * Does not handle <code>&lt;source src="..."&gt;</code> or <code>&lt;track src="..."&gt;</code> because browser
     * would choose only one of the options.
     */

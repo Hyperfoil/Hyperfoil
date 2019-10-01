@@ -25,7 +25,7 @@
         <groupId>org.jboss</groupId>
         <artifactId>jboss-parent</artifactId>
         <version>19</version>
-        <relativePath />
+        <relativePath/>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
@@ -40,7 +40,7 @@
         <connection>scm:git:git://github.com/Hyperfoil/Hyperfoil.git</connection>
         <developerConnection>scm:git:ssh://git@github.com/Hyperfoil/Hyperfoil.git</developerConnection>
         <url>https://github.com/Hyperfoil/Hyperfoil</url>
-      <tag>HEAD</tag>
+        <tag>HEAD</tag>
     </scm>
 
     <distributionManagement>
@@ -311,7 +311,7 @@
 
         <pluginManagement>
             <plugins>
-		        <plugin>
+                <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-enforcer-plugin</artifactId>
                     <version>3.0.0-M2</version>
@@ -327,7 +327,7 @@
                     <artifactId>maven-resources-plugin</artifactId>
                     <version>3.0.2</version>
                 </plugin>
-		        <plugin>
+                <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-source-plugin</artifactId>
                     <version>3.0.0</version>

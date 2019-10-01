@@ -30,69 +30,69 @@ import io.hyperfoil.impl.FutureSupplier;
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
  */
 public class SequenceBuilder extends BaseSequenceBuilder {
-    private final ScenarioBuilder scenario;
-    private final String name;
-    private int id;
-    private Sequence sequence;
-    // Next sequence as set by parser. It's not possible to add this as nextSequence step
-    // since that would break anchors - we can insert it only after parsing is complete.
-    private String nextSequence;
+   private final ScenarioBuilder scenario;
+   private final String name;
+   private int id;
+   private Sequence sequence;
+   // Next sequence as set by parser. It's not possible to add this as nextSequence step
+   // since that would break anchors - we can insert it only after parsing is complete.
+   private String nextSequence;
 
-    SequenceBuilder(ScenarioBuilder scenario, String name) {
-        super(null);
-        this.scenario = scenario;
-        this.name = Objects.requireNonNull(name);
-    }
+   SequenceBuilder(ScenarioBuilder scenario, String name) {
+      super(null);
+      this.scenario = scenario;
+      this.name = Objects.requireNonNull(name);
+   }
 
-    SequenceBuilder(ScenarioBuilder scenario, SequenceBuilder other) {
-        super(null);
-        this.scenario = scenario;
-        this.name = other.name;
-        readFrom(other);
-        this.nextSequence = other.nextSequence;
-    }
+   SequenceBuilder(ScenarioBuilder scenario, SequenceBuilder other) {
+      super(null);
+      this.scenario = scenario;
+      this.name = other.name;
+      readFrom(other);
+      this.nextSequence = other.nextSequence;
+   }
 
-    public void prepareBuild() {
-        // capture local var to prevent SequenceBuilder serialization
-        String nextSequence = this.nextSequence;
-        if (nextSequence != null) {
-            step(s -> {
-                s.nextSequence(nextSequence);
-                return true;
-            });
-        }
-        // We need to make a defensive copy as prepareBuild() may trigger modifications
-        new ArrayList<>(steps).forEach(StepBuilder::prepareBuild);
-    }
+   public void prepareBuild() {
+      // capture local var to prevent SequenceBuilder serialization
+      String nextSequence = this.nextSequence;
+      if (nextSequence != null) {
+         step(s -> {
+            s.nextSequence(nextSequence);
+            return true;
+         });
+      }
+      // We need to make a defensive copy as prepareBuild() may trigger modifications
+      new ArrayList<>(steps).forEach(StepBuilder::prepareBuild);
+   }
 
-    public Sequence build(SerializableSupplier<Phase> phase) {
-        if (sequence != null) {
-            return sequence;
-        }
-        FutureSupplier<Sequence> ss = new FutureSupplier<>();
-        sequence = new SequenceImpl(phase, this.name, id, buildSteps(ss).toArray(new Step[0]));
-        ss.set(sequence);
-        return sequence;
-    }
+   public Sequence build(SerializableSupplier<Phase> phase) {
+      if (sequence != null) {
+         return sequence;
+      }
+      FutureSupplier<Sequence> ss = new FutureSupplier<>();
+      sequence = new SequenceImpl(phase, this.name, id, buildSteps(ss).toArray(new Step[0]));
+      ss.set(sequence);
+      return sequence;
+   }
 
-    void id(int id) {
-        this.id = id;
-    }
+   void id(int id) {
+      this.id = id;
+   }
 
-    @Override
-    public SequenceBuilder end() {
-        return this;
-    }
+   @Override
+   public SequenceBuilder end() {
+      return this;
+   }
 
-    public ScenarioBuilder endSequence() {
-        return scenario;
-    }
+   public ScenarioBuilder endSequence() {
+      return scenario;
+   }
 
-    public String name() {
-        return name;
-    }
+   public String name() {
+      return name;
+   }
 
-    public void nextSequence(String nextSequence) {
-        this.nextSequence = nextSequence;
-    }
+   public void nextSequence(String nextSequence) {
+      this.nextSequence = nextSequence;
+   }
 }

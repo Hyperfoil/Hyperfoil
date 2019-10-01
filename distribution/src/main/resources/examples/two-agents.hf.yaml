@@ -1,9 +1,9 @@
 name: two-agents
 # List of agents the Controller should deploy
 agents:
-# This defines the agent using SSH connection to localhost, port 22
+  # This defines the agent using SSH connection to localhost, port 22
   agent-one: localhost:22
-# Another agent on localhost, this time defined using properties
+  # Another agent on localhost, this time defined using properties
   agent-two:
     host: localhost
     port: 22

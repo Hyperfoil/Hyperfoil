@@ -72,6 +72,7 @@ public class DivideStep implements Step, ResourceUtilizer {
 
       // Let's permit a short-form definition that will store the result
       // in the same variable. Note that the javadoc @param is used to generate external documentation.
+
       /**
        * @param param Use myVar /= constant
        */

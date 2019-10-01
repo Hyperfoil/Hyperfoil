@@ -26,16 +26,16 @@ import org.aesh.io.FileResource;
 import org.aesh.io.Resource;
 
 public final class Util {
-  private Util() {
-  }
+   private Util() {
+   }
 
-  public static Resource sanitize(Resource resource) {
-     if (resource instanceof FileResource) {
-        File file = ((FileResource) resource).getFile();
-        if (file.getPath().startsWith("~/")) {
-           return new FileResource(System.getProperty("user.home") + file.getPath().substring(1));
-        }
-     }
-     return resource;
-  }
+   public static Resource sanitize(Resource resource) {
+      if (resource instanceof FileResource) {
+         File file = ((FileResource) resource).getFile();
+         if (file.getPath().startsWith("~/")) {
+            return new FileResource(System.getProperty("user.home") + file.getPath().substring(1));
+         }
+      }
+      return resource;
+   }
 }

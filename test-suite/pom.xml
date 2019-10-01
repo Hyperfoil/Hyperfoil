@@ -140,7 +140,7 @@
                 <activeByDefault>false</activeByDefault>
             </activation>
             <properties>
-                <junit.excluded.categories />
+                <junit.excluded.categories/>
             </properties>
         </profile>
 

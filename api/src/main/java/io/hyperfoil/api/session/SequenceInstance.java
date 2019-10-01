@@ -55,7 +55,7 @@ public class SequenceInstance {
    }
 
    public boolean isCompleted() {
-      return  currentStep >= steps.length;
+      return currentStep >= steps.length;
    }
 
    public int index() {

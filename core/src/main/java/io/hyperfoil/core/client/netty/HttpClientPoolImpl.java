@@ -80,38 +80,38 @@ public class HttpClientPoolImpl implements HttpClientPool {
    }
 
    public HttpClientPoolImpl(EventLoopGroup eventLoopGroup, Http http) throws SSLException {
-        this.eventLoopGroup = eventLoopGroup;
-        this.http = http;
-        this.sslContext = http.protocol().secure() ? createSslContext() : null;
-        this.host = http.host();
-        this.port = http.port();
-        this.scheme = sslContext == null ? "http" : "https";
-        this.authority = host + ":" + port;
-        this.forceH2c = http.versions().length == 1 && http.versions()[0] == HttpVersion.HTTP_2_0;
+      this.eventLoopGroup = eventLoopGroup;
+      this.http = http;
+      this.sslContext = http.protocol().secure() ? createSslContext() : null;
+      this.host = http.host();
+      this.port = http.port();
+      this.scheme = sslContext == null ? "http" : "https";
+      this.authority = host + ":" + port;
+      this.forceH2c = http.versions().length == 1 && http.versions()[0] == HttpVersion.HTTP_2_0;
 
-        int numExecutors = (int) StreamSupport.stream(eventLoopGroup.spliterator(), false).count();
-        this.children = new HttpConnectionPoolImpl[numExecutors];
-        int sharedConnections = http.sharedConnections();
-        if (sharedConnections < numExecutors) {
-            log.warn("Connection pool size ({}) too small: the event loop has {} executors. Setting connection pool size to {}",
-                  http.sharedConnections(), numExecutors, numExecutors);
-           sharedConnections = numExecutors;
-        }
-        Iterator<EventExecutor> iterator = eventLoopGroup.iterator();
-        for (int i = 0; i < numExecutors; ++i) {
-            assert iterator.hasNext();
-            int childSize = (i + 1) * sharedConnections / numExecutors - i * sharedConnections / numExecutors;
-            children[i] = new HttpConnectionPoolImpl(this, (EventLoop) iterator.next(), childSize);
-        }
+      int numExecutors = (int) StreamSupport.stream(eventLoopGroup.spliterator(), false).count();
+      this.children = new HttpConnectionPoolImpl[numExecutors];
+      int sharedConnections = http.sharedConnections();
+      if (sharedConnections < numExecutors) {
+         log.warn("Connection pool size ({}) too small: the event loop has {} executors. Setting connection pool size to {}",
+               http.sharedConnections(), numExecutors, numExecutors);
+         sharedConnections = numExecutors;
+      }
+      Iterator<EventExecutor> iterator = eventLoopGroup.iterator();
+      for (int i = 0; i < numExecutors; ++i) {
+         assert iterator.hasNext();
+         int childSize = (i + 1) * sharedConnections / numExecutors - i * sharedConnections / numExecutors;
+         children[i] = new HttpConnectionPoolImpl(this, (EventLoop) iterator.next(), childSize);
+      }
 
-        if (Integer.bitCount(children.length) == 1) {
-           int shift = 32 - Integer.numberOfLeadingZeros(children.length - 1);
-           int mask = (1 << shift) - 1;
-           nextSupplier = () -> children[idx.getAndIncrement() & mask];
-        } else {
-           nextSupplier = () -> children[idx.getAndIncrement() % children.length];
-        }
-    }
+      if (Integer.bitCount(children.length) == 1) {
+         int shift = 32 - Integer.numberOfLeadingZeros(children.length - 1);
+         int mask = (1 << shift) - 1;
+         nextSupplier = () -> children[idx.getAndIncrement() & mask];
+      } else {
+         nextSupplier = () -> children[idx.getAndIncrement() % children.length];
+      }
+   }
 
    private SslContext createSslContext() throws SSLException {
       SslProvider provider = OpenSsl.isAlpnSupported() ? SslProvider.OPENSSL : SslProvider.JDK;
@@ -163,7 +163,7 @@ public class HttpClientPoolImpl implements HttpClientPool {
                throw new BenchmarkDefinitionException("You should provide both certificate and private key for " + http.host() + ":" + http.port());
             }
             ks.setKeyEntry(config.alias() == null ? "default" : config.alias(), toPrivateKey(config.keyBytes()),
-                  config.password().toCharArray(), new Certificate[] { loadCertificate(config.certBytes()) });
+                  config.password().toCharArray(), new Certificate[]{ loadCertificate(config.certBytes()) });
          }
          KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
          keyManagerFactory.init(ks, config.password().toCharArray());
@@ -233,66 +233,66 @@ public class HttpClientPoolImpl implements HttpClientPool {
    }
 
    @Override
-    public void start(Handler<AsyncResult<Void>> completionHandler) {
-       AtomicInteger countDown = new AtomicInteger(children.length);
-       for (HttpConnectionPoolImpl child : children) {
-          child.start(result -> {
-             if (result.failed() || countDown.decrementAndGet() == 0) {
-                if (result.failed()) {
-                   shutdown();
-                }
-                completionHandler.handle(result);
-             }
-          });
-       }
-    }
+   public void start(Handler<AsyncResult<Void>> completionHandler) {
+      AtomicInteger countDown = new AtomicInteger(children.length);
+      for (HttpConnectionPoolImpl child : children) {
+         child.start(result -> {
+            if (result.failed() || countDown.decrementAndGet() == 0) {
+               if (result.failed()) {
+                  shutdown();
+               }
+               completionHandler.handle(result);
+            }
+         });
+      }
+   }
 
-    @Override
-    public void shutdown() {
-       for (HttpConnectionPoolImpl child : children) {
-          child.shutdown();
-       }
-       eventLoopGroup.shutdownGracefully(0, 10, TimeUnit.SECONDS);
-    }
+   @Override
+   public void shutdown() {
+      for (HttpConnectionPoolImpl child : children) {
+         child.shutdown();
+      }
+      eventLoopGroup.shutdownGracefully(0, 10, TimeUnit.SECONDS);
+   }
 
-    void connect(final HttpConnectionPool pool, BiConsumer<HttpConnection, Throwable> handler) {
-       Bootstrap bootstrap = new Bootstrap();
-       bootstrap.channel(NioSocketChannel.class);
-       bootstrap.group(pool.executor());
-       bootstrap.option(ChannelOption.SO_KEEPALIVE, true);
-       bootstrap.option(ChannelOption.SO_REUSEADDR, true);
+   void connect(final HttpConnectionPool pool, BiConsumer<HttpConnection, Throwable> handler) {
+      Bootstrap bootstrap = new Bootstrap();
+      bootstrap.channel(NioSocketChannel.class);
+      bootstrap.group(pool.executor());
+      bootstrap.option(ChannelOption.SO_KEEPALIVE, true);
+      bootstrap.option(ChannelOption.SO_REUSEADDR, true);
 
-       bootstrap.handler(new HttpChannelInitializer(this, pool, handler));
+      bootstrap.handler(new HttpChannelInitializer(this, pool, handler));
 
-       String address = this.host;
-       int port = this.port;
-       if (http.addresses().length != 0) {
-          address = http.addresses()[ThreadLocalRandom.current().nextInt(http.addresses().length)];
-          // TODO: IPv6 addresses
-          int colonIndex = address.lastIndexOf(':');
-          if (colonIndex >= 0) {
-             port = (int) Util.parseLong(address, colonIndex + 1, address.length(), port);
-          }
-          address = address.substring(0, colonIndex);
-       }
+      String address = this.host;
+      int port = this.port;
+      if (http.addresses().length != 0) {
+         address = http.addresses()[ThreadLocalRandom.current().nextInt(http.addresses().length)];
+         // TODO: IPv6 addresses
+         int colonIndex = address.lastIndexOf(':');
+         if (colonIndex >= 0) {
+            port = (int) Util.parseLong(address, colonIndex + 1, address.length(), port);
+         }
+         address = address.substring(0, colonIndex);
+      }
 
-       ChannelFuture fut = bootstrap.connect(new InetSocketAddress(address, port));
-       fut.addListener(v -> {
-          if (!v.isSuccess()) {
-             handler.accept(null, v.cause());
-          }
-       });
-    }
+      ChannelFuture fut = bootstrap.connect(new InetSocketAddress(address, port));
+      fut.addListener(v -> {
+         if (!v.isSuccess()) {
+            handler.accept(null, v.cause());
+         }
+      });
+   }
 
-    @Override
-    public EventExecutorGroup executors() {
-        return eventLoopGroup;
-    }
+   @Override
+   public EventExecutorGroup executors() {
+      return eventLoopGroup;
+   }
 
-    @Override
-    public HttpConnectionPool next() {
-       return nextSupplier.get();
-    }
+   @Override
+   public HttpConnectionPool next() {
+      return nextSupplier.get();
+   }
 
    @Override
    public HttpConnectionPool connectionPool(EventExecutor executor) {

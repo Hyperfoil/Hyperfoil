@@ -25,52 +25,52 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class Scenario implements Serializable {
-    private final Sequence[] initialSequences;
-    private final Sequence[] sequences;
-    private final String[] objectVars;
-    private final String[] intVars;
-    private final Map<String, Sequence> sequenceMap;
+   private final Sequence[] initialSequences;
+   private final Sequence[] sequences;
+   private final String[] objectVars;
+   private final String[] intVars;
+   private final Map<String, Sequence> sequenceMap;
 
-    public Scenario(Sequence[] initialSequences, Sequence[] sequences, String[] objectVars, String[] intVars) {
-        this.initialSequences = initialSequences;
-        this.sequences = sequences;
-        this.objectVars = objectVars;
-        this.intVars = intVars;
-        sequenceMap = Stream.of(sequences).collect(Collectors.toMap(s -> s.name(), Function.identity()));
-    }
+   public Scenario(Sequence[] initialSequences, Sequence[] sequences, String[] objectVars, String[] intVars) {
+      this.initialSequences = initialSequences;
+      this.sequences = sequences;
+      this.objectVars = objectVars;
+      this.intVars = intVars;
+      sequenceMap = Stream.of(sequences).collect(Collectors.toMap(s -> s.name(), Function.identity()));
+   }
 
-    public Sequence[] initialSequences() {
-        return initialSequences;
-    }
+   public Sequence[] initialSequences() {
+      return initialSequences;
+   }
 
-    public Sequence[] sequences() {
-        return sequences;
-    }
+   public Sequence[] sequences() {
+      return sequences;
+   }
 
-    public String[] objectVars() {
-       return objectVars;
-    }
+   public String[] objectVars() {
+      return objectVars;
+   }
 
-    public String[] intVars() {
-       return intVars;
-    }
+   public String[] intVars() {
+      return intVars;
+   }
 
-    public int maxRequests() {
-        // TODO
-        return 16;
-    }
+   public int maxRequests() {
+      // TODO
+      return 16;
+   }
 
-    public int maxSequences() {
-        // TODO
-        return 16;
-    }
+   public int maxSequences() {
+      // TODO
+      return 16;
+   }
 
-    public Sequence sequence(String name) {
-        Sequence sequence = sequenceMap.get(name);
-        if (sequence == null) {
-            throw new IllegalArgumentException("Unknown sequence '" + name + "'");
-        }
-        return sequence;
-    }
+   public Sequence sequence(String name) {
+      Sequence sequence = sequenceMap.get(name);
+      if (sequence == null) {
+         throw new IllegalArgumentException("Unknown sequence '" + name + "'");
+      }
+      return sequence;
+   }
 }
 

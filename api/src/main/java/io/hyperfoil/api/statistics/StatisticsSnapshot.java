@@ -33,7 +33,7 @@ public class StatisticsSnapshot implements Serializable {
    public final Map<Object, CustomValue> custom = new HashMap<>();
 
    public int[] statuses() {
-      return new int[] { status_2xx, status_3xx, status_4xx, status_5xx, status_other };
+      return new int[]{ status_2xx, status_3xx, status_4xx, status_5xx, status_other };
    }
 
    public boolean isEmpty() {

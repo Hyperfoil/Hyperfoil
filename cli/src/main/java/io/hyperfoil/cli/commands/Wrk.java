@@ -62,7 +62,7 @@ import static io.vertx.core.logging.LoggerFactory.LOGGER_DELEGATE_FACTORY_CLASS_
 
 public class Wrk {
 
-    //ignore logging when running in the console below severe
+   //ignore logging when running in the console below severe
    static {
       Handler[] handlers = Logger.getLogger("").getHandlers();
       for (int index = 0; index < handlers.length; index++) {
@@ -78,8 +78,7 @@ public class Wrk {
 
       try {
          AeshRuntimeRunner.builder().command(WrkCommand.class).args(args).execute();
-      }
-      catch (Exception e) {
+      } catch (Exception e) {
          System.out.println("Failed to execute command:" + e.getMessage());
          e.printStackTrace();
          //todo: should provide help info here, will be added in newer version of æsh
@@ -161,10 +160,9 @@ public class Wrk {
                }
                String header = h.substring(0, colonIndex).trim();
                String value = h.substring(colonIndex + 1).trim();
-               parsedHeaders[i] = new String[] { header, value };
+               parsedHeaders[i] = new String[]{ header, value };
             }
-         }
-         else {
+         } else {
             parsedHeaders = null;
          }
          //check if we're running in the cli
@@ -175,8 +173,8 @@ public class Wrk {
          BenchmarkBuilder builder = new BenchmarkBuilder(null, new LocalBenchmarkData())
                .name("wrk " + new SimpleDateFormat("YY/MM/dd HH:mm:ss").format(new Date()))
                .http()
-                  .protocol(protocol).host(uri.getHost()).port(protocol.portOrDefault(uri.getPort()))
-                  .sharedConnections(connections)
+               .protocol(protocol).host(uri.getHost()).port(protocol.portOrDefault(uri.getPort()))
+               .sharedConnections(connections)
                .endHttp()
                .threads(this.threads);
 
@@ -212,7 +210,7 @@ public class Wrk {
                                         HyperfoilCommandInvocation invocation) {
 
          CountDownLatch latch = new CountDownLatch(1);
-         Thread thread  = new Thread(() -> {
+         Thread thread = new Thread(() -> {
             runner.run();
             latch.countDown();
          });
@@ -259,27 +257,27 @@ public class Wrk {
 
       private PhaseBuilder addPhase(BenchmarkBuilder benchmarkBuilder, String phase, String duration) {
          return benchmarkBuilder.addPhase(phase).constantPerSec(rate)
-                  .duration(duration)
-                  .maxSessionsEstimate(rate * 15)
-                  .scenario()
-                     .initialSequence("request")
-                        .step(StepCatalog.class).httpRequest(HttpMethod.GET)
-                           .path(path)
-                           .headerAppender((session, request) -> {
-                              if (parsedHeaders != null) {
-                                 for (String[] header : parsedHeaders) {
-                                    request.putHeader(header[0], header[1]);
-                                 }
-                              }
-                           })
-                           .timeout(timeout)
-                           .handler()
-                              .rawBytesHandler(new ByteBufSizeRecorder("bytes"))
-                           .endHandler()
-                        .endStep()
-                        .step(StepCatalog.class).awaitAllResponses()
-                     .endSequence()
-                  .endScenario();
+               .duration(duration)
+               .maxSessionsEstimate(rate * 15)
+               .scenario()
+               .initialSequence("request")
+               .step(StepCatalog.class).httpRequest(HttpMethod.GET)
+               .path(path)
+               .headerAppender((session, request) -> {
+                  if (parsedHeaders != null) {
+                     for (String[] header : parsedHeaders) {
+                        request.putHeader(header[0], header[1]);
+                     }
+                  }
+               })
+               .timeout(timeout)
+               .handler()
+               .rawBytesHandler(new ByteBufSizeRecorder("bytes"))
+               .endHandler()
+               .endStep()
+               .step(StepCatalog.class).awaitAllResponses()
+               .endSequence()
+               .endScenario();
       }
 
       private void printStats(StatisticsSnapshot stats, CommandInvocation invocation) {
@@ -290,7 +288,7 @@ public class Wrk {
                + Util.prettyPrintNanos((long) stats.histogram.getStdDeviation()) + " " + Util.prettyPrintNanos(stats.histogram.getMaxValue()));
          if (latency) {
             invocation.println("Latency Distribution");
-            for (double percentile : new double[] { 0.5, 0.75, 0.9, 0.99, 0.999, 0.9999, 0.99999, 1.0}) {
+            for (double percentile : new double[]{ 0.5, 0.75, 0.9, 0.99, 0.999, 0.9999, 0.99999, 1.0 }) {
                invocation.println(String.format("%7.3f", 100 * percentile) + " " + Util.prettyPrintNanos(stats.histogram.getValueAtPercentile(100 * percentile)));
             }
             invocation.println("----------------------------------------------------------");

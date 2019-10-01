@@ -21,23 +21,23 @@ package io.hyperfoil.core.parser;
 import org.yaml.snakeyaml.events.Event;
 
 public class ParserException extends Exception {
-    public ParserException(String msg) {
-        super(msg);
-    }
+   public ParserException(String msg) {
+      super(msg);
+   }
 
-    public ParserException(String msg, Exception e) {
-        super(msg, e);
-    }
+   public ParserException(String msg, Exception e) {
+      super(msg, e);
+   }
 
-    public ParserException(Event event, String msg) {
-        this(event, msg, null);
-    }
+   public ParserException(Event event, String msg) {
+      this(event, msg, null);
+   }
 
-    public ParserException(Event event, String msg, Throwable cause) {
-        super(location(event) + ": " + msg, cause);
-    }
+   public ParserException(Event event, String msg, Throwable cause) {
+      super(location(event) + ": " + msg, cause);
+   }
 
-    static String location(Event event) {
-        return "line " + (event.getStartMark().getLine() + 1) + ", column " + (event.getStartMark().getColumn() + 1);
-    }
+   static String location(Event event) {
+      return "line " + (event.getStartMark().getLine() + 1) + ", column " + (event.getStartMark().getColumn() + 1);
+   }
 }

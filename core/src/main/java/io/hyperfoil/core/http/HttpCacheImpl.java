@@ -95,7 +95,8 @@ public class HttpCacheImpl implements HttpCache {
    // That means that `matchingCached` should contain entries with these tags.
    private void handleIfNoneMatch(HttpRequest request, CharSequence value) {
       // We'll parse the header multiple times to avoid allocating extra colleciton
-      RECORD_LOOP: for (Iterator<HttpCache.Record> iterator = request.cacheControl.matchingCached.iterator(); iterator.hasNext(); ) {
+      RECORD_LOOP:
+      for (Iterator<HttpCache.Record> iterator = request.cacheControl.matchingCached.iterator(); iterator.hasNext(); ) {
          Record record = (Record) iterator.next();
          if (record.etag == null) {
             iterator.remove();
@@ -147,7 +148,7 @@ public class HttpCacheImpl implements HttpCache {
             return;
          } else if (c == '"') {
             int start = ++i;
-            for (; i < value.length() && value.charAt(i) != '"'; ++i);
+            for (; i < value.length() && value.charAt(i) != '"'; ++i) ;
             int length = i - start;
             List<HttpCache.Record> matchingCached = request.cacheControl.matchingCached;
             for (Iterator<HttpCache.Record> it = matchingCached.iterator(); it.hasNext(); ) {
@@ -158,7 +159,7 @@ public class HttpCacheImpl implements HttpCache {
                   it.remove();
                }
             }
-            while (++i < value.length() && value.charAt(i) == ' ');
+            while (++i < value.length() && value.charAt(i) == ' ') ;
             if (i < value.length() && value.charAt(i) != ',') {
                log.warn("Invalid If-Match: {}", value);
                return;

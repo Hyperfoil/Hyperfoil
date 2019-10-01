@@ -19,12 +19,11 @@
 package io.hyperfoil.benchmark.standalone;
 
 import io.hyperfoil.test.Benchmark;
+
 import org.junit.experimental.categories.Category;
 
 @Category(Benchmark.class)
 public class ComplexBenchmarkTestCase {
-
-
 
 
 }

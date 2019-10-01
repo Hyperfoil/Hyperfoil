@@ -271,7 +271,8 @@ public class DocsGenerator extends BaseGenerator {
    }
 
    private MethodDeclaration findMatching(List<MethodDeclaration> methods, Method method) {
-      METHODS: for (MethodDeclaration m : methods) {
+      METHODS:
+      for (MethodDeclaration m : methods) {
          int parameterCount = m.getParameters().size();
          if (m.getName().asString().equals(method.getName()) && parameterCount == method.getParameterCount()) {
             for (int i = 0; i < parameterCount; ++i) {

@@ -354,7 +354,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
       public Phase.RampPerSec buildPhase(SerializableSupplier<Benchmark> benchmark, SerializableSupplier<Phase> phase, int id, int i, PhaseForkBuilder f) {
          int maxSessionsEstimate;
          if (this.maxSessionsEstimate > 0) {
-             maxSessionsEstimate = sliceValue("maxSessionsEstimate", this.maxSessionsEstimate, f.weight / numAgents());
+            maxSessionsEstimate = sliceValue("maxSessionsEstimate", this.maxSessionsEstimate, f.weight / numAgents());
          } else {
             double maxInitialUsers = initialUsersPerSec + initialUsersPerSecIncrement * (maxIterations - 1);
             double maxTargetUsers = targetUsersPerSec + targetUsersPerSecIncrement * (maxIterations - 1);

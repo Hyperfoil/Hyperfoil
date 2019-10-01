@@ -24,23 +24,23 @@ import java.util.Map;
 import org.yaml.snakeyaml.events.ScalarEvent;
 
 abstract class AbstractParser<T, S> implements Parser<T> {
-    Map<String, Parser<S>> subBuilders = new HashMap<>();
+   Map<String, Parser<S>> subBuilders = new HashMap<>();
 
-    void callSubBuilders(Context ctx, S target) throws ParserException {
-        ctx.parseMapping(target, this::getSubBuilder);
-    }
+   void callSubBuilders(Context ctx, S target) throws ParserException {
+      ctx.parseMapping(target, this::getSubBuilder);
+   }
 
-    private Parser<S> getSubBuilder(ScalarEvent event) throws ParserException {
-        Parser<S> builder = subBuilders.get(event.getValue());
-        if (builder == null) {
-            throw new ParserException(event, "Invalid configuration label: '" + event.getValue() + "', expected one of " + subBuilders.keySet());
-        }
-        return builder;
-    }
+   private Parser<S> getSubBuilder(ScalarEvent event) throws ParserException {
+      Parser<S> builder = subBuilders.get(event.getValue());
+      if (builder == null) {
+         throw new ParserException(event, "Invalid configuration label: '" + event.getValue() + "', expected one of " + subBuilders.keySet());
+      }
+      return builder;
+   }
 
-    protected void register(String property, Parser<S> parser) {
-        Parser<S> prev = subBuilders.put(property, parser);
-        assert prev == null;
-    }
+   protected void register(String property, Parser<S> parser) {
+      Parser<S> prev = subBuilders.put(property, parser);
+      assert prev == null;
+   }
 
 }

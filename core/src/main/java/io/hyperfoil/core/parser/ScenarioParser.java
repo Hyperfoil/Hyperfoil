@@ -25,23 +25,23 @@ import org.yaml.snakeyaml.events.MappingStartEvent;
 import org.yaml.snakeyaml.events.SequenceStartEvent;
 
 class ScenarioParser extends AbstractParser<ScenarioBuilder, ScenarioBuilder> {
-    ScenarioParser() {
-        register("initialSequences", new SequenceParser(ScenarioBuilder::initialSequence));
-        register("sequences", new SequenceParser(ScenarioBuilder::sequence));
-        register("orderedSequences", new OrderedSequenceParser());
-        register("intVars", new VarParser(ScenarioBuilder::intVar));
-        register("objectVars", new VarParser(ScenarioBuilder::objectVar));
-    }
+   ScenarioParser() {
+      register("initialSequences", new SequenceParser(ScenarioBuilder::initialSequence));
+      register("sequences", new SequenceParser(ScenarioBuilder::sequence));
+      register("orderedSequences", new OrderedSequenceParser());
+      register("intVars", new VarParser(ScenarioBuilder::intVar));
+      register("objectVars", new VarParser(ScenarioBuilder::objectVar));
+   }
 
-    @Override
-    public void parse(Context ctx, ScenarioBuilder target) throws ParserException {
-        if (!ctx.hasNext()) {
-            throw ctx.noMoreEvents(MappingStartEvent.class, AliasEvent.class, SequenceStartEvent.class);
-        }
-        if (ctx.peek() instanceof SequenceStartEvent) {
-            new OrderedSequenceParser().parse(ctx, target);
-        } else {
-            ctx.parseAliased(ScenarioBuilder.class, target, this::callSubBuilders);
-        }
-    }
+   @Override
+   public void parse(Context ctx, ScenarioBuilder target) throws ParserException {
+      if (!ctx.hasNext()) {
+         throw ctx.noMoreEvents(MappingStartEvent.class, AliasEvent.class, SequenceStartEvent.class);
+      }
+      if (ctx.peek() instanceof SequenceStartEvent) {
+         new OrderedSequenceParser().parse(ctx, target);
+      } else {
+         ctx.parseAliased(ScenarioBuilder.class, target, this::callSubBuilders);
+      }
+   }
 }

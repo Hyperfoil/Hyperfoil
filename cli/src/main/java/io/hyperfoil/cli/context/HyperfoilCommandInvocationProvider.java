@@ -28,15 +28,15 @@ import org.aesh.command.invocation.CommandInvocationProvider;
  */
 public class HyperfoilCommandInvocationProvider implements CommandInvocationProvider<HyperfoilCommandInvocation> {
 
-    private final HyperfoilCliContext context;
+   private final HyperfoilCliContext context;
 
-    public HyperfoilCommandInvocationProvider(HyperfoilCliContext context) {
-        this.context = context;
-    }
+   public HyperfoilCommandInvocationProvider(HyperfoilCliContext context) {
+      this.context = context;
+   }
 
 
-    @Override
-    public HyperfoilCommandInvocation enhanceCommandInvocation(CommandInvocation commandInvocation) {
-        return new HyperfoilCommandInvocation(context, commandInvocation);
-    }
+   @Override
+   public HyperfoilCommandInvocation enhanceCommandInvocation(CommandInvocation commandInvocation) {
+      return new HyperfoilCommandInvocation(context, commandInvocation);
+   }
 }

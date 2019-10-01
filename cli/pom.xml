@@ -57,40 +57,40 @@
         <plugins>
 
             <plugin>
-              <groupId>org.apache.maven.plugins</groupId>
-              <artifactId>maven-shade-plugin</artifactId>
-              <executions>
-                <execution>
-                  <phase>package</phase>
-                  <goals>
-                    <goal>shade</goal>
-                  </goals>
-                  <configuration>
-                    <artifactSet>
-                      <excludes>
-                        <exclude>org.fusesource.jansi:jansi</exclude>
-                        <exclude>org.jboss.shrinkwrap.resolver:shrinkwrap-resolver-depchain</exclude>
-                        <exclude>junit:junit</exclude>
-                      </excludes>
-                    </artifactSet>
-                    <finalName>hyperfoil-cli-${project.version}-fat</finalName>
-                    <filters>
-                      <filter>
-                        <artifact>io.hyperfoil:hyperfoil-core</artifact>
-                        <excludes>
-                          <exclude>log4j2.xml</exclude>
-                        </excludes>
-                      </filter>
-                    </filters>
-                    <transformers>
-                      <transformer implementation="org.apache.maven.plugins.shade.resource.IncludeResourceTransformer">
-                          <resource>log4j2.xml</resource>
-                          <file>src/main/resources/log4j2.xml</file>
-                      </transformer>
-                    </transformers>
-                  </configuration>
-                </execution>
-              </executions>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <artifactSet>
+                                <excludes>
+                                    <exclude>org.fusesource.jansi:jansi</exclude>
+                                    <exclude>org.jboss.shrinkwrap.resolver:shrinkwrap-resolver-depchain</exclude>
+                                    <exclude>junit:junit</exclude>
+                                </excludes>
+                            </artifactSet>
+                            <finalName>hyperfoil-cli-${project.version}-fat</finalName>
+                            <filters>
+                                <filter>
+                                    <artifact>io.hyperfoil:hyperfoil-core</artifact>
+                                    <excludes>
+                                        <exclude>log4j2.xml</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.IncludeResourceTransformer">
+                                    <resource>log4j2.xml</resource>
+                                    <file>src/main/resources/log4j2.xml</file>
+                                </transformer>
+                            </transformers>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
 
             <plugin>
@@ -102,7 +102,6 @@
                     </excludes>
                 </configuration>
             </plugin>
-
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -122,7 +121,7 @@
             <id>wrk</id>
             <properties>
                 <wrk.args>--help</wrk.args>
-                <io.hyperfoil.debug />
+                <io.hyperfoil.debug/>
             </properties>
             <build>
                 <plugins>
@@ -141,7 +140,7 @@
                             <executable>java</executable>
                             <arguments>
                                 <argument>-cp</argument>
-                                <classpath />
+                                <classpath/>
                                 <argument>-Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.Log4j2LogDelegateFactory</argument>
                                 <argument>${io.hyperfoil.debug}</argument>
                                 <argument>io.hyperfoil.cli.commands.Wrk</argument>

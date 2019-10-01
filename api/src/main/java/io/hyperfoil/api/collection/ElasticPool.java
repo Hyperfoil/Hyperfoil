@@ -4,6 +4,7 @@ import java.util.function.Consumer;
 
 /**
  * Pool that can create further elements when depleted.
+ *
  * @param <T> The type of elements in this pool.
  */
 public interface ElasticPool<T> {

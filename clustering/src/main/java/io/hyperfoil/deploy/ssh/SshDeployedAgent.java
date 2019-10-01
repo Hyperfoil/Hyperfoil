@@ -228,7 +228,8 @@ public class SshDeployedAgent implements DeployedAgent {
                if (space < 0) {
                   log.warn("Wrong output for md5sum " + file + ": " + line);
                   continue;
-               };
+               }
+               ;
                String checksum = line.substring(0, space);
                md5map.put(file, checksum);
             }

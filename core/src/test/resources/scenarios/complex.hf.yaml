@@ -20,7 +20,7 @@ phases:
             initialSequences:
             - registerInvalid:
               - thinkTime:
-                 duration: 1s
+                  duration: 1s
               # TODO
         validRegistration: &validRegistration
           weight: 0.8
@@ -28,7 +28,7 @@ phases:
             initialSequences:
             - registerInvalid:
               - thinkTime:
-                 duration: 1s
+                  duration: 1s
               # TODO
         unregister: &unregister
           weight: 0.1
@@ -37,11 +37,11 @@ phases:
             orderedSequences:
             - login: &login
               - thinkTime:
-                 duration: 1s
+                  duration: 1s
               #TODO
             - unregister: &unregisterSeq
               - thinkTime:
-                 duration: 1s
+                  duration: 1s
         viewUser: &viewUser
           weight: 1
           scenario:
@@ -51,10 +51,10 @@ phases:
             # for both forked scenario and sequence, YAML validators could have trouble with that.
             - viewUser: &viewUserSeq
               - thinkTime:
-                 duration: 1s
+                  duration: 1s
             - logout: &logout
               - thinkTime:
-                 duration: 1s
+                  duration: 1s
 - steadyState:
     constantPerSec:
       usersPerSec: 100

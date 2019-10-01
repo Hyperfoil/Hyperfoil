@@ -73,7 +73,7 @@ public class Util {
       ByteBuffer output = buffer.nioBuffer(buffer.writerIndex(), buffer.capacity() - buffer.writerIndex());
       CharsetEncoder encoder = StandardCharsets.UTF_8.newEncoder();
       int accumulatedBytes = 0;
-      for (;;) {
+      for (; ; ) {
          CoderResult result = encoder.encode(input, output, true);
          if (result.isError()) {
             throw new RuntimeException("Cannot encode: " + result + ", string is " + str);
@@ -155,7 +155,7 @@ public class Util {
       } else if (value >= 1024 * 1024) {
          scaled = (double) value / (1024 * 1024);
          suffix = "MB";
-      }  else if (value >= 1024) {
+      } else if (value >= 1024) {
          scaled = (double) value / 1024;
          suffix = "kB";
       } else {
@@ -165,7 +165,7 @@ public class Util {
       return String.format("%6.2f%s", scaled, suffix);
    }
 
-   private static final int[] SIZE_TABLE = new int[] {
+   private static final int[] SIZE_TABLE = new int[]{
          1_000_000_000, 100_000_000, 10_000_000, 1_000_000, 100_000, 10_000, 1000, 100, 10
    };
 

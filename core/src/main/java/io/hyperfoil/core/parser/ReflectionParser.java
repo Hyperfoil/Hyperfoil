@@ -7,7 +7,7 @@ import org.yaml.snakeyaml.events.MappingEndEvent;
 import org.yaml.snakeyaml.events.MappingStartEvent;
 import org.yaml.snakeyaml.events.ScalarEvent;
 
-class ReflectionParser<T, S> extends BaseReflectionParser implements Parser<T>  {
+class ReflectionParser<T, S> extends BaseReflectionParser implements Parser<T> {
    private final Function<T, S> selector;
 
    ReflectionParser(Function<T, S> selector) {

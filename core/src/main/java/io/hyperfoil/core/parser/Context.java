@@ -197,7 +197,7 @@ class Context {
    <T> T popVar(Class<T> clazz) {
       Object top = vars.peek();
       if (clazz != null && top != null && !clazz.isInstance(top)) {
-         throw new IllegalStateException("On the top of the stack is '" + top + "'") ;
+         throw new IllegalStateException("On the top of the stack is '" + top + "'");
       }
       @SuppressWarnings("unchecked")
       T popped = (T) vars.pop();
@@ -216,7 +216,7 @@ class Context {
 
    @FunctionalInterface
    public interface BuilderProvider<S> {
-       Parser<S> apply(ScalarEvent event) throws ParserException;
+      Parser<S> apply(ScalarEvent event) throws ParserException;
    }
 
    private static class Anchor {

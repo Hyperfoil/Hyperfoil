@@ -47,7 +47,7 @@ public class Status extends BaseRunIdCommand {
          invocation.print("Agents: ");
          invocation.println(String.join(", ", run.agents.stream().map(a -> a.name + "[" + a.status + "]").toArray(String[]::new)));
       }
-      for (;;) {
+      for (; ; ) {
          if (run.started != null) {
             invocation.print("Started: " + DATE_FORMATTER.format(run.started) + "    ");
          }

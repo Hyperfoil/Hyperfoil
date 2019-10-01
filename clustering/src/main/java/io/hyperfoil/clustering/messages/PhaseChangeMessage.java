@@ -27,51 +27,51 @@ import io.hyperfoil.core.util.Util;
 import io.hyperfoil.util.Immutable;
 
 public class PhaseChangeMessage implements Serializable, Immutable {
-  private final String senderId;
-  private final String runId;
-  private final String phase;
-  private final PhaseInstance.Status status;
-  private final Throwable error;
+   private final String senderId;
+   private final String runId;
+   private final String phase;
+   private final PhaseInstance.Status status;
+   private final Throwable error;
 
-  public PhaseChangeMessage(String senderId, String runId, String phase, PhaseInstance.Status status, Throwable error) {
-    this.senderId = senderId;
-    this.runId = runId;
-    this.phase = phase;
-    this.status = status;
-    this.error = error;
-  }
+   public PhaseChangeMessage(String senderId, String runId, String phase, PhaseInstance.Status status, Throwable error) {
+      this.senderId = senderId;
+      this.runId = runId;
+      this.phase = phase;
+      this.status = status;
+      this.error = error;
+   }
 
-  @Override
-  public String toString() {
-    final StringBuilder sb = new StringBuilder("SimulationMessage{");
-    sb.append("senderId='").append(senderId).append('\'');
-    sb.append(", phase=").append(phase);
-    sb.append(", status=").append(status);
-    sb.append(", error=").append(Util.explainCauses(error));
-    sb.append('}');
-    return sb.toString();
-  }
+   @Override
+   public String toString() {
+      final StringBuilder sb = new StringBuilder("SimulationMessage{");
+      sb.append("senderId='").append(senderId).append('\'');
+      sb.append(", phase=").append(phase);
+      sb.append(", status=").append(status);
+      sb.append(", error=").append(Util.explainCauses(error));
+      sb.append('}');
+      return sb.toString();
+   }
 
-  public String senderId() {
-    return senderId;
-  }
+   public String senderId() {
+      return senderId;
+   }
 
-  public String runId() {
-    return runId;
-  }
+   public String runId() {
+      return runId;
+   }
 
-  public String phase() {
-    return phase;
-  }
+   public String phase() {
+      return phase;
+   }
 
-  public PhaseInstance.Status status() {
-    return status;
-  }
+   public PhaseInstance.Status status() {
+      return status;
+   }
 
-  public Throwable getError() {
-    return error;
-  }
+   public Throwable getError() {
+      return error;
+   }
 
-  public static class Codec extends ObjectCodec<PhaseChangeMessage> {}
+   public static class Codec extends ObjectCodec<PhaseChangeMessage> {}
 }
 

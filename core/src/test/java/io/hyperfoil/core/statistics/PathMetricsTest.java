@@ -33,19 +33,19 @@ public class PathMetricsTest extends BaseScenarioTest {
       selector.nextItem("-> others");
       scenario(3).initialSequence("test")
             .step(SC).httpRequest(HttpMethod.GET)
-               .path(s -> {
-                  switch (counter.getAndIncrement()) {
-                     case 0:
-                        return "/foo.js";
-                     case 1:
-                        return "/bar.php?foo=bar";
-                     case 2:
-                        return "/goo.css";
-                     default:
-                        throw new IllegalStateException();
-                  }
-               })
-               .metric(selector)
+            .path(s -> {
+               switch (counter.getAndIncrement()) {
+                  case 0:
+                     return "/foo.js";
+                  case 1:
+                     return "/bar.php?foo=bar";
+                  case 2:
+                     return "/goo.css";
+                  default:
+                     throw new IllegalStateException();
+               }
+            })
+            .metric(selector)
             .endStep();
 
       Map<String, List<StatisticsSnapshot>> stats = runScenario();

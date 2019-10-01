@@ -31,6 +31,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServer;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -50,58 +51,58 @@ import static org.junit.Assert.assertEquals;
 @RunWith(VertxUnitRunner.class)
 public class RequestResponseCounterTest {
 
-    private AtomicLong counter;
-    private Vertx vertx = Vertx.vertx();
-    private HttpServer httpServer;
+   private AtomicLong counter;
+   private Vertx vertx = Vertx.vertx();
+   private HttpServer httpServer;
 
-    @Before
-    public void before(TestContext ctx) {
-        counter = new AtomicLong();
-        httpServer = vertx.createHttpServer().requestHandler(req -> {
-            counter.getAndIncrement();
-            req.response().end("hello from server");
-        }).listen(0, "localhost", ctx.asyncAssertSuccess());
-    }
+   @Before
+   public void before(TestContext ctx) {
+      counter = new AtomicLong();
+      httpServer = vertx.createHttpServer().requestHandler(req -> {
+         counter.getAndIncrement();
+         req.response().end("hello from server");
+      }).listen(0, "localhost", ctx.asyncAssertSuccess());
+   }
 
-    @After
-    public void after(TestContext ctx) {
-        vertx.close(ctx.asyncAssertSuccess());
-    }
+   @After
+   public void after(TestContext ctx) {
+      vertx.close(ctx.asyncAssertSuccess());
+   }
 
-    @Test
-    public void testNumberOfRequestsAndResponsesMatch() {
+   @Test
+   public void testNumberOfRequestsAndResponsesMatch() {
 
-        BenchmarkBuilder builder =
-                new BenchmarkBuilder(null, new LocalBenchmarkData())
-                        .name("requestResponseCounter " + new SimpleDateFormat("YY/MM/dd HH:mm:ss").format(new Date()))
-                        .http()
-                        .host("localhost").port(httpServer.actualPort())
-                        .sharedConnections(50)
-                        .endHttp()
-                        .threads(2);
+      BenchmarkBuilder builder =
+            new BenchmarkBuilder(null, new LocalBenchmarkData())
+                  .name("requestResponseCounter " + new SimpleDateFormat("YY/MM/dd HH:mm:ss").format(new Date()))
+                  .http()
+                  .host("localhost").port(httpServer.actualPort())
+                  .sharedConnections(50)
+                  .endHttp()
+                  .threads(2);
 
-        builder.addPhase("run").constantPerSec(500)
-                .duration(5000)
-                .maxSessionsEstimate(500 * 15)
-                .scenario()
-                .initialSequence("request")
-                    .step(StepCatalog.class).httpRequest(HttpMethod.GET)
-                        .path("/")
-                        .timeout("60s")
-                        .handler()
-                        .rawBytesHandler(new ByteBufSizeRecorder("bytes"))
-                        .endHandler()
-                    .endStep()
-                .endSequence();
+      builder.addPhase("run").constantPerSec(500)
+            .duration(5000)
+            .maxSessionsEstimate(500 * 15)
+            .scenario()
+            .initialSequence("request")
+            .step(StepCatalog.class).httpRequest(HttpMethod.GET)
+            .path("/")
+            .timeout("60s")
+            .handler()
+            .rawBytesHandler(new ByteBufSizeRecorder("bytes"))
+            .endHandler()
+            .endStep()
+            .endSequence();
 
-        Benchmark benchmark = builder.build();
+      Benchmark benchmark = builder.build();
 
-        AtomicLong actualNumberOfRequests = new AtomicLong(0);
-        LocalSimulationRunner runner = new LocalSimulationRunner(benchmark,
-              (phase, stepId, metric, snapshot, countDown) -> actualNumberOfRequests.addAndGet(snapshot.histogram.getTotalCount()), null);
-        runner.run();
+      AtomicLong actualNumberOfRequests = new AtomicLong(0);
+      LocalSimulationRunner runner = new LocalSimulationRunner(benchmark,
+            (phase, stepId, metric, snapshot, countDown) -> actualNumberOfRequests.addAndGet(snapshot.histogram.getTotalCount()), null);
+      runner.run();
 
-        assertEquals(counter.get(), actualNumberOfRequests.get());
-    }
+      assertEquals(counter.get(), actualNumberOfRequests.get());
+   }
 
 }

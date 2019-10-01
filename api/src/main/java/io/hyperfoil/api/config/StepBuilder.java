@@ -36,7 +36,7 @@ public interface StepBuilder {
 
    /**
     * Create a copy of this builder, adding it as a next step to the provided sequence.
-    *
+    * <p>
     * If this builder does not use its position (calling {@link #endStep()} either directly or
     * e.g. through {@link Locator#fromStep(StepBuilder)}) it can just add <code>this</code>
     * without doing actual copy.

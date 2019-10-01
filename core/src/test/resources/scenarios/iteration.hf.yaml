@@ -12,8 +12,8 @@ phases:
         increment: 100
       maxIterations: 3
       startAfter:
-         phase: steadyState
-         iteration: previous
+        phase: steadyState
+        iteration: previous
       duration: 3s
       # Forks don't have its own hierarchy, these just split the users into new phases. For
       forks:
@@ -23,7 +23,7 @@ phases:
             initialSequences:
             - doFoo:
               - thinkTime:
-                 duration: 1s
+                  duration: 1s
               # TODO
         bar: &bar
           weight: 0.8
@@ -31,7 +31,7 @@ phases:
             initialSequences:
             - doBar:
               - thinkTime:
-                 duration: 1s
+                  duration: 1s
               # TODO
 
 - steadyState:

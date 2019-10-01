@@ -25,23 +25,22 @@ import io.hyperfoil.api.session.Session;
 /**
  * Sequences are a series of one or more {@link Step}'s that perform one logical unit of operation. Steps within a Sequence are executed in order.
  * State is shared between sequences via the {@link Session}. This allows sequences to pass request scoped state between {@link Step} invocations.
- *
+ * <p>
  * Sequences form the basis of a timed operation.
  *
  * @author John O'Hara
- *
  */
 public interface Sequence extends Serializable {
 
-    int id();
+   int id();
 
-    void instantiate(Session session, int id);
+   void instantiate(Session session, int id);
 
-    void reserve(Session session);
+   void reserve(Session session);
 
-    String name();
+   String name();
 
-    Phase phase();
+   Phase phase();
 
-    Step[] steps();
+   Step[] steps();
 }

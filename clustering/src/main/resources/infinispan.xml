@@ -30,7 +30,7 @@
              there are high chances that information (e.g. event bus subscriptions) would be lost -->
         <replicated-cache name="distributed-cache"/>
         <replicated-cache name="__vertx.subs"/>
-        <replicated-cache name="__vertx.haInfo" />
+        <replicated-cache name="__vertx.haInfo"/>
         <replicated-cache-configuration name="__vertx.distributed.cache.configuration"/>
     </cache-container>
 

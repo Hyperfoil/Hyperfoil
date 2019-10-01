@@ -67,7 +67,7 @@ import static io.vertx.core.logging.LoggerFactory.LOGGER_DELEGATE_FACTORY_CLASS_
 
 public class HyperfoilCli {
 
-       //ignore logging when running in the console below severe
+   //ignore logging when running in the console below severe
    static {
       Handler[] handlers = Logger.getLogger("").getHandlers();
       for (int index = 0; index < handlers.length; index++) {
@@ -78,70 +78,70 @@ public class HyperfoilCli {
 
    public static void main(String[] args) throws IOException, CommandRegistryException {
 
-       //set logger impl
-       System.setProperty(LOGGER_DELEGATE_FACTORY_CLASS_NAME, "io.vertx.core.logging.Log4j2LogDelegateFactory");
+      //set logger impl
+      System.setProperty(LOGGER_DELEGATE_FACTORY_CLASS_NAME, "io.vertx.core.logging.Log4j2LogDelegateFactory");
 
       HyperfoilCliContext context = new HyperfoilCliContext();
       Settings<HyperfoilCommandInvocation, ConverterInvocation, CompleterInvocation, ValidatorInvocation,
-                       OptionActivator, CommandActivator> settings =
-               SettingsBuilder.<HyperfoilCommandInvocation, ConverterInvocation, CompleterInvocation,
-                                       ValidatorInvocation, OptionActivator, CommandActivator>builder()
-                       .logging(true)
-                       .enableMan(false)
-                       .enableAlias(false)
-                       .enableExport(false)
-                       .enableSearchInPaging(true)
-                       .readInputrc(true)
-                       .commandRegistry(
-                               AeshCommandRegistryBuilder.<HyperfoilCommandInvocation>builder()
-                                       .command(Connect.class)
-                                       .command(Compare.class)
-                                       .command(Edit.class)
-                                       .command(ExitCommand.class)
-                                       .command(Info.class)
-                                       .command(Kill.class)
-                                       .command(Log.class)
-                                       .command(RunLocal.class)
-                                       .command(Run.class)
-                                       .command(Sessions.class)
-                                       .command(Stats.class)
-                                       .command(Status.class)
-                                       .command(Upload.class)
-                                       .command(Version.class)
-                                       .command(Wrk.WrkCommand.class)
-                                       .create())
-                       .commandInvocationProvider(new HyperfoilCommandInvocationProvider(context))
-                       .completerInvocationProvider(completerInvocation -> new HyperfoilCompleterData(completerInvocation, context))
-                       .build();
+            OptionActivator, CommandActivator> settings =
+            SettingsBuilder.<HyperfoilCommandInvocation, ConverterInvocation, CompleterInvocation,
+                  ValidatorInvocation, OptionActivator, CommandActivator>builder()
+                  .logging(true)
+                  .enableMan(false)
+                  .enableAlias(false)
+                  .enableExport(false)
+                  .enableSearchInPaging(true)
+                  .readInputrc(true)
+                  .commandRegistry(
+                        AeshCommandRegistryBuilder.<HyperfoilCommandInvocation>builder()
+                              .command(Connect.class)
+                              .command(Compare.class)
+                              .command(Edit.class)
+                              .command(ExitCommand.class)
+                              .command(Info.class)
+                              .command(Kill.class)
+                              .command(Log.class)
+                              .command(RunLocal.class)
+                              .command(Run.class)
+                              .command(Sessions.class)
+                              .command(Stats.class)
+                              .command(Status.class)
+                              .command(Upload.class)
+                              .command(Version.class)
+                              .command(Wrk.WrkCommand.class)
+                              .create())
+                  .commandInvocationProvider(new HyperfoilCommandInvocationProvider(context))
+                  .completerInvocationProvider(completerInvocation -> new HyperfoilCompleterData(completerInvocation, context))
+                  .build();
 
-       AeshConsoleRunner runner = AeshConsoleRunner.builder().settings(settings);
-       runner.prompt(new Prompt(new TerminalString("[hyperfoil]$ ",
-                        new TerminalColor(Color.GREEN, Color.DEFAULT, Color.Intensity.BRIGHT))));
+      AeshConsoleRunner runner = AeshConsoleRunner.builder().settings(settings);
+      runner.prompt(new Prompt(new TerminalString("[hyperfoil]$ ",
+            new TerminalColor(Color.GREEN, Color.DEFAULT, Color.Intensity.BRIGHT))));
 
-        runner.start();
-    }
+      runner.start();
+   }
 
-    @CommandDefinition(name = "exit", description = "exit the program", aliases = {"quit"})
-    public static class ExitCommand implements Command<HyperfoilCommandInvocation> {
+   @CommandDefinition(name = "exit", description = "exit the program", aliases = { "quit" })
+   public static class ExitCommand implements Command<HyperfoilCommandInvocation> {
 
-       @Option(shortName = 'f', hasValue = false)
-       private boolean force;
+      @Option(shortName = 'f', hasValue = false)
+      private boolean force;
 
-        @Override
-        public CommandResult execute(HyperfoilCommandInvocation invocation) {
-            if (invocation.context().running() && !force) {
-               invocation.println("Benchmark " + invocation.context().benchmark().name() +
-                     " is currently running, not possible to cleanly exit. To force an exit, use --force");
-            } else {
-               invocation.stop();
-            }
+      @Override
+      public CommandResult execute(HyperfoilCommandInvocation invocation) {
+         if (invocation.context().running() && !force) {
+            invocation.println("Benchmark " + invocation.context().benchmark().name() +
+                  " is currently running, not possible to cleanly exit. To force an exit, use --force");
+         } else {
+            invocation.stop();
+         }
 
-            if (invocation.context().client() != null) {
-               invocation.context().client().close();
-            }
-            return CommandResult.SUCCESS;
-        }
-    }
+         if (invocation.context().client() != null) {
+            invocation.context().client().close();
+         }
+         return CommandResult.SUCCESS;
+      }
+   }
 
 }
 

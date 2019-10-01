@@ -6,7 +6,7 @@ import io.hyperfoil.core.session.SessionFactory;
 
 public class AwaitVarStep extends DependencyStep {
    public AwaitVarStep(String var) {
-      super(null, new Access[] {access(var)});
+      super(null, new Access[]{ access(var) });
    }
 
    private static Access access(String var) {

@@ -36,103 +36,103 @@ import io.hyperfoil.client.RestClient;
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
  */
 public class HyperfoilCliContext {
-    private Benchmark benchmark;
-    private boolean running;
-    private RestClient client;
-    private Client.BenchmarkRef serverBenchmark;
-    private Client.RunRef serverRun;
-    private Map<String, String> logFiles = new HashMap<>();
-    private Map<String, String> logIds = new HashMap<>();
-    private ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(r -> {
-        Thread thread = new Thread(r, "CLI-scheduled-executor");
-        thread.setDaemon(true);
-        return thread;
-    });
-    private String controllerId;
-    private ScheduledFuture<?> controllerPollTask;
+   private Benchmark benchmark;
+   private boolean running;
+   private RestClient client;
+   private Client.BenchmarkRef serverBenchmark;
+   private Client.RunRef serverRun;
+   private Map<String, String> logFiles = new HashMap<>();
+   private Map<String, String> logIds = new HashMap<>();
+   private ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(r -> {
+      Thread thread = new Thread(r, "CLI-scheduled-executor");
+      thread.setDaemon(true);
+      return thread;
+   });
+   private String controllerId;
+   private ScheduledFuture<?> controllerPollTask;
 
-    public HyperfoilCliContext() {
-    }
+   public HyperfoilCliContext() {
+   }
 
-    /**
-     * @return the current running benchmark instance
-     */
-    public Benchmark benchmark() {
-        return benchmark;
-    }
+   /**
+    * @return the current running benchmark instance
+    */
+   public Benchmark benchmark() {
+      return benchmark;
+   }
 
-    public void setBenchmark(Benchmark benchmark) {
-        this.benchmark = benchmark;
-    }
+   public void setBenchmark(Benchmark benchmark) {
+      this.benchmark = benchmark;
+   }
 
-    public boolean running() {
-        return running;
-    }
+   public boolean running() {
+      return running;
+   }
 
-    public void setRunning(boolean running) {
-        this.running = running;
-    }
+   public void setRunning(boolean running) {
+      this.running = running;
+   }
 
-    public RestClient client() {
-        return client;
-    }
+   public RestClient client() {
+      return client;
+   }
 
-    public void setClient(RestClient client) {
-        this.client = client;
-    }
+   public void setClient(RestClient client) {
+      this.client = client;
+   }
 
-    public void setServerBenchmark(Client.BenchmarkRef ref) {
-        this.serverBenchmark = ref;
-    }
+   public void setServerBenchmark(Client.BenchmarkRef ref) {
+      this.serverBenchmark = ref;
+   }
 
-    public Client.BenchmarkRef serverBenchmark() {
-        return serverBenchmark;
-    }
+   public Client.BenchmarkRef serverBenchmark() {
+      return serverBenchmark;
+   }
 
-    public void setServerRun(Client.RunRef ref) {
-        serverRun = ref;
-    }
+   public void setServerRun(Client.RunRef ref) {
+      serverRun = ref;
+   }
 
-    public Client.RunRef serverRun() {
-        return serverRun;
-    }
+   public Client.RunRef serverRun() {
+      return serverRun;
+   }
 
-    public String getLogFile(String node) {
-        return logFiles.get(node);
-    }
+   public String getLogFile(String node) {
+      return logFiles.get(node);
+   }
 
-    public String getLogId(String node) {
-        return logIds.get(node);
-    }
+   public String getLogId(String node) {
+      return logIds.get(node);
+   }
 
-    public void addLog(String node, String file, String id) throws CommandException {
-        if (logFiles.containsKey(node) || logIds.containsKey(node)) {
-            throw new CommandException("Log file for " + node + " already present");
-        }
-        logFiles.put(node, file);
-        logIds.put(node, id);
-    }
+   public void addLog(String node, String file, String id) throws CommandException {
+      if (logFiles.containsKey(node) || logIds.containsKey(node)) {
+         throw new CommandException("Log file for " + node + " already present");
+      }
+      logFiles.put(node, file);
+      logIds.put(node, id);
+   }
 
-    public void updateLogId(String node, String logId) {
-        logIds.put(node, logId);
-    }
+   public void updateLogId(String node, String logId) {
+      logIds.put(node, logId);
+   }
 
-    public ScheduledExecutorService executor() {
-        return executor;
-    }
+   public ScheduledExecutorService executor() {
+      return executor;
+   }
 
-    public String controllerId() {
-        return controllerId;
-    }
+   public String controllerId() {
+      return controllerId;
+   }
 
-    public void setControllerId(String id) {
-        controllerId = id;
-    }
+   public void setControllerId(String id) {
+      controllerId = id;
+   }
 
-    public void setControllerPollTask(ScheduledFuture<?> future) {
-        if (controllerPollTask != null) {
-            controllerPollTask.cancel(false);
-        }
-        controllerPollTask = future;
-    }
+   public void setControllerPollTask(ScheduledFuture<?> future) {
+      if (controllerPollTask != null) {
+         controllerPollTask.cancel(false);
+      }
+      controllerPollTask = future;
+   }
 }

@@ -11,15 +11,15 @@ import io.hyperfoil.api.session.Session;
  */
 public interface HttpConnection extends Connection {
 
-    void request(HttpRequest request,
-                 BiConsumer<Session, HttpRequestWriter>[] headerAppenders,
-                 BiFunction<Session, Connection, ByteBuf> bodyGenerator);
+   void request(HttpRequest request,
+                BiConsumer<Session, HttpRequestWriter>[] headerAppenders,
+                BiFunction<Session, Connection, ByteBuf> bodyGenerator);
 
-    HttpRequest peekRequest(int streamId);
+   HttpRequest peekRequest(int streamId);
 
-    void setClosed();
+   void setClosed();
 
-    boolean isClosed();
+   boolean isClosed();
 
-    boolean isSecure();
+   boolean isSecure();
 }

@@ -57,114 +57,113 @@ import java.util.stream.Collectors;
 @CommandDefinition(name = "run-local", description = "read-yaml command to initiate a hyperfoil workload through a yaml file")
 public class RunLocal implements Command<CommandInvocation> {
 
-    //ignore logging when running in the console below severe
-    static {
-        Handler[] handlers = Logger.getLogger("").getHandlers();
-        for (int index = 0; index < handlers.length; index++) {
-            handlers[index].setLevel(Level.SEVERE);
-        }
-    }
+   //ignore logging when running in the console below severe
+   static {
+      Handler[] handlers = Logger.getLogger("").getHandlers();
+      for (int index = 0; index < handlers.length; index++) {
+         handlers[index].setLevel(Level.SEVERE);
+      }
+   }
 
 
-    @Option(shortName = 'h', hasValue = false, overrideRequired = true)
-    boolean help;
+   @Option(shortName = 'h', hasValue = false, overrideRequired = true)
+   boolean help;
 
-    @Argument(description = "Yaml file that should be parsed", required = true)
-    Resource yaml;
+   @Argument(description = "Yaml file that should be parsed", required = true)
+   Resource yaml;
 
-    @Override
-    public CommandResult execute(CommandInvocation commandInvocation) {
-        if (help) {
-            commandInvocation.println(commandInvocation.getHelpInfo("run-local"));
-            return CommandResult.SUCCESS;
-        }
+   @Override
+   public CommandResult execute(CommandInvocation commandInvocation) {
+      if (help) {
+         commandInvocation.println(commandInvocation.getHelpInfo("run-local"));
+         return CommandResult.SUCCESS;
+      }
 
-        try {
-            Benchmark benchmark = buildBenchmark(io.hyperfoil.cli.Util.sanitize(yaml).read(), commandInvocation);
+      try {
+         Benchmark benchmark = buildBenchmark(io.hyperfoil.cli.Util.sanitize(yaml).read(), commandInvocation);
 
-            HashMap<String, StatisticsSnapshot> aggregated = new HashMap<>();
-            if (benchmark != null) {
-                LocalSimulationRunner runner = new LocalSimulationRunner(benchmark, (phase, stepId, metric, stats, countDown) -> {
-                    synchronized (aggregated) {
-                        stats.addInto(aggregated.computeIfAbsent(phase.name() + "/" + metric, pm -> new StatisticsSnapshot()));
-                    }
-                }, null) {
-                    @Override
-                    protected void phaseChanged(Phase phase, PhaseInstance.Status status, Throwable error) {
-                        super.phaseChanged(phase, status, error);
-                        if (error != null) {
-                            commandInvocation.println("Phase " + phase + " execution failed: " + Util.explainCauses(error));
+         HashMap<String, StatisticsSnapshot> aggregated = new HashMap<>();
+         if (benchmark != null) {
+            LocalSimulationRunner runner = new LocalSimulationRunner(benchmark, (phase, stepId, metric, stats, countDown) -> {
+               synchronized (aggregated) {
+                  stats.addInto(aggregated.computeIfAbsent(phase.name() + "/" + metric, pm -> new StatisticsSnapshot()));
+               }
+            }, null) {
+               @Override
+               protected void phaseChanged(Phase phase, PhaseInstance.Status status, Throwable error) {
+                  super.phaseChanged(phase, status, error);
+                  if (error != null) {
+                     commandInvocation.println("Phase " + phase + " execution failed: " + Util.explainCauses(error));
+                  }
+                  if (status == PhaseInstance.Status.TERMINATED) {
+                     synchronized (aggregated) {
+                        Iterator<Map.Entry<String, StatisticsSnapshot>> it = aggregated.entrySet().iterator();
+                        while (it.hasNext()) {
+                           Map.Entry<String, StatisticsSnapshot> entry = it.next();
+                           if (entry.getKey().startsWith(phase.name() + "/")) {
+                              printStats(entry.getKey(), entry.getValue(), commandInvocation);
+                           }
+                           it.remove();
                         }
-                        if (status == PhaseInstance.Status.TERMINATED) {
-                            synchronized (aggregated) {
-                                Iterator<Map.Entry<String, StatisticsSnapshot>> it = aggregated.entrySet().iterator();
-                                while (it.hasNext()) {
-                                    Map.Entry<String, StatisticsSnapshot> entry = it.next();
-                                    if (entry.getKey().startsWith(phase.name() + "/")) {
-                                        printStats(entry.getKey(), entry.getValue(), commandInvocation);
-                                    }
-                                    it.remove();
-                                }
-                            }
-                        }
-                    }
-                };
-                commandInvocation.println("Running benchmark '" + benchmark.name() + "'");
-                commandInvocation.println("Using " + benchmark.threads() + " thread(s)");
-                commandInvocation.print("Target servers: ");
-                commandInvocation.println(String.join(", ", benchmark.http().values().stream().map(http -> http.host() + ":" + http.port() + " (" + http.sharedConnections() + " connections)").collect(Collectors.toList())));
-                runner.run();
-            }
-        } catch (FileNotFoundException e) {
-            commandInvocation.println("Couldn't find benchmark file: " + e.getMessage());
-        }
-        return CommandResult.SUCCESS;
-    }
+                     }
+                  }
+               }
+            };
+            commandInvocation.println("Running benchmark '" + benchmark.name() + "'");
+            commandInvocation.println("Using " + benchmark.threads() + " thread(s)");
+            commandInvocation.print("Target servers: ");
+            commandInvocation.println(String.join(", ", benchmark.http().values().stream().map(http -> http.host() + ":" + http.port() + " (" + http.sharedConnections() + " connections)").collect(Collectors.toList())));
+            runner.run();
+         }
+      } catch (FileNotFoundException e) {
+         commandInvocation.println("Couldn't find benchmark file: " + e.getMessage());
+      }
+      return CommandResult.SUCCESS;
+   }
 
-    private Benchmark buildBenchmark(InputStream inputStream, CommandInvocation invocation) {
-        if (inputStream == null)
-            invocation.println("Could not find benchmark configuration");
+   private Benchmark buildBenchmark(InputStream inputStream, CommandInvocation invocation) {
+      if (inputStream == null)
+         invocation.println("Could not find benchmark configuration");
 
-        try {
-            String source = Util.toString(inputStream);
-            Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(source, new LocalBenchmarkData());
+      try {
+         String source = Util.toString(inputStream);
+         Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(source, new LocalBenchmarkData());
 
-            if (benchmark == null)
-                invocation.println("Failed to parse benchmark configuration");
+         if (benchmark == null)
+            invocation.println("Failed to parse benchmark configuration");
 
-            return benchmark;
-        }
-        catch (ParserException | IOException e) {
-            invocation.println("Error occurred during parsing: " + e.getMessage());
-            e.printStackTrace();
-        }
-        return null;
-    }
+         return benchmark;
+      } catch (ParserException | IOException e) {
+         invocation.println("Error occurred during parsing: " + e.getMessage());
+         e.printStackTrace();
+      }
+      return null;
+   }
 
-    private void printStats(String phaseAndMetric, StatisticsSnapshot stats, CommandInvocation invocation) {
-        if (stats.isEmpty()) {
-            return;
-        }
+   private void printStats(String phaseAndMetric, StatisticsSnapshot stats, CommandInvocation invocation) {
+      if (stats.isEmpty()) {
+         return;
+      }
 
-        invocation.println("Statistics for " + phaseAndMetric + ":");
+      invocation.println("Statistics for " + phaseAndMetric + ":");
 
-        double durationSeconds = (stats.histogram.getEndTimeStamp() - stats.histogram.getStartTimeStamp()) / 1000d;
-        invocation.print(stats.histogram.getTotalCount() + " requests in " + durationSeconds + "s");
+      double durationSeconds = (stats.histogram.getEndTimeStamp() - stats.histogram.getStartTimeStamp()) / 1000d;
+      invocation.print(stats.histogram.getTotalCount() + " requests in " + durationSeconds + "s");
 
-        CustomValue bytes = stats.custom.get("bytes");
-        String transferPerSec = null;
-        if (bytes != null && bytes instanceof LongValue) {
-            long numBytes = ((LongValue) bytes).value();
-            transferPerSec = Util.prettyPrintData(numBytes / durationSeconds);
-            invocation.println(", " + Util.prettyPrintData(numBytes) + " read");
-        } else {
-            invocation.println("");
-        }
+      CustomValue bytes = stats.custom.get("bytes");
+      String transferPerSec = null;
+      if (bytes != null && bytes instanceof LongValue) {
+         long numBytes = ((LongValue) bytes).value();
+         transferPerSec = Util.prettyPrintData(numBytes / durationSeconds);
+         invocation.println(", " + Util.prettyPrintData(numBytes) + " read");
+      } else {
+         invocation.println("");
+      }
 
-        invocation.println("                 Avg    Stdev      Max");
-        invocation.println("Latency:      " + Util.prettyPrintNanos((long) stats.histogram.getMean()) + " "
-              + Util.prettyPrintNanos((long) stats.histogram.getStdDeviation()) + " "
-              + Util.prettyPrintNanos(stats.histogram.getMaxValue()));
+      invocation.println("                 Avg    Stdev      Max");
+      invocation.println("Latency:      " + Util.prettyPrintNanos((long) stats.histogram.getMean()) + " "
+            + Util.prettyPrintNanos((long) stats.histogram.getStdDeviation()) + " "
+            + Util.prettyPrintNanos(stats.histogram.getMaxValue()));
          /*
          if (latency) {
             invocation.println("Latency Distribution");
@@ -181,44 +180,43 @@ public class RunLocal implements Command<CommandInvocation> {
             invocation.println("----------------------------------------------------------");
          }
          */
-        invocation.println("Requests/sec: " + stats.histogram.getTotalCount() / durationSeconds);
-        if (stats.errors() > 0) {
-            invocation.println("Socket errors: connect " + stats.connectFailureCount + ", reset " + stats.resetCount + ", timeout " + stats.timeouts);
-            invocation.println("Non-2xx or 3xx responses: " + (stats.status_4xx + stats.status_5xx + stats.status_other));
-        }
-        if (transferPerSec != null) {
-            invocation.println("Transfer/sec: " + transferPerSec);
-        }
-        invocation.println("---");
-    }
+      invocation.println("Requests/sec: " + stats.histogram.getTotalCount() / durationSeconds);
+      if (stats.errors() > 0) {
+         invocation.println("Socket errors: connect " + stats.connectFailureCount + ", reset " + stats.resetCount + ", timeout " + stats.timeouts);
+         invocation.println("Non-2xx or 3xx responses: " + (stats.status_4xx + stats.status_5xx + stats.status_other));
+      }
+      if (transferPerSec != null) {
+         invocation.println("Transfer/sec: " + transferPerSec);
+      }
+      invocation.println("---");
+   }
 
-    public static void main(String[] args) throws Exception {
-        CommandRuntime runtime =
-                AeshCommandRuntimeBuilder.builder()
-                                         .commandRegistry(AeshCommandRegistryBuilder.builder()
-                                                                  .command(RunLocal.class).create())
-                                         .build();
+   public static void main(String[] args) throws Exception {
+      CommandRuntime runtime =
+            AeshCommandRuntimeBuilder.builder()
+                  .commandRegistry(AeshCommandRegistryBuilder.builder()
+                        .command(RunLocal.class).create())
+                  .build();
 
-        StringBuilder sb = new StringBuilder("main ");
-        if (args.length == 1) {
-            // When executed from mvn exec:exec -Pmain -Dmain.args="..." we don't want to quote the args
-            sb.append(args[0]);
-        } else {
-            for (String arg : args) {
-                if (arg.indexOf(' ') >= 0) {
-                    sb.append('"').append(arg).append("\" ");
-                } else {
-                    sb.append(arg).append(' ');
-                }
+      StringBuilder sb = new StringBuilder("main ");
+      if (args.length == 1) {
+         // When executed from mvn exec:exec -Pmain -Dmain.args="..." we don't want to quote the args
+         sb.append(args[0]);
+      } else {
+         for (String arg : args) {
+            if (arg.indexOf(' ') >= 0) {
+               sb.append('"').append(arg).append("\" ");
+            } else {
+               sb.append(arg).append(' ');
             }
-        }
-        try {
-            runtime.executeCommand(sb.toString());
-        }
-        catch (Exception e) {
-            System.out.println("Failed to execute command:" + e.getMessage());
-            System.out.println(runtime.commandInfo("main"));
-        }
-    }
+         }
+      }
+      try {
+         runtime.executeCommand(sb.toString());
+      } catch (Exception e) {
+         System.out.println("Failed to execute command:" + e.getMessage());
+         System.out.println(runtime.commandInfo("main"));
+      }
+   }
 
 }

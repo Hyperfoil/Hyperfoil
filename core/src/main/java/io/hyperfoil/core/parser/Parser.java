@@ -19,5 +19,5 @@
 package io.hyperfoil.core.parser;
 
 interface Parser<T> {
-    void parse(Context ctx, T target) throws ParserException;
+   void parse(Context ctx, T target) throws ParserException;
 }

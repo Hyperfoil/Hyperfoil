@@ -24,7 +24,7 @@ public class Lookup<K, V> {
    public V get(K key) {
       int mask = keys.length - 1;
       int slot = key.hashCode() & mask;
-      for (;;) {
+      for (; ; ) {
          Object k2 = keys[slot];
          if (k2 == null) {
             return null;

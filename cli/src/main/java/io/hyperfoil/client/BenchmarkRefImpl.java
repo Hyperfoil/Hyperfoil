@@ -29,8 +29,8 @@ class BenchmarkRefImpl implements Client.BenchmarkRef {
    public Benchmark get() {
       return client.sync(
             handler -> client.client.request(HttpMethod.GET, "/benchmark/" + encode(name))
-               .putHeader(HttpHeaders.ACCEPT.toString(), "application/java-serialized-object")
-               .send(handler), 200,
+                  .putHeader(HttpHeaders.ACCEPT.toString(), "application/java-serialized-object")
+                  .send(handler), 200,
             response -> {
                try {
                   return Util.deserialize(response.bodyAsBuffer().getBytes());

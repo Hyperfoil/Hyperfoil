@@ -59,7 +59,7 @@ phases:
       initialUsersPerSec: 100
       targetUsersPerSec: 1
       startAfter:
-        - rampUp # not needed, just to test list...
-        - steadyState
+      - rampUp # not needed, just to test list...
+      - steadyState
       duration: 3s
       scenario: *scenario

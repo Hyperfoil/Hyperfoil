@@ -26,7 +26,7 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
       this.urlEncode = urlEncode;
       List<Component> components = new ArrayList<>();
       int last = 0;
-      for (;;) {
+      for (; ; ) {
          int openPar = str.indexOf("${", last);
          if (openPar < 0) {
             String substring = str.substring(last);
@@ -85,7 +85,7 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
 
    @Override
    public void accept(Session session, ByteBuf byteBuf) {
-      for (Component c: components) {
+      for (Component c : components) {
          c.accept(session, byteBuf);
       }
    }

@@ -33,9 +33,9 @@ import io.vertx.core.logging.LoggerFactory;
  * A class that will initialise, build and randomly select a single row of data.
  * The row is exposed as columns.
  */
-public class RandomCsvRowStep implements Step, ResourceUtilizer  {
+public class RandomCsvRowStep implements Step, ResourceUtilizer {
    private static final Logger log = LoggerFactory.getLogger(RandomCsvRowStep.class);
-   private String[][] rows ;
+   private String[][] rows;
    private final Access[] columnVars;
 
    public RandomCsvRowStep(String[][] rows, List<String> vars) {
@@ -97,7 +97,7 @@ public class RandomCsvRowStep implements Step, ResourceUtilizer  {
             throw new BenchmarkDefinitionException("Missing CSV row data. Rows were not detected after initial processing of file.");
          }
          rows.forEach(arr -> {
-            for (int i = 0 ; i < arr.length; i += 1) {
+            for (int i = 0; i < arr.length; i += 1) {
                if (!builderColumns.containsValue(i)) {
                   arr[i] = null;
                }
@@ -151,11 +151,11 @@ public class RandomCsvRowStep implements Step, ResourceUtilizer  {
          return this;
       }
 
-      public class ColumnsBuilder extends PairBuilder.OfString{
+      public class ColumnsBuilder extends PairBuilder.OfString {
          /**
           * Use 0-based column as the key and variable name as the value.
           *
-          * @param position 0-based column number.
+          * @param position  0-based column number.
           * @param columnVar Variable name.
           */
          @Override

@@ -34,83 +34,83 @@ import java.io.ObjectOutputStream;
 
 public class ObjectCodec<T> implements MessageCodec<T, T> {
 
-    @Override
-    public void encodeToWire(Buffer buffer, T object) {
+   @Override
+   public void encodeToWire(Buffer buffer, T object) {
 
 
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        ByteArrayMessageCodec byteArrayMessageCodec = new ByteArrayMessageCodec();
+      ByteArrayOutputStream bos = new ByteArrayOutputStream();
+      ByteArrayMessageCodec byteArrayMessageCodec = new ByteArrayMessageCodec();
 
-        try {
-            ObjectOutput out = new ObjectOutputStream(bos);
-            out.writeObject(object);
-            out.flush();
+      try {
+         ObjectOutput out = new ObjectOutputStream(bos);
+         out.writeObject(object);
+         out.flush();
 
-            byteArrayMessageCodec.encodeToWire(buffer, bos.toByteArray());
+         byteArrayMessageCodec.encodeToWire(buffer, bos.toByteArray());
 
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            try {
-                bos.close();
-            } catch (IOException ex) {
-                // ignore close exception
-            }
-        }
-    }
-
-    @Override
-    public T decodeFromWire(int position, Buffer buffer) {
-
-        ByteArrayMessageCodec byteArrayMessageCodec = new ByteArrayMessageCodec();
-
-        ObjectInput in = null;
-        ByteArrayInputStream bis = new ByteArrayInputStream(byteArrayMessageCodec.decodeFromWire(position, buffer));
-
-        try {
-            in = new ObjectInputStream(bis);
-            @SuppressWarnings("unchecked")
-            T object = (T) in.readObject();
-            return object;
-        } catch (IOException | ClassNotFoundException e) {
-            e.printStackTrace();
-        } finally {
-            try {
-                if (in != null) {
-                    in.close();
-                }
-            } catch (IOException ex) {
-                // ignore close exception
-            }
-        }
-        return null;
-    }
+      } catch (IOException e) {
+         e.printStackTrace();
+      } finally {
+         try {
+            bos.close();
+         } catch (IOException ex) {
+            // ignore close exception
+         }
+      }
+   }
 
    @Override
-    public T transform(T object) {
-       // We cannot protect the sender against mutation in codec because the encodeToWire is not called
-       // synchronously even if the eventBus.send() is invoked from event loop.
-        return object;
-    }
+   public T decodeFromWire(int position, Buffer buffer) {
 
-    @Override
-    public String name() {
-        // Each codec must have a unique name.
-        // This is used to identify a codec when sending a message and for unregistering codecs.
-        return this.getClass().getName();
-    }
+      ByteArrayMessageCodec byteArrayMessageCodec = new ByteArrayMessageCodec();
 
-    @Override
-    public byte systemCodecID() {
-        // Always -1
-        return -1;
-    }
+      ObjectInput in = null;
+      ByteArrayInputStream bis = new ByteArrayInputStream(byteArrayMessageCodec.decodeFromWire(position, buffer));
 
-    public static class ArrayList extends ObjectCodec<java.util.ArrayList> {
-       @SuppressWarnings("unchecked")
-       @Override
-       public java.util.ArrayList transform(java.util.ArrayList object) {
-          return new java.util.ArrayList(object);
-       }
-    }
+      try {
+         in = new ObjectInputStream(bis);
+         @SuppressWarnings("unchecked")
+         T object = (T) in.readObject();
+         return object;
+      } catch (IOException | ClassNotFoundException e) {
+         e.printStackTrace();
+      } finally {
+         try {
+            if (in != null) {
+               in.close();
+            }
+         } catch (IOException ex) {
+            // ignore close exception
+         }
+      }
+      return null;
+   }
+
+   @Override
+   public T transform(T object) {
+      // We cannot protect the sender against mutation in codec because the encodeToWire is not called
+      // synchronously even if the eventBus.send() is invoked from event loop.
+      return object;
+   }
+
+   @Override
+   public String name() {
+      // Each codec must have a unique name.
+      // This is used to identify a codec when sending a message and for unregistering codecs.
+      return this.getClass().getName();
+   }
+
+   @Override
+   public byte systemCodecID() {
+      // Always -1
+      return -1;
+   }
+
+   public static class ArrayList extends ObjectCodec<java.util.ArrayList> {
+      @SuppressWarnings("unchecked")
+      @Override
+      public java.util.ArrayList transform(java.util.ArrayList object) {
+         return new java.util.ArrayList(object);
+      }
+   }
 }

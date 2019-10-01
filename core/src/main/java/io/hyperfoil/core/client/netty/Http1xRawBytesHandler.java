@@ -268,31 +268,31 @@ public class Http1xRawBytesHandler extends BaseRawBytesHandler {
          return false;
       }
       for (int i = 0; i < string.length(); ++i) {
-          if (!Util.compareIgnoreCase(buf.getByte(bufOffset + i), string.byteAt(i))) {
-             return false;
-          }
+         if (!Util.compareIgnoreCase(buf.getByte(bufOffset + i), string.byteAt(i))) {
+            return false;
+         }
       }
       return true;
    }
 
-    private int readHexNumber(ByteBuf buf, int index) {
-        index = skipWhitespaces(buf, index);
-        int value = 0;
-        for (; index < buf.writerIndex(); ++index) {
-            byte b = buf.getByte(index);
-            if ((b < '0' || b > '9') && (b < 'a' || b > 'f')) {
-                if (b != CR) {
-                   throw new IllegalStateException("Part size must be followed by CRLF!");
-                }
-                return value;
+   private int readHexNumber(ByteBuf buf, int index) {
+      index = skipWhitespaces(buf, index);
+      int value = 0;
+      for (; index < buf.writerIndex(); ++index) {
+         byte b = buf.getByte(index);
+         if ((b < '0' || b > '9') && (b < 'a' || b > 'f')) {
+            if (b != CR) {
+               throw new IllegalStateException("Part size must be followed by CRLF!");
             }
-            value = value * 16 + (b > '9' ? (b - 'a') + 10 : (b - '0'));
-        }
-        // we expect that we've read the <CR><LF> and we should see them
-        throw new IllegalStateException();
-    }
+            return value;
+         }
+         value = value * 16 + (b > '9' ? (b - 'a') + 10 : (b - '0'));
+      }
+      // we expect that we've read the <CR><LF> and we should see them
+      throw new IllegalStateException();
+   }
 
-    private int readDecNumber(ByteBuf buf, int index) {
+   private int readDecNumber(ByteBuf buf, int index) {
       index = skipWhitespaces(buf, index);
       int value = 0;
       for (; index < buf.writerIndex(); ++index) {

@@ -18,5 +18,5 @@ phases:
               GET: /index.html
           - httpRequest:
               GET: /api/fruits-normal
-          - awaitDelay :
+          - awaitDelay:
               key: thinkTime

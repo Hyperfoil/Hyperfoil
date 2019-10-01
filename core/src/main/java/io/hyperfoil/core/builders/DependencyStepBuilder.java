@@ -16,6 +16,7 @@ public abstract class DependencyStepBuilder<S extends DependencyStepBuilder<S>> 
 
    /**
     * This step is blocked if this variable does not have set value (none by default).
+    *
     * @param var Variable name.
     * @return Self.
     */

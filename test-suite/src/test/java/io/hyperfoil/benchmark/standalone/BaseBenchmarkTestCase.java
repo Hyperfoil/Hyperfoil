@@ -6,38 +6,39 @@ import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServer;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.runner.RunWith;
 
 @RunWith(VertxUnitRunner.class)
 public abstract class BaseBenchmarkTestCase {
-    protected volatile int count;
-    protected long unservedDelay;
-    protected double servedRatio = 1.0;
-    private Vertx vertx;
-    protected HttpServer server;
+   protected volatile int count;
+   protected long unservedDelay;
+   protected double servedRatio = 1.0;
+   private Vertx vertx;
+   protected HttpServer server;
 
-    @Before
-    public void before(TestContext ctx) {
-        count = 0;
-        vertx = Vertx.vertx();
-        server = vertx.createHttpServer().requestHandler(req -> {
-            count++;
-            if (servedRatio >= 1.0 || ThreadLocalRandom.current().nextDouble() < servedRatio) {
-                req.response().end();
+   @Before
+   public void before(TestContext ctx) {
+      count = 0;
+      vertx = Vertx.vertx();
+      server = vertx.createHttpServer().requestHandler(req -> {
+         count++;
+         if (servedRatio >= 1.0 || ThreadLocalRandom.current().nextDouble() < servedRatio) {
+            req.response().end();
+         } else {
+            if (unservedDelay > 0) {
+               vertx.setTimer(unservedDelay, timer -> req.connection().close());
             } else {
-                if (unservedDelay > 0) {
-                    vertx.setTimer(unservedDelay, timer -> req.connection().close());
-                } else {
-                    req.connection().close();
-                }
+               req.connection().close();
             }
-        }).listen(0, "localhost", ctx.asyncAssertSuccess());
-    }
+         }
+      }).listen(0, "localhost", ctx.asyncAssertSuccess());
+   }
 
-    @After
-    public void after(TestContext ctx) {
-        vertx.close(ctx.asyncAssertSuccess());
-    }
+   @After
+   public void after(TestContext ctx) {
+      vertx.close(ctx.asyncAssertSuccess());
+   }
 }

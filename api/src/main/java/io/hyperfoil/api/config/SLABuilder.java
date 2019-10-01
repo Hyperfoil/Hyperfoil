@@ -116,7 +116,7 @@ public class SLABuilder<P> implements Rewritable<SLABuilder<P>> {
        * Use percentile (value between 0.0 and 1.0) as key and response time with unit (e.g. `ms`) in suffix as value.
        *
        * @param percentileStr Percentile (value between 0.0 and 1.0).
-       * @param responseTime Response time threshold.
+       * @param responseTime  Response time threshold.
        */
       @Override
       public void accept(String percentileStr, String responseTime) {

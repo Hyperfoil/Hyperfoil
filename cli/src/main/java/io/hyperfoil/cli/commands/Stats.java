@@ -63,7 +63,7 @@ public class Stats extends BaseRunIdCommand {
    private void showStats(HyperfoilCommandInvocation invocation, Client.RunRef runRef) throws CommandException {
       boolean terminated = false;
       int prevLines = -2;
-      for (;;) {
+      for (; ; ) {
          Client.RequestStatisticsResponse stats;
          try {
             stats = total || terminated ? runRef.statsTotal() : runRef.statsRecent();

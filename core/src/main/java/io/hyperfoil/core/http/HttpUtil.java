@@ -99,7 +99,7 @@ public final class HttpUtil {
          log.warn("Cannot parse year in date {}", seq.subSequence(begin, end));
          return 0;
       }
-      for (i = nextSpace + 1; i < end && seq.charAt(i) == ' '; ++i); // skip spaces
+      for (i = nextSpace + 1; i < end && seq.charAt(i) == ' '; ++i) ; // skip spaces
 
       if (i + 8 >= end || seq.charAt(i + 2) != ':' || seq.charAt(i + 5) != ':') {
          log.warn("Cannot parse time in date {}", seq.subSequence(begin, end));
@@ -112,7 +112,7 @@ public final class HttpUtil {
          log.warn("Cannot parse time in date {}", seq.subSequence(begin, end));
          return 0;
       }
-      for (i += 8; i < end && seq.charAt(i) == ' '; ++i); // skip spaces
+      for (i += 8; i < end && seq.charAt(i) == ' '; ++i) ; // skip spaces
 
       TimeZone timeZone = UTC;
       if (i < end) {
@@ -140,28 +140,43 @@ public final class HttpUtil {
       byte[] bytes = new byte[29];
       switch (calendar.get(Calendar.DAY_OF_WEEK)) {
          case Calendar.SUNDAY:
-            bytes[0] = 'S'; bytes[1] = 'u'; bytes[2] = 'n';
+            bytes[0] = 'S';
+            bytes[1] = 'u';
+            bytes[2] = 'n';
             break;
          case Calendar.MONDAY:
-            bytes[0] = 'M'; bytes[1] = 'o'; bytes[2] = 'n';
+            bytes[0] = 'M';
+            bytes[1] = 'o';
+            bytes[2] = 'n';
             break;
          case Calendar.TUESDAY:
-            bytes[0] = 'T'; bytes[1] = 'u'; bytes[2] = 'e';
+            bytes[0] = 'T';
+            bytes[1] = 'u';
+            bytes[2] = 'e';
             break;
          case Calendar.WEDNESDAY:
-            bytes[0] = 'W'; bytes[1] = 'e'; bytes[2] = 'd';
+            bytes[0] = 'W';
+            bytes[1] = 'e';
+            bytes[2] = 'd';
             break;
          case Calendar.THURSDAY:
-            bytes[0] = 'T'; bytes[1] = 'h'; bytes[2] = 'u';
+            bytes[0] = 'T';
+            bytes[1] = 'h';
+            bytes[2] = 'u';
             break;
          case Calendar.FRIDAY:
-            bytes[0] = 'F'; bytes[1] = 'r'; bytes[2] = 'i';
+            bytes[0] = 'F';
+            bytes[1] = 'r';
+            bytes[2] = 'i';
             break;
          case Calendar.SATURDAY:
-            bytes[0] = 'S'; bytes[1] = 'a'; bytes[2] = 't';
+            bytes[0] = 'S';
+            bytes[1] = 'a';
+            bytes[2] = 't';
             break;
       }
-      bytes[3] = ','; bytes[4] = ' ';
+      bytes[3] = ',';
+      bytes[4] = ' ';
       int dayOfMonth = calendar.get(Calendar.DAY_OF_MONTH);
       bytes[5] = (byte) ('0' + dayOfMonth / 10);
       bytes[6] = (byte) ('0' + dayOfMonth % 10);

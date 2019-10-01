@@ -49,50 +49,50 @@ import static org.assertj.core.data.Percentage.withPercentage;
 import static org.junit.Assert.fail;
 
 public class YamlParserTest {
-    @Test
-    public void testSimpleYaml() {
-        Benchmark benchmark = buildBenchmark("scenarios/simple.hf.yaml");
-        assertThat(benchmark.name()).isEqualTo("simple benchmark");
-        Phase[] phases = benchmark.phases().toArray(new Phase[0]);
-        assertThat(phases.length).isEqualTo(3);
-        Sequence[] sequences = phases[0].scenario().sequences();
-        assertThat(sequences.length).isEqualTo(1);
-        Step[] steps = sequences[0].steps();
-        assertThat(steps.length).isEqualTo(5);
-        assertThat(steps[0]).isInstanceOf(HttpRequestStep.class);
-        assertThat(steps[1]).isInstanceOf(HttpRequestStep.class);
-        assertThat(steps[2]).isInstanceOf(NoopStep.class);
-        assertThat(steps[3]).isInstanceOf(AwaitIntStep.class);
-        assertThat(steps[4]).isInstanceOf(ScheduleDelayStep.class);
-    }
+   @Test
+   public void testSimpleYaml() {
+      Benchmark benchmark = buildBenchmark("scenarios/simple.hf.yaml");
+      assertThat(benchmark.name()).isEqualTo("simple benchmark");
+      Phase[] phases = benchmark.phases().toArray(new Phase[0]);
+      assertThat(phases.length).isEqualTo(3);
+      Sequence[] sequences = phases[0].scenario().sequences();
+      assertThat(sequences.length).isEqualTo(1);
+      Step[] steps = sequences[0].steps();
+      assertThat(steps.length).isEqualTo(5);
+      assertThat(steps[0]).isInstanceOf(HttpRequestStep.class);
+      assertThat(steps[1]).isInstanceOf(HttpRequestStep.class);
+      assertThat(steps[2]).isInstanceOf(NoopStep.class);
+      assertThat(steps[3]).isInstanceOf(AwaitIntStep.class);
+      assertThat(steps[4]).isInstanceOf(ScheduleDelayStep.class);
+   }
 
-    @Test
-    public void testComplexYaml() {
-        Benchmark benchmark = buildBenchmark("scenarios/complex.hf.yaml");
-        assertThat(benchmark.name()).isEqualTo("complex benchmark");
-        assertThat(benchmark.agents().length).isEqualTo(3);
+   @Test
+   public void testComplexYaml() {
+      Benchmark benchmark = buildBenchmark("scenarios/complex.hf.yaml");
+      assertThat(benchmark.name()).isEqualTo("complex benchmark");
+      assertThat(benchmark.agents().length).isEqualTo(3);
 
-        double sumWeights = 0.2 + 0.8 + 0.1 + 1;
-        assertThat(phase(benchmark, "steadyState/invalidRegistration", Phase.ConstantPerSec.class).usersPerSec)
-              .isCloseTo(100.0 / 3 / sumWeights * 0.2, withPercentage(1));
-        assertThat(phase(benchmark, "steadyState/validRegistration", Phase.ConstantPerSec.class).usersPerSec)
-              .isCloseTo(100.0 / 3 / sumWeights * 0.8, withPercentage(1));
-        assertThat(phase(benchmark, "steadyState/unregister", Phase.ConstantPerSec.class).usersPerSec)
-              .isCloseTo(100.0 / 3 / sumWeights * 0.1, withPercentage(1));
-        assertThat(phase(benchmark, "steadyState/viewUser", Phase.ConstantPerSec.class).usersPerSec)
-              .isCloseTo(100.0 / 3 / sumWeights * 1.0, withPercentage(1));
-        assertThat(benchmark.phases().stream()
-              .filter(p -> p instanceof Phase.ConstantPerSec)
-              .mapToDouble(p -> ((Phase.ConstantPerSec) p).usersPerSec)
-              .sum()).isCloseTo(100.0 / 3, withPercentage(1));
-    }
+      double sumWeights = 0.2 + 0.8 + 0.1 + 1;
+      assertThat(phase(benchmark, "steadyState/invalidRegistration", Phase.ConstantPerSec.class).usersPerSec)
+            .isCloseTo(100.0 / 3 / sumWeights * 0.2, withPercentage(1));
+      assertThat(phase(benchmark, "steadyState/validRegistration", Phase.ConstantPerSec.class).usersPerSec)
+            .isCloseTo(100.0 / 3 / sumWeights * 0.8, withPercentage(1));
+      assertThat(phase(benchmark, "steadyState/unregister", Phase.ConstantPerSec.class).usersPerSec)
+            .isCloseTo(100.0 / 3 / sumWeights * 0.1, withPercentage(1));
+      assertThat(phase(benchmark, "steadyState/viewUser", Phase.ConstantPerSec.class).usersPerSec)
+            .isCloseTo(100.0 / 3 / sumWeights * 1.0, withPercentage(1));
+      assertThat(benchmark.phases().stream()
+            .filter(p -> p instanceof Phase.ConstantPerSec)
+            .mapToDouble(p -> ((Phase.ConstantPerSec) p).usersPerSec)
+            .sum()).isCloseTo(100.0 / 3, withPercentage(1));
+   }
 
-    private <T extends Phase> T phase(Benchmark benchmark, String name, Class<T> type) {
-        Phase phase = benchmark.phases().stream()
-              .filter(p -> p.name().equals(name)).findFirst().get();
-        assertThat(phase).isInstanceOf(type);
-        return type.cast(phase);
-    }
+   private <T extends Phase> T phase(Benchmark benchmark, String name, Class<T> type) {
+      Phase phase = benchmark.phases().stream()
+            .filter(p -> p.name().equals(name)).findFirst().get();
+      assertThat(phase).isInstanceOf(type);
+      return type.cast(phase);
+   }
 
    @Test
    public void testShortcutYaml() {
@@ -108,69 +108,69 @@ public class YamlParserTest {
       assertThat(phase.scenario().initialSequences().length).isEqualTo(1);
    }
 
-    @Test
-    public void testIterationYaml() {
-        Benchmark benchmark = buildBenchmark("scenarios/iteration.hf.yaml");
-        assertThat(benchmark.name()).isEqualTo("iteration benchmark");
-    }
+   @Test
+   public void testIterationYaml() {
+      Benchmark benchmark = buildBenchmark("scenarios/iteration.hf.yaml");
+      assertThat(benchmark.name()).isEqualTo("iteration benchmark");
+   }
 
-    @Test
-    public void testAwaitDelayYaml() {
-        Benchmark benchmark = buildBenchmark("scenarios/awaitDelay.hf.yaml");
-        assertThat(benchmark.name()).isEqualTo("await delay benchmark");
-    }
+   @Test
+   public void testAwaitDelayYaml() {
+      Benchmark benchmark = buildBenchmark("scenarios/awaitDelay.hf.yaml");
+      assertThat(benchmark.name()).isEqualTo("await delay benchmark");
+   }
 
-    @Test
-    public void testGeneratorsYaml() {
-        buildBenchmark("scenarios/generators.hf.yaml");
-    }
+   @Test
+   public void testGeneratorsYaml() {
+      buildBenchmark("scenarios/generators.hf.yaml");
+   }
 
-    @Test
-    public void testHttpRequestYaml() {
-        Benchmark benchmark = buildBenchmark("scenarios/httpRequest.hf.yaml");
-        Phase testPhase = benchmark.phases().iterator().next();
-        Sequence testSequence = testPhase.scenario().sequences()[0];
-        Iterator<Step> iterator = Arrays.asList(testSequence.steps()).iterator();
+   @Test
+   public void testHttpRequestYaml() {
+      Benchmark benchmark = buildBenchmark("scenarios/httpRequest.hf.yaml");
+      Phase testPhase = benchmark.phases().iterator().next();
+      Sequence testSequence = testPhase.scenario().sequences()[0];
+      Iterator<Step> iterator = Arrays.asList(testSequence.steps()).iterator();
 
-        HttpRequestStep request1 = next(HttpRequestStep.class, iterator);
-        StatusHandler[] statusHandlers1 = HttpRequestStepUtil.statusHandlers(request1);
-        assertThat(statusHandlers1).isNotNull().hasSize(1);
-        assertCondition((RangeStatusValidator) statusHandlers1[0], v -> v.min == 200);
-        assertCondition((RangeStatusValidator) statusHandlers1[0], v -> v.max == 299);
+      HttpRequestStep request1 = next(HttpRequestStep.class, iterator);
+      StatusHandler[] statusHandlers1 = HttpRequestStepUtil.statusHandlers(request1);
+      assertThat(statusHandlers1).isNotNull().hasSize(1);
+      assertCondition((RangeStatusValidator) statusHandlers1[0], v -> v.min == 200);
+      assertCondition((RangeStatusValidator) statusHandlers1[0], v -> v.max == 299);
 
-        HttpRequestStep request2 = next(HttpRequestStep.class, iterator);
-        StatusHandler[] statusHandlers2 = HttpRequestStepUtil.statusHandlers(request2);
-        assertThat(statusHandlers2).isNotNull().hasSize(2);
-        assertCondition((RangeStatusValidator) statusHandlers2[0], v -> v.min == 201);
-        assertCondition((RangeStatusValidator) statusHandlers2[0], v -> v.max == 259);
-        assertCondition((RangeStatusValidator) statusHandlers2[1], v -> v.min == 200);
-        assertCondition((RangeStatusValidator) statusHandlers2[1], v -> v.max == 210);
-    }
+      HttpRequestStep request2 = next(HttpRequestStep.class, iterator);
+      StatusHandler[] statusHandlers2 = HttpRequestStepUtil.statusHandlers(request2);
+      assertThat(statusHandlers2).isNotNull().hasSize(2);
+      assertCondition((RangeStatusValidator) statusHandlers2[0], v -> v.min == 201);
+      assertCondition((RangeStatusValidator) statusHandlers2[0], v -> v.max == 259);
+      assertCondition((RangeStatusValidator) statusHandlers2[1], v -> v.min == 200);
+      assertCondition((RangeStatusValidator) statusHandlers2[1], v -> v.max == 210);
+   }
 
-    @Test
-    public void testAgents1() {
-       Benchmark benchmark = buildBenchmark("scenarios/agents1.hf.yaml");
-       assertThat(benchmark.agents().length).isEqualTo(2);
-    }
+   @Test
+   public void testAgents1() {
+      Benchmark benchmark = buildBenchmark("scenarios/agents1.hf.yaml");
+      assertThat(benchmark.agents().length).isEqualTo(2);
+   }
 
-    @Test
-    public void testAgents2() {
-        Benchmark benchmark = buildBenchmark("scenarios/agents2.hf.yaml");
-        assertThat(benchmark.agents().length).isEqualTo(3);
-    }
+   @Test
+   public void testAgents2() {
+      Benchmark benchmark = buildBenchmark("scenarios/agents2.hf.yaml");
+      assertThat(benchmark.agents().length).isEqualTo(3);
+   }
 
-    @Test
-    public void testStaircase() {
-       Benchmark benchmark = buildBenchmark("scenarios/staircase.hf.yaml");
-       assertThat(benchmark.phases().stream().filter(Phase.RampPerSec.class::isInstance).count()).isEqualTo(3);
-       assertThat(benchmark.phases().stream().filter(Phase.ConstantPerSec.class::isInstance).count()).isEqualTo(3);
-       for (Phase phase : benchmark.phases()) {
-          if (phase instanceof Phase.Noop) {
-             continue;
-          }
-          assertThat(phase.scenario.initialSequences().length).isEqualTo(1);
-       }
-    }
+   @Test
+   public void testStaircase() {
+      Benchmark benchmark = buildBenchmark("scenarios/staircase.hf.yaml");
+      assertThat(benchmark.phases().stream().filter(Phase.RampPerSec.class::isInstance).count()).isEqualTo(3);
+      assertThat(benchmark.phases().stream().filter(Phase.ConstantPerSec.class::isInstance).count()).isEqualTo(3);
+      for (Phase phase : benchmark.phases()) {
+         if (phase instanceof Phase.Noop) {
+            continue;
+         }
+         assertThat(phase.scenario.initialSequences().length).isEqualTo(1);
+      }
+   }
 
    @Test
    public void testMutualTls() {
@@ -197,23 +197,23 @@ public class YamlParserTest {
    }
 
    private <T> void assertCondition(T object, Predicate<T> predicate) {
-        assertThat(object).has(new Condition<>(predicate, ""));
-    }
+      assertThat(object).has(new Condition<>(predicate, ""));
+   }
 
-    private Benchmark buildBenchmark(String s) {
-        return buildBenchmark(this.getClass().getClassLoader().getResourceAsStream(s));
-    }
+   private Benchmark buildBenchmark(String s) {
+      return buildBenchmark(this.getClass().getClassLoader().getResourceAsStream(s));
+   }
 
-    private Benchmark buildBenchmark(InputStream inputStream) {
-        if (inputStream == null)
-            fail("Could not find benchmark configuration");
+   private Benchmark buildBenchmark(InputStream inputStream) {
+      if (inputStream == null)
+         fail("Could not find benchmark configuration");
 
-        try {
-            Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(inputStream, new LocalBenchmarkData());
-            Assert.assertNotNull(benchmark);
-            return benchmark;
-        } catch (ParserException | IOException e) {
-            throw new AssertionError("Error occurred during parsing", e);
-        }
-    }
+      try {
+         Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(inputStream, new LocalBenchmarkData());
+         Assert.assertNotNull(benchmark);
+         return benchmark;
+      } catch (ParserException | IOException e) {
+         throw new AssertionError("Error occurred during parsing", e);
+      }
+   }
 }

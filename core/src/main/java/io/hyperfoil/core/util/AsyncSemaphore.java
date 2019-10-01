@@ -18,7 +18,7 @@ public class AsyncSemaphore {
 
    public void acquire(Runnable handler) {
       requestors.add(handler);
-      for (;;) {
+      for (; ; ) {
          int current = updater.get(this);
          if (current > 0) {
             if (updater.compareAndSet(this, current, current - 1)) {

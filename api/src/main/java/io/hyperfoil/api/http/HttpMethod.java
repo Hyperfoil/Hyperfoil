@@ -20,11 +20,11 @@ package io.hyperfoil.api.http;
 
 public enum HttpMethod {
 
-  GET, HEAD, POST, PUT, DELETE, OPTIONS, PATCH, TRACE, CONNECT;
+   GET, HEAD, POST, PUT, DELETE, OPTIONS, PATCH, TRACE, CONNECT;
 
-  public final io.netty.handler.codec.http.HttpMethod netty;
+   public final io.netty.handler.codec.http.HttpMethod netty;
 
-  HttpMethod() {
-    this.netty = io.netty.handler.codec.http.HttpMethod.valueOf(name());
-  }
+   HttpMethod() {
+      this.netty = io.netty.handler.codec.http.HttpMethod.valueOf(name());
+   }
 }

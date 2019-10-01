@@ -204,7 +204,7 @@ public class HttpCacheTest extends VertxBaseTest {
             .build(null);
       configurator.accept(request);
       request.start(handlers, new SequenceInstance(), new Statistics(System.currentTimeMillis()));
-      fireRequest(context.pool, request, headerAppender == null ? null : new BiConsumer[] { headerAppender });
+      fireRequest(context.pool, request, headerAppender == null ? null : new BiConsumer[]{ headerAppender });
    }
 
    private void fireRequest(HttpClientPool client, HttpRequest request, BiConsumer<Session, HttpRequestWriter>[] headerAppenders) {

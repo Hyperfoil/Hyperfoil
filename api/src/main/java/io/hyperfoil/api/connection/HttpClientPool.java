@@ -29,23 +29,23 @@ import io.vertx.core.Handler;
  */
 public interface HttpClientPool {
 
-    Http config();
+   Http config();
 
-    void start(Handler<AsyncResult<Void>> completionHandler);
+   void start(Handler<AsyncResult<Void>> completionHandler);
 
-    void shutdown();
+   void shutdown();
 
-    EventExecutorGroup executors();
+   EventExecutorGroup executors();
 
-    HttpConnectionPool next();
+   HttpConnectionPool next();
 
-    HttpConnectionPool connectionPool(EventExecutor executor);
+   HttpConnectionPool connectionPool(EventExecutor executor);
 
-    String host();
+   String host();
 
-    String authority();
+   String authority();
 
-    String scheme();
+   String scheme();
 
-    boolean isSecure();
+   boolean isSecure();
 }

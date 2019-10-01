@@ -27,7 +27,7 @@ public class Sessions extends BaseRunIdCommand {
    public CommandResult execute(HyperfoilCommandInvocation invocation) throws CommandException {
       Client.RunRef runRef = getRunRef(invocation);
       Map<String, Map<String, Client.MinMax>> sessionStats = null;
-      for (;;) {
+      for (; ; ) {
          try {
             int numLines = sessionStats == null ? 0 : sessionStats.values().stream().mapToInt(Map::size).sum() + 2;
             sessionStats = runRef.sessionStatsRecent();
@@ -58,7 +58,7 @@ public class Sessions extends BaseRunIdCommand {
 
    private Map<String, Stream<Map.Entry<String, Client.MinMax>>> toMapOfStreams(Map<String, Map<String, Client.MinMax>> sessionStats) {
       return sessionStats.entrySet().stream()
-                     .collect(Collectors.toMap(Map.Entry::getKey, Sessions::soretdEntries, throwingMerger(), TreeMap::new));
+            .collect(Collectors.toMap(Map.Entry::getKey, Sessions::soretdEntries, throwingMerger(), TreeMap::new));
    }
 
    private static Stream<Map.Entry<String, Client.MinMax>> soretdEntries(Map.Entry<String, Map<String, Client.MinMax>> e) {

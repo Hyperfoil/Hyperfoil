@@ -28,16 +28,16 @@ import io.netty.buffer.ByteBuf;
 
 public interface BodyHandler extends Serializable {
 
-    default void beforeData(HttpRequest request) {}
+   default void beforeData(HttpRequest request) {}
 
-    void handleData(HttpRequest request, ByteBuf data);
+   void handleData(HttpRequest request, ByteBuf data);
 
-    default void afterData(HttpRequest request) {}
+   default void afterData(HttpRequest request) {}
 
-    /**
-     * Handlers parsing HTTP response body.
-     */
-    interface Builder extends BuilderBase<Builder> {
-        BodyHandler build(SerializableSupplier<? extends Step> step);
-    }
+   /**
+    * Handlers parsing HTTP response body.
+    */
+   interface Builder extends BuilderBase<Builder> {
+      BodyHandler build(SerializableSupplier<? extends Step> step);
+   }
 }

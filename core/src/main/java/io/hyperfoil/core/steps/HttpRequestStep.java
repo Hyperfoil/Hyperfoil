@@ -498,7 +498,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
       /**
        * Request timeout - after this time the request will be marked as failed and connection will be closed.
-       *
+       * <p>
        * Defaults to value set globally in <code>http</code> section.
        *
        * @param timeout Timeout.
@@ -547,7 +547,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
        * This request is synchronous; execution of the sequence does not continue until the full response
        * is received. If this step is executed from multiple parallel instances of this sequence the progress
        * of all sequences is blocked until there is a request in flight without response.
-       *
+       * <p>
        * Default is <code>true</code>.
        *
        * @param sync Synchronous?
@@ -851,7 +851,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
       /**
        * Add simple name=value input pair.
        *
-       * @param name Input name.
+       * @param name  Input name.
        * @param value Input value.
        */
       @Override

@@ -18,7 +18,7 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
         <io.hyperfoil.clustered>true</io.hyperfoil.clustered>
-        <io.hyperfoil.debug />
+        <io.hyperfoil.debug/>
     </properties>
 
     <dependencies>
@@ -99,7 +99,7 @@
                     <executable>java</executable>
                     <arguments>
                         <argument>-cp</argument>
-                        <classpath />
+                        <classpath/>
                         <argument>-Djava.net.preferIPv4Stack=true</argument>
                         <argument>-Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.Log4j2LogDelegateFactory</argument>
                         <argument>-Dio.hyperfoil.clustered=${io.hyperfoil.clustered}</argument>

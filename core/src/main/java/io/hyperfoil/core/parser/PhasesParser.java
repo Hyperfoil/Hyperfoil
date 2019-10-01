@@ -27,30 +27,30 @@ import io.hyperfoil.api.config.PhaseBuilder;
 
 class PhasesParser extends AbstractParser<BenchmarkBuilder, PhaseBuilder.Catalog> {
 
-    PhasesParser() {
-        register("atOnce", new PhaseParser.AtOnce());
-        register("always", new PhaseParser.Always());
-        register("rampPerSec", new PhaseParser.RampPerSec());
-        register("constantPerSec", new PhaseParser.ConstantPerSec());
-    }
+   PhasesParser() {
+      register("atOnce", new PhaseParser.AtOnce());
+      register("always", new PhaseParser.Always());
+      register("rampPerSec", new PhaseParser.RampPerSec());
+      register("constantPerSec", new PhaseParser.ConstantPerSec());
+   }
 
-    @Override
-    public void parse(Context ctx, BenchmarkBuilder target) throws ParserException {
-        ctx.parseList(target, this::parsePhase);
-    }
+   @Override
+   public void parse(Context ctx, BenchmarkBuilder target) throws ParserException {
+      ctx.parseList(target, this::parsePhase);
+   }
 
-    private void parsePhase(Context ctx, BenchmarkBuilder target) throws ParserException {
-        ctx.expectEvent(MappingStartEvent.class);
-        ScalarEvent event = ctx.expectEvent(ScalarEvent.class);
-        String name = event.getValue();
-        ctx.expectEvent(MappingStartEvent.class);
-        event = ctx.expectEvent(ScalarEvent.class);
-        Parser<PhaseBuilder.Catalog> builder = subBuilders.get(event.getValue());
-        if (builder == null) {
-            throw new ParserException(event, "Invalid phase type: '" + event.getValue() + "', expected one of " + subBuilders.keySet());
-        }
-        builder.parse(ctx, target.addPhase(name));
-        ctx.expectEvent(MappingEndEvent.class);
-        ctx.expectEvent(MappingEndEvent.class);
-    }
+   private void parsePhase(Context ctx, BenchmarkBuilder target) throws ParserException {
+      ctx.expectEvent(MappingStartEvent.class);
+      ScalarEvent event = ctx.expectEvent(ScalarEvent.class);
+      String name = event.getValue();
+      ctx.expectEvent(MappingStartEvent.class);
+      event = ctx.expectEvent(ScalarEvent.class);
+      Parser<PhaseBuilder.Catalog> builder = subBuilders.get(event.getValue());
+      if (builder == null) {
+         throw new ParserException(event, "Invalid phase type: '" + event.getValue() + "', expected one of " + subBuilders.keySet());
+      }
+      builder.parse(ctx, target.addPhase(name));
+      ctx.expectEvent(MappingEndEvent.class);
+      ctx.expectEvent(MappingEndEvent.class);
+   }
 }

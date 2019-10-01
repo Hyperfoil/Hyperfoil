@@ -32,95 +32,95 @@ import java.util.stream.Stream;
  */
 public class Benchmark implements Serializable {
 
-    private final String name;
-    private final String originalSource;
-    private final Map<String, byte[]> files;
-    private final Agent[] agents;
-    private final int threads;
-    private final Ergonomics ergonomics;
-    private final Map<String, Http> http;
-    private final Http defaultHttp;
-    private final Collection<Phase> phases;
-    private final Map<String, Object> tags;
-    private final long statisticsCollectionPeriod;
-    private final List<RunHook> preHooks;
-    private final List<RunHook> postHooks;
+   private final String name;
+   private final String originalSource;
+   private final Map<String, byte[]> files;
+   private final Agent[] agents;
+   private final int threads;
+   private final Ergonomics ergonomics;
+   private final Map<String, Http> http;
+   private final Http defaultHttp;
+   private final Collection<Phase> phases;
+   private final Map<String, Object> tags;
+   private final long statisticsCollectionPeriod;
+   private final List<RunHook> preHooks;
+   private final List<RunHook> postHooks;
 
-    public Benchmark(String name, String originalSource, Map<String, byte[]> files, Agent[] agents, int threads, Ergonomics ergonomics,
-                     Map<String, Http> http, Collection<Phase> phases,
-                     Map<String, Object> tags, long statisticsCollectionPeriod, List<RunHook> preHooks, List<RunHook> postHooks) {
-        this.name = name;
-        this.originalSource = originalSource;
-        this.files = files;
-        this.agents = agents;
-        this.threads = threads;
-        this.ergonomics = ergonomics;
-        this.http = http;
-        this.defaultHttp = http.values().stream().filter(Http::isDefault).findFirst().orElse(null);
-        this.phases = phases;
-        this.tags = tags;
-        this.statisticsCollectionPeriod = statisticsCollectionPeriod;
-        this.preHooks = preHooks;
-        this.postHooks = postHooks;
-    }
+   public Benchmark(String name, String originalSource, Map<String, byte[]> files, Agent[] agents, int threads, Ergonomics ergonomics,
+                    Map<String, Http> http, Collection<Phase> phases,
+                    Map<String, Object> tags, long statisticsCollectionPeriod, List<RunHook> preHooks, List<RunHook> postHooks) {
+      this.name = name;
+      this.originalSource = originalSource;
+      this.files = files;
+      this.agents = agents;
+      this.threads = threads;
+      this.ergonomics = ergonomics;
+      this.http = http;
+      this.defaultHttp = http.values().stream().filter(Http::isDefault).findFirst().orElse(null);
+      this.phases = phases;
+      this.tags = tags;
+      this.statisticsCollectionPeriod = statisticsCollectionPeriod;
+      this.preHooks = preHooks;
+      this.postHooks = postHooks;
+   }
 
-    public String name() {
-        return name;
-    }
+   public String name() {
+      return name;
+   }
 
-    public Agent[] agents() {
-        return agents;
-    }
+   public Agent[] agents() {
+      return agents;
+   }
 
-    /**
-     *  As the transformation from YAML is one-way (due to forks and iterations)
-     *  here we store the original source (be it YAML or JSON)
-     *
-     * @return Source YAML for the benchmark.
-     */
-    public String source() {
-        return originalSource;
-    }
+   /**
+    * As the transformation from YAML is one-way (due to forks and iterations)
+    * here we store the original source (be it YAML or JSON)
+    *
+    * @return Source YAML for the benchmark.
+    */
+   public String source() {
+      return originalSource;
+   }
 
-    public Map<String, byte[]> files() {
-        return files;
-    }
+   public Map<String, byte[]> files() {
+      return files;
+   }
 
-    public int threads() {
-        return threads;
-    }
+   public int threads() {
+      return threads;
+   }
 
-    public Collection<Phase> phases() {
-        return phases;
-    }
+   public Collection<Phase> phases() {
+      return phases;
+   }
 
-    public Map<String, Object> tags() {
-        return tags;
-    }
+   public Map<String, Object> tags() {
+      return tags;
+   }
 
-    public Map<String, Http> http() {
-        return http;
-    }
+   public Map<String, Http> http() {
+      return http;
+   }
 
-    public Http defaultHttp() {
-        return defaultHttp;
-    }
+   public Http defaultHttp() {
+      return defaultHttp;
+   }
 
-    public long statisticsCollectionPeriod() {
-        return statisticsCollectionPeriod;
-    }
+   public long statisticsCollectionPeriod() {
+      return statisticsCollectionPeriod;
+   }
 
-    public List<RunHook> preHooks() {
-        return preHooks;
-    }
+   public List<RunHook> preHooks() {
+      return preHooks;
+   }
 
-    public List<RunHook> postHooks() {
-        return postHooks;
-    }
+   public List<RunHook> postHooks() {
+      return postHooks;
+   }
 
-    @Override
-    public String toString() {
-        return "Benchmark{name='" + name + '\'' +
+   @Override
+   public String toString() {
+      return "Benchmark{name='" + name + '\'' +
             ", originalSource='" + originalSource + '\'' +
             ", agents=" + Arrays.toString(agents) +
             ", threads=" + threads +
@@ -128,18 +128,18 @@ public class Benchmark implements Serializable {
             ", phases=" + phases +
             ", tags=" + tags +
             ", statisticsCollectionPeriod=" + statisticsCollectionPeriod +
-        '}';
-    }
+            '}';
+   }
 
-    public Stream<Step> steps() {
-        return phases().stream()
-             .flatMap(phase -> Stream.of(phase.scenario().sequences()))
-             .flatMap(sequence -> Stream.of(sequence.steps()));
-    }
+   public Stream<Step> steps() {
+      return phases().stream()
+            .flatMap(phase -> Stream.of(phase.scenario().sequences()))
+            .flatMap(sequence -> Stream.of(sequence.steps()));
+   }
 
-    public Phase[] phasesById() {
-        Phase[] phases = new Phase[this.phases.size()];
-        this.phases.forEach(p -> phases[p.id()] = p);
-        return phases;
-    }
+   public Phase[] phasesById() {
+      Phase[] phases = new Phase[this.phases.size()];
+      this.phases.forEach(p -> phases[p.id()] = p);
+      return phases;
+   }
 }

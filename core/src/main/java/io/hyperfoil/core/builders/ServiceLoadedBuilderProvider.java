@@ -86,11 +86,11 @@ public class ServiceLoadedBuilderProvider<B> {
             ((BuilderBase) instance).setLocator(locator);
          }
          if (param != null && !param.isEmpty()) {
-           if (instance instanceof InitFromParam) {
-              ((InitFromParam) instance).init(param);
-           } else {
-              throw new BenchmarkDefinitionException(name + "(" + builderInfo.implClazz + ") cannot be initialized from an inline parameter");
-           }
+            if (instance instanceof InitFromParam) {
+               ((InitFromParam) instance).init(param);
+            } else {
+               throw new BenchmarkDefinitionException(name + "(" + builderInfo.implClazz + ") cannot be initialized from an inline parameter");
+            }
          }
          return new ServiceLoadedContract(instance, () -> consumer.accept(builderInfo.adapter.apply(instance)));
       } catch (Exception e) {

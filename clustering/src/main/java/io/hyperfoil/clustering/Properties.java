@@ -33,14 +33,14 @@ public interface Properties {
    }
 
    static <T> T get(String property, Function<String, T> f, T def) {
-       String value = System.getProperty(property);
-       if (value != null) {
-           return f.apply(value);
-       }
-       value = System.getenv(property.replaceAll("\\.", "_").toUpperCase());
-       if (value != null) {
-           return f.apply(value);
-       }
-       return def;
+      String value = System.getProperty(property);
+      if (value != null) {
+         return f.apply(value);
+      }
+      value = System.getenv(property.replaceAll("\\.", "_").toUpperCase());
+      if (value != null) {
+         return f.apply(value);
+      }
+      return def;
    }
 }

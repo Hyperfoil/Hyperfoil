@@ -42,7 +42,7 @@ class CookieStore implements Session.Resource {
       long expires = Long.MAX_VALUE;
       ++valueEnd;
       while (valueEnd < seq.length()) {
-         for ( ; valueEnd < seq.length() && seq.charAt(valueEnd) == ' '; ++valueEnd);
+         for (; valueEnd < seq.length() && seq.charAt(valueEnd) == ' '; ++valueEnd) ;
          int semIndex = HttpUtil.indexOf(seq, valueEnd, ';');
          for (int a = 0; a < ATTRIBUTES.length; ++a) {
             Attribute attribute = ATTRIBUTES[a];
@@ -102,8 +102,8 @@ class CookieStore implements Session.Resource {
       for (int i = 0; i < cookies.length; ++i) {
          if (cookies[i].name == null || cookies[i].name.length() == 0 || (
                AsciiString.contentEquals(cookies[i].name, name) &&
-               AsciiString.contentEquals(cookies[i].domain, domain) &&
-               AsciiString.contentEquals(cookies[i].path, path))) {
+                     AsciiString.contentEquals(cookies[i].domain, domain) &&
+                     AsciiString.contentEquals(cookies[i].path, path))) {
             if (nameValue.length() == valueEnd + 1 || expires <= now) {
                cookies[i].name = ""; // invalidate this entry as it's expired
             } else {

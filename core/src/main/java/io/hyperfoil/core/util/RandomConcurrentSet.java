@@ -36,12 +36,12 @@ public class RandomConcurrentSet<T> {
 
    /**
     * @return Random object from the set or null. This object is exclusively owned by the caller now until it is returned.
-    *         When null is returned the caller should implement some back-off strategy (such as wait in a way not blocking
-    *         the thread) and retry later.
+    * When null is returned the caller should implement some back-off strategy (such as wait in a way not blocking
+    * the thread) and retry later.
     */
    public T fetch() {
       ThreadLocalRandom random = ThreadLocalRandom.current();
-      for (;;) {
+      for (; ; ) {
          AtomicReferenceArray<T> fetchArray = this.fetchArray;
          for (int i = 0; i < fetchAttempts; ++i) {
             int idx = random.nextInt(fetchArray.length());
@@ -71,12 +71,13 @@ public class RandomConcurrentSet<T> {
 
    /**
     * Insert a new object or an object previously returned by {@link #fetch()} to the set.
+    *
     * @param object Any object.
     */
    public void put(T object) {
       ThreadLocalRandom random = ThreadLocalRandom.current();
       Lock readLock = resizeLock.readLock();
-      for (;;) {
+      for (; ; ) {
          // This read lock makes sure that we don't insert anything to array that's going away
          readLock.lock();
          boolean isLocked = true;

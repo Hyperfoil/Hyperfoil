@@ -126,7 +126,7 @@ public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.O
    /**
     * Define a point in future until which we should wait. Do not wait yet.
     *
-    * @param key Identifier.
+    * @param key      Identifier.
     * @param duration Delay duration.
     * @param timeUnit Time unit.
     * @return Builder.
@@ -267,6 +267,7 @@ public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.O
 
    /**
     * Stores random (linearly distributed) integer into session variable.
+    *
     * @param rangeToVar Use <code>var &lt;- min..max</code>
     * @return Builder.
     */

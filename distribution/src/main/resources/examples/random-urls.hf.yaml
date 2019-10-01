@@ -9,10 +9,10 @@ scenario:
   # Step `randomItem` randomly picks one item from the list below...
   - randomItem:
       list:
-        - index.html
-        - foo.png
-        - bar.png
-        - this-returns-404.png
+      - index.html
+      - foo.png
+      - bar.png
+      - this-returns-404.png
       # ... and stores it in users's session under key `my-random-path`
       toVar: my-random-path
   - httpRequest:

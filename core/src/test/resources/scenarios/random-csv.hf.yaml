@@ -11,12 +11,12 @@ phases:
         initialSequences:
         - testSequence:
           - randomCsvRow:
-             file: core/src/test/resources/data/random-sample-test.csv
-             skipComments: true
-             removeQuotes: true
-             columns:
-               0: target-host
-               1: uri
+              file: core/src/test/resources/data/random-sample-test.csv
+              skipComments: true
+              removeQuotes: true
+              columns:
+                0: target-host
+                1: uri
           - template:
               pattern: ${target-host}:8099
               toVar: target-authority

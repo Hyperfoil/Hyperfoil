@@ -52,7 +52,7 @@ public class RawBytesHandlerTest extends VertxBaseTest {
                   Session session = SessionFactory.forTesting();
                   AtomicReference<HttpResponseHandlers> handlersRef = new AtomicReference<>();
                   handlersRef.set(HttpResponseHandlersImpl.Builder.forTesting()
-                        .rawBytesHandler((req,  buf) -> {
+                        .rawBytesHandler((req, buf) -> {
 
                         })
                         .onCompletion(s -> {

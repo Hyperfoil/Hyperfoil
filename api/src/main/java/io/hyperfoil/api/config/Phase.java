@@ -151,7 +151,8 @@ public abstract class Phase implements Serializable {
                     Collection<String> startAfter, Collection<String> startAfterStrict,
                     Collection<String> terminateAfterStrict, long duration, long maxDuration, int maxUnfinishedSessions, String sharedResources, int users) {
          super(benchmark, id, name, scenario, startTime, startAfter, startAfterStrict, terminateAfterStrict, duration, maxDuration, maxUnfinishedSessions, sharedResources);
-         this.users = requirePositive(users, "Phase " + name + " requires positive number of users!");;
+         this.users = requirePositive(users, "Phase " + name + " requires positive number of users!");
+         ;
       }
 
       @Override

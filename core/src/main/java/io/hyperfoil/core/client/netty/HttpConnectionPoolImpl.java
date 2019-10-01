@@ -61,7 +61,7 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
    public boolean request(HttpRequest request, BiConsumer<Session, HttpRequestWriter>[] headerAppenders, BiFunction<Session, Connection, ByteBuf> bodyGenerator) {
       assert eventLoop.inEventLoop();
       HttpConnection connection;
-      for (;;) {
+      for (; ; ) {
          connection = available.pollFirst();
          if (connection == null) {
             return false;

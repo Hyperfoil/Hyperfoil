@@ -25,7 +25,7 @@ import java.util.Collections;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 
 public class SLA implements Serializable {
-   public static final SLA[] DEFAULT = new SLA[] { new SLABuilder<>(null).build() };
+   public static final SLA[] DEFAULT = new SLA[]{ new SLABuilder<>(null).build() };
    private final long window;
    private final double errorRatio;
    private final long meanResponseTime;
@@ -107,7 +107,7 @@ public class SLA implements Serializable {
        * @return Maximum allowed response time for given percentile, in nanoseconds.
        */
       public long responseTime() {
-         return  responseTime;
+         return responseTime;
       }
    }
 

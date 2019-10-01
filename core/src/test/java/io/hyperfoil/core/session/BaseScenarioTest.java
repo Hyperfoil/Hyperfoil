@@ -16,6 +16,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.web.Router;
+
 import org.junit.After;
 import org.junit.Before;
 

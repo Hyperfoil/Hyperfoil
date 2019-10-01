@@ -71,7 +71,8 @@ public class JsonHandlerTest {
    }
 
    private boolean contains(byte[] data, int offset, int length, byte[] string) {
-      OUTER: for (int i = 0; i <= length - string.length; ++i) {
+      OUTER:
+      for (int i = 0; i <= length - string.length; ++i) {
          for (int j = 0; j < string.length && i + j < length; ++j) {
             if (string[j] != data[offset + i + j]) {
                continue OUTER;

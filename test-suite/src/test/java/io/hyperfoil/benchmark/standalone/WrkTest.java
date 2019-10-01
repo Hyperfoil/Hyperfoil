@@ -16,6 +16,6 @@ public class WrkTest extends BaseBenchmarkTestCase {
 
    @Test
    public void test() {
-      Wrk.main(new String[] { "-c", "10", "-d", "5s", "-R", "20", "--latency", "--timeout", "1s", "localhost:" + server.actualPort() + "/foo/bar" });
+      Wrk.main(new String[]{ "-c", "10", "-d", "5s", "-R", "20", "--latency", "--timeout", "1s", "localhost:" + server.actualPort() + "/foo/bar" });
    }
 }

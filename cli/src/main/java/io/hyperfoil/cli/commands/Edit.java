@@ -48,7 +48,7 @@ public class Edit extends BenchmarkCommand {
       }
       long modifiedTimestamp = sourceFile.lastModified();
       Benchmark updated;
-      for (;;) {
+      for (; ; ) {
          try {
             execProcess(invocation, this.editor == null ? EDITOR : this.editor, sourceFile.getAbsolutePath());
          } catch (IOException e) {

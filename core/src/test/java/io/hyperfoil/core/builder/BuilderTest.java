@@ -34,33 +34,33 @@ import static org.junit.Assert.assertEquals;
  */
 public class BuilderTest {
 
-    @Test
-    public void testBuilders() {
+   @Test
+   public void testBuilders() {
 
-        Benchmark benchmark =
-              BenchmarkBuilder.builder()
-                    .name("Test Benchmark")
-                    .http()
-                        .host("localhost").port(8080)
-                        .sharedConnections(1)
-                    .endHttp()
-                    .addPhase("foo").always(1)
-                        .duration("3s")
-                        .scenario()
-                            .initialSequence("foo")
-                                .step(StepCatalog.class).httpRequest(HttpMethod.GET)
-                                        .path("foo")
-                                        .endStep()
-                                .end()
-                            .endSequence()
-                        .endScenario()
-                    .endPhase()
-                    .build();
+      Benchmark benchmark =
+            BenchmarkBuilder.builder()
+                  .name("Test Benchmark")
+                  .http()
+                  .host("localhost").port(8080)
+                  .sharedConnections(1)
+                  .endHttp()
+                  .addPhase("foo").always(1)
+                  .duration("3s")
+                  .scenario()
+                  .initialSequence("foo")
+                  .step(StepCatalog.class).httpRequest(HttpMethod.GET)
+                  .path("foo")
+                  .endStep()
+                  .end()
+                  .endSequence()
+                  .endScenario()
+                  .endPhase()
+                  .build();
 
-        assertEquals("http://localhost:8080", benchmark.tags().get("url"));
-        assertEquals(1, benchmark.phases().size());
-        assertEquals(3000L, benchmark.phases().stream().findFirst().get().duration());
+      assertEquals("http://localhost:8080", benchmark.tags().get("url"));
+      assertEquals(1, benchmark.phases().size());
+      assertEquals(3000L, benchmark.phases().stream().findFirst().get().duration());
 
 
-    }
+   }
 }

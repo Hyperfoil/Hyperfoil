@@ -89,6 +89,6 @@ public class StatisticsCollector implements Consumer<SessionStatistics> {
 
 
    public interface StatisticsConsumer {
-       void accept(Phase phase, int stepId, String metric, StatisticsSnapshot snapshot, CountDown countDown);
+      void accept(Phase phase, int stepId, String metric, StatisticsSnapshot snapshot, CountDown countDown);
    }
 }

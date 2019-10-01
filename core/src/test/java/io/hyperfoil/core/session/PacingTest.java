@@ -27,9 +27,9 @@ public class PacingTest extends BaseScenarioTest {
    @Test
    public void testThinkTimes() {
       scenario().initialSequence("loop")
-               .step(SC).httpRequest(HttpMethod.GET).path("/test").endStep()
-               .step(SC).thinkTime(500, TimeUnit.MILLISECONDS).endStep()
-               .step(SC).loop("counter", 5, "loop")
+            .step(SC).httpRequest(HttpMethod.GET).path("/test").endStep()
+            .step(SC).thinkTime(500, TimeUnit.MILLISECONDS).endStep()
+            .step(SC).loop("counter", 5, "loop")
             .endSequence();
 
       runScenario();
@@ -38,11 +38,11 @@ public class PacingTest extends BaseScenarioTest {
    @Test
    public void testCycleTimes() {
       scenario().initialSequence("loop")
-               // Delaying from now accumulates time skew as it always plans from this timestamp
-               .step(SC).scheduleDelay("foo", 1, TimeUnit.SECONDS).fromNow().endStep()
-               .step(SC).httpRequest(HttpMethod.GET).path("/test").endStep()
-               .step(SC).awaitDelay("foo")
-               .step(SC).loop("counter", 5, "loop")
+            // Delaying from now accumulates time skew as it always plans from this timestamp
+            .step(SC).scheduleDelay("foo", 1, TimeUnit.SECONDS).fromNow().endStep()
+            .step(SC).httpRequest(HttpMethod.GET).path("/test").endStep()
+            .step(SC).awaitDelay("foo")
+            .step(SC).loop("counter", 5, "loop")
             .endSequence();
 
       runScenario();
@@ -51,11 +51,11 @@ public class PacingTest extends BaseScenarioTest {
    @Test
    public void testCycleTimesPrecise() {
       scenario().initialSequence("loop")
-               // Delaying from last does not accumulate time skew as it bases the delay on previous iteration
-               .step(SC).scheduleDelay("foo", 1, TimeUnit.SECONDS).fromLast().endStep()
-               .step(SC).httpRequest(HttpMethod.GET).path("/test").endStep()
-               .step(SC).awaitDelay("foo")
-               .step(SC).loop("counter", 5, "loop")
+            // Delaying from last does not accumulate time skew as it bases the delay on previous iteration
+            .step(SC).scheduleDelay("foo", 1, TimeUnit.SECONDS).fromLast().endStep()
+            .step(SC).httpRequest(HttpMethod.GET).path("/test").endStep()
+            .step(SC).awaitDelay("foo")
+            .step(SC).loop("counter", 5, "loop")
             .endSequence();
 
       runScenario();

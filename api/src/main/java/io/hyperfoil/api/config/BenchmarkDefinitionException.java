@@ -19,11 +19,11 @@
 package io.hyperfoil.api.config;
 
 public class BenchmarkDefinitionException extends RuntimeException {
-    public BenchmarkDefinitionException(String msg) {
-        super(msg);
-    }
+   public BenchmarkDefinitionException(String msg) {
+      super(msg);
+   }
 
-    public BenchmarkDefinitionException(String msg, Throwable cause) {
-        super(msg, cause);
-    }
+   public BenchmarkDefinitionException(String msg, Throwable cause) {
+      super(msg, cause);
+   }
 }
