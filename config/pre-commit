@@ -1,0 +1,16 @@
+#!/bin/bash
+
+if [ "x$IDEA_HOME" == "x" ]; then
+   echo "IDEA_HOME is not configured; cannot reformat code"
+   exit 1;
+fi
+
+HYPERFOIL_ROOT=$(dirname $0)/../../
+export IDEA_PROPERTIES=$HYPERFOIL_ROOT/config/idea.properties
+
+git status --porcelain | sed -n 's/^.. //p' > $HYPERFOIL_ROOT/.modified.log
+MODIFIED=$(cat $HYPERFOIL_ROOT/.modified.log | wc -l)
+echo "Formatting $MODIFIED modified files..."
+cat $HYPERFOIL_ROOT/.modified.log | xargs $IDEA_HOME/bin/format.sh -s $HYPERFOIL_ROOT/config/codestyle.xml -m '*.java,*.xml,*.yml' > /dev/null 2> /dev/null
+cat $HYPERFOIL_ROOT/.modified.log | xargs git add 
+rm $HYPERFOIL_ROOT/.modified.log 
