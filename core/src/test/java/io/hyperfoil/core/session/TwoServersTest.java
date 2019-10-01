@@ -47,6 +47,7 @@ public class TwoServersTest extends BaseScenarioTest {
 
    @Test
    public void test() {
+      // @formatter:off
       scenario().initialSequence("test")
             .step(SC).httpRequest(HttpMethod.GET)
                .path("/test")
@@ -63,7 +64,7 @@ public class TwoServersTest extends BaseScenarioTest {
                .endHandler()
             .endStep()
             .step(SC).awaitAllResponses();
-
+      // @formatter:on
       Map<String, List<StatisticsSnapshot>> stats = runScenario();
       StatisticsSnapshot s1 = assertSingleItem(stats.get("server1"));
       assertThat(s1.status_2xx).isEqualTo(1);

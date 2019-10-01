@@ -82,6 +82,7 @@ public class FleetTest extends BaseScenarioTest {
       Access numberOfShips = SessionFactory.access(NUMBER_OF_SHIPS);
       Access numberOfSunkShips = SessionFactory.access(NUMBER_OF_SUNK_SHIPS);
 
+      // @formatter:off
       scenario(2)
             .intVar(NUMBER_OF_SUNK_SHIPS)
             .initialSequence("fleet")
@@ -139,7 +140,7 @@ public class FleetTest extends BaseScenarioTest {
                   return true;
                })
             .endSequence();
-
+      // @formatter:on
       runScenario();
    }
 

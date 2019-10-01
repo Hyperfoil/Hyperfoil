@@ -46,6 +46,7 @@ public class ChunkedTransferTest extends BaseScenarioTest {
    @Test
    public void testChunkedTransfer() {
       AtomicBoolean rawBytesSeen = new AtomicBoolean(false);
+      // @formatter:off
       scenario().initialSequence("test")
             .step(s -> {
                s.httpDestinations().getConnectionPool(null).connections().forEach(c -> {
@@ -54,9 +55,7 @@ public class ChunkedTransferTest extends BaseScenarioTest {
                      f.setAccessible(true);
                      ChannelHandlerContext ctx = (ChannelHandlerContext) f.get(c);
                      ctx.pipeline().addFirst(new BufferingDecoder());
-                  } catch (NoSuchFieldException e) {
-                     throw new IllegalStateException();
-                  } catch (IllegalAccessException e) {
+                  } catch (NoSuchFieldException | IllegalAccessException e) {
                      throw new IllegalStateException();
                   }
 
@@ -67,7 +66,7 @@ public class ChunkedTransferTest extends BaseScenarioTest {
                .handler().rawBytesHandler((session, byteBuf) -> {
                   log.info("Received chunk {} bytes:\n{}", byteBuf.readableBytes(),
                         byteBuf.toString(byteBuf.readerIndex(), byteBuf.readableBytes(), StandardCharsets.UTF_8));
-                  if (byteBuf.toString(StandardCharsets.UTF_8).indexOf(SHIBBOLETH) >= 0) {
+                  if (byteBuf.toString(StandardCharsets.UTF_8).contains(SHIBBOLETH)) {
                      throw new IllegalStateException();
                   }
                   rawBytesSeen.set(true);
@@ -80,7 +79,7 @@ public class ChunkedTransferTest extends BaseScenarioTest {
             .endStep()
             .step(SC).awaitAllResponses()
             .endSequence();
-
+      // @formatter:on
       runScenario();
       assertThat(rawBytesSeen).isTrue();
    }

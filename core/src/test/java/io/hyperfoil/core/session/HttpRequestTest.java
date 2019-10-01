@@ -53,6 +53,7 @@ public class HttpRequestTest extends BaseScenarioTest {
 
    @Test
    public void testStringBody(TestContext ctx) {
+      // @formatter:off
       scenario()
             .initialSequence("test")
                .step(SC).httpRequest(HttpMethod.POST)
@@ -61,12 +62,13 @@ public class HttpRequestTest extends BaseScenarioTest {
                   .handler().status(verifyStatus(ctx))
                   .endHandler()
                .endStep();
-
+      // @formatter:on
       runScenario();
    }
 
    @Test
    public void testStringFromVar(TestContext ctx) {
+      // @formatter:off
       scenario()
             .objectVar("x")
             .initialSequence("test")
@@ -80,7 +82,7 @@ public class HttpRequestTest extends BaseScenarioTest {
                   .handler().status(verifyStatus(ctx))
                   .endHandler()
                .endStep();
-
+      // @formatter:on
       runScenario();
    }
 
@@ -92,6 +94,7 @@ public class HttpRequestTest extends BaseScenarioTest {
          sb.append((char) random.nextInt(0x4E00, 0x9FA5));
       }
       String chineseStr = sb.toString();
+      // @formatter:off
       scenario()
             .objectVar("x")
             .initialSequence("test")
@@ -104,12 +107,13 @@ public class HttpRequestTest extends BaseScenarioTest {
                .body().fromVar("x").endBody()
                .handler().status(verifyStatus(ctx)).endHandler()
             .endStep();
-
+      // @formatter:on
       runScenario();
    }
 
    @Test
    public void testPattern(TestContext ctx) {
+      // @formatter:off
       scenario()
             .objectVar("x")
             .initialSequence("test")
@@ -123,12 +127,13 @@ public class HttpRequestTest extends BaseScenarioTest {
                   .handler().status(verifyStatus(ctx))
                   .endHandler()
                .endStep();
-
+      // @formatter:off
       runScenario();
    }
 
    @Test
    public void testStatusValidator() {
+      // @formatter:off
       scenario()
             .initialSequence("expectOK")
                .step(SC).httpRequest(HttpMethod.GET)
@@ -146,7 +151,7 @@ public class HttpRequestTest extends BaseScenarioTest {
                      .endHandler()
                   .endStep()
                .endSequence();
-
+      // @formatter:on
       Map<String, List<StatisticsSnapshot>> stats = runScenario();
       StatisticsSnapshot snapshot0 = stats.get("expectOK").iterator().next();
       StatisticsSnapshot snapshot1 = stats.get("expectFail").iterator().next();
@@ -161,6 +166,7 @@ public class HttpRequestTest extends BaseScenarioTest {
 
    @Test
    public void testRecordHeaderValueHandler() {
+      // @formatter:off
       scenario()
             .initialSequence("test")
                .step(SC).httpRequest(HttpMethod.GET)
@@ -170,7 +176,7 @@ public class HttpRequestTest extends BaseScenarioTest {
                   .endHandler()
                .endStep()
             .endSequence();
-
+      // @formatter:on
       Map<String, List<StatisticsSnapshot>> stats = runScenario();
       assertThat(assertSingleItem(stats.get("test")).requestCount).isEqualTo(1);
       List<StatisticsSnapshot> foo = stats.get("x-foo");

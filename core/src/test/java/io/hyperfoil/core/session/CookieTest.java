@@ -32,6 +32,7 @@ public class CookieTest extends BaseScenarioTest {
 
    @Test
    public void testRepeatCookie() {
+      // @formatter:off
       scenario().initialSequence("test")
                .step(SC).httpRequest(HttpMethod.GET)
                   .path("/test1")
@@ -47,7 +48,7 @@ public class CookieTest extends BaseScenarioTest {
                   .endHandler()
                .endStep()
             .endSequence();
-
+      // @formatter:on
       Map<String, List<StatisticsSnapshot>> stats = runScenario();
       StatisticsSnapshot test1 = assertSingleItem(stats.get("test1"));
       StatisticsSnapshot test2 = assertSingleItem(stats.get("test1"));
