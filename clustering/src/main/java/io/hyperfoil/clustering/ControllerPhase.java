@@ -70,6 +70,8 @@ public class ControllerPhase {
          return ordinal() >= FINISHED.ordinal();
       }
 
-      public boolean isTerminated() { return ordinal() >= TERMINATED.ordinal(); }
+      public boolean isTerminated() {
+         return ordinal() >= TERMINATED.ordinal();
+      }
    }
 }

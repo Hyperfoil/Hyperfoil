@@ -20,6 +20,11 @@ class AgentInfo {
       this.id = id;
    }
 
+   @Override
+   public String toString() {
+      return name + " (" + nodeId + "/" + deploymentId + ")";
+   }
+
    public enum Status {
       STARTING,
       REGISTERED,

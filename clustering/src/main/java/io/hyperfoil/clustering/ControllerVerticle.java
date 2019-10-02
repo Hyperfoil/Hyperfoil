@@ -110,6 +110,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             message.reply("Ignoring");
             return;
          }
+         log.debug("Registering agent {} ({}/{})", hello.name(), hello.nodeId(), hello.deploymentId());
          agentInfo.nodeId = hello.nodeId();
          agentInfo.deploymentId = hello.deploymentId();
          agentInfo.status = AgentInfo.Status.REGISTERED;
@@ -117,6 +118,9 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
 
          if (run.agents.stream().allMatch(a -> a.status != AgentInfo.Status.STARTING)) {
             handleAgentsStarted(run);
+         } else {
+            log.debug("Waiting for registration from agents {}",
+                  run.agents.stream().filter(a -> a.status == AgentInfo.Status.STARTING).collect(Collectors.toList()));
          }
       });
 
@@ -213,7 +217,9 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             if (Objects.equals(agent.nodeId, nodeID)) {
                agent.status = AgentInfo.Status.FAILED;
                run.errors.add(new Run.Error(agent, new BenchmarkExecutionException("Agent unexpectedly left the cluster.")));
-               kill(run, result -> {});
+               kill(run, result -> {
+                  /* used version of checkstyle does not implement allowEmptyLambdas */
+               });
                stopSimulation(run);
                break;
             }
@@ -464,6 +470,10 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
    }
 
    private void stopSimulation(Run run) {
+      if (run.terminateTime.isComplete()) {
+         log.warn("Run already completed.");
+         return;
+      }
       run.terminateTime.complete(System.currentTimeMillis());
       for (AgentInfo agent : run.agents) {
          if (agent.deploymentId == null) {
