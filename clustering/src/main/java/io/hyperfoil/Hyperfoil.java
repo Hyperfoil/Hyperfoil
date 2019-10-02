@@ -32,8 +32,6 @@ class Hyperfoil {
       log.info("Starting Vert.x...");
       VertxOptions options = new VertxOptions();
       options.getEventBusOptions().setClustered(true);
-      DefaultCacheManager cacheManager = createCacheManager();
-      options.setClusterManager(new InfinispanClusterManager(cacheManager));
       try {
          String hostName = InetAddress.getLocalHost().getHostName();
          log.debug("Using host name {}", hostName);
@@ -43,6 +41,8 @@ class Hyperfoil {
          log.error("Cannot lookup hostname", e);
          System.exit(1);
       }
+      DefaultCacheManager cacheManager = createCacheManager();
+      options.setClusterManager(new InfinispanClusterManager(cacheManager));
       Vertx.clusteredVertx(options, result -> {
          if (result.failed()) {
             log.error("Cannot start Vert.x", result.cause());
