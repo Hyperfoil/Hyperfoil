@@ -108,8 +108,12 @@ public class AgentVerticle extends AbstractVerticle {
                controlFeedConsumer = null;
                runner = null;
                requestStatsSender = null;
-               statisticsCountDown.setHandler(result -> completion.countDown());
-               statisticsCountDown.countDown();
+               if (statisticsCountDown != null) {
+                  statisticsCountDown.setHandler(result -> completion.countDown());
+                  statisticsCountDown.countDown();
+               } else {
+                  completion.countDown();
+               }
                break;
             case LIST_SESSIONS:
                log.debug("Listing sessions...");
