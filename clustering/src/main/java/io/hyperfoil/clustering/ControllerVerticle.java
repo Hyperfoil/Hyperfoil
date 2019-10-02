@@ -46,6 +46,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -209,7 +210,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             continue;
          }
          for (AgentInfo agent : run.agents) {
-            if (agent.nodeId.equals(nodeID)) {
+            if (Objects.equals(agent.nodeId, nodeID)) {
                agent.status = AgentInfo.Status.FAILED;
                run.errors.add(new Run.Error(agent, new BenchmarkExecutionException("Agent unexpectedly left the cluster.")));
                kill(run, result -> {});
