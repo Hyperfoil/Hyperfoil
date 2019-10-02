@@ -47,6 +47,11 @@ public class HttpRequest extends Request {
       handlers.handleThrowable(this, throwable);
    }
 
+   @Override
+   public String toString() {
+      return method + " " + authority + path;
+   }
+
    /**
     * Processors for HTTP requests.
     */

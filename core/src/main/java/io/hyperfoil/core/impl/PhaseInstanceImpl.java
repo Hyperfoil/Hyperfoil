@@ -199,7 +199,14 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       if (trace) {
          log.trace("{} has {} active sessions", def.name, numActive);
       }
-      Session session = sessionPool.acquire();
+      Session session;
+      try {
+         session = sessionPool.acquire();
+      } catch (Throwable t) {
+         log.error("Error during session acquisition", t);
+         notifyFinished(null);
+         return true;
+      }
       if (session == null) {
          notifyFinished(null);
          return true;
