@@ -43,6 +43,8 @@ import java.util.stream.Stream;
 
 public class StatisticsStore {
 
+   private static final String DEFAULT_FIELD_NAME = ":DEFAULT:";
+
    private static final double OUTPUT_VALUE_UNIT_SCALING_RATIO = 1000_000.0;
    private static final double[] PERCENTILES = new double[]{ 0.5, 0.9, 0.99, 0.999, 0.9999 };
    // When we receive snapshot with order #N we will attempt to compact agent snapshots #(N-60)
@@ -101,10 +103,10 @@ public class StatisticsStore {
 
    public String toPhaseName(String phaseName, String iteration, String fork) {
       String rtrn = phaseName;
-      if (iteration != null && !iteration.isEmpty() && !":DEFAULT:".equals(iteration)) {
+      if (iteration != null && !iteration.isEmpty() && !DEFAULT_FIELD_NAME.equals(iteration)) {
          rtrn = rtrn + "/" + iteration;
       }
-      if (fork != null && !fork.isEmpty() && !":DEFAULT:".equals(fork)) {
+      if (fork != null && !fork.isEmpty() && !DEFAULT_FIELD_NAME.equals(fork)) {
          rtrn = rtrn + "/" + fork;
       }
       return rtrn;
@@ -120,8 +122,8 @@ public class StatisticsStore {
          phase = "";
       }
       if (phase.isEmpty()) {
-         rtrn[1] = ":DEFAULT:";
-         rtrn[2] = ":DEFAULT:";
+         rtrn[1] = DEFAULT_FIELD_NAME;
+         rtrn[2] = DEFAULT_FIELD_NAME;
          return rtrn;
       }
 
@@ -129,7 +131,7 @@ public class StatisticsStore {
          rtrn[1] = phase.substring(0, phase.indexOf("/"));
          phase = phase.substring(phase.indexOf("/") + 1);
          if (phase.isEmpty()) {
-            phase = ":DEFAULT:";
+            phase = DEFAULT_FIELD_NAME;
          }
          rtrn[2] = phase;
          return rtrn;
@@ -137,9 +139,9 @@ public class StatisticsStore {
          //TODO determine if it is an iteration or fork
          if (phase.matches("[0-9]+")) {
             rtrn[1] = phase;
-            rtrn[2] = ":DEFAULT:";
+            rtrn[2] = DEFAULT_FIELD_NAME;
          } else {
-            rtrn[1] = ":DEFAULT:";
+            rtrn[1] = DEFAULT_FIELD_NAME;
             rtrn[2] = phase;
          }
          return rtrn;
@@ -170,6 +172,7 @@ public class StatisticsStore {
          }
       }
       jGenerator.writeEndArray(); //end series
+      jGenerator.flush();
    }
 
    public void totalArray(JsonGenerator jGenerator, Data[] dataList, Function<Data, StatisticsSummary> getSummary, BiConsumer<JsonGenerator, Data> also) throws IOException {
@@ -229,41 +232,46 @@ public class StatisticsStore {
       for (T data : sorted) {
          String phaseIterFork = toString.apply(data);
          String[] phaseSplit = parsePhaseName(phaseIterFork);
+         String newPhase = phaseSplit[0];
+         String newIter = phaseSplit[1];
+         String newFork = phaseSplit[2];
          if (!phaseName.isEmpty()) {
-            if (!fork.equals(phaseSplit[2]) || !iteration.equals(phaseSplit[1]) || !phaseName.equals(phaseSplit[0])) { //close previous fork
+            if (!fork.equals(newFork) || !iteration.equals(newIter) || !phaseName.equals(newPhase)) { //close previous fork
                walker.onEndFork(phaseName, iteration, fork);
-               jGenerator.writeEndObject();
+               jGenerator.writeEndObject(); //end current fork
             }
-            if (!iteration.equals(phaseSplit[1]) || !phaseName.equals(phaseSplit[0])) { //close previous iteration
+            if (!iteration.equals(newIter) || !phaseName.equals(newPhase)) { //close previous iteration
                walker.onEndIter(phaseName, iteration);
-               jGenerator.writeEndObject();
+               jGenerator.writeEndObject(); //end all forks
+               jGenerator.writeEndObject(); //end current iter
             }
-            if (!phaseName.equals(phaseSplit[0])) { //close previous phase
+            if (!phaseName.equals(newPhase)) { //close previous phase
                walker.onEndPhase(phaseName);
-               jGenerator.writeEndObject();
+               jGenerator.writeEndObject(); //end all iterations
+               jGenerator.writeEndObject(); //end current phase
             }
          }
-         if (!phaseName.equals(phaseSplit[0])) { //start of new phase
-            jGenerator.writeFieldName(phaseSplit[0]);
-            phaseName = phaseSplit[0];
+         if (!phaseName.equals(newPhase)) { //start of new phase
+            jGenerator.writeFieldName(newPhase);
+            phaseName = newPhase;
             jGenerator.writeStartObject();
             walker.onNewPhase(phaseName);
             jGenerator.writeFieldName("iteration");
             jGenerator.writeStartObject();
             iteration = ""; // guarantees iteration will be changed
          }
-         if (!iteration.equals(phaseSplit[1])) {
-            jGenerator.writeFieldName(phaseSplit[1]);
-            iteration = phaseSplit[1];
+         if (!iteration.equals(newIter)) {
+            jGenerator.writeFieldName(newIter);
+            iteration = newIter;
             jGenerator.writeStartObject();
             walker.onNewIter(phaseName, iteration);
             jGenerator.writeFieldName("fork");
             jGenerator.writeStartObject();
             fork = "";
          }
-         if (!fork.equals(phaseSplit[2])) { //fork name should always be new
-            jGenerator.writeFieldName(phaseSplit[2]);
-            fork = phaseSplit[2];
+         if (!fork.equals(newFork)) { //fork name should always be new
+            jGenerator.writeFieldName(newFork);
+            fork = newFork;
             jGenerator.writeStartObject();
             walker.onNewFork(phaseName, iteration, fork);
          }
@@ -309,11 +317,14 @@ public class StatisticsStore {
          jGenerator.writeFieldName("phase");
          walkPhaseIterFork(jGenerator, sorted, (data) -> data.phase,
                new PhaseIterForkWalker<Data>() {
+
                   @Override
                   public void onNewFork(String phaseName, String iterName, String forkName) {
                      try {
                         jGenerator.writeFieldName("metric");
                         jGenerator.writeStartObject();
+
+
                      } catch (IOException e) {
                         throw new RuntimeException(e);
                      }
@@ -323,7 +334,8 @@ public class StatisticsStore {
                   public void onEndFork(String phaseName, String iterName, String forkName) {
                      String fullName = toPhaseName(phaseName, iterName, forkName);
                      try {
-                        jGenerator.writeEndObject(); //end metric
+                        jGenerator.writeEndObject(); //end all metrics
+                        jGenerator.flush();
                         if (sessionPoolStats.containsKey(fullName)) { //there are session data for the fully qualified forkName
                            SessionPoolStats sps = sessionPoolStats.get(fullName);
                            String[] addresses = new String[sps.records.size()];
@@ -372,7 +384,9 @@ public class StatisticsStore {
                         histogramArray(jGenerator, data.total.histogram, OUTPUT_VALUE_UNIT_SCALING_RATIO);
                         jGenerator.writeFieldName("series");
                         seriesArray(jGenerator, data.series);
+
                         jGenerator.writeEndObject(); //end metric
+                        jGenerator.flush();
 
                      } catch (IOException e) {
                         throw new RuntimeException(e);
