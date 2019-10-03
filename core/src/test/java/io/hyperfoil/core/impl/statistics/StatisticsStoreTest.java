@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkBuilder;
@@ -77,12 +76,32 @@ public class StatisticsStoreTest {
 
    @Test
    public void allJson() {
+
       ErgonomicsBuilder ergonomicsBuilder = new ErgonomicsBuilder();
       ergonomicsBuilder.repeatCookies(true).userAgentFromSession(true);
       Benchmark benchmark = new BenchmarkBuilder("originalSource", BenchmarkData.EMPTY)
             .name("benchmarkName")
             .http().host("localhost").endHttp()
-            .addPhase("phaseName/001/test").always(1)
+
+            .addPhase("ramp/001/one").always(1)
+            .duration(60_000)
+            .scenario().initialSequence("one")
+            .step(StepCatalog.class).httpRequest(HttpMethod.GET)
+            .sla().addItem().meanResponseTime(1, TimeUnit.MILLISECONDS).endSLA().endList()
+            .endStep()
+            .endSequence().endScenario()
+            .endPhase()
+
+            .addPhase("ramp/001/two").always(1)
+            .duration(60_000)
+            .scenario().initialSequence("two")
+            .step(StepCatalog.class).httpRequest(HttpMethod.GET)
+            .sla().addItem().meanResponseTime(1, TimeUnit.MILLISECONDS).endSLA().endList()
+            .endStep()
+            .endSequence().endScenario()
+            .endPhase()
+
+            .addPhase("ramp/002/one").always(1)
             .duration(60_000)
             .scenario().initialSequence("test")
             .step(StepCatalog.class).httpRequest(HttpMethod.GET)
@@ -90,9 +109,36 @@ public class StatisticsStoreTest {
             .endStep()
             .endSequence().endScenario()
             .endPhase()
+            .addPhase("steady/002/one").always(1)
+            .duration(60_000)
+            .scenario().initialSequence("test")
+            .step(StepCatalog.class).httpRequest(HttpMethod.GET)
+            .sla().addItem().meanResponseTime(1, TimeUnit.MILLISECONDS).endSLA().endList()
+            .endStep()
+            .endSequence().endScenario()
+            .endPhase()
+
+
             .build();
-      Phase phase = benchmark.phases().stream().findAny().get();
-      HttpRequestStep step = (HttpRequestStep) Stream.of(phase.scenario().sequences())
+      Iterator<Phase> phaseIterator = benchmark.phases().iterator();
+      Phase phase1 = phaseIterator.next();
+      Phase phase2 = phaseIterator.next();
+      Phase phase3 = phaseIterator.next();
+      Phase phase4 = phaseIterator.next();
+
+      HttpRequestStep step1 = (HttpRequestStep) Stream.of(phase1.scenario().sequences())
+            .flatMap(s -> Stream.of(s.steps()))
+            .filter(HttpRequestStep.class::isInstance)
+            .findAny().get();
+      HttpRequestStep step2 = (HttpRequestStep) Stream.of(phase2.scenario().sequences())
+            .flatMap(s -> Stream.of(s.steps()))
+            .filter(HttpRequestStep.class::isInstance)
+            .findAny().get();
+      HttpRequestStep step3 = (HttpRequestStep) Stream.of(phase3.scenario().sequences())
+            .flatMap(s -> Stream.of(s.steps()))
+            .filter(HttpRequestStep.class::isInstance)
+            .findAny().get();
+      HttpRequestStep step4 = (HttpRequestStep) Stream.of(phase4.scenario().sequences())
             .flatMap(s -> Stream.of(s.steps()))
             .filter(HttpRequestStep.class::isInstance)
             .findAny().get();
@@ -100,16 +146,31 @@ public class StatisticsStoreTest {
       StatisticsStore store = new StatisticsStore(benchmark, failure -> {
       });
 
-      store.record("address", phase.id(), step.id(), "metric1",
+
+      store.record("address", phase1.id(), step1.id(), "metric1",
             makeSnapshot(101, 0 * 60_000, 1 * 60_000, 1_000, 10_000, 30_000, 60_000, 120_000, 666_000_000)
       );
-      store.recordSessionStats("address", 0 * 60_000, "phaseName/001/test", 1, 10);
-      store.record("address", phase.id(), step.id(), "metric1",
+      store.recordSessionStats("address", 0 * 60_000, "ramp/001/one", 1, 10);
+      store.completePhase("ramp/001/one");
+
+      store.record("address", phase2.id(), step2.id(), "metric1",
+            makeSnapshot(101, 0 * 60_000, 1 * 60_000, 1_000, 10_000, 30_000, 60_000, 120_000, 666_000_000)
+      );
+      store.recordSessionStats("address", 0 * 60_000, "ramp/001/two", 1, 10);
+      store.completePhase("ramp/001/two");
+
+      store.record("address", phase3.id(), step3.id(), "metric1",
             makeSnapshot(201, 1 * 60_000, 2 * 60_000, 1_000, 10_000, 30_000, 60_000, 120_000, 666_000_000)
       );
-      store.recordSessionStats("address", 1 * 60_000, "phaseName/001/test", 10, 20);
+      store.recordSessionStats("address", 1 * 60_000, "ramp/002/one", 10, 20);
+      store.completePhase("ramp/002/one");
 
-      store.completePhase("phaseName/001/test");
+      store.record("address", phase4.id(), step4.id(), "metric1",
+            makeSnapshot(301, 2 * 60_000, 3 * 60_000, 1_000, 10_000, 30_000, 60_000, 120_000, 666_000_000)
+      );
+      store.recordSessionStats("address", 0 * 60_000, "steady/002/one", 20, 30);
+      store.completePhase("steady/002/one");
+
 
       assertFalse(store.validateSlas());
 
@@ -122,22 +183,38 @@ public class StatisticsStoreTest {
          store.writeJson(jsonGenerator);
          jsonGenerator.close();
          String out = new String(baos.toByteArray());
+
          ObjectMapper mapper = new ObjectMapper();
 
          JsonNode node = mapper.readTree(out);
 
+
          assertTrue("expect an object", node.isObject());
 
-         ObjectNode objectNode = (ObjectNode) node;
-         Iterator<String> fieldNameIterator = objectNode.fieldNames();
-         List<String> fieldNames = new ArrayList<>();
-         fieldNameIterator.forEachRemaining(fieldNames::add);
+         assertSame("root keys", Arrays.asList("total", "failure", "phase", "agent"), getKeys(node));
+         assertSame("phase names", Arrays.asList("ramp", "steady"), getKeys(node.get("phase")));
+         assertSame("ramp iterations", Arrays.asList("001", "002"), getKeys(node.get("phase").get("ramp").get("iteration")));
+         assertSame("ramp/001 forks", Arrays.asList("one", "two"), getKeys(node.get("phase").get("ramp").get("iteration").get("001").get("fork")));
 
-         assertTrue("missing a key in " + fieldNames, fieldNames.containsAll(Arrays.asList("total", "failure", "phase", "agent")));
-         assertEquals("expect 4 keys", 4, fieldNames.size());
 
       } catch (IOException e) {
          e.printStackTrace();
+      }
+   }
+
+   private List<String> getKeys(JsonNode node) {
+      List<String> rtrn = new ArrayList<>();
+      if (node != null) {
+         node.fieldNames().forEachRemaining(rtrn::add);
+      }
+      return rtrn;
+   }
+
+   private void assertSame(String message, List<String> expected, List<String> actual) {
+      if (expected.containsAll(actual) && actual.containsAll(expected)) {
+
+      } else {
+         fail(message + " expected " + expected + " but found " + actual);
       }
    }
 }
