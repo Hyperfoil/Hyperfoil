@@ -19,6 +19,7 @@
         <copy-module module="cli"/>
         <copy-module module="clustering"/>
         <copy-module module="core"/>
+        <copy-module module="k8s-deployer"/>
 
         <copy todir="${dist.dir}/bin" failonerror="true">
             <fileset dir="src/main/resources/">

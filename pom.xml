@@ -58,6 +58,7 @@
         <module>test-suite</module>
         <module>distribution</module>
         <module>plugins/maven</module>
+        <module>k8s-deployer</module>
     </modules>
 
     <!-- Licenses -->
@@ -76,6 +77,9 @@
 
         <version.apache.sshd>2.2.0</version.apache.sshd>
         <version.assertj>3.10.0</version.assertj>
+        <version.eddsa>0.3.0</version.eddsa>
+        <version.fabric8.kubernetes-client>4.6.0</version.fabric8.kubernetes-client>
+        <version.fabric8.maven-plugin>4.2.0</version.fabric8.maven-plugin>
         <version.hdrhistogram>2.1.11</version.hdrhistogram>
         <version.junit>4.12</version.junit>
         <version.log4j2>2.11.1</version.log4j2>
@@ -84,7 +88,6 @@
         <version.slf4j>1.7.12</version.slf4j>
         <version.snakeyaml>1.22</version.snakeyaml>
         <version.vertx>3.7.1</version.vertx>
-        <version.eddsa>0.3.0</version.eddsa>
 
         <version.sonatype.nexus>1.6.8</version.sonatype.nexus>
         <version.maven.source>3.0.1</version.maven.source>
@@ -151,6 +154,12 @@
             <dependency>
                 <groupId>io.hyperfoil</groupId>
                 <artifactId>hyperfoil-clustering</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.hyperfoil</groupId>
+                <artifactId>hyperfoil-k8s-deployer</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -278,6 +287,11 @@
                 <version>${version.netty.tcnative.boringssl}</version>
             </dependency>
 
+            <dependency>
+                <groupId>io.fabric8</groupId>
+                <artifactId>kubernetes-client</artifactId>
+                <version>${version.fabric8.kubernetes-client}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -426,6 +440,18 @@
                         </execution>
                     </executions>
                 </plugin>
+
+                <plugin>
+                    <groupId>io.fabric8</groupId>
+                    <artifactId>fabric8-maven-plugin</artifactId>
+                    <version>${version.fabric8.maven-plugin}</version>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.sonatype.plugins</groupId>
+                    <artifactId>nexus-staging-maven-plugin</artifactId>
+                    <version>${version.sonatype.nexus}</version>
+                </plugin>
             </plugins>
         </pluginManagement>
     </build>
@@ -445,7 +471,6 @@
                     <plugin>
                         <groupId>org.sonatype.plugins</groupId>
                         <artifactId>nexus-staging-maven-plugin</artifactId>
-                        <version>${version.sonatype.nexus}</version>
                         <extensions>true</extensions>
                         <configuration>
                             <serverId>ossrh</serverId>

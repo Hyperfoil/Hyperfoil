@@ -5,6 +5,7 @@ import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.Agent;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.config.RunHook;
+import io.hyperfoil.api.deployment.AgentProperties;
 import io.hyperfoil.api.deployment.DeployedAgent;
 import io.hyperfoil.api.deployment.Deployer;
 import io.hyperfoil.api.session.PhaseInstance;
@@ -61,8 +62,8 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
    private static final Path RUN_DIR = Properties.get(Properties.RUN_DIR, Paths::get, ROOT_DIR.resolve("run"));
    private static final Path BENCHMARK_DIR = Properties.get(Properties.BENCHMARK_DIR, Paths::get, ROOT_DIR.resolve("benchmark"));
    private static final Path HOOKS_DIR = ROOT_DIR.resolve("hooks");
-   private static final String DEPLOYER = Properties.get(Properties.DEPLOYER, "ssh");
-   private static final long DEPLOY_TIMEOUT = Properties.getLong(Properties.DEPLOY_TIMEOUT, 15000);
+   private static final String DEPLOYER = Properties.get(AgentProperties.DEPLOYER, "ssh");
+   private static final long DEPLOY_TIMEOUT = Properties.getLong(AgentProperties.DEPLOY_TIMEOUT, 15000);
 
    private EventBus eb;
    private ControllerServer server;
@@ -325,6 +326,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
 
       if (benchmark.agents().length == 0) {
          if (vertx.isClustered()) {
+            run.terminateTime.complete(System.currentTimeMillis());
             return new StartResult(null, "Server is started in clustered mode; benchmarks must define agents.");
          } else {
             run.agents.add(new AgentInfo("in-vm", 0));
@@ -335,6 +337,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
          if (!vertx.isClustered()) {
             return new StartResult(null, "Server is not started as clustered and does not accept benchmarks with agents defined.");
          }
+         log.info("Starting agents for run {}", run.id);
          int agentCounter = 0;
          for (Agent agent : benchmark.agents()) {
             AgentInfo agentInfo = new AgentInfo(agent.name, agentCounter++);

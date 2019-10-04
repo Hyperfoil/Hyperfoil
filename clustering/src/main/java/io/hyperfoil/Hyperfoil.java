@@ -33,9 +33,13 @@ class Hyperfoil {
       VertxOptions options = new VertxOptions();
       options.getEventBusOptions().setClustered(true);
       try {
-         String hostName = InetAddress.getLocalHost().getHostName();
-         log.debug("Using host name {}", hostName);
-         options.getEventBusOptions().setHost(hostName);
+         InetAddress address = InetAddress.getLocalHost();
+         String hostName = address.getHostName();
+         String hostAddress = address.getHostAddress();
+         log.info("Using host name {}/{}", hostName, hostAddress);
+         // We are using numeric address because if this is running in a pod its hostname
+         // wouldn't be resolvable even within the cluster/namespace.
+         options.getEventBusOptions().setHost(hostName).setClusterPublicHost(hostAddress);
          System.setProperty("jgroups.tcp.address", hostName);
       } catch (UnknownHostException e) {
          log.error("Cannot lookup hostname", e);

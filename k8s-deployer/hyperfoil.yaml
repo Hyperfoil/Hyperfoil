@@ -1,0 +1,95 @@
+apiVersion: v1
+kind: List
+items:
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: Role
+  metadata:
+    name: controller
+    namespace: hyperfoil
+  rules:
+  - apiGroups:
+    - ""
+    resources:
+    - pods
+    verbs:
+    - create
+    - delete
+    - watch
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: controller
+    namespace: hyperfoil
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: hyperfoil
+    name: hyperfoil
+    namespace: hyperfoil
+  spec:
+    ports:
+    - name: 8090-8090
+      port: 8090
+      protocol: TCP
+      targetPort: 8090
+    selector:
+      app: hyperfoil
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: RoleBinding
+  metadata:
+    name: controller
+    namespace: hyperfoil
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: Role
+    name: controller
+  subjects:
+  - kind: ServiceAccount
+    name: controller
+    namespace: hyperfoil
+- apiVersion: apps.openshift.io/v1
+  kind: DeploymentConfig
+  metadata:
+    generation: 10
+    name: controller
+    namespace: hyperfoil
+  spec:
+    replicas: 1
+    strategy:
+      type: Recreate
+    template:
+      metadata:
+        labels:
+          app: hyperfoil
+          deployment-config.name: controller
+      spec:
+        containers:
+        - command:
+          - /deployment/bin/controller.sh
+          - -Dio.hyperfoil.deploy.timeout=120000
+          - -Dio.hyperfoil.deployer=k8s
+          image: quay.io/hyperfoil/hyperfoil:latest
+          imagePullPolicy: Always
+          name: controller
+        restartPolicy: Always
+        serviceAccountName: controller
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    labels:
+      app: hyperfoil
+    name: hyperfoil
+    namespace: hyperfoil
+  spec:
+    host: hyperfoil.apps.benchcluster.perf.lab.eng.rdu2.redhat.com
+    port:
+      targetPort: 8090-8090
+    to:
+      kind: Service
+      name: hyperfoil
+

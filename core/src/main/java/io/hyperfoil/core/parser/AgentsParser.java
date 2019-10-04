@@ -18,6 +18,7 @@
  */
 package io.hyperfoil.core.parser;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -39,7 +40,8 @@ class AgentsParser implements Parser<BenchmarkBuilder> {
          String value = ((ScalarEvent) event).getValue();
          if (value == null || value.isEmpty()) {
             // `agents:` without a value should be equal to omitting agents declaration completely
-            return;
+         } else {
+            builder.addAgent(value, null, Collections.emptyMap());
          }
       } else if (event instanceof SequenceStartEvent) {
          while (ctx.hasNext()) {
@@ -79,7 +81,7 @@ class AgentsParser implements Parser<BenchmarkBuilder> {
       }
       Event next = ctx.peek();
       if (next instanceof ScalarEvent) {
-         builder.addAgent(name, ctx.expectEvent(ScalarEvent.class).getValue(), null);
+         builder.addAgent(name, ctx.expectEvent(ScalarEvent.class).getValue(), Collections.emptyMap());
       } else if (next instanceof MappingStartEvent) {
          ctx.expectEvent(MappingStartEvent.class);
          Map<String, String> properties = new HashMap<>();
@@ -97,7 +99,7 @@ class AgentsParser implements Parser<BenchmarkBuilder> {
          }
          builder.addAgent(name, null, properties);
       } else {
-         builder.addAgent(name, null, null);
+         builder.addAgent(name, null, Collections.emptyMap());
       }
    }
 

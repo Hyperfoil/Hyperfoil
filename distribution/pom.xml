@@ -38,6 +38,11 @@
         </dependency>
 
         <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>hyperfoil-k8s-deployer</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>org.kohsuke.metainf-services</groupId>
             <artifactId>metainf-services</artifactId>
             <optional>true</optional>
@@ -155,4 +160,60 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>build-image</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>io.fabric8</groupId>
+                        <artifactId>fabric8-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>build-image</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>build</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <mode>kubernetes</mode>
+                            <images>
+                                <image>
+                                    <name>quay.io/hyperfoil/hyperfoil:${project.version}</name>
+                                    <build>
+                                        <from>registry.redhat.io/openjdk/openjdk-8-rhel8:latest</from>
+                                        <tags>
+                                            <tag>latest</tag>
+                                            <tag>${project.version}</tag>
+                                        </tags>
+                                        <ports>
+                                            <port>8090</port>
+                                        </ports>
+                                        <assembly>
+                                            <targetDir>/deployment</targetDir>
+                                            <inline>
+                                                <fileSets>
+                                                    <fileSet>
+                                                        <outputDirectory>.</outputDirectory>
+                                                        <directory>target/distribution</directory>
+                                                    </fileSet>
+                                                </fileSets>
+                                            </inline>
+                                        </assembly>
+                                        <cmd>/deployment/bin/controller.sh</cmd>
+                                    </build>
+                                </image>
+                            </images>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

@@ -5,6 +5,7 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 
 import io.hyperfoil.api.config.Benchmark;
+import io.hyperfoil.api.deployment.AgentProperties;
 import io.hyperfoil.clustering.messages.AgentControlMessage;
 import io.hyperfoil.clustering.messages.AgentHello;
 import io.hyperfoil.core.util.CountDown;
@@ -44,7 +45,7 @@ public class AgentVerticle extends AbstractVerticle {
       deploymentId = deploymentID();
       name = context.config().getString("name");
       if (name == null) {
-         name = Properties.get(Properties.AGENT_NAME, null);
+         name = Properties.get(AgentProperties.AGENT_NAME, null);
       }
       if (name == null) {
          try {
@@ -56,7 +57,7 @@ public class AgentVerticle extends AbstractVerticle {
       }
       runId = context.config().getString("runId");
       if (runId == null) {
-         runId = Properties.get(Properties.RUN_ID, null);
+         runId = Properties.get(AgentProperties.RUN_ID, null);
          if (runId == null) {
             throw new IllegalStateException("No run ID defined for this agent.");
          }
