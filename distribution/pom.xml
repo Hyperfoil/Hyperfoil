@@ -187,7 +187,7 @@
                                 <image>
                                     <name>quay.io/hyperfoil/hyperfoil:${project.version}</name>
                                     <build>
-                                        <from>registry.redhat.io/openjdk/openjdk-8-rhel8:latest</from>
+                                        <from>registry.access.redhat.com/redhat-openjdk-18/openjdk18-openshift:latest</from>
                                         <tags>
                                             <tag>latest</tag>
                                             <tag>${project.version}</tag>
