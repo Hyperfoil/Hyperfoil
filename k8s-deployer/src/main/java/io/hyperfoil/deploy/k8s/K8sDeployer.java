@@ -171,8 +171,10 @@ public class K8sDeployer implements Deployer {
             .withSpec(spec.build()).done();
       // @formatter:on
 
+      // Keep the agent running after benchmark, e.g. to inspect logs
+      boolean stop = !"false".equalsIgnoreCase(agent.properties.getOrDefault("stop", "true"));
 
-      return new K8sAgent(client, pod);
+      return new K8sAgent(client, pod, stop);
    }
 
    @Override

@@ -4,17 +4,21 @@ import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.hyperfoil.api.deployment.DeployedAgent;
 
-public class K8sAgent implements DeployedAgent {
-   private final KubernetesClient client;
+class K8sAgent implements DeployedAgent {
+   final KubernetesClient client;
    final Pod pod;
+   final boolean stop;
 
-   public K8sAgent(KubernetesClient client, Pod pod) {
+   public K8sAgent(KubernetesClient client, Pod pod, boolean stop) {
       this.client = client;
       this.pod = pod;
+      this.stop = stop;
    }
 
    @Override
    public void stop() {
-      client.pods().inNamespace(pod.getMetadata().getNamespace()).delete(pod);
+      if (stop) {
+         client.pods().inNamespace(pod.getMetadata().getNamespace()).delete(pod);
+      }
    }
 }
