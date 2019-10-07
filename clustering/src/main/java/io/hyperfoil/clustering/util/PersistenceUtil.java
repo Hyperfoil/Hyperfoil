@@ -34,6 +34,11 @@ public class PersistenceUtil {
          log.error("Failed to serialize", e);
       }
       if (benchmark.source() != null) {
+         if (!dir.toFile().exists()) {
+            if (!dir.toFile().mkdirs()) {
+               log.error("Failed to create directory {}", dir);
+            }
+         }
          Path path = dir.resolve(benchmark.name() + ".yaml");
          try {
             Files.write(path, benchmark.source().getBytes(StandardCharsets.UTF_8));

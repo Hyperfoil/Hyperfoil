@@ -200,7 +200,9 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
          }
       }
 
-      BENCHMARK_DIR.toFile().mkdirs();
+      if (!BENCHMARK_DIR.toFile().exists() && !BENCHMARK_DIR.toFile().mkdirs()) {
+         log.error("Failed to create benchmark directory: {}", BENCHMARK_DIR);
+      }
       loadBenchmarks(event -> future.complete());
    }
 
@@ -614,7 +616,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                }
             });
          } catch (IOException e) {
-            log.error(e, "Failed to list benchmark dir {}", BENCHMARK_DIR);
+            log.error("Failed to list benchmark dir {}", e, BENCHMARK_DIR);
          }
          future.complete();
       }, handler);
@@ -630,7 +632,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             }).collect(Collectors.toList());
          }
       } catch (IOException e) {
-         log.error("Failed to list hooks.");
+         log.error("Failed to list hooks.", e);
       }
       return Collections.emptyList();
    }
