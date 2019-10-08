@@ -114,23 +114,43 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <executions>
                     <execution>
+                        <id>schema</id>
                         <phase>package</phase>
                         <goals>
                             <goal>exec</goal>
                         </goals>
+                        <configuration>
+                            <skip>false</skip>
+                            <executable>java</executable>
+                            <arguments>
+                                <argument>-cp</argument>
+                                <classpath/>
+                                <argument>io.hyperfoil.schema.Generator</argument>
+                                <argument>${project.basedir}/src/main/resources/schema.json</argument>
+                                <argument>${project.build.directory}/distribution/docs/schema.json</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>docs</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <skip>false</skip>
+                            <executable>java</executable>
+                            <arguments>
+                                <argument>-cp</argument>
+                                <classpath/>
+                                <argument>io.hyperfoil.schema.DocsGenerator</argument>
+                                <argument>${project.basedir}/../api/src/main/java/</argument>
+                                <argument>${project.basedir}/../core/src/main/java/</argument>
+                                <argument>${project.build.directory}/steps</argument>
+                            </arguments>
+                        </configuration>
                     </execution>
                 </executions>
-                <configuration>
-                    <skip>false</skip>
-                    <executable>java</executable>
-                    <arguments>
-                        <argument>-cp</argument>
-                        <classpath/>
-                        <argument>io.hyperfoil.schema.Generator</argument>
-                        <argument>${project.basedir}/src/main/resources/schema.json</argument>
-                        <argument>${project.build.directory}/distribution/docs/schema.json</argument>
-                    </arguments>
-                </configuration>
             </plugin>
 
             <plugin>

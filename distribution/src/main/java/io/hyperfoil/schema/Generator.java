@@ -2,7 +2,6 @@ package io.hyperfoil.schema;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -10,6 +9,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.regex.Pattern;
 
 import io.hyperfoil.api.config.InitFromParam;
@@ -52,7 +52,10 @@ public class Generator extends BaseGenerator {
       definitions = schema.getJsonObject("definitions");
       JsonObject step = definitions.getJsonObject("step");
       JsonArray oneOf = step.getJsonArray("oneOf");
-      JsonObject builders = oneOf.getJsonObject(0).getJsonObject("properties");
+      TreeMap<String, Object> sortedMap = new TreeMap<>();
+      sortedMap.putAll(oneOf.getJsonObject(0).getJsonObject("properties").getMap());
+      JsonObject builders = new JsonObject(sortedMap);
+      oneOf.getJsonObject(0).put("properties", builders);
       JsonArray simpleBuilders = oneOf.getJsonObject(1).getJsonArray("enum");
       simpleBuilders.clear();
 
@@ -85,7 +88,7 @@ public class Generator extends BaseGenerator {
    }
 
    private void addBuilder(JsonObject builders, JsonArray simpleBuilders, String name, Class<?> builder, boolean inline) {
-      JsonObject properties = new JsonObject();
+      JsonObject properties = new JsonObject(new TreeMap<>());
       if (definitions.getJsonObject(builder.getName()) == null) {
          JsonObject step = new JsonObject();
          definitions.put(builder.getName(), step);
@@ -105,7 +108,7 @@ public class Generator extends BaseGenerator {
       if (definitions.getJsonObject(builder.getName()) == null) {
          JsonObject definition = new JsonObject();
          definitions.put(builder.getName(), definition);
-         describeBuilder(builder, definition, new JsonObject());
+         describeBuilder(builder, definition, new JsonObject(new TreeMap<>()));
       }
       return new JsonObject().put("$ref", "#/definitions/" + builder.getName());
    }
@@ -115,15 +118,7 @@ public class Generator extends BaseGenerator {
       step.put("additionalProperties", false);
       step.put("properties", properties);
       for (Method m : builder.getMethods()) {
-         if (Modifier.isStatic(m.getModifiers()) || m.isDefault()) {
-            continue;
-         } else if (END_REGEXP.matcher(m.getName()).matches()) {
-            continue; // do not go up
-         } else if (PairBuilder.class.isAssignableFrom(builder) && m.getName().equals("accept") && m.getParameterCount() == 2) {
-            continue;
-         } else if (ListBuilder.class.isAssignableFrom(builder) && m.getName().equals("nextItem") && m.getParameterCount() == 1) {
-            continue;
-         } else if (MappingListBuilder.class.isAssignableFrom(builder) && m.getName().equals("addItem") && m.getParameterCount() == 0) {
+         if (isMethodIgnored(builder, m)) {
             continue;
          }
          JsonObject property = describeMethod(builder, m);
@@ -236,7 +231,7 @@ public class Generator extends BaseGenerator {
             .put("minProperties", 1)
             .put("maxProperties", 1)
             .put("properties", implementations);
-      for (Map.Entry<String, BuilderInfo<?>> entry : ServiceLoadedBuilderProvider.builders(builderClazz).entrySet()) {
+      for (Map.Entry<String, BuilderInfo<?>> entry : new TreeMap<>(ServiceLoadedBuilderProvider.builders(builderClazz)).entrySet()) {
          Class<?> implClazz = entry.getValue().implClazz;
          JsonObject serviceLoadedProperty = describeBuilder(implClazz);
          if (InitFromParam.class.isAssignableFrom(implClazz)) {

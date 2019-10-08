@@ -66,19 +66,23 @@ public class ArrayRecorder implements Processor<Request>, ResourceUtilizer {
       private DataFormat format = DataFormat.STRING;
       private int maxSize;
 
+      /**
+       * @param param Use format <code>toVar[maxSize]</code>.
+       * @return Self.
+       */
       @Override
-      public Builder init(String varAndSize) {
-         int b1 = varAndSize.indexOf('[');
-         int b2 = varAndSize.indexOf(']');
+      public Builder init(String param) {
+         int b1 = param.indexOf('[');
+         int b2 = param.indexOf(']');
          if (b1 < 0 || b2 < 0 || b2 - b1 < 1) {
             throw new BenchmarkDefinitionException("Array variable must have maximum size: use var[maxSize], e.g. 'foo[16]'");
          }
          try {
-            maxSize = Integer.parseInt(varAndSize.substring(b1 + 1, b2));
+            maxSize = Integer.parseInt(param.substring(b1 + 1, b2));
          } catch (NumberFormatException e) {
-            throw new BenchmarkDefinitionException("Cannot parse maximum size in '" + varAndSize + "'");
+            throw new BenchmarkDefinitionException("Cannot parse maximum size in '" + param + "'");
          }
-         toVar = varAndSize.substring(0, b1).trim();
+         toVar = param.substring(0, b1).trim();
          return this;
       }
 

@@ -6,7 +6,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -22,7 +21,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.Stack;
 import java.util.TreeMap;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import com.github.javaparser.JavaParser;
@@ -45,7 +43,6 @@ import com.github.javaparser.javadoc.JavadocBlockTag;
 import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.ListBuilder;
-import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.MappingListBuilder;
 import io.hyperfoil.api.config.PairBuilder;
 import io.hyperfoil.api.config.PartialBuilder;
@@ -63,7 +60,6 @@ public class DocsGenerator extends BaseGenerator {
          PairBuilder.class, PairBuilder.OfString.class, PairBuilder.OfDouble.class,
          PartialBuilder.class));
 
-   private static final Pattern END_REGEXP = Pattern.compile("^end(\\p{javaUpperCase}.*|$)");
    private static final String NO_DESCRIPTION = "<font color=\"#606060\">&lt;no description&gt;</font>";
    private static final Docs EMPTY_DOCS = new Docs(null);
    private final List<Path> sourceDirs;
@@ -104,7 +100,7 @@ public class DocsGenerator extends BaseGenerator {
       }
       for (Map.Entry<String, BuilderInfo<?>> entry : ServiceLoadedBuilderProvider.builders(StepBuilder.class).entrySet()) {
          Class<? extends StepBuilder> newBuilder = (Class<? extends StepBuilder>) entry.getValue().implClazz;
-         ClassOrInterfaceDeclaration cd = findClass(newBuilder.getClass());
+         ClassOrInterfaceDeclaration cd = findClass(newBuilder);
          if (cd != null) {
             String inlineParamDocs = findInlineParamDocs(cd);
             addStep(entry.getKey(), newBuilder, null, InitFromParam.class.isAssignableFrom(newBuilder), inlineParamDocs);
@@ -427,7 +423,7 @@ public class DocsGenerator extends BaseGenerator {
          sb.append(lines[i]).append(" ");
       }
       if (sb.length() == 0) {
-         return null;
+         return "";
       }
       return sb.toString();
    }
@@ -489,19 +485,7 @@ public class DocsGenerator extends BaseGenerator {
          return docs;
       }
       for (Method m : builder.getMethods()) {
-         if (Modifier.isStatic(m.getModifiers()) || m.isDefault() || m.isSynthetic() || m.isBridge()) {
-            continue;
-         } else if (END_REGEXP.matcher(m.getName()).matches()) {
-            continue; // do not go up
-         } else if (PairBuilder.class.isAssignableFrom(builder) && m.getName().equals("accept") && m.getParameterCount() == 2) {
-            continue;
-         } else if (PartialBuilder.class.isAssignableFrom(builder) && m.getName().equals("withKey") && m.getParameterCount() == 1) {
-            continue;
-         } else if (ListBuilder.class.isAssignableFrom(builder) && m.getName().equals("nextItem") && m.getParameterCount() == 1) {
-            continue;
-         } else if (MappingListBuilder.class.isAssignableFrom(builder) && m.getName().equals("addItem") && m.getParameterCount() == 0) {
-            continue;
-         } else if (m.getName().equals("copy") && m.getParameterCount() == 1 && m.getParameterTypes()[0] == Locator.class) {
+         if (isMethodIgnored(builder, m)) {
             continue;
          }
          Docs param = describeMethod(builder, m, findMatching(methods, m));
@@ -642,7 +626,7 @@ public class DocsGenerator extends BaseGenerator {
          Docs docs = describeBuilder(newBuilder);
          docs.ownerDescription = docs.typeDescription;
          if (InitFromParam.class.isAssignableFrom(newBuilder)) {
-            ClassOrInterfaceDeclaration cd = findClass(newBuilder.getClass());
+            ClassOrInterfaceDeclaration cd = findClass(newBuilder);
             if (cd != null) {
                docs.inlineParam = findInlineParamDocs(cd);
             }
@@ -653,6 +637,11 @@ public class DocsGenerator extends BaseGenerator {
    }
 
    private static class Docs {
+      private static final Comparator<? super Docs> DOCS_COMPARATOR = Comparator
+            .<Docs, Integer>comparing(d -> d.params.size())
+            .thenComparing(d -> d.inlineParam == null ? "" : d.inlineParam)
+            .thenComparing(d -> d.typeDescription == null ? "" : d.typeDescription)
+            .thenComparing(d -> d.ownerDescription == null ? "" : d.ownerDescription);
       String ownerDescription;
       String typeDescription;
       String inlineParam;
@@ -671,6 +660,7 @@ public class DocsGenerator extends BaseGenerator {
             params.put(name, options);
          }
          options.add(docs);
+         Collections.sort(options, DOCS_COMPARATOR);
       }
 
       public void addParams(Map<String, List<Docs>> params) {
