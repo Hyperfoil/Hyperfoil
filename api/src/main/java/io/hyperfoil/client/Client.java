@@ -39,7 +39,7 @@ public interface Client {
 
       Benchmark get();
 
-      RunRef start();
+      RunRef start(String description);
    }
 
    interface RunRef {

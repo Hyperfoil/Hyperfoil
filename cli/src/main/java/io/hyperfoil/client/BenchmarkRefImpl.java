@@ -47,10 +47,17 @@ class BenchmarkRefImpl implements Client.BenchmarkRef {
    }
 
    @Override
-   public Client.RunRef start() {
+   public Client.RunRef start(String description) {
       CompletableFuture<Client.RunRef> future = new CompletableFuture<>();
       client.vertx.runOnContext(ctx -> {
-         client.client.request(HttpMethod.GET, "/benchmark/" + encode(name) + "/start").send(rsp -> {
+         String query = "/benchmark/" + encode(name) + "/start";
+         if (description != null) {
+            try {
+               query += "?desc=" + URLEncoder.encode(description, StandardCharsets.UTF_8.name());
+            } catch (UnsupportedEncodingException e) {
+            }
+         }
+         client.client.request(HttpMethod.GET, query).send(rsp -> {
             if (rsp.succeeded()) {
                HttpResponse<Buffer> response = rsp.result();
                String location = response.getHeader(HttpHeaders.LOCATION.toString());
