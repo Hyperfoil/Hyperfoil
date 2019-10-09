@@ -9,6 +9,7 @@ public interface Properties {
    String ROOT_DIR = "io.hyperfoil.rootdir";
    String RUN_DIR = "io.hyperfoil.rundir";
    String CONTROLLER_LOG = "io.hyperfoil.log.controller";
+   String TRIGGER_URL = "io.hyperfoil.trigger.url";
 
    static String get(String property, String def) {
       return get(property, Function.identity(), def);

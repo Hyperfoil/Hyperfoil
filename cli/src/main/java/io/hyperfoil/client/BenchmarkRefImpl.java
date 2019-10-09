@@ -2,14 +2,20 @@ package io.hyperfoil.client;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.util.Util;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.net.impl.SocketAddressImpl;
+import io.vertx.ext.web.client.HttpResponse;
 
 class BenchmarkRefImpl implements Client.BenchmarkRef {
    private final RestClient client;
@@ -42,15 +48,51 @@ class BenchmarkRefImpl implements Client.BenchmarkRef {
 
    @Override
    public Client.RunRef start() {
-      return client.sync(
-            handler -> client.client.request(HttpMethod.GET, "/benchmark/" + encode(name) + "/start").send(handler), 202,
-            response -> {
+      CompletableFuture<Client.RunRef> future = new CompletableFuture<>();
+      client.vertx.runOnContext(ctx -> {
+         client.client.request(HttpMethod.GET, "/benchmark/" + encode(name) + "/start").send(rsp -> {
+            if (rsp.succeeded()) {
+               HttpResponse<Buffer> response = rsp.result();
                String location = response.getHeader(HttpHeaders.LOCATION.toString());
-               if (location == null) {
-                  throw new RestClientException("Server did not respond with run location!");
+               if (response.statusCode() == 202) {
+                  if (location == null) {
+                     future.completeExceptionally(new RestClientException("Server did not respond with run location!"));
+                  }
+                  future.complete(new RunRefImpl(client, location));
+               } else if (response.statusCode() == 301) {
+                  if (location == null) {
+                     future.completeExceptionally(new RestClientException("Server did not respond with run location!"));
+                  }
+                  URL url;
+                  try {
+                     url = new URL(location);
+                  } catch (MalformedURLException e) {
+                     future.completeExceptionally(new RestClientException("Cannot parse URL " + location, new RestClientException(e)));
+                     return;
+                  }
+                  String runId = response.getHeader("x-run-id");
+                  client.client.request(HttpMethod.GET, new SocketAddressImpl(url.getPort(), url.getHost()), url.getFile()).send(rsp2 -> {
+                     if (rsp2.succeeded()) {
+                        HttpResponse<Buffer> response2 = rsp2.result();
+                        if (response2.statusCode() >= 200 && response2.statusCode() < 300) {
+                           future.complete(new RunRefImpl(client, runId == null ? "last" : runId));
+                        } else {
+                           future.completeExceptionally(new RestClientException("Failed to indirectly trigger job on " + location + ", status is " + response2.statusCode()));
+                        }
+                     } else {
+                        future.completeExceptionally(new RestClientException("Failed to indirectly trigger job on " + location, rsp2.cause()));
+                     }
+                  });
+               } else {
+                  future.completeExceptionally(new RestClientException("Server responded with unexpected code: "
+                        + response.statusCode() + ", " + response.statusMessage()));
                }
-               return new RunRefImpl(client, location);
-            });
+            } else {
+               future.completeExceptionally(rsp.cause());
+            }
+         });
+      });
+      return client.waitFor(future);
    }
 
    private String encode(String name) {

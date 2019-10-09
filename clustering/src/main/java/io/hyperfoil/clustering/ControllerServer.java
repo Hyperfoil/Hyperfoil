@@ -26,11 +26,11 @@ import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.client.Client;
 import io.hyperfoil.core.Version;
 import io.hyperfoil.core.util.LowHigh;
+import io.hyperfoil.core.util.Util;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.core.parser.BenchmarkParser;
 import io.hyperfoil.core.parser.ParserException;
-import io.hyperfoil.core.util.Util;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
@@ -64,6 +64,7 @@ class ControllerServer {
    private static final String BASE_URL = "http://" + CONTROLLER_HOST + ":" + CONTROLLER_PORT;
    private static final Comparator<ControllerPhase> PHASE_COMPARATOR =
          Comparator.<ControllerPhase, Long>comparing(ControllerPhase::absoluteStartTime).thenComparing(p -> p.definition().name);
+   private static final String TRIGGER_URL = System.getProperty(Properties.TRIGGER_URL);
 
    private final ControllerVerticle controller;
    private final HttpServer httpServer;
@@ -262,28 +263,56 @@ class ControllerServer {
       }
    }
 
-   private void handleBenchmarkStart(RoutingContext routingContext) {
-      String benchmarkName = routingContext.pathParam("benchmarkname");
+   private void handleBenchmarkStart(RoutingContext ctx) {
+      String benchmarkName = ctx.pathParam("benchmarkname");
       Benchmark benchmark = controller.getBenchmark(benchmarkName);
-      List<String> descList = routingContext.queryParam("desc");
-      String description = null;
-      if (descList != null && !descList.isEmpty()) {
-         description = descList.iterator().next();
-      }
+      String description = getSingleParam(ctx, "desc");
       if (benchmark != null) {
-         ControllerVerticle.StartResult result = controller.startBenchmark(benchmark, description);
-         if (result.runId != null) {
-            routingContext.response().setStatusCode(HttpResponseStatus.ACCEPTED.code()).
-                  putHeader(HttpHeaders.LOCATION, BASE_URL + "/run/" + result.runId)
-                  .end("Starting benchmark " + benchmarkName + ", run ID " + result.runId);
+         if (TRIGGER_URL != null) {
+            String triggerJob = ctx.request().getHeader("x-trigger-job");
+            if (triggerJob == null) {
+               Run run = controller.createRun(benchmark, description);
+               ctx.response()
+                     .setStatusCode(HttpResponseStatus.MOVED_PERMANENTLY.code())
+                     .putHeader(HttpHeaders.LOCATION, TRIGGER_URL + "BENCHMARK=" + benchmarkName + "&RUN_ID=" + run.id)
+                     .putHeader("x-run-id", run.id)
+                     .end("This controller is configured to trigger jobs through CI instance.");
+               return;
+            }
+         }
+         String runId = getSingleParam(ctx, "runId");
+         Run run;
+         if (runId == null) {
+            run = controller.createRun(benchmark, description);
          } else {
-            routingContext.response()
-                  .setStatusCode(HttpResponseStatus.FORBIDDEN.code()).end(result.error);
+            run = controller.run(runId);
+            if (run == null || run.startTime != Long.MIN_VALUE) {
+               ctx.response().setStatusCode(HttpResponseStatus.FORBIDDEN.code()).end("Run already started");
+               return;
+            }
+         }
+         String error = controller.startBenchmark(run);
+         if (error == null) {
+            ctx.response().setStatusCode(HttpResponseStatus.ACCEPTED.code()).
+                  putHeader(HttpHeaders.LOCATION, BASE_URL + "/run/" + run.id)
+                  .end("Starting benchmark " + benchmarkName + ", run ID " + run.id);
+         } else {
+            ctx.response()
+                  .setStatusCode(HttpResponseStatus.FORBIDDEN.code()).end(error);
          }
       } else {
-         routingContext.response()
+         ctx.response()
                .setStatusCode(HttpResponseStatus.NOT_FOUND.code()).end("Benchmark not found");
       }
+   }
+
+   private String getSingleParam(RoutingContext ctx, String param) {
+      List<String> list = ctx.queryParam(param);
+      String value = null;
+      if (list != null && !list.isEmpty()) {
+         value = list.iterator().next();
+      }
+      return value;
    }
 
    private void handleListRuns(RoutingContext routingContext) {
@@ -356,7 +385,10 @@ class ControllerServer {
       String runid = routingContext.pathParam("runid");
       Run run;
       if ("last".equals(runid)) {
-         run = controller.runs.values().stream().reduce((r1, r2) -> r1.startTime > r2.startTime ? r1 : r2).orElse(null);
+         run = controller.runs.values().stream()
+               .filter(r -> r.startTime > Long.MIN_VALUE)
+               .reduce((r1, r2) -> r1.startTime > r2.startTime ? r1 : r2)
+               .orElse(null);
       } else {
          run = controller.run(runid);
       }

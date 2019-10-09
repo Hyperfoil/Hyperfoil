@@ -6,6 +6,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 import io.hyperfoil.api.config.Benchmark;
@@ -111,5 +113,10 @@ public final class Util {
       byte[] bytes = result.toByteArray();
       stream.close();
       return bytes;
+   }
+
+   public static UUID randomUUID() {
+      ThreadLocalRandom random = ThreadLocalRandom.current();
+      return new UUID(random.nextLong(), random.nextLong());
    }
 }

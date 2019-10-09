@@ -29,7 +29,7 @@ import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 
 public class RestClient implements Client, Closeable {
-   private final Vertx vertx = Vertx.vertx();
+   final Vertx vertx = Vertx.vertx();
    final WebClientOptions options;
    final WebClient client;
 
@@ -175,6 +175,10 @@ public class RestClient implements Client, Closeable {
             }
          });
       });
+      return waitFor(future);
+   }
+
+   <T> T waitFor(CompletableFuture<T> future) {
       try {
          return future.get(30, TimeUnit.SECONDS);
       } catch (InterruptedException e1) {
@@ -208,16 +212,7 @@ public class RestClient implements Client, Closeable {
             }
          });
       });
-      try {
-         return future.get(30, TimeUnit.SECONDS);
-      } catch (InterruptedException e) {
-         Thread.currentThread().interrupt();
-         throw new RestClientException(e);
-      } catch (ExecutionException e) {
-         throw new RestClientException(e.getCause() == null ? e : e.getCause());
-      } catch (TimeoutException e) {
-         throw new RestClientException("Could not complete request within 30 seconds.");
-      }
+      return waitFor(future);
    }
 
    @Override

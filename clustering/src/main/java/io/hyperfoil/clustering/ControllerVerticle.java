@@ -303,21 +303,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       }
    }
 
-   StartResult startBenchmark(Benchmark benchmark, String description) {
-      Set<String> activeAgents = new HashSet<>();
-      for (Run run : runs.values()) {
-         if (!run.terminateTime.isComplete()) {
-            for (AgentInfo agent : run.agents) {
-               activeAgents.add(agent.name);
-            }
-         }
-      }
-      for (Agent agent : benchmark.agents()) {
-         if (activeAgents.contains(agent.name)) {
-            return new StartResult(null, "Agent " + agent + " is already used; try starting the benchmark later");
-         }
-      }
-
+   Run createRun(Benchmark benchmark, String description) {
       String runId = String.format("%04X", runIds.getAndIncrement());
       Run run = new Run(runId, benchmark);
       run.description = description;
@@ -325,27 +311,44 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
          log.warn("Failed verify SLA(s) for {}/{}: {}", failure.phase(), failure.metric(), failure.message());
       });
       runs.put(run.id, run);
+      return run;
+   }
 
-      if (benchmark.agents().length == 0) {
+   String startBenchmark(Run run) {
+      Set<String> activeAgents = new HashSet<>();
+      for (Run r : runs.values()) {
+         if (!r.terminateTime.isComplete()) {
+            for (AgentInfo agent : run.agents) {
+               activeAgents.add(agent.name);
+            }
+         }
+      }
+      for (Agent agent : run.benchmark.agents()) {
+         if (activeAgents.contains(agent.name)) {
+            return "Agent " + agent + " is already used; try starting the benchmark later";
+         }
+      }
+
+      if (run.benchmark.agents().length == 0) {
          if (vertx.isClustered()) {
             run.terminateTime.complete(System.currentTimeMillis());
-            return new StartResult(null, "Server is started in clustered mode; benchmarks must define agents.");
+            return "Server is started in clustered mode; benchmarks must define agents.";
          } else {
             run.agents.add(new AgentInfo("in-vm", 0));
-            JsonObject config = new JsonObject().put("runId", runId).put("name", "in-vm");
+            JsonObject config = new JsonObject().put("runId", run.id).put("name", "in-vm");
             vertx.deployVerticle(AgentVerticle.class, new DeploymentOptions().setConfig(config));
          }
       } else {
          if (!vertx.isClustered()) {
-            return new StartResult(null, "Server is not started as clustered and does not accept benchmarks with agents defined.");
+            return "Server is not started as clustered and does not accept benchmarks with agents defined.";
          }
          log.info("Starting agents for run {}", run.id);
          int agentCounter = 0;
-         for (Agent agent : benchmark.agents()) {
+         for (Agent agent : run.benchmark.agents()) {
             AgentInfo agentInfo = new AgentInfo(agent.name, agentCounter++);
             run.agents.add(agentInfo);
             log.debug("Starting agent {}", agent.name);
-            vertx.executeBlocking(future -> agentInfo.deployedAgent = deployer.start(agent, runId, exception -> {
+            vertx.executeBlocking(future -> agentInfo.deployedAgent = deployer.start(agent, run.id, exception -> {
                run.errors.add(new Run.Error(agentInfo, new BenchmarkExecutionException("Failed to deploy agent", exception)));
                log.error("Failed to deploy agent {}", exception, agent.name);
                vertx.runOnContext(nil -> stopSimulation(run));
@@ -363,7 +366,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
          stopSimulation(run);
       });
 
-      return new StartResult(run.id, null);
+      return null;
    }
 
    private void handleAgentsStarted(Run run) {
@@ -709,15 +712,5 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
    public void shutdown() {
       BasicCacheContainer cacheManager = ((InfinispanClusterManager) ((VertxInternal) vertx).getClusterManager()).getCacheContainer();
       vertx.close(ar -> cacheManager.stop());
-   }
-
-   static class StartResult {
-      final String runId;
-      final String error;
-
-      StartResult(String runId, String error) {
-         this.runId = runId;
-         this.error = error;
-      }
    }
 }
