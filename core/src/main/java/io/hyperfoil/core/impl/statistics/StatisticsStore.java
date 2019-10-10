@@ -1,9 +1,6 @@
 package io.hyperfoil.core.impl.statistics;
 
-import com.fasterxml.jackson.core.JsonEncoding;
-import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.SLA;
@@ -289,10 +286,16 @@ public class StatisticsStore {
    }
 
    public void writeJson(JsonGenerator jGenerator) throws IOException {
+      writeJson(jGenerator, true);
+   }
+
+   public void writeJson(JsonGenerator jGenerator, boolean standalone) throws IOException {
       Data[] sorted = this.data.values().stream().flatMap(map -> map.values().stream()).toArray(Data[]::new);
       Arrays.sort(sorted, Comparator.comparing((Data d) -> d.phase).thenComparing(d -> d.metric).thenComparingInt(d -> d.stepId));
 
-      jGenerator.writeStartObject();
+      if (standalone) {
+         jGenerator.writeStartObject();
+      }
       jGenerator.writeFieldName("total");
       totalArray(jGenerator, sorted, (data) -> data.total.summary(percentiles), null);
 
@@ -478,7 +481,9 @@ public class StatisticsStore {
          jGenerator.writeEndObject(); //each agent
       }
       jGenerator.writeEndObject(); //all agents
-      jGenerator.writeEndObject();
+      if (standalone) {
+         jGenerator.writeEndObject();
+      }
       return;
    }
 
@@ -489,16 +494,6 @@ public class StatisticsStore {
       }
       Data[] sorted = this.data.values().stream().flatMap(map -> map.values().stream()).toArray(Data[]::new);
       Arrays.sort(sorted, Comparator.comparing((Data d) -> d.phase).thenComparing(d -> d.metric).thenComparingInt(d -> d.stepId));
-
-      try (FileOutputStream stream = new FileOutputStream(dir + File.separator + "all.json")) {
-         JsonFactory jfactory = new JsonFactory();
-         jfactory.setCodec(new ObjectMapper());
-         JsonGenerator jGenerator = jfactory.createGenerator(stream, JsonEncoding.UTF8);
-         jGenerator.setCodec(new ObjectMapper());
-
-         writeJson(jGenerator);
-         jGenerator.close();
-      }
 
       try (PrintWriter writer = new PrintWriter(dir + File.separator + "total.csv")) {
          writer.print("Phase,Metric,Start,End,");

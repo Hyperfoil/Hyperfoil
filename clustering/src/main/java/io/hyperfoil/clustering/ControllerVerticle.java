@@ -1,5 +1,10 @@
 package io.hyperfoil.clustering;
 
+import com.fasterxml.jackson.core.JsonEncoding;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.hyperfoil.api.BenchmarkExecutionException;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.Agent;
@@ -36,6 +41,8 @@ import io.vertx.core.spi.cluster.NodeListener;
 import io.vertx.ext.cluster.infinispan.InfinispanClusterManager;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -541,6 +548,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             }
          }
 
+
          JsonObject info = new JsonObject()
                .put("id", run.id)
                .put("benchmark", run.benchmark.name())
@@ -553,6 +561,27 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                .put("hooks", new JsonArray(run.hookResults.stream()
                      .map(r -> new JsonObject().put("name", r.name).put("output", r.output))
                      .collect(Collectors.toList())));
+
+         try (FileOutputStream stream = new FileOutputStream("all.json")) {
+            JsonFactory jfactory = new JsonFactory();
+            jfactory.setCodec(new ObjectMapper());
+            JsonGenerator jGenerator = jfactory.createGenerator(stream, JsonEncoding.UTF8);
+            jGenerator.setCodec(new ObjectMapper());
+            jGenerator.writeStartObject();
+
+            jGenerator.writeObjectField("info", info);
+            run.statisticsStore.writeJson(jGenerator, false);
+            jGenerator.writeEndObject();
+            jGenerator.close();
+         } catch (FileNotFoundException e) {
+            log.error("Cannot write all.json file", e);
+            future.fail(e);
+         } catch (IOException e) {
+            log.error("Cannot write all.json file", e);
+            future.fail(e);
+         }
+
+
          try {
             Files.write(runDir.resolve("info.json"), info.encodePrettily().getBytes(StandardCharsets.UTF_8));
          } catch (IOException e) {
