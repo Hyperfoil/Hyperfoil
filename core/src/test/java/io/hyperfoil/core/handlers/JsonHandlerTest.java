@@ -33,9 +33,9 @@ public class JsonHandlerTest {
 
       HttpRequest request = new HttpRequest(session);
       handler.reserve(session);
-      handler.beforeData(request);
-      handler.handleData(request, data);
-      handler.afterData(request);
+      handler.before(request);
+      handler.process(request, data, data.readerIndex(), data.readableBytes(), true);
+      handler.after(request);
 
       expect.validate();
    }
@@ -61,10 +61,10 @@ public class JsonHandlerTest {
             }
          }
 
-         handler.beforeData(request);
-         handler.handleData(request, data1);
-         handler.handleData(request, data2);
-         handler.afterData(request);
+         handler.before(request);
+         handler.process(request, data1, data1.readerIndex(), data1.readableBytes(), false);
+         handler.process(request, data2, data2.readerIndex(), data2.readableBytes(), true);
+         handler.after(request);
 
          expect.validate();
       }

@@ -129,5 +129,5 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
    /**
     * Processors for any type of request.
     */
-   public interface ProcessorBuilder extends Processor.Builder<Request> {}
+   public interface ProcessorBuilder extends Processor.Builder<Request, ProcessorBuilder> {}
 }

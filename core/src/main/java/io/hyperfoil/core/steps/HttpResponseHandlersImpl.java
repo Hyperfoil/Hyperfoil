@@ -11,12 +11,12 @@ import io.hyperfoil.api.config.BuilderBase;
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Rewritable;
 import io.hyperfoil.api.connection.HttpRequest;
+import io.hyperfoil.api.connection.Processor;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 import io.hyperfoil.core.http.CookieRecorder;
 import io.hyperfoil.impl.FutureSupplier;
 import io.netty.buffer.ByteBuf;
-import io.hyperfoil.api.http.BodyHandler;
 import io.hyperfoil.api.http.HeaderHandler;
 import io.hyperfoil.api.http.HttpResponseHandlers;
 import io.hyperfoil.api.http.RawBytesHandler;
@@ -34,13 +34,13 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
 
    final StatusHandler[] statusHandlers;
    final HeaderHandler[] headerHandlers;
-   final BodyHandler[] bodyHandlers;
+   final Processor[] bodyHandlers;
    final Action[] completionHandlers;
    final RawBytesHandler[] rawBytesHandlers;
 
    private HttpResponseHandlersImpl(StatusHandler[] statusHandlers,
                                     HeaderHandler[] headerHandlers,
-                                    BodyHandler[] bodyHandlers,
+                                    Processor[] bodyHandlers,
                                     Action[] completionHandlers,
                                     RawBytesHandler[] rawBytesHandlers) {
       this.statusHandlers = statusHandlers;
@@ -99,8 +99,8 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          }
       }
       if (bodyHandlers != null) {
-         for (BodyHandler handler : bodyHandlers) {
-            handler.beforeData(request);
+         for (Processor<HttpRequest> handler : bodyHandlers) {
+            handler.before(request);
          }
       }
    }
@@ -157,25 +157,25 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
    }
 
    @Override
-   public void handleBodyPart(HttpRequest request, ByteBuf buf) {
+   public void handleBodyPart(HttpRequest request, ByteBuf data, int offset, int length, boolean isLastPart) {
       Session session = request.session;
       if (request.isCompleted()) {
          if (trace) {
-            log.trace("#{} Ignoring body part ({} bytes) on a failed request.", session.uniqueId(), buf.readableBytes());
+            log.trace("#{} Ignoring body part ({} bytes) on a failed request.", session.uniqueId(), data.readableBytes());
          }
          return;
       }
 
       if (trace) {
-         log.trace("#{} Received part ({} bytes):\n{}", session.uniqueId(), buf.readableBytes(),
-               buf.toString(buf.readerIndex(), buf.readableBytes(), StandardCharsets.UTF_8));
+         log.trace("#{} Received part ({} bytes):\n{}", session.uniqueId(), data.readableBytes(),
+               data.toString(data.readerIndex(), data.readableBytes(), StandardCharsets.UTF_8));
       }
 
-      int dataStartIndex = buf.readerIndex();
+      int dataStartIndex = data.readerIndex();
       if (bodyHandlers != null) {
-         for (BodyHandler handler : bodyHandlers) {
-            handler.handleData(request, buf);
-            buf.readerIndex(dataStartIndex);
+         for (Processor<HttpRequest> handler : bodyHandlers) {
+            handler.process(request, data, offset, length, isLastPart);
+            data.readerIndex(dataStartIndex);
          }
       }
    }
@@ -208,8 +208,8 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
             }
          }
          if (bodyHandlers != null) {
-            for (BodyHandler handler : bodyHandlers) {
-               handler.afterData(request);
+            for (Processor<HttpRequest> handler : bodyHandlers) {
+               handler.after(request);
             }
          }
          request.session.httpCache().tryStore(request);
@@ -264,7 +264,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       private final HttpRequestStep.Builder parent;
       private List<StatusHandler.Builder> statusHandlers = new ArrayList<>();
       private List<HeaderHandler.Builder> headerHandlers = new ArrayList<>();
-      private List<BodyHandler.Builder> bodyHandlers = new ArrayList<>();
+      private List<HttpRequest.ProcessorBuilder> bodyHandlers = new ArrayList<>();
       private List<Action.Builder> completionHandlers = new ArrayList<>();
       private List<RawBytesHandler> rawBytesHandlers = new ArrayList<>();
 
@@ -308,8 +308,8 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          return new ServiceLoadedBuilderProvider<>(HeaderHandler.Builder.class, Locator.fromStep(parent), headerHandlers::add);
       }
 
-      public Builder body(BodyHandler handler) {
-         bodyHandlers.add(step -> handler);
+      public Builder body(Processor<HttpRequest> handler) {
+         bodyHandlers.add(() -> handler);
          return this;
       }
 
@@ -318,8 +318,8 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
        *
        * @return Builder.
        */
-      public ServiceLoadedBuilderProvider<BodyHandler.Builder> body() {
-         return new ServiceLoadedBuilderProvider<>(BodyHandler.Builder.class, Locator.fromStep(parent), bodyHandlers::add);
+      public ServiceLoadedBuilderProvider<HttpRequest.ProcessorBuilder> body() {
+         return new ServiceLoadedBuilderProvider<>(HttpRequest.ProcessorBuilder.class, Locator.fromStep(parent), bodyHandlers::add);
       }
 
       public Builder onCompletion(Action handler) {
@@ -362,7 +362,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          // TODO: we might need defensive copies here
          statusHandlers.forEach(StatusHandler.Builder::prepareBuild);
          headerHandlers.forEach(HeaderHandler.Builder::prepareBuild);
-         bodyHandlers.forEach(BodyHandler.Builder::prepareBuild);
+         bodyHandlers.forEach(HttpRequest.ProcessorBuilder::prepareBuild);
          completionHandlers.forEach(Action.Builder::prepareBuild);
       }
 
@@ -370,7 +370,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          return new HttpResponseHandlersImpl(
                toArray(statusHandlers, builder -> builder.build(fs), StatusHandler[]::new),
                toArray(headerHandlers, builder1 -> builder1.build(fs), HeaderHandler[]::new),
-               toArray(bodyHandlers, builder2 -> builder2.build(fs), BodyHandler[]::new),
+               toArray(bodyHandlers, builder2 -> builder2.build(), Processor[]::new),
                toArray(completionHandlers, Action.Builder::build, Action[]::new),
                toArray(rawBytesHandlers, Function.identity(), RawBytesHandler[]::new));
       }

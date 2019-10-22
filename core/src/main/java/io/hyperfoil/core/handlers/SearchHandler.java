@@ -2,11 +2,9 @@ package io.hyperfoil.core.handlers;
 
 import java.nio.charset.StandardCharsets;
 
-import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.connection.Processor;
 import io.netty.buffer.ByteBuf;
-import io.hyperfoil.api.http.BodyHandler;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.ResourceUtilizer;
 
@@ -14,7 +12,7 @@ import io.hyperfoil.api.session.ResourceUtilizer;
  * Simple pattern (no regexp) search based on Rabin-Karp algorithm.
  * Does not handle the intricacies of UTF-8 mapping same strings to different bytes.
  */
-public class SearchHandler implements BodyHandler, ResourceUtilizer, Session.ResourceKey<SearchHandler.Context> {
+public class SearchHandler implements Processor<Request>, ResourceUtilizer, Session.ResourceKey<SearchHandler.Context> {
    private final byte[] begin, end;
    private final int beginHash, endHash;
    private final int beginCoef, endCoef;
@@ -23,80 +21,67 @@ public class SearchHandler implements BodyHandler, ResourceUtilizer, Session.Res
    public SearchHandler(String begin, String end, Processor<Request> processor) {
       this.begin = begin.getBytes(StandardCharsets.UTF_8);
       this.end = end.getBytes(StandardCharsets.UTF_8);
-      this.beginHash = computeHash(this.begin);
-      this.beginCoef = intPow(31, this.begin.length);
-      this.endHash = computeHash(this.end);
-      this.endCoef = intPow(31, this.end.length);
+      this.beginHash = BaseSearchContext.computeHash(this.begin);
+      this.beginCoef = BaseSearchContext.computeCoef(this.begin.length);
+      this.endHash = BaseSearchContext.computeHash(this.end);
+      this.endCoef = BaseSearchContext.computeCoef(this.end.length);
       this.processor = processor;
    }
 
-   private int intPow(int base, int exp) {
-      int value = 1;
-      for (int i = exp; i > 0; --i) {
-         value *= base;
-      }
-      return value;
-   }
-
-   private int computeHash(byte[] bytes) {
-      int hash = 0;
-      for (int b : bytes) {
-         hash = 31 * hash + b;
-      }
-      return hash;
-   }
-
    @Override
-   public void beforeData(HttpRequest request) {
+   public void before(Request request) {
       Context ctx = request.session.getResource(this);
       ctx.reset();
       processor.before(request);
    }
 
    @Override
-   public void handleData(HttpRequest request, ByteBuf data) {
+   public void process(Request request, ByteBuf data, final int offset, int length, boolean isLast) {
       Context ctx = request.session.getResource(this);
-      ctx.add(data);
-      initHash(ctx, data);
-      while (test(ctx)) {
+      ctx.add(data, offset, length);
+      int endIndex = offset + length;
+      int index = ctx.initHash(offset, ctx.lookupText.length);
+      while (ctx.test(index)) {
          if (ctx.lookupText == end) {
-            fireProcessor(ctx, request);
+            fireProcessor(ctx, request, index);
          } else {
-            ctx.mark();
+            ctx.mark(index);
          }
-         swap(ctx, data);
+         ctx.swap();
+         index = ctx.initHash(index, ctx.lookupText.length);
       }
-      while (data.isReadable()) {
-         ctx.currentHash = 31 * ctx.currentHash + data.readByte();
-         ctx.currentHash -= ctx.lookupCoef * ctx.byteRelative(ctx.lookupText.length + 1);
-         while (test(ctx)) {
+      while (index < endIndex) {
+         ctx.advance(data.getByte(index++), ctx.lookupCoef, index, ctx.lookupText.length + 1);
+         while (ctx.test(index)) {
             if (ctx.lookupText == end) {
-               fireProcessor(ctx, request);
+               fireProcessor(ctx, request, index);
             } else {
-               ctx.mark();
+               ctx.mark(index);
             }
-            swap(ctx, data);
+            ctx.swap();
+            index = ctx.initHash(index, ctx.lookupText.length);
          }
       }
    }
 
-   private void fireProcessor(Context ctx, HttpRequest request) {
+   private void fireProcessor(Context ctx, Request request, int index) {
       int endPart = ctx.currentPart;
-      int endPos = ctx.parts[endPart].readerIndex() - end.length;
+      int endPos = index - end.length;
       while (endPos < 0) {
          endPart--;
          if (endPart < 0) {
             endPart = 0;
             endPos = 0;
          } else {
-            endPos += ctx.parts[endPart].writerIndex();
+            endPos += ctx.endIndices[endPart];
          }
       }
       while (ctx.markPart < endPart) {
          ByteBuf data = ctx.parts[ctx.markPart];
          // if the begin ends with part, we'll skip the 0-length process call
-         if (ctx.markPos != data.writerIndex()) {
-            processor.process(request, data, ctx.markPos, data.writerIndex() - ctx.markPos, false);
+         int length = ctx.endIndices[ctx.markPart] - ctx.markPos;
+         if (length > 0) {
+            processor.process(request, data, ctx.markPos, length, false);
          }
          ctx.markPos = 0;
          ctx.markPart++;
@@ -104,42 +89,8 @@ public class SearchHandler implements BodyHandler, ResourceUtilizer, Session.Res
       processor.process(request, ctx.parts[endPart], ctx.markPos, endPos - ctx.markPos, true);
    }
 
-   private boolean test(Context ctx) {
-      if (ctx.currentHash == ctx.lookupHash) {
-         for (int i = 0; i < ctx.lookupText.length; ++i) {
-            if (ctx.lookupText[i] != ctx.byteRelative(ctx.lookupText.length - i)) {
-               return false;
-            }
-         }
-         return true;
-      }
-      return false;
-   }
-
-   private void swap(Context ctx, ByteBuf data) {
-      ctx.currentHash = 0;
-      ctx.hashedBytes = 0;
-      if (ctx.lookupText == end) {
-         ctx.lookupText = begin;
-         ctx.lookupHash = beginHash;
-         ctx.lookupCoef = beginCoef;
-      } else {
-         ctx.lookupText = end;
-         ctx.lookupHash = endHash;
-         ctx.lookupCoef = endCoef;
-      }
-      initHash(ctx, data);
-   }
-
-   private void initHash(Context ctx, ByteBuf data) {
-      while (data.isReadable() && ctx.hashedBytes < ctx.lookupText.length) {
-         ctx.currentHash = 31 * ctx.currentHash + data.readByte();
-         ++ctx.hashedBytes;
-      }
-   }
-
    @Override
-   public void afterData(HttpRequest request) {
+   public void after(Request request) {
       Context ctx = request.session.getResource(this);
       // release buffers
       ctx.reset();
@@ -151,62 +102,62 @@ public class SearchHandler implements BodyHandler, ResourceUtilizer, Session.Res
       session.declareResource(this, new Context());
    }
 
-   class Context implements Session.Resource {
-      int hashedBytes;
-      int currentHash;
+   class Context extends BaseSearchContext {
       byte[] lookupText;
       int lookupHash;
       int lookupCoef;
       int markPart = -1;
       int markPos = -1;
 
-      ByteBuf[] parts = new ByteBuf[16];
-      int currentPart = -1;
+      void swap() {
+         currentHash = 0;
+         hashedBytes = 0;
+         if (lookupText == end) {
+            lookupText = begin;
+            lookupHash = beginHash;
+            lookupCoef = beginCoef;
+         } else {
+            lookupText = end;
+            lookupHash = endHash;
+            lookupCoef = endCoef;
+         }
+      }
 
-      void add(ByteBuf data) {
-         ++currentPart;
-         if (currentPart >= parts.length) {
-            parts[0].release();
-            System.arraycopy(parts, 1, parts, 0, parts.length - 1);
-            --currentPart;
-            --markPart;
-            if (markPart < 0) {
-               markPart = 0;
-               markPos = 0;
+      boolean test(int index) {
+         if (currentHash == lookupHash) {
+            for (int i = 0; i < lookupText.length; ++i) {
+               if (lookupText[i] != byteRelative(index, lookupText.length - i)) {
+                  return false;
+               }
             }
+            return true;
          }
-         parts[currentPart] = data.retain();
+         return false;
       }
 
-      int byteRelative(int offset) {
-         int part = currentPart;
-         while (parts[part].readerIndex() - offset < 0) {
-            offset -= parts[part].readerIndex();
-            --part;
+      @Override
+      void shiftParts() {
+         super.shiftParts();
+         --markPart;
+         if (markPart < 0) {
+            markPart = 0;
+            markPos = 0;
          }
-         return parts[part].getByte(parts[part].readerIndex() - offset);
       }
 
+      @Override
       void reset() {
+         super.reset();
          lookupText = begin;
          lookupHash = beginHash;
          lookupCoef = beginCoef;
-         hashedBytes = 0;
-         currentHash = 0;
          markPart = -1;
          markPos = -1;
-         currentPart = -1;
-         for (int i = 0; i < parts.length; ++i) {
-            if (parts[i] != null) {
-               parts[i].release();
-               parts[i] = null;
-            }
-         }
       }
 
-      void mark() {
+      void mark(int index) {
          markPart = currentPart;
-         markPos = parts[currentPart].readerIndex();
+         markPos = index;
       }
    }
 }

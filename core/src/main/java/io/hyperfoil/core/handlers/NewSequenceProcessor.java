@@ -111,7 +111,7 @@ public class NewSequenceProcessor implements Processor<Request>, ResourceUtilize
       }
 
       @Override
-      public Processor.Builder<Request> copy(Locator locator) {
+      public Builder copy(Locator locator) {
          return new Builder().setLocator(locator).sequence(sequence).maxSequences(maxSequences).counterVar(counterVar);
       }
 

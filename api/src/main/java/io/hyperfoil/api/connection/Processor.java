@@ -26,7 +26,7 @@ public interface Processor<R extends Request> extends Serializable {
    default void after(R request) {
    }
 
-   interface Builder<R extends Request> extends BuilderBase<Builder<R>> {
+   interface Builder<R extends Request, B extends Builder<R, B> > extends BuilderBase<B> {
       Processor<R> build();
    }
 

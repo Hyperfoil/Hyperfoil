@@ -16,7 +16,6 @@ import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.api.connection.Processor;
-import io.hyperfoil.api.http.BodyHandler;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.Session;
@@ -33,13 +32,12 @@ import io.hyperfoil.core.steps.UnsetStep;
 import io.hyperfoil.core.util.Trie;
 import io.hyperfoil.core.util.Util;
 import io.hyperfoil.function.SerializableBiFunction;
-import io.hyperfoil.function.SerializableSupplier;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.ResourceKey<HtmlHandler.Context> {
+public class HtmlHandler implements Processor<HttpRequest>, ResourceUtilizer, Session.ResourceKey<HtmlHandler.Context> {
    private static final Logger log = LoggerFactory.getLogger(HtmlHandler.class);
    private static final boolean trace = log.isTraceEnabled();
 
@@ -50,35 +48,36 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
    }
 
    @Override
-   public void beforeData(HttpRequest request) {
+   public void before(HttpRequest request) {
       for (TagHandler h : handlers) {
          h.processor().before(request);
       }
    }
 
    @Override
-   public void afterData(HttpRequest request) {
+   public void after(HttpRequest request) {
       for (TagHandler h : handlers) {
          h.processor().after(request);
       }
    }
 
    @Override
-   public void handleData(HttpRequest request, ByteBuf data) {
+   public void process(HttpRequest request, ByteBuf data, int offset, int length, boolean isLastPart) {
       Context ctx = request.session.getResource(this);
       switch (ctx.tagStatus) {
          case PARSING_TAG:
-            ctx.tagStart = data.readerIndex();
+            ctx.tagStart = offset;
             break;
          case PARSING_ATTR:
-            ctx.attrStart = data.readerIndex();
+            ctx.attrStart = offset;
             break;
          case PARSING_VALUE:
-            ctx.valueStart = data.readerIndex();
+            ctx.valueStart = offset;
             break;
       }
-      while (data.isReadable()) {
-         byte c = data.readByte();
+      while (length > 0) {
+         byte c = data.getByte(offset++);
+         --length;
          switch (ctx.tagStatus) {
             case NO_TAG:
                if (c == '<') {
@@ -94,7 +93,7 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
                   ctx.tagClosing = true;
                   ctx.tagStatus = TagStatus.BEFORE_TAG;
                } else {
-                  ctx.tagStart = data.readerIndex() - 1;
+                  ctx.tagStart = offset - 1;
                   ctx.tagStatus = TagStatus.PARSING_TAG;
                }
                break;
@@ -128,12 +127,12 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
             case BEFORE_TAG:
                if (!Character.isWhitespace(c)) {
                   ctx.tagStatus = TagStatus.PARSING_TAG;
-                  ctx.tagStart = data.readerIndex() - 1;
+                  ctx.tagStart = offset - 1;
                }
                break;
             case PARSING_TAG:
                if (Character.isWhitespace(c)) {
-                  ctx.onTag(request, ctx.tagClosing, data, true);
+                  ctx.onTag(request, ctx.tagClosing, data, offset - 1, true);
                   ctx.tagStatus = TagStatus.BEFORE_ATTR;
                } else if (c == '>') {
                   ctx.endTag(request);
@@ -143,16 +142,16 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
                if (c == '>') {
                   ctx.endTag(request);
                } else if (!Character.isWhitespace(c)) {
-                  ctx.attrStart = data.readerIndex() - 1;
+                  ctx.attrStart = offset - 1;
                   ctx.tagStatus = TagStatus.PARSING_ATTR;
                }
                break;
             case PARSING_ATTR:
                if (c == '=' || Character.isWhitespace(c)) {
-                  ctx.onAttr(request, data, true);
+                  ctx.onAttr(request, data, offset - 1, true);
                   ctx.tagStatus = TagStatus.BEFORE_VALUE;
                } else if (c == '>') {
-                  ctx.onAttr(request, data, true);
+                  ctx.onAttr(request, data, offset - 1, true);
                   ctx.endTag(request);
                }
                break;
@@ -164,23 +163,23 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
                   break;
                } else if (c == '"') {
                   ctx.tagStatus = TagStatus.PARSING_VALUE;
-                  ctx.valueStart = data.readerIndex();
+                  ctx.valueStart = offset;
                   ctx.valueQuoted = true;
                } else {
                   // missing quotes
                   ctx.tagStatus = TagStatus.PARSING_VALUE;
-                  ctx.valueStart = data.readerIndex() - 1;
+                  ctx.valueStart = offset - 1;
                }
                break;
             case PARSING_VALUE:
                if (c == '\\') {
                   ctx.charEscaped = true;
                } else if (c == '"' && !ctx.charEscaped) {
-                  ctx.onValue(request, data, true);
+                  ctx.onValue(request, data, offset - 1, true);
                   ctx.tagStatus = TagStatus.BEFORE_ATTR;
                   ctx.valueQuoted = false;
                } else if (!ctx.valueQuoted && Character.isWhitespace(c)) {
-                  ctx.onValue(request, data, true);
+                  ctx.onValue(request, data, offset - 1, true);
                   ctx.tagStatus = TagStatus.BEFORE_ATTR;
                } else {
                   ctx.charEscaped = false;
@@ -192,13 +191,13 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
       }
       switch (ctx.tagStatus) {
          case PARSING_TAG:
-            ctx.onTag(request, ctx.tagClosing, data, false);
+            ctx.onTag(request, ctx.tagClosing, data, offset - 1, false);
             break;
          case PARSING_ATTR:
-            ctx.onAttr(request, data, false);
+            ctx.onAttr(request, data, offset - 1, false);
             break;
          case PARSING_VALUE:
-            ctx.onValue(request, data, false);
+            ctx.onValue(request, data, offset - 1, false);
             break;
       }
    }
@@ -246,26 +245,26 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
          handlerCtx = Stream.of(handlers).map(TagHandler::newContext).toArray(HandlerContext[]::new);
       }
 
-      void onTag(HttpRequest request, boolean close, ByteBuf data, boolean isLast) {
+      void onTag(HttpRequest request, boolean close, ByteBuf data, int tagEnd, boolean isLast) {
          assert tagStart >= 0;
          for (HandlerContext handlerCtx : handlerCtx) {
-            handlerCtx.onTag(request, close, data, tagStart, data.readerIndex() - 1 - tagStart, isLast);
+            handlerCtx.onTag(request, close, data, tagStart, tagEnd - tagStart, isLast);
          }
          tagStart = -1;
       }
 
-      void onAttr(HttpRequest request, ByteBuf data, boolean isLast) {
+      void onAttr(HttpRequest request, ByteBuf data, int attrEnd, boolean isLast) {
          assert attrStart >= 0;
          for (HandlerContext handlerCtx : handlerCtx) {
-            handlerCtx.onAttr(request, data, attrStart, data.readerIndex() - 1 - attrStart, isLast);
+            handlerCtx.onAttr(request, data, attrStart, attrEnd - attrStart, isLast);
          }
          attrStart = -1;
       }
 
-      void onValue(HttpRequest request, ByteBuf data, boolean isLast) {
+      void onValue(HttpRequest request, ByteBuf data, int valueEnd, boolean isLast) {
          assert valueStart >= 0;
          for (HandlerContext handlerCtx : handlerCtx) {
-            handlerCtx.onValue(request, data, valueStart, data.readerIndex() - 1 - valueStart, isLast);
+            handlerCtx.onValue(request, data, valueStart, valueEnd - valueStart, isLast);
          }
          valueStart = -1;
       }
@@ -294,9 +293,9 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
    /**
     * Parses HTML tags and invokes handlers based on criteria.
     */
-   @MetaInfServices(BodyHandler.Builder.class)
+   @MetaInfServices(HttpRequest.ProcessorBuilder.class)
    @Name("parseHtml")
-   public static class Builder implements BodyHandler.Builder {
+   public static class Builder implements HttpRequest.ProcessorBuilder {
       private Locator locator;
       private EmbeddedResourceHandlerBuilder embeddedResourceHandler;
 
@@ -331,7 +330,7 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
       }
 
       @Override
-      public HtmlHandler build(SerializableSupplier<? extends Step> step) {
+      public HtmlHandler build() {
          return new HtmlHandler(embeddedResourceHandler.build());
       }
    }
@@ -350,7 +349,7 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
 
       private Locator locator;
       private boolean ignoreExternal = true;
-      private Processor.Builder<HttpRequest> processor;
+      private Processor.Builder<HttpRequest, ?> processor;
       private FetchResourceBuilder fetchResource;
 
       @Override
@@ -379,13 +378,13 @@ public class HtmlHandler implements BodyHandler, ResourceUtilizer, Session.Resou
          return this.fetchResource = new FetchResourceBuilder(locator);
       }
 
-      public EmbeddedResourceHandlerBuilder processor(Processor.Builder<HttpRequest> processor) {
+      public EmbeddedResourceHandlerBuilder processor(Processor.Builder<HttpRequest, ?> processor) {
          if (this.processor == null) {
             this.processor = processor;
          } else if (this.processor instanceof MultiProcessor.Builder) {
             ((MultiProcessor.Builder<HttpRequest>) this.processor).add(processor);
          } else {
-            this.processor = new MultiProcessor.Builder().add(this.processor).add(processor);
+            this.processor = new MultiProcessor.Builder<HttpRequest>().add(this.processor).add(processor);
          }
          return this;
       }

@@ -1,4 +1,4 @@
-package io.hyperfoil.core.validators;
+package io.hyperfoil.core.handlers;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -66,13 +66,13 @@ public class SearchValidatorTest {
       Session session = SessionFactory.forTesting();
       HttpRequest request = session.httpRequestPool().acquire();
       validator.reserve(session);
-      validator.beforeData(request);
+      validator.before(request);
 
       for (String t : text) {
          ByteBuf data = Unpooled.wrappedBuffer(t.getBytes(StandardCharsets.UTF_8));
-         validator.handleData(request, data);
+         validator.process(request, data, data.readerIndex(), data.readableBytes(), false);
       }
-      validator.afterData(request);
+      validator.after(request);
       return request;
    }
 }

@@ -9,19 +9,15 @@ import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Name;
-import io.hyperfoil.api.config.Step;
-import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.connection.Processor;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
-import io.hyperfoil.function.SerializableSupplier;
 import io.netty.buffer.ByteBuf;
-import io.hyperfoil.api.http.BodyHandler;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.ResourceUtilizer;
 
 public class JsonHandler extends JsonParser<Request>
-      implements BodyHandler, ResourceUtilizer, Session.ResourceKey<JsonHandler.Context> {
+      implements Processor<Request>, ResourceUtilizer, Session.ResourceKey<JsonHandler.Context> {
    private final Processor<Request> processor;
 
    public JsonHandler(String query, Processor<Request> processor) {
@@ -31,18 +27,18 @@ public class JsonHandler extends JsonParser<Request>
    }
 
    @Override
-   public void beforeData(HttpRequest request) {
+   public void before(Request request) {
       processor.before(request);
    }
 
    @Override
-   public void handleData(HttpRequest request, ByteBuf data) {
+   public void process(Request request, ByteBuf data, int offset, int length, boolean isLast) {
       Context ctx = request.session.getResource(this);
-      ctx.parse(ctx.wrap(data), request);
+      ctx.parse(ctx.wrap(data, offset, length), request);
    }
 
    @Override
-   public void afterData(HttpRequest request) {
+   public void after(Request request) {
       processor.after(request);
       Context ctx = request.session.getResource(this);
       ctx.reset();
@@ -77,8 +73,10 @@ public class JsonHandler extends JsonParser<Request>
          actualStream = new ByteBufByteStream(this::retain, null);
       }
 
-      public ByteStream wrap(ByteBuf data) {
+      public ByteStream wrap(ByteBuf data, int offset, int length) {
          actualStream.buffer = data;
+         actualStream.readerIndex = offset;
+         actualStream.writerIndex = offset + length;
          return actualStream;
       }
    }
@@ -86,12 +84,12 @@ public class JsonHandler extends JsonParser<Request>
    /**
     * Parses JSON responses using simple queries.
     */
-   @MetaInfServices(BodyHandler.Builder.class)
+   @MetaInfServices(Request.ProcessorBuilder.class)
    @Name("json")
-   public static class Builder implements BodyHandler.Builder, InitFromParam<Builder> {
+   public static class Builder implements Request.ProcessorBuilder, InitFromParam<Builder> {
       private Locator locator;
       private String query;
-      private Processor.Builder<Request> processor;
+      private Request.ProcessorBuilder processor;
 
       @Override
       public Builder setLocator(Locator locator) {
@@ -123,7 +121,7 @@ public class JsonHandler extends JsonParser<Request>
       }
 
       @Override
-      public JsonHandler build(SerializableSupplier<? extends Step> step) {
+      public JsonHandler build() {
          return new JsonHandler(query, processor.build());
       }
 
@@ -152,7 +150,7 @@ public class JsonHandler extends JsonParser<Request>
          return processor(() -> processor);
       }
 
-      public Builder processor(Processor.Builder<Request> processor) {
+      public Builder processor(Request.ProcessorBuilder processor) {
          this.processor = processor;
          return this;
       }
@@ -167,7 +165,7 @@ public class JsonHandler extends JsonParser<Request>
       }
 
       @Override
-      public BodyHandler.Builder copy(Locator locator) {
+      public JsonHandler.Builder copy(Locator locator) {
          return new Builder().setLocator(locator).query(query).processor(processor);
       }
    }
@@ -176,6 +174,8 @@ public class JsonHandler extends JsonParser<Request>
       private final Function<ByteStream, ByteStream> retain;
       private final Consumer<ByteStream> release;
       private ByteBuf buffer;
+      private int readerIndex;
+      private int writerIndex;
 
       ByteBufByteStream(Function<ByteStream, ByteStream> retain, Consumer<ByteStream> release) {
          this.retain = retain;
@@ -184,12 +184,13 @@ public class JsonHandler extends JsonParser<Request>
 
       @Override
       public boolean isReadable() {
-         return buffer.isReadable();
+         return readerIndex < writerIndex;
       }
 
       @Override
       public byte readByte() {
-         return buffer.readByte();
+         assert isReadable();
+         return buffer.getByte(readerIndex++);
       }
 
       @Override
@@ -199,18 +200,19 @@ public class JsonHandler extends JsonParser<Request>
 
       @Override
       public int writerIndex() {
-         return buffer.writerIndex();
+         return writerIndex;
       }
 
       @Override
       public int readerIndex() {
-         return buffer.readerIndex();
+         return readerIndex;
       }
 
       @Override
       public void release() {
          buffer.release();
          buffer = null;
+         readerIndex = writerIndex = -1;
          release.accept(this);
       }
 
@@ -225,7 +227,10 @@ public class JsonHandler extends JsonParser<Request>
          ByteBufByteStream o = (ByteBufByteStream) other;
          assert o.buffer == null;
          o.buffer = buffer;
+         o.readerIndex = readerIndex;
+         o.writerIndex = writerIndex;
          buffer = null;
+         readerIndex = writerIndex = -1;
       }
    }
 }

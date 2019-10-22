@@ -7,17 +7,17 @@ import org.slf4j.LoggerFactory;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.connection.HttpRequest;
-import io.hyperfoil.api.http.BodyHandler;
+import io.hyperfoil.api.connection.Processor;
 import io.hyperfoil.api.http.HeaderHandler;
 import io.hyperfoil.core.util.Util;
 import io.hyperfoil.function.SerializableSupplier;
 import io.netty.buffer.ByteBuf;
 
-public class LogInvalidHandler implements BodyHandler, HeaderHandler {
+public class LogInvalidHandler implements Processor<HttpRequest>, HeaderHandler {
    private Logger log = LoggerFactory.getLogger(LogInvalidHandler.class);
 
    @Override
-   public void handleData(HttpRequest request, ByteBuf data) {
+   public void process(HttpRequest request, ByteBuf data, int offset, int length, boolean isLast) {
       if (!request.isValid()) {
          log.debug("#{}: {} {}/{}, {} bytes: {}", request.session.uniqueId(), request.method, request.authority, request.path, data.readableBytes(),
                Util.toString(data, data.readerIndex(), data.readableBytes()));
@@ -34,11 +34,11 @@ public class LogInvalidHandler implements BodyHandler, HeaderHandler {
    /**
     * Logs body chunks from requests marked as invalid.
     */
-   @MetaInfServices(BodyHandler.Builder.class)
+   @MetaInfServices(HttpRequest.ProcessorBuilder.class)
    @Name("logInvalid")
-   public static class BodyHandlerBuilder implements BodyHandler.Builder {
+   public static class BodyHandlerBuilder implements HttpRequest.ProcessorBuilder {
       @Override
-      public LogInvalidHandler build(SerializableSupplier<? extends Step> step) {
+      public LogInvalidHandler build() {
          return new LogInvalidHandler();
       }
    }

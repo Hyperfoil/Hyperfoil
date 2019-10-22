@@ -219,7 +219,7 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
          HttpRequest request = streams.get(streamId);
          if (request != null) {
             HttpResponseHandlers handlers = (HttpResponseHandlers) request.handlers();
-            handlers.handleBodyPart(request, data);
+            handlers.handleBodyPart(request, data, data.readerIndex(), data.readableBytes(), endOfStream);
             if (endOfStream) {
                endStream(streamId);
             }

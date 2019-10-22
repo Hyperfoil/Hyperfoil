@@ -98,9 +98,9 @@ public class HttpClientPoolHandlerTest {
                      latch.countDown();
                   }
                })
-               .body((r, input) -> {
-                  byte[] bytes = new byte[input.readableBytes()];
-                  input.readBytes(bytes, 0, bytes.length);
+               .body((r, input, offset, length, isLastPart) -> {
+                  byte[] bytes = new byte[length];
+                  input.getBytes(offset, bytes);
                   assertThat(new String(bytes)).isEqualTo("hello from server");
                   latch.countDown();
                })

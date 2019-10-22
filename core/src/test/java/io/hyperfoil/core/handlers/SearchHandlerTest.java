@@ -64,13 +64,13 @@ public class SearchHandlerTest {
       Session session = SessionFactory.forTesting();
       HttpRequest request = session.httpRequestPool().acquire();
       handler.reserve(session);
-      handler.beforeData(request);
+      handler.before(request);
 
       for (String t : text) {
          ByteBuf data = Unpooled.wrappedBuffer(t.getBytes(StandardCharsets.UTF_8));
-         handler.handleData(request, data);
+         handler.process(request, data, data.readerIndex(), data.readableBytes(), false);
       }
-      handler.afterData(request);
+      handler.after(request);
       processor.validate();
    }
 }

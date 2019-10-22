@@ -43,8 +43,8 @@ public final class MultiProcessor<R extends Request> implements Processor<R>, Re
       ResourceUtilizer.reserve(session, delegates);
    }
 
-   public static class Builder<R extends Request> implements Processor.Builder<R> {
-      public final List<Processor.Builder<R>> delegates = new ArrayList<>();
+   public static class Builder<R extends Request> implements Processor.Builder<R, Builder<R>> {
+      public final List<Processor.Builder<R, ?>> delegates = new ArrayList<>();
 
       @Override
       public Processor<R> build() {
@@ -63,7 +63,7 @@ public final class MultiProcessor<R extends Request> implements Processor<R>, Re
          return builder;
       }
 
-      public Builder<R> add(Processor.Builder<R> processor) {
+      public Builder<R> add(Processor.Builder<R, ?> processor) {
          delegates.add(processor);
          return this;
       }

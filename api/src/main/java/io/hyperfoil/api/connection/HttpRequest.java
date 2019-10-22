@@ -58,7 +58,7 @@ public class HttpRequest extends Request {
    @IncludeBuilders(
          @IncludeBuilders.Conversion(from = Request.ProcessorBuilder.class, adapter = BuilderConverter.class)
    )
-   public interface ProcessorBuilder extends Processor.Builder<HttpRequest> {}
+   public interface ProcessorBuilder extends Processor.Builder<HttpRequest, ProcessorBuilder> {}
 
    public static class BuilderConverter implements Function<Request.ProcessorBuilder, HttpRequest.ProcessorBuilder> {
       @Override

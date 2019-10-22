@@ -100,7 +100,8 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
          HttpRequest request = inflights.peek();
          HttpResponseHandlers handlers = request.handlers();
          try {
-            handlers.handleBodyPart(request, ((HttpContent) msg).content());
+            ByteBuf data = ((HttpContent) msg).content();
+            handlers.handleBodyPart(request, data, data.readerIndex(), data.readableBytes(), msg instanceof LastHttpContent);
          } catch (Throwable t) {
             log.error("Response processing failed on {}", t, this);
             handlers.handleThrowable(request, t);

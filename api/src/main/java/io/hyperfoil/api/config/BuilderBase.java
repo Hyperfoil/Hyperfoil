@@ -26,7 +26,7 @@ public interface BuilderBase<S extends BuilderBase<S>> {
       return (S) this;
    }
 
-   static <T extends BuilderBase<T>> List<T> copy(Locator locator, Collection<? extends BuilderBase<T>> builders) {
+   static <T extends BuilderBase<T>> List<T> copy(Locator locator, Collection<T> builders) {
       return builders.stream().map(b -> b.copy(locator)).collect(Collectors.toList());
    }
 }

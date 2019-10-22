@@ -8,6 +8,7 @@ import java.util.Optional;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
@@ -91,7 +92,7 @@ public class FleetTest extends BaseScenarioTest {
                   .path("/fleet")
                   .sync(false)
                   .handler()
-                     .body(new JsonHandler(".ships[].name", shipAssertion.processor(new DefragProcessor<>(new ArrayRecorder("shipNames", DataFormat.STRING, MAX_SHIPS)))))
+                     .body(new HttpRequest.ProcessorAdapter(new JsonHandler(".ships[].name", shipAssertion.processor(new DefragProcessor<>(new ArrayRecorder("shipNames", DataFormat.STRING, MAX_SHIPS))))))
                   .endHandler()
                .endStep()
                .step(SC).foreach()
@@ -105,7 +106,7 @@ public class FleetTest extends BaseScenarioTest {
                   .path(FleetTest::currentShipQuery)
                   .sync(false)
                   .handler()
-                     .body(new JsonHandler(".crew[]", crewAssertion.processor(new SequenceScopedCountRecorder("crewCount", MAX_SHIPS))))
+                     .body(new HttpRequest.ProcessorAdapter(new JsonHandler(".crew[]", crewAssertion.processor(new SequenceScopedCountRecorder("crewCount", MAX_SHIPS)))))
                   .endHandler()
                .endStep()
                .step(SC).breakSequence()
