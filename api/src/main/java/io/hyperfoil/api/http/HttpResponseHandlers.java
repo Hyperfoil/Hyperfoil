@@ -13,5 +13,5 @@ public interface HttpResponseHandlers extends ResponseHandlers<HttpRequest> {
 
    boolean hasRawBytesHandler();
 
-   void handleRawBytes(HttpRequest request, ByteBuf buf);
+   void handleRawBytes(HttpRequest request, ByteBuf data, int offset, int length, boolean isLastPart);
 }

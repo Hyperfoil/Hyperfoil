@@ -14,8 +14,8 @@ public class ByteBufSizeRecorder implements RawBytesHandler {
    }
 
    @Override
-   public void accept(Request request, ByteBuf buf) {
+   public void accept(Request request, ByteBuf buf, int offset, int length, boolean isLastPart) {
       Statistics statistics = request.statistics();
-      statistics.getCustom(request.startTimestampMillis(), name, LongValue::new).add(buf.readableBytes());
+      statistics.getCustom(request.startTimestampMillis(), name, LongValue::new).add(length);
    }
 }

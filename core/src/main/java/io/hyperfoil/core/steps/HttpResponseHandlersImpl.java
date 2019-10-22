@@ -232,9 +232,9 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
    }
 
    @Override
-   public void handleRawBytes(HttpRequest request, ByteBuf buf) {
+   public void handleRawBytes(HttpRequest request, ByteBuf data, int offset, int length, boolean isLastPart) {
       for (RawBytesHandler rawBytesHandler : rawBytesHandlers) {
-         rawBytesHandler.accept(request, buf);
+         rawBytesHandler.accept(request, data, offset, length, isLastPart);
       }
    }
 

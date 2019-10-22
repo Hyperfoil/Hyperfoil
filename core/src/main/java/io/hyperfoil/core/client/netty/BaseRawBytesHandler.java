@@ -22,12 +22,12 @@ public abstract class BaseRawBytesHandler extends ChannelInboundHandlerAdapter {
       }
       if (buf.readableBytes() > responseBytes) {
          ByteBuf slice = buf.readRetainedSlice(responseBytes);
-         invokeHandler(request, slice);
+         invokeHandler(request, slice, slice.readerIndex(), slice.readableBytes(), true);
          ctx.fireChannelRead(slice);
          responseBytes = 0;
          channelRead(ctx, buf);
       } else {
-         invokeHandler(request, buf);
+         invokeHandler(request, buf, buf.readerIndex(), buf.readableBytes(), buf.readableBytes() == responseBytes);
          responseBytes -= buf.readableBytes();
          ctx.fireChannelRead(buf);
       }
@@ -35,12 +35,12 @@ public abstract class BaseRawBytesHandler extends ChannelInboundHandlerAdapter {
 
    protected abstract boolean isRequestStream(int streamId);
 
-   protected void invokeHandler(HttpRequest request, ByteBuf buf) {
+   protected void invokeHandler(HttpRequest request, ByteBuf data, int offset, int length, boolean isLastPart) {
       HttpResponseHandlers handlers;
       if (request != null && (handlers = (HttpResponseHandlers) request.handlers()).hasRawBytesHandler()) {
-         int readerIndex = buf.readerIndex();
-         handlers.handleRawBytes(request, buf);
-         if (buf.readerIndex() != readerIndex) {
+         int readerIndex = data.readerIndex();
+         handlers.handleRawBytes(request, data, offset, length, isLastPart);
+         if (data.readerIndex() != readerIndex) {
             // TODO: maybe we could just reset the reader index?
             throw new IllegalStateException("Handler has changed readerIndex on the buffer!");
          }

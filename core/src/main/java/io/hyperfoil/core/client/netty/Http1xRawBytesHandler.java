@@ -233,7 +233,8 @@ public class Http1xRawBytesHandler extends BaseRawBytesHandler {
 
    private void passFullBuffer(ChannelHandlerContext ctx, ByteBuf buf) {
       HttpRequest request = connection.peekRequest(0);
-      invokeHandler(request, buf);
+      // Note: we cannot reliably know if this is the last part as the body might be delimited by closing the connection.
+      invokeHandler(request, buf, buf.readerIndex(), buf.readableBytes(), false);
       ctx.fireChannelRead(buf);
    }
 

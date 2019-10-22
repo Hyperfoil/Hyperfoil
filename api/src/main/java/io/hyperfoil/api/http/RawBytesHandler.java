@@ -6,5 +6,5 @@ import io.netty.buffer.ByteBuf;
 import io.hyperfoil.api.connection.Request;
 
 public interface RawBytesHandler extends Serializable {
-   void accept(Request request, ByteBuf byteBuf);
+   void accept(Request request, ByteBuf byteBuf, int offset, int length, boolean isLastPart);
 }
