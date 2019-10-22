@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 public interface BuilderBase<S extends BuilderBase<S>> {
    default void prepareBuild() {}
 
+   @SuppressWarnings("unchecked")
    default S setLocator(Locator locator) {
       return (S) this;
    }

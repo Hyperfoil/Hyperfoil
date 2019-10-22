@@ -173,7 +173,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
    @Override
    public void reserve(Session session) {
       ResourceUtilizer.reserve(session, authority, pathGenerator, bodyGenerator);
-      ResourceUtilizer.reserve(session, headerAppenders);
+      ResourceUtilizer.reserve(session, (Object[]) headerAppenders);
       handler.reserve(session);
    }
 

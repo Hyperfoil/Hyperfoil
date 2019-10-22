@@ -34,13 +34,13 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
 
    final StatusHandler[] statusHandlers;
    final HeaderHandler[] headerHandlers;
-   final Processor[] bodyHandlers;
+   final Processor<HttpRequest>[] bodyHandlers;
    final Action[] completionHandlers;
    final RawBytesHandler[] rawBytesHandlers;
 
    private HttpResponseHandlersImpl(StatusHandler[] statusHandlers,
                                     HeaderHandler[] headerHandlers,
-                                    Processor[] bodyHandlers,
+                                    Processor<HttpRequest>[] bodyHandlers,
                                     Action[] completionHandlers,
                                     RawBytesHandler[] rawBytesHandlers) {
       this.statusHandlers = statusHandlers;
@@ -366,11 +366,12 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          completionHandlers.forEach(Action.Builder::prepareBuild);
       }
 
+      @SuppressWarnings("unchecked")
       public HttpResponseHandlersImpl build(FutureSupplier<HttpRequestStep> fs) {
          return new HttpResponseHandlersImpl(
                toArray(statusHandlers, builder -> builder.build(fs), StatusHandler[]::new),
                toArray(headerHandlers, builder1 -> builder1.build(fs), HeaderHandler[]::new),
-               toArray(bodyHandlers, builder2 -> builder2.build(), Processor[]::new),
+               toArray(bodyHandlers, Processor.Builder::build, Processor[]::new),
                toArray(completionHandlers, Action.Builder::build, Action[]::new),
                toArray(rawBytesHandlers, Function.identity(), RawBytesHandler[]::new));
       }

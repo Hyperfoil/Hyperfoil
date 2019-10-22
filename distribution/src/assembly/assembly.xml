@@ -9,7 +9,7 @@
     </formats>
     <fileSets>
         <fileSet>
-            <outputDirectory>/</outputDirectory>
+            <outputDirectory></outputDirectory>
             <directory>target/distribution</directory>
         </fileSet>
     </fileSets>

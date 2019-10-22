@@ -382,7 +382,9 @@ public class HtmlHandler implements Processor<HttpRequest>, ResourceUtilizer, Se
          if (this.processor == null) {
             this.processor = processor;
          } else if (this.processor instanceof MultiProcessor.Builder) {
-            ((MultiProcessor.Builder<HttpRequest>) this.processor).add(processor);
+            @SuppressWarnings("unchecked")
+            MultiProcessor.Builder<HttpRequest> multiprocessor = (MultiProcessor.Builder<HttpRequest>) this.processor;
+            multiprocessor.add(processor);
          } else {
             this.processor = new MultiProcessor.Builder<HttpRequest>().add(this.processor).add(processor);
          }
@@ -541,6 +543,7 @@ public class HtmlHandler implements Processor<HttpRequest>, ResourceUtilizer, Se
                .onCompletion(onCompletion);
       }
 
+      @SuppressWarnings("unchecked")
       public FetchResourcesAdapter build() {
          return new FetchResourcesAdapter(completionLatch(), new MultiProcessor<>(
                new ArrayRecorder(downloadUrlVar(), DataFormat.STRING, maxResources),

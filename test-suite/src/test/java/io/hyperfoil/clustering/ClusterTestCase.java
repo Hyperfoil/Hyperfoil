@@ -53,7 +53,8 @@ public class ClusterTestCase extends BaseClusteredTest {
          req.response().end("test");
       }).listen(0, "localhost", ctx.asyncAssertSuccess());
 
-      VertxOptions opts = new VertxOptions().setClustered(true);
+      VertxOptions opts = new VertxOptions();
+      opts.getEventBusOptions().setClustered(true);
 
       //configure multi node vert.x cluster
       initiateClustered(opts, ControllerVerticle.class, new DeploymentOptions().setConfig(null).setWorker(false), ctx, ctx.async());

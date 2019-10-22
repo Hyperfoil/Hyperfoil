@@ -70,6 +70,7 @@ public class SimulationRunnerImpl implements SimulationRunner {
       this.agentId = agentId;
       this.phaseChangeHandler = phaseChangeHandler;
       this.httpDestinations = new HttpDestinationTableImpl[executors.length];
+      @SuppressWarnings("unchecked")
       Map<String, HttpConnectionPool>[] httpConnectionPools = new Map[executors.length];
       for (Map.Entry<String, Http> http : benchmark.http().entrySet()) {
          try {

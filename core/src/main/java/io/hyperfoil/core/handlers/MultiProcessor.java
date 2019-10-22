@@ -13,6 +13,7 @@ import io.netty.buffer.ByteBuf;
 public final class MultiProcessor<R extends Request> implements Processor<R>, ResourceUtilizer {
    protected final Processor<R>[] delegates;
 
+   @SafeVarargs
    public MultiProcessor(Processor<R>... delegates) {
       this.delegates = delegates;
    }
@@ -40,15 +41,17 @@ public final class MultiProcessor<R extends Request> implements Processor<R>, Re
 
    @Override
    public void reserve(Session session) {
-      ResourceUtilizer.reserve(session, delegates);
+      ResourceUtilizer.reserve(session, (Object[]) delegates);
    }
 
    public static class Builder<R extends Request> implements Processor.Builder<R, Builder<R>> {
       public final List<Processor.Builder<R, ?>> delegates = new ArrayList<>();
 
+      @SuppressWarnings("unchecked")
       @Override
       public Processor<R> build() {
-         return new MultiProcessor<>(delegates.stream().map(Processor.Builder::build).toArray(Processor[]::new));
+         Processor[] delegates = this.delegates.stream().map(Processor.Builder::build).toArray(Processor[]::new);
+         return new MultiProcessor<R>(delegates);
       }
 
       @Override

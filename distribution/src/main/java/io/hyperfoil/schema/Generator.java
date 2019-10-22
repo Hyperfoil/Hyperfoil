@@ -67,6 +67,7 @@ public class Generator extends BaseGenerator {
          }
       }
       for (Map.Entry<String, BuilderInfo<?>> entry : ServiceLoadedBuilderProvider.builders(StepBuilder.class).entrySet()) {
+         @SuppressWarnings("unchecked")
          Class<StepBuilder> implClazz = (Class<StepBuilder>) entry.getValue().implClazz;
          addBuilder(builders, simpleBuilders, entry.getKey(), implClazz, InitFromParam.class.isAssignableFrom(implClazz));
       }

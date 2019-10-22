@@ -99,6 +99,7 @@ public class DocsGenerator extends BaseGenerator {
          }
       }
       for (Map.Entry<String, BuilderInfo<?>> entry : ServiceLoadedBuilderProvider.builders(StepBuilder.class).entrySet()) {
+         @SuppressWarnings("unchecked")
          Class<? extends StepBuilder> newBuilder = (Class<? extends StepBuilder>) entry.getValue().implClazz;
          ClassOrInterfaceDeclaration cd = findClass(newBuilder);
          if (cd != null) {
