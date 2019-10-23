@@ -965,7 +965,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
        * @param var Variable name.
        * @return Self.
        */
-      public FormInputBuilder var(String var) {
+      public FormInputBuilder fromVar(String var) {
          this.fromVar = var;
          return this;
       }
