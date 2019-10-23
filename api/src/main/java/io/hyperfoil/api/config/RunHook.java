@@ -1,6 +1,7 @@
 package io.hyperfoil.api.config;
 
 import java.io.Serializable;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 
@@ -15,7 +16,7 @@ public abstract class RunHook implements Serializable, Comparable<RunHook> {
       return name;
    }
 
-   public abstract boolean run(String runId, Consumer<String> outputConsumer);
+   public abstract boolean run(Map<String, String> properties, Consumer<String> outputConsumer);
 
    @Override
    public int compareTo(RunHook other) {

@@ -3,6 +3,7 @@ package io.hyperfoil.core.hooks;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.Map;
 import java.util.function.Consumer;
 
 import org.kohsuke.MetaInfServices;
@@ -23,10 +24,10 @@ public class ExecRunHook extends RunHook {
    }
 
    @Override
-   public boolean run(String runId, Consumer<String> outputConsumer) {
+   public boolean run(Map<String, String> properties, Consumer<String> outputConsumer) {
       ProcessBuilder pb = new ProcessBuilder("sh", "-c", command).inheritIO()
             .redirectOutput(ProcessBuilder.Redirect.PIPE);
-      pb.environment().put("RUN_ID", runId);
+      pb.environment().putAll(properties);
       try {
          log.info("{}: Starting command {}", name, command);
          Process process = pb.start();

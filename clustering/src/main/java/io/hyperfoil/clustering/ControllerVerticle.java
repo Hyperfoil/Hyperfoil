@@ -411,7 +411,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
 
          for (RunHook hook : hooks) {
             StringBuilder sb = new StringBuilder();
-            boolean success = hook.run(run.id, sb::append);
+            boolean success = hook.run(getRunProperties(run), sb::append);
             run.hookResults.add(new Run.RunHookOutput(hook.name(), sb.toString()));
             if (!success) {
                future.fail("Execution of pre-hook " + hook.name() + " failed.");
@@ -539,7 +539,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
 
          for (RunHook hook : hooks) {
             StringBuilder sb = new StringBuilder();
-            boolean success = hook.run(run.id, sb::append);
+            boolean success = hook.run(getRunProperties(run), sb::append);
             run.hookResults.add(new Run.RunHookOutput(hook.name(), sb.toString()));
             if (!success) {
                log.error("Execution of post-hook " + hook.name() + " failed.");
@@ -593,6 +593,21 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             future.complete();
          }
       }, null);
+   }
+
+   private Map<String, String> getRunProperties(Run run) {
+      Map<String, String> properties = new HashMap<>();
+      properties.put("RUN_ID", run.id);
+      properties.put("RUN_DIR", RUN_DIR.resolve(run.id).toAbsolutePath().toString());
+      if (run.description != null) {
+         properties.put("RUN_DESCRIPTION", run.description);
+      }
+      properties.put("BENCHMARK", run.benchmark.name());
+      File benchmarkFile = BENCHMARK_DIR.resolve(run.benchmark.name() + ".yaml").toFile();
+      if (benchmarkFile.exists()) {
+         properties.put("BENCHMARK_PATH", benchmarkFile.getAbsolutePath());
+      }
+      return properties;
    }
 
    public Run run(String runId) {
