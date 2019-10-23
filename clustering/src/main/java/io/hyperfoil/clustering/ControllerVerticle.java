@@ -562,7 +562,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                      .map(r -> new JsonObject().put("name", r.name).put("output", r.output))
                      .collect(Collectors.toList())));
 
-         try (FileOutputStream stream = new FileOutputStream("all.json")) {
+         try (FileOutputStream stream = new FileOutputStream(runDir.resolve("all.json").toFile())) {
             JsonFactory jfactory = new JsonFactory();
             jfactory.setCodec(new ObjectMapper());
             JsonGenerator jGenerator = jfactory.createGenerator(stream, JsonEncoding.UTF8);
