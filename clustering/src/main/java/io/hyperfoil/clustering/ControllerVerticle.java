@@ -41,7 +41,6 @@ import io.vertx.core.spi.cluster.NodeListener;
 import io.vertx.ext.cluster.infinispan.InfinispanClusterManager;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -254,7 +253,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             log.error("Cannot read info for run {}", runId);
          }
       }
-      Run run = new Run(runId, new Benchmark(info.getString("benchmark", "<unknown>"), null, Collections.emptyMap(), null, 0, null,
+      Run run = new Run(runId, runDir, new Benchmark(info.getString("benchmark", "<unknown>"), null, Collections.emptyMap(), null, 0, null,
             Collections.emptyMap(), Collections.emptyList(), Collections.emptyMap(), 0, Collections.emptyList(), Collections.emptyList()));
       run.startTime = info.getLong("startTime", 0L);
       run.terminateTime.complete(info.getLong("terminateTime", 0L));
@@ -312,12 +311,15 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
 
    Run createRun(Benchmark benchmark, String description) {
       String runId = String.format("%04X", runIds.getAndIncrement());
-      Run run = new Run(runId, benchmark);
+      Path runDir = RUN_DIR.resolve(runId);
+      runDir.toFile().mkdirs();
+      Run run = new Run(runId, runDir, benchmark);
       run.description = description;
       run.statisticsStore = new StatisticsStore(run.benchmark, failure -> {
          log.warn("Failed verify SLA(s) for {}/{}: {}", failure.phase(), failure.metric(), failure.message());
       });
       runs.put(run.id, run);
+      PersistenceUtil.store(run.benchmark, run.dir);
       return run;
    }
 
@@ -523,12 +525,43 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
 
    private void persistRun(Run run) {
       vertx.executeBlocking(future -> {
-         Path runDir = RUN_DIR.resolve(run.id);
-         runDir.toFile().mkdirs();
          try {
-            run.statisticsStore.persist(runDir.resolve("stats"));
+            run.statisticsStore.persist(run.dir.resolve("stats"));
          } catch (IOException e) {
             log.error("Failed to persist statistics", e);
+            future.fail(e);
+         }
+
+         JsonObject info = new JsonObject()
+               .put("id", run.id)
+               .put("benchmark", run.benchmark.name())
+               .put("startTime", run.startTime)
+               .put("terminateTime", run.terminateTime.result())
+               .put("description", run.description)
+               .put("errors", new JsonArray(run.errors.stream()
+                     .map(e -> new JsonObject().put("agent", e.agent.name).put("msg", e.error.getMessage()))
+                     .collect(Collectors.toList())));
+
+         try {
+            Files.write(run.dir.resolve("info.json"), info.encodePrettily().getBytes(StandardCharsets.UTF_8));
+         } catch (IOException e) {
+            log.error("Cannot write info file", e);
+            future.fail(e);
+         }
+
+         try (FileOutputStream stream = new FileOutputStream(run.dir.resolve("all.json").toFile())) {
+            JsonFactory jfactory = new JsonFactory();
+            jfactory.setCodec(new ObjectMapper());
+            JsonGenerator jGenerator = jfactory.createGenerator(stream, JsonEncoding.UTF8);
+            jGenerator.setCodec(new ObjectMapper());
+            jGenerator.writeStartObject();
+
+            jGenerator.writeObjectField("info", info);
+            run.statisticsStore.writeJson(jGenerator, false);
+            jGenerator.writeEndObject();
+            jGenerator.close();
+         } catch (IOException e) {
+            log.error("Cannot write all.json file", e);
             future.fail(e);
          }
 
@@ -548,47 +581,16 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             }
          }
 
-
-         JsonObject info = new JsonObject()
-               .put("id", run.id)
-               .put("benchmark", run.benchmark.name())
-               .put("startTime", run.startTime)
-               .put("terminateTime", run.terminateTime.result())
-               .put("description", run.description)
-               .put("errors", new JsonArray(run.errors.stream()
-                     .map(e -> new JsonObject().put("agent", e.agent.name).put("msg", e.error.getMessage()))
-                     .collect(Collectors.toList())))
-               .put("hooks", new JsonArray(run.hookResults.stream()
-                     .map(r -> new JsonObject().put("name", r.name).put("output", r.output))
-                     .collect(Collectors.toList())));
-
-         try (FileOutputStream stream = new FileOutputStream(runDir.resolve("all.json").toFile())) {
-            JsonFactory jfactory = new JsonFactory();
-            jfactory.setCodec(new ObjectMapper());
-            JsonGenerator jGenerator = jfactory.createGenerator(stream, JsonEncoding.UTF8);
-            jGenerator.setCodec(new ObjectMapper());
-            jGenerator.writeStartObject();
-
-            jGenerator.writeObjectField("info", info);
-            run.statisticsStore.writeJson(jGenerator, false);
-            jGenerator.writeEndObject();
-            jGenerator.close();
-         } catch (FileNotFoundException e) {
-            log.error("Cannot write all.json file", e);
-            future.fail(e);
-         } catch (IOException e) {
-            log.error("Cannot write all.json file", e);
-            future.fail(e);
-         }
-
-
+         JsonArray hookResults = new JsonArray(run.hookResults.stream()
+               .map(r -> new JsonObject().put("name", r.name).put("output", r.output))
+               .collect(Collectors.toList()));
          try {
-            Files.write(runDir.resolve("info.json"), info.encodePrettily().getBytes(StandardCharsets.UTF_8));
+            Files.write(run.dir.resolve("hooks.json"), hookResults.encodePrettily().getBytes(StandardCharsets.UTF_8));
          } catch (IOException e) {
-            log.error("Cannot write info file", e);
+            log.error("Cannot write hook results", e);
             future.fail(e);
          }
-         PersistenceUtil.store(run.benchmark, runDir);
+
          if (!future.isComplete()) {
             future.complete();
          }

@@ -1,5 +1,6 @@
 package io.hyperfoil.clustering;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -13,6 +14,7 @@ import io.vertx.core.Future;
 
 class Run {
    final String id;
+   final Path dir;
    Benchmark benchmark;
    final Map<String, ControllerPhase> phases = new HashMap<>();
    final List<AgentInfo> agents = new ArrayList<>();
@@ -26,8 +28,9 @@ class Run {
    Future<Long> terminateTime = Future.future();
    StatisticsStore statisticsStore;
 
-   Run(String id, Benchmark benchmark) {
+   Run(String id, Path dir, Benchmark benchmark) {
       this.id = id;
+      this.dir = dir;
       this.benchmark = benchmark;
       this.phasesById = benchmark.phasesById();
    }

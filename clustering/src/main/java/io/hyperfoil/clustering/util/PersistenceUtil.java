@@ -68,7 +68,7 @@ public class PersistenceUtil {
                String sanitizedName = PersistedBenchmarkData.sanitize(entry.getKey());
                Files.write(dataDirPath.resolve(sanitizedName), entry.getValue());
             } catch (IOException e) {
-               log.error("Couldn't persiste data file {}", e, entry.getKey());
+               log.error("Couldn't persist data file {}", e, entry.getKey());
             }
          }
       }
