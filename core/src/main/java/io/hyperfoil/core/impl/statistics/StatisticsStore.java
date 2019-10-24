@@ -146,16 +146,15 @@ public class StatisticsStore {
       }
    }
 
-
-   public void histogramArray(JsonGenerator jGenerator, Histogram histogram, double outputValueUnitScalingRatio) throws IOException {
+   public void histogramArray(JsonGenerator jGenerator, Iterator<HistogramIterationValue> iter) throws IOException {
       jGenerator.writeStartArray(); //start histogram
-      AbstractHistogram.Percentiles iterationValues = histogram.percentiles(5);
-      for (Iterator<HistogramIterationValue> iter = iterationValues.iterator(); iter.hasNext(); ) {
+      while (iter.hasNext()) {
          HistogramIterationValue iterValue = iter.next();
-
          jGenerator.writeStartObject();
-         jGenerator.writeNumberField("value", iterValue.getValueIteratedTo() / outputValueUnitScalingRatio);
+         jGenerator.writeNumberField("to", iterValue.getDoubleValueIteratedTo());
+         jGenerator.writeNumberField("from", iterValue.getDoubleValueIteratedFrom());
          jGenerator.writeNumberField("percentile", iterValue.getPercentileLevelIteratedTo() / 100.0D);
+         jGenerator.writeNumberField("count", iterValue.getCountAddedInThisIterationStep());
          jGenerator.writeNumberField("totalCount", iterValue.getTotalCountToThisValue());
          jGenerator.writeEndObject();
       }
@@ -391,8 +390,13 @@ public class StatisticsStore {
                         jGenerator.writeStartObject(); //start metric
 
                         jGenerator.writeFieldName("histogram");
-
-                        histogramArray(jGenerator, data.total.histogram, OUTPUT_VALUE_UNIT_SCALING_RATIO);
+                        jGenerator.writeStartObject();
+                        //histogramArray(jGenerator, data.total.histogram, OUTPUT_VALUE_UNIT_SCALING_RATIO);
+                        jGenerator.writeFieldName("percentiles");
+                        histogramArray(jGenerator, data.total.histogram.percentiles(5).iterator());
+                        jGenerator.writeFieldName("linear");
+                        histogramArray(jGenerator, data.total.histogram.linearBucketValues(1_000_000).iterator());
+                        jGenerator.writeEndObject(); //histogram
                         jGenerator.writeFieldName("series");
                         seriesArray(jGenerator, data.series);
 
@@ -475,7 +479,12 @@ public class StatisticsStore {
                            jGenerator.writeFieldName(data.metric);
                            jGenerator.writeStartObject();
                            jGenerator.writeFieldName("histogram");
-                           histogramArray(jGenerator, data.perAgent.get(agent).histogram, OUTPUT_VALUE_UNIT_SCALING_RATIO);
+                           jGenerator.writeStartObject();
+                           jGenerator.writeFieldName("percentiles");
+                           histogramArray(jGenerator, data.perAgent.get(agent).histogram.percentiles(5).iterator());
+                           jGenerator.writeFieldName("linear");
+                           histogramArray(jGenerator, data.perAgent.get(agent).histogram.linearBucketValues(1_000_000).iterator());
+                           jGenerator.writeEndObject(); //histogram
                            jGenerator.writeFieldName("series");
                            seriesArray(jGenerator, data.agentSeries.get(agent));
 
