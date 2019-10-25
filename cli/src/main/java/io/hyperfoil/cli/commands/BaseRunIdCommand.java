@@ -17,7 +17,7 @@ public abstract class BaseRunIdCommand extends ServerCommand {
    protected Client.RunRef getRunRef(HyperfoilCommandInvocation invocation) throws CommandException {
       ensureConnection(invocation);
       Client.RunRef runRef;
-      if (runId == null) {
+      if (runId == null || runId.isEmpty()) {
          runRef = invocation.context().serverRun();
          if (runRef == null) {
             invocation.println("Command '" + getClass().getSimpleName().toLowerCase() + "' requires run ID as argument! Available runs:");

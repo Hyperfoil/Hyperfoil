@@ -15,7 +15,7 @@ public abstract class BenchmarkCommand extends ServerCommand {
       ensureConnection(invocation);
       HyperfoilCliContext ctx = invocation.context();
       Client.BenchmarkRef benchmarkRef;
-      if (benchmark == null) {
+      if (benchmark == null || benchmark.isEmpty()) {
          benchmarkRef = ctx.serverBenchmark();
          if (benchmarkRef == null) {
             invocation.println("No benchmark was set. Available benchmarks: ");

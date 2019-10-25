@@ -187,7 +187,7 @@ public class RestClient implements Client, Closeable {
       } catch (ExecutionException e1) {
          throw new RestClientException(e1.getCause() == null ? e1 : e1.getCause());
       } catch (TimeoutException e) {
-         throw new RestClientException("Could not fetch log within 30 seconds.");
+         throw new RestClientException("Request did not complete within 30 seconds.");
       }
    }
 
