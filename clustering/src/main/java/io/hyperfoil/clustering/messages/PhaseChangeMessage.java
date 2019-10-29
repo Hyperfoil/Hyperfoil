@@ -31,13 +31,15 @@ public class PhaseChangeMessage implements Serializable, Immutable {
    private final String runId;
    private final String phase;
    private final PhaseInstance.Status status;
+   private final boolean sessionLimitExceeded;
    private final Throwable error;
 
-   public PhaseChangeMessage(String senderId, String runId, String phase, PhaseInstance.Status status, Throwable error) {
+   public PhaseChangeMessage(String senderId, String runId, String phase, PhaseInstance.Status status, boolean sessionLimitExceeded, Throwable error) {
       this.senderId = senderId;
       this.runId = runId;
       this.phase = phase;
       this.status = status;
+      this.sessionLimitExceeded = sessionLimitExceeded;
       this.error = error;
    }
 
@@ -66,6 +68,10 @@ public class PhaseChangeMessage implements Serializable, Immutable {
 
    public PhaseInstance.Status status() {
       return status;
+   }
+
+   public boolean sessionLimitExceeded() {
+      return sessionLimitExceeded;
    }
 
    public Throwable getError() {

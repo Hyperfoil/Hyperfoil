@@ -90,8 +90,8 @@ public class RunLocal implements Command<CommandInvocation> {
                }
             }, null) {
                @Override
-               protected void phaseChanged(Phase phase, PhaseInstance.Status status, Throwable error) {
-                  super.phaseChanged(phase, status, error);
+               protected void phaseChanged(Phase phase, PhaseInstance.Status status, boolean sessionLimitExceeded, Throwable error) {
+                  super.phaseChanged(phase, status, sessionLimitExceeded, error);
                   if (error != null) {
                      commandInvocation.println("Phase " + phase + " execution failed: " + Util.explainCauses(error));
                   }

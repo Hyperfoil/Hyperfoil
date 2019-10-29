@@ -141,8 +141,10 @@ public class SimulationRunnerImpl implements SimulationRunner {
                session.reserve(def.scenario);
                return session;
             };
+            SharedResources finalSharedResources = sharedResources;
             sharedResources.sessionPool = new ElasticPoolImpl<>(sessionSupplier, () -> {
                log.warn("Pool depleted, allocating new sessions!");
+               finalSharedResources.currentPhase.setSessionLimitExceeded();
                return sessionSupplier.get();
             });
             this.sharedResources.put(def.sharedResources, sharedResources);
@@ -163,9 +165,9 @@ public class SimulationRunnerImpl implements SimulationRunner {
       });
    }
 
-   protected void phaseChanged(Phase phase, PhaseInstance.Status status, Throwable error) {
+   protected void phaseChanged(Phase phase, PhaseInstance.Status status, boolean sessionLimitExceeded, Throwable error) {
       if (phaseChangeHandler != null) {
-         phaseChangeHandler.onChange(phase, status, error);
+         phaseChangeHandler.onChange(phase, status, sessionLimitExceeded, error);
       }
       if (status == PhaseInstance.Status.TERMINATED) {
          toPrune.add(phase);

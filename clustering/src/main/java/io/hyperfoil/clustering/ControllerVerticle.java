@@ -144,11 +144,17 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             return;
          }
          String phase = phaseChange.phase();
-         log.debug("Received phase change from {}: {} is {} (success={})",
-               phaseChange.senderId(), phase, phaseChange.status(), phaseChange.getError());
+         log.debug("Received phase change from {}: {} is {} (session limit exceeded={}, errors={})",
+               phaseChange.senderId(), phase, phaseChange.status(), phaseChange.sessionLimitExceeded(), phaseChange.getError());
          agent.phases.put(phase, phaseChange.status());
+         ControllerPhase controllerPhase = run.phases.get(phase);
+         if (phaseChange.sessionLimitExceeded()) {
+            log.info("Failing phase due to exceeded session limit.");
+            run.statisticsStore.addFailure(controllerPhase.definition().name, null, controllerPhase.absoluteStartTime(), System.currentTimeMillis(), "Exceeded session limit");
+            controllerPhase.setFailed();
+         }
          if (phaseChange.getError() != null) {
-            run.phases.get(phase).setFailed();
+            controllerPhase.setFailed();
             run.errors.add(new Run.Error(agent, phaseChange.getError()));
          }
          tryProgressStatus(run, phase);

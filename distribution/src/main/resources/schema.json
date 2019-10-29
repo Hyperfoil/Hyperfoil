@@ -116,8 +116,8 @@
                       "description": "Rate for new users",
                       "$ref": "#/definitions/incrementableNumber"
                     },
-                    "maxSessionsEstimate": {
-                      "description": "Estimate of maximum number of users executing this phase.",
+                    "maxSessions": {
+                      "description": "Maximum number of users (active sessions) executing this phase concurrently.",
                       "$ref": "#/definitions/positiveInteger"
                     },
                     "variance": {
@@ -143,8 +143,8 @@
                       "description": "Rate for new users at the end of phase",
                       "$ref": "#/definitions/incrementableNumber"
                     },
-                    "maxSessionsEstimate": {
-                      "description": "Estimate of maximum number of users executing this phase.",
+                    "maxSessions": {
+                      "description": "Maximum number of users (active sessions) executing this phase concurrently.",
                       "$ref": "#/definitions/positiveInteger"
                     },
                     "variance": {
@@ -188,8 +188,8 @@
           "description": "Maximum number of steady-state phases.",
           "$ref": "#/definitions/positiveInteger"
         },
-        "maxUnfinishedSessions": {
-          "description": "Maximum allowed number of active sessions when each phase finishes.",
+        "maxSessions": {
+          "description": "Maximum number of users (active sessions) executing concurrently.",
           "$ref": "#/definitions/positiveInteger"
         }
       }
@@ -198,8 +198,8 @@
       "description": "Single-phase shortcut: Rate for new users",
       "$ref": "#/definitions/incrementableNumber"
     },
-    "maxSessionsEstimate": {
-      "description": "Single-phase shortcut: Estimate of maximum number of users executing this phase.",
+    "maxSessions": {
+      "description": "Single-phase shortcut: Maximum number of users (active sessions) executing this phase concurrently.",
       "$ref": "#/definitions/positiveInteger"
     },
     "duration" : {
@@ -369,10 +369,6 @@
         "maxDuration" : {
           "description": "Hard limit, relative to phase start, after which the phase will be terminated.",
           "$ref": "#/definitions/timeMillis"
-        },
-        "maxUnfinishedSessions" : {
-          "description": "Maximum allowed number of active sessions when the phase finishes.",
-          "$ref": "#/definitions/positiveInteger"
         },
         "maxIterations" : {
           "description": "Maximum number of phase iterations. Default is 1.",

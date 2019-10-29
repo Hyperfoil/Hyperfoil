@@ -8,7 +8,7 @@ http:
 usersPerSec: 100
 duration: 3s
 maxDuration: 5s
-maxSessionsEstimate: 1234
+maxSessions: 1234
 scenario:
 - test:
   - noop

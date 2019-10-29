@@ -36,6 +36,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
    protected long absoluteStartTime;
    protected AtomicInteger activeSessions = new AtomicInteger(0);
    private Throwable error;
+   private boolean sessionLimitExceeded;
 
    public static PhaseInstance newInstance(Phase def) {
       @SuppressWarnings("unchecked")
@@ -83,7 +84,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       status = Status.RUNNING;
       absoluteStartTime = now;
       log.debug("{} changing status to RUNNING", def.name);
-      phaseChangeHandler.onChange(def, Status.RUNNING, error);
+      phaseChangeHandler.onChange(def, Status.RUNNING, false, error);
       proceed(executorGroup);
    }
 
@@ -92,15 +93,8 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       assert status == Status.RUNNING : "Status is " + status;
       status = Status.FINISHED;
       log.debug("{} changing status to FINISHED", def.name);
-      int active = activeSessions.get();
-      boolean successful = active <= def.maxUnfinishedSessions;
       BenchmarkExecutionException error = null;
-      if (!successful) {
-         error = new BenchmarkExecutionException(String.format("On finish phase %s had %d active sessions, maximum is %d",
-               def.name, active, def.maxUnfinishedSessions));
-         log.info("Phase {} finished with error", error, def.name);
-      }
-      phaseChangeHandler.onChange(def, Status.FINISHED, error);
+      phaseChangeHandler.onChange(def, Status.FINISHED, sessionLimitExceeded, error);
    }
 
    @Override
@@ -176,13 +170,18 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       for (Statistics stats : statistics) {
          stats.end(now);
       }
-      phaseChangeHandler.onChange(def, status, error);
+      phaseChangeHandler.onChange(def, status, false, error);
    }
 
    @Override
    public void fail(Throwable error) {
       this.error = error;
       terminate();
+   }
+
+   @Override
+   public void setSessionLimitExceeded() {
+      sessionLimitExceeded = true;
    }
 
    @Override
@@ -223,14 +222,8 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       @Override
       public void proceed(EventExecutorGroup executorGroup) {
          assert activeSessions.get() == 0;
-         activeSessions.set(def.users);
          for (int i = 0; i < def.users; ++i) {
-            Session session = sessionPool.acquire();
-            if (session != null) {
-               session.start(this);
-            } else {
-               notifyFinished(null);
-            }
+            startNewSession();
          }
       }
 
@@ -248,14 +241,8 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       @Override
       public void proceed(EventExecutorGroup executorGroup) {
          assert activeSessions.get() == 0;
-         activeSessions.set(def.users);
          for (int i = 0; i < def.users; ++i) {
-            Session session = sessionPool.acquire();
-            if (session != null) {
-               session.start(this);
-            } else {
-               notifyFinished(null);
-            }
+            startNewSession();
          }
       }
 
@@ -335,7 +322,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
 
       @Override
       public void reserveSessions() {
-         sessionPool.reserve(def.maxSessionsEstimate);
+         sessionPool.reserve(def.maxSessions);
       }
    }
 
@@ -392,7 +379,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
 
       @Override
       public void reserveSessions() {
-         sessionPool.reserve(def.maxSessionsEstimate);
+         sessionPool.reserve(def.maxSessions);
       }
    }
 
@@ -406,16 +393,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       @Override
       public void proceed(EventExecutorGroup executorGroup) {
          assert activeSessions.get() == 0;
-         int numActive = activeSessions.incrementAndGet();
-         if (trace) {
-            log.trace("{} has {} active sessions", def.name, numActive);
-         }
-         Session session = sessionPool.acquire();
-         if (session != null) {
-            session.start(this);
-         } else {
-            notifyFinished(null);
-         }
+         startNewSession();
       }
 
       @Override

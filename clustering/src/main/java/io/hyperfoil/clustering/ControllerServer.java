@@ -380,7 +380,7 @@ class ControllerServer {
                   type = Character.toLowerCase(type.charAt(0)) + type.substring(1);
                   return new Client.Phase(phase.definition().name(), phase.status().toString(), type,
                         phaseStarted, remaining == null ? null : remaining.toString(),
-                        phaseTerminated, totalDuration == null ? null : totalDuration.toString(),
+                        phaseTerminated, phase.isFailed(), totalDuration == null ? null : totalDuration.toString(),
                         phase.definition().description());
                }).collect(Collectors.toList());
       }

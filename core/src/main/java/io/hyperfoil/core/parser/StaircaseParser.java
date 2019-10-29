@@ -23,7 +23,7 @@ class StaircaseParser extends AbstractParser<BenchmarkBuilder, StaircaseParser.S
       register("initialUsersPerSec", new PropertyParser.Double<>(StaircaseBuilder::initialUsersPerSec));
       register("incrementUsersPerSec", new PropertyParser.Double<>(StaircaseBuilder::incrementUsersPerSec));
       register("maxIterations", new PropertyParser.Int<>(StaircaseBuilder::maxIterations));
-      register("maxUnfinishedSessions", new PropertyParser.Int<>(StaircaseBuilder::maxUnfinishedSessions));
+      register("maxSessions", new PropertyParser.Int<>(StaircaseBuilder::maxSessions));
       register("scenario", new Adapter<>(StaircaseBuilder::scenario, new ScenarioParser()));
       register("forks", new Adapter<>(StaircaseBuilder::phase, new PhaseForkParser()));
    }
@@ -45,7 +45,7 @@ class StaircaseParser extends AbstractParser<BenchmarkBuilder, StaircaseParser.S
       private double initialUsersPerSec;
       private double incrementUsersPerSec;
       private int maxIterations;
-      private int maxUnfinishedSessions;
+      private int maxSessions;
 
       public StaircaseBuilder(BenchmarkBuilder benchmark) {
          this.benchmark = benchmark;
@@ -80,8 +80,8 @@ class StaircaseParser extends AbstractParser<BenchmarkBuilder, StaircaseParser.S
          this.maxIterations = iterations;
       }
 
-      public void maxUnfinishedSessions(int sessions) {
-         this.maxUnfinishedSessions = sessions;
+      public void maxSessions(int sessions) {
+         this.maxSessions = sessions;
       }
 
       public ScenarioBuilder scenario() {
@@ -112,8 +112,8 @@ class StaircaseParser extends AbstractParser<BenchmarkBuilder, StaircaseParser.S
          if (maxOverrun > 0) {
             steadyState.maxDuration(steadyStateDuration + maxOverrun);
          }
-         if (maxUnfinishedSessions > 0) {
-            steadyState.maxUnfinishedSessions(maxUnfinishedSessions);
+         if (maxSessions > 0) {
+            steadyState.maxSessions(maxSessions);
          }
          if (initialRampUpDuration <= 0) {
             initialRampUpDuration = rampUpDuration;
@@ -124,8 +124,8 @@ class StaircaseParser extends AbstractParser<BenchmarkBuilder, StaircaseParser.S
             if (maxOverrun > 0) {
                initialRampUp.maxDuration(initialRampUpDuration + maxOverrun);
             }
-            if (maxUnfinishedSessions > 0) {
-               initialRampUp.maxUnfinishedSessions(maxUnfinishedSessions);
+            if (maxSessions > 0) {
+               initialRampUp.maxSessions(maxSessions);
             }
             steadyState.startAfter(initialRampUp.name());
             initialRampUp.readForksFrom(steadyState);
@@ -141,8 +141,8 @@ class StaircaseParser extends AbstractParser<BenchmarkBuilder, StaircaseParser.S
                if (maxOverrun > 0) {
                   rampUp.maxDuration(rampUpDuration + maxOverrun);
                }
-               if (maxUnfinishedSessions > 0) {
-                  rampUp.maxUnfinishedSessions(maxUnfinishedSessions);
+               if (maxSessions > 0) {
+                  rampUp.maxSessions(maxSessions);
                }
                if (maxIterations > 1) {
                   steadyState.startAfter(new PhaseReference(rampUp.name(), RelativeIteration.PREVIOUS, null));

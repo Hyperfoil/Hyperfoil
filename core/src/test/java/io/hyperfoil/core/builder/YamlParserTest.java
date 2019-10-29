@@ -104,7 +104,7 @@ public class YamlParserTest {
       assertThat(phase.duration()).isEqualTo(3000);
       assertThat(phase.maxDuration()).isEqualTo(5000);
       assertThat(((Phase.ConstantPerSec) phase).usersPerSec).isEqualTo(100);
-      assertThat(((Phase.ConstantPerSec) phase).maxSessionsEstimate).isEqualTo(1234);
+      assertThat(((Phase.ConstantPerSec) phase).maxSessions).isEqualTo(1234);
       assertThat(phase.scenario().initialSequences().length).isEqualTo(1);
    }
 

@@ -258,7 +258,7 @@ public class Wrk {
       private PhaseBuilder addPhase(BenchmarkBuilder benchmarkBuilder, String phase, String duration) {
          return benchmarkBuilder.addPhase(phase).constantPerSec(rate)
                .duration(duration)
-               .maxSessionsEstimate(rate * 15)
+               .maxSessions(rate * 15)
                .scenario()
                .initialSequence("request")
                .step(StepCatalog.class).httpRequest(HttpMethod.GET)

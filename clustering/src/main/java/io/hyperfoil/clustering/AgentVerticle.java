@@ -192,9 +192,9 @@ public class AgentVerticle extends AbstractVerticle {
          handler.handle(Future.failedFuture("Another simulation is running"));
          return;
       }
-      runner = new SimulationRunnerImpl(benchmark, agentId, (phase, status, error) -> {
+      runner = new SimulationRunnerImpl(benchmark, agentId, (phase, status, sessionLimitExceeded, error) -> {
          log.debug("{} changed phase {} to {}", deploymentId, phase, status);
-         eb.send(Feeds.RESPONSE, new PhaseChangeMessage(deploymentId, runId, phase.name(), status, error));
+         eb.send(Feeds.RESPONSE, new PhaseChangeMessage(deploymentId, runId, phase.name(), status, sessionLimitExceeded, error));
       });
       controlFeedConsumer = listenOnControl();
       requestStatsSender = new RequestStatsSender(benchmark, eb, deploymentId, runId);

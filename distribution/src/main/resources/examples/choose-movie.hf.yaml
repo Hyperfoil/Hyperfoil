@@ -10,7 +10,7 @@ duration: 5s
 # Each session will take at least 3 seconds (see the sleep time below),
 # and we'll be running ~10 per second. That makes 30, let's give it
 # some margin and set this to 40.
-maxSessionsEstimate: 40
+maxSessions: 40
 scenario:
   # In previous scenarios we have used only single sequence and we could
   # define the list of sequences right away. In this scenario, we're going

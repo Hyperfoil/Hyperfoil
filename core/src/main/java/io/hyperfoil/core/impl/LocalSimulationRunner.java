@@ -102,8 +102,8 @@ public class LocalSimulationRunner extends SimulationRunnerImpl {
    }
 
    @Override
-   protected void phaseChanged(Phase phase, PhaseInstance.Status status, Throwable error) {
-      super.phaseChanged(phase, status, error);
+   protected void phaseChanged(Phase phase, PhaseInstance.Status status, boolean sessionLimitExceeded, Throwable error) {
+      super.phaseChanged(phase, status, sessionLimitExceeded, error);
       if (status == PhaseInstance.Status.TERMINATED) {
          publishStats(phase);
       }

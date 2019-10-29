@@ -9,7 +9,6 @@ abstract class PhaseParser extends AbstractParser<PhaseBuilder.Catalog, PhaseBui
       register("startAfterStrict", new StartAfterParser(PhaseBuilder::startAfterStrict));
       register("duration", new PropertyParser.String<>(PhaseBuilder::duration));
       register("maxDuration", new PropertyParser.String<>(PhaseBuilder::maxDuration));
-      register("maxUnfinishedSessions", new PropertyParser.Int<>(PhaseBuilder::maxUnfinishedSessions));
       register("maxIterations", new PropertyParser.Int<>(PhaseBuilder::maxIterations));
       register("scenario", new Adapter<>(PhaseBuilder::scenario, new ScenarioParser()));
       register("forks", new PhaseForkParser());
@@ -48,7 +47,7 @@ abstract class PhaseParser extends AbstractParser<PhaseBuilder.Catalog, PhaseBui
       RampPerSec() {
          register("initialUsersPerSec", new IncrementPropertyParser.Double<>((builder, base, inc) -> ((PhaseBuilder.RampPerSec) builder).initialUsersPerSec(base, inc)));
          register("targetUsersPerSec", new IncrementPropertyParser.Double<>((builder, base, inc) -> ((PhaseBuilder.RampPerSec) builder).targetUsersPerSec(base, inc)));
-         register("maxSessionsEstimate", new PropertyParser.Int<>((builder, sessions) -> ((PhaseBuilder.RampPerSec) builder).maxSessionsEstimate(sessions)));
+         register("maxSessions", new PropertyParser.Int<>((builder, sessions) -> ((PhaseBuilder.RampPerSec) builder).maxSessions(sessions)));
          register("variance", new PropertyParser.Boolean<>((builder, variance) -> ((PhaseBuilder.RampPerSec) builder).variance(variance)));
       }
 
@@ -61,7 +60,7 @@ abstract class PhaseParser extends AbstractParser<PhaseBuilder.Catalog, PhaseBui
    static class ConstantPerSec extends PhaseParser {
       ConstantPerSec() {
          register("usersPerSec", new IncrementPropertyParser.Double<>((builder, base, inc) -> ((PhaseBuilder.ConstantPerSec) builder).usersPerSec(base, inc)));
-         register("maxSessionsEstimate", new PropertyParser.Int<>((builder, sessions) -> ((PhaseBuilder.ConstantPerSec) builder).maxSessionsEstimate(sessions)));
+         register("maxSessions", new PropertyParser.Int<>((builder, sessions) -> ((PhaseBuilder.ConstantPerSec) builder).maxSessions(sessions)));
          register("variance", new PropertyParser.Boolean<>((builder, variance) -> ((PhaseBuilder.ConstantPerSec) builder).variance(variance)));
       }
 

@@ -89,6 +89,7 @@ public interface Client {
       public final String remaining;
       @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy/MM/dd HH:mm:ss.S")
       public final Date completed;
+      public final boolean failed;
       public final String totalDuration;
       public final String description;
 
@@ -96,7 +97,8 @@ public interface Client {
       public Phase(@JsonProperty("name") String name, @JsonProperty("status") String status,
                    @JsonProperty("type") String type,
                    @JsonProperty("started") Date started, @JsonProperty("remaining") String remaining,
-                   @JsonProperty("completed") Date completed, @JsonProperty("totalDuration") String totalDuration,
+                   @JsonProperty("completed") Date completed, @JsonProperty("failed") boolean failed,
+                   @JsonProperty("totalDuration") String totalDuration,
                    @JsonProperty("description") String description) {
          this.name = name;
          this.status = status;
@@ -104,6 +106,7 @@ public interface Client {
          this.started = started;
          this.remaining = remaining;
          this.completed = completed;
+         this.failed = failed;
          this.totalDuration = totalDuration;
          this.description = description;
       }

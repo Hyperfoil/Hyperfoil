@@ -21,13 +21,12 @@ public abstract class Phase implements Serializable {
    public final Collection<String> terminateAfterStrict;
    public final long duration;
    public final long maxDuration;
-   public final int maxUnfinishedSessions;
    // identifier for sharing resources across iterations
    public final String sharedResources;
 
    public Phase(SerializableSupplier<Benchmark> benchmark, int id, String name, Scenario scenario, long startTime,
                 Collection<String> startAfter, Collection<String> startAfterStrict,
-                Collection<String> terminateAfterStrict, long duration, long maxDuration, int maxUnfinishedSessions, String sharedResources) {
+                Collection<String> terminateAfterStrict, long duration, long maxDuration, String sharedResources) {
       this.benchmark = benchmark;
       this.id = id;
       this.name = name;
@@ -38,7 +37,6 @@ public abstract class Phase implements Serializable {
       this.scenario = scenario;
       this.startTime = startTime;
       this.duration = duration;
-      this.maxUnfinishedSessions = maxUnfinishedSessions;
       this.sharedResources = sharedResources;
       if (duration < 0) {
          throw new BenchmarkDefinitionException("Duration was not set for phase '" + name + "'");
@@ -130,8 +128,8 @@ public abstract class Phase implements Serializable {
 
       public AtOnce(SerializableSupplier<Benchmark> benchmark, int id, String name, Scenario scenario, long startTime,
                     Collection<String> startAfter, Collection<String> startAfterStrict,
-                    Collection<String> terminateAfterStrict, long duration, long maxDuration, int maxUnfinishedSessions, String sharedResources, int users) {
-         super(benchmark, id, name, scenario, startTime, startAfter, startAfterStrict, terminateAfterStrict, 0, maxDuration, maxUnfinishedSessions, sharedResources);
+                    Collection<String> terminateAfterStrict, long duration, long maxDuration, String sharedResources, int users) {
+         super(benchmark, id, name, scenario, startTime, startAfter, startAfterStrict, terminateAfterStrict, 0, maxDuration, sharedResources);
          if (duration > 0) {
             log.warn("Duration for phase {} is ignored.", duration);
          }
@@ -149,10 +147,9 @@ public abstract class Phase implements Serializable {
 
       public Always(SerializableSupplier<Benchmark> benchmark, int id, String name, Scenario scenario, long startTime,
                     Collection<String> startAfter, Collection<String> startAfterStrict,
-                    Collection<String> terminateAfterStrict, long duration, long maxDuration, int maxUnfinishedSessions, String sharedResources, int users) {
-         super(benchmark, id, name, scenario, startTime, startAfter, startAfterStrict, terminateAfterStrict, duration, maxDuration, maxUnfinishedSessions, sharedResources);
+                    Collection<String> terminateAfterStrict, long duration, long maxDuration, String sharedResources, int users) {
+         super(benchmark, id, name, scenario, startTime, startAfter, startAfterStrict, terminateAfterStrict, duration, maxDuration, sharedResources);
          this.users = requirePositive(users, "Phase " + name + " requires positive number of users!");
-         ;
       }
 
       @Override
@@ -164,20 +161,20 @@ public abstract class Phase implements Serializable {
    public static class RampPerSec extends Phase {
       public final double initialUsersPerSec;
       public final double targetUsersPerSec;
-      public final int maxSessionsEstimate;
+      public final int maxSessions;
       public final boolean variance;
 
       public RampPerSec(SerializableSupplier<Benchmark> benchmark, int id, String name, Scenario scenario, long startTime,
                         Collection<String> startAfter, Collection<String> startAfterStrict,
                         Collection<String> terminateAfterStrict,
                         long duration, long maxDuration,
-                        int maxUnfinishedSessions, String sharedResources, double initialUsersPerSec, double targetUsersPerSec,
-                        boolean variance, int maxSessionsEstimate) {
-         super(benchmark, id, name, scenario, startTime, startAfter, startAfterStrict, terminateAfterStrict, duration, maxDuration, maxUnfinishedSessions, sharedResources);
+                        String sharedResources, double initialUsersPerSec, double targetUsersPerSec,
+                        boolean variance, int maxSessions) {
+         super(benchmark, id, name, scenario, startTime, startAfter, startAfterStrict, terminateAfterStrict, duration, maxDuration, sharedResources);
          this.initialUsersPerSec = requireNonNegative(initialUsersPerSec, "Phase " + name + " requires non-negative number of initial users per second!");
          this.targetUsersPerSec = requireNonNegative(targetUsersPerSec, "Phase " + name + " requires non-negative number of target users per second!");
          this.variance = variance;
-         this.maxSessionsEstimate = maxSessionsEstimate;
+         this.maxSessions = maxSessions;
       }
 
       @Override
@@ -189,17 +186,17 @@ public abstract class Phase implements Serializable {
 
    public static class ConstantPerSec extends Phase {
       public final double usersPerSec;
-      public final int maxSessionsEstimate;
+      public final int maxSessions;
       public final boolean variance;
 
       public ConstantPerSec(SerializableSupplier<Benchmark> benchmark, int id, String name, Scenario scenario, long startTime,
                             Collection<String> startAfter, Collection<String> startAfterStrict,
                             Collection<String> terminateAfterStrict,
-                            long duration, long maxDuration, int maxUnfinishedSessions, String sharedResources, double usersPerSec, boolean variance, int maxSessionsEstimate) {
-         super(benchmark, id, name, scenario, startTime, startAfter, startAfterStrict, terminateAfterStrict, duration, maxDuration, maxUnfinishedSessions, sharedResources);
+                            long duration, long maxDuration, String sharedResources, double usersPerSec, boolean variance, int maxSessions) {
+         super(benchmark, id, name, scenario, startTime, startAfter, startAfterStrict, terminateAfterStrict, duration, maxDuration, sharedResources);
          this.usersPerSec = Phase.requireNonNegative(usersPerSec, "Phase " + name + " requires non-negative number of users per second!");
          this.variance = variance;
-         this.maxSessionsEstimate = maxSessionsEstimate;
+         this.maxSessions = maxSessions;
       }
 
       @Override
@@ -214,8 +211,8 @@ public abstract class Phase implements Serializable {
       public Sequentially(SerializableSupplier<Benchmark> benchmark, int id, String name, Scenario scenario, long startTime,
                           Collection<String> startAfter, Collection<String> startAfterStrict,
                           Collection<String> terminateAfterStrict,
-                          long duration, long maxDuration, int maxUnfinishedSessions, String sharedResources, int repeats) {
-         super(benchmark, id, name, scenario, startTime, startAfter, startAfterStrict, terminateAfterStrict, duration, maxDuration, maxUnfinishedSessions, sharedResources);
+                          long duration, long maxDuration, String sharedResources, int repeats) {
+         super(benchmark, id, name, scenario, startTime, startAfter, startAfterStrict, terminateAfterStrict, duration, maxDuration, sharedResources);
          this.repeats = Phase.requirePositive(repeats, "Phase " + name + " requires positive number of repeats!");
       }
 
@@ -227,7 +224,7 @@ public abstract class Phase implements Serializable {
 
    public static class Noop extends Phase {
       public Noop(SerializableSupplier<Benchmark> benchmark, int id, String name, Collection<String> startAfter, Collection<String> startAfterStrict, Collection<String> terminateAfterStrict, Scenario scenario) {
-         super(benchmark, id, name, scenario, -1, startAfter, startAfterStrict, terminateAfterStrict, 0, -1, 0, null);
+         super(benchmark, id, name, scenario, -1, startAfter, startAfterStrict, terminateAfterStrict, 0, -1, null);
       }
 
       @Override

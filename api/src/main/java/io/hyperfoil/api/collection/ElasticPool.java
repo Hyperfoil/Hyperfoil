@@ -10,8 +10,6 @@ import java.util.function.Consumer;
 public interface ElasticPool<T> {
    /**
     * This can be called by single thread only.
-    *
-    * @return Never returns null.
     */
    T acquire();
 

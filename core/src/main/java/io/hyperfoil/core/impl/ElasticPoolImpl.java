@@ -43,8 +43,9 @@ public class ElasticPoolImpl<T> implements ElasticPool<T> {
          return object;
       }
       object = depletionSupplier.get();
-      assert object != null;
-      used.increment();
+      if (object != null) {
+         used.increment();
+      }
       return object;
    }
 

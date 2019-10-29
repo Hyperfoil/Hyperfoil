@@ -195,6 +195,13 @@ public class StatisticsStore {
       jGenerator.writeEndArray(); //end total.csv
    }
 
+   public void addFailure(String phase, String metric, long startTimestamp, long endTimestamp, String cause) {
+      StatisticsSnapshot statistics = new StatisticsSnapshot();
+      statistics.histogram.setStartTimeStamp(startTimestamp);
+      statistics.histogram.setEndTimeStamp(endTimestamp);
+      failures.add(new SLA.Failure(null, phase, metric, statistics, cause));
+   }
+
    private interface PhaseIterForkWalker<T> {
       default void onNewPhase(String phaseName) {
       }
@@ -689,7 +696,7 @@ public class StatisticsStore {
                continue;
             }
             List<String> failures = this.failures.stream()
-                  .filter(f -> f.phase().equals(data.phase) && f.metric().equals(data.metric))
+                  .filter(f -> f.phase().equals(data.phase) && (f.metric() == null || f.metric().equals(data.metric)))
                   .map(f -> f.message()).collect(Collectors.toList());
             result.add(new Client.RequestStats(data.phase, data.metric, sum.summary(PERCENTILES), failures));
          }
@@ -704,7 +711,7 @@ public class StatisticsStore {
          for (Data data : m.values()) {
             StatisticsSummary last = data.total.summary(percentiles);
             List<String> failures = this.failures.stream()
-                  .filter(f -> f.phase().equals(data.phase) && f.metric().equals(data.metric))
+                  .filter(f -> f.phase().equals(data.phase) && (f.metric() == null || f.metric().equals(data.metric)))
                   .map(f -> f.message()).collect(Collectors.toList());
             result.add(new Client.RequestStats(data.phase, data.metric, last, failures));
          }

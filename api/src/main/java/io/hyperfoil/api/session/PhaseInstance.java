@@ -37,6 +37,8 @@ public interface PhaseInstance {
 
    void fail(Throwable error);
 
+   void setSessionLimitExceeded();
+
    Throwable getError();
 
    enum Status {

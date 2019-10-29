@@ -83,7 +83,7 @@ public class RequestResponseCounterTest {
 
       builder.addPhase("run").constantPerSec(500)
             .duration(5000)
-            .maxSessionsEstimate(500 * 15)
+            .maxSessions(500 * 15)
             .scenario()
             .initialSequence("request")
             .step(StepCatalog.class).httpRequest(HttpMethod.GET)
