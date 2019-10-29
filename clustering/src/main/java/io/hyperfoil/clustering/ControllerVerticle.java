@@ -308,7 +308,6 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             if (!run.statisticsStore.validateSlas()) {
                log.info("SLA validation failed for {}", phase);
                controllerPhase.setFailed();
-               run.errors.add(new Run.Error(null, new BenchmarkExecutionException("SLA validation failed for phase " + phase)));
             }
             controllerPhase.status(ControllerPhase.Status.TERMINATED);
             controllerPhase.absoluteCompletionTime(System.currentTimeMillis());
