@@ -28,6 +28,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
    protected long maxDuration = -1;
    protected int maxUnfinishedSessions = Integer.MAX_VALUE;
    protected int maxIterations = 1;
+   protected boolean forceIterations = false;
    protected List<PhaseForkBuilder> forks = new ArrayList<>();
 
    protected PhaseBuilder(BenchmarkBuilder parent, String name) {
@@ -163,7 +164,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
                return phase;
             }))
             .flatMap(Function.identity()).collect(Collectors.toList());
-      if (maxIterations > 1) {
+      if (maxIterations > 1 || forceIterations) {
          if (hasForks) {
             // add phase covering forks in each iteration
             IntStream.range(0, maxIterations).mapToObj(iteration -> {
@@ -200,7 +201,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
    }
 
    String iterationName(int iteration, String forkName) {
-      if (maxIterations == 1) {
+      if (maxIterations == 1 && !forceIterations) {
          assert iteration == 0;
          if (forkName == null) {
             return name;
@@ -242,17 +243,11 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
                names.add(ref.phase);
                break;
             case PREVIOUS:
-               if (maxIterations <= 1) {
-                  throw new BenchmarkDefinitionException(name + " referencing previous iteration of " + ref.phase + " but this phase has no iterations.");
-               }
                if (iteration > 0) {
                   names.add(formatIteration(ref.phase, iteration - 1));
                }
                break;
             case SAME:
-               if (maxIterations <= 1) {
-                  throw new BenchmarkDefinitionException(name + " referencing previous iteration of " + ref.phase + " but this phase has no iterations.");
-               }
                names.add(formatIteration(ref.phase, iteration));
                break;
             default:
@@ -269,6 +264,11 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
       for (PhaseForkBuilder builder : other.forks) {
          fork(builder.name).readFrom(builder);
       }
+   }
+
+   public PhaseBuilder<PB> forceIterations(boolean force) {
+      this.forceIterations = force;
+      return self();
    }
 
    public static class AtOnce extends PhaseBuilder<AtOnce> {

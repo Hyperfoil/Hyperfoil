@@ -131,20 +131,24 @@ class StaircaseParser extends AbstractParser<BenchmarkBuilder, StaircaseParser.S
             initialRampUp.readForksFrom(steadyState);
          }
          if (rampUpDuration > 0) {
-            PhaseBuilder.RampPerSec rampUp = benchmark.addPhase("rampUp").rampPerSec(0, 0)
-                  .duration(rampUpDuration)
-                  .initialUsersPerSec(initialUsersPerSec, incrementUsersPerSec)
-                  .targetUsersPerSec(initialUsersPerSec + incrementUsersPerSec, incrementUsersPerSec)
-                  .maxIterations(maxIterations - 1)
-                  .startAfter(new PhaseReference(steadyState.name(), RelativeIteration.SAME, null));
-            if (maxOverrun > 0) {
-               rampUp.maxDuration(rampUpDuration + maxOverrun);
+            if (maxIterations > 1) {
+               PhaseBuilder.RampPerSec rampUp = benchmark.addPhase("rampUp").rampPerSec(0, 0)
+                     .duration(rampUpDuration)
+                     .initialUsersPerSec(initialUsersPerSec, incrementUsersPerSec)
+                     .targetUsersPerSec(initialUsersPerSec + incrementUsersPerSec, incrementUsersPerSec)
+                     .maxIterations(maxIterations - 1).forceIterations(true)
+                     .startAfter(new PhaseReference(steadyState.name(), RelativeIteration.SAME, null));
+               if (maxOverrun > 0) {
+                  rampUp.maxDuration(rampUpDuration + maxOverrun);
+               }
+               if (maxUnfinishedSessions > 0) {
+                  rampUp.maxUnfinishedSessions(maxUnfinishedSessions);
+               }
+               if (maxIterations > 1) {
+                  steadyState.startAfter(new PhaseReference(rampUp.name(), RelativeIteration.PREVIOUS, null));
+               }
+               rampUp.readForksFrom(steadyState);
             }
-            if (maxUnfinishedSessions > 0) {
-               rampUp.maxUnfinishedSessions(maxUnfinishedSessions);
-            }
-            steadyState.startAfter(new PhaseReference(rampUp.name(), RelativeIteration.PREVIOUS, null));
-            rampUp.readForksFrom(steadyState);
          } else {
             log.warn("No 'rampUpDuration' defined. There won't be continuous load.");
          }
