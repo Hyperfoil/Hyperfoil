@@ -22,7 +22,7 @@ public interface Client {
 
    BenchmarkRef benchmark(String name);
 
-   List<String> runs();
+   List<Run> runs(boolean details);
 
    RunRef run(String id);
 
@@ -116,6 +116,7 @@ public interface Client {
       public final Date started;
       @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy/MM/dd HH:mm:ss.S")
       public final Date terminated;
+      public final boolean cancelled;
       public final String description;
       public final Collection<Phase> phases;
       public final Collection<Agent> agents;
@@ -124,7 +125,7 @@ public interface Client {
       @JsonCreator
       public Run(@JsonProperty("id") String id, @JsonProperty("benchmark") String benchmark,
                  @JsonProperty("started") Date started, @JsonProperty("terminated") Date terminated,
-                 @JsonProperty("description") String description,
+                 @JsonProperty("cancelled") boolean cancelled, @JsonProperty("description") String description,
                  @JsonProperty("phases") Collection<Phase> phases,
                  @JsonProperty("agents") Collection<Agent> agents,
                  @JsonProperty("errors") Collection<String> errors) {
@@ -132,6 +133,7 @@ public interface Client {
          this.benchmark = benchmark;
          this.started = started;
          this.terminated = terminated;
+         this.cancelled = cancelled;
          this.description = description;
          this.phases = phases;
          this.agents = agents;

@@ -315,9 +315,13 @@ class ControllerServer {
       return value;
    }
 
-   private void handleListRuns(RoutingContext routingContext) {
-      String[] ids = controller.runs().stream().map(run -> run.id).sorted().toArray(String[]::new);
-      routingContext.response().setStatusCode(200).end(Json.encodePrettily(ids));
+   private void handleListRuns(RoutingContext ctx) {
+      String detailsStr = getSingleParam(ctx, "details");
+      boolean details = detailsStr != null && detailsStr.equalsIgnoreCase("true");
+      Client.Run[] runs = controller.runs().stream()
+            .map(r -> details ? runInfo(r, false) : new Client.Run(r.id, null, null, null, false, null, null, null, null))
+            .toArray(Client.Run[]::new);
+      ctx.response().setStatusCode(200).end(Json.encodePrettily(runs));
    }
 
    private void handleGetRun(RoutingContext routingContext) {
@@ -327,6 +331,11 @@ class ControllerServer {
          return;
       }
 
+      String status = Json.encodePrettily(runInfo(run, true));
+      routingContext.response().end(status);
+   }
+
+   private Client.Run runInfo(Run run, boolean reportPhases) {
       String benchmark = null;
       if (run.benchmark != null) {
          benchmark = run.benchmark.name();
@@ -339,46 +348,47 @@ class ControllerServer {
       if (run.terminateTime.isComplete()) {
          terminated = new Date(run.terminateTime.result());
       }
-      long now = System.currentTimeMillis();
-      List<Client.Phase> phases = run.phases.values().stream()
-            .filter(p -> !(p.definition() instanceof Phase.Noop))
-            .sorted(PHASE_COMPARATOR)
-            .map(phase -> {
-               Date phaseStarted = null, phaseTerminated = null;
-               StringBuilder remaining = null;
-               StringBuilder totalDuration = null;
-               if (phase.absoluteStartTime() > Long.MIN_VALUE) {
-                  phaseStarted = new Date(phase.absoluteStartTime());
-                  if (!phase.status().isTerminated()) {
-                     remaining = new StringBuilder()
-                           .append(phase.definition().duration() - (now - phase.absoluteStartTime())).append(" ms");
-                     if (phase.definition().maxDuration() >= 0) {
-                        remaining.append(" (")
-                              .append(phase.definition().maxDuration() - (now - phase.absoluteStartTime())).append(" ms)");
-                     }
-                  } else {
-                     phaseTerminated = new Date(phase.absoluteCompletionTime());
-                     long totalDurationValue = phase.absoluteCompletionTime() - phase.absoluteStartTime();
-                     totalDuration = new StringBuilder().append(totalDurationValue).append(" ms");
-                     if (totalDurationValue > phase.definition().duration()) {
-                        totalDuration.append(" (exceeded by ").append(totalDurationValue - phase.definition().duration()).append(" ms)");
+      List<Client.Phase> phases = null;
+      if (reportPhases) {
+         long now = System.currentTimeMillis();
+         phases = run.phases.values().stream()
+               .filter(p -> !(p.definition() instanceof Phase.Noop))
+               .sorted(PHASE_COMPARATOR)
+               .map(phase -> {
+                  Date phaseStarted = null, phaseTerminated = null;
+                  StringBuilder remaining = null;
+                  StringBuilder totalDuration = null;
+                  if (phase.absoluteStartTime() > Long.MIN_VALUE) {
+                     phaseStarted = new Date(phase.absoluteStartTime());
+                     if (!phase.status().isTerminated()) {
+                        remaining = new StringBuilder()
+                              .append(phase.definition().duration() - (now - phase.absoluteStartTime())).append(" ms");
+                        if (phase.definition().maxDuration() >= 0) {
+                           remaining.append(" (")
+                                 .append(phase.definition().maxDuration() - (now - phase.absoluteStartTime())).append(" ms)");
+                        }
+                     } else {
+                        phaseTerminated = new Date(phase.absoluteCompletionTime());
+                        long totalDurationValue = phase.absoluteCompletionTime() - phase.absoluteStartTime();
+                        totalDuration = new StringBuilder().append(totalDurationValue).append(" ms");
+                        if (totalDurationValue > phase.definition().duration()) {
+                           totalDuration.append(" (exceeded by ").append(totalDurationValue - phase.definition().duration()).append(" ms)");
+                        }
                      }
                   }
-               }
-               String type = phase.definition().getClass().getSimpleName();
-               type = Character.toLowerCase(type.charAt(0)) + type.substring(1);
-               return new Client.Phase(phase.definition().name(), phase.status().toString(), type,
-                     phaseStarted, remaining == null ? null : remaining.toString(),
-                     phaseTerminated, totalDuration == null ? null : totalDuration.toString(),
-                     phase.definition().description());
-            }).collect(Collectors.toList());
+                  String type = phase.definition().getClass().getSimpleName();
+                  type = Character.toLowerCase(type.charAt(0)) + type.substring(1);
+                  return new Client.Phase(phase.definition().name(), phase.status().toString(), type,
+                        phaseStarted, remaining == null ? null : remaining.toString(),
+                        phaseTerminated, totalDuration == null ? null : totalDuration.toString(),
+                        phase.definition().description());
+               }).collect(Collectors.toList());
+      }
       List<Client.Agent> agents = run.agents.stream()
             .map(ai -> new Client.Agent(ai.name, ai.deploymentId, ai.status.toString()))
             .collect(Collectors.toList());
-      Client.Run body = new Client.Run(run.id, benchmark, started, terminated, run.description, phases, agents,
+      return new Client.Run(run.id, benchmark, started, terminated, run.cancelled, run.description, phases, agents,
             run.errors.stream().map(Run.Error::toString).collect(Collectors.toList()));
-      String status = Json.encodePrettily(body);
-      routingContext.response().end(status);
    }
 
    private Run getRun(RoutingContext routingContext) {

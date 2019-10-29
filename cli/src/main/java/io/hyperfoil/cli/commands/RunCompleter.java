@@ -4,6 +4,6 @@ import java.util.Comparator;
 
 public class RunCompleter extends ServerOptionCompleter {
    public RunCompleter() {
-      super(client -> client.runs().stream().sorted(Comparator.reverseOrder()));
+      super(client -> client.runs(false).stream().map(r -> r.id).sorted(Comparator.reverseOrder()));
    }
 }

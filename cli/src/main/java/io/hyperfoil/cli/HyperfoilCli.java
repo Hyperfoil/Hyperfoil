@@ -28,6 +28,7 @@ import io.hyperfoil.cli.commands.Kill;
 import io.hyperfoil.cli.commands.Log;
 import io.hyperfoil.cli.commands.Run;
 import io.hyperfoil.cli.commands.RunLocal;
+import io.hyperfoil.cli.commands.Runs;
 import io.hyperfoil.cli.commands.Sessions;
 import io.hyperfoil.cli.commands.Stats;
 import io.hyperfoil.cli.commands.Status;
@@ -103,6 +104,7 @@ public class HyperfoilCli {
                               .command(Log.class)
                               .command(RunLocal.class)
                               .command(Run.class)
+                              .command(Runs.class)
                               .command(Sessions.class)
                               .command(Stats.class)
                               .command(Status.class)

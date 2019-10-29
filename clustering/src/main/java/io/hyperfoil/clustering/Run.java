@@ -26,6 +26,7 @@ class Run {
 
    long startTime = Long.MIN_VALUE;
    Future<Long> terminateTime = Future.future();
+   boolean cancelled;
    StatisticsStore statisticsStore;
 
    Run(String id, Path dir, Benchmark benchmark) {

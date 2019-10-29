@@ -76,10 +76,10 @@ public class RestClient implements Client, Closeable {
    }
 
    @Override
-   public List<String> runs() {
+   public List<Run> runs(boolean details) {
       return sync(
-            handler -> client.request(HttpMethod.GET, "/run").send(handler), 200,
-            response -> Arrays.asList(Json.decodeValue(response.body(), String[].class)));
+            handler -> client.request(HttpMethod.GET, "/run?details=" + details).send(handler), 200,
+            response -> Arrays.asList(Json.decodeValue(response.body(), Run[].class)));
    }
 
    @Override

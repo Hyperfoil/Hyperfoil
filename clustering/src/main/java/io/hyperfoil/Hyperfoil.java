@@ -78,7 +78,7 @@ class Hyperfoil {
          if (event.succeeded()) {
             log.info("{} deployed.", verticleClass.getSimpleName());
          } else {
-            log.error(event.cause(), "Failed to deploy {}.", verticleClass.getSimpleName());
+            log.error("Failed to deploy {}.", event.cause(), verticleClass.getSimpleName());
             System.exit(1);
          }
       });

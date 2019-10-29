@@ -251,6 +251,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             info = new JsonObject(new String(Files.readAllBytes(infoFile), StandardCharsets.UTF_8));
          } catch (IOException e) {
             log.error("Cannot read info for run {}", runId);
+            return;
          }
       }
       Run run = new Run(runId, runDir, new Benchmark(info.getString("benchmark", "<unknown>"), null, Collections.emptyMap(), null, 0, null,
@@ -258,6 +259,14 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       run.startTime = info.getLong("startTime", 0L);
       run.terminateTime.complete(info.getLong("terminateTime", 0L));
       run.description = info.getString("description");
+      JsonArray errors = info.getJsonArray("errors");
+      if (errors != null) {
+         run.errors.addAll(errors.stream()
+               .map(JsonObject.class::cast)
+               .map(e -> new Run.Error(new AgentInfo(e.getString("agent"), -1), new Throwable(e.getString("msg"))))
+               .collect(Collectors.toList()));
+      }
+      run.cancelled = info.getBoolean("cancelled", Boolean.FALSE);
       runs.put(runId, run);
    }
 
@@ -537,6 +546,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                .put("benchmark", run.benchmark.name())
                .put("startTime", run.startTime)
                .put("terminateTime", run.terminateTime.result())
+               .put("cancelled", run.cancelled)
                .put("description", run.description)
                .put("errors", new JsonArray(run.errors.stream()
                      .map(e -> new JsonObject().put("agent", e.agent.name).put("msg", e.error.getMessage()))
@@ -622,6 +632,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
 
    public void kill(Run run, Handler<AsyncResult<Void>> handler) {
       try {
+         run.cancelled = true;
          for (Map.Entry<String, ControllerPhase> entry : run.phases.entrySet()) {
             ControllerPhase.Status status = entry.getValue().status();
             if (!status.isTerminated()) {
