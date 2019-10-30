@@ -185,6 +185,7 @@ public class Table<T> {
             pad(sb, suffixLength - width(suffix));
          }
          sb.append('\n');
+         ++rowNumber;
       }
       return sb.toString();
    }
