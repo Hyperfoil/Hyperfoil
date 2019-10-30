@@ -7,6 +7,7 @@ import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.hyperfoil.api.config.Benchmark;
@@ -114,12 +115,16 @@ public interface Client {
 
    class Run {
       public final String id;
+      @JsonInclude(value = JsonInclude.Include.NON_NULL)
       public final String benchmark;
+      @JsonInclude(value = JsonInclude.Include.NON_NULL)
       @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy/MM/dd HH:mm:ss.S")
       public final Date started;
+      @JsonInclude(value = JsonInclude.Include.NON_NULL)
       @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy/MM/dd HH:mm:ss.S")
       public final Date terminated;
       public final boolean cancelled;
+      @JsonInclude(value = JsonInclude.Include.NON_EMPTY)
       public final String description;
       public final Collection<Phase> phases;
       public final Collection<Agent> agents;
