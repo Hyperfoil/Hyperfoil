@@ -25,6 +25,7 @@ import io.hyperfoil.util.Util;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -82,26 +83,12 @@ public class HttpBuilder {
       if (this.host != null) {
          throw new BenchmarkDefinitionException("Duplicate 'host'. Are you missing '-'s?");
       }
-      int lastColon = host.lastIndexOf(':');
-      if (lastColon < 0) {
-         this.host = host;
-         return this;
-      }
-      int firstColon = host.indexOf(':');
-      if (firstColon == lastColon) {
-         String maybePort = host.substring(lastColon + 1);
-         try {
-            this.port = Integer.parseInt(maybePort);
-            this.host = host.substring(0, lastColon);
-         } catch (NumberFormatException e) {
-            this.protocol = Protocol.fromScheme(host.substring(0, firstColon));
-            this.host = host.substring(firstColon + 3);
-         }
-      } else {
-         this.protocol = Protocol.fromScheme(host.substring(0, firstColon));
-         this.host = host.substring(firstColon + 3, lastColon);
-         String portString = host.substring(lastColon + 1);
-         this.port = Integer.parseInt(portString);
+      URL url = Util.parseURL(host);
+      this.protocol = protocol == null ? Protocol.fromScheme(url.getProtocol()) : protocol;
+      this.host = url.getHost();
+      this.port = url.getPort();
+      if (url.getFile() != null && !url.getFile().isEmpty()) {
+         throw new BenchmarkDefinitionException("Host must not contain any path: " + host);
       }
       return this;
    }

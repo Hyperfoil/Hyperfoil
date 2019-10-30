@@ -6,6 +6,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
@@ -118,5 +120,16 @@ public final class Util {
    public static UUID randomUUID() {
       ThreadLocalRandom random = ThreadLocalRandom.current();
       return new UUID(random.nextLong(), random.nextLong());
+   }
+
+   public static URL parseURL(String spec) {
+      if (!spec.contains("://")) {
+         spec = "http://" + spec;
+      }
+      try {
+         return new URL(spec);
+      } catch (MalformedURLException e) {
+         throw new BenchmarkDefinitionException("Failed to parse host:port", e);
+      }
    }
 }

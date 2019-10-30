@@ -268,12 +268,14 @@ public class HttpClientPoolImpl implements HttpClientPool {
       int port = this.port;
       if (http.addresses().length != 0) {
          address = http.addresses()[ThreadLocalRandom.current().nextInt(http.addresses().length)];
-         // TODO: IPv6 addresses
-         int colonIndex = address.lastIndexOf(':');
-         if (colonIndex >= 0) {
-            port = (int) Util.parseLong(address, colonIndex + 1, address.length(), port);
+         // This code must handle addresses in form ipv4address, ipv4address:port, [ipv6address]:port, ipv6address
+         int bracketIndex = address.lastIndexOf(']');
+         int firstColonIndex = address.indexOf(':');
+         int lastColonIndex = address.lastIndexOf(':');
+         if (lastColonIndex >= 0 && ((bracketIndex >= 0 && lastColonIndex > bracketIndex) || (bracketIndex < 0 && lastColonIndex == firstColonIndex))) {
+            port = (int) Util.parseLong(address, lastColonIndex + 1, address.length(), port);
+            address = address.substring(0, lastColonIndex);
          }
-         address = address.substring(0, colonIndex);
       }
 
       ChannelFuture fut = bootstrap.connect(new InetSocketAddress(address, port));

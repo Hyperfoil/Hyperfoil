@@ -2,6 +2,7 @@ package io.hyperfoil.deploy.ssh;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
@@ -23,6 +24,7 @@ import io.hyperfoil.api.deployment.DeployedAgent;
 import io.hyperfoil.api.deployment.Deployer;
 import io.hyperfoil.api.deployment.DeploymentException;
 import io.hyperfoil.clustering.Properties;
+import io.hyperfoil.util.Util;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
@@ -52,11 +54,11 @@ public class SshDeployer implements Deployer {
       int port = -1;
       String dir = null, extras = null;
       if (agent.inlineConfig != null) {
-         int atIndex = agent.inlineConfig.indexOf('@');
-         int colonIndex = agent.inlineConfig.lastIndexOf(':');
-         hostname = agent.inlineConfig.substring(atIndex + 1, colonIndex >= 0 ? colonIndex : agent.inlineConfig.length());
-         username = atIndex >= 0 ? agent.inlineConfig.substring(0, atIndex) : null;
-         port = colonIndex >= 0 ? Integer.parseInt(agent.inlineConfig.substring(colonIndex + 1)) : -1;
+         // This 'url' is missing protocol spec so it will default to http - we'll just ignore that
+         URL url = Util.parseURL(agent.inlineConfig);
+         hostname = url.getHost();
+         port = url.getPort();
+         username = url.getUserInfo();
       }
       if (agent.properties != null) {
          hostname = agent.properties.getOrDefault("host", hostname);
