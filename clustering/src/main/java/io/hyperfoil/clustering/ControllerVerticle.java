@@ -609,7 +609,13 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
          if (!future.isComplete()) {
             future.complete();
          }
-      }, null);
+      }, result -> {
+         if (result.failed()) {
+            log.error("Failed to persist run {}", result.cause(), run.id);
+         } else {
+            log.info("Successfully persisted run {}", run.id);
+         }
+      });
    }
 
    private Map<String, String> getRunProperties(Run run) {
