@@ -89,6 +89,12 @@ public class Stats extends BaseRunIdCommand {
          }
          invocation.println(REQUEST_STATS_TABLE.print(stats.statistics.stream()));
          prevLines = stats.statistics.size() + 2;
+         for (Client.RequestStats rs : stats.statistics) {
+            for (String msg : rs.failedSLAs) {
+               invocation.println(String.format("%s/%s: %s", rs.phase, rs.metric == null ? "*" : rs.metric, msg));
+               prevLines++;
+            }
+         }
          if (terminated || interruptibleDelay(invocation)) {
             return;
          }
