@@ -5,7 +5,8 @@ import org.kohsuke.MetaInfServices;
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.connection.Request;
-import io.hyperfoil.api.connection.Processor;
+import io.hyperfoil.api.processor.Processor;
+import io.hyperfoil.api.processor.RequestProcessorBuilder;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.core.data.DataFormat;
 import io.hyperfoil.core.session.SessionFactory;
@@ -37,9 +38,9 @@ public class SimpleRecorder implements Processor<Request>, ResourceUtilizer {
    /**
     * Stores data in a session variable (overwriting on multiple occurences).
     */
-   @MetaInfServices(Request.ProcessorBuilder.class)
+   @MetaInfServices(RequestProcessorBuilder.class)
    @Name("simple")
-   public static class Builder implements Request.ProcessorBuilder, InitFromParam<Builder> {
+   public static class Builder implements RequestProcessorBuilder, InitFromParam<Builder> {
       private String toVar;
       private DataFormat format = DataFormat.STRING;
 

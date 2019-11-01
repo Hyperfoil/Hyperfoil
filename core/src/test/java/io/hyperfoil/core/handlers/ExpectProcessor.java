@@ -7,7 +7,7 @@ import java.util.LinkedList;
 import java.util.function.Predicate;
 
 import io.hyperfoil.api.connection.Request;
-import io.hyperfoil.api.connection.Processor;
+import io.hyperfoil.api.processor.Processor;
 import io.netty.buffer.ByteBuf;
 
 public class ExpectProcessor implements Processor<Request> {

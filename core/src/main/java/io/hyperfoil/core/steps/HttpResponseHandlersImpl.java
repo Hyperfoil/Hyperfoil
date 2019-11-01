@@ -11,7 +11,8 @@ import io.hyperfoil.api.config.BuilderBase;
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Rewritable;
 import io.hyperfoil.api.connection.HttpRequest;
-import io.hyperfoil.api.connection.Processor;
+import io.hyperfoil.api.processor.HttpRequestProcessorBuilder;
+import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 import io.hyperfoil.core.http.CookieRecorder;
@@ -264,7 +265,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       private final HttpRequestStep.Builder parent;
       private List<StatusHandler.Builder> statusHandlers = new ArrayList<>();
       private List<HeaderHandler.Builder> headerHandlers = new ArrayList<>();
-      private List<HttpRequest.ProcessorBuilder> bodyHandlers = new ArrayList<>();
+      private List<HttpRequestProcessorBuilder> bodyHandlers = new ArrayList<>();
       private List<Action.Builder> completionHandlers = new ArrayList<>();
       private List<RawBytesHandler> rawBytesHandlers = new ArrayList<>();
 
@@ -318,8 +319,8 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
        *
        * @return Builder.
        */
-      public ServiceLoadedBuilderProvider<HttpRequest.ProcessorBuilder> body() {
-         return new ServiceLoadedBuilderProvider<>(HttpRequest.ProcessorBuilder.class, Locator.fromStep(parent), bodyHandlers::add);
+      public ServiceLoadedBuilderProvider<HttpRequestProcessorBuilder> body() {
+         return new ServiceLoadedBuilderProvider<>(HttpRequestProcessorBuilder.class, Locator.fromStep(parent), bodyHandlers::add);
       }
 
       public Builder onCompletion(Action handler) {
@@ -362,7 +363,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          // TODO: we might need defensive copies here
          statusHandlers.forEach(StatusHandler.Builder::prepareBuild);
          headerHandlers.forEach(HeaderHandler.Builder::prepareBuild);
-         bodyHandlers.forEach(HttpRequest.ProcessorBuilder::prepareBuild);
+         bodyHandlers.forEach(HttpRequestProcessorBuilder::prepareBuild);
          completionHandlers.forEach(Action.Builder::prepareBuild);
       }
 

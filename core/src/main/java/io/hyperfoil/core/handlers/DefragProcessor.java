@@ -1,7 +1,7 @@
 package io.hyperfoil.core.handlers;
 
 import io.hyperfoil.api.connection.Request;
-import io.hyperfoil.api.connection.Processor;
+import io.hyperfoil.api.processor.Processor;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.CompositeByteBuf;
 import io.hyperfoil.api.session.Session;

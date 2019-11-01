@@ -1,7 +1,7 @@
 package io.hyperfoil.core.handlers;
 
 import io.hyperfoil.api.connection.Request;
-import io.hyperfoil.api.connection.Processor;
+import io.hyperfoil.api.processor.Processor;
 import io.netty.buffer.ByteBuf;
 import io.vertx.ext.unit.TestContext;
 

@@ -7,7 +7,8 @@ import org.slf4j.LoggerFactory;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.connection.HttpRequest;
-import io.hyperfoil.api.connection.Processor;
+import io.hyperfoil.api.processor.HttpRequestProcessorBuilder;
+import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.http.HeaderHandler;
 import io.hyperfoil.core.util.Util;
 import io.hyperfoil.function.SerializableSupplier;
@@ -34,9 +35,9 @@ public class LogInvalidHandler implements Processor<HttpRequest>, HeaderHandler 
    /**
     * Logs body chunks from requests marked as invalid.
     */
-   @MetaInfServices(HttpRequest.ProcessorBuilder.class)
+   @MetaInfServices(HttpRequestProcessorBuilder.class)
    @Name("logInvalid")
-   public static class BodyHandlerBuilder implements HttpRequest.ProcessorBuilder {
+   public static class BodyHandlerBuilder implements HttpRequestProcessorBuilder {
       @Override
       public LogInvalidHandler build() {
          return new LogInvalidHandler();

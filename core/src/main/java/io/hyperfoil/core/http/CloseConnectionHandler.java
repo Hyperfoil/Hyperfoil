@@ -3,8 +3,9 @@ package io.hyperfoil.core.http;
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.Name;
-import io.hyperfoil.api.connection.Processor;
+import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.connection.Request;
+import io.hyperfoil.api.processor.RequestProcessorBuilder;
 import io.netty.buffer.ByteBuf;
 
 public class CloseConnectionHandler implements Processor<Request> {
@@ -18,9 +19,9 @@ public class CloseConnectionHandler implements Processor<Request> {
       request.connection().close();
    }
 
-   @MetaInfServices(Request.ProcessorBuilder.class)
+   @MetaInfServices(RequestProcessorBuilder.class)
    @Name("closeConnection")
-   public static class Builder implements Request.ProcessorBuilder {
+   public static class Builder implements RequestProcessorBuilder {
       @Override
       public Processor<Request> build() {
          return new CloseConnectionHandler();

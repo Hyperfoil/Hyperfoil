@@ -10,7 +10,8 @@ import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.connection.Request;
-import io.hyperfoil.api.connection.Processor;
+import io.hyperfoil.api.processor.Processor;
+import io.hyperfoil.api.processor.RequestProcessorBuilder;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 import io.netty.buffer.ByteBuf;
 import io.hyperfoil.api.session.Session;
@@ -84,12 +85,12 @@ public class JsonHandler extends JsonParser<Request>
    /**
     * Parses JSON responses using simple queries.
     */
-   @MetaInfServices(Request.ProcessorBuilder.class)
+   @MetaInfServices(RequestProcessorBuilder.class)
    @Name("json")
-   public static class Builder implements Request.ProcessorBuilder, InitFromParam<Builder> {
+   public static class Builder implements RequestProcessorBuilder, InitFromParam<Builder> {
       private Locator locator;
       private String query;
-      private Request.ProcessorBuilder processor;
+      private RequestProcessorBuilder processor;
 
       @Override
       public Builder setLocator(Locator locator) {
@@ -150,7 +151,7 @@ public class JsonHandler extends JsonParser<Request>
          return processor(() -> processor);
       }
 
-      public Builder processor(Request.ProcessorBuilder processor) {
+      public Builder processor(RequestProcessorBuilder processor) {
          this.processor = processor;
          return this;
       }
@@ -160,8 +161,8 @@ public class JsonHandler extends JsonParser<Request>
        *
        * @return Builder.
        */
-      public ServiceLoadedBuilderProvider<Request.ProcessorBuilder> processor() {
-         return new ServiceLoadedBuilderProvider<>(Request.ProcessorBuilder.class, locator, this::processor);
+      public ServiceLoadedBuilderProvider<RequestProcessorBuilder> processor() {
+         return new ServiceLoadedBuilderProvider<>(RequestProcessorBuilder.class, locator, this::processor);
       }
 
       @Override

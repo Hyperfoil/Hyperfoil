@@ -13,9 +13,10 @@ import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.SequenceBuilder;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.connection.HttpRequest;
+import io.hyperfoil.api.processor.HttpRequestProcessorBuilder;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.http.HttpMethod;
-import io.hyperfoil.api.connection.Processor;
+import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.Session;
@@ -293,9 +294,9 @@ public class HtmlHandler implements Processor<HttpRequest>, ResourceUtilizer, Se
    /**
     * Parses HTML tags and invokes handlers based on criteria.
     */
-   @MetaInfServices(HttpRequest.ProcessorBuilder.class)
+   @MetaInfServices(HttpRequestProcessorBuilder.class)
    @Name("parseHtml")
-   public static class Builder implements HttpRequest.ProcessorBuilder {
+   public static class Builder implements HttpRequestProcessorBuilder {
       private Locator locator;
       private EmbeddedResourceHandlerBuilder embeddedResourceHandler;
 
@@ -397,8 +398,8 @@ public class HtmlHandler implements Processor<HttpRequest>, ResourceUtilizer, Se
        *
        * @return Builder.
        */
-      public ServiceLoadedBuilderProvider<HttpRequest.ProcessorBuilder> processor() {
-         return new ServiceLoadedBuilderProvider<>(HttpRequest.ProcessorBuilder.class, locator, this::processor);
+      public ServiceLoadedBuilderProvider<HttpRequestProcessorBuilder> processor() {
+         return new ServiceLoadedBuilderProvider<>(HttpRequestProcessorBuilder.class, locator, this::processor);
       }
 
       public void prepareBuild() {

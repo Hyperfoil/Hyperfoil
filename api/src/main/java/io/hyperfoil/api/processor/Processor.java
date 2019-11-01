@@ -1,8 +1,10 @@
-package io.hyperfoil.api.connection;
+package io.hyperfoil.api.processor;
 
 import java.io.Serializable;
 
 import io.hyperfoil.api.config.BuilderBase;
+import io.hyperfoil.api.connection.Request;
+import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.netty.buffer.ByteBuf;
@@ -51,6 +53,26 @@ public interface Processor<R extends Request> extends Serializable {
       public void reserve(Session session) {
          if (delegate instanceof ResourceUtilizer) {
             ((ResourceUtilizer) delegate).reserve(session);
+         }
+      }
+   }
+
+   class ActionAdapter<R extends Request> implements Processor<R>, ResourceUtilizer {
+      private final Action action;
+
+      public ActionAdapter(Action action) {
+         this.action = action;
+      }
+
+      @Override
+      public void process(R request, ByteBuf data, int offset, int length, boolean isLastPart) {
+         action.run(request.session);
+      }
+
+      @Override
+      public void reserve(Session session) {
+         if (action instanceof ResourceUtilizer) {
+            ((ResourceUtilizer) action).reserve(session);
          }
       }
    }

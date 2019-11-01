@@ -9,7 +9,8 @@ import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.connection.Request;
-import io.hyperfoil.api.connection.Processor;
+import io.hyperfoil.api.processor.Processor;
+import io.hyperfoil.api.processor.RequestProcessorBuilder;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.ResourceUtilizer;
@@ -63,9 +64,9 @@ public class NewSequenceProcessor implements Processor<Request>, ResourceUtilize
    /**
     * Instantiates a sequence for each invocation. The sequences will have increasing sequence ID.
     */
-   @MetaInfServices(Request.ProcessorBuilder.class)
+   @MetaInfServices(RequestProcessorBuilder.class)
    @Name("newSequence")
-   public static class Builder implements Request.ProcessorBuilder {
+   public static class Builder implements RequestProcessorBuilder {
       private Locator locator;
       private int maxSequences = -1;
       private String counterVar;

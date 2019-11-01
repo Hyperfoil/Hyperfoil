@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import io.hyperfoil.api.config.Locator;
-import io.hyperfoil.api.connection.Processor;
+import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
