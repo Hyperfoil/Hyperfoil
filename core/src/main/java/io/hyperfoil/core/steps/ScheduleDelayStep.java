@@ -6,6 +6,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
+import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.session.Access;
@@ -15,6 +16,7 @@ import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.core.builders.BaseStepBuilder;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.function.SerializableSupplier;
+import io.hyperfoil.function.SerializableToLongFunction;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
@@ -23,16 +25,12 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
 
    private final Access key;
    private final Type type;
-   private final long duration, min, max;
-   private final boolean negativeExponential;
+   private final SerializableToLongFunction<Session> duration;
 
-   public ScheduleDelayStep(Object key, Type type, long duration, boolean negativeExponential, long min, long max) {
+   public ScheduleDelayStep(Object key, Type type, SerializableToLongFunction<Session> duration) {
       this.key = SessionFactory.access(key);
       this.type = type;
       this.duration = duration;
-      this.negativeExponential = negativeExponential;
-      this.min = min;
-      this.max = max;
    }
 
    @Override
@@ -53,21 +51,14 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
          default:
             throw new IllegalStateException();
       }
-      long relativeDelay = duration;
-      if (negativeExponential) {
-         double rand = ThreadLocalRandom.current().nextDouble();
-         relativeDelay = (long) ((duration) * -Math.log(Math.max(rand, 1e-20d)));
-         if (relativeDelay < min) {
-            relativeDelay = min;
-         } else if (relativeDelay > max) {
-            relativeDelay = max;
-         }
-      }
-      blockedUntil.timestamp = baseTimestamp + relativeDelay;
+      long duration = this.duration.applyAsLong(session);
+      blockedUntil.timestamp = baseTimestamp + duration;
       long delay = blockedUntil.timestamp - now;
       if (delay > 0) {
          log.trace("Scheduling #{} to run in {}", session.uniqueId(), delay);
          session.executor().schedule((Callable<?>) session, delay, TimeUnit.MILLISECONDS);
+      } else {
+         log.trace("Continuing, duration {} resulted in delay {}", duration, delay);
       }
       return true;
    }
@@ -83,6 +74,22 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
       FROM_NOW,
    }
 
+   public enum RandomType {
+      /**
+       * Do not randomize; use constant duration.
+       */
+      CONSTANT,
+      /**
+       * Use linearly random duration between <code>min</code> and <code>max</code> (inclusively).
+       */
+      LINEAR,
+      /**
+       * Use negative-exponential duration with expected value of <code>duration</code>, capped at <code>min</code>
+       * and <code>max</code> (inclusively).
+       */
+      NEGATIVE_EXPONENTIAL
+   }
+
    static class Timestamp {
       long timestamp = Long.MAX_VALUE;
    }
@@ -94,14 +101,13 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
       private Object key;
       private long duration;
       private Type type = Type.FROM_NOW;
-      private boolean negativeExponential;
-      private long min;
-      private long max;
+      private RandomType randomType = RandomType.CONSTANT;
+      private long min = 0;
+      private long max = Long.MAX_VALUE;
 
-      public Builder(BaseSequenceBuilder parent, Object key, long duration, TimeUnit timeUnit) {
+      public Builder(BaseSequenceBuilder parent, Object key) {
          super(parent);
          this.key = key;
-         this.duration = timeUnit == null ? 0 : timeUnit.toMillis(duration);
       }
 
       /**
@@ -113,6 +119,11 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
        */
       public Builder key(String key) {
          this.key = key;
+         return this;
+      }
+
+      public Builder duration(long duration, TimeUnit timeUnit) {
+         this.duration = timeUnit == null ? 0 : timeUnit.toMillis(duration);
          return this;
       }
 
@@ -148,12 +159,17 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
       }
 
       /**
-       * Randomize the duration with negative-exponential distribution, using <code>duration</code> as the mean value.
+       * Randomize the duration.
        *
        * @return Self.
        */
-      public Builder negativeExponential() {
-         this.negativeExponential = true;
+      public Builder random(RandomType randomType) {
+         this.randomType = randomType;
+         return this;
+      }
+
+      public Builder min(long min, TimeUnit timeUnit) {
+         this.min = timeUnit.toMillis(min);
          return this;
       }
 
@@ -165,6 +181,11 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
        */
       public Builder min(String min) {
          this.min = io.hyperfoil.util.Util.parseToMillis(min);
+         return this;
+      }
+
+      public Builder max(long max, TimeUnit timeUnit) {
+         this.max = timeUnit.toMillis(max);
          return this;
       }
 
@@ -181,7 +202,37 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
 
       @Override
       public List<Step> build(SerializableSupplier<Sequence> sequence) {
-         return Collections.singletonList(new ScheduleDelayStep(key, type, duration, negativeExponential, min, max));
+         SerializableToLongFunction<Session> duration;
+         switch (randomType) {
+            case CONSTANT:
+               if (min != 0 || max != Long.MAX_VALUE) {
+                  throw new BenchmarkDefinitionException("This duration should be constant; no need to define 'min' and 'max'.");
+               } else if (this.duration <= 0) {
+                  throw new BenchmarkDefinitionException("Duration must be positive.");
+               }
+               duration = session -> this.duration;
+               break;
+            case LINEAR:
+               if (this.duration != 0) {
+                  throw new BenchmarkDefinitionException("The duration is set through 'min' and 'max'; do not use 'duration'");
+               } else if (min < 0) {
+                  throw new BenchmarkDefinitionException("The minimum duration must not be lower than 0.");
+               } else if (max > TimeUnit.HOURS.toMillis(24)) {
+                  throw new BenchmarkDefinitionException("The maximum duration is over 24 hours: that's likely an error.");
+               }
+               duration = session -> ThreadLocalRandom.current().nextLong(min, max + 1);
+               break;
+            case NEGATIVE_EXPONENTIAL:
+               duration = session -> {
+                  double rand = ThreadLocalRandom.current().nextDouble();
+                  long delay = (long) ((this.duration) * -Math.log(Math.max(rand, 1e-20d)));
+                  return Math.max(Math.min(delay, max), min);
+               };
+               break;
+            default:
+               throw new BenchmarkDefinitionException("Unknown randomness type: " + randomType);
+         }
+         return Collections.singletonList(new ScheduleDelayStep(key, type, duration));
       }
 
       /**

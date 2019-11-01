@@ -132,7 +132,7 @@ public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.O
     * @return Builder.
     */
    public ScheduleDelayStep.Builder scheduleDelay(String key, long duration, TimeUnit timeUnit) {
-      return new ScheduleDelayStep.Builder(parent, key, duration, timeUnit);
+      return new ScheduleDelayStep.Builder(parent, key).duration(duration, timeUnit);
    }
 
    /**
@@ -157,11 +157,19 @@ public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.O
     * @return Builder.
     */
    public ScheduleDelayStep.Builder thinkTime(long duration, TimeUnit timeUnit) {
+      return thinkTime().duration(duration, timeUnit);
+   }
+
+   /**
+    * Block the current sequence for specified duration.
+    *
+    * @return Builder.
+    */
+   public ScheduleDelayStep.Builder thinkTime() {
       // We will schedule two steps bound by an unique key
       Unique key = new Unique();
       // thinkTime should expose builder to support configurable duration randomization in the future
-      ScheduleDelayStep.Builder delayBuilder = new ScheduleDelayStep.Builder(parent, key, duration, timeUnit).fromNow();
-      parent.stepBuilder(delayBuilder);
+      ScheduleDelayStep.Builder delayBuilder = new ScheduleDelayStep.Builder(parent, key).fromNow();
       parent.step(new AwaitDelayStep(key));
       return delayBuilder;
    }
