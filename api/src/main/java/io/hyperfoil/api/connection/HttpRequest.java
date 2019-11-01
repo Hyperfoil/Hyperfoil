@@ -29,6 +29,11 @@ public class HttpRequest extends Request {
    }
 
    @Override
+   public HttpConnection connection() {
+      return (HttpConnection) super.connection();
+   }
+
+   @Override
    public void setCompleted() {
       super.setCompleted();
       this.handlers = null;

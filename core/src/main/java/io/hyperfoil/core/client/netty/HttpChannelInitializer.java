@@ -20,11 +20,9 @@ import io.netty.handler.codec.http2.Http2ClientUpgradeCodec;
 import io.netty.handler.ssl.ApplicationProtocolNames;
 import io.netty.handler.ssl.ApplicationProtocolNegotiationHandler;
 import io.hyperfoil.api.connection.HttpConnection;
-import io.hyperfoil.api.connection.HttpConnectionPool;
 
 class HttpChannelInitializer extends ChannelInitializer<Channel> {
    private final HttpClientPoolImpl clientPool;
-   private final HttpConnectionPool connectionPool;
    private final BiConsumer<HttpConnection, Throwable> handler;
    private final Http2ConnectionHandlerBuilder http2ConnectionHandlerBuilder;
    private final ApplicationProtocolNegotiationHandler alpnHandler = new ApplicationProtocolNegotiationHandler(ApplicationProtocolNames.HTTP_1_1) {
@@ -50,11 +48,10 @@ class HttpChannelInitializer extends ChannelInitializer<Channel> {
       }
    };
 
-   HttpChannelInitializer(HttpClientPoolImpl clientPool, HttpConnectionPool connectionPool, BiConsumer<HttpConnection, Throwable> handler) {
+   HttpChannelInitializer(HttpClientPoolImpl clientPool, BiConsumer<HttpConnection, Throwable> handler) {
       this.clientPool = clientPool;
-      this.connectionPool = connectionPool;
       this.handler = handler;
-      this.http2ConnectionHandlerBuilder = new Http2ConnectionHandlerBuilder(connectionPool, clientPool.sslContext == null, handler);
+      this.http2ConnectionHandlerBuilder = new Http2ConnectionHandlerBuilder(clientPool, clientPool.sslContext == null, handler);
    }
 
    @Override
@@ -88,7 +85,7 @@ class HttpChannelInitializer extends ChannelInitializer<Channel> {
    }
 
    private void initHttp1xConnection(ChannelPipeline pipeline) {
-      Http1xConnection connection = new Http1xConnection(clientPool, connectionPool, handler);
+      Http1xConnection connection = new Http1xConnection(clientPool, handler);
       if (clientPool.http.rawBytesHandlers()) {
          pipeline.addLast(new Http1xRawBytesHandler(connection));
       }

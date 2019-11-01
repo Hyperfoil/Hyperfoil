@@ -4,6 +4,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
@@ -35,6 +36,7 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
    private final HttpClientPoolImpl clientPool;
    private final ArrayList<HttpConnection> connections = new ArrayList<>();
    private final ArrayDeque<HttpConnection> available;
+   private final List<HttpConnection> temporaryInFlight;
    private final int size;
    private final EventLoop eventLoop;
    private int count; // The estimated count : created + creating
@@ -50,6 +52,7 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
       this.size = size;
       this.eventLoop = eventLoop;
       this.available = new ArrayDeque<>(size);
+      this.temporaryInFlight = new ArrayList<>(size);
    }
 
    @Override
@@ -58,33 +61,45 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
    }
 
    @Override
-   public boolean request(HttpRequest request, BiConsumer<Session, HttpRequestWriter>[] headerAppenders, BiFunction<Session, Connection, ByteBuf> bodyGenerator) {
+   public boolean request(HttpRequest request, BiConsumer<Session, HttpRequestWriter>[] headerAppenders, BiFunction<Session, Connection, ByteBuf> bodyGenerator, boolean exclusiveConnection) {
       assert eventLoop.inEventLoop();
       HttpConnection connection;
-      for (; ; ) {
-         connection = available.pollFirst();
-         if (connection == null) {
-            return false;
-         } else if (connection.isClosed()) {
-            continue;
-         } else if (!connection.context().channel().isOpen()) {
-            throw new IllegalStateException("Connection " + connection + " is closed!");
-         } else {
-            break;
+      try {
+         for (; ; ) {
+            connection = available.pollFirst();
+            if (connection == null) {
+               return false;
+            } else if (!connection.isClosed()) {
+               if (exclusiveConnection && connection.inFlight() > 0) {
+                  temporaryInFlight.add(connection);
+                  continue;
+               }
+               request.attach(connection);
+               connection.attach(this);
+               connection.request(request, headerAppenders, bodyGenerator);
+               // Move it to the back of the queue if it is still available (do not prefer it for subsequent requests)
+               if (!exclusiveConnection && connection.isAvailable()) {
+                  available.addLast(connection);
+               }
+               return true;
+            }
+         }
+      } finally {
+         if (!temporaryInFlight.isEmpty()) {
+            available.addAll(temporaryInFlight);
+            temporaryInFlight.clear();
          }
       }
-      request.attach(connection);
-      connection.request(request, headerAppenders, bodyGenerator);
-      // Move it to the back of the queue if it is still available (do not prefer it for subsequent requests)
-      if (connection.isAvailable()) {
-         available.addLast(connection);
-      }
-      return true;
    }
 
    @Override
    public void release(HttpConnection connection) {
       available.add(connection);
+   }
+
+   @Override
+   public void onSessionReset() {
+      // noop
    }
 
    @Override

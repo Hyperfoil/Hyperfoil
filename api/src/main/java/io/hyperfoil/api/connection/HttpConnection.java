@@ -11,6 +11,8 @@ import io.hyperfoil.api.session.Session;
  */
 public interface HttpConnection extends Connection {
 
+   void attach(HttpConnectionPool pool);
+
    void request(HttpRequest request,
                 BiConsumer<Session, HttpRequestWriter>[] headerAppenders,
                 BiFunction<Session, Connection, ByteBuf> bodyGenerator);

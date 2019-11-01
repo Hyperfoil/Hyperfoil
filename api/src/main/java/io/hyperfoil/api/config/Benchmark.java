@@ -118,6 +118,10 @@ public class Benchmark implements Serializable {
       return postHooks;
    }
 
+   public Ergonomics ergonomics() {
+      return ergonomics;
+   }
+
    @Override
    public String toString() {
       return "Benchmark{name='" + name + '\'' +

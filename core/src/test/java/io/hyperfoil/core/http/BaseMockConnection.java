@@ -5,6 +5,7 @@ import java.util.function.BiFunction;
 
 import io.hyperfoil.api.connection.Connection;
 import io.hyperfoil.api.connection.HttpConnection;
+import io.hyperfoil.api.connection.HttpConnectionPool;
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.connection.HttpRequestWriter;
 import io.hyperfoil.api.session.Session;
@@ -12,6 +13,10 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 
 class BaseMockConnection implements HttpConnection {
+   @Override
+   public void attach(HttpConnectionPool pool) {
+   }
+
    @Override
    public void request(HttpRequest request, BiConsumer<Session, HttpRequestWriter>[] headerAppenders, BiFunction<Session, Connection, ByteBuf> bodyGenerator) {
    }

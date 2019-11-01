@@ -138,7 +138,7 @@ public class CertificatesTest {
             request.path = "/ping";
             request.start(handlers, new SequenceInstance(), new Statistics(System.currentTimeMillis()));
 
-            client.next().request(request, null, null);
+            client.next().request(request, null, null, false);
          }));
       } catch (SSLException e) {
          server.close();

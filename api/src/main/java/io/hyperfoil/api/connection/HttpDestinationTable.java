@@ -9,4 +9,6 @@ public interface HttpDestinationTable {
    String[] authorities();
 
    byte[][] authorityBytes();
+
+   void onSessionReset();
 }

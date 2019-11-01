@@ -8,10 +8,12 @@ import java.io.Serializable;
 public class Ergonomics implements Serializable {
    private final boolean repeatCookies;
    private final boolean userAgentFromSession;
+   private final boolean privateHttpPools;
 
-   public Ergonomics(boolean repeatCookies, boolean userAgentFromSession) {
+   public Ergonomics(boolean repeatCookies, boolean userAgentFromSession, boolean privateHttpPools) {
       this.repeatCookies = repeatCookies;
       this.userAgentFromSession = userAgentFromSession;
+      this.privateHttpPools = privateHttpPools;
    }
 
    public boolean repeatCookies() {
@@ -20,5 +22,9 @@ public class Ergonomics implements Serializable {
 
    public boolean userAgentFromSession() {
       return userAgentFromSession;
+   }
+
+   public boolean privateHttpPools() {
+      return privateHttpPools;
    }
 }

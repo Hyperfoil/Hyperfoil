@@ -262,7 +262,7 @@ public class HttpClientPoolImpl implements HttpClientPool {
       bootstrap.option(ChannelOption.SO_KEEPALIVE, true);
       bootstrap.option(ChannelOption.SO_REUSEADDR, true);
 
-      bootstrap.handler(new HttpChannelInitializer(this, pool, handler));
+      bootstrap.handler(new HttpChannelInitializer(this, handler));
 
       String address = this.host;
       int port = this.port;

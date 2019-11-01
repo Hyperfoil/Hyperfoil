@@ -3,6 +3,7 @@ package io.hyperfoil.api.config;
 public class ErgonomicsBuilder {
    private boolean repeatCookies = true;
    private boolean userAgentFromSession = true;
+   private boolean privateHttpPools = false;
 
    /**
     * Set global cookie-repeating behaviour for all steps.
@@ -28,7 +29,12 @@ public class ErgonomicsBuilder {
       return userAgentFromSession;
    }
 
+   public ErgonomicsBuilder privateHttpPools(boolean privateHttpPools) {
+      this.privateHttpPools = privateHttpPools;
+      return this;
+   }
+
    public Ergonomics build() {
-      return new Ergonomics(repeatCookies, userAgentFromSession);
+      return new Ergonomics(repeatCookies, userAgentFromSession, privateHttpPools);
    }
 }

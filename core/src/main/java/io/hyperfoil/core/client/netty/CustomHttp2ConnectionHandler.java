@@ -5,6 +5,7 @@ import static io.netty.handler.codec.http2.Http2CodecUtil.getEmbeddedHttp2Except
 import java.io.IOException;
 import java.util.function.BiConsumer;
 
+import io.hyperfoil.api.connection.HttpClientPool;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.HttpClientUpgradeHandler;
@@ -14,7 +15,6 @@ import io.netty.handler.codec.http2.Http2Settings;
 import io.netty.util.internal.StringUtil;
 import io.hyperfoil.api.connection.Connection;
 import io.hyperfoil.api.connection.HttpConnection;
-import io.hyperfoil.api.connection.HttpConnectionPool;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
@@ -22,18 +22,18 @@ class CustomHttp2ConnectionHandler extends io.netty.handler.codec.http2.Http2Con
    private static final Logger log = LoggerFactory.getLogger(CustomHttp2ConnectionHandler.class);
 
    private final BiConsumer<HttpConnection, Throwable> activationHandler;
-   private final HttpConnectionPool connectionPool;
+   private final HttpClientPool clientPool;
    private final boolean isUpgrade;
    private Http2Connection connection;
 
    CustomHttp2ConnectionHandler(
-         HttpConnectionPool connectionPool,
+         HttpClientPool clientPool,
          BiConsumer<HttpConnection, Throwable> activationHandler,
          Http2ConnectionDecoder decoder,
          Http2ConnectionEncoder encoder,
          Http2Settings initialSettings, boolean isUpgrade) {
       super(decoder, encoder, initialSettings);
-      this.connectionPool = connectionPool;
+      this.clientPool = clientPool;
       this.activationHandler = activationHandler;
       this.isUpgrade = isUpgrade;
    }
@@ -68,10 +68,10 @@ class CustomHttp2ConnectionHandler extends io.netty.handler.codec.http2.Http2Con
 
    private void checkActivated(ChannelHandlerContext ctx) {
       if (connection == null) {
-         connection = new Http2Connection(ctx, connection(), encoder(), decoder(), connectionPool);
+         connection = new Http2Connection(ctx, connection(), encoder(), decoder(), clientPool);
          // Use a very large stream window size
          connection.incrementConnectionWindowSize(1073676288 - 65535);
-         if (connectionPool.clientPool().config().rawBytesHandlers()) {
+         if (clientPool.config().rawBytesHandlers()) {
             ctx.pipeline().addBefore(generateName(CustomHttp2ConnectionHandler.class), null, new Http2RawBytesHandler(connection));
          }
          activationHandler.accept(connection, null);

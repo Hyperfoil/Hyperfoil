@@ -1,9 +1,11 @@
 package io.hyperfoil.core.impl;
 
 import io.hyperfoil.api.config.Benchmark;
+import io.hyperfoil.api.connection.HttpDestinationTable;
 import io.hyperfoil.api.session.SharedData;
 import io.hyperfoil.api.statistics.SessionStatistics;
 import io.hyperfoil.core.client.netty.HttpDestinationTableImpl;
+import io.hyperfoil.core.client.netty.PrivateConnectionPool;
 import io.hyperfoil.core.session.SharedDataImpl;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.util.concurrent.EventExecutor;
@@ -137,7 +139,11 @@ public class SimulationRunnerImpl implements SimulationRunner {
                synchronized (phaseSessions) {
                   phaseSessions.add(session);
                }
-               session.attach(executors[executorId], data[executorId], httpDestinations[executorId], statistics[executorId]);
+               HttpDestinationTable httpDestinations = this.httpDestinations[executorId];
+               if (benchmark.ergonomics().privateHttpPools()) {
+                  httpDestinations = new HttpDestinationTableImpl(httpDestinations, pool -> new PrivateConnectionPool(pool));
+               }
+               session.attach(executors[executorId], data[executorId], httpDestinations, statistics[executorId]);
                session.reserve(def.scenario);
                return session;
             };

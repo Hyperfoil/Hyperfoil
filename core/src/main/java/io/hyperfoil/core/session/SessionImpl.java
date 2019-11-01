@@ -391,6 +391,7 @@ class SessionImpl implements Session, Callable<Void> {
          allVars.get(i).unset();
       }
       httpCache.clear();
+      httpDestinations.onSessionReset();
    }
 
    public void resetPhase(PhaseInstance newPhase) {

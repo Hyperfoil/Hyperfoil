@@ -36,7 +36,7 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
    private static final Logger log = LoggerFactory.getLogger(Http2Connection.class);
    private static final boolean trace = log.isTraceEnabled();
 
-   private final HttpConnectionPool pool;
+   private HttpConnectionPool pool;
    private final ChannelHandlerContext context;
    private final io.netty.handler.codec.http2.Http2Connection connection;
    private final Http2ConnectionEncoder encoder;
@@ -49,12 +49,11 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
                    io.netty.handler.codec.http2.Http2Connection connection,
                    Http2ConnectionEncoder encoder,
                    Http2ConnectionDecoder decoder,
-                   HttpConnectionPool pool) {
-      this.pool = pool;
+                   HttpClientPool clientPool) {
       this.context = context;
       this.connection = connection;
       this.encoder = encoder;
-      this.maxStreams = pool.clientPool().config().maxHttp2Streams();
+      this.maxStreams = clientPool.config().maxHttp2Streams();
 
       Http2EventAdapter listener = new EventAdapter();
 
@@ -97,6 +96,11 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
       return pool.clientPool().host();
    }
 
+   @Override
+   public void attach(HttpConnectionPool pool) {
+      this.pool = pool;
+   }
+
    public void request(HttpRequest request, BiConsumer<Session, HttpRequestWriter>[] headerAppenders, BiFunction<Session, Connection, ByteBuf> bodyGenerator) {
       numStreams++;
       HttpClientPool httpClientPool = pool.clientPool();
@@ -125,6 +129,7 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
          }
          request.handlers().handleEnd(request, false);
          pool.release(this);
+         pool = null;
          --numStreams;
          return;
       }
@@ -196,7 +201,7 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
       @Override
       public void onHeadersRead(ChannelHandlerContext ctx, int streamId, Http2Headers headers, int streamDependency, short weight, boolean exclusive, int padding, boolean endStream) {
          HttpRequest request = streams.get(streamId);
-         if (request != null) {
+         if (request != null && !request.isCompleted()) {
             HttpResponseHandlers handlers = request.handlers();
             int code = -1;
             try {
@@ -207,9 +212,9 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
             for (Map.Entry<CharSequence, CharSequence> header : headers) {
                handlers.handleHeader(request, header.getKey(), header.getValue());
             }
-            if (endStream) {
-               endStream(streamId);
-            }
+         }
+         if (endStream) {
+            endStream(streamId);
          }
       }
 
@@ -217,12 +222,12 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
       public int onDataRead(ChannelHandlerContext ctx, int streamId, ByteBuf data, int padding, boolean endOfStream) throws Http2Exception {
          int ack = super.onDataRead(ctx, streamId, data, padding, endOfStream);
          HttpRequest request = streams.get(streamId);
-         if (request != null) {
+         if (request != null && !request.isCompleted()) {
             HttpResponseHandlers handlers = (HttpResponseHandlers) request.handlers();
             handlers.handleBodyPart(request, data, data.readerIndex(), data.readableBytes(), endOfStream);
-            if (endOfStream) {
-               endStream(streamId);
-            }
+         }
+         if (endOfStream) {
+            endStream(streamId);
          }
          return ack;
       }
@@ -233,8 +238,10 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
          if (request != null) {
             numStreams--;
             HttpResponseHandlers handlers = (HttpResponseHandlers) request.handlers();
-            // TODO: maybe add a specific handler because we don't need to terminate other streams
-            handlers.handleThrowable(request, new IOException("HTTP2 stream was reset"));
+            if (!request.isCompleted()) {
+               // TODO: maybe add a specific handler because we don't need to terminate other streams
+               handlers.handleThrowable(request, new IOException("HTTP2 stream was reset"));
+            }
             tryReleaseToPool();
          }
       }
@@ -243,8 +250,10 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
          HttpRequest request = streams.remove(streamId);
          if (request != null) {
             numStreams--;
-            request.handlers().handleEnd(request, true);
-            log.trace("Completed response on {}", this);
+            if (!request.isCompleted()) {
+               request.handlers().handleEnd(request, true);
+               log.trace("Completed response on {}", this);
+            }
             tryReleaseToPool();
          }
       }
@@ -255,6 +264,7 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
       // TODO: it would be better to check this in connection pool
       if (numStreams == maxStreams - 1) {
          pool.release(Http2Connection.this);
+         pool = null;
       }
    }
 

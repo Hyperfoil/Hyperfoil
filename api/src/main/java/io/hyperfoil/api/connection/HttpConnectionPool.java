@@ -13,7 +13,7 @@ public interface HttpConnectionPool {
 
    boolean request(HttpRequest request,
                    BiConsumer<Session, HttpRequestWriter>[] headerAppenders,
-                   BiFunction<Session, Connection, ByteBuf> bodyGenerator);
+                   BiFunction<Session, Connection, ByteBuf> bodyGenerator, boolean reserveConnection);
 
    void registerWaitingSession(Session session);
 
@@ -26,4 +26,6 @@ public interface HttpConnectionPool {
    Collection<? extends HttpConnection> connections();
 
    void release(HttpConnection connection);
+
+   void onSessionReset();
 }

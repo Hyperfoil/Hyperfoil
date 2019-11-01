@@ -35,17 +35,16 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    private static final Logger log = LoggerFactory.getLogger(Http1xConnection.class);
    private static final boolean trace = log.isTraceEnabled();
 
-   private final HttpConnectionPool pool;
    private final Deque<HttpRequest> inflights;
    private final BiConsumer<HttpConnection, Throwable> activationHandler;
-   ChannelHandlerContext ctx;
+   private HttpConnectionPool pool;
+   private ChannelHandlerContext ctx;
    // we can safely use non-atomic variables since the connection should be always accessed by single thread
    private int size;
    private boolean activated;
    private boolean closed;
 
-   Http1xConnection(HttpClientPoolImpl client, HttpConnectionPool pool, BiConsumer<HttpConnection, Throwable> handler) {
-      this.pool = pool;
+   Http1xConnection(HttpClientPoolImpl client, BiConsumer<HttpConnection, Throwable> handler) {
       this.activationHandler = handler;
       this.inflights = new ArrayDeque<>(client.http.pipeliningLimit());
    }
@@ -85,45 +84,57 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
             }
             return;
          }
-         HttpResponseHandlers handlers = request.handlers();
-         try {
-            handlers.handleStatus(request, response.status().code(), response.status().reasonPhrase());
-            for (Map.Entry<String, String> header : response.headers()) {
-               handlers.handleHeader(request, header.getKey(), header.getValue());
+         if (request.isCompleted()) {
+            log.trace("Request on connection {} has been already completed (error in handlers?), ignoring", this);
+         } else {
+            HttpResponseHandlers handlers = request.handlers();
+            try {
+               handlers.handleStatus(request, response.status().code(), response.status().reasonPhrase());
+               for (Map.Entry<String, String> header : response.headers()) {
+                  handlers.handleHeader(request, header.getKey(), header.getValue());
+               }
+            } catch (Throwable t) {
+               log.error("Response processing failed on {}", t, this);
+               handlers.handleThrowable(request, t);
             }
-         } catch (Throwable t) {
-            log.error("Response processing failed on {}", t, this);
-            handlers.handleThrowable(request, t);
          }
       }
       if (msg instanceof HttpContent) {
          HttpRequest request = inflights.peek();
-         HttpResponseHandlers handlers = request.handlers();
-         try {
-            ByteBuf data = ((HttpContent) msg).content();
-            handlers.handleBodyPart(request, data, data.readerIndex(), data.readableBytes(), msg instanceof LastHttpContent);
-         } catch (Throwable t) {
-            log.error("Response processing failed on {}", t, this);
-            handlers.handleThrowable(request, t);
+         // When previous handlers throw an error the request is already completed
+         if (!request.isCompleted()) {
+            HttpResponseHandlers handlers = request.handlers();
+            try {
+               ByteBuf data = ((HttpContent) msg).content();
+               handlers.handleBodyPart(request, data, data.readerIndex(), data.readableBytes(), msg instanceof LastHttpContent);
+            } catch (Throwable t) {
+               log.error("Response processing failed on {}", t, this);
+               handlers.handleThrowable(request, t);
+            }
          }
       }
       if (msg instanceof LastHttpContent) {
          size--;
          HttpRequest request = inflights.poll();
-         try {
-            request.handlers().handleEnd(request, true);
-            if (trace) {
-               log.trace("Completed response on {}", this);
+         // When previous handlers throw an error the request is already completed
+         if (!request.isCompleted()) {
+            try {
+               request.handlers().handleEnd(request, true);
+               if (trace) {
+                  log.trace("Completed response on {}", this);
+               }
+            } catch (Throwable t) {
+               log.error("Response processing failed on {}", t, this);
+               request.handlers().handleThrowable(request, t);
             }
-         } catch (Throwable t) {
-            log.error("Response processing failed on {}", t, this);
-            request.handlers().handleThrowable(request, t);
          }
 
          // If this connection was not available we make it available
          // TODO: it would be better to check this in connection pool
+         HttpConnectionPool pool = this.pool;
          if (size == pool.clientPool().config().pipeliningLimit() - 1) {
             pool.release(this);
+            this.pool = null;
          }
          pool.pulse();
       }
@@ -149,6 +160,11 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
             request.session.proceed();
          }
       }
+   }
+
+   @Override
+   public void attach(HttpConnectionPool pool) {
+      this.pool = pool;
    }
 
    @Override
@@ -179,6 +195,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
          request.handlers().handleEnd(request, false);
          --size;
          pool.release(this);
+         pool = null;
          return;
       }
       inflights.add(request);
@@ -215,7 +232,9 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
 
    @Override
    public boolean isAvailable() {
-      return size < pool.clientPool().config().pipeliningLimit();
+      // Having pool not attached implies that the connection is not taken out of the pool
+      // and therefore it's fully available
+      return pool == null || size < pool.clientPool().config().pipeliningLimit();
    }
 
    @Override

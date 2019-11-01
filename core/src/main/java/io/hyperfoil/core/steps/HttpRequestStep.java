@@ -130,9 +130,10 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
       if (connectionPool == null) {
          session.fail(new BenchmarkExecutionException("There is no connection pool with authority '" + authority +
                "', available pools are: " + Arrays.asList(session.httpDestinations().authorities())));
+         return false;
       }
       request.authority = authority == null ? connectionPool.clientPool().authority() : authority;
-      if (!connectionPool.request(request, headerAppenders, bodyGenerator)) {
+      if (!connectionPool.request(request, headerAppenders, bodyGenerator, false)) {
          request.setCompleted();
          session.httpRequestPool().release(request);
          // TODO: when the phase is finished, max duration is not set and the connection cannot be obtained
@@ -684,6 +685,11 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
       public HeadersBuilder(Builder builder) {
          this.parent = builder;
+      }
+
+      public HeadersBuilder header(CharSequence header, CharSequence value) {
+         parent.headerAppenders.add((session, writer) -> writer.putHeader(header, value));
+         return this;
       }
 
       /**

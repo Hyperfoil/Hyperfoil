@@ -109,7 +109,7 @@ public class HttpClientPoolHandlerTest {
          request.method = HttpMethod.GET;
          request.path = "/";
          request.start(handlers, new SequenceInstance(), new Statistics(System.currentTimeMillis()));
-         pool.request(request, null, null);
+         pool.request(request, null, null, false);
       });
 
       assertThat(latch.await(3, TimeUnit.SECONDS)).isTrue();
