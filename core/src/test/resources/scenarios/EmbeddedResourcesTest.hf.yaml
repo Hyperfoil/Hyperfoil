@@ -26,6 +26,7 @@ phases:
           - awaitVar: allFetched
           - clearHttpCache # otherwise we wouldn't download index second time
         - manual:
+          - setInt: completionLatch <- 0
           - httpRequest:
               GET: /foobar/index.html
               handler:
@@ -34,10 +35,14 @@ phases:
                     onEmbeddedResource:
                       ignoreExternal: true
                       processor:
+                      - addToInt: completionLatch += 1
                       - array: downloadUrl[16]
                       - newSequence:
                           maxSequences: 16
                           sequence: embeddedResource
+          - awaitInt:
+              var: completionLatch
+              equalTo: 0
         sequences:
         - embeddedResource:
           - httpRequest:
@@ -52,3 +57,6 @@ phases:
               - (.*.php).* -> $1
               # Default match (otherwise it would be sequence name)
               - -> other
+              handler:
+                onCompletion:
+                  addToInt: completionLatch -= 1

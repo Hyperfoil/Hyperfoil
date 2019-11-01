@@ -6,6 +6,7 @@ import io.hyperfoil.api.config.IncludeBuilders;
 import io.hyperfoil.api.http.CacheControl;
 import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.api.http.HttpResponseHandlers;
+import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.api.session.Session;
@@ -60,9 +61,10 @@ public class HttpRequest extends Request {
    /**
     * Processors for HTTP requests.
     */
-   @IncludeBuilders(
-         @IncludeBuilders.Conversion(from = Request.ProcessorBuilder.class, adapter = BuilderConverter.class)
-   )
+   @IncludeBuilders({
+         @IncludeBuilders.Conversion(from = Request.ProcessorBuilder.class, adapter = BuilderConverter.class),
+         @IncludeBuilders.Conversion(from = Action.Builder.class, adapter = ActionBuilderConverter.class)
+   })
    public interface ProcessorBuilder extends Processor.Builder<HttpRequest, ProcessorBuilder> {}
 
    public static class BuilderConverter implements Function<Request.ProcessorBuilder, HttpRequest.ProcessorBuilder> {
@@ -97,6 +99,13 @@ public class HttpRequest extends Request {
       @Override
       public void reserve(Session session) {
          ResourceUtilizer.reserve(session, delegate);
+      }
+   }
+
+   public static class ActionBuilderConverter implements Function<Action.Builder, HttpRequest.ProcessorBuilder> {
+      @Override
+      public ProcessorBuilder apply(Action.Builder builder) {
+         return () -> new ActionAdapter<>(builder.build());
       }
    }
 }

@@ -59,11 +59,11 @@ public class AddToIntStep implements Action.Step {
          } else if (param.contains("+=")) {
             int plusEqualsIndex = param.indexOf("+=");
             var = param.substring(0, plusEqualsIndex).trim();
-            value = Integer.parseInt(param.substring(plusEqualsIndex).trim());
+            value = Integer.parseInt(param.substring(plusEqualsIndex + 2).trim());
          } else if (param.contains("-=")) {
             int minusEqualsIndex = param.indexOf("-=");
             var = param.substring(0, minusEqualsIndex).trim();
-            value = -Integer.parseInt(param.substring(minusEqualsIndex).trim());
+            value = -Integer.parseInt(param.substring(minusEqualsIndex + 2).trim());
          } else {
             throw new BenchmarkDefinitionException("Accepting one of: var++, var--, var += value, var -= value");
          }

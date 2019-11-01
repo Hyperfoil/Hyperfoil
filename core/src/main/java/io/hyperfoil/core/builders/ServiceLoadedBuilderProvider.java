@@ -46,7 +46,9 @@ public class ServiceLoadedBuilderProvider<B> {
             if (name == null || name.value().isEmpty()) {
                log.error("Service-loaded class {} is missing @Name annotation!", builder.getClass());
             } else {
-               builders.put(name.value(), new BuilderInfo<>(builder.getClass(), builderInfo.adapter));
+               // Collisions may exist, e.g. due to different chains of adapters. First match
+               // (the first in breadth-first search, so the closest) wins.
+               builders.putIfAbsent(name.value(), new BuilderInfo<>(builder.getClass(), builderInfo.adapter));
             }
          }
          IncludeBuilders include = builderInfo.implClazz.getAnnotation(IncludeBuilders.class);
@@ -56,7 +58,8 @@ public class ServiceLoadedBuilderProvider<B> {
                   try {
                      @SuppressWarnings("unchecked")
                      Function<Object, Object> adapter = (Function<Object, Object>) conversion.adapter().getDeclaredConstructor().newInstance();
-                     deque.add(new BuilderInfo<>(conversion.from(), adapter));
+                     // Since we use transitive inclusions through adapters, we have to chain adapters into each other
+                     deque.add(new BuilderInfo<>(conversion.from(), builder -> builderInfo.adapter.apply(adapter.apply(builder))));
                   } catch (Exception e) {
                      throw new IllegalStateException("Cannot instantiate " + conversion.adapter());
                   }

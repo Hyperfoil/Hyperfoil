@@ -3,10 +3,14 @@ package io.hyperfoil.api.connection;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Function;
 
+import io.hyperfoil.api.config.IncludeBuilders;
+import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.statistics.Statistics;
+import io.netty.buffer.ByteBuf;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
 import io.netty.util.concurrent.ScheduledFuture;
@@ -129,5 +133,28 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
    /**
     * Processors for any type of request.
     */
+   @IncludeBuilders(
+         @IncludeBuilders.Conversion(from = Action.Builder.class, adapter = ActionBuilderConverter.class)
+   )
    public interface ProcessorBuilder extends Processor.Builder<Request, ProcessorBuilder> {}
+
+   public static class ActionBuilderConverter implements Function<Action.Builder, Request.ProcessorBuilder> {
+      @Override
+      public ProcessorBuilder apply(Action.Builder builder) {
+         return () -> new ActionAdapter<>(builder.build());
+      }
+   }
+
+   public static class ActionAdapter<R extends Request> implements Processor<R> {
+      private final Action action;
+
+      public ActionAdapter(Action action) {
+         this.action = action;
+      }
+
+      @Override
+      public void process(R request, ByteBuf data, int offset, int length, boolean isLastPart) {
+         action.run(request.session);
+      }
+   }
 }
