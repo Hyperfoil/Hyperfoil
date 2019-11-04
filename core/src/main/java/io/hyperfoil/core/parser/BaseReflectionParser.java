@@ -15,6 +15,7 @@ import org.yaml.snakeyaml.events.SequenceStartEvent;
 
 import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.ListBuilder;
 import io.hyperfoil.api.config.MappingListBuilder;
 import io.hyperfoil.api.config.PairBuilder;
@@ -184,9 +185,15 @@ class BaseReflectionParser {
       }
       Result<Method> result = findMethod(keyEvent, target, key, 1);
       if (result.value != null) {
-         Object param = convert(valueEvent, value, result.value.getParameterTypes()[0]);
          try {
-            result.value.invoke(target, param);
+            if (result.value.getParameterCount() == 1) {
+               Object param = convert(valueEvent, value, result.value.getParameterTypes()[0]);
+               result.value.invoke(target, param);
+            } else {
+               assert result.value.getParameterCount() == 0;
+               Object builder = result.value.invoke(target);
+               ((InitFromParam) builder).init(value);
+            }
          } catch (IllegalAccessException | InvocationTargetException e) {
             throw cannotCreate(keyEvent, e);
          }
@@ -271,20 +278,23 @@ class BaseReflectionParser {
    }
 
    private Result<Method> findMethod(Event event, Object target, String name, int params) {
-      Method[] candidates = Stream.of(target.getClass().getMethods()).filter(m -> m.getName().equals(name)).toArray(Method[]::new);
+      Method[] matchingName = Stream.of(target.getClass().getMethods()).filter(m -> m.getName().equals(name)).toArray(Method[]::new);
+      Method[] candidates = matchingName;
+      if (params >= 0) {
+         candidates = Stream.of(matchingName).filter(m -> m.getParameterCount() == params)
+               .filter(m -> Stream.of(m.getParameterTypes()).allMatch(this::isParamConvertible)).toArray(Method[]::new);
+      }
+      if (params == 1 && candidates.length == 0) {
+         candidates = Stream.of(matchingName).filter(m -> InitFromParam.class.isAssignableFrom(m.getReturnType())).toArray(Method[]::new);
+      }
       if (candidates.length == 0) {
          return new Result<>(new ParserException(event, "Cannot find method '" + name + "' on '" + target + "'"));
-      } else if (params >= 0) {
-         candidates = Stream.of(candidates).filter(m -> m.getParameterCount() == params)
-               .filter(m -> Stream.of(m.getParameterTypes()).allMatch(this::isParamConvertible)).toArray(Method[]::new);
-         if (candidates.length > 1) {
-            return new Result<>(new ParserException(event, "Ambiguous candidates for '" + name + "' on '" + target + "': " + Arrays.asList(candidates)));
-         } else if (candidates.length == 0) {
-            return new Result<>(new ParserException(event, "Cannot find method '" + name + "' on '" + target + "'"));
-         }
+      } else if (candidates.length == 1) {
          return new Result<>(candidates[0]);
-      } else {
+      } else if (params < 0) {
          return new Result<>(Stream.of(candidates).reduce(BaseReflectionParser::selectMethod).get());
+      } else { // candidates.length > 1
+         return new Result<>(new ParserException(event, "Ambiguous candidates for '" + name + "' on '" + target + "': " + Arrays.asList(candidates)));
       }
    }
 
