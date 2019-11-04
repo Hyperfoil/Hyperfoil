@@ -3,6 +3,7 @@ package io.hyperfoil.api.processor;
 import java.util.function.Function;
 
 import io.hyperfoil.api.config.IncludeBuilders;
+import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.session.Action;
@@ -21,8 +22,31 @@ public interface HttpRequestProcessorBuilder extends Processor.Builder<HttpReque
 
    class BuilderConverter implements Function<RequestProcessorBuilder, HttpRequestProcessorBuilder> {
       @Override
-      public HttpRequestProcessorBuilder apply(RequestProcessorBuilder processorBuilder) {
-         return () -> new RequestProcessorAdapter(processorBuilder.build());
+      public HttpRequestProcessorBuilder apply(RequestProcessorBuilder builder) {
+         return new RequestProcessorBuilderAdapter(builder);
+      }
+   }
+
+   class RequestProcessorBuilderAdapter implements HttpRequestProcessorBuilder {
+      private final RequestProcessorBuilder builder;
+
+      public RequestProcessorBuilderAdapter(RequestProcessorBuilder builder) {
+         this.builder = builder;
+      }
+
+      @Override
+      public RequestProcessorBuilderAdapter copy(Locator locator) {
+         return new RequestProcessorBuilderAdapter(builder.copy(locator));
+      }
+
+      @Override
+      public void prepareBuild() {
+         builder.prepareBuild();
+      }
+
+      @Override
+      public Processor<HttpRequest> build() {
+         return new RequestProcessorAdapter(builder.build());
       }
    }
 
@@ -57,7 +81,30 @@ public interface HttpRequestProcessorBuilder extends Processor.Builder<HttpReque
    class ActionBuilderConverter implements Function<Action.Builder, HttpRequestProcessorBuilder> {
       @Override
       public HttpRequestProcessorBuilder apply(Action.Builder builder) {
-         return () -> new Processor.ActionAdapter<>(builder.build());
+         return new ActionBuilderAdapter(builder);
+      }
+   }
+
+   class ActionBuilderAdapter implements HttpRequestProcessorBuilder {
+      private final Action.Builder builder;
+
+      public ActionBuilderAdapter(Action.Builder builder) {
+         this.builder = builder;
+      }
+
+      @Override
+      public ActionBuilderAdapter copy(Locator locator) {
+         return new ActionBuilderAdapter(builder.copy(locator));
+      }
+
+      @Override
+      public void prepareBuild() {
+         builder.prepareBuild();
+      }
+
+      @Override
+      public Processor<HttpRequest> build() {
+         return new Processor.ActionAdapter<>(builder.build());
       }
    }
 }
