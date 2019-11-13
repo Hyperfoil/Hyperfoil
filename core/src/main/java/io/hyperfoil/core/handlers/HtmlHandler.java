@@ -403,6 +403,9 @@ public class HtmlHandler implements Processor<HttpRequest>, ResourceUtilizer, Se
       }
 
       public void prepareBuild() {
+         if (processor != null) {
+            processor.prepareBuild();
+         }
          if (fetchResource != null) {
             fetchResource.prepareBuild();
          }

@@ -49,21 +49,21 @@ public class EmbeddedResourcesTest extends BaseScenarioTest {
    @Test
    public void test() {
       Map<String, List<StatisticsSnapshot>> stats = runScenario();
-      assertThat(stats.size()).isEqualTo(5);
+      assertThat(stats.size()).isEqualTo(6);
       for (Map.Entry<String, List<StatisticsSnapshot>> entry : stats.entrySet()) {
          String name = entry.getKey();
          int hits;
-         if (name.equals("automatic") || name.equals("manual")) {
+         if (name.equals("automatic") || name.equals("manual") || name.equals("queued")) {
             hits = 1;
          } else {
             assertThat(name).matches(".*\\.(css|js|ico|php)");
-            hits = 2;
+            hits = 3;
          }
          List<StatisticsSnapshot> list = entry.getValue();
          assertThat(list.size()).isEqualTo(hits);
          for (StatisticsSnapshot snapshot : list) {
-            assertThat(snapshot.requestCount).isEqualTo(1);
-            assertThat(snapshot.status_2xx).isEqualTo(1);
+            assertThat(snapshot.requestCount).as(name).isEqualTo(1);
+            assertThat(snapshot.status_2xx).as(name).isEqualTo(1);
          }
       }
    }

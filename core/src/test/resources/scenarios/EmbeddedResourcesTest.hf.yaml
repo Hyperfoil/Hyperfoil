@@ -39,12 +39,31 @@ phases:
                       - array: downloadUrl[16]
                       - newSequence:
                           maxSequences: 16
-                          sequence: embeddedResource
+                          sequence: embeddedResourceForArray
           - awaitInt:
               var: completionLatch
               equalTo: 0
+          - clearHttpCache # otherwise we wouldn't download index third time
+        - queued:
+          - unset: allFetched
+          - httpRequest:
+              GET: /foobar/index.html
+              handler:
+                body:
+                  parseHtml:
+                    onEmbeddedResource:
+                      ignoreExternal: true
+                      processor:
+                      - queue:
+                          var: downloadQueue
+                          maxSize: 256
+                          concurrency: 8
+                          sequence: embeddedResourceForQueue
+                          onCompletion:
+                            set: allFetched <- true
+          - awaitVar: allFetched
         sequences:
-        - embeddedResource:
+        - embeddedResourceForArray:
           - httpRequest:
               GET:
                 fromVar: downloadUrl[.]
@@ -60,3 +79,18 @@ phases:
               handler:
                 onCompletion:
                   addToInt: completionLatch -= 1
+        # We need different sequences as both array in downloadUrl
+        # and queue in downloadQueue are pre-allocated and we cannot reuse the var
+        - embeddedResourceForQueue:
+          - httpRequest:
+              GET:
+                fromVar: downloadQueue[.]
+              metric:
+              # Use full url for those matching pattern
+              - .*.js
+              - .*.ico
+              - .*.css
+              # Truncate query parameters but keep the base
+              - (.*.php).* -> $1
+              # Default match (otherwise it would be sequence name)
+              - -> other
