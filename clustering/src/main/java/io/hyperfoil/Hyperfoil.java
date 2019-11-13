@@ -4,6 +4,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.infinispan.commons.util.FileLookupFactory;
 import org.infinispan.configuration.parsing.ConfigurationBuilderHolder;
@@ -11,6 +14,7 @@ import org.infinispan.configuration.parsing.ParserRegistry;
 import org.infinispan.manager.DefaultCacheManager;
 import org.infinispan.remoting.transport.jgroups.JGroupsTransport;
 
+import io.hyperfoil.api.deployment.AgentProperties;
 import io.hyperfoil.clustering.ControllerVerticle;
 import io.hyperfoil.clustering.AgentVerticle;
 import io.hyperfoil.clustering.Codecs;
@@ -25,6 +29,7 @@ import io.vertx.ext.cluster.infinispan.InfinispanClusterManager;
 
 class Hyperfoil {
    static final Logger log = LoggerFactory.getLogger(Controller.class);
+   private static final Set<String> LOCALHOST_IPS = new HashSet<>(Arrays.asList("127.0.0.1", "::1", "[::1]"));
 
    static void clusteredVertx(Handler<Vertx> startedHandler) {
       logJavaVersion();
@@ -33,14 +38,35 @@ class Hyperfoil {
       VertxOptions options = new VertxOptions();
       options.getEventBusOptions().setClustered(true);
       try {
-         InetAddress address = InetAddress.getLocalHost();
+         String clusterIp = System.getProperty(AgentProperties.CONTROLLER_CLUSTER_IP);
+         InetAddress address;
+         if (clusterIp != null) {
+            address = InetAddress.getByName(clusterIp);
+         } else {
+            address = InetAddress.getLocalHost();
+         }
          String hostName = address.getHostName();
          String hostAddress = address.getHostAddress();
          log.info("Using host name {}/{}", hostName, hostAddress);
+         if (LOCALHOST_IPS.contains(hostAddress) && clusterIp == null) {
+            log.error("This machine is configured to resolve its hostname to 127.0.0.1; this is " +
+                  "an invalid configuration for clustering. Make sure `hostname -i` does not return 127.0.0.1 or ::1 " +
+                  " or set -D" + AgentProperties.CONTROLLER_CLUSTER_IP + "=x.x.x.x to use different address. " +
+                  "(if you set that to 127.0.0.1 you won't be able to connect from agents on other machines).");
+            System.exit(1);
+         }
          // We are using numeric address because if this is running in a pod its hostname
          // wouldn't be resolvable even within the cluster/namespace.
          options.getEventBusOptions().setHost(hostName).setClusterPublicHost(hostAddress);
-         System.setProperty("jgroups.tcp.address", hostName);
+
+         // Do not override if it's manually set for some special reason
+         if (System.getProperty("jgroups.tcp.address") == null) {
+            System.setProperty("jgroups.tcp.address", hostName);
+         }
+         String clusterPort = System.getProperty(AgentProperties.CONTROLLER_CLUSTER_PORT);
+         if (clusterPort != null && System.getProperty("jgroups.tcp.port") == null) {
+            System.setProperty("jgroups.tcp.port", clusterPort);
+         }
       } catch (UnknownHostException e) {
          log.error("Cannot lookup hostname", e);
          System.exit(1);
