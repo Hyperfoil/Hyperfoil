@@ -92,7 +92,12 @@ public abstract class ServerCommand implements Command<HyperfoilCommandInvocatio
          if (serverEpochTime != 0 && (serverEpochTime < preMillis || serverEpochTime > postMillis)) {
             invocation.println("WARNING: Server time seems to be off by " + (postMillis + preMillis - 2 * serverEpochTime) / 2 + " ms");
          }
-         String shortHost = host.contains(".") ? host.substring(0, host.indexOf('.')) : host;
+         String shortHost = host;
+         if (host.equals(invocation.context().localControllerHost()) && port == invocation.context().localControllerPort()) {
+            shortHost = "in-vm";
+         } else if (host.contains(".")) {
+            shortHost = host.substring(0, host.indexOf('.'));
+         }
          invocation.setPrompt(new Prompt(new TerminalString("[hyperfoil@" + shortHost + "]$ ",
                new TerminalColor(Color.GREEN, Color.DEFAULT, Color.Intensity.BRIGHT))));
          ctx.setControllerId(null);

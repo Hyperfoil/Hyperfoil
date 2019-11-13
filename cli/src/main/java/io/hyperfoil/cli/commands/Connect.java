@@ -5,6 +5,10 @@ import org.aesh.command.CommandException;
 import org.aesh.command.CommandResult;
 import org.aesh.command.option.Argument;
 import org.aesh.command.option.Option;
+import org.aesh.readline.Prompt;
+import org.aesh.readline.terminal.formatting.Color;
+import org.aesh.readline.terminal.formatting.TerminalColor;
+import org.aesh.readline.terminal.formatting.TerminalString;
 
 import io.hyperfoil.cli.context.HyperfoilCliContext;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
@@ -27,7 +31,13 @@ public class Connect extends ServerCommand {
          } else {
             invocation.println("Closing connection to " + ctx.client());
             ctx.client().close();
+            invocation.setPrompt(new Prompt(new TerminalString("[hyperfoil]$ ",
+                  new TerminalColor(Color.GREEN, Color.DEFAULT, Color.Intensity.BRIGHT))));
          }
+      }
+      if ("localhost".equals(host) && port == 8090 && invocation.context().localControllerPort() > 0) {
+         host = invocation.context().localControllerHost();
+         port = invocation.context().localControllerPort();
       }
       connect(invocation, host, port);
       return CommandResult.SUCCESS;

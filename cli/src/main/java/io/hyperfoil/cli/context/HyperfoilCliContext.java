@@ -20,7 +20,9 @@
 
 package io.hyperfoil.cli.context;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -50,6 +52,9 @@ public class HyperfoilCliContext {
    });
    private String controllerId;
    private ScheduledFuture<?> controllerPollTask;
+   private String localControllerHost = null;
+   private int localControllerPort = -1;
+   private List<Runnable> cleanup = new ArrayList<>();
 
    public HyperfoilCliContext() {
    }
@@ -134,5 +139,31 @@ public class HyperfoilCliContext {
          controllerPollTask.cancel(false);
       }
       controllerPollTask = future;
+   }
+
+   public String localControllerHost() {
+      return localControllerHost;
+   }
+
+   public void setLocalControllerHost(String localControllerHost) {
+      this.localControllerHost = localControllerHost;
+   }
+
+   public int localControllerPort() {
+      return localControllerPort;
+   }
+
+   public void setLocalControllerPort(int localControllerPort) {
+      this.localControllerPort = localControllerPort;
+   }
+
+   public void addCleanup(Runnable runnable) {
+      cleanup.add(runnable);
+   }
+
+   public void runCleanup() {
+      for (Runnable c : cleanup) {
+         c.run();
+      }
    }
 }

@@ -61,16 +61,16 @@ class ControllerServer {
 
    private static final String CONTROLLER_HOST = Properties.get(Properties.CONTROLLER_HOST, "localhost");
    private static final int CONTROLLER_PORT = Properties.getInt(Properties.CONTROLLER_PORT, 8090);
-   private static final String BASE_URL = "http://" + CONTROLLER_HOST + ":" + CONTROLLER_PORT;
    private static final Comparator<ControllerPhase> PHASE_COMPARATOR =
          Comparator.<ControllerPhase, Long>comparing(ControllerPhase::absoluteStartTime).thenComparing(p -> p.definition().name);
    private static final String TRIGGER_URL = System.getProperty(Properties.TRIGGER_URL);
 
    private final ControllerVerticle controller;
-   private final HttpServer httpServer;
+   final HttpServer httpServer;
    private final Router router;
+   private String baseURL;
 
-   ControllerServer(ControllerVerticle controller) {
+   ControllerServer(ControllerVerticle controller, Handler<AsyncResult<Void>> handler) {
       this.controller = controller;
       router = Router.router(controller.getVertx());
 
@@ -97,7 +97,14 @@ class ControllerServer {
       router.get("/shutdown").handler(this::handleShutdown);
       router.get("/version").handler(this::handleVersion);
 
-      httpServer = controller.getVertx().createHttpServer().requestHandler(router).listen(CONTROLLER_PORT);
+      httpServer = controller.getVertx().createHttpServer().requestHandler(router)
+            .listen(CONTROLLER_PORT, CONTROLLER_HOST, result -> {
+               if (result.succeeded()) {
+                  HttpServer server = result.result();
+                  baseURL = "http://" + CONTROLLER_HOST + ":" + server.actualPort();
+               }
+               handler.handle(result.mapEmpty());
+            });
    }
 
    void stop(Future<Void> stopFuture) {
@@ -186,7 +193,7 @@ class ControllerServer {
       }
 
       if (benchmark != null) {
-         String location = BASE_URL + "/benchmark/" + encode(benchmark.name());
+         String location = baseURL + "/benchmark/" + encode(benchmark.name());
          controller.addBenchmark(benchmark, event -> {
             if (event.succeeded()) {
                ctx.response().setStatusCode(204)
@@ -294,7 +301,7 @@ class ControllerServer {
          String error = controller.startBenchmark(run);
          if (error == null) {
             ctx.response().setStatusCode(HttpResponseStatus.ACCEPTED.code()).
-                  putHeader(HttpHeaders.LOCATION, BASE_URL + "/run/" + run.id)
+                  putHeader(HttpHeaders.LOCATION, baseURL + "/run/" + run.id)
                   .end("Starting benchmark " + benchmarkName + ", run ID " + run.id);
          } else {
             ctx.response()

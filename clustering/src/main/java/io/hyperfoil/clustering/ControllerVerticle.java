@@ -24,6 +24,7 @@ import io.hyperfoil.clustering.util.PersistenceUtil;
 import io.hyperfoil.clustering.messages.PhaseChangeMessage;
 import io.hyperfoil.clustering.messages.PhaseControlMessage;
 import io.hyperfoil.clustering.messages.RequestStatsMessage;
+import io.hyperfoil.core.util.CountDown;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.DeploymentOptions;
@@ -82,8 +83,9 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
 
    @Override
    public void start(Future<Void> future) {
-      log.info("Starting in directory {}...", RUN_DIR);
-      server = new ControllerServer(this);
+      log.info("Starting in directory {}...", ROOT_DIR);
+      CountDown startCountDown = new CountDown(future, 2);
+      server = new ControllerServer(this, startCountDown);
       vertx.exceptionHandler(throwable -> log.error("Uncaught error: ", throwable));
       if (Files.exists(RUN_DIR)) {
          try {
@@ -215,7 +217,9 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       if (!BENCHMARK_DIR.toFile().exists() && !BENCHMARK_DIR.toFile().mkdirs()) {
          log.error("Failed to create benchmark directory: {}", BENCHMARK_DIR);
       }
-      loadBenchmarks(event -> future.complete());
+      startCountDown.increment();
+      loadBenchmarks(startCountDown);
+      startCountDown.countDown();
    }
 
    @Override
@@ -780,5 +784,9 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
    public void shutdown() {
       BasicCacheContainer cacheManager = ((InfinispanClusterManager) ((VertxInternal) vertx).getClusterManager()).getCacheContainer();
       vertx.close(ar -> cacheManager.stop());
+   }
+
+   public int actualPort() {
+      return server.httpServer.actualPort();
    }
 }

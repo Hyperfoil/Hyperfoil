@@ -4,7 +4,7 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 
-public class CountDown {
+public class CountDown implements Handler<AsyncResult<Void>> {
    private Handler<AsyncResult<Void>> handler;
    private int value;
 
@@ -44,6 +44,16 @@ public class CountDown {
       if (--value == 0) {
          value = -1;
          handler.handle(Future.succeededFuture());
+      }
+   }
+
+   @Override
+   public void handle(AsyncResult<Void> event) {
+      if (event.succeeded()) {
+         countDown();
+      } else {
+         value = -1;
+         handler.handle(event);
       }
    }
 }
