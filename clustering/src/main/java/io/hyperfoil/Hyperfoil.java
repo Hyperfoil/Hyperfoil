@@ -61,7 +61,7 @@ class Hyperfoil {
 
          // Do not override if it's manually set for some special reason
          if (System.getProperty("jgroups.tcp.address") == null) {
-            System.setProperty("jgroups.tcp.address", hostName);
+            System.setProperty("jgroups.tcp.address", hostAddress);
          }
          String clusterPort = System.getProperty(AgentProperties.CONTROLLER_CLUSTER_PORT);
          if (clusterPort != null && System.getProperty("jgroups.tcp.port") == null) {
