@@ -568,9 +568,12 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             jGenerator.setCodec(new ObjectMapper());
             jGenerator.writeStartObject();
 
-            jGenerator.writeObjectField("info", info);
+            jGenerator.writeFieldName("info");
+            jGenerator.writeRawValue(info.encode()); // writeObjectField() was encoding info as a POJO not json
+
             run.statisticsStore.writeJson(jGenerator, false);
             jGenerator.writeEndObject();
+            jGenerator.flush();
             jGenerator.close();
          } catch (IOException e) {
             log.error("Cannot write all.json file", e);
