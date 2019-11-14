@@ -39,15 +39,18 @@ class Hyperfoil {
       options.getEventBusOptions().setClustered(true);
       try {
          String clusterIp = System.getProperty(AgentProperties.CONTROLLER_CLUSTER_IP);
-         InetAddress address;
+         String hostAddress;
          if (isController && clusterIp != null) {
-            address = InetAddress.getByName(clusterIp);
+            hostAddress = InetAddress.getByName(clusterIp).getHostAddress();
          } else {
-            address = InetAddress.getLocalHost();
+            hostAddress = InetAddress.getLocalHost().getHostAddress();
+            if (!isController && LOCALHOST_IPS.contains(hostAddress)) {
+               // bind agent to all interfaces
+               hostAddress = "0.0.0.0";
+            }
          }
-         String hostName = address.getHostName();
-         String hostAddress = address.getHostAddress();
-         log.info("Using host name {}/{}", hostName, hostAddress);
+
+         log.info("Using host address {}", hostAddress);
          if (LOCALHOST_IPS.contains(hostAddress) && clusterIp == null) {
             log.error("This machine is configured to resolve its hostname to 127.0.0.1; this is " +
                   "an invalid configuration for clustering. Make sure `hostname -i` does not return 127.0.0.1 or ::1 " +
