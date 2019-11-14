@@ -13,8 +13,6 @@ import io.hyperfoil.core.util.LowHigh;
 import io.netty.util.collection.IntObjectHashMap;
 import io.netty.util.collection.IntObjectMap;
 
-import org.HdrHistogram.AbstractHistogram;
-import org.HdrHistogram.Histogram;
 import org.HdrHistogram.HistogramIterationValue;
 
 import java.io.File;
