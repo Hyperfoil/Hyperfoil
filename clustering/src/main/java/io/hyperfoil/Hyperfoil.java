@@ -31,7 +31,7 @@ class Hyperfoil {
    static final Logger log = LoggerFactory.getLogger(Controller.class);
    private static final Set<String> LOCALHOST_IPS = new HashSet<>(Arrays.asList("127.0.0.1", "::1", "[::1]"));
 
-   static void clusteredVertx(Handler<Vertx> startedHandler) {
+   static void clusteredVertx(boolean isController, Handler<Vertx> startedHandler) {
       logJavaVersion();
       Thread.setDefaultUncaughtExceptionHandler(Hyperfoil::defaultUncaughtExceptionHandler);
       log.info("Starting Vert.x...");
@@ -40,7 +40,7 @@ class Hyperfoil {
       try {
          String clusterIp = System.getProperty(AgentProperties.CONTROLLER_CLUSTER_IP);
          InetAddress address;
-         if (clusterIp != null) {
+         if (isController && clusterIp != null) {
             address = InetAddress.getByName(clusterIp);
          } else {
             address = InetAddress.getLocalHost();
@@ -57,14 +57,14 @@ class Hyperfoil {
          }
          // We are using numeric address because if this is running in a pod its hostname
          // wouldn't be resolvable even within the cluster/namespace.
-         options.getEventBusOptions().setHost(hostName).setClusterPublicHost(hostAddress);
+         options.getEventBusOptions().setHost(hostAddress).setClusterPublicHost(hostAddress);
 
          // Do not override if it's manually set for some special reason
          if (System.getProperty("jgroups.tcp.address") == null) {
             System.setProperty("jgroups.tcp.address", hostAddress);
          }
          String clusterPort = System.getProperty(AgentProperties.CONTROLLER_CLUSTER_PORT);
-         if (clusterPort != null && System.getProperty("jgroups.tcp.port") == null) {
+         if (isController && clusterPort != null && System.getProperty("jgroups.tcp.port") == null) {
             System.setProperty("jgroups.tcp.port", clusterPort);
          }
       } catch (UnknownHostException e) {
@@ -112,13 +112,13 @@ class Hyperfoil {
 
    public static class Agent extends Hyperfoil {
       public static void main(String[] args) {
-         clusteredVertx(vertx -> deploy(vertx, AgentVerticle.class));
+         clusteredVertx(false, vertx -> deploy(vertx, AgentVerticle.class));
       }
    }
 
    public static class Controller extends Hyperfoil {
       public static void main(String[] args) {
-         clusteredVertx(vertx -> deploy(vertx, ControllerVerticle.class));
+         clusteredVertx(true, vertx -> deploy(vertx, ControllerVerticle.class));
       }
    }
 
