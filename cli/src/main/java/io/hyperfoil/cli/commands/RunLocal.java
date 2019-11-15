@@ -39,7 +39,13 @@ public class RunLocal implements Command<CommandInvocation> {
 
    @Override
    public CommandResult execute(CommandInvocation invocation) {
-      invocation.println("This command has been deprected in favor of " + ANSI.BOLD + "start-local" + ANSI.BOLD_OFF + " command.");
+      invocation.println("This command has been deprected in favor of " + bold("start-local") + " command.");
+      invocation.println(bold("start-local") + " starts Hyperfoil controller server inside the CLI, so you should then "
+            + bold("upload") + " the benchmark and " + bold("run") + " it.");
       return CommandResult.SUCCESS;
+   }
+
+   private String bold(String s) {
+      return ANSI.BOLD + s + ANSI.BOLD_OFF;
    }
 }
