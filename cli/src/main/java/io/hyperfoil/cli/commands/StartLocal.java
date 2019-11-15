@@ -36,7 +36,7 @@ public class StartLocal extends ServerCommand {
          }
          invocation.println("Starting controller in " + (rootDir == null ? "default directory (/tmp/hyperfoil)" : rootDir.getAbsolutePath()));
          // disable logs from controller
-         System.setProperty(AgentProperties.LOG4J2_CONFIGURATION_FILE, getClass().getClassLoader().getResource("log4j2-off.xml").toString());
+         System.setProperty(AgentProperties.LOG4J2_CONFIGURATION_FILE, getClass().getClassLoader().getResource("log4j2-local-controller.xml").toString());
          Controller controller = factory.start(rootDir == null ? null : rootDir.getFile().toPath());
          invocation.context().setLocalControllerHost(controller.host());
          invocation.context().setLocalControllerPort(controller.port());

@@ -20,26 +20,31 @@
 
 package io.hyperfoil.cli.commands;
 
-import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.Protocol;
 import io.hyperfoil.api.http.HttpMethod;
-import io.hyperfoil.api.statistics.LongValue;
-import io.hyperfoil.api.statistics.StatisticsSnapshot;
+import io.hyperfoil.api.statistics.StatisticsSummary;
+import io.hyperfoil.cli.HyperfoilCli;
+import io.hyperfoil.cli.context.HyperfoilCliContext;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.PhaseBuilder;
+import io.hyperfoil.cli.context.HyperfoilCommandInvocationProvider;
+import io.hyperfoil.client.Client;
+import io.hyperfoil.client.HistogramConverter;
+import io.hyperfoil.client.RestClient;
 import io.hyperfoil.core.builders.StepCatalog;
 import io.hyperfoil.core.handlers.ByteBufSizeRecorder;
 import io.hyperfoil.core.impl.LocalBenchmarkData;
-import io.hyperfoil.core.impl.LocalSimulationRunner;
-import io.hyperfoil.core.impl.statistics.StatisticsCollector;
 import io.hyperfoil.core.util.Util;
 
+import org.HdrHistogram.AbstractHistogram;
 import org.HdrHistogram.HistogramIterationValue;
-import org.aesh.AeshRuntimeRunner;
+import org.aesh.command.AeshCommandRuntimeBuilder;
 import org.aesh.command.Command;
 import org.aesh.command.CommandDefinition;
 import org.aesh.command.CommandResult;
+import org.aesh.command.CommandRuntime;
+import org.aesh.command.impl.registry.AeshCommandRegistryBuilder;
 import org.aesh.command.invocation.CommandInvocation;
 import org.aesh.command.option.Argument;
 import org.aesh.command.option.Option;
@@ -49,13 +54,13 @@ import org.aesh.utils.Config;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
+import java.util.Map;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import static io.vertx.core.logging.LoggerFactory.LOGGER_DELEGATE_FACTORY_CLASS_NAME;
 
@@ -77,7 +82,16 @@ public class Wrk {
       System.setProperty(LOGGER_DELEGATE_FACTORY_CLASS_NAME, "io.vertx.core.logging.Log4j2LogDelegateFactory");
 
       try {
-         AeshRuntimeRunner.builder().command(WrkCommand.class).args(args).execute();
+         AeshCommandRuntimeBuilder<HyperfoilCommandInvocation> runtime = AeshCommandRuntimeBuilder.builder();
+         runtime.commandInvocationProvider(new HyperfoilCommandInvocationProvider(new HyperfoilCliContext()));
+         AeshCommandRegistryBuilder<HyperfoilCommandInvocation> registry =
+               AeshCommandRegistryBuilder.<HyperfoilCommandInvocation>builder()
+                     .commands(StartLocal.class, WrkCommand.class, HyperfoilCli.ExitCommand.class);
+         runtime.commandRegistry(registry.create());
+         CommandRuntime<HyperfoilCommandInvocation> cr = runtime.build();
+         cr.executeCommand("start-local");
+         cr.executeCommand("wrk " + String.join(" ", args));
+         cr.executeCommand("exit");
       } catch (Exception e) {
          System.out.println("Failed to execute command:" + e.getMessage());
          e.printStackTrace();
@@ -87,7 +101,7 @@ public class Wrk {
    }
 
    @CommandDefinition(name = "wrk", description = "Runs a workload simluation against one endpoint using the same vm")
-   public class WrkCommand implements Command<CommandInvocation> {
+   public class WrkCommand implements Command<HyperfoilCommandInvocation> {
       @Option(shortName = 'c', description = "Total number of HTTP connections to keep open", required = true)
       int connections;
 
@@ -115,22 +129,23 @@ public class Wrk {
       @Option(description = "Record a timeout if a response is not received within this amount of time.", defaultValue = "60s")
       String timeout;
 
+      @Option(shortName = 'a', description = "Inline definition of agent executing the test. By default assuming non-clustered mode.")
+      String agent;
+
       @Argument(description = "URL that should be accessed", required = true)
       String url;
 
       String path;
       String[][] parsedHeaders;
 
-      private boolean executedInCli = false;
-
       @Override
-      public CommandResult execute(CommandInvocation commandInvocation) {
+      public CommandResult execute(HyperfoilCommandInvocation invocation) {
          if (help) {
-            commandInvocation.println(commandInvocation.getHelpInfo("wrk"));
+            invocation.println(invocation.getHelpInfo("wrk"));
             return CommandResult.SUCCESS;
          }
          if (script != null) {
-            commandInvocation.println("Scripting is not supported at this moment.");
+            invocation.println("Scripting is not supported at this moment.");
          }
          if (!url.startsWith("http://") && !url.startsWith("https://")) {
             url = "http://" + url;
@@ -139,7 +154,7 @@ public class Wrk {
          try {
             uri = new URI(url);
          } catch (URISyntaxException e) {
-            commandInvocation.println("Failed to parse URL: " + e.getMessage());
+            invocation.println("Failed to parse URL: " + e.getMessage());
             return CommandResult.FAILURE;
          }
          path = uri.getPath();
@@ -155,7 +170,7 @@ public class Wrk {
                String h = headers.get(i);
                int colonIndex = h.indexOf(':');
                if (colonIndex < 0) {
-                  commandInvocation.println(String.format("Cannot parse header '%s', ignoring.", h));
+                  invocation.println(String.format("Cannot parse header '%s', ignoring.", h));
                   continue;
                }
                String header = h.substring(0, colonIndex).trim();
@@ -165,144 +180,119 @@ public class Wrk {
          } else {
             parsedHeaders = null;
          }
-         //check if we're running in the cli
-         if (commandInvocation instanceof HyperfoilCommandInvocation)
-            executedInCli = true;
 
          Protocol protocol = Protocol.fromScheme(uri.getScheme());
+         // @formatter:off
          BenchmarkBuilder builder = new BenchmarkBuilder(null, new LocalBenchmarkData())
-               .name("wrk " + new SimpleDateFormat("YY/MM/dd HH:mm:ss").format(new Date()))
+               .name("wrk")
                .http()
-               .protocol(protocol).host(uri.getHost()).port(protocol.portOrDefault(uri.getPort()))
-               .sharedConnections(connections)
+                  .protocol(protocol).host(uri.getHost()).port(protocol.portOrDefault(uri.getPort()))
+                  .sharedConnections(connections)
                .endHttp()
                .threads(this.threads);
+         // @formatter:on
+         if (agent != null && !agent.isEmpty()) {
+            builder.addAgent("wrk-agent", agent, null);
+         }
 
          addPhase(builder, "calibration", "1s");
          addPhase(builder, "test", duration).startAfter("calibration").maxDuration(duration);
-         Benchmark benchmark = builder.build();
 
-         // TODO: allow running the benchmark from remote instance
-         LocalSimulationRunner runner = new LocalSimulationRunner(benchmark);
-         commandInvocation.println("Running for " + duration + " test @ " + url);
-         commandInvocation.println(threads + " threads and " + connections + " connections");
-
-         if (executedInCli) {
-            ((HyperfoilCommandInvocation) commandInvocation).context().setBenchmark(benchmark);
-            startRunnerInCliMode(runner, benchmark, (HyperfoilCommandInvocation) commandInvocation);
-         } else {
-            runner.run();
-            StatisticsCollector collector = new StatisticsCollector(benchmark);
-            runner.visitStatistics(collector);
-            StatisticsSnapshot total = new StatisticsSnapshot();
-            collector.visitStatistics((phase, stepId, metric, stats, countDown) -> {
-               if ("test".equals(phase.name())) {
-                  stats.addInto(total);
-               }
-            }, null);
-            printStats(total, commandInvocation);
+         RestClient client = invocation.context().client();
+         if (client == null) {
+            invocation.println("You're not connected to a controller; either " + ANSI.BOLD + "connect" + ANSI.BOLD_OFF
+                  + " to running instance or use " + ANSI.BOLD + "start-local" + ANSI.BOLD_OFF
+                  + " to start a controller in this VM");
+            return CommandResult.FAILURE;
          }
+         Client.BenchmarkRef benchmark = client.register(builder.build());
+         invocation.context().setServerBenchmark(benchmark);
+         Client.RunRef run = benchmark.start(null);
+         invocation.context().setServerRun(run);
 
+         invocation.println("Running for " + duration + " test @ " + url);
+         invocation.println(threads + " threads and " + connections + " connections");
+
+         while (true) {
+            Client.RequestStatisticsResponse recent = run.statsRecent();
+            if ("TERMINATED".equals(recent.status)) {
+               break;
+            }
+            invocation.getShell().write(ANSI.CURSOR_START);
+            invocation.getShell().write(ANSI.ERASE_WHOLE_LINE);
+            recent.statistics.stream().filter(rs -> "test".equals(rs.phase)).forEach(rs -> {
+               double durationSeconds = (rs.summary.endTime - rs.summary.startTime) / 1000d;
+               invocation.print("Requests/sec: " + String.format("%.02f", rs.summary.requestCount / durationSeconds));
+            });
+            try {
+               Thread.sleep(1000);
+            } catch (InterruptedException e) {
+               invocation.println("Interrupt received, trying to abort run...");
+               run.kill();
+            }
+         }
+         invocation.println(Config.getLineSeparator() + "benchmark finished");
+         Client.RequestStatisticsResponse total = run.statsTotal();
+         Collection<Client.CustomStats> custom = run.customStats().stream()
+               .filter(cs -> cs.phase.equals("test")).collect(Collectors.toList());
+         Client.RequestStats testStats = total.statistics.stream().filter(rs -> "test".equals(rs.phase))
+               .findFirst().orElseThrow(() -> new IllegalStateException("Missing stats for phase 'test'"));
+         AbstractHistogram histogram = HistogramConverter.convert(run.histogram(testStats.phase, testStats.stepId, testStats.metric));
+         printStats(testStats.summary, histogram, custom, invocation);
          return CommandResult.SUCCESS;
       }
 
-      private void startRunnerInCliMode(LocalSimulationRunner runner, Benchmark benchmark,
-                                        HyperfoilCommandInvocation invocation) {
-
-         CountDownLatch latch = new CountDownLatch(1);
-         Thread thread = new Thread(() -> {
-            runner.run();
-            latch.countDown();
-         });
-         thread.start();
-
-         long startTime = System.currentTimeMillis();
-         StatisticsCollector collector = new StatisticsCollector(benchmark);
-         StatisticsSnapshot total = new StatisticsSnapshot();
-         while (latch.getCount() > 0) {
-
-            long duration = System.currentTimeMillis() - startTime;
-            if (duration % 800 == 0) {
-               invocation.getShell().write(ANSI.CURSOR_START);
-               invocation.getShell().write(ANSI.ERASE_WHOLE_LINE);
-               runner.visitStatistics(collector);
-               collector.visitStatistics((phase, stepId, metric, stats, countDown) -> {
-                  if ("test".equals(phase.name())) {
-                     double durationSeconds = (stats.histogram.getEndTimeStamp() - stats.histogram.getStartTimeStamp()) / 1000d;
-                     invocation.print("Requests/sec: " + String.format("%.02f", stats.histogram.getTotalCount() / durationSeconds));
-                     stats.addInto(total);
-                  }
-               }, null);
-
-               try {
-                  Thread.sleep(10);
-               } catch (InterruptedException e) {
-                  //if we're interrupted, lets try to interrupt the benchmark...
-                  invocation.println("Interrupt received, trying to abort run...");
-                  thread.interrupt();
-                  latch.countDown();
-               }
-            }
-         }
-         invocation.context().setRunning(false);
-         invocation.println(Config.getLineSeparator() + "benchmark finished");
-         runner.visitStatistics(collector);
-         collector.visitStatistics((phase, stepId, metric, stats, countDown) -> {
-            if ("test".equals(phase.name())) {
-               stats.addInto(total);
-            }
-         }, null);
-         printStats(total, invocation);
-      }
-
-      private PhaseBuilder addPhase(BenchmarkBuilder benchmarkBuilder, String phase, String duration) {
+      private PhaseBuilder<?> addPhase(BenchmarkBuilder benchmarkBuilder, String phase, String duration) {
+         // prevent capturing WrkCommand in closure
+         String[][] parsedHeaders = this.parsedHeaders;
+         // @formatter:off
          return benchmarkBuilder.addPhase(phase).constantPerSec(rate)
                .duration(duration)
                .maxSessions(rate * 15)
                .scenario()
-               .initialSequence("request")
-               .step(StepCatalog.class).httpRequest(HttpMethod.GET)
-               .path(path)
-               .headerAppender((session, request) -> {
-                  if (parsedHeaders != null) {
-                     for (String[] header : parsedHeaders) {
-                        request.putHeader(header[0], header[1]);
-                     }
-                  }
-               })
-               .timeout(timeout)
-               .handler()
-               .rawBytesHandler(new ByteBufSizeRecorder("bytes"))
-               .endHandler()
-               .endStep()
-               .step(StepCatalog.class).awaitAllResponses()
-               .endSequence()
+                  .initialSequence("request")
+                     .step(StepCatalog.class).httpRequest(HttpMethod.GET)
+                        .path(path)
+                        .headerAppender((session, request) -> {
+                           if (parsedHeaders != null) {
+                              for (String[] header : parsedHeaders) {
+                                 request.putHeader(header[0], header[1]);
+                              }
+                           }
+                        })
+                        .timeout(timeout)
+                        .handler()
+                           .rawBytesHandler(new ByteBufSizeRecorder("bytes"))
+                        .endHandler()
+                     .endStep()
+                  .endSequence()
                .endScenario();
+         // @formatter:on
       }
 
-      private void printStats(StatisticsSnapshot stats, CommandInvocation invocation) {
-         long dataRead = ((LongValue) stats.custom.get("bytes")).value();
-         double durationSeconds = (stats.histogram.getEndTimeStamp() - stats.histogram.getStartTimeStamp()) / 1000d;
+      private void printStats(StatisticsSummary stats, AbstractHistogram histogram, Collection<Client.CustomStats> custom, CommandInvocation invocation) {
+         long dataRead = custom.stream().filter(cs -> cs.customName.equals("bytes")).mapToLong(cs -> Long.parseLong(cs.value)).findFirst().orElse(0);
+         double durationSeconds = (stats.endTime - stats.startTime) / 1000d;
          invocation.println("                  Avg     Stdev       Max");
-         invocation.println("Latency:    " + Util.prettyPrintNanos((long) stats.histogram.getMean()) + " "
-               + Util.prettyPrintNanos((long) stats.histogram.getStdDeviation()) + " " + Util.prettyPrintNanos(stats.histogram.getMaxValue()));
+         invocation.println("Latency:    " + Util.prettyPrintNanos(stats.meanResponseTime) + " "
+               + Util.prettyPrintNanos((long) histogram.getStdDeviation()) + " " + Util.prettyPrintNanos(stats.maxResponseTime));
          if (latency) {
             invocation.println("Latency Distribution");
-            for (double percentile : new double[]{ 0.5, 0.75, 0.9, 0.99, 0.999, 0.9999, 0.99999, 1.0 }) {
-               invocation.println(String.format("%7.3f", 100 * percentile) + " " + Util.prettyPrintNanos(stats.histogram.getValueAtPercentile(100 * percentile)));
+            for (Map.Entry<Double, Long> entry : stats.percentileResponseTime.entrySet()) {
+               invocation.println(String.format("%7.3f", entry.getKey()) + " " + Util.prettyPrintNanos(entry.getValue()));
             }
             invocation.println("----------------------------------------------------------");
             invocation.println("Detailed Percentile Spectrum");
             invocation.println("    Value  Percentile  TotalCount  1/(1-Percentile)");
-            for (HistogramIterationValue value : stats.histogram.percentiles(5)) {
+            for (HistogramIterationValue value : histogram.percentiles(5)) {
                invocation.println(Util.prettyPrintNanos(value.getValueIteratedTo()) + " " + String.format("%9.5f%%  %10d  %15.2f",
                      value.getPercentile(), value.getTotalCountToThisValue(), 100 / (100 - value.getPercentile())));
             }
             invocation.println("----------------------------------------------------------");
          }
-         invocation.println(stats.histogram.getTotalCount() + " requests in " + durationSeconds + "s, " + Util.prettyPrintData(dataRead) + " read");
-         invocation.println("Requests/sec: " + String.format("%.02f", stats.histogram.getTotalCount() / durationSeconds));
-         if (stats.errors() > 0) {
+         invocation.println(stats.requestCount + " requests in " + durationSeconds + "s, " + Util.prettyPrintData(dataRead) + " read");
+         invocation.println("Requests/sec: " + String.format("%.02f", stats.requestCount / durationSeconds));
+         if (stats.connectFailureCount + stats.resetCount + stats.timeouts + stats.status_4xx + stats.status_5xx > 0) {
             invocation.println("Socket errors: connect " + stats.connectFailureCount + ", reset " + stats.resetCount + ", timeout " + stats.timeouts);
             invocation.println("Non-2xx or 3xx responses: " + stats.status_4xx + stats.status_5xx + stats.status_other);
          }
