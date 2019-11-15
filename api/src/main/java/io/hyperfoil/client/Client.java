@@ -65,6 +65,8 @@ public interface Client {
 
       RequestStatisticsResponse statsTotal();
 
+      Client.Histogram histogram(String phase, int stepId, String metric);
+
       Collection<CustomStats> customStats();
    }
 
@@ -175,14 +177,19 @@ public interface Client {
 
    class RequestStats {
       public final String phase;
+      public final int stepId;
       public final String metric;
       public final StatisticsSummary summary;
       public final List<String> failedSLAs;
 
       @JsonCreator
-      public RequestStats(@JsonProperty("phase") String phase, @JsonProperty("metric") String metric,
-                          @JsonProperty("summary") StatisticsSummary summary, @JsonProperty("failedSLAs") List<String> failedSLAs) {
+      public RequestStats(@JsonProperty("phase") String phase,
+                          @JsonProperty("stepId") int stepId,
+                          @JsonProperty("metric") String metric,
+                          @JsonProperty("summary") StatisticsSummary summary,
+                          @JsonProperty("failedSLAs") List<String> failedSLAs) {
          this.phase = phase;
+         this.stepId = stepId;
          this.metric = metric;
          this.summary = summary;
          this.failedSLAs = failedSLAs;
@@ -205,6 +212,24 @@ public interface Client {
          this.metric = metric;
          this.customName = customName;
          this.value = value;
+      }
+   }
+
+   class Histogram {
+      public final String phase;
+      public final String metric;
+      public final long startTime, endTime;
+      public final String data;
+
+      @JsonCreator
+      public Histogram(@JsonProperty("phase") String phase, @JsonProperty("metric") String metric,
+                       @JsonProperty("startTime") long startTime, @JsonProperty("endTime") long endTime,
+                       @JsonProperty("data") String data) {
+         this.phase = phase;
+         this.metric = metric;
+         this.startTime = startTime;
+         this.endTime = endTime;
+         this.data = data;
       }
    }
 

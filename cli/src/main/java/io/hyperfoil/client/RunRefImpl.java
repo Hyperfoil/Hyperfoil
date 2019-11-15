@@ -108,6 +108,18 @@ public class RunRefImpl implements Client.RunRef {
    }
 
    @Override
+   public Client.Histogram histogram(String phase, int stepId, String metric) {
+      return client.sync(
+            handler -> client.client.request(HttpMethod.GET, "/run/" + id + "/stats/histogram")
+                  .addQueryParam("phase", phase)
+                  .addQueryParam("stepId", String.valueOf(stepId))
+                  .addQueryParam("metric", metric)
+                  .putHeader(HttpHeaders.ACCEPT.toString(), "application/json").send(handler), 200,
+            response -> Json.decodeValue(response.body(), Client.Histogram.class)
+      );
+   }
+
+   @Override
    public Collection<Client.CustomStats> customStats() {
       return client.sync(
             handler -> client.client.request(HttpMethod.GET, "/run/" + id + "/stats/custom").send(handler), 200,

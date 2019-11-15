@@ -39,6 +39,16 @@ public class RestClient implements Client, Closeable {
       client = WebClient.create(vertx, options.setFollowRedirects(false));
    }
 
+   static RestClientException unexpected(HttpResponse<Buffer> response) {
+      StringBuilder sb = new StringBuilder("Server responded with unexpected code: ");
+      sb.append(response.statusCode()).append(", ").append(response.statusMessage());
+      String body = response.bodyAsString();
+      if (body != null && !body.isEmpty()) {
+         sb.append(":\n").append(body);
+      }
+      return new RestClientException(sb.toString());
+   }
+
    public String host() {
       return options.getDefaultHost();
    }
@@ -125,8 +135,7 @@ public class RestClient implements Client, Closeable {
             }
             HttpResponse<Buffer> response = rsp.result();
             if (response.statusCode() != 200) {
-               future.completeExceptionally(new RestClientException("Server responded with unexpected code: "
-                     + response.statusCode() + ", " + response.statusMessage()));
+               future.completeExceptionally(unexpected(response));
                return;
             }
             try {
@@ -158,8 +167,7 @@ public class RestClient implements Client, Closeable {
                      }
                      HttpResponse<Buffer> response2 = rsp2.result();
                      if (response2.statusCode() != 200) {
-                        future.completeExceptionally(new RestClientException("Server responded with unexpected code: "
-                              + response2.statusCode() + ", " + response2.statusMessage()));
+                        future.completeExceptionally(unexpected(response2));
                         return;
                      }
                      try {
@@ -198,8 +206,7 @@ public class RestClient implements Client, Closeable {
             if (rsp.succeeded()) {
                HttpResponse<Buffer> response = rsp.result();
                if (statusCode != 0 && response.statusCode() != statusCode) {
-                  future.completeExceptionally(new RestClientException("Server responded with unexpected code: "
-                        + response.statusCode() + ", " + response.statusMessage()));
+                  future.completeExceptionally(unexpected(response));
                   return;
                }
                try {

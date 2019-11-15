@@ -91,8 +91,7 @@ class BenchmarkRefImpl implements Client.BenchmarkRef {
                      }
                   });
                } else {
-                  future.completeExceptionally(new RestClientException("Server responded with unexpected code: "
-                        + response.statusCode() + ", " + response.statusMessage()));
+                  future.completeExceptionally(RestClient.unexpected(response));
                }
             } else {
                future.completeExceptionally(rsp.cause());

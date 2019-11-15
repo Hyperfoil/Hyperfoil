@@ -8,6 +8,7 @@ import io.hyperfoil.api.statistics.CustomValue;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.api.statistics.StatisticsSummary;
 import io.hyperfoil.client.Client;
+import io.hyperfoil.client.HistogramConverter;
 import io.hyperfoil.core.util.LowHigh;
 import io.netty.util.collection.IntObjectHashMap;
 import io.netty.util.collection.IntObjectMap;
@@ -698,7 +699,7 @@ public class StatisticsStore {
             List<String> failures = this.failures.stream()
                   .filter(f -> f.phase().equals(data.phase) && (f.metric() == null || f.metric().equals(data.metric)))
                   .map(f -> f.message()).collect(Collectors.toList());
-            result.add(new Client.RequestStats(data.phase, data.metric, sum.summary(PERCENTILES), failures));
+            result.add(new Client.RequestStats(data.phase, data.stepId, data.metric, sum.summary(PERCENTILES), failures));
          }
       }
       result.sort(REQUEST_STATS_COMPARATOR);
@@ -713,7 +714,7 @@ public class StatisticsStore {
             List<String> failures = this.failures.stream()
                   .filter(f -> f.phase().equals(data.phase) && (f.metric() == null || f.metric().equals(data.metric)))
                   .map(f -> f.message()).collect(Collectors.toList());
-            result.add(new Client.RequestStats(data.phase, data.metric, last, failures));
+            result.add(new Client.RequestStats(data.phase, data.stepId, data.metric, last, failures));
          }
       }
       result.sort(REQUEST_STATS_COMPARATOR);
@@ -735,6 +736,18 @@ public class StatisticsStore {
       return list;
    }
 
+   public Client.Histogram histogram(String phase, int stepId, String metric) {
+      int phaseId = benchmark.phases().stream().filter(p -> p.name.equals(phase)).mapToInt(p -> p.id).findFirst().orElse(-1);
+      Map<String, Data> phaseStepData = data.get((phaseId << 16) + stepId);
+      if (phaseStepData == null) {
+         return null;
+      }
+      Data data = phaseStepData.get(metric);
+      if (data == null) {
+         return null;
+      }
+      return HistogramConverter.convert(phase, metric, data.total.histogram);
+   }
 
    public void recordSessionStats(String address, long timestamp, String phase, int minSessions, int maxSessions) {
       SessionPoolStats sps = this.sessionPoolStats.computeIfAbsent(phase, p -> new SessionPoolStats());

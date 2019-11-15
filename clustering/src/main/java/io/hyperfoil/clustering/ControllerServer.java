@@ -90,6 +90,7 @@ class ControllerServer {
       router.get("/run/:runid/stats/recent").handler(this::handleRecentStats);
       router.get("/run/:runid/stats/total").handler(this::handleTotalStats);
       router.get("/run/:runid/stats/custom").handler(this::handleCustomStats);
+      router.get("/run/:runid/stats/histogram").handler(this::handleHistogramStats);
       router.get("/run/:runid/benchmark").handler(this::handleRunBenchmark);
       router.get("/agents").handler(this::handleAgents);
       router.get("/log").handler(this::handleLog);
@@ -520,6 +521,26 @@ class ControllerServer {
       // TODO: add json response format based on 'Accept' header
       ctx.response().end(new JsonArray(stats).encodePrettily());
    }
+
+   private void handleHistogramStats(RoutingContext ctx) {
+      Run run = getRun(ctx);
+      if (run == null || run.statisticsStore == null) {
+         ctx.response().setStatusCode(HttpResponseStatus.NOT_FOUND.code()).end();
+         return;
+      }
+      int stepId;
+      try {
+         stepId = Integer.parseInt(getSingleParam(ctx, "stepId"));
+      } catch (NumberFormatException e) {
+         ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end();
+         return;
+      }
+      String phase = getSingleParam(ctx, "phase");
+      String metric = getSingleParam(ctx, "metric");
+      Client.Histogram histogram = run.statisticsStore.histogram(phase, stepId, metric);
+      ctx.response().end(Json.encode(histogram));
+   }
+
 
    private void handleRecentSessions(RoutingContext ctx) {
       handleSessionPoolStats(ctx, run -> run.statisticsStore.recentSessionPoolSummary(System.currentTimeMillis() - 5000));
