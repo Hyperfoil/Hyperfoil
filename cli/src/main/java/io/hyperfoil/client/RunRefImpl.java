@@ -1,18 +1,26 @@
 package io.hyperfoil.client;
 
+import static io.hyperfoil.client.RestClient.unexpected;
+import static io.hyperfoil.client.RestClient.waitFor;
+
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.util.Util;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
+import io.vertx.ext.web.client.HttpResponse;
 
 public class RunRefImpl implements Client.RunRef {
    private final RestClient client;
@@ -105,6 +113,35 @@ public class RunRefImpl implements Client.RunRef {
             handler -> client.client.request(HttpMethod.GET, "/run/" + id + "/stats/total")
                   .putHeader(HttpHeaders.ACCEPT.toString(), "application/json").send(handler), 200,
             response -> Json.decodeValue(response.body(), Client.RequestStatisticsResponse.class));
+   }
+
+   @Override
+   public void statsAll(String format, String destinationFile) {
+      CompletableFuture<String> future = new CompletableFuture<>();
+      client.vertx.runOnContext(ctx -> {
+         client.client.request(HttpMethod.GET, "/run/" + id + "/stats/all")
+               .putHeader(HttpHeaders.ACCEPT.toString(), format)
+               .send(rsp -> {
+                  if (rsp.failed()) {
+                     future.completeExceptionally(rsp.cause());
+                     return;
+                  }
+                  HttpResponse<Buffer> response = rsp.result();
+                  if (response.statusCode() != 200) {
+                     future.completeExceptionally(unexpected(response));
+                     return;
+                  }
+                  try {
+                     Files.write(Paths.get(destinationFile), response.body().getBytes());
+                     future.complete(null);
+                  } catch (IOException e) {
+                     future.completeExceptionally(new RestClientException(e));
+                  } catch (Throwable t) {
+                     future.completeExceptionally(t);
+                  }
+               });
+      });
+      waitFor(future);
    }
 
    @Override

@@ -23,6 +23,7 @@ package io.hyperfoil.cli;
 import io.hyperfoil.cli.commands.Compare;
 import io.hyperfoil.cli.commands.Connect;
 import io.hyperfoil.cli.commands.Edit;
+import io.hyperfoil.cli.commands.Export;
 import io.hyperfoil.cli.commands.Info;
 import io.hyperfoil.cli.commands.Kill;
 import io.hyperfoil.cli.commands.Log;
@@ -100,6 +101,7 @@ public class HyperfoilCli {
                               .command(Compare.class)
                               .command(Edit.class)
                               .command(ExitCommand.class)
+                              .command(Export.class)
                               .command(Info.class)
                               .command(Kill.class)
                               .command(Log.class)

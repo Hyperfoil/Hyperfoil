@@ -65,6 +65,8 @@ public interface Client {
 
       RequestStatisticsResponse statsTotal();
 
+      void statsAll(String format, String destinationFile);
+
       Client.Histogram histogram(String phase, int stepId, String metric);
 
       Collection<CustomStats> customStats();

@@ -186,7 +186,7 @@ public class RestClient implements Client, Closeable {
       return waitFor(future);
    }
 
-   <T> T waitFor(CompletableFuture<T> future) {
+   static <T> T waitFor(CompletableFuture<T> future) {
       try {
          return future.get(30, TimeUnit.SECONDS);
       } catch (InterruptedException e1) {

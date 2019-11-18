@@ -789,4 +789,8 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
    public int actualPort() {
       return server.httpServer.actualPort();
    }
+
+   public Path getRunDir(Run run) {
+      return RUN_DIR.resolve(run.id);
+   }
 }

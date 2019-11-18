@@ -58,6 +58,7 @@ class ControllerServer {
    private static final Set<String> MIME_TYPE_YAML = new HashSet<>(
          Arrays.asList("text/vnd.yaml", "text/yaml", "text/x-yaml", "application/x-yaml"));
    private static final String MIME_TYPE_JSON = "application/json";
+   private static final String MIME_TYPE_CSV = "text/csv";
 
    private static final String CONTROLLER_HOST = Properties.get(Properties.CONTROLLER_HOST, "localhost");
    private static final int CONTROLLER_PORT = Properties.getInt(Properties.CONTROLLER_PORT, 8090);
@@ -87,6 +88,7 @@ class ControllerServer {
       router.get("/run/:runid/sessions/recent").handler(this::handleRecentSessions);
       router.get("/run/:runid/sessions/total").handler(this::handleTotalSessions);
       router.get("/run/:runid/connections").handler(this::handleListConnections);
+      router.get("/run/:runid/stats/all").handler(this::handleAllStats);
       router.get("/run/:runid/stats/recent").handler(this::handleRecentStats);
       router.get("/run/:runid/stats/total").handler(this::handleTotalStats);
       router.get("/run/:runid/stats/custom").handler(this::handleCustomStats);
@@ -473,6 +475,33 @@ class ControllerServer {
          });
       } else {
          routingContext.response().setStatusCode(404).end();
+      }
+   }
+
+   private void handleAllStats(RoutingContext ctx) {
+      Run run = getRun(ctx);
+      if (run == null) {
+         ctx.response().setStatusCode(HttpResponseStatus.NOT_FOUND.code()).end();
+         return;
+      } else if (!run.terminateTime.isComplete()) {
+         ctx.response().setStatusCode(HttpResponseStatus.SEE_OTHER.code())
+               .setStatusMessage("Run is not completed yet.")
+               .putHeader(HttpHeaders.LOCATION, "/run/" + run.id)
+               .end();
+         return;
+      }
+      String accept = ctx.request().getHeader(HttpHeaders.ACCEPT);
+      switch (accept) {
+         case MIME_TYPE_JSON:
+            ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_JSON)
+                  .sendFile(controller.getRunDir(run).resolve("all.json").toString());
+            break;
+         case MIME_TYPE_CSV:
+            new Zipper(ctx.response(), controller.getRunDir(run).resolve("stats")).run();
+            break;
+         default:
+            ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
+                  .setStatusMessage("Unknown format " + accept).end();
       }
    }
 
