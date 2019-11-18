@@ -10,7 +10,6 @@ import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.Agent;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.config.RunHook;
-import io.hyperfoil.api.deployment.AgentProperties;
 import io.hyperfoil.api.deployment.DeployedAgent;
 import io.hyperfoil.api.deployment.Deployer;
 import io.hyperfoil.api.session.PhaseInstance;
@@ -25,6 +24,7 @@ import io.hyperfoil.clustering.messages.PhaseChangeMessage;
 import io.hyperfoil.clustering.messages.PhaseControlMessage;
 import io.hyperfoil.clustering.messages.RequestStatsMessage;
 import io.hyperfoil.core.util.CountDown;
+import io.hyperfoil.internal.Controller;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.DeploymentOptions;
@@ -47,7 +47,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -65,12 +64,6 @@ import org.infinispan.commons.api.BasicCacheContainer;
 
 public class ControllerVerticle extends AbstractVerticle implements NodeListener {
    private static final Logger log = LoggerFactory.getLogger(ControllerVerticle.class);
-   private static final Path ROOT_DIR = Properties.get(Properties.ROOT_DIR, Paths::get, Paths.get(System.getProperty("java.io.tmpdir"), "hyperfoil"));
-   private static final Path RUN_DIR = Properties.get(Properties.RUN_DIR, Paths::get, ROOT_DIR.resolve("run"));
-   private static final Path BENCHMARK_DIR = Properties.get(Properties.BENCHMARK_DIR, Paths::get, ROOT_DIR.resolve("benchmark"));
-   private static final Path HOOKS_DIR = ROOT_DIR.resolve("hooks");
-   private static final String DEPLOYER = Properties.get(AgentProperties.DEPLOYER, "ssh");
-   private static final long DEPLOY_TIMEOUT = Properties.getLong(AgentProperties.DEPLOY_TIMEOUT, 15000);
 
    private EventBus eb;
    private ControllerServer server;
@@ -83,19 +76,19 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
 
    @Override
    public void start(Future<Void> future) {
-      log.info("Starting in directory {}...", ROOT_DIR);
+      log.info("Starting in directory {}...", Controller.ROOT_DIR);
       CountDown startCountDown = new CountDown(future, 2);
       server = new ControllerServer(this, startCountDown);
       vertx.exceptionHandler(throwable -> log.error("Uncaught error: ", throwable));
-      if (Files.exists(RUN_DIR)) {
+      if (Files.exists(Controller.RUN_DIR)) {
          try {
-            Files.list(RUN_DIR).forEach(this::updateRuns);
+            Files.list(Controller.RUN_DIR).forEach(this::updateRuns);
          } catch (IOException e) {
             log.error("Could not list run dir contents", e);
          }
       }
-      HOOKS_DIR.resolve("pre").toFile().mkdirs();
-      HOOKS_DIR.resolve("post").toFile().mkdirs();
+      Controller.HOOKS_DIR.resolve("pre").toFile().mkdirs();
+      Controller.HOOKS_DIR.resolve("post").toFile().mkdirs();
 
       eb = vertx.eventBus();
 
@@ -199,13 +192,13 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       if (vertx.isClustered()) {
          for (Deployer.Factory deployerFactory : ServiceLoader.load(Deployer.Factory.class)) {
             log.debug("Found deployer {}", deployerFactory.name());
-            if (DEPLOYER.equals(deployerFactory.name())) {
+            if (Controller.DEPLOYER.equals(deployerFactory.name())) {
                deployer = deployerFactory.create();
                break;
             }
          }
          if (deployer == null) {
-            throw new IllegalStateException("Hyperfoil is running in clustered mode but it couldn't load deployer '" + DEPLOYER + "'");
+            throw new IllegalStateException("Hyperfoil is running in clustered mode but it couldn't load deployer '" + Controller.DEPLOYER + "'");
          }
 
          if (vertx instanceof VertxInternal) {
@@ -214,8 +207,8 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
          }
       }
 
-      if (!BENCHMARK_DIR.toFile().exists() && !BENCHMARK_DIR.toFile().mkdirs()) {
-         log.error("Failed to create benchmark directory: {}", BENCHMARK_DIR);
+      if (!Controller.BENCHMARK_DIR.toFile().exists() && !Controller.BENCHMARK_DIR.toFile().mkdirs()) {
+         log.error("Failed to create benchmark directory: {}", Controller.BENCHMARK_DIR);
       }
       startCountDown.increment();
       loadBenchmarks(startCountDown);
@@ -329,7 +322,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
 
    Run createRun(Benchmark benchmark, String description) {
       String runId = String.format("%04X", runIds.getAndIncrement());
-      Path runDir = RUN_DIR.resolve(runId);
+      Path runDir = Controller.RUN_DIR.resolve(runId);
       runDir.toFile().mkdirs();
       Run run = new Run(runId, runDir, benchmark);
       run.description = description;
@@ -388,7 +381,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
          }
       }
 
-      run.deployTimerId = vertx.setTimer(DEPLOY_TIMEOUT, id -> {
+      run.deployTimerId = vertx.setTimer(Controller.DEPLOY_TIMEOUT, id -> {
          log.error("Deployment timed out.");
          stopSimulation(run);
       });
@@ -625,12 +618,12 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
    private Map<String, String> getRunProperties(Run run) {
       Map<String, String> properties = new HashMap<>();
       properties.put("RUN_ID", run.id);
-      properties.put("RUN_DIR", RUN_DIR.resolve(run.id).toAbsolutePath().toString());
+      properties.put("RUN_DIR", Controller.RUN_DIR.resolve(run.id).toAbsolutePath().toString());
       if (run.description != null) {
          properties.put("RUN_DESCRIPTION", run.description);
       }
       properties.put("BENCHMARK", run.benchmark.name());
-      File benchmarkFile = BENCHMARK_DIR.resolve(run.benchmark.name() + ".yaml").toFile();
+      File benchmarkFile = Controller.BENCHMARK_DIR.resolve(run.benchmark.name() + ".yaml").toFile();
       if (benchmarkFile.exists()) {
          properties.put("BENCHMARK_PATH", benchmarkFile.getAbsolutePath());
       }
@@ -668,7 +661,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
    public void addBenchmark(Benchmark benchmark, Handler<AsyncResult<Void>> handler) {
       benchmarks.put(benchmark.name(), benchmark);
       vertx.executeBlocking(future -> {
-         PersistenceUtil.store(benchmark, BENCHMARK_DIR);
+         PersistenceUtil.store(benchmark, Controller.BENCHMARK_DIR);
          future.complete();
       }, handler);
    }
@@ -684,14 +677,14 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
    private void loadBenchmarks(Handler<AsyncResult<Void>> handler) {
       vertx.executeBlocking(future -> {
          try {
-            Files.list(BENCHMARK_DIR).forEach(file -> {
+            Files.list(Controller.BENCHMARK_DIR).forEach(file -> {
                Benchmark benchmark = PersistenceUtil.load(file);
                if (benchmark != null) {
                   benchmarks.put(benchmark.name(), benchmark);
                }
             });
          } catch (IOException e) {
-            log.error("Failed to list benchmark dir {}", e, BENCHMARK_DIR);
+            log.error("Failed to list benchmark dir {}", e, Controller.BENCHMARK_DIR);
          }
          future.complete();
       }, handler);
@@ -699,7 +692,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
 
    private List<RunHook> loadHooks(String subdir) {
       try {
-         File preHookDir = HOOKS_DIR.resolve(subdir).toFile();
+         File preHookDir = Controller.HOOKS_DIR.resolve(subdir).toFile();
          if (preHookDir.exists() && preHookDir.isDirectory()) {
             return Files.list(preHookDir.toPath()).map(path -> {
                File file = path.toFile();
@@ -766,12 +759,12 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
 
    public Benchmark ensureBenchmark(Run run) {
       if (run.benchmark.source() == null) {
-         File serializedSource = RUN_DIR.resolve(run.id).resolve(run.benchmark.name() + ".serialized").toFile();
+         File serializedSource = Controller.RUN_DIR.resolve(run.id).resolve(run.benchmark.name() + ".serialized").toFile();
          if (serializedSource.exists() && serializedSource.isFile()) {
             run.benchmark = PersistenceUtil.load(serializedSource.toPath());
             return run.benchmark;
          }
-         File yamlSource = RUN_DIR.resolve(run.id).resolve(run.benchmark.name() + ".yaml").toFile();
+         File yamlSource = Controller.RUN_DIR.resolve(run.id).resolve(run.benchmark.name() + ".yaml").toFile();
          if (yamlSource.exists() && yamlSource.isFile()) {
             run.benchmark = PersistenceUtil.load(yamlSource.toPath());
             return run.benchmark;
@@ -791,6 +784,6 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
    }
 
    public Path getRunDir(Run run) {
-      return RUN_DIR.resolve(run.id);
+      return Controller.RUN_DIR.resolve(run.id);
    }
 }

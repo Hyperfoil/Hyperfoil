@@ -3,7 +3,6 @@ package io.hyperfoil.deploy.ssh;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
 import java.util.function.Consumer;
@@ -23,7 +22,7 @@ import io.hyperfoil.api.config.Agent;
 import io.hyperfoil.api.deployment.DeployedAgent;
 import io.hyperfoil.api.deployment.Deployer;
 import io.hyperfoil.api.deployment.DeploymentException;
-import io.hyperfoil.clustering.Properties;
+import io.hyperfoil.internal.Controller;
 import io.hyperfoil.util.Util;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
@@ -84,8 +83,7 @@ public class SshDeployer implements Deployer {
          username = System.getProperty("user.name");
       }
       if (dir == null) {
-         Path defaultRoot = Paths.get(System.getProperty("java.io.tmpdir"), "hyperfoil");
-         dir = Properties.get(Properties.ROOT_DIR, Paths::get, defaultRoot).toString();
+         dir = Controller.ROOT_DIR.toString();
       }
       try {
          SshDeployedAgent deployedAgent = new SshDeployedAgent(agent.name, runId, username, hostname, port, dir, extras);

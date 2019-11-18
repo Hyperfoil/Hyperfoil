@@ -22,10 +22,9 @@ import org.apache.sshd.client.subsystem.sftp.SftpClient;
 import org.apache.sshd.client.subsystem.sftp.SftpClientFactory;
 import org.apache.sshd.common.util.io.NullOutputStream;
 
-import io.hyperfoil.api.deployment.AgentProperties;
 import io.hyperfoil.api.deployment.DeployedAgent;
 import io.hyperfoil.api.deployment.DeploymentException;
-import io.hyperfoil.clustering.Properties;
+import io.hyperfoil.internal.Properties;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
@@ -35,8 +34,8 @@ import io.vertx.core.logging.LoggerFactory;
 public class SshDeployedAgent implements DeployedAgent {
    private static final Logger log = LoggerFactory.getLogger(SshDeployedAgent.class);
    private static final String PROMPT = "<_#%@_hyperfoil_@%#_>";
-   private static final String DEBUG_ADDRESS = System.getProperty(AgentProperties.AGENT_DEBUG_PORT);
-   private static final String DEBUG_SUSPEND = Properties.get(AgentProperties.AGENT_DEBUG_SUSPEND, "n");
+   private static final String DEBUG_ADDRESS = System.getProperty(Properties.AGENT_DEBUG_PORT);
+   private static final String DEBUG_SUSPEND = Properties.get(Properties.AGENT_DEBUG_SUSPEND, "n");
    private static final String AGENTLIB = "/agentlib";
 
    final String name;
@@ -149,7 +148,7 @@ public class SshDeployedAgent implements DeployedAgent {
          }
          runCommand(rmCommand.toString(), true);
       }
-      String log4jConfigurationFile = System.getProperty(AgentProperties.LOG4J2_CONFIGURATION_FILE);
+      String log4jConfigurationFile = System.getProperty(Properties.LOG4J2_CONFIGURATION_FILE);
       if (log4jConfigurationFile != null) {
          if (log4jConfigurationFile.startsWith("file://")) {
             log4jConfigurationFile = log4jConfigurationFile.substring("file://".length());
@@ -158,7 +157,7 @@ public class SshDeployedAgent implements DeployedAgent {
          try {
             String targetFile = dir + AGENTLIB + "/" + filename;
             scpClient.upload(log4jConfigurationFile, targetFile, ScpClient.Option.PreserveAttributes);
-            startAgentCommmand.append(" -D").append(AgentProperties.LOG4J2_CONFIGURATION_FILE)
+            startAgentCommmand.append(" -D").append(Properties.LOG4J2_CONFIGURATION_FILE)
                   .append("=file://").append(targetFile);
          } catch (IOException e) {
             log.error("Cannot copy log4j2 configuration file.", e);
@@ -167,10 +166,10 @@ public class SshDeployedAgent implements DeployedAgent {
 
       startAgentCommmand.append(" -Djava.net.preferIPv4Stack=true");
       startAgentCommmand.append(" -Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.Log4j2LogDelegateFactory");
-      startAgentCommmand.append(" -D").append(AgentProperties.AGENT_NAME).append('=').append(name);
-      startAgentCommmand.append(" -D").append(AgentProperties.RUN_ID).append('=').append(runId);
-      startAgentCommmand.append(" -D").append(AgentProperties.CONTROLLER_CLUSTER_IP).append('=').append(System.getProperty(AgentProperties.CONTROLLER_CLUSTER_IP));
-      startAgentCommmand.append(" -D").append(AgentProperties.CONTROLLER_CLUSTER_PORT).append('=').append(System.getProperty(AgentProperties.CONTROLLER_CLUSTER_PORT));
+      startAgentCommmand.append(" -D").append(Properties.AGENT_NAME).append('=').append(name);
+      startAgentCommmand.append(" -D").append(Properties.RUN_ID).append('=').append(runId);
+      startAgentCommmand.append(" -D").append(Properties.CONTROLLER_CLUSTER_IP).append('=').append(System.getProperty(Properties.CONTROLLER_CLUSTER_IP));
+      startAgentCommmand.append(" -D").append(Properties.CONTROLLER_CLUSTER_PORT).append('=').append(System.getProperty(Properties.CONTROLLER_CLUSTER_PORT));
       if (DEBUG_ADDRESS != null) {
          startAgentCommmand.append(" -agentlib:jdwp=transport=dt_socket,server=y,suspend=").append(DEBUG_SUSPEND).append(",address=").append(DEBUG_ADDRESS);
       }

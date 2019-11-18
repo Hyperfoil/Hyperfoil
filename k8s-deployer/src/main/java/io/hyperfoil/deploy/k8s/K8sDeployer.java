@@ -29,9 +29,9 @@ import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.dsl.LogWatch;
 import io.hyperfoil.api.config.Agent;
-import io.hyperfoil.api.deployment.AgentProperties;
 import io.hyperfoil.api.deployment.DeployedAgent;
 import io.hyperfoil.api.deployment.Deployer;
+import io.hyperfoil.internal.Properties;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
@@ -132,7 +132,7 @@ public class K8sDeployer implements Deployer {
             configMap = log.substring(0, index);
             file = log.substring(index + 1);
          }
-         command.add("-D" + AgentProperties.LOG4J2_CONFIGURATION_FILE + "=file:///etc/log4j2/" + file);
+         command.add("-D" + Properties.LOG4J2_CONFIGURATION_FILE + "=file:///etc/log4j2/" + file);
 
          containerBuilder.withVolumeMounts(new VolumeMountBuilder()
                .withName("log")
@@ -148,10 +148,10 @@ public class K8sDeployer implements Deployer {
 
       command.add("-Djava.net.preferIPv4Stack=true");
       command.add("-Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.Log4j2LogDelegateFactory");
-      command.add("-D" + AgentProperties.AGENT_NAME + "=" + agent.name);
-      command.add("-D" + AgentProperties.RUN_ID + "=" + runId);
-      command.add("-D" + AgentProperties.CONTROLLER_CLUSTER_IP + "=" + System.getProperty(AgentProperties.CONTROLLER_CLUSTER_IP));
-      command.add("-D" + AgentProperties.CONTROLLER_CLUSTER_PORT + "=" + System.getProperty(AgentProperties.CONTROLLER_CLUSTER_PORT));
+      command.add("-D" + Properties.AGENT_NAME + "=" + agent.name);
+      command.add("-D" + Properties.RUN_ID + "=" + runId);
+      command.add("-D" + Properties.CONTROLLER_CLUSTER_IP + "=" + System.getProperty(Properties.CONTROLLER_CLUSTER_IP));
+      command.add("-D" + Properties.CONTROLLER_CLUSTER_PORT + "=" + System.getProperty(Properties.CONTROLLER_CLUSTER_PORT));
       if (agent.properties.containsKey("extras")) {
          command.addAll(Arrays.asList(agent.properties.get("extras").split(" ", 0)));
       }

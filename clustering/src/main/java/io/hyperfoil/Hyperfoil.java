@@ -20,10 +20,10 @@ import org.infinispan.configuration.parsing.ParserRegistry;
 import org.infinispan.manager.DefaultCacheManager;
 import org.infinispan.remoting.transport.jgroups.JGroupsTransport;
 
-import io.hyperfoil.api.deployment.AgentProperties;
 import io.hyperfoil.clustering.ControllerVerticle;
 import io.hyperfoil.clustering.AgentVerticle;
 import io.hyperfoil.clustering.Codecs;
+import io.hyperfoil.internal.Properties;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Handler;
 import io.vertx.core.Verticle;
@@ -44,7 +44,7 @@ class Hyperfoil {
       VertxOptions options = new VertxOptions();
       options.getEventBusOptions().setClustered(true);
       try {
-         String clusterIp = System.getProperty(AgentProperties.CONTROLLER_CLUSTER_IP);
+         String clusterIp = System.getProperty(Properties.CONTROLLER_CLUSTER_IP);
          InetAddress address;
          if (isController && clusterIp != null) {
             address = InetAddress.getByName(clusterIp);
@@ -65,7 +65,7 @@ class Hyperfoil {
          if (LOCALHOST_IPS.contains(hostAddress) && clusterIp == null) {
             log.error("This machine is configured to resolve its hostname to 127.0.0.1; this is " +
                   "an invalid configuration for clustering. Make sure `hostname -i` does not return 127.0.0.1 or ::1 " +
-                  " or set -D" + AgentProperties.CONTROLLER_CLUSTER_IP + "=x.x.x.x to use different address. " +
+                  " or set -D" + Properties.CONTROLLER_CLUSTER_IP + "=x.x.x.x to use different address. " +
                   "(if you set that to 127.0.0.1 you won't be able to connect from agents on other machines).");
             System.exit(1);
          }
@@ -77,7 +77,7 @@ class Hyperfoil {
          if (System.getProperty("jgroups.tcp.address") == null) {
             System.setProperty("jgroups.tcp.address", hostAddress);
          }
-         String clusterPort = System.getProperty(AgentProperties.CONTROLLER_CLUSTER_PORT);
+         String clusterPort = System.getProperty(Properties.CONTROLLER_CLUSTER_PORT);
          if (isController && clusterPort != null && System.getProperty("jgroups.tcp.port") == null) {
             System.setProperty("jgroups.tcp.port", clusterPort);
          }

@@ -27,6 +27,7 @@ import io.hyperfoil.client.Client;
 import io.hyperfoil.core.Version;
 import io.hyperfoil.core.util.LowHigh;
 import io.hyperfoil.core.util.Util;
+import io.hyperfoil.internal.Properties;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.core.parser.BenchmarkParser;

@@ -7,7 +7,7 @@ import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.clustering.Codecs;
 import io.hyperfoil.clustering.ControllerVerticle;
-import io.hyperfoil.clustering.Properties;
+import io.hyperfoil.internal.Properties;
 import io.hyperfoil.internal.Controller;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
@@ -52,7 +52,10 @@ public class LocalController implements Controller {
       public Controller start(Path rootDir) {
          if (rootDir != null) {
             System.setProperty(Properties.ROOT_DIR, rootDir.toFile().getAbsolutePath());
+         } else {
+            rootDir = Controller.DEFAULT_ROOT_DIR;
          }
+         System.setProperty(Properties.CONTROLLER_LOG, rootDir.resolve("hyperfoil.local.log").toFile().getAbsolutePath());
          System.setProperty(Properties.CONTROLLER_HOST, "127.0.0.1");
          System.setProperty(Properties.CONTROLLER_PORT, "0");
          Vertx vertx = Vertx.vertx();
