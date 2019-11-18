@@ -86,7 +86,6 @@ items:
     name: hyperfoil
     namespace: hyperfoil
   spec:
-    host: hyperfoil.apps.benchcluster.perf.lab.eng.rdu2.redhat.com
     port:
       targetPort: 8090-8090
     to:
