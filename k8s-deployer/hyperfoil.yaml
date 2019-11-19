@@ -52,31 +52,28 @@ items:
   - kind: ServiceAccount
     name: controller
     namespace: hyperfoil
-- apiVersion: apps.openshift.io/v1
-  kind: DeploymentConfig
+- apiVersion: extensions/v1beta1
+  kind: Deployment
   metadata:
-    generation: 10
+    labels:
+      app: hyperfoil
     name: controller
     namespace: hyperfoil
   spec:
     replicas: 1
-    strategy:
-      type: Recreate
     template:
       metadata:
         labels:
           app: hyperfoil
-          deployment-config.name: controller
       spec:
         containers:
         - command:
           - /deployment/bin/controller.sh
           - -Dio.hyperfoil.deploy.timeout=120000
           - -Dio.hyperfoil.deployer=k8s
+          - -Dio.hyperfoil.controller.host=0.0.0.0
           image: quay.io/hyperfoil/hyperfoil:latest
-          imagePullPolicy: Always
-          name: controller
-        restartPolicy: Always
+          name: hyperfoil
         serviceAccountName: controller
 - apiVersion: route.openshift.io/v1
   kind: Route
