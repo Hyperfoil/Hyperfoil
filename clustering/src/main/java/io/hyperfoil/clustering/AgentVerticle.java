@@ -17,6 +17,7 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.eventbus.EventBus;
+import io.vertx.core.eventbus.Message;
 import io.vertx.core.eventbus.MessageConsumer;
 import io.vertx.core.eventbus.ReplyException;
 import io.vertx.core.eventbus.ReplyFailure;
@@ -65,72 +66,16 @@ public class AgentVerticle extends AbstractVerticle {
       eb = vertx.eventBus();
 
       eb.consumer(deploymentId, message -> {
-         AgentControlMessage controlMessage = (AgentControlMessage) message.body();
-         switch (controlMessage.command()) {
-            case INITIALIZE:
-               log.info("Initializing agent");
-               try {
-                  initBenchmark(controlMessage.benchmark(), controlMessage.agentId(), result -> {
-                     if (result.succeeded()) {
-                        message.reply("OK");
-                     } else {
-                        log.error("Replying with error result", result.cause());
-                        message.fail(1, result.cause().getMessage());
-                     }
-                  });
-               } catch (Throwable e) {
-                  log.error("Failed to initialize agent", e);
-                  message.fail(1, e.getMessage());
-               }
-               break;
-            case STOP:
-               // collect stats one last time before acknowledging termination
-               log.info("Received agent reset");
-               if (statsTimerId >= 0) {
-                  vertx.cancelTimer(statsTimerId);
-               }
-               CountDown completion = new CountDown(result -> {
-                  message.reply(result.succeeded() ? "OK" : result.cause());
-                  if (vertx.isClustered()) {
-                     // Give the message some time to be sent
-                     vertx.setTimer(1000, id -> vertx.close());
-                  } else {
-                     vertx.undeploy(deploymentID());
-                  }
-               }, 1);
-               if (runner != null) {
-                  runner.visitStatistics(requestStatsSender);
-                  requestStatsSender.send(completion);
-                  runner.shutdown();
-               }
-               if (controlFeedConsumer != null) {
-                  controlFeedConsumer.unregister();
-               }
-               controlFeedConsumer = null;
-               runner = null;
-               requestStatsSender = null;
-               if (statisticsCountDown != null) {
-                  statisticsCountDown.setHandler(result -> completion.countDown());
-                  statisticsCountDown.countDown();
-               } else {
-                  completion.countDown();
-               }
-               break;
-            case LIST_SESSIONS:
-               log.debug("Listing sessions...");
-               ArrayList<String> sessions = new ArrayList<>();
-               boolean includeInactive = controlMessage.includeInactive();
-               runner.visitSessions(s -> {
-                  if (s.isActive() || includeInactive) {
-                     sessions.add(s.toString());
-                  }
-               });
-               message.reply(sessions);
-               break;
-            case LIST_CONNECTIONS:
-               log.debug("Listing connections...");
-               message.reply(runner.listConnections());
-               break;
+         try {
+            AgentControlMessage controlMessage = (AgentControlMessage) message.body();
+            if (controlMessage == null) {
+               message.fail(1, "Could not decode message body. Does this Agent have the same version as the Controller?");
+               return;
+            }
+            handleAgentControlMessage(message, controlMessage);
+         } catch (Throwable t) {
+            log.error("Processing of message failed", t);
+            message.fail(1, t.getMessage());
          }
       });
 
@@ -157,6 +102,75 @@ public class AgentVerticle extends AbstractVerticle {
             }
          });
       });
+   }
+
+   private void handleAgentControlMessage(Message<Object> message, AgentControlMessage controlMessage) {
+      switch (controlMessage.command()) {
+         case INITIALIZE:
+            log.info("Initializing agent");
+            try {
+               initBenchmark(controlMessage.benchmark(), controlMessage.agentId(), result -> {
+                  if (result.succeeded()) {
+                     message.reply("OK");
+                  } else {
+                     log.error("Replying with error result", result.cause());
+                     message.fail(1, result.cause().getMessage());
+                  }
+               });
+            } catch (Throwable e) {
+               log.error("Failed to initialize agent", e);
+               message.fail(1, e.getMessage());
+            }
+            break;
+         case STOP:
+            // collect stats one last time before acknowledging termination
+            log.info("Received agent reset");
+            if (statsTimerId >= 0) {
+               vertx.cancelTimer(statsTimerId);
+            }
+            CountDown completion = new CountDown(result -> {
+               message.reply(result.succeeded() ? "OK" : result.cause());
+               if (vertx.isClustered()) {
+                  // Give the message some time to be sent
+                  vertx.setTimer(1000, id -> vertx.close());
+               } else {
+                  vertx.undeploy(deploymentID());
+               }
+            }, 1);
+            if (runner != null) {
+               runner.visitStatistics(requestStatsSender);
+               requestStatsSender.send(completion);
+               runner.shutdown();
+            }
+            if (controlFeedConsumer != null) {
+               controlFeedConsumer.unregister();
+            }
+            controlFeedConsumer = null;
+            runner = null;
+            requestStatsSender = null;
+            if (statisticsCountDown != null) {
+               statisticsCountDown.setHandler(result -> completion.countDown());
+               statisticsCountDown.countDown();
+            } else {
+               completion.countDown();
+            }
+            break;
+         case LIST_SESSIONS:
+            log.debug("Listing sessions...");
+            ArrayList<String> sessions = new ArrayList<>();
+            boolean includeInactive = controlMessage.includeInactive();
+            runner.visitSessions(s -> {
+               if (s.isActive() || includeInactive) {
+                  sessions.add(s.toString());
+               }
+            });
+            message.reply(sessions);
+            break;
+         case LIST_CONNECTIONS:
+            log.debug("Listing connections...");
+            message.reply(runner.listConnections());
+            break;
+      }
    }
 
    private MessageConsumer<Object> listenOnControl() {
