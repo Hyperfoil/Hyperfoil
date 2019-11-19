@@ -1,10 +1,10 @@
-package io.hyperfoil.core;
+package io.hyperfoil.api;
 
 import java.net.URL;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 
-import org.slf4j.LoggerFactory;
+import io.vertx.core.logging.LoggerFactory;
 
 public class Version {
    public static final String VERSION;
@@ -22,19 +22,13 @@ public class Version {
             manifest = new Manifest(new URL(manifestPath).openStream());
             Attributes attr = manifest.getMainAttributes();
             commitId = attr.getValue("Scm-Revision");
-            String cp = attr.getValue("Class-Path");
-            int apiIndex = cp.indexOf("hyperfoil-api-");
-            if (apiIndex >= 0) {
-               int jarIndex = cp.indexOf(".jar", apiIndex + 14);
-               version = cp.substring(apiIndex + 14, jarIndex < 0 ? cp.length() : jarIndex);
-            }
+            version = attr.getValue("Implementation-Version");
          }
       } catch (Throwable e) {
          LoggerFactory.getLogger(Version.class).error("Cannot find version info.", e);
       } finally {
          VERSION = version;
          COMMIT_ID = commitId;
-
       }
    }
 }

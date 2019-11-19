@@ -31,6 +31,7 @@ import io.fabric8.kubernetes.client.dsl.LogWatch;
 import io.hyperfoil.api.config.Agent;
 import io.hyperfoil.api.deployment.DeployedAgent;
 import io.hyperfoil.api.deployment.Deployer;
+import io.hyperfoil.api.Version;
 import io.hyperfoil.internal.Properties;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
@@ -56,7 +57,7 @@ import io.vertx.core.logging.LoggerFactory;
 public class K8sDeployer implements Deployer {
    private static final Logger log = LoggerFactory.getLogger(K8sDeployer.class);
    private static final String API_SERVER = System.getProperty("io.hyperfoil.deployer.k8s.apiserver", "https://kubernetes.default.svc.cluster.local/");
-   private static final String IMAGE = System.getProperty("io.hyperfoil.deployer.k8s.image", "quay.io/hyperfoil/hyperfoil:latest");
+   private static final String DEFAULT_IMAGE = "quay.io/hyperfoil/hyperfoil:" + Version.VERSION;
    private static final String TOKEN;
    private static final String NAMESPACE;
 
@@ -102,7 +103,7 @@ public class K8sDeployer implements Deployer {
       List<String> command = new ArrayList<>();
       command.add("java");
       ContainerBuilder containerBuilder = new ContainerBuilder()
-            .withImage(IMAGE)
+            .withImage(agent.properties.getOrDefault("image", DEFAULT_IMAGE))
             .withName("hyperfoil-agent")
             .withPorts(new ContainerPort(7800, null, null, "jgroups", "TCP"));
 

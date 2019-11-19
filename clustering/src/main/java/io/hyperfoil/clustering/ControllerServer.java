@@ -24,7 +24,7 @@ import io.hyperfoil.api.config.BenchmarkData;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.client.Client;
-import io.hyperfoil.core.Version;
+import io.hyperfoil.api.Version;
 import io.hyperfoil.core.util.LowHigh;
 import io.hyperfoil.core.util.Util;
 import io.hyperfoil.internal.Properties;

@@ -19,7 +19,7 @@ public class Version extends ServerCommand {
       } catch (RestClientException e) {
          invocation.println("Server: unknown");
       }
-      invocation.println("Client: " + io.hyperfoil.core.Version.VERSION + ", " + io.hyperfoil.core.Version.COMMIT_ID);
+      invocation.println("Client: " + io.hyperfoil.api.Version.VERSION + ", " + io.hyperfoil.api.Version.COMMIT_ID);
       return CommandResult.SUCCESS;
    }
 }
