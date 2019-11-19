@@ -107,20 +107,6 @@ public abstract class Phase implements Serializable {
       return benchmark.get();
    }
 
-   private static int requirePositive(int value, String message) {
-      if (value <= 0) {
-         throw new BenchmarkDefinitionException(message);
-      }
-      return value;
-   }
-
-   private static double requireNonNegative(double value, String message) {
-      if (value < 0) {
-         throw new BenchmarkDefinitionException(message);
-      }
-      return value;
-   }
-
    public abstract String description();
 
    protected int agentCount() {
@@ -137,7 +123,7 @@ public abstract class Phase implements Serializable {
          if (duration > 0) {
             log.warn("Duration for phase {} is ignored.", duration);
          }
-         this.users = requirePositive(users, "Phase " + name + " requires positive number of users!");
+         this.users = users;
       }
 
       @Override
@@ -153,7 +139,7 @@ public abstract class Phase implements Serializable {
                     Collection<String> startAfter, Collection<String> startAfterStrict,
                     Collection<String> terminateAfterStrict, long duration, long maxDuration, String sharedResources, int users) {
          super(benchmark, id, name, scenario, startTime, startAfter, startAfterStrict, terminateAfterStrict, duration, maxDuration, sharedResources);
-         this.users = requirePositive(users, "Phase " + name + " requires positive number of users!");
+         this.users = users;
       }
 
       @Override
@@ -176,8 +162,8 @@ public abstract class Phase implements Serializable {
                         String sharedResources, double initialUsersPerSec, double targetUsersPerSec,
                         boolean variance, int maxSessions) {
          super(benchmark, id, name, scenario, startTime, startAfter, startAfterStrict, terminateAfterStrict, duration, maxDuration, sharedResources);
-         this.initialUsersPerSec = requireNonNegative(initialUsersPerSec, "Phase " + name + " requires non-negative number of initial users per second!");
-         this.targetUsersPerSec = requireNonNegative(targetUsersPerSec, "Phase " + name + " requires non-negative number of target users per second!");
+         this.initialUsersPerSec = initialUsersPerSec;
+         this.targetUsersPerSec = targetUsersPerSec;
          this.variance = variance;
          this.maxSessions = maxSessions;
       }
@@ -199,7 +185,7 @@ public abstract class Phase implements Serializable {
                             Collection<String> terminateAfterStrict,
                             long duration, long maxDuration, String sharedResources, double usersPerSec, boolean variance, int maxSessions) {
          super(benchmark, id, name, scenario, startTime, startAfter, startAfterStrict, terminateAfterStrict, duration, maxDuration, sharedResources);
-         this.usersPerSec = Phase.requireNonNegative(usersPerSec, "Phase " + name + " requires non-negative number of users per second!");
+         this.usersPerSec = usersPerSec;
          this.variance = variance;
          this.maxSessions = maxSessions;
       }
@@ -218,7 +204,7 @@ public abstract class Phase implements Serializable {
                           Collection<String> terminateAfterStrict,
                           long duration, long maxDuration, String sharedResources, int repeats) {
          super(benchmark, id, name, scenario, startTime, startAfter, startAfterStrict, terminateAfterStrict, duration, maxDuration, sharedResources);
-         this.repeats = Phase.requirePositive(repeats, "Phase " + name + " requires positive number of repeats!");
+         this.repeats = repeats;
       }
 
       @Override

@@ -287,6 +287,9 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
 
       @Override
       public Phase.AtOnce buildPhase(SerializableSupplier<Benchmark> benchmark, SerializableSupplier<Phase> phase, int id, int i, PhaseForkBuilder f) {
+         if (users <= 0) {
+            throw new BenchmarkDefinitionException("Phase " + name + ".users must be positive.");
+         }
          return new Phase.AtOnce(benchmark, id, iterationName(i, f.name), f.scenario.build(phase),
                iterationStartTime(i), iterationReferences(startAfter, i, false),
                iterationReferences(startAfterStrict, i, true), iterationReferences(terminateAfterStrict, i, false), duration,
@@ -306,6 +309,9 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
 
       @Override
       public Phase.Always buildPhase(SerializableSupplier<Benchmark> benchmark, SerializableSupplier<Phase> phase, int id, int i, PhaseForkBuilder f) {
+         if (users <= 0) {
+            throw new BenchmarkDefinitionException("Phase " + name + ".users must be positive.");
+         }
          return new Phase.Always(benchmark, id, iterationName(i, f.name), f.scenario.build(phase), iterationStartTime(i),
                iterationReferences(startAfter, i, false), iterationReferences(startAfterStrict, i, true),
                iterationReferences(terminateAfterStrict, i, false), duration, maxDuration,
@@ -353,6 +359,15 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
             double maxInitialUsers = initialUsersPerSec + initialUsersPerSecIncrement * (maxIterations - 1);
             double maxTargetUsers = targetUsersPerSec + targetUsersPerSecIncrement * (maxIterations - 1);
             maxSessions = (int) Math.ceil(Math.max(maxInitialUsers, maxTargetUsers) * f.weight / numAgents());
+         }
+         if (initialUsersPerSec < 0) {
+            throw new BenchmarkDefinitionException("Phase " + name + ".initialUsersPerSec must be non-negative");
+         }
+         if (targetUsersPerSec < 0) {
+            throw new BenchmarkDefinitionException("Phase " + name + ".targetUsersPerSec must be non-negative");
+         }
+         if (initialUsersPerSec < 0.0001 && targetUsersPerSec < 0.0001) {
+            throw new BenchmarkDefinitionException("In phase " + name + " both initialUsersPerSec and targetUsersPerSec are 0");
          }
          return new Phase.RampPerSec(benchmark, id, iterationName(i, f.name), f.scenario.build(phase),
                iterationStartTime(i), iterationReferences(startAfter, i, false),
@@ -417,6 +432,9 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
          } else {
             maxSessions = sliceValue("maxSessions", this.maxSessions, f.weight / numAgents());
          }
+         if (usersPerSec <= 0) {
+            throw new BenchmarkDefinitionException("Phase " + name + ".usersPerSec must be positive.");
+         }
          return new Phase.ConstantPerSec(benchmark, id, iterationName(i, f.name), f.scenario.build(phase), iterationStartTime(i),
                iterationReferences(startAfter, i, false), iterationReferences(startAfterStrict, i, true),
                iterationReferences(terminateAfterStrict, i, false), duration, maxDuration,
@@ -451,6 +469,9 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
 
       @Override
       protected Phase buildPhase(SerializableSupplier<Benchmark> benchmark, SerializableSupplier<Phase> phase, int id, int i, PhaseForkBuilder f) {
+         if (repeats <= 0) {
+            throw new BenchmarkDefinitionException("Phase " + name + ".repeats must be positive");
+         }
          return new Phase.Sequentially(benchmark, id, iterationName(i, f.name), f.scenario().build(phase), iterationStartTime(i),
                iterationReferences(startAfter, i, false), iterationReferences(startAfterStrict, i, true),
                iterationReferences(terminateAfterStrict, i, false), duration, maxDuration,
