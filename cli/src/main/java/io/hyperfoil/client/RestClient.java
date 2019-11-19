@@ -189,11 +189,14 @@ public class RestClient implements Client, Closeable {
    static <T> T waitFor(CompletableFuture<T> future) {
       try {
          return future.get(30, TimeUnit.SECONDS);
-      } catch (InterruptedException e1) {
+      } catch (InterruptedException e) {
          Thread.currentThread().interrupt();
-         throw new RestClientException(e1);
-      } catch (ExecutionException e1) {
-         throw new RestClientException(e1.getCause() == null ? e1 : e1.getCause());
+         throw new RestClientException(e);
+      } catch (ExecutionException e) {
+         if (e.getCause() instanceof RestClientException) {
+            throw (RestClientException) e.getCause();
+         }
+         throw new RestClientException(e.getCause() == null ? e : e.getCause());
       } catch (TimeoutException e) {
          throw new RestClientException("Request did not complete within 30 seconds.");
       }
