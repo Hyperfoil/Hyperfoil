@@ -260,7 +260,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder> {
       }
    }
 
-   public PhaseBuilder<PB> forceIterations(boolean force) {
+   public PB forceIterations(boolean force) {
       this.forceIterations = force;
       return self();
    }
