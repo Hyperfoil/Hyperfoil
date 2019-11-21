@@ -202,37 +202,40 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
 
       @Override
       public List<Step> build(SerializableSupplier<Sequence> sequence) {
-         SerializableToLongFunction<Session> duration;
+         long duration = this.duration;
+         long min = this.min;
+         long max = this.max;
+         SerializableToLongFunction<Session> func;
          switch (randomType) {
             case CONSTANT:
-               if (min != 0 || max != Long.MAX_VALUE) {
+               if (this.min != 0 || this.max != Long.MAX_VALUE) {
                   throw new BenchmarkDefinitionException("This duration should be constant; no need to define 'min' and 'max'.");
                } else if (this.duration <= 0) {
                   throw new BenchmarkDefinitionException("Duration must be positive.");
                }
-               duration = session -> this.duration;
+               func = session -> duration;
                break;
             case LINEAR:
                if (this.duration != 0) {
                   throw new BenchmarkDefinitionException("The duration is set through 'min' and 'max'; do not use 'duration'");
-               } else if (min < 0) {
+               } else if (this.min < 0) {
                   throw new BenchmarkDefinitionException("The minimum duration must not be lower than 0.");
-               } else if (max > TimeUnit.HOURS.toMillis(24)) {
+               } else if (this.max > TimeUnit.HOURS.toMillis(24)) {
                   throw new BenchmarkDefinitionException("The maximum duration is over 24 hours: that's likely an error.");
                }
-               duration = session -> ThreadLocalRandom.current().nextLong(min, max + 1);
+               func = session -> ThreadLocalRandom.current().nextLong(min, max + 1);
                break;
             case NEGATIVE_EXPONENTIAL:
-               duration = session -> {
+               func = session -> {
                   double rand = ThreadLocalRandom.current().nextDouble();
-                  long delay = (long) ((this.duration) * -Math.log(Math.max(rand, 1e-20d)));
+                  long delay = (long) (duration * -Math.log(Math.max(rand, 1e-20d)));
                   return Math.max(Math.min(delay, max), min);
                };
                break;
             default:
                throw new BenchmarkDefinitionException("Unknown randomness type: " + randomType);
          }
-         return Collections.singletonList(new ScheduleDelayStep(key, type, duration));
+         return Collections.singletonList(new ScheduleDelayStep(key, type, func));
       }
 
       /**
