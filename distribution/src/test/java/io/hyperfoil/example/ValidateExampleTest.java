@@ -18,6 +18,7 @@ import org.junit.runners.Parameterized;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.core.impl.LocalBenchmarkData;
 import io.hyperfoil.core.parser.BenchmarkParser;
+import io.hyperfoil.util.Util;
 
 @RunWith(Parameterized.class)
 public class ValidateExampleTest {
@@ -45,6 +46,8 @@ public class ValidateExampleTest {
       try {
          Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(stream, new LocalBenchmarkData());
          assertThat(benchmark.name()).isEqualTo(exampleFile.replace(".hf.yaml", "").replaceFirst("[^" + File.separatorChar + "]*.", ""));
+         byte[] bytes = Util.serialize(benchmark);
+         assertThat(bytes).isNotNull();
       } catch (Exception e) {
          throw new AssertionError("Failure in " + exampleFile, e);
       }

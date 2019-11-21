@@ -32,6 +32,7 @@ import io.hyperfoil.core.steps.HttpRequestStep;
 import io.hyperfoil.core.steps.HttpRequestStepUtil;
 import io.hyperfoil.core.steps.NoopStep;
 import io.hyperfoil.core.steps.ScheduleDelayStep;
+import io.hyperfoil.util.Util;
 
 import org.assertj.core.api.Condition;
 import org.junit.Assert;
@@ -211,6 +212,12 @@ public class YamlParserTest {
       try {
          Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(inputStream, new LocalBenchmarkData());
          Assert.assertNotNull(benchmark);
+         try {
+            byte[] bytes = Util.serialize(benchmark);
+            assertThat(bytes).isNotNull();
+         } catch (IOException e) {
+            throw new AssertionError(e);
+         }
          return benchmark;
       } catch (ParserException | IOException e) {
          throw new AssertionError("Error occurred during parsing", e);
