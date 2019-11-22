@@ -15,6 +15,11 @@ import java.util.concurrent.CompletionException;
 import com.fasterxml.jackson.core.type.TypeReference;
 
 import io.hyperfoil.api.config.Benchmark;
+import io.hyperfoil.controller.Client;
+import io.hyperfoil.controller.model.CustomStats;
+import io.hyperfoil.controller.model.Histogram;
+import io.hyperfoil.controller.model.RequestStatisticsResponse;
+import io.hyperfoil.controller.model.Run;
 import io.hyperfoil.util.Util;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
@@ -39,10 +44,10 @@ public class RunRefImpl implements Client.RunRef {
    }
 
    @Override
-   public Client.Run get() {
+   public Run get() {
       return client.sync(
             handler -> client.client.request(HttpMethod.GET, "/run/" + id).send(handler), 200,
-            response -> Json.decodeValue(response.body(), Client.Run.class));
+            response -> Json.decodeValue(response.body(), Run.class));
    }
 
    @Override
@@ -100,19 +105,19 @@ public class RunRefImpl implements Client.RunRef {
    }
 
    @Override
-   public Client.RequestStatisticsResponse statsRecent() {
+   public RequestStatisticsResponse statsRecent() {
       return client.sync(
             handler -> client.client.request(HttpMethod.GET, "/run/" + id + "/stats/recent")
                   .putHeader(HttpHeaders.ACCEPT.toString(), "application/json").send(handler), 200,
-            response -> Json.decodeValue(response.body(), Client.RequestStatisticsResponse.class));
+            response -> Json.decodeValue(response.body(), RequestStatisticsResponse.class));
    }
 
    @Override
-   public Client.RequestStatisticsResponse statsTotal() {
+   public RequestStatisticsResponse statsTotal() {
       return client.sync(
             handler -> client.client.request(HttpMethod.GET, "/run/" + id + "/stats/total")
                   .putHeader(HttpHeaders.ACCEPT.toString(), "application/json").send(handler), 200,
-            response -> Json.decodeValue(response.body(), Client.RequestStatisticsResponse.class));
+            response -> Json.decodeValue(response.body(), RequestStatisticsResponse.class));
    }
 
    @Override
@@ -145,21 +150,21 @@ public class RunRefImpl implements Client.RunRef {
    }
 
    @Override
-   public Client.Histogram histogram(String phase, int stepId, String metric) {
+   public Histogram histogram(String phase, int stepId, String metric) {
       return client.sync(
             handler -> client.client.request(HttpMethod.GET, "/run/" + id + "/stats/histogram")
                   .addQueryParam("phase", phase)
                   .addQueryParam("stepId", String.valueOf(stepId))
                   .addQueryParam("metric", metric)
                   .putHeader(HttpHeaders.ACCEPT.toString(), "application/json").send(handler), 200,
-            response -> Json.decodeValue(response.body(), Client.Histogram.class)
+            response -> Json.decodeValue(response.body(), Histogram.class)
       );
    }
 
    @Override
-   public Collection<Client.CustomStats> customStats() {
+   public Collection<CustomStats> customStats() {
       return client.sync(
             handler -> client.client.request(HttpMethod.GET, "/run/" + id + "/stats/custom").send(handler), 200,
-            response -> Json.decodeValue(response.body(), new TypeReference<Collection<Client.CustomStats>>() {}));
+            response -> Json.decodeValue(response.body(), new TypeReference<Collection<CustomStats>>() {}));
    }
 }

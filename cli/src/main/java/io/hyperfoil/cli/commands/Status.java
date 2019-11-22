@@ -9,15 +9,16 @@ import org.aesh.command.option.Option;
 
 import io.hyperfoil.cli.Table;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
-import io.hyperfoil.client.Client;
+import io.hyperfoil.controller.Client;
 import io.hyperfoil.client.RestClientException;
+import io.hyperfoil.controller.model.Phase;
 import io.hyperfoil.core.util.Util;
 
 @CommandDefinition(name = "status", description = "Prints information about executing or completed run.")
 public class Status extends BaseRunIdCommand {
    private static final SimpleDateFormat TIME_FORMATTER = new SimpleDateFormat("HH:mm:ss.SSS");
    private static final SimpleDateFormat DATE_FORMATTER = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
-   private static final Table<Client.Phase> PHASE_TABLE = new Table<Client.Phase>()
+   private static final Table<Phase> PHASE_TABLE = new Table<Phase>()
          .column("NAME", p -> p.name)
          .column("STATUS", p -> p.status)
          .column("STARTED", p -> p.started == null ? null : TIME_FORMATTER.format(p.started))
@@ -32,7 +33,7 @@ public class Status extends BaseRunIdCommand {
    @Override
    public CommandResult execute(HyperfoilCommandInvocation invocation) throws CommandException {
       Client.RunRef runRef = getRunRef(invocation);
-      Client.Run run;
+      io.hyperfoil.controller.model.Run run;
       try {
          run = runRef.get();
       } catch (RestClientException e) {
@@ -57,7 +58,7 @@ public class Status extends BaseRunIdCommand {
             invocation.println("");
          }
 
-         Client.Run r = run;
+         io.hyperfoil.controller.model.Run r = run;
          invocation.print(PHASE_TABLE.print(run.phases.stream().filter(p -> showPhase(r, p))));
          long cancelled = run.phases.stream().filter(p -> "CANCELLED".equals(p.status)).count();
          if (cancelled > 0) {
@@ -94,7 +95,7 @@ public class Status extends BaseRunIdCommand {
       }
    }
 
-   private boolean showPhase(Client.Run run, Client.Phase phase) {
+   private boolean showPhase(io.hyperfoil.controller.model.Run run, Phase phase) {
       return ((all || run.terminated != null) && !"CANCELLED".equals(phase.status))
             || "RUNNING".equals(phase.status) || "FINISHED".equals(phase.status);
    }

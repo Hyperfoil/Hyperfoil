@@ -1,37 +1,42 @@
 package io.hyperfoil.clustering;
 
+
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import io.hyperfoil.api.Version;
+import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkData;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Phase;
-import io.hyperfoil.client.Client;
-import io.hyperfoil.api.Version;
+import io.hyperfoil.controller.ApiService;
+import io.hyperfoil.controller.model.CustomStats;
+import io.hyperfoil.controller.model.Histogram;
+import io.hyperfoil.controller.model.RequestStats;
+import io.hyperfoil.controller.router.ApiRouter;
+import io.hyperfoil.core.impl.statistics.StatisticsStore;
+import io.hyperfoil.core.parser.BenchmarkParser;
+import io.hyperfoil.core.parser.ParserException;
+import io.hyperfoil.core.util.CountDown;
 import io.hyperfoil.core.util.LowHigh;
 import io.hyperfoil.core.util.Util;
 import io.hyperfoil.internal.Properties;
 import io.netty.handler.codec.http.HttpResponseStatus;
-import io.hyperfoil.api.config.Benchmark;
-import io.hyperfoil.core.parser.BenchmarkParser;
-import io.hyperfoil.core.parser.ParserException;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
@@ -47,19 +52,16 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.FileUpload;
-import io.vertx.ext.web.Route;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.BodyHandler;
 
-class ControllerServer {
+class ControllerServer implements ApiService {
    private static final Logger log = LoggerFactory.getLogger(ControllerServer.class);
-   private static final String MIME_TYPE_SERIALIZED = "application/java-serialized-object";
-   private static final String MIME_TYPE_MULTIPART = "multipart/form-data";
-   private static final Set<String> MIME_TYPE_YAML = new HashSet<>(
-         Arrays.asList("text/vnd.yaml", "text/yaml", "text/x-yaml", "application/x-yaml"));
+
    private static final String MIME_TYPE_JSON = "application/json";
-   private static final String MIME_TYPE_ZIP = "application/zip";
+   private static final String MIME_TYPE_SERIALIZED = "application/java-serialized-object";
+   private static final String MIME_TYPE_TEXT_PLAIN = "text/plain";
+   private static final String MIME_TYPE_YAML = "text/vnd.yaml";
 
    private static final String CONTROLLER_HOST = Properties.get(Properties.CONTROLLER_HOST, "localhost");
    private static final int CONTROLLER_PORT = Properties.getInt(Properties.CONTROLLER_PORT, 8090);
@@ -67,47 +69,21 @@ class ControllerServer {
          Comparator.<ControllerPhase, Long>comparing(ControllerPhase::absoluteStartTime).thenComparing(p -> p.definition().name);
    private static final String TRIGGER_URL = System.getProperty(Properties.TRIGGER_URL);
 
-   private final ControllerVerticle controller;
-   final HttpServer httpServer;
-   private final Router router;
-   private String baseURL;
+   final ControllerVerticle controller;
+   HttpServer httpServer;
+   String baseURL;
 
-   ControllerServer(ControllerVerticle controller, Handler<AsyncResult<Void>> handler) {
+   ControllerServer(ControllerVerticle controller, CountDown countDown) {
       this.controller = controller;
-      router = Router.router(controller.getVertx());
-
-      router.route().handler(BodyHandler.create());
-      router.get("/").handler(this::handleIndex);
-      router.post("/benchmark").handler(this::handlePostBenchmark);
-      router.get("/benchmark").handler(this::handleListBenchmarks);
-      router.get("/benchmark/:benchmarkname").handler(this::handleGetBenchmark);
-      router.get("/benchmark/:benchmarkname/start").handler(this::handleBenchmarkStart);
-      router.get("/run").handler(this::handleListRuns);
-      router.get("/run/:runid").handler(this::handleGetRun);
-      router.get("/run/:runid/kill").handler(this::handleRunKill);
-      router.get("/run/:runid/sessions").handler(this::handleListSessions);
-      router.get("/run/:runid/sessions/recent").handler(this::handleRecentSessions);
-      router.get("/run/:runid/sessions/total").handler(this::handleTotalSessions);
-      router.get("/run/:runid/connections").handler(this::handleListConnections);
-      router.get("/run/:runid/stats/all").handler(this::handleAllStats);
-      router.get("/run/:runid/stats/recent").handler(this::handleRecentStats);
-      router.get("/run/:runid/stats/total").handler(this::handleTotalStats);
-      router.get("/run/:runid/stats/custom").handler(this::handleCustomStats);
-      router.get("/run/:runid/stats/histogram").handler(this::handleHistogramStats);
-      router.get("/run/:runid/benchmark").handler(this::handleRunBenchmark);
-      router.get("/agents").handler(this::handleAgents);
-      router.get("/log").handler(this::handleLog);
-      router.get("/log/:agent").handler(this::handleAgentLog);
-      router.get("/shutdown").handler(this::handleShutdown);
-      router.get("/version").handler(this::handleVersion);
+      Router router = Router.router(controller.getVertx());
+      new ApiRouter(this, router);
 
       httpServer = controller.getVertx().createHttpServer().requestHandler(router)
-            .listen(CONTROLLER_PORT, CONTROLLER_HOST, result -> {
-               if (result.succeeded()) {
-                  HttpServer server = result.result();
-                  baseURL = "http://" + CONTROLLER_HOST + ":" + server.actualPort();
+            .listen(CONTROLLER_PORT, CONTROLLER_HOST, serverResult -> {
+               if (serverResult.succeeded()) {
+                  baseURL = "http://" + CONTROLLER_HOST + ":" + serverResult.result().actualPort();
                }
-               handler.handle(result.mapEmpty());
+               countDown.handle(serverResult.mapEmpty());
             });
    }
 
@@ -115,238 +91,222 @@ class ControllerServer {
       httpServer.close(result -> stopFuture.complete());
    }
 
-   private void handleIndex(RoutingContext ctx) {
-      StringBuilder sb = new StringBuilder("Hello from Hyperfoil, these are available URLs:\n");
-      for (Route route : router.getRoutes()) {
-         if (route.getPath() != null) { // avoid the default route
-            sb.append(route.getPath()).append('\n');
+   @Override
+   public void openApi(RoutingContext ctx) {
+      try {
+         InputStream stream = ApiService.class.getClassLoader().getResourceAsStream("openapi.yaml");
+         Buffer payload;
+         String contentType;
+         if (stream == null) {
+            payload = Buffer.buffer("API definition not available");
+            contentType = MIME_TYPE_TEXT_PLAIN;
+         } else {
+            payload = Buffer.buffer(Util.toString(stream));
+            contentType = MIME_TYPE_YAML;
          }
+         ctx.response()
+               .putHeader(HttpHeaders.CONTENT_TYPE.toString(), contentType)
+               .putHeader("x-epoch-millis", String.valueOf(System.currentTimeMillis()))
+               .end(payload);
+      } catch (IOException e) {
+         log.error("Cannot read OpenAPI definition", e);
+         ctx.response().setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code()).setStatusMessage("Cannot read OpenAPI definition.").end();
       }
-      ctx.response()
-            .putHeader(HttpHeaders.CONTENT_TYPE, "text/plain")
-            .putHeader("x-epoch-millis", String.valueOf(System.currentTimeMillis()))
-            .end(sb.toString());
    }
 
-   private void handlePostBenchmark(RoutingContext ctx) {
-      String ctHeader = ctx.request().getHeader(HttpHeaders.CONTENT_TYPE);
-      String contentType = ctHeader == null ? "text/vnd.yaml" : ctHeader.trim();
-      Charset charset = StandardCharsets.UTF_8;
-      int semicolonIndex = contentType.indexOf(';');
-      if (semicolonIndex >= 0) {
-         String tmp = contentType.substring(semicolonIndex + 1).trim();
-         if (tmp.startsWith("charset=")) {
-            charset = Charset.forName(tmp.substring(8));
-         }
-         contentType = contentType.substring(0, semicolonIndex).trim();
-      }
+   @Override
+   public void listBenchmarks(RoutingContext ctx) {
+      ctx.response().end(Json.encodePrettily(controller.getBenchmarks()));
+   }
 
-      Benchmark benchmark;
-      if (contentType.equals(MIME_TYPE_SERIALIZED)) {
-         byte[] bytes = ctx.getBody().getBytes();
-         try {
-            benchmark = io.hyperfoil.util.Util.deserialize(bytes);
-         } catch (IOException | ClassNotFoundException e) {
-            log.error("Failed to serialize", e);
-            ctx.response().setStatusCode(400).end("Cannot read benchmark.");
-            return;
-         }
-      } else if (MIME_TYPE_YAML.contains(contentType) || MIME_TYPE_JSON.equals(contentType)) {
-         String source = ctx.getBodyAsString(charset.name());
-         try {
-            benchmark = BenchmarkParser.instance().buildBenchmark(source, BenchmarkData.EMPTY);
-         } catch (ParserException | BenchmarkDefinitionException e) {
-            respondParsingError(ctx, e);
-            return;
-         }
-      } else if (MIME_TYPE_MULTIPART.equals(contentType)) {
-         String source = null;
-         RequestBenchmarkData data = new RequestBenchmarkData();
-         for (FileUpload upload : ctx.fileUploads()) {
-            byte[] bytes;
-            try {
-               bytes = Files.readAllBytes(Paths.get(upload.uploadedFileName()));
-            } catch (IOException e) {
-               log.error("Cannot read uploaded file {}", e, upload.uploadedFileName());
-               ctx.response().setStatusCode(500).end();
-               return;
-            }
-            if (upload.name().equals("benchmark")) {
-               try {
-                  source = new String(bytes, upload.charSet());
-               } catch (UnsupportedEncodingException e) {
-                  source = new String(bytes, StandardCharsets.UTF_8);
-               }
-            } else {
-               data.addFile(upload.fileName(), bytes);
-            }
-         }
-         if (source == null) {
-            ctx.response().setStatusCode(400).end("Multi-part definition missing benchmark=source-file.yaml");
-            return;
-         }
-         try {
-            benchmark = BenchmarkParser.instance().buildBenchmark(source, data);
-         } catch (ParserException | BenchmarkDefinitionException e) {
-            respondParsingError(ctx, e);
-            return;
-         }
-      } else {
-         ctx.response().setStatusCode(406).setStatusMessage("Unsupported Content-Type.");
-         return;
-      }
+   @Override
+   public void addBenchmark$application_json(RoutingContext ctx) {
+      addBenchmark$text_vnd_yaml(ctx);
+   }
 
+   private void addBenchmarkAndReply(RoutingContext ctx, Benchmark benchmark) {
       if (benchmark != null) {
          String location = baseURL + "/benchmark/" + encode(benchmark.name());
          controller.addBenchmark(benchmark, event -> {
             if (event.succeeded()) {
-               ctx.response().setStatusCode(204)
+               ctx.response()
+                     .setStatusCode(HttpResponseStatus.NO_CONTENT.code())
                      .putHeader(HttpHeaders.LOCATION, location).end();
             } else {
-               ctx.response().setStatusCode(500).end();
+               ctx.response().setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code()).end();
             }
          });
 
       } else {
-         ctx.response().setStatusCode(400).end("Cannot read benchmark.");
+         ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end("Cannot read benchmark.");
+      }
+   }
+
+   private static String encode(String string) {
+      try {
+         return URLEncoder.encode(string, StandardCharsets.UTF_8.name());
+      } catch (UnsupportedEncodingException e) {
+         throw new IllegalArgumentException(e);
+      }
+   }
+
+   @Override
+   public void addBenchmark$text_vnd_yaml(RoutingContext ctx) {
+      String source = ctx.getBodyAsString();
+      try {
+         Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(source, BenchmarkData.EMPTY);
+         addBenchmarkAndReply(ctx, benchmark);
+      } catch (ParserException | BenchmarkDefinitionException e) {
+         respondParsingError(ctx, e);
+         return;
       }
    }
 
    private void respondParsingError(RoutingContext ctx, Exception e) {
       log.error("Failed to read benchmark", e);
-      ctx.response().setStatusCode(400).end("Cannot read benchmark: " + Util.explainCauses(e));
+      ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end("Cannot read benchmark: " + Util.explainCauses(e));
    }
 
-   private void handleListBenchmarks(RoutingContext routingContext) {
-      routingContext.response().setStatusCode(200).end(Json.encodePrettily(controller.getBenchmarks()));
-   }
-
-   private void handleGetBenchmark(RoutingContext ctx) {
-      String name = ctx.pathParam("benchmarkname");
-      Benchmark benchmark = controller.getBenchmark(name);
-      if (benchmark == null) {
-         ctx.response().setStatusCode(404).setStatusMessage("No benchmark '" + name + "'").end();
+   @Override
+   public void addBenchmark$application_java_serialized_object(RoutingContext ctx) {
+      byte[] bytes = ctx.getBody().getBytes();
+      try {
+         Benchmark benchmark = io.hyperfoil.util.Util.deserialize(bytes);
+         addBenchmarkAndReply(ctx, benchmark);
+      } catch (IOException | ClassNotFoundException e) {
+         log.error("Failed to serialize", e);
+         ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end("Cannot read benchmark.");
          return;
       }
-
-      sendBenchmark(ctx, benchmark);
    }
 
-   private void handleRunBenchmark(RoutingContext ctx) {
-      Run run = getRun(ctx);
-      if (run == null) {
-         ctx.response().setStatusCode(HttpResponseStatus.NOT_FOUND.code()).end();
-         return;
-      }
-      sendBenchmark(ctx, controller.ensureBenchmark(run));
-   }
-
-   private void sendBenchmark(RoutingContext ctx, Benchmark benchmark) {
-      String acceptHeader = ctx.request().getHeader(HttpHeaders.ACCEPT);
-      if (acceptHeader == null) {
-         ctx.response().setStatusCode(400).setStatusMessage("Missing Accept header in the request.").end();
-         return;
-      }
-      int semicolonIndex = acceptHeader.indexOf(';');
-      if (semicolonIndex >= 0) {
-         acceptHeader = acceptHeader.substring(0, semicolonIndex).trim();
-      }
-      if (acceptHeader.equals(MIME_TYPE_SERIALIZED)) {
+   @Override
+   public void addBenchmark$multipart_form_data(RoutingContext ctx) {
+      String source = null;
+      RequestBenchmarkData data = new RequestBenchmarkData();
+      for (FileUpload upload : ctx.fileUploads()) {
+         byte[] bytes;
          try {
-            byte[] bytes = io.hyperfoil.util.Util.serialize(benchmark);
-            ctx.response().setStatusCode(200)
-                  .putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_SERIALIZED)
-                  .end(Buffer.buffer(bytes));
+            bytes = Files.readAllBytes(Paths.get(upload.uploadedFileName()));
          } catch (IOException e) {
-            log.error("Failed to serialize", e);
-            ctx.response().setStatusCode(500).end("Error encoding benchmark.");
+            log.error("Cannot read uploaded file {}", e, upload.uploadedFileName());
+            ctx.response().setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code()).end();
+            return;
          }
-      } else if (MIME_TYPE_YAML.contains(acceptHeader) || "*/*".equals(acceptHeader)) {
-         if (benchmark.source() == null) {
-            ctx.response().setStatusCode(406).setStatusMessage("Benchmark does not preserve the original source.");
+         if (upload.name().equals("benchmark")) {
+            try {
+               source = new String(bytes, upload.charSet());
+            } catch (UnsupportedEncodingException e) {
+               source = new String(bytes, StandardCharsets.UTF_8);
+            }
          } else {
-            ctx.response().setStatusCode(200)
-                  .putHeader(HttpHeaders.CONTENT_TYPE, "text/vnd.yaml; charset=UTF-8")
-                  .end(benchmark.source());
+            data.addFile(upload.fileName(), bytes);
          }
-      } else {
-         ctx.response().setStatusCode(406).setStatusMessage("Unsupported type in Accept.").end();
+      }
+      if (source == null) {
+         ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end("Multi-part definition missing benchmark=source-file.yaml");
+         return;
+      }
+      try {
+         Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(source, data);
+         addBenchmarkAndReply(ctx, benchmark);
+      } catch (ParserException | BenchmarkDefinitionException e) {
+         respondParsingError(ctx, e);
+         return;
       }
    }
 
-   private void handleBenchmarkStart(RoutingContext ctx) {
-      String benchmarkName = ctx.pathParam("benchmarkname");
-      Benchmark benchmark = controller.getBenchmark(benchmarkName);
-      String description = getSingleParam(ctx, "desc");
-      if (benchmark != null) {
-         if (TRIGGER_URL != null) {
-            String triggerJob = ctx.request().getHeader("x-trigger-job");
-            if (triggerJob == null) {
-               Run run = controller.createRun(benchmark, description);
-               ctx.response()
-                     .setStatusCode(HttpResponseStatus.MOVED_PERMANENTLY.code())
-                     .putHeader(HttpHeaders.LOCATION, TRIGGER_URL + "BENCHMARK=" + benchmarkName + "&RUN_ID=" + run.id)
-                     .putHeader("x-run-id", run.id)
-                     .end("This controller is configured to trigger jobs through CI instance.");
-               return;
-            }
-         }
-         String runId = getSingleParam(ctx, "runId");
-         Run run;
-         if (runId == null) {
-            run = controller.createRun(benchmark, description);
-         } else {
-            run = controller.run(runId);
-            if (run == null || run.startTime != Long.MIN_VALUE) {
-               ctx.response().setStatusCode(HttpResponseStatus.FORBIDDEN.code()).end("Run already started");
-               return;
-            }
-         }
-         String error = controller.startBenchmark(run);
-         if (error == null) {
-            ctx.response().setStatusCode(HttpResponseStatus.ACCEPTED.code()).
-                  putHeader(HttpHeaders.LOCATION, baseURL + "/run/" + run.id)
-                  .end("Starting benchmark " + benchmarkName + ", run ID " + run.id);
-         } else {
-            ctx.response()
-                  .setStatusCode(HttpResponseStatus.FORBIDDEN.code()).end(error);
-         }
+   @Override
+   public void getBenchmark$text_vnd_yaml(RoutingContext ctx, String name) {
+      withBenchmark(ctx, name, benchmark -> {
+         sendYamlBenchmark(ctx, benchmark);
+      });
+   }
+
+   private void sendYamlBenchmark(RoutingContext ctx, Benchmark benchmark) {
+      if (benchmark.source() == null) {
+         ctx.response()
+               .setStatusCode(HttpResponseStatus.NOT_ACCEPTABLE.code())
+               .setStatusMessage("Benchmark does not preserve the original source.");
       } else {
          ctx.response()
-               .setStatusCode(HttpResponseStatus.NOT_FOUND.code()).end("Benchmark not found");
+               .putHeader(HttpHeaders.CONTENT_TYPE, "text/vnd.yaml; charset=UTF-8")
+               .end(benchmark.source());
       }
    }
 
-   private String getSingleParam(RoutingContext ctx, String param) {
-      List<String> list = ctx.queryParam(param);
-      String value = null;
-      if (list != null && !list.isEmpty()) {
-         value = list.iterator().next();
+   @Override
+   public void getBenchmark$application_java_serialized_object(RoutingContext ctx, String name) {
+      withBenchmark(ctx, name, benchmark -> {
+         sendSerializedBenchmark(ctx, benchmark);
+      });
+   }
+
+   private void sendSerializedBenchmark(RoutingContext ctx, Benchmark benchmark) {
+      try {
+         byte[] bytes = io.hyperfoil.util.Util.serialize(benchmark);
+         ctx.response()
+               .putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_SERIALIZED)
+               .end(Buffer.buffer(bytes));
+      } catch (IOException e) {
+         log.error("Failed to serialize", e);
+         ctx.response().setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code()).end("Error encoding benchmark.");
       }
-      return value;
    }
 
-   private void handleListRuns(RoutingContext ctx) {
-      String detailsStr = getSingleParam(ctx, "details");
-      boolean details = detailsStr != null && detailsStr.equalsIgnoreCase("true");
-      Client.Run[] runs = controller.runs().stream()
-            .map(r -> details ? runInfo(r, false) : new Client.Run(r.id, null, null, null, false, null, null, null, null))
-            .toArray(Client.Run[]::new);
-      ctx.response().setStatusCode(200).end(Json.encodePrettily(runs));
-   }
-
-   private void handleGetRun(RoutingContext routingContext) {
-      Run run = getRun(routingContext);
-      if (run == null) {
-         routingContext.response().setStatusCode(404).end();
+   @Override
+   public void startBenchmark(RoutingContext ctx, String name, String desc, String xTriggerJob, String runId) {
+      Benchmark benchmark = controller.getBenchmark(name);
+      if (benchmark == null) {
+         ctx.response().setStatusCode(HttpResponseStatus.NOT_FOUND.code()).end("Benchmark not found");
          return;
       }
-
-      String status = Json.encodePrettily(runInfo(run, true));
-      routingContext.response().end(status);
+      if (TRIGGER_URL != null) {
+         if (xTriggerJob == null) {
+            Run run = controller.createRun(benchmark, desc);
+            ctx.response()
+                  .setStatusCode(HttpResponseStatus.MOVED_PERMANENTLY.code())
+                  .putHeader(HttpHeaders.LOCATION, TRIGGER_URL + "BENCHMARK=" + name + "&RUN_ID=" + run.id)
+                  .putHeader("x-run-id", run.id)
+                  .end("This controller is configured to trigger jobs through CI instance.");
+            return;
+         }
+      }
+      Run run;
+      if (runId == null) {
+         run = controller.createRun(benchmark, runId);
+      } else {
+         run = controller.run(runId);
+         if (run == null || run.startTime != Long.MIN_VALUE) {
+            ctx.response().setStatusCode(HttpResponseStatus.FORBIDDEN.code()).end("Run already started");
+            return;
+         }
+      }
+      String error = controller.startBenchmark(run);
+      if (error == null) {
+         ctx.response().setStatusCode(HttpResponseStatus.ACCEPTED.code()).
+               putHeader(HttpHeaders.LOCATION, baseURL + "/run/" + run.id)
+               .end("Starting benchmark " + name + ", run ID " + run.id);
+      } else {
+         ctx.response()
+               .setStatusCode(HttpResponseStatus.FORBIDDEN.code()).end(error);
+      }
    }
 
-   private Client.Run runInfo(Run run, boolean reportPhases) {
+   @Override
+   public void listRuns(RoutingContext ctx, boolean details) {
+      io.hyperfoil.controller.model.Run[] runs = controller.runs().stream()
+            .map(r -> details ? runInfo(r, false) : new io.hyperfoil.controller.model.Run(r.id, null, null, null, false, null, null, null, null))
+            .toArray(io.hyperfoil.controller.model.Run[]::new);
+      ctx.response().end(Json.encodePrettily(runs));
+   }
+
+   @Override
+   public void getRun(RoutingContext ctx, String runId) {
+      withRun(ctx, runId, run -> ctx.response().end(Json.encodePrettily(runInfo(run, true))));
+   }
+
+   private io.hyperfoil.controller.model.Run runInfo(Run run, boolean reportPhases) {
       String benchmark = null;
       if (run.benchmark != null) {
          benchmark = run.benchmark.name();
@@ -359,7 +319,7 @@ class ControllerServer {
       if (run.terminateTime.isComplete()) {
          terminated = new Date(run.terminateTime.result());
       }
-      List<Client.Phase> phases = null;
+      List<io.hyperfoil.controller.model.Phase> phases = null;
       if (reportPhases) {
          long now = System.currentTimeMillis();
          phases = run.phases.values().stream()
@@ -389,67 +349,60 @@ class ControllerServer {
                   }
                   String type = phase.definition().getClass().getSimpleName();
                   type = Character.toLowerCase(type.charAt(0)) + type.substring(1);
-                  return new Client.Phase(phase.definition().name(), phase.status().toString(), type,
+                  return new io.hyperfoil.controller.model.Phase(phase.definition().name(), phase.status().toString(), type,
                         phaseStarted, remaining == null ? null : remaining.toString(),
                         phaseTerminated, phase.isFailed(), totalDuration == null ? null : totalDuration.toString(),
                         phase.definition().description());
                }).collect(Collectors.toList());
       }
-      List<Client.Agent> agents = run.agents.stream()
-            .map(ai -> new Client.Agent(ai.name, ai.deploymentId, ai.status.toString()))
+      List<io.hyperfoil.controller.model.Agent> agents = run.agents.stream()
+            .map(ai -> new io.hyperfoil.controller.model.Agent(ai.name, ai.deploymentId, ai.status.toString()))
             .collect(Collectors.toList());
-      return new Client.Run(run.id, benchmark, started, terminated, run.cancelled, run.description, phases, agents,
+      return new io.hyperfoil.controller.model.Run(run.id, benchmark, started, terminated, run.cancelled, run.description, phases, agents,
             run.errors.stream().map(Run.Error::toString).collect(Collectors.toList()));
    }
 
-   private Run getRun(RoutingContext routingContext) {
-      String runid = routingContext.pathParam("runid");
+   private void withRun(RoutingContext ctx, String runId, Consumer<Run> consumer) {
       Run run;
-      if ("last".equals(runid)) {
+      if ("last".equals(runId)) {
          run = controller.runs.values().stream()
                .filter(r -> r.startTime > Long.MIN_VALUE)
                .reduce((r1, r2) -> r1.startTime > r2.startTime ? r1 : r2)
                .orElse(null);
       } else {
-         run = controller.run(runid);
+         run = controller.run(runId);
       }
-      return run;
-   }
-
-   private void handleListSessions(RoutingContext routingContext) {
-      HttpServerResponse response = routingContext.response().setChunked(true);
-      boolean includeInactive = toBool(routingContext.queryParam("inactive"), false);
-      Run run = getRun(routingContext);
       if (run == null) {
-         routingContext.response().setStatusCode(HttpResponseStatus.NOT_FOUND.code()).end();
+         ctx.response().setStatusCode(HttpResponseStatus.NOT_FOUND.code()).end();
+      } else {
+         consumer.accept(run);
       }
-      controller.listSessions(run, includeInactive,
-            (agent, session) -> {
-               String line = agent.name + ": " + session + "\n";
-               response.write(Buffer.buffer(line.getBytes(StandardCharsets.UTF_8)));
-            },
-            commonListingHandler(response));
    }
 
-   private boolean toBool(List<String> params, boolean defaultValue) {
-      if (params.isEmpty()) {
-         return defaultValue;
-      }
-      return "true".equals(params.get(params.size() - 1));
+   @Override
+   public void killRun(RoutingContext ctx, String runId) {
+      withRun(ctx, runId, run -> {
+         controller.kill(run, result -> {
+            if (result.succeeded()) {
+               ctx.response().setStatusCode(HttpResponseStatus.ACCEPTED.code()).end();
+            } else {
+               ctx.response().setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code()).setStatusMessage(result.cause().getMessage()).end();
+            }
+         });
+      });
    }
 
-   private void handleListConnections(RoutingContext routingContext) {
-      HttpServerResponse response = routingContext.response().setChunked(true);
-      Run run = getRun(routingContext);
-      if (run == null) {
-         routingContext.response().setStatusCode(HttpResponseStatus.NOT_FOUND.code()).end();
-      }
-      controller.listConnections(run,
-            (agent, connection) -> {
-               String line = agent.name + ": " + connection + "\n";
-               response.write(Buffer.buffer(line.getBytes(StandardCharsets.UTF_8)));
-            },
-            commonListingHandler(response));
+   @Override
+   public void listSessions(RoutingContext ctx, String runId, boolean inactive) {
+      withRun(ctx, runId, run -> {
+         ctx.response().setChunked(true);
+         controller.listSessions(run, inactive,
+               (agent, session) -> {
+                  String line = agent.name + ": " + session + "\n";
+                  ctx.response().write(Buffer.buffer(line.getBytes(StandardCharsets.UTF_8)));
+               },
+               commonListingHandler(ctx.response()));
+      });
    }
 
    private Handler<AsyncResult<Void>> commonListingHandler(HttpServerResponse response) {
@@ -464,59 +417,122 @@ class ControllerServer {
       };
    }
 
-   private void handleRunKill(RoutingContext routingContext) {
-      Run run = getRun(routingContext);
-      if (run != null) {
-         controller.kill(run, result -> {
-            if (result.succeeded()) {
-               routingContext.response().setStatusCode(202).end();
-            } else {
-               routingContext.response().setStatusCode(500).setStatusMessage(result.cause().getMessage()).end();
-            }
+   @Override
+   public void getRecentSessions(RoutingContext ctx, String runId) {
+      getSessionStats(ctx, runId, ss -> ss.recentSessionPoolSummary(System.currentTimeMillis() - 5000));
+   }
+
+   @Override
+   public void getTotalSessions(RoutingContext ctx, String runId) {
+      getSessionStats(ctx, runId, ss -> ss.totalSessionPoolSummary());
+   }
+
+   private void getSessionStats(RoutingContext ctx, String runId, Function<StatisticsStore, Map<String, Map<String, LowHigh>>> func) {
+      withRun(ctx, runId, run -> {
+         if (run.statisticsStore == null) {
+            ctx.response().end("{}");
+            return;
+         }
+         Map<String, Map<String, LowHigh>> stats = func.apply(run.statisticsStore);
+         JsonObject reply = new JsonObject();
+         stats.forEach((phase, addressStats) -> {
+            JsonObject phaseStats = new JsonObject();
+            reply.put(phase, phaseStats);
+            addressStats.forEach((address, lowHigh) -> {
+               String agent = run.agents.stream().filter(a -> a.deploymentId.equals(address)).map(a -> a.name).findFirst().orElse("unknown");
+               phaseStats.put(agent, new JsonObject().put("min", lowHigh.low).put("max", lowHigh.high));
+            });
          });
-      } else {
-         routingContext.response().setStatusCode(404).end();
-      }
+         ctx.response().end(reply.encodePrettily());
+      });
    }
 
-   private void handleAllStats(RoutingContext ctx) {
-      Run run = getRun(ctx);
-      if (run == null) {
-         ctx.response().setStatusCode(HttpResponseStatus.NOT_FOUND.code()).end();
-         return;
-      } else if (!run.terminateTime.isComplete()) {
-         ctx.response().setStatusCode(HttpResponseStatus.SEE_OTHER.code())
-               .setStatusMessage("Run is not completed yet.")
-               .putHeader(HttpHeaders.LOCATION, "/run/" + run.id)
-               .end();
-         return;
-      }
-      String accept = ctx.request().getHeader(HttpHeaders.ACCEPT);
-      switch (accept) {
-         case MIME_TYPE_JSON:
-            ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_JSON)
+
+   @Override
+   public void listConnections(RoutingContext ctx, String runId) {
+      withRun(ctx, runId, run -> {
+         controller.listConnections(run,
+               (agent, connection) -> {
+                  String line = agent.name + ": " + connection + "\n";
+                  ctx.response().write(Buffer.buffer(line.getBytes(StandardCharsets.UTF_8)));
+               },
+               commonListingHandler(ctx.response()));
+      });
+   }
+
+   @Override
+   public void getAllStats$application_zip(RoutingContext ctx, String runId) {
+      withTerminatedRun(ctx, runId, run -> {
+         new Zipper(ctx.response(), controller.getRunDir(run).resolve("stats")).run();
+      });
+   }
+
+   @Override
+   public void getAllStats$application_json(RoutingContext ctx, String runId) {
+      withTerminatedRun(ctx, runId, run -> {
+            ctx.response()
+                  .putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_JSON)
                   .sendFile(controller.getRunDir(run).resolve("all.json").toString());
-            break;
-         case MIME_TYPE_ZIP:
-            new Zipper(ctx.response(), controller.getRunDir(run).resolve("stats")).run();
-            break;
-         default:
-            ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
-                  .setStatusMessage("Unknown format " + accept).end();
-      }
+      });
    }
 
-   private void handleRecentStats(RoutingContext ctx) {
-      Run run = getRun(ctx);
-      if (run == null || run.statisticsStore == null) {
-         ctx.response().setStatusCode(HttpResponseStatus.NOT_FOUND.code()).end();
-         return;
-      }
-      List<Client.RequestStats> stats = run.statisticsStore.recentSummary(System.currentTimeMillis() - 5000);
-      ctx.response().end(Json.encodePrettily(statsToJson(run, stats)));
+   private void withTerminatedRun(RoutingContext ctx, String runId, Consumer<Run> consumer) {
+      withRun(ctx, runId, run -> {
+         if (!run.terminateTime.isComplete()) {
+            ctx.response().setStatusCode(HttpResponseStatus.SEE_OTHER.code())
+                  .setStatusMessage("Run is not completed yet.")
+                  .putHeader(HttpHeaders.LOCATION, "/run/" + run.id)
+                  .end();
+         } else {
+            consumer.accept(run);
+         }
+      });
    }
 
-   private Client.RequestStatisticsResponse statsToJson(Run run, List<Client.RequestStats> stats) {
+   @Override
+   public void getRecentStats(RoutingContext ctx, String runId) {
+      withStats(ctx, runId, run -> {
+         List<RequestStats> stats = run.statisticsStore.recentSummary(System.currentTimeMillis() - 5000);
+         ctx.response().end(Json.encodePrettily(statsToJson(run, stats)));
+      });
+   }
+
+   @Override
+   public void getTotalStats(RoutingContext ctx, String runId) {
+      withStats(ctx, runId, run -> {
+         List<RequestStats> stats = run.statisticsStore.totalSummary();
+         ctx.response().end(Json.encodePrettily(statsToJson(run, stats)));
+      });
+   }
+
+   @Override
+   public void getCustomStats(RoutingContext ctx, String runId) {
+      withStats(ctx, runId, run -> {
+         List<CustomStats> stats = run.statisticsStore.customStats();
+         // TODO: add json response format based on 'Accept' header
+         ctx.response().end(new JsonArray(stats).encodePrettily());
+      });
+   }
+
+   @Override
+   public void getHistogramStats(RoutingContext ctx, String runId, String phase, int stepId, String metric) {
+      withStats(ctx, runId, run -> {
+         Histogram histogram = run.statisticsStore.histogram(phase, stepId, metric);
+         ctx.response().end(Json.encode(histogram));
+      });
+   }
+
+   private void withStats(RoutingContext ctx, String runId, Consumer<Run> consumer) {
+      withRun(ctx, runId, run -> {
+         if (run.statisticsStore == null) {
+            ctx.response().setStatusCode(HttpResponseStatus.NOT_FOUND.code()).end();
+         } else {
+            consumer.accept(run);
+         }
+      });
+   }
+
+   private io.hyperfoil.controller.model.RequestStatisticsResponse statsToJson(Run run, List<RequestStats> stats) {
       String status;
       if (run.terminateTime.isComplete()) {
          status = "TERMINATED";
@@ -525,123 +541,71 @@ class ControllerServer {
       } else {
          status = "INITIALIZING";
       }
-      return new Client.RequestStatisticsResponse(status, stats);
+      return new io.hyperfoil.controller.model.RequestStatisticsResponse(status, stats);
    }
 
-   private void handleTotalStats(RoutingContext ctx) {
-      Run run = getRun(ctx);
-      if (run == null || run.statisticsStore == null) {
-         ctx.response().setStatusCode(HttpResponseStatus.NOT_FOUND.code()).end();
-         return;
-      }
-      List<Client.RequestStats> stats = run.statisticsStore.totalSummary();
-      ctx.response().end(Json.encodePrettily(statsToJson(run, stats)));
+   @Override
+   public void getBenchmarkForRun$text_vnd_yaml(RoutingContext ctx, String runId) {
+      withRun(ctx, runId, run -> sendYamlBenchmark(ctx, run.benchmark));
    }
 
-   private void handleCustomStats(RoutingContext ctx) {
-      Run run = getRun(ctx);
-      if (run == null) {
-         ctx.response().setStatusCode(HttpResponseStatus.NOT_FOUND.code()).end();
-         return;
-      } else if (run.statisticsStore == null) {
-         ctx.response().end("{}");
-         return;
-      }
-      List<Client.CustomStats> stats = run.statisticsStore.customStats();
-      // TODO: add json response format based on 'Accept' header
-      ctx.response().end(new JsonArray(stats).encodePrettily());
+   @Override
+   public void getBenchmarkForRun$application_java_serialized_object(RoutingContext ctx, String runId) {
+      withRun(ctx, runId, run -> sendSerializedBenchmark(ctx, run.benchmark));
    }
 
-   private void handleHistogramStats(RoutingContext ctx) {
-      Run run = getRun(ctx);
-      if (run == null || run.statisticsStore == null) {
-         ctx.response().setStatusCode(HttpResponseStatus.NOT_FOUND.code()).end();
-         return;
-      }
-      int stepId;
-      try {
-         stepId = Integer.parseInt(getSingleParam(ctx, "stepId"));
-      } catch (NumberFormatException e) {
-         ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end();
-         return;
-      }
-      String phase = getSingleParam(ctx, "phase");
-      String metric = getSingleParam(ctx, "metric");
-      Client.Histogram histogram = run.statisticsStore.histogram(phase, stepId, metric);
-      ctx.response().end(Json.encode(histogram));
-   }
-
-
-   private void handleRecentSessions(RoutingContext ctx) {
-      handleSessionPoolStats(ctx, run -> run.statisticsStore.recentSessionPoolSummary(System.currentTimeMillis() - 5000));
-   }
-
-   private void handleTotalSessions(RoutingContext ctx) {
-      handleSessionPoolStats(ctx, run -> run.statisticsStore.totalSessionPoolSummary());
-   }
-
-   private void handleSessionPoolStats(RoutingContext ctx, Function<Run, Map<String, Map<String, LowHigh>>> func) {
-      Run run = getRun(ctx);
-      if (run == null) {
-         ctx.response().setStatusCode(HttpResponseStatus.NOT_FOUND.code()).end();
-         return;
-      } else if (run.statisticsStore == null) {
-         ctx.response().end("{}");
-         return;
-      }
-      Map<String, Map<String, LowHigh>> stats = func.apply(run);
-      JsonObject reply = new JsonObject();
-      stats.forEach((phase, addressStats) -> {
-         JsonObject phaseStats = new JsonObject();
-         reply.put(phase, phaseStats);
-         addressStats.forEach((address, lowHigh) -> {
-            String agent = run.agents.stream().filter(a -> a.deploymentId.equals(address)).map(a -> a.name).findFirst().orElse("unknown");
-            phaseStats.put(agent, new JsonObject().put("min", lowHigh.low).put("max", lowHigh.high));
-         });
-      });
-      ctx.response().end(reply.encodePrettily());
-   }
-
-   private void handleAgents(RoutingContext ctx) {
+   @Override
+   public void listAgents(RoutingContext ctx) {
       ctx.response().end(new JsonArray(controller.runs.values().stream()
             .flatMap(run -> run.agents.stream().map(agentInfo -> agentInfo.name))
             .distinct().collect(Collectors.toList())).encodePrettily());
    }
 
-   private void handleLog(RoutingContext ctx) {
+   @Override
+   public void getControllerLog(RoutingContext ctx, long offset) {
       String logPath = System.getProperty(Properties.CONTROLLER_LOG);
       if (logPath == null) {
-         ctx.response().setStatusCode(404).setStatusMessage("Log file not defined.").end();
+         ctx.response()
+               .setStatusCode(HttpResponseStatus.NOT_FOUND.code())
+               .setStatusMessage("Log file not defined.").end();
          return;
       }
       File logFile = new File(logPath);
       if (!logFile.exists()) {
-         ctx.response().setStatusCode(404).setStatusMessage("Log file does not exist.").end();
+         ctx.response()
+               .setStatusCode(HttpResponseStatus.NOT_FOUND.code())
+               .setStatusMessage("Log file does not exist.").end();
       } else {
-         long offset = getOffset(ctx);
-         if (offset >= 0) {
+         if (offset < 0) {
+            ctx.response()
+                  .setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
+                  .setStatusMessage("Offset must be non-negative").end();
+         } else {
             ctx.response().putHeader(HttpHeaders.ETAG, controller.deploymentID());
             ctx.response().sendFile(logPath, offset);
          }
       }
    }
 
-   private void handleAgentLog(RoutingContext ctx) {
-      String agent = ctx.pathParam("agent");
+   @Override
+   public void getAgentLog(RoutingContext ctx, String agent, long offset) {
       if (agent == null || "controller".equals(agent)) {
-         handleLog(ctx);
+         getControllerLog(ctx, offset);
          return;
       }
-      long offset = getOffset(ctx);
       if (offset < 0) {
-         return;
+         ctx.response()
+               .setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
+               .setStatusMessage("Offset must be non-negative").end();
       }
       Optional<AgentInfo> agentInfo = controller.runs.values().stream()
             .sorted(Comparator.<Run, Long>comparing(run -> run.startTime).reversed())
             .flatMap(run -> run.agents.stream())
             .filter(ai -> agent.equals(ai.name)).findFirst();
       if (!agentInfo.isPresent()) {
-         ctx.response().setStatusCode(404).setStatusMessage("Agent " + agent + " not found.").end();
+         ctx.response()
+               .setStatusCode(HttpResponseStatus.NOT_FOUND.code())
+               .setStatusMessage("Agent " + agent + " not found.").end();
          return;
       }
       try {
@@ -649,11 +613,13 @@ class ControllerServer {
          tempFile.deleteOnExit();
          controller.downloadAgentLog(agentInfo.get().deployedAgent, offset, tempFile, result -> {
             if (result.succeeded()) {
-               ctx.response().putHeader(HttpHeaders.ETAG, agentInfo.get().deploymentId);
-               ctx.response().sendFile(tempFile.toString(), r -> tempFile.delete());
+               ctx.response()
+                     .putHeader(HttpHeaders.ETAG, agentInfo.get().deploymentId)
+                     .sendFile(tempFile.toString(), r -> tempFile.delete());
             } else {
                log.error("Failed to download agent log for " + agentInfo.get(), result.cause());
-               ctx.response().setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code())
+               ctx.response()
+                     .setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code())
                      .setStatusMessage("Cannot download agent log").end();
             }
          });
@@ -663,36 +629,8 @@ class ControllerServer {
       }
    }
 
-   private long getOffset(RoutingContext ctx) {
-      long offset = 0;
-      String offsetParam = ctx.request().getParam("offset");
-      if (offsetParam != null) {
-         try {
-            offset = Long.parseLong(offsetParam);
-         } catch (NumberFormatException e) {
-            ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
-                  .setStatusMessage("Malformed offset").end();
-            return -1;
-         }
-      }
-      if (offset < 0) {
-         ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
-               .setStatusMessage("Offset must be non-negative").end();
-         return -1;
-      }
-      return offset;
-   }
-
-   private static String encode(String string) {
-      try {
-         return URLEncoder.encode(string, StandardCharsets.UTF_8.name());
-      } catch (UnsupportedEncodingException e) {
-         throw new IllegalArgumentException(e);
-      }
-   }
-
-   private void handleShutdown(RoutingContext ctx) {
-      boolean force = !ctx.queryParam("force").isEmpty();
+   @Override
+   public void shutdown(RoutingContext ctx, boolean force) {
       List<Run> runs = controller.runs.values().stream().filter(run -> !run.terminateTime.isComplete()).collect(Collectors.toList());
       if (force) {
          // We don't allow concurrent runs ATM, but...
@@ -703,20 +641,30 @@ class ControllerServer {
             controller.kill(run, result -> future.complete());
          }
          CompositeFuture.all(futures).setHandler(nil -> {
-            ctx.response().setStatusCode(200).end();
+            ctx.response().end();
             controller.shutdown();
          });
       } else if (runs.isEmpty()) {
-         ctx.response().setStatusCode(200).end();
+         ctx.response().end();
          controller.shutdown();
       } else {
          String running = runs.stream().map(run -> run.id).collect(Collectors.joining(", "));
-         ctx.response().setStatusCode(403)
+         ctx.response()
+               .setStatusCode(HttpResponseStatus.FORBIDDEN.code())
                .setStatusMessage("These runs are still in progress: " + running).end();
       }
    }
 
-   private void handleVersion(RoutingContext ctx) {
-      ctx.response().end(Json.encodePrettily(new Client.Version(Version.VERSION, Version.COMMIT_ID, controller.deploymentID())));
+   @Override
+   public void getVersion(RoutingContext ctx) {
+      ctx.response().end(Json.encodePrettily(new io.hyperfoil.controller.model.Version(Version.VERSION, Version.COMMIT_ID, controller.deploymentID())));
+   }
+
+   public void withBenchmark(RoutingContext ctx, String name, Consumer<Benchmark> consumer) {
+      Benchmark benchmark = controller.getBenchmark(name);
+      if (benchmark == null) {
+         ctx.response().setStatusCode(HttpResponseStatus.NOT_FOUND.code()).setStatusMessage("No benchmark '" + name + "'").end();
+      }
+      consumer.accept(benchmark);
    }
 }

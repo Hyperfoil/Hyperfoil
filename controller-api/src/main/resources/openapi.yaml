@@ -1,0 +1,608 @@
+openapi: 3.0.0
+info:
+  description: Hyperfoil Controller API
+  version: "0.5"
+  title: Hyperfoil Controller API
+  contact:
+    email: rvansa@redhat.com
+  license:
+    name: Apache 2.0
+    url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
+paths:
+  /:
+    get:
+      summary: Serve this OpenAPI 3 definition.
+      operationId: openApi
+      responses:
+        '200':
+          description: This OpenAPI 3 definition
+          content:
+            text/vnd.yaml:
+              schema:
+                type: string
+                format: binary
+  /benchmark:
+    get:
+      summary: List defined benchmark names.
+      operationId: listBenchmarks
+      responses:
+        '200':
+          description: Benchmark names.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+    post:
+      summary: Add new benchmark definition.
+      operationId: addBenchmark
+      responses:
+        '204':
+          description: Benchmark accepted.
+        '400':
+          description: Benchmark is invalid.
+        '406':
+          description: Unsupported content-type.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: string
+              format: binary
+          text/vnd.yaml:
+            schema:
+              type: string
+              format: binary
+          application/java-serialized-object:
+            schema:
+              type: string
+              format: binary
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                benchmark:
+                  type: object
+                file:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+        description: Benchmark definition.
+  /benchmark/{name}:
+    get:
+      summary: Retrieve existing benchmark.
+      operationId: getBenchmark
+      parameters:
+      - in: path
+        name: name
+        required: true
+        allowEmptyValue: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Existing benchmark definition.
+          content:
+            text/vnd.yaml:
+              schema:
+                type: object
+            application/java-serialized-object:
+              schema:
+                type: string
+                format: binary
+        '406':
+          description: Benchmark does not preserve the original source.
+  /benchmark/{name}/start:
+    get:
+      summary: Start a new run of this benchmark.
+      operationId: startBenchmark
+      parameters:
+      - in: path
+        name: name
+        required: true
+        allowEmptyValue: false
+        schema:
+          type: string
+      - in: query
+        name: desc
+        description: Run description
+        schema:
+          type: string
+      - in: header
+        name: x-trigger-job
+        description: URL of CI job that triggers the run.
+        schema:
+          type: string
+      - in: query
+        name: runId
+        description: Run ID of run that was already requested but not started.
+        schema:
+          type: string
+      responses:
+        '202':
+          description: Run was successfully started.
+        '301':
+          description: Run is requested but it must be started from CI.
+          headers:
+            Location:
+              schema:
+                type: string
+              description: URL that should be hit to start the CI job.
+            x-run-id:
+              schema:
+                type: string
+              description: Generated run ID.
+        '403':
+          description: There is an ongoing run. Try later.
+        '404':
+          description: Requested benchmark is not defined.
+  /run:
+    get:
+      summary: List known runs.
+      operationId: listRuns
+      parameters:
+      - in: query
+        name: details
+        schema:
+          type: boolean
+          default: false
+      responses:
+        '200':
+          description: Here are the runs.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Run'
+  /run/{runId}:
+    get:
+      summary: Get info about run.
+      operationId: getRun
+      parameters:
+      - in: path
+        name: runId
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Run information.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Run'
+
+  /run/{runId}/kill:
+    get:
+      summary: Kill this run
+      operationId: killRun
+      parameters:
+      - in: path
+        name: runId
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Run was killed.
+  /run/{runId}/sessions:
+    get:
+      summary: List sessions in plaintext (for debugging)
+      operationId: listSessions
+      parameters:
+      - in: path
+        name: runId
+        required: true
+        schema:
+          type: string
+      - in: query
+        name: inactive
+        schema:
+          type: boolean
+          default: false
+      responses:
+        '200':
+          description: Retrieved successfully.
+          content:
+            text/plain:
+              schema:
+                type: string
+  /run/{runId}/sessions/recent:
+    get:
+      summary: Actual numbers of active sessions in each phase
+      operationId: getRecentSessions
+      parameters:
+      - in: path
+        name: runId
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Retrieved successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+  /run/{runId}/sessions/total:
+    get:
+      summary: Min/max of active sessions in each phase
+      operationId: getTotalSessions
+      parameters:
+      - in: path
+        name: runId
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Retrieved successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+  /run/{runId}/connections:
+    get:
+      summary: List connections in plaintext (for debugging)
+      operationId: listConnections
+      parameters:
+      - in: path
+        name: runId
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Retrieved successfully.
+          content:
+            text/plain:
+              schema:
+                type: string
+  /run/{runId}/stats/all:
+    get:
+      summary: Get complete statistics from the run.
+      description: >
+        This can be invoked only after the run completes.
+        Provides exported statistics either as ZIP file with CSV files
+        or as JSON object.
+      operationId: getAllStats
+      parameters:
+      - in: path
+        name: runId
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Retrieved successfully.
+          content:
+            application/zip:
+              schema:
+                type: string
+                format: binary
+            application/json:
+              schema:
+                type: object
+  /run/{runId}/stats/recent:
+    get:
+      summary: Actual statistics from last 5 seconds of run.
+      operationId: getRecentStats
+      parameters:
+      - in: path
+        name: runId
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RequestStatisticsResponse"
+  /run/{runId}/stats/total:
+    get:
+      summary: Statistics over the whole duration of phases.
+      operationId: getTotalStats
+      parameters:
+      - in: path
+        name: runId
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RequestStatisticsResponse"
+  /run/{runId}/stats/custom:
+    get:
+      summary: Custom statistics.
+      operationId: getCustomStats
+      parameters:
+      - in: path
+        name: runId
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Retrieved successfully.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CustomStats"
+  /run/{runId}/stats/histogram:
+    get:
+      summary: Retrieve histogram for given metric.
+      operationId: getHistogramStats
+      parameters:
+      - in: path
+        name: runId
+        required: true
+        schema:
+          type: string
+      - in: query
+        name: phase
+        required: true
+        schema:
+          type: string
+      - in: query
+        name: stepId
+        required: true
+        schema:
+          type: integer
+      - in: query
+        name: metric
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Retrieved successfully.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Histogram"
+  /run/{runId}/benchmark:
+    get:
+      summary: Benchmark used for given run.
+      operationId: getBenchmarkForRun
+      parameters:
+      - in: path
+        name: runId
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Retrieved successfully.
+          content:
+            text/vnd.yaml:
+              schema:
+                type: object
+            application/java-serialized-object:
+              schema:
+                type: string
+                format: binary
+  /agents:
+    get:
+      summary: All agents used (in all runs)
+      operationId: listAgents
+      responses:
+        '200':
+          description: Retrieved successfully.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+  /log:
+    get:
+      summary: Get controller log.
+      operationId: getControllerLog
+      parameters:
+      - in: query
+        name: offset
+        schema:
+          type: integer
+          format: long
+      responses:
+        '200':
+          description: Retrieved successfully.
+          content:
+            text/plain:
+              schema:
+                type: string
+  /log/{agent}:
+    get:
+      summary: Get controller log.
+      operationId: getAgentLog
+      parameters:
+      - in: path
+        name: agent
+        required: true
+        schema:
+          type: string
+      - in: query
+        name: offset
+        schema:
+          type: integer
+          format: long
+      responses:
+        '200':
+          description: Retrieved successfully.
+          content:
+            text/plain:
+              schema:
+                type: string
+  /shutdown:
+    get:
+      summary: Shutdown controller
+      operationId: shutdown
+      parameters:
+      - in: query
+        name: force
+        schema:
+          type: boolean
+          default: false
+      responses:
+        '200':
+          description: Shutting down
+        '403':
+          description: Some runs are in progress and force=false
+  /version:
+    get:
+      summary: Fetch controller version
+      operationId: getVersion
+      responses:
+        '200':
+          description: Retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Version"
+components:
+  schemas:
+    Run:
+      type: object
+      required:
+      - id
+      - benchmark
+      - started
+      - terminated
+      properties:
+        id:
+          type: string
+          example: 1234
+          x-json-include: NON_EMPTY
+        benchmark:
+          type: string
+          example: my-benchmark
+        started:
+          type: string
+          format: date-time
+          example: '2016/08/29 09:12:33.001'
+        terminated:
+          type: string
+          format: date-time
+        cancelled:
+          type: boolean
+        description:
+          type: string
+        phases:
+          type: array
+          items:
+            $ref: "#/components/schemas/Phase"
+        agents:
+          type: array
+          items:
+            $ref: "#/components/schemas/Agent"
+        errors:
+          type: array
+          items:
+            type: string
+    Phase:
+      type: object
+      required:
+      - name
+      properties:
+        name:
+          type: string
+        status:
+          type: string
+        type:
+          type: string
+        started:
+          type: string
+          format: date-time
+        remaining:
+          type: string
+        completed:
+          type: string
+          format: date-time
+        failed:
+          type: boolean
+        totalDuration:
+          type: string
+        description:
+          type: string
+    Agent:
+      type: object
+      properties:
+        name:
+          type: string
+        address:
+          type: string
+        status:
+          type: string
+    RequestStatisticsResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        statistics:
+          type: array
+          items:
+            $ref: "#/components/schemas/RequestStats"
+    RequestStats:
+      type: object
+      properties:
+        phase:
+          type: string
+        stepId:
+          type: integer
+        metric:
+          type: string
+        summary:
+          type: object
+          x-type: io.hyperfoil.api.statistics.StatisticsSummary
+        failedSLAs:
+          type: array
+          items:
+            type: string
+    CustomStats:
+      type: object
+      properties:
+        phase:
+          type: string
+        stepId:
+          type: integer
+        metric:
+          type: string
+        customName:
+          type: string
+        value:
+          type: string
+    Histogram:
+      type: object
+      properties:
+        phase:
+          type: string
+        metric:
+          type: string
+        startTime:
+          type: integer
+          format: long
+        endTime:
+          type: integer
+          format: long
+        data:
+          type: string
+    Version:
+      type: object
+      properties:
+        version:
+          type: string
+        commitId:
+          type: string
+        deploymentId:
+          type: string

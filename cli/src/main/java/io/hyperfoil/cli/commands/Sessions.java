@@ -12,7 +12,7 @@ import org.aesh.command.CommandResult;
 
 import io.hyperfoil.cli.Table;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
-import io.hyperfoil.client.Client;
+import io.hyperfoil.controller.Client;
 import io.hyperfoil.client.RestClientException;
 import io.hyperfoil.core.util.Util;
 
@@ -33,7 +33,7 @@ public class Sessions extends BaseRunIdCommand {
             sessionStats = runRef.sessionStatsRecent();
             clearLines(invocation, numLines);
             if (sessionStats == null || sessionStats.isEmpty()) {
-               Client.Run run = runRef.get();
+               io.hyperfoil.controller.model.Run run = runRef.get();
                if (run.terminated != null) {
                   invocation.println("Run " + run.id + " has terminated.");
                   invocation.print(SESSION_STATS.print("PHASE", toMapOfStreams(runRef.sessionStatsTotal())));

@@ -63,7 +63,6 @@
         <dependency>
             <groupId>com.github.javaparser</groupId>
             <artifactId>javaparser-core</artifactId>
-            <version>3.14.12</version>
         </dependency>
 
     </dependencies>

@@ -11,12 +11,11 @@ import org.aesh.utils.ANSI;
 
 import io.hyperfoil.cli.Table;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
-import io.hyperfoil.client.Client;
 
 @CommandDefinition(name = "runs", description = "Print info about past runs.")
 public class Runs extends ServerCommand {
    private static final SimpleDateFormat DATE_FORMATTER = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
-   private static final Table<Client.Run> RUN_TABLE = new Table<Client.Run>()
+   private static final Table<io.hyperfoil.controller.model.Run> RUN_TABLE = new Table<io.hyperfoil.controller.model.Run>()
          .column("", run -> runIcon(run))
          .column("RUN_ID", run -> run.id)
          .column("BENCHMARK", run -> run.benchmark)
@@ -24,7 +23,7 @@ public class Runs extends ServerCommand {
          .column("TERMINATED", run -> run.terminated == null ? "" : DATE_FORMATTER.format(run.terminated))
          .column("DESCRIPTION", run -> run.description);
 
-   private static String runIcon(Client.Run run) {
+   private static String runIcon(io.hyperfoil.controller.model.Run run) {
       if (run.cancelled) {
          return ANSI.RED_TEXT + "×" + ANSI.RESET;
       } else if (run.errors != null && !run.errors.isEmpty()) {
@@ -41,7 +40,7 @@ public class Runs extends ServerCommand {
    @Override
    public CommandResult execute(HyperfoilCommandInvocation invocation) throws CommandException {
       ensureConnection(invocation);
-      List<Client.Run> runs = invocation.context().client().runs(true);
+      List<io.hyperfoil.controller.model.Run> runs = invocation.context().client().runs(true);
       invocation.println(RUN_TABLE.print(runs.stream().sorted(Comparator.comparing(run -> run.id))));
       return CommandResult.SUCCESS;
    }

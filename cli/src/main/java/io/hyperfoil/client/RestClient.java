@@ -16,6 +16,8 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 import io.hyperfoil.api.config.Benchmark;
+import io.hyperfoil.controller.Client;
+import io.hyperfoil.controller.model.Version;
 import io.hyperfoil.util.Util;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
@@ -86,10 +88,10 @@ public class RestClient implements Client, Closeable {
    }
 
    @Override
-   public List<Run> runs(boolean details) {
+   public List<io.hyperfoil.controller.model.Run> runs(boolean details) {
       return sync(
             handler -> client.request(HttpMethod.GET, "/run?details=" + details).send(handler), 200,
-            response -> Arrays.asList(Json.decodeValue(response.body(), Run[].class)));
+            response -> Arrays.asList(Json.decodeValue(response.body(), io.hyperfoil.controller.model.Run[].class)));
    }
 
    @Override

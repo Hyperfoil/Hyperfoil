@@ -5,8 +5,9 @@ import org.aesh.command.CommandException;
 import org.aesh.command.CommandResult;
 
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
-import io.hyperfoil.client.Client;
+import io.hyperfoil.controller.Client;
 import io.hyperfoil.client.RestClientException;
+import io.hyperfoil.controller.model.Phase;
 import io.hyperfoil.core.util.Util;
 
 @CommandDefinition(name = "kill", description = "Terminate run.")
@@ -14,10 +15,10 @@ public class Kill extends BaseRunIdCommand {
    @Override
    public CommandResult execute(HyperfoilCommandInvocation invocation) throws CommandException, InterruptedException {
       Client.RunRef runRef = getRunRef(invocation);
-      Client.Run run = runRef.get();
+      io.hyperfoil.controller.model.Run run = runRef.get();
       invocation.print("Kill run " + run.id + ", benchmark " + run.benchmark);
       int terminated = 0, finished = 0, running = 0;
-      for (Client.Phase phase : run.phases) {
+      for (Phase phase : run.phases) {
          if ("TERMINATED".equals(phase.status)) {
             terminated++;
          } else if ("FINISHED".equals(phase.status)) {

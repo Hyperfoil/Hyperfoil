@@ -18,6 +18,7 @@
         <copy-module module="api"/>
         <copy-module module="cli"/>
         <copy-module module="clustering"/>
+        <copy-module module="controller-api"/>
         <copy-module module="core"/>
         <copy-module module="k8s-deployer"/>
 

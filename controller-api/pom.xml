@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>hyperfoil-all</artifactId>
+        <groupId>io.hyperfoil</groupId>
+        <version>0.6-SNAPSHOT</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>hyperfoil-controller-api</artifactId>
+    <name>Hyperfoil Controller API</name>
+    <description>Hyperfoil Controller RESTful API</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-web</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.hyperfoil</groupId>
+            <artifactId>hyperfoil-api</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <!-- Compilation of the proxy handlers is somewhat unreliable -->
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>compile-proxy-handler</id>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                        <configuration>
+                            <compileSourceRoots>
+                                <sourceRoot>${project.build.directory}/generated-sources/annotations</sourceRoot>
+                            </compileSourceRoots>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>io.hyperfoil</groupId>
+                <artifactId>hyperfoil-codegen-maven-plugin</artifactId>
+                <version>${project.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>codegen</goal>
+                        </goals>
+                        <configuration>
+                            <modelPackage>io.hyperfoil.controller.model</modelPackage>
+                            <servicePackage>io.hyperfoil.controller</servicePackage>
+                            <routerPackage>io.hyperfoil.controller.router</routerPackage>
+                            <defaultDateFormat>yyyy/MM/dd HH:mm:ss.S</defaultDateFormat>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

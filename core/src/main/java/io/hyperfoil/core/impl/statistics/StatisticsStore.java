@@ -7,8 +7,10 @@ import io.hyperfoil.api.config.SLA;
 import io.hyperfoil.api.statistics.CustomValue;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.api.statistics.StatisticsSummary;
-import io.hyperfoil.client.Client;
-import io.hyperfoil.client.HistogramConverter;
+import io.hyperfoil.controller.HistogramConverter;
+import io.hyperfoil.controller.model.CustomStats;
+import io.hyperfoil.controller.model.Histogram;
+import io.hyperfoil.controller.model.RequestStats;
 import io.hyperfoil.core.util.LowHigh;
 import io.netty.util.collection.IntObjectHashMap;
 import io.netty.util.collection.IntObjectMap;
@@ -46,8 +48,8 @@ public class StatisticsStore {
    // When we receive snapshot with order #N we will attempt to compact agent snapshots #(N-60)
    // We are delaying this because the statistics for outlier may come with a significant delay
    private static final int MERGE_DELAY = 60;
-   private static final Comparator<Client.RequestStats> REQUEST_STATS_COMPARATOR =
-         Comparator.<Client.RequestStats, Long>comparing(rs -> rs.summary.startTime)
+   private static final Comparator<RequestStats> REQUEST_STATS_COMPARATOR =
+         Comparator.<RequestStats, Long>comparing(rs -> rs.summary.startTime)
                .thenComparing(rs -> rs.phase).thenComparing(rs -> rs.metric);
 
    private final Benchmark benchmark;
@@ -685,8 +687,8 @@ public class StatisticsStore {
       return failures.isEmpty();
    }
 
-   public List<Client.RequestStats> recentSummary(long minValidTimestamp) {
-      ArrayList<Client.RequestStats> result = new ArrayList<>();
+   public List<RequestStats> recentSummary(long minValidTimestamp) {
+      ArrayList<RequestStats> result = new ArrayList<>();
       for (Map<String, Data> m : this.data.values()) {
          for (Data data : m.values()) {
             OptionalInt lastSequenceId = data.lastStats.values().stream()
@@ -706,44 +708,44 @@ public class StatisticsStore {
             List<String> failures = this.failures.stream()
                   .filter(f -> f.phase().equals(data.phase) && (f.metric() == null || f.metric().equals(data.metric)))
                   .map(f -> f.message()).collect(Collectors.toList());
-            result.add(new Client.RequestStats(data.phase, data.stepId, data.metric, sum.summary(PERCENTILES), failures));
+            result.add(new RequestStats(data.phase, data.stepId, data.metric, sum.summary(PERCENTILES), failures));
          }
       }
       result.sort(REQUEST_STATS_COMPARATOR);
       return result;
    }
 
-   public List<Client.RequestStats> totalSummary() {
-      ArrayList<Client.RequestStats> result = new ArrayList<>();
+   public List<RequestStats> totalSummary() {
+      ArrayList<RequestStats> result = new ArrayList<>();
       for (Map<String, Data> m : this.data.values()) {
          for (Data data : m.values()) {
             StatisticsSummary last = data.total.summary(percentiles);
             List<String> failures = this.failures.stream()
                   .filter(f -> f.phase().equals(data.phase) && (f.metric() == null || f.metric().equals(data.metric)))
                   .map(f -> f.message()).collect(Collectors.toList());
-            result.add(new Client.RequestStats(data.phase, data.stepId, data.metric, last, failures));
+            result.add(new RequestStats(data.phase, data.stepId, data.metric, last, failures));
          }
       }
       result.sort(REQUEST_STATS_COMPARATOR);
       return result;
    }
 
-   public List<Client.CustomStats> customStats() {
-      ArrayList<Client.CustomStats> list = new ArrayList<>();
+   public List<CustomStats> customStats() {
+      ArrayList<CustomStats> list = new ArrayList<>();
       for (Map<String, Data> m : this.data.values()) {
          for (Data data : m.values()) {
             for (Map.Entry<Object, CustomValue> entry : data.total.custom.entrySet()) {
-               list.add(new Client.CustomStats(data.phase, data.stepId, data.metric, entry.getKey().toString(), entry.getValue().toString()));
+               list.add(new CustomStats(data.phase, data.stepId, data.metric, entry.getKey().toString(), entry.getValue().toString()));
             }
          }
       }
-      Comparator<Client.CustomStats> c = Comparator.comparing(s -> s.phase);
+      Comparator<CustomStats> c = Comparator.comparing(s -> s.phase);
       c = c.thenComparing(s -> s.stepId).thenComparing(s -> s.metric).thenComparing(s -> s.customName);
       Collections.sort(list, c);
       return list;
    }
 
-   public Client.Histogram histogram(String phase, int stepId, String metric) {
+   public Histogram histogram(String phase, int stepId, String metric) {
       int phaseId = benchmark.phases().stream().filter(p -> p.name.equals(phase)).mapToInt(p -> p.id).findFirst().orElse(-1);
       Map<String, Data> phaseStepData = data.get((phaseId << 16) + stepId);
       if (phaseStepData == null) {

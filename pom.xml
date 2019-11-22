@@ -53,12 +53,14 @@
     <modules>
         <module>api</module>
         <module>cli</module>
-        <module>core</module>
         <module>clustering</module>
-        <module>test-suite</module>
+        <module>controller-api</module>
+        <module>core</module>
         <module>distribution</module>
-        <module>plugins/maven</module>
         <module>k8s-deployer</module>
+        <module>plugins/codegen</module>
+        <module>plugins/maven</module>
+        <module>test-suite</module>
     </modules>
 
     <!-- Licenses -->
@@ -81,18 +83,21 @@
         <version.fabric8.kubernetes-client>4.6.0</version.fabric8.kubernetes-client>
         <version.fabric8.maven-plugin>4.2.0</version.fabric8.maven-plugin>
         <version.hdrhistogram>2.1.11</version.hdrhistogram>
+        <version.javaparser>3.14.12</version.javaparser>
         <version.junit>4.12</version.junit>
         <version.log4j2>2.11.1</version.log4j2>
         <version.metainf-services>1.8</version.metainf-services>
         <version.netty.tcnative.boringssl>2.0.25.Final</version.netty.tcnative.boringssl>
         <version.slf4j>1.7.12</version.slf4j>
         <version.snakeyaml>1.22</version.snakeyaml>
-        <version.vertx>3.7.1</version.vertx>
+        <version.vertx>3.8.3</version.vertx>
 
         <version.sonatype.nexus>1.6.8</version.sonatype.nexus>
         <version.maven.source>3.0.1</version.maven.source>
         <version.maven.javadoc>3.0.1</version.maven.javadoc>
         <version.maven.gpg>1.6</version.maven.gpg>
+        <version.maven-core>3.5.4</version.maven-core>
+        <version.maven-plugin-annotations>3.5.1</version.maven-plugin-annotations>
 
         <exec.skip>true</exec.skip>
         <module.skipCopyDependencies>false</module.skipCopyDependencies>
@@ -147,6 +152,12 @@
 
             <dependency>
                 <groupId>io.hyperfoil</groupId>
+                <artifactId>hyperfoil-controller-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.hyperfoil</groupId>
                 <artifactId>hyperfoil-core</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -193,30 +204,6 @@
                 <groupId>org.hdrhistogram</groupId>
                 <artifactId>HdrHistogram</artifactId>
                 <version>${version.hdrhistogram}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>io.vertx</groupId>
-                <artifactId>vertx-core</artifactId>
-                <version>${version.vertx}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>io.vertx</groupId>
-                <artifactId>vertx-unit</artifactId>
-                <version>${version.vertx}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>io.vertx</groupId>
-                <artifactId>vertx-web</artifactId>
-                <version>${version.vertx}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>io.vertx</groupId>
-                <artifactId>vertx-infinispan</artifactId>
-                <version>${version.vertx}</version>
             </dependency>
 
             <dependency>
@@ -291,6 +278,30 @@
                 <groupId>io.fabric8</groupId>
                 <artifactId>kubernetes-client</artifactId>
                 <version>${version.fabric8.kubernetes-client}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.maven</groupId>
+                <artifactId>maven-plugin-api</artifactId>
+                <version>${version.maven-core}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.maven</groupId>
+                <artifactId>maven-core</artifactId>
+                <version>${version.maven-core}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.maven.plugin-tools</groupId>
+                <artifactId>maven-plugin-annotations</artifactId>
+                <version>${version.maven-plugin-annotations}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.github.javaparser</groupId>
+                <artifactId>javaparser-core</artifactId>
+                <version>${version.javaparser}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

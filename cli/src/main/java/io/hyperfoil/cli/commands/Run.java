@@ -6,7 +6,7 @@ import org.aesh.command.CommandResult;
 import org.aesh.command.option.Option;
 
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
-import io.hyperfoil.client.Client;
+import io.hyperfoil.controller.Client;
 import io.hyperfoil.client.RestClientException;
 import io.hyperfoil.core.util.Util;
 

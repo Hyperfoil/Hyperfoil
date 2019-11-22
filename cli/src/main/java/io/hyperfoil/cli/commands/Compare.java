@@ -16,7 +16,9 @@ import org.aesh.utils.ANSI;
 import io.hyperfoil.api.statistics.StatisticsSummary;
 import io.hyperfoil.cli.Table;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
-import io.hyperfoil.client.Client;
+import io.hyperfoil.controller.Client;
+import io.hyperfoil.controller.model.RequestStatisticsResponse;
+import io.hyperfoil.controller.model.RequestStats;
 
 @CommandDefinition(name = "compare", description = "Compare results from two runs")
 public class Compare extends ServerCommand {
@@ -96,15 +98,15 @@ public class Compare extends ServerCommand {
 
       Client.RunRef firstRun = ensureComplete(invocation, runIds.get(0));
       Client.RunRef secondRun = ensureComplete(invocation, runIds.get(1));
-      Client.RequestStatisticsResponse firstStats = firstRun.statsTotal();
-      Client.RequestStatisticsResponse secondStats = secondRun.statsTotal();
+      RequestStatisticsResponse firstStats = firstRun.statsTotal();
+      RequestStatisticsResponse secondStats = secondRun.statsTotal();
       invocation.println("Comparing runs " + firstRun.id() + " and " + secondRun.id());
 
       List<Comparison> comparisons = new ArrayList<>();
-      for (Client.RequestStats stats : firstStats.statistics) {
+      for (RequestStats stats : firstStats.statistics) {
          comparisons.add(new Comparison(stats.phase, stats.metric).first(stats.summary));
       }
-      for (Client.RequestStats stats : secondStats.statistics) {
+      for (RequestStats stats : secondStats.statistics) {
          Optional<Comparison> maybeComparison = comparisons.stream()
                .filter(c -> c.phase.equals(stats.phase) && c.metric.equals(stats.metric)).findAny();
          if (maybeComparison.isPresent()) {

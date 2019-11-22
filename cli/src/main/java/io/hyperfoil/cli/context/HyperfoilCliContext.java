@@ -31,7 +31,7 @@ import java.util.concurrent.ScheduledFuture;
 import org.aesh.command.CommandException;
 
 import io.hyperfoil.api.config.Benchmark;
-import io.hyperfoil.client.Client;
+import io.hyperfoil.controller.Client;
 import io.hyperfoil.client.RestClient;
 
 /**

@@ -5,7 +5,7 @@ import org.aesh.command.option.Argument;
 
 import io.hyperfoil.cli.context.HyperfoilCliContext;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
-import io.hyperfoil.client.Client;
+import io.hyperfoil.controller.Client;
 
 public abstract class BenchmarkCommand extends ServerCommand {
    @Argument(description = "Name of the benchmark.", completer = BenchmarkCompleter.class)

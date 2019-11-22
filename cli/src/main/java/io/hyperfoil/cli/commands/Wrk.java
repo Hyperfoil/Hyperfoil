@@ -29,9 +29,12 @@ import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.PhaseBuilder;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocationProvider;
-import io.hyperfoil.client.Client;
-import io.hyperfoil.client.HistogramConverter;
+import io.hyperfoil.controller.Client;
+import io.hyperfoil.controller.HistogramConverter;
 import io.hyperfoil.client.RestClient;
+import io.hyperfoil.controller.model.CustomStats;
+import io.hyperfoil.controller.model.RequestStatisticsResponse;
+import io.hyperfoil.controller.model.RequestStats;
 import io.hyperfoil.core.builders.StepCatalog;
 import io.hyperfoil.core.handlers.ByteBufSizeRecorder;
 import io.hyperfoil.core.impl.LocalBenchmarkData;
@@ -214,7 +217,7 @@ public class Wrk {
          invocation.println(threads + " threads and " + connections + " connections");
 
          while (true) {
-            Client.RequestStatisticsResponse recent = run.statsRecent();
+            RequestStatisticsResponse recent = run.statsRecent();
             if ("TERMINATED".equals(recent.status)) {
                break;
             }
@@ -232,10 +235,10 @@ public class Wrk {
             }
          }
          invocation.println(Config.getLineSeparator() + "benchmark finished");
-         Client.RequestStatisticsResponse total = run.statsTotal();
-         Collection<Client.CustomStats> custom = run.customStats().stream()
+         RequestStatisticsResponse total = run.statsTotal();
+         Collection<CustomStats> custom = run.customStats().stream()
                .filter(cs -> cs.phase.equals("test")).collect(Collectors.toList());
-         Client.RequestStats testStats = total.statistics.stream().filter(rs -> "test".equals(rs.phase))
+         RequestStats testStats = total.statistics.stream().filter(rs -> "test".equals(rs.phase))
                .findFirst().orElseThrow(() -> new IllegalStateException("Missing stats for phase 'test'"));
          AbstractHistogram histogram = HistogramConverter.convert(run.histogram(testStats.phase, testStats.stepId, testStats.metric));
          printStats(testStats.summary, histogram, custom, invocation);
@@ -270,7 +273,7 @@ public class Wrk {
          // @formatter:on
       }
 
-      private void printStats(StatisticsSummary stats, AbstractHistogram histogram, Collection<Client.CustomStats> custom, CommandInvocation invocation) {
+      private void printStats(StatisticsSummary stats, AbstractHistogram histogram, Collection<CustomStats> custom, CommandInvocation invocation) {
          long dataRead = custom.stream().filter(cs -> cs.customName.equals("bytes")).mapToLong(cs -> Long.parseLong(cs.value)).findFirst().orElse(0);
          double durationSeconds = (stats.endTime - stats.startTime) / 1000d;
          invocation.println("                  Avg     Stdev       Max");

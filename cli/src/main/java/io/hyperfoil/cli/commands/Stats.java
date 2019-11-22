@@ -10,13 +10,16 @@ import org.aesh.utils.ANSI;
 
 import io.hyperfoil.cli.Table;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
-import io.hyperfoil.client.Client;
+import io.hyperfoil.controller.Client;
 import io.hyperfoil.client.RestClientException;
+import io.hyperfoil.controller.model.CustomStats;
+import io.hyperfoil.controller.model.RequestStatisticsResponse;
+import io.hyperfoil.controller.model.RequestStats;
 import io.hyperfoil.core.util.Util;
 
 @CommandDefinition(name = "stats", description = "Show run statistics")
 public class Stats extends BaseRunIdCommand {
-   private static final Table<Client.RequestStats> REQUEST_STATS_TABLE = new Table<Client.RequestStats>()
+   private static final Table<RequestStats> REQUEST_STATS_TABLE = new Table<RequestStats>()
          .rowPrefix(r -> r.failedSLAs.isEmpty() ? null : ANSI.RED_TEXT)
          .rowSuffix(r -> ANSI.RESET)
          .column("PHASE", r -> r.phase)
@@ -36,7 +39,7 @@ public class Stats extends BaseRunIdCommand {
          .columnInt("TIMEOUTS", r -> r.summary.timeouts)
          .columnInt("ERRORS", r -> r.summary.resetCount + r.summary.connectFailureCount + r.summary.status_other)
          .columnNanos("BLOCKED", r -> r.summary.blockedTime);
-   private static final Table<Client.CustomStats> CUSTOM_STATS_TABLE = new Table<Client.CustomStats>()
+   private static final Table<CustomStats> CUSTOM_STATS_TABLE = new Table<CustomStats>()
          .column("PHASE", c -> c.phase)
          .columnInt("STEP", c -> c.stepId)
          .column("METRIC", c -> c.metric)
@@ -64,7 +67,7 @@ public class Stats extends BaseRunIdCommand {
       boolean terminated = false;
       int prevLines = -2;
       for (; ; ) {
-         Client.RequestStatisticsResponse stats;
+         RequestStatisticsResponse stats;
          try {
             stats = total || terminated ? runRef.statsTotal() : runRef.statsRecent();
          } catch (RestClientException e) {
@@ -89,7 +92,7 @@ public class Stats extends BaseRunIdCommand {
          }
          invocation.println(REQUEST_STATS_TABLE.print(stats.statistics.stream()));
          prevLines = stats.statistics.size() + 2;
-         for (Client.RequestStats rs : stats.statistics) {
+         for (RequestStats rs : stats.statistics) {
             for (String msg : rs.failedSLAs) {
                invocation.println(String.format("%s/%s: %s", rs.phase, rs.metric == null ? "*" : rs.metric, msg));
                prevLines++;
@@ -103,7 +106,7 @@ public class Stats extends BaseRunIdCommand {
 
    private void showCustomStats(HyperfoilCommandInvocation invocation, Client.RunRef runRef) throws CommandException {
       try {
-         Collection<Client.CustomStats> customStats = runRef.customStats();
+         Collection<CustomStats> customStats = runRef.customStats();
          invocation.println(CUSTOM_STATS_TABLE.print(customStats.stream()));
       } catch (RestClientException e) {
          invocation.println("ERROR: " + Util.explainCauses(e));

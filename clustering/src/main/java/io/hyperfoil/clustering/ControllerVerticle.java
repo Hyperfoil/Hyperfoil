@@ -606,9 +606,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             future.fail(e);
          }
 
-         if (!future.isComplete()) {
-            future.complete();
-         }
+         future.tryComplete();
       }, result -> {
          if (result.failed()) {
             log.error("Failed to persist run {}", result.cause(), run.id);

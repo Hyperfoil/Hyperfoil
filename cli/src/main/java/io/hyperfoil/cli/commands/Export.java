@@ -12,7 +12,7 @@ import org.aesh.command.option.Option;
 import org.aesh.io.Resource;
 
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
-import io.hyperfoil.client.Client;
+import io.hyperfoil.controller.Client;
 
 @CommandDefinition(name = "export", description = "Export run statistics.")
 public class Export extends BaseRunIdCommand {
