@@ -59,7 +59,7 @@ class ControllerServer {
    private static final Set<String> MIME_TYPE_YAML = new HashSet<>(
          Arrays.asList("text/vnd.yaml", "text/yaml", "text/x-yaml", "application/x-yaml"));
    private static final String MIME_TYPE_JSON = "application/json";
-   private static final String MIME_TYPE_CSV = "text/csv";
+   private static final String MIME_TYPE_ZIP = "application/zip";
 
    private static final String CONTROLLER_HOST = Properties.get(Properties.CONTROLLER_HOST, "localhost");
    private static final int CONTROLLER_PORT = Properties.getInt(Properties.CONTROLLER_PORT, 8090);
@@ -497,7 +497,7 @@ class ControllerServer {
             ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_JSON)
                   .sendFile(controller.getRunDir(run).resolve("all.json").toString());
             break;
-         case MIME_TYPE_CSV:
+         case MIME_TYPE_ZIP:
             new Zipper(ctx.response(), controller.getRunDir(run).resolve("stats")).run();
             break;
          default:

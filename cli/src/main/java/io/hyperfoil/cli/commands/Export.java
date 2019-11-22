@@ -34,7 +34,7 @@ public class Export extends BaseRunIdCommand {
             defaultFilename = runRef.id() + ".json";
             break;
          case "CSV":
-            acceptFormat = "text/csv";
+            acceptFormat = "application/zip";
             defaultFilename = runRef.id() + ".zip";
             break;
          default:
