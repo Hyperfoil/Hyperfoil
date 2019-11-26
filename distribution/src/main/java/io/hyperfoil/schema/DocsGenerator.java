@@ -625,6 +625,9 @@ public class DocsGenerator extends BaseGenerator {
       for (Map.Entry<String, BuilderInfo<?>> entry : ServiceLoadedBuilderProvider.builders(builderClazz).entrySet()) {
          Class<?> newBuilder = entry.getValue().implClazz;
          Docs docs = describeBuilder(newBuilder);
+         if (docs == null) {
+            continue;
+         }
          docs.ownerDescription = docs.typeDescription;
          if (InitFromParam.class.isAssignableFrom(newBuilder)) {
             ClassOrInterfaceDeclaration cd = findClass(newBuilder);
