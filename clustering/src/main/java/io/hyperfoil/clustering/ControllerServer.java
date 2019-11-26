@@ -63,7 +63,7 @@ class ControllerServer implements ApiService {
    private static final String MIME_TYPE_TEXT_PLAIN = "text/plain";
    private static final String MIME_TYPE_YAML = "text/vnd.yaml";
 
-   private static final String CONTROLLER_HOST = Properties.get(Properties.CONTROLLER_HOST, "localhost");
+   private static final String CONTROLLER_HOST = Properties.get(Properties.CONTROLLER_HOST, "0.0.0.0");
    private static final int CONTROLLER_PORT = Properties.getInt(Properties.CONTROLLER_PORT, 8090);
    private static final Comparator<ControllerPhase> PHASE_COMPARATOR =
          Comparator.<ControllerPhase, Long>comparing(ControllerPhase::absoluteStartTime).thenComparing(p -> p.definition().name);
