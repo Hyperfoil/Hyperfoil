@@ -606,3 +606,6 @@ components:
           type: string
         deploymentId:
           type: string
+        serverTime:
+          type: string
+          format: date-time

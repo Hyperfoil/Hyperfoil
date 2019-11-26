@@ -7,6 +7,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import org.aesh.command.Command;
@@ -86,11 +87,14 @@ public abstract class ServerCommand implements Command<HyperfoilCommandInvocatio
       ctx.setClient(new RestClient(host, port));
       try {
          long preMillis = System.currentTimeMillis();
-         long serverEpochTime = ctx.client().ping();
+         io.hyperfoil.controller.model.Version version = ctx.client().version();
          long postMillis = System.currentTimeMillis();
          invocation.println("Connected!");
-         if (serverEpochTime != 0 && (serverEpochTime < preMillis || serverEpochTime > postMillis)) {
-            invocation.println("WARNING: Server time seems to be off by " + (postMillis + preMillis - 2 * serverEpochTime) / 2 + " ms");
+         if (version.serverTime != null && (version.serverTime.getTime() < preMillis || version.serverTime.getTime() > postMillis)) {
+            invocation.println(ANSI.YELLOW_TEXT + "WARNING: Controller time seems to be off by " + (postMillis + preMillis - 2 * version.serverTime.getTime()) / 2 + " ms" + ANSI.RESET);
+         }
+         if (!Objects.equals(version.commitId, io.hyperfoil.api.Version.COMMIT_ID)) {
+            invocation.println(ANSI.YELLOW_TEXT + "WARNING: Controller version is different from CLI version. Benchmark upload may fail due to binary incompatibility." + ANSI.RESET);
          }
          String shortHost = host;
          if (host.equals(invocation.context().localControllerHost()) && port == invocation.context().localControllerPort()) {

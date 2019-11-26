@@ -470,9 +470,9 @@ class ControllerServer implements ApiService {
    @Override
    public void getAllStats$application_json(RoutingContext ctx, String runId) {
       withTerminatedRun(ctx, runId, run -> {
-            ctx.response()
-                  .putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_JSON)
-                  .sendFile(controller.getRunDir(run).resolve("all.json").toString());
+         ctx.response()
+               .putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_JSON)
+               .sendFile(controller.getRunDir(run).resolve("all.json").toString());
       });
    }
 
@@ -657,7 +657,7 @@ class ControllerServer implements ApiService {
 
    @Override
    public void getVersion(RoutingContext ctx) {
-      ctx.response().end(Json.encodePrettily(new io.hyperfoil.controller.model.Version(Version.VERSION, Version.COMMIT_ID, controller.deploymentID())));
+      ctx.response().end(Json.encodePrettily(new io.hyperfoil.controller.model.Version(Version.VERSION, Version.COMMIT_ID, controller.deploymentID(), new Date())));
    }
 
    public void withBenchmark(RoutingContext ctx, String name, Consumer<Benchmark> consumer) {
