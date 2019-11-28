@@ -551,7 +551,13 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                .put("cancelled", run.cancelled)
                .put("description", run.description)
                .put("errors", new JsonArray(run.errors.stream()
-                     .map(e -> new JsonObject().put("agent", e.agent.name).put("msg", e.error.getMessage()))
+                     .map(e -> {
+                        JsonObject json = new JsonObject();
+                        if (e.agent != null) {
+                           json.put("agent", e.agent.name);
+                        }
+                        return json.put("msg", e.error.getMessage());
+                     })
                      .collect(Collectors.toList())));
 
          try {
