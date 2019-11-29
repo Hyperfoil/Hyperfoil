@@ -1,5 +1,6 @@
 package io.hyperfoil;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
@@ -20,9 +21,11 @@ import org.infinispan.configuration.parsing.ParserRegistry;
 import org.infinispan.manager.DefaultCacheManager;
 import org.infinispan.remoting.transport.jgroups.JGroupsTransport;
 
+import io.hyperfoil.api.Version;
 import io.hyperfoil.clustering.ControllerVerticle;
 import io.hyperfoil.clustering.AgentVerticle;
 import io.hyperfoil.clustering.Codecs;
+import io.hyperfoil.internal.Controller;
 import io.hyperfoil.internal.Properties;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Handler;
@@ -38,7 +41,7 @@ class Hyperfoil {
    private static final Set<String> LOCALHOST_IPS = new HashSet<>(Arrays.asList("127.0.0.1", "::1", "[::1]"));
 
    static void clusteredVertx(boolean isController, Handler<Vertx> startedHandler) {
-      logJavaVersion();
+      logVersion();
       Thread.setDefaultUncaughtExceptionHandler(Hyperfoil::defaultUncaughtExceptionHandler);
       log.info("Starting Vert.x...");
       VertxOptions options = new VertxOptions();
@@ -175,7 +178,7 @@ class Hyperfoil {
 
    public static class Standalone extends Hyperfoil {
       public static void main(String[] args) {
-         logJavaVersion();
+         logVersion();
          Thread.setDefaultUncaughtExceptionHandler(Hyperfoil::defaultUncaughtExceptionHandler);
          log.info("Starting non-clustered Vert.x...");
          Vertx vertx = Vertx.vertx();
@@ -188,12 +191,19 @@ class Hyperfoil {
       log.error("Uncaught exception in thread {}({})", throwable, thread.getName(), thread.getId());
    }
 
-   private static void logJavaVersion() {
-      log.info("{} {} {} {} ({})",
+   private static void logVersion() {
+      log.info("Java: {} {} {} {} ({})",
             System.getProperty("java.vm.vendor", "<unknown VM vendor>"),
             System.getProperty("java.vm.name", "<unknown VM name>"),
             System.getProperty("java.version", "<unknown version>"),
             System.getProperty("java.vm.version", "<unknown VM version>"),
             System.getProperty("java.home", "<unknown Java home>"));
+      String path = new File(Hyperfoil.class.getProtectionDomain().getCodeSource().getLocation().getPath()).getParentFile().getParent();
+      log.info("Hyperfoil: {} ({})", Version.VERSION, Version.COMMIT_ID);
+      log.info("           DISTRIBUTION:  {}", path);
+      log.info("           ROOT_DIR:      {}", io.hyperfoil.internal.Controller.ROOT_DIR);
+      log.info("           BENCHMARK_DIR: {}", io.hyperfoil.internal.Controller.BENCHMARK_DIR);
+      log.info("           RUN_DIR:       {}", io.hyperfoil.internal.Controller.RUN_DIR);
+      log.info("           HOOKS_DIR:     {}", io.hyperfoil.internal.Controller.HOOKS_DIR);
    }
 }
