@@ -427,6 +427,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             boolean success = hook.run(getRunProperties(run), sb::append);
             run.hookResults.add(new Run.RunHookOutput(hook.name(), sb.toString()));
             if (!success) {
+               run.errors.add(new Run.Error(null, new BenchmarkExecutionException("Execution of run hook " + hook.name() + " failed.")));
                future.fail("Execution of pre-hook " + hook.name() + " failed.");
                break;
             }
@@ -699,12 +700,13 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
 
    private List<RunHook> loadHooks(String subdir) {
       try {
-         File preHookDir = Controller.HOOKS_DIR.resolve(subdir).toFile();
-         if (preHookDir.exists() && preHookDir.isDirectory()) {
-            return Files.list(preHookDir.toPath()).map(path -> {
-               File file = path.toFile();
-               return new ExecRunHook(file.getName(), file.getAbsolutePath());
-            }).collect(Collectors.toList());
+         File hookDir = Controller.HOOKS_DIR.resolve(subdir).toFile();
+         if (hookDir.exists() && hookDir.isDirectory()) {
+            return Files.list(hookDir.toPath())
+                  .map(Path::toFile)
+                  .filter(file -> !file.isDirectory() && !file.isHidden())
+                  .map(file -> new ExecRunHook(file.getName(), file.getAbsolutePath()))
+                  .collect(Collectors.toList());
          }
       } catch (IOException e) {
          log.error("Failed to list hooks.", e);
