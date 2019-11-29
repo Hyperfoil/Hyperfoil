@@ -174,9 +174,17 @@ class ControllerServer implements ApiService {
          Benchmark benchmark = io.hyperfoil.util.Util.deserialize(bytes);
          addBenchmarkAndReply(ctx, benchmark);
       } catch (IOException | ClassNotFoundException e) {
-         log.error("Failed to serialize", e);
-         ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end("Cannot read benchmark.");
-         return;
+         log.error("Failed to deserialize", e);
+         StringBuilder message = new StringBuilder("Cannot read benchmark - the controller (server) version and CLI version are probably not in sync.\n");
+         message.append("This partial stack-track might help you diagnose the problematic part:\n---\n");
+         for (StackTraceElement ste : e.getStackTrace()) {
+            message.append(ste).append('\n');
+            if (ste.getClassName().equals(io.hyperfoil.util.Util.class.getName())) {
+               break;
+            }
+         }
+         message.append("---\n");
+         ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end(message.toString());
       }
    }
 
