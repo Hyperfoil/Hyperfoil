@@ -7,6 +7,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
@@ -40,7 +41,16 @@ public class HttpRequestTest extends BaseScenarioTest {
          String s = ctx.request().getParam("s");
          ctx.response().setStatusCode(Integer.parseInt(s)).end();
       });
-      router.get("/test").handler(ctx -> ctx.response().putHeader("x-foo", "5").end());
+      router.get("/test").handler(ctx -> {
+         ctx.response().putHeader("x-foo", "5");
+         String expectHeader = ctx.request().getParam("expectHeader");
+         if (expectHeader != null) {
+            String[] headerValue = expectHeader.split(":", 2);
+            String actualValue = ctx.request().getHeader(headerValue[0]);
+            ctx.response().setStatusCode(Objects.equals(actualValue, headerValue[1]) ? 200 : 412);
+         }
+         ctx.response().end();
+      });
    }
 
    private StatusHandler verifyStatus(TestContext ctx) {
@@ -159,9 +169,8 @@ public class HttpRequestTest extends BaseScenarioTest {
       assertThat(snapshot0.status_4xx).isEqualTo(0);
       assertThat(snapshot1.status_2xx).isEqualTo(0);
       assertThat(snapshot1.status_4xx).isEqualTo(1);
-      // TODO issue #5
-//      assertThat(session.validatorResults().statusValid()).isEqualTo(1);
-//      assertThat(session.validatorResults().statusInvalid()).isEqualTo(1);
+      assertThat(snapshot0.invalid).isEqualTo(0);
+      assertThat(snapshot1.invalid).isEqualTo(1);
    }
 
    @Test
@@ -183,5 +192,43 @@ public class HttpRequestTest extends BaseScenarioTest {
       assertThat(foo.size()).isEqualTo(1);
       StatisticsSnapshot snapshot = foo.iterator().next();
       assertThat(snapshot.histogram.getCountAtValue(TimeUnit.MILLISECONDS.toNanos(5))).isEqualTo(1);
+   }
+
+   @Test
+   public void testRequestHeaders() {
+      // @formatter:off
+      scenario()
+            .initialSequence("testFromVar")
+               .step(SC).set()
+                  .var("foo")
+                  .value("bar")
+               .endStep()
+               .step(SC).httpRequest(HttpMethod.GET)
+                  .path("/test?expectHeader=Authorization:bar")
+                  .headers()
+                     .withKey("Authorization")
+                        .fromVar("foo")
+                     .end()
+                  .endHeaders()
+               .endStep()
+            .endSequence()
+            .initialSequence("testPattern")
+               .step(SC).set()
+                  .var("foo")
+                  .value("bar")
+               .endStep()
+               .step(SC).httpRequest(HttpMethod.GET)
+                  .path("/test?expectHeader=Authorization:xxxbarxxx")
+                  .headers()
+                     .withKey("Authorization")
+                        .pattern("xxx${foo}xxx")
+                     .end()
+                  .endHeaders()
+               .endStep()
+            .endSequence();
+      // @formatter:on
+      Map<String, List<StatisticsSnapshot>> stats = runScenario();
+      assertThat(assertSingleItem(stats.get("testFromVar")).status_2xx).isEqualTo(1);
+      assertThat(assertSingleItem(stats.get("testPattern")).status_2xx).isEqualTo(1);
    }
 }

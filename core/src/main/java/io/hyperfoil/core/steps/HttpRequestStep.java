@@ -709,7 +709,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
        */
       @Override
       public PartialHeadersBuilder withKey(java.lang.String key) {
-         return new PartialHeadersBuilder(parent, key);
+         return new PartialHeadersBuilder(this, key);
       }
    }
 
@@ -717,10 +717,11 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
     * Specifies value that should be sent in headers.
     */
    public static class PartialHeadersBuilder {
-      private final Builder parent;
+      private final HeadersBuilder parent;
       private final String header;
+      private boolean added;
 
-      private PartialHeadersBuilder(Builder parent, String header) {
+      private PartialHeadersBuilder(HeadersBuilder parent, String header) {
          this.parent = parent;
          this.header = header;
       }
@@ -732,9 +733,10 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
        * @return Self.
        */
       public PartialHeadersBuilder fromVar(String var) {
+         ensureOnce();
          Access access = SessionFactory.access(var);
          String myHeader = header;
-         parent.headerAppenders.add((session, writer) -> {
+         parent.parent.headerAppenders.add((session, writer) -> {
             Object value = access.getObject(session);
             if (value instanceof CharSequence) {
                writer.putHeader(myHeader, (CharSequence) value);
@@ -743,6 +745,27 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
             }
          });
          return this;
+      }
+
+      public PartialHeadersBuilder pattern(String patternString) {
+         Pattern pattern = new Pattern(patternString, false);
+         String myHeader = header;
+         parent.parent.headerAppenders.add((session, writer) -> {
+            String value = pattern.apply(session);
+            writer.putHeader(myHeader, value);
+         });
+         return this;
+      }
+
+      private void ensureOnce() {
+         if (added) {
+            throw new BenchmarkDefinitionException("Trying to add header " + header + " twice. Use only one of: fromVar, pattern");
+         }
+         added = true;
+      }
+
+      public HeadersBuilder end() {
+         return parent;
       }
    }
 
