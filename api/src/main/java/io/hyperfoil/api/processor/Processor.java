@@ -28,7 +28,7 @@ public interface Processor<R extends Request> extends Serializable {
    default void after(R request) {
    }
 
-   interface Builder<R extends Request, B extends Builder<R, B> > extends BuilderBase<B> {
+   interface Builder<R extends Request, B extends Builder<R, B>> extends BuilderBase<B> {
       Processor<R> build();
    }
 
@@ -51,9 +51,7 @@ public interface Processor<R extends Request> extends Serializable {
 
       @Override
       public void reserve(Session session) {
-         if (delegate instanceof ResourceUtilizer) {
-            ((ResourceUtilizer) delegate).reserve(session);
-         }
+         ResourceUtilizer.reserve(session, delegate);
       }
    }
 
@@ -71,9 +69,7 @@ public interface Processor<R extends Request> extends Serializable {
 
       @Override
       public void reserve(Session session) {
-         if (action instanceof ResourceUtilizer) {
-            ((ResourceUtilizer) action).reserve(session);
-         }
+         ResourceUtilizer.reserve(session, action);
       }
    }
 }

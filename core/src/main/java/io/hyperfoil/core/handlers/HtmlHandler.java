@@ -207,11 +207,7 @@ public class HtmlHandler implements Processor<HttpRequest>, ResourceUtilizer, Se
    @Override
    public void reserve(Session session) {
       session.declareResource(this, new Context());
-      for (TagHandler handler : handlers) {
-         if (handler instanceof ResourceUtilizer) {
-            ((ResourceUtilizer) handler).reserve(session);
-         }
-      }
+      ResourceUtilizer.reserve(session, handlers);
    }
 
    interface TagHandler {
@@ -571,9 +567,7 @@ public class HtmlHandler implements Processor<HttpRequest>, ResourceUtilizer, Se
 
       @Override
       public void reserve(Session session) {
-         if (action instanceof ResourceUtilizer) {
-            ((ResourceUtilizer) action).reserve(session);
-         }
+         ResourceUtilizer.reserve(session, action);
       }
    }
 
@@ -607,9 +601,7 @@ public class HtmlHandler implements Processor<HttpRequest>, ResourceUtilizer, Se
       @Override
       public void reserve(Session session) {
          completionCounter.declareInt(session);
-         if (delegate instanceof ResourceUtilizer) {
-            ((ResourceUtilizer) delegate).reserve(session);
-         }
+         ResourceUtilizer.reserve(session, delegate);
       }
    }
 
@@ -640,9 +632,7 @@ public class HtmlHandler implements Processor<HttpRequest>, ResourceUtilizer, Se
 
       @Override
       public void reserve(Session session) {
-         if (processor instanceof ResourceUtilizer) {
-            ((ResourceUtilizer) processor).reserve(session);
-         }
+         ResourceUtilizer.reserve(session, processor);
       }
 
       protected class Ctx implements HandlerContext {

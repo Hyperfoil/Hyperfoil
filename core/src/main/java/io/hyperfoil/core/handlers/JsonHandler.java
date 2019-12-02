@@ -56,9 +56,7 @@ public class JsonHandler extends JsonParser<Request>
    @Override
    public void reserve(Session session) {
       session.declareResource(this, new Context());
-      if (processor instanceof ResourceUtilizer) {
-         ((ResourceUtilizer) processor).reserve(session);
-      }
+      ResourceUtilizer.reserve(session, processor);
    }
 
    @Override

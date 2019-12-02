@@ -5,6 +5,12 @@ import java.util.Collection;
 public interface ResourceUtilizer {
    void reserve(Session session);
 
+   static void reserve(Session session, Object object) {
+      if (object instanceof ResourceUtilizer) {
+         ((ResourceUtilizer) object).reserve(session);
+      }
+   }
+
    static void reserve(Session session, Object... objects) {
       if (objects == null) {
          return;

@@ -68,9 +68,7 @@ public class QueueProcessor implements Processor<Request>, ResourceUtilizer {
          throw new BenchmarkDefinitionException("Queue is already defined in " + var);
       }
       var.setObject(session, new Queue(session, var.toString(), maxSize, concurrency, sequence, onCompletion));
-      if (onCompletion instanceof ResourceUtilizer) {
-         ((ResourceUtilizer) onCompletion).reserve(session);
-      }
+      ResourceUtilizer.reserve(session, onCompletion);
    }
 
    @MetaInfServices(RequestProcessorBuilder.class)

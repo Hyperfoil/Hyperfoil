@@ -241,21 +241,11 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
 
    @Override
    public void reserve(Session session) {
-      reserveAll(session, statusHandlers);
-      reserveAll(session, headerHandlers);
-      reserveAll(session, bodyHandlers);
-      reserveAll(session, completionHandlers);
-      reserveAll(session, rawBytesHandlers);
-   }
-
-   private <T> void reserveAll(Session session, T[] items) {
-      if (items != null) {
-         for (T item : items) {
-            if (item instanceof ResourceUtilizer) {
-               ((ResourceUtilizer) item).reserve(session);
-            }
-         }
-      }
+      ResourceUtilizer.reserve(session, (Object[]) statusHandlers);
+      ResourceUtilizer.reserve(session, (Object[]) headerHandlers);
+      ResourceUtilizer.reserve(session, (Object[]) bodyHandlers);
+      ResourceUtilizer.reserve(session, (Object[]) completionHandlers);
+      ResourceUtilizer.reserve(session, (Object[]) rawBytesHandlers);
    }
 
    /**

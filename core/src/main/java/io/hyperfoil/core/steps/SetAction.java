@@ -31,9 +31,7 @@ public class SetAction implements Action, ResourceUtilizer {
    @Override
    public void reserve(Session session) {
       var.declareObject(session);
-      if (valueSupplier instanceof ResourceUtilizer) {
-         ((ResourceUtilizer) valueSupplier).reserve(session);
-      }
+      ResourceUtilizer.reserve(session, valueSupplier);
    }
 
    /**

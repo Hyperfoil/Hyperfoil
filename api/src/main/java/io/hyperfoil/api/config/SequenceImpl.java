@@ -41,11 +41,7 @@ class SequenceImpl implements Sequence {
 
    @Override
    public void reserve(Session session) {
-      for (Step a : steps) {
-         if (a instanceof ResourceUtilizer) {
-            ((ResourceUtilizer) a).reserve(session);
-         }
-      }
+      ResourceUtilizer.reserve(session, (Object[]) steps);
    }
 
    @Override
