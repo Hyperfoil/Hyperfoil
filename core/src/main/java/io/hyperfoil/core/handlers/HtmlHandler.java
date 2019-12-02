@@ -516,8 +516,7 @@ public class HtmlHandler implements Processor<HttpRequest>, ResourceUtilizer, Se
 
          SequenceBuilder sequence = locator.scenario().sequence(generatedSeqName);
 
-         // Constructor adds self into sequence
-         HttpRequestStep.Builder requestBuilder = new HttpRequestStep.Builder(sequence).sync(false).method(HttpMethod.GET);
+         HttpRequestStep.Builder requestBuilder = new HttpRequestStep.Builder().sync(false).method(HttpMethod.GET);
          requestBuilder.path(
                new StringGeneratorImplBuilder<>(requestBuilder, false).fromVar(downloadUrlVar() + "[.]"));
          if (metricSelector != null) {
@@ -527,10 +526,12 @@ public class HtmlHandler implements Processor<HttpRequest>, ResourceUtilizer, Se
             requestBuilder.metric((authority, path) -> authority != null ? authority + path : path);
          }
          requestBuilder.handler().onCompletion(new AddToIntAction.Builder().var(completionLatch()).value(-1));
+         requestBuilder.setLocator(sequence.createLocator());
+         sequence.stepBuilder(requestBuilder);
 
          Action onCompletion = this.onCompletion.build();
          // We add unset step for cases where the step is retried and it's not sync
-         locator.sequence().insertAfter(locator.step())
+         locator.sequence().insertAfter(locator)
                .step(new AwaitIntStep(completionLatch(), x -> x == 0))
                .step(new StepBuilder.ActionStep(new UnsetAction(completionLatch())))
                .step(new ResourceUtilizingStep(onCompletion));

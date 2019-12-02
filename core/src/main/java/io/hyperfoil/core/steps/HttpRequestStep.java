@@ -10,15 +10,19 @@ import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
+import org.kohsuke.MetaInfServices;
+
 import io.hyperfoil.api.BenchmarkExecutionException;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.ErgonomicsBuilder;
 import io.hyperfoil.api.config.Http;
+import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.MappingListBuilder;
+import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.SLA;
 import io.hyperfoil.api.config.SLABuilder;
-import io.hyperfoil.api.config.Sequence;
+import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.SequenceInstance;
@@ -32,7 +36,6 @@ import io.hyperfoil.core.http.UserAgentAppender;
 import io.hyperfoil.core.session.IntVar;
 import io.hyperfoil.core.session.ObjectVar;
 import io.hyperfoil.core.session.SessionFactory;
-import io.hyperfoil.function.SerializableSupplier;
 import io.hyperfoil.impl.FutureSupplier;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -45,7 +48,6 @@ import io.hyperfoil.api.connection.HttpRequestWriter;
 import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.core.builders.BaseStepBuilder;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.core.util.Util;
@@ -70,14 +72,13 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
    final HttpResponseHandlersImpl handler;
    final SLA[] sla;
 
-   public HttpRequestStep(SerializableSupplier<Sequence> sequence, HttpMethod method,
+   public HttpRequestStep(HttpMethod method,
                           SerializableFunction<Session, String> authority,
                           SerializableFunction<Session, String> pathGenerator,
                           SerializableBiFunction<Session, Connection, ByteBuf> bodyGenerator,
                           SerializableBiConsumer<Session, HttpRequestWriter>[] headerAppenders,
                           SerializableBiFunction<String, String, String> metricSelector,
                           long timeout, HttpResponseHandlersImpl handler, SLA[] sla) {
-      super(sequence);
       this.method = method;
       this.authority = authority;
       this.pathGenerator = pathGenerator;
@@ -113,13 +114,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
          }
          path = path.substring(prefixLength(isHttp) + authority.length());
       }
-      String metric = null;
-      if (metricSelector != null) {
-         metric = metricSelector.apply(authority, path);
-      }
-      if (metric == null) {
-         metric = sequence().name();
-      }
+      String metric = metricSelector.apply(authority, path);
       Statistics statistics = session.statistics(id(), metric);
       SequenceInstance sequence = session.currentSequence();
       request.method = method;
@@ -186,7 +181,10 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
    /**
     * Issues a HTTP request and registers handlers for the response.
     */
-   public static class Builder extends BaseStepBuilder {
+   @MetaInfServices(StepBuilder.class)
+   @Name("httpRequest")
+   public static class Builder extends BaseStepBuilder<Builder> {
+      private Locator locator;
       private HttpMethod method;
       private StringGeneratorBuilder authority;
       private StringGeneratorBuilder path;
@@ -198,8 +196,11 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
       private boolean sync = true;
       private SLABuilder.ListBuilder<Builder> sla = null;
 
-      public Builder(BaseSequenceBuilder parent) {
-         super(parent);
+      @Override
+      public Builder setLocator(Locator locator) {
+         this.locator = Locator.get(this, locator);
+         handler.setLocator(this.locator);
+         return this;
       }
 
       /**
@@ -573,7 +574,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
       @Override
       public void prepareBuild() {
-         ErgonomicsBuilder ergonomics = endStep().endSequence().endScenario().endPhase().ergonomics();
+         ErgonomicsBuilder ergonomics = locator.scenario().endScenario().endPhase().ergonomics();
          if (ergonomics.repeatCookies()) {
             headerAppender(new CookieAppender());
          }
@@ -581,20 +582,20 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
             headerAppender(new UserAgentAppender());
          }
          if (sync) {
-            String var = String.format("%s_sync_%08x", endStep().name(), ThreadLocalRandom.current().nextInt());
+            String var = String.format("%s_sync_%08x", locator.sequence().name(), ThreadLocalRandom.current().nextInt());
             Access access = SessionFactory.access(var);
-            endStep().insertBefore(this).step(new SyncRequestIncrementStep(var));
+            locator.sequence().insertBefore(locator).step(new SyncRequestIncrementStep(var));
             handler.onCompletion(s -> access.addToInt(s, -1));
-            endStep().insertAfter(this).step(new AwaitIntStep(var, x -> x == 0));
+            locator.sequence().insertAfter(locator).step(new AwaitIntStep(var, x -> x == 0));
          }
          handler.prepareBuild();
       }
 
       @Override
-      public List<Step> build(SerializableSupplier<Sequence> sequence) {
+      public List<Step> build() {
          FutureSupplier<HttpRequestStep> fs = new FutureSupplier<>();
 
-         BenchmarkBuilder simulation = endStep().endSequence().endScenario().endPhase();
+         BenchmarkBuilder simulation = locator.scenario().endScenario().endPhase();
          String guessedAuthority = null;
          boolean checkAuthority = true;
          SerializableFunction<Session, String> authority = this.authority != null ? this.authority.build() : null;
@@ -623,14 +624,19 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
          SLA[] sla = this.sla != null ? this.sla.build() : SLA.DEFAULT;
          SerializableBiFunction<Session, Connection, ByteBuf> bodyGenerator = this.body != null ? this.body.build() : null;
 
-         HttpRequestStep step = new HttpRequestStep(sequence, method, authority, pathGenerator, bodyGenerator, headerAppenders, metricSelector, timeout, handler.build(fs), sla);
+         SerializableBiFunction<String, String, String> metricSelector = this.metricSelector;
+         if (metricSelector == null) {
+            String sequenceName = locator.sequence().name();
+            metricSelector = (a, p) -> sequenceName;
+         }
+         HttpRequestStep step = new HttpRequestStep(method, authority, pathGenerator, bodyGenerator, headerAppenders, metricSelector, timeout, handler.build(fs), sla);
          fs.set(step);
          return Collections.singletonList(step);
       }
 
       @Override
-      public void addCopyTo(BaseSequenceBuilder newParent) {
-         Builder newBuilder = new Builder(newParent)
+      public Builder copy(Locator locator) {
+         Builder newBuilder = new Builder().setLocator(locator)
                .method(method)
                .authority(authority)
                .path(path)
@@ -644,12 +650,8 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
          if (timeout > 0) {
             newBuilder.timeout(timeout, TimeUnit.MILLISECONDS);
          }
-         newBuilder.handler().readFrom(handler);
-      }
-
-      @Override
-      public boolean canBeLocated() {
-         return true;
+         newBuilder.handler = handler.copy(newBuilder, locator);
+         return newBuilder;
       }
    }
 
@@ -747,6 +749,12 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
          return this;
       }
 
+      /**
+       * Load header value using a pattern.
+       *
+       * @param patternString Pattern to be encoded, e.g. <code>foo${variable}bar${another-variable}</code>
+       * @return
+       */
       public PartialHeadersBuilder pattern(String patternString) {
          Pattern pattern = new Pattern(patternString, false);
          String myHeader = header;

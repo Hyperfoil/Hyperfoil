@@ -9,7 +9,6 @@ import java.util.function.IntFunction;
 
 import io.hyperfoil.api.config.BuilderBase;
 import io.hyperfoil.api.config.Locator;
-import io.hyperfoil.api.config.Rewritable;
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.processor.HttpRequestProcessorBuilder;
 import io.hyperfoil.api.processor.Processor;
@@ -251,8 +250,9 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
    /**
     * Manages processing of HTTP responses.
     */
-   public static class Builder implements Rewritable<Builder> {
+   public static class Builder {
       private final HttpRequestStep.Builder parent;
+      private Locator locator;
       private List<StatusHandler.Builder> statusHandlers = new ArrayList<>();
       private List<HeaderHandler.Builder> headerHandlers = new ArrayList<>();
       private List<HttpRequestProcessorBuilder> bodyHandlers = new ArrayList<>();
@@ -278,7 +278,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
        * @return Builder.
        */
       public ServiceLoadedBuilderProvider<StatusHandler.Builder> status() {
-         return new ServiceLoadedBuilderProvider<>(StatusHandler.Builder.class, Locator.fromStep(parent), statusHandlers::add);
+         return new ServiceLoadedBuilderProvider<>(StatusHandler.Builder.class, locator, statusHandlers::add);
       }
 
       public Builder header(HeaderHandler handler) {
@@ -296,7 +296,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
        * @return Builder.
        */
       public ServiceLoadedBuilderProvider<HeaderHandler.Builder> header() {
-         return new ServiceLoadedBuilderProvider<>(HeaderHandler.Builder.class, Locator.fromStep(parent), headerHandlers::add);
+         return new ServiceLoadedBuilderProvider<>(HeaderHandler.Builder.class, locator, headerHandlers::add);
       }
 
       public Builder body(Processor<HttpRequest> handler) {
@@ -310,7 +310,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
        * @return Builder.
        */
       public ServiceLoadedBuilderProvider<HttpRequestProcessorBuilder> body() {
-         return new ServiceLoadedBuilderProvider<>(HttpRequestProcessorBuilder.class, Locator.fromStep(parent), bodyHandlers::add);
+         return new ServiceLoadedBuilderProvider<>(HttpRequestProcessorBuilder.class, locator, bodyHandlers::add);
       }
 
       public Builder onCompletion(Action handler) {
@@ -328,7 +328,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
        * @return Builder.
        */
       public ServiceLoadedBuilderProvider<Action.Builder> onCompletion() {
-         return new ServiceLoadedBuilderProvider<>(Action.Builder.class, Locator.fromStep(parent), completionHandlers::add);
+         return new ServiceLoadedBuilderProvider<>(Action.Builder.class, locator, completionHandlers::add);
       }
 
       /**
@@ -347,7 +347,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       }
 
       public void prepareBuild() {
-         if (parent.endStep().endSequence().endScenario().endPhase().ergonomics().repeatCookies()) {
+         if (locator.scenario().endScenario().endPhase().ergonomics().repeatCookies()) {
             header(new CookieRecorder());
          }
          // TODO: we might need defensive copies here
@@ -375,14 +375,19 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          }
       }
 
-      @Override
-      public void readFrom(Builder other) {
-         Locator locator = Locator.fromStep(parent);
-         statusHandlers = BuilderBase.copy(locator, other.statusHandlers);
-         headerHandlers = BuilderBase.copy(locator, other.headerHandlers);
-         bodyHandlers = BuilderBase.copy(locator, other.bodyHandlers);
-         completionHandlers = BuilderBase.copy(locator, other.completionHandlers);
-         rawBytesHandlers = other.rawBytesHandlers;
+      public HttpResponseHandlersImpl.Builder copy(HttpRequestStep.Builder parent, Locator locator) {
+         Builder copy = new Builder(parent).setLocator(locator);
+         copy.statusHandlers.addAll(BuilderBase.copy(locator, this.statusHandlers));
+         copy.headerHandlers.addAll(BuilderBase.copy(locator, this.headerHandlers));
+         copy.bodyHandlers.addAll(BuilderBase.copy(locator, this.bodyHandlers));
+         copy.completionHandlers.addAll(BuilderBase.copy(locator, this.completionHandlers));
+         copy.rawBytesHandlers.addAll(this.rawBytesHandlers);
+         return copy;
+      }
+
+      public Builder setLocator(Locator locator) {
+         this.locator = locator;
+         return this;
       }
    }
 }

@@ -4,16 +4,18 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
+import org.kohsuke.MetaInfServices;
+
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
-import io.hyperfoil.api.config.Sequence;
+import io.hyperfoil.api.config.InitFromParam;
+import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.Step;
+import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.ResourceUtilizer;
-import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.core.builders.BaseStepBuilder;
 import io.hyperfoil.core.session.SessionFactory;
-import io.hyperfoil.function.SerializableSupplier;
 
 public class RandomIntStep implements Step, ResourceUtilizer {
    private final Access toVar;
@@ -51,23 +53,31 @@ public class RandomIntStep implements Step, ResourceUtilizer {
    /**
     * Stores random (linearly distributed) integer into session variable.
     */
-   public static class Builder extends BaseStepBuilder {
+   @MetaInfServices(StepBuilder.class)
+   @Name("randomInt")
+   public static class Builder extends BaseStepBuilder<Builder> implements InitFromParam<Builder> {
       private String toVar;
       private int min = 0;
       private int max = Integer.MAX_VALUE;
 
-      public Builder(BaseSequenceBuilder parent, String rangeToVar) {
-         super(parent);
-         if (rangeToVar != null) {
-            int arrowIndex = rangeToVar.indexOf("<-");
-            int dotdotIndex = rangeToVar.indexOf("..");
-            if (arrowIndex < 0 || dotdotIndex < arrowIndex) {
-               throw new BenchmarkDefinitionException("Expecting format var <- min .. max");
-            }
-            toVar = rangeToVar.substring(0, arrowIndex).trim();
-            min = Integer.parseInt(rangeToVar.substring(arrowIndex + 2, dotdotIndex).trim());
-            max = Integer.parseInt(rangeToVar.substring(dotdotIndex + 2).trim());
+      /**
+       * @param rangeToVar Use format `var <- min .. max`
+       * @return Self.
+       */
+      @Override
+      public Builder init(String rangeToVar) {
+         if (rangeToVar == null) {
+            return this;
          }
+         int arrowIndex = rangeToVar.indexOf("<-");
+         int dotdotIndex = rangeToVar.indexOf("..");
+         if (arrowIndex < 0 || dotdotIndex < arrowIndex) {
+            throw new BenchmarkDefinitionException("Expecting format var <- min .. max");
+         }
+         toVar = rangeToVar.substring(0, arrowIndex).trim();
+         min = Integer.parseInt(rangeToVar.substring(arrowIndex + 2, dotdotIndex).trim());
+         max = Integer.parseInt(rangeToVar.substring(dotdotIndex + 2).trim());
+         return this;
       }
 
       /**
@@ -104,7 +114,7 @@ public class RandomIntStep implements Step, ResourceUtilizer {
       }
 
       @Override
-      public List<Step> build(SerializableSupplier<Sequence> sequence) {
+      public List<Step> build() {
          if (toVar == null || toVar.isEmpty()) {
             throw new BenchmarkDefinitionException("Missing target var.");
          }

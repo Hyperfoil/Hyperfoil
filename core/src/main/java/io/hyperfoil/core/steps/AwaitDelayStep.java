@@ -3,14 +3,16 @@ package io.hyperfoil.core.steps;
 import java.util.Collections;
 import java.util.List;
 
-import io.hyperfoil.api.config.Sequence;
+import org.kohsuke.MetaInfServices;
+
+import io.hyperfoil.api.config.InitFromParam;
+import io.hyperfoil.api.config.Name;
+import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.config.Step;
-import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.core.builders.BaseStepBuilder;
 import io.hyperfoil.core.session.SessionFactory;
-import io.hyperfoil.function.SerializableSupplier;
 
 public class AwaitDelayStep implements Step {
    private final Access key;
@@ -28,11 +30,18 @@ public class AwaitDelayStep implements Step {
    /**
     * Block this sequence until referenced delay point.
     */
-   public static class Builder extends BaseStepBuilder {
+   @MetaInfServices(StepBuilder.class)
+   @Name("awaitDelay")
+   public static class Builder extends BaseStepBuilder<Builder> implements InitFromParam<Builder> {
       private Object key;
 
-      public Builder(BaseSequenceBuilder parent) {
-         super(parent);
+      /**
+       * @param param Delay point created in <code>scheduleDelay.key</code>.
+       * @return Self.
+       */
+      @Override
+      public Builder init(String param) {
+         return key(param);
       }
 
       /**
@@ -47,7 +56,7 @@ public class AwaitDelayStep implements Step {
       }
 
       @Override
-      public List<Step> build(SerializableSupplier<Sequence> sequence) {
+      public List<Step> build() {
          return Collections.singletonList(new AwaitDelayStep(key));
       }
    }

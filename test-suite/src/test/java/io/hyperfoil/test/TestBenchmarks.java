@@ -1,11 +1,12 @@
 package io.hyperfoil.test;
 
+import static io.hyperfoil.core.builders.StepCatalog.SC;
+
 import java.util.concurrent.TimeUnit;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.http.HttpMethod;
-import io.hyperfoil.core.builders.StepCatalog;
 
 public class TestBenchmarks {
    public static BenchmarkBuilder addTestSimulation(BenchmarkBuilder builder, int users, int port) {
@@ -18,7 +19,7 @@ public class TestBenchmarks {
             .duration("5s")
             .scenario()
             .initialSequence("test")
-            .step(StepCatalog.class).httpRequest(HttpMethod.GET)
+            .step(SC).httpRequest(HttpMethod.GET)
             .path("test")
             .sla()
             .addItem()

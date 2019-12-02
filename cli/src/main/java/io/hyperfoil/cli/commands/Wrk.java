@@ -35,7 +35,6 @@ import io.hyperfoil.client.RestClient;
 import io.hyperfoil.controller.model.CustomStats;
 import io.hyperfoil.controller.model.RequestStatisticsResponse;
 import io.hyperfoil.controller.model.RequestStats;
-import io.hyperfoil.core.builders.StepCatalog;
 import io.hyperfoil.core.handlers.ByteBufSizeRecorder;
 import io.hyperfoil.core.impl.LocalBenchmarkData;
 import io.hyperfoil.core.util.Util;
@@ -65,6 +64,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
+import static io.hyperfoil.core.builders.StepCatalog.SC;
 import static io.vertx.core.logging.LoggerFactory.LOGGER_DELEGATE_FACTORY_CLASS_NAME;
 
 
@@ -254,7 +254,7 @@ public class Wrk {
                .maxSessions(rate * 15)
                .scenario()
                   .initialSequence("request")
-                     .step(StepCatalog.class).httpRequest(HttpMethod.GET)
+                     .step(SC).httpRequest(HttpMethod.GET)
                         .path(path)
                         .headerAppender((session, request) -> {
                            if (parsedHeaders != null) {

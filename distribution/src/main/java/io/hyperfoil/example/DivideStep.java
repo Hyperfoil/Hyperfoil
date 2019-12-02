@@ -8,7 +8,6 @@ import org.kohsuke.MetaInfServices;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Name;
-import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.session.Access;
@@ -16,7 +15,6 @@ import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.builders.BaseStepBuilder;
 import io.hyperfoil.core.session.SessionFactory;
-import io.hyperfoil.function.SerializableSupplier;
 
 /**
  * Example step for <a href="http://hyperfoil.io/quickstart/quickstart8">Custom steps tutorial</a>
@@ -64,7 +62,7 @@ public class DivideStep implements Step, ResourceUtilizer {
    @MetaInfServices(StepBuilder.class)
    // This is the step name that will be used in the YAML
    @Name("divide")
-   public static class Builder extends BaseStepBuilder implements InitFromParam {
+   public static class Builder extends BaseStepBuilder<Builder> implements InitFromParam<Builder> {
       // Contrary to the step fields in builder are mutable
       private String fromVar;
       private String toVar;
@@ -112,7 +110,7 @@ public class DivideStep implements Step, ResourceUtilizer {
       }
 
       @Override
-      public List<Step> build(SerializableSupplier<Sequence> sequence) {
+      public List<Step> build() {
          // You can ignore the sequence parameter; this is used only in steps
          // that require access to the parent sequence at runtime.
          if (fromVar == null || toVar == null || divisor == 0) {

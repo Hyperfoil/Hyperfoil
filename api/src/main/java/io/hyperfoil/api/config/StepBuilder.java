@@ -27,7 +27,6 @@ import java.util.function.Function;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.function.SerializableSupplier;
 
 /**
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
@@ -35,38 +34,9 @@ import io.hyperfoil.function.SerializableSupplier;
 @IncludeBuilders(
       @IncludeBuilders.Conversion(from = Action.Builder.class, adapter = StepBuilder.ActionBuilderConverter.class)
 )
-public interface StepBuilder {
+public interface StepBuilder<S extends StepBuilder<S>> extends BuilderBase<S> {
 
-   default void prepareBuild() {}
-
-   List<Step> build(SerializableSupplier<Sequence> sequence);
-
-   BaseSequenceBuilder endStep();
-
-   /**
-    * Create a copy of this builder, adding it as a next step to the provided sequence.
-    * <p>
-    * If this builder does not use its position (calling {@link #endStep()} either directly or
-    * e.g. through {@link Locator#fromStep(StepBuilder)}) it can just add <code>this</code>
-    * without doing actual copy.
-    *
-    * @param newParent New parent sequence.
-    */
-   default void addCopyTo(BaseSequenceBuilder newParent) {
-      if (canBeLocated()) {
-         throw new IllegalStateException("This default method cannot be used on " + getClass().getName());
-      }
-      newParent.stepBuilder(this);
-   }
-
-   /**
-    * Override this along with {@link #addCopyTo(BaseSequenceBuilder)}.
-    *
-    * @return True if the object supports deep copy.
-    */
-   default boolean canBeLocated() {
-      return false;
-   }
+   List<Step> build();
 
    class ActionBuilderConverter implements Function<Action.Builder, StepBuilder> {
       @Override
@@ -75,8 +45,8 @@ public interface StepBuilder {
       }
    }
 
-   class ActionAdapter implements StepBuilder {
-      private final Action.Builder builder;
+   class ActionAdapter implements StepBuilder<ActionAdapter> {
+      private Action.Builder builder;
 
       public ActionAdapter(Action.Builder builder) {
          this.builder = builder;
@@ -88,24 +58,16 @@ public interface StepBuilder {
       }
 
       @Override
-      public void addCopyTo(BaseSequenceBuilder newParent) {
-         Action.Builder copy = builder.copy(newParent.createLocator());
-         newParent.stepBuilder(new ActionAdapter(copy));
+      public ActionAdapter copy(Locator locator) {
+         ActionAdapter copy = new ActionAdapter(null);
+         Action.Builder bc = builder.copy(Locator.get(copy, locator));
+         copy.builder = bc;
+         return copy;
       }
 
       @Override
-      public boolean canBeLocated() {
-         return true;
-      }
-
-      @Override
-      public List<Step> build(SerializableSupplier<Sequence> sequence) {
+      public List<Step> build() {
          return Collections.singletonList(new ActionStep(builder.build()));
-      }
-
-      @Override
-      public BaseSequenceBuilder endStep() {
-         throw new UnsupportedOperationException();
       }
    }
 

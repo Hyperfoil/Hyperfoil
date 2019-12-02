@@ -70,7 +70,7 @@ public class SequenceBuilder extends BaseSequenceBuilder {
          return sequence;
       }
       FutureSupplier<Sequence> ss = new FutureSupplier<>();
-      sequence = new SequenceImpl(phase, this.name, id, buildSteps(ss).toArray(new Step[0]));
+      sequence = new SequenceImpl(phase, this.name, id, buildSteps().toArray(new Step[0]));
       ss.set(sequence);
       return sequence;
    }

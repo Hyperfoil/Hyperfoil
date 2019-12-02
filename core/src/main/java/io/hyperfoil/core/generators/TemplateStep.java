@@ -3,16 +3,17 @@ package io.hyperfoil.core.generators;
 import java.util.Collections;
 import java.util.List;
 
+import org.kohsuke.MetaInfServices;
+
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
-import io.hyperfoil.api.config.Sequence;
+import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.Step;
+import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.ResourceUtilizer;
-import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.core.builders.BaseStepBuilder;
 import io.hyperfoil.core.session.SessionFactory;
-import io.hyperfoil.function.SerializableSupplier;
 
 public class TemplateStep implements Step, ResourceUtilizer {
    private final Pattern pattern;
@@ -37,13 +38,11 @@ public class TemplateStep implements Step, ResourceUtilizer {
    /**
     * Format pattern into session variable.
     */
-   public static class Builder extends BaseStepBuilder {
+   @MetaInfServices(StepBuilder.class)
+   @Name("template")
+   public static class Builder extends BaseStepBuilder<Builder> {
       private Pattern pattern;
       private String toVar;
-
-      public Builder(BaseSequenceBuilder parent) {
-         super(parent);
-      }
 
       /**
        * Pattern to be encoded, e.g. <code>foo${variable}bar${another-variable}</code>
@@ -68,7 +67,7 @@ public class TemplateStep implements Step, ResourceUtilizer {
       }
 
       @Override
-      public List<Step> build(SerializableSupplier<Sequence> sequence) {
+      public List<Step> build() {
          if (pattern == null) {
             throw new BenchmarkDefinitionException("Missing pattern for template.");
          }

@@ -3,7 +3,9 @@ package io.hyperfoil.core.steps;
 import java.util.Collections;
 import java.util.List;
 
-import io.hyperfoil.api.config.Sequence;
+import org.kohsuke.MetaInfServices;
+
+import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.session.Access;
@@ -12,7 +14,6 @@ import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.core.builders.IntCondition;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.function.SerializableIntPredicate;
-import io.hyperfoil.function.SerializableSupplier;
 
 public class AwaitIntStep implements Step {
    private final Access var;
@@ -34,9 +35,15 @@ public class AwaitIntStep implements Step {
    /**
     * Block current sequence until condition becomes true.
     */
-   public static class Builder extends IntCondition.BaseBuilder<Builder> implements StepBuilder {
+   @MetaInfServices(StepBuilder.class)
+   @Name("awaitInt")
+   public static class Builder extends IntCondition.BaseBuilder<Builder> implements StepBuilder<Builder> {
       private final BaseSequenceBuilder parent;
       private String var;
+
+      public Builder() {
+         this.parent = null;
+      }
 
       public Builder(BaseSequenceBuilder parent) {
          this.parent = parent;
@@ -57,11 +64,10 @@ public class AwaitIntStep implements Step {
       }
 
       @Override
-      public List<Step> build(SerializableSupplier<Sequence> sequence) {
+      public List<Step> build() {
          return Collections.singletonList(new AwaitIntStep(var, buildPredicate()));
       }
 
-      @Override
       public BaseSequenceBuilder endStep() {
          return parent;
       }

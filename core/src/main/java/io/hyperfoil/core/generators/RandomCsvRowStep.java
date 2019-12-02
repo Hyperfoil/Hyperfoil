@@ -15,17 +15,18 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import io.hyperfoil.api.config.BaseSequenceBuilder;
+import org.kohsuke.MetaInfServices;
+
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.PairBuilder;
-import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.Step;
+import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.builders.BaseStepBuilder;
 import io.hyperfoil.core.session.SessionFactory;
-import io.hyperfoil.function.SerializableSupplier;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
@@ -65,26 +66,24 @@ public class RandomCsvRowStep implements Step, ResourceUtilizer {
    /**
     * Stores random row from a CSV-formatted file to variables.
     */
-   public static class Builder extends BaseStepBuilder {
+   @MetaInfServices(StepBuilder.class)
+   @Name("randomCsvRow")
+   public static class Builder extends BaseStepBuilder<Builder> {
       private String file;
       private boolean skipComments;
       private boolean removeQuotes;
       private Map<String, Integer> builderColumns = new HashMap<>();
       private int maxSize = 0;
 
-      public Builder(BaseSequenceBuilder parent) {
-         super(parent);
-      }
-
       @Override
-      public List<Step> build(SerializableSupplier<Sequence> sequence) {
+      public List<Step> build() {
          File f = new File(file);
          if (!f.exists()) {
             throw new BenchmarkDefinitionException("Supplied file cannot be found on system");
          }
          List<String[]> rows;
          try (BufferedReader reader = Files.newBufferedReader(Paths.get(f.getAbsolutePath()))) {
-            Predicate<String> comments = s -> (skipComments ? !(s.trim().startsWith("#")) : true);
+            Predicate<String> comments = s -> (!skipComments || !(s.trim().startsWith("#")));
             rows = reader.lines()
                   .filter(comments)
                   .map(s -> removeQuotes ? s.replaceAll("\"", "") : s)

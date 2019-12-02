@@ -6,9 +6,11 @@ import org.yaml.snakeyaml.events.MappingStartEvent;
 import org.yaml.snakeyaml.events.ScalarEvent;
 import org.yaml.snakeyaml.events.SequenceStartEvent;
 
-import io.hyperfoil.api.config.ServiceLoadedContract;
 import io.hyperfoil.api.config.BaseSequenceBuilder;
-import io.hyperfoil.core.builders.StepCatalog;
+import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.api.config.ServiceLoadedContract;
+import io.hyperfoil.api.config.StepBuilder;
+import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 
 class StepParser extends BaseReflectionParser implements Parser<BaseSequenceBuilder> {
    private static final StepParser INSTANCE = new StepParser();
@@ -22,13 +24,16 @@ class StepParser extends BaseReflectionParser implements Parser<BaseSequenceBuil
    @Override
    public void parse(Context ctx, BaseSequenceBuilder target) throws ParserException {
       Event firstEvent = ctx.next();
-      StepCatalog catalog = target.step(StepCatalog.class);
+      ServiceLoadedBuilderProvider<StepBuilder> provider = new ServiceLoadedBuilderProvider<>(StepBuilder.class, target.createLocator(), target::stepBuilder);
       if (firstEvent instanceof ScalarEvent) {
-         ScalarEvent stepEvent = (ScalarEvent) firstEvent;
-         Object builder = invokeWithNoParams(catalog, stepEvent, stepEvent.getValue());
-         if (builder instanceof ServiceLoadedContract) {
-            ((ServiceLoadedContract) builder).complete();
+         ServiceLoadedContract slc;
+         String name = ((ScalarEvent) firstEvent).getValue();
+         try {
+            slc = provider.forName(name, null);
+         } catch (BenchmarkDefinitionException e) {
+            throw new ParserException(firstEvent, "Failed to instantiate step builder " + name, e);
          }
+         slc.complete();
          return;
       } else if (!(firstEvent instanceof MappingStartEvent)) {
          throw ctx.unexpectedEvent(firstEvent);
@@ -38,7 +43,7 @@ class StepParser extends BaseReflectionParser implements Parser<BaseSequenceBuil
       if (!ctx.hasNext()) {
          throw ctx.noMoreEvents(ScalarEvent.class, MappingStartEvent.class, MappingEndEvent.class, SequenceStartEvent.class);
       }
-      invokeWithParameters(ctx, catalog, stepEvent);
+      fillSLBP(ctx, stepEvent, provider);
       ctx.expectEvent(MappingEndEvent.class);
    }
 

@@ -1,21 +1,27 @@
 package io.hyperfoil.core.steps;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
+import org.kohsuke.MetaInfServices;
+
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
-import io.hyperfoil.api.config.Sequence;
+import io.hyperfoil.api.config.InitFromParam;
+import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.Step;
+import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.core.builders.BaseStepBuilder;
 import io.hyperfoil.core.session.SessionFactory;
-import io.hyperfoil.function.SerializableSupplier;
+import io.hyperfoil.core.util.Unique;
 import io.hyperfoil.function.SerializableToLongFunction;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -28,7 +34,7 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
    private final SerializableToLongFunction<Session> duration;
 
    public ScheduleDelayStep(Object key, Type type, SerializableToLongFunction<Session> duration) {
-      this.key = SessionFactory.access(key);
+      this.key = SessionFactory.access(Objects.requireNonNull(key));
       this.type = type;
       this.duration = duration;
    }
@@ -97,18 +103,15 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
    /**
     * Define a point in future until which we should wait. Does not cause waiting.
     */
-   public static class Builder extends BaseStepBuilder {
-      private Object key;
+   @MetaInfServices(StepBuilder.class)
+   @Name("scheduleDelay")
+   public static class Builder extends BaseStepBuilder<Builder> {
+      protected Object key;
       private long duration;
       private Type type = Type.FROM_NOW;
       private RandomType randomType = RandomType.CONSTANT;
       private long min = 0;
       private long max = Long.MAX_VALUE;
-
-      public Builder(BaseSequenceBuilder parent, Object key) {
-         super(parent);
-         this.key = key;
-      }
 
       /**
        * Key that is referenced later in `awaitDelay` step.
@@ -201,7 +204,7 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
       }
 
       @Override
-      public List<Step> build(SerializableSupplier<Sequence> sequence) {
+      public List<Step> build() {
          long duration = this.duration;
          long min = this.min;
          long max = this.max;
@@ -246,6 +249,37 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
        */
       public Builder type(Type type) {
          this.type = type;
+         return this;
+      }
+   }
+
+   /**
+    * Block current sequence for specified duration.
+    */
+   @MetaInfServices(StepBuilder.class)
+   @Name("thinkTime")
+   public static class ThinkTimeBuilder extends Builder implements InitFromParam<ThinkTimeBuilder> {
+      public ThinkTimeBuilder() {
+         this.key = new Unique();
+      }
+
+      @Override
+      public ThinkTimeBuilder addTo(BaseSequenceBuilder parent) {
+         return (ThinkTimeBuilder) super.addTo(parent);
+      }
+
+      @Override
+      public List<Step> build() {
+         return Arrays.asList(super.build().get(0), new AwaitDelayStep(key));
+      }
+
+      /**
+       * @param param Duration of the delay with appropriate suffix (e.g. `ms` or `s`).
+       * @return Self.
+       */
+      @Override
+      public ThinkTimeBuilder init(String param) {
+         duration(param);
          return this;
       }
    }

@@ -1,5 +1,7 @@
 package io.hyperfoil.core.session;
 
+import static io.hyperfoil.core.builders.StepCatalog.SC;
+
 import java.util.concurrent.TimeUnit;
 
 import org.junit.Ignore;

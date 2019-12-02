@@ -23,7 +23,6 @@ package io.hyperfoil.benchmark.standalone;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.api.config.BenchmarkBuilder;
-import io.hyperfoil.core.builders.StepCatalog;
 import io.hyperfoil.core.handlers.ByteBufSizeRecorder;
 import io.hyperfoil.core.impl.LocalBenchmarkData;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
@@ -42,6 +41,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.concurrent.atomic.AtomicLong;
 
+import static io.hyperfoil.core.builders.StepCatalog.SC;
 import static org.junit.Assert.assertEquals;
 
 /**
@@ -71,13 +71,13 @@ public class RequestResponseCounterTest {
 
    @Test
    public void testNumberOfRequestsAndResponsesMatch() {
-
+      // @formatter:off
       BenchmarkBuilder builder =
             new BenchmarkBuilder(null, new LocalBenchmarkData())
                   .name("requestResponseCounter " + new SimpleDateFormat("YY/MM/dd HH:mm:ss").format(new Date()))
                   .http()
-                  .host("localhost").port(httpServer.actualPort())
-                  .sharedConnections(50)
+                     .host("localhost").port(httpServer.actualPort())
+                     .sharedConnections(50)
                   .endHttp()
                   .threads(2);
 
@@ -85,15 +85,16 @@ public class RequestResponseCounterTest {
             .duration(5000)
             .maxSessions(500 * 15)
             .scenario()
-            .initialSequence("request")
-            .step(StepCatalog.class).httpRequest(HttpMethod.GET)
-            .path("/")
-            .timeout("60s")
-            .handler()
-            .rawBytesHandler(new ByteBufSizeRecorder("bytes"))
-            .endHandler()
-            .endStep()
-            .endSequence();
+               .initialSequence("request")
+                  .step(SC).httpRequest(HttpMethod.GET)
+                     .path("/")
+                     .timeout("60s")
+                     .handler()
+                        .rawBytesHandler(new ByteBufSizeRecorder("bytes"))
+                     .endHandler()
+                  .endStep()
+               .endSequence();
+      // @formatter:on
 
       Benchmark benchmark = builder.build();
 

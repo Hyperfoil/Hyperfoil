@@ -51,7 +51,6 @@ import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.processor.RequestProcessorBuilder;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.core.builders.BuilderInfo;
-import io.hyperfoil.core.builders.StepCatalog;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 
 public class DocsGenerator extends BaseGenerator {
@@ -85,19 +84,6 @@ public class DocsGenerator extends BaseGenerator {
    }
 
    private void run() {
-      List<MethodDeclaration> catalogMethods = findUnit(StepCatalog.class).findAll(MethodDeclaration.class);
-
-      for (Method method : StepCatalog.class.getMethods()) {
-         MethodDeclaration declaration = findMatching(catalogMethods, method);
-         if (declaration == null) {
-            continue;
-         }
-         if (StepBuilder.class.isAssignableFrom(method.getReturnType())) {
-            addStep(method.getName(), method.getReturnType(), getJavadocDescription(declaration), false, null);
-         } else if (BaseSequenceBuilder.class.isAssignableFrom(method.getReturnType())) {
-            addSimpleStep(method, declaration);
-         }
-      }
       for (Map.Entry<String, BuilderInfo<?>> entry : ServiceLoadedBuilderProvider.builders(StepBuilder.class).entrySet()) {
          @SuppressWarnings("unchecked")
          Class<? extends StepBuilder> newBuilder = (Class<? extends StepBuilder>) entry.getValue().implClazz;
@@ -285,15 +271,11 @@ public class DocsGenerator extends BaseGenerator {
 
    private boolean matches(Type type, Class<?> clazz) {
       if (type instanceof PrimitiveType) {
-//         System.err.printf("COMP %s and %s", ((PrimitiveType) type).getType().asString(), clazz.getName());
          return ((PrimitiveType) type).getType().asString().equals(clazz.getName());
       } else if (type instanceof ClassOrInterfaceType) {
          ClassOrInterfaceType classType = (ClassOrInterfaceType) type;
          String fqName = fqName(classType);
-//         System.err.printf("COMP %s and %s", fqName, clazz.getName());
          return clazz.getName().endsWith(fqName);
-      } else {
-         System.err.printf("TYPE %s%n", type);
       }
       return false;
    }
@@ -309,7 +291,6 @@ public class DocsGenerator extends BaseGenerator {
       }
       return true;
    }
-
 
    private String fqName(ClassOrInterfaceType type) {
       return type.getScope().map(s -> fqName(s) + ".").orElse("") + type.getNameAsString();
@@ -384,22 +365,6 @@ public class DocsGenerator extends BaseGenerator {
       return node;
    }
 
-   private void addSimpleStep(Method method, MethodDeclaration md) {
-      String description = getJavadocDescription(md);
-      if (method.getParameterCount() == 0) {
-         steps.putIfAbsent(method.getName(), new Docs(description));
-      } else if (method.getParameterCount() == 1) {
-         Docs step = steps.get(method.getName());
-         if (step == null) {
-            step = new Docs(description);
-            steps.put(method.getName(), step);
-         }
-         Map<String, String> params = getJavadocParams(md.getJavadoc());
-         String paramName = md.getParameter(0).getNameAsString();
-         step.inlineParam = params.get(paramName);
-      }
-   }
-
    private String getJavadocDescription(NodeWithJavadoc<?> declaration) {
       return declaration == null ? null : declaration.getJavadoc()
             .map(javadoc -> trimEmptyLines(javadoc.getDescription().toText()))
@@ -467,7 +432,7 @@ public class DocsGenerator extends BaseGenerator {
    }
 
    private String firstLine(String text) {
-      return text == null ? null : text.replaceFirst("(\n|<br>).*", "");
+      return text == null ? null : text.replaceFirst("(\n|<br>|<p>).*", "");
    }
 
    private Docs describeBuilder(Class<?> builder) {

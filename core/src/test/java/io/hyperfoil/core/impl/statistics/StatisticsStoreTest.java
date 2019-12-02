@@ -12,7 +12,6 @@ import io.hyperfoil.api.config.ErgonomicsBuilder;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
-import io.hyperfoil.core.builders.StepCatalog;
 import io.hyperfoil.core.steps.HttpRequestStep;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 
@@ -28,6 +27,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
+import static io.hyperfoil.core.builders.StepCatalog.SC;
 import static org.junit.Assert.*;
 
 @RunWith(VertxUnitRunner.class)
@@ -79,47 +79,49 @@ public class StatisticsStoreTest {
 
       ErgonomicsBuilder ergonomicsBuilder = new ErgonomicsBuilder();
       ergonomicsBuilder.repeatCookies(true).userAgentFromSession(true);
+      // @formatter:off
       Benchmark benchmark = new BenchmarkBuilder("originalSource", BenchmarkData.EMPTY)
             .name("benchmarkName")
             .http().host("localhost").endHttp()
 
             .addPhase("ramp/001/one").always(1)
-            .duration(60_000)
-            .scenario().initialSequence("one")
-            .step(StepCatalog.class).httpRequest(HttpMethod.GET)
-            .sla().addItem().meanResponseTime(1, TimeUnit.MILLISECONDS).endSLA().endList()
-            .endStep()
-            .endSequence().endScenario()
+               .duration(60_000)
+               .scenario().initialSequence("one")
+                  .step(SC).httpRequest(HttpMethod.GET)
+                     .sla().addItem().meanResponseTime(1, TimeUnit.MILLISECONDS).endSLA().endList()
+                  .endStep()
+               .endSequence().endScenario()
             .endPhase()
 
             .addPhase("ramp/001/two").always(1)
-            .duration(60_000)
-            .scenario().initialSequence("two")
-            .step(StepCatalog.class).httpRequest(HttpMethod.GET)
-            .sla().addItem().meanResponseTime(1, TimeUnit.MILLISECONDS).endSLA().endList()
-            .endStep()
-            .endSequence().endScenario()
+               .duration(60_000)
+               .scenario().initialSequence("two")
+                  .step(SC).httpRequest(HttpMethod.GET)
+                     .sla().addItem().meanResponseTime(1, TimeUnit.MILLISECONDS).endSLA().endList()
+                  .endStep()
+               .endSequence().endScenario()
             .endPhase()
 
             .addPhase("ramp/002/one").always(1)
-            .duration(60_000)
-            .scenario().initialSequence("test")
-            .step(StepCatalog.class).httpRequest(HttpMethod.GET)
-            .sla().addItem().meanResponseTime(1, TimeUnit.MILLISECONDS).endSLA().endList()
-            .endStep()
-            .endSequence().endScenario()
-            .endPhase()
-            .addPhase("steady/002/one").always(1)
-            .duration(60_000)
-            .scenario().initialSequence("test")
-            .step(StepCatalog.class).httpRequest(HttpMethod.GET)
-            .sla().addItem().meanResponseTime(1, TimeUnit.MILLISECONDS).endSLA().endList()
-            .endStep()
-            .endSequence().endScenario()
+               .duration(60_000)
+               .scenario().initialSequence("test")
+                  .step(SC).httpRequest(HttpMethod.GET)
+                     .sla().addItem().meanResponseTime(1, TimeUnit.MILLISECONDS).endSLA().endList()
+                  .endStep()
+               .endSequence().endScenario()
             .endPhase()
 
+            .addPhase("steady/002/one").always(1)
+               .duration(60_000)
+               .scenario().initialSequence("test")
+                  .step(SC).httpRequest(HttpMethod.GET)
+                     .sla().addItem().meanResponseTime(1, TimeUnit.MILLISECONDS).endSLA().endList()
+                  .endStep()
+               .endSequence().endScenario()
+            .endPhase()
 
             .build();
+      // @formatter:on
       Iterator<Phase> phaseIterator = benchmark.phases().iterator();
       Phase phase1 = phaseIterator.next();
       Phase phase2 = phaseIterator.next();

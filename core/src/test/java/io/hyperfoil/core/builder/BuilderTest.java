@@ -23,10 +23,10 @@ package io.hyperfoil.core.builder;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.api.config.BenchmarkBuilder;
-import io.hyperfoil.core.builders.StepCatalog;
 
 import org.junit.Test;
 
+import static io.hyperfoil.core.builders.StepCatalog.SC;
 import static org.junit.Assert.assertEquals;
 
 /**
@@ -36,31 +36,28 @@ public class BuilderTest {
 
    @Test
    public void testBuilders() {
-
-      Benchmark benchmark =
-            BenchmarkBuilder.builder()
-                  .name("Test Benchmark")
-                  .http()
-                  .host("localhost").port(8080)
-                  .sharedConnections(1)
-                  .endHttp()
-                  .addPhase("foo").always(1)
-                  .duration("3s")
-                  .scenario()
+      // @formatter:off
+      Benchmark benchmark = BenchmarkBuilder.builder()
+            .name("Test Benchmark")
+            .http()
+               .host("localhost").port(8080)
+               .sharedConnections(1)
+            .endHttp()
+            .addPhase("foo").always(1)
+               .duration("3s")
+               .scenario()
                   .initialSequence("foo")
-                  .step(StepCatalog.class).httpRequest(HttpMethod.GET)
-                  .path("foo")
-                  .endStep()
-                  .end()
+                     .step(SC).httpRequest(HttpMethod.GET)
+                        .path("foo")
+                     .endStep()
                   .endSequence()
-                  .endScenario()
-                  .endPhase()
-                  .build();
+               .endScenario()
+            .endPhase()
+            .build();
+      // @formatter:on
 
       assertEquals("http://localhost:8080", benchmark.tags().get("url"));
       assertEquals(1, benchmark.phases().size());
       assertEquals(3000L, benchmark.phases().stream().findFirst().get().duration());
-
-
    }
 }

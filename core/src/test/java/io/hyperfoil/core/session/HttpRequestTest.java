@@ -1,5 +1,6 @@
 package io.hyperfoil.core.session;
 
+import static io.hyperfoil.core.builders.StepCatalog.SC;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.UnsupportedEncodingException;

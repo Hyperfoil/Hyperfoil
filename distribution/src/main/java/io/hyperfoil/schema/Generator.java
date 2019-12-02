@@ -10,7 +10,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.regex.Pattern;
 
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.ListBuilder;
@@ -20,14 +19,11 @@ import io.hyperfoil.api.config.PartialBuilder;
 import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.core.builders.BuilderInfo;
-import io.hyperfoil.core.builders.StepCatalog;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
 public class Generator extends BaseGenerator {
-
-   private static final Pattern END_REGEXP = Pattern.compile("^end(\\p{javaUpperCase}.*|$)");
    private static final JsonObject TYPE_NULL = new JsonObject().put("type", "null");
    private static final JsonObject TYPE_STRING = new JsonObject().put("type", "string");
 
@@ -59,16 +55,9 @@ public class Generator extends BaseGenerator {
       JsonArray simpleBuilders = oneOf.getJsonObject(1).getJsonArray("enum");
       simpleBuilders.clear();
 
-      for (Method method : StepCatalog.class.getMethods()) {
-         if (StepBuilder.class.isAssignableFrom(method.getReturnType())) {
-            addBuilder(builders, simpleBuilders, method.getName(), method.getReturnType(), false);
-         } else if (BaseSequenceBuilder.class.isAssignableFrom(method.getReturnType())) {
-            addSimpleBuilder(builders, simpleBuilders, method);
-         }
-      }
       for (Map.Entry<String, BuilderInfo<?>> entry : ServiceLoadedBuilderProvider.builders(StepBuilder.class).entrySet()) {
          @SuppressWarnings("unchecked")
-         Class<StepBuilder> implClazz = (Class<StepBuilder>) entry.getValue().implClazz;
+         Class<StepBuilder<?>> implClazz = (Class<StepBuilder<?>>) entry.getValue().implClazz;
          addBuilder(builders, simpleBuilders, entry.getKey(), implClazz, InitFromParam.class.isAssignableFrom(implClazz));
       }
 
@@ -77,15 +66,6 @@ public class Generator extends BaseGenerator {
       }
 
       Files.write(output, schema.encodePrettily().getBytes(StandardCharsets.UTF_8));
-   }
-
-   private void addSimpleBuilder(JsonObject builders, JsonArray simpleBuilders, Method method) {
-      if (method.getParameterCount() == 0) {
-         simpleBuilders.add(method.getName());
-         addProperty(builders, method.getName(), new JsonObject().put("type", "null"));
-      } else if (method.getParameterCount() == 1) {
-         addProperty(builders, method.getName(), getType(method));
-      }
    }
 
    private void addBuilder(JsonObject builders, JsonArray simpleBuilders, String name, Class<?> builder, boolean inline) {
@@ -136,8 +116,7 @@ public class Generator extends BaseGenerator {
          } else if (m.getParameterCount() == 1) {
             return getType(m);
          } else {
-            // TODO: we could allow passing lists here
-            return null;
+            throw new IllegalStateException();
          }
       }
       ArrayList<JsonObject> options = new ArrayList<>();

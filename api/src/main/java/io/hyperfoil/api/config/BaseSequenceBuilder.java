@@ -7,14 +7,13 @@ import java.util.NoSuchElementException;
 import java.util.ServiceLoader;
 import java.util.stream.Collectors;
 
-import io.hyperfoil.function.SerializableSupplier;
 import io.hyperfoil.impl.StepCatalogFactory;
 
 public abstract class BaseSequenceBuilder implements Rewritable<BaseSequenceBuilder> {
    private static final StepCatalogFactory sdf;
 
    protected final BaseSequenceBuilder parent;
-   protected final List<StepBuilder> steps = new ArrayList<>();
+   protected final List<StepBuilder<?>> steps = new ArrayList<>();
 
    static {
       StepCatalogFactory singleSdf = null;
@@ -41,12 +40,12 @@ public abstract class BaseSequenceBuilder implements Rewritable<BaseSequenceBuil
    }
 
    public BaseSequenceBuilder step(Step step) {
-      steps.add(new ProvidedStepBuilder(step, this));
+      steps.add(new ProvidedStepBuilder(step));
       return this;
    }
 
    // Calling this method step() would cause ambiguity with step(Step) defined through lambda
-   public BaseSequenceBuilder stepBuilder(StepBuilder stepBuilder) {
+   public BaseSequenceBuilder stepBuilder(StepBuilder<?> stepBuilder) {
       steps.add(stepBuilder);
       return this;
    }
@@ -62,43 +61,41 @@ public abstract class BaseSequenceBuilder implements Rewritable<BaseSequenceBuil
    @Override
    public void readFrom(BaseSequenceBuilder other) {
       assert steps.isEmpty();
-      other.steps.forEach(s -> s.addCopyTo(this));
+      Locator locator = createLocator();
+      other.steps.forEach(s -> stepBuilder(s.copy(locator)));
    }
 
    public String name() {
       return parent.name();
    }
 
-   public BaseSequenceBuilder insertBefore(StepBuilder step) {
-      return insertWithOffset(step, 0);
+   public BaseSequenceBuilder insertBefore(Locator locator) {
+      return insertWithOffset(locator, 0);
    }
 
-   public BaseSequenceBuilder insertAfter(StepBuilder step) {
-      return insertWithOffset(step, 1);
+   public BaseSequenceBuilder insertAfter(Locator locator) {
+      return insertWithOffset(locator, 1);
    }
 
-   private BaseSequenceBuilder insertWithOffset(StepBuilder step, int offset) {
-      if (!step.canBeLocated()) {
-         throw new IllegalStateException(step + " cannot be located as it does not support deep copy.");
-      }
+   private BaseSequenceBuilder insertWithOffset(Locator locator, int offset) {
       for (int i = 0; i < steps.size(); ++i) {
-         if (steps.get(i) == step) {
+         if (steps.get(i) == locator.step()) {
             StepInserter inserter = new StepInserter(this);
             steps.add(i + offset, inserter);
             return inserter;
          }
       }
-      throw new NoSuchElementException("Not found: " + step);
+      throw new NoSuchElementException("Not found: " + locator.step());
    }
 
-   protected List<Step> buildSteps(SerializableSupplier<Sequence> sequence) {
-      return steps.stream().map(b -> b.build(sequence)).flatMap(List::stream).collect(Collectors.toList());
+   protected List<Step> buildSteps() {
+      return steps.stream().map(b -> b.build()).flatMap(List::stream).collect(Collectors.toList());
    }
 
    public Locator createLocator() {
       return new Locator() {
          @Override
-         public StepBuilder step() {
+         public StepBuilder<?> step() {
             throw new UnsupportedOperationException();
          }
 
@@ -114,59 +111,40 @@ public abstract class BaseSequenceBuilder implements Rewritable<BaseSequenceBuil
       };
    }
 
-   private static class StepInserter extends BaseSequenceBuilder implements StepBuilder {
+   private static class StepInserter extends BaseSequenceBuilder implements StepBuilder<StepInserter> {
       private StepInserter(BaseSequenceBuilder parent) {
          super(parent);
       }
 
       @Override
-      public List<Step> build(SerializableSupplier<Sequence> sequence) {
-         return buildSteps(sequence);
+      public List<Step> build() {
+         return buildSteps();
       }
 
       @Override
-      public BaseSequenceBuilder endStep() {
-         return parent;
+      public StepInserter setLocator(Locator locator) {
+         steps.stream().forEach(s -> s.setLocator(locator));
+         return this;
       }
 
       @Override
-      public void addCopyTo(BaseSequenceBuilder newParent) {
-         newParent.stepBuilder(new StepInserter(newParent));
-      }
-
-      @Override
-      public boolean canBeLocated() {
-         return true;
+      public StepInserter copy(Locator locator) {
+         StepInserter copy = new StepInserter(locator.sequence());
+         steps.stream().map(s -> s.copy(locator)).forEach(copy::stepBuilder);
+         return copy;
       }
    }
 
-   private static class ProvidedStepBuilder implements StepBuilder {
+   private static class ProvidedStepBuilder implements StepBuilder<ProvidedStepBuilder> {
       private final Step step;
-      private final BaseSequenceBuilder parent;
 
-      public ProvidedStepBuilder(Step step, BaseSequenceBuilder parent) {
+      public ProvidedStepBuilder(Step step) {
          this.step = step;
-         this.parent = parent;
       }
 
       @Override
-      public List<Step> build(SerializableSupplier<Sequence> sequence) {
+      public List<Step> build() {
          return Collections.singletonList(step);
-      }
-
-      @Override
-      public BaseSequenceBuilder endStep() {
-         return parent;
-      }
-
-      @Override
-      public void addCopyTo(BaseSequenceBuilder newParent) {
-         newParent.stepBuilder(new ProvidedStepBuilder(step, newParent));
-      }
-
-      @Override
-      public boolean canBeLocated() {
-         return true;
       }
    }
 }

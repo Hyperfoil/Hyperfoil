@@ -29,18 +29,21 @@ import io.hyperfoil.core.steps.HttpRequestStep;
 import io.hyperfoil.core.steps.JsonStep;
 import io.hyperfoil.core.steps.LogStep;
 import io.hyperfoil.core.steps.LoopStep;
+import io.hyperfoil.core.steps.NextSequenceStep;
 import io.hyperfoil.core.steps.PollStep;
 import io.hyperfoil.core.steps.PullSharedMapStep;
 import io.hyperfoil.core.steps.PushSharedMapStep;
 import io.hyperfoil.core.steps.ScheduleDelayStep;
+import io.hyperfoil.core.steps.StopStep;
 import io.hyperfoil.core.steps.StopwatchBeginStep;
-import io.hyperfoil.core.util.Unique;
 import io.hyperfoil.impl.StepCatalogFactory;
 
 /**
  * Helper class to gather well-known step builders
  */
 public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.Owner<StepBuilder> {
+   public static Class<StepCatalog> SC = StepCatalog.class;
+
    private final BaseSequenceBuilder parent;
 
    StepCatalog(BaseSequenceBuilder parent) {
@@ -50,7 +53,7 @@ public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.O
    // control steps
 
    public BreakSequenceStep.Builder breakSequence() {
-      return new BreakSequenceStep.Builder(parent);
+      return new BreakSequenceStep.Builder().addTo(parent);
    }
 
    /**
@@ -60,10 +63,7 @@ public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.O
     * @return This sequence.
     */
    public BaseSequenceBuilder nextSequence(String name) {
-      return parent.step(s -> {
-         s.nextSequence(name);
-         return true;
-      });
+      return parent.step(new NextSequenceStep(name));
    }
 
    public BaseSequenceBuilder loop(String counterVar, int repeats, String loopedSequence) {
@@ -71,7 +71,7 @@ public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.O
    }
 
    public ForeachStep.Builder foreach() {
-      return new ForeachStep.Builder(parent);
+      return new ForeachStep.Builder().addTo(parent);
    }
 
    /**
@@ -80,10 +80,7 @@ public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.O
     * @return This sequence.
     */
    public BaseSequenceBuilder stop() {
-      return parent.step(s -> {
-         s.stop();
-         return true;
-      });
+      return parent.step(new StopStep());
    }
 
    // requests
@@ -95,7 +92,7 @@ public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.O
     * @return Builder.
     */
    public HttpRequestStep.Builder httpRequest(HttpMethod method) {
-      return new HttpRequestStep.Builder(parent).method(method);
+      return new HttpRequestStep.Builder().addTo(parent).method(method);
    }
 
    /**
@@ -127,7 +124,7 @@ public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.O
     * @return Builder.
     */
    public ScheduleDelayStep.Builder scheduleDelay(String key, long duration, TimeUnit timeUnit) {
-      return new ScheduleDelayStep.Builder(parent, key).duration(duration, timeUnit);
+      return new ScheduleDelayStep.Builder().addTo(parent).key(key).duration(duration, timeUnit);
    }
 
    /**
@@ -141,7 +138,7 @@ public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.O
    }
 
    public AwaitDelayStep.Builder awaitDelay() {
-      return new AwaitDelayStep.Builder(parent);
+      return new AwaitDelayStep.Builder().addTo(parent);
    }
 
    /**
@@ -160,13 +157,8 @@ public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.O
     *
     * @return Builder.
     */
-   public ScheduleDelayStep.Builder thinkTime() {
-      // We will schedule two steps bound by an unique key
-      Unique key = new Unique();
-      // thinkTime should expose builder to support configurable duration randomization in the future
-      ScheduleDelayStep.Builder delayBuilder = new ScheduleDelayStep.Builder(parent, key).fromNow();
-      parent.step(new AwaitDelayStep(key));
-      return delayBuilder;
+   public ScheduleDelayStep.ThinkTimeBuilder thinkTime() {
+      return new ScheduleDelayStep.ThinkTimeBuilder().addTo(parent);
    }
 
    public StopwatchBeginStep.Builder stopwatch() {
@@ -209,21 +201,21 @@ public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.O
    }
 
    public <T> PollStep.Builder<T> poll(Function<Session, T> provider, String intoVar) {
-      return new PollStep.Builder<>(parent, provider, intoVar);
+      return new PollStep.Builder<>(provider, intoVar).addTo(parent);
    }
 
    public <T> PollStep.Builder<T> poll(Supplier<T> supplier, String intoVar) {
-      return new PollStep.Builder<>(parent, session -> supplier.get(), intoVar);
+      return new PollStep.Builder<>(session -> supplier.get(), intoVar).addTo(parent);
    }
 
    // generators
 
    public TemplateStep.Builder template() {
-      return new TemplateStep.Builder(parent);
+      return new TemplateStep.Builder().addTo(parent);
    }
 
    public RandomIntStep.Builder randomInt() {
-      return new RandomIntStep.Builder(parent, null);
+      return new RandomIntStep.Builder().addTo(parent);
    }
 
    /**
@@ -233,11 +225,11 @@ public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.O
     * @return Builder.
     */
    public RandomIntStep.Builder randomInt(String rangeToVar) {
-      return new RandomIntStep.Builder(parent, rangeToVar);
+      return randomInt().init(rangeToVar);
    }
 
    public RandomItemStep.Builder randomItem() {
-      return new RandomItemStep.Builder(parent, null);
+      return new RandomItemStep.Builder().addTo(parent);
    }
 
    /**
@@ -247,11 +239,11 @@ public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.O
     * @return Builder.
     */
    public RandomItemStep.Builder randomItem(String toFrom) {
-      return new RandomItemStep.Builder(parent, toFrom);
+      return randomItem().init(toFrom);
    }
 
    public RandomCsvRowStep.Builder randomCsvRow() {
-      return new RandomCsvRowStep.Builder((parent));
+      return new RandomCsvRowStep.Builder().addTo(parent);
    }
 
    @Override
@@ -262,7 +254,7 @@ public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.O
    // data
 
    public JsonStep.Builder json() {
-      return new JsonStep.Builder(parent);
+      return new JsonStep.Builder().addTo(parent);
    }
 
    /**
@@ -271,7 +263,7 @@ public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.O
     * @return Builder.
     */
    public PullSharedMapStep.Builder pullSharedMap() {
-      return new PullSharedMapStep.Builder(parent);
+      return new PullSharedMapStep.Builder().addTo(parent);
    }
 
    /**
@@ -280,13 +272,13 @@ public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.O
     * @return Builder.
     */
    public PushSharedMapStep.Builder pushSharedMap() {
-      return new PushSharedMapStep.Builder(parent);
+      return new PushSharedMapStep.Builder().addTo(parent);
    }
 
    // utility
 
    public LogStep.Builder log() {
-      return new LogStep.Builder(parent);
+      return new LogStep.Builder().addTo(parent);
    }
 
    @MetaInfServices(StepCatalogFactory.class)

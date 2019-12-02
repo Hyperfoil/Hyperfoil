@@ -1,10 +1,8 @@
 package io.hyperfoil.core.steps;
 
-import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.function.SerializableSupplier;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
@@ -14,8 +12,7 @@ public abstract class DependencyStep extends BaseStep {
 
    private final Access[] dependencies;
 
-   protected DependencyStep(SerializableSupplier<Sequence> sequence, Access[] dependencies) {
-      super(sequence);
+   protected DependencyStep(Access[] dependencies) {
       this.dependencies = dependencies;
    }
 

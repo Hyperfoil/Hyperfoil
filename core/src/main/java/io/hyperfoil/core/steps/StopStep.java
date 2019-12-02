@@ -7,28 +7,25 @@ import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.Step;
-import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.config.StepBuilder;
-import io.hyperfoil.core.builders.BaseStepBuilder;
+import io.hyperfoil.api.session.Session;
 
-/**
- * No functionality, just to demonstrate a service-loaded step.
- */
-public class NoopStep implements Step {
+public class StopStep implements Step {
    @Override
    public boolean invoke(Session session) {
+      session.stop();
       return true;
    }
 
    /**
-    * Does nothing. Only for demonstration purposes.
+    * Immediately stop the user session (break all running sequences).
     */
    @MetaInfServices(StepBuilder.class)
-   @Name("noop")
-   public static class Builder extends BaseStepBuilder<Builder> {
+   @Name("stop")
+   public static class Builder implements StepBuilder<Builder> {
       @Override
       public List<Step> build() {
-         return Collections.singletonList(new NoopStep());
+         return Collections.singletonList(new StopStep());
       }
    }
 }

@@ -5,10 +5,12 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import io.hyperfoil.api.config.BaseSequenceBuilder;
+import org.kohsuke.MetaInfServices;
+
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
-import io.hyperfoil.api.config.Sequence;
+import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.Step;
+import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
@@ -17,7 +19,6 @@ import io.hyperfoil.core.handlers.ByteStream;
 import io.hyperfoil.core.data.DataFormat;
 import io.hyperfoil.core.handlers.JsonParser;
 import io.hyperfoil.core.session.SessionFactory;
-import io.hyperfoil.function.SerializableSupplier;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
@@ -29,8 +30,7 @@ public class JsonStep extends BaseStep implements ResourceUtilizer {
    private final Access toVar;
    private final DataFormat format;
 
-   private JsonStep(SerializableSupplier<Sequence> sequence, String fromVar, String query, String toVar, DataFormat format) {
-      super(sequence);
+   private JsonStep(String fromVar, String query, String toVar, DataFormat format) {
       this.fromVar = SessionFactory.access(fromVar);
       this.byteArrayParser = new ByteArrayParser(query);
       this.toVar = SessionFactory.access(toVar);
@@ -57,15 +57,13 @@ public class JsonStep extends BaseStep implements ResourceUtilizer {
    /**
     * Parse JSON in variable into another variable.
     */
-   public static class Builder extends BaseStepBuilder {
+   @MetaInfServices(StepBuilder.class)
+   @Name("json")
+   public static class Builder extends BaseStepBuilder<Builder> {
       private String fromVar;
       private String query;
       private String toVar;
       private DataFormat format = DataFormat.STRING;
-
-      public Builder(BaseSequenceBuilder parent) {
-         super(parent);
-      }
 
       /**
        * Variable to load JSON from.
@@ -112,7 +110,7 @@ public class JsonStep extends BaseStep implements ResourceUtilizer {
       }
 
       @Override
-      public List<Step> build(SerializableSupplier<Sequence> sequence) {
+      public List<Step> build() {
          if (fromVar == null) {
             throw new BenchmarkDefinitionException("jsonQuery missing 'fromVar'");
          }
@@ -122,7 +120,7 @@ public class JsonStep extends BaseStep implements ResourceUtilizer {
          if (toVar == null) {
             throw new BenchmarkDefinitionException("jsonQuery missing 'toVar'");
          }
-         return Collections.singletonList(new JsonStep(sequence, fromVar, query, toVar, format));
+         return Collections.singletonList(new JsonStep(fromVar, query, toVar, format));
       }
    }
 

@@ -4,18 +4,19 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import io.hyperfoil.api.config.BaseSequenceBuilder;
+import org.kohsuke.MetaInfServices;
+
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.ListBuilder;
-import io.hyperfoil.api.config.Sequence;
+import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.Step;
+import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.builders.BaseStepBuilder;
 import io.hyperfoil.core.session.IntVar;
 import io.hyperfoil.core.session.ObjectVar;
 import io.hyperfoil.core.session.SessionFactory;
-import io.hyperfoil.function.SerializableSupplier;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
@@ -60,13 +61,11 @@ public class LogStep implements Step {
    /**
     * Log a message and variable values.
     */
-   public static class Builder extends BaseStepBuilder {
+   @MetaInfServices(StepBuilder.class)
+   @Name("log")
+   public static class Builder extends BaseStepBuilder<Builder> {
       String message;
       List<String> vars = new ArrayList<>();
-
-      public Builder(BaseSequenceBuilder parent) {
-         super(parent);
-      }
 
       /**
        * Message format pattern. Use <code>{}</code> to mark the positions for variables in the logged message.
@@ -89,7 +88,7 @@ public class LogStep implements Step {
       }
 
       @Override
-      public List<Step> build(SerializableSupplier<Sequence> sequence) {
+      public List<Step> build() {
          if (message == null) {
             throw new BenchmarkDefinitionException("Missing message");
          }

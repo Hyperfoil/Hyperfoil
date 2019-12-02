@@ -10,15 +10,12 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.session.ResourceUtilizer;
-import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.core.builders.BaseStepBuilder;
 import io.hyperfoil.core.session.SessionFactory;
-import io.hyperfoil.function.SerializableSupplier;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
@@ -71,7 +68,7 @@ public class PollStep<T> implements Step, ResourceUtilizer {
    /**
     * Periodically tries to insert object into session variable.
     */
-   public static class Builder<T> extends BaseStepBuilder {
+   public static class Builder<T> extends BaseStepBuilder<Builder<T>> {
       private final Function<Session, T> provider;
       private final String var;
       private BiPredicate<Session, T> filter = (s, o) -> true;
@@ -79,8 +76,7 @@ public class PollStep<T> implements Step, ResourceUtilizer {
       private long periodMs = 50;
       private int maxRetries = 16;
 
-      public Builder(BaseSequenceBuilder parent, Function<Session, T> provider, String var) {
-         super(parent);
+      public Builder(Function<Session, T> provider, String var) {
          this.provider = provider;
          this.var = var;
       }
@@ -122,7 +118,7 @@ public class PollStep<T> implements Step, ResourceUtilizer {
       }
 
       @Override
-      public List<Step> build(SerializableSupplier<Sequence> sequence) {
+      public List<Step> build() {
          return Collections.singletonList(new PollStep<>(provider, var, filter, recycler, periodMs, maxRetries));
       }
    }

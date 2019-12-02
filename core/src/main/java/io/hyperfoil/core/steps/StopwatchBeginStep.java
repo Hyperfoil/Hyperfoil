@@ -3,7 +3,10 @@ package io.hyperfoil.core.steps;
 import java.util.ArrayList;
 import java.util.List;
 
-import io.hyperfoil.api.config.Sequence;
+import org.kohsuke.MetaInfServices;
+
+import io.hyperfoil.api.config.Locator;
+import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.config.Step;
@@ -11,7 +14,6 @@ import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.core.session.SessionFactory;
-import io.hyperfoil.function.SerializableSupplier;
 
 public class StopwatchBeginStep implements Step, ResourceUtilizer {
    private final Access key;
@@ -46,23 +48,42 @@ public class StopwatchBeginStep implements Step, ResourceUtilizer {
    /**
     * Run nested sequence of steps, recording execution time.
     */
-   public static class Builder extends BaseSequenceBuilder implements StepBuilder {
+   @MetaInfServices(StepBuilder.class)
+   @Name("stopwatch")
+   public static class Builder extends BaseSequenceBuilder implements StepBuilder<Builder> {
+      private Locator locator;
+
+      public Builder() {
+         super(null);
+      }
+
       public Builder(BaseSequenceBuilder parent) {
          super(parent);
+         setLocator(parent.createLocator());
          parent.stepBuilder(this);
       }
 
       @Override
-      public List<Step> build(SerializableSupplier<Sequence> sequence) {
-         List<Step> steps = new ArrayList<>();
-         Object key = new Object();
-         steps.add(new StopwatchBeginStep(key));
-         steps.addAll(super.buildSteps(sequence));
-         steps.add(new StopwatchEndStep(sequence, key));
-         return steps;
+      public Builder setLocator(Locator locator) {
+         this.locator = locator;
+         return this;
       }
 
       @Override
+      public Builder copy(Locator locator) {
+         return new Builder(parent);
+      }
+
+      @Override
+      public List<Step> build() {
+         List<Step> steps = new ArrayList<>();
+         Object key = new Object();
+         steps.add(new StopwatchBeginStep(key));
+         steps.addAll(super.buildSteps());
+         steps.add(new StopwatchEndStep(key, locator.sequence().name()));
+         return steps;
+      }
+
       public BaseSequenceBuilder endStep() {
          return parent;
       }

@@ -16,19 +16,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
+import org.kohsuke.MetaInfServices;
+
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.ListBuilder;
+import io.hyperfoil.api.config.Locator;
+import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.PairBuilder;
-import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.Step;
+import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.ResourceUtilizer;
-import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.core.builders.BaseStepBuilder;
 import io.hyperfoil.core.session.ObjectVar;
 import io.hyperfoil.core.session.SessionFactory;
-import io.hyperfoil.function.SerializableSupplier;
 
 public class RandomItemStep implements Step, ResourceUtilizer {
    private final Access fromVar;
@@ -108,27 +111,43 @@ public class RandomItemStep implements Step, ResourceUtilizer {
    /**
     * Stores random item from a list or array into session variable.
     */
-   public static class Builder extends BaseStepBuilder {
+   @MetaInfServices(StepBuilder.class)
+   @Name("randomItem")
+   public static class Builder extends BaseStepBuilder<Builder> implements InitFromParam<Builder> {
+      private Locator locator;
       private String fromVar;
       private List<String> list = new ArrayList<>();
       private Map<String, Double> weighted = new HashMap<>();
       private String file;
       private String toVar;
 
-      public Builder(BaseSequenceBuilder parent, String toFrom) {
-         super(parent);
-         if (toFrom != null) {
-            String[] parts = toFrom.split("<-");
-            if (parts.length != 2) {
-               throw new BenchmarkDefinitionException("Expecting format toVar <- fromVar");
-            }
-            toVar = parts[0].trim();
-            fromVar = parts[1].trim();
+      @Override
+      public Builder setLocator(Locator locator) {
+         // Note: copy() is not overridden as we use locator only to read external file.
+         this.locator = locator;
+         return this;
+      }
+
+      /**
+       * @param toFrom Use `toVar <- fromVar` where fromVar is an array/collection.
+       * @return Self.
+       */
+      @Override
+      public Builder init(String toFrom) {
+         if (toFrom == null) {
+            return this;
          }
+         String[] parts = toFrom.split("<-");
+         if (parts.length != 2) {
+            throw new BenchmarkDefinitionException("Expecting format toVar <- fromVar");
+         }
+         toVar = parts[0].trim();
+         fromVar = parts[1].trim();
+         return this;
       }
 
       @Override
-      public List<Step> build(SerializableSupplier<Sequence> sequence) {
+      public List<Step> build() {
          if (fromVar != null && (!list.isEmpty() || !weighted.isEmpty() || file != null)) {
             throw new BenchmarkDefinitionException("randomItem cannot combine `fromVar` and `list` or `file`");
          } else if (file != null && !(list.isEmpty() && weighted.isEmpty())) {
@@ -136,7 +155,7 @@ public class RandomItemStep implements Step, ResourceUtilizer {
          }
          List<String> list = new ArrayList<>(this.list);
          if (file != null) {
-            try (InputStream inputStream = endStep().endSequence().endScenario().endPhase().data().readFile(file)) {
+            try (InputStream inputStream = locator.scenario().endScenario().endPhase().data().readFile(file)) {
                if (inputStream == null) {
                   throw new BenchmarkDefinitionException("Cannot load file `" + file + "` for randomItem (not found).");
                }

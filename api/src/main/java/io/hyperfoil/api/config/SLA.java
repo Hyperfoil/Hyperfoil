@@ -154,7 +154,5 @@ public class SLA implements Serializable {
       int id();
 
       SLA[] sla();
-
-      Sequence sequence();
    }
 }

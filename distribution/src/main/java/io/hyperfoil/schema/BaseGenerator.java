@@ -30,6 +30,10 @@ class BaseGenerator {
          return true;
       } else if (END_REGEXP.matcher(m.getName()).matches()) {
          return true;
+      } else if (m.getParameterCount() > 1) {
+         return true;
+      } else if (m.getParameterCount() == 1 && !isParamConvertible(m.getParameters()[0].getType())) {
+         return true;
       } else if (PairBuilder.class.isAssignableFrom(builder) && m.getName().equals("accept") && m.getParameterCount() == 2) {
          return true;
       } else if (PartialBuilder.class.isAssignableFrom(builder) && m.getName().equals("withKey") && m.getParameterCount() == 1) {
@@ -46,5 +50,9 @@ class BaseGenerator {
          return true;
       }
       return false;
+   }
+
+   private static boolean isParamConvertible(Class<?> type) {
+      return type == String.class || type.isPrimitive() || type.isEnum();
    }
 }

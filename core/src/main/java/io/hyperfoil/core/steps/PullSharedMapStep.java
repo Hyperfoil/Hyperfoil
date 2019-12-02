@@ -3,16 +3,17 @@ package io.hyperfoil.core.steps;
 import java.util.Collections;
 import java.util.List;
 
-import io.hyperfoil.api.config.Sequence;
+import org.kohsuke.MetaInfServices;
+
+import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.Step;
+import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.SharedData;
 import io.hyperfoil.api.session.ResourceUtilizer;
-import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.core.builders.BaseStepBuilder;
 import io.hyperfoil.core.session.SessionFactory;
-import io.hyperfoil.function.SerializableSupplier;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
@@ -69,16 +70,14 @@ public class PullSharedMapStep implements Step, ResourceUtilizer {
     * that has the same value for given variable as the current session.
     * When data is moved to the current session the entry is dropped from the shared map.
     */
-   public static class Builder extends BaseStepBuilder {
+   @MetaInfServices(StepBuilder.class)
+   @Name("pullSharedMap")
+   public static class Builder extends BaseStepBuilder<Builder> {
       private String key;
       private String match;
 
-      public Builder(BaseSequenceBuilder parent) {
-         super(parent);
-      }
-
       @Override
-      public List<Step> build(SerializableSupplier<Sequence> sequence) {
+      public List<Step> build() {
          return Collections.singletonList(new PullSharedMapStep(key, match));
       }
 

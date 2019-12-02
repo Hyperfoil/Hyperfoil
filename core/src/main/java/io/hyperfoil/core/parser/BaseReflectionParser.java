@@ -1,6 +1,5 @@
 package io.hyperfoil.core.parser;
 
-import java.lang.reflect.Array;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -24,33 +23,6 @@ import io.hyperfoil.api.config.ServiceLoadedContract;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 
 class BaseReflectionParser {
-   private static Method selectMethod(Method m1, Method m2) {
-      if (m1 == null) {
-         return m2;
-      } else if (m2 == null) {
-         return m1;
-      }
-      boolean m1Primitive = hasPrimitiveParams(m1);
-      boolean m2Primitive = hasPrimitiveParams(m2);
-      if (m1Primitive && m2Primitive) {
-         return m1.getParameterCount() <= m2.getParameterCount() ? m1 : m2;
-      } else if (m1Primitive) {
-         return m1;
-      } else if (m2Primitive) {
-         return m2;
-      } else {
-         return null;
-      }
-   }
-
-   private static boolean hasPrimitiveParams(Method m1) {
-      for (Class<?> param : m1.getParameterTypes()) {
-         if (!param.isPrimitive() && param != String.class && !param.isEnum()) {
-            return false;
-         }
-      }
-      return true;
-   }
 
    protected void invokeWithParameters(Context ctx, Object target, ScalarEvent keyEvent) throws ParserException {
       Event defEvent = ctx.peek();
@@ -75,7 +47,7 @@ class BaseReflectionParser {
          }
          ctx.consumePeeked(defEvent);
       } else if (defEvent instanceof MappingStartEvent) {
-         Object builder = invokeWithDefaultParams(target, keyEvent, key);
+         Object builder = invokeWithNoParams(target, keyEvent, key);
          ctx.consumePeeked(defEvent);
          if (builder instanceof ServiceLoadedContract) {
             ServiceLoadedContract serviceLoadedContract = (ServiceLoadedContract) builder;
@@ -222,30 +194,6 @@ class BaseReflectionParser {
       return serviceLoadedContract;
    }
 
-   private Object invokeWithDefaultParams(Object target, ScalarEvent keyEvent, String key) throws ParserException {
-      if (target instanceof PartialBuilder) {
-         return ((PartialBuilder) target).withKey(key);
-      }
-      Result<Method> result = findMethod(keyEvent, target, key, -1);
-      if (result.value != null) {
-         Method method = result.value;
-         Object[] args = new Object[method.getParameterCount()];
-         Class<?>[] parameterTypes = method.getParameterTypes();
-         for (int i = 0; i < parameterTypes.length; i++) {
-            args[i] = defaultValue(parameterTypes[i]);
-         }
-         try {
-            return method.invoke(target, args);
-         } catch (IllegalAccessException | InvocationTargetException e) {
-            throw cannotCreate(keyEvent, e);
-         }
-      } else if (target instanceof ServiceLoadedBuilderProvider.Owner) {
-         return getLoadedBuilder((ServiceLoadedBuilderProvider.Owner<?>) target, keyEvent, key, null, result.exception);
-      } else {
-         throw result.exception;
-      }
-   }
-
    protected Object invokeWithNoParams(Object target, ScalarEvent keyEvent, String key) throws ParserException {
       if (target instanceof PartialBuilder) {
          return ((PartialBuilder) target).withKey(key);
@@ -279,11 +227,8 @@ class BaseReflectionParser {
 
    private Result<Method> findMethod(Event event, Object target, String name, int params) {
       Method[] matchingName = Stream.of(target.getClass().getMethods()).filter(m -> m.getName().equals(name)).toArray(Method[]::new);
-      Method[] candidates = matchingName;
-      if (params >= 0) {
-         candidates = Stream.of(matchingName).filter(m -> m.getParameterCount() == params)
-               .filter(m -> Stream.of(m.getParameterTypes()).allMatch(this::isParamConvertible)).toArray(Method[]::new);
-      }
+      Method[] candidates = Stream.of(matchingName).filter(m -> m.getParameterCount() == params)
+            .filter(m -> Stream.of(m.getParameterTypes()).allMatch(this::isParamConvertible)).toArray(Method[]::new);
       if (params == 1 && candidates.length == 0) {
          candidates = Stream.of(matchingName).filter(m -> InitFromParam.class.isAssignableFrom(m.getReturnType())).toArray(Method[]::new);
       }
@@ -291,8 +236,6 @@ class BaseReflectionParser {
          return new Result<>(new ParserException(event, "Cannot find method '" + name + "' on '" + target + "'"));
       } else if (candidates.length == 1) {
          return new Result<>(candidates[0]);
-      } else if (params < 0) {
-         return new Result<>(Stream.of(candidates).reduce(BaseReflectionParser::selectMethod).get());
       } else { // candidates.length > 1
          return new Result<>(new ParserException(event, "Ambiguous candidates for '" + name + "' on '" + target + "': " + Arrays.asList(candidates)));
       }
@@ -323,10 +266,6 @@ class BaseReflectionParser {
    @SuppressWarnings("unchecked")
    private Enum parseEnum(String str, Class<?> type) {
       return Enum.valueOf((Class<Enum>) type, str);
-   }
-
-   private Object defaultValue(Class<?> clazz) {
-      return Array.get(Array.newInstance(clazz, 1), 0);
    }
 
    private ParserException cannotCreate(ScalarEvent event, Exception exception) {

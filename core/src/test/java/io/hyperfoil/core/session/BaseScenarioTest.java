@@ -7,7 +7,6 @@ import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.HttpBuilder;
 import io.hyperfoil.api.config.ScenarioBuilder;
-import io.hyperfoil.core.builders.StepCatalog;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
 import io.hyperfoil.core.impl.statistics.StatisticsCollector;
 import io.vertx.core.Vertx;
@@ -26,7 +25,6 @@ import java.util.List;
 import java.util.Map;
 
 public abstract class BaseScenarioTest {
-   protected static final Class<StepCatalog> SC = StepCatalog.class;
    protected final Logger log = LoggerFactory.getLogger(getClass());
 
    protected Vertx vertx;

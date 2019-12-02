@@ -6,18 +6,19 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Stream;
 
+import org.kohsuke.MetaInfServices;
+
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.ListBuilder;
-import io.hyperfoil.api.config.Sequence;
+import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.Step;
+import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.SharedData;
 import io.hyperfoil.api.session.ResourceUtilizer;
-import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.core.builders.BaseStepBuilder;
 import io.hyperfoil.core.session.SessionFactory;
-import io.hyperfoil.function.SerializableSupplier;
 
 public class PushSharedMapStep implements Step, ResourceUtilizer {
    private final String key;
@@ -50,16 +51,14 @@ public class PushSharedMapStep implements Step, ResourceUtilizer {
     * The executor can host multiple shared maps, each holding an entry with several variables.
     * This step creates one entry in the map, copying values from session variables into the entry.
     */
-   public static class Builder extends BaseStepBuilder {
+   @MetaInfServices(StepBuilder.class)
+   @Name("pushSharedMap")
+   public static class Builder extends BaseStepBuilder<Builder> {
       private String key;
       private Collection<String> vars = new ArrayList<>();
 
-      public Builder(BaseSequenceBuilder parent) {
-         super(parent);
-      }
-
       @Override
-      public List<Step> build(SerializableSupplier<Sequence> sequence) {
+      public List<Step> build() {
          if (vars.isEmpty()) {
             throw new BenchmarkDefinitionException("No variables pushed for key " + key);
          }

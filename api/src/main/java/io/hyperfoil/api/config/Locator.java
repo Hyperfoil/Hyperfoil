@@ -2,36 +2,81 @@ package io.hyperfoil.api.config;
 
 public interface Locator {
 
-   StepBuilder step();
+   StepBuilder<?> step();
 
    BaseSequenceBuilder sequence();
 
    ScenarioBuilder scenario();
 
-   static Locator fromStep(StepBuilder step) {
-      if (!step.canBeLocated()) {
-         throw new IllegalStateException(step + " cannot be located as it does not support deep copy.");
-      }
-      return new Step(step);
+   static Locator get(StepBuilder<?> step, Locator locator) {
+      return new Impl(step, locator.sequence());
    }
 
-   class Step implements Locator {
-      private final StepBuilder step;
+   class Impl implements Locator {
+      private final StepBuilder<?> step;
+      private final BaseSequenceBuilder sequence;
 
-      private Step(StepBuilder step) {
+      private Impl(StepBuilder<?> step, BaseSequenceBuilder sequence) {
          this.step = step;
+         this.sequence = sequence;
       }
 
-      public StepBuilder step() {
+      public StepBuilder<?> step() {
          return step;
       }
 
       public BaseSequenceBuilder sequence() {
-         return step.endStep();
+         return sequence;
       }
 
       public ScenarioBuilder scenario() {
-         return step.endStep().endSequence();
+         return sequence.endSequence();
+      }
+   }
+
+   class Mutable implements Locator {
+      private StepBuilder<?> step;
+      private BaseSequenceBuilder sequence;
+      private ScenarioBuilder scenario;
+
+      public Mutable step(StepBuilder<?> step) {
+         this.step = step;
+         return this;
+      }
+
+      public Mutable sequence(BaseSequenceBuilder sequence) {
+         this.sequence = sequence;
+         this.scenario = sequence.endSequence();
+         return this;
+      }
+
+      public Mutable scenario(ScenarioBuilder scenario) {
+         this.scenario = scenario;
+         return this;
+      }
+
+      @Override
+      public StepBuilder<?> step() {
+         if (step == null) {
+            throw new IllegalStateException();
+         }
+         return step;
+      }
+
+      @Override
+      public BaseSequenceBuilder sequence() {
+         if (sequence == null) {
+            throw new IllegalStateException();
+         }
+         return sequence;
+      }
+
+      @Override
+      public ScenarioBuilder scenario() {
+         if (scenario == null) {
+            throw new IllegalStateException();
+         }
+         return scenario;
       }
    }
 }
