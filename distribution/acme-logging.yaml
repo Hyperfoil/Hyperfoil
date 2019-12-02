@@ -1,0 +1,37 @@
+name: acme
+http:
+  host: http://acme.dalperf.us-south.containers.appdomain.cloud
+  sharedConnections: 10
+phases:
+- login:
+    constantPerSec:
+      usersPerSec: 1
+      duration: 10s
+      scenario:
+      - login:
+        - httpRequest:
+            headers:
+              Content-Type: "application/x-www-form-urlencoded"
+            POST:
+              pattern: /auth/login
+            body:
+              form:
+              - name: login
+                value: uid22@email.com
+              - name: password
+                value: password
+            handler:
+              header:
+                - cookie:
+                    name: jwt_token
+                    toVar: moss
+                - log:
+                    message: moss
+                    var : moss
+      - customer:
+        - httpRequest:
+            headers:
+              Content-Type: "application/x-www-form-urlencoded"
+              Authorization: moss
+            GET:
+              pattern: /customer/byid/uid22@email.com

@@ -1,0 +1,39 @@
+name: acme
+http:
+  host: http://acme.dalperf.us-south.containers.appdomain.cloud
+  sharedConnections: 10
+phases:
+- borwsingUser:
+    constantPerSec:
+      usersPerSec: 1
+      duration: 10s
+      scenario:
+        initialSequences:
+        - login:
+          - randomInt:
+              min: 0
+              max: 10
+              toVar: userId
+          - httpRequest:
+              POST:
+                value: /auth/login
+              body:
+                form:
+                - name: login
+                  value: uid22@email.com
+                - name: password
+                  value: password
+              handler:
+                header:
+                  - cookie:
+                      name: jwt_token
+                      toVar: jwtToken
+          - nextSequence: queryCustomer 
+        sequences:
+        - viewProfile:
+          - httpRequest:
+              headers:
+                Authorization:
+                  pattern: Bearer ${jwtToken}
+              GET:
+                pattern: /customer/byid/uid22@email.com
