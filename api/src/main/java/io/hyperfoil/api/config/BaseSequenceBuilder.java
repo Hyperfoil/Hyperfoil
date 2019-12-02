@@ -95,6 +95,25 @@ public abstract class BaseSequenceBuilder implements Rewritable<BaseSequenceBuil
       return steps.stream().map(b -> b.build(sequence)).flatMap(List::stream).collect(Collectors.toList());
    }
 
+   public Locator createLocator() {
+      return new Locator() {
+         @Override
+         public StepBuilder step() {
+            throw new UnsupportedOperationException();
+         }
+
+         @Override
+         public BaseSequenceBuilder sequence() {
+            return BaseSequenceBuilder.this;
+         }
+
+         @Override
+         public ScenarioBuilder scenario() {
+            return endSequence();
+         }
+      };
+   }
+
    private static class StepInserter extends BaseSequenceBuilder implements StepBuilder {
       private StepInserter(BaseSequenceBuilder parent) {
          super(parent);

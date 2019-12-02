@@ -2,7 +2,6 @@ package io.hyperfoil.core.steps;
 
 import org.kohsuke.MetaInfServices;
 
-import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Name;
@@ -10,14 +9,13 @@ import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.core.builders.ActionStepBuilder;
 import io.hyperfoil.core.session.SessionFactory;
 
-public class SetIntStep implements Action.Step, ResourceUtilizer {
+public class SetIntAction implements Action, ResourceUtilizer {
    private final Access var;
    private final int value;
 
-   public SetIntStep(String var, int value) {
+   public SetIntAction(String var, int value) {
       this.var = SessionFactory.access(var);
       this.value = value;
    }
@@ -37,15 +35,11 @@ public class SetIntStep implements Action.Step, ResourceUtilizer {
     */
    @MetaInfServices(Action.Builder.class)
    @Name("setInt")
-   public static class Builder extends ActionStepBuilder implements InitFromParam<Builder> {
+   public static class Builder implements InitFromParam<Builder>, Action.Builder {
       private String var;
       private int value;
 
       public Builder() {
-      }
-
-      public Builder(BaseSequenceBuilder parent) {
-         super(parent);
       }
 
       /**
@@ -90,11 +84,11 @@ public class SetIntStep implements Action.Step, ResourceUtilizer {
       }
 
       @Override
-      public SetIntStep build() {
+      public SetIntAction build() {
          if (var == null) {
             throw new BenchmarkDefinitionException("No variable set!");
          }
-         return new SetIntStep(var, value);
+         return new SetIntAction(var, value);
       }
    }
 }

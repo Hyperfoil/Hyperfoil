@@ -8,24 +8,22 @@ import java.util.function.Supplier;
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BaseSequenceBuilder;
-import io.hyperfoil.api.config.Locator;
-import io.hyperfoil.api.config.ScenarioBuilder;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.http.HttpMethod;
+import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.generators.RandomCsvRowStep;
 import io.hyperfoil.core.generators.RandomIntStep;
 import io.hyperfoil.core.generators.RandomItemStep;
 import io.hyperfoil.core.generators.TemplateStep;
-import io.hyperfoil.core.steps.AddToIntStep;
 import io.hyperfoil.core.steps.AwaitAllResponsesStep;
 import io.hyperfoil.core.steps.AwaitConditionStep;
 import io.hyperfoil.core.steps.AwaitDelayStep;
 import io.hyperfoil.core.steps.AwaitIntStep;
 import io.hyperfoil.core.steps.AwaitVarStep;
 import io.hyperfoil.core.steps.BreakSequenceStep;
-import io.hyperfoil.core.steps.ClearHttpCacheStep;
+import io.hyperfoil.core.steps.ClearHttpCacheAction;
 import io.hyperfoil.core.steps.ForeachStep;
 import io.hyperfoil.core.steps.HttpRequestStep;
 import io.hyperfoil.core.steps.JsonStep;
@@ -35,10 +33,7 @@ import io.hyperfoil.core.steps.PollStep;
 import io.hyperfoil.core.steps.PullSharedMapStep;
 import io.hyperfoil.core.steps.PushSharedMapStep;
 import io.hyperfoil.core.steps.ScheduleDelayStep;
-import io.hyperfoil.core.steps.SetIntStep;
-import io.hyperfoil.core.steps.SetStep;
 import io.hyperfoil.core.steps.StopwatchBeginStep;
-import io.hyperfoil.core.steps.UnsetStep;
 import io.hyperfoil.core.util.Unique;
 import io.hyperfoil.impl.StepCatalogFactory;
 
@@ -118,7 +113,7 @@ public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.O
     * @return This sequence.
     */
    public BaseSequenceBuilder clearHttpCache() {
-      return parent.step(new ClearHttpCacheStep());
+      return parent.step(new StepBuilder.ActionStep(new ClearHttpCacheAction()));
    }
 
    // timing
@@ -209,50 +204,8 @@ public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.O
       return parent.step(new AwaitVarStep(var));
    }
 
-   public UnsetStep.Builder unset() {
-      return new UnsetStep.Builder(parent);
-   }
-
-   public SetStep.Builder set() {
-      return new SetStep.Builder(parent);
-   }
-
-   /**
-    * Set variable to given value.
-    *
-    * @param param Use <code>var &lt;- value</code>.
-    * @return This sequence.
-    */
-   public BaseSequenceBuilder set(String param) {
-      return new SetStep.Builder(parent).init(param).endStep();
-   }
-
-   /**
-    * Set variable to given value.
-    *
-    * @param param Use <code>var &lt;- value</code>.
-    * @return This sequence.
-    */
-   public BaseSequenceBuilder setInt(String param) {
-      return new SetIntStep.Builder(parent).init(param).endStep();
-   }
-
-   public SetIntStep.Builder setInt() {
-      return new SetIntStep.Builder(parent);
-   }
-
-   public AddToIntStep.Builder addToInt() {
-      return new AddToIntStep.Builder(parent);
-   }
-
-   /**
-    * Add integral value to variable.
-    *
-    * @param param One of: <code>var++</code>, <code>var--</code>, <code>var += value</code>, <code>var -= value</code>.
-    * @return This sequence.
-    */
-   public BaseSequenceBuilder addToInt(String param) {
-      return new AddToIntStep.Builder(parent).init(param).endStep();
+   public BaseSequenceBuilder action(Action.Builder builder) {
+      return parent.step(new StepBuilder.ActionStep(builder.build()));
    }
 
    public <T> PollStep.Builder<T> poll(Function<Session, T> provider, String intoVar) {
@@ -303,22 +256,7 @@ public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.O
 
    @Override
    public ServiceLoadedBuilderProvider<StepBuilder> serviceLoaded() {
-      return new ServiceLoadedBuilderProvider<>(StepBuilder.class, new Locator() {
-         @Override
-         public StepBuilder step() {
-            throw new UnsupportedOperationException();
-         }
-
-         @Override
-         public BaseSequenceBuilder sequence() {
-            return parent;
-         }
-
-         @Override
-         public ScenarioBuilder scenario() {
-            return parent.endSequence();
-         }
-      }, parent::stepBuilder);
+      return new ServiceLoadedBuilderProvider<>(StepBuilder.class, parent.createLocator(), parent::stepBuilder);
    }
 
    // data

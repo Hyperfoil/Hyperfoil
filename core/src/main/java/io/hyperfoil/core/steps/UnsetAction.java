@@ -7,14 +7,12 @@ import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.api.config.BaseSequenceBuilder;
-import io.hyperfoil.core.builders.ActionStepBuilder;
 import io.hyperfoil.core.session.SessionFactory;
 
-public class UnsetStep implements Action.Step {
+public class UnsetAction implements Action {
    public final Access var;
 
-   public UnsetStep(String var) {
+   public UnsetAction(String var) {
       this.var = SessionFactory.access(var);
    }
 
@@ -28,14 +26,10 @@ public class UnsetStep implements Action.Step {
     */
    @MetaInfServices(Action.Builder.class)
    @Name("unset")
-   public static class Builder extends ActionStepBuilder implements InitFromParam<Builder> {
+   public static class Builder implements InitFromParam<Builder>, Action.Builder {
       private String var;
 
       public Builder() {
-      }
-
-      public Builder(BaseSequenceBuilder parent) {
-         super(parent);
       }
 
       /**
@@ -60,8 +54,8 @@ public class UnsetStep implements Action.Step {
       }
 
       @Override
-      public UnsetStep build() {
-         return new UnsetStep(var);
+      public UnsetAction build() {
+         return new UnsetAction(var);
       }
    }
 }

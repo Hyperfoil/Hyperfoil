@@ -18,8 +18,9 @@ import io.hyperfoil.core.handlers.ProcessorAssertion;
 import io.hyperfoil.core.handlers.SequenceScopedCountRecorder;
 import io.hyperfoil.core.handlers.DefragProcessor;
 import io.hyperfoil.core.handlers.JsonHandler;
-import io.hyperfoil.core.steps.AddToIntStep;
+import io.hyperfoil.core.steps.AddToIntAction;
 import io.hyperfoil.core.steps.AwaitConditionStep;
+import io.hyperfoil.core.steps.SetIntAction;
 import io.hyperfoil.core.test.CrewMember;
 import io.hyperfoil.core.test.Fleet;
 import io.hyperfoil.core.test.Ship;
@@ -87,7 +88,7 @@ public class FleetTest extends BaseScenarioTest {
       scenario(2)
             .intVar(NUMBER_OF_SUNK_SHIPS)
             .initialSequence("fleet")
-               .step(SC).setInt().var(NUMBER_OF_SUNK_SHIPS).value(0).endStep()
+               .step(SC).action(new SetIntAction.Builder().var(NUMBER_OF_SUNK_SHIPS).value(0))
                .step(SC).httpRequest(HttpMethod.GET)
                   .path("/fleet")
                   .sync(false)
@@ -112,7 +113,7 @@ public class FleetTest extends BaseScenarioTest {
                .step(SC).breakSequence()
                   .dependency("crewCount[.]")
                   .intCondition().fromVar("crewCount[.]").greaterThan(0).endCondition()
-                  .onBreak(new AddToIntStep(NUMBER_OF_SHIPS, -1))
+                  .onBreak(new AddToIntAction(NUMBER_OF_SHIPS, -1))
                .endStep()
                .step(SC).httpRequest(HttpMethod.DELETE)
                   .path(FleetTest::currentShipQuery)
@@ -127,8 +128,8 @@ public class FleetTest extends BaseScenarioTest {
                      }))
                   .endHandler()
                .endStep()
-               .step(SC).addToInt().var(NUMBER_OF_SUNK_SHIPS).value(1).endStep()
-               .step(SC).addToInt().var(NUMBER_OF_SHIPS).value(-1).endStep()
+               .step(SC).action(new AddToIntAction.Builder().var(NUMBER_OF_SUNK_SHIPS).value(1))
+               .step(SC).action(new AddToIntAction.Builder().var(NUMBER_OF_SHIPS).value(-1))
             .endSequence()
             .initialSequence("final")
                .step(new AwaitConditionStep(s -> numberOfShips.isSet(s) && numberOfShips.getInt(s) <= 0))

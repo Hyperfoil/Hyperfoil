@@ -14,15 +14,4 @@ public interface Action extends Serializable {
    interface Builder extends BuilderBase<Builder> {
       Action build();
    }
-
-   /**
-    * Combination of an action and a step.
-    */
-   interface Step extends Action, io.hyperfoil.api.config.Step {
-      @Override
-      default boolean invoke(Session session) {
-         run(session);
-         return true;
-      }
-   }
 }

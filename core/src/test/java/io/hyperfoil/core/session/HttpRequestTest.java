@@ -19,6 +19,7 @@ import io.hyperfoil.api.http.StatusHandler;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.core.handlers.RangeStatusValidator;
 import io.hyperfoil.core.handlers.RecordHeaderTimeHandler;
+import io.hyperfoil.core.steps.SetAction;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.ext.web.handler.BodyHandler;
@@ -82,10 +83,9 @@ public class HttpRequestTest extends BaseScenarioTest {
       scenario()
             .objectVar("x")
             .initialSequence("test")
-               .step(SC).set()
+               .step(SC).action(new SetAction.Builder()
                   .var("x")
-                  .value("bar")
-               .endStep()
+                  .value("bar"))
                .step(SC).httpRequest(HttpMethod.POST)
                   .path("/test?expect=bar")
                   .body().fromVar("x").endBody()
@@ -108,10 +108,9 @@ public class HttpRequestTest extends BaseScenarioTest {
       scenario()
             .objectVar("x")
             .initialSequence("test")
-            .step(SC).set()
+            .step(SC).action(new SetAction.Builder()
                .var("x")
-               .value(chineseStr)
-            .endStep()
+               .value(chineseStr))
             .step(SC).httpRequest(HttpMethod.POST)
                .path("/test?expect=" + URLEncoder.encode(chineseStr, StandardCharsets.UTF_8.name()))
                .body().fromVar("x").endBody()
@@ -127,10 +126,9 @@ public class HttpRequestTest extends BaseScenarioTest {
       scenario()
             .objectVar("x")
             .initialSequence("test")
-               .step(SC).set()
+               .step(SC).action(new SetAction.Builder()
                   .var("x")
-                  .value("bar")
-               .endStep()
+                  .value("bar"))
                .step(SC).httpRequest(HttpMethod.POST)
                   .path().pattern("/test?expect=${x}").end()
                   .body("bar")
@@ -199,10 +197,9 @@ public class HttpRequestTest extends BaseScenarioTest {
       // @formatter:off
       scenario()
             .initialSequence("testFromVar")
-               .step(SC).set()
+               .step(SC).action(new SetAction.Builder()
                   .var("foo")
-                  .value("bar")
-               .endStep()
+                  .value("bar"))
                .step(SC).httpRequest(HttpMethod.GET)
                   .path("/test?expectHeader=Authorization:bar")
                   .headers()
@@ -213,10 +210,9 @@ public class HttpRequestTest extends BaseScenarioTest {
                .endStep()
             .endSequence()
             .initialSequence("testPattern")
-               .step(SC).set()
+               .step(SC).action(new SetAction.Builder()
                   .var("foo")
-                  .value("bar")
-               .endStep()
+                  .value("bar"))
                .step(SC).httpRequest(HttpMethod.GET)
                   .path("/test?expectHeader=Authorization:xxxbarxxx")
                   .headers()

@@ -12,6 +12,7 @@ import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.SequenceBuilder;
 import io.hyperfoil.api.config.Step;
+import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.processor.HttpRequestProcessorBuilder;
 import io.hyperfoil.api.connection.Request;
@@ -24,12 +25,12 @@ import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.core.data.DataFormat;
 import io.hyperfoil.core.generators.StringGeneratorImplBuilder;
 import io.hyperfoil.core.session.SessionFactory;
-import io.hyperfoil.core.steps.AddToIntStep;
+import io.hyperfoil.core.steps.AddToIntAction;
 import io.hyperfoil.core.steps.AwaitIntStep;
 import io.hyperfoil.core.steps.HttpRequestStep;
 import io.hyperfoil.core.steps.PathMetricSelector;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
-import io.hyperfoil.core.steps.UnsetStep;
+import io.hyperfoil.core.steps.UnsetAction;
 import io.hyperfoil.core.util.Trie;
 import io.hyperfoil.core.util.Util;
 import io.hyperfoil.function.SerializableBiFunction;
@@ -529,13 +530,13 @@ public class HtmlHandler implements Processor<HttpRequest>, ResourceUtilizer, Se
             // Rather than using auto-generated sequence name we'll use the full path
             requestBuilder.metric((authority, path) -> authority != null ? authority + path : path);
          }
-         requestBuilder.handler().onCompletion(new AddToIntStep.Builder().var(completionLatch()).value(-1));
+         requestBuilder.handler().onCompletion(new AddToIntAction.Builder().var(completionLatch()).value(-1));
 
          Action onCompletion = this.onCompletion.build();
          // We add unset step for cases where the step is retried and it's not sync
          locator.sequence().insertAfter(locator.step())
                .step(new AwaitIntStep(completionLatch(), x -> x == 0))
-               .step(new UnsetStep(completionLatch()))
+               .step(new StepBuilder.ActionStep(new UnsetAction(completionLatch())))
                .step(new ResourceUtilizingStep(onCompletion));
       }
 

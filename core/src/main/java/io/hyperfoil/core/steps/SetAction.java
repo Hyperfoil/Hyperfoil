@@ -2,7 +2,6 @@ package io.hyperfoil.core.steps;
 
 import org.kohsuke.MetaInfServices;
 
-import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Name;
@@ -10,17 +9,16 @@ import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.core.builders.ActionStepBuilder;
 import io.hyperfoil.core.session.ObjectVar;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.function.SerializableConsumer;
 import io.hyperfoil.function.SerializableFunction;
 
-public class SetStep implements Action.Step, ResourceUtilizer {
+public class SetAction implements Action, ResourceUtilizer {
    private final Access var;
    private final SerializableFunction<Session, Object> valueSupplier;
 
-   public SetStep(String var, SerializableFunction<Session, Object> valueSupplier) {
+   public SetAction(String var, SerializableFunction<Session, Object> valueSupplier) {
       this.var = SessionFactory.access(var);
       this.valueSupplier = valueSupplier;
    }
@@ -43,16 +41,12 @@ public class SetStep implements Action.Step, ResourceUtilizer {
     */
    @MetaInfServices(Action.Builder.class)
    @Name("set")
-   public static class Builder extends ActionStepBuilder implements InitFromParam<Builder> {
+   public static class Builder implements InitFromParam<Builder>, Action.Builder {
       private String var;
       private Object value;
       private ObjectArrayBuilder objectArray;
 
       public Builder() {
-      }
-
-      public Builder(BaseSequenceBuilder parent) {
-         super(parent);
       }
 
       /**
@@ -103,7 +97,7 @@ public class SetStep implements Action.Step, ResourceUtilizer {
       }
 
       @Override
-      public SetStep build() {
+      public SetAction build() {
          if (var == null) {
             throw new BenchmarkDefinitionException("Variable name was not set!");
          }
@@ -112,9 +106,9 @@ public class SetStep implements Action.Step, ResourceUtilizer {
          }
          if (value != null) {
             Object myValue = value;
-            return new SetStep(var, s -> myValue);
+            return new SetAction(var, s -> myValue);
          } else {
-            return new SetStep(var, objectArray.build());
+            return new SetAction(var, objectArray.build());
          }
       }
    }

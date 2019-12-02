@@ -2,21 +2,19 @@ package io.hyperfoil.core.steps;
 
 import org.kohsuke.MetaInfServices;
 
-import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.core.builders.ActionStepBuilder;
 import io.hyperfoil.core.session.SessionFactory;
 
-public class AddToIntStep implements Action.Step {
+public class AddToIntAction implements Action {
    public final Access var;
    public final int value;
 
-   public AddToIntStep(String var, int value) {
+   public AddToIntAction(String var, int value) {
       this.var = SessionFactory.access(var);
       this.value = value;
    }
@@ -32,15 +30,11 @@ public class AddToIntStep implements Action.Step {
     */
    @MetaInfServices(Action.Builder.class)
    @Name("addToInt")
-   public static class Builder extends ActionStepBuilder implements InitFromParam<Builder> {
+   public static class Builder implements InitFromParam<Builder>, Action.Builder {
       private String var;
       private int value;
 
       public Builder() {
-      }
-
-      public Builder(BaseSequenceBuilder parent) {
-         super(parent);
       }
 
       /**
@@ -93,14 +87,14 @@ public class AddToIntStep implements Action.Step {
       }
 
       @Override
-      public AddToIntStep build() {
+      public AddToIntAction build() {
          if (var == null || var.isEmpty()) {
             throw new BenchmarkDefinitionException("Var must be defined an not empty.");
          }
          if (value == 0) {
             throw new BenchmarkDefinitionException("It makes no sense to add 0.");
          }
-         return new AddToIntStep(var, value);
+         return new AddToIntAction(var, value);
       }
    }
 }
