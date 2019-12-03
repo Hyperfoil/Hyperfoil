@@ -208,7 +208,7 @@ public class Wrk {
                   + " to start a controller in this VM");
             return CommandResult.FAILURE;
          }
-         Client.BenchmarkRef benchmark = client.register(builder.build());
+         Client.BenchmarkRef benchmark = client.register(builder.build(), null);
          invocation.context().setServerBenchmark(benchmark);
          Client.RunRef run = benchmark.start(null);
          invocation.context().setServerRun(run);

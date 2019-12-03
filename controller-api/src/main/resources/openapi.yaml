@@ -44,6 +44,14 @@ paths:
           description: Benchmark is invalid.
         '406':
           description: Unsupported content-type.
+        '409':
+          description: Version of benchmark stored on server does not match to the updated version.
+      parameters:
+      - in: header
+        name: if-match
+        description: If we are updating an existing benchmark, expected previous version.
+        schema:
+          type: string
       requestBody:
         content:
           application/json:

@@ -30,8 +30,9 @@ public class Edit extends BenchmarkCommand {
    public CommandResult execute(HyperfoilCommandInvocation invocation) throws CommandException {
       Client.BenchmarkRef benchmarkRef = ensureBenchmark(invocation);
       File sourceFile;
+      Benchmark benchmark;
       try {
-         Benchmark benchmark = benchmarkRef.get();
+         benchmark = benchmarkRef.get();
          if (benchmark.source() == null) {
             throw new CommandException("No source available for benchmark '" + benchmark.name() + "', cannot edit.");
          }
@@ -67,7 +68,7 @@ public class Edit extends BenchmarkCommand {
             invocation.println("ERROR: " + Util.explainCauses(e));
             invocation.println("Retry edits? [Y/n] ");
             try {
-               switch (invocation.getShell().readLine().trim().toLowerCase()) {
+               switch (invocation.inputLine().trim().toLowerCase()) {
                   case "n":
                   case "no":
                      return CommandResult.FAILURE;
@@ -84,9 +85,34 @@ public class Edit extends BenchmarkCommand {
       }
       sourceFile.delete();
       try {
-         invocation.context().client().register(updated);
+         invocation.context().client().register(updated, benchmark.version());
       } catch (RestClientException e) {
-         throw new CommandException("Failed to upload the benchmark");
+         if (e.getCause() instanceof Client.EditConflictException) {
+            invocation.println("Conflict: the benchmark was modified while being edited.");
+            invocation.print("Options: [C]ancel edit, [r]etry edits, [o]verwrite: ");
+            try {
+               switch (invocation.inputLine().trim().toLowerCase()) {
+                  case "":
+                  case "c":
+                     invocation.println("Edit cancelled.");
+                     return CommandResult.SUCCESS;
+                  case "r":
+                     try {
+                        invocation.executeCommand("edit " + this.benchmark + (editor == null ? "" : " -e " + editor));
+                     } catch (Exception ex) {
+                        // who cares
+                     }
+                     return CommandResult.SUCCESS;
+                  case "o":
+                     invocation.context().client().register(updated, null);
+               }
+            } catch (InterruptedException ie) {
+               invocation.println("Edit cancelled by interrupt.");
+               return CommandResult.FAILURE;
+            }
+         } else {
+            throw new CommandException("Failed to upload the benchmark", e);
+         }
       }
       invocation.println("Benchmark " + updated.name() + " updated.");
       return CommandResult.SUCCESS;
