@@ -104,6 +104,7 @@ public class K8sDeployer implements Deployer {
       command.add("java");
       ContainerBuilder containerBuilder = new ContainerBuilder()
             .withImage(agent.properties.getOrDefault("image", DEFAULT_IMAGE))
+            .withImagePullPolicy("Always")
             .withName("hyperfoil-agent")
             .withPorts(new ContainerPort(7800, null, null, "jgroups", "TCP"));
 
