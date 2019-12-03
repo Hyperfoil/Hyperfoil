@@ -8,13 +8,10 @@
     </Appenders>
 
     <Loggers>
-        <Logger name="io.hyperfoil" level="INFO"/>
-        <Logger name="io.vertx" level="INFO"/>
-        <Logger name="io.netty" level="INFO"/>
         <!-- Infinispan is too noisy with all those rebalances -->
         <Logger name="org.infinispan" level="WARN"/>
 
-        <Root level="INFO">
+        <Root level="${sys:io.hyperfoil.controller.log.level:-INFO}">
             <AppenderRef ref="FILE" level="TRACE"/>
         </Root>
     </Loggers>

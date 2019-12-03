@@ -10,7 +10,8 @@ public interface Properties {
    String CONTROLLER_CLUSTER_IP = "io.hyperfoil.controller.cluster.ip";
    String CONTROLLER_CLUSTER_PORT = "io.hyperfoil.controller.cluster.port";
    String CONTROLLER_HOST = "io.hyperfoil.controller.host";
-   String CONTROLLER_LOG = "io.hyperfoil.log.controller";
+   String CONTROLLER_LOG = "io.hyperfoil.controller.log.file";
+   String CONTROLLER_LOG_LEVEL = "io.hyperfoil.controller.log.level";
    String CONTROLLER_PORT = "io.hyperfoil.controller.port";
    String DEPLOYER = "io.hyperfoil.deployer";
    String DEPLOY_TIMEOUT = "io.hyperfoil.deploy.timeout";
