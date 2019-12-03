@@ -40,7 +40,7 @@
             </fileset>
         </copy>
 
-        <copy tofile="${dist.dir}/extensions/example-extension.jar" failonerror="true">
+        <copy tofile="${dist.dir}/extensions/acmeair-extension.jar" failonerror="true">
             <fileset dir="target">
                 <include name="hyperfoil-distribution-*.jar"/>
             </fileset>
