@@ -70,6 +70,8 @@ import static io.vertx.core.logging.LoggerFactory.LOGGER_DELEGATE_FACTORY_CLASS_
 
 public class HyperfoilCli {
 
+   public static final String CLI_PROMPT = "CLI_PROMPT";
+
    //ignore logging when running in the console below severe
    static {
       Handler[] handlers = Logger.getLogger("").getHandlers();
@@ -122,8 +124,13 @@ public class HyperfoilCli {
                   .build();
 
       AeshConsoleRunner runner = AeshConsoleRunner.builder().settings(settings);
-      runner.prompt(new Prompt(new TerminalString("[hyperfoil]$ ",
-            new TerminalColor(Color.GREEN, Color.DEFAULT, Color.Intensity.BRIGHT))));
+      String cliPrompt = System.getenv(CLI_PROMPT);
+      if (cliPrompt == null) {
+         runner.prompt(new Prompt(new TerminalString("[hyperfoil]$ ",
+               new TerminalColor(Color.GREEN, Color.DEFAULT, Color.Intensity.BRIGHT))));
+      } else {
+         runner.prompt(new Prompt(cliPrompt));
+      }
 
       runner.start();
    }

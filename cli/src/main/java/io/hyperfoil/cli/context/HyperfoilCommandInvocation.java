@@ -34,6 +34,8 @@ import org.aesh.readline.action.KeyAction;
 
 import java.io.IOException;
 
+import io.hyperfoil.cli.HyperfoilCli;
+
 public class HyperfoilCommandInvocation implements CommandInvocation {
 
    private final CommandInvocation commandInvocation;
@@ -55,7 +57,9 @@ public class HyperfoilCommandInvocation implements CommandInvocation {
 
    @Override
    public void setPrompt(Prompt prompt) {
-      commandInvocation.setPrompt(prompt);
+      if (System.getenv(HyperfoilCli.CLI_PROMPT) == null) {
+         commandInvocation.setPrompt(prompt);
+      }
    }
 
    @Override
