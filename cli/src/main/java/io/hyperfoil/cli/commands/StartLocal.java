@@ -9,7 +9,7 @@ import org.aesh.command.option.Argument;
 import org.aesh.command.option.Option;
 import org.aesh.io.FileResource;
 import org.aesh.io.Resource;
-import org.aesh.utils.ANSI;
+import org.aesh.terminal.utils.ANSI;
 
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.internal.Controller;

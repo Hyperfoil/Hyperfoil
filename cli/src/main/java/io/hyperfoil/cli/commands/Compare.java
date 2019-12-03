@@ -11,7 +11,7 @@ import org.aesh.command.CommandException;
 import org.aesh.command.CommandResult;
 import org.aesh.command.option.Arguments;
 import org.aesh.command.option.Option;
-import org.aesh.utils.ANSI;
+import org.aesh.terminal.utils.ANSI;
 
 import io.hyperfoil.api.statistics.StatisticsSummary;
 import io.hyperfoil.cli.Table;

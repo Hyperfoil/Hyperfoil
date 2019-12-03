@@ -16,7 +16,7 @@ import org.aesh.readline.Prompt;
 import org.aesh.readline.terminal.formatting.Color;
 import org.aesh.readline.terminal.formatting.TerminalColor;
 import org.aesh.readline.terminal.formatting.TerminalString;
-import org.aesh.utils.ANSI;
+import org.aesh.terminal.utils.ANSI;
 
 import io.hyperfoil.cli.context.HyperfoilCliContext;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;

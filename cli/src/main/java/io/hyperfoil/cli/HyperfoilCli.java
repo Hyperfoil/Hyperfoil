@@ -118,6 +118,7 @@ public class HyperfoilCli {
                               .create())
                   .commandInvocationProvider(new HyperfoilCommandInvocationProvider(context))
                   .completerInvocationProvider(completerInvocation -> new HyperfoilCompleterData(completerInvocation, context))
+                  .setConnectionClosedHandler(nil -> context.stop())
                   .build();
 
       AeshConsoleRunner runner = AeshConsoleRunner.builder().settings(settings);
@@ -135,17 +136,7 @@ public class HyperfoilCli {
 
       @Override
       public CommandResult execute(HyperfoilCommandInvocation invocation) {
-         if (invocation.context().running() && !force) {
-            invocation.println("Benchmark " + invocation.context().benchmark().name() +
-                  " is currently running, not possible to cleanly exit. To force an exit, use --force");
-         } else {
-            invocation.stop();
-         }
-
-         if (invocation.context().client() != null) {
-            invocation.context().client().close();
-         }
-         invocation.context().runCleanup();
+         invocation.stop();
          return CommandResult.SUCCESS;
       }
    }

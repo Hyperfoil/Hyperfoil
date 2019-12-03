@@ -7,7 +7,7 @@ import java.util.List;
 import org.aesh.command.CommandDefinition;
 import org.aesh.command.CommandException;
 import org.aesh.command.CommandResult;
-import org.aesh.utils.ANSI;
+import org.aesh.terminal.utils.ANSI;
 
 import io.hyperfoil.cli.Table;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;

@@ -8,7 +8,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
-import org.aesh.utils.ANSI;
+import org.aesh.terminal.utils.ANSI;
 
 import io.hyperfoil.core.util.Util;
 

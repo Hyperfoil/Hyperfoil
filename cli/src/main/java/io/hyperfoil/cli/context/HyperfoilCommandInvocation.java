@@ -75,6 +75,7 @@ public class HyperfoilCommandInvocation implements CommandInvocation {
 
    @Override
    public void stop() {
+      context.stop();
       commandInvocation.stop();
    }
 
