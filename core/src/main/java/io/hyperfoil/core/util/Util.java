@@ -72,7 +72,7 @@ public class Util {
       CharBuffer input = CharBuffer.wrap(str);
       ByteBuffer output = buffer.nioBuffer(buffer.writerIndex(), buffer.capacity() - buffer.writerIndex());
       CharsetEncoder encoder = StandardCharsets.UTF_8.newEncoder();
-      int accumulatedBytes = 0;
+      int accumulatedBytes = buffer.writerIndex();
       for (; ; ) {
          CoderResult result = encoder.encode(input, output, true);
          if (result.isError()) {
@@ -131,7 +131,7 @@ public class Util {
       // TODO: more efficient implementation without allocation
       byte[] bytes = string.getBytes(StandardCharsets.UTF_8);
       for (byte b : bytes) {
-         if (URLEncoding.DONT_NEED_ENCODING.get(b)) {
+         if (b >= 0 && URLEncoding.DONT_NEED_ENCODING.get(b)) {
             buf.ensureWritable(1);
             buf.writeByte(b);
          } else if (b == ' ') {
