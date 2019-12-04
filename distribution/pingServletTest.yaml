@@ -1,0 +1,11 @@
+name: pingservlet-java
+http:
+  host: ""
+  sharedConnections: 1
+usersPerSec: 10
+duration: 60s
+scenario:
+- test:
+  - httpRequest:
+      GET:
+        pattern: /servlet/PingServlet
