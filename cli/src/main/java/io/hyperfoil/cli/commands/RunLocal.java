@@ -27,7 +27,7 @@ import org.aesh.command.invocation.CommandInvocation;
 import org.aesh.command.option.Argument;
 import org.aesh.command.option.Option;
 import org.aesh.io.Resource;
-import org.aesh.utils.ANSI;
+import org.aesh.terminal.utils.ANSI;
 
 @CommandDefinition(name = "run-local", description = "Deprecated. Used to start a run within the same VM.")
 public class RunLocal implements Command<CommandInvocation> {

@@ -120,14 +120,14 @@ class ControllerServer implements ApiService {
    }
 
    @Override
-   public void addBenchmark$application_json(RoutingContext ctx) {
-      addBenchmark$text_vnd_yaml(ctx);
+   public void addBenchmark$application_json(RoutingContext ctx, String ifMatch) {
+      addBenchmark$text_vnd_yaml(ctx, ifMatch);
    }
 
-   private void addBenchmarkAndReply(RoutingContext ctx, Benchmark benchmark) {
+   private void addBenchmarkAndReply(RoutingContext ctx, Benchmark benchmark, String prevVersion) {
       if (benchmark != null) {
          String location = baseURL + "/benchmark/" + encode(benchmark.name());
-         controller.addBenchmark(benchmark, event -> {
+         if (!controller.addBenchmark(benchmark, prevVersion, event -> {
             if (event.succeeded()) {
                ctx.response()
                      .setStatusCode(HttpResponseStatus.NO_CONTENT.code())
@@ -135,7 +135,9 @@ class ControllerServer implements ApiService {
             } else {
                ctx.response().setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code()).end();
             }
-         });
+         })) {
+            ctx.response().setStatusCode(HttpResponseStatus.CONFLICT.code()).end();
+         }
 
       } else {
          ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end("Cannot read benchmark.");
@@ -151,11 +153,11 @@ class ControllerServer implements ApiService {
    }
 
    @Override
-   public void addBenchmark$text_vnd_yaml(RoutingContext ctx) {
+   public void addBenchmark$text_vnd_yaml(RoutingContext ctx, String ifMatch) {
       String source = ctx.getBodyAsString();
       try {
          Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(source, BenchmarkData.EMPTY);
-         addBenchmarkAndReply(ctx, benchmark);
+         addBenchmarkAndReply(ctx, benchmark, ifMatch);
       } catch (ParserException | BenchmarkDefinitionException e) {
          respondParsingError(ctx, e);
          return;
@@ -168,11 +170,11 @@ class ControllerServer implements ApiService {
    }
 
    @Override
-   public void addBenchmark$application_java_serialized_object(RoutingContext ctx) {
+   public void addBenchmark$application_java_serialized_object(RoutingContext ctx, String ifMatch) {
       byte[] bytes = ctx.getBody().getBytes();
       try {
          Benchmark benchmark = io.hyperfoil.util.Util.deserialize(bytes);
-         addBenchmarkAndReply(ctx, benchmark);
+         addBenchmarkAndReply(ctx, benchmark, ifMatch);
       } catch (IOException | ClassNotFoundException e) {
          log.error("Failed to deserialize", e);
          StringBuilder message = new StringBuilder("Cannot read benchmark - the controller (server) version and CLI version are probably not in sync.\n");
@@ -189,7 +191,7 @@ class ControllerServer implements ApiService {
    }
 
    @Override
-   public void addBenchmark$multipart_form_data(RoutingContext ctx) {
+   public void addBenchmark$multipart_form_data(RoutingContext ctx, String ifMatch) {
       String source = null;
       RequestBenchmarkData data = new RequestBenchmarkData();
       for (FileUpload upload : ctx.fileUploads()) {
@@ -217,7 +219,7 @@ class ControllerServer implements ApiService {
       }
       try {
          Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(source, data);
-         addBenchmarkAndReply(ctx, benchmark);
+         addBenchmarkAndReply(ctx, benchmark, ifMatch);
       } catch (ParserException | BenchmarkDefinitionException e) {
          respondParsingError(ctx, e);
          return;

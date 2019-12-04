@@ -39,7 +39,6 @@ import io.hyperfoil.client.RestClient;
  */
 public class HyperfoilCliContext {
    private Benchmark benchmark;
-   private boolean running;
    private RestClient client;
    private Client.BenchmarkRef serverBenchmark;
    private Client.RunRef serverRun;
@@ -68,14 +67,6 @@ public class HyperfoilCliContext {
 
    public void setBenchmark(Benchmark benchmark) {
       this.benchmark = benchmark;
-   }
-
-   public boolean running() {
-      return running;
-   }
-
-   public void setRunning(boolean running) {
-      this.running = running;
    }
 
    public RestClient client() {
@@ -161,7 +152,11 @@ public class HyperfoilCliContext {
       cleanup.add(runnable);
    }
 
-   public void runCleanup() {
+   public void stop() {
+      if (client != null) {
+         client.close();
+         client = null;
+      }
       for (Runnable c : cleanup) {
          c.run();
       }

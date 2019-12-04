@@ -1,17 +1,13 @@
 package io.hyperfoil.controller;
 
 import java.util.Collection;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonFormat;
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.hyperfoil.api.config.Benchmark;
-import io.hyperfoil.api.statistics.StatisticsSummary;
 import io.hyperfoil.controller.model.CustomStats;
 import io.hyperfoil.controller.model.Histogram;
 import io.hyperfoil.controller.model.RequestStatisticsResponse;
@@ -22,7 +18,7 @@ import io.hyperfoil.controller.model.Version;
  * API for server control
  */
 public interface Client {
-   BenchmarkRef register(Benchmark benchmark);
+   BenchmarkRef register(Benchmark benchmark, String prevVersion);
 
    List<String> benchmarks();
 
@@ -88,4 +84,6 @@ public interface Client {
       }
    }
 
+   class EditConflictException extends RuntimeException {
+   }
 }

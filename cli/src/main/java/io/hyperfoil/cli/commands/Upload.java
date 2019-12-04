@@ -39,7 +39,7 @@ public class Upload extends ServerCommand {
       }
       invocation.println("Loaded benchmark " + benchmark.name() + ", uploading...");
       try {
-         ctx.setServerBenchmark(ctx.client().register(benchmark));
+         ctx.setServerBenchmark(ctx.client().register(benchmark, null));
          invocation.println("... done.");
          return CommandResult.SUCCESS;
       } catch (RestClientException e) {

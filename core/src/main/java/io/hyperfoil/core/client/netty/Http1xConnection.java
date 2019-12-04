@@ -102,7 +102,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
       if (msg instanceof HttpContent) {
          HttpRequest request = inflights.peek();
          // When previous handlers throw an error the request is already completed
-         if (!request.isCompleted()) {
+         if (request != null && !request.isCompleted()) {
             HttpResponseHandlers handlers = request.handlers();
             try {
                ByteBuf data = ((HttpContent) msg).content();
@@ -114,8 +114,13 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
          }
       }
       if (msg instanceof LastHttpContent) {
-         size--;
          HttpRequest request = inflights.poll();
+         if (request == null) {
+            // We've already logged debug message above
+            assert size == 0;
+            return;
+         }
+         size--;
          // When previous handlers throw an error the request is already completed
          if (!request.isCompleted()) {
             try {

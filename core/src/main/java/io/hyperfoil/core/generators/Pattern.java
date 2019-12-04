@@ -50,7 +50,7 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
                   if (urlEncode) {
                      throw new BenchmarkDefinitionException("It seems you're trying to URL-encode value twice.");
                   }
-                  components.add(new UrlEncodingComponent(key));
+                  components.add(new VarComponent(key, true));
                } else if (format.endsWith("d") || format.endsWith("o") || format.endsWith("x") || format.endsWith("X")) {
                   components.add(new FormatIntComponent(format, key));
                } else {
@@ -58,7 +58,7 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
                }
             } else {
                Access key = SessionFactory.access(str.substring(openPar + 2, closePar).trim());
-               components.add(new VarComponent(key));
+               components.add(new VarComponent(key, urlEncode));
             }
             last = closePar + 1;
          }
@@ -119,24 +119,6 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
       }
    }
 
-   private static class UrlEncodingComponent implements Component {
-      private final Access key;
-
-      UrlEncodingComponent(Access key) {
-         this.key = key;
-      }
-
-      @Override
-      public void accept(Session session, StringBuilder sb) {
-         sb.append(urlEncode(String.valueOf(key.getObject(session))));
-      }
-
-      @Override
-      public void accept(Session session, ByteBuf buf) {
-         Util.urlEncode(String.valueOf(key.getObject(session)), buf);
-      }
-   }
-
    private class FormatIntComponent implements Component {
       private final String format;
       private final Access key;
@@ -167,11 +149,13 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
       }
    }
 
-   private class VarComponent implements Component {
+   private static class VarComponent implements Component {
       private final Access key;
+      private final boolean urlEncode;
 
-      VarComponent(Access key) {
+      VarComponent(Access key, boolean urlEncode) {
          this.key = key;
+         this.urlEncode = urlEncode;
       }
 
       @Override
@@ -182,7 +166,11 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
          } else {
             switch (var.type()) {
                case OBJECT:
-                  sb.append(var.objectValue());
+                  String str = String.valueOf(var.objectValue());
+                  if (urlEncode) {
+                     str = urlEncode(str);
+                  }
+                  sb.append(str);
                   break;
                case INTEGER:
                   sb.append(var.intValue());

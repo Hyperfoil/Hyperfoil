@@ -51,8 +51,8 @@ import org.aesh.command.invocation.CommandInvocation;
 import org.aesh.command.option.Argument;
 import org.aesh.command.option.Option;
 import org.aesh.command.option.OptionList;
-import org.aesh.utils.ANSI;
-import org.aesh.utils.Config;
+import org.aesh.terminal.utils.ANSI;
+import org.aesh.terminal.utils.Config;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -208,7 +208,7 @@ public class Wrk {
                   + " to start a controller in this VM");
             return CommandResult.FAILURE;
          }
-         Client.BenchmarkRef benchmark = client.register(builder.build());
+         Client.BenchmarkRef benchmark = client.register(builder.build(), null);
          invocation.context().setServerBenchmark(benchmark);
          Client.RunRef run = benchmark.start(null);
          invocation.context().setServerRun(run);

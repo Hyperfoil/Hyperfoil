@@ -26,6 +26,7 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
+import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
@@ -61,7 +62,7 @@ public class RestClient implements Client, Closeable {
 
 
    @Override
-   public BenchmarkRef register(Benchmark benchmark) {
+   public BenchmarkRef register(Benchmark benchmark, String prevVersion) {
       byte[] bytes;
       try {
          bytes = Util.serialize(benchmark);
@@ -69,10 +70,23 @@ public class RestClient implements Client, Closeable {
          throw new RuntimeException(e);
       }
       return sync(
-            handler -> client.request(HttpMethod.POST, "/benchmark")
-                  .putHeader(HttpHeaders.CONTENT_TYPE.toString(), "application/java-serialized-object")
-                  .sendBuffer(Buffer.buffer(bytes), handler), 204,
-            response -> new BenchmarkRefImpl(this, benchmark.name()));
+            handler -> {
+               HttpRequest<Buffer> request = client.request(HttpMethod.POST, "/benchmark");
+               if (prevVersion != null) {
+                  request.putHeader(HttpHeaders.IF_MATCH.toString(), prevVersion);
+               }
+               request.putHeader(HttpHeaders.CONTENT_TYPE.toString(), "application/java-serialized-object")
+                     .sendBuffer(Buffer.buffer(bytes), handler);
+            }, 0,
+            response -> {
+               if (response.statusCode() == 204) {
+                  return new BenchmarkRefImpl(this, benchmark.name());
+               } else if (response.statusCode() == 409) {
+                  throw new EditConflictException();
+               } else {
+                  throw unexpected(response);
+               }
+            });
    }
 
    @Override

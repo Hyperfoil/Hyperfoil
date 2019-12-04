@@ -666,12 +666,21 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       }
    }
 
-   public void addBenchmark(Benchmark benchmark, Handler<AsyncResult<Void>> handler) {
+   public boolean addBenchmark(Benchmark benchmark, String prevVersion, Handler<AsyncResult<Void>> handler) {
+      if (prevVersion != null) {
+         Benchmark prev = benchmarks.get(benchmark.name());
+         if (prev == null || !prevVersion.equals(prev.version())) {
+            log.info("Updating benchmark {}, version {} but current version is {}",
+                  benchmark.name(), prevVersion, prev.version());
+            return false;
+         }
+      }
       benchmarks.put(benchmark.name(), benchmark);
       vertx.executeBlocking(future -> {
          PersistenceUtil.store(benchmark, Controller.BENCHMARK_DIR);
          future.complete();
       }, handler);
+      return true;
    }
 
    public Collection<String> getBenchmarks() {

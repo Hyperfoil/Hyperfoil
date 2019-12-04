@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
+import io.hyperfoil.util.Util;
+
 /**
  * A benchmark is a collection of simulation, user,
  * SLA and scaling strategy (Ramp up, Steady State, Ramp Down, steady state variance)
@@ -33,6 +35,7 @@ import java.util.stream.Stream;
 public class Benchmark implements Serializable {
 
    private final String name;
+   private final String version;
    private final String originalSource;
    private final Map<String, byte[]> files;
    private final Agent[] agents;
@@ -62,10 +65,15 @@ public class Benchmark implements Serializable {
       this.statisticsCollectionPeriod = statisticsCollectionPeriod;
       this.preHooks = preHooks;
       this.postHooks = postHooks;
+      this.version = Util.randomUUID().toString();
    }
 
    public String name() {
       return name;
+   }
+
+   public String version() {
+      return version;
    }
 
    public Agent[] agents() {

@@ -70,6 +70,8 @@ import static io.vertx.core.logging.LoggerFactory.LOGGER_DELEGATE_FACTORY_CLASS_
 
 public class HyperfoilCli {
 
+   public static final String CLI_PROMPT = "CLI_PROMPT";
+
    //ignore logging when running in the console below severe
    static {
       Handler[] handlers = Logger.getLogger("").getHandlers();
@@ -118,11 +120,17 @@ public class HyperfoilCli {
                               .create())
                   .commandInvocationProvider(new HyperfoilCommandInvocationProvider(context))
                   .completerInvocationProvider(completerInvocation -> new HyperfoilCompleterData(completerInvocation, context))
+                  .setConnectionClosedHandler(nil -> context.stop())
                   .build();
 
       AeshConsoleRunner runner = AeshConsoleRunner.builder().settings(settings);
-      runner.prompt(new Prompt(new TerminalString("[hyperfoil]$ ",
-            new TerminalColor(Color.GREEN, Color.DEFAULT, Color.Intensity.BRIGHT))));
+      String cliPrompt = System.getenv(CLI_PROMPT);
+      if (cliPrompt == null) {
+         runner.prompt(new Prompt(new TerminalString("[hyperfoil]$ ",
+               new TerminalColor(Color.GREEN, Color.DEFAULT, Color.Intensity.BRIGHT))));
+      } else {
+         runner.prompt(new Prompt(cliPrompt));
+      }
 
       runner.start();
    }
@@ -135,17 +143,7 @@ public class HyperfoilCli {
 
       @Override
       public CommandResult execute(HyperfoilCommandInvocation invocation) {
-         if (invocation.context().running() && !force) {
-            invocation.println("Benchmark " + invocation.context().benchmark().name() +
-                  " is currently running, not possible to cleanly exit. To force an exit, use --force");
-         } else {
-            invocation.stop();
-         }
-
-         if (invocation.context().client() != null) {
-            invocation.context().client().close();
-         }
-         invocation.context().runCleanup();
+         invocation.stop();
          return CommandResult.SUCCESS;
       }
    }

@@ -96,11 +96,15 @@ public class Http1xRawBytesHandler extends BaseRawBytesHandler {
                   try {
                      ByteBuf lineBuf;
                      if (readerIndex - lineStartOffset == 1 || lastLine.writerIndex() == 1 && readerIndex == 0) {
-                        switch (((HttpRequest) connection.peekRequest(0)).method) {
-                           case HEAD:
-                           case CONNECT:
-                              contentLength = 0;
-                              chunked = false;
+                        HttpRequest httpRequest = connection.peekRequest(0);
+                        // Unsolicited response 408 may not have a matching request
+                        if (httpRequest != null) {
+                           switch (httpRequest.method) {
+                              case HEAD:
+                              case CONNECT:
+                                 contentLength = 0;
+                                 chunked = false;
+                           }
                         }
                         // empty line ends the headers
                         headersParsed = true;

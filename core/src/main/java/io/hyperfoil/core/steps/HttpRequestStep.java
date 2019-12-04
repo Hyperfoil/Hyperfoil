@@ -967,7 +967,11 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
                   }
                };
             } else {
-               return new Pattern(this.pattern, true);
+               Pattern pattern = new Pattern(this.pattern, true);
+               return (session, buf) -> {
+                  buf.writeBytes(nameBytes).writeByte('=');
+                  pattern.accept(session, buf);
+               };
             }
          } catch (UnsupportedEncodingException e) {
             throw new IllegalStateException(e);

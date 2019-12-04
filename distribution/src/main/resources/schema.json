@@ -159,7 +159,7 @@
         }
       }
     },
-    "stairCase": {
+    "staircase": {
       "desription": "Shortcut for alternating rampPerSec and constPerSec phases",
       "type": "object",
       "additionalProperties": false,

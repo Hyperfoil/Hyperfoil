@@ -77,6 +77,7 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <maven.compiler.source>1.8</maven.compiler.source>
 
+        <version.aesh>2.5</version.aesh>
         <version.apache.sshd>2.2.0</version.apache.sshd>
         <version.assertj>3.10.0</version.assertj>
         <version.eddsa>0.3.0</version.eddsa>
@@ -259,7 +260,7 @@
             <dependency>
                 <groupId>org.aesh</groupId>
                 <artifactId>aesh</artifactId>
-                <version>2.3</version>
+                <version>${version.aesh}</version>
             </dependency>
 
             <dependency>
