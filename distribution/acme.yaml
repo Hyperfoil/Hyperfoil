@@ -3,7 +3,36 @@ http:
   host: http://acme.dalperf.us-south.containers.appdomain.cloud
   sharedConnections: 10
 phases:
-- borwsingUser:
+- borwsingFlights:
+    constantPerSec:
+      usersPerSec: 1
+      duration: 10s
+      scenario:
+      - queryFlight:
+        - thinkTime:
+            duration: 3s
+        - randomItem:
+            file: AirportsFrom.txt
+            toVar: fromCode
+        - randomItem:
+            file: AirportsTo.txt
+            toVar: toCode
+        - httpRequest:
+            POST:
+              pattern: /flight/queryflights
+            body:
+              form:
+              - name: fromAirport
+                pattern: ${fromCode}
+              - name: toAirport
+                pattern: ${toCode}
+              - name: fromDate
+                value: "Thu Dec 05 00:00:00 EST 2019"
+              - name: returnDate
+                value: "Thu Dec 12 00:00:00 EST 2019"
+              - name: oneWay
+                value: false
+- updateProfile:
     constantPerSec:
       usersPerSec: 1
       duration: 10s
@@ -28,20 +57,9 @@ phases:
                   - cookie:
                       name: jwt_token
                       toVar: jwtToken
-          - loop:
-              counterVar: mainLoop
-              repeats: 5
-              sequence: queryFlight
-        sequences:
-        - mainLoop:
           - nextSequence: viewProfile
-          - nextSequence: queryFlight
+        sequences:
         - viewProfile:
-          - randomInt: rand <- 1 .. 4
-          - breakSequence:
-              intCondition:
-                fromVar: rand
-                greaterOrEqualTo: 2
           - thinkTime:
               duration: 3s
           - httpRequest:
@@ -50,27 +68,16 @@ phases:
                   pattern: Bearer ${jwtToken}
               GET:
                 pattern: /customer/byid/uid${userId}@email.com
-        - queryFlight:
+              handler:
+                body:
+          - nextSequence: updateProfile
+        - updateProfile:
           - thinkTime:
               duration: 3s
-          - randomItem:
-              file: AirportsFrom.txt
-              toVar: fromCode
-          - randomItem:
-              file: AirportsTo.txt
-              toVar: toCode
           - httpRequest:
+              headers:
+                Content-Type: "application/json"
+                Authorization:
+                  pattern: Bearer ${jwtToken}
               POST:
-                pattern: /flight/queryflights
-              body:
-                form:
-                - name: fromAirport
-                  pattern: ${fromCode}
-                - name: toAirport
-                  pattern: ${toCode}
-                - name: fromDate
-                  value: "Thu Dec 05 00:00:00 EST 2019"
-                - name: returnDate
-                  value: "Thu Dec 12 00:00:00 EST 2019"
-                - name: oneWay
-                  value: false
+                pattern: /customer/byid/uid${userId}@email.com
