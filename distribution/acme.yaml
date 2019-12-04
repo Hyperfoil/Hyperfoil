@@ -20,7 +20,7 @@ phases:
               body:
                 form:
                 - name: login
-                  value: uid22@email.com
+                  pattern: uid${userId}@email.com
                 - name: password
                   value: password
               handler:
@@ -28,9 +28,14 @@ phases:
                   - cookie:
                       name: jwt_token
                       toVar: jwtToken
+          - loop:
+              counterVar: mainLoop
+              repeats: 5
+              sequence: queryFlight
+        sequences:
+        - mainLoop:
           - nextSequence: viewProfile
           - nextSequence: queryFlight
-        sequences:
         - viewProfile:
           - randomInt: rand <- 1 .. 4
           - breakSequence:
@@ -44,7 +49,7 @@ phases:
                 Authorization:
                   pattern: Bearer ${jwtToken}
               GET:
-                pattern: /customer/byid/uid22@email.com
+                pattern: /customer/byid/uid${userId}@email.com
         - queryFlight:
           - thinkTime:
               duration: 3s
@@ -60,12 +65,12 @@ phases:
               body:
                 form:
                 - name: fromAirport
-                  value: LHR
+                  pattern: ${fromCode}
                 - name: toAirport
-                  value: JFK
+                  pattern: ${toCode}
                 - name: fromDate
-                  value: "Sun Dec 15 00:00:00 EST 2019"
+                  value: "Thu Dec 05 00:00:00 EST 2019"
                 - name: returnDate
-                  value: "Mon Dec 16 00:00:00 EST 2019"
+                  value: "Thu Dec 12 00:00:00 EST 2019"
                 - name: oneWay
                   value: false

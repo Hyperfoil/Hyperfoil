@@ -1,35 +1,76 @@
-name: acme-orig
+name: acme
 http:
   host: http://acme.dalperf.us-south.containers.appdomain.cloud
   sharedConnections: 10
 phases:
-- login:
+- borwsingUser:
     constantPerSec:
       usersPerSec: 1
       duration: 10s
       scenario:
-      - login:
-        - httpRequest:
-            headers:
-              Content-Type: "application/x-www-form-urlencoded"
-            POST:
-              pattern: /auth/login
-            body:
-              form:
-              - name: login
-                value: uid22@email.com
-              - name: password
-                value: password
-            handler:
-              header:
-                - cookie:
-                    name: jwt_token
-                    toVar: moss
-      - customer:
-        - httpRequest:
-            headers:
-              Content-Type: "application/x-www-form-urlencoded"
-              Authorization:
-                pattern: Bearer ${moss}
-            GET:
-              pattern: /customer/byid/uid22@email.com
+        initialSequences:
+        - login:
+          - randomInt:
+              min: 0
+              max: 10
+              toVar: userId
+          - httpRequest:
+              POST:
+                value: /auth/login
+              body:
+                form:
+                - name: login
+                  pattern: uid${userId}@email.com
+                - name: password
+                  value: password
+              handler:
+                header:
+                  - cookie:
+                      name: jwt_token
+                      toVar: jwtToken
+          - loop:
+              counterVar: mainLoop
+              repeats: 5
+              sequence: queryFlight
+        sequences:
+        - mainLoop:
+          - nextSequence: viewProfile
+          - nextSequence: queryFlight
+        - viewProfile:
+          - randomInt: rand <- 1 .. 4
+          - breakSequence:
+              intCondition:
+                fromVar: rand
+                greaterOrEqualTo: 2
+          - thinkTime:
+              duration: 3s
+          - httpRequest:
+              headers:
+                Authorization:
+                  pattern: Bearer ${jwtToken}
+              GET:
+                pattern: /customer/byid/uid${userId}@email.com
+        - queryFlight:
+          - thinkTime:
+              duration: 3s
+          - randomItem:
+              file: AirportsFrom.txt
+              toVar: fromCode
+          - randomItem:
+              file: AirportsTo.txt
+              toVar: toCode
+          - httpRequest:
+              POST:
+                pattern: /flight/queryflights
+              body:
+                form:
+                - name: fromAirport
+                  pattern: ${fromCode}
+                - name: toAirport
+                  pattern: ${toCode}
+                - name: fromDate
+                  value: "Thu Dec 05 00:00:00 EST 2019"
+                - name: returnDate
+                  value: "Thu Dec 12 00:00:00 EST 2019"
+                - name: oneWay
+                  value: false
