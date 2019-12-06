@@ -99,11 +99,13 @@ public class Http1xRawBytesHandler extends BaseRawBytesHandler {
                         HttpRequest httpRequest = connection.peekRequest(0);
                         // Unsolicited response 408 may not have a matching request
                         if (httpRequest != null) {
-                           switch (httpRequest.method) {
-                              case HEAD:
-                              case CONNECT:
-                                 contentLength = 0;
-                                 chunked = false;
+                           if (httpRequest.method != null) {
+                              switch (httpRequest.method) {
+                                 case HEAD:
+                                 case CONNECT:
+                                    contentLength = 0;
+                                    chunked = false;
+                              }
                            }
                         }
                         // empty line ends the headers
