@@ -64,6 +64,7 @@ public class SimulationRunnerImpl implements SimulationRunner {
    protected final HttpDestinationTableImpl[] httpDestinations;
    private final PhaseChangeHandler phaseChangeHandler;
    private final Queue<Phase> toPrune = new ArrayDeque<>();
+   private boolean isDepletedMessageQuietened;
 
    public SimulationRunnerImpl(Benchmark benchmark, int agentId, PhaseChangeHandler phaseChangeHandler) {
       this.eventLoopGroup = new NioEventLoopGroup(benchmark.threads());
@@ -149,7 +150,12 @@ public class SimulationRunnerImpl implements SimulationRunner {
             };
             SharedResources finalSharedResources = sharedResources;
             sharedResources.sessionPool = new ElasticPoolImpl<>(sessionSupplier, () -> {
-               log.warn("Pool depleted, allocating new sessions!");
+               if (isDepletedMessageQuietened) {
+                  log.warn("Pool depleted, allocating new sessions! Enable trace logging to see subsequent pool depletion messages.");
+                  isDepletedMessageQuietened = true;
+               } else {
+                  log.trace("Pool depleted, allocating new sessions!");
+               }
                finalSharedResources.currentPhase.setSessionLimitExceeded();
                return sessionSupplier.get();
             });
