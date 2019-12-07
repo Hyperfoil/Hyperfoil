@@ -1,11 +1,33 @@
-name: pingservlet-java
+name: pingservlet-test
 http:
-  host: ""
-  sharedConnections: 1
-usersPerSec: 10
-duration: 60s
-scenario:
-- test:
-  - httpRequest:
-      GET:
-        pattern: /servlet/PingServlet
+  host: http://pingservlet.dalperf.us-south.containers.appdomain.cloud
+  sharedConnections: 500
+phases:  
+- pingRampUp:
+    rampPerSec:
+      duration: 5s
+      maxIterations: 10
+      initialUsersPerSec:
+        base: 0
+        increment: 100
+      targetUsersPerSec:
+        base: 100
+        increment: 100
+      startAfter:
+      - phase: pingServletSteady
+        iteration: previous
+      scenario: &pingServlet
+      - ping:
+        - httpRequest:
+            GET: /servlet/PingServlet
+- pingServletSteady:
+    constantPerSec:
+      duration: 10s
+      maxIterations: 10
+      usersPerSec:
+        base: 100
+        increment: 100
+      startAfter:
+      - phase: pingRampUp
+        iteration: same
+      scenario: *pingServlet

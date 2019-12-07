@@ -1,0 +1,23 @@
+name: pingservlet-guide
+http:
+  host: http://pingservlet.dalperf.us-south.containers.appdomain.cloud
+  sharedConnections: 500
+phases:  
+- pingRampUp:
+    rampPerSec:
+      duration: 1m
+      initialUsersPerSec: 1
+      targetUsersPerSec: 300
+      maxSessions: 500
+      scenario: &pingServlet
+      - ping:
+        - httpRequest:
+            GET: /servlet/PingServlet
+- pingServletSteady:
+    constantPerSec:
+      duration: 3m
+      maxDuration: 5m
+      usersPerSec: 300
+      maxSessions: 500
+      startAfter: pingRampUp
+      scenario: *pingServlet

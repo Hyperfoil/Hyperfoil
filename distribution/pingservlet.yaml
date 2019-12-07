@@ -1,0 +1,11 @@
+name: pingservlet-java
+http:
+  host: http://pingservlet.dalperf.us-south.containers.appdomain.cloud
+  sharedConnections: 100
+usersPerSec: 100
+duration: 60s
+scenario:
+- test:
+  - httpRequest:
+      GET:
+        pattern: /servlet/PingServlet

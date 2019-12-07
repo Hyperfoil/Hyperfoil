@@ -70,6 +70,12 @@ phases:
                 pattern: /customer/byid/uid${userId}@email.com
               handler:
                 body:
+                - defrag: # note: defrag is implemented but not service-loadable ATM
+                    processor:
+                      simple:
+                        toVar: response
+                        format: BYTEBUF
+
           - nextSequence: updateProfile
         - updateProfile:
           - thinkTime:
