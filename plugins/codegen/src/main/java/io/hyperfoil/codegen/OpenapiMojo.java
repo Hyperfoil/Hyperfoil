@@ -105,7 +105,7 @@ public class OpenapiMojo extends AbstractMojo {
             }
             ArrayList<String> produces = new ArrayList<>();
             Map<String, Map<String, Object>> responses = requireNonNull(properties, "responses", path + "." + method);
-            for (Map<String, Object> response: responses.values()) {
+            for (Map<String, Object> response : responses.values()) {
                @SuppressWarnings("unchecked")
                Map<String, Object> content = (Map<String, Object>) response.get("content");
                if (content != null) {
@@ -147,14 +147,22 @@ public class OpenapiMojo extends AbstractMojo {
       unit.addImport("io.vertx.ext.web.handler.BodyHandler");
       unit.addImport("io.vertx.ext.web.Router");
       unit.addImport("io.vertx.ext.web.RoutingContext");
+      unit.addImport("io.vertx.core.logging.Logger");
+      unit.addImport("io.vertx.core.logging.LoggerFactory");
       unit.addImport(modelPackage, false, true);
       unit.addImport(servicePackage + ".ApiService");
+
       ClassOrInterfaceDeclaration clazz = unit.addClass("ApiRouter", Modifier.Keyword.PUBLIC);
       clazz.addField("ApiService", "service", Modifier.Keyword.PRIVATE, Modifier.Keyword.FINAL);
+      clazz.addField("Logger", "log", Modifier.Keyword.PRIVATE, Modifier.Keyword.STATIC, Modifier.Keyword.FINAL)
+            .getVariable(0).setInitializer("LoggerFactory.getLogger(ApiRouter.class)");
       ConstructorDeclaration ctor = clazz.addConstructor(Modifier.Keyword.PUBLIC);
       BlockStmt ctorBody = ctor.addParameter("ApiService", "service").addParameter("Router", "router").getBody();
       ctorBody.addStatement("this.service = service;");
       ctorBody.addStatement("router.route().handler(BodyHandler.create());");
+      ctorBody.addStatement("router.errorHandler(500, ctx -> {\n" +
+            "            log.error(\"Error processing {} {}\", ctx.request().method(), ctx.request().uri(), ctx.failure());\n" +
+            "        });");
       for (Operation operation : operations) {
          StringBuilder routing = new StringBuilder("router.").append(operation.method).append("(\"")
                .append(operation.path.replaceAll("\\{", ":").replaceAll("\\}", ""))
