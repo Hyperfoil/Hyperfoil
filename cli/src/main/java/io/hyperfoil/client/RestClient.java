@@ -145,54 +145,56 @@ public class RestClient implements Client, Closeable {
       // the etag does not match
       CompletableFuture<String> future = new CompletableFuture<>();
       vertx.runOnContext(ctx -> {
-         client.request(HttpMethod.GET, url + "?offset=" + offset)
-               .putHeader(HttpHeaders.IF_MATCH.toString(), logId)
-               .send(rsp -> {
-                  if (rsp.failed()) {
-                     future.completeExceptionally(rsp.cause());
-                     return;
-                  }
-                  HttpResponse<Buffer> response = rsp.result();
-                  if (response.statusCode() == 412) {
-                     downloadFullLog(destinationFile, url, future);
-                     return;
-                  } else if (response.statusCode() != 200) {
-                     future.completeExceptionally(unexpected(response));
-                     return;
-                  }
+         HttpRequest<Buffer> request = client.request(HttpMethod.GET, url + "?offset=" + offset);
+         if (logId != null) {
+            request.putHeader(HttpHeaders.IF_MATCH.toString(), logId);
+         }
+         request.send(rsp -> {
+            if (rsp.failed()) {
+               future.completeExceptionally(rsp.cause());
+               return;
+            }
+            HttpResponse<Buffer> response = rsp.result();
+            if (response.statusCode() == 412) {
+               downloadFullLog(destinationFile, url, future);
+               return;
+            } else if (response.statusCode() != 200) {
+               future.completeExceptionally(unexpected(response));
+               return;
+            }
+            try {
+               String etag = response.getHeader(HttpHeaders.ETAG.toString());
+               if (logId == null) {
                   try {
-                     String etag = response.getHeader(HttpHeaders.ETAG.toString());
-                     if (logId == null) {
-                        try {
-                           byte[] bytes;
-                           if (response.body() == null) {
-                              bytes = "<empty log file>".getBytes(StandardCharsets.UTF_8);
-                           } else {
-                              bytes = response.body().getBytes();
-                           }
-                           Files.write(Paths.get(destinationFile), bytes);
-                        } catch (IOException e) {
-                           throw new RestClientException(e);
-                        }
-                        future.complete(etag);
-                     } else if (etag != null && etag.equals(logId)) {
-                        if (response.body() != null) {
-                           // When there's no more data, content-length won't be present and the body is null
-                           try (RandomAccessFile rw = new RandomAccessFile(destinationFile, "rw")) {
-                              rw.seek(offset);
-                              rw.write(response.body().getBytes());
-                           } catch (IOException e) {
-                              throw new RestClientException(e);
-                           }
-                        }
-                        future.complete(etag);
+                     byte[] bytes;
+                     if (response.body() == null) {
+                        bytes = "<empty log file>".getBytes(StandardCharsets.UTF_8);
                      } else {
-                        downloadFullLog(destinationFile, url, future);
+                        bytes = response.body().getBytes();
                      }
-                  } catch (Throwable t) {
-                     future.completeExceptionally(t);
+                     Files.write(Paths.get(destinationFile), bytes);
+                  } catch (IOException e) {
+                     throw new RestClientException(e);
                   }
-               });
+                  future.complete(etag);
+               } else if (etag != null && etag.equals(logId)) {
+                  if (response.body() != null) {
+                     // When there's no more data, content-length won't be present and the body is null
+                     try (RandomAccessFile rw = new RandomAccessFile(destinationFile, "rw")) {
+                        rw.seek(offset);
+                        rw.write(response.body().getBytes());
+                     } catch (IOException e) {
+                        throw new RestClientException(e);
+                     }
+                  }
+                  future.complete(etag);
+               } else {
+                  downloadFullLog(destinationFile, url, future);
+               }
+            } catch (Throwable t) {
+               future.completeExceptionally(t);
+            }
+         });
       });
       return waitFor(future);
    }
