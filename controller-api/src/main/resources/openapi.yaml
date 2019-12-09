@@ -423,6 +423,7 @@ paths:
         schema:
           type: integer
           format: long
+          default: 0
       responses:
         '200':
           description: Retrieved successfully.
@@ -445,6 +446,7 @@ paths:
         schema:
           type: integer
           format: long
+          default: 0
       responses:
         '200':
           description: Retrieved successfully.
@@ -568,6 +570,7 @@ components:
           type: string
         stepId:
           type: integer
+          default: 0
         metric:
           type: string
         summary:
