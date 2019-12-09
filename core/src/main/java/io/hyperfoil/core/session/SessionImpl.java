@@ -171,9 +171,6 @@ class SessionImpl implements Session, Callable<Void> {
 
    public int getInt(Object key) {
       IntVar var = requireSet(key);
-      if (!var.isSet()) {
-         throw new IllegalStateException("Variable " + key + " was not set yet!");
-      }
       return var.get();
    }
 
