@@ -3,6 +3,7 @@ package io.hyperfoil.client;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -144,62 +145,77 @@ public class RestClient implements Client, Closeable {
       // the etag does not match
       CompletableFuture<String> future = new CompletableFuture<>();
       vertx.runOnContext(ctx -> {
-         client.request(HttpMethod.GET, url + "?offset=" + offset).send(rsp -> {
-            if (rsp.failed()) {
-               future.completeExceptionally(rsp.cause());
-               return;
-            }
-            HttpResponse<Buffer> response = rsp.result();
-            if (response.statusCode() != 200) {
-               future.completeExceptionally(unexpected(response));
-               return;
-            }
-            try {
-               String etag = response.getHeader(HttpHeaders.ETAG.toString());
-               if (logId == null) {
+         client.request(HttpMethod.GET, url + "?offset=" + offset)
+               .putHeader(HttpHeaders.IF_MATCH.toString(), logId)
+               .send(rsp -> {
+                  if (rsp.failed()) {
+                     future.completeExceptionally(rsp.cause());
+                     return;
+                  }
+                  HttpResponse<Buffer> response = rsp.result();
+                  if (response.statusCode() == 412) {
+                     downloadFullLog(destinationFile, url, future);
+                     return;
+                  } else if (response.statusCode() != 200) {
+                     future.completeExceptionally(unexpected(response));
+                     return;
+                  }
                   try {
-                     Files.write(Paths.get(destinationFile), response.body().getBytes());
-                  } catch (IOException e) {
-                     throw new RestClientException(e);
+                     String etag = response.getHeader(HttpHeaders.ETAG.toString());
+                     if (logId == null) {
+                        try {
+                           byte[] bytes;
+                           if (response.body() == null) {
+                              bytes = "<empty log file>".getBytes(StandardCharsets.UTF_8);
+                           } else {
+                              bytes = response.body().getBytes();
+                           }
+                           Files.write(Paths.get(destinationFile), bytes);
+                        } catch (IOException e) {
+                           throw new RestClientException(e);
+                        }
+                        future.complete(etag);
+                     } else if (etag != null && etag.equals(logId)) {
+                        if (response.body() != null) {
+                           // When there's no more data, content-length won't be present and the body is null
+                           try (RandomAccessFile rw = new RandomAccessFile(destinationFile, "rw")) {
+                              rw.seek(offset);
+                              rw.write(response.body().getBytes());
+                           } catch (IOException e) {
+                              throw new RestClientException(e);
+                           }
+                        }
+                        future.complete(etag);
+                     } else {
+                        downloadFullLog(destinationFile, url, future);
+                     }
+                  } catch (Throwable t) {
+                     future.completeExceptionally(t);
                   }
-                  future.complete(etag);
-               } else if (etag != null && etag.equals(logId)) {
-                  if (response.body() != null) {
-                     // When there's no more data, content-length won't be present and the body is null
-                     try (RandomAccessFile rw = new RandomAccessFile(destinationFile, "rw")) {
-                        rw.seek(offset);
-                        rw.write(response.body().getBytes());
-                     } catch (IOException e) {
-                        throw new RestClientException(e);
-                     }
-                  }
-                  future.complete(etag);
-               } else {
-                  // the etag does not match
-                  client.request(HttpMethod.GET, url).send(rsp2 -> {
-                     if (rsp2.failed()) {
-                        future.completeExceptionally(rsp2.cause());
-                        return;
-                     }
-                     HttpResponse<Buffer> response2 = rsp2.result();
-                     if (response2.statusCode() != 200) {
-                        future.completeExceptionally(unexpected(response2));
-                        return;
-                     }
-                     try {
-                        Files.write(Paths.get(destinationFile), response2.body().getBytes());
-                        future.complete(response2.getHeader(HttpHeaders.ETAG.toString()));
-                     } catch (Throwable t) {
-                        future.completeExceptionally(t);
-                     }
-                  });
-               }
-            } catch (Throwable t) {
-               future.completeExceptionally(t);
-            }
-         });
+               });
       });
       return waitFor(future);
+   }
+
+   private void downloadFullLog(String destinationFile, String url, CompletableFuture<String> future) {
+      // the etag does not match
+      client.request(HttpMethod.GET, url).send(rsp -> {
+         if (rsp.failed()) {
+            future.completeExceptionally(rsp.cause());
+            return;
+         }
+         HttpResponse<Buffer> response = rsp.result();
+         if (response.statusCode() != 200) {
+            future.completeExceptionally(unexpected(response));
+            return;
+         }
+         try {
+            Files.write(Paths.get(destinationFile), response.body().getBytes());
+            future.complete(response.getHeader(HttpHeaders.ETAG.toString()));
+         } catch (Throwable t) {
+            future.completeExceptionally(t);
+         }
+      });
    }
 
    static <T> T waitFor(CompletableFuture<T> future) {

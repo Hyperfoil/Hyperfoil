@@ -1,9 +1,14 @@
 package io.hyperfoil.deploy.k8s;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
@@ -12,6 +17,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Consumer;
 
 import org.kohsuke.MetaInfServices;
@@ -19,6 +26,7 @@ import org.kohsuke.MetaInfServices;
 import io.fabric8.kubernetes.api.model.ConfigMapVolumeSource;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
 import io.fabric8.kubernetes.api.model.ContainerPort;
+import io.fabric8.kubernetes.api.model.DoneablePod;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodSpecBuilder;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
@@ -26,18 +34,25 @@ import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
+import io.fabric8.kubernetes.client.HttpClientAware;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import io.fabric8.kubernetes.client.dsl.LogWatch;
+import io.fabric8.kubernetes.client.KubernetesClientException;
+import io.fabric8.kubernetes.client.Watcher;
+import io.fabric8.kubernetes.client.dsl.PodResource;
+import io.fabric8.kubernetes.client.dsl.internal.PodOperationsImpl;
 import io.hyperfoil.api.config.Agent;
 import io.hyperfoil.api.deployment.DeployedAgent;
 import io.hyperfoil.api.deployment.Deployer;
 import io.hyperfoil.api.Version;
+import io.hyperfoil.internal.Controller;
 import io.hyperfoil.internal.Properties;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import okhttp3.Request;
+import okhttp3.Response;
 
 /**
  * This deployer expects Hyperfoil to be deployed as Openshift/Kubernetes pod. In order to create one, run:
@@ -58,13 +73,13 @@ public class K8sDeployer implements Deployer {
    private static final Logger log = LoggerFactory.getLogger(K8sDeployer.class);
    private static final String API_SERVER = System.getProperty("io.hyperfoil.deployer.k8s.apiserver", "https://kubernetes.default.svc.cluster.local/");
    private static final String DEFAULT_IMAGE = "quay.io/hyperfoil/hyperfoil:" + Version.VERSION;
-   private static final String TOKEN;
+   private static final String CONTROLLER_POD_NAME = System.getenv("HOSTNAME");
    private static final String NAMESPACE;
 
+   private final ScheduledExecutorService logReader = Executors.newScheduledThreadPool(1);
    private KubernetesClient client;
 
    static {
-      TOKEN = getPropertyOrLoad("io.hyperfoil.deployer.k8s.token", "token");
       NAMESPACE = getPropertyOrLoad("io.hyperfoil.deployer.k8s.namespace", "namespace");
    }
 
@@ -88,7 +103,6 @@ public class K8sDeployer implements Deployer {
             Config config = new ConfigBuilder()
                   .withMasterUrl(API_SERVER)
                   .withTrustCerts(true)
-                  .withOauthToken(TOKEN)
                   .build();
             client = new DefaultKubernetesClient(config);
          }
@@ -125,14 +139,14 @@ public class K8sDeployer implements Deployer {
          spec = spec.withNodeSelector(nodeSelector);
       }
 
-      String log = agent.properties.get("log");
-      if (log != null) {
-         String configMap = log;
+      String logProperty = agent.properties.get("log");
+      if (logProperty != null) {
+         String configMap = logProperty;
          String file = "log4j2.xml";
-         if (log.contains("/")) {
-            int index = log.indexOf("/");
-            configMap = log.substring(0, index);
-            file = log.substring(index + 1);
+         if (logProperty.contains("/")) {
+            int index = logProperty.indexOf("/");
+            configMap = logProperty.substring(0, index);
+            file = logProperty.substring(index + 1);
          }
          command.add("-D" + Properties.LOG4J2_CONFIGURATION_FILE + "=file:///etc/log4j2/" + file);
 
@@ -164,36 +178,100 @@ public class K8sDeployer implements Deployer {
       containerBuilder = containerBuilder.withCommand(command);
       spec = spec.withContainers(Collections.singletonList(containerBuilder.build()));
 
+      String podName = "agent-" + runId.toLowerCase() + "-" + agent.name.toLowerCase();
+
+      boolean fetchLogs = !"false".equalsIgnoreCase(agent.properties.getOrDefault("fetchLogs", "true"));
+      Path outputPath = null;
+      FileOutputStream output = null;
+      if (fetchLogs) {
+         // We're adding the finalizer to prevent destroying the pod completely before we finish reading logs.
+         outputPath = Controller.RUN_DIR.resolve(runId).resolve(podName + ".log");
+         try {
+            output = new FileOutputStream(outputPath.toFile());
+         } catch (FileNotFoundException e) {
+            log.error("Cannot write to {}", e, outputPath);
+         }
+         // We cannot start reading the logs right away because we'd only read an error message
+         // about the container being started - we'll defer it until all containers become ready.
+      }
+
       // @formatter:off
       Pod pod = client.pods().inNamespace(NAMESPACE).createNew()
             .withNewMetadata()
                .withNamespace(NAMESPACE)
-               .withName("agent-" + runId.toLowerCase() + "-" + agent.name.toLowerCase())
+               .withName(podName)
             .endMetadata()
             .withSpec(spec.build()).done();
       // @formatter:on
 
+
       // Keep the agent running after benchmark, e.g. to inspect logs
       boolean stop = !"false".equalsIgnoreCase(agent.properties.getOrDefault("stop", "true"));
 
-      return new K8sAgent(client, pod, stop);
+      K8sAgent k8sAgent = new K8sAgent(agent, client, pod, stop, outputPath, output);
+      if (output != null) {
+         client.pods().inNamespace(NAMESPACE).withName(podName).watch(new AgentWatcher(podName, k8sAgent));
+      }
+      return k8sAgent;
+   }
+
+   @Override
+   public boolean hasControllerLog() {
+      return true;
+   }
+
+   @Override
+   public void downloadControllerLog(long offset, String destinationFile, Handler<AsyncResult<Void>> handler) {
+      downloadRunningLog(CONTROLLER_POD_NAME, offset, destinationFile, handler);
    }
 
    @Override
    public void downloadAgentLog(DeployedAgent deployedAgent, long offset, String destinationFile, Handler<AsyncResult<Void>> handler) {
-      ensureClient();
       K8sAgent agent = (K8sAgent) deployedAgent;
-      try (LogWatch log = client.pods().inNamespace(NAMESPACE).withName(agent.pod.getMetadata().getName()).watchLog()) {
-         InputStream output = log.getOutput();
-         byte[] discardBuffer = new byte[8192];
-         while (offset > 0) {
-            offset -= output.read(discardBuffer, 0, (int) Math.min(offset, discardBuffer.length));
+      ensureClient();
+      if (agent.outputPath != null) {
+         try (InputStream stream = new FileInputStream(agent.outputPath.toFile())) {
+            skipBytes(offset, stream);
+            Files.copy(stream, Paths.get(destinationFile), StandardCopyOption.REPLACE_EXISTING);
+            handler.handle(Future.succeededFuture());
+         } catch (IOException e) {
+            handler.handle(Future.failedFuture(e));
          }
-         Files.copy(output, Paths.get(destinationFile), StandardCopyOption.REPLACE_EXISTING);
+      } else {
+         downloadRunningLog(agent.pod.getMetadata().getName(), offset, destinationFile, handler);
+      }
+   }
+
+   private void skipBytes(long offset, InputStream stream) throws IOException {
+      while (offset > 0) {
+         long skipped = stream.skip(offset);
+         if (skipped == 0) {
+            break;
+         }
+         offset -= skipped;
+      }
+   }
+
+   private void downloadRunningLog(String podName, long offset, String destinationFile, Handler<AsyncResult<Void>> handler) {
+      ensureClient();
+      try {
+         PodResource<Pod, DoneablePod> podResource = client.pods().inNamespace(NAMESPACE).withName(podName);
+         InputStream stream = getLog(podResource);
+         skipBytes(offset, stream);
+         Files.copy(stream, Paths.get(destinationFile), StandardCopyOption.REPLACE_EXISTING);
          handler.handle(Future.succeededFuture());
       } catch (IOException e) {
          handler.handle(Future.failedFuture(e));
       }
+   }
+
+   private InputStream getLog(PodResource<Pod, DoneablePod> podResource) throws IOException {
+      PodOperationsImpl impl = (PodOperationsImpl) podResource;
+      URL url = new URL(impl.getResourceUrl().toString() + "/log");
+      Request.Builder requestBuilder = new Request.Builder().get().url(url);
+      Request request = requestBuilder.build();
+      Response response = ((HttpClientAware) client).getHttpClient().newCall(request).execute();
+      return response.body().byteStream();
    }
 
    @Override
@@ -211,6 +289,32 @@ public class K8sDeployer implements Deployer {
       @Override
       public K8sDeployer create() {
          return new K8sDeployer();
+      }
+   }
+
+   private class AgentWatcher implements Watcher<Pod> {
+      private final String podName;
+      private final K8sAgent agent;
+
+      public AgentWatcher(String podName, K8sAgent agent) {
+         this.podName = podName;
+         this.agent = agent;
+      }
+
+      @Override
+      public void eventReceived(Action action, Pod resource) {
+         if (resource.getStatus().getConditions().stream()
+               .filter(c -> "Ready".equalsIgnoreCase(c.getType()))
+               .anyMatch(c -> "True".equalsIgnoreCase(c.getStatus()))) {
+            if (agent.logWatch != null) {
+               return;
+            }
+            agent.logWatch = client.pods().inNamespace(NAMESPACE).withName(podName).watchLog(agent.output);
+         }
+      }
+
+      @Override
+      public void onClose(KubernetesClientException cause) {
       }
    }
 }

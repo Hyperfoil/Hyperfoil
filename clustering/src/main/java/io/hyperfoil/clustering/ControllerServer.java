@@ -572,35 +572,61 @@ class ControllerServer implements ApiService {
    }
 
    @Override
-   public void getControllerLog(RoutingContext ctx, long offset) {
+   public void getControllerLog(RoutingContext ctx, long offset, String ifMatch) {
       String logPath = System.getProperty(Properties.CONTROLLER_LOG);
-      if (logPath == null) {
-         ctx.response()
-               .setStatusCode(HttpResponseStatus.NOT_FOUND.code())
-               .setStatusMessage("Log file not defined.").end();
+      if (ifMatch != null && !ifMatch.equals(controller.deploymentID())) {
+         ctx.response().setStatusCode(HttpResponseStatus.PRECONDITION_FAILED.code()).end();
          return;
       }
-      File logFile = new File(logPath);
-      if (!logFile.exists()) {
-         ctx.response()
-               .setStatusCode(HttpResponseStatus.NOT_FOUND.code())
-               .setStatusMessage("Log file does not exist.").end();
+      if (controller.hasControllerLog()) {
+         try {
+            File tempFile = File.createTempFile("controller.", ".log");
+            tempFile.deleteOnExit();
+            controller.downloadControllerLog(offset, tempFile, result -> {
+               if (result.succeeded()) {
+                  ctx.response()
+                        .putHeader(HttpHeaders.ETAG, controller.deploymentID())
+                        .sendFile(tempFile.toString(), r -> tempFile.delete());
+               } else {
+                  log.error("Failed to download controller log.", result.cause());
+                  ctx.response()
+                        .setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code())
+                        .setStatusMessage("Cannot download controller log").end();
+               }
+            });
+         } catch (IOException e) {
+            log.error("Failed to create temporary file", e);
+            ctx.response().setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code()).end();
+         }
       } else {
-         if (offset < 0) {
+         if (logPath == null) {
             ctx.response()
-                  .setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
-                  .setStatusMessage("Offset must be non-negative").end();
+                  .setStatusCode(HttpResponseStatus.NOT_FOUND.code())
+                  .setStatusMessage("Log file not defined.").end();
+            return;
+         }
+         File logFile = new File(logPath);
+         if (!logFile.exists()) {
+            ctx.response()
+                  .setStatusCode(HttpResponseStatus.NOT_FOUND.code())
+                  .setStatusMessage("Log file does not exist.").end();
          } else {
-            ctx.response().putHeader(HttpHeaders.ETAG, controller.deploymentID());
-            ctx.response().sendFile(logPath, offset);
+            if (offset < 0) {
+               ctx.response()
+                     .setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
+                     .setStatusMessage("Offset must be non-negative").end();
+            } else {
+               ctx.response().putHeader(HttpHeaders.ETAG, controller.deploymentID());
+               ctx.response().sendFile(logPath, offset);
+            }
          }
       }
    }
 
    @Override
-   public void getAgentLog(RoutingContext ctx, String agent, long offset) {
+   public void getAgentLog(RoutingContext ctx, String agent, long offset, String ifMatch) {
       if (agent == null || "controller".equals(agent)) {
-         getControllerLog(ctx, offset);
+         getControllerLog(ctx, offset, ifMatch);
          return;
       }
       if (offset < 0) {
@@ -616,6 +642,10 @@ class ControllerServer implements ApiService {
          ctx.response()
                .setStatusCode(HttpResponseStatus.NOT_FOUND.code())
                .setStatusMessage("Agent " + agent + " not found.").end();
+         return;
+      }
+      if (ifMatch != null && !ifMatch.equals(agentInfo.get().deploymentId)) {
+         ctx.response().setStatusCode(HttpResponseStatus.PRECONDITION_FAILED.code()).end();
          return;
       }
       try {

@@ -424,6 +424,11 @@ paths:
           type: integer
           format: long
           default: 0
+      - in: header
+        name: if-match
+        description: Identifier of the previously downloaded log chunk.
+        schema:
+          type: string
       responses:
         '200':
           description: Retrieved successfully.
@@ -447,6 +452,11 @@ paths:
           type: integer
           format: long
           default: 0
+      - in: header
+        name: if-match
+        description: Identifier of the previously downloaded log chunk.
+        schema:
+          type: string
       responses:
         '200':
           description: Retrieved successfully.
