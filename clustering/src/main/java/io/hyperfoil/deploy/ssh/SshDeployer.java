@@ -100,6 +100,16 @@ public class SshDeployer implements Deployer {
    }
 
    @Override
+   public boolean hasControllerLog() {
+      return false;
+   }
+
+   @Override
+   public void downloadControllerLog(long offset, String destinationFile, Handler<AsyncResult<Void>> handler) {
+      throw new UnsupportedOperationException();
+   }
+
+   @Override
    public void downloadAgentLog(DeployedAgent deployedAgent, long offset, String destinationFile, Handler<AsyncResult<Void>> handler) {
       SshDeployedAgent sshAgent = (SshDeployedAgent) deployedAgent;
       try {

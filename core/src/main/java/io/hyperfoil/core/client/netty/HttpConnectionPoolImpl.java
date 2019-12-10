@@ -42,6 +42,7 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
    private int count; // The estimated count : created + creating
    private int created;
    private int closed; // number of closed connections in #connections
+   private int failures;
    private Handler<AsyncResult<Void>> startedHandler;
    private boolean shutdown;
    private Deque<Session> waitingSessions = new ArrayDeque<>();
@@ -145,36 +146,38 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
       return connections;
    }
 
-   private synchronized void checkCreateConnections(int retry) {
+   private void checkCreateConnections() {
       assert eventLoop.inEventLoop();
 
       if (shutdown) {
          return;
       }
       //TODO:: configurable
-      if (retry > 100) {
+      if (failures > 100) {
          // When the connection is not available we'll let sessions see & terminate if it's past the duration
          Handler<AsyncResult<Void>> handler = this.startedHandler;
          if (handler != null) {
             startedHandler = null;
-            handler.handle(Future.failedFuture("Cannot connect to " + clientPool.authority));
+            String failureMessage = String.format("Cannot connect to %s: %d created, %d failures.", clientPool.authority, created, failures);
+            if (created > 0) {
+               failureMessage += " Hint: either configure SUT to accept more open connections or reduce http.sharedConnections.";
+            }
+            handler.handle(Future.failedFuture(failureMessage));
          }
          pulse();
-         throw new IllegalStateException();
+         return;
       }
       if (count < size) {
          count++;
          clientPool.connect(this, (conn, err) -> {
             // at this moment we're in unknown thread
             if (err != null) {
-               log.warn("Cannot create connection (retry {})", err, retry);
+               count--;
+               failures++;
+               log.warn("Cannot create connection (created: {}, failures: {})", err, created, failures);
                // scheduling task when the executor is shut down causes errors
                if (!eventLoop.isShuttingDown() && !eventLoop.isShutdown()) {
-                  // so we need to make sure that checkCreateConnections will be called in eventLoop
-                  eventLoop.execute(() -> {
-                     count--;
-                     checkCreateConnections(retry + 1);
-                  });
+                  eventLoop.execute(this::checkCreateConnections);
                }
             } else {
                // we are using this eventloop as the bootstrap group so the connection should be created for us
@@ -183,8 +186,7 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
                connectionCreated(conn);
             }
          });
-         eventLoop.schedule(() -> checkCreateConnections(retry), 2, TimeUnit.MILLISECONDS);
-
+         eventLoop.schedule(() -> checkCreateConnections(), 2, TimeUnit.MILLISECONDS);
       }
    }
 
@@ -196,7 +198,7 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
       created++;
       available.add(conn);
       if (count < size) {
-         checkCreateConnections(0);
+         checkCreateConnections();
       } else {
          if (created == size) {
             handler = startedHandler;
@@ -216,7 +218,7 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
                connections.removeIf(HttpConnection::isClosed);
                closed = 0;
             }
-            checkCreateConnections(0);
+            checkCreateConnections();
          }
       });
 
@@ -226,18 +228,9 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
       pulse();
    }
 
-   private void connectionFailed(int retry, HttpConnection conn, Throwable cause) {
-      log.warn("Failed to create a connection", cause);
-      eventLoop.execute(() -> {
-         --count;
-         conn.context().close();
-         checkCreateConnections(retry + 1);
-      });
-   }
-
    void start(Handler<AsyncResult<Void>> handler) {
       startedHandler = handler;
-      eventLoop.execute(() -> checkCreateConnections(0));
+      eventLoop.execute(() -> checkCreateConnections());
    }
 
    void shutdown() {

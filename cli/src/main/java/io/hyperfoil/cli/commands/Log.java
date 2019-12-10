@@ -15,7 +15,7 @@ import org.aesh.command.option.Option;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.core.util.Util;
 
-@CommandDefinition(name = "log", description = "Browse remote logs.")
+@CommandDefinition(name = "log", description = "Browse remote logs.", aliases = "logs")
 public class Log extends ServerCommand {
    @Option(name = "pager", shortName = 'p', description = "Pager used.")
    private String pager;

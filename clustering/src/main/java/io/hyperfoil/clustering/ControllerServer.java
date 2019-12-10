@@ -15,6 +15,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.BinaryOperator;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -65,9 +66,11 @@ class ControllerServer implements ApiService {
 
    private static final String CONTROLLER_HOST = Properties.get(Properties.CONTROLLER_HOST, "0.0.0.0");
    private static final int CONTROLLER_PORT = Properties.getInt(Properties.CONTROLLER_PORT, 8090);
+   private static final String CONTROLLER_EXTERNAL_URI = System.getProperty(Properties.CONTROLLER_EXTERNAL_URI);
    private static final Comparator<ControllerPhase> PHASE_COMPARATOR =
          Comparator.<ControllerPhase, Long>comparing(ControllerPhase::absoluteStartTime).thenComparing(p -> p.definition().name);
    private static final String TRIGGER_URL = System.getProperty(Properties.TRIGGER_URL);
+   private static final BinaryOperator<Run> LAST_RUN_OPERATOR = (r1, r2) -> r1.id.compareTo(r2.id) > 0 ? r1 : r2;
 
    final ControllerVerticle controller;
    HttpServer httpServer;
@@ -81,7 +84,11 @@ class ControllerServer implements ApiService {
       httpServer = controller.getVertx().createHttpServer().requestHandler(router)
             .listen(CONTROLLER_PORT, CONTROLLER_HOST, serverResult -> {
                if (serverResult.succeeded()) {
-                  baseURL = "http://" + CONTROLLER_HOST + ":" + serverResult.result().actualPort();
+                  if (CONTROLLER_EXTERNAL_URI == null) {
+                     baseURL = "http://" + CONTROLLER_HOST + ":" + serverResult.result().actualPort();
+                  } else {
+                     baseURL = CONTROLLER_EXTERNAL_URI;
+                  }
                }
                countDown.handle(serverResult.mapEmpty());
             });
@@ -376,8 +383,7 @@ class ControllerServer implements ApiService {
       Run run;
       if ("last".equals(runId)) {
          run = controller.runs.values().stream()
-               .filter(r -> r.startTime > Long.MIN_VALUE)
-               .reduce((r1, r2) -> r1.startTime > r2.startTime ? r1 : r2)
+               .reduce(LAST_RUN_OPERATOR)
                .orElse(null);
       } else {
          run = controller.run(runId);
@@ -572,35 +578,61 @@ class ControllerServer implements ApiService {
    }
 
    @Override
-   public void getControllerLog(RoutingContext ctx, long offset) {
+   public void getControllerLog(RoutingContext ctx, long offset, String ifMatch) {
       String logPath = System.getProperty(Properties.CONTROLLER_LOG);
-      if (logPath == null) {
-         ctx.response()
-               .setStatusCode(HttpResponseStatus.NOT_FOUND.code())
-               .setStatusMessage("Log file not defined.").end();
+      if (ifMatch != null && !ifMatch.equals(controller.deploymentID())) {
+         ctx.response().setStatusCode(HttpResponseStatus.PRECONDITION_FAILED.code()).end();
          return;
       }
-      File logFile = new File(logPath);
-      if (!logFile.exists()) {
-         ctx.response()
-               .setStatusCode(HttpResponseStatus.NOT_FOUND.code())
-               .setStatusMessage("Log file does not exist.").end();
+      if (controller.hasControllerLog()) {
+         try {
+            File tempFile = File.createTempFile("controller.", ".log");
+            tempFile.deleteOnExit();
+            controller.downloadControllerLog(offset, tempFile, result -> {
+               if (result.succeeded()) {
+                  ctx.response()
+                        .putHeader(HttpHeaders.ETAG, controller.deploymentID())
+                        .sendFile(tempFile.toString(), r -> tempFile.delete());
+               } else {
+                  log.error("Failed to download controller log.", result.cause());
+                  ctx.response()
+                        .setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code())
+                        .setStatusMessage("Cannot download controller log").end();
+               }
+            });
+         } catch (IOException e) {
+            log.error("Failed to create temporary file", e);
+            ctx.response().setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code()).end();
+         }
       } else {
-         if (offset < 0) {
+         if (logPath == null) {
             ctx.response()
-                  .setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
-                  .setStatusMessage("Offset must be non-negative").end();
+                  .setStatusCode(HttpResponseStatus.NOT_FOUND.code())
+                  .setStatusMessage("Log file not defined.").end();
+            return;
+         }
+         File logFile = new File(logPath);
+         if (!logFile.exists()) {
+            ctx.response()
+                  .setStatusCode(HttpResponseStatus.NOT_FOUND.code())
+                  .setStatusMessage("Log file does not exist.").end();
          } else {
-            ctx.response().putHeader(HttpHeaders.ETAG, controller.deploymentID());
-            ctx.response().sendFile(logPath, offset);
+            if (offset < 0) {
+               ctx.response()
+                     .setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
+                     .setStatusMessage("Offset must be non-negative").end();
+            } else {
+               ctx.response().putHeader(HttpHeaders.ETAG, controller.deploymentID());
+               ctx.response().sendFile(logPath, offset);
+            }
          }
       }
    }
 
    @Override
-   public void getAgentLog(RoutingContext ctx, String agent, long offset) {
+   public void getAgentLog(RoutingContext ctx, String agent, long offset, String ifMatch) {
       if (agent == null || "controller".equals(agent)) {
-         getControllerLog(ctx, offset);
+         getControllerLog(ctx, offset, ifMatch);
          return;
       }
       if (offset < 0) {
@@ -609,13 +641,16 @@ class ControllerServer implements ApiService {
                .setStatusMessage("Offset must be non-negative").end();
       }
       Optional<AgentInfo> agentInfo = controller.runs.values().stream()
-            .sorted(Comparator.<Run, Long>comparing(run -> run.startTime).reversed())
-            .flatMap(run -> run.agents.stream())
-            .filter(ai -> agent.equals(ai.name)).findFirst();
+            .reduce(LAST_RUN_OPERATOR)
+            .flatMap(run -> run.agents.stream().filter(ai -> agent.equals(ai.name)).findFirst());
       if (!agentInfo.isPresent()) {
          ctx.response()
                .setStatusCode(HttpResponseStatus.NOT_FOUND.code())
                .setStatusMessage("Agent " + agent + " not found.").end();
+         return;
+      }
+      if (ifMatch != null && !ifMatch.equals(agentInfo.get().deploymentId)) {
+         ctx.response().setStatusCode(HttpResponseStatus.PRECONDITION_FAILED.code()).end();
          return;
       }
       try {

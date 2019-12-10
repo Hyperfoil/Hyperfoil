@@ -54,6 +54,8 @@ public class HyperfoilCliContext {
    private String localControllerHost = null;
    private int localControllerPort = -1;
    private List<Runnable> cleanup = new ArrayList<>();
+   // We'll start with online set to true to not say 'we're back online' when connecting the first time
+   private boolean online = true;
 
    public HyperfoilCliContext() {
    }
@@ -160,5 +162,13 @@ public class HyperfoilCliContext {
       for (Runnable c : cleanup) {
          c.run();
       }
+   }
+
+   public void setOnline(boolean online) {
+      this.online = online;
+   }
+
+   public boolean online() {
+      return online;
    }
 }

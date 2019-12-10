@@ -90,6 +90,7 @@ public abstract class ServerCommand implements Command<HyperfoilCommandInvocatio
          io.hyperfoil.controller.model.Version version = ctx.client().version();
          long postMillis = System.currentTimeMillis();
          invocation.println("Connected!");
+         ctx.setOnline(true);
          if (version.serverTime != null && (version.serverTime.getTime() < preMillis || version.serverTime.getTime() > postMillis)) {
             invocation.println(ANSI.YELLOW_TEXT + "WARNING: Controller time seems to be off by " + (postMillis + preMillis - 2 * version.serverTime.getTime()) / 2 + " ms" + ANSI.RESET);
          }
@@ -108,14 +109,21 @@ public abstract class ServerCommand implements Command<HyperfoilCommandInvocatio
          ctx.setControllerPollTask(ctx.executor().scheduleAtFixedRate(() -> {
             try {
                String currentId = ctx.client().version().deploymentId;
+               if (!ctx.online()) {
+                  invocation.print("\n" + ANSI.GREEN_TEXT + "INFO: Controller is back online." + ANSI.RESET + "\n");
+                  ctx.setOnline(true);
+               }
                if (ctx.controllerId() == null) {
                   ctx.setControllerId(currentId);
                } else if (!ctx.controllerId().equals(currentId)) {
-                  invocation.print("\n" + ANSI.RED_TEXT + ANSI.BOLD + "Warning: controller was restarted." + ANSI.RESET + "\n");
+                  invocation.print("\n" + ANSI.RED_TEXT + ANSI.BOLD + "WARNING: controller was restarted." + ANSI.RESET + "\n");
                   ctx.setControllerId(currentId);
                }
             } catch (RestClientException e) {
-               invocation.print("\n" + ANSI.YELLOW_TEXT + ANSI.BOLD + "Warning: controller seems offline." + ANSI.RESET + "\n");
+               if (ctx.online()) {
+                  invocation.print("\n" + ANSI.YELLOW_TEXT + ANSI.BOLD + "WARNING: controller seems offline." + ANSI.RESET + "\n");
+                  ctx.setOnline(false);
+               }
             }
          }, 0, 15, TimeUnit.SECONDS));
       } catch (RestClientException e) {

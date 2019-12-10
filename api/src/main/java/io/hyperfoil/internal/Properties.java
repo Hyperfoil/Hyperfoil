@@ -9,6 +9,7 @@ public interface Properties {
    String BENCHMARK_DIR = "io.hyperfoil.benchmarkdir";
    String CONTROLLER_CLUSTER_IP = "io.hyperfoil.controller.cluster.ip";
    String CONTROLLER_CLUSTER_PORT = "io.hyperfoil.controller.cluster.port";
+   String CONTROLLER_EXTERNAL_URI = "io.hyperfoil.controller.external.uri";
    String CONTROLLER_HOST = "io.hyperfoil.controller.host";
    String CONTROLLER_LOG = "io.hyperfoil.controller.log.file";
    String CONTROLLER_LOG_LEVEL = "io.hyperfoil.controller.log.level";

@@ -11,10 +11,11 @@ items:
     - ""
     resources:
     - pods
+    - pods/log
+    - pods/status
+    - pods/finalizer
     verbs:
-    - create
-    - delete
-    - watch
+    - "*"
 - apiVersion: v1
   kind: ServiceAccount
   metadata:
