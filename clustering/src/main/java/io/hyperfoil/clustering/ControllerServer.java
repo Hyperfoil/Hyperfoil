@@ -15,6 +15,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.BinaryOperator;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -69,6 +70,7 @@ class ControllerServer implements ApiService {
    private static final Comparator<ControllerPhase> PHASE_COMPARATOR =
          Comparator.<ControllerPhase, Long>comparing(ControllerPhase::absoluteStartTime).thenComparing(p -> p.definition().name);
    private static final String TRIGGER_URL = System.getProperty(Properties.TRIGGER_URL);
+   private static final BinaryOperator<Run> LAST_RUN_OPERATOR = (r1, r2) -> r1.id.compareTo(r2.id) > 0 ? r1 : r2;
 
    final ControllerVerticle controller;
    HttpServer httpServer;
@@ -381,8 +383,7 @@ class ControllerServer implements ApiService {
       Run run;
       if ("last".equals(runId)) {
          run = controller.runs.values().stream()
-               .filter(r -> r.startTime > Long.MIN_VALUE)
-               .reduce((r1, r2) -> r1.startTime > r2.startTime ? r1 : r2)
+               .reduce(LAST_RUN_OPERATOR)
                .orElse(null);
       } else {
          run = controller.run(runId);
@@ -640,9 +641,8 @@ class ControllerServer implements ApiService {
                .setStatusMessage("Offset must be non-negative").end();
       }
       Optional<AgentInfo> agentInfo = controller.runs.values().stream()
-            .sorted(Comparator.<Run, Long>comparing(run -> run.startTime).reversed())
-            .flatMap(run -> run.agents.stream())
-            .filter(ai -> agent.equals(ai.name)).findFirst();
+            .reduce(LAST_RUN_OPERATOR)
+            .flatMap(run -> run.agents.stream().filter(ai -> agent.equals(ai.name)).findFirst());
       if (!agentInfo.isPresent()) {
          ctx.response()
                .setStatusCode(HttpResponseStatus.NOT_FOUND.code())
