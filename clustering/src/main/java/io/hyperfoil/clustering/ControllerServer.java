@@ -65,6 +65,7 @@ class ControllerServer implements ApiService {
 
    private static final String CONTROLLER_HOST = Properties.get(Properties.CONTROLLER_HOST, "0.0.0.0");
    private static final int CONTROLLER_PORT = Properties.getInt(Properties.CONTROLLER_PORT, 8090);
+   private static final String CONTROLLER_EXTERNAL_URI = System.getProperty(Properties.CONTROLLER_EXTERNAL_URI);
    private static final Comparator<ControllerPhase> PHASE_COMPARATOR =
          Comparator.<ControllerPhase, Long>comparing(ControllerPhase::absoluteStartTime).thenComparing(p -> p.definition().name);
    private static final String TRIGGER_URL = System.getProperty(Properties.TRIGGER_URL);
@@ -81,7 +82,11 @@ class ControllerServer implements ApiService {
       httpServer = controller.getVertx().createHttpServer().requestHandler(router)
             .listen(CONTROLLER_PORT, CONTROLLER_HOST, serverResult -> {
                if (serverResult.succeeded()) {
-                  baseURL = "http://" + CONTROLLER_HOST + ":" + serverResult.result().actualPort();
+                  if (CONTROLLER_EXTERNAL_URI == null) {
+                     baseURL = "http://" + CONTROLLER_HOST + ":" + serverResult.result().actualPort();
+                  } else {
+                     baseURL = CONTROLLER_EXTERNAL_URI;
+                  }
                }
                countDown.handle(serverResult.mapEmpty());
             });
