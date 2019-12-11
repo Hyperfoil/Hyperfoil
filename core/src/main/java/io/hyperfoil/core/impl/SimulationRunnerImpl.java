@@ -150,7 +150,7 @@ public class SimulationRunnerImpl implements SimulationRunner {
             };
             SharedResources finalSharedResources = sharedResources;
             sharedResources.sessionPool = new ElasticPoolImpl<>(sessionSupplier, () -> {
-               if (isDepletedMessageQuietened) {
+               if (!isDepletedMessageQuietened) {
                   log.warn("Pool depleted, allocating new sessions! Enable trace logging to see subsequent pool depletion messages.");
                   isDepletedMessageQuietened = true;
                } else {
