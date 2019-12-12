@@ -167,10 +167,12 @@ public abstract class ServerCommand implements Command<HyperfoilCommandInvocatio
       return false;
    }
 
-   protected void execProcess(HyperfoilCommandInvocation invocation, String command, String... params) throws IOException {
+   protected void execProcess(HyperfoilCommandInvocation invocation, boolean expectNewWindow, String command, String... params) throws IOException {
       Process process = null;
       try {
-         invocation.println("Press Ctrl+C when done...");
+         if (expectNewWindow) {
+            invocation.println("Press Ctrl+C when done...");
+         }
          ArrayList<String> cmdline = new ArrayList<>();
          cmdline.addAll(Arrays.asList(command.split("[\t \n]+", 0)));
          cmdline.addAll(Arrays.asList(params));

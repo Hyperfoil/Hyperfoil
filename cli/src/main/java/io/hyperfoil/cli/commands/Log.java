@@ -55,7 +55,7 @@ public class Log extends ServerCommand {
          invocation.context().updateLogId(node, newLogId);
       }
       try {
-         execProcess(invocation, pager == null ? PAGER : pager, logFile);
+         execProcess(invocation, true, pager == null ? PAGER : pager, logFile);
       } catch (IOException e) {
          invocation.println("Cannot display log file " + logFile + ": " + Util.explainCauses(e));
          return CommandResult.FAILURE;

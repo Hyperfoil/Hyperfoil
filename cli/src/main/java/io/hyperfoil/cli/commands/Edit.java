@@ -51,7 +51,7 @@ public class Edit extends BenchmarkCommand {
       Benchmark updated;
       for (; ; ) {
          try {
-            execProcess(invocation, this.editor == null ? EDITOR : this.editor, sourceFile.getAbsolutePath());
+            execProcess(invocation, true, this.editor == null ? EDITOR : this.editor, sourceFile.getAbsolutePath());
          } catch (IOException e) {
             sourceFile.delete();
             throw new CommandException("Failed to invoke the editor.", e);

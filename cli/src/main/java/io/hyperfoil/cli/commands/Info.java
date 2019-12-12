@@ -51,7 +51,7 @@ public class Info extends BenchmarkCommand {
                throw new CommandException("Cannot create temporary file for edits.", e);
             }
             try {
-               execProcess(invocation, pager == null ? PAGER : pager, sourceFile.getPath());
+               execProcess(invocation, true, pager == null ? PAGER : pager, sourceFile.getPath());
             } catch (IOException e) {
                throw new CommandException("Cannot open file " + sourceFile, e);
             } finally {
