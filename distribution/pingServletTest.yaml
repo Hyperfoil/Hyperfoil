@@ -1,4 +1,5 @@
 name: pingservlet-test
+threads: 4
 http:
   host: http://pingservlet.dalperf.us-south.containers.appdomain.cloud
   sharedConnections: 500

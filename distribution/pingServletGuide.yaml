@@ -1,6 +1,6 @@
 name: pingservlet-guide
 http:
-  host: http://pingservlet.dalperf.us-south.containers.appdomain.cloud
+  host: http://10.190.17.131:9080
   sharedConnections: 500
 phases:  
 - pingRampUp:
