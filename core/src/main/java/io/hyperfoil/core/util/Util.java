@@ -35,7 +35,7 @@ public class Util {
     * @param meanResponseTime Time in nanoseconds.
     * @return Formatted string.
     */
-   public static String prettyPrintNanos(long meanResponseTime) {
+   public static String prettyPrintNanosFixed(long meanResponseTime) {
       if (meanResponseTime < 1000) {
          return String.format("%6d ns", meanResponseTime);
       } else if (meanResponseTime < 1000_000) {
@@ -44,6 +44,18 @@ public class Util {
          return String.format("%6.2f ms", meanResponseTime / 1000_000d);
       } else {
          return String.format("%6.2f s ", meanResponseTime / 1000_000_000d);
+      }
+   }
+
+   public static String prettyPrintNanos(long meanResponseTime) {
+      if (meanResponseTime < 1000) {
+         return String.format("%d ns", meanResponseTime);
+      } else if (meanResponseTime < 1000_000) {
+         return String.format("%.2f μs", meanResponseTime / 1000d);
+      } else if (meanResponseTime < 1000_000_000) {
+         return String.format("%.2f ms", meanResponseTime / 1000_000d);
+      } else {
+         return String.format("%.2f s ", meanResponseTime / 1000_000_000d);
       }
    }
 

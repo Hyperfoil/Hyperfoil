@@ -24,6 +24,7 @@ public class Stats extends BaseRunIdCommand {
          .rowSuffix(r -> ANSI.RESET)
          .column("PHASE", r -> r.phase)
          .column("METRIC", r -> r.metric)
+         .column("THROUGHPUT", Stats::throughput, Table.Align.RIGHT)
          .columnInt("REQUESTS", r -> r.summary.requestCount)
          .columnNanos("MEAN", r -> r.summary.meanResponseTime)
          .columnNanos("p50", r -> r.summary.percentileResponseTime.get(50d))
@@ -39,6 +40,7 @@ public class Stats extends BaseRunIdCommand {
          .columnInt("TIMEOUTS", r -> r.summary.timeouts)
          .columnInt("ERRORS", r -> r.summary.resetCount + r.summary.connectFailureCount + r.summary.status_other)
          .columnNanos("BLOCKED", r -> r.summary.blockedTime);
+
    private static final Table<CustomStats> CUSTOM_STATS_TABLE = new Table<CustomStats>()
          .column("PHASE", c -> c.phase)
          .columnInt("STEP", c -> c.stepId)
@@ -51,6 +53,21 @@ public class Stats extends BaseRunIdCommand {
 
    @Option(name = "custom", shortName = 'c', description = "Show custom stats (total only)", hasValue = false)
    private boolean custom;
+
+   private static String throughput(RequestStats r) {
+      if (r.summary.endTime <= r.summary.startTime) {
+         return "<none>";
+      } else {
+         double rate = 1000d * r.summary.responseCount / (r.summary.endTime - r.summary.startTime);
+         if (rate < 10_000) {
+            return String.format("%.2f req/s", rate);
+         } else if (rate < 10_000_000) {
+            return String.format("%.2fk req/s", rate / 1000);
+         } else {
+            return String.format("%.2fM req/s", rate / 1000_000);
+         }
+      }
+   }
 
    @Override
    public CommandResult execute(HyperfoilCommandInvocation invocation) throws CommandException {

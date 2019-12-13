@@ -277,18 +277,18 @@ public class Wrk {
          long dataRead = custom.stream().filter(cs -> cs.customName.equals("bytes")).mapToLong(cs -> Long.parseLong(cs.value)).findFirst().orElse(0);
          double durationSeconds = (stats.endTime - stats.startTime) / 1000d;
          invocation.println("                  Avg     Stdev       Max");
-         invocation.println("Latency:    " + Util.prettyPrintNanos(stats.meanResponseTime) + " "
-               + Util.prettyPrintNanos((long) histogram.getStdDeviation()) + " " + Util.prettyPrintNanos(stats.maxResponseTime));
+         invocation.println("Latency:    " + Util.prettyPrintNanosFixed(stats.meanResponseTime) + " "
+               + Util.prettyPrintNanosFixed((long) histogram.getStdDeviation()) + " " + Util.prettyPrintNanosFixed(stats.maxResponseTime));
          if (latency) {
             invocation.println("Latency Distribution");
             for (Map.Entry<Double, Long> entry : stats.percentileResponseTime.entrySet()) {
-               invocation.println(String.format("%7.3f", entry.getKey()) + " " + Util.prettyPrintNanos(entry.getValue()));
+               invocation.println(String.format("%7.3f", entry.getKey()) + " " + Util.prettyPrintNanosFixed(entry.getValue()));
             }
             invocation.println("----------------------------------------------------------");
             invocation.println("Detailed Percentile Spectrum");
             invocation.println("    Value  Percentile  TotalCount  1/(1-Percentile)");
             for (HistogramIterationValue value : histogram.percentiles(5)) {
-               invocation.println(Util.prettyPrintNanos(value.getValueIteratedTo()) + " " + String.format("%9.5f%%  %10d  %15.2f",
+               invocation.println(Util.prettyPrintNanosFixed(value.getValueIteratedTo()) + " " + String.format("%9.5f%%  %10d  %15.2f",
                      value.getPercentile(), value.getTotalCountToThisValue(), 100 / (100 - value.getPercentile())));
             }
             invocation.println("----------------------------------------------------------");
