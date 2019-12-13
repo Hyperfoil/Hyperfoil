@@ -1,12 +1,12 @@
 package io.hyperfoil.core.parser;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Stack;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.yaml.snakeyaml.events.AliasEvent;
 import org.yaml.snakeyaml.events.Event;
@@ -19,7 +19,6 @@ import org.yaml.snakeyaml.events.SequenceStartEvent;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Rewritable;
 
-
 class Context {
    private final Map<String, Anchor> anchors = new HashMap<>();
    private final Iterator<Event> events;
@@ -30,13 +29,45 @@ class Context {
       this.events = events;
    }
 
-   boolean hasNext() {
-      return events.hasNext();
+   private ParserException transformException(org.yaml.snakeyaml.parser.ParserException e) {
+      StringBuilder sb = new StringBuilder("YAML is malformed at line ")
+            .append(e.getProblemMark().getLine() + 1)
+            .append(", column ").append(e.getProblemMark().getColumn() + 1)
+            .append(": ").append(e.getProblem());
+      return new ParserException(sb.toString());
    }
 
-   Event next() {
+   private String translate(Class<? extends Event> clazz) {
+      if (clazz == MappingStartEvent.class) {
+         return "<start of mapping>";
+      } else if (clazz == MappingEndEvent.class) {
+         return "<end of mapping>";
+      } else if (clazz == SequenceStartEvent.class) {
+         return "<start of sequence>";
+      } else if (clazz == SequenceEndEvent.class) {
+         return "<end of sequence>";
+      } else if (clazz == ScalarEvent.class) {
+         return "<scalar value>";
+      }
+      return clazz.getSimpleName();
+   }
+
+
+   boolean hasNext() throws ParserException {
+      try {
+         return events.hasNext();
+      } catch (org.yaml.snakeyaml.parser.ParserException e) {
+         throw transformException(e);
+      }
+   }
+
+   Event next() throws ParserException {
       if (peeked == null) {
-         return events.next();
+         try {
+            return events.next();
+         } catch (org.yaml.snakeyaml.parser.ParserException e) {
+            throw transformException(e);
+         }
       } else {
          Event tmp = peeked;
          peeked = null;
@@ -44,14 +75,18 @@ class Context {
       }
    }
 
-   Event peek() {
+   Event peek() throws ParserException {
       if (peeked == null) {
-         peeked = events.next();
+         try {
+            peeked = events.next();
+         } catch (org.yaml.snakeyaml.parser.ParserException e) {
+            throw transformException(e);
+         }
       }
       return peeked;
    }
 
-   void consumePeeked(Event event) {
+   void consumePeeked(Event event) throws ParserException {
       Event peekedEvent = next();
       assert peekedEvent == event;
    }
@@ -95,7 +130,7 @@ class Context {
       if (hasNext()) {
          Event event = next();
          if (!eventClazz.isInstance(event)) {
-            throw new ParserException(event, "Expected '" + eventClazz + "', got '" + event + "'");
+            throw new ParserException(event, "Expected " + translate(eventClazz) + ", got " + translate(event.getClass()) + ": " + event);
          }
          @SuppressWarnings("unchecked")
          E expectedEvent = (E) event;
@@ -107,11 +142,12 @@ class Context {
 
    @SafeVarargs
    final ParserException noMoreEvents(Class<? extends Event>... eventClazzes) {
-      return new ParserException("Expected one of " + Arrays.toString(eventClazzes) + " but there are no more events.");
+      String expected = Stream.of(eventClazzes).map(this::translate).collect(Collectors.joining(", "));
+      return new ParserException("Expected one of [" + expected + "] but there are no more events.");
    }
 
    ParserException unexpectedEvent(Event event) {
-      return new ParserException(event, "Unexpected event '" + event + "'");
+      return new ParserException(event, "Unexpected " + translate(event.getClass()) + ": " + event);
    }
 
    <LI> void parseList(LI target, Parser<LI> consumer) throws ParserException {

@@ -12,6 +12,7 @@ import org.aesh.command.CommandResult;
 import org.aesh.command.option.Option;
 
 import io.hyperfoil.api.config.Benchmark;
+import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.controller.Client;
 import io.hyperfoil.client.RestClientException;
@@ -64,7 +65,7 @@ public class Edit extends BenchmarkCommand {
          try {
             updated = BenchmarkParser.instance().buildBenchmark(new ByteArrayInputStream(Files.readAllBytes(sourceFile.toPath())), new LocalBenchmarkData());
             break;
-         } catch (ParserException e) {
+         } catch (ParserException | BenchmarkDefinitionException e) {
             invocation.println("ERROR: " + Util.explainCauses(e));
             invocation.println("Retry edits? [Y/n] ");
             try {
