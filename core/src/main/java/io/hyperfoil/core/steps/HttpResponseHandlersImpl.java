@@ -15,7 +15,6 @@ import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 import io.hyperfoil.core.http.CookieRecorder;
-import io.hyperfoil.impl.FutureSupplier;
 import io.netty.buffer.ByteBuf;
 import io.hyperfoil.api.http.HeaderHandler;
 import io.hyperfoil.api.http.HttpResponseHandlers;
@@ -268,7 +267,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       }
 
       public Builder status(StatusHandler handler) {
-         statusHandlers.add(step -> handler);
+         statusHandlers.add(() -> handler);
          return this;
       }
 
@@ -282,11 +281,11 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       }
 
       public Builder header(HeaderHandler handler) {
-         return header(step -> handler);
+         return header(() -> handler);
       }
 
       public Builder header(HeaderHandler.Builder builder) {
-         headerHandlers.add(builder);
+         headerHandlers.add(builder.setLocator(locator));
          return this;
       }
 
@@ -318,7 +317,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       }
 
       public Builder onCompletion(Action.Builder builder) {
-         completionHandlers.add(builder);
+         completionHandlers.add(builder.setLocator(locator));
          return this;
       }
 
@@ -358,10 +357,10 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       }
 
       @SuppressWarnings("unchecked")
-      public HttpResponseHandlersImpl build(FutureSupplier<HttpRequestStep> fs) {
+      public HttpResponseHandlersImpl build() {
          return new HttpResponseHandlersImpl(
-               toArray(statusHandlers, builder -> builder.build(fs), StatusHandler[]::new),
-               toArray(headerHandlers, builder1 -> builder1.build(fs), HeaderHandler[]::new),
+               toArray(statusHandlers, StatusHandler.Builder::build, StatusHandler[]::new),
+               toArray(headerHandlers, builder1 -> builder1.build(), HeaderHandler[]::new),
                toArray(bodyHandlers, Processor.Builder::build, Processor[]::new),
                toArray(completionHandlers, Action.Builder::build, Action[]::new),
                toArray(rawBytesHandlers, Function.identity(), RawBytesHandler[]::new));
@@ -387,6 +386,10 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
 
       public Builder setLocator(Locator locator) {
          this.locator = locator;
+         statusHandlers.forEach(builder -> builder.setLocator(locator));
+         headerHandlers.forEach(builder -> builder.setLocator(locator));
+         bodyHandlers.forEach(builder -> builder.setLocator(locator));
+         completionHandlers.forEach(builder -> builder.setLocator(locator));
          return this;
       }
    }

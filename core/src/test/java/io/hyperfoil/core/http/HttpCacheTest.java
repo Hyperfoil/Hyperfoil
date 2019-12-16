@@ -201,7 +201,7 @@ public class HttpCacheTest extends VertxBaseTest {
                   command.run();
                }
             })
-            .build(null);
+            .build();
       configurator.accept(request);
       request.start(handlers, new SequenceInstance(), new Statistics(System.currentTimeMillis()));
       @SuppressWarnings("unchecked")

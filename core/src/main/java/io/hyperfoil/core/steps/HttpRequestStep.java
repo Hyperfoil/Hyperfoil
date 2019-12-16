@@ -36,7 +36,6 @@ import io.hyperfoil.core.http.UserAgentAppender;
 import io.hyperfoil.core.session.IntVar;
 import io.hyperfoil.core.session.ObjectVar;
 import io.hyperfoil.core.session.SessionFactory;
-import io.hyperfoil.impl.FutureSupplier;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.hyperfoil.api.config.PairBuilder;
@@ -58,7 +57,7 @@ import io.netty.handler.codec.http.HttpHeaderNames;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.Provider {
+public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer, SLA.Provider {
    private static final Logger log = LoggerFactory.getLogger(HttpRequestStep.class);
    private static final boolean trace = log.isTraceEnabled();
 
@@ -72,13 +71,14 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
    final HttpResponseHandlersImpl handler;
    final SLA[] sla;
 
-   public HttpRequestStep(HttpMethod method,
+   public HttpRequestStep(int stepId, HttpMethod method,
                           SerializableFunction<Session, String> authority,
                           SerializableFunction<Session, String> pathGenerator,
                           SerializableBiFunction<Session, Connection, ByteBuf> bodyGenerator,
                           SerializableBiConsumer<Session, HttpRequestWriter>[] headerAppenders,
                           SerializableBiFunction<String, String, String> metricSelector,
                           long timeout, HttpResponseHandlersImpl handler, SLA[] sla) {
+      super(stepId);
       this.method = method;
       this.authority = authority;
       this.pathGenerator = pathGenerator;
@@ -184,6 +184,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
    @MetaInfServices(StepBuilder.class)
    @Name("httpRequest")
    public static class Builder extends BaseStepBuilder<Builder> {
+      private int stepId = -1;
       private Locator locator;
       private HttpMethod method;
       private StringGeneratorBuilder authority;
@@ -573,7 +574,15 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
       }
 
       @Override
+      public int id() {
+         assert stepId >= 0;
+         return stepId;
+      }
+
+      @Override
       public void prepareBuild() {
+         stepId = StatisticsStep.nextId();
+
          ErgonomicsBuilder ergonomics = locator.scenario().endScenario().endPhase().ergonomics();
          if (ergonomics.repeatCookies()) {
             headerAppender(new CookieAppender());
@@ -593,8 +602,6 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
 
       @Override
       public List<Step> build() {
-         FutureSupplier<HttpRequestStep> fs = new FutureSupplier<>();
-
          BenchmarkBuilder simulation = locator.scenario().endScenario().endPhase();
          String guessedAuthority = null;
          boolean checkAuthority = true;
@@ -629,8 +636,7 @@ public class HttpRequestStep extends BaseStep implements ResourceUtilizer, SLA.P
             String sequenceName = locator.sequence().name();
             metricSelector = (a, p) -> sequenceName;
          }
-         HttpRequestStep step = new HttpRequestStep(method, authority, pathGenerator, bodyGenerator, headerAppenders, metricSelector, timeout, handler.build(fs), sla);
-         fs.set(step);
+         HttpRequestStep step = new HttpRequestStep(stepId, method, authority, pathGenerator, bodyGenerator, headerAppenders, metricSelector, timeout, handler.build(), sla);
          return Collections.singletonList(step);
       }
 

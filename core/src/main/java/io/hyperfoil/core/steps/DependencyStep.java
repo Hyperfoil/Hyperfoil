@@ -6,7 +6,7 @@ import io.hyperfoil.api.session.Session;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-public abstract class DependencyStep extends BaseStep {
+public abstract class DependencyStep implements Step {
    private static final Logger log = LoggerFactory.getLogger(Step.class);
    private static final boolean trace = log.isTraceEnabled();
 

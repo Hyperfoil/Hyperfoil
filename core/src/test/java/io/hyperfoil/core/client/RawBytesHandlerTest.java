@@ -62,7 +62,7 @@ public class RawBytesHandlerTest extends VertxBaseTest {
                                  doRequest(ctx, session, handlersRef, pool);
                               }, 1, TimeUnit.NANOSECONDS);
                            }
-                        }).build(null));
+                        }).build());
                   doRequest(ctx, session, handlersRef, client.next());
                });
             } catch (Exception e) {

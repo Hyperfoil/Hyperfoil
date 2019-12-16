@@ -115,7 +115,7 @@ public class HttpVersionsTest extends VertxBaseTest {
                            } else {
                               ctx.fail("Status was not received.");
                            }
-                        }).build(null);
+                        }).build();
                   request.method = HttpMethod.GET;
                   request.path = "/ping";
                   request.start(handlers, new SequenceInstance(), new Statistics(System.currentTimeMillis()));

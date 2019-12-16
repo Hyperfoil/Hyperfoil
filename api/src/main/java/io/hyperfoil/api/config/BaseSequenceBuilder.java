@@ -89,7 +89,7 @@ public abstract class BaseSequenceBuilder implements Rewritable<BaseSequenceBuil
    }
 
    protected List<Step> buildSteps() {
-      return steps.stream().map(b -> b.build()).flatMap(List::stream).collect(Collectors.toList());
+      return steps.stream().map(StepBuilder::build).flatMap(List::stream).collect(Collectors.toList());
    }
 
    public Locator createLocator() {

@@ -5,13 +5,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.hyperfoil.api.config.Name;
-import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.processor.HttpRequestProcessorBuilder;
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.http.HeaderHandler;
 import io.hyperfoil.core.util.Util;
-import io.hyperfoil.function.SerializableSupplier;
 import io.netty.buffer.ByteBuf;
 
 public class LogInvalidHandler implements Processor<HttpRequest>, HeaderHandler {
@@ -51,7 +49,7 @@ public class LogInvalidHandler implements Processor<HttpRequest>, HeaderHandler 
    @Name("logInvalid")
    public static class HeaderHandlerBuilder implements HeaderHandler.Builder {
       @Override
-      public LogInvalidHandler build(SerializableSupplier<? extends Step> step) {
+      public LogInvalidHandler build() {
          return new LogInvalidHandler();
       }
    }

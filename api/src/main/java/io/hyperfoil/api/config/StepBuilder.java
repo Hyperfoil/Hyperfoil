@@ -38,6 +38,10 @@ public interface StepBuilder<S extends StepBuilder<S>> extends BuilderBase<S> {
 
    List<Step> build();
 
+   default int id() {
+      return -1;
+   }
+
    class ActionBuilderConverter implements Function<Action.Builder, StepBuilder> {
       @Override
       public StepBuilder apply(Action.Builder builder) {
