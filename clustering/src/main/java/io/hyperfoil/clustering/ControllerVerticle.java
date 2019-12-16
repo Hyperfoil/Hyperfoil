@@ -766,7 +766,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
    }
 
    public boolean hasControllerLog() {
-      return deployer.hasControllerLog();
+      return deployer != null && deployer.hasControllerLog();
    }
 
    public void downloadControllerLog(long offset, File tempFile, Handler<AsyncResult<Void>> handler) {
