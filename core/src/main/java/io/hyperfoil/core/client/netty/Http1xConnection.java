@@ -19,6 +19,7 @@ import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.LastHttpContent;
 import io.hyperfoil.api.http.HttpResponseHandlers;
 import io.hyperfoil.api.session.Session;
+import io.netty.util.ReferenceCounted;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
@@ -72,76 +73,82 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
 
    @Override
    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-      if (msg instanceof HttpResponse) {
-         HttpResponse response = (HttpResponse) msg;
-         HttpRequest request = inflights.peek();
-         if (request == null) {
-            if (HttpResponseStatus.REQUEST_TIMEOUT.equals(response.status())) {
-               // HAProxy sends 408 when we allocate the connection but do not use it within 10 seconds.
-               log.debug("Closing connection {} as server timed out waiting for our first request.", this);
+      try {
+         if (msg instanceof HttpResponse) {
+            HttpResponse response = (HttpResponse) msg;
+            HttpRequest request = inflights.peek();
+            if (request == null) {
+               if (HttpResponseStatus.REQUEST_TIMEOUT.equals(response.status())) {
+                  // HAProxy sends 408 when we allocate the connection but do not use it within 10 seconds.
+                  log.debug("Closing connection {} as server timed out waiting for our first request.", this);
+               } else {
+                  log.error("Received unsolicited response (status {}) on {}, discarding: {}", response.status(), this, msg);
+               }
+               return;
+            }
+            if (request.isCompleted()) {
+               log.trace("Request on connection {} has been already completed (error in handlers?), ignoring", this);
             } else {
-               log.error("Received unsolicited response (status {}) on {}, discarding: {}", response.status(), this, msg);
-            }
-            return;
-         }
-         if (request.isCompleted()) {
-            log.trace("Request on connection {} has been already completed (error in handlers?), ignoring", this);
-         } else {
-            HttpResponseHandlers handlers = request.handlers();
-            try {
-               handlers.handleStatus(request, response.status().code(), response.status().reasonPhrase());
-               for (Map.Entry<String, String> header : response.headers()) {
-                  handlers.handleHeader(request, header.getKey(), header.getValue());
+               HttpResponseHandlers handlers = request.handlers();
+               try {
+                  handlers.handleStatus(request, response.status().code(), response.status().reasonPhrase());
+                  for (Map.Entry<String, String> header : response.headers()) {
+                     handlers.handleHeader(request, header.getKey(), header.getValue());
+                  }
+               } catch (Throwable t) {
+                  log.error("Response processing failed on {}", t, this);
+                  handlers.handleThrowable(request, t);
                }
-            } catch (Throwable t) {
-               log.error("Response processing failed on {}", t, this);
-               handlers.handleThrowable(request, t);
             }
          }
-      }
-      if (msg instanceof HttpContent) {
-         HttpRequest request = inflights.peek();
-         // When previous handlers throw an error the request is already completed
-         if (request != null && !request.isCompleted()) {
-            HttpResponseHandlers handlers = request.handlers();
-            try {
-               ByteBuf data = ((HttpContent) msg).content();
-               handlers.handleBodyPart(request, data, data.readerIndex(), data.readableBytes(), msg instanceof LastHttpContent);
-            } catch (Throwable t) {
-               log.error("Response processing failed on {}", t, this);
-               handlers.handleThrowable(request, t);
-            }
-         }
-      }
-      if (msg instanceof LastHttpContent) {
-         HttpRequest request = inflights.poll();
-         if (request == null) {
-            // We've already logged debug message above
-            assert size == 0;
-            return;
-         }
-         size--;
-         // When previous handlers throw an error the request is already completed
-         if (!request.isCompleted()) {
-            try {
-               request.handlers().handleEnd(request, true);
-               if (trace) {
-                  log.trace("Completed response on {}", this);
+         if (msg instanceof HttpContent) {
+            HttpRequest request = inflights.peek();
+            // When previous handlers throw an error the request is already completed
+            if (request != null && !request.isCompleted()) {
+               HttpResponseHandlers handlers = request.handlers();
+               try {
+                  ByteBuf data = ((HttpContent) msg).content();
+                  handlers.handleBodyPart(request, data, data.readerIndex(), data.readableBytes(), msg instanceof LastHttpContent);
+               } catch (Throwable t) {
+                  log.error("Response processing failed on {}", t, this);
+                  handlers.handleThrowable(request, t);
                }
-            } catch (Throwable t) {
-               log.error("Response processing failed on {}", t, this);
-               request.handlers().handleThrowable(request, t);
             }
          }
+         if (msg instanceof LastHttpContent) {
+            HttpRequest request = inflights.poll();
+            if (request == null) {
+               // We've already logged debug message above
+               assert size == 0;
+               return;
+            }
+            size--;
+            // When previous handlers throw an error the request is already completed
+            if (!request.isCompleted()) {
+               try {
+                  request.handlers().handleEnd(request, true);
+                  if (trace) {
+                     log.trace("Completed response on {}", this);
+                  }
+               } catch (Throwable t) {
+                  log.error("Response processing failed on {}", t, this);
+                  request.handlers().handleThrowable(request, t);
+               }
+            }
 
-         // If this connection was not available we make it available
-         // TODO: it would be better to check this in connection pool
-         HttpConnectionPool pool = this.pool;
-         if (size == pool.clientPool().config().pipeliningLimit() - 1) {
-            pool.release(this);
-            this.pool = null;
+            // If this connection was not available we make it available
+            // TODO: it would be better to check this in connection pool
+            HttpConnectionPool pool = this.pool;
+            if (size == pool.clientPool().config().pipeliningLimit() - 1) {
+               pool.release(this);
+               this.pool = null;
+            }
+            pool.pulse();
          }
-         pool.pulse();
+      } finally {
+         if (msg instanceof ReferenceCounted) {
+            ((ReferenceCounted) msg).release();
+         }
       }
    }
 
