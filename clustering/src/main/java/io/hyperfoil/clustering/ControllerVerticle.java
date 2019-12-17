@@ -144,9 +144,14 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
          agent.phases.put(phase, phaseChange.status());
          ControllerPhase controllerPhase = run.phases.get(phase);
          if (phaseChange.sessionLimitExceeded()) {
-            log.info("Failing phase due to exceeded session limit.");
-            run.statisticsStore.addFailure(controllerPhase.definition().name, null, controllerPhase.absoluteStartTime(), System.currentTimeMillis(), "Exceeded session limit");
-            controllerPhase.setFailed();
+            Phase def = controllerPhase.definition();
+            run.statisticsStore.addFailure(def.name, null, controllerPhase.absoluteStartTime(), System.currentTimeMillis(), "Exceeded session limit");
+            if (def instanceof Phase.OpenModelPhase && ((Phase.OpenModelPhase) def).sessionLimitPolicy == Phase.SessionLimitPolicy.CONTINUE) {
+               log.warn("Phase {} session limit exceeded, continuing due to policy {}", def.name, ((Phase.OpenModelPhase) def).sessionLimitPolicy);
+            } else {
+               log.info("Failing phase due to exceeded session limit.");
+               controllerPhase.setFailed();
+            }
          }
          if (phaseChange.getError() != null) {
             controllerPhase.setFailed();

@@ -149,14 +149,27 @@ public abstract class Phase implements Serializable {
 
    }
 
+   public enum SessionLimitPolicy {
+      /**
+       * Cancel all sessions that did not start yet if the session limit is reached.
+       */
+      FAIL,
+      /**
+       * Continue even if we've reached maximum sessions.
+       */
+      CONTINUE
+   }
+
    public abstract static class OpenModelPhase extends Phase {
       public final boolean variance;
       public final int maxSessions;
+      public final SessionLimitPolicy sessionLimitPolicy;
 
-      public OpenModelPhase(SerializableSupplier<Benchmark> benchmark, int id, String name, Scenario scenario, long startTime, Collection<String> startAfter, Collection<String> startAfterStrict, Collection<String> terminateAfterStrict, long duration, long maxDuration, String sharedResources, boolean variance, int maxSessions) {
+      public OpenModelPhase(SerializableSupplier<Benchmark> benchmark, int id, String name, Scenario scenario, long startTime, Collection<String> startAfter, Collection<String> startAfterStrict, Collection<String> terminateAfterStrict, long duration, long maxDuration, String sharedResources, boolean variance, int maxSessions, SessionLimitPolicy sessionLimitPolicy) {
          super(benchmark, id, name, scenario, startTime, startAfter, startAfterStrict, terminateAfterStrict, duration, maxDuration, sharedResources);
          this.variance = variance;
          this.maxSessions = maxSessions;
+         this.sessionLimitPolicy = sessionLimitPolicy;
       }
    }
 
@@ -169,8 +182,8 @@ public abstract class Phase implements Serializable {
                         Collection<String> terminateAfterStrict,
                         long duration, long maxDuration,
                         String sharedResources, double initialUsersPerSec, double targetUsersPerSec,
-                        boolean variance, int maxSessions) {
-         super(benchmark, id, name, scenario, startTime, startAfter, startAfterStrict, terminateAfterStrict, duration, maxDuration, sharedResources, variance, maxSessions);
+                        boolean variance, int maxSessions, SessionLimitPolicy sessionLimitPolicy) {
+         super(benchmark, id, name, scenario, startTime, startAfter, startAfterStrict, terminateAfterStrict, duration, maxDuration, sharedResources, variance, maxSessions, sessionLimitPolicy);
          this.initialUsersPerSec = initialUsersPerSec;
          this.targetUsersPerSec = targetUsersPerSec;
       }
@@ -188,8 +201,8 @@ public abstract class Phase implements Serializable {
       public ConstantPerSec(SerializableSupplier<Benchmark> benchmark, int id, String name, Scenario scenario, long startTime,
                             Collection<String> startAfter, Collection<String> startAfterStrict,
                             Collection<String> terminateAfterStrict,
-                            long duration, long maxDuration, String sharedResources, double usersPerSec, boolean variance, int maxSessions) {
-         super(benchmark, id, name, scenario, startTime, startAfter, startAfterStrict, terminateAfterStrict, duration, maxDuration, sharedResources, variance, maxSessions);
+                            long duration, long maxDuration, String sharedResources, double usersPerSec, boolean variance, int maxSessions, SessionLimitPolicy sessionLimitPolicy) {
+         super(benchmark, id, name, scenario, startTime, startAfter, startAfterStrict, terminateAfterStrict, duration, maxDuration, sharedResources, variance, maxSessions, sessionLimitPolicy);
          this.usersPerSec = usersPerSec;
       }
 

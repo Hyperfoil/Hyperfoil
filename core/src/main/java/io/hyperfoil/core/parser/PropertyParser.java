@@ -18,6 +18,7 @@
  */
 package io.hyperfoil.core.parser;
 
+import java.util.Arrays;
 import java.util.function.BiConsumer;
 
 import org.yaml.snakeyaml.events.ScalarEvent;
@@ -112,6 +113,28 @@ class PropertyParser {
             throw new ParserException("Failed to parse as boolean: " + event.getValue());
          }
          consumer.accept(target, value);
+      }
+   }
+
+   public static class Enum<E extends java.lang.Enum<E>, T> implements Parser<T> {
+      private final E[] values;
+      private final BiConsumer<T, E> consumer;
+
+      public Enum(E[] values, BiConsumer<T, E> consumer) {
+         this.values = values;
+         this.consumer = consumer;
+      }
+
+      @Override
+      public void parse(Context ctx, T target) throws ParserException {
+         ScalarEvent event = ctx.expectEvent(ScalarEvent.class);
+         for (E value : values) {
+            if (value.name().equalsIgnoreCase(event.getValue())) {
+               consumer.accept(target, value);
+               return;
+            }
+         }
+         throw new ParserException("No match for enum value '" + event.getValue() + "', options are: " + Arrays.toString(values));
       }
    }
 }
