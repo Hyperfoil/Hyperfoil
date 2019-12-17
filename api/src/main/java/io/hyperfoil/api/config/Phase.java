@@ -149,11 +149,20 @@ public abstract class Phase implements Serializable {
 
    }
 
-   public static class RampPerSec extends Phase {
+   public abstract static class OpenModelPhase extends Phase {
+      public final boolean variance;
+      public final int maxSessions;
+
+      public OpenModelPhase(SerializableSupplier<Benchmark> benchmark, int id, String name, Scenario scenario, long startTime, Collection<String> startAfter, Collection<String> startAfterStrict, Collection<String> terminateAfterStrict, long duration, long maxDuration, String sharedResources, boolean variance, int maxSessions) {
+         super(benchmark, id, name, scenario, startTime, startAfter, startAfterStrict, terminateAfterStrict, duration, maxDuration, sharedResources);
+         this.variance = variance;
+         this.maxSessions = maxSessions;
+      }
+   }
+
+   public static class RampPerSec extends OpenModelPhase {
       public final double initialUsersPerSec;
       public final double targetUsersPerSec;
-      public final int maxSessions;
-      public final boolean variance;
 
       public RampPerSec(SerializableSupplier<Benchmark> benchmark, int id, String name, Scenario scenario, long startTime,
                         Collection<String> startAfter, Collection<String> startAfterStrict,
@@ -161,11 +170,9 @@ public abstract class Phase implements Serializable {
                         long duration, long maxDuration,
                         String sharedResources, double initialUsersPerSec, double targetUsersPerSec,
                         boolean variance, int maxSessions) {
-         super(benchmark, id, name, scenario, startTime, startAfter, startAfterStrict, terminateAfterStrict, duration, maxDuration, sharedResources);
+         super(benchmark, id, name, scenario, startTime, startAfter, startAfterStrict, terminateAfterStrict, duration, maxDuration, sharedResources, variance, maxSessions);
          this.initialUsersPerSec = initialUsersPerSec;
          this.targetUsersPerSec = targetUsersPerSec;
-         this.variance = variance;
-         this.maxSessions = maxSessions;
       }
 
       @Override
@@ -175,19 +182,15 @@ public abstract class Phase implements Serializable {
       }
    }
 
-   public static class ConstantPerSec extends Phase {
+   public static class ConstantPerSec extends OpenModelPhase {
       public final double usersPerSec;
-      public final int maxSessions;
-      public final boolean variance;
 
       public ConstantPerSec(SerializableSupplier<Benchmark> benchmark, int id, String name, Scenario scenario, long startTime,
                             Collection<String> startAfter, Collection<String> startAfterStrict,
                             Collection<String> terminateAfterStrict,
                             long duration, long maxDuration, String sharedResources, double usersPerSec, boolean variance, int maxSessions) {
-         super(benchmark, id, name, scenario, startTime, startAfter, startAfterStrict, terminateAfterStrict, duration, maxDuration, sharedResources);
+         super(benchmark, id, name, scenario, startTime, startAfter, startAfterStrict, terminateAfterStrict, duration, maxDuration, sharedResources, variance, maxSessions);
          this.usersPerSec = usersPerSec;
-         this.variance = variance;
-         this.maxSessions = maxSessions;
       }
 
       @Override

@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
 public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstance {
@@ -261,12 +262,13 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       }
    }
 
-   public static class RampPerSec extends PhaseInstanceImpl<Phase.RampPerSec> {
-      private final Random random = new Random();
-      private int startedUsers = 0;
-      private double nextScheduled = nextSession();
+   protected abstract static class OpenModelPhase<P extends Phase.OpenModelPhase> extends PhaseInstanceImpl<P> {
+      protected final Random random = new Random();
+      protected double nextScheduled = nextSessionRandomized();
+      protected AtomicLong throttledUsers = new AtomicLong(0);
+      protected long startedOrThrottledUsers = 0;
 
-      public RampPerSec(Phase.RampPerSec def) {
+      protected OpenModelPhase(P def) {
          super(def);
       }
 
@@ -278,37 +280,83 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
          long now = System.currentTimeMillis();
          long delta = now - absoluteStartTime;
          long nextDelta;
+
          if (def.variance) {
             while (delta > nextScheduled) {
                if (startNewSession()) {
-                  return;
+                  throttledUsers.incrementAndGet();
                }
-               ++startedUsers;
+               startedOrThrottledUsers++;
                // TODO: after many iterations there will be some skew due to imprecise double calculations
                // Maybe we could restart from the expected rate every 1000th session?
-               nextScheduled += nextSession();
+               nextScheduled = nextSessionRandomized();
             }
-            nextDelta = (long) Math.ceil(nextScheduled);
          } else {
-            double progress = (def.targetUsersPerSec - def.initialUsersPerSec) / (def.duration * 1000);
-            int required = (int) (((progress * (delta + 1)) / 2 + def.initialUsersPerSec / 1000) * delta);
-            for (int i = required - startedUsers; i > 0; --i) {
+            long required = nextSessionMetronome(delta);
+            for (long i = required - startedOrThrottledUsers; i > 0; --i) {
                if (startNewSession()) {
-                  return;
+                  throttledUsers.addAndGet(i);
+                  break;
                }
             }
-            startedUsers = Math.max(startedUsers, required);
-            // Next time is the root of quadratic equation
-            double bCoef = progress + def.initialUsersPerSec / 500;
-            nextDelta = (long) Math.ceil((-bCoef + Math.sqrt(bCoef * bCoef + 8 * progress * (startedUsers + 1))) / (2 * progress));
+            startedOrThrottledUsers = Math.max(required, startedOrThrottledUsers);
          }
+         nextDelta = (long) Math.ceil(nextScheduled);
+
          if (trace) {
-            log.trace("{}: {} after start, {} started, next user in {} ms", def.name, delta, startedUsers, nextDelta - delta);
+            log.trace("{}: {} after start, {} started ({} throttled), next user in {} ms", def.name, delta,
+                  startedOrThrottledUsers, throttledUsers.get(), nextDelta - delta);
          }
          executorGroup.schedule(() -> proceed(executorGroup), nextDelta - delta, TimeUnit.MILLISECONDS);
       }
 
-      private double nextSession() {
+      protected abstract long nextSessionMetronome(long delta);
+
+      protected abstract double nextSessionRandomized();
+
+      @Override
+      public void reserveSessions() {
+         sessionPool.reserve(def.maxSessions);
+      }
+
+      @Override
+      public void notifyFinished(Session session) {
+         if (session != null && !status.isFinished()) {
+            long throttled = throttledUsers.get();
+            while (throttled != 0) {
+               if (throttledUsers.compareAndSet(throttled, throttled - 1)) {
+                  // TODO: it would be nice to compensate response times
+                  // in these invocations for the fact that we're applying
+                  // SUT feedback, but that would be imprecise anyway.
+                  session.start(this);
+                  return;
+               } else {
+                  throttled = throttledUsers.get();
+               }
+            }
+         }
+         super.notifyFinished(session);
+      }
+   }
+
+   public static class RampPerSec extends OpenModelPhase<Phase.RampPerSec> {
+
+      public RampPerSec(Phase.RampPerSec def) {
+         super(def);
+      }
+
+      @Override
+      protected long nextSessionMetronome(long delta) {
+         double progress = (def.targetUsersPerSec - def.initialUsersPerSec) / (def.duration * 1000);
+         long required = (long) (((progress * (delta + 1)) / 2 + def.initialUsersPerSec / 1000) * delta);
+         // Next time is the root of quadratic equation
+         double bCoef = progress + def.initialUsersPerSec / 500;
+         nextScheduled = Math.ceil((-bCoef + Math.sqrt(bCoef * bCoef + 8 * progress * (startedOrThrottledUsers + 1))) / (2 * progress));
+         return required;
+      }
+
+      @Override
+      protected double nextSessionRandomized() {
          // we're solving quadratic equation coming from t = (duration * -log(rand))/(((t + now) * (target - initial)) + initial * duration)
          double aCoef = (def.targetUsersPerSec - def.initialUsersPerSec);
          if (aCoef < 0.000001) {
@@ -317,69 +365,26 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
          }
          double bCoef = nextScheduled * (def.targetUsersPerSec - def.initialUsersPerSec) + def.initialUsersPerSec * def.duration;
          double cCoef = def.duration * 1000 * Math.log(random.nextDouble());
-         return (-bCoef + Math.sqrt(bCoef * bCoef - 4 * aCoef * cCoef)) / (2 * aCoef);
-      }
-
-      @Override
-      public void reserveSessions() {
-         sessionPool.reserve(def.maxSessions);
+         return nextScheduled + (-bCoef + Math.sqrt(bCoef * bCoef - 4 * aCoef * cCoef)) / (2 * aCoef);
       }
    }
 
-   public static class ConstantPerSec extends PhaseInstanceImpl<Phase.ConstantPerSec> {
-      private final Random random = new Random();
-      private int startedUsers = 0;
-      private double nextScheduled = nextSession();
+   public static class ConstantPerSec extends OpenModelPhase<Phase.ConstantPerSec> {
 
       public ConstantPerSec(Phase.ConstantPerSec def) {
          super(def);
       }
 
       @Override
-      public void proceed(EventExecutorGroup executorGroup) {
-         if (status.isFinished()) {
-            return;
-         }
-         long now = System.currentTimeMillis();
-         long delta = now - absoluteStartTime;
-         long nextDelta;
-         if (def.variance) {
-            while (delta > nextScheduled) {
-               if (startNewSession()) {
-                  return;
-               }
-               ++startedUsers;
-               // TODO: after many iterations there will be some skew due to imprecise double calculations
-               // Maybe we could restart from the expected rate every 1000th session?
-               nextScheduled += nextSession();
-            }
-            nextDelta = (long) Math.ceil(nextScheduled);
-         } else {
-            int required = (int) (delta * def.usersPerSec / 1000);
-            // mathematically, the formula below should be 1000 * (startedUsers + 1) / usersPerSec but while
-            // integer division is rounding down, we're trying to round up
-            nextDelta = (long) ((1000 * (startedUsers + 1) + def.usersPerSec - 1) / def.usersPerSec);
-            for (int i = required - startedUsers; i > 0; --i) {
-               if (startNewSession()) {
-                  return;
-               }
-            }
-            startedUsers = Math.max(startedUsers, required);
-         }
-
-         if (trace) {
-            log.trace("{}: {} after start, {} started, next user in {} ms", def.name, delta, startedUsers, nextDelta - delta);
-         }
-         executorGroup.schedule(() -> proceed(executorGroup), nextDelta - delta, TimeUnit.MILLISECONDS);
-      }
-
-      private double nextSession() {
-         return 1000 * -Math.log(Math.max(1e-20, random.nextDouble())) / def.usersPerSec;
+      protected long nextSessionMetronome(long delta) {
+         long required = (long) (delta * def.usersPerSec / 1000);
+         nextScheduled = (1000 * (startedOrThrottledUsers + 1) + def.usersPerSec) / def.usersPerSec;
+         return required;
       }
 
       @Override
-      public void reserveSessions() {
-         sessionPool.reserve(def.maxSessions);
+      protected double nextSessionRandomized() {
+         return nextScheduled + (1000 * -Math.log(Math.max(1e-20, random.nextDouble())) / def.usersPerSec);
       }
    }
 
