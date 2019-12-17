@@ -13,19 +13,19 @@ import io.hyperfoil.api.processor.RequestProcessorBuilder;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 import io.hyperfoil.core.handlers.DefragProcessor;
 
-public class DefragHandler extends DefragProcessor{
+public class DefaultHandler extends DefragProcessor{
 
 
-    private static final Logger log = LoggerFactory.getLogger(DefragHandler.class);
+    private static final Logger log = LoggerFactory.getLogger(DefaultHandler.class);
 
-    public DefragHandler(Processor processor) {
+    public DefaultHandler(Processor processor) {
         super(processor);
     }
 
     // Make this builder loadable as service
     @MetaInfServices(RequestProcessorBuilder.class)
     // This is the step name that will be used in the YAML
-    @Name("defrag")
+    @Name("default")
     public static class Builder implements RequestProcessorBuilder, InitFromParam<Builder> {
         private Locator locator;
         private RequestProcessorBuilder processor;
@@ -37,9 +37,9 @@ public class DefragHandler extends DefragProcessor{
         }
 
         @Override
-        public DefragHandler build() {
+        public DefaultHandler build() {
             // TODO Auto-generated method stub
-            return new DefragHandler(processor.build());
+            return new DefaultHandler(processor.build());
         }
 
         public Builder processor(Processor<Request> processor) {

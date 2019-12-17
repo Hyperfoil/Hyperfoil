@@ -38,7 +38,7 @@ phases:
               pattern: /customer/byid/uid22@email.com
             handler:
               body:
-              - defrag:
+              - default:
                   processor:
                     simple:
                       toVar: response
