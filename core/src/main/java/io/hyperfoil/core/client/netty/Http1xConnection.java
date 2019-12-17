@@ -38,6 +38,8 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
 
    private final Deque<HttpRequest> inflights;
    private final BiConsumer<HttpConnection, Throwable> activationHandler;
+   private final boolean secure;
+
    private HttpConnectionPool pool;
    private ChannelHandlerContext ctx;
    // we can safely use non-atomic variables since the connection should be always accessed by single thread
@@ -48,6 +50,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    Http1xConnection(HttpClientPoolImpl client, BiConsumer<HttpConnection, Throwable> handler) {
       this.activationHandler = handler;
       this.inflights = new ArrayDeque<>(client.http.pipeliningLimit());
+      this.secure = client.isSecure();
    }
 
    @Override
@@ -234,7 +237,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
 
    @Override
    public boolean isSecure() {
-      return pool.clientPool().isSecure();
+      return secure;
    }
 
    @Override

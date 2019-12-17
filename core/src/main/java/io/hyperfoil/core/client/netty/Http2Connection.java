@@ -36,11 +36,14 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
    private static final Logger log = LoggerFactory.getLogger(Http2Connection.class);
    private static final boolean trace = log.isTraceEnabled();
 
-   private HttpConnectionPool pool;
    private final ChannelHandlerContext context;
    private final io.netty.handler.codec.http2.Http2Connection connection;
    private final Http2ConnectionEncoder encoder;
    private final IntObjectMap<HttpRequest> streams = new IntObjectHashMap<>();
+   private final long clientMaxStreams;
+   private final boolean secure;
+
+   private HttpConnectionPool pool;
    private int numStreams;
    private long maxStreams;
    private boolean closed;
@@ -53,7 +56,8 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
       this.context = context;
       this.connection = connection;
       this.encoder = encoder;
-      this.maxStreams = clientPool.config().maxHttp2Streams();
+      this.clientMaxStreams = this.maxStreams = clientPool.config().maxHttp2Streams();
+      this.secure = clientPool.isSecure();
 
       Http2EventAdapter listener = new EventAdapter();
 
@@ -164,7 +168,7 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
 
    @Override
    public boolean isSecure() {
-      return pool.clientPool().isSecure();
+      return secure;
    }
 
    private int nextStreamId() {
@@ -194,7 +198,9 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
       @Override
       public void onSettingsRead(ChannelHandlerContext ctx, Http2Settings settings) {
          if (settings.maxConcurrentStreams() != null) {
-            maxStreams = Math.min(pool.clientPool().config().maxHttp2Streams(), settings.maxConcurrentStreams());
+            // The settings frame may be sent at any moment, e.g. when the connection
+            // does not have ongoing request and therefore the pool == null
+            maxStreams = Math.min(clientMaxStreams, settings.maxConcurrentStreams());
          }
       }
 
@@ -223,7 +229,7 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
          int ack = super.onDataRead(ctx, streamId, data, padding, endOfStream);
          HttpRequest request = streams.get(streamId);
          if (request != null && !request.isCompleted()) {
-            HttpResponseHandlers handlers = (HttpResponseHandlers) request.handlers();
+            HttpResponseHandlers handlers = request.handlers();
             handlers.handleBodyPart(request, data, data.readerIndex(), data.readableBytes(), endOfStream);
          }
          if (endOfStream) {
@@ -237,7 +243,7 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
          HttpRequest request = streams.remove(streamId);
          if (request != null) {
             numStreams--;
-            HttpResponseHandlers handlers = (HttpResponseHandlers) request.handlers();
+            HttpResponseHandlers handlers = request.handlers();
             if (!request.isCompleted()) {
                // TODO: maybe add a specific handler because we don't need to terminate other streams
                handlers.handleThrowable(request, new IOException("HTTP2 stream was reset"));
