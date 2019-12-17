@@ -25,8 +25,8 @@ import io.hyperfoil.api.Version;
 import io.hyperfoil.clustering.ControllerVerticle;
 import io.hyperfoil.clustering.AgentVerticle;
 import io.hyperfoil.clustering.Codecs;
-import io.hyperfoil.internal.Controller;
 import io.hyperfoil.internal.Properties;
+import io.netty.util.ResourceLeakDetector;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Handler;
 import io.vertx.core.Verticle;
@@ -99,6 +99,7 @@ class Hyperfoil {
          Codecs.register(vertx);
          startedHandler.handle(vertx);
       });
+      ensureNettyResourceLeakDetection();
    }
 
    private static InetAddress getAddressWithBestMatch(InetAddress controllerAddress) {
@@ -164,6 +165,23 @@ class Hyperfoil {
       });
    }
 
+   static void ensureNettyResourceLeakDetection() {
+      // Vert.x disables Netty's memory leak detection in VertxImpl static ctor - we need to revert that
+      String leakDetectionLevel = System.getProperty("io.netty.leakDetection.level");
+      if (leakDetectionLevel != null) {
+         leakDetectionLevel = leakDetectionLevel.trim();
+         for (ResourceLeakDetector.Level level : ResourceLeakDetector.Level.values()) {
+            if (leakDetectionLevel.equalsIgnoreCase(level.name()) || leakDetectionLevel.equals(String.valueOf(level.ordinal()))) {
+               ResourceLeakDetector.setLevel(level);
+               return;
+            }
+         }
+         log.warn("Cannot parse Netty leak detection level '{}', use one of: ",
+               leakDetectionLevel, ResourceLeakDetector.Level.values());
+      }
+      ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.SIMPLE);
+   }
+
    public static class Agent extends Hyperfoil {
       public static void main(String[] args) {
          clusteredVertx(false, vertx -> deploy(vertx, AgentVerticle.class));
@@ -182,6 +200,7 @@ class Hyperfoil {
          Thread.setDefaultUncaughtExceptionHandler(Hyperfoil::defaultUncaughtExceptionHandler);
          log.info("Starting non-clustered Vert.x...");
          Vertx vertx = Vertx.vertx();
+         ensureNettyResourceLeakDetection();
          Codecs.register(vertx);
          deploy(vertx, ControllerVerticle.class);
       }

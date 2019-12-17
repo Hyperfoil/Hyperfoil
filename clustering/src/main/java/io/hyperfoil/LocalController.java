@@ -60,6 +60,7 @@ public class LocalController implements Controller {
          System.setProperty(Properties.CONTROLLER_PORT, "0");
          Vertx vertx = Vertx.vertx();
          Codecs.register(vertx);
+         Hyperfoil.ensureNettyResourceLeakDetection();
          CompletableFuture<Integer> completion = new CompletableFuture<>();
          ControllerVerticle controller = new ControllerVerticle();
          vertx.deployVerticle(controller, new DeploymentOptions(), event -> {
