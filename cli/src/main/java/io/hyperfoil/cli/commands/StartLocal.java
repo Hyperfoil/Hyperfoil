@@ -17,7 +17,7 @@ import io.hyperfoil.internal.Properties;
 
 @CommandDefinition(name = "start-local", description = "Start non-clustered controller within the CLI process.")
 public class StartLocal extends ServerCommand {
-   @Option(shortName = 'l', description = "Default log level for controller log.", defaultValue = "INFO")
+   @Option(shortName = 'l', description = "Default log level for controller log.", defaultValue = "")
    private String logLevel;
 
    @Argument(description = "Root directory used for the controller.")
@@ -43,7 +43,9 @@ public class StartLocal extends ServerCommand {
          invocation.println("Starting controller in " + (rootDir == null ? "default directory (/tmp/hyperfoil)" : rootDir.getAbsolutePath()));
          // disable logs from controller
          System.setProperty(Properties.LOG4J2_CONFIGURATION_FILE, getClass().getClassLoader().getResource("log4j2-local-controller.xml").toString());
-         System.setProperty(Properties.CONTROLLER_LOG_LEVEL, logLevel);
+         if (!logLevel.isEmpty()) {
+            System.setProperty(Properties.CONTROLLER_LOG_LEVEL, logLevel);
+         }
          Controller controller = factory.start(rootDir == null ? null : ((FileResource) rootDir).getFile().toPath());
          invocation.context().setLocalControllerHost(controller.host());
          invocation.context().setLocalControllerPort(controller.port());
