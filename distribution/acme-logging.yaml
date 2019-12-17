@@ -24,14 +24,27 @@ phases:
               header:
                 - cookie:
                     name: jwt_token
-                    toVar: moss
-                - log:
-                    message: moss
-                    var : moss
+                    toVar: jwtToken
+        - log:
+            message: jwt_token is {}
+            vars : 
+            - jwtToken
       - customer:
         - httpRequest:
             headers:
-              Content-Type: "application/x-www-form-urlencoded"
-              Authorization: moss
+                Authorization:
+                  pattern: Bearer ${jwtToken}
             GET:
               pattern: /customer/byid/uid22@email.com
+            handler:
+              body:
+              - defrag:
+                  processor:
+                    simple:
+                      toVar: response
+                      format: STRING
+        - log:
+            message: response is {}
+            vars:
+            - response
+
