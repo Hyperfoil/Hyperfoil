@@ -5,8 +5,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.Objects;
-import java.util.stream.Stream;
 
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.session.Session;
@@ -14,7 +12,7 @@ import io.hyperfoil.api.session.Session;
 /**
  * This instance holds common statistics shared between all {@link Session sessions} (in given phase) driven by the same executor.
  */
-public class SessionStatistics implements Iterable<Statistics> {
+public class SessionStatistics {
    private Phase[] phases;
    private int[] stepIds;
    private Map<String, Statistics>[] maps;
@@ -25,11 +23,6 @@ public class SessionStatistics implements Iterable<Statistics> {
       phases = new Phase[4];
       stepIds = new int[4];
       maps = new Map[4];
-   }
-
-   @Override
-   public Iterator<Statistics> iterator() {
-      return new It();
    }
 
    public Statistics getOrCreate(Phase phase, int stepId, String name, long startTime) {
@@ -73,10 +66,6 @@ public class SessionStatistics implements Iterable<Statistics> {
 
    public Map<String, Statistics> stats(int index) {
       return maps[index];
-   }
-
-   public Stream<Map<String, Statistics>> maps() {
-      return Stream.of(maps).filter(Objects::nonNull);
    }
 
    public void prune(Phase phase) {

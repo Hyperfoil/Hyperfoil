@@ -7,7 +7,6 @@ import io.hyperfoil.api.collection.ElasticPool;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.session.PhaseChangeHandler;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.api.statistics.Statistics;
 import io.hyperfoil.api.session.PhaseInstance;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -30,7 +29,6 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
    protected D def;
    protected ElasticPool<Session> sessionPool;
    protected List<Session> sessionList;
-   private Iterable<Statistics> statistics;
    private PhaseChangeHandler phaseChangeHandler;
    // Reads are done without locks
    protected volatile Status status = Status.NOT_STARTED;
@@ -76,14 +74,9 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
 
    @Override
    public void start(EventExecutorGroup executorGroup) {
-      long now = System.currentTimeMillis();
-      for (Statistics stats : statistics) {
-         stats.start(now);
-      }
-
       assert status == Status.NOT_STARTED : "Status is " + status;
       status = Status.RUNNING;
-      absoluteStartTime = now;
+      absoluteStartTime = System.currentTimeMillis();
       log.debug("{} changing status to RUNNING", def.name);
       phaseChangeHandler.onChange(def, Status.RUNNING, false, error);
       proceed(executorGroup);
@@ -127,10 +120,9 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
 
    // TODO better name
    @Override
-   public void setComponents(ElasticPool<Session> sessionPool, List<Session> sessionList, Iterable<Statistics> statistics, PhaseChangeHandler phaseChangeHandler) {
+   public void setComponents(ElasticPool<Session> sessionPool, List<Session> sessionList, PhaseChangeHandler phaseChangeHandler) {
       this.sessionPool = sessionPool;
       this.sessionList = sessionList;
-      this.statistics = statistics;
       this.phaseChangeHandler = phaseChangeHandler;
    }
 
@@ -167,10 +159,6 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
    public void setTerminated() {
       status = Status.TERMINATED;
       log.debug("{} changing status to TERMINATED", def.name);
-      long now = System.currentTimeMillis();
-      for (Statistics stats : statistics) {
-         stats.end(now);
-      }
       phaseChangeHandler.onChange(def, status, false, error);
    }
 
