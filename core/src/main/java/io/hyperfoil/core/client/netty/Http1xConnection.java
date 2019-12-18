@@ -207,6 +207,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
          if (trace) {
             log.trace("#{} Request is completed from cache", request.session.uniqueId());
          }
+         request.statistics().addCacheHit(request.startTimestampMillis());
          request.handlers().handleEnd(request, false);
          --size;
          pool.release(this);

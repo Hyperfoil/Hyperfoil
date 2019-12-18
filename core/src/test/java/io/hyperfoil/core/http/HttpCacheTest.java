@@ -19,6 +19,7 @@ import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.statistics.Statistics;
+import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.core.VertxBaseTest;
 import io.hyperfoil.core.client.netty.HttpClientPoolImpl;
 import io.hyperfoil.core.session.SessionFactory;
@@ -51,31 +52,42 @@ public class HttpCacheTest extends VertxBaseTest {
       // First request
       context.requests.add(() -> doRequest(context, GET_TEST, null));
       context.serverQueue.add(req -> req.response().end());
-      context.handlers.add(() -> ctx.assertEquals(context.serverRequests.get(), 1));
+      context.handlers.add(req -> {
+         ctx.assertEquals(context.serverRequests.get(), 1);
+         assertCacheHits(ctx, req, 0);
+      });
 
       // Second request, cached
       context.requests.add(() -> doRequest(context, GET_TEST, null));
-      context.handlers.add(() -> ctx.assertEquals(context.serverRequests.get(), 1));
+      context.handlers.add(req -> {
+         ctx.assertEquals(context.serverRequests.get(), 1);
+         assertCacheHits(ctx, req, 1);
+      });
 
       // POST invalidates the cache
       context.requests.add(() -> doRequest(context, POST_TEST, null));
       context.serverQueue.add(req -> req.response().end());
-      context.handlers.add(() -> {
+      context.handlers.add(req -> {
          ctx.assertEquals(context.serverRequests.get(), 2);
          ctx.assertEquals(context.session.httpCache().size(), 0);
+         assertCacheHits(ctx, req, 0);
       });
 
       // 4th request is not cached
       context.requests.add(() -> doRequest(context, GET_TEST, null));
       context.serverQueue.add(req -> req.response().end());
-      context.handlers.add(() -> ctx.assertEquals(context.serverRequests.get(), 3));
+      context.handlers.add(req -> {
+         ctx.assertEquals(context.serverRequests.get(), 3);
+         assertCacheHits(ctx, req, 0);
+      });
 
       // 5th request, cached
       context.requests.add(() -> doRequest(context, GET_TEST, null));
-      context.handlers.add(() -> {
+      context.handlers.add(req -> {
          ctx.assertEquals(context.serverRequests.get(), 3);
          ctx.assertEquals(context.session.httpCache().size(), 1);
          ctx.assertTrue(context.serverQueue.isEmpty());
+         assertCacheHits(ctx, req, 1);
          async.countDown();
       });
 
@@ -90,23 +102,31 @@ public class HttpCacheTest extends VertxBaseTest {
       context.requests.add(() -> doRequest(context, GET_TEST, null));
       context.serverQueue.add(req -> req.response()
             .putHeader(HttpHeaderNames.EXPIRES, HttpUtil.formatDate(CLOCK.instant().plusSeconds(5).toEpochMilli())).end());
-      context.handlers.add(() -> ctx.assertEquals(context.serverRequests.get(), 1));
+      context.handlers.add(req -> {
+         ctx.assertEquals(context.serverRequests.get(), 1);
+         assertCacheHits(ctx, req, 0);
+      });
 
       context.requests.add(() -> doRequest(context, GET_TEST, null));
-      context.handlers.add(() -> {
+      context.handlers.add(req -> {
          ctx.assertEquals(context.serverRequests.get(), 1);
+         assertCacheHits(ctx, req, 1);
          CLOCK.advance(6000);
       });
 
       context.requests.add(() -> doRequest(context, GET_TEST, null));
       context.serverQueue.add(req -> req.response().end());
-      context.handlers.add(() -> ctx.assertEquals(context.serverRequests.get(), 2));
+      context.handlers.add(req -> {
+         ctx.assertEquals(context.serverRequests.get(), 2);
+         assertCacheHits(ctx, req, 0);
+      });
 
       context.requests.add(() -> doRequest(context, GET_TEST, (s, writer) -> writer.putHeader(HttpHeaderNames.CACHE_CONTROL, "max-stale=10")));
-      context.handlers.add(() -> {
+      context.handlers.add(req -> {
          ctx.assertEquals(context.serverRequests.get(), 2);
          ctx.assertEquals(context.session.httpCache().size(), 1);
          ctx.assertTrue(context.serverQueue.isEmpty());
+         assertCacheHits(ctx, req, 1);
          async.countDown();
       });
 
@@ -121,32 +141,55 @@ public class HttpCacheTest extends VertxBaseTest {
       // First request
       context.requests.add(() -> doRequest(context, GET_TEST, null));
       context.serverQueue.add(req -> req.response().putHeader(HttpHeaderNames.ETAG, "\"foo\"").end());
-      context.handlers.add(() -> ctx.assertEquals(context.serverRequests.get(), 1));
+      context.handlers.add(req -> {
+         ctx.assertEquals(context.serverRequests.get(), 1);
+         assertCacheHits(ctx, req, 0);
+      });
 
       // We have 'bar' and 'foo', should get cached as 'foo' is in the cache
       context.requests.add(() -> doRequest(context, GET_TEST, (s, writer) -> writer.putHeader(HttpHeaderNames.IF_NONE_MATCH, "\"bar\", \"foo\"")));
-      context.handlers.add(() -> ctx.assertEquals(context.serverRequests.get(), 1));
+      context.handlers.add(req -> {
+         ctx.assertEquals(context.serverRequests.get(), 1);
+         assertCacheHits(ctx, req, 1);
+      });
 
       // We have 'bar' but this is not in the cache yet -> not cached
       context.requests.add(() -> doRequest(context, GET_TEST, (s, writer) -> writer.putHeader(HttpHeaderNames.IF_NONE_MATCH, "\"bar\"")));
       context.serverQueue.add(req -> req.response().putHeader(HttpHeaderNames.ETAG, "\"bar\"").end());
-      context.handlers.add(() -> {
+      context.handlers.add(req -> {
          ctx.assertEquals(context.serverRequests.get(), 2);
          ctx.assertEquals(context.session.httpCache().size(), 2);
+         assertCacheHits(ctx, req, 0);
       });
 
       // foo still cached
       context.requests.add(() -> doRequest(context, GET_TEST, (s, writer) -> writer.putHeader(HttpHeaderNames.IF_NONE_MATCH, "\"foo\"")));
-      context.handlers.add(() -> ctx.assertEquals(context.serverRequests.get(), 2));
+      context.handlers.add(req -> {
+         ctx.assertEquals(context.serverRequests.get(), 2);
+         assertCacheHits(ctx, req, 1);
+      });
 
       // bar still cached
       context.requests.add(() -> doRequest(context, GET_TEST, (s, writer) -> writer.putHeader(HttpHeaderNames.IF_NONE_MATCH, "\"bar\"")));
-      context.handlers.add(() -> {
+      context.handlers.add(req -> {
          ctx.assertEquals(context.serverRequests.get(), 2);
+         assertCacheHits(ctx, req, 1);
          async.countDown();
       });
 
       test(ctx, context);
+   }
+
+   private void assertCacheHits(TestContext ctx, HttpRequest req, int hits) {
+      assertStats(req, snapshot -> ctx.assertEquals(snapshot.cacheHits, hits));
+   }
+
+   private void assertStats(HttpRequest request, Consumer<StatisticsSnapshot> consumer) {
+      Statistics statistics = request.statistics();
+      statistics.end(System.currentTimeMillis());
+      StatisticsSnapshot snapshot = new StatisticsSnapshot();
+      statistics.visitSnapshots(ss -> ss.addInto(snapshot));
+      consumer.accept(snapshot);
    }
 
    private void test(TestContext ctx, Context context) {
@@ -191,9 +234,9 @@ public class HttpCacheTest extends VertxBaseTest {
       HttpRequest request = context.session.httpRequestPool().acquire();
       HttpResponseHandlersImpl handlers = HttpResponseHandlersImpl.Builder.forTesting()
             .onCompletion(s -> {
-               Runnable handler = context.handlers.poll();
+               Consumer<HttpRequest> handler = context.handlers.poll();
                if (handler != null) {
-                  handler.run();
+                  handler.accept(request);
                   Runnable command = context.requests.poll();
                   if (command == null) {
                      return;
@@ -220,7 +263,7 @@ public class HttpCacheTest extends VertxBaseTest {
       Session session;
       HttpClientPool pool;
       Queue<Runnable> requests = new LinkedList<>();
-      Queue<Runnable> handlers = new LinkedList<>();
+      Queue<Consumer<HttpRequest>> handlers = new LinkedList<>();
       AtomicInteger serverRequests = new AtomicInteger();
       Queue<Consumer<HttpServerRequest>> serverQueue = new LinkedList<>();
    }

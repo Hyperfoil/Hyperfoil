@@ -172,7 +172,6 @@ public class Statistics {
       }
    }
 
-   // TODO use me
    public void addCacheHit(long timestamp) {
       long criticalValueAtEnter = recordingPhaser.writerCriticalSectionEnter();
       try {

@@ -131,6 +131,7 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
          if (trace) {
             log.trace("#{} Request is completed from cache", request.session.uniqueId());
          }
+         request.statistics().addCacheHit(request.startTimestampMillis());
          request.handlers().handleEnd(request, false);
          pool.release(this);
          pool = null;
