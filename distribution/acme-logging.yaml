@@ -1,50 +1,68 @@
 name: acme
 http:
   host: http://acme.dalperf.us-south.containers.appdomain.cloud
-  sharedConnections: 10
+  sharedConnections: 1
 phases:
-- login:
+- bookingFlights:
     constantPerSec:
       usersPerSec: 1
       duration: 10s
       scenario:
-      - login:
-        - httpRequest:
-            headers:
-              Content-Type: "application/x-www-form-urlencoded"
-            POST:
-              pattern: /auth/login
-            body:
-              form:
-              - name: login
-                value: uid22@email.com
-              - name: password
-                value: password
-            handler:
-              header:
-                - cookie:
-                    name: jwt_token
-                    toVar: jwtToken
-        - log:
-            message: jwt_token is {}
-            vars : 
-            - jwtToken
-      - customer:
-        - httpRequest:
-            headers:
-                Authorization:
-                  pattern: Bearer ${jwtToken}
-            GET:
-              pattern: /customer/byid/uid22@email.com
-            handler:
+        initialSequences:
+        - queryFlight:
+          - randomItem:
+              file: AirportsFrom.txt
+              toVar: fromCode
+          - randomItem:
+              file: AirportsTo.txt
+              toVar: toCode
+          - httpRequest:
+              POST:
+                pattern: /flight/queryflights
               body:
-              - default:
-                  processor:
-                    simple:
-                      toVar: response
-                      format: STRING
-        - log:
-            message: response is {}
-            vars:
-            - response
-
+                form:
+                - name: fromAirport
+                  pattern: ${fromCode}
+                - name: toAirport
+                  pattern: ${toCode}
+                - name: fromDate
+                  value: "Thu Dec 20 00:00:00 EST 2019"
+                - name: returnDate
+                  value: "Thu Dec 21 00:00:00 EST 2019"
+                - name: oneWay
+                  value: false
+              handler:
+                body:
+                - default:
+                    processor:
+                      simple:
+                        toVar: flights
+                        format: STRING
+          - flightProcessor:
+              fromVar: flights
+              isAvailable: available
+              toFlightId: fid
+              toFlightSegId: fsid
+              retFlightId: rfid
+              retFlightSegId: rfsid
+              oneWay : false
+          - log:
+              message: available code is {}
+              vars:
+              - available
+          - log:
+              message: toFlightId is {}
+              vars:
+              - fid
+          - log:
+              message: toFlightSegId is {}
+              vars:
+              - fsid
+          - log:
+              message: retFlightId is {}
+              vars:
+              - rfid
+          - log:
+              message: retFlightSegId is {}
+              vars:
+              - rfsid

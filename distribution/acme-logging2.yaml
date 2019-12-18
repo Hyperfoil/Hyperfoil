@@ -1,0 +1,90 @@
+name: acme
+http:
+  host: http://acme.dalperf.us-south.containers.appdomain.cloud
+  sharedConnections: 1
+phases:
+- bookingFlights:
+    constantPerSec:
+      usersPerSec: 1
+      duration: 10s
+      scenario:
+        initialSequences:
+        - queryFlight:
+          - randomItem:
+              file: AirportsFrom.txt
+              toVar: fromCode
+          - randomItem:
+              file: AirportsTo.txt
+              toVar: toCode
+          - httpRequest:
+              POST:
+                pattern: /flight/queryflights
+              body:
+                form:
+                - name: fromAirport
+                  pattern: ${fromCode}
+                - name: toAirport
+                  pattern: ${toCode}
+                - name: fromDate
+                  value: "Thu Dec 20 00:00:00 EST 2019"
+                - name: returnDate
+                  value: "Thu Dec 21 00:00:00 EST 2019"
+                - name: oneWay
+                  value: false
+              handler:
+                body:
+                - default:
+                    processor:
+                      simple:
+                        toVar: flights
+                        format: STRING
+          - isFlightAvailable:
+              fromVar: flights
+              isAvailable: available
+              oneWay : false
+          - breakSequence:
+               intCondition:
+                 fromVar: available
+                 equalTo: 0
+          - nextSequence: login
+        - login:
+          - randomInt:
+              min: 0
+              max: 10
+              toVar: userId
+          - httpRequest:
+              POST:
+                value: /auth/login
+              body:
+                form:
+                - name: login
+                  pattern: uid22@email.com
+                - name: password
+                  value: password
+              handler:
+                header:
+                  - cookie:
+                      name: jwt_token
+                      toVar: jwtToken
+          - nextSequence: bookFlights
+        - bookFlights:
+          - httpRequest:
+              headers:
+                Authorization:
+                  pattern: Bearer ${jwtToken}
+              POST:
+                pattern: /booking/bookflights
+              body:
+                form:
+                - name: userid
+                  pattern: uid22@email.com
+                - name: toFlightId
+                  pattern: ${toCode}
+                - name: toFlightSegId
+                  pattern: ${toCode}
+                - name: retFlightId
+                  pattern: ${toCode}
+                - name: retFlightSegId
+                  pattern: ${toCode}
+                - name: oneWayFlight
+                  value: "Thu Dec 05 00:00:00 EST 2019"
