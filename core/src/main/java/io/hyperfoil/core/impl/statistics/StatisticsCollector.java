@@ -55,7 +55,7 @@ public class StatisticsCollector implements Consumer<SessionStatistics> {
       }
    }
 
-   public void visitStatistics(StatisticsConsumer consumer, CountDown countDown) {
+   public void visitStatistics(StatisticsConsumer consumer, boolean isPhaseComplete, CountDown countDown) {
       for (Iterator<Map.Entry<Integer, Map<String, IntObjectMap<StatisticsSnapshot>>>> it1 = aggregated.entrySet().iterator(); it1.hasNext(); ) {
          Map.Entry<Integer, Map<String, IntObjectMap<StatisticsSnapshot>>> entry = it1.next();
          int phaseAndStepId = entry.getKey();
@@ -71,7 +71,7 @@ public class StatisticsCollector implements Consumer<SessionStatistics> {
                if (pe.value().isEmpty()) {
                   it3.remove();
                } else {
-                  consumer.accept(phases[phaseAndStepId >> 16], phaseAndStepId & 0xFFFF, metric, pe.value(), countDown);
+                  consumer.accept(phases[phaseAndStepId >> 16], isPhaseComplete, phaseAndStepId & 0xFFFF, metric, pe.value(), countDown);
                   pe.value().reset();
                }
             }
@@ -89,6 +89,6 @@ public class StatisticsCollector implements Consumer<SessionStatistics> {
 
 
    public interface StatisticsConsumer {
-      void accept(Phase phase, int stepId, String metric, StatisticsSnapshot snapshot, CountDown countDown);
+      void accept(Phase phase, boolean isPhaseComplete, int stepId, String metric, StatisticsSnapshot snapshot, CountDown countDown);
    }
 }

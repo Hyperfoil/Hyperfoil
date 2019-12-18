@@ -5,6 +5,7 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 
 import io.hyperfoil.api.config.Benchmark;
+import io.hyperfoil.api.session.PhaseInstance;
 import io.hyperfoil.clustering.messages.AgentControlMessage;
 import io.hyperfoil.clustering.messages.AgentHello;
 import io.hyperfoil.core.util.CountDown;
@@ -14,6 +15,7 @@ import io.hyperfoil.clustering.messages.PhaseControlMessage;
 import io.hyperfoil.internal.Properties;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.AsyncResult;
+import io.vertx.core.Context;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.eventbus.EventBus;
@@ -139,7 +141,7 @@ public class AgentVerticle extends AbstractVerticle {
             }, 1);
             if (runner != null) {
                runner.visitStatistics(requestStatsSender);
-               requestStatsSender.send(completion);
+               requestStatsSender.send(true, completion);
                runner.shutdown();
             }
             if (controlFeedConsumer != null) {
@@ -206,22 +208,37 @@ public class AgentVerticle extends AbstractVerticle {
          handler.handle(Future.failedFuture("Another simulation is running"));
          return;
       }
-      runner = new SimulationRunnerImpl(benchmark, agentId, (phase, status, sessionLimitExceeded, error) -> {
-         log.debug("{} changed phase {} to {}", deploymentId, phase, status);
-         eb.send(Feeds.RESPONSE, new PhaseChangeMessage(deploymentId, runId, phase.name(), status, sessionLimitExceeded, error));
-      });
+
+      Context context = vertx.getOrCreateContext();
+
+      runner = new SimulationRunnerImpl(benchmark, agentId);
       controlFeedConsumer = listenOnControl();
       requestStatsSender = new RequestStatsSender(benchmark, eb, deploymentId, runId);
       statisticsCountDown = new CountDown(1);
       sessionStatsSender = new SessionStatsSender(eb, deploymentId, runId);
 
+      runner.setPhaseChangeHandler((phase, status, sessionLimitExceeded, error) -> {
+         log.debug("{} changed phase {} to {}", deploymentId, phase, status);
+         eb.send(Feeds.RESPONSE, new PhaseChangeMessage(deploymentId, runId, phase.name(), status, sessionLimitExceeded, error));
+         if (status == PhaseInstance.Status.TERMINATED) {
+            context.runOnContext(nil -> {
+               runner.visitStatistics(phase, requestStatsSender);
+               requestStatsSender.send(true, statisticsCountDown);
+            });
+         }
+      });
+
       runner.init(result -> {
          if (result.succeeded()) {
-            statsTimerId = vertx.setPeriodic(benchmark.statisticsCollectionPeriod(), timerId -> {
-               runner.visitStatistics(requestStatsSender);
-               requestStatsSender.send(statisticsCountDown);
-               runner.visitSessionPoolStats(sessionStatsSender);
-               sessionStatsSender.send();
+            // This handler is run by unknown thread and we need to register
+            // the timer back to this verticle's eventloop
+            context.runOnContext(nil -> {
+               statsTimerId = vertx.setPeriodic(benchmark.statisticsCollectionPeriod(), timerId -> {
+                  runner.visitStatistics(requestStatsSender);
+                  requestStatsSender.send(false, statisticsCountDown);
+                  runner.visitSessionPoolStats(sessionStatsSender);
+                  sessionStatsSender.send();
+               });
             });
          } else {
             log.error("Initialization failed.");

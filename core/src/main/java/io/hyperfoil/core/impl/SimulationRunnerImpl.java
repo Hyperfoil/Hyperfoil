@@ -62,16 +62,15 @@ public class SimulationRunnerImpl implements SimulationRunner {
    protected final EventExecutor[] executors;
    protected final Map<String, HttpClientPool> httpClientPools = new HashMap<>();
    protected final HttpDestinationTableImpl[] httpDestinations;
-   private final PhaseChangeHandler phaseChangeHandler;
    private final Queue<Phase> toPrune = new ArrayDeque<>();
+   private PhaseChangeHandler phaseChangeHandler;
    private boolean isDepletedMessageQuietened;
 
-   public SimulationRunnerImpl(Benchmark benchmark, int agentId, PhaseChangeHandler phaseChangeHandler) {
+   public SimulationRunnerImpl(Benchmark benchmark, int agentId) {
       this.eventLoopGroup = new NioEventLoopGroup(benchmark.threads());
       this.executors = StreamSupport.stream(eventLoopGroup.spliterator(), false).toArray(EventExecutor[]::new);
       this.benchmark = benchmark;
       this.agentId = agentId;
-      this.phaseChangeHandler = phaseChangeHandler;
       this.httpDestinations = new HttpDestinationTableImpl[executors.length];
       @SuppressWarnings("unchecked")
       Map<String, HttpConnectionPool>[] httpConnectionPools = new Map[executors.length];
@@ -102,6 +101,10 @@ public class SimulationRunnerImpl implements SimulationRunner {
          Map<String, HttpConnectionPool> pools = httpConnectionPools[executorId];
          httpDestinations[executorId] = new HttpDestinationTableImpl(pools);
       }
+   }
+
+   public void setPhaseChangeHandler(PhaseChangeHandler phaseChangeHandler) {
+      this.phaseChangeHandler = phaseChangeHandler;
    }
 
    @Override
@@ -213,6 +216,7 @@ public class SimulationRunnerImpl implements SimulationRunner {
             consumer.accept(statistics);
          }
       }
+      // TODO: oops, this seems to be not thread-safe
       while (!toPrune.isEmpty()) {
          Phase phase = toPrune.poll();
          for (SharedResources sharedResources : this.sharedResources.values()) {

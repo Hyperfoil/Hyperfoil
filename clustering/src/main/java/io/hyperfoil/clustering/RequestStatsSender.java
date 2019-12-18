@@ -25,11 +25,11 @@ public class RequestStatsSender extends StatisticsCollector {
       this.runId = runId;
    }
 
-   public void send(CountDown completion) {
-      visitStatistics(sendStats, completion);
+   public void send(boolean isPhaseComplete, CountDown completion) {
+      visitStatistics(sendStats, isPhaseComplete, completion);
    }
 
-   private void sendStats(Phase phase, int stepId, String metric, StatisticsSnapshot statistics, CountDown countDown) {
+   private void sendStats(Phase phase, boolean isPhaseComplete, int stepId, String metric, StatisticsSnapshot statistics, CountDown countDown) {
       if (statistics.histogram.getEndTimeStamp() >= statistics.histogram.getStartTimeStamp()) {
          log.debug("Sending stats for {} {}/{}, id {}: {} requests, {} responses", phase.name(), stepId, metric,
                statistics.sequenceId, statistics.requestCount, statistics.responseCount);
@@ -38,7 +38,7 @@ public class RequestStatsSender extends StatisticsCollector {
          StatisticsSnapshot copy = new StatisticsSnapshot();
          statistics.copyInto(copy);
          countDown.increment();
-         eb.send(Feeds.STATS, new RequestStatsMessage(address, runId, phase.id(), stepId, metric, copy),
+         eb.send(Feeds.STATS, new RequestStatsMessage(address, runId, phase.id(), isPhaseComplete, stepId, metric, copy),
                reply -> countDown.countDown());
       }
    }

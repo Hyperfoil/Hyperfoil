@@ -36,8 +36,8 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
    protected volatile Status status = Status.NOT_STARTED;
    protected long absoluteStartTime;
    protected AtomicInteger activeSessions = new AtomicInteger(0);
-   private Throwable error;
-   private boolean sessionLimitExceeded;
+   private volatile Throwable error;
+   private volatile boolean sessionLimitExceeded;
 
    public static PhaseInstance newInstance(Phase def) {
       @SuppressWarnings("unchecked")

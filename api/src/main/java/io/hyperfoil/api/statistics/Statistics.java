@@ -31,7 +31,9 @@ public class Statistics {
    // this will help to keep the active array always big enough.
    private int numSamples = 4;
 
+   @SuppressWarnings("unused")
    private volatile int lowestActive1;
+   @SuppressWarnings("unused")
    private volatile int lowestActive2;
    private volatile int highestActive;
    private volatile AtomicIntegerFieldUpdater<Statistics> lowestActiveUpdater = LU1;
@@ -48,8 +50,6 @@ public class Statistics {
       inactive = new AtomicReferenceArray<>(16);
       StatisticsSnapshot first = new StatisticsSnapshot();
       first.sequenceId = 0;
-      first.histogram.setStartTimeStamp(startTimestamp);
-      first.histogram.setEndTimeStamp(startTimestamp + SAMPLING_PERIOD_MILLIS);
       active.set(0, first);
       highestTrackableValue = first.histogram.getHighestTrackableValue();
    }
@@ -172,6 +172,7 @@ public class Statistics {
       }
    }
 
+   // TODO use me
    public void addCacheHit(long timestamp) {
       long criticalValueAtEnter = recordingPhaser.writerCriticalSectionEnter();
       try {
@@ -193,14 +194,6 @@ public class Statistics {
             }
             inactive = temp;
          }
-         for (int i = lastLowestIndex; i < numSamples; ++i) {
-            StatisticsSnapshot snapshot = inactive.get(i);
-            if (snapshot != null) {
-               snapshot.reset();
-               snapshot.histogram.setStartTimeStamp(startTimestamp + i * SAMPLING_PERIOD_MILLIS);
-               snapshot.histogram.setEndTimeStamp(startTimestamp + (i + 1) * SAMPLING_PERIOD_MILLIS);
-            }
-         }
 
          // Swap active and inactive histograms:
          final AtomicReferenceArray<StatisticsSnapshot> tempHistogram = inactive;
@@ -216,21 +209,40 @@ public class Statistics {
          recordingPhaser.flipPhase(500000L /* yield in 0.5 msec units if needed */);
 
          lastLowestIndex = Math.min(LU1.get(this), LU2.get(this));
-         inactiveUpdater.set(this, Integer.MAX_VALUE);
 
-         int maxSamples = Math.min(inactive.length(), highestActive + 1);
-         for (int i = lastLowestIndex; i < maxSamples; ++i) {
-            StatisticsSnapshot snapshot = inactive.get(i);
-            if (snapshot == null) {
-               // nothing to do
-            } else if (snapshot.isEmpty()) {
-               inactive.set(i, null);
-            } else {
-               consumer.accept(snapshot);
-            }
+         int maxSamples;
+         // If the statistics is not finished don't publish the last timestamp
+         // as this might be shortened be the termination of the phase.
+         if (endTimestamp != Long.MAX_VALUE) {
+            maxSamples = Math.min(inactive.length(), highestActive + 1);
+         } else {
+            maxSamples = Math.min(inactive.length() - 1, highestActive);
+         }
+         // Make sure that few flips later we'll fetch the stats
+         inactiveUpdater.set(this, maxSamples);
+         publish(inactive, maxSamples, consumer);
+         if (endTimestamp != Long.MAX_VALUE) {
+            // all requests must be complete, let's scan the 'active' as well
+            publish(active, maxSamples, consumer);
          }
       } finally {
          recordingPhaser.readerUnlock();
+      }
+   }
+
+   private void publish(AtomicReferenceArray<StatisticsSnapshot> array, int limit, Consumer<StatisticsSnapshot> consumer) {
+      for (int i = lastLowestIndex; i < limit; ++i) {
+         StatisticsSnapshot snapshot = array.get(i);
+         if (snapshot == null) {
+            // nothing to do
+         } else if (snapshot.isEmpty()) {
+            array.set(i, null);
+         } else {
+            snapshot.histogram.setStartTimeStamp(startTimestamp + i * SAMPLING_PERIOD_MILLIS);
+            snapshot.histogram.setEndTimeStamp(Math.min(endTimestamp, startTimestamp + (i + 1) * SAMPLING_PERIOD_MILLIS));
+            consumer.accept(snapshot);
+            snapshot.reset();
+         }
       }
    }
 
@@ -254,8 +266,7 @@ public class Statistics {
    }
 
    private StatisticsSnapshot active(long timestamp) {
-      int sample = (int) ((timestamp - startTimestamp) / SAMPLING_PERIOD_MILLIS);
-      int index = sample;
+      int index = (int) ((timestamp - startTimestamp) / SAMPLING_PERIOD_MILLIS);
       AtomicReferenceArray<StatisticsSnapshot> active = this.active;
       if (index >= active.length()) {
          index = active.length() - 1;
@@ -266,14 +277,8 @@ public class Statistics {
       StatisticsSnapshot snapshot = active.get(index);
       if (snapshot == null) {
          snapshot = new StatisticsSnapshot();
-         snapshot.histogram.setStartTimeStamp(startTimestamp + index * SAMPLING_PERIOD_MILLIS);
-         snapshot.histogram.setEndTimeStamp(startTimestamp + (index + 1) * SAMPLING_PERIOD_MILLIS);
          snapshot.sequenceId = index;
          active.set(index, snapshot);
-      }
-      if (sample != index) {
-         // stretch the period if we're including longer intervals due to visitSnapshots not keeping up
-         snapshot.histogram.setEndTimeStamp(startTimestamp + (sample + 1) * SAMPLING_PERIOD_MILLIS);
       }
       lowestActiveUpdater.accumulateAndGet(this, index, Math::min);
       // Highest active is increasing monotonically and it is updated only by the event-loop thread;

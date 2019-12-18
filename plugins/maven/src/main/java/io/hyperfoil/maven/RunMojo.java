@@ -63,7 +63,7 @@ public class RunMojo extends AbstractMojo {
 
          if (benchmark != null) {
             // We want to log all stats in the same thread to not break the output layout too much.
-            LocalSimulationRunner runner = new LocalSimulationRunner(benchmark, (phase, stepId, metric, snapshot, ignored) -> {
+            LocalSimulationRunner runner = new LocalSimulationRunner(benchmark, (phase, isPhaseComplete, stepId, metric, snapshot, ignored) -> {
                snapshot.addInto(total.computeIfAbsent(phase.name() + "/" + metric, k -> new StatisticsSnapshot()));
             }, this::printSessionPoolInfo);
             log.info("Running for {}", benchmark.statisticsCollectionPeriod());

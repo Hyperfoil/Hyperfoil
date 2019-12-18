@@ -100,7 +100,7 @@ public class RequestResponseCounterTest {
 
       AtomicLong actualNumberOfRequests = new AtomicLong(0);
       LocalSimulationRunner runner = new LocalSimulationRunner(benchmark,
-            (phase, stepId, metric, snapshot, countDown) -> actualNumberOfRequests.addAndGet(snapshot.histogram.getTotalCount()), null);
+            (phase, isPhaseComplete, stepId, metric, snapshot, countDown) -> actualNumberOfRequests.addAndGet(snapshot.histogram.getTotalCount()), null);
       runner.run();
 
       assertEquals(counter.get(), actualNumberOfRequests.get());
