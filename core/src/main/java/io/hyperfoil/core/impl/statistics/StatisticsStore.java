@@ -14,6 +14,8 @@ import io.hyperfoil.controller.model.RequestStats;
 import io.hyperfoil.core.util.LowHigh;
 import io.netty.util.collection.IntObjectHashMap;
 import io.netty.util.collection.IntObjectMap;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 
 import org.HdrHistogram.HistogramIterationValue;
 
@@ -32,6 +34,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -40,7 +43,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class StatisticsStore {
-
+   private static final Logger log = LoggerFactory.getLogger(StatisticsStore.class);
    private static final String DEFAULT_FIELD_NAME = ":DEFAULT:";
 
    private static final double OUTPUT_VALUE_UNIT_SCALING_RATIO = 1000_000.0;
@@ -501,10 +504,13 @@ public class StatisticsStore {
       if (standalone) {
          jGenerator.writeEndObject();
       }
-      return;
    }
 
    public void persist(Path dir) throws IOException {
+      Optional<Data> incomplete = this.data.values().stream().flatMap(m -> m.values().stream()).filter(d -> !d.completed).findAny();
+      if (incomplete.isPresent()) {
+         log.error("Phase {} metric {} was not completed!", incomplete.get().phase, incomplete.get().metric);
+      }
       File statsDir = dir.toFile();
       if (!statsDir.exists() && !statsDir.mkdirs()) {
          throw new IOException("Cannot create directory " + dir);
@@ -841,6 +847,7 @@ public class StatisticsStore {
       private final Map<SLA, Window> windowSlas;
       private final SLA[] totalSlas;
       private int highestSequenceId = 0;
+      private boolean completed;
 
       private Data(String phase, int stepId, String metric, Map<SLA, Window> periodSlas, SLA[] totalSlas) {
          this.phase = phase;
@@ -903,6 +910,16 @@ public class StatisticsStore {
          for (int i = Math.max(0, highestSequenceId - MERGE_DELAY); i <= highestSequenceId; ++i) {
             mergeSnapshots(i);
          }
+         // Just sanity checks
+         if (series.stream().mapToLong(ss -> ss.requestCount).sum() != total.requestCount) {
+            log.error("We lost some data (series) in phase {} metric {}", phase, metric);
+         }
+         if (agentSeries.values().stream().flatMap(List::stream).mapToLong(ss -> ss.requestCount).sum() != total.requestCount) {
+            log.error("We lost some data (agent series) in phase {} metric {}", phase, metric);
+         }
+         if (perAgent.values().stream().mapToLong(ss -> ss.requestCount).sum() != total.requestCount) {
+            log.error("We lost some data (per agent) in phase {} metric {}", phase, metric);
+         }
          for (SLA sla : totalSlas) {
             SLA.Failure failure = sla.validate(phase, metric, total);
             if (failure != null) {
@@ -910,6 +927,7 @@ public class StatisticsStore {
                failureHandler.accept(failure);
             }
          }
+         completed = true;
       }
    }
 
