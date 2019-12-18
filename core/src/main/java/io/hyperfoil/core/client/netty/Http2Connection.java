@@ -131,11 +131,10 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
          if (trace) {
             log.trace("#{} Request is completed from cache", request.session.uniqueId());
          }
+         --numStreams;
          request.statistics().addCacheHit(request.startTimestampMillis());
          request.handlers().handleEnd(request, false);
-         pool.release(this);
-         pool = null;
-         --numStreams;
+         tryReleaseToPool();
          return;
       }
 
@@ -267,11 +266,15 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
    }
 
    private void tryReleaseToPool() {
-      // If this connection was not available we make it available
-      // TODO: it would be better to check this in connection pool
-      if (numStreams == maxStreams - 1) {
-         pool.release(Http2Connection.this);
-         pool = null;
+      HttpConnectionPool pool = this.pool;
+      if (pool != null) {
+         // If this connection was not available we make it available
+         // TODO: it would be better to check this in connection pool
+         if (numStreams == maxStreams - 1) {
+            pool.release(Http2Connection.this);
+            this.pool = null;
+         }
+         pool.pulse();
       }
    }
 

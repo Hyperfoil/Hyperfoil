@@ -139,14 +139,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
                }
             }
 
-            // If this connection was not available we make it available
-            // TODO: it would be better to check this in connection pool
-            HttpConnectionPool pool = this.pool;
-            if (size == pool.clientPool().config().pipeliningLimit() - 1) {
-               pool.release(this);
-               this.pool = null;
-            }
-            pool.pulse();
+            releasePoolAndPulse();
          }
       } finally {
          if (msg instanceof ReferenceCounted) {
@@ -207,17 +200,31 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
          if (trace) {
             log.trace("#{} Request is completed from cache", request.session.uniqueId());
          }
+         --size;
          request.statistics().addCacheHit(request.startTimestampMillis());
          request.handlers().handleEnd(request, false);
-         --size;
-         pool.release(this);
-         pool = null;
+         releasePoolAndPulse();
          return;
       }
       inflights.add(request);
       ChannelPromise writePromise = ctx.newPromise();
       writePromise.addListener(request);
       ctx.writeAndFlush(msg, writePromise);
+   }
+
+   private void releasePoolAndPulse() {
+      // If this connection was not available we make it available
+      // TODO: it would be better to check this in connection pool
+      HttpConnectionPool pool = this.pool;
+      if (pool != null) {
+         // Note: the pool might be already released if the completion handler
+         // invoked another request which was served from cache.
+         if (size == pool.clientPool().config().pipeliningLimit() - 1) {
+            pool.release(this);
+            this.pool = null;
+         }
+         pool.pulse();
+      }
    }
 
    @Override

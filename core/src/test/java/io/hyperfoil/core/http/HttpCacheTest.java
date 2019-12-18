@@ -28,12 +28,15 @@ import io.hyperfoil.core.test.TestClock;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 
 @RunWith(VertxUnitRunner.class)
 public class HttpCacheTest extends VertxBaseTest {
+   private static final Logger log = LoggerFactory.getLogger(HttpCacheTest.class);
    private static final TestClock CLOCK = new TestClock();
    private static final Consumer<HttpRequest> GET_TEST = request -> {
       request.method = HttpMethod.GET;
@@ -246,6 +249,7 @@ public class HttpCacheTest extends VertxBaseTest {
             })
             .build();
       configurator.accept(request);
+      log.trace("Sending {} request to {}", request.method, request.path);
       request.start(handlers, new SequenceInstance(), new Statistics(System.currentTimeMillis()));
       @SuppressWarnings("unchecked")
       BiConsumer<Session, HttpRequestWriter>[] appenders = new BiConsumer[]{ headerAppender };
