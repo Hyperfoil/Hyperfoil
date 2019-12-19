@@ -36,10 +36,10 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
       parent.addPhase(name, this);
    }
 
-   public static Phase.Noop noop(SerializableSupplier<Benchmark> benchmark, int id, String iterationName, List<String> startAfter, List<String> startAfterStrict, List<String> terminateAfterStrict) {
+   public static Phase.Noop noop(SerializableSupplier<Benchmark> benchmark, int id, int iteration, String iterationName, List<String> startAfter, List<String> startAfterStrict, List<String> terminateAfterStrict) {
       FutureSupplier<Phase> ps = new FutureSupplier<>();
       Scenario scenario = new Scenario(new Sequence[0], new Sequence[0], new String[0], new String[0]);
-      Phase.Noop phase = new Phase.Noop(benchmark, id, iterationName, startAfter, startAfterStrict, terminateAfterStrict, scenario);
+      Phase.Noop phase = new Phase.Noop(benchmark, id, iteration, iterationName, startAfter, startAfterStrict, terminateAfterStrict, scenario);
       ps.set(phase);
       return phase;
    }
@@ -164,16 +164,16 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
             IntStream.range(0, maxIterations).mapToObj(iteration -> {
                String iterationName = formatIteration(name, iteration);
                List<String> forks = this.forks.stream().map(f -> iterationName + "/" + f.name).collect(Collectors.toList());
-               return noop(benchmark, idCounter.getAndIncrement(), iterationName, forks, Collections.emptyList(), forks);
+               return noop(benchmark, idCounter.getAndIncrement(), iteration, iterationName, forks, Collections.emptyList(), forks);
             }).forEach(phases::add);
          }
          // Referencing phase with iterations with RelativeIteration.NONE means that it starts after all its iterations
          List<String> lastIteration = Collections.singletonList(formatIteration(name, maxIterations - 1));
-         phases.add(noop(benchmark, idCounter.getAndIncrement(), name, lastIteration, Collections.emptyList(), lastIteration));
+         phases.add(noop(benchmark, idCounter.getAndIncrement(), 0, name, lastIteration, Collections.emptyList(), lastIteration));
       } else if (hasForks) {
          // add phase covering forks
          List<String> forks = this.forks.stream().map(f -> name + "/" + f.name).collect(Collectors.toList());
-         phases.add(noop(benchmark, idCounter.getAndIncrement(), name, forks, Collections.emptyList(), forks));
+         phases.add(noop(benchmark, idCounter.getAndIncrement(), 0, name, forks, Collections.emptyList(), forks));
       }
       return phases;
    }
@@ -290,7 +290,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
          if (users <= 0) {
             throw new BenchmarkDefinitionException("Phase " + name + ".users must be positive.");
          }
-         return new Phase.AtOnce(benchmark, id, iterationName(i, f.name), f.scenario.build(phase),
+         return new Phase.AtOnce(benchmark, id, i, iterationName(i, f.name), f.scenario.build(phase),
                iterationStartTime(i), iterationReferences(startAfter, i, false),
                iterationReferences(startAfterStrict, i, true), iterationReferences(terminateAfterStrict, i, false), duration,
                maxDuration,
@@ -312,11 +312,11 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
          if (users <= 0) {
             throw new BenchmarkDefinitionException("Phase " + name + ".users must be positive.");
          }
-         return new Phase.Always(benchmark, id, iterationName(i, f.name), f.scenario.build(phase), iterationStartTime(i),
-               iterationReferences(startAfter, i, false), iterationReferences(startAfterStrict, i, true),
-               iterationReferences(terminateAfterStrict, i, false), duration, maxDuration,
-               sharedResources(f),
-               sliceValue("users", this.users + usersIncrement * i, f.weight / numAgents()));
+         return new Phase.Always(benchmark, id, i, iterationName(i, f.name), f.scenario.build(phase),
+               iterationStartTime(i), iterationReferences(startAfter, i, false),
+               iterationReferences(startAfterStrict, i, true), iterationReferences(terminateAfterStrict, i, false), duration,
+               maxDuration,
+               sharedResources(f), sliceValue("users", this.users + usersIncrement * i, f.weight / numAgents()));
       }
 
       public Always users(int users) {
@@ -390,13 +390,13 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
          if (initialUsersPerSec < 0.0001 && targetUsersPerSec < 0.0001) {
             throw new BenchmarkDefinitionException("In phase " + name + " both initialUsersPerSec and targetUsersPerSec are 0");
          }
-         return new Phase.RampPerSec(benchmark, id, iterationName(i, f.name), f.scenario.build(phase),
-               iterationStartTime(i), iterationReferences(startAfter, i, false),
-               iterationReferences(startAfterStrict, i, true), iterationReferences(terminateAfterStrict, i, false),
-               duration, maxDuration, sharedResources(f),
+         return new Phase.RampPerSec(benchmark, id, i, iterationName(i, f.name),
+               f.scenario.build(phase), iterationStartTime(i),
+               iterationReferences(startAfter, i, false), iterationReferences(startAfterStrict, i, true),
+               iterationReferences(terminateAfterStrict, i, false), duration, maxDuration,
+               sharedResources(f),
                (initialUsersPerSec + initialUsersPerSecIncrement * i) * f.weight / numAgents(),
-               (targetUsersPerSec + targetUsersPerSecIncrement * i) * f.weight / numAgents(),
-               variance, maxSessions, sessionLimitPolicy);
+               (targetUsersPerSec + targetUsersPerSecIncrement * i) * f.weight / numAgents(), variance, maxSessions, sessionLimitPolicy);
       }
 
       public RampPerSec initialUsersPerSec(double initialUsersPerSec) {
@@ -444,11 +444,11 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
          if (usersPerSec <= 0) {
             throw new BenchmarkDefinitionException("Phase " + name + ".usersPerSec must be positive.");
          }
-         return new Phase.ConstantPerSec(benchmark, id, iterationName(i, f.name), f.scenario.build(phase), iterationStartTime(i),
-               iterationReferences(startAfter, i, false), iterationReferences(startAfterStrict, i, true),
-               iterationReferences(terminateAfterStrict, i, false), duration, maxDuration,
-               sharedResources(f),
-               (usersPerSec + usersPerSecIncrement * i) * f.weight / numAgents(), variance, maxSessions, sessionLimitPolicy);
+         return new Phase.ConstantPerSec(benchmark, id, i, iterationName(i, f.name), f.scenario.build(phase),
+               iterationStartTime(i), iterationReferences(startAfter, i, false),
+               iterationReferences(startAfterStrict, i, true), iterationReferences(terminateAfterStrict, i, false), duration,
+               maxDuration,
+               sharedResources(f), (usersPerSec + usersPerSecIncrement * i) * f.weight / numAgents(), variance, maxSessions, sessionLimitPolicy);
       }
 
       public ConstantPerSec usersPerSec(double usersPerSec) {
@@ -476,10 +476,10 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
          if (repeats <= 0) {
             throw new BenchmarkDefinitionException("Phase " + name + ".repeats must be positive");
          }
-         return new Phase.Sequentially(benchmark, id, iterationName(i, f.name), f.scenario().build(phase), iterationStartTime(i),
-               iterationReferences(startAfter, i, false), iterationReferences(startAfterStrict, i, true),
-               iterationReferences(terminateAfterStrict, i, false), duration, maxDuration,
-               sharedResources(f), repeats);
+         return new Phase.Sequentially(benchmark, id, i, iterationName(i, f.name), f.scenario().build(phase),
+               iterationStartTime(i), iterationReferences(startAfter, i, false),
+               iterationReferences(startAfterStrict, i, true), iterationReferences(terminateAfterStrict, i, false), duration,
+               maxDuration, sharedResources(f), repeats);
       }
    }
 

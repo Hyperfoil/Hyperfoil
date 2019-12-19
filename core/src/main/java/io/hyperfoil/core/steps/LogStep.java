@@ -13,9 +13,8 @@ import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
+import io.hyperfoil.api.session.Session.VarType;
 import io.hyperfoil.core.builders.BaseStepBuilder;
-import io.hyperfoil.core.session.IntVar;
-import io.hyperfoil.core.session.ObjectVar;
 import io.hyperfoil.core.session.SessionFactory;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -45,10 +44,10 @@ public class LogStep implements Step {
             Session.Var var = vars[i].getVar(session);
             if (!var.isSet()) {
                objects[i] = "<not set>";
-            } else if (var instanceof ObjectVar) {
-               objects[i] = var.objectValue();
-            } else if (var instanceof IntVar) {
-               objects[i] = var.intValue();
+            } else if (var.type() == VarType.OBJECT) {
+               objects[i] = var.objectValue(session);
+            } else if (var.type() == VarType.INTEGER) {
+               objects[i] = var.intValue(session);
             } else {
                objects[i] = "<unknown type>";
             }

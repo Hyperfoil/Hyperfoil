@@ -166,14 +166,14 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
          } else {
             switch (var.type()) {
                case OBJECT:
-                  String str = String.valueOf(var.objectValue());
+                  String str = String.valueOf(var.objectValue(session));
                   if (urlEncode) {
                      str = urlEncode(str);
                   }
                   sb.append(str);
                   break;
                case INTEGER:
-                  sb.append(var.intValue());
+                  sb.append(var.intValue(session));
                   break;
                default:
                   throw new IllegalArgumentException("Unknown var type: " + var);
@@ -189,7 +189,7 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
          } else {
             switch (var.type()) {
                case OBJECT:
-                  Object o = var.objectValue();
+                  Object o = var.objectValue(session);
                   if (o != null) {
                      if (urlEncode) {
                         Util.urlEncode(o.toString(), buf);
@@ -199,7 +199,7 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
                   }
                   break;
                case INTEGER:
-                  Util.intAsText2byteBuf(var.intValue(), buf);
+                  Util.intAsText2byteBuf(var.intValue(session), buf);
                   break;
                default:
                   throw new IllegalArgumentException("Unknown var type: " + var);

@@ -26,6 +26,7 @@ import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.SequenceInstance;
+import io.hyperfoil.api.session.Session.VarType;
 import io.hyperfoil.api.statistics.Statistics;
 import io.hyperfoil.core.generators.Pattern;
 import io.hyperfoil.core.generators.StringGeneratorBuilder;
@@ -33,8 +34,6 @@ import io.hyperfoil.core.generators.StringGeneratorImplBuilder;
 import io.hyperfoil.core.http.CookieAppender;
 import io.hyperfoil.core.http.HttpUtil;
 import io.hyperfoil.core.http.UserAgentAppender;
-import io.hyperfoil.core.session.IntVar;
-import io.hyperfoil.core.session.ObjectVar;
 import io.hyperfoil.core.session.SessionFactory;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -957,10 +956,10 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
                   if (!var.isSet()) {
                      throw new IllegalStateException("Variable " + myVar + " was not set yet!");
                   }
-                  if (var instanceof IntVar) {
-                     Util.intAsText2byteBuf(var.intValue(), buf);
-                  } else if (var instanceof ObjectVar) {
-                     Object o = var.objectValue();
+                  if (var.type() == VarType.INTEGER) {
+                     Util.intAsText2byteBuf(var.intValue(session), buf);
+                  } else if (var.type() == VarType.OBJECT) {
+                     Object o = var.objectValue(session);
                      if (o == null) {
                         // keep it empty
                      } else if (o instanceof byte[]) {

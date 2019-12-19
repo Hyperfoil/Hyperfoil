@@ -3,6 +3,7 @@ package io.hyperfoil.core.session;
 import java.time.Clock;
 import java.util.Collections;
 
+import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.session.Access;
 import io.netty.util.concurrent.EventExecutorGroup;
 import io.netty.util.concurrent.ImmediateEventExecutor;
@@ -14,6 +15,9 @@ import io.hyperfoil.core.impl.PhaseInstanceImpl;
 
 public final class SessionFactory {
    private static final Clock DEFAULT_CLOCK = Clock.systemDefaultZone();
+   private static final SpecialAccess[] SPECIAL = new SpecialAccess[]{
+         new SpecialAccess.Int("hyperfoil.phase.iteration", s -> s.phase().iteration)
+   };
 
    public static Session create(Scenario scenario, int agentId, int executorId, int uniqueId) {
       return new SessionImpl(scenario, agentId, executorId, uniqueId, DEFAULT_CLOCK);
@@ -26,7 +30,7 @@ public final class SessionFactory {
    public static Session forTesting(Clock clock) {
       Scenario dummyScenario = new Scenario(new Sequence[0], new Sequence[0], new String[0], new String[0]);
       SessionImpl session = new SessionImpl(dummyScenario, 0, 0, 0, clock);
-      Phase dummyPhase = new Phase(() -> null, 0, "dummy", dummyScenario, 0, Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), 0, -1, null) {
+      Phase dummyPhase = new Phase(() -> null, 0, 0, "dummy", dummyScenario, 0, Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), 0, -1, null) {
          @Override
          public String description() {
             return "dummy";
@@ -56,6 +60,13 @@ public final class SessionFactory {
          String expression = (String) key;
          if (expression.endsWith("[.]")) {
             return new SequenceScopedAccess(expression.substring(0, expression.length() - 3));
+         } else if (expression.startsWith("hyperfoil.")) {
+            for (SpecialAccess access : SPECIAL) {
+               if (access.name.equals(expression)) {
+                  return access;
+               }
+            }
+            throw new BenchmarkDefinitionException("No special variable " + expression);
          } else {
             return new SimpleAccess(key);
          }

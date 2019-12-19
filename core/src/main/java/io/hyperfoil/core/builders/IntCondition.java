@@ -2,8 +2,7 @@ package io.hyperfoil.core.builders;
 
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.core.session.IntVar;
-import io.hyperfoil.core.session.ObjectVar;
+import io.hyperfoil.api.session.Session.VarType;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.function.SerializableIntPredicate;
 import io.hyperfoil.function.SerializablePredicate;
@@ -24,10 +23,10 @@ public class IntCondition implements SerializablePredicate<Session> {
          return false;
       }
       int value;
-      if (var instanceof IntVar) {
-         value = var.intValue();
-      } else if (var instanceof ObjectVar) {
-         value = Integer.parseInt(var.objectValue().toString());
+      if (var.type() == VarType.INTEGER) {
+         value = var.intValue(session);
+      } else if (var.type() == VarType.OBJECT) {
+         value = Integer.parseInt(var.objectValue(session).toString());
       } else {
          throw new IllegalStateException("Unknown type of var: " + var);
       }
