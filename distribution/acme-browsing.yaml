@@ -1,0 +1,35 @@
+name: acmeflight
+http:
+  host: http://acme.dalperf.us-south.containers.appdomain.cloud
+  sharedConnections: 10
+phases:
+- borwsingFlights:
+    constantPerSec:
+      usersPerSec: 1
+      duration: 10s
+      scenario:
+      - queryFlight:
+        - randomItem:
+            file: AirportsFrom.txt
+            toVar: fromCode
+        - randomItem:
+            file: AirportsTo.txt
+            toVar: toCode
+        - flightDates:
+            fromDate: departureDate
+            returnDate: returnDate
+        - httpRequest:
+            POST:
+              pattern: /flight/queryflights
+            body:
+              form:
+              - name: fromAirport
+                pattern: ${fromCode}
+              - name: toAirport
+                pattern: ${toCode}
+              - name: fromDate
+                pattern: ${departureDate}
+              - name: returnDate
+                pattern: ${returnDate}
+              - name: oneWay
+                value: false

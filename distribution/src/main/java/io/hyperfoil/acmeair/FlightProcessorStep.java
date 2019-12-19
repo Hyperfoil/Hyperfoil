@@ -1,5 +1,6 @@
 package io.hyperfoil.acmeair;
 
+import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
 
@@ -53,10 +54,10 @@ public class FlightProcessorStep implements Step, ResourceUtilizer {
             return false;
         }
         String value = fromVar.getObject(session).toString();
-        log.debug("Flight Info ###" +  value + "###");
-        log.debug("isAvailable code ###" +  isFlightAvailable(value, oneWay) + "###");
-
         ctx = isFlightAvailable(value, oneWay);
+
+        log.debug("Flight Info ###" +  value + "###");
+        log.debug("isAvailable code ###" +  ctx.getIsFlightAvailable() + "###");
         isAvailable.setInt(session, ctx.getIsFlightAvailable());
         toFlightId.setObject(session, ctx.getToFlightId());
         toFlightSegId.setObject(session, ctx.getToFlightSegId());
@@ -74,7 +75,7 @@ public class FlightProcessorStep implements Step, ResourceUtilizer {
         retFlightSegId.declareObject(session);
     }
 
-    private class FlightContext{
+    private static class FlightContext  implements Serializable {
         private String toFlightId;
         private String toFlightSegId;
         private String retFlightId;

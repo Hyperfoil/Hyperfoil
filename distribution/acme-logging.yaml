@@ -1,68 +1,25 @@
-name: acme
+name: acmecancel
 http:
   host: http://acme.dalperf.us-south.containers.appdomain.cloud
-  sharedConnections: 1
+  sharedConnections: 10
 phases:
-- bookingFlights:
+- queringBooking:
     constantPerSec:
       usersPerSec: 1
       duration: 10s
       scenario:
         initialSequences:
-        - queryFlight:
-          - randomItem:
-              file: AirportsFrom.txt
-              toVar: fromCode
-          - randomItem:
-              file: AirportsTo.txt
-              toVar: toCode
+        - login:
+          - randomInt:
+              min: 0
+              max: 10
+              toVar: userId
           - httpRequest:
               POST:
-                pattern: /flight/queryflights
+                value: /auth/login
               body:
                 form:
-                - name: fromAirport
-                  pattern: ${fromCode}
-                - name: toAirport
-                  pattern: ${toCode}
-                - name: fromDate
-                  value: "Thu Dec 20 00:00:00 EST 2019"
-                - name: returnDate
-                  value: "Thu Dec 21 00:00:00 EST 2019"
-                - name: oneWay
-                  value: false
-              handler:
-                body:
-                - default:
-                    processor:
-                      simple:
-                        toVar: flights
-                        format: STRING
-          - flightProcessor:
-              fromVar: flights
-              isAvailable: available
-              toFlightId: fid
-              toFlightSegId: fsid
-              retFlightId: rfid
-              retFlightSegId: rfsid
-              oneWay : false
-          - log:
-              message: available code is {}
-              vars:
-              - available
-          - log:
-              message: toFlightId is {}
-              vars:
-              - fid
-          - log:
-              message: toFlightSegId is {}
-              vars:
-              - fsid
-          - log:
-              message: retFlightId is {}
-              vars:
-              - rfid
-          - log:
-              message: retFlightSegId is {}
-              vars:
-              - rfsid
+                - name: login
+                  pattern: uid${userId}@email.com
+                - name: password
+                  value: password
