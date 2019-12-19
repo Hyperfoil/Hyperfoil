@@ -46,20 +46,26 @@ public final class Util {
    }
 
    public static long parseToMillis(String time) {
+      time = time.trim();
       TimeUnit unit;
       String prefix;
       switch (time.charAt(time.length() - 1)) {
          case 's':
-            unit = TimeUnit.SECONDS;
-            prefix = time.substring(0, time.length() - 1);
+            if (time.endsWith("ms")) {
+               unit = TimeUnit.MILLISECONDS;
+               prefix = time.substring(0, time.length() - 2).trim();
+            } else {
+               unit = TimeUnit.SECONDS;
+               prefix = time.substring(0, time.length() - 1).trim();
+            }
             break;
          case 'm':
             unit = TimeUnit.MINUTES;
-            prefix = time.substring(0, time.length() - 1);
+            prefix = time.substring(0, time.length() - 1).trim();
             break;
          case 'h':
             unit = TimeUnit.HOURS;
-            prefix = time.substring(0, time.length() - 1);
+            prefix = time.substring(0, time.length() - 1).trim();
             break;
          default:
             unit = TimeUnit.SECONDS;
