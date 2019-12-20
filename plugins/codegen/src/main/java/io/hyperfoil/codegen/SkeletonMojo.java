@@ -56,6 +56,7 @@ import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.http.HeaderHandler;
+import io.hyperfoil.api.http.RawBytesHandler;
 import io.hyperfoil.api.http.StatusHandler;
 import io.hyperfoil.api.processor.HttpRequestProcessorBuilder;
 import io.hyperfoil.api.processor.Processor;
@@ -91,6 +92,7 @@ public class SkeletonMojo extends AbstractMojo {
             HttpRequestProcessorBuilder.class));
       TYPES.put("headerhandler", new SkeletonType("HeaderHandler", HeaderHandler.class, HeaderHandler.Builder.class));
       TYPES.put("statushandler", new SkeletonType("StatusHandler", StatusHandler.class, StatusHandler.Builder.class));
+      TYPES.put("rawbyteshandler", new SkeletonType("RawBytesHandler", RawBytesHandler.class, RawBytesHandler.Builder.class));
       TYPES.put("hook", new SkeletonType("Hook", RunHook.class, RunHook.Builder.class));
    }
 

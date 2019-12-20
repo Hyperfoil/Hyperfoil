@@ -35,7 +35,7 @@ import io.hyperfoil.client.RestClient;
 import io.hyperfoil.controller.model.CustomStats;
 import io.hyperfoil.controller.model.RequestStatisticsResponse;
 import io.hyperfoil.controller.model.RequestStats;
-import io.hyperfoil.core.handlers.ByteBufSizeRecorder;
+import io.hyperfoil.core.handlers.ResponseSizeRecorder;
 import io.hyperfoil.core.impl.LocalBenchmarkData;
 import io.hyperfoil.core.util.Util;
 
@@ -278,7 +278,7 @@ public class Wrk {
                         })
                         .timeout(timeout)
                         .handler()
-                           .rawBytesHandler(new ByteBufSizeRecorder("bytes"))
+                           .rawBytes(new ResponseSizeRecorder("bytes"))
                         .endHandler()
                      .endStep()
                   .endSequence()
