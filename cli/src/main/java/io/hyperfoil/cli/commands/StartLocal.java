@@ -20,13 +20,18 @@ public class StartLocal extends ServerCommand {
    @Option(shortName = 'l', description = "Default log level for controller log.", defaultValue = "")
    private String logLevel;
 
+   @Option(shortName = 'q', description = "Do not print anything on output in this command.", hasValue = false)
+   private boolean quiet;
+
    @Argument(description = "Root directory used for the controller.")
    private Resource rootDir;
 
    @Override
    public CommandResult execute(HyperfoilCommandInvocation invocation) throws CommandException {
       if (invocation.context().localControllerHost() != null || invocation.context().localControllerPort() > 0) {
-         invocation.println(ANSI.YELLOW_TEXT + "WARNING: local controller is already running, not starting." + ANSI.RESET);
+         if (!quiet) {
+            invocation.println(ANSI.YELLOW_TEXT + "WARNING: local controller is already running, not starting." + ANSI.RESET);
+         }
       } else {
          Controller.Factory factory = null;
          for (Controller.Factory f : ServiceLoader.load(Controller.Factory.class)) {
@@ -37,10 +42,14 @@ public class StartLocal extends ServerCommand {
             throw new CommandException("Controller is not on the classpath, cannot start.");
          }
          if (rootDir != null && rootDir.exists() && !(rootDir.isDirectory() && rootDir instanceof FileResource)) {
-            invocation.println("You are trying to start Hyperfoil controller with root dir " + rootDir);
+            if (!quiet) {
+               invocation.println("You are trying to start Hyperfoil controller with root dir " + rootDir);
+            }
             throw new CommandException(rootDir + " exists but it is not a directory");
          }
-         invocation.println("Starting controller in " + (rootDir == null ? "default directory (/tmp/hyperfoil)" : rootDir.getAbsolutePath()));
+         if (!quiet) {
+            invocation.println("Starting controller in " + (rootDir == null ? "default directory (/tmp/hyperfoil)" : rootDir.getAbsolutePath()));
+         }
          // disable logs from controller
          System.setProperty(Properties.LOG4J2_CONFIGURATION_FILE, getClass().getClassLoader().getResource("log4j2-local-controller.xml").toString());
          if (!logLevel.isEmpty()) {
@@ -49,14 +58,18 @@ public class StartLocal extends ServerCommand {
          Controller controller = factory.start(rootDir == null ? null : ((FileResource) rootDir).getFile().toPath());
          invocation.context().setLocalControllerHost(controller.host());
          invocation.context().setLocalControllerPort(controller.port());
-         invocation.println("Controller started, listening on " + controller.host() + ":" + controller.port());
+         if (!quiet) {
+            invocation.println("Controller started, listening on " + controller.host() + ":" + controller.port());
+         }
          invocation.context().addCleanup(() -> controller.stop());
       }
-      invocation.println("Connecting to the controller...");
+      if (!quiet) {
+         invocation.println("Connecting to the controller...");
+      }
       if (invocation.context().client() != null) {
          invocation.context().client().close();
       }
-      connect(invocation, invocation.context().localControllerHost(), invocation.context().localControllerPort());
+      connect(invocation, invocation.context().localControllerHost(), invocation.context().localControllerPort(), quiet);
       return CommandResult.SUCCESS;
    }
 }

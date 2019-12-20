@@ -39,7 +39,7 @@ public class Connect extends ServerCommand {
          host = invocation.context().localControllerHost();
          port = invocation.context().localControllerPort();
       }
-      connect(invocation, host, port);
+      connect(invocation, host, port, false);
       return CommandResult.SUCCESS;
    }
 }

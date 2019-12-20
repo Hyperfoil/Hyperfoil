@@ -44,6 +44,7 @@ import org.HdrHistogram.HistogramIterationValue;
 import org.aesh.command.AeshCommandRuntimeBuilder;
 import org.aesh.command.Command;
 import org.aesh.command.CommandDefinition;
+import org.aesh.command.CommandNotFoundException;
 import org.aesh.command.CommandResult;
 import org.aesh.command.CommandRuntime;
 import org.aesh.command.impl.registry.AeshCommandRegistryBuilder;
@@ -84,6 +85,7 @@ public class Wrk {
       //set logger impl
       System.setProperty(LOGGER_DELEGATE_FACTORY_CLASS_NAME, "io.vertx.core.logging.Log4j2LogDelegateFactory");
 
+      CommandRuntime<HyperfoilCommandInvocation> cr = null;
       try {
          AeshCommandRuntimeBuilder<HyperfoilCommandInvocation> runtime = AeshCommandRuntimeBuilder.builder();
          runtime.commandInvocationProvider(new HyperfoilCommandInvocationProvider(new HyperfoilCliContext()));
@@ -91,15 +93,26 @@ public class Wrk {
                AeshCommandRegistryBuilder.<HyperfoilCommandInvocation>builder()
                      .commands(StartLocal.class, WrkCommand.class, HyperfoilCli.ExitCommand.class);
          runtime.commandRegistry(registry.create());
-         CommandRuntime<HyperfoilCommandInvocation> cr = runtime.build();
-         cr.executeCommand("start-local");
-         cr.executeCommand("wrk " + String.join(" ", args));
-         cr.executeCommand("exit");
+         cr = runtime.build();
+         try {
+            cr.executeCommand("start-local --quiet");
+            cr.executeCommand("wrk " + String.join(" ", args));
+         } finally {
+            cr.executeCommand("exit");
+         }
       } catch (Exception e) {
-         System.out.println("Failed to execute command:" + e.getMessage());
-         e.printStackTrace();
+         System.out.println("Failed to execute command: " + e.getMessage());
+         if (Boolean.getBoolean("io.hyperfoil.stacktrace")) {
+            e.printStackTrace();
+         }
+         if (cr != null) {
+            try {
+               System.out.println(cr.getCommandRegistry().getCommand("wrk", "wrk").printHelp("wrk"));
+            } catch (CommandNotFoundException ex) {
+               throw new IllegalStateException(ex);
+            }
+         }
          //todo: should provide help info here, will be added in newer version of æsh
-         //System.out.println(runtime.commandInfo("wrk"));
       }
    }
 
