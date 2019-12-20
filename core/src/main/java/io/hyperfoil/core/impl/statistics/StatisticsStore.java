@@ -36,7 +36,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -175,7 +174,7 @@ public class StatisticsStore {
       jGenerator.flush();
    }
 
-   public void totalArray(JsonGenerator jGenerator, Data[] dataList, Function<Data, StatisticsSnapshot> selector, BiConsumer<JsonGenerator, Data> also) throws IOException {
+   public void totalArray(JsonGenerator jGenerator, Data[] dataList, Function<Data, StatisticsSnapshot> selector, Function<SessionPoolStats, LowHigh> sessionPoolStats) throws IOException {
       jGenerator.writeStartArray();
       for (Data data : dataList) {
          StatisticsSnapshot snapshot = selector.apply(data);
@@ -189,14 +188,18 @@ public class StatisticsStore {
          jGenerator.writeNumberField("end", data.total.histogram.getEndTimeStamp());
          jGenerator.writeObjectField("summary", snapshot.summary(percentiles));
          jGenerator.writeFieldName("custom");
+
          jGenerator.writeStartObject();
          for (Map.Entry<Object, CustomValue> entry : snapshot.custom.entrySet()) {
             jGenerator.writeStringField(String.valueOf(entry.getKey()), String.valueOf(entry.getValue()));
          }
          jGenerator.writeEndObject();
 
-         if (also != null) {
-            also.accept(jGenerator, data);
+         SessionPoolStats sps = this.sessionPoolStats.get(data.phase);
+         if (sps != null) {
+            LowHigh lohi = sessionPoolStats.apply(sps);
+            jGenerator.writeNumberField("minSessions", lohi.low);
+            jGenerator.writeNumberField("maxSessions", lohi.high);
          }
 
          jGenerator.writeEndObject();
@@ -313,7 +316,7 @@ public class StatisticsStore {
          jGenerator.writeStartObject();
       }
       jGenerator.writeFieldName("total");
-      totalArray(jGenerator, sorted, (data) -> data.total, null);
+      totalArray(jGenerator, sorted, data -> data.total, SessionPoolStats::findMinMax);
 
       jGenerator.writeFieldName("failure");
       jGenerator.writeStartArray();
@@ -430,17 +433,12 @@ public class StatisticsStore {
          jGenerator.writeStartObject();
 
          jGenerator.writeFieldName("total");
-         totalArray(jGenerator, sorted, (data) -> data.perAgent.get(agent), (jsonGenerator, data) -> {
-            SessionPoolStats sps = sessionPoolStats.get(data.phase);
-            if (sps != null && sps.records.get(agent) != null) {
-               LowHigh lohi = sps.records.get(agent).stream().map(LowHigh.class::cast)
+         totalArray(jGenerator, sorted, data -> data.perAgent.get(agent), sps -> {
+            if (sps.records.get(agent) != null) {
+               return sps.records.get(agent).stream().map(LowHigh.class::cast)
                      .reduce(LowHigh::combine).orElse(new LowHigh(0, 0));
-               try {
-                  jsonGenerator.writeNumberField("minSessions", lohi.low);
-                  jsonGenerator.writeNumberField("maxSessions", lohi.high);
-               } catch (IOException e) {
-                  throw new RuntimeException(e);
-               }
+            } else {
+               return new LowHigh(0, 0);
             }
          });
          if (sorted.length > 0) {
@@ -600,7 +598,7 @@ public class StatisticsStore {
             String filePrefix = dir + File.separator + sanitize(data.phase) + "." + sanitize(data.metric) + "." + data.stepId + ".agent." + agent;
             persistHistogramAndSeries(filePrefix, data.perAgent.get(agent), data.agentSeries.get(agent));
          }
-         persistCustomStats(sorted, data -> data.perAgent.get(agent), "agent." + sanitize(agent) + ".custom.csv");
+         persistCustomStats(sorted, data -> data.perAgent.get(agent), dir + File.separator + "agent." + sanitize(agent) + ".custom.csv");
       }
       try (PrintWriter writer = new PrintWriter(dir + File.separator + "failures.csv")) {
          writer.print("Phase,Metric,Message,Start,End,");
