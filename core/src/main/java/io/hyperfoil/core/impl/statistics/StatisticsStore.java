@@ -175,11 +175,11 @@ public class StatisticsStore {
       jGenerator.flush();
    }
 
-   public void totalArray(JsonGenerator jGenerator, Data[] dataList, Function<Data, StatisticsSummary> getSummary, BiConsumer<JsonGenerator, Data> also) throws IOException {
+   public void totalArray(JsonGenerator jGenerator, Data[] dataList, Function<Data, StatisticsSnapshot> selector, BiConsumer<JsonGenerator, Data> also) throws IOException {
       jGenerator.writeStartArray();
       for (Data data : dataList) {
-         StatisticsSummary summary = getSummary.apply(data); //data.total.summary(percentiles);
-         if (summary == null) {
+         StatisticsSnapshot snapshot = selector.apply(data);
+         if (snapshot == null) {
             continue;
          }
          jGenerator.writeStartObject();
@@ -187,7 +187,13 @@ public class StatisticsStore {
          jGenerator.writeStringField("metric", data.metric);
          jGenerator.writeNumberField("start", data.total.histogram.getStartTimeStamp());
          jGenerator.writeNumberField("end", data.total.histogram.getEndTimeStamp());
-         jGenerator.writeObjectField("summary", summary);
+         jGenerator.writeObjectField("summary", snapshot.summary(percentiles));
+         jGenerator.writeFieldName("custom");
+         jGenerator.writeStartObject();
+         for (Map.Entry<Object, CustomValue> entry : snapshot.custom.entrySet()) {
+            jGenerator.writeStringField(String.valueOf(entry.getKey()), String.valueOf(entry.getValue()));
+         }
+         jGenerator.writeEndObject();
 
          if (also != null) {
             also.accept(jGenerator, data);
@@ -307,7 +313,7 @@ public class StatisticsStore {
          jGenerator.writeStartObject();
       }
       jGenerator.writeFieldName("total");
-      totalArray(jGenerator, sorted, (data) -> data.total.summary(percentiles), null);
+      totalArray(jGenerator, sorted, (data) -> data.total, null);
 
       jGenerator.writeFieldName("failure");
       jGenerator.writeStartArray();
@@ -424,7 +430,7 @@ public class StatisticsStore {
          jGenerator.writeStartObject();
 
          jGenerator.writeFieldName("total");
-         totalArray(jGenerator, sorted, (data) -> data.perAgent.get(agent).summary(percentiles), (jsonGenerator, data) -> {
+         totalArray(jGenerator, sorted, (data) -> data.perAgent.get(agent), (jsonGenerator, data) -> {
             SessionPoolStats sps = sessionPoolStats.get(data.phase);
             if (sps != null && sps.records.get(agent) != null) {
                LowHigh lohi = sps.records.get(agent).stream().map(LowHigh.class::cast)
@@ -546,12 +552,11 @@ public class StatisticsStore {
             writer.println();
          }
       }
-      for (Map<String, Data> m : this.data.values()) {
-         for (Data data : m.values()) {
-            String filePrefix = dir + File.separator + sanitize(data.phase) + "." + sanitize(data.metric) + "." + data.stepId;
-            persistHistogramAndSeries(filePrefix, data.total, data.series);
-         }
+      for (Data data : sorted) {
+         String filePrefix = dir + File.separator + sanitize(data.phase) + "." + sanitize(data.metric) + "." + data.stepId;
+         persistHistogramAndSeries(filePrefix, data.total, data.series);
       }
+      persistCustomStats(sorted, data -> data.total, dir + File.separator + "custom.csv");
       String[] agents = this.data.values().stream()
             .flatMap(m -> m.values().stream())
             .flatMap(d -> d.perAgent.keySet().stream())
@@ -591,12 +596,11 @@ public class StatisticsStore {
                writer.println();
             }
          }
-         for (Map<String, Data> m : this.data.values()) {
-            for (Data data : m.values()) {
-               String filePrefix = dir + File.separator + sanitize(data.phase) + "." + sanitize(data.metric) + "." + data.stepId + ".agent." + agent;
-               persistHistogramAndSeries(filePrefix, data.perAgent.get(agent), data.agentSeries.get(agent));
-            }
+         for (Data data : sorted) {
+            String filePrefix = dir + File.separator + sanitize(data.phase) + "." + sanitize(data.metric) + "." + data.stepId + ".agent." + agent;
+            persistHistogramAndSeries(filePrefix, data.perAgent.get(agent), data.agentSeries.get(agent));
          }
+         persistCustomStats(sorted, data -> data.perAgent.get(agent), "agent." + sanitize(agent) + ".custom.csv");
       }
       try (PrintWriter writer = new PrintWriter(dir + File.separator + "failures.csv")) {
          writer.print("Phase,Metric,Message,Start,End,");
@@ -648,6 +652,24 @@ public class StatisticsStore {
                   }
                }
             } while (hadNext);
+         }
+      }
+   }
+
+   private void persistCustomStats(Data[] sorted, Function<Data, StatisticsSnapshot> selector, String fileName) throws FileNotFoundException {
+      try (PrintWriter writer = new PrintWriter(fileName)) {
+         writer.println("Phase,Metric,Custom,Value");
+         for (Data data : sorted) {
+            StatisticsSnapshot snapshot = selector.apply(data);
+            for (Map.Entry<Object, CustomValue> entry : snapshot.custom.entrySet()) {
+               writer.print(data.phase);
+               writer.print(',');
+               writer.print(data.metric);
+               writer.print(',');
+               writer.print(entry.getKey());
+               writer.print(',');
+               writer.println(entry.getValue());
+            }
          }
       }
    }
