@@ -304,7 +304,18 @@ public class StatisticsStore {
          jGenerator.writeStartObject();
       }
       jGenerator.writeFieldName("total");
-      totalArray(jGenerator, sorted, (data) -> data.total.summary(percentiles), null);
+      totalArray(jGenerator, sorted, (data) -> data.total.summary(percentiles), (jsonGenerator, data) -> {
+         SessionPoolStats sps = this.sessionPoolStats.get(data.phase);
+         if (sps != null) {
+            LowHigh minMax = sps.findMinMax();
+            try {
+               jsonGenerator.writeNumberField("minSessions", minMax.low);
+               jsonGenerator.writeNumberField("maxSessions", minMax.high);
+            } catch (IOException e) {
+               throw new RuntimeException(e);
+            }
+         }
+      });
 
       jGenerator.writeFieldName("failure");
       jGenerator.writeStartArray();
