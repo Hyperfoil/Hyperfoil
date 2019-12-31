@@ -1,0 +1,91 @@
+name: acmeair-gatling
+http:
+  host: http://acme.dalperf.us-south.containers.appdomain.cloud
+  sharedConnections: 30
+phases:
+- flightRampUp:
+    rampPerSec:
+      duration: 5s
+      initialUsersPerSec: 1
+      targetUsersPerSec: 10
+      scenario: &queryFlight
+      - queryFlight:
+        - randomItem:
+            file: AirportsFrom.txt
+            toVar: fromCode
+        - randomItem:
+            file: AirportsTo.txt
+            toVar: toCode
+        - flightDates:
+            fromDate: departureDate
+            returnDate: returnDate
+        - httpRequest:
+            POST:
+              pattern: /flight/queryflights
+            body:
+              form:
+              - name: fromAirport
+                pattern: ${fromCode}
+              - name: toAirport
+                pattern: ${toCode}
+              - name: fromDate
+                pattern: ${departureDate}
+              - name: returnDate
+                pattern: ${returnDate}
+              - name: oneWay
+                value: true
+- FLIGHT_SEARCH:
+    constantPerSec:
+      duration: 15s
+      usersPerSec: 10
+      startAfter:
+      - phase: flightRampUp
+        iteration: same
+      scenario: *queryFlight
+
+
+- profileRampUp:
+    rampPerSec:
+      duration: 5s
+      initialUsersPerSec: 1
+      targetUsersPerSec: 10
+      scenario: &updateProfile
+        initialSequences:
+        - login:
+          - randomInt:
+              min: 0
+              #9999 for 10000 users
+              max: 10
+              toVar: userId
+          - httpRequest:
+              POST:
+                value: /auth/login
+              body:
+                form:
+                - name: login
+                  pattern: uid${userId}@email.com
+                - name: password
+                  value: password
+              handler:
+                header:
+                  - cookie:
+                      name: jwt_token
+                      toVar: jwtToken
+          - nextSequence: viewProfile
+        sequences:
+        - viewProfile:
+          - httpRequest:
+              headers:
+                Authorization:
+                  pattern: Bearer ${jwtToken}
+              GET:
+                pattern: /customer/byid/uid${userId}@email.com
+
+- PROFILE_UPDATE:
+    constantPerSec:
+      duration: 15s
+      usersPerSec: 10
+      startAfter:
+      - phase: profileRampUp
+        iteration: same
+      scenario: *updateProfile

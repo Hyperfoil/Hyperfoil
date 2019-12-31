@@ -3,23 +3,51 @@ http:
   host: http://acme.dalperf.us-south.containers.appdomain.cloud
   sharedConnections: 10
 phases:
-- queringBooking:
+- BOOKING_CANCEL:
     constantPerSec:
       usersPerSec: 1
-      duration: 10s
+      duration: 1m
       scenario:
         initialSequences:
         - login:
           - randomInt:
               min: 0
+              #9999 for 10000 users
               max: 10
-              toVar: userId
+              toVar: cancelUserId
           - httpRequest:
               POST:
                 value: /auth/login
               body:
                 form:
                 - name: login
-                  pattern: uid${userId}@email.com
+                  pattern: uid${cancelUserId}@email.com
                 - name: password
                   value: password
+              handler:
+                header:
+                  - cookie:
+                      name: jwt_token
+                      toVar: cancelJwtToken
+          - nextSequence: listBooking
+        sequences:
+        - listBooking:
+          - thinkTime:
+              duration: 5s
+          - httpRequest:
+              headers:
+                Authorization:
+                  pattern: Bearer ${cancelJwtToken}
+              GET:
+                pattern: /booking/byuser/uid${cancelUserId}@email.com
+              handler:
+                body:
+                - default:
+                    processor:
+                      simple:
+                        toVar: bookings
+                        format: STRING
+          - log:
+              message: bookings are {}
+              vars:
+              - bookings

@@ -1,7 +1,7 @@
 name: acmeair
 http:
   host: http://acme.dalperf.us-south.containers.appdomain.cloud
-  sharedConnections: 110
+  sharedConnections: 30
 phases:
 - FLIGHT_SEARCH:
     constantPerSec:
@@ -237,11 +237,7 @@ phases:
                       array:
                         toVar: bookings
                         format: BYTES
-                        maxSize: 100
-          - set:
-              var: ids
-              objectArray:
-                size: 100
+                        maxSize: 10
           - foreach:
               fromVar: bookings
               sequence: cancelBooking
@@ -251,7 +247,7 @@ phases:
           - json:
               fromVar: bookings[.]
               query: ._id
-              toVar: ids[.]
+              toVar: id
           - httpRequest:
               headers:
                 Authorization:
@@ -263,4 +259,4 @@ phases:
                 - name: userid
                   pattern: uid${cancelUserId}@email.com
                 - name: number
-                  pattern: ${ids[.]}
+                  pattern: ${id}
