@@ -59,8 +59,8 @@ public class CustomerProfileStep implements Step, ResourceUtilizer {
                return "{}";
            JSONObject json = (JSONObject) new JSONParser().parse(responseDataAsString);
            JSONObject jsonAddress = (JSONObject) json.get("address");
-           jsonAddress.put("streetAddress1",updateAddress(jsonAddress.get("streetAddress1").toString()));
-           jsonAddress.put("postalCode",updatePostalCode(jsonAddress.get("postalCode").toString()));
+           jsonAddress.put("streetAddress1", updateAddress(jsonAddress.get("streetAddress1").toString()));
+           jsonAddress.put("postalCode", updatePostalCode(jsonAddress.get("postalCode").toString()));
            json.put("password", "password");
            return json.toJSONString();
 

@@ -85,6 +85,7 @@ public class FlightProcessorStep implements Step, ResourceUtilizer {
         private void setToFlightId(String toFlightId) {
             this.toFlightId = toFlightId;
         }
+
         private void setToFlightSegId(String toFlightSegId) {
             this.toFlightSegId = toFlightSegId;
         }
@@ -92,6 +93,7 @@ public class FlightProcessorStep implements Step, ResourceUtilizer {
         private void setRetFlightId(String retFlightId) {
             this.retFlightId = retFlightId;
         }
+
         private void setRetFlightSegId(String retFlightSegId) {
             this.retFlightSegId = retFlightSegId;
         }
@@ -141,11 +143,11 @@ public class FlightProcessorStep implements Step, ResourceUtilizer {
                     log.debug("Flight available ###" +  jsonFlightOptions.toString() + "###");
                     JSONObject flightOption0 = (JSONObject) jsonFlightOptions.get(0);
                     if (counter == 0) {
-                        ctx.setToFlightId((String)flightOption0.get("_id"));
-                        ctx.setToFlightSegId((String)flightOption0.get("flightSegmentId"));
+                        ctx.setToFlightId((String) flightOption0.get("_id"));
+                        ctx.setToFlightSegId((String) flightOption0.get("flightSegmentId"));
                     } else if (counter == 1) {
-                        ctx.setRetFlightId((String)flightOption0.get("_id"));
-                        ctx.setRetFlightSegId((String)flightOption0.get("flightSegmentId"));
+                        ctx.setRetFlightId((String) flightOption0.get("_id"));
+                        ctx.setRetFlightSegId((String) flightOption0.get("flightSegmentId"));
                     }
                     if (oneWay) {
                         ctx.setIsFlightAvailable(1);

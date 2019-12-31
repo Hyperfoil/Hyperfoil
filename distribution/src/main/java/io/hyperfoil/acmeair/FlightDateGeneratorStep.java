@@ -62,6 +62,7 @@ public class FlightDateGeneratorStep implements Step, ResourceUtilizer {
         private void setFromDate(String fromDate) {
             this.fromDate = fromDate;
         }
+
         private void setReturnDate(String returnDate) {
             this.returnDate = returnDate;
         }
