@@ -16,13 +16,14 @@ import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.core.builders.BaseStepBuilder;
 import io.hyperfoil.core.session.SessionFactory;
+import io.hyperfoil.function.SerializableToIntFunction;
 
 public class RandomIntStep implements Step, ResourceUtilizer {
    private final Access toVar;
-   private final int minInclusive;
-   private final int maxInclusive;
+   private final SerializableToIntFunction<Session> minInclusive;
+   private final SerializableToIntFunction<Session> maxInclusive;
 
-   public RandomIntStep(String toVar, int minInclusive, int maxInclusive) {
+   public RandomIntStep(String toVar, SerializableToIntFunction<Session> minInclusive, SerializableToIntFunction<Session> maxInclusive) {
       this.toVar = SessionFactory.access(toVar);
       this.minInclusive = minInclusive;
       this.maxInclusive = maxInclusive;
@@ -32,6 +33,8 @@ public class RandomIntStep implements Step, ResourceUtilizer {
    public boolean invoke(Session session) {
       ThreadLocalRandom random = ThreadLocalRandom.current();
       int r;
+      int minInclusive = this.minInclusive.applyAsInt(session);
+      int maxInclusive = this.maxInclusive.applyAsInt(session);
       if (maxInclusive == Integer.MAX_VALUE) {
          if (minInclusive == Integer.MIN_VALUE) {
             r = random.nextInt();
@@ -57,8 +60,8 @@ public class RandomIntStep implements Step, ResourceUtilizer {
    @Name("randomInt")
    public static class Builder extends BaseStepBuilder<Builder> implements InitFromParam<Builder> {
       private String toVar;
-      private int min = 0;
-      private int max = Integer.MAX_VALUE;
+      private IntValueProviderBuilder<Builder> min = new IntValueProviderBuilder<>(this, 0);
+      private IntValueProviderBuilder<Builder> max = new IntValueProviderBuilder<>(this, Integer.MAX_VALUE);
 
       /**
        * @param rangeToVar Use format `var <- min .. max`
@@ -75,8 +78,8 @@ public class RandomIntStep implements Step, ResourceUtilizer {
             throw new BenchmarkDefinitionException("Expecting format var <- min .. max");
          }
          toVar = rangeToVar.substring(0, arrowIndex).trim();
-         min = Integer.parseInt(rangeToVar.substring(arrowIndex + 2, dotdotIndex).trim());
-         max = Integer.parseInt(rangeToVar.substring(dotdotIndex + 2).trim());
+         min.value(Integer.parseInt(rangeToVar.substring(arrowIndex + 2, dotdotIndex).trim()));
+         max.value(Integer.parseInt(rangeToVar.substring(dotdotIndex + 2).trim()));
          return this;
       }
 
@@ -92,25 +95,21 @@ public class RandomIntStep implements Step, ResourceUtilizer {
       }
 
       /**
-       * Lowest possible value (inclusive)
+       * Lowest possible value (inclusive). Default is 0.
        *
-       * @param min Min value.
        * @return Self.
        */
-      public Builder min(int min) {
-         this.min = min;
-         return this;
+      public IntValueProviderBuilder<Builder> min() {
+         return min;
       }
 
       /**
-       * Highest possible value (inclusive)
+       * Highest possible value (inclusive). Default is Integer.MAX_VALUE.
        *
-       * @param max Max value.
        * @return Self.
        */
-      public Builder max(int max) {
-         this.max = max;
-         return this;
+      public IntValueProviderBuilder<Builder> max() {
+         return max;
       }
 
       @Override
@@ -118,10 +117,10 @@ public class RandomIntStep implements Step, ResourceUtilizer {
          if (toVar == null || toVar.isEmpty()) {
             throw new BenchmarkDefinitionException("Missing target var.");
          }
-         if (min >= max) {
+         if (min.compareTo(max) > 0) {
             throw new BenchmarkDefinitionException("min must be less than max");
          }
-         return Collections.singletonList(new RandomIntStep(toVar, min, max));
+         return Collections.singletonList(new RandomIntStep(toVar, min.build(), max.build()));
       }
    }
 }

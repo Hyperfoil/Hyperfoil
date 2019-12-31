@@ -64,7 +64,7 @@ public class ChunkedTransferTest extends BaseScenarioTest {
                return true;
             })
             .step(SC).httpRequest(HttpMethod.GET).path("/test")
-               .handler().rawBytesHandler((session, byteBuf, offset, length, isLastPart) -> {
+               .handler().rawBytes((session, byteBuf, offset, length, isLastPart) -> {
                   log.info("Received chunk {} bytes:\n{}", length,
                         byteBuf.toString(offset, length, StandardCharsets.UTF_8));
                   if (byteBuf.toString(StandardCharsets.UTF_8).contains(SHIBBOLETH)) {

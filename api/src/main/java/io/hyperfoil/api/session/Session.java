@@ -94,11 +94,13 @@ public interface Session {
 
       VarType type();
 
-      default int intValue() {
+      // While the session parameter is not necessary for regular Vars stored
+      // inside the session it is useful for the special ones.
+      default int intValue(Session session) {
          throw new UnsupportedOperationException();
       }
 
-      default Object objectValue() {
+      default Object objectValue(Session session) {
          throw new UnsupportedOperationException();
       }
    }

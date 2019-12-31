@@ -68,7 +68,7 @@ public class AwaitVarStep extends DependencyStep {
       }
 
       @Override
-      public <V extends Session.Var> V getVar(Session Session) {
+      public Session.Var getVar(Session Session) {
          throw new UnsupportedOperationException();
       }
 

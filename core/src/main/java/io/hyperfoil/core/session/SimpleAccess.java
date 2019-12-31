@@ -60,7 +60,7 @@ class SimpleAccess implements Access {
    }
 
    @Override
-   public <V extends Session.Var> V getVar(Session session) {
+   public Session.Var getVar(Session session) {
       SessionImpl impl = (SessionImpl) session;
       return impl.getVar(key);
    }

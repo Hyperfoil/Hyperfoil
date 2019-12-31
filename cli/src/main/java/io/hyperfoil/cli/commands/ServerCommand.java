@@ -79,22 +79,24 @@ public abstract class ServerCommand implements Command<HyperfoilCommandInvocatio
          return;
       }
       invocation.println("Not connected, trying to connect to localhost:8090...");
-      connect(invocation, "localhost", 8090);
+      connect(invocation, "localhost", 8090, false);
    }
 
-   protected void connect(HyperfoilCommandInvocation invocation, String host, int port) throws CommandException {
+   protected void connect(HyperfoilCommandInvocation invocation, String host, int port, boolean quiet) throws CommandException {
       HyperfoilCliContext ctx = invocation.context();
       ctx.setClient(new RestClient(host, port));
       try {
          long preMillis = System.currentTimeMillis();
          io.hyperfoil.controller.model.Version version = ctx.client().version();
          long postMillis = System.currentTimeMillis();
-         invocation.println("Connected!");
+         if (!quiet) {
+            invocation.println("Connected!");
+         }
          ctx.setOnline(true);
-         if (version.serverTime != null && (version.serverTime.getTime() < preMillis || version.serverTime.getTime() > postMillis)) {
+         if (!quiet && version.serverTime != null && (version.serverTime.getTime() < preMillis || version.serverTime.getTime() > postMillis)) {
             invocation.println(ANSI.YELLOW_TEXT + "WARNING: Controller time seems to be off by " + (postMillis + preMillis - 2 * version.serverTime.getTime()) / 2 + " ms" + ANSI.RESET);
          }
-         if (!Objects.equals(version.commitId, io.hyperfoil.api.Version.COMMIT_ID)) {
+         if (!quiet && !Objects.equals(version.commitId, io.hyperfoil.api.Version.COMMIT_ID)) {
             invocation.println(ANSI.YELLOW_TEXT + "WARNING: Controller version is different from CLI version. Benchmark upload may fail due to binary incompatibility." + ANSI.RESET);
          }
          String shortHost = host;
@@ -167,10 +169,12 @@ public abstract class ServerCommand implements Command<HyperfoilCommandInvocatio
       return false;
    }
 
-   protected void execProcess(HyperfoilCommandInvocation invocation, String command, String... params) throws IOException {
+   protected void execProcess(HyperfoilCommandInvocation invocation, boolean expectNewWindow, String command, String... params) throws IOException {
       Process process = null;
       try {
-         invocation.println("Press Ctrl+C when done...");
+         if (expectNewWindow) {
+            invocation.println("Press Ctrl+C when done...");
+         }
          ArrayList<String> cmdline = new ArrayList<>();
          cmdline.addAll(Arrays.asList(command.split("[\t \n]+", 0)));
          cmdline.addAll(Arrays.asList(params));

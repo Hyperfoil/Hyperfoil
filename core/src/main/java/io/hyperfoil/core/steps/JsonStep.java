@@ -22,7 +22,7 @@ import io.hyperfoil.core.session.SessionFactory;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-public class JsonStep extends BaseStep implements ResourceUtilizer {
+public class JsonStep implements Step, ResourceUtilizer {
    private static final Logger log = LoggerFactory.getLogger(JsonStep.class);
 
    private final ByteArrayParser byteArrayParser;

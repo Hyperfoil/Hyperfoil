@@ -3,9 +3,7 @@ package io.hyperfoil.api.http;
 import java.io.Serializable;
 
 import io.hyperfoil.api.config.BuilderBase;
-import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.connection.HttpRequest;
-import io.hyperfoil.function.SerializableSupplier;
 
 public interface HeaderHandler extends Serializable {
    default void beforeHeaders(HttpRequest request) {
@@ -17,6 +15,6 @@ public interface HeaderHandler extends Serializable {
    }
 
    interface Builder extends BuilderBase<Builder> {
-      HeaderHandler build(SerializableSupplier<? extends Step> step);
+      HeaderHandler build();
    }
 }

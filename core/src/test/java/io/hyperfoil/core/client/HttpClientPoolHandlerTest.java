@@ -105,7 +105,7 @@ public class HttpClientPoolHandlerTest {
                   latch.countDown();
                })
                .onCompletion(s -> latch.countDown())
-               .build(null);
+               .build();
          request.method = HttpMethod.GET;
          request.path = "/";
          request.start(handlers, new SequenceInstance(), new Statistics(System.currentTimeMillis()));

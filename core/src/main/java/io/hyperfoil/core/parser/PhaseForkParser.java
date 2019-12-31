@@ -17,9 +17,9 @@ import io.hyperfoil.api.config.PhaseForkBuilder;
  * The parent phase is replaced by a no-op phase that is scheduled after all the forked phases - therefore other phases
  * can still be scheduled using {@link PhaseBuilder#startAfter(String)} and {@link PhaseBuilder#startAfterStrict(String)}.
  */
-class PhaseForkParser implements Parser<PhaseBuilder> {
+class PhaseForkParser implements Parser<PhaseBuilder<?>> {
    @Override
-   public void parse(Context ctx, PhaseBuilder target) throws ParserException {
+   public void parse(Context ctx, PhaseBuilder<?> target) throws ParserException {
       Event event = ctx.peek();
       if (event instanceof SequenceStartEvent) {
          ctx.parseList(target, this::parseFork);
@@ -28,7 +28,7 @@ class PhaseForkParser implements Parser<PhaseBuilder> {
       }
    }
 
-   private void parseFork(Context ctx, PhaseBuilder phaseBuilder) throws ParserException {
+   private void parseFork(Context ctx, PhaseBuilder<?> phaseBuilder) throws ParserException {
       ctx.expectEvent(MappingStartEvent.class);
       ScalarEvent forkNameEvent = ctx.expectEvent(ScalarEvent.class);
       PhaseForkBuilder forkBuilder = phaseBuilder.fork(forkNameEvent.getValue());
@@ -46,7 +46,7 @@ class PhaseForkParser implements Parser<PhaseBuilder> {
       }
    }
 
-   static class ForkBuilderParser implements Parser<PhaseBuilder> {
+   static class ForkBuilderParser implements Parser<PhaseBuilder<?>> {
       private final ScalarEvent forkNameEvent;
 
       ForkBuilderParser(ScalarEvent forkNameEvent) {
@@ -54,7 +54,7 @@ class PhaseForkParser implements Parser<PhaseBuilder> {
       }
 
       @Override
-      public void parse(Context ctx, PhaseBuilder target) throws ParserException {
+      public void parse(Context ctx, PhaseBuilder<?> target) throws ParserException {
          PhaseForkBuilder forkBuilder = target.fork(forkNameEvent.getValue());
          ctx.parseAliased(PhaseForkBuilder.class, forkBuilder, ForkParser.INSTANCE);
       }

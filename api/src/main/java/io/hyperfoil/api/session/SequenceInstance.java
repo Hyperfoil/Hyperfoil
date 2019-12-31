@@ -86,6 +86,6 @@ public class SequenceInstance {
    }
 
    public StringBuilder appendTo(StringBuilder sb) {
-      return sb.append(name).append('(').append(index).append(")(").append(currentStep).append('/').append(steps.length).append(')');
+      return sb.append(name).append('(').append(index).append(")(").append(currentStep).append('/').append(steps == null ? 0 : steps.length).append(')');
    }
 }

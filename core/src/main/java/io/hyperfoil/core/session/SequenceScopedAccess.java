@@ -52,7 +52,7 @@ class SequenceScopedAccess implements Access {
             int index = session.currentSequence().index();
             throw new IllegalStateException("Variable " + key + "[" + index + "] was not set yet!");
          }
-         return ov.objectValue();
+         return ov.objectValue(session);
       } else {
          int index = session.currentSequence().index();
          throw new IllegalStateException("Variable " + key + "[" + index + "] should contain ObjectVar but contains " + o);
@@ -81,7 +81,7 @@ class SequenceScopedAccess implements Access {
             int index = session.currentSequence().index();
             throw new IllegalStateException("Variable " + key + "[" + index + "] was not set yet!");
          }
-         return iv.intValue();
+         return iv.intValue(session);
       } else {
          int index = session.currentSequence().index();
          throw new IllegalStateException("Variable " + key + "[" + index + "] should contain IntVar but contains " + o);
@@ -100,13 +100,12 @@ class SequenceScopedAccess implements Access {
       }
    }
 
-   @SuppressWarnings("unchecked")
    @Override
-   public <V extends Session.Var> V getVar(Session session) {
+   public Session.Var getVar(Session session) {
       Object o = getItem(session);
 
       if (o instanceof Session.Var) {
-         return (V) o;
+         return (Session.Var) o;
       } else {
          int index = session.currentSequence().index();
          throw new IllegalStateException("Variable " + key + "[" + index + "] should contain Session.Var but contains " + o);
@@ -123,7 +122,7 @@ class SequenceScopedAccess implements Access {
             int index = session.currentSequence().index();
             throw new IllegalStateException("Variable " + key + "[" + index + "] was not set yet!");
          }
-         int prev = iv.intValue();
+         int prev = iv.intValue(session);
          iv.add(delta);
          return prev;
       } else {
@@ -139,7 +138,7 @@ class SequenceScopedAccess implements Access {
       if (o instanceof ObjectVar) {
          ObjectVar ov = (ObjectVar) o;
          ov.set = true;
-         return ov.objectValue();
+         return ov.objectValue(session);
       } else {
          int index = session.currentSequence().index();
          throw new IllegalStateException("Variable " + key + "[" + index + "] should contain ObjectVar but contains " + o);
@@ -173,7 +172,7 @@ class SequenceScopedAccess implements Access {
    }
 
    private Object getItemFromVar(Session session, Session.Var var) {
-      Object collection = var.objectValue();
+      Object collection = var.objectValue(session);
       if (collection == null) {
          throw new IllegalStateException("Variable " + key + " is null!");
       }

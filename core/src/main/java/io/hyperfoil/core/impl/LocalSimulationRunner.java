@@ -24,7 +24,7 @@ public class LocalSimulationRunner extends SimulationRunnerImpl {
    }
 
    public LocalSimulationRunner(Benchmark benchmark, StatisticsCollector.StatisticsConsumer statsConsumer, SessionStatsConsumer sessionPoolStatsConsumer) {
-      super(benchmark, 0, null);
+      super(benchmark, 0);
       this.statsConsumer = statsConsumer;
       this.sessionPoolStatsConsumer = sessionPoolStatsConsumer;
    }
@@ -119,7 +119,7 @@ public class LocalSimulationRunner extends SimulationRunnerImpl {
       if (statsConsumer != null) {
          StatisticsCollector collector = new StatisticsCollector(benchmark);
          visitStatistics(phase, collector);
-         collector.visitStatistics(statsConsumer, null);
+         collector.visitStatistics(statsConsumer, true, null);
       }
       if (sessionPoolStatsConsumer != null) {
          visitSessionPoolStats(phase, sessionPoolStatsConsumer);

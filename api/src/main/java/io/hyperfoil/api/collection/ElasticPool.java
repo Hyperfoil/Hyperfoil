@@ -1,7 +1,5 @@
 package io.hyperfoil.api.collection;
 
-import java.util.function.Consumer;
-
 /**
  * Pool that can create further elements when depleted.
  *
@@ -21,8 +19,6 @@ public interface ElasticPool<T> {
    void release(T object);
 
    void reserve(int capacity);
-
-   void forEach(Consumer<T> consumer);
 
    int minUsed();
 

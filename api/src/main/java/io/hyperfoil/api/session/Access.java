@@ -17,7 +17,7 @@ public interface Access extends Serializable {
 
    void setInt(Session session, int value);
 
-   <V extends Session.Var> V getVar(Session session);
+   Session.Var getVar(Session session);
 
    int addToInt(Session session, int delta);
 

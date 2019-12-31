@@ -9,6 +9,7 @@ import org.aesh.command.option.Argument;
 import org.aesh.io.Resource;
 
 import io.hyperfoil.api.config.Benchmark;
+import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.cli.Util;
 import io.hyperfoil.cli.context.HyperfoilCliContext;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
@@ -30,7 +31,7 @@ public class Upload extends ServerCommand {
       Benchmark benchmark;
       try {
          benchmark = BenchmarkParser.instance().buildBenchmark(io.hyperfoil.core.util.Util.toString(Util.sanitize(benchmarkResource).read()), new LocalBenchmarkData());
-      } catch (ParserException e) {
+      } catch (ParserException | BenchmarkDefinitionException e) {
          invocation.println("ERROR: " + io.hyperfoil.core.util.Util.explainCauses(e));
          throw new CommandException("Failed to parse the benchmark.", e);
       } catch (IOException e) {

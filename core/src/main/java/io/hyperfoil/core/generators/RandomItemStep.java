@@ -94,7 +94,7 @@ public class RandomItemStep implements Step, ResourceUtilizer {
             throw new IllegalStateException("Cannot fetch random item from collection stored under " + fromVar + ": " + data);
          }
          if (element instanceof ObjectVar) {
-            item = ((ObjectVar) element).objectValue();
+            item = ((ObjectVar) element).objectValue(session);
          } else {
             throw new IllegalStateException("Collection in " + fromVar + " should store ObjectVars, but it stores " + element);
          }

@@ -5,11 +5,12 @@ import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.statistics.Statistics;
 import io.hyperfoil.core.session.SessionFactory;
 
-public class StopwatchEndStep extends BaseStep {
+public class StopwatchEndStep extends StatisticsStep {
    private final Access key;
    private final String metrics;
 
    public StopwatchEndStep(Object key, String metrics) {
+      super(StatisticsStep.nextId());
       this.key = SessionFactory.access(key);
       this.metrics = metrics;
    }

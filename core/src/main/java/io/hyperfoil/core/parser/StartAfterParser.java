@@ -12,15 +12,15 @@ import io.hyperfoil.api.config.PhaseBuilder;
 import io.hyperfoil.api.config.PhaseReference;
 import io.hyperfoil.api.config.RelativeIteration;
 
-class StartAfterParser implements Parser<PhaseBuilder> {
-   private final BiConsumer<PhaseBuilder, PhaseReference> consumer;
+class StartAfterParser implements Parser<PhaseBuilder<?>> {
+   private final BiConsumer<PhaseBuilder<?>, PhaseReference> consumer;
 
-   StartAfterParser(BiConsumer<PhaseBuilder, PhaseReference> consumer) {
+   StartAfterParser(BiConsumer<PhaseBuilder<?>, PhaseReference> consumer) {
       this.consumer = consumer;
    }
 
    @Override
-   public void parse(Context ctx, PhaseBuilder target) throws ParserException {
+   public void parse(Context ctx, PhaseBuilder<?> target) throws ParserException {
       if (!ctx.hasNext()) {
          throw ctx.noMoreEvents(ScalarEvent.class, SequenceStartEvent.class, MappingStartEvent.class);
       }
@@ -32,7 +32,7 @@ class StartAfterParser implements Parser<PhaseBuilder> {
       parseItem(ctx, target);
    }
 
-   private void parseItem(Context ctx, PhaseBuilder target) throws ParserException {
+   private void parseItem(Context ctx, PhaseBuilder<?> target) throws ParserException {
       Event event = ctx.peek();
       if (event instanceof ScalarEvent) {
          consumer.accept(target, new PhaseReference(((ScalarEvent) event).getValue(), RelativeIteration.NONE, null));

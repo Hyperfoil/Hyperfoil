@@ -22,7 +22,7 @@ public class IntVar implements Session.Var {
    }
 
    @Override
-   public int intValue() {
+   public int intValue(Session session) {
       return value;
    }
 

@@ -6,30 +6,24 @@ import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.InitFromParam;
+import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Name;
-import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.http.HeaderHandler;
 import io.hyperfoil.api.statistics.Statistics;
-import io.hyperfoil.core.steps.BaseStep;
-import io.hyperfoil.function.SerializableSupplier;
 import io.hyperfoil.function.SerializableToLongFunction;
 import io.hyperfoil.util.Util;
 import io.netty.util.AsciiString;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 
 public class RecordHeaderTimeHandler implements HeaderHandler {
-   private static final Logger log = LoggerFactory.getLogger(RecordHeaderTimeHandler.class);
-
-   private final SerializableSupplier<? extends Step> step;
+   private final int stepId;
    private final String header;
    private final String statistics;
    private final SerializableToLongFunction<CharSequence> transform;
    private transient AsciiString asciiHeader;
 
-   public RecordHeaderTimeHandler(SerializableSupplier<? extends Step> step, String header, String statistics, SerializableToLongFunction<CharSequence> transform) {
-      this.step = step;
+   public RecordHeaderTimeHandler(int stepId, String header, String statistics, SerializableToLongFunction<CharSequence> transform) {
+      this.stepId = stepId;
       this.header = header;
       this.statistics = statistics;
       this.transform = transform;
@@ -51,15 +45,10 @@ public class RecordHeaderTimeHandler implements HeaderHandler {
          // we're not recording negative values
          return;
       }
-      Step step = this.step.get();
-      if (step instanceof BaseStep) {
-         Statistics statistics = request.session.statistics(((BaseStep) step).id(), this.statistics);
-         // we need to set both requests and responses to calculate stats properly
-         statistics.incrementRequests(request.startTimestampMillis());
-         statistics.recordResponse(request.startTimestampMillis(), 0, longValue);
-      } else {
-         throw new IllegalStateException("Cannot find ID for current step");
-      }
+      Statistics statistics = request.session.statistics(stepId, this.statistics);
+      // we need to set both requests and responses to calculate stats properly
+      statistics.incrementRequests(request.startTimestampMillis());
+      statistics.recordResponse(request.startTimestampMillis(), 0, longValue);
    }
 
    /**
@@ -71,6 +60,18 @@ public class RecordHeaderTimeHandler implements HeaderHandler {
       private String header;
       private String metric;
       private String unit;
+      private Locator locator;
+
+      @Override
+      public Builder setLocator(Locator locator) {
+         this.locator = locator;
+         return this;
+      }
+
+      @Override
+      public Builder copy(Locator locator) {
+         return new Builder().header(header).metric(metric).unit(unit).setLocator(locator);
+      }
 
       @Override
       public Builder init(String param) {
@@ -79,7 +80,7 @@ public class RecordHeaderTimeHandler implements HeaderHandler {
       }
 
       @Override
-      public RecordHeaderTimeHandler build(SerializableSupplier<? extends Step> step) {
+      public RecordHeaderTimeHandler build() {
          if (header == null || header.isEmpty()) {
             throw new BenchmarkDefinitionException("Must define the header.");
          } else if (header.chars().anyMatch(c -> c > 0xFF)) {
@@ -100,7 +101,8 @@ public class RecordHeaderTimeHandler implements HeaderHandler {
                   throw new BenchmarkDefinitionException("Unknown unit '" + unit + "'");
             }
          }
-         return new RecordHeaderTimeHandler(step, header, metric, transform);
+
+         return new RecordHeaderTimeHandler(locator.step().id(), header, metric, transform);
       }
 
       /**

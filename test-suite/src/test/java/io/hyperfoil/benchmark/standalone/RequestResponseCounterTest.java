@@ -23,7 +23,7 @@ package io.hyperfoil.benchmark.standalone;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.api.config.BenchmarkBuilder;
-import io.hyperfoil.core.handlers.ByteBufSizeRecorder;
+import io.hyperfoil.core.handlers.ResponseSizeRecorder;
 import io.hyperfoil.core.impl.LocalBenchmarkData;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
 import io.vertx.core.Vertx;
@@ -90,7 +90,7 @@ public class RequestResponseCounterTest {
                      .path("/")
                      .timeout("60s")
                      .handler()
-                        .rawBytesHandler(new ByteBufSizeRecorder("bytes"))
+                        .rawBytes(new ResponseSizeRecorder("bytes"))
                      .endHandler()
                   .endStep()
                .endSequence();
@@ -100,7 +100,7 @@ public class RequestResponseCounterTest {
 
       AtomicLong actualNumberOfRequests = new AtomicLong(0);
       LocalSimulationRunner runner = new LocalSimulationRunner(benchmark,
-            (phase, stepId, metric, snapshot, countDown) -> actualNumberOfRequests.addAndGet(snapshot.histogram.getTotalCount()), null);
+            (phase, isPhaseComplete, stepId, metric, snapshot, countDown) -> actualNumberOfRequests.addAndGet(snapshot.histogram.getTotalCount()), null);
       runner.run();
 
       assertEquals(counter.get(), actualNumberOfRequests.get());

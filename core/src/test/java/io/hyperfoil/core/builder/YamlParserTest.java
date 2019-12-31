@@ -187,6 +187,12 @@ public class YamlParserTest {
       assertThat(benchmark.postHooks().size()).isEqualTo(1);
    }
 
+   @Test
+   public void testSpecialVars() {
+      Benchmark benchmark = buildBenchmark("scenarios/specialvars.hf.yaml");
+      assertThat(benchmark.phases().size()).isEqualTo(10 + 1 /* one noop */);
+   }
+
    private <T extends Step> T next(Class<T> stepClass, Iterator<Step> iterator) {
       while (iterator.hasNext()) {
          Step step = iterator.next();

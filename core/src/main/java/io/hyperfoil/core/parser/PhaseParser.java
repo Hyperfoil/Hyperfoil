@@ -1,8 +1,9 @@
 package io.hyperfoil.core.parser;
 
+import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.config.PhaseBuilder;
 
-abstract class PhaseParser extends AbstractParser<PhaseBuilder.Catalog, PhaseBuilder> {
+abstract class PhaseParser extends AbstractParser<PhaseBuilder.Catalog, PhaseBuilder<?>> {
    PhaseParser() {
       register("startTime", new PropertyParser.String<>(PhaseBuilder::startTime));
       register("startAfter", new StartAfterParser(PhaseBuilder::startAfter));
@@ -19,7 +20,7 @@ abstract class PhaseParser extends AbstractParser<PhaseBuilder.Catalog, PhaseBui
       callSubBuilders(ctx, type(target));
    }
 
-   protected abstract PhaseBuilder type(PhaseBuilder.Catalog catalog);
+   protected abstract PhaseBuilder<?> type(PhaseBuilder.Catalog catalog);
 
    static class AtOnce extends PhaseParser {
       AtOnce() {
@@ -27,7 +28,7 @@ abstract class PhaseParser extends AbstractParser<PhaseBuilder.Catalog, PhaseBui
       }
 
       @Override
-      protected PhaseBuilder type(PhaseBuilder.Catalog catalog) {
+      protected PhaseBuilder.AtOnce type(PhaseBuilder.Catalog catalog) {
          return catalog.atOnce(-1);
       }
    }
@@ -38,34 +39,38 @@ abstract class PhaseParser extends AbstractParser<PhaseBuilder.Catalog, PhaseBui
       }
 
       @Override
-      protected PhaseBuilder type(PhaseBuilder.Catalog catalog) {
+      protected PhaseBuilder.Always type(PhaseBuilder.Catalog catalog) {
          return catalog.always(-1);
       }
    }
 
-   static class RampPerSec extends PhaseParser {
+   abstract static class OpenModel extends PhaseParser {
+      OpenModel() {
+         register("maxSessions", new PropertyParser.Int<>((builder, sessions) -> ((PhaseBuilder.OpenModel<?>) builder).maxSessions(sessions)));
+         register("variance", new PropertyParser.Boolean<>((builder, variance) -> ((PhaseBuilder.OpenModel<?>) builder).variance(variance)));
+         register("sessionLimitPolicy", new PropertyParser.Enum<>(Phase.SessionLimitPolicy.values(), (builder, policy) -> ((PhaseBuilder.OpenModel<?>) builder).sessionLimitPolicy(policy)));
+      }
+   }
+
+   static class RampPerSec extends OpenModel {
       RampPerSec() {
          register("initialUsersPerSec", new IncrementPropertyParser.Double<>((builder, base, inc) -> ((PhaseBuilder.RampPerSec) builder).initialUsersPerSec(base, inc)));
          register("targetUsersPerSec", new IncrementPropertyParser.Double<>((builder, base, inc) -> ((PhaseBuilder.RampPerSec) builder).targetUsersPerSec(base, inc)));
-         register("maxSessions", new PropertyParser.Int<>((builder, sessions) -> ((PhaseBuilder.RampPerSec) builder).maxSessions(sessions)));
-         register("variance", new PropertyParser.Boolean<>((builder, variance) -> ((PhaseBuilder.RampPerSec) builder).variance(variance)));
       }
 
       @Override
-      protected PhaseBuilder type(PhaseBuilder.Catalog catalog) {
+      protected PhaseBuilder.RampPerSec type(PhaseBuilder.Catalog catalog) {
          return catalog.rampPerSec(-1, -1);
       }
    }
 
-   static class ConstantPerSec extends PhaseParser {
+   static class ConstantPerSec extends OpenModel {
       ConstantPerSec() {
          register("usersPerSec", new IncrementPropertyParser.Double<>((builder, base, inc) -> ((PhaseBuilder.ConstantPerSec) builder).usersPerSec(base, inc)));
-         register("maxSessions", new PropertyParser.Int<>((builder, sessions) -> ((PhaseBuilder.ConstantPerSec) builder).maxSessions(sessions)));
-         register("variance", new PropertyParser.Boolean<>((builder, variance) -> ((PhaseBuilder.ConstantPerSec) builder).variance(variance)));
       }
 
       @Override
-      protected PhaseBuilder type(PhaseBuilder.Catalog catalog) {
+      protected PhaseBuilder.ConstantPerSec type(PhaseBuilder.Catalog catalog) {
          return catalog.constantPerSec(-1);
       }
    }

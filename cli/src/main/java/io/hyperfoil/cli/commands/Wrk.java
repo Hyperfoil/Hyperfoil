@@ -35,7 +35,7 @@ import io.hyperfoil.client.RestClient;
 import io.hyperfoil.controller.model.CustomStats;
 import io.hyperfoil.controller.model.RequestStatisticsResponse;
 import io.hyperfoil.controller.model.RequestStats;
-import io.hyperfoil.core.handlers.ByteBufSizeRecorder;
+import io.hyperfoil.core.handlers.ResponseSizeRecorder;
 import io.hyperfoil.core.impl.LocalBenchmarkData;
 import io.hyperfoil.core.util.Util;
 
@@ -44,6 +44,7 @@ import org.HdrHistogram.HistogramIterationValue;
 import org.aesh.command.AeshCommandRuntimeBuilder;
 import org.aesh.command.Command;
 import org.aesh.command.CommandDefinition;
+import org.aesh.command.CommandNotFoundException;
 import org.aesh.command.CommandResult;
 import org.aesh.command.CommandRuntime;
 import org.aesh.command.impl.registry.AeshCommandRegistryBuilder;
@@ -84,6 +85,7 @@ public class Wrk {
       //set logger impl
       System.setProperty(LOGGER_DELEGATE_FACTORY_CLASS_NAME, "io.vertx.core.logging.Log4j2LogDelegateFactory");
 
+      CommandRuntime<HyperfoilCommandInvocation> cr = null;
       try {
          AeshCommandRuntimeBuilder<HyperfoilCommandInvocation> runtime = AeshCommandRuntimeBuilder.builder();
          runtime.commandInvocationProvider(new HyperfoilCommandInvocationProvider(new HyperfoilCliContext()));
@@ -91,15 +93,26 @@ public class Wrk {
                AeshCommandRegistryBuilder.<HyperfoilCommandInvocation>builder()
                      .commands(StartLocal.class, WrkCommand.class, HyperfoilCli.ExitCommand.class);
          runtime.commandRegistry(registry.create());
-         CommandRuntime<HyperfoilCommandInvocation> cr = runtime.build();
-         cr.executeCommand("start-local");
-         cr.executeCommand("wrk " + String.join(" ", args));
-         cr.executeCommand("exit");
+         cr = runtime.build();
+         try {
+            cr.executeCommand("start-local --quiet");
+            cr.executeCommand("wrk " + String.join(" ", args));
+         } finally {
+            cr.executeCommand("exit");
+         }
       } catch (Exception e) {
-         System.out.println("Failed to execute command:" + e.getMessage());
-         e.printStackTrace();
+         System.out.println("Failed to execute command: " + e.getMessage());
+         if (Boolean.getBoolean("io.hyperfoil.stacktrace")) {
+            e.printStackTrace();
+         }
+         if (cr != null) {
+            try {
+               System.out.println(cr.getCommandRegistry().getCommand("wrk", "wrk").printHelp("wrk"));
+            } catch (CommandNotFoundException ex) {
+               throw new IllegalStateException(ex);
+            }
+         }
          //todo: should provide help info here, will be added in newer version of æsh
-         //System.out.println(runtime.commandInfo("wrk"));
       }
    }
 
@@ -265,7 +278,7 @@ public class Wrk {
                         })
                         .timeout(timeout)
                         .handler()
-                           .rawBytesHandler(new ByteBufSizeRecorder("bytes"))
+                           .rawBytes(new ResponseSizeRecorder("bytes"))
                         .endHandler()
                      .endStep()
                   .endSequence()
@@ -277,18 +290,18 @@ public class Wrk {
          long dataRead = custom.stream().filter(cs -> cs.customName.equals("bytes")).mapToLong(cs -> Long.parseLong(cs.value)).findFirst().orElse(0);
          double durationSeconds = (stats.endTime - stats.startTime) / 1000d;
          invocation.println("                  Avg     Stdev       Max");
-         invocation.println("Latency:    " + Util.prettyPrintNanos(stats.meanResponseTime) + " "
-               + Util.prettyPrintNanos((long) histogram.getStdDeviation()) + " " + Util.prettyPrintNanos(stats.maxResponseTime));
+         invocation.println("Latency:    " + Util.prettyPrintNanosFixed(stats.meanResponseTime) + " "
+               + Util.prettyPrintNanosFixed((long) histogram.getStdDeviation()) + " " + Util.prettyPrintNanosFixed(stats.maxResponseTime));
          if (latency) {
             invocation.println("Latency Distribution");
             for (Map.Entry<Double, Long> entry : stats.percentileResponseTime.entrySet()) {
-               invocation.println(String.format("%7.3f", entry.getKey()) + " " + Util.prettyPrintNanos(entry.getValue()));
+               invocation.println(String.format("%7.3f", entry.getKey()) + " " + Util.prettyPrintNanosFixed(entry.getValue()));
             }
             invocation.println("----------------------------------------------------------");
             invocation.println("Detailed Percentile Spectrum");
             invocation.println("    Value  Percentile  TotalCount  1/(1-Percentile)");
             for (HistogramIterationValue value : histogram.percentiles(5)) {
-               invocation.println(Util.prettyPrintNanos(value.getValueIteratedTo()) + " " + String.format("%9.5f%%  %10d  %15.2f",
+               invocation.println(Util.prettyPrintNanosFixed(value.getValueIteratedTo()) + " " + String.format("%9.5f%%  %10d  %15.2f",
                      value.getPercentile(), value.getTotalCountToThisValue(), 100 / (100 - value.getPercentile())));
             }
             invocation.println("----------------------------------------------------------");

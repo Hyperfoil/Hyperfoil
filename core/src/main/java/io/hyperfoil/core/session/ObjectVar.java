@@ -22,7 +22,7 @@ public class ObjectVar implements Session.Var {
    }
 
    @Override
-   public Object objectValue() {
+   public Object objectValue(Session session) {
       return value;
    }
 

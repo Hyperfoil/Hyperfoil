@@ -63,7 +63,7 @@ public class RunMojo extends AbstractMojo {
 
          if (benchmark != null) {
             // We want to log all stats in the same thread to not break the output layout too much.
-            LocalSimulationRunner runner = new LocalSimulationRunner(benchmark, (phase, stepId, metric, snapshot, ignored) -> {
+            LocalSimulationRunner runner = new LocalSimulationRunner(benchmark, (phase, isPhaseComplete, stepId, metric, snapshot, ignored) -> {
                snapshot.addInto(total.computeIfAbsent(phase.name() + "/" + metric, k -> new StatisticsSnapshot()));
             }, this::printSessionPoolInfo);
             log.info("Running for {}", benchmark.statisticsCollectionPeriod());
@@ -107,8 +107,8 @@ public class RunMojo extends AbstractMojo {
       log.info("{}: ", phaseAndMetric);
       log.info("{} requests in {} s, ", stats.histogram.getTotalCount(), durationSeconds);
       log.info("                  Avg     Stdev       Max");
-      log.info("Latency:    {} {} {}", Util.prettyPrintNanos((long) stats.histogram.getMean()),
-            Util.prettyPrintNanos((long) stats.histogram.getStdDeviation()), Util.prettyPrintNanos(stats.histogram.getMaxValue()));
+      log.info("Latency:    {} {} {}", Util.prettyPrintNanosFixed((long) stats.histogram.getMean()),
+            Util.prettyPrintNanosFixed((long) stats.histogram.getStdDeviation()), Util.prettyPrintNanosFixed(stats.histogram.getMaxValue()));
       log.info("Requests/sec: {}", String.format("%.2f", stats.histogram.getTotalCount() / durationSeconds));
 
       if (outputPercentileDistribution) {

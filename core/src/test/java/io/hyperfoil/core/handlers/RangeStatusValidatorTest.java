@@ -27,6 +27,6 @@ public class RangeStatusValidatorTest {
    }
 
    private RangeStatusValidator create(String inline) {
-      return new RangeStatusValidator.Builder().init(inline).build(null);
+      return new RangeStatusValidator.Builder().init(inline).build();
    }
 }

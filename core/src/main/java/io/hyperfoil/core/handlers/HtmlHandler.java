@@ -528,6 +528,7 @@ public class HtmlHandler implements Processor<HttpRequest>, ResourceUtilizer, Se
          requestBuilder.handler().onCompletion(new AddToIntAction.Builder().var(completionLatch()).value(-1));
          requestBuilder.setLocator(sequence.createLocator());
          sequence.stepBuilder(requestBuilder);
+         requestBuilder.prepareBuild();
 
          Action onCompletion = this.onCompletion.build();
          // We add unset step for cases where the step is retried and it's not sync

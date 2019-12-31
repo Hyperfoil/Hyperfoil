@@ -144,9 +144,14 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
          agent.phases.put(phase, phaseChange.status());
          ControllerPhase controllerPhase = run.phases.get(phase);
          if (phaseChange.sessionLimitExceeded()) {
-            log.info("Failing phase due to exceeded session limit.");
-            run.statisticsStore.addFailure(controllerPhase.definition().name, null, controllerPhase.absoluteStartTime(), System.currentTimeMillis(), "Exceeded session limit");
-            controllerPhase.setFailed();
+            Phase def = controllerPhase.definition();
+            run.statisticsStore.addFailure(def.name, null, controllerPhase.absoluteStartTime(), System.currentTimeMillis(), "Exceeded session limit");
+            if (def instanceof Phase.OpenModelPhase && ((Phase.OpenModelPhase) def).sessionLimitPolicy == Phase.SessionLimitPolicy.CONTINUE) {
+               log.warn("Phase {} session limit exceeded, continuing due to policy {}", def.name, ((Phase.OpenModelPhase) def).sessionLimitPolicy);
+            } else {
+               log.info("Failing phase due to exceeded session limit.");
+               controllerPhase.setFailed();
+            }
          }
          if (phaseChange.getError() != null) {
             controllerPhase.setFailed();
@@ -168,12 +173,22 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             if (run.statisticsStore != null) {
                if (statsMessage instanceof RequestStatsMessage) {
                   RequestStatsMessage requestStatsMessage = (RequestStatsMessage) statsMessage;
+                  String phase = run.phase(requestStatsMessage.phaseId);
                   log.trace("Run {}: Received stats from {}: {}/{}/{} ({} requests)",
                         requestStatsMessage.runId, requestStatsMessage.address,
-                        run.phase(requestStatsMessage.phaseId), requestStatsMessage.stepId, requestStatsMessage.metric,
+                        phase, requestStatsMessage.stepId, requestStatsMessage.metric,
                         requestStatsMessage.statistics.requestCount);
                   run.statisticsStore.record(requestStatsMessage.address, requestStatsMessage.phaseId, requestStatsMessage.stepId,
                         requestStatsMessage.metric, requestStatsMessage.statistics);
+                  if (requestStatsMessage.isPhaseComplete) {
+                     run.statisticsStore.completePhase(phase);
+                     if (!run.statisticsStore.validateSlas()) {
+                        log.info("SLA validation failed for {}", phase);
+                        ControllerPhase controllerPhase = run.phases.get(phase);
+                        controllerPhase.setFailed();
+                        failNotStartedPhases(run, controllerPhase);
+                     }
+                  }
                } else if (statsMessage instanceof SessionStatsMessage) {
                   SessionStatsMessage sessionStatsMessage = (SessionStatsMessage) statsMessage;
                   log.trace("Run {}: Received session pool stats from {}", sessionStatsMessage.runId, sessionStatsMessage.address);
@@ -301,21 +316,20 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             controllerPhase.status(ControllerPhase.Status.FINISHED);
             break;
          case TERMINATED:
-            run.statisticsStore.completePhase(phase);
-            if (!run.statisticsStore.validateSlas()) {
-               log.info("SLA validation failed for {}", phase);
-               controllerPhase.setFailed();
-            }
             controllerPhase.status(ControllerPhase.Status.TERMINATED);
             controllerPhase.absoluteCompletionTime(System.currentTimeMillis());
             break;
       }
       if (controllerPhase.isFailed()) {
-         log.info("Phase {} failed, cancelling other phases...", controllerPhase.definition().name());
-         for (ControllerPhase p : run.phases.values()) {
-            if (p.status() == ControllerPhase.Status.NOT_STARTED) {
-               p.status(ControllerPhase.Status.CANCELLED);
-            }
+         failNotStartedPhases(run, controllerPhase);
+      }
+   }
+
+   private void failNotStartedPhases(Run run, ControllerPhase controllerPhase) {
+      log.info("Phase {} failed, cancelling other phases...", controllerPhase.definition().name());
+      for (ControllerPhase p : run.phases.values()) {
+         if (p.status() == ControllerPhase.Status.NOT_STARTED) {
+            p.status(ControllerPhase.Status.CANCELLED);
          }
       }
    }
@@ -766,7 +780,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
    }
 
    public boolean hasControllerLog() {
-      return deployer.hasControllerLog();
+      return deployer != null && deployer.hasControllerLog();
    }
 
    public void downloadControllerLog(long offset, File tempFile, Handler<AsyncResult<Void>> handler) {

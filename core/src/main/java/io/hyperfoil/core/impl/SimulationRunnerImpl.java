@@ -28,18 +28,16 @@ import io.vertx.core.Handler;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Queue;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.StreamSupport;
@@ -62,17 +60,17 @@ public class SimulationRunnerImpl implements SimulationRunner {
    protected final EventExecutor[] executors;
    protected final Map<String, HttpClientPool> httpClientPools = new HashMap<>();
    protected final HttpDestinationTableImpl[] httpDestinations;
-   private final PhaseChangeHandler phaseChangeHandler;
-   private final Queue<Phase> toPrune = new ArrayDeque<>();
+   private final Queue<Phase> toPrune;
+   private PhaseChangeHandler phaseChangeHandler;
    private boolean isDepletedMessageQuietened;
 
-   public SimulationRunnerImpl(Benchmark benchmark, int agentId, PhaseChangeHandler phaseChangeHandler) {
+   public SimulationRunnerImpl(Benchmark benchmark, int agentId) {
       this.eventLoopGroup = new NioEventLoopGroup(benchmark.threads());
       this.executors = StreamSupport.stream(eventLoopGroup.spliterator(), false).toArray(EventExecutor[]::new);
       this.benchmark = benchmark;
       this.agentId = agentId;
-      this.phaseChangeHandler = phaseChangeHandler;
       this.httpDestinations = new HttpDestinationTableImpl[executors.length];
+      this.toPrune = new ArrayBlockingQueue<>(benchmark.phases().size());
       @SuppressWarnings("unchecked")
       Map<String, HttpConnectionPool>[] httpConnectionPools = new Map[executors.length];
       for (Map.Entry<String, Http> http : benchmark.http().entrySet()) {
@@ -102,6 +100,10 @@ public class SimulationRunnerImpl implements SimulationRunner {
          Map<String, HttpConnectionPool> pools = httpConnectionPools[executorId];
          httpDestinations[executorId] = new HttpDestinationTableImpl(pools);
       }
+   }
+
+   public void setPhaseChangeHandler(PhaseChangeHandler phaseChangeHandler) {
+      this.phaseChangeHandler = phaseChangeHandler;
    }
 
    @Override
@@ -142,7 +144,7 @@ public class SimulationRunnerImpl implements SimulationRunner {
                }
                HttpDestinationTable httpDestinations = this.httpDestinations[executorId];
                if (benchmark.ergonomics().privateHttpPools()) {
-                  httpDestinations = new HttpDestinationTableImpl(httpDestinations, pool -> new PrivateConnectionPool(pool));
+                  httpDestinations = new HttpDestinationTableImpl(httpDestinations, PrivateConnectionPool::new);
                }
                session.attach(executors[executorId], data[executorId], httpDestinations, statistics[executorId]);
                session.reserve(def.scenario);
@@ -150,20 +152,20 @@ public class SimulationRunnerImpl implements SimulationRunner {
             };
             SharedResources finalSharedResources = sharedResources;
             sharedResources.sessionPool = new ElasticPoolImpl<>(sessionSupplier, () -> {
-               if (isDepletedMessageQuietened) {
-                  log.warn("Pool depleted, allocating new sessions! Enable trace logging to see subsequent pool depletion messages.");
+               if (!isDepletedMessageQuietened) {
+                  log.warn("Pool depleted, throttling execution! Enable trace logging to see subsequent pool depletion messages.");
                   isDepletedMessageQuietened = true;
                } else {
-                  log.trace("Pool depleted, allocating new sessions!");
+                  log.trace("Pool depleted, throttling execution!");
                }
                finalSharedResources.currentPhase.setSessionLimitExceeded();
-               return sessionSupplier.get();
+               return null;
             });
             this.sharedResources.put(def.sharedResources, sharedResources);
          }
          PhaseInstance phase = PhaseInstanceImpl.newInstance(def);
          instances.put(def.name(), phase);
-         phase.setComponents(sharedResources.sessionPool, sharedResources.sessions, sharedResources.allStatistics(), this::phaseChanged);
+         phase.setComponents(sharedResources.sessionPool, sharedResources.sessions, this::phaseChanged);
          phase.reserveSessions();
          // at this point all session resources should be reserved
       }
@@ -178,6 +180,30 @@ public class SimulationRunnerImpl implements SimulationRunner {
    }
 
    protected void phaseChanged(Phase phase, PhaseInstance.Status status, boolean sessionLimitExceeded, Throwable error) {
+      if (status == PhaseInstance.Status.TERMINATED) {
+         SharedResources resources = this.sharedResources.get(phase.sharedResources);
+         if (resources != null && resources.statistics != null) {
+            long now = System.currentTimeMillis();
+            for (int i = 0; i < executors.length; ++i) {
+               SessionStatistics statistics = resources.statistics[i];
+               if (executors[i].inEventLoop()) {
+                  applyToPhase(statistics, phase, now, Statistics::end);
+               } else {
+                  try {
+                     executors[i].submit(() -> applyToPhase(statistics, phase, now, Statistics::end)).get();
+                  } catch (InterruptedException e) {
+                     Thread.currentThread().interrupt();
+                     log.error("Interrupted waiting for statistics.end()");
+                  } catch (ExecutionException e) {
+                     log.error("Failed to end statistics!", e);
+                     if (error == null) {
+                        error = e;
+                     }
+                  }
+               }
+            }
+         }
+      }
       if (phaseChangeHandler != null) {
          phaseChangeHandler.onChange(phase, status, sessionLimitExceeded, error);
       }
@@ -213,14 +239,17 @@ public class SimulationRunnerImpl implements SimulationRunner {
             consumer.accept(statistics);
          }
       }
-      while (!toPrune.isEmpty()) {
-         Phase phase = toPrune.poll();
+      Phase phase;
+      while ((phase = toPrune.poll()) != null) {
+         Phase phase2 = phase;
          for (SharedResources sharedResources : this.sharedResources.values()) {
             if (sharedResources.statistics == null) {
                continue;
             }
-            for (SessionStatistics statistics : sharedResources.statistics) {
-               statistics.prune(phase);
+            SessionStatistics[] sessionStatistics = sharedResources.statistics;
+            for (int i = 0; i < sessionStatistics.length; i++) {
+               SessionStatistics statistics = sessionStatistics[i];
+               executors[i].execute(() -> statistics.prune(phase2));
             }
          }
       }
@@ -270,8 +299,25 @@ public class SimulationRunnerImpl implements SimulationRunner {
       if (sharedResources != null) {
          // Avoid NPE in noop phases
          sharedResources.currentPhase = phaseInstance;
+         if (sharedResources.statistics != null) {
+            long now = System.currentTimeMillis();
+            for (int i = 0; i < executors.length; ++i) {
+               SessionStatistics statistics = sharedResources.statistics[i];
+               executors[i].execute(() -> applyToPhase(statistics, phaseInstance.definition(), now, Statistics::start));
+            }
+         }
       }
       phaseInstance.start(eventLoopGroup);
+   }
+
+   private void applyToPhase(SessionStatistics statistics, Phase phase, long now, BiConsumer<Statistics, Long> f) {
+      for (int j = 0; j < statistics.size(); ++j) {
+         if (statistics.phase(j) == phase) {
+            for (Statistics s : statistics.stats(j).values()) {
+               f.accept(s, now);
+            }
+         }
+      }
    }
 
    @Override
@@ -332,53 +378,6 @@ public class SimulationRunnerImpl implements SimulationRunner {
             this.statistics[executorId] = new SessionStatistics();
             this.data[executorId] = new SharedDataImpl();
          }
-      }
-
-      Iterable<Statistics> allStatistics() {
-         if (statistics.length == 0) {
-            return Collections.emptyList();
-         }
-         return () -> new FlattenIterator<>(Arrays.asList(statistics).iterator());
-      }
-   }
-
-   private static class FlattenIterator<T> implements Iterator<T> {
-      private final Iterator<? extends Iterable<T>> it1;
-      private Iterator<T> it2;
-
-      public FlattenIterator(Iterator<? extends Iterable<T>> iterator) {
-         it1 = iterator;
-      }
-
-      @Override
-      public boolean hasNext() {
-         if (it2 != null && it2.hasNext()) {
-            return true;
-         } else if (it1.hasNext()) {
-            boolean it2HasNext;
-            do {
-               it2 = it1.next().iterator();
-            } while (!(it2HasNext = it2.hasNext()) && it1.hasNext());
-            return it2HasNext;
-         } else {
-            return false;
-         }
-      }
-
-      @Override
-      public T next() {
-         if (it2 != null && it2.hasNext()) {
-            return it2.next();
-         } else if (it1.hasNext()) {
-            boolean it2HasNext;
-            do {
-               it2 = it1.next().iterator();
-            } while (!(it2HasNext = it2.hasNext()) && it1.hasNext());
-            if (it2HasNext) {
-               return it2.next();
-            }
-         }
-         throw new NoSuchElementException();
       }
    }
 }

@@ -14,6 +14,8 @@ import io.hyperfoil.controller.model.RequestStats;
 import io.hyperfoil.core.util.LowHigh;
 import io.netty.util.collection.IntObjectHashMap;
 import io.netty.util.collection.IntObjectMap;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 
 import org.HdrHistogram.HistogramIterationValue;
 
@@ -32,15 +34,15 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.OptionalInt;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class StatisticsStore {
-
+   private static final Logger log = LoggerFactory.getLogger(StatisticsStore.class);
    private static final String DEFAULT_FIELD_NAME = ":DEFAULT:";
 
    private static final double OUTPUT_VALUE_UNIT_SCALING_RATIO = 1000_000.0;
@@ -172,11 +174,11 @@ public class StatisticsStore {
       jGenerator.flush();
    }
 
-   public void totalArray(JsonGenerator jGenerator, Data[] dataList, Function<Data, StatisticsSummary> getSummary, BiConsumer<JsonGenerator, Data> also) throws IOException {
+   public void totalArray(JsonGenerator jGenerator, Data[] dataList, Function<Data, StatisticsSnapshot> selector, Function<SessionPoolStats, LowHigh> sessionPoolStats) throws IOException {
       jGenerator.writeStartArray();
       for (Data data : dataList) {
-         StatisticsSummary summary = getSummary.apply(data); //data.total.summary(percentiles);
-         if (summary == null) {
+         StatisticsSnapshot snapshot = selector.apply(data);
+         if (snapshot == null) {
             continue;
          }
          jGenerator.writeStartObject();
@@ -184,10 +186,20 @@ public class StatisticsStore {
          jGenerator.writeStringField("metric", data.metric);
          jGenerator.writeNumberField("start", data.total.histogram.getStartTimeStamp());
          jGenerator.writeNumberField("end", data.total.histogram.getEndTimeStamp());
-         jGenerator.writeObjectField("summary", summary);
+         jGenerator.writeObjectField("summary", snapshot.summary(percentiles));
+         jGenerator.writeFieldName("custom");
 
-         if (also != null) {
-            also.accept(jGenerator, data);
+         jGenerator.writeStartObject();
+         for (Map.Entry<Object, CustomValue> entry : snapshot.custom.entrySet()) {
+            jGenerator.writeStringField(String.valueOf(entry.getKey()), String.valueOf(entry.getValue()));
+         }
+         jGenerator.writeEndObject();
+
+         SessionPoolStats sps = this.sessionPoolStats.get(data.phase);
+         if (sps != null) {
+            LowHigh lohi = sessionPoolStats.apply(sps);
+            jGenerator.writeNumberField("minSessions", lohi.low);
+            jGenerator.writeNumberField("maxSessions", lohi.high);
          }
 
          jGenerator.writeEndObject();
@@ -304,7 +316,7 @@ public class StatisticsStore {
          jGenerator.writeStartObject();
       }
       jGenerator.writeFieldName("total");
-      totalArray(jGenerator, sorted, (data) -> data.total.summary(percentiles), null);
+      totalArray(jGenerator, sorted, data -> data.total, SessionPoolStats::findMinMax);
 
       jGenerator.writeFieldName("failure");
       jGenerator.writeStartArray();
@@ -421,17 +433,12 @@ public class StatisticsStore {
          jGenerator.writeStartObject();
 
          jGenerator.writeFieldName("total");
-         totalArray(jGenerator, sorted, (data) -> data.perAgent.get(agent).summary(percentiles), (jsonGenerator, data) -> {
-            SessionPoolStats sps = sessionPoolStats.get(data.phase);
-            if (sps != null && sps.records.get(agent) != null) {
-               LowHigh lohi = sps.records.get(agent).stream().map(LowHigh.class::cast)
+         totalArray(jGenerator, sorted, data -> data.perAgent.get(agent), sps -> {
+            if (sps.records.get(agent) != null) {
+               return sps.records.get(agent).stream().map(LowHigh.class::cast)
                      .reduce(LowHigh::combine).orElse(new LowHigh(0, 0));
-               try {
-                  jsonGenerator.writeNumberField("minSessions", lohi.low);
-                  jsonGenerator.writeNumberField("maxSessions", lohi.high);
-               } catch (IOException e) {
-                  throw new RuntimeException(e);
-               }
+            } else {
+               return new LowHigh(0, 0);
             }
          });
          if (sorted.length > 0) {
@@ -501,10 +508,13 @@ public class StatisticsStore {
       if (standalone) {
          jGenerator.writeEndObject();
       }
-      return;
    }
 
    public void persist(Path dir) throws IOException {
+      Optional<Data> incomplete = this.data.values().stream().flatMap(m -> m.values().stream()).filter(d -> !d.completed).findAny();
+      if (incomplete.isPresent()) {
+         log.error("Phase {} metric {} was not completed!", incomplete.get().phase, incomplete.get().metric);
+      }
       File statsDir = dir.toFile();
       if (!statsDir.exists() && !statsDir.mkdirs()) {
          throw new IOException("Cannot create directory " + dir);
@@ -540,12 +550,11 @@ public class StatisticsStore {
             writer.println();
          }
       }
-      for (Map<String, Data> m : this.data.values()) {
-         for (Data data : m.values()) {
-            String filePrefix = dir + File.separator + sanitize(data.phase) + "." + sanitize(data.metric) + "." + data.stepId;
-            persistHistogramAndSeries(filePrefix, data.total, data.series);
-         }
+      for (Data data : sorted) {
+         String filePrefix = dir + File.separator + sanitize(data.phase) + "." + sanitize(data.metric) + "." + data.stepId;
+         persistHistogramAndSeries(filePrefix, data.total, data.series);
       }
+      persistCustomStats(sorted, data -> data.total, dir + File.separator + "custom.csv");
       String[] agents = this.data.values().stream()
             .flatMap(m -> m.values().stream())
             .flatMap(d -> d.perAgent.keySet().stream())
@@ -585,12 +594,11 @@ public class StatisticsStore {
                writer.println();
             }
          }
-         for (Map<String, Data> m : this.data.values()) {
-            for (Data data : m.values()) {
-               String filePrefix = dir + File.separator + sanitize(data.phase) + "." + sanitize(data.metric) + "." + data.stepId + ".agent." + agent;
-               persistHistogramAndSeries(filePrefix, data.perAgent.get(agent), data.agentSeries.get(agent));
-            }
+         for (Data data : sorted) {
+            String filePrefix = dir + File.separator + sanitize(data.phase) + "." + sanitize(data.metric) + "." + data.stepId + ".agent." + agent;
+            persistHistogramAndSeries(filePrefix, data.perAgent.get(agent), data.agentSeries.get(agent));
          }
+         persistCustomStats(sorted, data -> data.perAgent.get(agent), dir + File.separator + "agent." + sanitize(agent) + ".custom.csv");
       }
       try (PrintWriter writer = new PrintWriter(dir + File.separator + "failures.csv")) {
          writer.print("Phase,Metric,Message,Start,End,");
@@ -642,6 +650,24 @@ public class StatisticsStore {
                   }
                }
             } while (hadNext);
+         }
+      }
+   }
+
+   private void persistCustomStats(Data[] sorted, Function<Data, StatisticsSnapshot> selector, String fileName) throws FileNotFoundException {
+      try (PrintWriter writer = new PrintWriter(fileName)) {
+         writer.println("Phase,Metric,Custom,Value");
+         for (Data data : sorted) {
+            StatisticsSnapshot snapshot = selector.apply(data);
+            for (Map.Entry<Object, CustomValue> entry : snapshot.custom.entrySet()) {
+               writer.print(data.phase);
+               writer.print(',');
+               writer.print(data.metric);
+               writer.print(',');
+               writer.print(entry.getKey());
+               writer.print(',');
+               writer.println(entry.getValue());
+            }
          }
       }
    }
@@ -841,6 +867,7 @@ public class StatisticsStore {
       private final Map<SLA, Window> windowSlas;
       private final SLA[] totalSlas;
       private int highestSequenceId = 0;
+      private boolean completed;
 
       private Data(String phase, int stepId, String metric, Map<SLA, Window> periodSlas, SLA[] totalSlas) {
          this.phase = phase;
@@ -903,6 +930,16 @@ public class StatisticsStore {
          for (int i = Math.max(0, highestSequenceId - MERGE_DELAY); i <= highestSequenceId; ++i) {
             mergeSnapshots(i);
          }
+         // Just sanity checks
+         if (series.stream().mapToLong(ss -> ss.requestCount).sum() != total.requestCount) {
+            log.error("We lost some data (series) in phase {} metric {}", phase, metric);
+         }
+         if (agentSeries.values().stream().flatMap(List::stream).mapToLong(ss -> ss.requestCount).sum() != total.requestCount) {
+            log.error("We lost some data (agent series) in phase {} metric {}", phase, metric);
+         }
+         if (perAgent.values().stream().mapToLong(ss -> ss.requestCount).sum() != total.requestCount) {
+            log.error("We lost some data (per agent) in phase {} metric {}", phase, metric);
+         }
          for (SLA sla : totalSlas) {
             SLA.Failure failure = sla.validate(phase, metric, total);
             if (failure != null) {
@@ -910,6 +947,7 @@ public class StatisticsStore {
                failureHandler.accept(failure);
             }
          }
+         completed = true;
       }
    }
 

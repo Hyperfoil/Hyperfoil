@@ -1,0 +1,21 @@
+name: specialvars
+http:
+  host: http://example.com
+phases:
+- test:
+    always:
+      users: 1
+      duration: 2s
+      maxIterations: 10
+      scenario:
+      - test:
+        - randomInt:
+            min: 0
+            max:
+              fromVar: hyperfoil.phase.iteration
+            toVar: my-var
+        - log:
+            message: 'Chosen {}'
+            vars:
+            - my-var
+        - thinkTime: 100ms

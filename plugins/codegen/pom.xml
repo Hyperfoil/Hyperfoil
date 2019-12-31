@@ -45,5 +45,15 @@
             <groupId>com.github.javaparser</groupId>
             <artifactId>javaparser-core</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>io.hyperfoil</groupId>
+            <artifactId>hyperfoil-api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.kohsuke.metainf-services</groupId>
+            <artifactId>metainf-services</artifactId>
+        </dependency>
     </dependencies>
 </project>
