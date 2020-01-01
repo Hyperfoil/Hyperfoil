@@ -7,8 +7,6 @@ import org.kohsuke.MetaInfServices;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.sun.org.apache.xerces.internal.impl.xpath.XPath.Step;
-
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.http.HeaderHandler;
@@ -16,7 +14,6 @@ import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
-import io.hyperfoil.function.SerializableSupplier;
 import io.netty.handler.codec.http.HttpHeaderNames;
 
 /**
@@ -41,14 +38,9 @@ public class StoreHeaderHandler implements HeaderHandler, ResourceUtilizer {
         private String name;
         private String toVar;
 
-        public HeaderHandler build(SerializableSupplier<? extends Step> param) {
-            // TODO Auto-generated method stub
-            return new StoreHeaderHandler(name, toVar);
-        }
-
         @Override
         public HeaderHandler build() {
-            return null;
+            return new StoreHeaderHandler(name, toVar);
         }
 
         public Builder name(String param) {

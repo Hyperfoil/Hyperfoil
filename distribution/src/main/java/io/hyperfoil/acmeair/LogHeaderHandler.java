@@ -7,14 +7,11 @@ import org.kohsuke.MetaInfServices;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.sun.org.apache.xerces.internal.impl.xpath.XPath.Step;
-
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.http.HeaderHandler;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.core.session.SessionFactory;
-import io.hyperfoil.function.SerializableSupplier;
 
 
 /**
@@ -62,13 +59,9 @@ public class LogHeaderHandler implements HeaderHandler {
             return this;
         }
 
-        public HeaderHandler build(SerializableSupplier<? extends Step> step) {
-            return new LogHeaderHandler(message, var);
-        }
-
         @Override
         public HeaderHandler build() {
-            return null;
+            return new LogHeaderHandler(message, var);
         }
     }
 
