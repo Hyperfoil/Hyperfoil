@@ -42,7 +42,7 @@ public class SetAction implements Action, ResourceUtilizer {
    public static class Builder implements InitFromParam<Builder>, Action.Builder {
       private String var;
       private Object value;
-      private ObjectArrayBuilder objectArray;
+      private ObjectArrayBuilder<Builder> objectArray;
 
       public Builder() {
       }
@@ -90,8 +90,8 @@ public class SetAction implements Action, ResourceUtilizer {
        *
        * @return Builder.
        */
-      public ObjectArrayBuilder objectArray() {
-         return objectArray = new ObjectArrayBuilder();
+      public ObjectArrayBuilder<Builder> objectArray() {
+         return objectArray = new ObjectArrayBuilder<>(this);
       }
 
       @Override
@@ -144,8 +144,13 @@ public class SetAction implements Action, ResourceUtilizer {
    /**
     * Creates object arrays to be stored in the session.
     */
-   public static class ObjectArrayBuilder {
+   public static class ObjectArrayBuilder<P> {
+      private final P parent;
       private int size;
+
+      public ObjectArrayBuilder(P parent) {
+         this.parent = parent;
+      }
 
       /**
        * Size of the array.
@@ -153,7 +158,7 @@ public class SetAction implements Action, ResourceUtilizer {
        * @param size Array size.
        * @return Self.
        */
-      public ObjectArrayBuilder size(int size) {
+      public ObjectArrayBuilder<P> size(int size) {
          this.size = size;
          return this;
       }
@@ -170,6 +175,10 @@ public class SetAction implements Action, ResourceUtilizer {
             }
             ;
          });
+      }
+
+      public P end() {
+         return parent;
       }
    }
 }
