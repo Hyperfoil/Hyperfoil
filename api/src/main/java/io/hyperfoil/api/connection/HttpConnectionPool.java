@@ -13,7 +13,9 @@ public interface HttpConnectionPool {
 
    boolean request(HttpRequest request,
                    BiConsumer<Session, HttpRequestWriter>[] headerAppenders,
-                   BiFunction<Session, Connection, ByteBuf> bodyGenerator, boolean reserveConnection);
+                   boolean injectHostHeader,
+                   BiFunction<Session, Connection, ByteBuf> bodyGenerator,
+                   boolean reserveConnection);
 
    void registerWaitingSession(Session session);
 

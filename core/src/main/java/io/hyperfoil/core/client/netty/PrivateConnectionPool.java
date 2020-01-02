@@ -29,12 +29,16 @@ public class PrivateConnectionPool implements HttpConnectionPool {
    }
 
    @Override
-   public boolean request(HttpRequest request, BiConsumer<Session, HttpRequestWriter>[] headerAppenders, BiFunction<Session, Connection, ByteBuf> bodyGenerator, boolean reserveConnection) {
+   public boolean request(HttpRequest request,
+                          BiConsumer<Session, HttpRequestWriter>[] headerAppenders,
+                          boolean injectHostHeader,
+                          BiFunction<Session, Connection, ByteBuf> bodyGenerator,
+                          boolean reserveConnection) {
       assert !reserveConnection;
       for (; ; ) {
          HttpConnection connection = available.pollFirst();
          if (connection == null) {
-            boolean success = parent.request(request, headerAppenders, bodyGenerator, true);
+            boolean success = parent.request(request, headerAppenders, injectHostHeader, bodyGenerator, true);
             if (success) {
                request.connection().attach(this);
             }
@@ -42,7 +46,7 @@ public class PrivateConnectionPool implements HttpConnectionPool {
          } else if (!connection.isClosed()) {
             request.attach(connection);
             connection.attach(this);
-            connection.request(request, headerAppenders, bodyGenerator);
+            connection.request(request, headerAppenders, injectHostHeader, bodyGenerator);
             // Move it to the back of the queue if it is still available (do not prefer it for subsequent requests)
             if (connection.isAvailable()) {
                available.addLast(connection);

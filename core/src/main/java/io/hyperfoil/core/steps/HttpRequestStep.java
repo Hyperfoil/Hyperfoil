@@ -65,6 +65,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
    final SerializableFunction<Session, String> pathGenerator;
    final SerializableBiFunction<Session, Connection, ByteBuf> bodyGenerator;
    final SerializableBiConsumer<Session, HttpRequestWriter>[] headerAppenders;
+   private final boolean injectHostHeader;
    final SerializableBiFunction<String, String, String> metricSelector;
    final long timeout;
    final HttpResponseHandlersImpl handler;
@@ -75,6 +76,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
                           SerializableFunction<Session, String> pathGenerator,
                           SerializableBiFunction<Session, Connection, ByteBuf> bodyGenerator,
                           SerializableBiConsumer<Session, HttpRequestWriter>[] headerAppenders,
+                          boolean injectHostHeader,
                           SerializableBiFunction<String, String, String> metricSelector,
                           long timeout, HttpResponseHandlersImpl handler, SLA[] sla) {
       super(stepId);
@@ -83,6 +85,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
       this.pathGenerator = pathGenerator;
       this.bodyGenerator = bodyGenerator;
       this.headerAppenders = headerAppenders;
+      this.injectHostHeader = injectHostHeader;
       this.metricSelector = metricSelector;
       this.timeout = timeout;
       this.handler = handler;
@@ -127,7 +130,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
          return false;
       }
       request.authority = authority == null ? connectionPool.clientPool().authority() : authority;
-      if (!connectionPool.request(request, headerAppenders, bodyGenerator, false)) {
+      if (!connectionPool.request(request, headerAppenders, injectHostHeader, bodyGenerator, false)) {
          request.setCompleted();
          session.httpRequestPool().release(request);
          // TODO: when the phase is finished, max duration is not set and the connection cannot be obtained
@@ -190,6 +193,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
       private StringGeneratorBuilder path;
       private BodyGeneratorBuilder body;
       private List<SerializableBiConsumer<Session, HttpRequestWriter>> headerAppenders = new ArrayList<>();
+      private boolean injectHostHeader = true;
       private SerializableBiFunction<String, String, String> metricSelector;
       private long timeout = Long.MIN_VALUE;
       private HttpResponseHandlersImpl.Builder handler = new HttpResponseHandlersImpl.Builder(this);
@@ -635,7 +639,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
             String sequenceName = locator.sequence().name();
             metricSelector = (a, p) -> sequenceName;
          }
-         HttpRequestStep step = new HttpRequestStep(stepId, method, authority, pathGenerator, bodyGenerator, headerAppenders, metricSelector, timeout, handler.build(), sla);
+         HttpRequestStep step = new HttpRequestStep(stepId, method, authority, pathGenerator, bodyGenerator, headerAppenders, injectHostHeader, metricSelector, timeout, handler.build(), sla);
          return Collections.singletonList(step);
       }
 
@@ -695,6 +699,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
       }
 
       public HeadersBuilder header(CharSequence header, CharSequence value) {
+         warnIfUsingHostHeader(header);
          parent.headerAppenders.add((session, writer) -> writer.putHeader(header, value));
          return this;
       }
@@ -704,6 +709,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
        */
       @Override
       public void accept(String header, String value) {
+         warnIfUsingHostHeader(header);
          parent.headerAppenders.add((session, writer) -> writer.putHeader(header, value));
       }
 
@@ -715,8 +721,16 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
        * Use header name (e.g. <code>Content-Type</code>) as key and specify value in the mapping.
        */
       @Override
-      public PartialHeadersBuilder withKey(java.lang.String key) {
+      public PartialHeadersBuilder withKey(String key) {
+         warnIfUsingHostHeader(key);
          return new PartialHeadersBuilder(this, key);
+      }
+
+      private void warnIfUsingHostHeader(CharSequence key) {
+         if (key.toString().equalsIgnoreCase("host")) {
+            log.warn("Setting `host` header explicitly is not recommended. Use the HTTP host and adjust actual target using `addresses` property.");
+            parent.injectHostHeader = false;
+         }
       }
    }
 

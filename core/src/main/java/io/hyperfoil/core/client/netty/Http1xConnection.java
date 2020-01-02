@@ -176,14 +176,19 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    }
 
    @Override
-   public void request(HttpRequest request, BiConsumer<Session, HttpRequestWriter>[] headerAppenders, BiFunction<Session, Connection, ByteBuf> bodyGenerator) {
+   public void request(HttpRequest request,
+                       BiConsumer<Session, HttpRequestWriter>[] headerAppenders,
+                       boolean injectHostHeader,
+                       BiFunction<Session, Connection, ByteBuf> bodyGenerator) {
       size++;
       ByteBuf buf = bodyGenerator != null ? bodyGenerator.apply(request.session, request.connection()) : null;
       if (buf == null) {
          buf = Unpooled.EMPTY_BUFFER;
       }
       DefaultFullHttpRequest msg = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, request.method.netty, request.path, buf, false);
-      msg.headers().add(HttpHeaderNames.HOST, pool.clientPool().authority());
+      if (injectHostHeader) {
+         msg.headers().add(HttpHeaderNames.HOST, pool.clientPool().authority());
+      }
       if (buf.readableBytes() > 0) {
          msg.headers().add(HttpHeaderNames.CONTENT_LENGTH, String.valueOf(buf.readableBytes()));
       }

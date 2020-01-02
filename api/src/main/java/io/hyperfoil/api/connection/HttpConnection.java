@@ -15,6 +15,7 @@ public interface HttpConnection extends Connection {
 
    void request(HttpRequest request,
                 BiConsumer<Session, HttpRequestWriter>[] headerAppenders,
+                boolean injectHostHeader,
                 BiFunction<Session, Connection, ByteBuf> bodyGenerator);
 
    HttpRequest peekRequest(int streamId);

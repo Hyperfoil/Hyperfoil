@@ -18,7 +18,7 @@ public class BaseMockConnection implements HttpConnection {
    }
 
    @Override
-   public void request(HttpRequest request, BiConsumer<Session, HttpRequestWriter>[] headerAppenders, BiFunction<Session, Connection, ByteBuf> bodyGenerator) {
+   public void request(HttpRequest request, BiConsumer<Session, HttpRequestWriter>[] headerAppenders, boolean injectHostHeader, BiFunction<Session, Connection, ByteBuf> bodyGenerator) {
    }
 
    @Override
