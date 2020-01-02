@@ -18,8 +18,7 @@ scenario:
   - httpRequest:
       # HTTP request will read the variable from the session and format
       # the path for the GET request
-      GET:
-        pattern: /example/${ my-random-path }
+      GET: /example/${my-random-path}
       # We'll use different statistics metric for webpages and images
       metric:
       - .*\.html -> pages

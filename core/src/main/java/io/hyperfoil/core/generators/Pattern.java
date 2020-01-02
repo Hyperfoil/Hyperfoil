@@ -76,6 +76,9 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
 
    @Override
    public String apply(Session session) {
+      if (components.length == 1 && components[0] instanceof StringComponent) {
+         return ((StringComponent) components[0]).substring;
+      }
       StringBuilder sb = new StringBuilder(lengthEstimate);
       for (Component c : components) {
          c.accept(session, sb);

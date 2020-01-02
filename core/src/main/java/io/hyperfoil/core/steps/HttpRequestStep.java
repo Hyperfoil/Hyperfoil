@@ -221,11 +221,11 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
       /**
        * Issue HTTP GET request to given path.
        *
-       * @param path HTTP path.
+       * @param path HTTP path, a pattern replacing <code>${sessionvar}</code> with variable contents.
        * @return Self.
        */
       public Builder GET(String path) {
-         return method(HttpMethod.GET).path(path);
+         return method(HttpMethod.GET).path().pattern(path).end();
       }
 
       /**
@@ -240,11 +240,11 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
       /**
        * Issue HTTP HEAD request to given path.
        *
-       * @param path HTTP path.
+       * @param path HTTP path, a pattern replacing <code>${sessionvar}</code> with variable contents.
        * @return Self.
        */
       public Builder HEAD(String path) {
-         return method(HttpMethod.HEAD).path(path);
+         return method(HttpMethod.HEAD).path().pattern(path).end();
       }
 
       /**
@@ -259,11 +259,11 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
       /**
        * Issue HTTP POST request to given path.
        *
-       * @param path HTTP path.
+       * @param path HTTP path, a pattern replacing <code>${sessionvar}</code> with variable contents.
        * @return Self.
        */
       public Builder POST(String path) {
-         return method(HttpMethod.POST).path(path);
+         return method(HttpMethod.POST).path().pattern(path).end();
       }
 
       /**
@@ -278,11 +278,11 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
       /**
        * Issue HTTP PUT request to given path.
        *
-       * @param path HTTP path.
+       * @param path HTTP path, a pattern replacing <code>${sessionvar}</code> with variable contents.
        * @return Self.
        */
       public Builder PUT(String path) {
-         return method(HttpMethod.PUT).path(path);
+         return method(HttpMethod.PUT).path().pattern(path).end();
       }
 
       /**
@@ -297,11 +297,11 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
       /**
        * Issue HTTP DELETE request to given path.
        *
-       * @param path HTTP path.
+       * @param path HTTP path, a pattern replacing <code>${sessionvar}</code> with variable contents.
        * @return Self.
        */
       public Builder DELETE(String path) {
-         return method(HttpMethod.DELETE).path(path);
+         return method(HttpMethod.DELETE).path().pattern(path).end();
       }
 
       /**
@@ -316,11 +316,11 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
       /**
        * Issue HTTP OPTIONS request to given path.
        *
-       * @param path HTTP path.
+       * @param path HTTP path, a pattern replacing <code>${sessionvar}</code> with variable contents.
        * @return Self.
        */
       public Builder OPTIONS(String path) {
-         return method(HttpMethod.OPTIONS).path(path);
+         return method(HttpMethod.OPTIONS).path().pattern(path).end();
       }
 
       /**
@@ -335,11 +335,11 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
       /**
        * Issue HTTP PATCH request to given path.
        *
-       * @param path HTTP path.
+       * @param path HTTP path, a pattern replacing <code>${sessionvar}</code> with variable contents.
        * @return Self.
        */
       public Builder PATCH(String path) {
-         return method(HttpMethod.PATCH).path(path);
+         return method(HttpMethod.PATCH).path().pattern(path).end();
       }
 
       /**
@@ -354,11 +354,11 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
       /**
        * Issue HTTP TRACE request to given path.
        *
-       * @param path HTTP path.
+       * @param path HTTP path, a pattern replacing <code>${sessionvar}</code> with variable contents.
        * @return Self.
        */
       public Builder TRACE(String path) {
-         return method(HttpMethod.TRACE).path(path);
+         return method(HttpMethod.TRACE).path().pattern(path).end();
       }
 
       /**
@@ -373,11 +373,11 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
       /**
        * Issue HTTP CONNECT request to given path.
        *
-       * @param path HTTP path.
+       * @param path HTTP path, a pattern replacing <code>${sessionvar}</code> with variable contents.
        * @return Self.
        */
       public Builder CONNECT(String path) {
-         return method(HttpMethod.CONNECT).path(path);
+         return method(HttpMethod.CONNECT).path().pattern(path).end();
       }
 
       /**

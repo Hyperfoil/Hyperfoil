@@ -39,8 +39,7 @@ phases:
           - buy:
             - randomItem: itemId <- itemIds
             - httpRequest:
-                POST:
-                  pattern: /items/${itemId}/buy
+                POST: /items/${itemId}/buy
 - steadyState:
     constantPerSec:
       duration: 10s
