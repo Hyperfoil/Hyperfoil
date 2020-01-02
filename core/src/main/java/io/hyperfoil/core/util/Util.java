@@ -117,6 +117,52 @@ public class Util {
       return causes.toString();
    }
 
+   public static boolean regionMatchesIgnoreCase(CharSequence a, int aoffset, CharSequence b, int boffset, int length) {
+      if (a instanceof String && b instanceof String) {
+         return ((String) a).regionMatches(true, aoffset, (String) b, boffset, length);
+      }
+      if (aoffset < 0 || boffset < 0) {
+         return false;
+      } else if (aoffset + length > a.length() || boffset + length > b.length()) {
+         return false;
+      }
+      while (length-- > 0) {
+         char c1 = a.charAt(aoffset++);
+         char c2 = b.charAt(boffset++);
+         if (c1 == c2) {
+            continue;
+         }
+         char u1 = Character.toUpperCase(c1);
+         char u2 = Character.toUpperCase(c2);
+         if (u1 == u2) {
+            continue;
+         }
+         if (Character.toLowerCase(u1) != Character.toLowerCase(u2)) {
+            return false;
+         }
+      }
+      return true;
+   }
+
+   public static boolean regionMatches(CharSequence a, int aoffset, CharSequence b, int boffset, int length) {
+      if (a instanceof String && b instanceof String) {
+         return ((String) a).regionMatches(aoffset, (String) b, boffset, length);
+      }
+      if (aoffset < 0 || boffset < 0) {
+         return false;
+      } else if (aoffset + length > a.length() || boffset + length > b.length()) {
+         return false;
+      }
+      while (length-- > 0) {
+         char c1 = a.charAt(aoffset++);
+         char c2 = b.charAt(boffset++);
+         if (c1 != c2) {
+            return false;
+         }
+      }
+      return true;
+   }
+
    private static class URLEncoding {
       private static final BitSet DONT_NEED_ENCODING = new BitSet();
 

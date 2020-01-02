@@ -12,7 +12,7 @@ import io.hyperfoil.api.session.Session;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 
-class BaseMockConnection implements HttpConnection {
+public class BaseMockConnection implements HttpConnection {
    @Override
    public void attach(HttpConnectionPool pool) {
    }
