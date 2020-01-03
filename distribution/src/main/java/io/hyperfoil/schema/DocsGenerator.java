@@ -215,6 +215,12 @@ public class DocsGenerator extends BaseGenerator {
                out.println(t.docs.typeDescription);
                out.println();
             }
+            if (t.docs.inlineParam != null) {
+               out.println();
+               out.println("| Inline definition |\n| -------- |");
+               out.printf("| %s |%n", t.docs.inlineParam);
+               out.println();
+            }
             out.println("| Property | Description |\n| ------- | -------- |");
             for (Map.Entry<String, List<Docs>> param : t.docs.params.entrySet()) {
                printDocs(param.getKey(), param.getValue(), out, reverseLookup);
@@ -446,6 +452,9 @@ public class DocsGenerator extends BaseGenerator {
       List<MethodDeclaration> methods = findAllMethods(builder);
       Docs docs = new Docs(null);
       docs.typeDescription = getJavadocDescription(cd);
+      if (InitFromParam.class.isAssignableFrom(builder)) {
+         docs.inlineParam = findInlineParamDocs(cd);
+      }
       this.docs.put(builder, docs);
       if (BaseSequenceBuilder.class.isAssignableFrom(builder)) {
          return docs;
@@ -568,6 +577,7 @@ public class DocsGenerator extends BaseGenerator {
          Docs inner = describeBuilder(m.getReturnType());
          if (inner != null) {
             param.typeDescription = inner.typeDescription;
+            param.inlineParam = inner.inlineParam;
             param.addParams(inner.params);
          }
       }
@@ -594,12 +604,6 @@ public class DocsGenerator extends BaseGenerator {
             continue;
          }
          docs.ownerDescription = docs.typeDescription;
-         if (InitFromParam.class.isAssignableFrom(newBuilder)) {
-            ClassOrInterfaceDeclaration cd = findClass(newBuilder);
-            if (cd != null) {
-               docs.inlineParam = findInlineParamDocs(cd);
-            }
-         }
          implementations.addParam(entry.getKey(), docs);
       }
       return implementations;
