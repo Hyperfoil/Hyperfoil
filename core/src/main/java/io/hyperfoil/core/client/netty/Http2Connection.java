@@ -105,7 +105,10 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
       this.pool = pool;
    }
 
-   public void request(HttpRequest request, BiConsumer<Session, HttpRequestWriter>[] headerAppenders, BiFunction<Session, Connection, ByteBuf> bodyGenerator) {
+   public void request(HttpRequest request,
+                       BiConsumer<Session, HttpRequestWriter>[] headerAppenders,
+                       boolean injectHostHeader,
+                       BiFunction<Session, Connection, ByteBuf> bodyGenerator) {
       numStreams++;
       HttpClientPool httpClientPool = pool.clientPool();
 
@@ -114,7 +117,7 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
       Http2Headers headers = new DefaultHttp2Headers().method(request.method.name()).scheme(httpClientPool.scheme())
             .path(request.path).authority(httpClientPool.authority());
       // HTTPS selects host via SNI headers, duplicate Host header could confuse the server/proxy
-      if (!pool.clientPool().config().protocol().secure()) {
+      if (injectHostHeader && !pool.clientPool().config().protocol().secure()) {
          headers.add(HttpHeaderNames.HOST, httpClientPool.authority());
       }
       if (buf != null && buf.readableBytes() > 0) {

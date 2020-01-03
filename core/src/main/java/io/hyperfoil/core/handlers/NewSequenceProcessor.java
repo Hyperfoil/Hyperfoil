@@ -42,16 +42,17 @@ public class NewSequenceProcessor implements Processor<Request>, ResourceUtilize
    @Override
    public void process(Request request, ByteBuf data, int offset, int length, boolean isLastPart) {
       if (!isLastPart) {
-         throw new IllegalArgumentException("This processor expects already defragmented data.");
+         return;
       }
       int counter = counterVar.addToInt(request.session, 1);
       if (counter >= maxSequences) {
          log.debug("#{} Exceeded maxSequences, not creating another sequence", request.session.uniqueId());
          return;
       }
-      String value = Util.toString(data, offset, length);
       if (trace) {
-         log.trace("#{}, Creating new sequence {}, id {}, value {}", request.session.uniqueId(), sequence, counter, value);
+         String value = Util.toString(data, offset, length);
+         log.trace("#{}, Creating new sequence {}, id {}, value (possibly incomplete) {}", request.session.uniqueId(),
+               sequence, counter, value);
       }
       request.session.phase().scenario().sequence(sequence).instantiate(request.session, counter);
    }
@@ -117,7 +118,7 @@ public class NewSequenceProcessor implements Processor<Request>, ResourceUtilize
       }
 
       @Override
-      public NewSequenceProcessor build() {
+      public NewSequenceProcessor build(boolean fragmented) {
          if (maxSequences <= 0) {
             throw new BenchmarkDefinitionException("maxSequences is missing or invalid.");
          }

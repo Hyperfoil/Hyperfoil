@@ -30,9 +30,11 @@ public class LimitedPool<T> {
    }
 
    public T acquire() {
-      int i = index + 1;
-      while (i != index && elements[i & mask] == null) ++i;
-      if (elements[i & mask] == null) {
+      int i = (index + 1) & mask;
+      while (i != index && elements[i] == null) {
+         i = ((i + 1) & mask);
+      }
+      if (elements[i] == null) {
          return null;
       } else {
          index = i;

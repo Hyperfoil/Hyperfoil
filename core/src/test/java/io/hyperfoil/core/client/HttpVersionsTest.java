@@ -120,7 +120,7 @@ public class HttpVersionsTest extends VertxBaseTest {
                   request.path = "/ping";
                   request.start(handlers, new SequenceInstance(), new Statistics(System.currentTimeMillis()));
 
-                  client.next().request(request, null, null, false);
+                  client.next().request(request, null, true, null, false);
                });
             } catch (Exception e) {
                ctx.fail(e);

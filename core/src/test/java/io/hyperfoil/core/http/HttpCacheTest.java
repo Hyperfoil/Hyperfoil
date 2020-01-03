@@ -258,7 +258,7 @@ public class HttpCacheTest extends VertxBaseTest {
 
    private void fireRequest(HttpClientPool client, HttpRequest request, BiConsumer<Session, HttpRequestWriter>[] headerAppenders) {
       HttpConnectionPool pool = client.next();
-      if (!pool.request(request, headerAppenders, null, false)) {
+      if (!pool.request(request, headerAppenders, true, null, false)) {
          pool.executor().schedule(() -> fireRequest(client, request, headerAppenders), 1, TimeUnit.MILLISECONDS);
       }
    }

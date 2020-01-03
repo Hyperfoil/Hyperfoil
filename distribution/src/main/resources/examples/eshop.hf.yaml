@@ -41,8 +41,7 @@ phases:
         # Pick id for a random item
         - randomItem: itemId <- itemIds
         - httpRequest:
-            POST:
-              pattern: /items/${itemId}/buy
+            POST: /items/${itemId}/buy
 - operator:
     # This is a different type of phase, running fixed number of users.
     # It is what most benchmarks do when you set number of threads; here we use

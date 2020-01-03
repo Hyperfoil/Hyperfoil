@@ -298,8 +298,8 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          return new ServiceLoadedBuilderProvider<>(HeaderHandler.Builder.class, locator, headerHandlers::add);
       }
 
-      public Builder body(Processor<HttpRequest> handler) {
-         bodyHandlers.add(() -> handler);
+      public Builder body(HttpRequestProcessorBuilder builder) {
+         bodyHandlers.add(builder);
          return this;
       }
 
@@ -370,7 +370,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          return new HttpResponseHandlersImpl(
                toArray(statusHandlers, StatusHandler.Builder::build, StatusHandler[]::new),
                toArray(headerHandlers, HeaderHandler.Builder::build, HeaderHandler[]::new),
-               toArray(bodyHandlers, Processor.Builder::build, Processor[]::new),
+               toArray(bodyHandlers, b -> b.build(true), Processor[]::new),
                toArray(completionHandlers, Action.Builder::build, Action[]::new),
                toArray(rawBytesHandlers, RawBytesHandler.Builder::build, RawBytesHandler[]::new));
       }

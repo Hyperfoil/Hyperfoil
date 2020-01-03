@@ -62,16 +62,16 @@ public final class HttpUtil {
          log.warn("Cannot parse date {}", seq.subSequence(begin, end));
          return 0;
       }
-      int month = 0;
+      int month = -1;
       for (int m = 0; m < MONTHS.length; ++m) {
          if (Character.toLowerCase(seq.charAt(i)) == MONTHS[m].charAt(0) &&
                Character.toLowerCase(seq.charAt(i + 1)) == MONTHS[m].charAt(1) &&
                Character.toLowerCase(seq.charAt(i + 2)) == MONTHS[m].charAt(2)) {
-            month = m + 1;
+            month = m;
             break;
          }
       }
-      if (month == 0) {
+      if (month < 0) {
          log.warn("Cannot parse month in date {}", seq.subSequence(begin, end));
          return 0;
       }
@@ -181,7 +181,7 @@ public final class HttpUtil {
       bytes[5] = (byte) ('0' + dayOfMonth / 10);
       bytes[6] = (byte) ('0' + dayOfMonth % 10);
       bytes[7] = '-';
-      CharSequence month = MONTHS[calendar.get(Calendar.MONTH) - 1];
+      CharSequence month = MONTHS[calendar.get(Calendar.MONTH)];
       bytes[8] = (byte) month.charAt(0);
       bytes[9] = (byte) month.charAt(1);
       bytes[10] = (byte) month.charAt(2);

@@ -37,16 +37,15 @@ public class AwaitIntStep implements Step {
     */
    @MetaInfServices(StepBuilder.class)
    @Name("awaitInt")
-   public static class Builder extends IntCondition.BaseBuilder<Builder> implements StepBuilder<Builder> {
-      private final BaseSequenceBuilder parent;
+   public static class Builder extends IntCondition.BaseBuilder<Builder, BaseSequenceBuilder> implements StepBuilder<Builder> {
       private String var;
 
       public Builder() {
-         this.parent = null;
+         super(null);
       }
 
       public Builder(BaseSequenceBuilder parent) {
-         this.parent = parent;
+         super(parent);
          if (parent != null) {
             parent.stepBuilder(this);
          }

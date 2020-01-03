@@ -62,7 +62,11 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
    }
 
    @Override
-   public boolean request(HttpRequest request, BiConsumer<Session, HttpRequestWriter>[] headerAppenders, BiFunction<Session, Connection, ByteBuf> bodyGenerator, boolean exclusiveConnection) {
+   public boolean request(HttpRequest request,
+                          BiConsumer<Session, HttpRequestWriter>[] headerAppenders,
+                          boolean injectHostHeader,
+                          BiFunction<Session, Connection, ByteBuf> bodyGenerator,
+                          boolean exclusiveConnection) {
       assert eventLoop.inEventLoop();
       HttpConnection connection;
       try {
@@ -77,7 +81,7 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
                }
                request.attach(connection);
                connection.attach(this);
-               connection.request(request, headerAppenders, bodyGenerator);
+               connection.request(request, headerAppenders, injectHostHeader, bodyGenerator);
                // Move it to the back of the queue if it is still available (do not prefer it for subsequent requests)
                if (!exclusiveConnection && connection.isAvailable()) {
                   available.addLast(connection);

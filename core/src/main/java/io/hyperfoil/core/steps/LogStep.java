@@ -86,6 +86,11 @@ public class LogStep implements Step {
          return vars::add;
       }
 
+      public Builder addVar(String var) {
+         vars.add(var);
+         return this;
+      }
+
       @Override
       public List<Step> build() {
          if (message == null) {

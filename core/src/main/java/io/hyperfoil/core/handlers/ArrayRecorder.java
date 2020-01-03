@@ -39,7 +39,7 @@ public class ArrayRecorder implements Processor<Request>, ResourceUtilizer {
 
    @Override
    public void process(Request request, ByteBuf data, int offset, int length, boolean isLastPart) {
-      assert isLastPart;
+      ensureDefragmented(isLastPart);
       ObjectVar[] array = (ObjectVar[]) toVar.activate(request.session);
       Object value = format.convert(data, offset, length);
       for (int i = 0; i < array.length; ++i) {
@@ -88,8 +88,9 @@ public class ArrayRecorder implements Processor<Request>, ResourceUtilizer {
       }
 
       @Override
-      public ArrayRecorder build() {
-         return new ArrayRecorder(toVar, format, maxSize);
+      public Processor<Request> build(boolean fragmented) {
+         ArrayRecorder arrayRecorder = new ArrayRecorder(toVar, format, maxSize);
+         return fragmented ? new DefragProcessor<>(arrayRecorder) : arrayRecorder;
       }
 
       /**

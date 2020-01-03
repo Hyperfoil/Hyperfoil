@@ -37,7 +37,7 @@ public class LogInvalidHandler implements Processor<HttpRequest>, HeaderHandler 
    @Name("logInvalid")
    public static class BodyHandlerBuilder implements HttpRequestProcessorBuilder {
       @Override
-      public LogInvalidHandler build() {
+      public LogInvalidHandler build(boolean fragmented) {
          return new LogInvalidHandler();
       }
    }
