@@ -28,8 +28,14 @@ public interface Processor<R extends Request> extends Serializable {
    default void after(R request) {
    }
 
+   default void ensureDefragmented(boolean isLastPart) {
+      if (!isLastPart) {
+         throw new IllegalStateException("This processor expects defragmented data.");
+      }
+   }
+
    interface Builder<R extends Request, B extends Builder<R, B>> extends BuilderBase<B> {
-      Processor<R> build();
+      Processor<R> build(boolean fragmented);
    }
 
    abstract class BaseDelegating<R extends Request> implements Processor<R>, ResourceUtilizer {
@@ -64,6 +70,10 @@ public interface Processor<R extends Request> extends Serializable {
 
       @Override
       public void process(R request, ByteBuf data, int offset, int length, boolean isLastPart) {
+         // Action should be performed only when the last chunk arrives
+         if (!isLastPart) {
+            return;
+         }
          action.run(request.session);
       }
 

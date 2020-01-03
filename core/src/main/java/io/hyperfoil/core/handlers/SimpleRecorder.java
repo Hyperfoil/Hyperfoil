@@ -25,7 +25,7 @@ public class SimpleRecorder implements Processor<Request>, ResourceUtilizer {
 
    @Override
    public void process(Request request, ByteBuf data, int offset, int length, boolean isLastPart) {
-      assert isLastPart;
+      ensureDefragmented(isLastPart);
       Object value = format.convert(data, offset, length);
       toVar.setObject(request.session, value);
    }
@@ -73,8 +73,9 @@ public class SimpleRecorder implements Processor<Request>, ResourceUtilizer {
       }
 
       @Override
-      public Processor<Request> build() {
-         return new SimpleRecorder(toVar, format);
+      public Processor<Request> build(boolean fragmented) {
+         SimpleRecorder simpleRecorder = new SimpleRecorder(toVar, format);
+         return fragmented ? new DefragProcessor<>(simpleRecorder) : simpleRecorder;
       }
    }
 }

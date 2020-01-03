@@ -73,7 +73,7 @@ public class FilterHeaderHandler implements HeaderHandler, ResourceUtilizer {
          if (processor == null) {
             throw new BenchmarkDefinitionException("Processor was not set!");
          }
-         return new FilterHeaderHandler(header.build(), processor.build());
+         return new FilterHeaderHandler(header.build(), processor.build(false));
       }
 
       @Override

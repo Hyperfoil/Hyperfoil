@@ -11,18 +11,24 @@ import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
 
 public class AddToIntAction implements Action {
-   public final Access var;
-   public final int value;
+   protected final Access var;
+   protected final int value;
+   protected final Integer orElseSetTo;
 
-   public AddToIntAction(String var, int value) {
+   public AddToIntAction(String var, int value, Integer orElseSetTo) {
       this.var = SessionFactory.access(var);
       this.value = value;
+      this.orElseSetTo = orElseSetTo;
    }
 
    @Override
    public void run(Session session) {
-      int prev = var.getInt(session);
-      var.setInt(session, prev + value);
+      if (orElseSetTo != null && !var.isSet(session)) {
+         var.setInt(session, orElseSetTo);
+      } else {
+         int prev = this.var.getInt(session);
+         this.var.setInt(session, prev + value);
+      }
    }
 
    /**
@@ -33,6 +39,7 @@ public class AddToIntAction implements Action {
    public static class Builder implements InitFromParam<Builder>, Action.Builder {
       private String var;
       private int value;
+      private Integer orElseSetTo;
 
       public Builder() {
       }
@@ -86,6 +93,16 @@ public class AddToIntAction implements Action {
          return this;
       }
 
+      /**
+       * If the variable is currently not set, set it to this value instead of addition.
+       * @param value New value.
+       * @return Self.
+       */
+      public Builder orElseSetTo(int value) {
+         orElseSetTo = value;
+         return this;
+      }
+
       @Override
       public AddToIntAction build() {
          if (var == null || var.isEmpty()) {
@@ -94,7 +111,7 @@ public class AddToIntAction implements Action {
          if (value == 0) {
             throw new BenchmarkDefinitionException("It makes no sense to add 0.");
          }
-         return new AddToIntAction(var, value);
+         return new AddToIntAction(var, value, orElseSetTo);
       }
    }
 }

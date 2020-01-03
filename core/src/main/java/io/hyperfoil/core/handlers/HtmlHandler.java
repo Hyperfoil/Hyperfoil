@@ -207,7 +207,7 @@ public class HtmlHandler implements Processor<HttpRequest>, ResourceUtilizer, Se
    @Override
    public void reserve(Session session) {
       session.declareResource(this, new Context());
-      ResourceUtilizer.reserve(session, handlers);
+      ResourceUtilizer.reserve(session, (Object[]) handlers);
    }
 
    interface TagHandler {
@@ -328,7 +328,7 @@ public class HtmlHandler implements Processor<HttpRequest>, ResourceUtilizer, Se
       }
 
       @Override
-      public HtmlHandler build() {
+      public HtmlHandler build(boolean fragmented) {
          return new HtmlHandler(embeddedResourceHandler.build());
       }
    }
@@ -429,7 +429,7 @@ public class HtmlHandler implements Processor<HttpRequest>, ResourceUtilizer, Se
          if (fetchResource != null) {
             p = fetchResource.build();
          } else if (processor != null) {
-            p = processor.build();
+            p = processor.build(false);
          } else {
             throw new BenchmarkDefinitionException("Embedded resource handler is missing the processor");
          }

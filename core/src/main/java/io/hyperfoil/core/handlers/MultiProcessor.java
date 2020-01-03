@@ -49,8 +49,8 @@ public final class MultiProcessor<R extends Request> implements Processor<R>, Re
 
       @SuppressWarnings("unchecked")
       @Override
-      public Processor<R> build() {
-         Processor[] delegates = this.delegates.stream().map(Processor.Builder::build).toArray(Processor[]::new);
+      public Processor<R> build(boolean fragmented) {
+         Processor[] delegates = this.delegates.stream().map(d -> d.build(fragmented)).toArray(Processor[]::new);
          return new MultiProcessor<R>(delegates);
       }
 

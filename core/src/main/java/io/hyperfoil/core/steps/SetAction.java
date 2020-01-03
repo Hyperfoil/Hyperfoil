@@ -1,5 +1,8 @@
 package io.hyperfoil.core.steps;
 
+import java.util.Objects;
+import java.util.stream.Stream;
+
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
@@ -9,6 +12,7 @@ import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
+import io.hyperfoil.core.session.IntVar;
 import io.hyperfoil.core.session.ObjectVar;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.function.SerializableConsumer;
@@ -42,7 +46,8 @@ public class SetAction implements Action, ResourceUtilizer {
    public static class Builder implements InitFromParam<Builder>, Action.Builder {
       private String var;
       private Object value;
-      private ObjectArrayBuilder<Builder> objectArray;
+      private ObjectArrayBuilder objectArray;
+      private IntArrayBuilder intArray;
 
       public Builder() {
       }
@@ -86,12 +91,21 @@ public class SetAction implements Action, ResourceUtilizer {
       }
 
       /**
-       * Set variable to an (empty) array.
+       * Set variable to an (unset) object array.
        *
        * @return Builder.
        */
-      public ObjectArrayBuilder<Builder> objectArray() {
-         return objectArray = new ObjectArrayBuilder<>(this);
+      public ObjectArrayBuilder objectArray() {
+         return objectArray = new ObjectArrayBuilder(this);
+      }
+
+      /**
+       * Set variable to an (unset) integer array.
+       *
+       * @return Builder.
+       */
+      public IntArrayBuilder intArray() {
+         return intArray = new IntArrayBuilder(this);
       }
 
       @Override
@@ -99,14 +113,16 @@ public class SetAction implements Action, ResourceUtilizer {
          if (var == null) {
             throw new BenchmarkDefinitionException("Variable name was not set!");
          }
-         if (value == null && objectArray == null || value != null && objectArray != null) {
-            throw new BenchmarkDefinitionException("Must set exactly on of: value, objectArray");
+         if (Stream.of(value, objectArray, intArray).filter(Objects::nonNull).count() != 1) {
+            throw new BenchmarkDefinitionException("Must set exactly on of: value, objectArray, intArray");
          }
          if (value != null) {
             Object myValue = value;
             return new SetAction(var, s -> myValue);
-         } else {
+         } else if (objectArray != null) {
             return new SetAction(var, objectArray.build());
+         } else {
+            return new SetAction(var, intArray.build());
          }
       }
    }
@@ -141,14 +157,11 @@ public class SetAction implements Action, ResourceUtilizer {
       }
    }
 
-   /**
-    * Creates object arrays to be stored in the session.
-    */
-   public static class ObjectArrayBuilder<P> {
-      private final P parent;
-      private int size;
+   public abstract static class BaseArrayBuilder<S extends BaseArrayBuilder<S>> {
+      protected final Builder parent;
+      protected int size;
 
-      public ObjectArrayBuilder(P parent) {
+      BaseArrayBuilder(Builder parent) {
          this.parent = parent;
       }
 
@@ -158,27 +171,58 @@ public class SetAction implements Action, ResourceUtilizer {
        * @param size Array size.
        * @return Self.
        */
-      public ObjectArrayBuilder<P> size(int size) {
+      @SuppressWarnings("unchecked")
+      public S size(int size) {
          this.size = size;
-         return this;
+         return (S) this;
       }
 
-      private ValueSupplier<ObjectVar[]> build() {
+      public Builder end() {
+         return parent;
+      }
+
+      protected int ensurePositiveSize() {
          if (size <= 0) {
             throw new BenchmarkDefinitionException("Size must be positive!");
          }
-         // prevent capturing this object reference in the lambda
-         int mySize = size;
-         return new ValueSupplier<>(session -> ObjectVar.newArray(session, mySize), array -> {
-            for (int i = 0; i < array.length; ++i) {
-               array[i].unset();
-            }
-            ;
-         });
+         return size;
       }
 
-      public P end() {
-         return parent;
+      protected static void resetArray(Session.Var[] array) {
+         for (int i = 0; i < array.length; ++i) {
+            array[i].unset();
+         }
+      }
+   }
+
+   /**
+    * Creates object arrays to be stored in the session.
+    */
+   public static class ObjectArrayBuilder extends BaseArrayBuilder<ObjectArrayBuilder> {
+
+      public ObjectArrayBuilder(Builder parent) {
+         super(parent);
+      }
+
+      private ValueSupplier<ObjectVar[]> build() {
+         // prevent capturing this object reference in the lambda
+         int mySize = ensurePositiveSize();
+         return new ValueSupplier<>(session -> ObjectVar.newArray(session, mySize), BaseArrayBuilder::resetArray);
+      }
+   }
+
+   /**
+    * Creates integer arrays to be stored in the session.
+    */
+   public static class IntArrayBuilder extends BaseArrayBuilder<IntArrayBuilder> {
+      public IntArrayBuilder(Builder parent) {
+         super(parent);
+      }
+
+      private ValueSupplier<IntVar[]> build() {
+         // prevent capturing this object reference in the lambda
+         int mySize = ensurePositiveSize();
+         return new ValueSupplier<>(session -> IntVar.newArray(session, mySize), BaseArrayBuilder::resetArray);
       }
    }
 }

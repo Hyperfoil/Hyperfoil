@@ -23,7 +23,7 @@ public class CloseConnectionHandler implements Processor<Request> {
    @Name("closeConnection")
    public static class Builder implements RequestProcessorBuilder {
       @Override
-      public Processor<Request> build() {
+      public Processor<Request> build(boolean fragmented) {
          return new CloseConnectionHandler();
       }
    }

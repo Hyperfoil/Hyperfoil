@@ -15,6 +15,10 @@ import io.hyperfoil.api.session.Action;
 )
 public interface RequestProcessorBuilder extends Processor.Builder<Request, RequestProcessorBuilder> {
 
+   static RequestProcessorBuilder adapt(Action.Builder builder) {
+      return new ActionBuilderAdapter(builder);
+   }
+
    class ActionBuilderConverter implements Function<Action.Builder, RequestProcessorBuilder> {
       @Override
       public RequestProcessorBuilder apply(Action.Builder builder) {
@@ -40,7 +44,7 @@ public interface RequestProcessorBuilder extends Processor.Builder<Request, Requ
       }
 
       @Override
-      public Processor<Request> build() {
+      public Processor<Request> build(boolean fragmented) {
          return new Processor.ActionAdapter<>(builder.build());
       }
    }

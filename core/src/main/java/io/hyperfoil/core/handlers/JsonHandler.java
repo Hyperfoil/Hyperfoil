@@ -116,12 +116,12 @@ public class JsonHandler extends JsonParser<Request>
             throw new BenchmarkDefinitionException("Cannot parse json handler specification: '" + param + "', use 'query -> var' or 'var <- query'");
          }
          return query(query.trim())
-               .processor(new DefragProcessor<>(new SimpleRecorder.Builder().init(var.trim()).build()));
+               .processor(new SimpleRecorder.Builder().init(var.trim()));
       }
 
       @Override
-      public JsonHandler build() {
-         return new JsonHandler(query, processor.build());
+      public JsonHandler build(boolean fragmented) {
+         return new JsonHandler(query, processor.build(fragmented));
       }
 
       /**
@@ -143,10 +143,6 @@ public class JsonHandler extends JsonParser<Request>
        */
       public Builder toArray(String varAndSize) {
          return processor(new ArrayRecorder.Builder().init(varAndSize));
-      }
-
-      public Builder processor(Processor<Request> processor) {
-         return processor(() -> processor);
       }
 
       public Builder processor(RequestProcessorBuilder processor) {

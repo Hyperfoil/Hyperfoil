@@ -20,6 +20,10 @@ import io.netty.buffer.ByteBuf;
 })
 public interface HttpRequestProcessorBuilder extends Processor.Builder<HttpRequest, HttpRequestProcessorBuilder> {
 
+   static HttpRequestProcessorBuilder adapt(RequestProcessorBuilder builder) {
+      return new RequestProcessorBuilderAdapter(builder);
+   }
+
    class BuilderConverter implements Function<RequestProcessorBuilder, HttpRequestProcessorBuilder> {
       @Override
       public HttpRequestProcessorBuilder apply(RequestProcessorBuilder builder) {
@@ -45,8 +49,8 @@ public interface HttpRequestProcessorBuilder extends Processor.Builder<HttpReque
       }
 
       @Override
-      public Processor<HttpRequest> build() {
-         return new RequestProcessorAdapter(builder.build());
+      public Processor<HttpRequest> build(boolean fragmented) {
+         return new RequestProcessorAdapter(builder.build(fragmented));
       }
    }
 
@@ -103,7 +107,7 @@ public interface HttpRequestProcessorBuilder extends Processor.Builder<HttpReque
       }
 
       @Override
-      public Processor<HttpRequest> build() {
+      public Processor<HttpRequest> build(boolean fragmented) {
          return new Processor.ActionAdapter<>(builder.build());
       }
    }

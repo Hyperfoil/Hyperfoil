@@ -36,12 +36,11 @@ public class IntCondition implements SerializablePredicate<Session> {
    /**
     * Condition comparing integer in session variable.
     */
-   public static class Builder<P> extends BaseBuilder<Builder<P>> implements Condition.Builder {
-      private final P parent;
+   public static class Builder<P> extends BaseBuilder<Builder<P>, P> implements Condition.Builder {
       private String fromVar;
 
       public Builder(P parent) {
-         this.parent = parent;
+         super(parent);
       }
 
       /**
@@ -55,17 +54,24 @@ public class IntCondition implements SerializablePredicate<Session> {
          return this;
       }
 
-      public P endCondition() {
-         return parent;
-      }
-
       @Override
       public IntCondition build() {
          return new IntCondition(fromVar, buildPredicate());
       }
    }
 
-   public abstract static class BaseBuilder<B extends BaseBuilder<B>> {
+   public static class ProvidedVarBuilder<P> extends BaseBuilder<ProvidedVarBuilder<P>, P> {
+      public ProvidedVarBuilder(P parent) {
+         super(parent);
+      }
+
+      public IntCondition build(String var) {
+         return new IntCondition(var, buildPredicate());
+      }
+   }
+
+   public abstract static class BaseBuilder<B extends BaseBuilder<B, P>, P> {
+      protected final P parent;
       protected Integer equalTo;
       protected Integer notEqualTo;
       protected Integer greaterThan;
@@ -75,6 +81,10 @@ public class IntCondition implements SerializablePredicate<Session> {
 
       protected static SerializableIntPredicate and(SerializableIntPredicate p1, SerializableIntPredicate p2) {
          return p1 == null ? p2 : (p2 == null ? null : x -> p1.test(x) && p2.test(x));
+      }
+
+      public BaseBuilder(P parent) {
+         this.parent = parent;
       }
 
       @SuppressWarnings("unchecked")
@@ -175,6 +185,10 @@ public class IntCondition implements SerializablePredicate<Session> {
             predicate = and(predicate, v -> v <= val);
          }
          return predicate;
+      }
+
+      public P end() {
+         return parent;
       }
    }
 }

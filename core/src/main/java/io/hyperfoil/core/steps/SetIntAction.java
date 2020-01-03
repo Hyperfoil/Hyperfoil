@@ -9,20 +9,38 @@ import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
+import io.hyperfoil.core.builders.IntCondition;
 import io.hyperfoil.core.session.SessionFactory;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 
 public class SetIntAction implements Action, ResourceUtilizer {
+   private static final Logger log = LoggerFactory.getLogger(SetIntAction.class);
+   private static final boolean trace = log.isTraceEnabled();
+
    private final Access var;
    private final int value;
+   private final boolean onlyIfNotSet;
+   private final IntCondition condition;
 
-   public SetIntAction(String var, int value) {
+   public SetIntAction(String var, int value, boolean onlyIfNotSet, IntCondition condition) {
       this.var = SessionFactory.access(var);
       this.value = value;
+      this.onlyIfNotSet = onlyIfNotSet;
+      this.condition = condition;
    }
 
    @Override
    public void run(Session session) {
-      var.setInt(session, value);
+      if (onlyIfNotSet && var.isSet(session)) {
+         if (trace) {
+            log.trace("#{} Not setting {} to {} as it is already set to {}", session.uniqueId(), var, value, var.getInt(session));
+         }
+         return;
+      }
+      if (condition == null || condition.test(session)) {
+         var.setInt(session, value);
+      }
    }
 
    @Override
@@ -38,6 +56,8 @@ public class SetIntAction implements Action, ResourceUtilizer {
    public static class Builder implements InitFromParam<Builder>, Action.Builder {
       private String var;
       private int value;
+      private boolean onlyIfNotSet;
+      private IntCondition.ProvidedVarBuilder<Builder> intCondition;
 
       public Builder() {
       }
@@ -83,12 +103,32 @@ public class SetIntAction implements Action, ResourceUtilizer {
          return this;
       }
 
+      /**
+       * Set variable to the value only if it is not already set.
+       *
+       * @param onlyIfNotSet If false (default) the value is always set.
+       * @return Self.
+       */
+      public Builder onlyIfNotSet(boolean onlyIfNotSet) {
+         this.onlyIfNotSet = onlyIfNotSet;
+         return this;
+      }
+
+      /**
+       * Set variable only if the current value satisfies certain condition.
+       *
+       * @return Builder.
+       */
+      public IntCondition.ProvidedVarBuilder<Builder> intCondition() {
+         return intCondition = new IntCondition.ProvidedVarBuilder<>(this);
+      }
+
       @Override
       public SetIntAction build() {
          if (var == null) {
             throw new BenchmarkDefinitionException("No variable set!");
          }
-         return new SetIntAction(var, value);
+         return new SetIntAction(var, value, onlyIfNotSet, intCondition == null ? null : intCondition.build(var));
       }
    }
 }

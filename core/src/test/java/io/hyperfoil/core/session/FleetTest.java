@@ -12,16 +12,16 @@ import org.junit.runner.RunWith;
 
 import io.hyperfoil.api.processor.HttpRequestProcessorBuilder;
 import io.hyperfoil.api.http.HttpMethod;
+import io.hyperfoil.api.processor.RequestProcessorBuilder;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.data.DataFormat;
 import io.hyperfoil.core.handlers.ArrayRecorder;
 import io.hyperfoil.core.handlers.ProcessorAssertion;
-import io.hyperfoil.core.handlers.SequenceScopedCountRecorder;
-import io.hyperfoil.core.handlers.DefragProcessor;
 import io.hyperfoil.core.handlers.JsonHandler;
 import io.hyperfoil.core.steps.AddToIntAction;
 import io.hyperfoil.core.steps.AwaitConditionStep;
+import io.hyperfoil.core.steps.SetAction;
 import io.hyperfoil.core.steps.SetIntAction;
 import io.hyperfoil.core.test.CrewMember;
 import io.hyperfoil.core.test.Fleet;
@@ -95,9 +95,15 @@ public class FleetTest extends BaseScenarioTest {
                   .path("/fleet")
                   .sync(false)
                   .handler()
-                     .body(new HttpRequestProcessorBuilder.RequestProcessorAdapter(new JsonHandler(".ships[].name", shipAssertion.processor(new DefragProcessor<>(new ArrayRecorder("shipNames", DataFormat.STRING, MAX_SHIPS))))))
+                     .body(HttpRequestProcessorBuilder.adapt(new JsonHandler.Builder()
+                           .query(".ships[].name")
+                           .processor(shipAssertion.processor(new ArrayRecorder.Builder()
+                                 .toVar("shipNames")
+                                 .format(DataFormat.STRING)
+                                 .maxSize(MAX_SHIPS)))))
                   .endHandler()
                .endStep()
+               .step(SC).action(new SetAction.Builder().var("crewCount").intArray().size(MAX_SHIPS).end())
                .step(SC).foreach()
                   .fromVar("shipNames")
                   .counterVar(NUMBER_OF_SHIPS)
@@ -109,13 +115,24 @@ public class FleetTest extends BaseScenarioTest {
                   .path(FleetTest::currentShipQuery)
                   .sync(false)
                   .handler()
-                     .body(new HttpRequestProcessorBuilder.RequestProcessorAdapter(new JsonHandler(".crew[]", crewAssertion.processor(new SequenceScopedCountRecorder("crewCount", MAX_SHIPS)))))
+                     .body(HttpRequestProcessorBuilder.adapt(new JsonHandler.Builder()
+                           .query(".crew[]")
+                           .processor(crewAssertion.processor(
+                                 RequestProcessorBuilder.adapt(new AddToIntAction.Builder()
+                                       .var("crewCount[.]")
+                                       .value(1)
+                                       .orElseSetTo(1))))))
+                     // We need to make sure crewCount is set even if there's no crew
+                     .onCompletion(new SetIntAction.Builder().var("crewCount[.]").value(0).onlyIfNotSet(true))
                   .endHandler()
                .endStep()
                .step(SC).breakSequence()
                   .dependency("crewCount[.]")
-                  .intCondition().fromVar("crewCount[.]").greaterThan(0).endCondition()
-                  .onBreak(new AddToIntAction(NUMBER_OF_SHIPS, -1))
+                  // TODO: since previous step is async we might observe a situation when crewCount[.]
+                  //  is lower than the size of crew. It doesn't matter here as we're just comparing > 0.
+                  //  We could use separate variable (array) for body processing completion.
+                  .intCondition().fromVar("crewCount[.]").greaterThan(0).end()
+                  .onBreak(new AddToIntAction(NUMBER_OF_SHIPS, -1, null))
                .endStep()
                .step(SC).httpRequest(HttpMethod.DELETE)
                   .path(FleetTest::currentShipQuery)

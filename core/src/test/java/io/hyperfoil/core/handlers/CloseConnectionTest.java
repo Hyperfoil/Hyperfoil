@@ -38,8 +38,8 @@ public class CloseConnectionTest extends BaseScenarioTest {
                .step(SC).httpRequest(HttpMethod.POST)
                   .path(path)
                   .handler()
-                     .body(new HttpRequestProcessorBuilder.RequestProcessorAdapter(new CloseConnectionHandler()))
-                     .body(new TestProcessor(closed))
+                     .body(HttpRequestProcessorBuilder.adapt(new CloseConnectionHandler.Builder()))
+                     .body(f -> new TestProcessor(closed))
                   .endHandler()
                .endStep();
       // @formatter:on

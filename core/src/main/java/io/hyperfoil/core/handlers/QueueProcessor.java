@@ -50,6 +50,7 @@ public class QueueProcessor implements Processor<Request>, ResourceUtilizer {
 
    @Override
    public void process(Request request, ByteBuf data, int offset, int length, boolean isLastPart) {
+      ensureDefragmented(isLastPart);
       Queue queue = queue(request);
       Object value = format.convert(data, offset, length);
       queue.push(request.session, value);
@@ -152,8 +153,9 @@ public class QueueProcessor implements Processor<Request>, ResourceUtilizer {
       }
 
       @Override
-      public QueueProcessor build() {
-         return new QueueProcessor(varAccess, maxSize, format, generatedSeqName, concurrency, onCompletion.build());
+      public Processor<Request> build(boolean fragmented) {
+         QueueProcessor processor = new QueueProcessor(varAccess, maxSize, format, generatedSeqName, concurrency, onCompletion.build());
+         return fragmented ? new DefragProcessor<>(processor) : processor;
       }
    }
 }
