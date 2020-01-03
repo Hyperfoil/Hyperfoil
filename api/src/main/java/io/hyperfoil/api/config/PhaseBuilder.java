@@ -232,6 +232,12 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
    Collection<String> iterationReferences(Collection<PhaseReference> refs, int iteration, boolean addSelfPrevious) {
       Collection<String> names = new ArrayList<>();
       for (PhaseReference ref : refs) {
+         if (ref.iteration != RelativeIteration.NONE && maxIterations <= 1 && !forceIterations) {
+            String msg = "Phase " + name + " tries to reference " + ref.phase + "/" + ref.iteration +
+                  (ref.fork == null ? "" : "/" + ref.fork) +
+                  " but this phase does not have any iterations (cannot determine relative iteration).";
+            throw new BenchmarkDefinitionException(msg);
+         }
          switch (ref.iteration) {
             case NONE:
                names.add(ref.phase);
