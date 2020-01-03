@@ -129,7 +129,7 @@ public class RandomItemStep implements Step, ResourceUtilizer {
       }
 
       /**
-       * @param toFrom Use `toVar <- fromVar` where fromVar is an array/collection.
+       * @param toFrom Use `toVar &lt;- fromVar` where fromVar is an array/collection.
        * @return Self.
        */
       @Override

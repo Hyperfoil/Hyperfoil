@@ -64,7 +64,7 @@ public class RandomIntStep implements Step, ResourceUtilizer {
       private IntValueProviderBuilder<Builder> max = new IntValueProviderBuilder<>(this, Integer.MAX_VALUE);
 
       /**
-       * @param rangeToVar Use format `var <- min .. max`
+       * @param rangeToVar Use format `var &lt;- min .. max`
        * @return Self.
        */
       @Override
