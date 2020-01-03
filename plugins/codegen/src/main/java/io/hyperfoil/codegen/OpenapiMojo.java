@@ -121,10 +121,11 @@ public class OpenapiMojo extends AbstractMojo {
                for (Map<String, Object> param : parameters) {
                   String name = requireNonNull(param, "name", path, method, "parameters");
                   String in = requireNonNull(param, "in", path, method, "parameters");
+                  boolean required = "true".equalsIgnoreCase(String.valueOf(param.get("required")));
                   Map<String, Object> schema = requireNonNull(param, "schema", path, method, name);
                   Property property = createProperty(path + "." + method + ".", name, schema);
                   Object defaultValue = schema.get("default");
-                  params.add(new Param(property.originalName, property.fieldName, in, property.type, defaultValue == null ? null : String.valueOf(defaultValue)));
+                  params.add(new Param(property.originalName, property.fieldName, in, property.type, required, defaultValue == null ? null : String.valueOf(defaultValue)));
                }
             }
             for (String consume : consumes) {
@@ -183,15 +184,22 @@ public class OpenapiMojo extends AbstractMojo {
          method.setBody(body);
          StringBuilder invocation = new StringBuilder("service.").append(operation.name()).append("(ctx");
          for (Param param : operation.params) {
-            StringBuilder var = new StringBuilder().append(param.type).append(" ").append(param.varName)
-                  .append(" = convert(").append(param.in).append("Param(ctx, \"").append(param.originalName).append("\", ");
+            StringBuilder raw = new StringBuilder().append("String _").append(param.varName).append(" = ")
+                  .append(param.in).append("Param(ctx, \"").append(param.originalName).append("\", ");
             if (param.defaultValue == null) {
-               var.append("null");
+               raw.append("null");
             } else {
-               var.append('"').append(param.defaultValue).append('"');
+               raw.append('"').append(param.defaultValue).append('"');
             }
-            var.append("), ").append(param.type).append(".class);");
-            body.addStatement(var.toString());
+            raw.append(");");
+            body.addStatement(raw.toString());
+            if (param.required) {
+               body.addStatement("if (_" + param.varName + " == null) {" +
+                     "ctx.response().setStatusCode(400).end(\"" + param.in + " parameter '" + param.originalName + "' was not set!\");" +
+                     "return; }");
+            }
+            body.addStatement(new StringBuilder().append(param.type).append(" ").append(param.varName)
+                  .append(" = convert(_").append(param.varName).append(", ").append(param.type).append(".class);").toString());
             invocation.append(", ").append(param.varName);
          }
          invocation.append(");");
@@ -488,13 +496,15 @@ public class OpenapiMojo extends AbstractMojo {
       private final String varName;
       private final String in;
       private final String type;
+      private final boolean required;
       private final String defaultValue;
 
-      private Param(String originalName, String varName, String in, String type, String defaultValue) {
+      private Param(String originalName, String varName, String in, String type, boolean required, String defaultValue) {
          this.originalName = originalName;
          this.varName = varName;
          this.in = in;
          this.type = type;
+         this.required = required;
          this.defaultValue = defaultValue;
       }
    }
