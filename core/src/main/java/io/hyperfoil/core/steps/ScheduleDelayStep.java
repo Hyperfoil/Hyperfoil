@@ -164,6 +164,7 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
       /**
        * Randomize the duration.
        *
+       * @param randomType Type of random generator.
        * @return Self.
        */
       public Builder random(RandomType randomType) {

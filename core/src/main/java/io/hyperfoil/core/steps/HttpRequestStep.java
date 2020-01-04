@@ -772,7 +772,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
        * Load header value using a pattern.
        *
        * @param patternString Pattern to be encoded, e.g. <code>foo${variable}bar${another-variable}</code>
-       * @return
+       * @return Builder.
        */
       public PartialHeadersBuilder pattern(String patternString) {
          Pattern pattern = new Pattern(patternString, false);

@@ -6,6 +6,7 @@ import io.hyperfoil.api.config.ErgonomicsBuilder;
 class ErgonomicsParser extends AbstractParser<BenchmarkBuilder, ErgonomicsBuilder> {
    ErgonomicsParser() {
       register("repeatCookies", new PropertyParser.Boolean<>(ErgonomicsBuilder::repeatCookies));
+      register("privateHttpPools", new PropertyParser.Boolean<>(ErgonomicsBuilder::privateHttpPools));
    }
 
    @Override
