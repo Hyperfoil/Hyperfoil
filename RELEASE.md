@@ -11,7 +11,7 @@ What is the release version for "Hyperfoil"? ... <- Use semantic version (X.Y.Z)
 What is SCM release tag or label for "Hyperfoil"? <- Use tag 'release-X.Y.Z'
 What is the new development version for "Hyperfoil"? ... <- Use semantic version (X.Y.Z) with -SNAPSHOT suffix
 ...
-$ mvn relase:perform -Prelease
+$ mvn release:perform -Prelease
 ```
 
 This creates the tag and pushes everything in the Hyperfoil/Hyperfoil repo. The publication of distribution zip and container image is automatized by [Travis CI](https://www.travis-ci.org/Hyperfoil/Hyperfoil). You can check [GitHub](https://github.com/Hyperfoil/Hyperfoil/releases) and [Quay](https://quay.io/repository/hyperfoil/hyperfoil?tab=tags) that the artifact appeared after few minutes. 
