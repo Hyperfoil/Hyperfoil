@@ -36,12 +36,12 @@ import java.io.IOException;
 
 import io.hyperfoil.cli.HyperfoilCli;
 
-public class HyperfoilCommandInvocation implements CommandInvocation {
+public class HyperfoilCommandInvocation implements CommandInvocation<HyperfoilCommandInvocation> {
 
    private final CommandInvocation commandInvocation;
    private final HyperfoilCliContext context;
 
-   HyperfoilCommandInvocation(HyperfoilCliContext context, CommandInvocation commandInvocation) {
+   HyperfoilCommandInvocation(HyperfoilCliContext context, CommandInvocation<?> commandInvocation) {
       this.context = context;
       this.commandInvocation = commandInvocation;
    }
@@ -117,7 +117,7 @@ public class HyperfoilCommandInvocation implements CommandInvocation {
 
    @SuppressWarnings("unchecked")
    @Override
-   public Executor<? extends CommandInvocation> buildExecutor(String line) throws CommandNotFoundException,
+   public Executor<HyperfoilCommandInvocation> buildExecutor(String line) throws CommandNotFoundException,
          CommandLineParserException, OptionValidatorException, CommandValidatorException, IOException {
       return commandInvocation.buildExecutor(line);
    }

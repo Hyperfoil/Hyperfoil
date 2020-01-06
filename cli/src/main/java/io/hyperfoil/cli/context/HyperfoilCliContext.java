@@ -30,6 +30,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import org.aesh.command.CommandException;
+import org.aesh.command.registry.CommandRegistry;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.controller.Client;
@@ -57,6 +58,7 @@ public class HyperfoilCliContext {
    private List<Runnable> cleanup = new ArrayList<>();
    // We'll start with online set to true to not say 'we're back online' when connecting the first time
    private boolean online = true;
+   private CommandRegistry<HyperfoilCommandInvocation> commandRegistry;
 
    public HyperfoilCliContext() {
    }
@@ -177,5 +179,13 @@ public class HyperfoilCliContext {
 
    public boolean online() {
       return online;
+   }
+
+   public void commandRegistry(CommandRegistry<HyperfoilCommandInvocation> commandRegistry) {
+      this.commandRegistry = commandRegistry;
+   }
+
+   public CommandRegistry<HyperfoilCommandInvocation> commandRegistry() {
+      return commandRegistry;
    }
 }
