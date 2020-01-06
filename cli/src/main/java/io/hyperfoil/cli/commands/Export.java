@@ -22,6 +22,9 @@ public class Export extends BaseRunIdCommand {
    @Option(shortName = 'd', description = "Target file/directory for the output", required = true, askIfNotSet = true)
    public Resource destination;
 
+   @Option(shortName = 'y', description = "Assume yes for all interactive questions.", hasValue = false)
+   public boolean assumeYes;
+
    @Override
    public CommandResult execute(HyperfoilCommandInvocation invocation) throws CommandException, InterruptedException {
       ensureConnection(invocation);
@@ -44,7 +47,7 @@ public class Export extends BaseRunIdCommand {
       if (destination.isDirectory()) {
          destinationFile = destination + File.separator + defaultFilename;
       }
-      if (destination.exists()) {
+      if (destination.exists() && !assumeYes) {
          invocation.print("File " + destinationFile + " already exists, override? [y/N] ");
          switch (invocation.getShell().readLine().trim().toLowerCase()) {
             case "y":
