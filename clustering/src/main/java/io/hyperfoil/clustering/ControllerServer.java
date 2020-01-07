@@ -303,7 +303,7 @@ class ControllerServer implements ApiService {
       if (error == null) {
          ctx.response().setStatusCode(HttpResponseStatus.ACCEPTED.code()).
                putHeader(HttpHeaders.LOCATION, baseURL + "/run/" + run.id)
-               .end("Starting benchmark " + name + ", run ID " + run.id);
+               .end(Json.encodePrettily(runInfo(run, false)));
       } else {
          ctx.response()
                .setStatusCode(HttpResponseStatus.FORBIDDEN.code()).end(error);
