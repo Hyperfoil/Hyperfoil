@@ -41,6 +41,8 @@ public class ResponseSizeRecorder implements RawBytesHandler {
       }
 
       /**
+       * Name of the custom metric.
+       *
        * @param customMetric Name of the custom metric.
        * @return Self.
        */

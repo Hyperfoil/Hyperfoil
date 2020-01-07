@@ -2,6 +2,7 @@ package io.hyperfoil.core.builders;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.InitFromParam;
+import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
@@ -87,7 +88,9 @@ public interface CharSequenceCondition extends SerializableBiPredicate<Session, 
          }
       }
 
-      public Builder<P> copy() {
+      // While this method does not require the locator, adding it prevents docs generator from recognizing
+      // this as regular builder fluent setter method.
+      public Builder<P> copy(Locator locator) {
          return new Builder<>(parent).value(value).caseSensitive(caseSensitive).matchVar(matchVar);
       }
 
@@ -131,12 +134,24 @@ public interface CharSequenceCondition extends SerializableBiPredicate<Session, 
          return this;
       }
 
+      /**
+       * Prefix for the string.
+       *
+       * @param value String.
+       * @return Self.
+       */
       public Builder<P> startsWith(CharSequence value) {
          this.value = value;
          this.compareMode = CompareMode.PREFIX;
          return this;
       }
 
+      /**
+       * Suffix for the string.
+       *
+       * @param value String.
+       * @return Self.
+       */
       public Builder<P> endsWith(CharSequence value) {
          this.value = value;
          this.compareMode = CompareMode.SUFFIX;

@@ -110,15 +110,15 @@ public class DocsGenerator extends BaseGenerator {
          out.println("# Hyperfoil reference\n");
          out.println("\n\n## Steps");
          for (Map.Entry<String, Docs> step : steps.entrySet()) {
-            printDocs("step", step.getKey(), step.getValue(), out);
+            printLink("step", step.getKey(), step.getValue(), out);
          }
          out.println("\n\n## Actions");
          for (Map.Entry<String, List<Docs>> action : docs.get(Action.Builder.class).params.entrySet()) {
-            printDocs("action", action.getKey(), action.getValue().iterator().next(), out);
+            printLink("action", action.getKey(), action.getValue().iterator().next(), out);
          }
          out.println("\n\n## Processors");
          for (Map.Entry<String, List<Docs>> action : docs.get(RequestProcessorBuilder.class).params.entrySet()) {
-            printDocs("processor", action.getKey(), action.getValue().iterator().next(), out);
+            printLink("processor", action.getKey(), action.getValue().iterator().next(), out);
          }
       } catch (IOException e) {
          System.err.printf("Cannot write index file %s: %s%n", indexPath, e);
@@ -148,7 +148,7 @@ public class DocsGenerator extends BaseGenerator {
       }
    }
 
-   private void printDocs(String type, String name, Docs docs, PrintStream out) {
+   private void printLink(String type, String name, Docs docs, PrintStream out) {
       String description = docs.ownerDescription;
       if (description == null) {
          out.printf("* [%s](./%s_%s.html)%n", name, type, name);
@@ -202,7 +202,7 @@ public class DocsGenerator extends BaseGenerator {
          }
 
          out.println();
-         out.println("| Property | Description |\n| ------- | -------- |");
+         out.println("| Property | Type | Description |\n| ------- | ------- | -------- |");
          for (Map.Entry<String, List<Docs>> param : docs.params.entrySet()) {
             printDocs(param.getKey(), param.getValue(), out, reverseLookup);
          }
@@ -221,7 +221,7 @@ public class DocsGenerator extends BaseGenerator {
                out.printf("| %s |%n", t.docs.inlineParam);
                out.println();
             }
-            out.println("| Property | Description |\n| ------- | -------- |");
+            out.println("| Property | Type | Description |\n| ------- | ------- | ------- |");
             for (Map.Entry<String, List<Docs>> param : t.docs.params.entrySet()) {
                printDocs(param.getKey(), param.getValue(), out, reverseLookup);
             }
@@ -236,21 +236,23 @@ public class DocsGenerator extends BaseGenerator {
          if (d.ownerDescription == null && d.params.isEmpty()) {
             continue;
          }
-         if (d.link != null) {
-            out.printf("| [%s](%s) ", name, d.link);
-         } else if (d.params.isEmpty()) {
-            out.printf("| %s ", name);
-         } else {
-            out.printf("| [%s](#%s) ", name, reverseLookup.get(d));
-         }
+         out.printf("| %s ", name);
          if (printed > 0) {
             out.print("(alternative)");
+         }
+         if (d.link != null) {
+            out.printf("| [%s](%s) ", d.type, d.link);
+         } else if (d.params.isEmpty()) {
+            out.printf("| %s ", d.type);
+         } else {
+            out.printf("| [%s](#%s) ", d.type, reverseLookup.get(d)
+                  .replaceAll("&lt;", "").replaceAll("&gt;", "").replaceAll(" ", "-").replaceAll("[^a-zA-Z0-9-_]", ""));
          }
          out.printf("| %s |%n", d.ownerDescription == null ? NO_DESCRIPTION : d.ownerDescription);
          ++printed;
       }
       if (printed == 0) {
-         out.printf("| %s | %s |%n", name, NO_DESCRIPTION);
+         out.printf("| %s | &lt;unknown&gt; | %s |%n", name, NO_DESCRIPTION);
       }
    }
 
@@ -489,6 +491,7 @@ public class DocsGenerator extends BaseGenerator {
 
       // Return early to not recurse into self
       if (m.getReturnType().isAssignableFrom(builder)) {
+         String type = "&lt;none&gt;";
          if (m.getParameterCount() == 0) {
             if (description != null) {
                description.append("<br>Note: property does not have any value");
@@ -496,6 +499,7 @@ public class DocsGenerator extends BaseGenerator {
          } else if (m.getParameterCount() == 1) {
             Class<?> singleParam = m.getParameters()[0].getType();
             if (singleParam.isEnum()) {
+               type = "enum";
                EnumDeclaration cd = findEnum(singleParam);
                if (cd != null) {
                   List<EnumConstantDeclaration> constants = cd.findAll(EnumConstantDeclaration.class);
@@ -512,9 +516,13 @@ public class DocsGenerator extends BaseGenerator {
                      description.append("</ul>{:/}");
                   }
                }
+            } else {
+               type = singleParam.getSimpleName();
             }
          }
-         return new Docs(description.length() == 0 ? null : description.toString());
+         Docs docs = new Docs(description.length() == 0 ? null : description.toString());
+         docs.type = type;
+         return docs;
       }
 
       Docs param = new Docs(description.length() == 0 ? null : description.toString());
@@ -526,6 +534,7 @@ public class DocsGenerator extends BaseGenerator {
             inner.ownerDescription = cd.findFirst(MethodDeclaration.class, md -> md.getNameAsString().equals("accept") && md.getParameters().size() == 2)
                   .map(this::getJavadocDescription).orElse(null);
          }
+         param.type = inner.type = getRawClass(getGenericParams(m.getGenericReturnType(), PairBuilder.class)[0]).getSimpleName();
          param.addParam("&lt;any&gt;", inner);
       }
       if (PartialBuilder.class.isAssignableFrom(m.getReturnType())) {
@@ -537,6 +546,7 @@ public class DocsGenerator extends BaseGenerator {
                inner.ownerDescription = cd.findFirst(MethodDeclaration.class, md -> md.getNameAsString().equals("withKey") && md.getParameters().size() == 1)
                      .map(this::getJavadocDescription).orElse(null);
             }
+            param.type = inner.type = "Builder";
             param.addParam("&lt;any&gt;", inner);
          } catch (NoSuchMethodException e) {
             throw new IllegalStateException(e);
@@ -545,10 +555,18 @@ public class DocsGenerator extends BaseGenerator {
 
       if (BaseSequenceBuilder.class.isAssignableFrom(m.getReturnType())) {
          param.addParam("&lt;list of steps&gt;", EMPTY_DOCS);
+         param.type = "&lt;list of steps&gt;";
+         param.link = "index.html#steps";
       }
       if (ListBuilder.class.isAssignableFrom(m.getReturnType())) {
          Docs inner = describeBuilder(m.getReturnType());
-         param.addParam("&lt;list of strings&gt;", new Docs(inner == null ? null : inner.typeDescription));
+         if (inner == null) {
+            inner = new Docs(null);
+         } else if (inner.ownerDescription == null) {
+            inner.ownerDescription = inner.typeDescription;
+         }
+         param.type = inner.type = "&lt;list of strings&gt;";
+         param.addParam("&lt;list of strings&gt;", inner);
       }
       if (MappingListBuilder.class.isAssignableFrom(m.getReturnType())) {
          try {
@@ -558,6 +576,7 @@ public class DocsGenerator extends BaseGenerator {
                inner.ownerDescription = cd.findFirst(MethodDeclaration.class, md -> md.getNameAsString().equals("addItem") && md.getParameters().size() == 0)
                      .map(this::getJavadocDescription).orElse(null);
             }
+            param.type = inner.type = "&lt;list of builders&gt;";
             param.addParam("&lt;list of mappings&gt;", inner);
          } catch (NoSuchMethodException e) {
             throw new IllegalStateException(e);
@@ -566,6 +585,7 @@ public class DocsGenerator extends BaseGenerator {
       if (ServiceLoadedBuilderProvider.class.isAssignableFrom(m.getReturnType())) {
          ParameterizedType returnType = (ParameterizedType) m.getAnnotatedReturnType().getType();
          Class<?> builderClazz = getRawClass(returnType.getActualTypeArguments()[0]);
+         param.type = builderType(builderClazz);
          if (builderClazz == Action.Builder.class) {
             param.link = "index.html#actions";
          } else if (Processor.Builder.class.isAssignableFrom(builderClazz)) {
@@ -578,6 +598,7 @@ public class DocsGenerator extends BaseGenerator {
          if (inner != null) {
             param.typeDescription = inner.typeDescription;
             param.inlineParam = inner.inlineParam;
+            param.type = "Builder";
             param.addParams(inner.params);
          }
       }
@@ -586,6 +607,47 @@ public class DocsGenerator extends BaseGenerator {
       } else {
          return param;
       }
+   }
+
+   private String builderType(Class<?> builderClazz) {
+      if (Processor.Builder.class.isAssignableFrom(builderClazz)) {
+         return "Processor.Builder";
+      }
+      String type = builderClazz.getSimpleName();
+      if (builderClazz.getDeclaringClass() != null) {
+         type = builderClazz.getDeclaringClass().getSimpleName() + "." + type;
+      }
+      return type;
+   }
+
+   private java.lang.reflect.Type[] getGenericParams(java.lang.reflect.Type type, Class<?> iface) {
+      if (type == Object.class || type == null) {
+         return null;
+      } else if (type instanceof ParameterizedType) {
+         Class<?> rawType = (Class<?>) ((ParameterizedType) type).getRawType();
+         if (rawType == iface) {
+            return ((ParameterizedType) type).getActualTypeArguments();
+         }
+         return getGenericParams(rawType, iface);
+      } else if (type instanceof Class<?>) {
+         return getGenericParams((Class<?>) type, iface);
+      } else {
+         throw new UnsupportedOperationException(type.getTypeName());
+      }
+   }
+
+   private java.lang.reflect.Type[] getGenericParams(Class<?> rawType, Class<?> iface) {
+      java.lang.reflect.Type[] params = getGenericParams(rawType.getGenericSuperclass(), iface);
+      if (params != null) {
+         return params;
+      }
+      for (java.lang.reflect.Type i : rawType.getGenericInterfaces()) {
+         params = getGenericParams(i, iface);
+         if (params != null) {
+            return params;
+         }
+      }
+      return null;
    }
 
    private Docs getServiceLoadedImplementations(Class<?> builderClazz) {
@@ -604,6 +666,7 @@ public class DocsGenerator extends BaseGenerator {
             continue;
          }
          docs.ownerDescription = docs.typeDescription;
+         docs.type = builderType(newBuilder);
          implementations.addParam(entry.getKey(), docs);
       }
       return implementations;
@@ -620,6 +683,7 @@ public class DocsGenerator extends BaseGenerator {
       String inlineParam;
       Map<String, List<Docs>> params = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
       String link;
+      String type;
 
       private Docs(String ownerDescription) {
          this.ownerDescription = ownerDescription;
