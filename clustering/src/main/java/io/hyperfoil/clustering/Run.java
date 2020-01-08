@@ -10,7 +10,7 @@ import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.core.impl.statistics.StatisticsStore;
 import io.hyperfoil.core.util.Util;
-import io.vertx.core.Future;
+import io.vertx.core.Promise;
 
 class Run {
    final String id;
@@ -25,7 +25,7 @@ class Run {
    String description;
 
    long startTime = Long.MIN_VALUE;
-   Future<Long> terminateTime = Future.future();
+   Promise<Long> terminateTime = Promise.promise();
    boolean cancelled;
    StatisticsStore statisticsStore;
 

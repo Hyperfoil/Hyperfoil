@@ -87,7 +87,7 @@ public class AgentVerticle extends AbstractVerticle {
          }
       }
       vertx.setPeriodic(1000, timerId -> {
-         eb.send(Feeds.DISCOVERY, new AgentHello(name, nodeId, deploymentId, runId), reply -> {
+         eb.request(Feeds.DISCOVERY, new AgentHello(name, nodeId, deploymentId, runId), reply -> {
             log.trace("{} Pinging controller", deploymentId);
             if (reply.succeeded()) {
                log.info("{} Got reply from controller.", deploymentId);

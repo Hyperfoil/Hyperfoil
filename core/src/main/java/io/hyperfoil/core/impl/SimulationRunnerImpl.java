@@ -25,6 +25,7 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
@@ -113,9 +114,9 @@ public class SimulationRunnerImpl implements SimulationRunner {
       for (Map.Entry<String, HttpClientPool> entry : httpClientPools.entrySet()) {
          // default client pool is initialized by name
          if (entry.getKey() != null) {
-            Future<Void> f = Future.future();
-            futures.add(f);
-            entry.getValue().start(f);
+            Promise<Void> promise = Promise.promise();
+            futures.add(promise.future());
+            entry.getValue().start(promise);
          }
       }
 

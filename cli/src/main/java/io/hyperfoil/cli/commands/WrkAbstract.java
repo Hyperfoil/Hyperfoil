@@ -88,6 +88,7 @@ public abstract class WrkAbstract {
       try {
          AeshCommandRuntimeBuilder<HyperfoilCommandInvocation> runtime = AeshCommandRuntimeBuilder.builder();
          runtime.commandInvocationProvider(new HyperfoilCommandInvocationProvider(new HyperfoilCliContext()));
+         @SuppressWarnings("unchecked")
          AeshCommandRegistryBuilder<HyperfoilCommandInvocation> registry =
                AeshCommandRegistryBuilder.<HyperfoilCommandInvocation>builder()
                      .commands(StartLocal.class, wrkClass, Exit.class);

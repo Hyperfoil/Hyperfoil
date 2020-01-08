@@ -29,7 +29,7 @@ public class IntValueProviderBuilder<P> implements InitFromParam<IntValueProvide
     * @return Self.
     */
    @Override
-   public IntValueProviderBuilder init(String param) {
+   public IntValueProviderBuilder<P> init(String param) {
       try {
          value = Integer.parseInt(param.trim());
       } catch (NumberFormatException e) {
@@ -44,7 +44,7 @@ public class IntValueProviderBuilder<P> implements InitFromParam<IntValueProvide
     * @param value Constant value.
     * @return Self.
     */
-   public IntValueProviderBuilder value(int value) {
+   public IntValueProviderBuilder<P> value(int value) {
       this.value = value;
       return this;
    }
@@ -55,7 +55,7 @@ public class IntValueProviderBuilder<P> implements InitFromParam<IntValueProvide
     * @param fromVar Variable name.
     * @return Self.
     */
-   public IntValueProviderBuilder fromVar(String fromVar) {
+   public IntValueProviderBuilder<P> fromVar(String fromVar) {
       this.fromVar = fromVar;
       return this;
    }
