@@ -20,32 +20,32 @@ import org.kohsuke.MetaInfServices;
 
 public class FilterHeaderHandler implements HeaderHandler, ResourceUtilizer {
    private final SerializableBiPredicate<Session, CharSequence> header;
-   private final Processor<HttpRequest> processor;
+   private final Processor processor;
 
-   public FilterHeaderHandler(SerializableBiPredicate<Session, CharSequence> header, Processor<HttpRequest> processor) {
+   public FilterHeaderHandler(SerializableBiPredicate<Session, CharSequence> header, Processor processor) {
       this.header = header;
       this.processor = processor;
    }
 
    @Override
    public void beforeHeaders(HttpRequest request) {
-      this.processor.before(request);
+      this.processor.before(request.session);
    }
 
    @Override
    public void afterHeaders(HttpRequest request) {
-      this.processor.after(request);
+      this.processor.after(request.session);
    }
 
    @Override
    public void handleHeader(HttpRequest request, CharSequence header, CharSequence value) {
       if (this.header.test(request.session, header)) {
          if (value == null || value.length() == 0) {
-            processor.process(request, Unpooled.EMPTY_BUFFER, 0, 0, true);
+            processor.process(request.session, Unpooled.EMPTY_BUFFER, 0, 0, true);
          } else {
             ByteBuf byteBuf = Util.string2byteBuf(value.toString(), request.connection().context().alloc().buffer());
             try {
-               processor.process(request, byteBuf, byteBuf.readerIndex(), byteBuf.readableBytes(), true);
+               processor.process(request.session, byteBuf, byteBuf.readerIndex(), byteBuf.readableBytes(), true);
             } finally {
                byteBuf.release();
             }

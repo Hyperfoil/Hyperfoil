@@ -1,6 +1,5 @@
 package io.hyperfoil.core.handlers;
 
-import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.core.session.SessionFactory;
@@ -8,7 +7,7 @@ import io.netty.buffer.ByteBuf;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.ResourceUtilizer;
 
-public class CountRecorder implements Processor<Request>, ResourceUtilizer {
+public class CountRecorder implements Processor, ResourceUtilizer {
    private final Access toVar;
 
    public CountRecorder(String toVar) {
@@ -16,14 +15,14 @@ public class CountRecorder implements Processor<Request>, ResourceUtilizer {
    }
 
    @Override
-   public void before(Request request) {
-      toVar.setInt(request.session, 0);
+   public void before(Session session) {
+      toVar.setInt(session, 0);
    }
 
    @Override
-   public void process(Request request, ByteBuf data, int offset, int length, boolean isLastPart) {
+   public void process(Session session, ByteBuf data, int offset, int length, boolean isLastPart) {
       if (isLastPart) {
-         toVar.addToInt(request.session, 1);
+         toVar.addToInt(session, 1);
       }
    }
 

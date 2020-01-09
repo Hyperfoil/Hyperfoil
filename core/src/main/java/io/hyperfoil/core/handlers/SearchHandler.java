@@ -2,7 +2,6 @@ package io.hyperfoil.core.handlers;
 
 import java.nio.charset.StandardCharsets;
 
-import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.processor.Processor;
 import io.netty.buffer.ByteBuf;
 import io.hyperfoil.api.session.Session;
@@ -12,13 +11,13 @@ import io.hyperfoil.api.session.ResourceUtilizer;
  * Simple pattern (no regexp) search based on Rabin-Karp algorithm.
  * Does not handle the intricacies of UTF-8 mapping same strings to different bytes.
  */
-public class SearchHandler implements Processor<Request>, ResourceUtilizer, Session.ResourceKey<SearchHandler.Context> {
+public class SearchHandler implements Processor, ResourceUtilizer, Session.ResourceKey<SearchHandler.Context> {
    private final byte[] begin, end;
    private final int beginHash, endHash;
    private final int beginCoef, endCoef;
-   private Processor<Request> processor;
+   private Processor processor;
 
-   public SearchHandler(String begin, String end, Processor<Request> processor) {
+   public SearchHandler(String begin, String end, Processor processor) {
       this.begin = begin.getBytes(StandardCharsets.UTF_8);
       this.end = end.getBytes(StandardCharsets.UTF_8);
       this.beginHash = BaseSearchContext.computeHash(this.begin);
@@ -29,21 +28,21 @@ public class SearchHandler implements Processor<Request>, ResourceUtilizer, Sess
    }
 
    @Override
-   public void before(Request request) {
-      Context ctx = request.session.getResource(this);
+   public void before(Session session) {
+      Context ctx = session.getResource(this);
       ctx.reset();
-      processor.before(request);
+      processor.before(session);
    }
 
    @Override
-   public void process(Request request, ByteBuf data, final int offset, int length, boolean isLast) {
-      Context ctx = request.session.getResource(this);
+   public void process(Session session, ByteBuf data, final int offset, int length, boolean isLast) {
+      Context ctx = session.getResource(this);
       ctx.add(data, offset, length);
       int endIndex = offset + length;
       int index = ctx.initHash(offset, ctx.lookupText.length);
       while (ctx.test(index)) {
          if (ctx.lookupText == end) {
-            fireProcessor(ctx, request, index);
+            fireProcessor(ctx, session, index);
          } else {
             ctx.mark(index);
          }
@@ -54,7 +53,7 @@ public class SearchHandler implements Processor<Request>, ResourceUtilizer, Sess
          ctx.advance(data.getByte(index++), ctx.lookupCoef, index, ctx.lookupText.length + 1);
          while (ctx.test(index)) {
             if (ctx.lookupText == end) {
-               fireProcessor(ctx, request, index);
+               fireProcessor(ctx, session, index);
             } else {
                ctx.mark(index);
             }
@@ -64,7 +63,7 @@ public class SearchHandler implements Processor<Request>, ResourceUtilizer, Sess
       }
    }
 
-   private void fireProcessor(Context ctx, Request request, int index) {
+   private void fireProcessor(Context ctx, Session session, int index) {
       int endPart = ctx.currentPart;
       int endPos = index - end.length;
       while (endPos < 0) {
@@ -81,20 +80,20 @@ public class SearchHandler implements Processor<Request>, ResourceUtilizer, Sess
          // if the begin ends with part, we'll skip the 0-length process call
          int length = ctx.endIndices[ctx.markPart] - ctx.markPos;
          if (length > 0) {
-            processor.process(request, data, ctx.markPos, length, false);
+            processor.process(session, data, ctx.markPos, length, false);
          }
          ctx.markPos = 0;
          ctx.markPart++;
       }
-      processor.process(request, ctx.parts[endPart], ctx.markPos, endPos - ctx.markPos, true);
+      processor.process(session, ctx.parts[endPart], ctx.markPos, endPos - ctx.markPos, true);
    }
 
    @Override
-   public void after(Request request) {
-      Context ctx = request.session.getResource(this);
+   public void after(Session session) {
+      Context ctx = session.getResource(this);
       // release buffers
       ctx.reset();
-      processor.after(request);
+      processor.after(session);
    }
 
    @Override

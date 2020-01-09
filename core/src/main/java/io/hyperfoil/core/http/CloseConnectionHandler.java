@@ -4,26 +4,26 @@ import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.processor.Processor;
-import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.processor.RequestProcessorBuilder;
+import io.hyperfoil.api.session.Session;
 import io.netty.buffer.ByteBuf;
 
-public class CloseConnectionHandler implements Processor<Request> {
+public class CloseConnectionHandler implements Processor {
    @Override
-   public void process(Request request, ByteBuf data, int offset, int length, boolean isLastPart) {
+   public void process(Session session, ByteBuf data, int offset, int length, boolean isLastPart) {
       // ignored
    }
 
    @Override
-   public void after(Request request) {
-      request.connection().close();
+   public void after(Session session) {
+      session.currentRequest().connection().close();
    }
 
    @MetaInfServices(RequestProcessorBuilder.class)
    @Name("closeConnection")
    public static class Builder implements RequestProcessorBuilder {
       @Override
-      public Processor<Request> build(boolean fragmented) {
+      public Processor build(boolean fragmented) {
          return new CloseConnectionHandler();
       }
    }

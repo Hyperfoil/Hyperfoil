@@ -4,7 +4,6 @@ import java.nio.charset.StandardCharsets;
 
 import org.junit.Test;
 
-import io.hyperfoil.api.connection.HttpRequest;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.hyperfoil.api.session.Session;
@@ -62,15 +61,14 @@ public class SearchHandlerTest {
 
    private void runHandler(SearchHandler handler, ExpectProcessor processor, String... text) {
       Session session = SessionFactory.forTesting();
-      HttpRequest request = session.httpRequestPool().acquire();
       handler.reserve(session);
-      handler.before(request);
+      handler.before(session);
 
       for (String t : text) {
          ByteBuf data = Unpooled.wrappedBuffer(t.getBytes(StandardCharsets.UTF_8));
-         handler.process(request, data, data.readerIndex(), data.readableBytes(), false);
+         handler.process(session, data, data.readerIndex(), data.readableBytes(), false);
       }
-      handler.after(request);
+      handler.after(session);
       processor.validate();
    }
 }

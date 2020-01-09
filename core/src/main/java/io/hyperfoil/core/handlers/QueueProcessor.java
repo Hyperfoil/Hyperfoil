@@ -8,7 +8,6 @@ import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.SequenceBuilder;
-import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.processor.RequestProcessorBuilder;
 import io.hyperfoil.api.session.Access;
@@ -21,7 +20,7 @@ import io.hyperfoil.core.data.Queue;
 import io.hyperfoil.core.session.SessionFactory;
 import io.netty.buffer.ByteBuf;
 
-public class QueueProcessor implements Processor<Request>, ResourceUtilizer {
+public class QueueProcessor implements Processor, ResourceUtilizer {
    private final Access var;
    private final int maxSize;
    private final DataFormat format;
@@ -38,28 +37,28 @@ public class QueueProcessor implements Processor<Request>, ResourceUtilizer {
       this.onCompletion = onCompletion;
    }
 
-   private Queue queue(Request request) {
-      return (Queue) var.getObject(request.session);
+   private Queue queue(Session session) {
+      return (Queue) var.getObject(session);
    }
 
    @Override
-   public void before(Request request) {
-      Queue queue = queue(request);
+   public void before(Session session) {
+      Queue queue = queue(session);
       queue.reset();
    }
 
    @Override
-   public void process(Request request, ByteBuf data, int offset, int length, boolean isLastPart) {
+   public void process(Session session, ByteBuf data, int offset, int length, boolean isLastPart) {
       ensureDefragmented(isLastPart);
-      Queue queue = queue(request);
+      Queue queue = queue(session);
       Object value = format.convert(data, offset, length);
-      queue.push(request.session, value);
+      queue.push(session, value);
    }
 
    @Override
-   public void after(Request request) {
-      Queue queue = queue(request);
-      queue.producerComplete(request.session);
+   public void after(Session session) {
+      Queue queue = queue(session);
+      queue.producerComplete(session);
    }
 
    @Override
@@ -153,9 +152,9 @@ public class QueueProcessor implements Processor<Request>, ResourceUtilizer {
       }
 
       @Override
-      public Processor<Request> build(boolean fragmented) {
+      public Processor build(boolean fragmented) {
          QueueProcessor processor = new QueueProcessor(varAccess, maxSize, format, generatedSeqName, concurrency, onCompletion.build());
-         return fragmented ? new DefragProcessor<>(processor) : processor;
+         return fragmented ? new DefragProcessor(processor) : processor;
       }
    }
 }

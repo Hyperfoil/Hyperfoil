@@ -22,6 +22,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.api.config.HttpBuilder;
+import io.netty.handler.codec.http.HttpHeaderNames;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 
@@ -69,6 +70,7 @@ public class ChunkedTransferTest extends BaseScenarioTest {
                return true;
             })
             .step(SC).httpRequest(HttpMethod.GET).path("/test")
+               .headers().header(HttpHeaderNames.CACHE_CONTROL, "no-cache").endHeaders()
                .handler().rawBytes((session, byteBuf, offset, length, isLastPart) -> {
                   log.info("Received chunk {} bytes:\n{}", length,
                         byteBuf.toString(offset, length, StandardCharsets.UTF_8));

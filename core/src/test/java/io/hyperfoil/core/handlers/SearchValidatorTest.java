@@ -65,14 +65,15 @@ public class SearchValidatorTest {
    private HttpRequest runValidator(SearchValidator validator, String... text) {
       Session session = SessionFactory.forTesting();
       HttpRequest request = session.httpRequestPool().acquire();
+      session.currentRequest(request);
       validator.reserve(session);
-      validator.before(request);
+      validator.before(session);
 
       for (String t : text) {
          ByteBuf data = Unpooled.wrappedBuffer(t.getBytes(StandardCharsets.UTF_8));
-         validator.process(request, data, data.readerIndex(), data.readableBytes(), false);
+         validator.process(session, data, data.readerIndex(), data.readableBytes(), false);
       }
-      validator.after(request);
+      validator.after(session);
       return request;
    }
 }

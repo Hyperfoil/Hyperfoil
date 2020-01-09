@@ -9,7 +9,6 @@ import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Name;
-import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.processor.RequestProcessorBuilder;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
@@ -17,31 +16,31 @@ import io.netty.buffer.ByteBuf;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.ResourceUtilizer;
 
-public class JsonHandler extends JsonParser<Request>
-      implements Processor<Request>, ResourceUtilizer, Session.ResourceKey<JsonHandler.Context> {
-   private final Processor<Request> processor;
+public class JsonHandler extends JsonParser<Session>
+      implements Processor, ResourceUtilizer, Session.ResourceKey<JsonHandler.Context> {
+   private final Processor processor;
 
-   public JsonHandler(String query, Processor<Request> processor) {
+   public JsonHandler(String query, Processor processor) {
       super(query.trim());
       this.processor = processor;
 
    }
 
    @Override
-   public void before(Request request) {
-      processor.before(request);
+   public void before(Session session) {
+      processor.before(session);
    }
 
    @Override
-   public void process(Request request, ByteBuf data, int offset, int length, boolean isLast) {
-      Context ctx = request.session.getResource(this);
-      ctx.parse(ctx.wrap(data, offset, length), request);
+   public void process(Session session, ByteBuf data, int offset, int length, boolean isLast) {
+      Context ctx = session.getResource(this);
+      ctx.parse(ctx.wrap(data, offset, length), session);
    }
 
    @Override
-   public void after(Request request) {
-      processor.after(request);
-      Context ctx = request.session.getResource(this);
+   public void after(Session session) {
+      processor.after(session);
+      Context ctx = session.getResource(this);
       ctx.reset();
    }
 
@@ -60,11 +59,11 @@ public class JsonHandler extends JsonParser<Request>
    }
 
    @Override
-   protected void fireMatch(JsonParser<Request>.Context context, Request request, ByteStream data, int offset, int length, boolean isLastPart) {
-      processor.process(request, ((ByteBufByteStream) data).buffer, offset, length, isLastPart);
+   protected void fireMatch(JsonParser<Session>.Context context, Session session, ByteStream data, int offset, int length, boolean isLastPart) {
+      processor.process(session, ((ByteBufByteStream) data).buffer, offset, length, isLastPart);
    }
 
-   public class Context extends JsonParser<Request>.Context {
+   public class Context extends JsonParser<Session>.Context {
       ByteBufByteStream actualStream;
 
       Context() {

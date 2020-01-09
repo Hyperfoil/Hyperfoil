@@ -7,7 +7,6 @@ import java.util.Arrays;
 import java.util.function.Function;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
-import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
@@ -480,30 +479,30 @@ public abstract class JsonParser<S> implements Serializable {
       }
    }
 
-   public static class UnquotingProcessor extends Processor.BaseDelegating<Request> implements ResourceUtilizer, Session.ResourceKey<UnquotingProcessor.Context> {
+   public static class UnquotingProcessor extends Processor.BaseDelegating implements ResourceUtilizer, Session.ResourceKey<UnquotingProcessor.Context> {
       private static final ByteBuf NEWLINE = Unpooled.wrappedBuffer("\n".getBytes(StandardCharsets.UTF_8));
       private static final ByteBuf BACKSPACE = Unpooled.wrappedBuffer("\b".getBytes(StandardCharsets.UTF_8));
       private static final ByteBuf FORMFEED = Unpooled.wrappedBuffer("\f".getBytes(StandardCharsets.UTF_8));
       private static final ByteBuf CR = Unpooled.wrappedBuffer("\r".getBytes(StandardCharsets.UTF_8));
       private static final ByteBuf TAB = Unpooled.wrappedBuffer("\t".getBytes(StandardCharsets.UTF_8));
 
-      public UnquotingProcessor(Processor<Request> delegate) {
+      public UnquotingProcessor(Processor delegate) {
          super(delegate);
       }
 
       @Override
-      public void before(Request request) {
-         super.before(request);
-         Context context = request.session.getResource(this);
+      public void before(Session session) {
+         super.before(session);
+         Context context = session.getResource(this);
          context.reset();
       }
 
       @Override
-      public void process(Request request, ByteBuf data, int offset, int length, boolean isLastPart) {
-         Context context = request.session.getResource(this);
+      public void process(Session session, ByteBuf data, int offset, int length, boolean isLastPart) {
+         Context context = session.getResource(this);
          int begin;
          if (context.unicode) {
-            begin = offset + processUnicode(request, data, offset, length, isLastPart, context, 0);
+            begin = offset + processUnicode(session, data, offset, length, isLastPart, context, 0);
          } else if (context.first && data.getByte(offset) == '"') {
             begin = offset + 1;
          } else {
@@ -514,7 +513,7 @@ public abstract class JsonParser<S> implements Serializable {
             if (context.escaped || data.getByte(offset + i) == '\\') {
                int fragmentLength = offset + i - begin;
                if (fragmentLength > 0) {
-                  delegate.process(request, data, begin, fragmentLength, isLastPart && fragmentLength == length);
+                  delegate.process(session, data, begin, fragmentLength, isLastPart && fragmentLength == length);
                }
                if (context.escaped) {
                   // This happens when we're starting with chunk escaped in previous chunk
@@ -530,29 +529,29 @@ public abstract class JsonParser<S> implements Serializable {
 
                switch (data.getByte(offset + i)) {
                   case 'n':
-                     delegate.process(request, NEWLINE, 0, NEWLINE.readableBytes(), isLastPart && i == length - 1);
+                     delegate.process(session, NEWLINE, 0, NEWLINE.readableBytes(), isLastPart && i == length - 1);
                      begin = offset + i + 1;
                      break;
                   case 'b':
-                     delegate.process(request, BACKSPACE, 0, BACKSPACE.readableBytes(), isLastPart && i == length - 1);
+                     delegate.process(session, BACKSPACE, 0, BACKSPACE.readableBytes(), isLastPart && i == length - 1);
                      begin = offset + i + 1;
                      break;
                   case 'f':
-                     delegate.process(request, FORMFEED, 0, FORMFEED.readableBytes(), isLastPart && i == length - 1);
+                     delegate.process(session, FORMFEED, 0, FORMFEED.readableBytes(), isLastPart && i == length - 1);
                      begin = offset + i + 1;
                      break;
                   case 'r':
-                     delegate.process(request, CR, 0, CR.readableBytes(), isLastPart && i == length - 1);
+                     delegate.process(session, CR, 0, CR.readableBytes(), isLastPart && i == length - 1);
                      begin = offset + i + 1;
                      break;
                   case 't':
-                     delegate.process(request, TAB, 0, TAB.readableBytes(), isLastPart && i == length - 1);
+                     delegate.process(session, TAB, 0, TAB.readableBytes(), isLastPart && i == length - 1);
                      begin = offset + i + 1;
                      break;
                   case 'u':
                      context.unicode = true;
                      ++i;
-                     i = processUnicode(request, data, offset, length, isLastPart, context, i) - 1;
+                     i = processUnicode(session, data, offset, length, isLastPart, context, i) - 1;
                      begin = offset + i + 1;
                      break;
                   default:
@@ -572,13 +571,13 @@ public abstract class JsonParser<S> implements Serializable {
          int fragmentLength = length - begin + offset;
          // we need to send this even if the length == 0 as when we have removed the last quote
          // the previous chunk had not isLastPart==true
-         delegate.process(request, data, begin, fragmentLength, isLastPart);
+         delegate.process(session, data, begin, fragmentLength, isLastPart);
          if (isLastPart) {
             context.reset();
          }
       }
 
-      private int processUnicode(Request request, ByteBuf data, int offset, int length, boolean isLastPart, Context context, int i) {
+      private int processUnicode(Session session, ByteBuf data, int offset, int length, boolean isLastPart, Context context, int i) {
          while (i < length && context.unicodeDigits < 4) {
             context.unicodeChar = context.unicodeChar * 16;
             byte b = data.getByte(offset + i);
@@ -598,7 +597,7 @@ public abstract class JsonParser<S> implements Serializable {
          if (context.unicodeDigits == 4) {
             // TODO: allocation, probably inefficient...
             ByteBuf utf8 = Unpooled.wrappedBuffer(Character.toString((char) context.unicodeChar).getBytes(StandardCharsets.UTF_8));
-            delegate.process(request, utf8, utf8.readerIndex(), utf8.readableBytes(), isLastPart && i == length - 1);
+            delegate.process(session, utf8, utf8.readerIndex(), utf8.readableBytes(), isLastPart && i == length - 1);
             context.unicode = false;
             context.unicodeChar = 0;
             context.unicodeDigits = 0;

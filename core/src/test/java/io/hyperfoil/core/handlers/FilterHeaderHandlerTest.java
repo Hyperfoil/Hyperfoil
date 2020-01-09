@@ -3,7 +3,6 @@ package io.hyperfoil.core.handlers;
 import org.junit.Test;
 
 import io.hyperfoil.api.connection.HttpRequest;
-import io.hyperfoil.api.processor.HttpRequestProcessorBuilder;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.core.http.BaseMockConnection;
 import io.hyperfoil.core.session.SessionFactory;
@@ -16,7 +15,7 @@ public class FilterHeaderHandlerTest {
    public void testValue() {
       ExpectProcessor expect = new ExpectProcessor().expect(0, 6, true);
       FilterHeaderHandler handler = new FilterHeaderHandler.Builder()
-            .processor(f -> new HttpRequestProcessorBuilder.RequestProcessorAdapter(expect))
+            .processor(f -> expect)
             .header().value("foo").end()
             .build();
       HttpRequest request = requestMock();
@@ -31,7 +30,7 @@ public class FilterHeaderHandlerTest {
    public void testStartsWith() {
       ExpectProcessor expect = new ExpectProcessor().expect(0, 6, true);
       FilterHeaderHandler handler = new FilterHeaderHandler.Builder()
-            .processor(f -> new HttpRequestProcessorBuilder.RequestProcessorAdapter(expect))
+            .processor(f -> expect)
             .header().startsWith("foo").end()
             .build();
       HttpRequest request = requestMock();
@@ -47,7 +46,7 @@ public class FilterHeaderHandlerTest {
    public void testEndsWith() {
       ExpectProcessor expect = new ExpectProcessor().expect(0, 6, true);
       FilterHeaderHandler handler = new FilterHeaderHandler.Builder()
-            .processor(f -> new HttpRequestProcessorBuilder.RequestProcessorAdapter(expect))
+            .processor(f -> expect)
             .header().endsWith("bar").end()
             .build();
       HttpRequest request = requestMock();
@@ -63,7 +62,7 @@ public class FilterHeaderHandlerTest {
    public void testMatchVar() {
       ExpectProcessor expect = new ExpectProcessor().expect(0, 6, true);
       FilterHeaderHandler handler = new FilterHeaderHandler.Builder()
-            .processor(f -> new HttpRequestProcessorBuilder.RequestProcessorAdapter(expect))
+            .processor(f -> expect)
             .header()
             .matchVar("myVar")
             .end()

@@ -38,7 +38,7 @@ public class BreakSequenceStep extends DependencyStep {
          if (onBreak != null) {
             onBreak.run(session);
          }
-         session.currentSequence(null);
+         session.currentSequence().breakSequence(session);
       }
       return true;
    }

@@ -20,9 +20,5 @@ public interface HttpConnection extends Connection {
 
    HttpRequest peekRequest(int streamId);
 
-   void setClosed();
-
-   boolean isClosed();
-
    boolean isSecure();
 }

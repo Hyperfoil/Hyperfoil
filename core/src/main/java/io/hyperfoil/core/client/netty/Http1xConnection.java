@@ -94,6 +94,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
                log.trace("Request on connection {} has been already completed (error in handlers?), ignoring", this);
             } else {
                HttpResponseHandlers handlers = request.handlers();
+               request.enter();
                try {
                   handlers.handleStatus(request, response.status().code(), response.status().reasonPhrase());
                   for (Map.Entry<String, String> header : response.headers()) {
@@ -104,7 +105,10 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
                } catch (Throwable t) {
                   log.error("Response processing failed on {}", t, this);
                   handlers.handleThrowable(request, t);
+               } finally {
+                  request.exit();
                }
+               request.session.proceed();
             }
          }
          if (msg instanceof HttpContent) {
@@ -112,6 +116,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
             // When previous handlers throw an error the request is already completed
             if (request != null && !request.isCompleted()) {
                HttpResponseHandlers handlers = request.handlers();
+               request.enter();
                try {
                   ByteBuf data = ((HttpContent) msg).content();
                   handlers.handleBodyPart(request, data, data.readerIndex(), data.readableBytes(), msg instanceof LastHttpContent);
@@ -120,7 +125,10 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
                } catch (Throwable t) {
                   log.error("Response processing failed on {}", t, this);
                   handlers.handleThrowable(request, t);
+               } finally {
+                  request.exit();
                }
+               request.session.proceed();
             }
          }
          if (msg instanceof LastHttpContent) {
@@ -133,6 +141,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
             size--;
             // When previous handlers throw an error the request is already completed
             if (!request.isCompleted()) {
+               request.enter();
                try {
                   request.handlers().handleEnd(request, true);
                   if (trace) {
@@ -143,7 +152,10 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
                } catch (Throwable t) {
                   log.error("Response processing failed on {}", t, this);
                   request.handlers().handleThrowable(request, t);
+               } finally {
+                  request.exit();
                }
+               request.session.proceed();
             }
             assert request.isCompleted();
             request.release();
@@ -173,9 +185,14 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
       HttpRequest request;
       while ((request = inflights.poll()) != null) {
          if (!request.isCompleted()) {
-            request.handlers().handleThrowable(request, cause);
-            assert request.isCompleted();
-            request.session.httpRequestPool().release(request);
+            request.enter();
+            try {
+               request.handlers().handleThrowable(request, cause);
+            } finally {
+               assert request.isCompleted();
+               request.exit();
+               request.release();
+            }
             request.session.proceed();
          }
       }
@@ -218,8 +235,17 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
          }
          --size;
          request.statistics().addCacheHit(request.startTimestampMillis());
-         request.handlers().handleEnd(request, false);
-         request.release();
+         request.enter();
+         try {
+            request.handlers().handleEnd(request, false);
+         } catch (Throwable t) {
+            log.error("Response processing failed on {}", t, this);
+            request.handlers().handleThrowable(request, t);
+         } finally {
+            request.exit();
+            request.release();
+         }
+         request.session.proceed();
          releasePoolAndPulse();
          return;
       }

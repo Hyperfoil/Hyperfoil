@@ -33,13 +33,13 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
 
    final StatusHandler[] statusHandlers;
    final HeaderHandler[] headerHandlers;
-   final Processor<HttpRequest>[] bodyHandlers;
+   final Processor[] bodyHandlers;
    final Action[] completionHandlers;
    final RawBytesHandler[] rawBytesHandlers;
 
    private HttpResponseHandlersImpl(StatusHandler[] statusHandlers,
                                     HeaderHandler[] headerHandlers,
-                                    Processor<HttpRequest>[] bodyHandlers,
+                                    Processor[] bodyHandlers,
                                     Action[] completionHandlers,
                                     RawBytesHandler[] rawBytesHandlers) {
       this.statusHandlers = statusHandlers;
@@ -52,7 +52,6 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
    @Override
    public void handleStatus(HttpRequest request, int status, String reason) {
       Session session = request.session;
-      session.currentSequence(request.sequence());
       if (request.isCompleted()) {
          if (trace) {
             log.trace("#{} Ignoring status {} as the request has been marked completed (failed).", session.uniqueId(), status);
@@ -98,8 +97,8 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          }
       }
       if (bodyHandlers != null) {
-         for (Processor<HttpRequest> handler : bodyHandlers) {
-            handler.before(request);
+         for (Processor handler : bodyHandlers) {
+            handler.before(request.session);
          }
       }
    }
@@ -107,7 +106,6 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
    @Override
    public void handleHeader(HttpRequest request, CharSequence header, CharSequence value) {
       Session session = request.session;
-      session.currentSequence(request.sequence());
       if (request.isCompleted()) {
          if (trace) {
             log.trace("#{} Ignoring header on a failed request: {}: {}", session.uniqueId(), header, value);
@@ -134,7 +132,6 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
    @Override
    public void handleThrowable(HttpRequest request, Throwable throwable) {
       Session session = request.session;
-      session.currentSequence(request.sequence());
       if (trace) {
          log.trace("#{} Received exception {}", session.uniqueId(), throwable);
       }
@@ -144,6 +141,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          }
          return;
       }
+      session.currentRequest(request);
 
       if (completionHandlers != null) {
          for (Action handler : completionHandlers) {
@@ -152,19 +150,18 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       }
       request.statistics().incrementResets(request.startTimestampMillis());
       request.setCompleted();
-      session.proceed();
    }
 
    @Override
    public void handleBodyPart(HttpRequest request, ByteBuf data, int offset, int length, boolean isLastPart) {
       Session session = request.session;
-      session.currentSequence(request.sequence());
       if (request.isCompleted()) {
          if (trace) {
             log.trace("#{} Ignoring body part ({} bytes) on a failed request.", session.uniqueId(), data.readableBytes());
          }
          return;
       }
+      session.currentRequest(request);
 
       if (trace) {
          log.trace("#{} Received part ({} bytes):\n{}", session.uniqueId(), data.readableBytes(),
@@ -173,28 +170,24 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
 
       int dataStartIndex = data.readerIndex();
       if (bodyHandlers != null) {
-         for (Processor<HttpRequest> handler : bodyHandlers) {
-            handler.process(request, data, offset, length, isLastPart);
+         for (Processor handler : bodyHandlers) {
+            handler.process(request.session, data, offset, length, isLastPart);
             data.readerIndex(dataStartIndex);
          }
       }
-   }
-
-   @Override
-   public boolean hasRawBytesHandler() {
-      return rawBytesHandlers != null && rawBytesHandlers.length > 0;
+      session.currentRequest(null);
    }
 
    @Override
    public void handleEnd(HttpRequest request, boolean executed) {
       Session session = request.session;
-      session.currentSequence(request.sequence());
       if (request.isCompleted()) {
          if (trace) {
             log.trace("#{} Request has been already completed.", session.uniqueId());
          }
          return;
       }
+      session.currentRequest(request);
       if (trace) {
          log.trace("#{} Completed request on {}", session.uniqueId(), request.connection());
       }
@@ -209,8 +202,8 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
             }
          }
          if (bodyHandlers != null) {
-            for (Processor<HttpRequest> handler : bodyHandlers) {
-               handler.after(request);
+            for (Processor handler : bodyHandlers) {
+               handler.after(request.session);
             }
          }
          request.session.httpCache().tryStore(request);
@@ -226,12 +219,13 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          request.statistics().addInvalid(request.startTimestampMillis());
       }
       request.setCompleted();
-      // if anything was blocking due to full request queue we should continue from the right place
-      session.proceed();
    }
 
    @Override
    public void handleRawBytes(HttpRequest request, ByteBuf data, int offset, int length, boolean isLastPart) {
+      if (rawBytesHandlers == null) {
+         return;
+      }
       for (RawBytesHandler rawBytesHandler : rawBytesHandlers) {
          rawBytesHandler.accept(request, data, offset, length, isLastPart);
       }

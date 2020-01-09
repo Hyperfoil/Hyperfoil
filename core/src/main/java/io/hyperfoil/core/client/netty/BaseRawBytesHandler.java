@@ -36,12 +36,20 @@ public abstract class BaseRawBytesHandler extends ChannelInboundHandlerAdapter {
    protected abstract boolean isRequestStream(int streamId);
 
    protected void invokeHandler(HttpRequest request, ByteBuf data, int offset, int length, boolean isLastPart) {
-      HttpResponseHandlers handlers;
       // When the request times out it is marked as completed and handlers are removed
       // but the connection is not closed automatically.
-      if (request != null && !request.isCompleted() && (handlers = request.handlers()).hasRawBytesHandler()) {
+      if (request != null && !request.isCompleted()) {
          int readerIndex = data.readerIndex();
-         handlers.handleRawBytes(request, data, offset, length, isLastPart);
+         HttpResponseHandlers handlers = request.handlers();
+         request.enter();
+         try {
+            handlers.handleRawBytes(request, data, offset, length, isLastPart);
+         } catch (Throwable t) {
+            handlers.handleThrowable(request, t);
+         } finally {
+            request.exit();
+         }
+         request.session.proceed();
          if (data.readerIndex() != readerIndex) {
             // TODO: maybe we could just reset the reader index?
             throw new IllegalStateException("Handler has changed readerIndex on the buffer!");

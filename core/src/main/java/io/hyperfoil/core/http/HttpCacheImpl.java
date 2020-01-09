@@ -255,7 +255,16 @@ public class HttpCacheImpl implements HttpCache {
       }
       if (request.cacheControl.matchingCached.isEmpty()) {
          if (request.cacheControl.onlyIfCached) {
-            request.handlers().handleStatus(request, 504, "Request was cache-only.");
+            request.enter();
+            try {
+               request.handlers().handleStatus(request, 504, "Request was cache-only.");
+            } catch (Throwable t) {
+               log.error("Response processing failed on {}", t, this);
+               request.handlers().handleThrowable(request, t);
+            } finally {
+               request.exit();
+               request.session.proceed();
+            }
             return true;
          } else {
             return false;

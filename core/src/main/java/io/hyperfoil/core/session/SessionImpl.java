@@ -3,6 +3,7 @@ package io.hyperfoil.core.session;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.connection.HttpDestinationTable;
 import io.hyperfoil.api.connection.HttpRequest;
+import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.http.HttpCache;
 import io.hyperfoil.api.session.SessionStopException;
 import io.hyperfoil.api.session.SharedData;
@@ -45,6 +46,7 @@ class SessionImpl implements Session, Callable<Void> {
    private PhaseInstance phase;
    private int lastRunningSequence = -1;
    private SequenceInstance currentSequence;
+   private Request currentRequest;
 
    private HttpDestinationTable httpDestinations;
    private EventExecutor executor;
@@ -273,7 +275,6 @@ class SessionImpl implements Session, Callable<Void> {
                // This may happen when the session.stop() is called
                continue;
             }
-            currentSequence(sequence);
             if (sequence.progress(this)) {
                progressed = true;
                lastProgressedSequence = i;
@@ -296,7 +297,6 @@ class SessionImpl implements Session, Callable<Void> {
                   lastProgressedSequence = -1;
                }
             }
-            currentSequence(null);
          }
          if (!progressed && lastRunningSequence >= 0) {
             if (trace) {
@@ -472,6 +472,16 @@ class SessionImpl implements Session, Callable<Void> {
       lastRunningSequence++;
       assert runningSequences[lastRunningSequence] == null;
       runningSequences[lastRunningSequence] = instance;
+   }
+
+   @Override
+   public Request currentRequest() {
+      return currentRequest;
+   }
+
+   @Override
+   public void currentRequest(Request request) {
+      this.currentRequest = request;
    }
 
    @Override

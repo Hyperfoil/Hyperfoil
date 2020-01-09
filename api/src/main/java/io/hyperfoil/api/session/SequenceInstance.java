@@ -23,14 +23,14 @@ public class SequenceInstance {
          if (trace) {
             log.trace("#{} {}({}) invoking step {}", session.uniqueId(), name, index, step);
          }
+         session.currentSequence(this);
          try {
             if (!step.invoke(session)) {
                if (trace) {
                   log.trace("#{} {}({}) step {} is blocked", session.uniqueId(), name, index, step);
                }
-               if (session.currentSequence() == null) {
+               if (currentStep >= steps.length) {
                   log.warn("#{} Last step reported being blocked but it has also interrupted the sequence.", session.uniqueId());
-                  currentStep = steps.length;
                }
                return progressed;
             }
@@ -41,14 +41,11 @@ public class SequenceInstance {
             log.error("#{} {}({}) failure invoking step {}", t, session.uniqueId(), name, index, step);
             session.fail(t);
             return false;
+         } finally {
+            session.currentSequence(null);
          }
-         if (session.currentSequence() != null) {
+         if (currentStep < steps.length) {
             ++currentStep;
-         } else {
-            currentStep = steps.length;
-            if (trace) {
-               log.trace("#{} was interrupted", session.uniqueId());
-            }
          }
          progressed = true;
       }
@@ -97,5 +94,12 @@ public class SequenceInstance {
 
    public StringBuilder appendTo(StringBuilder sb) {
       return sb.append(name).append('(').append(index).append(")(").append(currentStep + 1).append('/').append(steps == null ? 0 : steps.length).append(')');
+   }
+
+   public void breakSequence(Session session) {
+      this.currentStep = steps.length;
+      if (trace) {
+         log.trace("#{} was interrupted", session.uniqueId());
+      }
    }
 }

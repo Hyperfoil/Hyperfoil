@@ -10,7 +10,6 @@ import java.util.List;
 import org.junit.Test;
 
 import io.hyperfoil.api.connection.HttpRequest;
-import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
@@ -42,11 +41,10 @@ public class JsonHandlerTest {
 
       ByteBuf data = Unpooled.wrappedBuffer(JSON);
 
-      HttpRequest request = new HttpRequest(session);
       handler.reserve(session);
-      handler.before(request);
-      handler.process(request, data, data.readerIndex(), data.readableBytes(), true);
-      handler.after(request);
+      handler.before(session);
+      handler.process(session, data, data.readerIndex(), data.readableBytes(), true);
+      handler.after(session);
 
       expect.validate();
    }
@@ -72,10 +70,10 @@ public class JsonHandlerTest {
             }
          }
 
-         handler.before(request);
-         handler.process(request, data1, data1.readerIndex(), data1.readableBytes(), false);
-         handler.process(request, data2, data2.readerIndex(), data2.readableBytes(), true);
-         handler.after(request);
+         handler.before(session);
+         handler.process(session, data1, data1.readerIndex(), data1.readableBytes(), false);
+         handler.process(session, data2, data2.readerIndex(), data2.readableBytes(), true);
+         handler.after(session);
 
          expect.validate();
       }
@@ -90,11 +88,10 @@ public class JsonHandlerTest {
 
       ByteBuf data = Unpooled.wrappedBuffer("{ \"foo\": { \"bar\" : 42 }}".getBytes(StandardCharsets.UTF_8));
 
-      HttpRequest request = new HttpRequest(session);
       handler.reserve(session);
-      handler.before(request);
-      handler.process(request, data, data.readerIndex(), data.readableBytes(), true);
-      handler.after(request);
+      handler.before(session);
+      handler.process(session, data, data.readerIndex(), data.readableBytes(), true);
+      handler.after(session);
 
       expect.validate();
    }
@@ -103,16 +100,16 @@ public class JsonHandlerTest {
    public void testEscaped() {
       List<String> unescapedItems = Arrays.asList("\nx\bx\f\rx\t", "x\u15dcx\"x/\\");
       List<String> expectedStrings = new ArrayList<>(unescapedItems);
-      Processor<Request> expect = new Processor<Request>() {
+      Processor expect = new Processor() {
          @Override
-         public void process(Request request, ByteBuf data, int offset, int length, boolean isLastPart) {
+         public void process(Session session, ByteBuf data, int offset, int length, boolean isLastPart) {
             byte[] bytes = new byte[length];
             data.getBytes(offset, bytes);
             String str = new String(bytes, StandardCharsets.UTF_8);
             assertThat(str).isEqualTo(expectedStrings.remove(0));
          }
       };
-      JsonHandler handler = new JsonHandler(".[].foo", new JsonParser.UnquotingProcessor(new DefragProcessor<>(expect)));
+      JsonHandler handler = new JsonHandler(".[].foo", new JsonParser.UnquotingProcessor(new DefragProcessor(expect)));
       Session session = SessionFactory.forTesting();
       HttpRequest request = new HttpRequest(session);
       handler.reserve(session);
@@ -121,10 +118,10 @@ public class JsonHandlerTest {
          ByteBuf data1 = Unpooled.wrappedBuffer(ESCAPED, 0, i);
          ByteBuf data2 = Unpooled.wrappedBuffer(ESCAPED, i, ESCAPED.length - i);
 
-         handler.before(request);
-         handler.process(request, data1, data1.readerIndex(), data1.readableBytes(), false);
-         handler.process(request, data2, data2.readerIndex(), data2.readableBytes(), true);
-         handler.after(request);
+         handler.before(session);
+         handler.process(session, data1, data1.readerIndex(), data1.readableBytes(), false);
+         handler.process(session, data2, data2.readerIndex(), data2.readableBytes(), true);
+         handler.after(session);
 
          assertThat(expectedStrings.isEmpty()).isTrue();
          expectedStrings.addAll(unescapedItems);

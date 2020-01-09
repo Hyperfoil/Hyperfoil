@@ -9,16 +9,18 @@ import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.processor.HttpRequestProcessorBuilder;
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.http.HeaderHandler;
+import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.util.Util;
 import io.netty.buffer.ByteBuf;
 
-public class LogInvalidHandler implements Processor<HttpRequest>, HeaderHandler {
+public class LogInvalidHandler implements Processor, HeaderHandler {
    private Logger log = LoggerFactory.getLogger(LogInvalidHandler.class);
 
    @Override
-   public void process(HttpRequest request, ByteBuf data, int offset, int length, boolean isLast) {
-      if (!request.isValid()) {
-         log.debug("#{}: {} {}/{}, {} bytes: {}", request.session.uniqueId(), request.method, request.authority, request.path, data.readableBytes(),
+   public void process(Session session, ByteBuf data, int offset, int length, boolean isLast) {
+      HttpRequest request = (HttpRequest) session.currentRequest();
+      if (request != null && !request.isValid()) {
+         log.debug("#{}: {} {}/{}, {} bytes: {}", session.uniqueId(), request.method, request.authority, request.path, data.readableBytes(),
                Util.toString(data, data.readerIndex(), data.readableBytes()));
       }
    }

@@ -8,7 +8,6 @@ import org.kohsuke.MetaInfServices;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Name;
-import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.processor.RequestProcessorBuilder;
 import io.hyperfoil.api.session.Access;
@@ -20,7 +19,7 @@ import io.netty.buffer.ByteBuf;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-public class NewSequenceProcessor implements Processor<Request>, ResourceUtilizer {
+public class NewSequenceProcessor implements Processor, ResourceUtilizer {
    private static final Logger log = LoggerFactory.getLogger(NewSequenceProcessor.class);
    private static final boolean trace = log.isTraceEnabled();
 
@@ -35,26 +34,26 @@ public class NewSequenceProcessor implements Processor<Request>, ResourceUtilize
    }
 
    @Override
-   public void before(Request request) {
-      counterVar.setInt(request.session, 0);
+   public void before(Session session) {
+      counterVar.setInt(session, 0);
    }
 
    @Override
-   public void process(Request request, ByteBuf data, int offset, int length, boolean isLastPart) {
+   public void process(Session session, ByteBuf data, int offset, int length, boolean isLastPart) {
       if (!isLastPart) {
          return;
       }
-      int counter = counterVar.addToInt(request.session, 1);
+      int counter = counterVar.addToInt(session, 1);
       if (counter >= maxSequences) {
-         log.debug("#{} Exceeded maxSequences, not creating another sequence", request.session.uniqueId());
+         log.debug("#{} Exceeded maxSequences, not creating another sequence", session.uniqueId());
          return;
       }
       if (trace) {
          String value = Util.toString(data, offset, length);
-         log.trace("#{}, Creating new sequence {}, id {}, value (possibly incomplete) {}", request.session.uniqueId(),
+         log.trace("#{}, Creating new sequence {}, id {}, value (possibly incomplete) {}", session.uniqueId(),
                sequence, counter, value);
       }
-      request.session.phase().scenario().sequence(sequence).instantiate(request.session, counter);
+      session.phase().scenario().sequence(sequence).instantiate(session, counter);
    }
 
    @Override

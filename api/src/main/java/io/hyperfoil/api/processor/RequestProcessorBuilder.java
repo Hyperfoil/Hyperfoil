@@ -4,7 +4,6 @@ import java.util.function.Function;
 
 import io.hyperfoil.api.config.IncludeBuilders;
 import io.hyperfoil.api.config.Locator;
-import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.session.Action;
 
 /**
@@ -13,7 +12,7 @@ import io.hyperfoil.api.session.Action;
 @IncludeBuilders(
       @IncludeBuilders.Conversion(from = Action.Builder.class, adapter = RequestProcessorBuilder.ActionBuilderConverter.class)
 )
-public interface RequestProcessorBuilder extends Processor.Builder<Request, RequestProcessorBuilder> {
+public interface RequestProcessorBuilder extends Processor.Builder<RequestProcessorBuilder> {
 
    static RequestProcessorBuilder adapt(Action.Builder builder) {
       return new ActionBuilderAdapter(builder);
@@ -44,8 +43,8 @@ public interface RequestProcessorBuilder extends Processor.Builder<Request, Requ
       }
 
       @Override
-      public Processor<Request> build(boolean fragmented) {
-         return new Processor.ActionAdapter<>(builder.build());
+      public Processor build(boolean fragmented) {
+         return new Processor.ActionAdapter(builder.build());
       }
    }
 }

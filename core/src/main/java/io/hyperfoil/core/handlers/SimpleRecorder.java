@@ -4,7 +4,6 @@ import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Name;
-import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.processor.RequestProcessorBuilder;
 import io.hyperfoil.api.session.Access;
@@ -14,7 +13,7 @@ import io.netty.buffer.ByteBuf;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.ResourceUtilizer;
 
-public class SimpleRecorder implements Processor<Request>, ResourceUtilizer {
+public class SimpleRecorder implements Processor, ResourceUtilizer {
    private final Access toVar;
    private final DataFormat format;
 
@@ -24,10 +23,10 @@ public class SimpleRecorder implements Processor<Request>, ResourceUtilizer {
    }
 
    @Override
-   public void process(Request request, ByteBuf data, int offset, int length, boolean isLastPart) {
+   public void process(Session session, ByteBuf data, int offset, int length, boolean isLastPart) {
       ensureDefragmented(isLastPart);
       Object value = format.convert(data, offset, length);
-      toVar.setObject(request.session, value);
+      toVar.setObject(session, value);
    }
 
    @Override
@@ -73,9 +72,9 @@ public class SimpleRecorder implements Processor<Request>, ResourceUtilizer {
       }
 
       @Override
-      public Processor<Request> build(boolean fragmented) {
+      public Processor build(boolean fragmented) {
          SimpleRecorder simpleRecorder = new SimpleRecorder(toVar, format);
-         return fragmented ? new DefragProcessor<>(simpleRecorder) : simpleRecorder;
+         return fragmented ? new DefragProcessor(simpleRecorder) : simpleRecorder;
       }
    }
 }

@@ -1,8 +1,8 @@
 package io.hyperfoil.core.handlers;
 
-import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.processor.RequestProcessorBuilder;
+import io.hyperfoil.api.session.Session;
 import io.netty.buffer.ByteBuf;
 import io.vertx.ext.unit.TestContext;
 
@@ -33,22 +33,22 @@ public class ProcessorAssertion {
       }
 
       @Override
-      public Processor<Request> build(boolean fragmented) {
-         return new Instance<>(delegate.build(fragmented));
+      public Processor build(boolean fragmented) {
+         return new Instance(delegate.build(fragmented));
       }
    }
 
-   private class Instance<T extends Request> extends Processor.BaseDelegating<T> {
-      protected Instance(Processor<T> delegate) {
+   private class Instance extends Processor.BaseDelegating {
+      protected Instance(Processor delegate) {
          super(delegate);
       }
 
       @Override
-      public void process(T request, ByteBuf data, int offset, int length, boolean isLastPart) {
+      public void process(Session session, ByteBuf data, int offset, int length, boolean isLastPart) {
          if (isLastPart || !onlyLast) {
             actualInvocations++;
          }
-         delegate.process(request, data, offset, length, isLastPart);
+         delegate.process(session, data, offset, length, isLastPart);
       }
    }
 }

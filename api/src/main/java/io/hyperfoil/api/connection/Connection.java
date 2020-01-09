@@ -16,6 +16,11 @@ public interface Connection {
 
    void close();
 
+   // TODO: what's the difference between close() and setClosed()?
+   void setClosed();
+
+   boolean isClosed();
+
    String host();
 
    default void onTimeout(Request request) {}

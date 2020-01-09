@@ -15,7 +15,6 @@ import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.processor.HttpRequestProcessorBuilder;
-import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.session.Access;
@@ -39,7 +38,7 @@ import io.netty.buffer.ByteBufAllocator;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-public class HtmlHandler implements Processor<HttpRequest>, ResourceUtilizer, Session.ResourceKey<HtmlHandler.Context> {
+public class HtmlHandler implements Processor, ResourceUtilizer, Session.ResourceKey<HtmlHandler.Context> {
    private static final Logger log = LoggerFactory.getLogger(HtmlHandler.class);
    private static final boolean trace = log.isTraceEnabled();
 
@@ -50,22 +49,22 @@ public class HtmlHandler implements Processor<HttpRequest>, ResourceUtilizer, Se
    }
 
    @Override
-   public void before(HttpRequest request) {
+   public void before(Session session) {
       for (TagHandler h : handlers) {
-         h.processor().before(request);
+         h.processor().before(session);
       }
    }
 
    @Override
-   public void after(HttpRequest request) {
+   public void after(Session session) {
       for (TagHandler h : handlers) {
-         h.processor().after(request);
+         h.processor().after(session);
       }
    }
 
    @Override
-   public void process(HttpRequest request, ByteBuf data, int offset, int length, boolean isLastPart) {
-      Context ctx = request.session.getResource(this);
+   public void process(Session session, ByteBuf data, int offset, int length, boolean isLastPart) {
+      Context ctx = session.getResource(this);
       switch (ctx.tagStatus) {
          case PARSING_TAG:
             ctx.tagStart = offset;
@@ -109,7 +108,7 @@ public class HtmlHandler implements Processor<HttpRequest>, ResourceUtilizer, Se
                break;
             case DOCTYPE:
                if (c == '>') {
-                  ctx.endTag(request);
+                  ctx.endTag(session);
                }
                break;
             case COMMENT:
@@ -134,15 +133,15 @@ public class HtmlHandler implements Processor<HttpRequest>, ResourceUtilizer, Se
                break;
             case PARSING_TAG:
                if (Character.isWhitespace(c)) {
-                  ctx.onTag(request, ctx.tagClosing, data, offset - 1, true);
+                  ctx.onTag(session, ctx.tagClosing, data, offset - 1, true);
                   ctx.tagStatus = TagStatus.BEFORE_ATTR;
                } else if (c == '>') {
-                  ctx.endTag(request);
+                  ctx.endTag(session);
                }
                break;
             case BEFORE_ATTR:
                if (c == '>') {
-                  ctx.endTag(request);
+                  ctx.endTag(session);
                } else if (!Character.isWhitespace(c)) {
                   ctx.attrStart = offset - 1;
                   ctx.tagStatus = TagStatus.PARSING_ATTR;
@@ -150,16 +149,16 @@ public class HtmlHandler implements Processor<HttpRequest>, ResourceUtilizer, Se
                break;
             case PARSING_ATTR:
                if (c == '=' || Character.isWhitespace(c)) {
-                  ctx.onAttr(request, data, offset - 1, true);
+                  ctx.onAttr(session, data, offset - 1, true);
                   ctx.tagStatus = TagStatus.BEFORE_VALUE;
                } else if (c == '>') {
-                  ctx.onAttr(request, data, offset - 1, true);
-                  ctx.endTag(request);
+                  ctx.onAttr(session, data, offset - 1, true);
+                  ctx.endTag(session);
                }
                break;
             case BEFORE_VALUE:
                if (c == '>') {
-                  ctx.endTag(request);
+                  ctx.endTag(session);
                } else if (c == '=' || Character.isWhitespace(c)) {
                   // ignore, there was a whitespace
                   break;
@@ -177,11 +176,11 @@ public class HtmlHandler implements Processor<HttpRequest>, ResourceUtilizer, Se
                if (c == '\\') {
                   ctx.charEscaped = true;
                } else if (c == '"' && !ctx.charEscaped) {
-                  ctx.onValue(request, data, offset - 1, true);
+                  ctx.onValue(session, data, offset - 1, true);
                   ctx.tagStatus = TagStatus.BEFORE_ATTR;
                   ctx.valueQuoted = false;
                } else if (!ctx.valueQuoted && Character.isWhitespace(c)) {
-                  ctx.onValue(request, data, offset - 1, true);
+                  ctx.onValue(session, data, offset - 1, true);
                   ctx.tagStatus = TagStatus.BEFORE_ATTR;
                } else {
                   ctx.charEscaped = false;
@@ -193,13 +192,13 @@ public class HtmlHandler implements Processor<HttpRequest>, ResourceUtilizer, Se
       }
       switch (ctx.tagStatus) {
          case PARSING_TAG:
-            ctx.onTag(request, ctx.tagClosing, data, offset - 1, false);
+            ctx.onTag(session, ctx.tagClosing, data, offset - 1, false);
             break;
          case PARSING_ATTR:
-            ctx.onAttr(request, data, offset - 1, false);
+            ctx.onAttr(session, data, offset - 1, false);
             break;
          case PARSING_VALUE:
-            ctx.onValue(request, data, offset - 1, false);
+            ctx.onValue(session, data, offset - 1, false);
             break;
       }
    }
@@ -211,7 +210,7 @@ public class HtmlHandler implements Processor<HttpRequest>, ResourceUtilizer, Se
    }
 
    interface TagHandler {
-      Processor<HttpRequest> processor();
+      Processor processor();
 
       HandlerContext newContext();
    }
@@ -243,49 +242,49 @@ public class HtmlHandler implements Processor<HttpRequest>, ResourceUtilizer, Se
          handlerCtx = Stream.of(handlers).map(TagHandler::newContext).toArray(HandlerContext[]::new);
       }
 
-      void onTag(HttpRequest request, boolean close, ByteBuf data, int tagEnd, boolean isLast) {
+      void onTag(Session session, boolean close, ByteBuf data, int tagEnd, boolean isLast) {
          assert tagStart >= 0;
          for (HandlerContext handlerCtx : handlerCtx) {
-            handlerCtx.onTag(request, close, data, tagStart, tagEnd - tagStart, isLast);
+            handlerCtx.onTag(session, close, data, tagStart, tagEnd - tagStart, isLast);
          }
          tagStart = -1;
       }
 
-      void onAttr(HttpRequest request, ByteBuf data, int attrEnd, boolean isLast) {
+      void onAttr(Session session, ByteBuf data, int attrEnd, boolean isLast) {
          assert attrStart >= 0;
          for (HandlerContext handlerCtx : handlerCtx) {
-            handlerCtx.onAttr(request, data, attrStart, attrEnd - attrStart, isLast);
+            handlerCtx.onAttr(session, data, attrStart, attrEnd - attrStart, isLast);
          }
          attrStart = -1;
       }
 
-      void onValue(HttpRequest request, ByteBuf data, int valueEnd, boolean isLast) {
+      void onValue(Session session, ByteBuf data, int valueEnd, boolean isLast) {
          assert valueStart >= 0;
          for (HandlerContext handlerCtx : handlerCtx) {
-            handlerCtx.onValue(request, data, valueStart, valueEnd - valueStart, isLast);
+            handlerCtx.onValue(session, data, valueStart, valueEnd - valueStart, isLast);
          }
          valueStart = -1;
       }
 
       // TODO: content handling
 
-      private void endTag(HttpRequest request) {
+      private void endTag(Session session) {
          tagStatus = TagStatus.NO_TAG;
          tagClosing = false;
          for (int i = 0; i < handlerCtx.length; ++i) {
-            handlerCtx[i].endTag(request);
+            handlerCtx[i].endTag(session);
          }
       }
    }
 
    interface HandlerContext {
-      void onTag(HttpRequest request, boolean close, ByteBuf data, int offset, int length, boolean isLast);
+      void onTag(Session session, boolean close, ByteBuf data, int offset, int length, boolean isLast);
 
-      void onAttr(HttpRequest request, ByteBuf data, int offset, int length, boolean isLast);
+      void onAttr(Session session, ByteBuf data, int offset, int length, boolean isLast);
 
-      void onValue(HttpRequest request, ByteBuf data, int offset, int length, boolean isLast);
+      void onValue(Session session, ByteBuf data, int offset, int length, boolean isLast);
 
-      void endTag(HttpRequest request);
+      void endTag(Session session);
    }
 
    /**
@@ -347,7 +346,7 @@ public class HtmlHandler implements Processor<HttpRequest>, ResourceUtilizer, Se
 
       private Locator locator;
       private boolean ignoreExternal = true;
-      private Processor.Builder<HttpRequest, ?> processor;
+      private Processor.Builder<?> processor;
       private FetchResourceBuilder fetchResource;
 
       @Override
@@ -376,15 +375,15 @@ public class HtmlHandler implements Processor<HttpRequest>, ResourceUtilizer, Se
          return this.fetchResource = new FetchResourceBuilder(locator);
       }
 
-      public EmbeddedResourceHandlerBuilder processor(Processor.Builder<HttpRequest, ?> processor) {
+      public EmbeddedResourceHandlerBuilder processor(Processor.Builder<?> processor) {
          if (this.processor == null) {
             this.processor = processor;
          } else if (this.processor instanceof MultiProcessor.Builder) {
             @SuppressWarnings("unchecked")
-            MultiProcessor.Builder<HttpRequest> multiprocessor = (MultiProcessor.Builder<HttpRequest>) this.processor;
+            MultiProcessor.Builder multiprocessor = (MultiProcessor.Builder) this.processor;
             multiprocessor.add(processor);
          } else {
-            this.processor = new MultiProcessor.Builder<HttpRequest>().add(this.processor).add(processor);
+            this.processor = new MultiProcessor.Builder().add(this.processor).add(processor);
          }
          return this;
       }
@@ -425,7 +424,7 @@ public class HtmlHandler implements Processor<HttpRequest>, ResourceUtilizer, Se
          if (processor != null && fetchResource != null) {
             throw new BenchmarkDefinitionException("Only one of processor/fetchResource allowed!");
          }
-         Processor<HttpRequest> p;
+         Processor p;
          if (fetchResource != null) {
             p = fetchResource.build();
          } else if (processor != null) {
@@ -548,7 +547,7 @@ public class HtmlHandler implements Processor<HttpRequest>, ResourceUtilizer, Se
 
       @SuppressWarnings("unchecked")
       public FetchResourcesAdapter build() {
-         return new FetchResourcesAdapter(completionLatch(), new MultiProcessor<>(
+         return new FetchResourcesAdapter(completionLatch(), new MultiProcessor(
                new ArrayRecorder(downloadUrlVar(), DataFormat.STRING, maxResources),
                new NewSequenceProcessor(maxResources, generatedSeqName + "_cnt", generatedSeqName)));
       }
@@ -573,31 +572,31 @@ public class HtmlHandler implements Processor<HttpRequest>, ResourceUtilizer, Se
       }
    }
 
-   private static class FetchResourcesAdapter implements Processor<HttpRequest>, ResourceUtilizer {
+   private static class FetchResourcesAdapter implements Processor, ResourceUtilizer {
       private final Access completionCounter;
-      private final Processor<Request> delegate;
+      private final Processor delegate;
 
-      private FetchResourcesAdapter(String completionCounter, Processor<Request> delegate) {
+      private FetchResourcesAdapter(String completionCounter, Processor delegate) {
          this.completionCounter = SessionFactory.access(completionCounter);
          this.delegate = delegate;
       }
 
       @Override
-      public void before(HttpRequest request) {
-         completionCounter.setInt(request.session, 1);
-         delegate.before(request);
+      public void before(Session session) {
+         completionCounter.setInt(session, 1);
+         delegate.before(session);
       }
 
       @Override
-      public void process(HttpRequest request, ByteBuf data, int offset, int length, boolean isLastPart) {
-         completionCounter.addToInt(request.session, 1);
-         delegate.process(request, data, offset, length, isLastPart);
+      public void process(Session session, ByteBuf data, int offset, int length, boolean isLastPart) {
+         completionCounter.addToInt(session, 1);
+         delegate.process(session, data, offset, length, isLastPart);
       }
 
       @Override
-      public void after(HttpRequest request) {
-         completionCounter.addToInt(request.session, -1);
-         delegate.after(request);
+      public void after(Session session) {
+         completionCounter.addToInt(session, -1);
+         delegate.after(session);
       }
 
       @Override
@@ -610,9 +609,9 @@ public class HtmlHandler implements Processor<HttpRequest>, ResourceUtilizer, Se
    private static class BaseTagAttributeHandler implements TagHandler, ResourceUtilizer {
       private final Trie trie;
       private final byte[][] attributes;
-      private final Processor<HttpRequest> processor;
+      private final Processor processor;
 
-      BaseTagAttributeHandler(String[] tags, String[] attributes, Processor<HttpRequest> processor) {
+      BaseTagAttributeHandler(String[] tags, String[] attributes, Processor processor) {
          this.processor = processor;
          if (tags.length != attributes.length) {
             throw new IllegalArgumentException();
@@ -623,7 +622,7 @@ public class HtmlHandler implements Processor<HttpRequest>, ResourceUtilizer, Se
       }
 
       @Override
-      public Processor<HttpRequest> processor() {
+      public Processor processor() {
          return processor;
       }
 
@@ -644,7 +643,7 @@ public class HtmlHandler implements Processor<HttpRequest>, ResourceUtilizer, Se
          private ByteBuf valueBuffer = ByteBufAllocator.DEFAULT.buffer();
 
          @Override
-         public void onTag(HttpRequest request, boolean close, ByteBuf data, int offset, int length, boolean isLast) {
+         public void onTag(Session session, boolean close, ByteBuf data, int offset, int length, boolean isLast) {
             for (int i = 0; i < length; ++i) {
                int terminal = trieState.next(data.getByte(offset + i));
                if (isLast && terminal >= 0) {
@@ -655,7 +654,7 @@ public class HtmlHandler implements Processor<HttpRequest>, ResourceUtilizer, Se
          }
 
          @Override
-         public void onAttr(HttpRequest request, ByteBuf data, int offset, int length, boolean isLast) {
+         public void onAttr(Session session, ByteBuf data, int offset, int length, boolean isLast) {
             if (tagMatched < 0) {
                return;
             }
@@ -680,21 +679,21 @@ public class HtmlHandler implements Processor<HttpRequest>, ResourceUtilizer, Se
          }
 
          @Override
-         public void onValue(HttpRequest request, ByteBuf data, int offset, int length, boolean isLast) {
+         public void onValue(Session session, ByteBuf data, int offset, int length, boolean isLast) {
             if (tagMatched < 0 || attrMatchedIndex <= 0) {
                return;
             }
             valueBuffer.ensureWritable(length);
             valueBuffer.writeBytes(data, offset, length);
             if (isLast) {
-               processor().process(request, valueBuffer, valueBuffer.readerIndex(), valueBuffer.readableBytes(), true);
+               processor().process(session, valueBuffer, valueBuffer.readerIndex(), valueBuffer.readableBytes(), true);
                valueBuffer.clear();
                attrMatchedIndex = 0;
             }
          }
 
          @Override
-         public void endTag(HttpRequest request) {
+         public void endTag(Session session) {
             trieState.reset();
             tagMatched = -1;
             attrMatchedIndex = -1;
@@ -702,18 +701,18 @@ public class HtmlHandler implements Processor<HttpRequest>, ResourceUtilizer, Se
       }
    }
 
-   private static class EmbeddedResourceProcessor extends Processor.BaseDelegating<HttpRequest> {
+   private static class EmbeddedResourceProcessor extends Processor.BaseDelegating {
       private static final byte[] HTTP_PREFIX = "http".getBytes(StandardCharsets.UTF_8);
 
       private final boolean ignoreExternal;
 
-      EmbeddedResourceProcessor(boolean ignoreExternal, Processor<HttpRequest> delegate) {
+      EmbeddedResourceProcessor(boolean ignoreExternal, Processor delegate) {
          super(delegate);
          this.ignoreExternal = ignoreExternal;
       }
 
       @Override
-      public void process(HttpRequest request, ByteBuf data, int offset, int length, boolean isLastPart) {
+      public void process(Session session, ByteBuf data, int offset, int length, boolean isLastPart) {
          assert isLastPart;
          // TODO: here we should normalize the URL, remove escapes etc...
 
@@ -722,7 +721,7 @@ public class HtmlHandler implements Processor<HttpRequest>, ResourceUtilizer, Se
             if (ignoreExternal) {
                int authorityStart = indexOf(data, offset, length, ':') + 3;
                boolean external = true;
-               for (byte[] authority : request.session.httpDestinations().authorityBytes()) {
+               for (byte[] authority : session.httpDestinations().authorityBytes()) {
                   if (hasPrefix(data, offset + authorityStart, length, authority)) {
                      external = false;
                      break;
@@ -730,22 +729,23 @@ public class HtmlHandler implements Processor<HttpRequest>, ResourceUtilizer, Se
                }
                if (external) {
                   if (trace) {
-                     log.trace("#{} Ignoring external URL {}", request.session.uniqueId(), Util.toString(data, offset, length));
+                     log.trace("#{} Ignoring external URL {}", session.uniqueId(), Util.toString(data, offset, length));
                   }
                   return;
                }
             }
             if (trace) {
-               log.trace("#{} Matched URL {}", request.session.uniqueId(), Util.toString(data, offset, length));
+               log.trace("#{} Matched URL {}", session.uniqueId(), Util.toString(data, offset, length));
             }
-            delegate.process(request, data, offset, length, true);
+            delegate.process(session, data, offset, length, true);
          } else if (data.getByte(offset) == '/') {
             // No need to rewrite relative URL
             if (trace) {
-               log.trace("#{} Matched URL {}", request.session.uniqueId(), Util.toString(data, offset, length));
+               log.trace("#{} Matched URL {}", session.uniqueId(), Util.toString(data, offset, length));
             }
-            delegate.process(request, data, offset, length, true);
+            delegate.process(session, data, offset, length, true);
          } else {
+            HttpRequest request = (HttpRequest) session.currentRequest();
             ByteBuf buffer = ByteBufAllocator.DEFAULT.buffer(request.path.length() + length);
             Util.string2byteBuf(request.path, buffer);
             for (int i = buffer.writerIndex() - 1; i >= 0; --i) {
@@ -757,9 +757,9 @@ public class HtmlHandler implements Processor<HttpRequest>, ResourceUtilizer, Se
             buffer.ensureWritable(length);
             buffer.writeBytes(data, offset, length);
             if (trace) {
-               log.trace("#{} Rewritten relative URL to {}", request.session.uniqueId(), Util.toString(buffer, buffer.readerIndex(), buffer.readableBytes()));
+               log.trace("#{} Rewritten relative URL to {}", session.uniqueId(), Util.toString(buffer, buffer.readerIndex(), buffer.readableBytes()));
             }
-            delegate.process(request, buffer, buffer.readerIndex(), buffer.readableBytes(), true);
+            delegate.process(session, buffer, buffer.readerIndex(), buffer.readableBytes(), true);
             buffer.release();
          }
       }

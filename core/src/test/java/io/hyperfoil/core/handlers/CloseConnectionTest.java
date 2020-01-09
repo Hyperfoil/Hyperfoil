@@ -8,10 +8,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.api.processor.HttpRequestProcessorBuilder;
 import io.hyperfoil.api.processor.Processor;
+import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.http.CloseConnectionHandler;
 import io.hyperfoil.core.session.BaseScenarioTest;
 import io.netty.buffer.ByteBuf;
@@ -57,7 +57,7 @@ public class CloseConnectionTest extends BaseScenarioTest {
       test("/nobody");
    }
 
-   private static class TestProcessor implements Processor<HttpRequest> {
+   private static class TestProcessor implements Processor {
       private final AtomicBoolean closed;
 
       private TestProcessor(AtomicBoolean closed) {
@@ -65,13 +65,13 @@ public class CloseConnectionTest extends BaseScenarioTest {
       }
 
       @Override
-      public void process(HttpRequest request, ByteBuf data, int offset, int length, boolean isLastPart) {
+      public void process(Session session, ByteBuf data, int offset, int length, boolean isLastPart) {
          // ignore
       }
 
       @Override
-      public void after(HttpRequest request) {
-         closed.set(request.connection().isClosed());
+      public void after(Session session) {
+         closed.set(session.currentRequest().connection().isClosed());
       }
    }
 }

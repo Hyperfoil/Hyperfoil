@@ -68,6 +68,13 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
                           BiFunction<Session, Connection, ByteBuf> bodyGenerator,
                           boolean exclusiveConnection) {
       assert eventLoop.inEventLoop();
+      if (request.session.currentRequest() != null) {
+         // Refuse to fire request from other request's handler as the other handlers
+         // would have messed up current request in session.
+         // Handlers must not block anyway, so this is illegal way to run request
+         // and happens only with programmatic configuration in testsuite.
+         return false;
+      }
       HttpConnection connection;
       try {
          for (; ; ) {

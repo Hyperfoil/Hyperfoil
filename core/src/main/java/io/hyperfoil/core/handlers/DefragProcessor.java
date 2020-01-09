@@ -1,6 +1,5 @@
 package io.hyperfoil.core.handlers;
 
-import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.processor.Processor;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.CompositeByteBuf;
@@ -9,36 +8,26 @@ import io.hyperfoil.api.session.ResourceUtilizer;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-public class DefragProcessor<R extends Request> extends Processor.BaseDelegating<R> implements Session.ResourceKey<DefragProcessor.Context<R>> {
+public class DefragProcessor extends Processor.BaseDelegating implements Session.ResourceKey<DefragProcessor.Context> {
    private static final Logger log = LoggerFactory.getLogger(DefragProcessor.class);
 
-   public DefragProcessor(Processor<R> delegate) {
+   public DefragProcessor(Processor delegate) {
       super(delegate);
    }
 
    @Override
-   public void before(R request) {
-      delegate.before(request);
-   }
-
-   @Override
-   public void process(R request, ByteBuf data, int offset, int length, boolean isLastPart) {
-      Context<R> ctx = request.session.getResource(this);
+   public void process(Session session, ByteBuf data, int offset, int length, boolean isLastPart) {
+      Context ctx = session.getResource(this);
       if (isLastPart && !ctx.isBuffering()) {
-         delegate.process(request, data, offset, length, true);
+         delegate.process(session, data, offset, length, true);
          return;
       }
       if (data.isReadable()) {
          ctx.buffer(data, offset, length);
       }
       if (isLastPart) {
-         ctx.flush(request, delegate);
+         ctx.flush(session, delegate);
       }
-   }
-
-   @Override
-   public void after(R request) {
-      delegate.after(request);
    }
 
    @Override
@@ -46,11 +35,11 @@ public class DefragProcessor<R extends Request> extends Processor.BaseDelegating
       // Note: contrary to the recommended pattern the Context won't reserve all objects ahead, the CompositeByteBuf
       // will be allocated only if needed (and only once). This is necessary since we don't know the type of allocator
       // that is used for the received buffers ahead.
-      session.declareResource(this, new Context<>());
+      session.declareResource(this, new Context());
       ResourceUtilizer.reserve(session, delegate);
    }
 
-   static class Context<R extends Request> implements Session.Resource {
+   static class Context implements Session.Resource {
       CompositeByteBuf composite = null;
 
       boolean isBuffering() {
@@ -65,9 +54,9 @@ public class DefragProcessor<R extends Request> extends Processor.BaseDelegating
          composite.addComponent(true, data.retainedSlice(offset, length));
       }
 
-      void flush(R request, Processor<R> processor) {
+      void flush(Session session, Processor processor) {
          log.debug("Flushing {} bytes", composite.writerIndex());
-         processor.process(request, composite, 0, composite.writerIndex(), true);
+         processor.process(session, composite, 0, composite.writerIndex(), true);
          // Note that processors generally don't modify readerIndex in the ByteBuf
          // so we cannot expect `data.isReadable() == false` at this point.
          composite.readerIndex(composite.writerIndex());

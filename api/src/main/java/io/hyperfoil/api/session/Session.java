@@ -3,6 +3,7 @@ package io.hyperfoil.api.session;
 import io.hyperfoil.api.config.Scenario;
 import io.hyperfoil.api.connection.HttpDestinationTable;
 import io.hyperfoil.api.connection.HttpRequest;
+import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.http.HttpCache;
 import io.hyperfoil.api.statistics.SessionStatistics;
 import io.netty.util.concurrent.EventExecutor;
@@ -81,6 +82,13 @@ public interface Session {
    SequenceInstance acquireSequence();
 
    void enableSequence(SequenceInstance instance);
+
+   /**
+    * @return Currently executed request, or <code>null</code> if not in scope.
+    */
+   Request currentRequest();
+
+   void currentRequest(Request request);
 
    enum VarType {
       OBJECT,

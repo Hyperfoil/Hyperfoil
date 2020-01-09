@@ -3,29 +3,28 @@ package io.hyperfoil.api.processor;
 import java.io.Serializable;
 
 import io.hyperfoil.api.config.BuilderBase;
-import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.netty.buffer.ByteBuf;
 
-public interface Processor<R extends Request> extends Serializable {
+public interface Processor extends Serializable {
    /**
     * Invoked before we record first value from given response.
     *
-    * @param request Request.
+    * @param session Request.
     */
-   default void before(R request) {
+   default void before(Session session) {
    }
 
-   void process(R request, ByteBuf data, int offset, int length, boolean isLastPart);
+   void process(Session session, ByteBuf data, int offset, int length, boolean isLastPart);
 
    /**
     * Invoked after we record the last value from given response.
     *
-    * @param request Request.
+    * @param session Request.
     */
-   default void after(R request) {
+   default void after(Session session) {
    }
 
    default void ensureDefragmented(boolean isLastPart) {
@@ -34,25 +33,25 @@ public interface Processor<R extends Request> extends Serializable {
       }
    }
 
-   interface Builder<R extends Request, B extends Builder<R, B>> extends BuilderBase<B> {
-      Processor<R> build(boolean fragmented);
+   interface Builder<B extends Builder<B>> extends BuilderBase<B> {
+      Processor build(boolean fragmented);
    }
 
-   abstract class BaseDelegating<R extends Request> implements Processor<R>, ResourceUtilizer {
-      protected final Processor<R> delegate;
+   abstract class BaseDelegating implements Processor, ResourceUtilizer {
+      protected final Processor delegate;
 
-      protected BaseDelegating(Processor<R> delegate) {
+      protected BaseDelegating(Processor delegate) {
          this.delegate = delegate;
       }
 
       @Override
-      public void before(R request) {
-         delegate.before(request);
+      public void before(Session session) {
+         delegate.before(session);
       }
 
       @Override
-      public void after(R request) {
-         delegate.after(request);
+      public void after(Session session) {
+         delegate.after(session);
       }
 
       @Override
@@ -61,7 +60,7 @@ public interface Processor<R extends Request> extends Serializable {
       }
    }
 
-   class ActionAdapter<R extends Request> implements Processor<R>, ResourceUtilizer {
+   class ActionAdapter implements Processor, ResourceUtilizer {
       private final Action action;
 
       public ActionAdapter(Action action) {
@@ -69,12 +68,12 @@ public interface Processor<R extends Request> extends Serializable {
       }
 
       @Override
-      public void process(R request, ByteBuf data, int offset, int length, boolean isLastPart) {
+      public void process(Session session, ByteBuf data, int offset, int length, boolean isLastPart) {
          // Action should be performed only when the last chunk arrives
          if (!isLastPart) {
             return;
          }
-         action.run(request.session);
+         action.run(session);
       }
 
       @Override

@@ -4,7 +4,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.function.IntPredicate;
 
 import io.hyperfoil.api.processor.Processor;
-import io.hyperfoil.api.connection.Request;
 import io.netty.buffer.ByteBuf;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.ResourceUtilizer;
@@ -13,7 +12,7 @@ import io.hyperfoil.api.session.ResourceUtilizer;
  * Simple pattern (no regexp) search based on Rabin-Karp algorithm.
  * Does not handle the intricacies of UTF-8 mapping same strings to different bytes.
  */
-public class SearchValidator implements Processor<Request>, ResourceUtilizer, Session.ResourceKey<SearchValidator.Context> {
+public class SearchValidator implements Processor, ResourceUtilizer, Session.ResourceKey<SearchValidator.Context> {
    private final byte[] text;
    private final int hash;
    private final int coef;
@@ -31,8 +30,8 @@ public class SearchValidator implements Processor<Request>, ResourceUtilizer, Se
    }
 
    @Override
-   public void process(Request request, ByteBuf data, final int offset, int length, boolean isLastPart) {
-      Context ctx = request.session.getResource(this);
+   public void process(Session session, ByteBuf data, final int offset, int length, boolean isLastPart) {
+      Context ctx = session.getResource(this);
       ctx.add(data, offset, length);
       int endIndex = offset + length;
       int index = ctx.initHash(offset, text.length);
@@ -59,18 +58,18 @@ public class SearchValidator implements Processor<Request>, ResourceUtilizer, Se
    }
 
    @Override
-   public void before(Request request) {
-      Context ctx = request.session.getResource(this);
+   public void before(Session session) {
+      Context ctx = session.getResource(this);
       ctx.reset();
    }
 
    @Override
-   public void after(Request request) {
-      Context ctx = request.session.getResource(this);
+   public void after(Session session) {
+      Context ctx = session.getResource(this);
       boolean match = this.match.test(ctx.matches);
       ctx.reset();
       if (!match) {
-         request.markInvalid();
+         session.currentRequest().markInvalid();
       }
    }
 

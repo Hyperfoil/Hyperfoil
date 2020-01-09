@@ -44,7 +44,13 @@ public class HttpRequest extends Request {
 
    @Override
    protected void handleThrowable(Throwable throwable) {
-      handlers.handleThrowable(this, throwable);
+      enter();
+      try {
+         handlers.handleThrowable(this, throwable);
+      } finally {
+         exit();
+      }
+      session.proceed();
    }
 
    @Override

@@ -5,37 +5,36 @@ import java.util.List;
 
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.processor.Processor;
-import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.netty.buffer.ByteBuf;
 
-public final class MultiProcessor<R extends Request> implements Processor<R>, ResourceUtilizer {
-   protected final Processor<R>[] delegates;
+public final class MultiProcessor implements Processor, ResourceUtilizer {
+   protected final Processor[] delegates;
 
    @SafeVarargs
-   public MultiProcessor(Processor<R>... delegates) {
+   public MultiProcessor(Processor... delegates) {
       this.delegates = delegates;
    }
 
    @Override
-   public void before(R request) {
-      for (Processor<R> p : delegates) {
-         p.before(request);
+   public void before(Session session) {
+      for (Processor p : delegates) {
+         p.before(session);
       }
    }
 
    @Override
-   public void after(R request) {
-      for (Processor<R> p : delegates) {
-         p.after(request);
+   public void after(Session session) {
+      for (Processor p : delegates) {
+         p.after(session);
       }
    }
 
    @Override
-   public void process(R request, ByteBuf data, int offset, int length, boolean isLastPart) {
-      for (Processor<R> p : delegates) {
-         p.process(request, data, offset, length, isLastPart);
+   public void process(Session session, ByteBuf data, int offset, int length, boolean isLastPart) {
+      for (Processor p : delegates) {
+         p.process(session, data, offset, length, isLastPart);
       }
    }
 
@@ -44,14 +43,14 @@ public final class MultiProcessor<R extends Request> implements Processor<R>, Re
       ResourceUtilizer.reserve(session, (Object[]) delegates);
    }
 
-   public static class Builder<R extends Request> implements Processor.Builder<R, Builder<R>> {
-      public final List<Processor.Builder<R, ?>> delegates = new ArrayList<>();
+   public static class Builder implements Processor.Builder<Builder> {
+      public final List<Processor.Builder<?>> delegates = new ArrayList<>();
 
       @SuppressWarnings("unchecked")
       @Override
-      public Processor<R> build(boolean fragmented) {
+      public Processor build(boolean fragmented) {
          Processor[] delegates = this.delegates.stream().map(d -> d.build(fragmented)).toArray(Processor[]::new);
-         return new MultiProcessor<R>(delegates);
+         return new MultiProcessor(delegates);
       }
 
       @Override
@@ -60,13 +59,13 @@ public final class MultiProcessor<R extends Request> implements Processor<R>, Re
       }
 
       @Override
-      public Builder<R> copy(Locator locator) {
-         Builder<R> builder = new Builder<>();
+      public Builder copy(Locator locator) {
+         Builder builder = new Builder();
          delegates.forEach(b -> builder.delegates.add(b.copy(locator)));
          return builder;
       }
 
-      public Builder<R> add(Processor.Builder<R, ?> processor) {
+      public Builder add(Processor.Builder<?> processor) {
          delegates.add(processor);
          return this;
       }

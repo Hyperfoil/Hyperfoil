@@ -5,7 +5,6 @@ import org.kohsuke.MetaInfServices;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Name;
-import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.processor.RequestProcessorBuilder;
 import io.hyperfoil.api.session.Access;
@@ -18,7 +17,7 @@ import io.hyperfoil.api.session.ResourceUtilizer;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-public class ArrayRecorder implements Processor<Request>, ResourceUtilizer {
+public class ArrayRecorder implements Processor, ResourceUtilizer {
    private static final Logger log = LoggerFactory.getLogger(ArrayRecorder.class);
    private final Access toVar;
    private final DataFormat format;
@@ -30,17 +29,17 @@ public class ArrayRecorder implements Processor<Request>, ResourceUtilizer {
       this.maxSize = maxSize;
    }
 
-   public void before(Request request) {
-      ObjectVar[] array = (ObjectVar[]) toVar.activate(request.session);
+   public void before(Session session) {
+      ObjectVar[] array = (ObjectVar[]) toVar.activate(session);
       for (int i = 0; i < array.length; ++i) {
          array[i].unset();
       }
    }
 
    @Override
-   public void process(Request request, ByteBuf data, int offset, int length, boolean isLastPart) {
+   public void process(Session session, ByteBuf data, int offset, int length, boolean isLastPart) {
       ensureDefragmented(isLastPart);
-      ObjectVar[] array = (ObjectVar[]) toVar.activate(request.session);
+      ObjectVar[] array = (ObjectVar[]) toVar.activate(session);
       Object value = format.convert(data, offset, length);
       for (int i = 0; i < array.length; ++i) {
          if (array[i].isSet()) continue;
@@ -88,9 +87,9 @@ public class ArrayRecorder implements Processor<Request>, ResourceUtilizer {
       }
 
       @Override
-      public Processor<Request> build(boolean fragmented) {
+      public Processor build(boolean fragmented) {
          ArrayRecorder arrayRecorder = new ArrayRecorder(toVar, format, maxSize);
-         return fragmented ? new DefragProcessor<>(arrayRecorder) : arrayRecorder;
+         return fragmented ? new DefragProcessor(arrayRecorder) : arrayRecorder;
       }
 
       /**

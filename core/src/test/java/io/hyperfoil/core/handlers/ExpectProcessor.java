@@ -6,24 +6,24 @@ import java.util.Deque;
 import java.util.LinkedList;
 import java.util.function.Predicate;
 
-import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.processor.Processor;
+import io.hyperfoil.api.session.Session;
 import io.netty.buffer.ByteBuf;
 
-public class ExpectProcessor implements Processor<Request> {
+public class ExpectProcessor implements Processor {
    int beforeCalled;
    int afterCalled;
    int invoked;
    final Deque<Invocation> invocations = new LinkedList<>();
 
    @Override
-   public void before(Request request) {
+   public void before(Session session) {
       assertThat(beforeCalled).isEqualTo(0);
       beforeCalled++;
    }
 
    @Override
-   public void process(Request request, ByteBuf data, int offset, int length, boolean isLastPart) {
+   public void process(Session session, ByteBuf data, int offset, int length, boolean isLastPart) {
       Invocation invocation = invocations.pollFirst();
       assertThat(invocation).isNotNull();
       if (invocation.data != null) assertThat(data).matches(invocation.data);
@@ -38,7 +38,7 @@ public class ExpectProcessor implements Processor<Request> {
    }
 
    @Override
-   public void after(Request request) {
+   public void after(Session session) {
       assertThat(afterCalled).isEqualTo(0);
       afterCalled++;
    }
