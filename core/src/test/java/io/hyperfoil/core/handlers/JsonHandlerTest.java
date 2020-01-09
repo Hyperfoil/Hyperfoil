@@ -111,7 +111,6 @@ public class JsonHandlerTest {
       };
       JsonHandler handler = new JsonHandler(".[].foo", new JsonParser.UnquotingProcessor(new DefragProcessor(expect)));
       Session session = SessionFactory.forTesting();
-      HttpRequest request = new HttpRequest(session);
       handler.reserve(session);
 
       for (int i = 0; i < ESCAPED.length; ++i) {

@@ -14,15 +14,11 @@ import io.hyperfoil.api.processor.RequestProcessorBuilder;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 import io.netty.buffer.ByteBuf;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.api.session.ResourceUtilizer;
 
-public class JsonHandler extends JsonParser<Session>
-      implements Processor, ResourceUtilizer, Session.ResourceKey<JsonHandler.Context> {
-   private final Processor processor;
+public class JsonHandler extends JsonParser implements Processor, Session.ResourceKey<JsonHandler.Context> {
 
    public JsonHandler(String query, Processor processor) {
-      super(query.trim());
-      this.processor = processor;
+      super(query.trim(), processor);
 
    }
 
@@ -54,16 +50,16 @@ public class JsonHandler extends JsonParser<Session>
 
    @Override
    public void reserve(Session session) {
+      super.reserve(session);
       session.declareResource(this, new Context());
-      ResourceUtilizer.reserve(session, processor);
    }
 
    @Override
-   protected void fireMatch(JsonParser<Session>.Context context, Session session, ByteStream data, int offset, int length, boolean isLastPart) {
+   protected void fireMatch(JsonParser.Context context, Session session, ByteStream data, int offset, int length, boolean isLastPart) {
       processor.process(session, ((ByteBufByteStream) data).buffer, offset, length, isLastPart);
    }
 
-   public class Context extends JsonParser<Session>.Context {
+   public class Context extends JsonParser.Context {
       ByteBufByteStream actualStream;
 
       Context() {
@@ -74,7 +70,6 @@ public class JsonHandler extends JsonParser<Session>
       public ByteStream wrap(ByteBuf data, int offset, int length) {
          actualStream.buffer = data;
          actualStream.readerIndex = offset;
-         actualStream.writerIndex = offset + length;
          return actualStream;
       }
    }
@@ -87,6 +82,7 @@ public class JsonHandler extends JsonParser<Session>
    public static class Builder implements RequestProcessorBuilder, InitFromParam<Builder> {
       private Locator locator;
       private String query;
+      private boolean unquote = true;
       private RequestProcessorBuilder processor;
 
       @Override
@@ -120,7 +116,11 @@ public class JsonHandler extends JsonParser<Session>
 
       @Override
       public JsonHandler build(boolean fragmented) {
-         return new JsonHandler(query, new UnquotingProcessor(processor.build(fragmented)));
+         Processor processor = this.processor.build(fragmented);
+         if (unquote) {
+            processor = new UnquotingProcessor(processor);
+         }
+         return new JsonHandler(query, processor);
       }
 
       /**
@@ -142,6 +142,17 @@ public class JsonHandler extends JsonParser<Session>
        */
       public Builder toArray(String varAndSize) {
          return processor(new ArrayRecorder.Builder().init(varAndSize));
+      }
+
+      /**
+       * Automatically unquote and unescape the input values. By default true.
+       *
+       * @param unquote Do unquote and unescape?
+       * @return Builder.
+       */
+      public Builder unquote(boolean unquote) {
+         this.unquote = unquote;
+         return this;
       }
 
       public Builder processor(RequestProcessorBuilder processor) {
@@ -169,7 +180,6 @@ public class JsonHandler extends JsonParser<Session>
       private final Consumer<ByteStream> release;
       private ByteBuf buffer;
       private int readerIndex;
-      private int writerIndex;
 
       ByteBufByteStream(Function<ByteStream, ByteStream> retain, Consumer<ByteStream> release) {
          this.retain = retain;
@@ -178,7 +188,7 @@ public class JsonHandler extends JsonParser<Session>
 
       @Override
       public boolean isReadable() {
-         return readerIndex < writerIndex;
+         return readerIndex < buffer.writerIndex();
       }
 
       @Override
@@ -194,7 +204,7 @@ public class JsonHandler extends JsonParser<Session>
 
       @Override
       public int writerIndex() {
-         return writerIndex;
+         return buffer.writerIndex();
       }
 
       @Override
@@ -206,7 +216,7 @@ public class JsonHandler extends JsonParser<Session>
       public void release() {
          buffer.release();
          buffer = null;
-         readerIndex = writerIndex = -1;
+         readerIndex = -1;
          release.accept(this);
       }
 
@@ -222,9 +232,8 @@ public class JsonHandler extends JsonParser<Session>
          assert o.buffer == null;
          o.buffer = buffer;
          o.readerIndex = readerIndex;
-         o.writerIndex = writerIndex;
          buffer = null;
-         readerIndex = writerIndex = -1;
+         readerIndex = -1;
       }
    }
 }

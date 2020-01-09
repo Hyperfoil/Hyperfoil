@@ -13,14 +13,16 @@ import io.hyperfoil.api.session.Session;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
-public abstract class JsonParser<S> implements Serializable {
+public abstract class JsonParser implements Serializable, ResourceUtilizer {
    protected static final int MAX_PARTS = 16;
 
    protected final String query;
+   protected final Processor processor;
    private final JsonParser.Selector[] selectors;
 
-   public JsonParser(String query) {
+   public JsonParser(String query, Processor processor) {
       this.query = query;
+      this.processor = processor;
 
       byte[] queryBytes = query.getBytes(StandardCharsets.UTF_8);
       if (queryBytes.length == 0 || queryBytes[0] != '.') {
@@ -67,7 +69,7 @@ public abstract class JsonParser<S> implements Serializable {
       this.selectors = selectors.toArray(new JsonParser.Selector[0]);
    }
 
-   protected abstract void fireMatch(Context context, S source, ByteStream data, int offset, int length, boolean isLastPart);
+   protected abstract void fireMatch(Context context, Session session, ByteStream data, int offset, int length, boolean isLastPart);
 
    private static int bytesToInt(byte[] bytes, int start, int end) {
       int value = 0;
@@ -82,6 +84,11 @@ public abstract class JsonParser<S> implements Serializable {
             value *= 10;
          }
       }
+   }
+
+   @Override
+   public void reserve(Session session) {
+      ResourceUtilizer.reserve(session, processor);
    }
 
    interface Selector extends Serializable {
@@ -194,7 +201,7 @@ public abstract class JsonParser<S> implements Serializable {
          return selectorContext[selector];
       }
 
-      public void parse(ByteStream data, S source) {
+      public void parse(ByteStream data, Session session) {
          while (data.isReadable()) {
             byte b = data.readByte();
             switch (b) {
@@ -216,7 +223,7 @@ public abstract class JsonParser<S> implements Serializable {
                   break;
                case '}':
                   if (!inQuote) {
-                     tryRecord(source, data);
+                     tryRecord(session, data);
                      if (level == selectorLevel) {
                         --selectorLevel;
                         --selector;
@@ -263,7 +270,7 @@ public abstract class JsonParser<S> implements Serializable {
                   if (!inQuote) {
                      inAttrib = true;
                      attribStartIndex = -1;
-                     tryRecord(source, data);
+                     tryRecord(session, data);
                      if (selectorLevel == level && selector < selectors.length && current() instanceof ArraySelectorContext) {
                         ArraySelectorContext asc = (ArraySelectorContext) current();
                         if (asc.active) {
@@ -289,7 +296,7 @@ public abstract class JsonParser<S> implements Serializable {
                   break;
                case ']':
                   if (!inQuote) {
-                     tryRecord(source, data);
+                     tryRecord(session, data);
                      if (selectorLevel == level && selector < selectors.length && current() instanceof ArraySelectorContext) {
                         ArraySelectorContext asc = (ArraySelectorContext) current();
                         asc.active = false;
@@ -364,7 +371,7 @@ public abstract class JsonParser<S> implements Serializable {
          }
       }
 
-      private void tryRecord(S source, ByteStream data) {
+      private void tryRecord(Session session, ByteStream data) {
          if (selectorLevel == level && valueStartIndex >= 0) {
             // valueStartIndex is always before quotes here
             ByteStream buf = valueStartPart < 0 ? data : parts[valueStartPart];
@@ -420,10 +427,10 @@ public abstract class JsonParser<S> implements Serializable {
             }
             while (valueStartPart >= 0 && valueStartPart != endPart) {
                int valueEndIndex = parts[valueStartPart].writerIndex();
-               fireMatch(this, source, parts[valueStartPart], valueStartIndex, valueEndIndex - valueStartIndex, false);
+               fireMatch(this, session, parts[valueStartPart], valueStartIndex, valueEndIndex - valueStartIndex, false);
                incrementValueStartPart();
             }
-            fireMatch(this, source, buf(data, endPart), valueStartIndex, end - valueStartIndex, true);
+            fireMatch(this, session, buf(data, endPart), valueStartIndex, end - valueStartIndex, true);
             valueStartIndex = -1;
             --selector;
          }

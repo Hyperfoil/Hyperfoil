@@ -17,7 +17,9 @@ import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.builders.BaseStepBuilder;
 import io.hyperfoil.core.handlers.ByteStream;
 import io.hyperfoil.core.data.DataFormat;
+import io.hyperfoil.core.handlers.DefragProcessor;
 import io.hyperfoil.core.handlers.JsonParser;
+import io.hyperfoil.core.handlers.SimpleRecorder;
 import io.hyperfoil.core.session.SessionFactory;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -27,13 +29,11 @@ public class JsonStep implements Step, ResourceUtilizer {
 
    private final ByteArrayParser byteArrayParser;
    private final Access fromVar;
-   private final Access toVar;
    private final DataFormat format;
 
    private JsonStep(String fromVar, String query, String toVar, DataFormat format) {
       this.fromVar = SessionFactory.access(fromVar);
-      this.byteArrayParser = new ByteArrayParser(query);
-      this.toVar = SessionFactory.access(toVar);
+      this.byteArrayParser = new ByteArrayParser(query, toVar, format);
       this.format = format;
    }
 
@@ -42,7 +42,9 @@ public class JsonStep implements Step, ResourceUtilizer {
       Object object = fromVar.getObject(session);
       if (object instanceof byte[]) {
          ByteArrayParser.Context ctx = session.getResource(byteArrayParser);
+         byteArrayParser.before(session);
          ctx.parse(ctx.wrap((byte[]) object), session);
+         byteArrayParser.after(session);
          ctx.reset();
       }
       return true;
@@ -50,8 +52,7 @@ public class JsonStep implements Step, ResourceUtilizer {
 
    @Override
    public void reserve(Session session) {
-      session.declareResource(byteArrayParser, byteArrayParser.newContext());
-      toVar.declareObject(session);
+      byteArrayParser.reserve(session);
    }
 
    /**
@@ -124,30 +125,35 @@ public class JsonStep implements Step, ResourceUtilizer {
       }
    }
 
-   private class ByteArrayParser extends JsonParser<Session> implements Session.ResourceKey<ByteArrayParser.Context> {
-      public ByteArrayParser(String query) {
-         super(query);
-      }
-
-      public Context newContext() {
-         return new Context();
+   private static class ByteArrayParser extends JsonParser implements Session.ResourceKey<ByteArrayParser.Context> {
+      public ByteArrayParser(String query, String toVar, DataFormat format) {
+         // TODO: drop data in SimpleRecorder on subsequent match
+         super(query, new UnquotingProcessor(new DefragProcessor(new SimpleRecorder(toVar, format))));
       }
 
       @Override
-      protected void fireMatch(JsonParser<Session>.Context context, Session session, ByteStream data, int offset, int length, boolean isLastPart) {
-         if (!isLastPart) {
-            throw new IllegalStateException("jsonQuery step expecting defragmented data");
-         }
-         Context ctx = (Context) context;
-         if (!ctx.set) {
-            toVar.setObject(session, format.convert(((ByteArrayByteStream) data).array, offset, length));
-            ctx.set = true;
-         } else {
-            log.warn("Second match, dropping data!");
-         }
+      public void reserve(Session session) {
+         super.reserve(session);
+         session.declareResource(this, new Context());
       }
 
-      public class Context extends JsonParser<Session>.Context {
+      @Override
+      protected void fireMatch(JsonParser.Context context, Session session, ByteStream data, int offset, int length, boolean isLastPart) {
+         Context ctx = (Context) context;
+         byte[] array = ((ByteArrayByteStream) data).array;
+         processor.process(session, ctx.buffer.wrap(array), offset, length, isLastPart);
+      }
+
+      public void before(Session session) {
+         processor.before(session);
+      }
+
+      public void after(Session session) {
+         processor.after(session);
+      }
+
+      public class Context extends JsonParser.Context {
+         ReadonlyWrappingByteBuf buffer = new ReadonlyWrappingByteBuf();
          ByteArrayByteStream actualStream = new ByteArrayByteStream(this::retain, null);
          boolean set;
 
