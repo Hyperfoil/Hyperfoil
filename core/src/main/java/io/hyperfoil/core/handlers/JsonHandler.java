@@ -121,7 +121,7 @@ public class JsonHandler extends JsonParser<Request>
 
       @Override
       public JsonHandler build(boolean fragmented) {
-         return new JsonHandler(query, processor.build(fragmented));
+         return new JsonHandler(query, new UnquotingProcessor(processor.build(fragmented)));
       }
 
       /**

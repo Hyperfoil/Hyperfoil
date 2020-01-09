@@ -7,7 +7,12 @@ import java.util.Arrays;
 import java.util.function.Function;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.api.connection.Request;
+import io.hyperfoil.api.processor.Processor;
+import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 
 public abstract class JsonParser<S> implements Serializable {
    protected static final int MAX_PARTS = 16;
@@ -17,6 +22,7 @@ public abstract class JsonParser<S> implements Serializable {
 
    public JsonParser(String query) {
       this.query = query;
+
       byte[] queryBytes = query.getBytes(StandardCharsets.UTF_8);
       if (queryBytes.length == 0 || queryBytes[0] != '.') {
          throw new BenchmarkDefinitionException("Path should start with '.'");
@@ -140,6 +146,7 @@ public abstract class JsonParser<S> implements Serializable {
       int selector;
       boolean inQuote;
       boolean inAttrib;
+      boolean escaped;
       int attribStartPart;
       int attribStartIndex;
       int lastCharPart;
@@ -169,6 +176,7 @@ public abstract class JsonParser<S> implements Serializable {
          selector = 0;
          inQuote = false;
          inAttrib = false;
+         escaped = false;
          attribStartPart = -1;
          attribStartIndex = -1;
          lastCharPart = -1;
@@ -189,12 +197,16 @@ public abstract class JsonParser<S> implements Serializable {
 
       public void parse(ByteStream data, S source) {
          while (data.isReadable()) {
-            switch (data.readByte()) {
+            byte b = data.readByte();
+            switch (b) {
                case ' ':
                case '\n':
                case '\t':
                case '\r':
                   // ignore whitespace
+                  break;
+               case '\\':
+                  escaped = !escaped;
                   break;
                case '{':
                   if (!inQuote) {
@@ -214,7 +226,9 @@ public abstract class JsonParser<S> implements Serializable {
                   }
                   break;
                case '"':
-                  inQuote = !inQuote;
+                  if (!escaped) {
+                     inQuote = !inQuote;
+                  }
                   break;
                case ':':
                   if (!inQuote) {
@@ -292,6 +306,9 @@ public abstract class JsonParser<S> implements Serializable {
                      attribStartPart = -1;
                      attribStartIndex = data.readerIndex() - 1;
                   }
+            }
+            if (b != '\\') {
+               escaped = false;
             }
          }
          if (attribStartIndex >= 0 || valueStartIndex >= 0) {
@@ -402,27 +419,12 @@ public abstract class JsonParser<S> implements Serializable {
                --selector;
                return;
             }
-            // unquote
-            ByteStream startBuf = buf(data, valueStartPart);
-            ByteStream endBuf = buf(data, endPart);
-            if (startBuf.getByte(valueStartIndex) == '"' && endBuf.getByte(end - 1) == '"') {
-               ++valueStartIndex;
-               if (valueStartPart >= 0 && valueStartIndex > parts[valueStartPart].writerIndex()) {
-                  incrementValueStartPart();
-               }
-               --end;
-               if (end == 0) {
-                  endPart--;
-                  endBuf = parts[endPart];
-                  end = endBuf.writerIndex();
-               }
-            }
             while (valueStartPart >= 0 && valueStartPart != endPart) {
                int valueEndIndex = parts[valueStartPart].writerIndex();
                fireMatch(this, source, parts[valueStartPart], valueStartIndex, valueEndIndex - valueStartIndex, false);
                incrementValueStartPart();
             }
-            fireMatch(this, source, endBuf, valueStartIndex, end - valueStartIndex, true);
+            fireMatch(this, source, buf(data, endPart), valueStartIndex, end - valueStartIndex, true);
             valueStartIndex = -1;
             --selector;
          }
@@ -475,6 +477,155 @@ public abstract class JsonParser<S> implements Serializable {
             }
          }
          throw new IllegalStateException();
+      }
+   }
+
+   public static class UnquotingProcessor extends Processor.BaseDelegating<Request> implements ResourceUtilizer, Session.ResourceKey<UnquotingProcessor.Context> {
+      private static final ByteBuf NEWLINE = Unpooled.wrappedBuffer("\n".getBytes(StandardCharsets.UTF_8));
+      private static final ByteBuf BACKSPACE = Unpooled.wrappedBuffer("\b".getBytes(StandardCharsets.UTF_8));
+      private static final ByteBuf FORMFEED = Unpooled.wrappedBuffer("\f".getBytes(StandardCharsets.UTF_8));
+      private static final ByteBuf CR = Unpooled.wrappedBuffer("\r".getBytes(StandardCharsets.UTF_8));
+      private static final ByteBuf TAB = Unpooled.wrappedBuffer("\t".getBytes(StandardCharsets.UTF_8));
+
+      public UnquotingProcessor(Processor<Request> delegate) {
+         super(delegate);
+      }
+
+      @Override
+      public void before(Request request) {
+         super.before(request);
+         Context context = request.session.getResource(this);
+         context.reset();
+      }
+
+      @Override
+      public void process(Request request, ByteBuf data, int offset, int length, boolean isLastPart) {
+         Context context = request.session.getResource(this);
+         int begin;
+         if (context.unicode) {
+            begin = offset + processUnicode(request, data, offset, length, isLastPart, context, 0);
+         } else if (context.first && data.getByte(offset) == '"') {
+            begin = offset + 1;
+         } else {
+            begin = offset;
+         }
+
+         for (int i = begin - offset; i < length; ++i) {
+            if (context.escaped || data.getByte(offset + i) == '\\') {
+               int fragmentLength = offset + i - begin;
+               if (fragmentLength > 0) {
+                  delegate.process(request, data, begin, fragmentLength, isLastPart && fragmentLength == length);
+               }
+               if (context.escaped) {
+                  // This happens when we're starting with chunk escaped in previous chunk
+                  context.escaped = false;
+               } else {
+                  ++i;
+                  if (i >= length) {
+                     context.escaped = true;
+                     begin = offset + i;
+                     break;
+                  }
+               }
+
+               switch (data.getByte(offset + i)) {
+                  case 'n':
+                     delegate.process(request, NEWLINE, 0, NEWLINE.readableBytes(), isLastPart && i == length - 1);
+                     begin = offset + i + 1;
+                     break;
+                  case 'b':
+                     delegate.process(request, BACKSPACE, 0, BACKSPACE.readableBytes(), isLastPart && i == length - 1);
+                     begin = offset + i + 1;
+                     break;
+                  case 'f':
+                     delegate.process(request, FORMFEED, 0, FORMFEED.readableBytes(), isLastPart && i == length - 1);
+                     begin = offset + i + 1;
+                     break;
+                  case 'r':
+                     delegate.process(request, CR, 0, CR.readableBytes(), isLastPart && i == length - 1);
+                     begin = offset + i + 1;
+                     break;
+                  case 't':
+                     delegate.process(request, TAB, 0, TAB.readableBytes(), isLastPart && i == length - 1);
+                     begin = offset + i + 1;
+                     break;
+                  case 'u':
+                     context.unicode = true;
+                     ++i;
+                     i = processUnicode(request, data, offset, length, isLastPart, context, i) - 1;
+                     begin = offset + i + 1;
+                     break;
+                  default:
+                     // unknown escaped char
+                     assert false;
+                  case '"':
+                  case '/':
+                  case '\\':
+                     // just skip the escape
+                     begin = offset + i;
+               }
+            } else if (isLastPart && i == length - 1 && data.getByte(offset + i) == '"') {
+               --length;
+            }
+         }
+         context.first = false;
+         int fragmentLength = length - begin + offset;
+         // we need to send this even if the length == 0 as when we have removed the last quote
+         // the previous chunk had not isLastPart==true
+         delegate.process(request, data, begin, fragmentLength, isLastPart);
+         if (isLastPart) {
+            context.reset();
+         }
+      }
+
+      private int processUnicode(Request request, ByteBuf data, int offset, int length, boolean isLastPart, Context context, int i) {
+         while (i < length && context.unicodeDigits < 4) {
+            context.unicodeChar = context.unicodeChar * 16;
+            byte b = data.getByte(offset + i);
+            if (b >= '0' && b <= '9') {
+               context.unicodeChar += b - '0';
+            } else if (b >= 'a' && b <= 'f') {
+               context.unicodeChar += 10 + b - 'a';
+            } else if (b >= 'A' && b <= 'F') {
+               context.unicodeChar += 10 + b - 'A';
+            } else {
+               // ignore parsing errors as 0 in runtime
+               assert false;
+            }
+            context.unicodeDigits++;
+            ++i;
+         }
+         if (context.unicodeDigits == 4) {
+            // TODO: allocation, probably inefficient...
+            ByteBuf utf8 = Unpooled.wrappedBuffer(Character.toString((char) context.unicodeChar).getBytes(StandardCharsets.UTF_8));
+            delegate.process(request, utf8, utf8.readerIndex(), utf8.readableBytes(), isLastPart && i == length - 1);
+            context.unicode = false;
+            context.unicodeChar = 0;
+            context.unicodeDigits = 0;
+         }
+         return i;
+      }
+
+      @Override
+      public void reserve(Session session) {
+         super.reserve(session);
+         session.declareResource(this, new Context());
+      }
+
+      public static class Context implements Session.Resource {
+         private int unicodeDigits;
+         private int unicodeChar;
+         private boolean first = true;
+         private boolean escaped;
+         private boolean unicode;
+
+         private void reset() {
+            first = true;
+            escaped = false;
+            unicode = false;
+            unicodeDigits = 0;
+            unicodeChar = 0;
+         }
       }
    }
 }
