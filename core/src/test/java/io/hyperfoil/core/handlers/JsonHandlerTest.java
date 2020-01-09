@@ -9,12 +9,16 @@ import java.util.List;
 
 import org.junit.Test;
 
-import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.processor.Processor;
+import io.hyperfoil.api.processor.Transformer;
+import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
 
 public class JsonHandlerTest {
    private static byte[] ID418 = "418".getBytes(StandardCharsets.UTF_8);
@@ -36,7 +40,7 @@ public class JsonHandlerTest {
             .expect(-1, 3, true)
             .expect(-1, 3, true)
             .expect(-1, 3, true);
-      JsonHandler handler = new JsonHandler(".[].id", expect);
+      JsonHandler handler = new JsonHandler(".[].id", false, null, expect);
       Session session = SessionFactory.forTesting();
 
       ByteBuf data = Unpooled.wrappedBuffer(JSON);
@@ -52,9 +56,8 @@ public class JsonHandlerTest {
    @Test
    public void testSplit() {
       ExpectProcessor expect = new ExpectProcessor();
-      JsonHandler handler = new JsonHandler(".[].id", expect);
+      JsonHandler handler = new JsonHandler(".[].id", false, null, expect);
       Session session = SessionFactory.forTesting();
-      HttpRequest request = new HttpRequest(session);
       handler.reserve(session);
 
       for (int i = 0; i < JSON.length; ++i) {
@@ -83,7 +86,7 @@ public class JsonHandlerTest {
    public void testSelectObject() {
       ExpectProcessor expect = new ExpectProcessor()
             .expect(9, 14, true);
-      JsonHandler handler = new JsonHandler(".foo", expect);
+      JsonHandler handler = new JsonHandler(".foo", false, null, expect);
       Session session = SessionFactory.forTesting();
 
       ByteBuf data = Unpooled.wrappedBuffer("{ \"foo\": { \"bar\" : 42 }}".getBytes(StandardCharsets.UTF_8));
@@ -100,31 +103,120 @@ public class JsonHandlerTest {
    public void testEscaped() {
       List<String> unescapedItems = Arrays.asList("\nx\bx\f\rx\t", "x\u15dcx\"x/\\");
       List<String> expectedStrings = new ArrayList<>(unescapedItems);
-      Processor expect = new Processor() {
-         @Override
-         public void process(Session session, ByteBuf data, int offset, int length, boolean isLastPart) {
-            byte[] bytes = new byte[length];
-            data.getBytes(offset, bytes);
-            String str = new String(bytes, StandardCharsets.UTF_8);
-            assertThat(str).isEqualTo(expectedStrings.remove(0));
-         }
+      Processor expect = (Processor) (session, data, offset, length, isLastPart) -> {
+         byte[] bytes = new byte[length];
+         data.getBytes(offset, bytes);
+         String str = new String(bytes, StandardCharsets.UTF_8);
+         assertThat(str).isEqualTo(expectedStrings.remove(0));
       };
-      JsonHandler handler = new JsonHandler(".[].foo", new JsonParser.UnquotingProcessor(new DefragProcessor(expect)));
+      JsonHandler handler = new JsonHandler(".[].foo", false, null, new JsonUnquotingTransformer(new DefragProcessor(expect)));
       Session session = SessionFactory.forTesting();
       handler.reserve(session);
 
       for (int i = 0; i < ESCAPED.length; ++i) {
-         ByteBuf data1 = Unpooled.wrappedBuffer(ESCAPED, 0, i);
-         ByteBuf data2 = Unpooled.wrappedBuffer(ESCAPED, i, ESCAPED.length - i);
-
-         handler.before(session);
-         handler.process(session, data1, data1.readerIndex(), data1.readableBytes(), false);
-         handler.process(session, data2, data2.readerIndex(), data2.readableBytes(), true);
-         handler.after(session);
+         handleSplit(handler, session, ESCAPED, i);
 
          assertThat(expectedStrings.isEmpty()).isTrue();
          expectedStrings.addAll(unescapedItems);
       }
+   }
+
+   @Test
+   public void testDelete() {
+      StringCollector stringCollector = new StringCollector();
+      JsonHandler handler = new JsonHandler(".[].product", true, null, new DefragProcessor(stringCollector));
+      Session session = SessionFactory.forTesting();
+      handler.reserve(session);
+
+      for (int i = 0; i < JSON.length; ++i) {
+         handleSplit(handler, session, JSON, i);
+
+         JsonArray array = (JsonArray) Json.decodeValue(stringCollector.str);
+         assertThat(array.size()).isEqualTo(3);
+         array.forEach(o -> {
+            JsonObject obj = (JsonObject) o;
+            assertThat(obj.getInteger("id")).isNotNull();
+            assertThat(obj.getInteger("units")).isNotNull();
+         });
+      }
+   }
+
+   @Test
+   public void testDeleteArrayItem() {
+      StringCollector stringCollector = new StringCollector();
+      JsonHandler handler = new JsonHandler(".[1]", true, null, new DefragProcessor(stringCollector));
+      Session session = SessionFactory.forTesting();
+      handler.reserve(session);
+
+      for (int i = 0; i < JSON.length; ++i) {
+         handleSplit(handler, session, JSON, i);
+
+         JsonArray array = (JsonArray) Json.decodeValue(stringCollector.str);
+         assertThat(array.size()).isEqualTo(2);
+         array.forEach(o -> {
+            JsonObject obj = (JsonObject) o;
+            assertThat(obj.getInteger("id")).isNotNull();
+            assertThat(obj.getString("product")).isNotBlank();
+            assertThat(obj.getInteger("units")).isNotNull();
+         });
+      }
+   }
+
+   @Test
+   public void testReplace() {
+      StringCollector stringCollector = new StringCollector();
+      JsonUnquotingTransformer replace = new JsonUnquotingTransformer(new ObscuringTransformer());
+      JsonHandler handler = new JsonHandler(".[].product", false, replace, new DefragProcessor(stringCollector));
+      Session session = SessionFactory.forTesting();
+      handler.reserve(session);
+      replace.reserve(session);
+
+      for (int i = 0; i < JSON.length; ++i) {
+         handleSplit(handler, session, JSON, i);
+
+         JsonArray array = (JsonArray) Json.decodeValue(stringCollector.str);
+         assertThat(array.size()).isEqualTo(3);
+         array.forEach(o -> {
+            JsonObject obj = (JsonObject) o;
+            assertThat(obj.getInteger("id")).isNotNull();
+            assertThat(obj.getInteger("units")).isNotNull();
+         });
+         assertThat(array.getJsonObject(0).getString("product")).isEqualTo("xxxxxxx");
+         assertThat(array.getJsonObject(1).getString("product")).isEqualTo("xxxxxxxxxxxxx");
+         assertThat(array.getJsonObject(2).getString("product")).isEqualTo("xxxxxxxxx");
+      }
+   }
+
+   @Test
+   public void testReplaceDeleting() {
+      StringCollector stringCollector = new StringCollector();
+      JsonHandler handler = new JsonHandler(".[1]", false, (Transformer) (session, in, offset, length, lastFragment, out) -> {
+      }, new DefragProcessor(stringCollector));
+      Session session = SessionFactory.forTesting();
+      handler.reserve(session);
+
+      for (int i = 0; i < JSON.length; ++i) {
+         handleSplit(handler, session, JSON, i);
+
+         JsonArray array = (JsonArray) Json.decodeValue(stringCollector.str);
+         assertThat(array.size()).isEqualTo(2);
+         array.forEach(o -> {
+            JsonObject obj = (JsonObject) o;
+            assertThat(obj.getInteger("id")).isNotNull();
+            assertThat(obj.getString("product")).isNotBlank();
+            assertThat(obj.getInteger("units")).isNotNull();
+         });
+      }
+   }
+
+   private void handleSplit(JsonHandler handler, Session session, byte[] json, int position) {
+      ByteBuf data1 = Unpooled.wrappedBuffer(json, 0, position);
+      ByteBuf data2 = Unpooled.wrappedBuffer(json, position, json.length - position);
+
+      handler.before(session);
+      handler.process(session, data1, data1.readerIndex(), data1.readableBytes(), false);
+      handler.process(session, data2, data2.readerIndex(), data2.readableBytes(), true);
+      handler.after(session);
    }
 
    private boolean contains(byte[] data, int offset, int length, byte[] string) {
@@ -138,5 +230,48 @@ public class JsonHandlerTest {
          return true;
       }
       return false;
+   }
+
+   private static class StringCollector implements Processor {
+      private String str;
+
+      @Override
+      public void before(Session session) {
+         str = "This was never set";
+      }
+
+      @Override
+      public void process(Session session, ByteBuf data, int offset, int length, boolean isLastPart) {
+         byte[] bytes = new byte[length];
+         data.getBytes(offset, bytes);
+         str = new String(bytes, StandardCharsets.UTF_8);
+      }
+   }
+
+   private static class ObscuringTransformer implements Transformer, ResourceUtilizer, Session.ResourceKey<ObscuringTransformer.Context> {
+      @Override
+      public void transform(Session session, ByteBuf in, int offset, int length, boolean lastFragment, ByteBuf out) {
+         Context ctx = session.getResource(this);
+         if (ctx.firstFragment) {
+            out.writeByte('"');
+            ctx.firstFragment = false;
+         }
+         for (int i = 0; i < length; ++i) {
+            out.writeByte('x');
+         }
+         if (lastFragment) {
+            out.writeByte('"');
+            ctx.firstFragment = true;
+         }
+      }
+
+      @Override
+      public void reserve(Session session) {
+         session.declareResource(this, new Context());
+      }
+
+      public static class Context implements Session.Resource {
+         private boolean firstFragment = true;
+      }
    }
 }

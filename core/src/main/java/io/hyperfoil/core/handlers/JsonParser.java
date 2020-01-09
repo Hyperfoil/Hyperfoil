@@ -10,21 +10,32 @@ import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.processor.Processor;
+import io.hyperfoil.api.processor.Transformer;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
+import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 import io.hyperfoil.core.data.DataFormat;
+import io.hyperfoil.core.generators.Pattern;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
+import io.netty.buffer.PooledByteBufAllocator;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 
 public abstract class JsonParser implements Serializable, ResourceUtilizer {
+   protected static final Logger log = LoggerFactory.getLogger(JsonParser.class);
    protected static final int MAX_PARTS = 16;
 
    protected final String query;
+   protected final boolean delete;
+   protected final Transformer replace;
    protected final Processor processor;
    private final JsonParser.Selector[] selectors;
+   private StreamQueue.Consumer<Context, Session> record = JsonParser.this::record;
 
-   public JsonParser(String query, Processor processor) {
+   public JsonParser(String query, boolean delete, Transformer replace, Processor processor) {
       this.query = query;
+      this.delete = delete;
+      this.replace = replace;
       this.processor = processor;
 
       byte[] queryBytes = query.getBytes(StandardCharsets.UTF_8);
@@ -72,7 +83,7 @@ public abstract class JsonParser implements Serializable, ResourceUtilizer {
       this.selectors = selectors.toArray(new JsonParser.Selector[0]);
    }
 
-   protected abstract void fireMatch(Context context, Session session, ByteStream data, int offset, int length, boolean isLastPart);
+   protected abstract void record(Context context, Session session, ByteStream data, int offset, int length, boolean isLastPart);
 
    private static int bytesToInt(byte[] bytes, int start, int end) {
       int value = 0;
@@ -109,10 +120,11 @@ public abstract class JsonParser implements Serializable, ResourceUtilizer {
          this.name = name;
       }
 
-      boolean match(ByteStream data, int start, int end, int offset) {
+      boolean match(StreamQueue stream, int start, int end) {
          assert start <= end;
+         // TODO: move this to StreamQueue and optimize access
          for (int i = 0; i < name.length && i < end - start; ++i) {
-            if (name[i + offset] != data.getByte(start + i)) return false;
+            if (name[i] != stream.getByte(start + i)) return false;
          }
          return true;
       }
@@ -148,23 +160,23 @@ public abstract class JsonParser implements Serializable, ResourceUtilizer {
       }
    }
 
-   protected class Context implements Session.Resource {
+   protected abstract class Context implements Session.Resource {
       Selector.Context[] selectorContext = new Selector.Context[selectors.length];
       int level;
       int selectorLevel;
       int selector;
       boolean inQuote;
-      boolean inAttrib;
+      boolean inKey;
       boolean escaped;
-      int attribStartPart;
-      int attribStartIndex;
-      int lastCharPart;
-      int lastCharIndex;
-      int valueStartPart;
+      StreamQueue stream = new StreamQueue(MAX_PARTS);
+      int keyStartIndex;
+      int lastCharIndex; // end of key name
       int valueStartIndex;
-      ByteStream[] parts = new ByteStream[MAX_PARTS];
-      int nextPart;
+      int lastOutputIndex; // last byte we have written out
+      int safeOutputIndex; // last byte we could definitely write out
       ByteStream[] pool = new ByteStream[MAX_PARTS];
+      protected ByteBuf replaceBuffer = PooledByteBufAllocator.DEFAULT.buffer();
+      final StreamQueue.Consumer<Void, Session> replaceConsumer = this::replaceConsumer;
 
       protected Context(Function<Context, ByteStream> byteStreamSupplier) {
          for (int i = 0; i < pool.length; ++i) {
@@ -184,30 +196,30 @@ public abstract class JsonParser implements Serializable, ResourceUtilizer {
          selectorLevel = 0;
          selector = 0;
          inQuote = false;
-         inAttrib = false;
+         inKey = false;
          escaped = false;
-         attribStartPart = -1;
-         attribStartIndex = -1;
-         lastCharPart = -1;
+         keyStartIndex = -1;
          lastCharIndex = -1;
-         valueStartPart = -1;
          valueStartIndex = -1;
-         nextPart = 0;
-         for (int i = 0; i < parts.length; ++i) {
-            if (parts[i] == null) break;
-            parts[i].release();
-            parts[i] = null;
-         }
+         lastOutputIndex = 0;
+         safeOutputIndex = 0;
+         stream.reset();
+         replaceBuffer.clear();
       }
 
       private Selector.Context current() {
          return selectorContext[selector];
       }
 
-      public void parse(ByteStream data, Session session) {
-         while (data.isReadable()) {
-            byte b = data.readByte();
+      public void parse(ByteStream data, Session session, boolean isLast) {
+         int readerIndex = stream.append(data);
+         PARSING:
+         while (true) {
+            int b = stream.getByte(readerIndex++);
             switch (b) {
+               case -1:
+                  --readerIndex;
+                  break PARSING;
                case ' ':
                case '\n':
                case '\t':
@@ -220,13 +232,19 @@ public abstract class JsonParser implements Serializable, ResourceUtilizer {
                case '{':
                   if (!inQuote) {
                      ++level;
-                     inAttrib = true;
+                     inKey = true;
+                     if (valueStartIndex < 0) {
+                        safeOutputIndex = readerIndex;
+                     }
                      // TODO assert we have active attrib selector
                   }
                   break;
                case '}':
                   if (!inQuote) {
-                     tryRecord(session, data);
+                     if (valueStartIndex < 0) {
+                        safeOutputIndex = readerIndex;
+                     }
+                     tryRecord(session, readerIndex);
                      if (level == selectorLevel) {
                         --selectorLevel;
                         --selector;
@@ -241,65 +259,83 @@ public abstract class JsonParser implements Serializable, ResourceUtilizer {
                   break;
                case ':':
                   if (!inQuote) {
-                     if (selectorLevel == level && attribStartIndex >= 0 && selector < selectors.length && selectors[selector] instanceof AttribSelector) {
+                     if (selectorLevel == level && keyStartIndex >= 0 && selector < selectors.length && selectors[selector] instanceof AttribSelector) {
                         AttribSelector selector = (AttribSelector) selectors[this.selector];
-                        int offset = 0;
-                        boolean previousPartsMatch = true;
-                        if (attribStartPart >= 0) {
-                           int endIndex;
-                           if (lastCharPart != attribStartPart) {
-                              endIndex = parts[attribStartPart].writerIndex();
-                           } else {
-                              endIndex = lastCharIndex;
-                           }
-                           while (previousPartsMatch = selector.match(parts[attribStartPart], attribStartIndex, endIndex, offset)) {
-                              offset += endIndex - attribStartIndex;
-                              attribStartPart++;
-                              attribStartIndex = 0;
-                              if (attribStartPart >= parts.length || parts[attribStartPart] == null) {
-                                 break;
+                        if (selector.match(stream, keyStartIndex, lastCharIndex)) {
+                           if (onMatch(readerIndex) && (delete || replace != null)) {
+                              // omit key's starting quote
+                              int outputEnd = keyStartIndex - 1;
+                              // remove possible comma before the key
+                              LOOP:
+                              while (true) {
+                                 switch (stream.getByte(outputEnd - 1)) {
+                                    case ' ':
+                                    case '\n':
+                                    case '\t':
+                                    case '\r':
+                                    case ',':
+                                       --outputEnd;
+                                       break;
+                                    default:
+                                       break LOOP;
+                                 }
                               }
+                              stream.consume(lastOutputIndex, outputEnd, record, this, session, false);
+                              lastOutputIndex = outputEnd;
                            }
-                        }
-                        if (previousPartsMatch && (lastCharPart >= 0 || selector.match(data, attribStartIndex, lastCharIndex, offset))) {
-                           onMatch(data);
                         }
                      }
-                     attribStartIndex = -1;
-                     inAttrib = false;
+                     keyStartIndex = -1;
+                     if (valueStartIndex < 0) {
+                        safeOutputIndex = readerIndex;
+                     }
+                     inKey = false;
                   }
                   break;
                case ',':
                   if (!inQuote) {
-                     inAttrib = true;
-                     attribStartIndex = -1;
-                     tryRecord(session, data);
+                     inKey = true;
+                     keyStartIndex = -1;
+                     tryRecord(session, readerIndex);
                      if (selectorLevel == level && selector < selectors.length && current() instanceof ArraySelectorContext) {
                         ArraySelectorContext asc = (ArraySelectorContext) current();
                         if (asc.active) {
                            asc.currentItem++;
                         }
                         if (((ArraySelector) selectors[selector]).matches(asc)) {
-                           onMatch(data);
+                           if (onMatch(readerIndex) && (delete || replace != null)) {
+                              // omit the ','
+                              stream.consume(lastOutputIndex, readerIndex - 1, record, this, session, false);
+                              lastOutputIndex = readerIndex - 1;
+                           }
                         }
                      }
                   }
                   break;
                case '[':
                   if (!inQuote) {
+                     if (valueStartIndex < 0) {
+                        safeOutputIndex = readerIndex;
+                     }
                      ++level;
                      if (selectorLevel == level && selector < selectors.length && selectors[selector] instanceof ArraySelector) {
                         ArraySelectorContext asc = (ArraySelectorContext) current();
                         asc.active = true;
                         if (((ArraySelector) selectors[selector]).matches(asc)) {
-                           onMatch(data);
+                           if (onMatch(readerIndex) && (delete || replace != null)) {
+                              stream.consume(lastOutputIndex, readerIndex, record, this, session, false);
+                              lastOutputIndex = readerIndex;
+                           }
                         }
                      }
                   }
                   break;
                case ']':
                   if (!inQuote) {
-                     tryRecord(session, data);
+                     if (valueStartIndex < 0) {
+                        safeOutputIndex = readerIndex;
+                     }
+                     tryRecord(session, readerIndex);
                      if (selectorLevel == level && selector < selectors.length && current() instanceof ArraySelectorContext) {
                         ArraySelectorContext asc = (ArraySelectorContext) current();
                         asc.active = false;
@@ -309,161 +345,95 @@ public abstract class JsonParser implements Serializable, ResourceUtilizer {
                   }
                   break;
                default:
-                  lastCharPart = -1;
-                  lastCharIndex = data.readerIndex();
-                  if (inAttrib && attribStartIndex < 0) {
-                     attribStartPart = -1;
-                     attribStartIndex = data.readerIndex() - 1;
+                  lastCharIndex = readerIndex;
+                  if (inKey && keyStartIndex < 0) {
+                     keyStartIndex = readerIndex - 1;
                   }
             }
             if (b != '\\') {
                escaped = false;
             }
          }
-         if (attribStartIndex >= 0 || valueStartIndex >= 0) {
-            if (nextPart == parts.length) {
-               parts[0].release();
-               System.arraycopy(parts, 1, parts, 0, parts.length - 1);
-               --nextPart;
-               if (attribStartPart == 0 && attribStartIndex >= 0) {
-                  attribStartPart = 0;
-                  attribStartIndex = 0;
-               } else if (attribStartPart > 0) {
-                  --attribStartPart;
-               }
-               if (lastCharPart == 0 && lastCharIndex >= 0) {
-                  lastCharPart = 0;
-                  lastCharIndex = 0;
-               } else if (lastCharPart > 0) {
-                  --lastCharPart;
-               }
-               if (valueStartPart == 0 && valueStartIndex >= 0) {
-                  valueStartPart = 0;
-                  valueStartIndex = 0;
-               } else if (valueStartPart > 0) {
-                  --valueStartPart;
-               }
+         if (keyStartIndex >= 0 || valueStartIndex >= 0) {
+            stream.release(Math.min(Math.min(keyStartIndex, valueStartIndex), safeOutputIndex));
+            if (isLast) {
+               throw new IllegalStateException("End of input while the JSON is not complete.");
             }
-            parts[nextPart] = data.retain();
-            if (attribStartPart < 0) {
-               attribStartPart = nextPart;
-            }
-            if (lastCharPart < 0) {
-               lastCharPart = nextPart;
-            }
-            if (valueStartPart < 0) {
-               valueStartPart = nextPart;
-            }
-            ++nextPart;
          } else {
-            for (int i = 0; i < parts.length && parts[i] != null; ++i) {
-               parts[i].release();
-               parts[i] = null;
+            if ((delete || replace != null) && lastOutputIndex < safeOutputIndex) {
+               stream.consume(lastOutputIndex, safeOutputIndex, record, this, session, isLast);
+               lastOutputIndex = safeOutputIndex;
             }
-            nextPart = 0;
+            stream.release(readerIndex);
          }
       }
 
-      private void onMatch(ByteStream data) {
+      private boolean onMatch(int readerIndex) {
          ++selector;
          if (selector < selectors.length) {
             ++selectorLevel;
+            return false;
          } else {
-            valueStartPart = -1;
-            valueStartIndex = data.readerIndex();
+            valueStartIndex = readerIndex;
+            return true;
          }
       }
 
-      private void tryRecord(Session session, ByteStream data) {
+      private void tryRecord(Session session, int readerIndex) {
          if (selectorLevel == level && valueStartIndex >= 0) {
             // valueStartIndex is always before quotes here
-            ByteStream buf = valueStartPart < 0 ? data : parts[valueStartPart];
-            buf = tryAdvanceValueStart(data, buf);
             LOOP:
-            while (valueStartIndex < buf.writerIndex() || valueStartPart != -1) {
-               switch (buf.getByte(valueStartIndex)) {
+            while (true) {
+               switch (stream.getByte(valueStartIndex)) {
                   case ' ':
                   case '\n':
                   case '\r':
                   case '\t':
                      ++valueStartIndex;
-                     buf = tryAdvanceValueStart(data, buf);
                      break;
+                  case -1:
                   default:
                      break LOOP;
                }
             }
-            int end = data.readerIndex() - 1;
-            int endPart = nextPart;
-            buf = data;
-            if (end == 0) {
-               endPart--;
-               buf = parts[endPart];
-               end = buf.writerIndex();
-            }
+            int end = readerIndex - 1;
             LOOP:
-            while (end > valueStartIndex || valueStartPart >= 0 && endPart > valueStartPart) {
-               switch (buf.getByte(end - 1)) {
+            while (end > valueStartIndex) {
+               switch (stream.getByte(end - 1)) {
                   case ' ':
                   case '\n':
                   case '\r':
                   case '\t':
                      --end;
-                     if (end == 0) {
-                        if (valueStartPart >= 0 && endPart > valueStartPart) {
-                           endPart--;
-                           buf = parts[endPart];
-                           end = buf.writerIndex();
-                        }
-                     }
                      break;
                   default:
                      break LOOP;
                }
             }
-            if (valueStartIndex == end && (valueStartPart < 0 || valueStartPart == endPart)) {
+            if (valueStartIndex == end) {
                // This happens when we try to select from a 0-length array
                // - as long as there are not quotes there's nothing to record.
                valueStartIndex = -1;
                --selector;
                return;
             }
-            while (valueStartPart >= 0 && valueStartPart != endPart) {
-               int valueEndIndex = parts[valueStartPart].writerIndex();
-               fireMatch(this, session, parts[valueStartPart], valueStartIndex, valueEndIndex - valueStartIndex, false);
-               incrementValueStartPart();
+            if (replace != null) {
+               // The buffer cannot be overwritten as if the processor is caching input
+               // (this happens when we're defragmenting) we would overwrite the underlying data
+               replaceBuffer.readerIndex(replaceBuffer.writerIndex());
+               stream.consume(valueStartIndex, end, replaceConsumer, null, session, true);
+               // If the result is empty, don't write the key
+               if (replaceBuffer.isReadable()) {
+                  stream.consume(lastOutputIndex, valueStartIndex, record, this, session, false);
+                  processor.process(session, replaceBuffer, replaceBuffer.readerIndex(), replaceBuffer.readableBytes(), false);
+               }
+            } else if (!delete) {
+               stream.consume(valueStartIndex, end, record, this, session, true);
             }
-            fireMatch(this, session, buf(data, endPart), valueStartIndex, end - valueStartIndex, true);
+            lastOutputIndex = end;
             valueStartIndex = -1;
             --selector;
          }
-      }
-
-      private ByteStream tryAdvanceValueStart(ByteStream data, ByteStream buf) {
-         if (valueStartIndex >= buf.writerIndex() && valueStartPart >= 0) {
-            valueStartPart++;
-            if (valueStartPart >= parts.length || (buf = parts[valueStartPart]) == null) {
-               buf = data;
-               valueStartPart = -1;
-            }
-            valueStartIndex = 0;
-         }
-         return buf;
-      }
-
-      private void incrementValueStartPart() {
-         valueStartIndex = 0;
-         valueStartPart++;
-         if (valueStartPart >= parts.length || parts[valueStartPart] == null) {
-            valueStartPart = -1;
-         }
-      }
-
-      private ByteStream buf(ByteStream data, int part) {
-         if (part < 0 || part >= parts.length || parts[part] == null) {
-            return data;
-         }
-         return parts[part];
       }
 
       public ByteStream retain(ByteStream stream) {
@@ -487,155 +457,8 @@ public abstract class JsonParser implements Serializable, ResourceUtilizer {
          }
          throw new IllegalStateException();
       }
-   }
 
-   public static class UnquotingProcessor extends Processor.BaseDelegating implements ResourceUtilizer, Session.ResourceKey<UnquotingProcessor.Context> {
-      private static final ByteBuf NEWLINE = Unpooled.wrappedBuffer("\n".getBytes(StandardCharsets.UTF_8));
-      private static final ByteBuf BACKSPACE = Unpooled.wrappedBuffer("\b".getBytes(StandardCharsets.UTF_8));
-      private static final ByteBuf FORMFEED = Unpooled.wrappedBuffer("\f".getBytes(StandardCharsets.UTF_8));
-      private static final ByteBuf CR = Unpooled.wrappedBuffer("\r".getBytes(StandardCharsets.UTF_8));
-      private static final ByteBuf TAB = Unpooled.wrappedBuffer("\t".getBytes(StandardCharsets.UTF_8));
-
-      public UnquotingProcessor(Processor delegate) {
-         super(delegate);
-      }
-
-      @Override
-      public void before(Session session) {
-         super.before(session);
-         Context context = session.getResource(this);
-         context.reset();
-      }
-
-      @Override
-      public void process(Session session, ByteBuf data, int offset, int length, boolean isLastPart) {
-         Context context = session.getResource(this);
-         int begin;
-         if (context.unicode) {
-            begin = offset + processUnicode(session, data, offset, length, isLastPart, context, 0);
-         } else if (context.first && data.getByte(offset) == '"') {
-            begin = offset + 1;
-         } else {
-            begin = offset;
-         }
-
-         for (int i = begin - offset; i < length; ++i) {
-            if (context.escaped || data.getByte(offset + i) == '\\') {
-               int fragmentLength = offset + i - begin;
-               if (fragmentLength > 0) {
-                  delegate.process(session, data, begin, fragmentLength, isLastPart && fragmentLength == length);
-               }
-               if (context.escaped) {
-                  // This happens when we're starting with chunk escaped in previous chunk
-                  context.escaped = false;
-               } else {
-                  ++i;
-                  if (i >= length) {
-                     context.escaped = true;
-                     begin = offset + i;
-                     break;
-                  }
-               }
-
-               switch (data.getByte(offset + i)) {
-                  case 'n':
-                     delegate.process(session, NEWLINE, 0, NEWLINE.readableBytes(), isLastPart && i == length - 1);
-                     begin = offset + i + 1;
-                     break;
-                  case 'b':
-                     delegate.process(session, BACKSPACE, 0, BACKSPACE.readableBytes(), isLastPart && i == length - 1);
-                     begin = offset + i + 1;
-                     break;
-                  case 'f':
-                     delegate.process(session, FORMFEED, 0, FORMFEED.readableBytes(), isLastPart && i == length - 1);
-                     begin = offset + i + 1;
-                     break;
-                  case 'r':
-                     delegate.process(session, CR, 0, CR.readableBytes(), isLastPart && i == length - 1);
-                     begin = offset + i + 1;
-                     break;
-                  case 't':
-                     delegate.process(session, TAB, 0, TAB.readableBytes(), isLastPart && i == length - 1);
-                     begin = offset + i + 1;
-                     break;
-                  case 'u':
-                     context.unicode = true;
-                     ++i;
-                     i = processUnicode(session, data, offset, length, isLastPart, context, i) - 1;
-                     begin = offset + i + 1;
-                     break;
-                  default:
-                     // unknown escaped char
-                     assert false;
-                  case '"':
-                  case '/':
-                  case '\\':
-                     // just skip the escape
-                     begin = offset + i;
-               }
-            } else if (isLastPart && i == length - 1 && data.getByte(offset + i) == '"') {
-               --length;
-            }
-         }
-         context.first = false;
-         int fragmentLength = length - begin + offset;
-         // we need to send this even if the length == 0 as when we have removed the last quote
-         // the previous chunk had not isLastPart==true
-         delegate.process(session, data, begin, fragmentLength, isLastPart);
-         if (isLastPart) {
-            context.reset();
-         }
-      }
-
-      private int processUnicode(Session session, ByteBuf data, int offset, int length, boolean isLastPart, Context context, int i) {
-         while (i < length && context.unicodeDigits < 4) {
-            context.unicodeChar = context.unicodeChar * 16;
-            byte b = data.getByte(offset + i);
-            if (b >= '0' && b <= '9') {
-               context.unicodeChar += b - '0';
-            } else if (b >= 'a' && b <= 'f') {
-               context.unicodeChar += 10 + b - 'a';
-            } else if (b >= 'A' && b <= 'F') {
-               context.unicodeChar += 10 + b - 'A';
-            } else {
-               // ignore parsing errors as 0 in runtime
-               assert false;
-            }
-            context.unicodeDigits++;
-            ++i;
-         }
-         if (context.unicodeDigits == 4) {
-            // TODO: allocation, probably inefficient...
-            ByteBuf utf8 = Unpooled.wrappedBuffer(Character.toString((char) context.unicodeChar).getBytes(StandardCharsets.UTF_8));
-            delegate.process(session, utf8, utf8.readerIndex(), utf8.readableBytes(), isLastPart && i == length - 1);
-            context.unicode = false;
-            context.unicodeChar = 0;
-            context.unicodeDigits = 0;
-         }
-         return i;
-      }
-
-      @Override
-      public void reserve(Session session) {
-         super.reserve(session);
-         session.declareResource(this, new Context());
-      }
-
-      public static class Context implements Session.Resource {
-         private int unicodeDigits;
-         private int unicodeChar;
-         private boolean first = true;
-         private boolean escaped;
-         private boolean unicode;
-
-         private void reset() {
-            first = true;
-            escaped = false;
-            unicode = false;
-            unicodeDigits = 0;
-            unicodeChar = 0;
-         }
-      }
+      protected abstract void replaceConsumer(Void ignored, Session session, ByteStream data, int offset, int length, boolean lastFragment);
    }
 
    public abstract static class BaseBuilder<S extends BaseBuilder<S>> implements InitFromParam<S> {
@@ -644,6 +467,8 @@ public abstract class JsonParser implements Serializable, ResourceUtilizer {
       protected boolean unquote = true;
       protected Processor.Builder<?> processor;
       protected DataFormat format = DataFormat.STRING;
+      protected boolean delete;
+      protected Transformer.Builder replace;
 
       /**
        * @param param Either <code>query -&gt; variable</code> or <code>variable &lt;- query</code>.
@@ -677,6 +502,7 @@ public abstract class JsonParser implements Serializable, ResourceUtilizer {
          return self();
       }
 
+      @SuppressWarnings("unchecked")
       public S copy(Locator locator) {
          S copy;
          try {
@@ -707,6 +533,47 @@ public abstract class JsonParser implements Serializable, ResourceUtilizer {
       public S unquote(boolean unquote) {
          this.unquote = unquote;
          return self();
+      }
+
+      /**
+       * If this is set to true, the selected key will be deleted from the JSON and the modified JSON will be passed
+       * to the <code>processor</code>.
+       *
+       * @param delete Should the selected query be deleted?
+       * @return Self.
+       */
+      public S delete(boolean delete) {
+         this.delete = delete;
+         return self();
+      }
+
+      /**
+       * Custom transformation executed on the value of the selected item.
+       * Note that the output value must contain quotes (if applicable) and be correctly escaped.
+       *
+       * @return Builder.
+       */
+      public ServiceLoadedBuilderProvider<Transformer.Builder> replace() {
+         return new ServiceLoadedBuilderProvider<>(Transformer.Builder.class, locator, this::replace);
+      }
+
+      public S replace(Transformer.Builder replace) {
+         if (replace == null) {
+            throw new BenchmarkDefinitionException("Calling replace twice!");
+         }
+         this.replace = replace;
+         return self();
+      }
+
+      /**
+       * Replace value of selected item with value generated through a pattern.
+       * Note that the result must contain quotes and be correctly escaped.
+       *
+       * @param pattern Pattern format.
+       * @return Self.
+       */
+      public S replace(String pattern) {
+         return replace(fragmented -> new Pattern(pattern, false)).unquote(false);
       }
 
       /**

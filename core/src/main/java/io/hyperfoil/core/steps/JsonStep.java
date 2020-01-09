@@ -14,11 +14,13 @@ import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.processor.Processor;
+import io.hyperfoil.api.processor.Transformer;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.handlers.ByteStream;
 import io.hyperfoil.core.handlers.JsonParser;
+import io.hyperfoil.core.handlers.JsonUnquotingTransformer;
 import io.hyperfoil.core.session.SessionFactory;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -29,9 +31,9 @@ public class JsonStep implements Step, ResourceUtilizer {
    private final ByteArrayParser byteArrayParser;
    private final Access fromVar;
 
-   private JsonStep(String fromVar, String query, Processor processor) {
+   private JsonStep(String fromVar, String query, boolean delete, Transformer replace, Processor processor) {
       this.fromVar = SessionFactory.access(fromVar);
-      this.byteArrayParser = new ByteArrayParser(query, processor);
+      this.byteArrayParser = new ByteArrayParser(query, delete, replace, processor);
    }
 
    @Override
@@ -40,7 +42,7 @@ public class JsonStep implements Step, ResourceUtilizer {
       if (object instanceof byte[]) {
          ByteArrayParser.Context ctx = session.getResource(byteArrayParser);
          byteArrayParser.before(session);
-         ctx.parse(ctx.wrap((byte[]) object), session);
+         ctx.parse(ctx.wrap((byte[]) object), session, true);
          byteArrayParser.after(session);
          ctx.reset();
       }
@@ -79,10 +81,12 @@ public class JsonStep implements Step, ResourceUtilizer {
             throw new BenchmarkDefinitionException("jsonQuery missing 'fromVar'");
          }
          Processor processor = this.processor.build(unquote);
+         Transformer replace = this.replace == null ? null : this.replace.build(unquote);
          if (unquote) {
-            processor = new JsonParser.UnquotingProcessor(processor);
+            processor = new JsonUnquotingTransformer(processor);
+            replace = replace == null ? null : new JsonUnquotingTransformer(replace);
          }
-         return Collections.singletonList(new JsonStep(fromVar, query, processor));
+         return Collections.singletonList(new JsonStep(fromVar, query, delete, replace, processor));
       }
 
       public Builder addTo(BaseSequenceBuilder parent) {
@@ -96,8 +100,8 @@ public class JsonStep implements Step, ResourceUtilizer {
    }
 
    private static class ByteArrayParser extends JsonParser implements Session.ResourceKey<ByteArrayParser.Context> {
-      public ByteArrayParser(String query, Processor processor) {
-         super(query, processor);
+      public ByteArrayParser(String query, boolean delete, Transformer replace, Processor processor) {
+         super(query, delete, replace, processor);
       }
 
       @Override
@@ -107,7 +111,7 @@ public class JsonStep implements Step, ResourceUtilizer {
       }
 
       @Override
-      protected void fireMatch(JsonParser.Context context, Session session, ByteStream data, int offset, int length, boolean isLastPart) {
+      protected void record(JsonParser.Context context, Session session, ByteStream data, int offset, int length, boolean isLastPart) {
          Context ctx = (Context) context;
          byte[] array = ((ByteArrayByteStream) data).array;
          processor.process(session, ctx.buffer.wrap(array), offset, length, isLastPart);
@@ -134,6 +138,11 @@ public class JsonStep implements Step, ResourceUtilizer {
          public void reset() {
             super.reset();
             set = false;
+         }
+
+         @Override
+         protected void replaceConsumer(Void ignored, Session session, ByteStream data, int offset, int length, boolean lastFragment) {
+            replace.transform(session, buffer.wrap(((ByteArrayByteStream) data).array), offset, length, lastFragment, replaceBuffer);
          }
 
          public ByteStream wrap(byte[] object) {

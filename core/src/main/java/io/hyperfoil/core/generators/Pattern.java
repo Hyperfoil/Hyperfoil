@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.api.processor.Transformer;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
@@ -16,7 +17,7 @@ import io.hyperfoil.function.SerializableBiConsumer;
 import io.hyperfoil.function.SerializableFunction;
 import io.netty.buffer.ByteBuf;
 
-public class Pattern implements SerializableFunction<Session, String>, SerializableBiConsumer<Session, ByteBuf> {
+public class Pattern implements SerializableFunction<Session, String>, SerializableBiConsumer<Session, ByteBuf>, Transformer {
    private static final int VAR_LENGTH_ESTIMATE = 32;
    private final Component[] components;
    private int lengthEstimate;
@@ -90,6 +91,13 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
    public void accept(Session session, ByteBuf byteBuf) {
       for (Component c : components) {
          c.accept(session, byteBuf);
+      }
+   }
+
+   @Override
+   public void transform(Session session, ByteBuf in, int offset, int length, boolean lastFragment, ByteBuf out) {
+      if (lastFragment) {
+         accept(session, out);
       }
    }
 
