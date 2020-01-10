@@ -7,9 +7,12 @@ import java.util.Arrays;
 import java.util.function.Function;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.api.config.InitFromParam;
+import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
+import io.hyperfoil.core.data.DataFormat;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
@@ -631,6 +634,125 @@ public abstract class JsonParser implements Serializable, ResourceUtilizer {
             unicode = false;
             unicodeDigits = 0;
             unicodeChar = 0;
+         }
+      }
+   }
+
+   public abstract static class BaseBuilder<S extends BaseBuilder<S>> implements InitFromParam<S> {
+      protected Locator locator;
+      protected String query;
+      protected boolean unquote = true;
+      protected Processor.Builder<?> processor;
+      protected DataFormat format = DataFormat.STRING;
+
+      /**
+       * @param param Either <code>query -&gt; variable</code> or <code>variable &lt;- query</code>.
+       * @return Self.
+       */
+      @Override
+      public S init(String param) {
+         String query;
+         String var;
+         if (param.contains("->")) {
+            String[] parts = param.split("->");
+            query = parts[0];
+            var = parts[1];
+         } else if (param.contains("<-")) {
+            String[] parts = param.split("->");
+            query = parts[1];
+            var = parts[0];
+         } else {
+            throw new BenchmarkDefinitionException("Cannot parse json query specification: '" + param + "', use 'query -> var' or 'var <- query'");
+         }
+         return query(query.trim()).toVar(var.trim());
+      }
+
+      @SuppressWarnings("unchecked")
+      protected S self() {
+         return (S) this;
+      }
+
+      public S setLocator(Locator locator) {
+         this.locator = locator;
+         return self();
+      }
+
+      public S copy(Locator locator) {
+         S copy;
+         try {
+            copy = (S) getClass().newInstance();
+         } catch (InstantiationException | IllegalAccessException e) {
+            throw new IllegalStateException(e);
+         }
+         return copy.setLocator(locator).query(query).unquote(unquote).processor(processor);
+      }
+
+      /**
+       * Query selecting the part of JSON.
+       *
+       * @param query Query.
+       * @return Self.
+       */
+      public S query(String query) {
+         this.query = query;
+         return self();
+      }
+
+      /**
+       * Automatically unquote and unescape the input values. By default true.
+       *
+       * @param unquote Do unquote and unescape?
+       * @return Builder.
+       */
+      public S unquote(boolean unquote) {
+         this.unquote = unquote;
+         return self();
+      }
+
+      /**
+       * Shortcut to store selected parts in an array in the session. Must follow the pattern <code>variable[maxSize]</code>
+       *
+       * @param varAndSize Array name.
+       * @return Self.
+       */
+      public S toArray(String varAndSize) {
+         return processor(new ArrayRecorder.Builder().init(varAndSize).format(format));
+      }
+
+      /**
+       * Shortcut to store first match in given variable. Further matches are ignored.
+       *
+       * @param var Variable name.
+       * @return Self.
+       */
+      public S toVar(String var) {
+         return processor(new SimpleRecorder.Builder().toVar(var).format(format));
+      }
+
+      public S processor(Processor.Builder<?> processor) {
+         if (this.processor != null) {
+            throw new BenchmarkDefinitionException("Processor already set!");
+         }
+         this.processor = processor;
+         return self();
+      }
+
+      /**
+       * Conversion to apply on the matching parts with 'toVar' or 'toArray' shortcuts.
+       *
+       * @param format Data format.
+       * @return Self.
+       */
+      public S format(DataFormat format) {
+         this.format = format;
+         return self();
+      }
+
+      protected void validate() {
+         if (query == null) {
+            throw new BenchmarkDefinitionException("Missing 'query'");
+         } else if (processor == null) {
+            throw new BenchmarkDefinitionException("Missing processor - use 'processor', 'toVar' or 'toArray'");
          }
       }
    }

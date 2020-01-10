@@ -12,8 +12,12 @@ import io.hyperfoil.core.session.SessionFactory;
 import io.netty.buffer.ByteBuf;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.ResourceUtilizer;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 
 public class SimpleRecorder implements Processor, ResourceUtilizer {
+   private static final Logger log = LoggerFactory.getLogger(SimpleRecorder.class);
+
    private final Access toVar;
    private final DataFormat format;
 
@@ -23,10 +27,19 @@ public class SimpleRecorder implements Processor, ResourceUtilizer {
    }
 
    @Override
+   public void before(Session session) {
+      toVar.unset(session);
+   }
+
+   @Override
    public void process(Session session, ByteBuf data, int offset, int length, boolean isLastPart) {
       ensureDefragmented(isLastPart);
-      Object value = format.convert(data, offset, length);
-      toVar.setObject(session, value);
+      if (toVar.isSet(session)) {
+         log.warn("Variable {} was already set, not setting again.", toVar);
+      } else {
+         Object value = format.convert(data, offset, length);
+         toVar.setObject(session, value);
+      }
    }
 
    @Override

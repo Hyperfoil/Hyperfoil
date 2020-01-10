@@ -14,7 +14,6 @@ public abstract class BaseStepBuilder<T extends BaseStepBuilder<T>> implements S
       }
       parent.stepBuilder(this);
       this.parent = Objects.requireNonNull(parent);
-      setLocator(parent.createLocator());
       @SuppressWarnings("unchecked")
       T self = (T) this;
       return self;

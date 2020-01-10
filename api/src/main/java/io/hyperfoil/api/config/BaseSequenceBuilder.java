@@ -47,6 +47,7 @@ public abstract class BaseSequenceBuilder implements Rewritable<BaseSequenceBuil
    // Calling this method step() would cause ambiguity with step(Step) defined through lambda
    public BaseSequenceBuilder stepBuilder(StepBuilder<?> stepBuilder) {
       steps.add(stepBuilder);
+      stepBuilder.setLocator(createLocator());
       return this;
    }
 

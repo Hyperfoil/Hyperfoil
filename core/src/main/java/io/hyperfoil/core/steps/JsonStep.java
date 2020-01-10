@@ -2,24 +2,23 @@ package io.hyperfoil.core.steps;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
 import org.kohsuke.MetaInfServices;
 
+import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.config.StepBuilder;
+import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.core.builders.BaseStepBuilder;
 import io.hyperfoil.core.handlers.ByteStream;
-import io.hyperfoil.core.data.DataFormat;
-import io.hyperfoil.core.handlers.DefragProcessor;
 import io.hyperfoil.core.handlers.JsonParser;
-import io.hyperfoil.core.handlers.SimpleRecorder;
 import io.hyperfoil.core.session.SessionFactory;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -29,12 +28,10 @@ public class JsonStep implements Step, ResourceUtilizer {
 
    private final ByteArrayParser byteArrayParser;
    private final Access fromVar;
-   private final DataFormat format;
 
-   private JsonStep(String fromVar, String query, String toVar, DataFormat format) {
+   private JsonStep(String fromVar, String query, Processor processor) {
       this.fromVar = SessionFactory.access(fromVar);
-      this.byteArrayParser = new ByteArrayParser(query, toVar, format);
-      this.format = format;
+      this.byteArrayParser = new ByteArrayParser(query, processor);
    }
 
    @Override
@@ -60,11 +57,9 @@ public class JsonStep implements Step, ResourceUtilizer {
     */
    @MetaInfServices(StepBuilder.class)
    @Name("json")
-   public static class Builder extends BaseStepBuilder<Builder> {
+   public static class Builder extends JsonParser.BaseBuilder<Builder> implements StepBuilder<Builder> {
+      private BaseSequenceBuilder parent;
       private String fromVar;
-      private String query;
-      private String toVar;
-      private DataFormat format = DataFormat.STRING;
 
       /**
        * Variable to load JSON from.
@@ -77,58 +72,32 @@ public class JsonStep implements Step, ResourceUtilizer {
          return this;
       }
 
-      /**
-       * JSON query to apply.
-       *
-       * @param query Query.
-       * @return Self.
-       */
-      public Builder query(String query) {
-         this.query = query;
-         return this;
-      }
-
-      /**
-       * Variable to store the result. If there are multiple matches, the variable will be overwritten and last match wins.
-       *
-       * @param toVar Variable name.
-       * @return Self.
-       */
-      public Builder toVar(String toVar) {
-         this.toVar = toVar;
-         return this;
-      }
-
-      /**
-       * Conversion to apply on the matching parts.
-       *
-       * @param format Data format.
-       * @return Self.
-       */
-      public Builder format(DataFormat format) {
-         this.format = format;
-         return this;
-      }
-
       @Override
       public List<Step> build() {
+         validate();
          if (fromVar == null) {
             throw new BenchmarkDefinitionException("jsonQuery missing 'fromVar'");
          }
-         if (query == null) {
-            throw new BenchmarkDefinitionException("jsonQuery missing 'query'");
+         Processor processor = this.processor.build(unquote);
+         if (unquote) {
+            processor = new JsonParser.UnquotingProcessor(processor);
          }
-         if (toVar == null) {
-            throw new BenchmarkDefinitionException("jsonQuery missing 'toVar'");
+         return Collections.singletonList(new JsonStep(fromVar, query, processor));
+      }
+
+      public Builder addTo(BaseSequenceBuilder parent) {
+         if (this.parent != null) {
+            throw new UnsupportedOperationException("Cannot add builder " + getClass().getName() + " to another sequence!");
          }
-         return Collections.singletonList(new JsonStep(fromVar, query, toVar, format));
+         parent.stepBuilder(this);
+         this.parent = Objects.requireNonNull(parent);
+         return self();
       }
    }
 
    private static class ByteArrayParser extends JsonParser implements Session.ResourceKey<ByteArrayParser.Context> {
-      public ByteArrayParser(String query, String toVar, DataFormat format) {
-         // TODO: drop data in SimpleRecorder on subsequent match
-         super(query, new UnquotingProcessor(new DefragProcessor(new SimpleRecorder(toVar, format))));
+      public ByteArrayParser(String query, Processor processor) {
+         super(query, processor);
       }
 
       @Override
