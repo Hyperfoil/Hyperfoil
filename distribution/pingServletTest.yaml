@@ -7,7 +7,7 @@ phases:
 - pingRampUp:
     rampPerSec:
       duration: 5s
-      maxIterations: 10
+      maxIterations: 1
       initialUsersPerSec:
         base: 0
         increment: 100
@@ -24,7 +24,7 @@ phases:
 - pingServletSteady:
     constantPerSec:
       duration: 10s
-      maxIterations: 10
+      maxIterations: 1
       usersPerSec:
         base: 100
         increment: 100

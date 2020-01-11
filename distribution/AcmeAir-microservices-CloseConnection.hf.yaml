@@ -1,13 +1,16 @@
-name: acmeair-gatling
+name: acmeair-closeConnection
+ergonomics:
+  privateHttpPools: true
 http:
   host: http://acme.dalperf.us-south.containers.appdomain.cloud
   sharedConnections: 30
 phases:
 - flightRampUp:
     rampPerSec:
-      duration: 5s
+      duration: 50s
       initialUsersPerSec: 1
       targetUsersPerSec: 10
+      maxSessions: 50
       scenario: &queryFlight
       - queryFlight:
         - randomItem:
@@ -21,7 +24,7 @@ phases:
             returnDate: returnDate
         - httpRequest:
             POST:
-              pattern: /flight/queryflights
+              value: /flight/queryflights
             body:
               form:
               - name: fromAirport
@@ -34,21 +37,23 @@ phases:
                 pattern: ${returnDate}
               - name: oneWay
                 value: true
+            handler:
+              body:
+                closeConnection: {}
 - FLIGHT_SEARCH:
     constantPerSec:
-      duration: 15s
+      duration: 50s
       usersPerSec: 10
-      startAfter:
-      - phase: flightRampUp
-        iteration: same
+      startAfter: flightRampUp
       scenario: *queryFlight
 
 
 - profileRampUp:
     rampPerSec:
-      duration: 5s
+      duration: 50s
       initialUsersPerSec: 1
       targetUsersPerSec: 10
+      maxSessions: 50
       scenario: &updateProfile
         initialSequences:
         - login:
@@ -80,12 +85,14 @@ phases:
                   pattern: Bearer ${jwtToken}
               GET:
                 pattern: /customer/byid/uid${userId}@email.com
+              handler:
+                body:
+                  closeConnection: {}
+
 
 - PROFILE_UPDATE:
     constantPerSec:
-      duration: 15s
+      duration: 50s
       usersPerSec: 10
-      startAfter:
-      - phase: profileRampUp
-        iteration: same
+      startAfter: profileRampUp
       scenario: *updateProfile

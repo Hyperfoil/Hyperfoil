@@ -1,0 +1,39 @@
+name: pingservlet-istio
+ergonomics:
+  privateHttpPools: true
+http:
+  host: http://pingservlet-java-deployment-default.dalperf.us-south.containers.appdomain.cloud
+  addresses:
+  - 169.47.214.164
+  sharedConnections: 30
+phases:
+- pingStartup:
+    constantPerSec:
+      duration: 30s
+      usersPerSec: 1
+      maxSessions: 20000
+      scenario: &pingServlet
+      - ping:
+        - httpRequest:
+            GET:
+              pattern: /servlet/PingServlet
+            handler:
+              body:
+                closeConnection: {}
+
+- pingRampUp:
+    rampPerSec:
+      duration: 60s
+      initialUsersPerSec: 1
+      targetUsersPerSec: 100
+      maxSessions: 50
+      startAfter: pingStartup
+      scenario: *pingServlet
+
+- PING_SERVLET:
+    constantPerSec:
+      duration: 60s
+      usersPerSec: 100
+      maxSessions: 50
+      startAfter: pingRampUp
+      scenario: *pingServlet
