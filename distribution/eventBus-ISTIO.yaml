@@ -1,0 +1,39 @@
+name: eventbus-istio
+threads: 4
+ergonomics:
+  privateHttpPools: true
+http:
+  host: http://event-sender-knative-samples.dalperf.us-south.containers.appdomain.cloud
+  addresses:
+  - 169.47.214.164
+  sharedConnections: 200
+phases:
+- eventStartup:
+    always:
+      duration: 30s
+      users: 1
+      scenario: &eventSender
+      - event:
+        - httpRequest:
+            GET:
+              pattern: /send
+            handler:
+              body:
+                closeConnection: {}
+
+- eventRampUp:
+    rampPerSec:
+      duration: 60s
+      initialUsersPerSec: 1
+      targetUsersPerSec: 100
+      maxSessions: 50
+      startAfter: eventStartup
+      scenario: *eventSender
+
+- EVENT_SENDER:
+    constantPerSec:
+      duration: 60s
+      usersPerSec: 100
+      maxSessions: 50
+      startAfter: eventRampUp
+      scenario: *eventSender
