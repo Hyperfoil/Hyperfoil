@@ -47,6 +47,12 @@
         <dependency>
             <groupId>io.vertx</groupId>
             <artifactId>vertx-infinispan</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.jboss.marshalling</groupId>
+                    <artifactId>jboss-marshalling-osgi</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
@@ -85,6 +91,26 @@
             <artifactId>eddsa</artifactId>
         </dependency>
 
+        <dependency>
+            <!-- necessary for MR artifacts to be available
+            for >8 jre -->
+            <groupId>org.jboss.marshalling</groupId>
+            <artifactId>jboss-marshalling</artifactId>
+        </dependency>
+
+        <dependency>
+            <!-- necessary for MR artifacts to be available
+            for >8 jre -->
+            <groupId>org.jboss.marshalling</groupId>
+            <artifactId>jboss-marshalling-river</artifactId>
+        </dependency>
+
+        <dependency>
+            <!-- necessary for MR artifacts to be available
+            for >8 jre -->
+            <groupId>org.jboss.marshalling</groupId>
+            <artifactId>jboss-marshalling-serial</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
