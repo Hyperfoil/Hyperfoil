@@ -1,0 +1,16 @@
+name: test
+http:
+  host: http://acme.dalperf.us-south.containers.appdomain.cloud
+  sharedConnections: 10
+phases:
+  - test1:
+      constantPerSec:
+        usersPerSec: 100
+        duration: 5m
+        scenario:
+        - testScenario:
+          - httpRequest:
+              POST:
+                value: /flight/queryflights
+
+

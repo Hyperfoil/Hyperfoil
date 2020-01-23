@@ -1,0 +1,40 @@
+name: pingservlet-ramp
+threads: 4
+agents:
+  agent-one: istio02:22
+ergonomics:
+  privateHttpPools: true
+http:
+  host: http://pingservlet-java-deployment-default.dcperf-d9b3841533db4f254358c882d880c89b-0000.us-east.containers.appdomain.cloud
+  sharedConnections: 5000
+phases:  
+- pingRampUp:
+    rampPerSec:
+      duration: 1m
+      maxIterations: 10
+      maxSessions: 10000
+      initialUsersPerSec:
+        base: 1
+        increment: 500
+      targetUsersPerSec:
+        base: 500
+        increment: 500
+      startAfter:
+      - phase: pingServletSteady
+        iteration: previous
+      scenario: &pingServlet
+      - ping:
+        - httpRequest:
+            GET: /servlet/PingServlet
+- pingServletSteady:
+    constantPerSec:
+      duration: 2m
+      maxIterations: 10
+      maxSessions: 10000
+      usersPerSec:
+        base: 500
+        increment: 500
+      startAfter:
+      - phase: pingRampUp
+        iteration: same
+      scenario: *pingServlet
