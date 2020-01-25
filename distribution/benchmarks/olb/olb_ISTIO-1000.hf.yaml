@@ -7,7 +7,6 @@ phases:
 - olbRampUp:
     rampPerSec:
       duration: 3m
-      maxIterations: 10
       initialUsersPerSec: 1
       targetUsersPerSec: 1000
       maxSessions: 1000
