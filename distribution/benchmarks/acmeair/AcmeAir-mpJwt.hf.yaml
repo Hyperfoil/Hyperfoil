@@ -1,4 +1,4 @@
-name: acmeair-rampup-closeconn
+name: acmeair-rampup
 threads: 4
 ergonomics:
   privateHttpPools: true
@@ -85,13 +85,36 @@ phases:
                 pattern: /customer/byid/uid${userId}@email.com
               handler:
                 body:
+                - default:
+                    processor:
+                      simple:
+                        toVar: response
+                        format: STRING
+          - nextSequence: updateProfile
+        - updateProfile:
+          - updateProfileData:
+              fromVar: response
+              toVar: updatedProfile
+          - thinkTime:
+              duration: 5s
+          - httpRequest:
+              headers:
+                Content-Type: "application/json"
+                Authorization:
+                  pattern: Bearer ${jwtToken}
+              POST:
+                pattern: /customer/byid/uid${userId}@email.com
+              body:
+                fromVar: updatedProfile
+              handler:
+                body:
                   closeConnection: {}
 
 - bookingRampUp:
     rampPerSec:
       duration: 2m
       initialUsersPerSec: 1
-      targetUsersPerSec: 200
+      targetUsersPerSec: 100
       maxSessions: 5000
       scenario: &flightBooking
         initialSequences:
@@ -192,37 +215,14 @@ phases:
                 body:
                   closeConnection: {}
 
-- FLIGHT_SEARCH:
-    constantPerSec:
-      duration: 2m
-      usersPerSec: 100
-      maxSessions: 5000
-      startAfter: flightRampUp
-      scenario: *queryFlight
 
-- PROFILE_UPDATE:
-    constantPerSec:
+- cancelRampUp:
+    rampPerSec:
       duration: 2m
-      usersPerSec: 10
+      initialUsersPerSec: 1
+      targetUsersPerSec: 250
       maxSessions: 2500
-      startAfter: flightRampUp
-      scenario: *updateProfile
-
-- BOOKING_FLIGHT:
-    constantPerSec:
-      duration: 2m
-      usersPerSec: 40
-      maxSessions: 5000
-      startAfter: flightRampUp
-      scenario: *flightBooking
-
-- BOOKING_CANCEL:
-    constantPerSec:
-      duration: 2m
-      usersPerSec: 50
-      maxSessions: 2500
-      startAfter: flightRampUp
-      scenario:
+      scenario: &cancelBooking
         initialSequences:
         - login:
           - randomInt:
@@ -289,3 +289,36 @@ phases:
               handler:
                 body:
                   closeConnection: {}
+
+
+- FLIGHT_SEARCH:
+    constantPerSec:
+      duration: 2m
+      usersPerSec: 500
+      maxSessions: 5000
+      startAfter: flightRampUp
+      scenario: *queryFlight
+
+- PROFILE_UPDATE:
+    constantPerSec:
+      duration: 2m
+      usersPerSec: 50
+      maxSessions: 2500
+      startAfter: flightRampUp
+      scenario: *updateProfile
+
+- BOOKING_FLIGHT:
+    constantPerSec:
+      duration: 2m
+      usersPerSec: 100
+      maxSessions: 5000
+      startAfter: flightRampUp
+      scenario: *flightBooking
+
+- BOOKING_CANCEL:
+    constantPerSec:
+      duration: 2m
+      usersPerSec: 250
+      maxSessions: 2500
+      startAfter: flightRampUp
+      scenario: *cancelBooking

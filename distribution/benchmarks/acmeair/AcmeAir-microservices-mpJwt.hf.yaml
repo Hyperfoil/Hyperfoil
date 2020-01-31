@@ -1,7 +1,7 @@
 name: acmeair
 http:
   host: http://acme.dalperf.us-south.containers.appdomain.cloud
-  sharedConnections: 110
+  sharedConnections: 2000
 phases:
 - FLIGHT_SEARCH:
     constantPerSec:

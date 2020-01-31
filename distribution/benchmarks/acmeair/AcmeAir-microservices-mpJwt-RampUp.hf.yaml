@@ -1,9 +1,9 @@
-name: acmeair-rampup-1000
+name: acmeair-rampup-900
 threads: 4
 ergonomics:
   privateHttpPools: true
 http:
-  host: http://acme.dcperf-d9b3841533db4f254358c882d880c89b-0000.us-east.containers.appdomain.cloud
+  host: http://???
   sharedConnections: 5000
 phases:
 - flightRampUp:
