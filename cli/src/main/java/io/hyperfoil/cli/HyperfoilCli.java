@@ -23,7 +23,9 @@ package io.hyperfoil.cli;
 import io.hyperfoil.cli.commands.Compare;
 import io.hyperfoil.cli.commands.Connect;
 import io.hyperfoil.cli.commands.Edit;
+import io.hyperfoil.cli.commands.Exit;
 import io.hyperfoil.cli.commands.Export;
+import io.hyperfoil.cli.commands.Help;
 import io.hyperfoil.cli.commands.Info;
 import io.hyperfoil.cli.commands.Kill;
 import io.hyperfoil.cli.commands.Oc;
@@ -44,15 +46,11 @@ import io.hyperfoil.cli.context.HyperfoilCommandInvocationProvider;
 import io.hyperfoil.cli.context.HyperfoilCompleterData;
 
 import org.aesh.AeshConsoleRunner;
-import org.aesh.command.Command;
-import org.aesh.command.CommandDefinition;
-import org.aesh.command.CommandResult;
 import org.aesh.command.activator.CommandActivator;
 import org.aesh.command.activator.OptionActivator;
 import org.aesh.command.completer.CompleterInvocation;
 import org.aesh.command.converter.ConverterInvocation;
 import org.aesh.command.impl.registry.AeshCommandRegistryBuilder;
-import org.aesh.command.option.Option;
 import org.aesh.command.registry.CommandRegistryException;
 import org.aesh.command.settings.Settings;
 import org.aesh.command.settings.SettingsBuilder;
@@ -103,8 +101,9 @@ public class HyperfoilCli {
                               .command(Connect.class)
                               .command(Compare.class)
                               .command(Edit.class)
-                              .command(ExitCommand.class)
+                              .command(Exit.class)
                               .command(Export.class)
+                              .command(Help.class)
                               .command(Info.class)
                               .command(Kill.class)
                               .command(Log.class)
@@ -124,6 +123,7 @@ public class HyperfoilCli {
                   .completerInvocationProvider(completerInvocation -> new HyperfoilCompleterData(completerInvocation, context))
                   .setConnectionClosedHandler(nil -> context.stop())
                   .build();
+      context.commandRegistry(settings.commandRegistry());
 
       AeshConsoleRunner runner = AeshConsoleRunner.builder().settings(settings);
       String cliPrompt = System.getenv(CLI_PROMPT);
@@ -136,19 +136,5 @@ public class HyperfoilCli {
 
       runner.start();
    }
-
-   @CommandDefinition(name = "exit", description = "exit the program", aliases = { "quit" })
-   public static class ExitCommand implements Command<HyperfoilCommandInvocation> {
-
-      @Option(shortName = 'f', hasValue = false)
-      private boolean force;
-
-      @Override
-      public CommandResult execute(HyperfoilCommandInvocation invocation) {
-         invocation.stop();
-         return CommandResult.SUCCESS;
-      }
-   }
-
 }
 

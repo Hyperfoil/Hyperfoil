@@ -90,7 +90,7 @@ public class FilterHeaderHandler implements HeaderHandler, ResourceUtilizer {
       @Override
       public Builder copy(Locator locator) {
          Builder copy = new Builder().setLocator(locator).processor(processor.copy(locator));
-         copy.header = header.copy();
+         copy.header = header.copy(locator);
          return copy;
       }
 

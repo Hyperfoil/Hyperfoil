@@ -23,7 +23,7 @@ public class IntValueProviderBuilder<P> implements InitFromParam<IntValueProvide
    }
 
    /**
-    * Initialize with constant value.
+    * Initialize with a constant value.
     *
     * @param param Constant value.
     * @return Self.
@@ -39,6 +39,8 @@ public class IntValueProviderBuilder<P> implements InitFromParam<IntValueProvide
    }
 
    /**
+    * Initialize with a constant value.
+    *
     * @param value Constant value.
     * @return Self.
     */
@@ -48,6 +50,8 @@ public class IntValueProviderBuilder<P> implements InitFromParam<IntValueProvide
    }
 
    /**
+    * Initialize with a value from session variable.
+    *
     * @param fromVar Variable name.
     * @return Self.
     */

@@ -242,7 +242,7 @@ class BaseReflectionParser {
    }
 
    private Object convert(Event event, String str, Class<?> type) throws ParserException {
-      if (type == String.class) {
+      if (type == String.class || type == CharSequence.class) {
          return str;
       } else if (type == boolean.class) {
          return Boolean.parseBoolean(str);

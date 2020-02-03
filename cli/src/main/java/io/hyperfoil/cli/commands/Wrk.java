@@ -23,7 +23,6 @@ package io.hyperfoil.cli.commands;
 import io.hyperfoil.api.config.Protocol;
 import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.api.statistics.StatisticsSummary;
-import io.hyperfoil.cli.HyperfoilCli;
 import io.hyperfoil.cli.context.HyperfoilCliContext;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.api.config.BenchmarkBuilder;
@@ -91,7 +90,7 @@ public class Wrk {
          runtime.commandInvocationProvider(new HyperfoilCommandInvocationProvider(new HyperfoilCliContext()));
          AeshCommandRegistryBuilder<HyperfoilCommandInvocation> registry =
                AeshCommandRegistryBuilder.<HyperfoilCommandInvocation>builder()
-                     .commands(StartLocal.class, WrkCommand.class, HyperfoilCli.ExitCommand.class);
+                     .commands(StartLocal.class, WrkCommand.class, Exit.class);
          runtime.commandRegistry(registry.create());
          cr = runtime.build();
          try {

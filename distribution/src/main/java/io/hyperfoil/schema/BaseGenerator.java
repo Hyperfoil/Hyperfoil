@@ -53,6 +53,6 @@ class BaseGenerator {
    }
 
    private static boolean isParamConvertible(Class<?> type) {
-      return type == String.class || type.isPrimitive() || type.isEnum();
+      return type == String.class || type == CharSequence.class || type.isPrimitive() || type.isEnum();
    }
 }

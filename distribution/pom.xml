@@ -189,6 +189,7 @@
                             <arguments>
                                 <argument>-cp</argument>
                                 <classpath/>
+                                <!--                                <argument>-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005</argument>-->
                                 <argument>io.hyperfoil.schema.DocsGenerator</argument>
                                 <argument>${project.basedir}/../api/src/main/java/</argument>
                                 <argument>${project.basedir}/../core/src/main/java/</argument>

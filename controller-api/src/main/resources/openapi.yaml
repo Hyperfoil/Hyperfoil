@@ -131,6 +131,10 @@ paths:
       responses:
         '202':
           description: Run was successfully started.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Run'
         '301':
           description: Run is requested but it must be started from CI.
           headers:
