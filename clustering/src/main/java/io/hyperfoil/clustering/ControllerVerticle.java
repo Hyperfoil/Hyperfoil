@@ -6,6 +6,7 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.hyperfoil.api.BenchmarkExecutionException;
+import io.hyperfoil.api.Version;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.Agent;
 import io.hyperfoil.api.config.Phase;
@@ -65,6 +66,7 @@ import org.infinispan.commons.api.BasicCacheContainer;
 
 public class ControllerVerticle extends AbstractVerticle implements NodeListener {
    private static final Logger log = LoggerFactory.getLogger(ControllerVerticle.class);
+   private static final String RUN_SCHEMA = "http://hyperfoil.io/run-schema/" + Version.VERSION;
 
    private EventBus eb;
    private ControllerServer server;
@@ -590,6 +592,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             jGenerator.setCodec(new ObjectMapper());
             jGenerator.writeStartObject();
 
+            jGenerator.writeStringField("$id", RUN_SCHEMA);
             jGenerator.writeFieldName("info");
             jGenerator.writeRawValue(info.encode()); // writeObjectField() was encoding info as a POJO not json
 
