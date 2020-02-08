@@ -40,6 +40,7 @@ import io.hyperfoil.cli.commands.Status;
 import io.hyperfoil.cli.commands.Upload;
 import io.hyperfoil.cli.commands.Version;
 import io.hyperfoil.cli.commands.Wrk;
+import io.hyperfoil.cli.commands.Wrk2;
 import io.hyperfoil.cli.context.HyperfoilCliContext;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocationProvider;
@@ -118,6 +119,7 @@ public class HyperfoilCli {
                               .command(Upload.class)
                               .command(Version.class)
                               .command(Wrk.WrkCommand.class)
+                              .command(Wrk2.Wrk2Command.class)
                               .create())
                   .commandInvocationProvider(new HyperfoilCommandInvocationProvider(context))
                   .completerInvocationProvider(completerInvocation -> new HyperfoilCompleterData(completerInvocation, context))

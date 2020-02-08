@@ -1,10 +1,10 @@
 package io.hyperfoil.benchmark.standalone;
 
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-
 import io.hyperfoil.cli.commands.Wrk;
 import io.hyperfoil.test.Benchmark;
+
+import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 @Category(Benchmark.class)
 public class WrkTest extends BaseBenchmarkTestCase {
@@ -16,6 +16,6 @@ public class WrkTest extends BaseBenchmarkTestCase {
 
    @Test
    public void test() {
-      Wrk.main(new String[]{ "-c", "10", "-d", "5s", "-R", "20", "--latency", "--timeout", "1s", "localhost:" + server.actualPort() + "/foo/bar" });
+      Wrk.main(new String[]{ "-c", "10", "-d", "5s", "--latency", "--timeout", "1s", "localhost:" + server.actualPort() + "/foo/bar" });
    }
 }
