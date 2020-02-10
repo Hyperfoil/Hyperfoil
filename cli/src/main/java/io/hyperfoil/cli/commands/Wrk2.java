@@ -20,7 +20,6 @@
 
 package io.hyperfoil.cli.commands;
 
-import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.PhaseBuilder;
 
 import org.aesh.command.CommandDefinition;
@@ -48,8 +47,8 @@ public class Wrk2 extends WrkAbstract {
       int rate;
 
       @Override
-      protected PhaseBuilder<?> rootPhase(BenchmarkBuilder benchmarkBuilder, String phase) {
-         return benchmarkBuilder.addPhase(phase).constantPerSec(rate)
+      protected PhaseBuilder<?> phaseConfig(PhaseBuilder.Catalog catalog) {
+         return catalog.constantPerSec(rate)
                .maxSessions(rate * 15);
       }
 

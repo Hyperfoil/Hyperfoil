@@ -106,7 +106,7 @@ public abstract class WrkAbstract {
          }
          if (cr != null) {
             try {
-               System.out.println(cr.getCommandRegistry().getCommand("wrk", "wrk").printHelp("wrk"));
+               System.out.println(cr.getCommandRegistry().getCommand(getCommand(), getCommand()).printHelp(getCommand()));
             } catch (CommandNotFoundException ex) {
                throw new IllegalStateException(ex);
             }
@@ -117,13 +117,13 @@ public abstract class WrkAbstract {
 
    //   @CommandDefinition(name = "wrk", description = "Runs a workload simluation against one endpoint using the same vm")
    public abstract class AbstractWrkCommand implements Command<HyperfoilCommandInvocation> {
-      @Option(shortName = 'c', description = "Total number of HTTP connections to keep open", required = true)
+      @Option(shortName = 'c', description = "Total number of HTTP connections to keep open", defaultValue = "10")
       int connections;
 
-      @Option(shortName = 'd', description = "Duration of the test, e.g. 2s, 2m, 2h", required = true)
+      @Option(shortName = 'd', description = "Duration of the test, e.g. 2s, 2m, 2h", defaultValue = "10s")
       String duration;
 
-      @Option(shortName = 't', description = "Total number of threads to use.")
+      @Option(shortName = 't', description = "Total number of threads to use.", defaultValue = "2")
       int threads;
 
       @Option(shortName = 's', description = "!!!NOT SUPPORTED: LuaJIT script")
@@ -153,7 +153,7 @@ public abstract class WrkAbstract {
       @Override
       public CommandResult execute(HyperfoilCommandInvocation invocation) {
          if (help) {
-            invocation.println(invocation.getHelpInfo("wrk"));
+            invocation.println(invocation.getHelpInfo(getCommand()));
             return CommandResult.SUCCESS;
          }
          if (script != null) {
@@ -196,7 +196,7 @@ public abstract class WrkAbstract {
          Protocol protocol = Protocol.fromScheme(uri.getScheme());
          // @formatter:off
          BenchmarkBuilder builder = new BenchmarkBuilder(null, new LocalBenchmarkData())
-               .name("wrk")
+               .name(getCommand())
                .http()
                   .protocol(protocol).host(uri.getHost()).port(protocol.portOrDefault(uri.getPort()))
                   .sharedConnections(connections)
@@ -232,10 +232,6 @@ public abstract class WrkAbstract {
             }
             invocation.getShell().write(ANSI.CURSOR_START);
             invocation.getShell().write(ANSI.ERASE_WHOLE_LINE);
-            recent.statistics.stream().filter(rs -> "test".equals(rs.phase)).forEach(rs -> {
-               double durationSeconds = (rs.summary.endTime - rs.summary.startTime) / 1000d;
-               invocation.print("Requests/sec: " + String.format("%.02f", rs.summary.requestCount / durationSeconds));
-            });
             try {
                Thread.sleep(1000);
             } catch (InterruptedException e) {
@@ -254,14 +250,14 @@ public abstract class WrkAbstract {
          return CommandResult.SUCCESS;
       }
 
-      protected abstract PhaseBuilder<?> rootPhase(BenchmarkBuilder benchmarkBuilder, String phase);
+      protected abstract PhaseBuilder<?> phaseConfig(PhaseBuilder.Catalog catalog);
 
 
       private PhaseBuilder<?> addPhase(BenchmarkBuilder benchmarkBuilder, String phase, String duration) {
          // prevent capturing WrkCommand in closure
          String[][] parsedHeaders = this.parsedHeaders;
          // @formatter:off
-         return rootPhase(benchmarkBuilder, phase)
+         return phaseConfig(benchmarkBuilder.addPhase(phase))
                  .duration(duration)
                  .scenario()
                   .initialSequence("request")
