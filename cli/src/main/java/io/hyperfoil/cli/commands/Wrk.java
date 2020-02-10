@@ -20,7 +20,6 @@
 
 package io.hyperfoil.cli.commands;
 
-import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.PhaseBuilder;
 
 import org.aesh.command.CommandDefinition;
@@ -44,8 +43,8 @@ public class Wrk extends WrkAbstract {
    public class WrkCommand extends WrkAbstract.AbstractWrkCommand {
 
       @Override
-      protected PhaseBuilder<?> rootPhase(BenchmarkBuilder benchmarkBuilder, String phase) {
-         return benchmarkBuilder.addPhase(phase).always(threads); //set number of users to number of threads, same threading model as wrk
+      protected PhaseBuilder<?> phaseConfig(PhaseBuilder.Catalog catalog) {
+         return catalog.always(threads).users(threads); //set number of users to number of threads, same threading model as wrk
       }
    }
 
