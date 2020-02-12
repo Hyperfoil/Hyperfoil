@@ -42,6 +42,7 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServer;
@@ -94,7 +95,7 @@ class ControllerServer implements ApiService {
             });
    }
 
-   void stop(Future<Void> stopFuture) {
+   void stop(Promise<Void> stopFuture) {
       httpServer.close(result -> stopFuture.complete());
    }
 
@@ -167,7 +168,6 @@ class ControllerServer implements ApiService {
          addBenchmarkAndReply(ctx, benchmark, ifMatch);
       } catch (ParserException | BenchmarkDefinitionException e) {
          respondParsingError(ctx, e);
-         return;
       }
    }
 
@@ -229,15 +229,12 @@ class ControllerServer implements ApiService {
          addBenchmarkAndReply(ctx, benchmark, ifMatch);
       } catch (ParserException | BenchmarkDefinitionException e) {
          respondParsingError(ctx, e);
-         return;
       }
    }
 
    @Override
    public void getBenchmark$text_vnd_yaml(RoutingContext ctx, String name) {
-      withBenchmark(ctx, name, benchmark -> {
-         sendYamlBenchmark(ctx, benchmark);
-      });
+      withBenchmark(ctx, name, benchmark -> sendYamlBenchmark(ctx, benchmark));
    }
 
    private void sendYamlBenchmark(RoutingContext ctx, Benchmark benchmark) {
@@ -254,9 +251,7 @@ class ControllerServer implements ApiService {
 
    @Override
    public void getBenchmark$application_java_serialized_object(RoutingContext ctx, String name) {
-      withBenchmark(ctx, name, benchmark -> {
-         sendSerializedBenchmark(ctx, benchmark);
-      });
+      withBenchmark(ctx, name, benchmark -> sendSerializedBenchmark(ctx, benchmark));
    }
 
    private void sendSerializedBenchmark(RoutingContext ctx, Benchmark benchmark) {
@@ -333,8 +328,8 @@ class ControllerServer implements ApiService {
       if (run.startTime > Long.MIN_VALUE) {
          started = new Date(run.startTime);
       }
-      if (run.terminateTime.isComplete()) {
-         terminated = new Date(run.terminateTime.result());
+      if (run.terminateTime.future().isComplete()) {
+         terminated = new Date(run.terminateTime.future().result());
       }
       List<io.hyperfoil.controller.model.Phase> phases = null;
       if (reportPhases) {
@@ -397,15 +392,13 @@ class ControllerServer implements ApiService {
 
    @Override
    public void killRun(RoutingContext ctx, String runId) {
-      withRun(ctx, runId, run -> {
-         controller.kill(run, result -> {
-            if (result.succeeded()) {
-               ctx.response().setStatusCode(HttpResponseStatus.ACCEPTED.code()).end();
-            } else {
-               ctx.response().setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code()).setStatusMessage(result.cause().getMessage()).end();
-            }
-         });
-      });
+      withRun(ctx, runId, run -> controller.kill(run, result -> {
+         if (result.succeeded()) {
+            ctx.response().setStatusCode(HttpResponseStatus.ACCEPTED.code()).end();
+         } else {
+            ctx.response().setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code()).setStatusMessage(result.cause().getMessage()).end();
+         }
+      }));
    }
 
    @Override
@@ -440,7 +433,7 @@ class ControllerServer implements ApiService {
 
    @Override
    public void getTotalSessions(RoutingContext ctx, String runId) {
-      getSessionStats(ctx, runId, ss -> ss.totalSessionPoolSummary());
+      getSessionStats(ctx, runId, StatisticsStore::totalSessionPoolSummary);
    }
 
    private void getSessionStats(RoutingContext ctx, String runId, Function<StatisticsStore, Map<String, Map<String, LowHigh>>> func) {
@@ -451,14 +444,16 @@ class ControllerServer implements ApiService {
          }
          Map<String, Map<String, LowHigh>> stats = func.apply(run.statisticsStore);
          JsonObject reply = new JsonObject();
-         stats.forEach((phase, addressStats) -> {
+         for (Map.Entry<String, Map<String, LowHigh>> entry : stats.entrySet()) {
+            String phase = entry.getKey();
+            Map<String, LowHigh> addressStats = entry.getValue();
             JsonObject phaseStats = new JsonObject();
             reply.put(phase, phaseStats);
             addressStats.forEach((address, lowHigh) -> {
                String agent = run.agents.stream().filter(a -> a.deploymentId.equals(address)).map(a -> a.name).findFirst().orElse("unknown");
                phaseStats.put(agent, new JsonObject().put("min", lowHigh.low).put("max", lowHigh.high));
             });
-         });
+         }
          ctx.response().end(reply.encodePrettily());
       });
    }
@@ -466,35 +461,30 @@ class ControllerServer implements ApiService {
 
    @Override
    public void listConnections(RoutingContext ctx, String runId) {
-      withRun(ctx, runId, run -> {
-         controller.listConnections(run,
-               (agent, connection) -> {
-                  String line = agent.name + ": " + connection + "\n";
-                  ctx.response().write(Buffer.buffer(line.getBytes(StandardCharsets.UTF_8)));
-               },
-               commonListingHandler(ctx.response()));
-      });
+      withRun(ctx, runId, run -> controller.listConnections(run,
+            (agent, connection) -> {
+               String line = agent.name + ": " + connection + "\n";
+               ctx.response().write(Buffer.buffer(line.getBytes(StandardCharsets.UTF_8)));
+            },
+            commonListingHandler(ctx.response())));
    }
 
    @Override
    public void getAllStats$application_zip(RoutingContext ctx, String runId) {
-      withTerminatedRun(ctx, runId, run -> {
-         new Zipper(ctx.response(), controller.getRunDir(run).resolve("stats")).run();
-      });
+      withTerminatedRun(ctx, runId, run -> new Zipper(ctx.response(),
+            controller.getRunDir(run).resolve("stats")).run());
    }
 
    @Override
    public void getAllStats$application_json(RoutingContext ctx, String runId) {
-      withTerminatedRun(ctx, runId, run -> {
-         ctx.response()
-               .putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_JSON)
-               .sendFile(controller.getRunDir(run).resolve("all.json").toString());
-      });
+      withTerminatedRun(ctx, runId, run -> ctx.response()
+            .putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_JSON)
+            .sendFile(controller.getRunDir(run).resolve("all.json").toString()));
    }
 
    private void withTerminatedRun(RoutingContext ctx, String runId, Consumer<Run> consumer) {
       withRun(ctx, runId, run -> {
-         if (!run.terminateTime.isComplete()) {
+         if (!run.terminateTime.future().isComplete()) {
             ctx.response().setStatusCode(HttpResponseStatus.SEE_OTHER.code())
                   .setStatusMessage("Run is not completed yet.")
                   .putHeader(HttpHeaders.LOCATION, "/run/" + run.id)
@@ -550,7 +540,7 @@ class ControllerServer implements ApiService {
 
    private io.hyperfoil.controller.model.RequestStatisticsResponse statsToJson(Run run, List<RequestStats> stats) {
       String status;
-      if (run.terminateTime.isComplete()) {
+      if (run.terminateTime.future().isComplete()) {
          status = "TERMINATED";
       } else if (run.startTime > Long.MIN_VALUE) {
          status = "RUNNING";
@@ -676,14 +666,15 @@ class ControllerServer implements ApiService {
 
    @Override
    public void shutdown(RoutingContext ctx, boolean force) {
-      List<Run> runs = controller.runs.values().stream().filter(run -> !run.terminateTime.isComplete()).collect(Collectors.toList());
+      List<Run> runs = controller.runs.values().stream().filter(run -> !run.terminateTime.future().isComplete()).collect(Collectors.toList());
       if (force) {
          // We don't allow concurrent runs ATM, but...
+         @SuppressWarnings("rawtypes")
          List<Future> futures = new ArrayList<>();
          for (Run run : runs) {
-            Future<Void> future = Future.future();
-            futures.add(future);
-            controller.kill(run, result -> future.complete());
+            Promise<Void> promise = Promise.promise();
+            futures.add(promise.future());
+            controller.kill(run, result -> promise.complete());
          }
          CompositeFuture.all(futures).setHandler(nil -> {
             ctx.response().end();

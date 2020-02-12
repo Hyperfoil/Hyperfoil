@@ -11,15 +11,13 @@ import org.junit.runner.RunWith;
 
 import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
+import io.vertx.core.http.Cookie;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
-import io.vertx.ext.web.Cookie;
-import io.vertx.ext.web.handler.CookieHandler;
 
 @RunWith(VertxUnitRunner.class)
 public class CookieTest extends BaseScenarioTest {
    @Override
    protected void initRouter() {
-      router.route().handler(CookieHandler.create());
       router.route("/test1").handler(ctx -> {
          ctx.addCookie(Cookie.cookie("foo", "bar"));
          ctx.response().end("Hello!");

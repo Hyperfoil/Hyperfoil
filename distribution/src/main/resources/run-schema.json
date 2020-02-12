@@ -1,0 +1,336 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$id": "http://hyperfoil.io/run-schema/0.6",
+  "description": "Hyperfoil run results",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [ "info", "total", "phase" ],
+  "properties": {
+    "$schema": {
+      "description": "This should point to http://hyperfoil.io/run-schema/0.6",
+      "type": "string"
+    },
+    "info": {
+      "description": "General information about the run.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "benchmark",
+        "startTime",
+        "terminateTime"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the run, by convention 4 upper-case hexadecimal digits."
+        },
+        "benchmark": {
+          "type": "string",
+          "description": "Name of the executed benchmark."
+        },
+        "startTime": {
+          "type": "integer",
+          "description": "Run start time in epoch milliseconds, or negative value if the run did not start."
+        },
+        "terminateTime": {
+          "type": "integer",
+          "description": "Run end time in epoch milliseconds, or negative value if the run did not complete."
+        },
+        "description": {
+          "type": [ "string", "null" ],
+          "description": "Arbitrary description of the run (e.g. SUT setup)"
+        },
+        "cancelled": {
+          "type": "boolean",
+          "description": "True if the run was prematurely cancelled."
+        },
+        "errors": {
+          "type": "array",
+          "additionalItems": false,
+          "items": {
+            "type": "string",
+            "description": "Human-readable error message."
+          }
+        }
+      }
+    },
+    "total": {
+      "type": "array",
+      "description": "Aggregated per-phase results.",
+      "additionalItems": false,
+      "items": {
+        "$ref": "#/definitions/phase-stats"
+      }
+    },
+    "failure": {
+      "type": "array",
+      "description": "SLA failures encountered during the run.",
+      "additionalItems": false,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [ "phase", "metric", "message" ],
+        "properties": {
+          "phase": {
+            "type": "string"
+          },
+          "metric": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "start": {
+            "type": "integer"
+          },
+          "end": {
+            "type": "integer"
+          },
+          "percentileResponseTime": {
+            "$ref": "#/definitions/percentiles"
+          }
+        }
+      }
+    },
+    "phase": {
+      "$ref": "#/definitions/phase-detail"
+    },
+    "agent": {
+      "type": "object",
+      "description": "Per-agent statistics",
+      "patternProperties": {
+        ".*": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "total": {
+              "type": "array",
+              "additionalItems": false,
+              "items": {
+                "$ref": "#/definitions/phase-stats"
+              }
+            },
+            "phase": {
+              "$ref": "#/definitions/phase-detail"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "phase-stats": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [ "phase", "metric", "start", "end", "summary"],
+      "properties": {
+        "phase": {
+          "type": "string",
+          "description": "Name of the phase."
+        },
+        "metric": {
+          "type": "string",
+          "description": "Name of the metric."
+        },
+        "start": {
+          "type": "integer",
+          "description": "Phase start timestamp, in epoch milliseconds."
+        },
+        "end": {
+          "type": "integer",
+          "description": "Phase completion timestamp, in epoch milliseconds."
+        },
+        "summary": {
+          "$ref": "#/definitions/summary"
+        },
+        "custom": {
+          "type": "object",
+          "description": "Custom statistics.",
+          "patternProperties": {
+            ".*" : {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "startTime": {
+          "type": "integer"
+        },
+        "endTime": {
+          "type": "integer"
+        },
+        "minResponseTime": {
+          "type": "integer"
+        },
+        "meanResponseTime": {
+          "type": "integer"
+        },
+        "maxResponseTime": {
+          "type": "integer"
+        },
+        "meanSendTime": {
+          "type": "integer"
+        },
+        "percentileResponseTime": {
+          "$ref": "#/definitions/percentiles"
+        },
+        "connectFailureCount": {
+          "type": "integer"
+        },
+        "requestCount": {
+          "type": "integer"
+        },
+        "responseCount": {
+          "type": "integer"
+        },
+        "status_2xx": {
+          "type": "integer"
+        },
+        "status_3xx": {
+          "type": "integer"
+        },
+        "status_4xx": {
+          "type": "integer"
+        },
+        "status_5xx": {
+          "type": "integer"
+        },
+        "status_other": {
+          "type": "integer"
+        },
+        "invalid": {
+          "type": "integer"
+        },
+        "cacheHits": {
+          "type": "integer"
+        },
+        "resetCount": {
+          "type": "integer"
+        },
+        "timeouts": {
+          "type": "integer"
+        },
+        "blockedCount": {
+          "type": "integer"
+        },
+        "blockedTime": {
+          "type": "integer"
+        }
+      }
+    },
+    "percentiles": {
+      "type": "object",
+      "patternProperties": {
+        "[0-9]*.[0-9]*": {
+          "type": "integer"
+        }
+      }
+    },
+    "metric": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "histogram": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "percentiles": {
+              "type": "array",
+              "additionalItems": false,
+              "items": {
+                "$ref": "#/definitions/histogram-bucket"
+              }
+            },
+            "linear": {
+              "type": "array",
+              "additionalItems": false,
+              "items": {
+                "$ref": "#/definitions/histogram-bucket"
+              }
+            }
+          }
+        },
+        "series": {
+          "type": "array",
+          "description": "Statistics for the metric over time.",
+          "additionalItems": false,
+          "items": {
+            "$ref": "#/definitions/summary"
+          }
+        }
+      }
+    },
+    "histogram-bucket": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "from": {
+          "type": "number"
+        },
+        "to": {
+          "type": "number"
+        },
+        "percentile": {
+          "type": "number"
+        },
+        "count": {
+          "type": "integer"
+        },
+        "totalCount": {
+          "type": "integer"
+        }
+      }
+    },
+    "phase-detail": {
+      "type": "object",
+      "description": "Detailed data about phases. Phase names are used as keys.",
+      "patternProperties": {
+        ".*": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "iteration": {
+              "type": "object",
+              "description": "Statistics for iterations of the phase.",
+              "patternProperties": {
+                ".*": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "fork": {
+                      "type": "object",
+                      "description": "Statistics for forks within the phase/iteration.",
+                      "patternProperties": {
+                        ".*": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "properties": {
+                            "metric": {
+                              "type": "object",
+                              "description": "Statistics for metrics.",
+                              "patternProperties": {
+                                ".*": {
+                                  "$ref": "#/definitions/metric"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

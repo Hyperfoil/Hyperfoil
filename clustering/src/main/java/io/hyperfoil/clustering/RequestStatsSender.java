@@ -38,7 +38,7 @@ public class RequestStatsSender extends StatisticsCollector {
          StatisticsSnapshot copy = new StatisticsSnapshot();
          statistics.copyInto(copy);
          countDown.increment();
-         eb.send(Feeds.STATS, new RequestStatsMessage(address, runId, phase.id(), isPhaseComplete, stepId, metric, copy),
+         eb.request(Feeds.STATS, new RequestStatsMessage(address, runId, phase.id(), isPhaseComplete, stepId, metric, copy),
                reply -> countDown.countDown());
       }
    }

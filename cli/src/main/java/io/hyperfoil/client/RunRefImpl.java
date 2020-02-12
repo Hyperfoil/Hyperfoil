@@ -25,6 +25,7 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
+import io.vertx.core.json.jackson.JacksonCodec;
 import io.vertx.ext.web.client.HttpResponse;
 
 public class RunRefImpl implements Client.RunRef {
@@ -77,7 +78,7 @@ public class RunRefImpl implements Client.RunRef {
    public Map<String, Map<String, Client.MinMax>> sessionStatsRecent() {
       return client.sync(
             handler -> client.client.request(HttpMethod.GET, "/run/" + id + "/sessions/recent").send(handler), 200,
-            response -> Json.decodeValue(response.body(), new TypeReference<Map<String, Map<String, Client.MinMax>>>() {})
+            response -> JacksonCodec.decodeValue(response.body(), new TypeReference<Map<String, Map<String, Client.MinMax>>>() {})
       );
    }
 
@@ -85,7 +86,7 @@ public class RunRefImpl implements Client.RunRef {
    public Map<String, Map<String, Client.MinMax>> sessionStatsTotal() {
       return client.sync(
             handler -> client.client.request(HttpMethod.GET, "/run/" + id + "/sessions/total").send(handler), 200,
-            response -> Json.decodeValue(response.body(), new TypeReference<Map<String, Map<String, Client.MinMax>>>() {})
+            response -> JacksonCodec.decodeValue(response.body(), new TypeReference<Map<String, Map<String, Client.MinMax>>>() {})
       );
    }
 
@@ -165,6 +166,6 @@ public class RunRefImpl implements Client.RunRef {
    public Collection<CustomStats> customStats() {
       return client.sync(
             handler -> client.client.request(HttpMethod.GET, "/run/" + id + "/stats/custom").send(handler), 200,
-            response -> Json.decodeValue(response.body(), new TypeReference<Collection<CustomStats>>() {}));
+            response -> JacksonCodec.decodeValue(response.body(), new TypeReference<Collection<CustomStats>>() {}));
    }
 }

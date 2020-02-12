@@ -23,15 +23,16 @@ package io.hyperfoil.cli.commands;
 import io.hyperfoil.api.config.PhaseBuilder;
 
 import org.aesh.command.CommandDefinition;
+import org.aesh.command.option.Option;
 
 
-public class Wrk extends WrkAbstract {
+public class Wrk2 extends WrkAbstract {
 
-   private static final String CMD = "wrk";
+   private static final String CMD = "wrk2";
 
    public static void main(String[] args) {
-      Wrk wrk = new Wrk();
-      wrk.mainMethod(args, Wrk.WrkCommand.class);
+      Wrk2 wrk = new Wrk2();
+      wrk.mainMethod(args, Wrk2.Wrk2Command.class);
    }
 
    @Override
@@ -40,12 +41,17 @@ public class Wrk extends WrkAbstract {
    }
 
    @CommandDefinition(name = CMD, description = "Runs a workload simluation against one endpoint using the same vm")
-   public class WrkCommand extends WrkAbstract.AbstractWrkCommand {
+   public class Wrk2Command extends WrkAbstract.AbstractWrkCommand {
+
+      @Option(shortName = 'R', description = "Work rate (throughput)", required = true)
+      int rate;
 
       @Override
       protected PhaseBuilder<?> phaseConfig(PhaseBuilder.Catalog catalog) {
-         return catalog.always(threads).users(threads); //set number of users to number of threads, same threading model as wrk
+         return catalog.constantPerSec(rate)
+               .maxSessions(rate * 15);
       }
+
    }
 
 }

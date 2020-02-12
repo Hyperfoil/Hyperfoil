@@ -6,6 +6,7 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.hyperfoil.api.BenchmarkExecutionException;
+import io.hyperfoil.api.Version;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.Agent;
 import io.hyperfoil.api.config.Phase;
@@ -30,6 +31,7 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.eventbus.Message;
 import io.vertx.core.impl.VertxInternal;
@@ -64,6 +66,7 @@ import org.infinispan.commons.api.BasicCacheContainer;
 
 public class ControllerVerticle extends AbstractVerticle implements NodeListener {
    private static final Logger log = LoggerFactory.getLogger(ControllerVerticle.class);
+   private static final String RUN_SCHEMA = "http://hyperfoil.io/run-schema/" + Version.VERSION;
 
    private EventBus eb;
    private ControllerServer server;
@@ -237,7 +240,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
    @Override
    public void nodeLeft(String nodeID) {
       for (Run run : runs.values()) {
-         if (run.terminateTime.isComplete()) {
+         if (run.terminateTime.future().isComplete()) {
             continue;
          }
          for (AgentInfo agent : run.agents) {
@@ -289,7 +292,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
    }
 
    @Override
-   public void stop(Future<Void> stopFuture) throws Exception {
+   public void stop(Promise<Void> stopFuture) throws Exception {
       if (deployer != null) {
          deployer.close();
       }
@@ -351,7 +354,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
    String startBenchmark(Run run) {
       Set<String> activeAgents = new HashSet<>();
       for (Run r : runs.values()) {
-         if (!r.terminateTime.isComplete()) {
+         if (!r.terminateTime.future().isComplete()) {
             for (AgentInfo agent : run.agents) {
                activeAgents.add(agent.name);
             }
@@ -413,7 +416,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             log.error("Already initializing {}, status is {}!", agent.deploymentId, agent.status);
          } else {
             agent.status = AgentInfo.Status.INITIALIZING;
-            eb.send(agent.deploymentId, new AgentControlMessage(AgentControlMessage.Command.INITIALIZE, agent.id, run.benchmark), reply -> {
+            eb.request(agent.deploymentId, new AgentControlMessage(AgentControlMessage.Command.INITIALIZE, agent.id, run.benchmark), reply -> {
                if (reply.succeeded()) {
                   agent.status = AgentInfo.Status.INITIALIZED;
                   if (run.agents.stream().allMatch(a -> a.status == AgentInfo.Status.INITIALIZED)) {
@@ -513,7 +516,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
    }
 
    private void stopSimulation(Run run) {
-      if (run.terminateTime.isComplete()) {
+      if (run.terminateTime.future().isComplete()) {
          log.warn("Run already completed.");
          return;
       }
@@ -526,7 +529,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             }
             continue;
          }
-         eb.send(agent.deploymentId, new AgentControlMessage(AgentControlMessage.Command.STOP, agent.id, null), reply -> {
+         eb.request(agent.deploymentId, new AgentControlMessage(AgentControlMessage.Command.STOP, agent.id, null), reply -> {
             if (reply.succeeded()) {
                agent.status = AgentInfo.Status.STOPPED;
                checkAgentsStopped(run);
@@ -562,7 +565,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                .put("id", run.id)
                .put("benchmark", run.benchmark.name())
                .put("startTime", run.startTime)
-               .put("terminateTime", run.terminateTime.result())
+               .put("terminateTime", run.terminateTime.future().result())
                .put("cancelled", run.cancelled)
                .put("description", run.description)
                .put("errors", new JsonArray(run.errors.stream()
@@ -589,6 +592,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             jGenerator.setCodec(new ObjectMapper());
             jGenerator.writeStartObject();
 
+            jGenerator.writeStringField("$id", RUN_SCHEMA);
             jGenerator.writeFieldName("info");
             jGenerator.writeRawValue(info.encode()); // writeObjectField() was encoding info as a POJO not json
 
@@ -674,7 +678,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                }
             }
          }
-         run.terminateTime.setHandler(result -> handler.handle(result.mapEmpty()));
+         run.terminateTime.future().setHandler(result -> handler.handle(result.mapEmpty()));
       } catch (Throwable e) {
          handler.handle(Future.failedFuture(e));
       }
@@ -762,7 +766,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       AtomicInteger agentCounter = new AtomicInteger(1);
       for (AgentInfo agent : run.agents) {
          agentCounter.incrementAndGet();
-         eb.send(agent.deploymentId, new AgentControlMessage(command, agent.id, param), result -> {
+         eb.request(agent.deploymentId, new AgentControlMessage(command, agent.id, param), result -> {
             if (result.failed()) {
                log.error("Failed to retrieve sessions", result.cause());
                completionHandler.handle(Future.failedFuture(result.cause()));
