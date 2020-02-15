@@ -7,7 +7,6 @@ import org.slf4j.LoggerFactory;
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Name;
-import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.processor.RequestProcessorBuilder;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
@@ -37,14 +36,10 @@ public class DefaultHandler extends DefragProcessor{
         }
 
         @Override
-        public DefaultHandler build() {
+        public DefaultHandler build(boolean fragmented) {
             // TODO Auto-generated method stub
-            return new DefaultHandler(processor.build());
+            return new DefaultHandler(processor.build(fragmented));
         }
-
-        public Builder processor(Processor<Request> processor) {
-            return processor(() -> processor);
-         }
 
          public Builder processor(RequestProcessorBuilder processor) {
             this.processor = processor;

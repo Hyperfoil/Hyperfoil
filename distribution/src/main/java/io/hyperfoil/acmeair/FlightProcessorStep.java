@@ -1,6 +1,5 @@
 package io.hyperfoil.acmeair;
 
-import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
 
@@ -75,7 +74,7 @@ public class FlightProcessorStep implements Step, ResourceUtilizer {
         retFlightSegId.declareObject(session);
     }
 
-    private static class FlightContext  implements Serializable {
+    private class FlightContext {
         private String toFlightId;
         private String toFlightSegId;
         private String retFlightId;

@@ -65,6 +65,8 @@ public class StoreHeaderHandler implements HeaderHandler, ResourceUtilizer {
         if (HttpHeaderNames.SET_COOKIE.regionMatches(true, 0, header, 0, Math.min(header.length(), HttpHeaderNames.SET_COOKIE.length()))) {
 
             log.debug("StoreHeaderHandler.Builder.handleHeader cookie key ###" +  name + "###");
+            log.debug("StoreHeaderHandler.Builder.handleHeader header ###" +  header + "###");
+            log.debug("StoreHeaderHandler.Builder.handleHeader value ###" +  value + "###");
 
 
             if (value.toString().contains(name)) {
@@ -75,6 +77,9 @@ public class StoreHeaderHandler implements HeaderHandler, ResourceUtilizer {
                 if (matcher.find()) {
                     log.debug("StoreHeaderHandler.Builder.handleHeader " + name + " ###" +  matcher.group(1) + "###");
                     toVar.setObject(request.session, matcher.group(1));
+                } else {
+                    log.debug("StoreHeaderHandler.Builder.handleHeader match not found for " + name + " ###" +  value + "###");
+                    toVar.setObject(request.session, "");
                 }
             }
         }

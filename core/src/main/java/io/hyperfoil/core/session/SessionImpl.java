@@ -55,6 +55,7 @@ class SessionImpl implements Session, Callable<Void> {
    private final int uniqueId;
 
    SessionImpl(Scenario scenario, int agentId, int threadId, int uniqueId, Clock clock) {
+       log.debug("SessionImpl scenario maxSequences ###" +  scenario.maxSequences() + "###");
       this.sequencePool = new LimitedPool<>(scenario.maxSequences(), SequenceInstance::new);
       this.agentId = agentId;
       this.threadId = threadId;

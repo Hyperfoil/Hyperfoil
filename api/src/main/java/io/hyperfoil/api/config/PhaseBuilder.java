@@ -38,7 +38,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
 
    public static Phase.Noop noop(SerializableSupplier<Benchmark> benchmark, int id, int iteration, String iterationName, List<String> startAfter, List<String> startAfterStrict, List<String> terminateAfterStrict) {
       FutureSupplier<Phase> ps = new FutureSupplier<>();
-      Scenario scenario = new Scenario(new Sequence[0], new Sequence[0], new String[0], new String[0]);
+      Scenario scenario = new Scenario(new Sequence[0], new Sequence[0], new String[0], new String[0], 16, 16);
       Phase.Noop phase = new Phase.Noop(benchmark, id, iteration, iterationName, startAfter, startAfterStrict, terminateAfterStrict, scenario);
       ps.set(phase);
       return phase;
