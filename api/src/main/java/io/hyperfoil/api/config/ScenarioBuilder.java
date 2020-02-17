@@ -37,6 +37,9 @@ public class ScenarioBuilder implements Rewritable<ScenarioBuilder> {
    private Collection<String> objectVars = new ArrayList<>();
    private Collection<String> intVars = new ArrayList<>();
    private Scenario scenario;
+   private int maxRequests = 16;
+   private int maxSequences = 16;
+
 
    ScenarioBuilder(PhaseBuilder<?> phaseBuilder) {
       this.phaseBuilder = phaseBuilder;
@@ -88,6 +91,16 @@ public class ScenarioBuilder implements Rewritable<ScenarioBuilder> {
       return this;
    }
 
+   public ScenarioBuilder maxRequests(int maxRequests) {
+      this.maxRequests = maxRequests;
+      return this;
+   }
+
+   public ScenarioBuilder maxSequences(int maxSequences) {
+      this.maxSequences = maxSequences;
+      return this;
+   }
+
    public void prepareBuild() {
       new ArrayList<>(sequences).forEach(SequenceBuilder::prepareBuild);
    }
@@ -103,7 +116,9 @@ public class ScenarioBuilder implements Rewritable<ScenarioBuilder> {
             initialSequences.stream().map(sequenceBuilder -> sequenceBuilder.build(phase)).toArray(Sequence[]::new),
             sequences.stream().map(sequenceBuilder1 -> sequenceBuilder1.build(phase)).toArray(Sequence[]::new),
             objectVars.toArray(new String[0]),
-            intVars.toArray(new String[0]));
+            intVars.toArray(new String[0]),
+            maxRequests,
+            maxSequences);
    }
 
    @Override

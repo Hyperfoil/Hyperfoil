@@ -30,12 +30,16 @@ public class Scenario implements Serializable {
    private final String[] objectVars;
    private final String[] intVars;
    private final Map<String, Sequence> sequenceMap;
+   private int maxRequests;
+   private int maxSequences;
 
-   public Scenario(Sequence[] initialSequences, Sequence[] sequences, String[] objectVars, String[] intVars) {
+   public Scenario(Sequence[] initialSequences, Sequence[] sequences, String[] objectVars, String[] intVars, int maxRequests, int maxSequences) {
       this.initialSequences = initialSequences;
       this.sequences = sequences;
       this.objectVars = objectVars;
       this.intVars = intVars;
+      this.maxRequests = maxRequests;
+      this.maxSequences = maxSequences;
       sequenceMap = Stream.of(sequences).collect(Collectors.toMap(s -> s.name(), Function.identity()));
    }
 
@@ -56,13 +60,11 @@ public class Scenario implements Serializable {
    }
 
    public int maxRequests() {
-      // TODO
-      return 16;
+      return maxRequests;
    }
 
    public int maxSequences() {
-      // TODO
-      return 16;
+      return maxSequences;
    }
 
    public Sequence sequence(String name) {

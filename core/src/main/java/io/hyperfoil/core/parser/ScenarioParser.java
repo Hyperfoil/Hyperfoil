@@ -31,6 +31,8 @@ class ScenarioParser extends AbstractParser<ScenarioBuilder, ScenarioBuilder> {
       register("orderedSequences", new OrderedSequenceParser());
       register("intVars", new VarParser(ScenarioBuilder::intVar));
       register("objectVars", new VarParser(ScenarioBuilder::objectVar));
+      register("maxSequences", new PropertyParser.Int<>(ScenarioBuilder::maxSequences));
+      register("maxRequests", new PropertyParser.Int<>(ScenarioBuilder::maxRequests));
    }
 
    @Override
