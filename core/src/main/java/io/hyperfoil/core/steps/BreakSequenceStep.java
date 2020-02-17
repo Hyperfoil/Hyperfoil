@@ -55,13 +55,14 @@ public class BreakSequenceStep extends DependencyStep {
 
       @Override
       public Builder setLocator(Locator locator) {
-         this.locator = locator;
+         this.locator = Locator.get(this, locator);
          return this;
       }
 
       @Override
       public Builder copy(Locator locator) {
-         return new Builder().setLocator(locator).condition(condition).onBreak(onBreak);
+         Builder newBuilder = new Builder();
+         return newBuilder.setLocator(Locator.get(newBuilder, locator)).condition(condition).onBreak(onBreak);
       }
 
       public Builder condition(Condition.Builder condition) {

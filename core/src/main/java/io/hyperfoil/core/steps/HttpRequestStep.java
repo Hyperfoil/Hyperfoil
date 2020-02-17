@@ -645,7 +645,9 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
 
       @Override
       public Builder copy(Locator locator) {
-         Builder newBuilder = new Builder().setLocator(locator)
+         Builder newBuilder = new Builder();
+         locator = Locator.get(newBuilder, locator);
+         newBuilder.setLocator(locator)
                .method(method)
                .authority(authority)
                .path(path)

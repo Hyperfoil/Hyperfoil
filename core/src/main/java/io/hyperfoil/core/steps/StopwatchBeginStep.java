@@ -65,13 +65,15 @@ public class StopwatchBeginStep implements Step, ResourceUtilizer {
 
       @Override
       public Builder setLocator(Locator locator) {
-         this.locator = locator;
+         this.locator = Locator.get(this, locator);
          return this;
       }
 
       @Override
       public Builder copy(Locator locator) {
-         return new Builder(parent);
+         Builder newBuilder = new Builder(parent);
+         newBuilder.setLocator(Locator.get(newBuilder, locator));
+         return newBuilder;
       }
 
       @Override
