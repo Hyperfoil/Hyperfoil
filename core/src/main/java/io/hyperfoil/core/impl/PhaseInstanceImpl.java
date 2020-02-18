@@ -78,8 +78,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       status = Status.RUNNING;
       absoluteStartTime = System.currentTimeMillis();
       log.debug("{} changing status to RUNNING", def.name);
-      phaseChangeHandler.onChange(def, Status.RUNNING, false, error);
-      proceed(executorGroup);
+      phaseChangeHandler.onChange(def, Status.RUNNING, false, error).thenRun(() -> proceed(executorGroup));
    }
 
    @Override

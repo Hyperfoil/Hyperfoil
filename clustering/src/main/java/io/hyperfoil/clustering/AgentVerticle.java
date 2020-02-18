@@ -12,6 +12,7 @@ import io.hyperfoil.core.util.CountDown;
 import io.hyperfoil.core.impl.SimulationRunnerImpl;
 import io.hyperfoil.clustering.messages.PhaseChangeMessage;
 import io.hyperfoil.clustering.messages.PhaseControlMessage;
+import io.hyperfoil.core.util.Util;
 import io.hyperfoil.internal.Properties;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.AsyncResult;
@@ -226,6 +227,7 @@ public class AgentVerticle extends AbstractVerticle {
                requestStatsSender.send(true, statisticsCountDown);
             });
          }
+         return Util.COMPLETED_VOID_FUTURE;
       });
 
       runner.init(result -> {

@@ -1,5 +1,6 @@
 package io.hyperfoil.core.impl;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
@@ -102,17 +103,18 @@ public class LocalSimulationRunner extends SimulationRunnerImpl {
    }
 
    @Override
-   protected void phaseChanged(Phase phase, PhaseInstance.Status status, boolean sessionLimitExceeded, Throwable error) {
-      super.phaseChanged(phase, status, sessionLimitExceeded, error);
-      if (status == PhaseInstance.Status.TERMINATED) {
-         publishStats(phase);
-      }
-      statusLock.lock();
-      try {
-         statusCondition.signal();
-      } finally {
-         statusLock.unlock();
-      }
+   protected CompletableFuture<Void> phaseChanged(Phase phase, PhaseInstance.Status status, boolean sessionLimitExceeded, Throwable error) {
+      return super.phaseChanged(phase, status, sessionLimitExceeded, error).thenRun(() -> {
+         if (status == PhaseInstance.Status.TERMINATED) {
+            publishStats(phase);
+         }
+         statusLock.lock();
+         try {
+            statusCondition.signal();
+         } finally {
+            statusLock.unlock();
+         }
+      });
    }
 
    private void publishStats(Phase phase) {

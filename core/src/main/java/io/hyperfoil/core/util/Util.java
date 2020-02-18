@@ -11,10 +11,13 @@ import java.nio.charset.StandardCharsets;
 import java.util.BitSet;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 import io.netty.buffer.ByteBuf;
 
 public class Util {
+   public static final CompletableFuture<Void> COMPLETED_VOID_FUTURE = CompletableFuture.completedFuture(null);
+
    private Util() {}
 
    public static boolean compareIgnoreCase(byte b1, byte b2) {

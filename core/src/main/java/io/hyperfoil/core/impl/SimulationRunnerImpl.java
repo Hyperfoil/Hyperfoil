@@ -7,6 +7,7 @@ import io.hyperfoil.api.statistics.SessionStatistics;
 import io.hyperfoil.core.client.netty.HttpDestinationTableImpl;
 import io.hyperfoil.core.client.netty.PrivateConnectionPool;
 import io.hyperfoil.core.session.SharedDataImpl;
+import io.hyperfoil.core.util.Util;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.util.concurrent.EventExecutor;
 import io.hyperfoil.api.config.Http;
@@ -36,7 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -180,31 +181,44 @@ public class SimulationRunnerImpl implements SimulationRunner {
       });
    }
 
-   protected void phaseChanged(Phase phase, PhaseInstance.Status status, boolean sessionLimitExceeded, Throwable error) {
+   protected CompletableFuture<Void> phaseChanged(Phase phase, PhaseInstance.Status status, boolean sessionLimitExceeded, Throwable error) {
       if (status == PhaseInstance.Status.TERMINATED) {
-         SharedResources resources = this.sharedResources.get(phase.sharedResources);
-         if (resources != null && resources.statistics != null) {
-            long now = System.currentTimeMillis();
-            for (int i = 0; i < executors.length; ++i) {
-               SessionStatistics statistics = resources.statistics[i];
-               if (executors[i].inEventLoop()) {
+         return terminateStatistics(phase).whenComplete(
+               (nil, e) -> notifyAndScheduleForPruning(phase, status, sessionLimitExceeded, error != null ? error : e));
+      } else {
+         notifyAndScheduleForPruning(phase, status, sessionLimitExceeded, error);
+         return Util.COMPLETED_VOID_FUTURE;
+      }
+   }
+
+   private CompletableFuture<Void> terminateStatistics(Phase phase) {
+      SharedResources resources = this.sharedResources.get(phase.sharedResources);
+      if (resources == null || resources.statistics == null) {
+         return Util.COMPLETED_VOID_FUTURE;
+      }
+      List<CompletableFuture<Void>> futures = new ArrayList<>(executors.length);
+      long now = System.currentTimeMillis();
+      for (int i = 0; i < executors.length; ++i) {
+         SessionStatistics statistics = resources.statistics[i];
+         if (executors[i].inEventLoop()) {
+            applyToPhase(statistics, phase, now, Statistics::end);
+         } else {
+            CompletableFuture<Void> cf = new CompletableFuture<>();
+            futures.add(cf);
+            executors[i].execute(() -> {
+               try {
                   applyToPhase(statistics, phase, now, Statistics::end);
-               } else {
-                  try {
-                     executors[i].submit(() -> applyToPhase(statistics, phase, now, Statistics::end)).get();
-                  } catch (InterruptedException e) {
-                     Thread.currentThread().interrupt();
-                     log.error("Interrupted waiting for statistics.end()");
-                  } catch (ExecutionException e) {
-                     log.error("Failed to end statistics!", e);
-                     if (error == null) {
-                        error = e;
-                     }
-                  }
+                  cf.complete(null);
+               } catch (Throwable t) {
+                  cf.completeExceptionally(t);
                }
-            }
+            });
          }
       }
+      return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+   }
+
+   private void notifyAndScheduleForPruning(Phase phase, PhaseInstance.Status status, boolean sessionLimitExceeded, Throwable error) {
       if (phaseChangeHandler != null) {
          phaseChangeHandler.onChange(phase, status, sessionLimitExceeded, error);
       }
