@@ -49,6 +49,7 @@ import org.aesh.command.impl.registry.AeshCommandRegistryBuilder;
 import org.aesh.command.invocation.CommandInvocation;
 import org.aesh.command.option.Argument;
 import org.aesh.command.option.Option;
+import org.aesh.command.option.OptionGroup;
 import org.aesh.command.option.OptionList;
 import org.aesh.terminal.utils.ANSI;
 import org.aesh.terminal.utils.Config;
@@ -62,6 +63,7 @@ import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static io.hyperfoil.core.builders.StepCatalog.SC;
 import static io.vertx.core.logging.LoggerFactory.LOGGER_DELEGATE_FACTORY_CLASS_NAME;
@@ -142,8 +144,8 @@ public abstract class WrkAbstract {
       @Option(description = "Record a timeout if a response is not received within this amount of time.", defaultValue = "60s")
       String timeout;
 
-      @Option(shortName = 'a', description = "Inline definition of agent executing the test. By default assuming non-clustered mode.")
-      String agent;
+      @OptionGroup(shortName = 'A', description = "Inline definition of agent executing the test. By default assuming non-clustered mode.")
+      Map<String, String> agent;
 
       @Argument(description = "URL that should be accessed", required = true)
       String url;
@@ -204,8 +206,13 @@ public abstract class WrkAbstract {
                .endHttp()
                .threads(this.threads);
          // @formatter:on
-         if (agent != null && !agent.isEmpty()) {
-            builder.addAgent("wrk-agent", agent, null);
+         if (agent != null) {
+            for (Map.Entry<String, String> agent : agent.entrySet()) {
+               Map<String, String> properties = Stream.of(agent.getValue().split(","))
+                     .map(property -> property.split("=", 2))
+                     .collect(Collectors.toMap(keyValue -> keyValue[0], keyValue -> keyValue[1]));
+               builder.addAgent(agent.getKey(), null, properties);
+            }
          }
 
          addPhase(builder, "calibration", "6s");

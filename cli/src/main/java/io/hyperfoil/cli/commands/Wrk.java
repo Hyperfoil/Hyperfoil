@@ -44,7 +44,7 @@ public class Wrk extends WrkAbstract {
 
       @Override
       protected PhaseBuilder<?> phaseConfig(PhaseBuilder.Catalog catalog) {
-         return catalog.always(threads).users(threads); //set number of users to number of threads, same threading model as wrk
+         return catalog.always(connections);
       }
    }
 
