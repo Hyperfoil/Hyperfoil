@@ -268,7 +268,7 @@ class SessionImpl implements Session, Callable<Void> {
                if (trace) {
                   log.trace("#{} Session terminated", uniqueId);
                }
-               phase.notifyTerminated(this);
+               phase.notifyFinished(this);
                return;
             } else if (lastProgressedSequence == i) {
                break;
@@ -417,7 +417,7 @@ class SessionImpl implements Session, Callable<Void> {
       if (trace) {
          log.trace("#{} Stopped.", uniqueId);
       }
-      phase.notifyTerminated(this);
+      phase.notifyFinished(this);
    }
 
    @Override

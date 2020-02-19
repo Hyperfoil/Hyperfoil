@@ -30,8 +30,6 @@ public interface PhaseInstance {
 
    void notifyFinished(Session session);
 
-   void notifyTerminated(Session session);
-
    void setTerminated();
 
    void fail(Throwable error);

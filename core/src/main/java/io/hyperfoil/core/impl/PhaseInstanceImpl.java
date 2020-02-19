@@ -142,19 +142,6 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
    }
 
    @Override
-   public void notifyTerminated(Session session) {
-      int numActive = activeSessions.decrementAndGet();
-      if (trace) {
-         log.trace("{} has {} active sessions", def.name, numActive);
-      }
-      if (numActive < 0)
-         log.error("{} has {} active sessions", def.name, numActive);
-      if (numActive == 0 && status.isFinished() && activeSessions.compareAndSet(0, Integer.MIN_VALUE)) {
-         setTerminated();
-      }
-   }
-
-   @Override
    public void setTerminated() {
       status = Status.TERMINATED;
       log.debug("{} changing status to TERMINATED", def.name);
