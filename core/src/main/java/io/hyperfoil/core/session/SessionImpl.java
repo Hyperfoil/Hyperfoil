@@ -273,13 +273,22 @@ class SessionImpl implements Session, Callable<Void> {
             } else if (lastProgressedSequence == i) {
                break;
             }
-            currentSequence(runningSequences[i]);
-            if (runningSequences[i].progress(this)) {
+            SequenceInstance sequence = runningSequences[i];
+            if (sequence == null) {
+               // This may happen when the session.stop() is called
+               continue;
+            }
+            currentSequence(sequence);
+            if (sequence.progress(this)) {
                progressed = true;
                lastProgressedSequence = i;
-               if (runningSequences[i].isCompleted()) {
-                  sequencePool.release(runningSequences[i]);
-                  if (i == lastRunningSequence) {
+               if (sequence.isCompleted()) {
+                  if (trace) {
+                     log.trace("#{} Completed {}", uniqueId, sequence);
+                  }
+                  sequencePool.release(sequence);
+                  // The check includes a case when we've set lastRunningSequence to -1
+                  if (i >= lastRunningSequence) {
                      runningSequences[i] = null;
                   } else {
                      runningSequences[i] = runningSequences[lastRunningSequence];
@@ -414,6 +423,7 @@ class SessionImpl implements Session, Callable<Void> {
          runningSequences[i] = null;
       }
       lastRunningSequence = -1;
+      currentSequence(null);
       if (trace) {
          log.trace("#{} Stopped.", uniqueId);
       }
