@@ -4,6 +4,7 @@ import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.connection.HttpConnection;
 import io.hyperfoil.core.util.Util;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufUtil;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaderValues;
@@ -285,16 +286,32 @@ public class Http1xRawBytesHandler extends BaseRawBytesHandler {
       int value = 0;
       for (; index < buf.writerIndex(); ++index) {
          byte b = buf.getByte(index);
-         if ((b < '0' || b > '9') && (b < 'a' || b > 'f')) {
+         int v = toHex((char) b);
+         if (v < 0) {
             if (b != CR) {
+               log.error("Error reading buffer, starting from {}, current index {} (char: {}), status {}: {}",
+                     buf.readerIndex(), index, b, this,
+                     ByteBufUtil.prettyHexDump(buf, buf.readerIndex(), buf.readableBytes()));
                throw new IllegalStateException("Part size must be followed by CRLF!");
             }
             return value;
          }
-         value = value * 16 + (b > '9' ? (b - 'a') + 10 : (b - '0'));
+         value = value * 16 + v;
       }
       // we expect that we've read the <CR><LF> and we should see them
       throw new IllegalStateException();
+   }
+
+   private int toHex(char c) {
+      if (c >= '0' && c <= '9') {
+         return c - '0';
+      } else if (c >= 'a' && c <= 'f') {
+         return c - 'a' + 10;
+      } else if (c >= 'A' && c <= 'F') {
+         return c - 'A' + 10;
+      } else {
+         return -1;
+      }
    }
 
    private int readDecNumber(ByteBuf buf, int index) {
