@@ -35,6 +35,7 @@ import io.hyperfoil.core.http.CookieAppender;
 import io.hyperfoil.core.http.HttpUtil;
 import io.hyperfoil.core.http.UserAgentAppender;
 import io.hyperfoil.core.session.SessionFactory;
+import io.hyperfoil.core.util.ConstantBytesGenerator;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.hyperfoil.api.config.PairBuilder;
@@ -453,8 +454,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
        * @return Self.
        */
       public Builder body(String string) {
-         ByteBuf buf = Unpooled.wrappedBuffer(string.getBytes(StandardCharsets.UTF_8));
-         return body((s, c) -> buf);
+         return body(new ConstantBytesGenerator(string.getBytes(StandardCharsets.UTF_8)));
       }
 
       /**
@@ -859,8 +859,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
        * @return Self.
        */
       public BodyBuilder text(String text) {
-         byte[] bytes = text.getBytes(StandardCharsets.UTF_8);
-         parent.body(((session, connection) -> Unpooled.wrappedBuffer(bytes)));
+         parent.body(new ConstantBytesGenerator(text.getBytes(StandardCharsets.UTF_8)));
          return this;
       }
 
