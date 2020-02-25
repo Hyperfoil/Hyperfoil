@@ -156,7 +156,7 @@ public class Http1xRawBytesHandler extends BaseRawBytesHandler {
                   }
                }
                if (contentLength >= 0) {
-                  responseBytes = contentLength + 1;
+                  responseBytes = readerIndex - buf.readerIndex() + contentLength + 1;
                   reset();
                   handleBuffer(ctx, buf, 0);
                   // handleBuffer calls channelRead recursively so we must not continue reading here
