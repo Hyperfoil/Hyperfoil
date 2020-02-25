@@ -34,6 +34,9 @@ public class SequenceInstance {
                }
                return progressed;
             }
+         } catch (SessionStopException e) {
+            // just rethrow
+            throw e;
          } catch (Throwable t) {
             log.error("#{} {}({}) failure invoking step {}", t, session.uniqueId(), name, index, step);
             session.fail(t);

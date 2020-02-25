@@ -4,6 +4,7 @@ import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.connection.HttpDestinationTable;
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.http.HttpCache;
+import io.hyperfoil.api.session.SessionStopException;
 import io.hyperfoil.api.session.SharedData;
 import io.hyperfoil.api.statistics.SessionStatistics;
 import io.hyperfoil.core.http.HttpCacheImpl;
@@ -226,6 +227,9 @@ class SessionImpl implements Session, Callable<Void> {
    public Void call() {
       try {
          runSession();
+      } catch (SessionStopException e) {
+         log.trace("#{} Session was stopped.", uniqueId);
+         // this one is OK
       } catch (Throwable t) {
          log.error("#{} Uncaught error", t, uniqueId);
          if (phase != null) {
@@ -259,16 +263,7 @@ class SessionImpl implements Session, Callable<Void> {
                if (trace) {
                   log.trace("#{} Phase {} is terminating", uniqueId, phase.definition().name());
                }
-               for (int j = 0; j <= lastRunningSequence; ++j) {
-                  sequencePool.release(runningSequences[j]);
-               }
-               lastRunningSequence = -1;
-               cancelRequests();
-               reset();
-               if (trace) {
-                  log.trace("#{} Session terminated", uniqueId);
-               }
-               phase.notifyFinished(this);
+               stop();
                return;
             } else if (lastProgressedSequence == i) {
                break;
@@ -286,8 +281,11 @@ class SessionImpl implements Session, Callable<Void> {
                   if (trace) {
                      log.trace("#{} Completed {}", uniqueId, sequence);
                   }
+                  if (lastRunningSequence == -1) {
+                     log.trace("#{} was stopped.");
+                     return;
+                  }
                   sequencePool.release(sequence);
-                  // The check includes a case when we've set lastRunningSequence to -1
                   if (i >= lastRunningSequence) {
                      runningSequences[i] = null;
                   } else {
@@ -313,7 +311,6 @@ class SessionImpl implements Session, Callable<Void> {
       if (!requestPool.isFull()) {
          log.warn("#{} Session completed with requests in-flight!", uniqueId);
          cancelRequests();
-
       }
       reset();
       phase.notifyFinished(this);
@@ -329,9 +326,10 @@ class SessionImpl implements Session, Callable<Void> {
                   log.trace("Canceling request on {}", request.connection());
                }
                request.connection().close();
-               // Connection close should complete the request
                if (!request.isCompleted()) {
-                  log.warn("#{} Connection close should have completed the request!", request.session != null ? request.session.uniqueId() : 0);
+                  // Connection.close() cancels everything in flight but if this is called
+                  // from handleEnd() the request is not in flight anymore
+                  log.trace("#{} Connection close did not completed the request.", request.session != null ? request.session.uniqueId() : 0);
                   request.setCompleted();
                   requestPool.release(request);
                }
@@ -422,11 +420,14 @@ class SessionImpl implements Session, Callable<Void> {
          runningSequences[i] = null;
       }
       lastRunningSequence = -1;
-      currentSequence(null);
+      currentSequence = null;
       if (trace) {
-         log.trace("#{} Stopped.", uniqueId);
+         log.trace("#{} Session stopped.", uniqueId);
       }
+      cancelRequests();
+      reset();
       phase.notifyFinished(this);
+      throw SessionStopException.INSTANCE;
    }
 
    @Override
@@ -476,4 +477,5 @@ class SessionImpl implements Session, Callable<Void> {
       }
       return sb.toString();
    }
+
 }

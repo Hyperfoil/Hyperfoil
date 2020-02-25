@@ -134,8 +134,9 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       if (trace) {
          log.trace("#{} NotifyFinished, {} has {} active sessions", session == null ? -1 : session.uniqueId(), def.name, numActive);
       }
-      if (numActive < 0)
-         log.error("{} has {} active sessions", def.name, numActive);
+      if (numActive < 0) {
+         throw new IllegalStateException(def.name + " has " + numActive + " active sessions");
+      }
       if (numActive == 0 && status.isFinished() && activeSessions.compareAndSet(0, Integer.MIN_VALUE)) {
          setTerminated();
       }

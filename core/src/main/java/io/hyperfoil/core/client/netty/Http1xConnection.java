@@ -1,6 +1,7 @@
 package io.hyperfoil.core.client.netty;
 
 import io.hyperfoil.api.connection.HttpRequest;
+import io.hyperfoil.api.session.SessionStopException;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelPromise;
 import io.netty.handler.codec.http.HttpContent;
@@ -98,6 +99,8 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
                   for (Map.Entry<String, String> header : response.headers()) {
                      handlers.handleHeader(request, header.getKey(), header.getValue());
                   }
+               } catch (SessionStopException e) {
+                  log.trace("Stopped processing as the session was stopped.");
                } catch (Throwable t) {
                   log.error("Response processing failed on {}", t, this);
                   handlers.handleThrowable(request, t);
@@ -112,6 +115,8 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
                try {
                   ByteBuf data = ((HttpContent) msg).content();
                   handlers.handleBodyPart(request, data, data.readerIndex(), data.readableBytes(), msg instanceof LastHttpContent);
+               } catch (SessionStopException e) {
+                  log.trace("Stopped processing as the session was stopped.");
                } catch (Throwable t) {
                   log.error("Response processing failed on {}", t, this);
                   handlers.handleThrowable(request, t);
@@ -133,6 +138,8 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
                   if (trace) {
                      log.trace("Completed response on {}", this);
                   }
+               } catch (SessionStopException e) {
+                  log.trace("Stopped processing as the session was stopped.");
                } catch (Throwable t) {
                   log.error("Response processing failed on {}", t, this);
                   request.handlers().handleThrowable(request, t);
