@@ -40,9 +40,6 @@ public abstract class Phase implements Serializable {
       this.startTime = startTime;
       this.duration = duration;
       this.sharedResources = sharedResources;
-      if (duration < 0) {
-         throw new BenchmarkDefinitionException("Duration was not set for phase '" + name + "'");
-      }
       if (scenario == null) {
          throw new BenchmarkDefinitionException("Scenario was not set for phase '" + name + "'");
       }
@@ -141,6 +138,9 @@ public abstract class Phase implements Serializable {
                     Collection<String> startAfter, Collection<String> startAfterStrict,
                     Collection<String> terminateAfterStrict, long duration, long maxDuration, String sharedResources, int users) {
          super(benchmark, id, iteration, name, scenario, startTime, startAfter, startAfterStrict, terminateAfterStrict, duration, maxDuration, sharedResources);
+         if (duration < 0) {
+            throw new BenchmarkDefinitionException("Duration was not set for phase '" + name + "'");
+         }
          this.users = users;
       }
 
@@ -172,6 +172,9 @@ public abstract class Phase implements Serializable {
          this.variance = variance;
          this.maxSessions = maxSessions;
          this.sessionLimitPolicy = sessionLimitPolicy;
+         if (duration < 0) {
+            throw new BenchmarkDefinitionException("Duration was not set for phase '" + name + "'");
+         }
       }
    }
 

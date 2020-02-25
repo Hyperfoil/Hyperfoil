@@ -78,11 +78,11 @@ public abstract class BaseScenarioTest {
    }
 
    protected ScenarioBuilder scenario(int repeats) {
-      return benchmarkBuilder.addPhase("test").sequentially(repeats).duration(1).scenario();
+      return benchmarkBuilder.addPhase("test").sequentially(repeats).scenario();
    }
 
    protected ScenarioBuilder parallelScenario(int concurrency) {
-      return benchmarkBuilder.addPhase("test").atOnce(concurrency).duration(1).scenario();
+      return benchmarkBuilder.addPhase("test").atOnce(concurrency).scenario();
    }
 
    protected int threads() {
