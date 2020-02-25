@@ -107,6 +107,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
    @Override
    public void handleHeader(HttpRequest request, CharSequence header, CharSequence value) {
       Session session = request.session;
+      session.currentSequence(request.sequence());
       if (request.isCompleted()) {
          if (trace) {
             log.trace("#{} Ignoring header on a failed request: {}: {}", session.uniqueId(), header, value);
@@ -133,6 +134,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
    @Override
    public void handleThrowable(HttpRequest request, Throwable throwable) {
       Session session = request.session;
+      session.currentSequence(request.sequence());
       if (trace) {
          log.trace("#{} Received exception {}", session.uniqueId(), throwable);
       }
@@ -151,13 +153,13 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       request.statistics().incrementResets(request.startTimestampMillis());
       request.setCompleted();
       session.httpRequestPool().release(request);
-      session.currentSequence(null);
       session.proceed();
    }
 
    @Override
    public void handleBodyPart(HttpRequest request, ByteBuf data, int offset, int length, boolean isLastPart) {
       Session session = request.session;
+      session.currentSequence(request.sequence());
       if (request.isCompleted()) {
          if (trace) {
             log.trace("#{} Ignoring body part ({} bytes) on a failed request.", session.uniqueId(), data.readableBytes());
@@ -187,6 +189,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
    @Override
    public void handleEnd(HttpRequest request, boolean executed) {
       Session session = request.session;
+      session.currentSequence(request.sequence());
       if (request.isCompleted()) {
          if (trace) {
             log.trace("#{} Request has been already completed.", session.uniqueId());
@@ -225,7 +228,6 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       }
       request.setCompleted();
       session.httpRequestPool().release(request);
-      session.currentSequence(null);
       // if anything was blocking due to full request queue we should continue from the right place
       session.proceed();
    }

@@ -22,6 +22,7 @@ import io.hyperfoil.core.VertxBaseTest;
 import io.hyperfoil.core.client.netty.HttpClientPoolImpl;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.steps.HttpResponseHandlersImpl;
+import io.hyperfoil.core.test.TestUtil;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.unit.Async;
@@ -87,19 +88,10 @@ public class RawBytesHandlerTest extends VertxBaseTest {
       ThreadLocalRandom rand = ThreadLocalRandom.current();
       int headers = rand.nextInt(10);
       for (int i = 0; i < headers; ++i) {
-         request.response().putHeader("x-foobar-" + i, randomString(rand, 100));
+         request.response().putHeader("x-foobar-" + i, TestUtil.randomString(rand, 100));
       }
       request.response().setChunked(true);
-      request.response().end(randomString(rand, 2000));
-   }
-
-   private String randomString(ThreadLocalRandom rand, int maxLength) {
-      int length = rand.nextInt(maxLength);
-      char[] chars = new char[length];
-      for (int i = 0; i < length; ++i) {
-         chars[i] = (char) rand.nextInt('a', 'z' + 1);
-      }
-      return String.valueOf(chars);
+      request.response().end(TestUtil.randomString(rand, 2000));
    }
 
 }

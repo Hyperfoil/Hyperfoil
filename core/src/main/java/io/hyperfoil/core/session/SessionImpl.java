@@ -345,7 +345,6 @@ class SessionImpl implements Session, Callable<Void> {
       if (trace) {
          log.trace("#{} Changing sequence {} -> {}", uniqueId, currentSequence, current);
       }
-      assert current == null || currentSequence == null;
       currentSequence = current;
    }
 

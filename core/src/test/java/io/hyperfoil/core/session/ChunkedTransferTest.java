@@ -5,13 +5,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import io.hyperfoil.api.config.BaseSequenceBuilder;
+import io.hyperfoil.api.connection.HttpConnection;
+import io.hyperfoil.core.test.TestUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.CompositeByteBuf;
+import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.hyperfoil.api.http.HttpMethod;
@@ -42,6 +48,14 @@ public class ChunkedTransferTest extends BaseScenarioTest {
       router.route("/test2").handler(ctx -> {
          ctx.response().end(SHIBBOLETH);
       });
+      router.route("/test3").handler(ctx -> {
+         HttpServerResponse response = ctx.response().setChunked(true);
+         ThreadLocalRandom rand = ThreadLocalRandom.current();
+         for (int i = 0; i < 3; ++i) {
+            response.write(TestUtil.randomString(rand, 100));
+         }
+         response.end();
+      });
    }
 
    @Test
@@ -50,17 +64,8 @@ public class ChunkedTransferTest extends BaseScenarioTest {
       // @formatter:off
       scenario().initialSequence("test")
             .step(s -> {
-               s.httpDestinations().getConnectionPool(null).connections().forEach(c -> {
-                  try {
-                     Field f = c.getClass().getDeclaredField("ctx");
-                     f.setAccessible(true);
-                     ChannelHandlerContext ctx = (ChannelHandlerContext) f.get(c);
-                     ctx.pipeline().addFirst(new BufferingDecoder());
-                  } catch (NoSuchFieldException | IllegalAccessException e) {
-                     throw new IllegalStateException();
-                  }
-
-               });
+               s.httpDestinations().getConnectionPool(null).connections()
+                     .forEach(c -> injectChannelHandler(c, new BufferingDecoder()));
                return true;
             })
             .step(SC).httpRequest(HttpMethod.GET).path("/test")
@@ -85,6 +90,38 @@ public class ChunkedTransferTest extends BaseScenarioTest {
       assertThat(rawBytesSeen).isTrue();
    }
 
+   @Test
+   public void testRandomCutBuffers() {
+      BaseSequenceBuilder sequence = scenario(64).initialSequence("test")
+            .step(s -> {
+               s.httpDestinations().getConnectionPool(null).connections()
+                     .forEach(c -> injectChannelHandler(c, new RandomLengthDecoder()));
+               return true;
+            });
+      AtomicInteger counter = new AtomicInteger();
+      for (int i = 0; i < 16; ++i) {
+         sequence.step(SC).httpRequest(HttpMethod.GET).path("/test3").sync(false)
+               .handler().onCompletion(s -> counter.incrementAndGet());
+      }
+      sequence.step(SC).awaitAllResponses();
+      runScenario();
+      assertThat(counter.get()).isEqualTo(16 * 64);
+   }
+
+   private void injectChannelHandler(HttpConnection c, ChannelHandler channelHandler) {
+      try {
+         Field f = c.getClass().getDeclaredField("ctx");
+         f.setAccessible(true);
+         ChannelHandlerContext ctx = (ChannelHandlerContext) f.get(c);
+         if (ctx.pipeline().first().getClass() != channelHandler.getClass()) {
+            // Do not inject multiple times
+            ctx.pipeline().addFirst(channelHandler);
+         }
+      } catch (NoSuchFieldException | IllegalAccessException e) {
+         throw new IllegalStateException();
+      }
+   }
+
    private class BufferingDecoder extends ChannelInboundHandlerAdapter {
       CompositeByteBuf composite = null;
       boolean buffering = true;
@@ -102,6 +139,31 @@ public class ChunkedTransferTest extends BaseScenarioTest {
                buffering = false;
                super.channelRead(ctx, composite);
             }
+         } else {
+            super.channelRead(ctx, msg);
+         }
+      }
+   }
+
+   private class RandomLengthDecoder extends ChannelInboundHandlerAdapter {
+      @Override
+      public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+         if (msg instanceof ByteBuf) {
+            ByteBuf buf = (ByteBuf) msg;
+            ThreadLocalRandom rand = ThreadLocalRandom.current();
+            int curr = 0;
+            if (buf.readableBytes() == 0) {
+               ctx.fireChannelRead(buf);
+               return;
+            }
+            while (curr + buf.readerIndex() < buf.writerIndex()) {
+               int len = rand.nextInt(buf.readableBytes() + 1);
+               ByteBuf slice = buf.retainedSlice(buf.readerIndex() + curr,
+                     Math.min(buf.writerIndex(), buf.readerIndex() + curr + len) - curr - buf.readerIndex());
+               ctx.fireChannelRead(slice);
+               curr += len;
+            }
+            buf.release();
          } else {
             super.channelRead(ctx, msg);
          }
