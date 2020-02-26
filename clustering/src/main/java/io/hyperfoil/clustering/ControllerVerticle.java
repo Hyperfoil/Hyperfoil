@@ -138,11 +138,11 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
          }
          AgentInfo agent = run.agents.stream().filter(a -> a.deploymentId.equals(phaseChange.senderId())).findAny().orElse(null);
          if (agent == null) {
-            log.error("No agent {}", phaseChange.senderId());
+            log.error("No agent {} in run {}", phaseChange.senderId(), run.id);
             return;
          }
          String phase = phaseChange.phase();
-         log.debug("Received phase change from {}: {} is {} (session limit exceeded={}, errors={})",
+         log.debug("{} Received phase change from {}: {} is {} (session limit exceeded={}, errors={})", run.id,
                phaseChange.senderId(), phase, phaseChange.status(), phaseChange.sessionLimitExceeded(), phaseChange.getError());
          agent.phases.put(phase, phaseChange.status());
          ControllerPhase controllerPhase = run.phases.get(phase);
@@ -150,9 +150,9 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             Phase def = controllerPhase.definition();
             run.statisticsStore.addFailure(def.name, null, controllerPhase.absoluteStartTime(), System.currentTimeMillis(), "Exceeded session limit");
             if (def instanceof Phase.OpenModelPhase && ((Phase.OpenModelPhase) def).sessionLimitPolicy == Phase.SessionLimitPolicy.CONTINUE) {
-               log.warn("Phase {} session limit exceeded, continuing due to policy {}", def.name, ((Phase.OpenModelPhase) def).sessionLimitPolicy);
+               log.warn("{} Phase {} session limit exceeded, continuing due to policy {}", run.id, def.name, ((Phase.OpenModelPhase) def).sessionLimitPolicy);
             } else {
-               log.info("Failing phase due to exceeded session limit.");
+               log.info("{} Failing phase due to exceeded session limit.", run.id);
                controllerPhase.setFailed();
             }
          }
@@ -311,15 +311,19 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
          }
       }
       ControllerPhase controllerPhase = run.phases.get(phase);
+      if (controllerPhase == null) {
+         log.error("Cannot find phase {} in run {}", phase, run.id);
+         return;
+      }
       switch (minStatus) {
          case RUNNING:
-            controllerPhase.status(ControllerPhase.Status.RUNNING);
+            controllerPhase.status(run.id, ControllerPhase.Status.RUNNING);
             break;
          case FINISHED:
-            controllerPhase.status(ControllerPhase.Status.FINISHED);
+            controllerPhase.status(run.id, ControllerPhase.Status.FINISHED);
             break;
          case TERMINATED:
-            controllerPhase.status(ControllerPhase.Status.TERMINATED);
+            controllerPhase.status(run.id, ControllerPhase.Status.TERMINATED);
             controllerPhase.absoluteCompletionTime(System.currentTimeMillis());
             break;
       }
@@ -332,7 +336,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       log.info("Phase {} failed, cancelling other phases...", controllerPhase.definition().name());
       for (ControllerPhase p : run.phases.values()) {
          if (p.status() == ControllerPhase.Status.NOT_STARTED) {
-            p.status(ControllerPhase.Status.CANCELLED);
+            p.status(run.id, ControllerPhase.Status.CANCELLED);
          }
       }
    }
@@ -413,7 +417,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
 
       for (AgentInfo agent : run.agents) {
          if (agent.status != AgentInfo.Status.REGISTERED) {
-            log.error("Already initializing {}, status is {}!", agent.deploymentId, agent.status);
+            log.error("{} Already initializing {}, status is {}!", run.id, agent.deploymentId, agent.status);
          } else {
             agent.status = AgentInfo.Status.INITIALIZING;
             eb.request(agent.deploymentId, new AgentControlMessage(AgentControlMessage.Command.INITIALIZE, agent.id, run.benchmark), reply -> {
@@ -423,7 +427,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                      startSimulation(run);
                   }
                } else {
-                  log.error("Agent {}({}) failed to initialize", reply.cause(), agent.name, agent.deploymentId);
+                  log.error("{} Agent {}({}) failed to initialize", reply.cause(), run.id, agent.name, agent.deploymentId);
                   run.errors.add(new Run.Error(agent, reply.cause()));
                   stopSimulation(run);
                }
@@ -461,7 +465,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                runSimulation(run);
             });
          } else {
-            log.error("Failed to start the simulation", result.cause());
+            log.error("{} Failed to start the simulation", run.id, result.cause());
             stopSimulation(run);
          }
       });
@@ -476,12 +480,12 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       for (ControllerPhase phase : run.phases.values()) {
          if (phase.status() == ControllerPhase.Status.RUNNING && phase.absoluteStartTime() + phase.definition().duration() <= now) {
             eb.publish(Feeds.CONTROL, new PhaseControlMessage(PhaseControlMessage.Command.FINISH, phase.definition().name));
-            phase.status(ControllerPhase.Status.FINISHING);
+            phase.status(run.id, ControllerPhase.Status.FINISHING);
          }
          if (phase.status() == ControllerPhase.Status.FINISHED) {
             if (phase.definition().maxDuration() >= 0 && phase.absoluteStartTime() + phase.definition().maxDuration() <= now) {
                eb.publish(Feeds.CONTROL, new PhaseControlMessage(PhaseControlMessage.Command.TERMINATE, phase.definition().name));
-               phase.status(ControllerPhase.Status.TERMINATING);
+               phase.status(run.id, ControllerPhase.Status.TERMINATING);
             } else if (phase.definition().terminateAfterStrict().stream().map(run.phases::get).allMatch(p -> p.status().isTerminated())) {
                eb.publish(Feeds.CONTROL, new PhaseControlMessage(PhaseControlMessage.Command.TRY_TERMINATE, phase.definition().name));
             }
@@ -491,11 +495,11 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       for (ControllerPhase phase : availablePhases) {
          eb.publish(Feeds.CONTROL, new PhaseControlMessage(PhaseControlMessage.Command.RUN, phase.definition().name));
          phase.absoluteStartTime(now);
-         phase.status(ControllerPhase.Status.STARTING);
+         phase.status(run.id, ControllerPhase.Status.STARTING);
       }
 
       if (run.phases.values().stream().allMatch(phase -> phase.status().isTerminated())) {
-         log.info("All phases are terminated.");
+         log.info("{} All phases are terminated.", run.id);
          stopSimulation(run);
          return;
       }
@@ -517,7 +521,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
 
    private void stopSimulation(Run run) {
       if (run.terminateTime.future().isComplete()) {
-         log.warn("Run already completed.");
+         log.warn("Run {} already completed.", run.id);
          return;
       }
       run.terminateTime.complete(System.currentTimeMillis());
@@ -671,9 +675,9 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             ControllerPhase.Status status = entry.getValue().status();
             if (!status.isTerminated()) {
                if (status == ControllerPhase.Status.NOT_STARTED) {
-                  entry.getValue().status(ControllerPhase.Status.CANCELLED);
+                  entry.getValue().status(run.id, ControllerPhase.Status.CANCELLED);
                } else {
-                  entry.getValue().status(ControllerPhase.Status.TERMINATING);
+                  entry.getValue().status(run.id, ControllerPhase.Status.TERMINATING);
                   eb.publish(Feeds.CONTROL, new PhaseControlMessage(PhaseControlMessage.Command.TERMINATE, entry.getKey()));
                }
             }

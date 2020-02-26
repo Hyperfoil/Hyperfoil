@@ -29,9 +29,9 @@ public class ControllerPhase {
       return absoluteStartTime;
    }
 
-   public void status(Status status) {
+   public void status(String runId, Status status) {
       if (this.status.ordinal() < status.ordinal()) {
-         log.info("{} changing status to {}", definition.name, status);
+         log.info("{} {} changing status to {}", runId, definition.name, status);
          this.status = status;
       }
    }
