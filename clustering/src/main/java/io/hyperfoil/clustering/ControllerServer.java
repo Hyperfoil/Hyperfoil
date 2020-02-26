@@ -461,12 +461,15 @@ class ControllerServer implements ApiService {
 
    @Override
    public void listConnections(RoutingContext ctx, String runId) {
-      withRun(ctx, runId, run -> controller.listConnections(run,
-            (agent, connection) -> {
-               String line = agent.name + ": " + connection + "\n";
-               ctx.response().write(Buffer.buffer(line.getBytes(StandardCharsets.UTF_8)));
-            },
-            commonListingHandler(ctx.response())));
+      withRun(ctx, runId, run -> {
+         ctx.response().setChunked(true);
+         controller.listConnections(run,
+               (agent, connection) -> {
+                  String line = agent.name + ": " + connection + "\n";
+                  ctx.response().write(Buffer.buffer(line.getBytes(StandardCharsets.UTF_8)));
+               },
+               commonListingHandler(ctx.response()));
+      });
    }
 
    @Override
@@ -700,6 +703,7 @@ class ControllerServer implements ApiService {
       Benchmark benchmark = controller.getBenchmark(name);
       if (benchmark == null) {
          ctx.response().setStatusCode(HttpResponseStatus.NOT_FOUND.code()).setStatusMessage("No benchmark '" + name + "'").end();
+         return;
       }
       consumer.accept(benchmark);
    }

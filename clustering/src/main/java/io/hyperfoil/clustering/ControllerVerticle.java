@@ -769,10 +769,14 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
    private void invokeOnAgents(Run run, AgentControlMessage.Command command, Object param, Handler<AsyncResult<Void>> completionHandler, BiConsumer<AgentInfo, AsyncResult<Message<Object>>> handler) {
       AtomicInteger agentCounter = new AtomicInteger(1);
       for (AgentInfo agent : run.agents) {
+         if (agent.status.ordinal() > AgentInfo.Status.INITIALIZED.ordinal()) {
+            log.debug("Cannot invoke command on {}, status: {}", agent.name, agent.status);
+            continue;
+         }
          agentCounter.incrementAndGet();
          eb.request(agent.deploymentId, new AgentControlMessage(command, agent.id, param), result -> {
             if (result.failed()) {
-               log.error("Failed to retrieve sessions", result.cause());
+               log.error("Failed to connect to agent {}", result.cause(), agent.name);
                completionHandler.handle(Future.failedFuture(result.cause()));
             } else {
                handler.accept(agent, result);
