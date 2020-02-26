@@ -215,7 +215,7 @@ public class HttpCacheTest extends VertxBaseTest {
             cleanup.add(server::close);
             try {
                HttpBuilder builder = HttpBuilder.forTesting().host("localhost").port(server.actualPort());
-               HttpClientPool client = new HttpClientPoolImpl(1, builder.build(true));
+               HttpClientPool client = HttpClientPoolImpl.forTesting(builder.build(true), 1);
                client.start(result -> {
                   if (result.failed()) {
                      ctx.fail(result.cause());

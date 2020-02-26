@@ -7,6 +7,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import io.hyperfoil.api.config.Http;
 import io.hyperfoil.api.config.HttpBuilder;
 import io.hyperfoil.api.config.Protocol;
 import io.hyperfoil.api.config.Step;
@@ -42,8 +43,10 @@ public class RawBytesHandlerTest extends VertxBaseTest {
             HttpServer server = event.result();
             cleanup.add(server::close);
             try {
-               HttpClientPool client = new HttpClientPoolImpl(1, HttpBuilder.forTesting()
-                     .protocol(Protocol.HTTP).host("localhost").port(server.actualPort()).allowHttp2(false).build(true));
+               Http http = HttpBuilder.forTesting().protocol(Protocol.HTTP)
+                     .host("localhost").port(server.actualPort())
+                     .allowHttp2(false).build(true);
+               HttpClientPool client = HttpClientPoolImpl.forTesting(http, 1);
                client.start(result -> {
                   if (result.failed()) {
                      ctx.fail(result.cause());

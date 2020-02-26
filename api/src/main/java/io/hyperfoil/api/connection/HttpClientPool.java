@@ -19,7 +19,6 @@
 package io.hyperfoil.api.connection;
 
 import io.netty.util.concurrent.EventExecutor;
-import io.netty.util.concurrent.EventExecutorGroup;
 import io.hyperfoil.api.config.Http;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
@@ -34,8 +33,6 @@ public interface HttpClientPool {
    void start(Handler<AsyncResult<Void>> completionHandler);
 
    void shutdown();
-
-   EventExecutorGroup executors();
 
    HttpConnectionPool next();
 

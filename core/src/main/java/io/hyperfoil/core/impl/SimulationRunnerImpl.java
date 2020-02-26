@@ -8,8 +8,8 @@ import io.hyperfoil.core.client.netty.HttpDestinationTableImpl;
 import io.hyperfoil.core.client.netty.PrivateConnectionPool;
 import io.hyperfoil.core.session.SharedDataImpl;
 import io.hyperfoil.core.util.Util;
+import io.netty.channel.EventLoop;
 import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.util.concurrent.EventExecutor;
 import io.hyperfoil.api.config.Http;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.connection.HttpClientPool;
@@ -38,6 +38,7 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -59,7 +60,7 @@ public class SimulationRunnerImpl implements SimulationRunner {
    protected final List<Session> sessions = new ArrayList<>();
    private final Map<String, SharedResources> sharedResources = new HashMap<>();
    protected final NioEventLoopGroup eventLoopGroup;
-   protected final EventExecutor[] executors;
+   protected final EventLoop[] executors;
    protected final Map<String, HttpClientPool> httpClientPools = new HashMap<>();
    protected final HttpDestinationTableImpl[] httpDestinations;
    private final Queue<Phase> toPrune;
@@ -68,7 +69,7 @@ public class SimulationRunnerImpl implements SimulationRunner {
 
    public SimulationRunnerImpl(Benchmark benchmark, int agentId) {
       this.eventLoopGroup = new NioEventLoopGroup(benchmark.threads());
-      this.executors = StreamSupport.stream(eventLoopGroup.spliterator(), false).toArray(EventExecutor[]::new);
+      this.executors = StreamSupport.stream(eventLoopGroup.spliterator(), false).map(EventLoop.class::cast).toArray(EventLoop[]::new);
       this.benchmark = benchmark;
       this.agentId = agentId;
       this.httpDestinations = new HttpDestinationTableImpl[executors.length];
@@ -77,7 +78,7 @@ public class SimulationRunnerImpl implements SimulationRunner {
       Map<String, HttpConnectionPool>[] httpConnectionPools = new Map[executors.length];
       for (Map.Entry<String, Http> http : benchmark.http().entrySet()) {
          try {
-            HttpClientPool httpClientPool = new HttpClientPoolImpl(eventLoopGroup, http.getValue());
+            HttpClientPool httpClientPool = new HttpClientPoolImpl(http.getValue(), executors);
             httpClientPools.put(http.getKey(), httpClientPool);
             if (http.getValue().isDefault()) {
                httpClientPools.put(null, httpClientPool);
@@ -135,13 +136,12 @@ public class SimulationRunnerImpl implements SimulationRunner {
                Session session;
                int executorId;
                synchronized (this.sessions) {
-                  int sessionId = this.sessions.size();
-                  executorId = sessionId % executors.length;
-                  session = SessionFactory.create(def.scenario, agentId, executorId, sessionId);
+                  // We need to set executor based on the id within phase (shared resources) because
+                  // if the connection pool size = number of users we need to match the #sessions in
+                  // each executor to the #connections.
+                  executorId = phaseSessions.size() % executors.length;
+                  session = SessionFactory.create(def.scenario, agentId, executorId, this.sessions.size());
                   this.sessions.add(session);
-               }
-               // We probably don't need to synchronize
-               synchronized (phaseSessions) {
                   phaseSessions.add(session);
                }
                HttpDestinationTable httpDestinations = this.httpDestinations[executorId];
@@ -232,6 +232,7 @@ public class SimulationRunnerImpl implements SimulationRunner {
       for (HttpClientPool pool : httpClientPools.values()) {
          pool.shutdown();
       }
+      eventLoopGroup.shutdownGracefully(0, 10, TimeUnit.SECONDS);
    }
 
    public void visitSessions(Consumer<Session> consumer) {

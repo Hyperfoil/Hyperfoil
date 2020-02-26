@@ -15,12 +15,10 @@ import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslProvider;
 import io.netty.handler.ssl.SupportedCipherSuiteFilter;
 import io.netty.util.concurrent.EventExecutor;
-import io.netty.util.concurrent.EventExecutorGroup;
 import io.hyperfoil.api.config.Http;
 import io.hyperfoil.api.connection.HttpClientPool;
 import io.hyperfoil.api.connection.HttpConnection;
 import io.hyperfoil.api.connection.HttpConnectionPool;
-import io.netty.channel.EventLoopGroup;
 import io.netty.handler.codec.http2.Http2SecurityUtil;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.hyperfoil.api.http.HttpVersion;
@@ -44,7 +42,6 @@ import java.security.cert.CertificateFactory;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Base64;
-import java.util.Iterator;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -70,17 +67,24 @@ public class HttpClientPoolImpl implements HttpClientPool {
    final String authority;
    final SslContext sslContext;
    final boolean forceH2c;
-   private final EventLoopGroup eventLoopGroup;
    private final HttpConnectionPoolImpl[] children;
    private final AtomicInteger idx = new AtomicInteger();
    private final Supplier<HttpConnectionPool> nextSupplier;
 
-   public HttpClientPoolImpl(int threads, Http http) throws SSLException {
-      this(new NioEventLoopGroup(threads), http);
+   public static HttpClientPoolImpl forTesting(Http http, int threads) throws SSLException {
+      NioEventLoopGroup eventLoopGroup = new NioEventLoopGroup(threads);
+      EventLoop[] executors = StreamSupport.stream(eventLoopGroup.spliterator(), false)
+            .map(EventLoop.class::cast).toArray(EventLoop[]::new);
+      return new HttpClientPoolImpl(http, executors) {
+         @Override
+         public void shutdown() {
+            super.shutdown();
+            eventLoopGroup.shutdownGracefully(0, 1, TimeUnit.SECONDS);
+         }
+      };
    }
 
-   public HttpClientPoolImpl(EventLoopGroup eventLoopGroup, Http http) throws SSLException {
-      this.eventLoopGroup = eventLoopGroup;
+   public HttpClientPoolImpl(Http http, EventLoop[] executors) throws SSLException {
       this.http = http;
       this.sslContext = http.protocol().secure() ? createSslContext() : null;
       this.host = http.host();
@@ -89,19 +93,20 @@ public class HttpClientPoolImpl implements HttpClientPool {
       this.authority = host + ":" + port;
       this.forceH2c = http.versions().length == 1 && http.versions()[0] == HttpVersion.HTTP_2_0;
 
-      int numExecutors = (int) StreamSupport.stream(eventLoopGroup.spliterator(), false).count();
-      this.children = new HttpConnectionPoolImpl[numExecutors];
+      this.children = new HttpConnectionPoolImpl[executors.length];
       int sharedConnections = http.sharedConnections();
-      if (sharedConnections < numExecutors) {
+      if (sharedConnections < executors.length) {
          log.warn("Connection pool size ({}) too small: the event loop has {} executors. Setting connection pool size to {}",
-               http.sharedConnections(), numExecutors, numExecutors);
-         sharedConnections = numExecutors;
+               http.sharedConnections(), executors.length, executors.length);
+         sharedConnections = executors.length;
       }
-      Iterator<EventExecutor> iterator = eventLoopGroup.iterator();
-      for (int i = 0; i < numExecutors; ++i) {
-         assert iterator.hasNext();
-         int childSize = (i + 1) * sharedConnections / numExecutors - i * sharedConnections / numExecutors;
-         children[i] = new HttpConnectionPoolImpl(this, (EventLoop) iterator.next(), childSize);
+      // This algorithm should be the same as session -> executor assignment to prevent blocking
+      // in always(N) scenario with N connections
+      int share = sharedConnections / executors.length;
+      int remainder = sharedConnections - share * executors.length;
+      for (int i = 0; i < executors.length; ++i) {
+         int childSize = share + (i < remainder ? 1 : 0);
+         children[i] = new HttpConnectionPoolImpl(this, executors[i], childSize);
       }
 
       if (Integer.bitCount(children.length) == 1) {
@@ -252,7 +257,6 @@ public class HttpClientPoolImpl implements HttpClientPool {
       for (HttpConnectionPoolImpl child : children) {
          child.shutdown();
       }
-      eventLoopGroup.shutdownGracefully(0, 10, TimeUnit.SECONDS);
    }
 
    void connect(final HttpConnectionPool pool, BiConsumer<HttpConnection, Throwable> handler) {
@@ -284,11 +288,6 @@ public class HttpClientPoolImpl implements HttpClientPool {
             handler.accept(null, v.cause());
          }
       });
-   }
-
-   @Override
-   public EventExecutorGroup executors() {
-      return eventLoopGroup;
    }
 
    @Override

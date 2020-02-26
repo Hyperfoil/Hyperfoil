@@ -150,7 +150,7 @@ public class CertificatesTest {
       HttpBuilder builder = HttpBuilder.forTesting()
             .protocol(Protocol.HTTPS).host("localhost").port(port);
       configuration.accept(builder);
-      return new HttpClientPoolImpl(1, builder.build(true));
+      return HttpClientPoolImpl.forTesting(builder.build(true), 1);
    }
 
 }

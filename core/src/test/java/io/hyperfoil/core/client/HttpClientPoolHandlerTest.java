@@ -21,6 +21,7 @@ package io.hyperfoil.core.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.hyperfoil.api.config.Http;
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.connection.HttpClientPool;
 import io.hyperfoil.api.connection.HttpConnectionPool;
@@ -68,8 +69,8 @@ public class HttpClientPoolHandlerTest {
 
    @Test
    public void simpleHeaderRequest(TestContext ctx) throws Exception {
-      HttpClientPool client = new HttpClientPoolImpl(1,
-            HttpBuilder.forTesting().host("localhost").port(httpServer.actualPort()).build(true));
+      Http http = HttpBuilder.forTesting().host("localhost").port(httpServer.actualPort()).build(true);
+      HttpClientPool client = HttpClientPoolImpl.forTesting(http, 1);
 
       CountDownLatch startLatch = new CountDownLatch(1);
       client.start(result -> {
