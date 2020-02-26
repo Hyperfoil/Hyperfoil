@@ -216,7 +216,9 @@ public abstract class WrkAbstract {
          }
 
          addPhase(builder, "calibration", "6s");
-         addPhase(builder, "test", duration).startAfter("calibration").maxDuration(duration);
+         // We can start only after calibration has full completed because otherwise some sessions
+         // would not have connection available from the beginning.
+         addPhase(builder, "test", duration).startAfterStrict("calibration").maxDuration(duration);
 
          RestClient client = invocation.context().client();
          if (client == null) {
