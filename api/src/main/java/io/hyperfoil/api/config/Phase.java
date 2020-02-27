@@ -178,16 +178,16 @@ public abstract class Phase implements Serializable {
       }
    }
 
-   public static class RampPerSec extends OpenModelPhase {
+   public static class RampRate extends OpenModelPhase {
       public final double initialUsersPerSec;
       public final double targetUsersPerSec;
 
-      public RampPerSec(SerializableSupplier<Benchmark> benchmark, int id, int iteration, String name, Scenario scenario, long startTime,
-                        Collection<String> startAfter, Collection<String> startAfterStrict,
-                        Collection<String> terminateAfterStrict,
-                        long duration, long maxDuration,
-                        String sharedResources, double initialUsersPerSec, double targetUsersPerSec,
-                        boolean variance, int maxSessions, SessionLimitPolicy sessionLimitPolicy) {
+      public RampRate(SerializableSupplier<Benchmark> benchmark, int id, int iteration, String name, Scenario scenario, long startTime,
+                      Collection<String> startAfter, Collection<String> startAfterStrict,
+                      Collection<String> terminateAfterStrict,
+                      long duration, long maxDuration,
+                      String sharedResources, double initialUsersPerSec, double targetUsersPerSec,
+                      boolean variance, int maxSessions, SessionLimitPolicy sessionLimitPolicy) {
          super(benchmark, id, iteration, name, scenario, startTime, startAfter, startAfterStrict, terminateAfterStrict, duration, maxDuration, sharedResources, variance, maxSessions, sessionLimitPolicy);
          this.initialUsersPerSec = initialUsersPerSec;
          this.targetUsersPerSec = targetUsersPerSec;
@@ -200,13 +200,13 @@ public abstract class Phase implements Serializable {
       }
    }
 
-   public static class ConstantPerSec extends OpenModelPhase {
+   public static class ConstantRate extends OpenModelPhase {
       public final double usersPerSec;
 
-      public ConstantPerSec(SerializableSupplier<Benchmark> benchmark, int id, int iteration, String name, Scenario scenario, long startTime,
-                            Collection<String> startAfter, Collection<String> startAfterStrict,
-                            Collection<String> terminateAfterStrict,
-                            long duration, long maxDuration, String sharedResources, double usersPerSec, boolean variance, int maxSessions, SessionLimitPolicy sessionLimitPolicy) {
+      public ConstantRate(SerializableSupplier<Benchmark> benchmark, int id, int iteration, String name, Scenario scenario, long startTime,
+                          Collection<String> startAfter, Collection<String> startAfterStrict,
+                          Collection<String> terminateAfterStrict,
+                          long duration, long maxDuration, String sharedResources, double usersPerSec, boolean variance, int maxSessions, SessionLimitPolicy sessionLimitPolicy) {
          super(benchmark, id, iteration, name, scenario, startTime, startAfter, startAfterStrict, terminateAfterStrict, duration, maxDuration, sharedResources, variance, maxSessions, sessionLimitPolicy);
          this.usersPerSec = usersPerSec;
       }

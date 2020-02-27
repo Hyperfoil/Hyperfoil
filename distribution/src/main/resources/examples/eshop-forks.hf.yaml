@@ -4,7 +4,7 @@ http:
   sharedConnections: 80
 phases:
 - rampUp:
-    rampPerSec:
+    increasingRate:
       duration: 5s
       maxIterations: 10
       # Note that we have increased both the base and increment from 10 and 5
@@ -41,7 +41,7 @@ phases:
             - httpRequest:
                 POST: /items/${itemId}/buy
 - steadyState:
-    constantPerSec:
+    constantRate:
       duration: 10s
       maxIterations: 10
       usersPerSec:

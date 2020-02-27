@@ -37,7 +37,7 @@ class StaircaseParser extends AbstractParser<BenchmarkBuilder, StaircaseParser.S
 
    static class StaircaseBuilder {
       private final BenchmarkBuilder benchmark;
-      private final PhaseBuilder.ConstantPerSec steadyState;
+      private final PhaseBuilder.ConstantRate steadyState;
       private long initialRampUpDuration;
       private long steadyStateDuration;
       private long rampUpDuration;
@@ -49,7 +49,7 @@ class StaircaseParser extends AbstractParser<BenchmarkBuilder, StaircaseParser.S
 
       public StaircaseBuilder(BenchmarkBuilder benchmark) {
          this.benchmark = benchmark;
-         steadyState = benchmark.addPhase("steadyState").constantPerSec(0);
+         steadyState = benchmark.addPhase("steadyState").constantRate(0);
       }
 
       public void initialRampUpDuration(String duration) {
@@ -119,7 +119,7 @@ class StaircaseParser extends AbstractParser<BenchmarkBuilder, StaircaseParser.S
             initialRampUpDuration = rampUpDuration;
          }
          if (initialRampUpDuration > 0) {
-            PhaseBuilder.RampPerSec initialRampUp = benchmark.addPhase("initialRampUp").rampPerSec(0, 0)
+            PhaseBuilder.RampRate initialRampUp = benchmark.addPhase("initialRampUp").rampRate(0, 0)
                   .targetUsersPerSec(initialUsersPerSec).duration(initialRampUpDuration);
             if (maxOverrun > 0) {
                initialRampUp.maxDuration(initialRampUpDuration + maxOverrun);
@@ -132,7 +132,7 @@ class StaircaseParser extends AbstractParser<BenchmarkBuilder, StaircaseParser.S
          }
          if (rampUpDuration > 0) {
             if (maxIterations > 1) {
-               PhaseBuilder.RampPerSec rampUp = benchmark.addPhase("rampUp").rampPerSec(0, 0)
+               PhaseBuilder.RampRate rampUp = benchmark.addPhase("rampUp").rampRate(0, 0)
                      .duration(rampUpDuration)
                      .initialUsersPerSec(initialUsersPerSec, incrementUsersPerSec)
                      .targetUsersPerSec(initialUsersPerSec + incrementUsersPerSec, incrementUsersPerSec)

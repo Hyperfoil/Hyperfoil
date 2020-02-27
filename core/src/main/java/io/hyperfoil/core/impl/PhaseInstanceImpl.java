@@ -47,8 +47,8 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
    static {
       constructors.put(Phase.AtOnce.class, (Function<Phase.AtOnce, PhaseInstance>) AtOnce::new);
       constructors.put(Phase.Always.class, (Function<Phase.Always, PhaseInstance>) Always::new);
-      constructors.put(Phase.RampPerSec.class, (Function<Phase.RampPerSec, PhaseInstance>) RampPerSec::new);
-      constructors.put(Phase.ConstantPerSec.class, (Function<Phase.ConstantPerSec, PhaseInstance>) ConstantPerSec::new);
+      constructors.put(Phase.RampRate.class, (Function<Phase.RampRate, PhaseInstance>) RampRate::new);
+      constructors.put(Phase.ConstantRate.class, (Function<Phase.ConstantRate, PhaseInstance>) ConstantRate::new);
       constructors.put(Phase.Sequentially.class, (Function<Phase.Sequentially, PhaseInstance>) Sequentially::new);
       constructors.put(Phase.Noop.class, (Function<Phase.Noop, PhaseInstance>) Noop::new);
    }
@@ -314,9 +314,9 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       }
    }
 
-   public static class RampPerSec extends OpenModelPhase<Phase.RampPerSec> {
+   public static class RampRate extends OpenModelPhase<Phase.RampRate> {
 
-      public RampPerSec(Phase.RampPerSec def) {
+      public RampRate(Phase.RampRate def) {
          super(def);
       }
 
@@ -344,9 +344,9 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       }
    }
 
-   public static class ConstantPerSec extends OpenModelPhase<Phase.ConstantPerSec> {
+   public static class ConstantRate extends OpenModelPhase<Phase.ConstantRate> {
 
-      public ConstantPerSec(Phase.ConstantPerSec def) {
+      public ConstantRate(Phase.ConstantRate def) {
          super(def);
       }
 

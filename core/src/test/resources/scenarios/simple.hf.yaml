@@ -3,7 +3,7 @@ http:
   host: http://localhost:8080
 phases:
 - rampUp:
-    rampPerSec:
+    increasingRate:
       initialUsersPerSec: 1
       targetUsersPerSec: 100
       duration: 3s
@@ -49,13 +49,13 @@ phases:
               fromNow:
               duration: 5s
 - steadyState:
-    constantPerSec:
+    constantRate:
       usersPerSec: 100
       startAfter: rampUp
       duration: 6s
       scenario: *scenario
 - rampDown:
-    rampPerSec:
+    decreasingRate:
       initialUsersPerSec: 100
       targetUsersPerSec: 1
       startAfter:

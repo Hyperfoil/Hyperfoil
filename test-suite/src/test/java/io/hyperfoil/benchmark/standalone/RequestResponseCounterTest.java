@@ -81,7 +81,7 @@ public class RequestResponseCounterTest {
                   .endHttp()
                   .threads(2);
 
-      builder.addPhase("run").constantPerSec(500)
+      builder.addPhase("run").constantRate(500)
             .duration(5000)
             .maxSessions(500 * 15)
             .scenario()

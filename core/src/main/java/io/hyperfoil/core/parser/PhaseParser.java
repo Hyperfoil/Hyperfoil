@@ -1,9 +1,12 @@
 package io.hyperfoil.core.parser;
 
+import java.util.function.Predicate;
+
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.config.PhaseBuilder;
 
 abstract class PhaseParser extends AbstractParser<PhaseBuilder.Catalog, PhaseBuilder<?>> {
+
    PhaseParser() {
       register("startTime", new PropertyParser.String<>(PhaseBuilder::startTime));
       register("startAfter", new StartAfterParser(PhaseBuilder::startAfter));
@@ -52,26 +55,35 @@ abstract class PhaseParser extends AbstractParser<PhaseBuilder.Catalog, PhaseBui
       }
    }
 
-   static class RampPerSec extends OpenModel {
-      RampPerSec() {
-         register("initialUsersPerSec", new IncrementPropertyParser.Double<>((builder, base, inc) -> ((PhaseBuilder.RampPerSec) builder).initialUsersPerSec(base, inc)));
-         register("targetUsersPerSec", new IncrementPropertyParser.Double<>((builder, base, inc) -> ((PhaseBuilder.RampPerSec) builder).targetUsersPerSec(base, inc)));
+   static class RampRate extends OpenModel {
+      Predicate<Phase.RampRate> constraint;
+      String constraintMessage;
+
+      RampRate() {
+         register("initialUsersPerSec", new IncrementPropertyParser.Double<>((builder, base, inc) -> ((PhaseBuilder.RampRate) builder).initialUsersPerSec(base, inc)));
+         register("targetUsersPerSec", new IncrementPropertyParser.Double<>((builder, base, inc) -> ((PhaseBuilder.RampRate) builder).targetUsersPerSec(base, inc)));
       }
 
       @Override
-      protected PhaseBuilder.RampPerSec type(PhaseBuilder.Catalog catalog) {
-         return catalog.rampPerSec(-1, -1);
+      protected PhaseBuilder.RampRate type(PhaseBuilder.Catalog catalog) {
+         return catalog.rampRate(-1, -1).constraint(constraint, constraintMessage);
+      }
+
+      RampRate constraint(Predicate<Phase.RampRate> constraint, String message) {
+         this.constraint = constraint;
+         this.constraintMessage = message;
+         return this;
       }
    }
 
-   static class ConstantPerSec extends OpenModel {
-      ConstantPerSec() {
-         register("usersPerSec", new IncrementPropertyParser.Double<>((builder, base, inc) -> ((PhaseBuilder.ConstantPerSec) builder).usersPerSec(base, inc)));
+   static class ConstantRate extends OpenModel {
+      ConstantRate() {
+         register("usersPerSec", new IncrementPropertyParser.Double<>((builder, base, inc) -> ((PhaseBuilder.ConstantRate) builder).usersPerSec(base, inc)));
       }
 
       @Override
-      protected PhaseBuilder.ConstantPerSec type(PhaseBuilder.Catalog catalog) {
-         return catalog.constantPerSec(-1);
+      protected PhaseBuilder.ConstantRate type(PhaseBuilder.Catalog catalog) {
+         return catalog.constantRate(-1);
       }
    }
 }

@@ -74,17 +74,17 @@ public class YamlParserTest {
       assertThat(benchmark.agents().length).isEqualTo(3);
 
       double sumWeights = 0.2 + 0.8 + 0.1 + 1;
-      assertThat(phase(benchmark, "steadyState/invalidRegistration", Phase.ConstantPerSec.class).usersPerSec)
+      assertThat(phase(benchmark, "steadyState/invalidRegistration", Phase.ConstantRate.class).usersPerSec)
             .isCloseTo(100.0 / 3 / sumWeights * 0.2, withPercentage(1));
-      assertThat(phase(benchmark, "steadyState/validRegistration", Phase.ConstantPerSec.class).usersPerSec)
+      assertThat(phase(benchmark, "steadyState/validRegistration", Phase.ConstantRate.class).usersPerSec)
             .isCloseTo(100.0 / 3 / sumWeights * 0.8, withPercentage(1));
-      assertThat(phase(benchmark, "steadyState/unregister", Phase.ConstantPerSec.class).usersPerSec)
+      assertThat(phase(benchmark, "steadyState/unregister", Phase.ConstantRate.class).usersPerSec)
             .isCloseTo(100.0 / 3 / sumWeights * 0.1, withPercentage(1));
-      assertThat(phase(benchmark, "steadyState/viewUser", Phase.ConstantPerSec.class).usersPerSec)
+      assertThat(phase(benchmark, "steadyState/viewUser", Phase.ConstantRate.class).usersPerSec)
             .isCloseTo(100.0 / 3 / sumWeights * 1.0, withPercentage(1));
       assertThat(benchmark.phases().stream()
-            .filter(p -> p instanceof Phase.ConstantPerSec)
-            .mapToDouble(p -> ((Phase.ConstantPerSec) p).usersPerSec)
+            .filter(p -> p instanceof Phase.ConstantRate)
+            .mapToDouble(p -> ((Phase.ConstantRate) p).usersPerSec)
             .sum()).isCloseTo(100.0 / 3, withPercentage(1));
    }
 
@@ -104,8 +104,8 @@ public class YamlParserTest {
       assertThat(phase.name()).isEqualTo("main");
       assertThat(phase.duration()).isEqualTo(3000);
       assertThat(phase.maxDuration()).isEqualTo(5000);
-      assertThat(((Phase.ConstantPerSec) phase).usersPerSec).isEqualTo(100);
-      assertThat(((Phase.ConstantPerSec) phase).maxSessions).isEqualTo(1234);
+      assertThat(((Phase.ConstantRate) phase).usersPerSec).isEqualTo(100);
+      assertThat(((Phase.ConstantRate) phase).maxSessions).isEqualTo(1234);
       assertThat(phase.scenario().initialSequences().length).isEqualTo(1);
    }
 
@@ -163,8 +163,8 @@ public class YamlParserTest {
    @Test
    public void testStaircase() {
       Benchmark benchmark = buildBenchmark("scenarios/staircase.hf.yaml");
-      assertThat(benchmark.phases().stream().filter(Phase.RampPerSec.class::isInstance).count()).isEqualTo(3);
-      assertThat(benchmark.phases().stream().filter(Phase.ConstantPerSec.class::isInstance).count()).isEqualTo(3);
+      assertThat(benchmark.phases().stream().filter(Phase.RampRate.class::isInstance).count()).isEqualTo(3);
+      assertThat(benchmark.phases().stream().filter(Phase.ConstantRate.class::isInstance).count()).isEqualTo(3);
       for (Phase phase : benchmark.phases()) {
          if (phase instanceof Phase.Noop) {
             continue;

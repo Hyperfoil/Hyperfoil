@@ -3,7 +3,7 @@ http:
   host: http://localhost:8080
 phases:
 - test:
-    constantPerSec:
+    constantRate:
       usersPerSec:
         base: 100
         increment: 100

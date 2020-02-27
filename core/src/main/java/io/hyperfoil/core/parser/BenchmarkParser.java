@@ -60,11 +60,11 @@ public class BenchmarkParser extends AbstractMappingParser<BenchmarkBuilder> {
       register("threads", new PropertyParser.Int<>(BenchmarkBuilder::threads));
       register("statisticsCollectionPeriod", new PropertyParser.Int<>(BenchmarkBuilder::statisticsCollectionPeriod));
       // simplified single-phase definition
-      register("usersPerSec", new PropertyParser.Double<>((bb, value) -> bb.singleConstantPerSecPhase().usersPerSec(value)));
-      register("duration", new PropertyParser.String<>((bb, value) -> bb.singleConstantPerSecPhase().duration(value)));
-      register("maxDuration", new PropertyParser.String<>((bb, value) -> bb.singleConstantPerSecPhase().maxDuration(value)));
-      register("maxSessions", new PropertyParser.Int<>((bb, value) -> bb.singleConstantPerSecPhase().maxSessions(value)));
-      register("scenario", (ctx, target) -> new ScenarioParser().parse(ctx, target.singleConstantPerSecPhase().scenario()));
+      register("usersPerSec", new PropertyParser.Double<>((bb, value) -> bb.singleConstantRatePhase().usersPerSec(value)));
+      register("duration", new PropertyParser.String<>((bb, value) -> bb.singleConstantRatePhase().duration(value)));
+      register("maxDuration", new PropertyParser.String<>((bb, value) -> bb.singleConstantRatePhase().maxDuration(value)));
+      register("maxSessions", new PropertyParser.Int<>((bb, value) -> bb.singleConstantRatePhase().maxSessions(value)));
+      register("scenario", (ctx, target) -> new ScenarioParser().parse(ctx, target.singleConstantRatePhase().scenario()));
       register("staircase", new StaircaseParser());
       register("pre", new RunHooksParser(BenchmarkBuilder::addPreHook));
       register("post", new RunHooksParser(BenchmarkBuilder::addPostHook));

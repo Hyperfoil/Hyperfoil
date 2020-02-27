@@ -102,7 +102,7 @@ public class TwoScenariosTest {
                .host("localhost").port(server.actualPort())
                .sharedConnections(10)
             .endHttp()
-            .addPhase("rig").constantPerSec(3)
+            .addPhase("rig").constantRate(3)
                .duration(5000)
                .maxDuration(10000)
                .scenario()
@@ -140,7 +140,7 @@ public class TwoScenariosTest {
                   .endSequence()
                .endScenario()
             .endPhase()
-            .addPhase("furl").constantPerSec(2) // intentionally less to trigger maxDuration
+            .addPhase("furl").constantRate(2) // intentionally less to trigger maxDuration
                .duration(5000) // no max duration, should not need it
                .scenario()
                .initialSequence("select-ship")

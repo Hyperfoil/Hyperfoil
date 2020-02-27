@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -365,20 +366,22 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
       }
    }
 
-   public static class RampPerSec extends OpenModel<RampPerSec> {
+   public static class RampRate extends OpenModel<RampRate> {
       private double initialUsersPerSec;
       private double initialUsersPerSecIncrement;
       private double targetUsersPerSec;
       private double targetUsersPerSecIncrement;
+      private Predicate<Phase.RampRate> constraint;
+      private String constraintMessage;
 
-      RampPerSec(BenchmarkBuilder parent, String name, double initialUsersPerSec, double targetUsersPerSec) {
+      RampRate(BenchmarkBuilder parent, String name, double initialUsersPerSec, double targetUsersPerSec) {
          super(parent, name);
          this.initialUsersPerSec = initialUsersPerSec;
          this.targetUsersPerSec = targetUsersPerSec;
       }
 
       @Override
-      public Phase.RampPerSec buildPhase(SerializableSupplier<Benchmark> benchmark, SerializableSupplier<Phase> phase, int id, int i, PhaseForkBuilder f) {
+      public Phase.RampRate buildPhase(SerializableSupplier<Benchmark> benchmark, SerializableSupplier<Phase> phase, int id, int i, PhaseForkBuilder f) {
          int maxSessions;
          if (this.maxSessions > 0) {
             maxSessions = sliceValue("maxSessions", this.maxSessions, f.weight / numAgents());
@@ -396,51 +399,61 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
          if (initialUsersPerSec < 0.0001 && targetUsersPerSec < 0.0001) {
             throw new BenchmarkDefinitionException("In phase " + name + " both initialUsersPerSec and targetUsersPerSec are 0");
          }
-         return new Phase.RampPerSec(benchmark, id, i, iterationName(i, f.name),
+         Phase.RampRate rampRate = new Phase.RampRate(benchmark, id, i, iterationName(i, f.name),
                f.scenario.build(phase), iterationStartTime(i),
                iterationReferences(startAfter, i, false), iterationReferences(startAfterStrict, i, true),
                iterationReferences(terminateAfterStrict, i, false), duration, maxDuration,
                sharedResources(f),
                (initialUsersPerSec + initialUsersPerSecIncrement * i) * f.weight / numAgents(),
                (targetUsersPerSec + targetUsersPerSecIncrement * i) * f.weight / numAgents(), variance, maxSessions, sessionLimitPolicy);
+         if (constraint != null && !constraint.test(rampRate)) {
+            throw new BenchmarkDefinitionException("Phase " + name + " failed constraints: " + constraintMessage);
+         }
+         return rampRate;
       }
 
-      public RampPerSec initialUsersPerSec(double initialUsersPerSec) {
+      public RampRate initialUsersPerSec(double initialUsersPerSec) {
          this.initialUsersPerSec = initialUsersPerSec;
          this.initialUsersPerSecIncrement = 0;
          return this;
       }
 
-      public RampPerSec initialUsersPerSec(double base, double increment) {
+      public RampRate initialUsersPerSec(double base, double increment) {
          this.initialUsersPerSec = base;
          this.initialUsersPerSecIncrement = increment;
          return this;
       }
 
-      public RampPerSec targetUsersPerSec(double targetUsersPerSec) {
+      public RampRate targetUsersPerSec(double targetUsersPerSec) {
          this.targetUsersPerSec = targetUsersPerSec;
          this.targetUsersPerSecIncrement = 0;
          return this;
       }
 
-      public RampPerSec targetUsersPerSec(double base, double increment) {
+      public RampRate targetUsersPerSec(double base, double increment) {
          this.targetUsersPerSec = base;
          this.targetUsersPerSecIncrement = increment;
          return this;
       }
+
+      public RampRate constraint(Predicate<Phase.RampRate> constraint, String constraintMessage) {
+         this.constraint = constraint;
+         this.constraintMessage = constraintMessage;
+         return this;
+      }
    }
 
-   public static class ConstantPerSec extends OpenModel<ConstantPerSec> {
+   public static class ConstantRate extends OpenModel<ConstantRate> {
       private double usersPerSec;
       private double usersPerSecIncrement;
 
-      ConstantPerSec(BenchmarkBuilder parent, String name, double usersPerSec) {
+      ConstantRate(BenchmarkBuilder parent, String name, double usersPerSec) {
          super(parent, name);
          this.usersPerSec = usersPerSec;
       }
 
       @Override
-      public Phase.ConstantPerSec buildPhase(SerializableSupplier<Benchmark> benchmark, SerializableSupplier<Phase> phase, int id, int i, PhaseForkBuilder f) {
+      public Phase.ConstantRate buildPhase(SerializableSupplier<Benchmark> benchmark, SerializableSupplier<Phase> phase, int id, int i, PhaseForkBuilder f) {
          int maxSessions;
          if (this.maxSessions <= 0) {
             maxSessions = (int) Math.ceil(f.weight / numAgents() * (usersPerSec + usersPerSecIncrement * (maxIterations - 1)));
@@ -450,19 +463,19 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
          if (usersPerSec <= 0) {
             throw new BenchmarkDefinitionException("Phase " + name + ".usersPerSec must be positive.");
          }
-         return new Phase.ConstantPerSec(benchmark, id, i, iterationName(i, f.name), f.scenario.build(phase),
+         return new Phase.ConstantRate(benchmark, id, i, iterationName(i, f.name), f.scenario.build(phase),
                iterationStartTime(i), iterationReferences(startAfter, i, false),
                iterationReferences(startAfterStrict, i, true), iterationReferences(terminateAfterStrict, i, false), duration,
                maxDuration,
                sharedResources(f), (usersPerSec + usersPerSecIncrement * i) * f.weight / numAgents(), variance, maxSessions, sessionLimitPolicy);
       }
 
-      public ConstantPerSec usersPerSec(double usersPerSec) {
+      public ConstantRate usersPerSec(double usersPerSec) {
          this.usersPerSec = usersPerSec;
          return this;
       }
 
-      public ConstantPerSec usersPerSec(double base, double increment) {
+      public ConstantRate usersPerSec(double base, double increment) {
          this.usersPerSec = base;
          this.usersPerSecIncrement = increment;
          return this;
@@ -506,12 +519,12 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
          return new PhaseBuilder.Always(parent, name, users);
       }
 
-      public RampPerSec rampPerSec(int initialUsersPerSec, int targetUsersPerSec) {
-         return new RampPerSec(parent, name, initialUsersPerSec, targetUsersPerSec);
+      public RampRate rampRate(int initialUsersPerSec, int targetUsersPerSec) {
+         return new RampRate(parent, name, initialUsersPerSec, targetUsersPerSec);
       }
 
-      public ConstantPerSec constantPerSec(int usersPerSec) {
-         return new ConstantPerSec(parent, name, usersPerSec);
+      public ConstantRate constantRate(int usersPerSec) {
+         return new ConstantRate(parent, name, usersPerSec);
       }
 
       public Sequentially sequentially(int repeats) {

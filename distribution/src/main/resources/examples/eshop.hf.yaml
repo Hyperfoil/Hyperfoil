@@ -10,7 +10,7 @@ phases:
     # This is the default type of workload, starting constant number of users
     # each second. Note that we don't speak about 'requests per second' as
     # the scenario may issue any number of requests.
-    constantPerSec:
+    constantRate:
       duration: 10s
       usersPerSec: 10
       scenario:
@@ -21,7 +21,7 @@ phases:
             GET: /items
 # Workload simulating users that are going to buy something
 - buyingUser:
-    constantPerSec:
+    constantRate:
       # The length of this phase is not synchronized with other phases.
       # You might think that this is too flexible at first.
       duration: 10s

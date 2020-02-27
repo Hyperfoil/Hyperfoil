@@ -4,10 +4,10 @@ http:
   sharedConnections: 80
 phases:
 - browsingUserRampUp:
-    # This type of phase is similar to constantPerSec in the way how new users
+    # This type of phase is similar to constantRate in the way how new users
     # are started but gradually increases the rate from `initialUsersPerSec`
     # to `targetUsersPerSec`.
-    rampPerSec:
+    increasingRate:
       duration: 5s
       # In Hyperfoil, everything is pre-allocated = limited in size. Here we'll
       # set that we won't run more than 10 iterations of this phase.
@@ -38,7 +38,7 @@ phases:
         - httpRequest:
             GET: /items
 - browsingUserSteady:
-    constantPerSec:
+    constantRate:
       duration: 10s
       maxIterations: 10
       usersPerSec:
@@ -58,7 +58,7 @@ phases:
       scenario: *browsingUser
 # These two phases will be very similar to browsingUserSteady and RampUp
 - buyingUserRampUp:
-    rampPerSec:
+    increasingRate:
       duration: 5s
       maxIterations: 10
       initialUsersPerSec:
@@ -87,7 +87,7 @@ phases:
         - httpRequest:
             POST: /items/${itemId}/buy
 - buyingUserSteady:
-    constantPerSec:
+    constantRate:
       duration: 10s
       maxIterations: 10
       usersPerSec:

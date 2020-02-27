@@ -102,15 +102,15 @@ public class BenchmarkBuilder {
       return new PhaseBuilder.Catalog(this, name);
    }
 
-   public PhaseBuilder.ConstantPerSec singleConstantPerSecPhase() {
+   public PhaseBuilder.ConstantRate singleConstantRatePhase() {
       if (phaseBuilders.isEmpty()) {
-         return new PhaseBuilder.Catalog(this, "main").constantPerSec(0);
+         return new PhaseBuilder.Catalog(this, "main").constantRate(0);
       }
       PhaseBuilder<?> builder = phaseBuilders.get("main");
-      if (!(builder instanceof PhaseBuilder.ConstantPerSec)) {
+      if (!(builder instanceof PhaseBuilder.ConstantRate)) {
          throw new BenchmarkDefinitionException("Benchmark already has defined phases; cannot use single-phase definition");
       }
-      return (PhaseBuilder.ConstantPerSec) builder;
+      return (PhaseBuilder.ConstantRate) builder;
    }
 
    public BenchmarkBuilder addPreHook(RunHook runHook) {

@@ -3,7 +3,7 @@ http:
 - host: http://localhost:8099
 phases:
 - rampUp:
-    rampPerSec:
+    increasingRate:
       initialUsersPerSec: 1
       targetUsersPerSec: 100
       duration: 30s

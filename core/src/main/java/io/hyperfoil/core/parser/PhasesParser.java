@@ -24,14 +24,34 @@ import org.yaml.snakeyaml.events.ScalarEvent;
 
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.PhaseBuilder;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 
 class PhasesParser extends AbstractParser<BenchmarkBuilder, PhaseBuilder.Catalog> {
+   private static Logger log = LoggerFactory.getLogger(PhasesParser.class);
 
    PhasesParser() {
       register("atOnce", new PhaseParser.AtOnce());
       register("always", new PhaseParser.Always());
-      register("rampPerSec", new PhaseParser.RampPerSec());
-      register("constantPerSec", new PhaseParser.ConstantPerSec());
+      register("rampPerSec", new PhaseParser.RampRate() {
+         @Override
+         public void parse(Context ctx, PhaseBuilder.Catalog target) throws ParserException {
+            log.warn("Phase type 'rampPerSec' was deprecated; use 'increasingRate' or 'decreasingRate' instead.");
+            super.parse(ctx, target);
+         }
+      });
+      register("increasingRate", new PhaseParser.RampRate().constraint(p -> p.initialUsersPerSec < p.targetUsersPerSec,
+            "'increasingRate' must have 'initialUsersPerSec' lower than 'targetUsersPerSec'"));
+      register("decreasingRate", new PhaseParser.RampRate().constraint(p -> p.initialUsersPerSec > p.targetUsersPerSec,
+            "'decreasingRate' must have 'initialUsersPerSec' higher than 'targetUsersPerSec'"));
+      register("constantPerSec", new PhaseParser.ConstantRate() {
+         @Override
+         public void parse(Context ctx, PhaseBuilder.Catalog target) throws ParserException {
+            log.warn("Phase type 'constantPerSec' was deprecated; use 'constantRate' instead.");
+            super.parse(ctx, target);
+         }
+      });
+      register("constantRate", new PhaseParser.ConstantRate());
    }
 
    @Override

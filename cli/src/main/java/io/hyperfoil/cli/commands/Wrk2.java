@@ -48,7 +48,7 @@ public class Wrk2 extends WrkAbstract {
 
       @Override
       protected PhaseBuilder<?> phaseConfig(PhaseBuilder.Catalog catalog) {
-         return catalog.constantPerSec(rate)
+         return catalog.constantRate(rate)
                .maxSessions(rate * 15);
       }
 

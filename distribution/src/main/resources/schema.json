@@ -105,7 +105,7 @@
                 }
               ]
             },
-            "constantPerSec": {
+            "constantRate": {
               "description": "Add new users to the system at constant rate.",
               "allOf": [
                 { "$ref": "#/definitions/phase" },
@@ -128,39 +128,15 @@
                 }
               ]
             },
-            "rampPerSec": {
-              "description": "Add new users to the system at varying rate.",
-              "allOf": [
-                { "$ref": "#/definitions/phase" },
-                {
-                  "required": [ "initialUsersPerSec", "targetUsersPerSec" ],
-                  "properties": {
-                    "initialUsersPerSec": {
-                      "description": "Rate for new users at the beginning of phase",
-                      "$ref": "#/definitions/incrementableNumber"
-                    },
-                    "targetUsersPerSec": {
-                      "description": "Rate for new users at the end of phase",
-                      "$ref": "#/definitions/incrementableNumber"
-                    },
-                    "maxSessions": {
-                      "description": "Maximum number of users (active sessions) executing this phase concurrently.",
-                      "$ref": "#/definitions/positiveInteger"
-                    },
-                    "variance": {
-                      "description": "Add new users randomly following Poisson process (true, default) or evenly (false).",
-                      "type": "boolean"
-                    }
-                  }
-                }
-              ]
+            "increasingRate": {
+              "$ref": "#/definitions/rampRatePhase"
             }
           }
         }
       }
     },
     "staircase": {
-      "desription": "Shortcut for alternating rampPerSec and constPerSec phases",
+      "desription": "Shortcut for alternating increasingRate and constantRate phases",
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -435,6 +411,33 @@
             "fork": { "type": "string" }
           },
           "required": [ "phase" ]
+        }
+      ]
+    },
+    "rampRatePhase": {
+      "description": "Add new users to the system at varying rate.",
+      "allOf": [
+        { "$ref": "#/definitions/phase" },
+        {
+          "required": [ "initialUsersPerSec", "targetUsersPerSec" ],
+          "properties": {
+            "initialUsersPerSec": {
+              "description": "Rate for new users at the beginning of phase",
+              "$ref": "#/definitions/incrementableNumber"
+            },
+            "targetUsersPerSec": {
+              "description": "Rate for new users at the end of phase",
+              "$ref": "#/definitions/incrementableNumber"
+            },
+            "maxSessions": {
+              "description": "Maximum number of users (active sessions) executing this phase concurrently.",
+              "$ref": "#/definitions/positiveInteger"
+            },
+            "variance": {
+              "description": "Add new users randomly following Poisson process (true, default) or evenly (false).",
+              "type": "boolean"
+            }
+          }
         }
       ]
     },

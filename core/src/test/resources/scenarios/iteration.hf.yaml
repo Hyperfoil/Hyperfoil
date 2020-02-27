@@ -3,7 +3,7 @@ http:
   host: http://localhost:8080
 phases:
 - rampUp: # When forks are in this should create a no-op phase that will be started after all the forks
-    rampPerSec:
+    increasingRate:
       initialUsersPerSec:
         base: 1
         increment: 100
@@ -35,7 +35,7 @@ phases:
               # TODO
 
 - steadyState:
-    constantPerSec:
+    constantRate:
       usersPerSec:
         base: 100
         increment: 100
