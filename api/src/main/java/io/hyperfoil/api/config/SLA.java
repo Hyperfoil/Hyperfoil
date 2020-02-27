@@ -74,7 +74,7 @@ public class SLA implements Serializable {
          }
       }
       if (statistics.blockedTime > 0) {
-         double actualBlockedRatio = statistics.blockedTime / (statistics.histogram.getMean() * statistics.histogram.getTotalCount());
+         double actualBlockedRatio = statistics.blockedTime / (statistics.blockedTime + statistics.histogram.getMean() * statistics.histogram.getTotalCount());
          if (actualBlockedRatio > blockedRatio) {
             return new SLA.Failure(this, phase, metric, statistics.clone(),
                   String.format("Progress was blocked waiting for a free connection. Hint: increase http.sharedConnections."));

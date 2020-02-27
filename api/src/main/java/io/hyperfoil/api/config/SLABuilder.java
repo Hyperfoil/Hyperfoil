@@ -78,8 +78,8 @@ public class SLABuilder<P> implements Rewritable<SLABuilder<P>> {
    }
 
    /**
-    * Maximum allowed ratio of time spent waiting for usable connection to sum of response latencies.
-    * Default is 0 - client must not be blocked.
+    * Maximum allowed ratio of time spent waiting for usable connection to sum of response latencies and blocked time.
+    * Default is 0 - client must not be blocked. Set to 1 if the client can block without limits.
     *
     * @param blockedRatio Maximum ratio.
     * @return Self.
