@@ -37,16 +37,15 @@ public class Edit extends BenchmarkCommand {
          if (benchmark.source() == null) {
             throw new CommandException("No source available for benchmark '" + benchmark.name() + "', cannot edit.");
          }
-         try {
-            sourceFile = File.createTempFile(benchmark.name() + "-", ".yaml");
-            sourceFile.deleteOnExit();
-            Files.write(sourceFile.toPath(), benchmark.source().getBytes(StandardCharsets.UTF_8));
-         } catch (IOException e) {
-            throw new CommandException("Cannot create temporary file for edits.", e);
-         }
       } catch (RestClientException e) {
          invocation.println("ERROR: " + Util.explainCauses(e));
          throw new CommandException("Cannot get benchmark " + benchmarkRef.name());
+      }
+      try {
+         sourceFile = File.createTempFile(benchmark.name() + "-", ".yaml");
+         Files.write(sourceFile.toPath(), benchmark.source().getBytes(StandardCharsets.UTF_8));
+      } catch (IOException e) {
+         throw new CommandException("Cannot create temporary file for edits.", e);
       }
       long modifiedTimestamp = sourceFile.lastModified();
       Benchmark updated;
@@ -84,12 +83,18 @@ public class Edit extends BenchmarkCommand {
             throw new CommandException("Failed to load the benchmark.", e);
          }
       }
-      sourceFile.delete();
       try {
-         invocation.context().client().register(updated, benchmark.version());
+         String prevVersion = benchmark.version();
+         if (!updated.name().equals(benchmark.name())) {
+            invocation.println("NOTE: Renamed benchmark " + benchmark.name() + " to " + updated.name() + "; old benchmark won't be deleted.");
+            prevVersion = null;
+         }
+         invocation.context().client().register(updated, prevVersion);
+         sourceFile.delete();
       } catch (RestClientException e) {
          if (e.getCause() instanceof Client.EditConflictException) {
             invocation.println("Conflict: the benchmark was modified while being edited.");
+            invocation.println("You can find your edits in " + sourceFile);
             invocation.print("Options: [C]ancel edit, [r]etry edits, [o]verwrite: ");
             try {
                switch (invocation.inputLine().trim().toLowerCase()) {
@@ -109,9 +114,12 @@ public class Edit extends BenchmarkCommand {
                }
             } catch (InterruptedException ie) {
                invocation.println("Edit cancelled by interrupt.");
+               sourceFile.delete();
                return CommandResult.FAILURE;
             }
          } else {
+            invocation.println(Util.explainCauses(e));
+            invocation.println("You can find your edits in " + sourceFile);
             throw new CommandException("Failed to upload the benchmark", e);
          }
       }

@@ -693,7 +693,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
          Benchmark prev = benchmarks.get(benchmark.name());
          if (prev == null || !prevVersion.equals(prev.version())) {
             log.info("Updating benchmark {}, version {} but current version is {}",
-                  benchmark.name(), prevVersion, prev.version());
+                  benchmark.name(), prevVersion, prev != null ? prev.version() : "<non-existent>");
             return false;
          }
       }
