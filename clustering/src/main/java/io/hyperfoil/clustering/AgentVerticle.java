@@ -8,6 +8,7 @@ import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.session.PhaseInstance;
 import io.hyperfoil.clustering.messages.AgentControlMessage;
 import io.hyperfoil.clustering.messages.AgentHello;
+import io.hyperfoil.clustering.messages.ErrorMessage;
 import io.hyperfoil.core.util.CountDown;
 import io.hyperfoil.core.impl.SimulationRunnerImpl;
 import io.hyperfoil.clustering.messages.PhaseChangeMessage;
@@ -228,6 +229,9 @@ public class AgentVerticle extends AbstractVerticle {
             });
          }
          return Util.COMPLETED_VOID_FUTURE;
+      });
+      runner.setErrorHandler(error -> {
+         eb.send(Feeds.RESPONSE, new ErrorMessage(deploymentId, runId, error));
       });
 
       runner.init(result -> {

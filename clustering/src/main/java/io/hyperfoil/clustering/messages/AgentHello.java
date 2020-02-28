@@ -2,9 +2,7 @@ package io.hyperfoil.clustering.messages;
 
 import java.io.Serializable;
 
-import io.hyperfoil.util.Immutable;
-
-public class AgentHello implements Serializable, Immutable {
+public class AgentHello implements Serializable {
    private final String name;
    private final String nodeId;
    private final String deploymentId;

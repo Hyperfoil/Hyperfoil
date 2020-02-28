@@ -16,6 +16,8 @@ import io.hyperfoil.api.deployment.Deployer;
 import io.hyperfoil.api.session.PhaseInstance;
 import io.hyperfoil.clustering.messages.AgentControlMessage;
 import io.hyperfoil.clustering.messages.AgentHello;
+import io.hyperfoil.clustering.messages.AgentStatusMessage;
+import io.hyperfoil.clustering.messages.ErrorMessage;
 import io.hyperfoil.clustering.messages.SessionStatsMessage;
 import io.hyperfoil.clustering.messages.StatsMessage;
 import io.hyperfoil.core.hooks.ExecRunHook;
@@ -130,38 +132,24 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       });
 
       eb.consumer(Feeds.RESPONSE, message -> {
-         PhaseChangeMessage phaseChange = (PhaseChangeMessage) message.body();
-         Run run = runs.get(phaseChange.runId());
+         AgentStatusMessage msg = (AgentStatusMessage) message.body();
+         Run run = runs.get(msg.runId());
          if (run == null) {
-            log.error("No run {}", phaseChange.runId());
+            log.error("No run {}", msg.runId());
             return;
          }
-         AgentInfo agent = run.agents.stream().filter(a -> a.deploymentId.equals(phaseChange.senderId())).findAny().orElse(null);
+         AgentInfo agent = run.agents.stream().filter(a -> a.deploymentId.equals(msg.senderId())).findAny().orElse(null);
          if (agent == null) {
-            log.error("No agent {} in run {}", phaseChange.senderId(), run.id);
+            log.error("No agent {} in run {}", msg.senderId(), run.id);
             return;
          }
-         String phase = phaseChange.phase();
-         log.debug("{} Received phase change from {}: {} is {} (session limit exceeded={}, errors={})", run.id,
-               phaseChange.senderId(), phase, phaseChange.status(), phaseChange.sessionLimitExceeded(), phaseChange.getError());
-         agent.phases.put(phase, phaseChange.status());
-         ControllerPhase controllerPhase = run.phases.get(phase);
-         if (phaseChange.sessionLimitExceeded()) {
-            Phase def = controllerPhase.definition();
-            run.statisticsStore.addFailure(def.name, null, controllerPhase.absoluteStartTime(), System.currentTimeMillis(), "Exceeded session limit");
-            if (def instanceof Phase.OpenModelPhase && ((Phase.OpenModelPhase) def).sessionLimitPolicy == Phase.SessionLimitPolicy.CONTINUE) {
-               log.warn("{} Phase {} session limit exceeded, continuing due to policy {}", run.id, def.name, ((Phase.OpenModelPhase) def).sessionLimitPolicy);
-            } else {
-               log.info("{} Failing phase due to exceeded session limit.", run.id);
-               controllerPhase.setFailed();
-            }
+         if (msg instanceof PhaseChangeMessage) {
+            handlePhaseChange(run, agent, (PhaseChangeMessage) msg);
+         } else if (msg instanceof ErrorMessage) {
+            run.errors.add(new Run.Error(agent, ((ErrorMessage) msg).error()));
+         } else {
+            log.error("Unexpected type of message: {}", msg);
          }
-         if (phaseChange.getError() != null) {
-            controllerPhase.setFailed();
-            run.errors.add(new Run.Error(agent, phaseChange.getError()));
-         }
-         tryProgressStatus(run, phase);
-         runSimulation(run);
       });
 
       eb.consumer(Feeds.STATS, message -> {
@@ -231,6 +219,30 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       startCountDown.increment();
       loadBenchmarks(startCountDown);
       startCountDown.countDown();
+   }
+
+   private void handlePhaseChange(Run run, AgentInfo agent, PhaseChangeMessage phaseChange) {
+      String phase = phaseChange.phase();
+      log.debug("{} Received phase change from {}: {} is {} (session limit exceeded={}, errors={})", run.id,
+            phaseChange.senderId(), phase, phaseChange.status(), phaseChange.sessionLimitExceeded(), phaseChange.getError());
+      agent.phases.put(phase, phaseChange.status());
+      ControllerPhase controllerPhase = run.phases.get(phase);
+      if (phaseChange.sessionLimitExceeded()) {
+         Phase def = controllerPhase.definition();
+         run.statisticsStore.addFailure(def.name, null, controllerPhase.absoluteStartTime(), System.currentTimeMillis(), "Exceeded session limit");
+         if (def instanceof Phase.OpenModelPhase && ((Phase.OpenModelPhase) def).sessionLimitPolicy == Phase.SessionLimitPolicy.CONTINUE) {
+            log.warn("{} Phase {} session limit exceeded, continuing due to policy {}", run.id, def.name, ((Phase.OpenModelPhase) def).sessionLimitPolicy);
+         } else {
+            log.info("{} Failing phase due to exceeded session limit.", run.id);
+            controllerPhase.setFailed();
+         }
+      }
+      if (phaseChange.getError() != null) {
+         controllerPhase.setFailed();
+         run.errors.add(new Run.Error(agent, phaseChange.getError()));
+      }
+      tryProgressStatus(run, phase);
+      runSimulation(run);
    }
 
    @Override

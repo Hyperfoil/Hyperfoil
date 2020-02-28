@@ -1,5 +1,6 @@
 package io.hyperfoil.core.impl;
 
+import io.hyperfoil.api.BenchmarkExecutionException;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.connection.HttpDestinationTable;
 import io.hyperfoil.api.session.SharedData;
@@ -8,6 +9,7 @@ import io.hyperfoil.core.client.netty.HttpDestinationTableImpl;
 import io.hyperfoil.core.client.netty.PrivateConnectionPool;
 import io.hyperfoil.core.session.SharedDataImpl;
 import io.hyperfoil.core.util.Util;
+import io.hyperfoil.internal.Properties;
 import io.netty.channel.EventLoop;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.hyperfoil.api.config.Http;
@@ -65,7 +67,9 @@ public class SimulationRunnerImpl implements SimulationRunner {
    protected final HttpDestinationTableImpl[] httpDestinations;
    private final Queue<Phase> toPrune;
    private PhaseChangeHandler phaseChangeHandler;
+   private Consumer<Throwable> errorHandler;
    private boolean isDepletedMessageQuietened;
+   private Thread jitterWatchdog;
 
    public SimulationRunnerImpl(Benchmark benchmark, int agentId) {
       this.eventLoopGroup = new NioEventLoopGroup(benchmark.threads());
@@ -107,6 +111,10 @@ public class SimulationRunnerImpl implements SimulationRunner {
 
    public void setPhaseChangeHandler(PhaseChangeHandler phaseChangeHandler) {
       this.phaseChangeHandler = phaseChangeHandler;
+   }
+
+   public void setErrorHandler(Consumer<Throwable> errorHandler) {
+      this.errorHandler = errorHandler;
    }
 
    @Override
@@ -174,6 +182,10 @@ public class SimulationRunnerImpl implements SimulationRunner {
       // hint the GC to tenure sessions
       System.gc();
 
+      jitterWatchdog = new Thread(this::observeJitter, "jitter-watchdog");
+      jitterWatchdog.setDaemon(true);
+      jitterWatchdog.start();
+
       CompositeFuture composite = CompositeFuture.join(futures);
       composite.setHandler(result -> {
          if (result.failed()) {
@@ -181,6 +193,29 @@ public class SimulationRunnerImpl implements SimulationRunner {
          }
          handler.handle(result.mapEmpty());
       });
+   }
+
+   private void observeJitter() {
+      long period = Properties.getLong(Properties.JITTER_WATCHDOG_PERIOD, 50);
+      long threshold = Properties.getLong(Properties.JITTER_WATCHDOG_THRESHOLD, 100);
+      long lastTimestamp = System.nanoTime();
+      while (true) {
+         try {
+            Thread.sleep(period);
+         } catch (InterruptedException e) {
+            log.debug("Interrupted, terminating jitter watchdog");
+            return;
+         }
+         long currentTimestamp = System.nanoTime();
+         long delay = TimeUnit.NANOSECONDS.toMillis(currentTimestamp - lastTimestamp);
+         if (delay > threshold) {
+            log.error("Jitter watchdog was not invoked for {} ms (threshold is {} ms); please check your GC settings.", delay, threshold);
+            if (errorHandler != null) {
+               errorHandler.accept(new BenchmarkExecutionException("Jitter watchdog was not invoked for " + delay + " ms; check GC settings."));
+            }
+         }
+         lastTimestamp = currentTimestamp;
+      }
    }
 
    protected CompletableFuture<Void> phaseChanged(Phase phase, PhaseInstance.Status status, boolean sessionLimitExceeded, Throwable error) {
@@ -231,6 +266,7 @@ public class SimulationRunnerImpl implements SimulationRunner {
 
    @Override
    public void shutdown() {
+      jitterWatchdog.interrupt();
       for (HttpClientPool pool : httpClientPools.values()) {
          pool.shutdown();
       }

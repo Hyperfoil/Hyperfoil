@@ -16,6 +16,8 @@ public interface Properties {
    String CONTROLLER_PORT = "io.hyperfoil.controller.port";
    String DEPLOYER = "io.hyperfoil.deployer";
    String DEPLOY_TIMEOUT = "io.hyperfoil.deploy.timeout";
+   String JITTER_WATCHDOG_PERIOD = "io.hyperfoil.jitter.watchdog.period";
+   String JITTER_WATCHDOG_THRESHOLD = "io.hyperfoil.jitter.watchdog.threshold";
    String LOG4J2_CONFIGURATION_FILE = "log4j.configurationFile";
    String ROOT_DIR = "io.hyperfoil.rootdir";
    String RUN_DIR = "io.hyperfoil.rundir";

@@ -2,9 +2,7 @@ package io.hyperfoil.clustering.messages;
 
 import java.io.Serializable;
 
-import io.hyperfoil.util.Immutable;
-
-public class PhaseControlMessage implements Serializable, Immutable {
+public class PhaseControlMessage implements Serializable {
    private final Command command;
    private final String phase;
 

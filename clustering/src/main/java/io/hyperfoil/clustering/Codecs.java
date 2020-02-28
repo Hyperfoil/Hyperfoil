@@ -4,6 +4,7 @@ import java.util.ArrayList;
 
 import io.hyperfoil.clustering.messages.AgentControlMessage;
 import io.hyperfoil.clustering.messages.AgentHello;
+import io.hyperfoil.clustering.messages.ErrorMessage;
 import io.hyperfoil.clustering.messages.ObjectCodec;
 import io.hyperfoil.clustering.messages.PhaseChangeMessage;
 import io.hyperfoil.clustering.messages.PhaseControlMessage;
@@ -20,6 +21,7 @@ public final class Codecs {
 
       eb.registerDefaultCodec(AgentHello.class, new AgentHello.Codec());
       eb.registerDefaultCodec(AgentControlMessage.class, new AgentControlMessage.Codec());
+      eb.registerDefaultCodec(ErrorMessage.class, new ErrorMessage.Codec());
       eb.registerDefaultCodec(PhaseChangeMessage.class, new PhaseChangeMessage.Codec());
       eb.registerDefaultCodec(PhaseControlMessage.class, new PhaseControlMessage.Codec());
       eb.registerDefaultCodec(RequestStatsMessage.class, new RequestStatsMessage.Codec());

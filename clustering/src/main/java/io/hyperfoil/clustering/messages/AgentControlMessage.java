@@ -3,9 +3,8 @@ package io.hyperfoil.clustering.messages;
 import java.io.Serializable;
 
 import io.hyperfoil.api.config.Benchmark;
-import io.hyperfoil.util.Immutable;
 
-public class AgentControlMessage implements Serializable, Immutable {
+public class AgentControlMessage implements Serializable {
    private Command command;
    private int agentId;
    private Object param;

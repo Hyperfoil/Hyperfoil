@@ -20,23 +20,17 @@
 
 package io.hyperfoil.clustering.messages;
 
-import java.io.Serializable;
-
 import io.hyperfoil.api.session.PhaseInstance;
 import io.hyperfoil.core.util.Util;
-import io.hyperfoil.util.Immutable;
 
-public class PhaseChangeMessage implements Serializable, Immutable {
-   private final String senderId;
-   private final String runId;
+public class PhaseChangeMessage extends AgentStatusMessage {
    private final String phase;
    private final PhaseInstance.Status status;
    private final boolean sessionLimitExceeded;
    private final Throwable error;
 
    public PhaseChangeMessage(String senderId, String runId, String phase, PhaseInstance.Status status, boolean sessionLimitExceeded, Throwable error) {
-      this.senderId = senderId;
-      this.runId = runId;
+      super(senderId, runId);
       this.phase = phase;
       this.status = status;
       this.sessionLimitExceeded = sessionLimitExceeded;
@@ -45,21 +39,13 @@ public class PhaseChangeMessage implements Serializable, Immutable {
 
    @Override
    public String toString() {
-      final StringBuilder sb = new StringBuilder("SimulationMessage{");
+      final StringBuilder sb = new StringBuilder("PhaseChangeMessage{");
       sb.append("senderId='").append(senderId).append('\'');
       sb.append(", phase=").append(phase);
       sb.append(", status=").append(status);
       sb.append(", error=").append(Util.explainCauses(error));
       sb.append('}');
       return sb.toString();
-   }
-
-   public String senderId() {
-      return senderId;
-   }
-
-   public String runId() {
-      return runId;
    }
 
    public String phase() {
