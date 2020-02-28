@@ -171,6 +171,8 @@ public class SimulationRunnerImpl implements SimulationRunner {
          phase.reserveSessions();
          // at this point all session resources should be reserved
       }
+      // hint the GC to tenure sessions
+      System.gc();
 
       CompositeFuture composite = CompositeFuture.join(futures);
       composite.setHandler(result -> {

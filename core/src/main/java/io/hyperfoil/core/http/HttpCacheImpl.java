@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,6 +42,9 @@ public class HttpCacheImpl implements HttpCache {
    private final Clock clock;
    // TODO: optimize this structure
    private final Map<CharSequence, Map<CharSequence, List<Record>>> records = new HashMap<>();
+   private final List<Record> freeRecords = new ArrayList<>();
+   private final List<List<Record>> freeLists = new ArrayList<>();
+   private final Function<CharSequence, List<Record>> newList = this::newList;
 
    public HttpCacheImpl(Clock clock) {
       this.clock = clock;
@@ -291,7 +295,7 @@ public class HttpCacheImpl implements HttpCache {
          return;
       }
       Map<CharSequence, List<Record>> authorityRecords = records.computeIfAbsent(request.authority, a -> new HashMap<>());
-      List<Record> pathRecords = authorityRecords.computeIfAbsent(request.path, p -> new ArrayList<>());
+      List<Record> pathRecords = authorityRecords.computeIfAbsent(request.path, newList);
       if (cc.responseEtag != null) {
          boolean weak = false;
          if (AsciiString.regionMatches(cc.responseEtag, false, 0, "W/", 0, 2)) {
@@ -305,15 +309,14 @@ public class HttpCacheImpl implements HttpCache {
                return;
             }
          }
-         Record record = new Record(cc);
-         pathRecords.add(record);
+         pathRecords.add(newRecord().set(cc));
       } else if (cc.responseLastModified != Long.MIN_VALUE) {
          for (Record record : pathRecords) {
             if (record.lastModified > cc.responseLastModified) {
                return;
             }
          }
-         Record record = pathRecords.isEmpty() ? new Record(cc) : pathRecords.get(0).update(cc);
+         Record record = pathRecords.isEmpty() ? newRecord().set(cc) : pathRecords.get(0).update(cc);
          pathRecords.clear();
          pathRecords.add(record);
       } else {
@@ -324,8 +327,16 @@ public class HttpCacheImpl implements HttpCache {
                iterator.remove();
             }
          }
-         pathRecords.add(record == null ? new Record(cc) : record.update(cc));
+         pathRecords.add(record == null ? newRecord().set(cc) : record.update(cc));
       }
+   }
+
+   private Record newRecord() {
+      return freeRecords.isEmpty() ? new Record() : freeRecords.remove(freeRecords.size() - 1);
+   }
+
+   private List<Record> newList(CharSequence key) {
+      return freeLists.isEmpty() ? new ArrayList<>() : freeLists.remove(freeLists.size() - 1);
    }
 
    @Override
@@ -427,9 +438,17 @@ public class HttpCacheImpl implements HttpCache {
    @Override
    public void clear() {
       for (Map<CharSequence, List<Record>> authorityRecords : records.values()) {
+         // We must clean up authority records because paths can be request-specific; we can assume
+         // that authority can be cached for extended periods of time
          for (List<Record> pathRecords : authorityRecords.values()) {
+            for (Record record : pathRecords) {
+               record.reset();
+               freeRecords.add(record);
+            }
             pathRecords.clear();
+            freeLists.add(pathRecords);
          }
+         authorityRecords.clear();
       }
    }
 
@@ -442,7 +461,7 @@ public class HttpCacheImpl implements HttpCache {
       boolean weakETag;
       CharSequence etag;
 
-      public Record(CacheControl cc) {
+      Record set(CacheControl cc) {
          this.date = cc.responseDate;
          this.expires = cc.responseExpires;
          this.noCache = cc.responseNoCache;
@@ -450,9 +469,15 @@ public class HttpCacheImpl implements HttpCache {
          this.lastModified = cc.responseLastModified;
          this.weakETag = cc.responseEtag != null && AsciiString.regionMatches(cc.responseEtag, false, 0, "W/", 0, 2);
          this.etag = cc.responseEtag == null ? null : cc.responseEtag.subSequence(weakETag ? 3 : 1, cc.responseEtag.length() - 1);
+         return this;
       }
 
-      private Record update(CacheControl cc) {
+      void reset() {
+         // other values are scalar
+         etag = null;
+      }
+
+      Record update(CacheControl cc) {
          date = Math.max(date, cc.responseDate);
          expires = Math.max(expires, cc.responseExpires);
          noCache = noCache || cc.responseNoCache;
