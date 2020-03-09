@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import io.hyperfoil.api.config.BenchmarkBuilder;
+import io.hyperfoil.api.config.BenchmarkDefinitionException;
 
 import org.yaml.snakeyaml.events.Event;
 import org.yaml.snakeyaml.events.MappingEndEvent;
@@ -33,6 +34,8 @@ import org.yaml.snakeyaml.events.SequenceStartEvent;
 
 class AgentsParser implements Parser<BenchmarkBuilder> {
 
+   private static final String DEFAULT = "default";
+
    @Override
    public void parse(Context ctx, BenchmarkBuilder builder) throws ParserException {
       Event event = ctx.next();
@@ -41,7 +44,7 @@ class AgentsParser implements Parser<BenchmarkBuilder> {
          if (value == null || value.isEmpty()) {
             // `agents:` without a value should be equal to omitting agents declaration completely
          } else {
-            builder.addAgent(value, null, Collections.emptyMap());
+            addAgent(builder, value, Collections.emptyMap());
          }
       } else if (event instanceof SequenceStartEvent) {
          while (ctx.hasNext()) {
@@ -76,12 +79,16 @@ class AgentsParser implements Parser<BenchmarkBuilder> {
 
    private void parseAgent(Context ctx, BenchmarkBuilder builder, String name) throws ParserException {
       if (!ctx.hasNext()) {
-         builder.addAgent(name, null, null);
+         addAgent(builder, name, null);
          return;
       }
       Event next = ctx.peek();
       if (next instanceof ScalarEvent) {
-         builder.addAgent(name, ctx.expectEvent(ScalarEvent.class).getValue(), Collections.emptyMap());
+         if (DEFAULT.equals(name)) {
+            throw new BenchmarkDefinitionException("Agent defaults must be set as properties, not using the inline form.");
+         } else {
+            builder.addAgent(name, ctx.expectEvent(ScalarEvent.class).getValue(), Collections.emptyMap());
+         }
       } else if (next instanceof MappingStartEvent) {
          ctx.expectEvent(MappingStartEvent.class);
          Map<String, String> properties = new HashMap<>();
@@ -97,10 +104,17 @@ class AgentsParser implements Parser<BenchmarkBuilder> {
                throw ctx.unexpectedEvent(event);
             }
          }
-         builder.addAgent(name, null, properties);
+         addAgent(builder, name, properties);
       } else {
-         builder.addAgent(name, null, Collections.emptyMap());
+         addAgent(builder, name, Collections.emptyMap());
       }
    }
 
+   private void addAgent(BenchmarkBuilder builder, String name, Map<String, String> properties) {
+      if (DEFAULT.equals(name)) {
+         builder.setDefaultAgentProperties(properties);
+      } else {
+         builder.addAgent(name, null, properties);
+      }
+   }
 }

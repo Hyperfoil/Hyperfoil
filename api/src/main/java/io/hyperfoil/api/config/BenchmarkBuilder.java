@@ -21,6 +21,7 @@ package io.hyperfoil.api.config;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -39,6 +40,7 @@ public class BenchmarkBuilder {
    private final String originalSource;
    private final BenchmarkData data;
    private String name;
+   private Map<String, String> defaultAgentProperties = Collections.emptyMap();
    private Collection<Agent> agents = new ArrayList<>();
    private ErgonomicsBuilder ergonomics = new ErgonomicsBuilder();
    private HttpBuilder defaultHttp;
@@ -175,7 +177,12 @@ public class BenchmarkBuilder {
       // are done.
       Map<String, byte[]> files = data.files();
 
-      Benchmark benchmark = new Benchmark(name, originalSource, files, agents.toArray(new Agent[0]), threads, ergonomics.build(),
+      Agent[] agents = this.agents.stream().map(a -> {
+         HashMap<String, String> properties = new HashMap<>(defaultAgentProperties);
+         properties.putAll(a.properties);
+         return new Agent(a.name, a.inlineConfig, properties);
+      }).toArray(Agent[]::new);
+      Benchmark benchmark = new Benchmark(name, originalSource, files, agents, threads, ergonomics.build(),
             httpMap, phases, tags, statisticsCollectionPeriod, preHooks, postHooks);
       bs.set(benchmark);
       return benchmark;
@@ -225,5 +232,10 @@ public class BenchmarkBuilder {
 
    public BenchmarkData data() {
       return data;
+   }
+
+   public BenchmarkBuilder setDefaultAgentProperties(Map<String, String> properties) {
+      this.defaultAgentProperties = properties;
+      return this;
    }
 }
