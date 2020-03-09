@@ -52,4 +52,8 @@ public class HttpRequest extends Request {
       return method + " " + authority + path;
    }
 
+   @Override
+   public void release() {
+      session.httpRequestPool().release(this);
+   }
 }

@@ -137,6 +137,7 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
          --numStreams;
          request.statistics().addCacheHit(request.startTimestampMillis());
          request.handlers().handleEnd(request, false);
+         request.release();
          tryReleaseToPool();
          return;
       }
@@ -191,9 +192,11 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
          HttpRequest request = entry.value();
          if (!request.isCompleted()) {
             request.handlers().handleThrowable(request, cause);
+            request.session.httpRequestPool().release(request);
             request.session.proceed();
          }
       }
+      streams.clear();
    }
 
    private class EventAdapter extends Http2EventAdapter {
@@ -251,6 +254,7 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
                // TODO: maybe add a specific handler because we don't need to terminate other streams
                handlers.handleThrowable(request, new IOException("HTTP2 stream was reset"));
             }
+            request.session.httpRequestPool().release(request);
             tryReleaseToPool();
          }
       }
@@ -263,6 +267,7 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
                request.handlers().handleEnd(request, true);
                log.trace("Completed response on {}", this);
             }
+            request.release();
             tryReleaseToPool();
          }
       }

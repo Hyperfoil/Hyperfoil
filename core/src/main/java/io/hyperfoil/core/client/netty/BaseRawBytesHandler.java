@@ -37,7 +37,9 @@ public abstract class BaseRawBytesHandler extends ChannelInboundHandlerAdapter {
 
    protected void invokeHandler(HttpRequest request, ByteBuf data, int offset, int length, boolean isLastPart) {
       HttpResponseHandlers handlers;
-      if (request != null && (handlers = (HttpResponseHandlers) request.handlers()).hasRawBytesHandler()) {
+      // When the request times out it is marked as completed and handlers are removed
+      // but the connection is not closed automatically.
+      if (request != null && !request.isCompleted() && (handlers = request.handlers()).hasRawBytesHandler()) {
          int readerIndex = data.readerIndex();
          handlers.handleRawBytes(request, data, offset, length, isLastPart);
          if (data.readerIndex() != readerIndex) {

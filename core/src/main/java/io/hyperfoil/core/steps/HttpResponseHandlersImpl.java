@@ -152,7 +152,6 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       }
       request.statistics().incrementResets(request.startTimestampMillis());
       request.setCompleted();
-      session.httpRequestPool().release(request);
       session.proceed();
    }
 
@@ -227,7 +226,6 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          request.statistics().addInvalid(request.startTimestampMillis());
       }
       request.setCompleted();
-      session.httpRequestPool().release(request);
       // if anything was blocking due to full request queue we should continue from the right place
       session.proceed();
    }

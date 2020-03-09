@@ -126,4 +126,5 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
       sendTimestampNanos = System.nanoTime();
    }
 
+   public abstract void release();
 }

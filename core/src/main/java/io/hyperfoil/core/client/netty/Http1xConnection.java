@@ -145,6 +145,8 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
                   request.handlers().handleThrowable(request, t);
                }
             }
+            assert request.isCompleted();
+            request.release();
 
             releasePoolAndPulse();
          }
@@ -172,6 +174,8 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
       while ((request = inflights.poll()) != null) {
          if (!request.isCompleted()) {
             request.handlers().handleThrowable(request, cause);
+            assert request.isCompleted();
+            request.session.httpRequestPool().release(request);
             request.session.proceed();
          }
       }
@@ -215,6 +219,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
          --size;
          request.statistics().addCacheHit(request.startTimestampMillis());
          request.handlers().handleEnd(request, false);
+         request.release();
          releasePoolAndPulse();
          return;
       }
