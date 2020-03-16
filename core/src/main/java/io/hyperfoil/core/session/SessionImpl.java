@@ -309,7 +309,15 @@ class SessionImpl implements Session, Callable<Void> {
          log.trace("#{} Session finished", uniqueId);
       }
       if (!requestPool.isFull()) {
-         log.warn("#{} Session completed with requests in-flight!", uniqueId);
+         // We can't guarantee that requests will be back in session's requestPool when it terminates
+         // because if the requests did timeout (calling handlers and eventually letting the session terminate)
+         // it might still be held in the connection.
+         for (HttpRequest request : requests) {
+            if (!request.isCompleted()) {
+               log.warn("#{} Session completed with requests in-flight!", uniqueId);
+               break;
+            }
+         }
          cancelRequests();
       }
       reset();

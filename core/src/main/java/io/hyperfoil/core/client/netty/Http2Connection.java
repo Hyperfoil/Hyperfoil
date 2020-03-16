@@ -6,6 +6,7 @@ import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 
 import io.hyperfoil.api.connection.HttpRequest;
+import io.hyperfoil.api.connection.Request;
 import io.netty.channel.ChannelPromise;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http2.DefaultHttp2Headers;
@@ -98,6 +99,16 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
    @Override
    public String host() {
       return pool.clientPool().host();
+   }
+
+   @Override
+   public void onTimeout(Request request) {
+      for (IntObjectMap.PrimitiveEntry<HttpRequest> entry : streams.entries()) {
+         if (entry.value() == request) {
+            connection.stream(entry.key()).close();
+            break;
+         }
+      }
    }
 
    @Override

@@ -48,6 +48,7 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
       if (!isCompleted()) {
          statistics.incrementTimeouts(startTimestampMillis);
          handleThrowable(TIMEOUT_EXCEPTION);
+         connection.onTimeout(this);
          // handleThrowable sets the request completed
       } else {
          log.trace("#{} Request {} is already completed.", uniqueId, this);

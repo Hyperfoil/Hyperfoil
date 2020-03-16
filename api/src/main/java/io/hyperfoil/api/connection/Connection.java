@@ -17,4 +17,6 @@ public interface Connection {
    void close();
 
    String host();
+
+   default void onTimeout(Request request) {}
 }
