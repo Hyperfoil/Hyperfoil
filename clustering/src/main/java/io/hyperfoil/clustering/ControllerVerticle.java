@@ -238,6 +238,8 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
          }
       }
       if (phaseChange.getError() != null) {
+         log.error("{} Failing phase {} as agent {} reports error: {}", run.id,
+               controllerPhase.definition().name, agent.name, phaseChange.getError().getMessage());
          controllerPhase.setFailed();
          run.errors.add(new Run.Error(agent, phaseChange.getError()));
       }
