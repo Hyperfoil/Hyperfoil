@@ -8,7 +8,9 @@ import io.vertx.core.Handler;
 
 public interface SimulationRunner {
 
-   void init(Handler<AsyncResult<Void>> handler);
+   void init();
+
+   void openConnections(Handler<AsyncResult<Void>> handler);
 
    void visitSessions(Consumer<Session> consumer);
 

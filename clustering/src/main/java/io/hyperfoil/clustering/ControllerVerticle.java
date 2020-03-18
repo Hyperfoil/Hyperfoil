@@ -16,6 +16,7 @@ import io.hyperfoil.api.deployment.Deployer;
 import io.hyperfoil.api.session.PhaseInstance;
 import io.hyperfoil.clustering.messages.AgentControlMessage;
 import io.hyperfoil.clustering.messages.AgentHello;
+import io.hyperfoil.clustering.messages.AgentReadyMessage;
 import io.hyperfoil.clustering.messages.AgentStatusMessage;
 import io.hyperfoil.clustering.messages.ErrorMessage;
 import io.hyperfoil.clustering.messages.SessionStatsMessage;
@@ -146,7 +147,17 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
          if (msg instanceof PhaseChangeMessage) {
             handlePhaseChange(run, agent, (PhaseChangeMessage) msg);
          } else if (msg instanceof ErrorMessage) {
-            run.errors.add(new Run.Error(agent, ((ErrorMessage) msg).error()));
+            ErrorMessage errorMessage = (ErrorMessage) msg;
+            run.errors.add(new Run.Error(agent, errorMessage.error()));
+            if (errorMessage.isFatal()) {
+               agent.status = AgentInfo.Status.FAILED;
+               stopSimulation(run);
+            }
+         } else if (msg instanceof AgentReadyMessage) {
+            agent.status = AgentInfo.Status.READY;
+            if (run.agents.stream().allMatch(a -> a.status == AgentInfo.Status.READY)) {
+               startSimulation(run);
+            }
          } else {
             log.error("Unexpected type of message: {}", msg);
          }
@@ -433,14 +444,9 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
          if (agent.status != AgentInfo.Status.REGISTERED) {
             log.error("{} Already initializing {}, status is {}!", run.id, agent.deploymentId, agent.status);
          } else {
-            agent.status = AgentInfo.Status.INITIALIZING;
             eb.request(agent.deploymentId, new AgentControlMessage(AgentControlMessage.Command.INITIALIZE, agent.id, run.benchmark), reply -> {
-               if (reply.succeeded()) {
-                  agent.status = AgentInfo.Status.INITIALIZED;
-                  if (run.agents.stream().allMatch(a -> a.status == AgentInfo.Status.INITIALIZED)) {
-                     startSimulation(run);
-                  }
-               } else {
+               if (!reply.succeeded()) {
+                  agent.status = AgentInfo.Status.FAILED;
                   log.error("{} Agent {}({}) failed to initialize", reply.cause(), run.id, agent.name, agent.deploymentId);
                   run.errors.add(new Run.Error(agent, reply.cause()));
                   stopSimulation(run);
@@ -564,7 +570,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
    }
 
    private void checkAgentsStopped(Run run) {
-      if (run.agents.stream().allMatch(a -> a.status != AgentInfo.Status.INITIALIZED)) {
+      if (run.agents.stream().allMatch(a -> a.status.ordinal() >= AgentInfo.Status.STOPPED.ordinal())) {
          persistRun(run);
          log.info("Run {} completed", run.id);
       }
@@ -783,7 +789,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
    private void invokeOnAgents(Run run, AgentControlMessage.Command command, Object param, Handler<AsyncResult<Void>> completionHandler, BiConsumer<AgentInfo, AsyncResult<Message<Object>>> handler) {
       AtomicInteger agentCounter = new AtomicInteger(1);
       for (AgentInfo agent : run.agents) {
-         if (agent.status.ordinal() > AgentInfo.Status.INITIALIZED.ordinal()) {
+         if (agent.status.ordinal() >= AgentInfo.Status.STOPPED.ordinal()) {
             log.debug("Cannot invoke command on {}, status: {}", agent.name, agent.status);
             continue;
          }

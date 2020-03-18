@@ -118,18 +118,7 @@ public class SimulationRunnerImpl implements SimulationRunner {
    }
 
    @Override
-   public void init(Handler<AsyncResult<Void>> handler) {
-      //Initialise HttpClientPool
-      ArrayList<Future> futures = new ArrayList<>();
-      for (Map.Entry<String, HttpClientPool> entry : httpClientPools.entrySet()) {
-         // default client pool is initialized by name
-         if (entry.getKey() != null) {
-            Promise<Void> promise = Promise.promise();
-            futures.add(promise.future());
-            entry.getValue().start(promise);
-         }
-      }
-
+   public void init() {
       for (Phase def : benchmark.phases()) {
          SharedResources sharedResources;
          if (def.sharedResources == null) {
@@ -185,6 +174,19 @@ public class SimulationRunnerImpl implements SimulationRunner {
       jitterWatchdog = new Thread(this::observeJitter, "jitter-watchdog");
       jitterWatchdog.setDaemon(true);
       jitterWatchdog.start();
+   }
+
+   @Override
+   public void openConnections(Handler<AsyncResult<Void>> handler) {
+      ArrayList<Future> futures = new ArrayList<>();
+      for (Map.Entry<String, HttpClientPool> entry : httpClientPools.entrySet()) {
+         // default client pool is initialized by name
+         if (entry.getKey() != null) {
+            Promise<Void> promise = Promise.promise();
+            futures.add(promise.future());
+            entry.getValue().start(promise);
+         }
+      }
 
       CompositeFuture composite = CompositeFuture.join(futures);
       composite.setHandler(result -> {

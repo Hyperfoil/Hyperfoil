@@ -36,7 +36,8 @@ public class LocalSimulationRunner extends SimulationRunnerImpl {
       }
 
       CountDownLatch latch = new CountDownLatch(1);
-      init(result -> latch.countDown());
+      init();
+      openConnections(result -> latch.countDown());
       try {
          latch.await();
          // Exec is blocking and therefore must not run on the event-loop thread

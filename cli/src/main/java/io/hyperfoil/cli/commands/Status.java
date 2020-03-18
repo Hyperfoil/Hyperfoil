@@ -44,11 +44,11 @@ public class Status extends BaseRunIdCommand {
       if (run.description != null) {
          invocation.println(run.description);
       }
-      if (run.agents != null && !run.agents.isEmpty()) {
-         invocation.print("Agents: ");
-         invocation.println(String.join(", ", run.agents.stream().map(a -> a.name + "[" + a.status + "]").toArray(String[]::new)));
-      }
       for (; ; ) {
+         if (run.agents != null && !run.agents.isEmpty()) {
+            invocation.print("Agents: ");
+            invocation.println(String.join(", ", run.agents.stream().map(a -> a.name + "[" + a.status + "]").toArray(String[]::new)));
+         }
          if (run.started != null) {
             invocation.print("Started: " + DATE_FORMATTER.format(run.started) + "    ");
          }
@@ -87,7 +87,7 @@ public class Status extends BaseRunIdCommand {
             invocation.println("ERROR: " + Util.explainCauses(e));
             throw new CommandException("Cannot fetch status for run " + runRef.id(), e);
          }
-         int lines = 3;
+         int lines = 4;
          lines += (int) r.phases.stream().filter(p -> showPhase(r, p)).count();
          lines += cancelled > 0 ? 1 : 0;
          lines += run.errors.isEmpty() ? 0 : run.errors.size() + 1;

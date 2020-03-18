@@ -8,6 +8,7 @@ import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.session.PhaseInstance;
 import io.hyperfoil.clustering.messages.AgentControlMessage;
 import io.hyperfoil.clustering.messages.AgentHello;
+import io.hyperfoil.clustering.messages.AgentReadyMessage;
 import io.hyperfoil.clustering.messages.ErrorMessage;
 import io.hyperfoil.core.util.CountDown;
 import io.hyperfoil.core.impl.SimulationRunnerImpl;
@@ -16,10 +17,7 @@ import io.hyperfoil.clustering.messages.PhaseControlMessage;
 import io.hyperfoil.core.util.Util;
 import io.hyperfoil.internal.Properties;
 import io.vertx.core.AbstractVerticle;
-import io.vertx.core.AsyncResult;
 import io.vertx.core.Context;
-import io.vertx.core.Future;
-import io.vertx.core.Handler;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.eventbus.Message;
 import io.vertx.core.eventbus.MessageConsumer;
@@ -113,14 +111,8 @@ public class AgentVerticle extends AbstractVerticle {
          case INITIALIZE:
             log.info("Initializing agent");
             try {
-               initBenchmark(controlMessage.benchmark(), controlMessage.agentId(), result -> {
-                  if (result.succeeded()) {
-                     message.reply("OK");
-                  } else {
-                     log.error("Replying with error result", result.cause());
-                     message.fail(1, result.cause().getMessage());
-                  }
-               });
+               initBenchmark(controlMessage.benchmark(), controlMessage.agentId());
+               message.reply("OK");
             } catch (Throwable e) {
                log.error("Failed to initialize agent", e);
                message.fail(1, e.getMessage());
@@ -204,11 +196,9 @@ public class AgentVerticle extends AbstractVerticle {
       }
    }
 
-   private void initBenchmark(Benchmark benchmark, int agentId, Handler<AsyncResult<Void>> handler) {
+   private void initBenchmark(Benchmark benchmark, int agentId) {
       if (runner != null) {
-         log.error("Another simulation is running!");
-         handler.handle(Future.failedFuture("Another simulation is running"));
-         return;
+         throw new IllegalStateException("Another simulation is running!");
       }
 
       Context context = vertx.getOrCreateContext();
@@ -231,25 +221,24 @@ public class AgentVerticle extends AbstractVerticle {
          return Util.COMPLETED_VOID_FUTURE;
       });
       runner.setErrorHandler(error -> {
-         eb.send(Feeds.RESPONSE, new ErrorMessage(deploymentId, runId, error));
+         eb.send(Feeds.RESPONSE, new ErrorMessage(deploymentId, runId, error, false));
+      });
+      runner.init();
+
+      assert context.isEventLoopContext();
+      statsTimerId = vertx.setPeriodic(benchmark.statisticsCollectionPeriod(), timerId -> {
+         runner.visitStatistics(requestStatsSender);
+         requestStatsSender.send(false, statisticsCountDown);
+         runner.visitSessionPoolStats(sessionStatsSender);
+         sessionStatsSender.send();
       });
 
-      runner.init(result -> {
+      runner.openConnections(result -> {
          if (result.succeeded()) {
-            // This handler is run by unknown thread and we need to register
-            // the timer back to this verticle's eventloop
-            context.runOnContext(nil -> {
-               statsTimerId = vertx.setPeriodic(benchmark.statisticsCollectionPeriod(), timerId -> {
-                  runner.visitStatistics(requestStatsSender);
-                  requestStatsSender.send(false, statisticsCountDown);
-                  runner.visitSessionPoolStats(sessionStatsSender);
-                  sessionStatsSender.send();
-               });
-            });
+            eb.send(Feeds.RESPONSE, new AgentReadyMessage(deploymentID(), runId));
          } else {
-            log.error("Initialization failed.");
+            eb.send(Feeds.RESPONSE, new ErrorMessage(deploymentID(), runId, result.cause(), true));
          }
-         handler.handle(result);
       });
    }
 }

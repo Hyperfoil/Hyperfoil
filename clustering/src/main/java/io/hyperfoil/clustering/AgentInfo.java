@@ -28,8 +28,7 @@ class AgentInfo {
    public enum Status {
       STARTING,
       REGISTERED,
-      INITIALIZING,
-      INITIALIZED,
+      READY,
       STOPPED,
       FAILED
    }
