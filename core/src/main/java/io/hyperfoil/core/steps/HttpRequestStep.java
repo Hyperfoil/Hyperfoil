@@ -1,5 +1,7 @@
 package io.hyperfoil.core.steps;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -875,6 +877,25 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
          parent.headerAppender((session, writer) -> writer.putHeader(HttpHeaderNames.CONTENT_TYPE, APPLICATION_X_WWW_FORM_URLENCODED));
          parent.body(builder);
          return builder;
+      }
+
+      /**
+       * Send contents of the file. Note that this method does NOT set content-type automatically.
+       *
+       * @param path Path to loaded file.
+       * @return Self.
+       */
+      public BodyBuilder fromFile(String path) {
+         try (InputStream inputStream = parent.locator.scenario().endScenario().endPhase().data().readFile(path)) {
+            if (inputStream == null) {
+               throw new BenchmarkDefinitionException("Cannot load file `" + path + "` for randomItem (not found).");
+            }
+            byte[] bytes = io.hyperfoil.util.Util.toByteArray(inputStream);
+            parent.body(new ConstantBytesGenerator(bytes));
+         } catch (IOException e) {
+            throw new BenchmarkDefinitionException("Cannot load file `" + path + "` for randomItem.", e);
+         }
+         return this;
       }
 
       public Builder endBody() {
