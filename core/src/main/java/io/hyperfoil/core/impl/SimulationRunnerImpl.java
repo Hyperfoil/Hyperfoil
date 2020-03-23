@@ -72,7 +72,7 @@ public class SimulationRunnerImpl implements SimulationRunner {
    private Thread jitterWatchdog;
 
    public SimulationRunnerImpl(Benchmark benchmark, int agentId) {
-      this.eventLoopGroup = new NioEventLoopGroup(benchmark.threads());
+      this.eventLoopGroup = new NioEventLoopGroup(benchmark.threads(agentId));
       this.executors = StreamSupport.stream(eventLoopGroup.spliterator(), false).map(EventLoop.class::cast).toArray(EventLoop[]::new);
       this.benchmark = benchmark;
       this.agentId = agentId;
@@ -82,7 +82,7 @@ public class SimulationRunnerImpl implements SimulationRunner {
       Map<String, HttpConnectionPool>[] httpConnectionPools = new Map[executors.length];
       for (Map.Entry<String, Http> http : benchmark.http().entrySet()) {
          try {
-            HttpClientPool httpClientPool = new HttpClientPoolImpl(http.getValue(), executors);
+            HttpClientPool httpClientPool = new HttpClientPoolImpl(http.getValue(), executors, benchmark, agentId);
             httpClientPools.put(http.getKey(), httpClientPool);
             if (http.getValue().isDefault()) {
                httpClientPools.put(null, httpClientPool);
@@ -162,7 +162,7 @@ public class SimulationRunnerImpl implements SimulationRunner {
             });
             this.sharedResources.put(def.sharedResources, sharedResources);
          }
-         PhaseInstance phase = PhaseInstanceImpl.newInstance(def);
+         PhaseInstance phase = PhaseInstanceImpl.newInstance(def, agentId);
          instances.put(def.name(), phase);
          phase.setComponents(sharedResources.sessionPool, sharedResources.sessions, this::phaseChanged);
          phase.reserveSessions();

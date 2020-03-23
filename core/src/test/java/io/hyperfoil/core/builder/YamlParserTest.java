@@ -75,17 +75,17 @@ public class YamlParserTest {
 
       double sumWeights = 0.2 + 0.8 + 0.1 + 1;
       assertThat(phase(benchmark, "steadyState/invalidRegistration", Phase.ConstantRate.class).usersPerSec)
-            .isCloseTo(100.0 / 3 / sumWeights * 0.2, withPercentage(1));
+            .isCloseTo(100.0 / sumWeights * 0.2, withPercentage(1));
       assertThat(phase(benchmark, "steadyState/validRegistration", Phase.ConstantRate.class).usersPerSec)
-            .isCloseTo(100.0 / 3 / sumWeights * 0.8, withPercentage(1));
+            .isCloseTo(100.0 / sumWeights * 0.8, withPercentage(1));
       assertThat(phase(benchmark, "steadyState/unregister", Phase.ConstantRate.class).usersPerSec)
-            .isCloseTo(100.0 / 3 / sumWeights * 0.1, withPercentage(1));
+            .isCloseTo(100.0 / sumWeights * 0.1, withPercentage(1));
       assertThat(phase(benchmark, "steadyState/viewUser", Phase.ConstantRate.class).usersPerSec)
-            .isCloseTo(100.0 / 3 / sumWeights * 1.0, withPercentage(1));
+            .isCloseTo(100.0 / sumWeights * 1.0, withPercentage(1));
       assertThat(benchmark.phases().stream()
             .filter(p -> p instanceof Phase.ConstantRate)
             .mapToDouble(p -> ((Phase.ConstantRate) p).usersPerSec)
-            .sum()).isCloseTo(100.0 / 3, withPercentage(1));
+            .sum()).isCloseTo(100.0, withPercentage(1));
    }
 
    private <T extends Phase> T phase(Benchmark benchmark, String name, Class<T> type) {

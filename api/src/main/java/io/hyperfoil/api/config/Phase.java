@@ -108,10 +108,6 @@ public abstract class Phase implements Serializable {
 
    public abstract String description();
 
-   protected int agentCount() {
-      return Math.max(1, benchmark.get().agents().length);
-   }
-
    public static class AtOnce extends Phase {
       public final int users;
 
@@ -127,7 +123,7 @@ public abstract class Phase implements Serializable {
 
       @Override
       public String description() {
-         return (users * agentCount()) + " users at once";
+         return users + " users at once";
       }
    }
 
@@ -146,7 +142,7 @@ public abstract class Phase implements Serializable {
 
       @Override
       public String description() {
-         return (users * agentCount()) + " users always";
+         return users + " users always";
       }
 
    }
@@ -195,8 +191,7 @@ public abstract class Phase implements Serializable {
 
       @Override
       public String description() {
-         int numAgents = agentCount();
-         return String.format("%.2f - %.2f users per second", initialUsersPerSec * numAgents, targetUsersPerSec * numAgents);
+         return String.format("%.2f - %.2f users per second", initialUsersPerSec, targetUsersPerSec);
       }
    }
 
@@ -213,7 +208,7 @@ public abstract class Phase implements Serializable {
 
       @Override
       public String description() {
-         return String.format("%.2f users per second", usersPerSec * agentCount());
+         return String.format("%.2f users per second", usersPerSec);
       }
    }
 

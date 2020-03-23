@@ -67,7 +67,7 @@ public class RunMojo extends AbstractMojo {
                snapshot.addInto(total.computeIfAbsent(phase.name() + "/" + metric, k -> new StatisticsSnapshot()));
             }, this::printSessionPoolInfo);
             log.info("Running for {}", benchmark.statisticsCollectionPeriod());
-            log.info("{} threads", benchmark.threads());
+            log.info("{} threads", benchmark.defaultThreads());
             runner.run();
          }
       } catch (FileNotFoundException e) {

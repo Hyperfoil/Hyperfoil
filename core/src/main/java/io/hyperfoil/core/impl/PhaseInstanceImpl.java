@@ -18,15 +18,19 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Function;
+import java.util.function.BiFunction;
+import java.util.stream.IntStream;
 
 public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstance {
    protected static final Logger log = LoggerFactory.getLogger(PhaseInstanceImpl.class);
    protected static final boolean trace = log.isTraceEnabled();
 
-   private static Map<Class<? extends Phase>, Function<? extends Phase, PhaseInstance>> constructors = new HashMap<>();
+   private static Map<Class<? extends Phase>, BiFunction<? extends Phase, Integer, PhaseInstance>> constructors = new HashMap<>();
 
-   protected D def;
+   protected final D def;
+   private final int agentThreads;
+   private final int agentFirstThreadId;
+
    protected ElasticPool<Session> sessionPool;
    protected List<Session> sessionList;
    private PhaseChangeHandler phaseChangeHandler;
@@ -37,24 +41,26 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
    private volatile Throwable error;
    private volatile boolean sessionLimitExceeded;
 
-   public static PhaseInstance newInstance(Phase def) {
+   public static PhaseInstance newInstance(Phase def, int agentId) {
       @SuppressWarnings("unchecked")
-      Function<Phase, PhaseInstance> ctor = (Function<Phase, PhaseInstance>) constructors.get(def.getClass());
+      BiFunction<Phase, Integer, PhaseInstance> ctor = (BiFunction<Phase, Integer, PhaseInstance>) constructors.get(def.getClass());
       if (ctor == null) throw new BenchmarkDefinitionException("Unknown phase type: " + def);
-      return ctor.apply(def);
+      return ctor.apply(def, agentId);
    }
 
    static {
-      constructors.put(Phase.AtOnce.class, (Function<Phase.AtOnce, PhaseInstance>) AtOnce::new);
-      constructors.put(Phase.Always.class, (Function<Phase.Always, PhaseInstance>) Always::new);
-      constructors.put(Phase.RampRate.class, (Function<Phase.RampRate, PhaseInstance>) RampRate::new);
-      constructors.put(Phase.ConstantRate.class, (Function<Phase.ConstantRate, PhaseInstance>) ConstantRate::new);
-      constructors.put(Phase.Sequentially.class, (Function<Phase.Sequentially, PhaseInstance>) Sequentially::new);
-      constructors.put(Phase.Noop.class, (Function<Phase.Noop, PhaseInstance>) Noop::new);
+      constructors.put(Phase.AtOnce.class, (BiFunction<Phase.AtOnce, Integer, PhaseInstance>) AtOnce::new);
+      constructors.put(Phase.Always.class, (BiFunction<Phase.Always, Integer, PhaseInstance>) Always::new);
+      constructors.put(Phase.RampRate.class, (BiFunction<Phase.RampRate, Integer, PhaseInstance>) RampRate::new);
+      constructors.put(Phase.ConstantRate.class, (BiFunction<Phase.ConstantRate, Integer, PhaseInstance>) ConstantRate::new);
+      constructors.put(Phase.Sequentially.class, (BiFunction<Phase.Sequentially, Integer, PhaseInstance>) Sequentially::new);
+      constructors.put(Phase.Noop.class, (BiFunction<Phase.Noop, Integer, PhaseInstance>) Noop::new);
    }
 
-   protected PhaseInstanceImpl(D def) {
+   protected PhaseInstanceImpl(D def, int agentId) {
       this.def = def;
+      this.agentThreads = def.benchmark().threads(agentId);
+      this.agentFirstThreadId = IntStream.range(0, agentId).map(id -> def.benchmark().threads(id)).sum();
    }
 
    @Override
@@ -165,6 +171,16 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       return error;
    }
 
+   @Override
+   public int agentThreads() {
+      return agentThreads;
+   }
+
+   @Override
+   public int agentFirstThreadId() {
+      return agentFirstThreadId;
+   }
+
    protected boolean startNewSession() {
       int numActive = activeSessions.incrementAndGet();
       if (numActive < 0) {
@@ -191,40 +207,46 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
    }
 
    public static class AtOnce extends PhaseInstanceImpl<Phase.AtOnce> {
-      public AtOnce(Phase.AtOnce def) {
-         super(def);
+      private final int users;
+
+      public AtOnce(Phase.AtOnce def, int agentId) {
+         super(def, agentId);
+         this.users = def.benchmark().slice(def.users, agentId);
       }
 
       @Override
       public void proceed(EventExecutorGroup executorGroup) {
          assert activeSessions.get() == 0;
-         for (int i = 0; i < def.users; ++i) {
+         for (int i = 0; i < users; ++i) {
             startNewSession();
          }
       }
 
       @Override
       public void reserveSessions() {
-         sessionPool.reserve(def.users);
+         sessionPool.reserve(users);
       }
    }
 
    public static class Always extends PhaseInstanceImpl<Phase.Always> {
-      public Always(Phase.Always def) {
-         super(def);
+      int users;
+
+      public Always(Phase.Always def, int agentId) {
+         super(def, agentId);
+         users = def.benchmark().slice(def.users, agentId);
       }
 
       @Override
       public void proceed(EventExecutorGroup executorGroup) {
          assert activeSessions.get() == 0;
-         for (int i = 0; i < def.users; ++i) {
+         for (int i = 0; i < users; ++i) {
             startNewSession();
          }
       }
 
       @Override
       public void reserveSessions() {
-         sessionPool.reserve(def.users);
+         sessionPool.reserve(users);
       }
 
       @Override
@@ -238,13 +260,15 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
    }
 
    protected abstract static class OpenModelPhase<P extends Phase.OpenModelPhase> extends PhaseInstanceImpl<P> {
+      protected final int maxSessions;
       protected final Random random = new Random();
       protected double nextScheduled = nextSessionRandomized();
       protected AtomicLong throttledUsers = new AtomicLong(0);
       protected long startedOrThrottledUsers = 0;
 
-      protected OpenModelPhase(P def) {
-         super(def);
+      protected OpenModelPhase(P def, int agentId) {
+         super(def, agentId);
+         maxSessions = def.benchmark().slice(def.maxSessions, agentId);
       }
 
       @Override
@@ -291,7 +315,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
 
       @Override
       public void reserveSessions() {
-         sessionPool.reserve(def.maxSessions);
+         sessionPool.reserve(maxSessions);
       }
 
       @Override
@@ -315,17 +339,21 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
    }
 
    public static class RampRate extends OpenModelPhase<Phase.RampRate> {
+      private final double initialUsersPerSec;
+      private final double targetUsersPerSec;
 
-      public RampRate(Phase.RampRate def) {
-         super(def);
+      public RampRate(Phase.RampRate def, int agentId) {
+         super(def, agentId);
+         initialUsersPerSec = def.benchmark().slice(def.initialUsersPerSec, agentId);
+         targetUsersPerSec = def.benchmark().slice(def.targetUsersPerSec, agentId);
       }
 
       @Override
       protected long nextSessionMetronome(long delta) {
-         double progress = (def.targetUsersPerSec - def.initialUsersPerSec) / (def.duration * 1000);
-         long required = (long) (((progress * (delta + 1)) / 2 + def.initialUsersPerSec / 1000) * delta);
+         double progress = (targetUsersPerSec - initialUsersPerSec) / (def.duration * 1000);
+         long required = (long) (((progress * (delta + 1)) / 2 + initialUsersPerSec / 1000) * delta);
          // Next time is the root of quadratic equation
-         double bCoef = progress + def.initialUsersPerSec / 500;
+         double bCoef = progress + initialUsersPerSec / 500;
          nextScheduled = Math.ceil((-bCoef + Math.sqrt(bCoef * bCoef + 8 * progress * (startedOrThrottledUsers + 1))) / (2 * progress));
          return required;
       }
@@ -333,41 +361,43 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       @Override
       protected double nextSessionRandomized() {
          // we're solving quadratic equation coming from t = (duration * -log(rand))/(((t + now) * (target - initial)) + initial * duration)
-         double aCoef = (def.targetUsersPerSec - def.initialUsersPerSec);
+         double aCoef = (targetUsersPerSec - initialUsersPerSec);
          if (aCoef < 0.000001) {
             // prevent division 0f/0f
-            return 1000 * -Math.log(Math.max(1e-20, random.nextDouble())) / def.initialUsersPerSec;
+            return 1000 * -Math.log(Math.max(1e-20, random.nextDouble())) / initialUsersPerSec;
          }
-         double bCoef = nextScheduled * (def.targetUsersPerSec - def.initialUsersPerSec) + def.initialUsersPerSec * def.duration;
+         double bCoef = nextScheduled * (targetUsersPerSec - initialUsersPerSec) + initialUsersPerSec * def.duration;
          double cCoef = def.duration * 1000 * Math.log(random.nextDouble());
          return nextScheduled + (-bCoef + Math.sqrt(bCoef * bCoef - 4 * aCoef * cCoef)) / (2 * aCoef);
       }
    }
 
    public static class ConstantRate extends OpenModelPhase<Phase.ConstantRate> {
+      private final double usersPerSec;
 
-      public ConstantRate(Phase.ConstantRate def) {
-         super(def);
+      public ConstantRate(Phase.ConstantRate def, int agentId) {
+         super(def, agentId);
+         usersPerSec = def.benchmark().slice(def.usersPerSec, agentId);
       }
 
       @Override
       protected long nextSessionMetronome(long delta) {
-         long required = (long) (delta * def.usersPerSec / 1000);
-         nextScheduled = (1000 * (startedOrThrottledUsers + 1) + def.usersPerSec) / def.usersPerSec;
+         long required = (long) (delta * usersPerSec / 1000);
+         nextScheduled = (1000 * (startedOrThrottledUsers + 1) + usersPerSec) / usersPerSec;
          return required;
       }
 
       @Override
       protected double nextSessionRandomized() {
-         return nextScheduled + (1000 * -Math.log(Math.max(1e-20, random.nextDouble())) / def.usersPerSec);
+         return nextScheduled + (1000 * -Math.log(Math.max(1e-20, random.nextDouble())) / usersPerSec);
       }
    }
 
    public static class Sequentially extends PhaseInstanceImpl<Phase.Sequentially> {
       private int counter = 0;
 
-      public Sequentially(Phase.Sequentially def) {
-         super(def);
+      public Sequentially(Phase.Sequentially def, int agentId) {
+         super(def, agentId);
       }
 
       @Override
@@ -394,8 +424,8 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
    }
 
    public static class Noop extends PhaseInstanceImpl<Phase.Noop> {
-      protected Noop(Phase.Noop def) {
-         super(def);
+      protected Noop(Phase.Noop def, int agentId) {
+         super(def, agentId);
       }
 
       @Override

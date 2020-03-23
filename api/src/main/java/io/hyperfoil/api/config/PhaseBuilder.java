@@ -182,19 +182,6 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
 
    protected abstract Phase buildPhase(SerializableSupplier<Benchmark> benchmark, SerializableSupplier<Phase> ps, int phaseId, int iteration, PhaseForkBuilder f);
 
-   int sliceValue(String property, int value, double ratio) {
-      double sliced = value * ratio;
-      long rounded = Math.round(sliced);
-      if (Math.abs(rounded - sliced) > 0.0001) {
-         throw new BenchmarkDefinitionException("Cannot slice phase " + name + ", property " + property + " cleanly: " + value + " * " + ratio + " is not an integer.");
-      }
-      return (int) rounded;
-   }
-
-   int numAgents() {
-      return Math.max(parent.numAgents(), 1);
-   }
-
    String iterationName(int iteration, String forkName) {
       if (maxIterations == 1 && !forceIterations) {
          assert iteration == 0;
@@ -301,7 +288,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
                iterationStartTime(i), iterationReferences(startAfter, i, false),
                iterationReferences(startAfterStrict, i, true), iterationReferences(terminateAfterStrict, i, false), duration,
                maxDuration,
-               sharedResources(f), sliceValue("users", users + usersIncrement * i, f.weight / numAgents()));
+               sharedResources(f), (int) Math.round((users + usersIncrement * i) * f.weight));
       }
    }
 
@@ -323,7 +310,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
                iterationStartTime(i), iterationReferences(startAfter, i, false),
                iterationReferences(startAfterStrict, i, true), iterationReferences(terminateAfterStrict, i, false), duration,
                maxDuration,
-               sharedResources(f), sliceValue("users", this.users + usersIncrement * i, f.weight / numAgents()));
+               sharedResources(f), (int) Math.round((this.users + usersIncrement * i) * f.weight));
       }
 
       public Always users(int users) {
@@ -384,11 +371,11 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
       public Phase.RampRate buildPhase(SerializableSupplier<Benchmark> benchmark, SerializableSupplier<Phase> phase, int id, int i, PhaseForkBuilder f) {
          int maxSessions;
          if (this.maxSessions > 0) {
-            maxSessions = sliceValue("maxSessions", this.maxSessions, f.weight / numAgents());
+            maxSessions = (int) Math.round(this.maxSessions * f.weight);
          } else {
             double maxInitialUsers = initialUsersPerSec + initialUsersPerSecIncrement * (maxIterations - 1);
             double maxTargetUsers = targetUsersPerSec + targetUsersPerSecIncrement * (maxIterations - 1);
-            maxSessions = (int) Math.ceil(Math.max(maxInitialUsers, maxTargetUsers) * f.weight / numAgents());
+            maxSessions = (int) Math.ceil(Math.max(maxInitialUsers, maxTargetUsers) * f.weight);
          }
          if (initialUsersPerSec < 0) {
             throw new BenchmarkDefinitionException("Phase " + name + ".initialUsersPerSec must be non-negative");
@@ -404,8 +391,8 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
                iterationReferences(startAfter, i, false), iterationReferences(startAfterStrict, i, true),
                iterationReferences(terminateAfterStrict, i, false), duration, maxDuration,
                sharedResources(f),
-               (initialUsersPerSec + initialUsersPerSecIncrement * i) * f.weight / numAgents(),
-               (targetUsersPerSec + targetUsersPerSecIncrement * i) * f.weight / numAgents(), variance, maxSessions, sessionLimitPolicy);
+               (initialUsersPerSec + initialUsersPerSecIncrement * i) * f.weight,
+               (targetUsersPerSec + targetUsersPerSecIncrement * i) * f.weight, variance, maxSessions, sessionLimitPolicy);
          if (constraint != null && !constraint.test(rampRate)) {
             throw new BenchmarkDefinitionException("Phase " + name + " failed constraints: " + constraintMessage);
          }
@@ -456,9 +443,9 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
       public Phase.ConstantRate buildPhase(SerializableSupplier<Benchmark> benchmark, SerializableSupplier<Phase> phase, int id, int i, PhaseForkBuilder f) {
          int maxSessions;
          if (this.maxSessions <= 0) {
-            maxSessions = (int) Math.ceil(f.weight / numAgents() * (usersPerSec + usersPerSecIncrement * (maxIterations - 1)));
+            maxSessions = (int) Math.ceil(f.weight * (usersPerSec + usersPerSecIncrement * (maxIterations - 1)));
          } else {
-            maxSessions = sliceValue("maxSessions", this.maxSessions, f.weight / numAgents());
+            maxSessions = (int) Math.round(this.maxSessions * f.weight);
          }
          if (usersPerSec <= 0) {
             throw new BenchmarkDefinitionException("Phase " + name + ".usersPerSec must be positive.");
@@ -467,7 +454,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
                iterationStartTime(i), iterationReferences(startAfter, i, false),
                iterationReferences(startAfterStrict, i, true), iterationReferences(terminateAfterStrict, i, false), duration,
                maxDuration,
-               sharedResources(f), (usersPerSec + usersPerSecIncrement * i) * f.weight / numAgents(), variance, maxSessions, sessionLimitPolicy);
+               sharedResources(f), (usersPerSec + usersPerSecIncrement * i) * f.weight, variance, maxSessions, sessionLimitPolicy);
       }
 
       public ConstantRate usersPerSec(double usersPerSec) {

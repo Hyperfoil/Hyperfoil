@@ -38,6 +38,10 @@ public interface PhaseInstance {
 
    Throwable getError();
 
+   int agentThreads();
+
+   int agentFirstThreadId();
+
    enum Status {
       NOT_STARTED,
       RUNNING,

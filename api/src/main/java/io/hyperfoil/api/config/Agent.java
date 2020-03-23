@@ -22,6 +22,8 @@ import java.io.Serializable;
 import java.util.Map;
 
 public class Agent implements Serializable {
+   private static final String THREADS = "threads";
+
    public final String name;
    public final String inlineConfig;
    public final Map<String, String> properties;
@@ -30,5 +32,17 @@ public class Agent implements Serializable {
       this.name = name;
       this.inlineConfig = inlineConfig;
       this.properties = properties;
+   }
+
+   public int threads() {
+      String threadsProperty = properties.get(THREADS);
+      if (threadsProperty == null || threadsProperty.isEmpty()) {
+         return 0;
+      }
+      try {
+         return Integer.parseInt(threadsProperty);
+      } catch (NumberFormatException e) {
+         throw new BenchmarkDefinitionException("Cannot parse number of threads for agent " + name + ": " + threadsProperty);
+      }
    }
 }

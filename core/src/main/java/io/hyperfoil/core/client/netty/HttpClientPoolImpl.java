@@ -1,5 +1,6 @@
 package io.hyperfoil.core.client.netty;
 
+import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.util.Util;
 import io.netty.bootstrap.Bootstrap;
@@ -75,7 +76,7 @@ public class HttpClientPoolImpl implements HttpClientPool {
       NioEventLoopGroup eventLoopGroup = new NioEventLoopGroup(threads);
       EventLoop[] executors = StreamSupport.stream(eventLoopGroup.spliterator(), false)
             .map(EventLoop.class::cast).toArray(EventLoop[]::new);
-      return new HttpClientPoolImpl(http, executors) {
+      return new HttpClientPoolImpl(http, executors, Benchmark.forTesting(), 0) {
          @Override
          public void shutdown() {
             super.shutdown();
@@ -84,7 +85,7 @@ public class HttpClientPoolImpl implements HttpClientPool {
       };
    }
 
-   public HttpClientPoolImpl(Http http, EventLoop[] executors) throws SSLException {
+   public HttpClientPoolImpl(Http http, EventLoop[] executors, Benchmark benchmark, int agentId) throws SSLException {
       this.http = http;
       this.sslContext = http.protocol().secure() ? createSslContext() : null;
       this.host = http.host();
@@ -94,12 +95,13 @@ public class HttpClientPoolImpl implements HttpClientPool {
       this.forceH2c = http.versions().length == 1 && http.versions()[0] == HttpVersion.HTTP_2_0;
 
       this.children = new HttpConnectionPoolImpl[executors.length];
-      int sharedConnections = http.sharedConnections();
+      int sharedConnections = benchmark.slice(http.sharedConnections(), agentId);
       if (sharedConnections < executors.length) {
          log.warn("Connection pool size ({}) too small: the event loop has {} executors. Setting connection pool size to {}",
-               http.sharedConnections(), executors.length, executors.length);
+               sharedConnections, executors.length, executors.length);
          sharedConnections = executors.length;
       }
+      log.info("Allocating {} connections in {} executors to {}", sharedConnections, executors.length, http.protocol().scheme + "://" + authority);
       // This algorithm should be the same as session -> executor assignment to prevent blocking
       // in always(N) scenario with N connections
       int share = sharedConnections / executors.length;

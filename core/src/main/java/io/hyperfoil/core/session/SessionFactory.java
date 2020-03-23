@@ -3,6 +3,7 @@ package io.hyperfoil.core.session;
 import java.time.Clock;
 import java.util.Collections;
 
+import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.session.Access;
 import io.netty.util.concurrent.EventExecutorGroup;
@@ -30,13 +31,14 @@ public final class SessionFactory {
    public static Session forTesting(Clock clock) {
       Scenario dummyScenario = new Scenario(new Sequence[0], new Sequence[0], new String[0], new String[0], 16, 16);
       SessionImpl session = new SessionImpl(dummyScenario, 0, 0, 0, clock);
-      Phase dummyPhase = new Phase(() -> null, 0, 0, "dummy", dummyScenario, 0, Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), 0, -1, null) {
+      Phase dummyPhase = new Phase(() -> Benchmark.forTesting(), 0, 0, "dummy", dummyScenario, 0,
+            Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), 0, -1, null) {
          @Override
          public String description() {
             return "dummy";
          }
       };
-      session.resetPhase(new PhaseInstanceImpl<Phase>(dummyPhase) {
+      session.resetPhase(new PhaseInstanceImpl<Phase>(dummyPhase, 0) {
          @Override
          public void proceed(EventExecutorGroup executorGroup) {
          }

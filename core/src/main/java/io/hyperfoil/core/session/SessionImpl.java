@@ -98,18 +98,18 @@ class SessionImpl implements Session, Callable<Void> {
 
    @Override
    public int agentThreads() {
-      return phase.definition().benchmark().threads();
+      return phase.agentThreads();
    }
 
    @Override
    public int globalThreadId() {
-      return phase.definition().benchmark().threads() * agentId + threadId;
+      return phase.agentFirstThreadId() + threadId;
    }
 
    @Override
    public int globalThreads() {
       Benchmark benchmark = phase.definition().benchmark();
-      return benchmark.threads() * benchmark.agents().length;
+      return benchmark.totalThreads();
    }
 
    @Override
