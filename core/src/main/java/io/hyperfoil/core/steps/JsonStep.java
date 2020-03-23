@@ -22,12 +22,8 @@ import io.hyperfoil.core.handlers.ByteStream;
 import io.hyperfoil.core.handlers.JsonParser;
 import io.hyperfoil.core.handlers.JsonUnquotingTransformer;
 import io.hyperfoil.core.session.SessionFactory;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 
 public class JsonStep implements Step, ResourceUtilizer {
-   private static final Logger log = LoggerFactory.getLogger(JsonStep.class);
-
    private final ByteArrayParser byteArrayParser;
    private final Access fromVar;
 
@@ -45,6 +41,8 @@ public class JsonStep implements Step, ResourceUtilizer {
          ctx.parse(ctx.wrap((byte[]) object), session, true);
          byteArrayParser.after(session);
          ctx.reset();
+      } else {
+         throw new IllegalStateException("Unexpected format of input: " + object);
       }
       return true;
    }
@@ -119,9 +117,15 @@ public class JsonStep implements Step, ResourceUtilizer {
 
       public void before(Session session) {
          processor.before(session);
+         if (replace != null) {
+            replace.before(session);
+         }
       }
 
       public void after(Session session) {
+         if (replace != null) {
+            replace.after(session);
+         }
          processor.after(session);
       }
 

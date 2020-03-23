@@ -1,0 +1,32 @@
+name: JsonReplaceTest
+http:
+  host: http://localhost:8080
+phases:
+- test:
+    atOnce:
+      users: 1
+      scenario:
+      - theOnlySequence:
+        - httpRequest:
+            GET: /get
+            handler:
+              body:
+              - json:
+                  query: .age
+                  replace:
+                  - actions:
+                      var: temp
+                      actions:
+                      - stringToInt: temp -> age
+                      - addToInt: age++
+                      pattern: ${age}
+                  processor:
+                  - simple:
+                      toVar: updated
+                      format: BYTES
+        - httpRequest:
+            POST: /post
+            body:
+              fromVar: updated
+
+

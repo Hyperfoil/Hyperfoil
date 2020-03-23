@@ -19,7 +19,7 @@ import io.hyperfoil.api.config.ListBuilder;
 import io.hyperfoil.api.config.MappingListBuilder;
 import io.hyperfoil.api.config.PairBuilder;
 import io.hyperfoil.api.config.PartialBuilder;
-import io.hyperfoil.api.config.ServiceLoadedContract;
+import io.hyperfoil.core.builders.ServiceLoadedContract;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 
 class BaseReflectionParser {

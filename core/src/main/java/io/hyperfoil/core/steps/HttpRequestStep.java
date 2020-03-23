@@ -828,7 +828,8 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
             } else if (value instanceof String) {
                String str = (String) value;
                return Util.string2byteBuf(str, connection.context().alloc().buffer(str.length()));
-
+            } else if (value instanceof byte[]) {
+               return Unpooled.wrappedBuffer((byte[]) value);
             } else {
                log.error("#{} Cannot encode request body from var {}: {}", session.uniqueId(), access, value);
                return null;

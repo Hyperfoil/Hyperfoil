@@ -3,6 +3,7 @@ package io.hyperfoil.core.steps;
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Action;
@@ -45,7 +46,7 @@ public class StringToIntAction implements Action, ResourceUtilizer {
 
    @MetaInfServices(Action.Builder.class)
    @Name("stringToInt")
-   public static class Builder implements Action.Builder {
+   public static class Builder implements Action.Builder, InitFromParam<Builder> {
       String fromVar;
       String toVar;
 
@@ -56,6 +57,20 @@ public class StringToIntAction implements Action, ResourceUtilizer {
 
       public Builder toVar(String toVar) {
          this.toVar = toVar;
+         return this;
+      }
+
+      @Override
+      public Builder init(String param) {
+         int index = param.indexOf("->");
+         if (index < 0) {
+            throw new BenchmarkDefinitionException("Wrong format: use 'fromVar -> toVar'");
+         }
+         fromVar = param.substring(0, index).trim();
+         toVar = param.substring(index + 2).trim();
+         if (fromVar.isEmpty() || toVar.isEmpty()) {
+            throw new BenchmarkDefinitionException("Wrong format: use 'fromVar -> toVar'");
+         }
          return this;
       }
 

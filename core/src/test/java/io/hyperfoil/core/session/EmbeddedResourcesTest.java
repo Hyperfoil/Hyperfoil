@@ -12,9 +12,6 @@ import org.junit.runner.RunWith;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
-import io.hyperfoil.core.impl.LocalBenchmarkData;
-import io.hyperfoil.core.parser.BenchmarkParser;
-import io.hyperfoil.core.parser.ParserException;
 import io.hyperfoil.core.util.Util;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 
@@ -22,13 +19,7 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
 public class EmbeddedResourcesTest extends BaseScenarioTest {
    @Override
    protected Benchmark benchmark() {
-      try {
-         InputStream config = getClass().getClassLoader().getResourceAsStream("scenarios/EmbeddedResourcesTest.hf.yaml");
-         String configString = Util.toString(config).replaceAll("http://localhost:8080", "http://localhost:" + server.actualPort());
-         return BenchmarkParser.instance().buildBenchmark(configString, new LocalBenchmarkData());
-      } catch (IOException | ParserException e) {
-         throw new AssertionError(e);
-      }
+      return loadScenario("scenarios/EmbeddedResourcesTest.hf.yaml");
    }
 
    @Override

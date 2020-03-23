@@ -1,4 +1,4 @@
-package io.hyperfoil.api.config;
+package io.hyperfoil.core.builders;
 
 /**
  * Fill-in the builder provided in {@link #builder()} and then call {@link #complete()}.

@@ -45,4 +45,27 @@ public interface Transformer extends Serializable {
          ResourceUtilizer.reserve(session, delegate);
       }
    }
+
+   abstract class BaseDelegating implements Transformer, ResourceUtilizer {
+      protected final Transformer delegate;
+
+      protected BaseDelegating(Transformer delegate) {
+         this.delegate = delegate;
+      }
+
+      @Override
+      public void before(Session session) {
+         delegate.before(session);
+      }
+
+      @Override
+      public void after(Session session) {
+         delegate.after(session);
+      }
+
+      @Override
+      public void reserve(Session session) {
+         ResourceUtilizer.reserve(session, delegate);
+      }
+   }
 }

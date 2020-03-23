@@ -8,7 +8,7 @@ import org.yaml.snakeyaml.events.SequenceStartEvent;
 
 import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
-import io.hyperfoil.api.config.ServiceLoadedContract;
+import io.hyperfoil.core.builders.ServiceLoadedContract;
 import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 

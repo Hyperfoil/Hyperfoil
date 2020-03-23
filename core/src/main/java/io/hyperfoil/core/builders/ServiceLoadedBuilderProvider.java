@@ -15,7 +15,6 @@ import io.hyperfoil.api.config.IncludeBuilders;
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Name;
-import io.hyperfoil.api.config.ServiceLoadedContract;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 

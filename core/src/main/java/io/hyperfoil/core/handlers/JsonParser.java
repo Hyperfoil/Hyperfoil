@@ -102,7 +102,7 @@ public abstract class JsonParser implements Serializable, ResourceUtilizer {
 
    @Override
    public void reserve(Session session) {
-      ResourceUtilizer.reserve(session, processor);
+      ResourceUtilizer.reserve(session, processor, replace);
    }
 
    interface Selector extends Serializable {
@@ -241,13 +241,13 @@ public abstract class JsonParser implements Serializable, ResourceUtilizer {
                   break;
                case '}':
                   if (!inQuote) {
-                     if (valueStartIndex < 0) {
-                        safeOutputIndex = readerIndex;
-                     }
                      tryRecord(session, readerIndex);
                      if (level == selectorLevel) {
                         --selectorLevel;
                         --selector;
+                     }
+                     if (valueStartIndex < 0) {
+                        safeOutputIndex = readerIndex;
                      }
                      --level;
                   }
@@ -332,14 +332,14 @@ public abstract class JsonParser implements Serializable, ResourceUtilizer {
                   break;
                case ']':
                   if (!inQuote) {
-                     if (valueStartIndex < 0) {
-                        safeOutputIndex = readerIndex;
-                     }
                      tryRecord(session, readerIndex);
                      if (selectorLevel == level && selector < selectors.length && current() instanceof ArraySelectorContext) {
                         ArraySelectorContext asc = (ArraySelectorContext) current();
                         asc.active = false;
                         --selectorLevel;
+                     }
+                     if (valueStartIndex < 0) {
+                        safeOutputIndex = readerIndex;
                      }
                      --level;
                   }

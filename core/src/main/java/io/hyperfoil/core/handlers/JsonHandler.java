@@ -36,6 +36,9 @@ public class JsonHandler extends JsonParser implements Processor, Session.Resour
 
    @Override
    public void after(Session session) {
+      if (replace != null) {
+         replace.after(session);
+      }
       processor.after(session);
       Context ctx = session.getResource(this);
       ctx.reset();
