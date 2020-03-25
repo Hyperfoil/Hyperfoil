@@ -19,6 +19,7 @@
  */
 package io.hyperfoil.api.config;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -26,9 +27,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.Queue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import io.hyperfoil.impl.FutureSupplier;
 
@@ -157,13 +159,13 @@ public class BenchmarkBuilder {
             .collect(Collectors.toMap(HttpBuilder::authority, http -> http.build(http == defaultHttp)));
 
       AtomicInteger phaseIdCounter = new AtomicInteger(0);
-      Collection<Phase> phases = phaseBuilders.values().stream()
-            .flatMap(builder -> builder.build(bs, phaseIdCounter).stream()).collect(Collectors.toList());
-      Set<String> phaseNames = phases.stream().map(Phase::name).collect(Collectors.toSet());
-      for (Phase phase : phases) {
-         checkDependencies(phase, phase.startAfter, phaseNames);
-         checkDependencies(phase, phase.startAfterStrict, phaseNames);
-         checkDependencies(phase, phase.terminateAfterStrict, phaseNames);
+      Map<String, Phase> phases = phaseBuilders.values().stream()
+            .flatMap(builder -> builder.build(bs, phaseIdCounter).stream()).collect(Collectors.toMap(Phase::name, p -> p));
+      for (Phase phase : phases.values()) {
+         checkDependencies(phase, phase.startAfter, phases);
+         checkDependencies(phase, phase.startAfterStrict, phases);
+         checkDependencies(phase, phase.terminateAfterStrict, phases);
+         checkDeadlock(phase, phases);
       }
       Map<String, Object> tags = new HashMap<>();
       if (defaultHttp != null) {
@@ -183,15 +185,41 @@ public class BenchmarkBuilder {
          return new Agent(a.name, a.inlineConfig, properties);
       }).toArray(Agent[]::new);
       Benchmark benchmark = new Benchmark(name, originalSource, files, agents, threads, ergonomics.build(),
-            httpMap, phases, tags, statisticsCollectionPeriod, preHooks, postHooks);
+            httpMap, new ArrayList<>(phases.values()), tags, statisticsCollectionPeriod, preHooks, postHooks);
       bs.set(benchmark);
       return benchmark;
    }
 
-   private void checkDependencies(Phase phase, Collection<String> references, Set<String> phaseNames) {
+   private void checkDeadlock(Phase phase, Map<String, Phase> phases) {
+      // prevent deadlock
+      Map<Phase, Phase> deps = new HashMap<>();
+      Queue<Phase> toProcess = new ArrayDeque<>();
+      toProcess.add(phase);
+      while (!toProcess.isEmpty()) {
+         Phase p = toProcess.poll();
+         Stream.concat(p.startAfter.stream(), p.startAfterStrict.stream()).forEach(name -> {
+            Phase p2 = phases.get(name);
+            if (p2 == phase) {
+               StringBuilder sb = new StringBuilder("Phase dependencies contain cycle: ").append(name).append(" > ");
+               Phase p3 = p;
+               do {
+                  sb.append(p3.name).append(" > ");
+                  p3 = deps.get(p3);
+                  assert p3 != null;
+               } while (p3 != phase);
+               throw new BenchmarkDefinitionException(sb.append(name).toString());
+            }
+            if (deps.putIfAbsent(p2, p) == null) {
+               toProcess.add(p2);
+            }
+         });
+      }
+   }
+
+   private void checkDependencies(Phase phase, Collection<String> references, Map<String, Phase> phases) {
       for (String dep : references) {
-         if (!phaseNames.contains(dep)) {
-            String suggestion = phaseNames.stream()
+         if (!phases.containsKey(dep)) {
+            String suggestion = phases.keySet().stream()
                   .filter(name -> name.toLowerCase().startsWith(dep)).findAny()
                   .map(name -> " Did you mean " + name + "?").orElse("");
             throw new BenchmarkDefinitionException("Phase " + dep + " referenced from " + phase.name() + " is not defined." + suggestion);

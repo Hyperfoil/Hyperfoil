@@ -45,7 +45,7 @@ public class ScenarioBuilder implements Rewritable<ScenarioBuilder> {
       this.phaseBuilder = phaseBuilder;
    }
 
-   public PhaseBuilder endScenario() {
+   public PhaseBuilder<?> endScenario() {
       return phaseBuilder;
    }
 

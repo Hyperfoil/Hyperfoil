@@ -52,7 +52,7 @@ public class Benchmark implements Serializable {
    private final List<RunHook> postHooks;
 
    public static Benchmark forTesting() {
-      return new BenchmarkBuilder(null, BenchmarkData.EMPTY).http("http://localhost:8080").endHttp().build();
+      return BenchmarkBuilder.builder().http("http://localhost:8080").endHttp().build();
    }
 
    public Benchmark(String name, String originalSource, Map<String, byte[]> files, Agent[] agents, int defaultThreads, Ergonomics ergonomics,
