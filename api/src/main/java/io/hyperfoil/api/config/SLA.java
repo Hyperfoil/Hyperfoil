@@ -68,12 +68,12 @@ public class SLA implements Serializable {
 
    public SLA.Failure validate(String phase, String metric, StatisticsSnapshot statistics) {
       double actualErrorRatio = (double) statistics.errors() / statistics.requestCount;
-      if (actualErrorRatio >= errorRatio) {
+      if (statistics.errors() > 0 && actualErrorRatio >= errorRatio) {
          return new SLA.Failure(this, phase, metric, statistics.clone(),
                String.format("Error ratio exceeded: required %.3f, actual %.3f", errorRatio, actualErrorRatio));
       }
       double actualInvalidRatio = statistics.responseCount == 0 ? 0 : (double) statistics.invalid / statistics.responseCount;
-      if (actualInvalidRatio >= invalidRatio) {
+      if (statistics.invalid > 0 && actualInvalidRatio >= invalidRatio) {
          return new SLA.Failure(this, phase, metric, statistics.clone(),
                String.format("Invalid response ratio exceeded: required %.3f, actual %.3f", invalidRatio, actualInvalidRatio));
       }
