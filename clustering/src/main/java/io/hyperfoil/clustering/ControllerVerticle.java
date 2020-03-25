@@ -93,6 +93,8 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             Files.list(Controller.RUN_DIR).forEach(this::updateRuns);
          } catch (IOException e) {
             log.error("Could not list run dir contents", e);
+         } catch (Exception e) {
+            log.error("Cannot load previous runs from {}", e, Controller.RUN_DIR);
          }
       }
       Controller.HOOKS_DIR.resolve("pre").toFile().mkdirs();
@@ -297,7 +299,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       if (infoFile.toFile().exists() && infoFile.toFile().isFile()) {
          try {
             info = new JsonObject(new String(Files.readAllBytes(infoFile), StandardCharsets.UTF_8));
-         } catch (IOException e) {
+         } catch (Exception e) {
             log.error("Cannot read info for run {}", runId);
             return;
          }
