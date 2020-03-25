@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
+import org.HdrHistogram.Histogram;
 import org.HdrHistogram.HistogramIterationValue;
 
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -198,12 +199,14 @@ public class JsonWriter {
                         try {
                            jGenerator.writeFieldName(data.metric);
                            jGenerator.writeStartObject();
+
+                           Histogram histogram = data.perAgent.get(agent).histogram;
                            jGenerator.writeFieldName("histogram");
                            jGenerator.writeStartObject();
                            jGenerator.writeFieldName("percentiles");
-                           histogramArray(jGenerator, data.perAgent.get(agent).histogram.percentiles(5).iterator());
+                           histogramArray(jGenerator, histogram.percentiles(5).iterator());
                            jGenerator.writeFieldName("linear");
-                           histogramArray(jGenerator, data.perAgent.get(agent).histogram.linearBucketValues(1_000_000).iterator());
+                           histogramArray(jGenerator, histogram.linearBucketValues(1_000_000).iterator());
                            jGenerator.writeEndObject(); //histogram
                            jGenerator.writeFieldName("series");
                            seriesArray(jGenerator, data.agentSeries.get(agent));
@@ -272,17 +275,44 @@ public class JsonWriter {
 
    private static void histogramArray(JsonGenerator jGenerator, Iterator<HistogramIterationValue> iter) throws IOException {
       jGenerator.writeStartArray(); //start histogram
+      double from = -1, to = -1, percentileTo = -1;
+      long total = 0;
       while (iter.hasNext()) {
          HistogramIterationValue iterValue = iter.next();
-         jGenerator.writeStartObject();
-         jGenerator.writeNumberField("to", iterValue.getDoubleValueIteratedTo());
-         jGenerator.writeNumberField("from", iterValue.getDoubleValueIteratedFrom());
-         jGenerator.writeNumberField("percentile", iterValue.getPercentileLevelIteratedTo() / 100.0D);
-         jGenerator.writeNumberField("count", iterValue.getCountAddedInThisIterationStep());
-         jGenerator.writeNumberField("totalCount", iterValue.getTotalCountToThisValue());
-         jGenerator.writeEndObject();
+         if (iterValue.getCountAddedInThisIterationStep() == 0) {
+            if (from < 0) {
+               from = iterValue.getValueIteratedFrom();
+               total = iterValue.getTotalCountToThisValue();
+            } else {
+               to = iterValue.getValueIteratedTo();
+               percentileTo = iterValue.getPercentileLevelIteratedTo();
+            }
+         } else {
+            if (from >= 0) {
+               writeBucket(jGenerator, from, to, percentileTo, 0, total);
+            }
+            writeBucket(jGenerator,
+                  iterValue.getDoubleValueIteratedFrom(),
+                  iterValue.getDoubleValueIteratedTo(),
+                  iterValue.getPercentileLevelIteratedTo(),
+                  iterValue.getCountAddedInThisIterationStep(),
+                  iterValue.getTotalCountToThisValue());
+         }
+      }
+      if (from >= 0) {
+         writeBucket(jGenerator, from, to, percentileTo, 0, total);
       }
       jGenerator.writeEndArray(); //end histogram
+   }
+
+   private static void writeBucket(JsonGenerator jGenerator, double from, double to, double percentile, long count, long totalCount) throws IOException {
+      jGenerator.writeStartObject();
+      jGenerator.writeNumberField("from", from);
+      jGenerator.writeNumberField("to", to);
+      jGenerator.writeNumberField("percentile", percentile / 100.0D);
+      jGenerator.writeNumberField("count", count);
+      jGenerator.writeNumberField("totalCount", totalCount);
+      jGenerator.writeEndObject();
    }
 
    private static void seriesArray(JsonGenerator jGenerator, List<StatisticsSummary> series) throws IOException {
