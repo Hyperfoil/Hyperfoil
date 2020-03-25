@@ -13,6 +13,7 @@ public class SLABuilder<P> implements Rewritable<SLABuilder<P>> {
    private final P parent;
    private long window = -1;
    private double errorRatio = 1.01; // 101% of errors allowed
+   private double invalidRatio = 1.01;
    private long meanResponseTime = Long.MAX_VALUE;
    private final Collection<SLA.PercentileLimit> limits = new ArrayList<>();
    private double blockedRatio = 0; // do not allow blocking
@@ -29,7 +30,7 @@ public class SLABuilder<P> implements Rewritable<SLABuilder<P>> {
       if (sla != null) {
          return sla;
       }
-      return sla = new SLA(window, errorRatio, meanResponseTime, blockedRatio, limits);
+      return sla = new SLA(window, errorRatio, invalidRatio, meanResponseTime, blockedRatio, limits);
    }
 
    public P endSLA() {
@@ -61,6 +62,18 @@ public class SLABuilder<P> implements Rewritable<SLABuilder<P>> {
       this.errorRatio = errorRatio;
       return this;
    }
+
+   /**
+    * Maximum allowed ratio of responses marked as invalid. Valid values are 0.0 - 1.0 (inclusive).
+    *
+    * @param invalidRatio Ratio.
+    * @return Self.
+    */
+   public SLABuilder<P> invalidRatio(double invalidRatio) {
+      this.invalidRatio = invalidRatio;
+      return this;
+   }
+
 
    public SLABuilder<P> meanResponseTime(long meanResponseTime, TimeUnit timeUnit) {
       this.meanResponseTime = timeUnit.toNanos(meanResponseTime);
@@ -102,6 +115,7 @@ public class SLABuilder<P> implements Rewritable<SLABuilder<P>> {
    public void readFrom(SLABuilder<P> other) {
       window = other.window;
       errorRatio = other.errorRatio;
+      invalidRatio = other.invalidRatio;
       meanResponseTime = other.meanResponseTime;
       blockedRatio = other.blockedRatio;
       limits.clear();

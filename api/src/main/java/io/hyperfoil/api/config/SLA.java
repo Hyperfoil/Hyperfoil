@@ -28,14 +28,16 @@ public class SLA implements Serializable {
    public static final SLA[] DEFAULT = new SLA[]{ new SLABuilder<>(null).build() };
    private final long window;
    private final double errorRatio;
+   private final double invalidRatio;
    private final long meanResponseTime;
    private final double blockedRatio;
    private final Collection<PercentileLimit> limits;
 
-   public SLA(long window, double errorRatio, long meanResponseTime, double blockedRatio, Collection<PercentileLimit> limits) {
+   public SLA(long window, double errorRatio, double invalidRatio, long meanResponseTime, double blockedRatio, Collection<PercentileLimit> limits) {
       this.window = window;
       this.meanResponseTime = meanResponseTime;
       this.errorRatio = errorRatio;
+      this.invalidRatio = invalidRatio;
       this.blockedRatio = blockedRatio;
       this.limits = limits;
    }
@@ -46,6 +48,10 @@ public class SLA implements Serializable {
 
    public double errorRatio() {
       return errorRatio;
+   }
+
+   public double invalidRatio() {
+      return invalidRatio;
    }
 
    public long meanResponseTime() {
@@ -65,6 +71,11 @@ public class SLA implements Serializable {
       if (actualErrorRatio >= errorRatio) {
          return new SLA.Failure(this, phase, metric, statistics.clone(),
                String.format("Error ratio exceeded: required %.3f, actual %.3f", errorRatio, actualErrorRatio));
+      }
+      double actualInvalidRatio = statistics.responseCount == 0 ? 0 : (double) statistics.invalid / statistics.responseCount;
+      if (actualInvalidRatio >= invalidRatio) {
+         return new SLA.Failure(this, phase, metric, statistics.clone(),
+               String.format("Invalid response ratio exceeded: required %.3f, actual %.3f", invalidRatio, actualInvalidRatio));
       }
       if (meanResponseTime < Long.MAX_VALUE) {
          double mean = statistics.histogram.getMean();
