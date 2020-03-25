@@ -22,6 +22,8 @@ import io.hyperfoil.clustering.messages.ErrorMessage;
 import io.hyperfoil.clustering.messages.SessionStatsMessage;
 import io.hyperfoil.clustering.messages.StatsMessage;
 import io.hyperfoil.core.hooks.ExecRunHook;
+import io.hyperfoil.core.impl.statistics.CsvWriter;
+import io.hyperfoil.core.impl.statistics.JsonWriter;
 import io.hyperfoil.core.impl.statistics.StatisticsStore;
 import io.hyperfoil.clustering.util.PersistenceUtil;
 import io.hyperfoil.clustering.messages.PhaseChangeMessage;
@@ -580,7 +582,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
    private void persistRun(Run run) {
       vertx.executeBlocking(future -> {
          try {
-            run.statisticsStore.persist(run.dir.resolve("stats"));
+            CsvWriter.writeCsv(run.dir.resolve("stats"), run.statisticsStore);
          } catch (IOException e) {
             log.error("Failed to persist statistics", e);
             future.fail(e);
@@ -621,7 +623,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             jGenerator.writeFieldName("info");
             jGenerator.writeRawValue(info.encode()); // writeObjectField() was encoding info as a POJO not json
 
-            run.statisticsStore.writeJson(jGenerator, false);
+            JsonWriter.writeJson(run.statisticsStore, jGenerator, false);
             jGenerator.writeEndObject();
             jGenerator.flush();
             jGenerator.close();

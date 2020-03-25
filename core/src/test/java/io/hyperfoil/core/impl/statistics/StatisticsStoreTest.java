@@ -64,7 +64,7 @@ public class StatisticsStoreTest {
 
       try {
          JsonGenerator jsonGenerator = jsonFactory.createGenerator(baos);
-         store.writeJson(jsonGenerator);
+         JsonWriter.writeJson(store, jsonGenerator, true);
          jsonGenerator.close();
          String out = new String(baos.toByteArray());
 
@@ -182,7 +182,7 @@ public class StatisticsStoreTest {
 
       try {
          JsonGenerator jsonGenerator = jsonFactory.createGenerator(baos);
-         store.writeJson(jsonGenerator);
+         JsonWriter.writeJson(store, jsonGenerator, true);
          jsonGenerator.close();
          String out = new String(baos.toByteArray());
 
