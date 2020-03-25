@@ -428,7 +428,8 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       }
 
       run.deployTimerId = vertx.setTimer(Controller.DEPLOY_TIMEOUT, id -> {
-         log.error("Deployment timed out.");
+         log.error("{} Deployment timed out.", run.id);
+         run.errors.add(new Run.Error(null, new BenchmarkExecutionException("Deployment timed out.")));
          stopSimulation(run);
       });
 
@@ -689,6 +690,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
    }
 
    public void kill(Run run, Handler<AsyncResult<Void>> handler) {
+      log.info("{} Killing run", run.id);
       try {
          run.cancelled = true;
          for (Map.Entry<String, ControllerPhase> entry : run.phases.entrySet()) {
