@@ -29,6 +29,7 @@ import io.fabric8.kubernetes.api.model.ContainerPort;
 import io.fabric8.kubernetes.api.model.DoneablePod;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodSpecBuilder;
+import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
 import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
 import io.fabric8.kubernetes.client.Config;
@@ -41,6 +42,7 @@ import io.fabric8.kubernetes.client.Watcher;
 import io.fabric8.kubernetes.client.dsl.PodResource;
 import io.fabric8.kubernetes.client.dsl.internal.PodOperationsImpl;
 import io.hyperfoil.api.config.Agent;
+import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.deployment.DeployedAgent;
 import io.hyperfoil.api.deployment.Deployer;
 import io.hyperfoil.api.Version;
@@ -110,17 +112,21 @@ public class K8sDeployer implements Deployer {
    }
 
    @Override
-   public DeployedAgent start(Agent agent, String runId, Consumer<Throwable> exceptionHandler) {
+   public DeployedAgent start(Agent agent, String runId, Benchmark benchmark, Consumer<Throwable> exceptionHandler) {
       ensureClient();
 
       PodSpecBuilder spec = new PodSpecBuilder();
       List<String> command = new ArrayList<>();
       command.add("java");
+      int threads = agent.threads() < 0 ? benchmark.defaultThreads() : agent.threads();
       ContainerBuilder containerBuilder = new ContainerBuilder()
             .withImage(agent.properties.getOrDefault("image", DEFAULT_IMAGE))
             .withImagePullPolicy("Always")
             .withName("hyperfoil-agent")
-            .withPorts(new ContainerPort(7800, null, null, "jgroups", "TCP"));
+            .withPorts(new ContainerPort(7800, null, null, "jgroups", "TCP"))
+            .withNewResources()
+            .withRequests(Collections.singletonMap("cpu", new Quantity(String.valueOf(threads))))
+            .endResources();
 
       String node = agent.properties.get("node");
       if (node != null) {

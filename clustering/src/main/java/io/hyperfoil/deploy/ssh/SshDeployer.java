@@ -19,6 +19,7 @@ import org.apache.sshd.common.util.security.SecurityUtils;
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.Agent;
+import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.deployment.DeployedAgent;
 import io.hyperfoil.api.deployment.Deployer;
 import io.hyperfoil.api.deployment.DeploymentException;
@@ -48,7 +49,7 @@ public class SshDeployer implements Deployer {
    }
 
    @Override
-   public DeployedAgent start(Agent agent, String runId, Consumer<Throwable> exceptionHandler) {
+   public DeployedAgent start(Agent agent, String runId, Benchmark benchmark, Consumer<Throwable> exceptionHandler) {
       String hostname = null, username = null;
       int port = -1;
       String dir = null, extras = null;

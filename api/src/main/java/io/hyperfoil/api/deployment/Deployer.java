@@ -4,12 +4,13 @@ import java.io.Closeable;
 import java.util.function.Consumer;
 
 import io.hyperfoil.api.config.Agent;
+import io.hyperfoil.api.config.Benchmark;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 
 public interface Deployer extends Closeable {
 
-   DeployedAgent start(Agent agent, String runId, Consumer<Throwable> exceptionHandler);
+   DeployedAgent start(Agent agent, String runId, Benchmark benchmark, Consumer<Throwable> exceptionHandler);
 
    boolean hasControllerLog();
 

@@ -414,7 +414,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             AgentInfo agentInfo = new AgentInfo(agent.name, agentCounter++);
             run.agents.add(agentInfo);
             log.debug("Starting agent {}", agent.name);
-            vertx.executeBlocking(future -> agentInfo.deployedAgent = deployer.start(agent, run.id, exception -> {
+            vertx.executeBlocking(future -> agentInfo.deployedAgent = deployer.start(agent, run.id, run.benchmark, exception -> {
                run.errors.add(new Run.Error(agentInfo, new BenchmarkExecutionException("Failed to deploy agent", exception)));
                log.error("Failed to deploy agent {}", exception, agent.name);
                vertx.runOnContext(nil -> stopSimulation(run));
