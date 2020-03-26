@@ -135,7 +135,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
       request.authority = authority == null ? connectionPool.clientPool().authority() : authority;
       if (!connectionPool.request(request, headerAppenders, injectHostHeader, bodyGenerator, false)) {
          request.setCompleted();
-         session.httpRequestPool().release(request);
+         request.release();
          // TODO: when the phase is finished, max duration is not set and the connection cannot be obtained
          // we'll be waiting here forever. Maybe there should be a (default) timeout to obtain the connection.
          connectionPool.registerWaitingSession(session);

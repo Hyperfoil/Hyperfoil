@@ -7,6 +7,9 @@ class ErgonomicsParser extends AbstractParser<BenchmarkBuilder, ErgonomicsBuilde
    ErgonomicsParser() {
       register("repeatCookies", new PropertyParser.Boolean<>(ErgonomicsBuilder::repeatCookies));
       register("privateHttpPools", new PropertyParser.Boolean<>(ErgonomicsBuilder::privateHttpPools));
+      register("userAgentFromSession", new PropertyParser.Boolean<>(ErgonomicsBuilder::userAgentFromSession));
+      register("autoRangeCheck", new PropertyParser.Boolean<>(ErgonomicsBuilder::autoRangeCheck));
+      register("stopOnInvalid", new PropertyParser.Boolean<>(ErgonomicsBuilder::stopOnInvalid));
    }
 
    @Override

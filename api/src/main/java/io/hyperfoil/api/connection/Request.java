@@ -6,6 +6,7 @@ import java.util.concurrent.TimeoutException;
 
 import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.api.session.Session;
+import io.hyperfoil.api.session.SessionStopException;
 import io.hyperfoil.api.statistics.Statistics;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
@@ -30,8 +31,8 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
    private Statistics statistics;
    private ScheduledFuture<?> timeoutFuture;
    private Connection connection;
-   private boolean completed = true;
-   private boolean valid = true;
+   private Status status = Status.IDLE;
+   private Result result = Result.VALID;
 
    public Request(Session session) {
       this.session = session;
@@ -45,9 +46,14 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
       int uniqueId = session == null ? -1 : session.uniqueId();
       log.warn("#{} Request timeout on connection {}", uniqueId, connection);
       timeoutFuture = null;
-      if (!isCompleted()) {
+      if (status != Status.COMPLETED) {
+         result = Result.TIMED_OUT;
          statistics.incrementTimeouts(startTimestampMillis);
-         handleThrowable(TIMEOUT_EXCEPTION);
+         try {
+            handleThrowable(TIMEOUT_EXCEPTION);
+         } catch (SessionStopException e) {
+            // ignored
+         }
          connection.onTimeout(this);
          // handleThrowable sets the request completed
       } else {
@@ -63,23 +69,36 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
       this.startTimestampNanos = System.nanoTime();
       this.sequence = sequence;
       this.statistics = statistics;
-      this.completed = false;
+      this.status = Status.RUNNING;
+      this.result = Result.VALID;
    }
 
    public void attach(Connection connection) {
       this.connection = connection;
    }
 
+   public Status status() {
+      return status;
+   }
+
    public boolean isValid() {
-      return valid;
+      return result == Result.VALID;
    }
 
    public void markInvalid() {
-      valid = false;
+      result = Result.INVALID;
+   }
+
+   public void setCompleting() {
+      status = Status.COMPLETING;
+   }
+
+   public boolean isRunning() {
+      return status == Status.RUNNING;
    }
 
    public boolean isCompleted() {
-      return completed;
+      return status == Status.COMPLETED || status == Status.IDLE;
    }
 
    public void setCompleted() {
@@ -88,8 +107,10 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
          timeoutFuture = null;
       }
       connection = null;
-      completed = true;
-      valid = true;
+      // handleEnd may indirectly call handleThrowable which calls setCompleted first
+      if (status != Status.IDLE) {
+         status = Status.COMPLETED;
+      }
    }
 
    public Connection connection() {
@@ -137,5 +158,22 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
    public void exit() {
       session.currentSequence(null);
       session.currentRequest(null);
+   }
+
+   protected void setIdle() {
+      status = Status.IDLE;
+   }
+
+   public enum Result {
+      VALID,
+      INVALID,
+      TIMED_OUT,
+   }
+
+   public enum Status {
+      IDLE, // in pool
+      RUNNING,
+      COMPLETING,
+      COMPLETED,
    }
 }

@@ -8,12 +8,14 @@ import java.util.function.Function;
 import java.util.function.IntFunction;
 
 import io.hyperfoil.api.config.BuilderBase;
+import io.hyperfoil.api.config.ErgonomicsBuilder;
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.processor.HttpRequestProcessorBuilder;
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
+import io.hyperfoil.core.handlers.RangeStatusValidator;
 import io.hyperfoil.core.http.CookieRecorder;
 import io.netty.buffer.ByteBuf;
 import io.hyperfoil.api.http.HeaderHandler;
@@ -133,7 +135,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
    public void handleThrowable(HttpRequest request, Throwable throwable) {
       Session session = request.session;
       if (trace) {
-         log.trace("#{} Received exception {}", session.uniqueId(), throwable);
+         log.trace("#{} {} Received exception", throwable, session.uniqueId(), request);
       }
       if (request.isCompleted()) {
          if (trace) {
@@ -141,15 +143,25 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          }
          return;
       }
+      if (request.isValid()) {
+         // Do not mark as invalid when timed out
+         request.markInvalid();
+      }
       session.currentRequest(request);
 
-      if (completionHandlers != null) {
-         for (Action handler : completionHandlers) {
-            handler.run(session);
+      try {
+         if (request.isRunning()) {
+            request.setCompleting();
+            if (completionHandlers != null) {
+               for (Action handler : completionHandlers) {
+                  handler.run(session);
+               }
+            }
          }
+      } finally {
+         request.statistics().incrementResets(request.startTimestampMillis());
+         request.setCompleted();
       }
-      request.statistics().incrementResets(request.startTimestampMillis());
-      request.setCompleted();
    }
 
    @Override
@@ -192,33 +204,38 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          log.trace("#{} Completed request on {}", session.uniqueId(), request.connection());
       }
 
-      if (executed) {
-         long endTime = System.nanoTime();
-         request.statistics().recordResponse(request.startTimestampMillis(), request.sendTimestampNanos() - request.startTimestampNanos(), endTime - request.startTimestampNanos());
+      try {
+         if (executed) {
+            long endTime = System.nanoTime();
+            request.statistics().recordResponse(request.startTimestampMillis(), request.sendTimestampNanos() - request.startTimestampNanos(), endTime - request.startTimestampNanos());
 
-         if (headerHandlers != null) {
-            for (HeaderHandler handler : headerHandlers) {
-               handler.afterHeaders(request);
+            if (headerHandlers != null) {
+               for (HeaderHandler handler : headerHandlers) {
+                  handler.afterHeaders(request);
+               }
+            }
+            if (bodyHandlers != null) {
+               for (Processor handler : bodyHandlers) {
+                  handler.after(request.session);
+               }
+            }
+            request.session.httpCache().tryStore(request);
+         }
+
+         if (request.isRunning()) {
+            request.setCompleting();
+            if (completionHandlers != null) {
+               for (Action handler : completionHandlers) {
+                  handler.run(session);
+               }
             }
          }
-         if (bodyHandlers != null) {
-            for (Processor handler : bodyHandlers) {
-               handler.after(request.session);
-            }
+      } finally {
+         if (executed && !request.isValid()) {
+            request.statistics().addInvalid(request.startTimestampMillis());
          }
-         request.session.httpCache().tryStore(request);
+         request.setCompleted();
       }
-
-      if (completionHandlers != null) {
-         for (Action handler : completionHandlers) {
-            handler.run(session);
-         }
-      }
-
-      if (executed && !request.isValid()) {
-         request.statistics().addInvalid(request.startTimestampMillis());
-      }
-      request.setCompleted();
    }
 
    @Override
@@ -246,6 +263,8 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
    public static class Builder {
       private final HttpRequestStep.Builder parent;
       private Locator locator;
+      private Boolean autoRangeCheck;
+      private Boolean stopOnInvalid;
       private List<StatusHandler.Builder> statusHandlers = new ArrayList<>();
       private List<HeaderHandler.Builder> headerHandlers = new ArrayList<>();
       private List<HttpRequestProcessorBuilder> bodyHandlers = new ArrayList<>();
@@ -348,7 +367,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       }
 
       public void prepareBuild() {
-         if (locator.scenario().endScenario().endPhase().ergonomics().repeatCookies()) {
+         if (ergonomics().repeatCookies()) {
             header(new CookieRecorder());
          }
          // TODO: we might need defensive copies here
@@ -357,6 +376,21 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          bodyHandlers.forEach(HttpRequestProcessorBuilder::prepareBuild);
          completionHandlers.forEach(Action.Builder::prepareBuild);
          rawBytesHandlers.forEach(RawBytesHandler.Builder::prepareBuild);
+         if (autoRangeCheck == null && ergonomics().autoRangeCheck() || autoRangeCheck != null && autoRangeCheck) {
+            statusHandlers.add(new RangeStatusValidator.Builder().min(200).max(399));
+         }
+         // We must add this as the very last action since after calling session.stop() there other handlers won't be called
+         if (stopOnInvalid == null && ergonomics().stopOnInvalid() || stopOnInvalid != null && stopOnInvalid) {
+            completionHandlers.add(() -> session -> {
+               if (!session.currentRequest().isValid()) {
+                  session.stop();
+               }
+            });
+         }
+      }
+
+      private ErgonomicsBuilder ergonomics() {
+         return locator.scenario().endScenario().endPhase().ergonomics();
       }
 
       @SuppressWarnings("unchecked")

@@ -339,7 +339,7 @@ class SessionImpl implements Session, Callable<Void> {
                   // from handleEnd() the request is not in flight anymore
                   log.trace("#{} Connection close did not completed the request.", request.session != null ? request.session.uniqueId() : 0);
                   request.setCompleted();
-                  requestPool.release(request);
+                  request.release();
                }
             }
          }

@@ -2,6 +2,8 @@
 name: generators
 http:
   host: http://localhost:8080
+ergonomics:
+  autoRangeCheck: false
 phases:
 - testPhase:
     atOnce:

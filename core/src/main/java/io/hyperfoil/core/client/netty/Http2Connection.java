@@ -48,7 +48,7 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
    private HttpConnectionPool pool;
    private int numStreams;
    private long maxStreams;
-   private boolean closed;
+   private Status status = Status.OPEN;
 
    Http2Connection(ChannelHandlerContext context,
                    io.netty.handler.codec.http2.Http2Connection connection,
@@ -93,7 +93,10 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
 
    @Override
    public void close() {
-      cancelRequests(Connection.SELF_CLOSED_EXCEPTION);
+      if (status == Status.OPEN) {
+         status = Status.CLOSING;
+         cancelRequests(Connection.SELF_CLOSED_EXCEPTION);
+      }
       context.close();
    }
 
@@ -147,15 +150,7 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
             log.trace("#{} Request is completed from cache", request.session.uniqueId());
          }
          --numStreams;
-         request.statistics().addCacheHit(request.startTimestampMillis());
-         request.enter();
-         try {
-            request.handlers().handleEnd(request, false);
-         } finally {
-            request.exit();
-            request.release();
-         }
-         request.session.proceed();
+         request.handleCached();
          tryReleaseToPool();
          return;
       }
@@ -180,12 +175,12 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
 
    @Override
    public void setClosed() {
-      this.closed = true;
+      status = Status.CLOSED;
    }
 
    @Override
    public boolean isClosed() {
-      return closed;
+      return status == Status.CLOSED;
    }
 
    @Override
@@ -208,16 +203,7 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
    void cancelRequests(Throwable cause) {
       for (IntObjectMap.PrimitiveEntry<HttpRequest> entry : streams.entries()) {
          HttpRequest request = entry.value();
-         if (!request.isCompleted()) {
-            request.enter();
-            try {
-               request.handlers().handleThrowable(request, cause);
-            } finally {
-               request.exit();
-               request.release();
-            }
-            request.session.proceed();
-         }
+         request.cancel(cause);
       }
       streams.clear();
    }
@@ -303,7 +289,7 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
                }
                request.session.proceed();
             }
-            request.session.httpRequestPool().release(request);
+            request.release();
             tryReleaseToPool();
          }
       }

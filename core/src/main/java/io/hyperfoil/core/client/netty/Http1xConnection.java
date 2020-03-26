@@ -46,7 +46,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    // we can safely use non-atomic variables since the connection should be always accessed by single thread
    private int size;
    private boolean activated;
-   private boolean closed;
+   private Status status = Status.OPEN;
 
    Http1xConnection(HttpClientPoolImpl client, BiConsumer<HttpConnection, Throwable> handler) {
       this.activationHandler = handler;
@@ -55,7 +55,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    }
 
    @Override
-   public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
+   public void handlerAdded(ChannelHandlerContext ctx) {
       this.ctx = ctx;
       if (ctx.channel().isActive()) {
          checkActivated(ctx);
@@ -76,7 +76,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    }
 
    @Override
-   public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+   public void channelRead(ChannelHandlerContext ctx, Object msg) {
       try {
          if (msg instanceof HttpResponse) {
             HttpResponse response = (HttpResponse) msg;
@@ -184,17 +184,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    private void cancelRequests(Throwable cause) {
       HttpRequest request;
       while ((request = inflights.poll()) != null) {
-         if (!request.isCompleted()) {
-            request.enter();
-            try {
-               request.handlers().handleThrowable(request, cause);
-            } finally {
-               assert request.isCompleted();
-               request.exit();
-               request.release();
-            }
-            request.session.proceed();
-         }
+         request.cancel(cause);
       }
    }
 
@@ -234,18 +224,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
             log.trace("#{} Request is completed from cache", request.session.uniqueId());
          }
          --size;
-         request.statistics().addCacheHit(request.startTimestampMillis());
-         request.enter();
-         try {
-            request.handlers().handleEnd(request, false);
-         } catch (Throwable t) {
-            log.error("Response processing failed on {}", t, this);
-            request.handlers().handleThrowable(request, t);
-         } finally {
-            request.exit();
-            request.release();
-         }
-         request.session.proceed();
+         request.handleCached();
          releasePoolAndPulse();
          return;
       }
@@ -278,12 +257,12 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
 
    @Override
    public void setClosed() {
-      this.closed = true;
+      status = Status.CLOSED;
    }
 
    @Override
    public boolean isClosed() {
-      return closed;
+      return status == Status.CLOSED;
    }
 
    @Override
@@ -310,9 +289,12 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
 
    @Override
    public void close() {
-      // We need to cancel requests manually before sending the FIN packet, otherwise the server
-      // could give us an unexpected response before closing the connection with RST packet.
-      cancelRequests(Connection.SELF_CLOSED_EXCEPTION);
+      if (status == Status.OPEN) {
+         status = Status.CLOSING;
+         // We need to cancel requests manually before sending the FIN packet, otherwise the server
+         // could give us an unexpected response before closing the connection with RST packet.
+         cancelRequests(Connection.SELF_CLOSED_EXCEPTION);
+      }
       ctx.close();
    }
 

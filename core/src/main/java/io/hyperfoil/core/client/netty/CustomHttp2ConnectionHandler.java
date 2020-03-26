@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.util.function.BiConsumer;
 
 import io.hyperfoil.api.connection.HttpClientPool;
+import io.hyperfoil.api.session.SessionStopException;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.HttpClientUpgradeHandler;
@@ -80,7 +81,9 @@ class CustomHttp2ConnectionHandler extends io.netty.handler.codec.http2.Http2Con
 
    @Override
    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-      log.warn("Exception in {}", cause, this);
+      if (cause != SessionStopException.INSTANCE) {
+         log.warn("Exception in {}", cause, this);
+      }
       if (getEmbeddedHttp2Exception(cause) != null) {
          onError(ctx, false, cause);
       } else {

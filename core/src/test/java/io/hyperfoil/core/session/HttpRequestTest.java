@@ -159,7 +159,11 @@ public class HttpRequestTest extends BaseScenarioTest {
                      .status(new RangeStatusValidator(200, 299))
                      .endHandler()
                   .endStep()
-               .endSequence();
+               .endSequence()
+            .endScenario().endPhase()
+            .ergonomics()
+               .autoRangeCheck(false)
+               .stopOnInvalid(false);
       // @formatter:on
       Map<String, List<StatisticsSnapshot>> stats = runScenario();
       StatisticsSnapshot snapshot0 = stats.get("expectOK").iterator().next();

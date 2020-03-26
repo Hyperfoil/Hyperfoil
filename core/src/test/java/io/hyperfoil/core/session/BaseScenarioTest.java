@@ -3,6 +3,7 @@ package io.hyperfoil.core.session;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.hyperfoil.api.config.Benchmark;
+import io.hyperfoil.api.config.Protocol;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.HttpBuilder;
@@ -15,8 +16,10 @@ import io.hyperfoil.core.parser.ParserException;
 import io.hyperfoil.core.util.Util;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServer;
+import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import io.vertx.core.net.JksOptions;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.web.Router;
 
@@ -57,14 +60,23 @@ public abstract class BaseScenarioTest {
       vertx = Vertx.vertx();
       router = Router.router(vertx);
       initRouter();
-      server = vertx.createHttpServer().requestHandler(router)
+      HttpServerOptions options = new HttpServerOptions();
+      if (useHttps()) {
+         options.setSsl(true).setKeyStoreOptions(new JksOptions().setPath("keystore.jks").setPassword("test123"));
+      }
+      server = vertx.createHttpServer(options).requestHandler(router)
             .listen(0, "localhost", ctx.asyncAssertSuccess(srv -> initWithServer(ctx)));
+   }
+
+   // override me
+   protected boolean useHttps() {
+      return false;
    }
 
    protected void initWithServer(TestContext ctx) {
       benchmarkBuilder
             .threads(threads())
-            .http().host("localhost").port(server.actualPort());
+            .http().protocol(useHttps() ? Protocol.HTTPS : Protocol.HTTP).host("localhost").port(server.actualPort());
 
       initHttp(benchmarkBuilder.http());
    }
