@@ -250,6 +250,11 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    }
 
    @Override
+   public HttpRequest dispatchedRequest() {
+      return inflights.peekLast();
+   }
+
+   @Override
    public HttpRequest peekRequest(int streamId) {
       assert streamId == 0;
       return inflights.peek();

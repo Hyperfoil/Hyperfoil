@@ -14,6 +14,8 @@ import org.junit.runner.RunWith;
 
 import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.api.connection.HttpConnection;
+import io.hyperfoil.api.connection.Request;
+import io.hyperfoil.api.http.RawBytesHandler;
 import io.hyperfoil.core.test.TestUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.CompositeByteBuf;
@@ -71,13 +73,20 @@ public class ChunkedTransferTest extends BaseScenarioTest {
             })
             .step(SC).httpRequest(HttpMethod.GET).path("/test")
                .headers().header(HttpHeaderNames.CACHE_CONTROL, "no-cache").endHeaders()
-               .handler().rawBytes((session, byteBuf, offset, length, isLastPart) -> {
-                  log.info("Received chunk {} bytes:\n{}", length,
-                        byteBuf.toString(offset, length, StandardCharsets.UTF_8));
-                  if (byteBuf.toString(StandardCharsets.UTF_8).contains(SHIBBOLETH)) {
-                     throw new IllegalStateException();
+               .handler().rawBytes(new RawBytesHandler() {
+                  @Override
+                  public void onRequest(Request request, ByteBuf buf, int offset, int length) {
                   }
-                  rawBytesSeen.set(true);
+
+                  @Override
+                  public void onResponse(Request request, ByteBuf byteBuf, int offset, int length, boolean isLastPart) {
+                     log.info("Received chunk {} bytes:\n{}", length,
+                           byteBuf.toString(offset, length, StandardCharsets.UTF_8));
+                     if (byteBuf.toString(StandardCharsets.UTF_8).contains(SHIBBOLETH)) {
+                        throw new IllegalStateException();
+                     }
+                     rawBytesSeen.set(true);
+                  }
                }).endHandler()
                .sync(false)
             .endStep()

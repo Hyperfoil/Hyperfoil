@@ -49,6 +49,7 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
    private int numStreams;
    private long maxStreams;
    private Status status = Status.OPEN;
+   private HttpRequest dispatchedRequest;
 
    Http2Connection(ChannelHandlerContext context,
                    io.netty.handler.codec.http2.Http2Connection connection,
@@ -158,6 +159,7 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
       assert context.executor().inEventLoop();
       int id = nextStreamId();
       streams.put(id, request);
+      dispatchedRequest = request;
       ChannelPromise writePromise = context.newPromise();
       encoder.writeHeaders(context, id, headers, 0, buf == null, writePromise);
       if (buf != null) {
@@ -166,6 +168,12 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
       }
       writePromise.addListener(request);
       context.flush();
+      dispatchedRequest = null;
+   }
+
+   @Override
+   public HttpRequest dispatchedRequest() {
+      return dispatchedRequest;
    }
 
    @Override

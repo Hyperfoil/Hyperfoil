@@ -44,7 +44,7 @@ public class BenchmarkBuilder {
    private String name;
    private Map<String, String> defaultAgentProperties = Collections.emptyMap();
    private Collection<Agent> agents = new ArrayList<>();
-   private ErgonomicsBuilder ergonomics = new ErgonomicsBuilder();
+   private ErgonomicsBuilder ergonomics = new ErgonomicsBuilder(this);
    private HttpBuilder defaultHttp;
    private List<HttpBuilder> httpList = new ArrayList<>();
    private int threads = 1;

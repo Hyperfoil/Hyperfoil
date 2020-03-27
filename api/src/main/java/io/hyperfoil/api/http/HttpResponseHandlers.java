@@ -11,5 +11,7 @@ public interface HttpResponseHandlers extends ResponseHandlers<HttpRequest> {
 
    void handleBodyPart(HttpRequest request, ByteBuf data, int offset, int length, boolean isLastPart);
 
-   void handleRawBytes(HttpRequest request, ByteBuf data, int offset, int length, boolean isLastPart);
+   void handleRawRequest(HttpRequest request, ByteBuf data, int offset, int length);
+
+   void handleRawResponse(HttpRequest request, ByteBuf data, int offset, int length, boolean isLastPart);
 }

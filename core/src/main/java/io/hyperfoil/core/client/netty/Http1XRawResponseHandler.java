@@ -12,8 +12,8 @@ import io.netty.util.AsciiString;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-public class Http1xRawBytesHandler extends BaseRawBytesHandler {
-   private static final Logger log = LoggerFactory.getLogger(Http1xRawBytesHandler.class);
+public class Http1XRawResponseHandler extends BaseRawResponseHandler {
+   private static final Logger log = LoggerFactory.getLogger(Http1XRawResponseHandler.class);
    private static final byte CR = 13;
    private static final byte LF = 10;
    private static final int MAX_LINE_LENGTH = 4096;
@@ -33,7 +33,7 @@ public class Http1xRawBytesHandler extends BaseRawBytesHandler {
       TRAILERS
    }
 
-   Http1xRawBytesHandler(HttpConnection connection) {
+   Http1XRawResponseHandler(HttpConnection connection) {
       super(connection);
    }
 

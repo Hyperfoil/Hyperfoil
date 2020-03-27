@@ -10,14 +10,14 @@ import io.hyperfoil.api.connection.HttpConnection;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-public class Http2RawBytesHandler extends BaseRawBytesHandler {
-   private static final Logger log = LoggerFactory.getLogger(Http2RawBytesHandler.class);
+public class Http2RawResponseHandler extends BaseRawResponseHandler {
+   private static final Logger log = LoggerFactory.getLogger(Http2RawResponseHandler.class);
 
    private int streamId = -1;
    private byte[] frameHeader = new byte[FRAME_HEADER_LENGTH];
    private int frameHeaderIndex = 0;
 
-   Http2RawBytesHandler(HttpConnection connection) {
+   Http2RawResponseHandler(HttpConnection connection) {
       super(connection);
    }
 
@@ -42,7 +42,7 @@ public class Http2RawBytesHandler extends BaseRawBytesHandler {
                frameHeaderIndex += maxBytes;
                if (frameHeaderIndex >= FRAME_HEADER_LENGTH) {
                   ByteBuf wrapped = Unpooled.wrappedBuffer(frameHeader);
-                  responseBytes = FRAME_HEADER_LENGTH + wrapped.getUnsignedMedium(0);
+                  responseBytes = wrapped.getUnsignedMedium(0);
                   streamId = wrapped.getInt(5) & Integer.MAX_VALUE;
                   HttpRequest request = connection.peekRequest(streamId);
                   invokeHandler(request, wrapped, wrapped.readerIndex(), wrapped.readableBytes(), wrapped.readableBytes() == responseBytes);

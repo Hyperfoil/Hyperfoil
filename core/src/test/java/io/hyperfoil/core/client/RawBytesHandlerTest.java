@@ -14,8 +14,10 @@ import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.connection.HttpClientPool;
 import io.hyperfoil.api.connection.HttpConnectionPool;
 import io.hyperfoil.api.connection.HttpRequest;
+import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.api.http.HttpResponseHandlers;
+import io.hyperfoil.api.http.RawBytesHandler;
 import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.statistics.Statistics;
@@ -24,6 +26,7 @@ import io.hyperfoil.core.client.netty.HttpClientPoolImpl;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.steps.HttpResponseHandlersImpl;
 import io.hyperfoil.core.test.TestUtil;
+import io.netty.buffer.ByteBuf;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.unit.Async;
@@ -56,7 +59,14 @@ public class RawBytesHandlerTest extends VertxBaseTest {
                   Session session = SessionFactory.forTesting();
                   AtomicReference<HttpResponseHandlers> handlersRef = new AtomicReference<>();
                   handlersRef.set(HttpResponseHandlersImpl.Builder.forTesting()
-                        .rawBytes((req, buf, offset, length, isLastPart) -> {
+                        .rawBytes(new RawBytesHandler() {
+                           @Override
+                           public void onRequest(Request request, ByteBuf buf, int offset, int length) {
+                           }
+
+                           @Override
+                           public void onResponse(Request request, ByteBuf buf, int offset, int length, boolean isLastPart) {
+                           }
                         })
                         .onCompletion(s -> {
                            async.countDown();

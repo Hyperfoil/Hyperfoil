@@ -1,11 +1,16 @@
 package io.hyperfoil.api.config;
 
 public class ErgonomicsBuilder {
+   private final BenchmarkBuilder parent;
    private boolean repeatCookies = true;
    private boolean userAgentFromSession = true;
    private boolean privateHttpPools = false;
    private boolean autoRangeCheck = true;
    private boolean stopOnInvalid = true;
+
+   public ErgonomicsBuilder(BenchmarkBuilder parent) {
+      this.parent = parent;
+   }
 
    /**
     * Set global cookie-repeating behaviour for all steps.
@@ -52,6 +57,10 @@ public class ErgonomicsBuilder {
    public ErgonomicsBuilder stopOnInvalid(boolean stopOnInvalid) {
       this.stopOnInvalid = stopOnInvalid;
       return this;
+   }
+
+   public BenchmarkBuilder endErgonomics() {
+      return parent;
    }
 
    public Ergonomics build() {

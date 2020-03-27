@@ -22,6 +22,11 @@ public class BaseMockConnection implements HttpConnection {
    }
 
    @Override
+   public HttpRequest dispatchedRequest() {
+      return null;
+   }
+
+   @Override
    public HttpRequest peekRequest(int streamId) {
       return null;
    }

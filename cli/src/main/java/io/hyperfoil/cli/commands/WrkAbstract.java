@@ -34,7 +34,7 @@ import io.hyperfoil.controller.HistogramConverter;
 import io.hyperfoil.controller.model.CustomStats;
 import io.hyperfoil.controller.model.RequestStatisticsResponse;
 import io.hyperfoil.controller.model.RequestStats;
-import io.hyperfoil.core.handlers.ResponseSizeRecorder;
+import io.hyperfoil.core.handlers.TransferSizeRecorder;
 import io.hyperfoil.core.impl.LocalBenchmarkData;
 import io.hyperfoil.core.util.Util;
 
@@ -147,6 +147,9 @@ public abstract class WrkAbstract {
       @OptionGroup(shortName = 'A', description = "Inline definition of agent executing the test. By default assuming non-clustered mode.")
       Map<String, String> agent;
 
+      @Option(description = "HTTP2 is not supported in wrk/wrk2: you can enable that for Hyperfoil.", defaultValue = "false")
+      boolean enableHttp2;
+
       @Argument(description = "URL that should be accessed", required = true)
       String url;
 
@@ -200,8 +203,13 @@ public abstract class WrkAbstract {
          // @formatter:off
          BenchmarkBuilder builder = new BenchmarkBuilder(null, new LocalBenchmarkData())
                .name(getCommand())
+               .ergonomics()
+                  .repeatCookies(false)
+                  .userAgentFromSession(false)
+               .endErgonomics()
                .http()
                   .protocol(protocol).host(uri.getHost()).port(protocol.portOrDefault(uri.getPort()))
+                  .allowHttp2(enableHttp2)
                   .sharedConnections(connections)
                .endHttp()
                .threads(this.threads);
@@ -209,7 +217,13 @@ public abstract class WrkAbstract {
          if (agent != null) {
             for (Map.Entry<String, String> agent : agent.entrySet()) {
                Map<String, String> properties = Stream.of(agent.getValue().split(","))
-                     .map(property -> property.split("=", 2))
+                     .map(property -> {
+                        String[] pair = property.split("=", 2);
+                        if (pair.length != 2) {
+                           throw new IllegalArgumentException("Cannot parse " + property + " as a property: Agent should be formatted as -AagentName=key1=value1,key2=value2...");
+                        }
+                        return pair;
+                     })
                      .collect(Collectors.toMap(keyValue -> keyValue[0], keyValue -> keyValue[1]));
                builder.addAgent(agent.getKey(), null, properties);
             }
@@ -282,7 +296,7 @@ public abstract class WrkAbstract {
                         })
                         .timeout(timeout)
                         .handler()
-                           .rawBytes(new ResponseSizeRecorder("bytes"))
+                           .rawBytes(new TransferSizeRecorder("sent", "received"))
                         .endHandler()
                      .endStep()
                   .endSequence()
@@ -291,7 +305,8 @@ public abstract class WrkAbstract {
       }
 
       private void printStats(StatisticsSummary stats, AbstractHistogram histogram, Collection<CustomStats> custom, CommandInvocation invocation) {
-         long dataRead = custom.stream().filter(cs -> cs.customName.equals("bytes")).mapToLong(cs -> Long.parseLong(cs.value)).findFirst().orElse(0);
+         long dataSent = custom.stream().filter(cs -> cs.customName.equals("sent")).mapToLong(cs -> Long.parseLong(cs.value)).findFirst().orElse(0);
+         long dataReceived = custom.stream().filter(cs -> cs.customName.equals("received")).mapToLong(cs -> Long.parseLong(cs.value)).findFirst().orElse(0);
          double durationSeconds = (stats.endTime - stats.startTime) / 1000d;
          invocation.println("                  Avg     Stdev       Max");
          invocation.println("Latency:    " + Util.prettyPrintNanosFixed(stats.meanResponseTime) + " "
@@ -310,13 +325,13 @@ public abstract class WrkAbstract {
             }
             invocation.println("----------------------------------------------------------");
          }
-         invocation.println(stats.requestCount + " requests in " + durationSeconds + "s, " + Util.prettyPrintData(dataRead) + " read");
+         invocation.println(stats.requestCount + " requests in " + durationSeconds + "s, " + Util.prettyPrintData(dataSent + dataReceived) + " read");
          invocation.println("Requests/sec: " + String.format("%.02f", stats.requestCount / durationSeconds));
          if (stats.connectFailureCount + stats.resetCount + stats.timeouts + stats.status_4xx + stats.status_5xx > 0) {
             invocation.println("Socket errors: connect " + stats.connectFailureCount + ", reset " + stats.resetCount + ", timeout " + stats.timeouts);
             invocation.println("Non-2xx or 3xx responses: " + stats.status_4xx + stats.status_5xx + stats.status_other);
          }
-         invocation.println("Transfer/sec: " + Util.prettyPrintData(dataRead / durationSeconds));
+         invocation.println("Transfer/sec: " + Util.prettyPrintData((dataSent + dataReceived) / durationSeconds));
       }
 
    }

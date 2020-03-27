@@ -239,12 +239,22 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
    }
 
    @Override
-   public void handleRawBytes(HttpRequest request, ByteBuf data, int offset, int length, boolean isLastPart) {
+   public void handleRawRequest(HttpRequest request, ByteBuf data, int offset, int length) {
       if (rawBytesHandlers == null) {
          return;
       }
       for (RawBytesHandler rawBytesHandler : rawBytesHandlers) {
-         rawBytesHandler.accept(request, data, offset, length, isLastPart);
+         rawBytesHandler.onRequest(request, data, offset, length);
+      }
+   }
+
+   @Override
+   public void handleRawResponse(HttpRequest request, ByteBuf data, int offset, int length, boolean isLastPart) {
+      if (rawBytesHandlers == null) {
+         return;
+      }
+      for (RawBytesHandler rawBytesHandler : rawBytesHandlers) {
+         rawBytesHandler.onResponse(request, data, offset, length, isLastPart);
       }
    }
 

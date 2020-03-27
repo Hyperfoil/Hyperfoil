@@ -7,11 +7,11 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.hyperfoil.api.connection.HttpConnection;
 import io.hyperfoil.api.http.HttpResponseHandlers;
 
-public abstract class BaseRawBytesHandler extends ChannelInboundHandlerAdapter {
+public abstract class BaseRawResponseHandler extends ChannelInboundHandlerAdapter {
    protected final HttpConnection connection;
    protected int responseBytes = 0;
 
-   public BaseRawBytesHandler(HttpConnection connection) {
+   public BaseRawResponseHandler(HttpConnection connection) {
       this.connection = connection;
    }
 
@@ -43,7 +43,7 @@ public abstract class BaseRawBytesHandler extends ChannelInboundHandlerAdapter {
          HttpResponseHandlers handlers = request.handlers();
          request.enter();
          try {
-            handlers.handleRawBytes(request, data, offset, length, isLastPart);
+            handlers.handleRawResponse(request, data, offset, length, isLastPart);
          } catch (Throwable t) {
             handlers.handleThrowable(request, t);
          } finally {

@@ -18,6 +18,8 @@ public interface HttpConnection extends Connection {
                 boolean injectHostHeader,
                 BiFunction<Session, Connection, ByteBuf> bodyGenerator);
 
+   HttpRequest dispatchedRequest();
+
    HttpRequest peekRequest(int streamId);
 
    boolean isSecure();
