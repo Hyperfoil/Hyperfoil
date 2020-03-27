@@ -36,6 +36,8 @@ public interface Client {
 
    String downloadLog(String node, String logId, long offset, String destinationFile);
 
+   void shutdown(boolean force);
+
    interface BenchmarkRef {
       String name();
 

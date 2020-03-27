@@ -199,6 +199,11 @@ public class RestClient implements Client, Closeable {
       return waitFor(future);
    }
 
+   @Override
+   public void shutdown(boolean force) {
+      sync(handler -> client.request(HttpMethod.GET, "/shutdown?force=" + force).send(handler), 200, response -> null);
+   }
+
    private void downloadFullLog(String destinationFile, String url, CompletableFuture<String> future) {
       // the etag does not match
       client.request(HttpMethod.GET, url).send(rsp -> {
