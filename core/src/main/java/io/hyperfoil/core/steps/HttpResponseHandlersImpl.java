@@ -271,6 +271,12 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
     * Manages processing of HTTP responses.
     */
    public static class Builder {
+      // prevents some weird serialization incompatibility
+      private static final Action STOP_ON_INVALID_RESPONSE = session -> {
+         if (!session.currentRequest().isValid()) {
+            session.stop();
+         }
+      };
       private final HttpRequestStep.Builder parent;
       private Locator locator;
       private Boolean autoRangeCheck;
@@ -391,11 +397,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          }
          // We must add this as the very last action since after calling session.stop() there other handlers won't be called
          if (stopOnInvalid == null && ergonomics().stopOnInvalid() || stopOnInvalid != null && stopOnInvalid) {
-            completionHandlers.add(() -> session -> {
-               if (!session.currentRequest().isValid()) {
-                  session.stop();
-               }
-            });
+            completionHandlers.add(() -> STOP_ON_INVALID_RESPONSE);
          }
       }
 
