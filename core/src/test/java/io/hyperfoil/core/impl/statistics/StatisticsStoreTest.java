@@ -8,7 +8,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.BenchmarkData;
-import io.hyperfoil.api.config.ErgonomicsBuilder;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
@@ -48,15 +47,12 @@ public class StatisticsStoreTest {
 
    @Test
    public void allJson_empty_issue45() {
-      ErgonomicsBuilder ergonomicsBuilder = new ErgonomicsBuilder();
-      ergonomicsBuilder.repeatCookies(true).userAgentFromSession(true);
       Benchmark benchmark = new BenchmarkBuilder("originalSource", BenchmarkData.EMPTY)
             .name("benchmarkName")
             .http().host("localhost").endHttp()
             .build();
       StatisticsStore store = new StatisticsStore(benchmark, failure -> {
       });
-
 
       ByteArrayOutputStream baos = new ByteArrayOutputStream(10_000);
       JsonFactory jsonFactory = new JsonFactory();
@@ -76,9 +72,6 @@ public class StatisticsStoreTest {
 
    @Test
    public void allJson() {
-
-      ErgonomicsBuilder ergonomicsBuilder = new ErgonomicsBuilder();
-      ergonomicsBuilder.repeatCookies(true).userAgentFromSession(true);
       // @formatter:off
       Benchmark benchmark = new BenchmarkBuilder("originalSource", BenchmarkData.EMPTY)
             .name("benchmarkName")
