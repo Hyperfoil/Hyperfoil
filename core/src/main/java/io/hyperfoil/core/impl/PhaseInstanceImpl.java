@@ -262,7 +262,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
    protected abstract static class OpenModelPhase<P extends Phase.OpenModelPhase> extends PhaseInstanceImpl<P> {
       protected final int maxSessions;
       protected final Random random = new Random();
-      protected double nextScheduled = nextSessionRandomized();
+      protected double nextScheduled;
       protected AtomicLong throttledUsers = new AtomicLong(0);
       protected long startedOrThrottledUsers = 0;
 
@@ -346,6 +346,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
          super(def, agentId);
          initialUsersPerSec = def.benchmark().slice(def.initialUsersPerSec, agentId);
          targetUsersPerSec = def.benchmark().slice(def.targetUsersPerSec, agentId);
+         nextScheduled = def.variance ? nextSessionRandomized() : 0;
       }
 
       @Override
@@ -378,6 +379,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       public ConstantRate(Phase.ConstantRate def, int agentId) {
          super(def, agentId);
          usersPerSec = def.benchmark().slice(def.usersPerSec, agentId);
+         nextScheduled = def.variance ? nextSessionRandomized() : 0;
       }
 
       @Override
