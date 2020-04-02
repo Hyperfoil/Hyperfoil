@@ -254,6 +254,15 @@
                                         <ports>
                                             <port>8090</port>
                                         </ports>
+                                        <runCmds>
+                                            <!-- these commands run as user 'jboss', not root... -->
+                                            <cmd>curl -L -s https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64 -o /home/jboss/jq</cmd>
+                                            <cmd>chmod a+x /home/jboss/jq</cmd>
+                                        </runCmds>
+                                        <optimise>true</optimise>
+                                        <env>
+                                            <PATH>${PATH}:/home/jboss</PATH>
+                                        </env>
                                         <assembly>
                                             <targetDir>/deployment</targetDir>
                                             <inline>
