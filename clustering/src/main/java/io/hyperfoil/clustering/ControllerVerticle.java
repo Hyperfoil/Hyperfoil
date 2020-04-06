@@ -621,7 +621,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             jGenerator.setCodec(new ObjectMapper());
             jGenerator.writeStartObject();
 
-            jGenerator.writeStringField("$id", RUN_SCHEMA);
+            jGenerator.writeStringField("$schema", RUN_SCHEMA);
             jGenerator.writeFieldName("info");
             jGenerator.writeRawValue(info.encode()); // writeObjectField() was encoding info as a POJO not json
 
