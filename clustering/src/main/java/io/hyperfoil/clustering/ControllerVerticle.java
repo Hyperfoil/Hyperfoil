@@ -7,8 +7,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.hyperfoil.api.BenchmarkExecutionException;
 import io.hyperfoil.api.Version;
-import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.Agent;
+import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.config.RunHook;
 import io.hyperfoil.api.deployment.DeployedAgent;
@@ -19,16 +19,16 @@ import io.hyperfoil.clustering.messages.AgentHello;
 import io.hyperfoil.clustering.messages.AgentReadyMessage;
 import io.hyperfoil.clustering.messages.AgentStatusMessage;
 import io.hyperfoil.clustering.messages.ErrorMessage;
+import io.hyperfoil.clustering.messages.PhaseChangeMessage;
+import io.hyperfoil.clustering.messages.PhaseControlMessage;
+import io.hyperfoil.clustering.messages.RequestStatsMessage;
 import io.hyperfoil.clustering.messages.SessionStatsMessage;
 import io.hyperfoil.clustering.messages.StatsMessage;
+import io.hyperfoil.clustering.util.PersistenceUtil;
 import io.hyperfoil.core.hooks.ExecRunHook;
 import io.hyperfoil.core.impl.statistics.CsvWriter;
 import io.hyperfoil.core.impl.statistics.JsonWriter;
 import io.hyperfoil.core.impl.statistics.StatisticsStore;
-import io.hyperfoil.clustering.util.PersistenceUtil;
-import io.hyperfoil.clustering.messages.PhaseChangeMessage;
-import io.hyperfoil.clustering.messages.PhaseControlMessage;
-import io.hyperfoil.clustering.messages.RequestStatsMessage;
 import io.hyperfoil.core.util.CountDown;
 import io.hyperfoil.internal.Controller;
 import io.vertx.core.AbstractVerticle;
@@ -48,6 +48,8 @@ import io.vertx.core.spi.cluster.ClusterManager;
 import io.vertx.core.spi.cluster.NodeListener;
 import io.vertx.ext.cluster.infinispan.InfinispanClusterManager;
 
+import org.infinispan.commons.api.BasicCacheContainer;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -66,8 +68,6 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
-
-import org.infinispan.commons.api.BasicCacheContainer;
 
 public class ControllerVerticle extends AbstractVerticle implements NodeListener {
    private static final Logger log = LoggerFactory.getLogger(ControllerVerticle.class);
@@ -305,7 +305,9 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       }
       String runId = file.getName();
       int id = Integer.parseInt(runId, 16);
-      if (id >= runIds.get()) runIds.set(id + 1);
+      if (id >= runIds.get()) {
+         runIds.set(id + 1);
+      }
       Path infoFile = runDir.resolve("info.json");
       JsonObject info = new JsonObject();
       if (infoFile.toFile().exists() && infoFile.toFile().isFile()) {
@@ -625,27 +627,23 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             log.error("Cannot write info file", e);
             future.fail(e);
          }
-
          try (FileOutputStream stream = new FileOutputStream(run.dir.resolve("all.json").toFile())) {
             JsonFactory jfactory = new JsonFactory();
             jfactory.setCodec(new ObjectMapper());
             JsonGenerator jGenerator = jfactory.createGenerator(stream, JsonEncoding.UTF8);
             jGenerator.setCodec(new ObjectMapper());
-            jGenerator.writeStartObject();
-
-            jGenerator.writeStringField("$schema", RUN_SCHEMA);
-            jGenerator.writeFieldName("info");
-            jGenerator.writeRawValue(info.encode()); // writeObjectField() was encoding info as a POJO not json
-
-            JsonWriter.writeJson(run.statisticsStore, jGenerator, false);
-            jGenerator.writeEndObject();
+            Map<String, Object> props = new HashMap<>();
+            props.put("info", info);
+            props.put("$id", RUN_SCHEMA);
+            props.put("version", Version.VERSION);
+            props.put("commit", Version.COMMIT_ID);
+            JsonWriter.writeArrayJsons(run.statisticsStore, jGenerator, props);
             jGenerator.flush();
             jGenerator.close();
          } catch (IOException e) {
             log.error("Cannot write all.json file", e);
             future.fail(e);
          }
-
          // combine shared and benchmark-private hooks
          List<RunHook> hooks = loadHooks("post");
          hooks.addAll(run.benchmark.postHooks());

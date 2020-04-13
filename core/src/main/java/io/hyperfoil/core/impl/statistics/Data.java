@@ -13,7 +13,7 @@ import io.netty.util.collection.IntObjectMap;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-final class Data {
+public final class Data {
    private static final Logger log = LoggerFactory.getLogger(Data.class);
 
    // When we receive snapshot with order #N we will attempt to compact agent snapshots #(N-60)
