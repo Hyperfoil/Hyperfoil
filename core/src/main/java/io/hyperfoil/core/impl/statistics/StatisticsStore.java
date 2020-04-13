@@ -12,6 +12,7 @@ import io.hyperfoil.controller.model.RequestStats;
 import io.hyperfoil.core.util.LowHigh;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -25,7 +26,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class StatisticsStore {
-   static final double[] PERCENTILES = new double[]{ 0.5, 0.9, 0.99, 0.999, 0.9999 };
+   public static final double[] PERCENTILES = new double[]{ 0.5, 0.9, 0.99, 0.999, 0.9999 };
    private static final Comparator<RequestStats> REQUEST_STATS_COMPARATOR =
          Comparator.<RequestStats, Long>comparing(rs -> rs.summary.startTime)
                .thenComparing(rs -> rs.phase).thenComparing(rs -> rs.metric);
@@ -235,6 +236,16 @@ public class StatisticsStore {
          failures.add(failure);
       }
       failureHandler.accept(failure);
+   }
+
+   public List<Data> getData() {
+      Data[] rtrn = data.values().stream().flatMap(map -> map.values().stream()).toArray(Data[]::new);
+      Arrays.sort(rtrn, Comparator.comparing((Data data) -> data.phase).thenComparing(d -> d.metric).thenComparingInt(d -> d.stepId));
+      return Arrays.asList(rtrn);
+   }
+
+   public List<SLA.Failure> getFailures() {
+      return failures;
    }
 
    static class SessionPoolStats {

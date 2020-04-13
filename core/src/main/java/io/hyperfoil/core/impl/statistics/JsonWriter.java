@@ -1,16 +1,5 @@
 package io.hyperfoil.core.impl.statistics;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-
-import org.HdrHistogram.Histogram;
-import org.HdrHistogram.HistogramIterationValue;
-
 import com.fasterxml.jackson.core.JsonGenerator;
 
 import io.hyperfoil.api.config.SLA;
@@ -19,8 +8,218 @@ import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.api.statistics.StatisticsSummary;
 import io.hyperfoil.core.util.LowHigh;
 
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
+
+import org.HdrHistogram.Histogram;
+import org.HdrHistogram.HistogramIterationValue;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+
 public class JsonWriter {
    private static final String DEFAULT_FIELD_NAME = ":DEFAULT:";
+
+   public static void writeArrayJsons(StatisticsStore store, JsonGenerator jGenerator, Map<String, Object> props) throws IOException {
+      Data[] sorted = store.data.values().stream().flatMap(map -> map.values().stream()).toArray(Data[]::new);
+      Arrays.sort(sorted, Comparator.comparing((Data data) -> data.phase).thenComparing(d -> d.metric).thenComparingInt(d -> d.stepId));
+
+      jGenerator.writeStartObject(); //root of object
+
+      if (props != null && !props.isEmpty()) {
+
+         props.forEach((key, value) -> {
+            try {
+               if (value instanceof JsonObject) {
+                  jGenerator.writeFieldName(key);
+                  jGenerator.writeRawValue(((JsonObject) value).encode());
+               } else if (value instanceof JsonArray) {
+                  jGenerator.writeFieldName(key);
+                  jGenerator.writeRawValue(((JsonArray) value).encode());
+               } else if (value instanceof Long) {
+                  jGenerator.writeNumberField(key, (Long) value);
+               } else if (value instanceof Integer) {
+                  jGenerator.writeNumberField(key, (Integer) value);
+               } else if (value instanceof Double) {
+                  jGenerator.writeNumberField(key, (Double) value);
+               } else if (value instanceof Float) {
+                  jGenerator.writeNumberField(key, (Float) value);
+               } else if (value instanceof Boolean) {
+                  jGenerator.writeBooleanField(key, (Boolean) value);
+               } else {
+                  jGenerator.writeStringField(key, value.toString());
+               }
+            } catch (IOException e) {
+               e.printStackTrace();
+            }
+         });
+      }
+
+      jGenerator.writeFieldName("failures");
+      jGenerator.writeStartArray();
+      for (SLA.Failure failure : store.getFailures()) {
+         jGenerator.writeStartObject();
+         jGenerator.writeStringField("phase", failure.phase());
+         jGenerator.writeStringField("metric", failure.metric());
+         jGenerator.writeStringField("message", failure.message());
+
+         StatisticsSummary summary = failure.statistics().summary(StatisticsStore.PERCENTILES);
+         jGenerator.writeNumberField("start", summary.startTime);
+         jGenerator.writeNumberField("end", summary.endTime);
+         jGenerator.writeObjectField("percentileResponseTime", summary.percentileResponseTime);
+         jGenerator.writeEndObject();
+      }
+      jGenerator.writeEndArray();
+
+
+      jGenerator.writeFieldName("stats");
+      jGenerator.writeStartArray(); //stats array
+      for (Data data : sorted) {
+         jGenerator.writeStartObject(); //entry
+
+         jGenerator.writeStringField("name", data.phase);
+
+         String[] split = parsePhaseName(data.phase, "");
+         jGenerator.writeStringField("phase", split[0]);
+         jGenerator.writeStringField("iteration", split[1]);
+         jGenerator.writeStringField("fork", split[2]);
+         jGenerator.writeStringField("metric", data.metric);
+
+         jGenerator.writeFieldName("total");
+         writeTotalValue(jGenerator, data, d -> d.total, store.sessionPoolStats.get(data.phase).findMinMax());
+
+         jGenerator.writeFieldName("histogram");
+         jGenerator.writeStartObject();
+         jGenerator.writeFieldName("percentiles");
+         histogramArray(jGenerator, data.total.histogram.percentiles(5).iterator());
+         jGenerator.writeFieldName("linear");
+         histogramArray(jGenerator, data.total.histogram.linearBucketValues(1_000_000).iterator());
+         jGenerator.writeEndObject(); //histogram
+
+         jGenerator.writeFieldName("series");
+         seriesArray(jGenerator, data.series);
+
+         jGenerator.writeEndObject(); //entry
+      }
+      jGenerator.writeEndArray(); //stats array
+
+
+      jGenerator.writeFieldName("sessions");
+      jGenerator.writeStartArray(); //phase sessions array
+      for (Data data : sorted) {
+         if (store.sessionPoolStats.containsKey(data.phase)) {
+            jGenerator.writeStartObject(); //session entry
+            jGenerator.writeStringField("name", data.phase);
+
+            String[] split = parsePhaseName(data.phase, "");
+            jGenerator.writeStringField("phase", split[0]);
+            jGenerator.writeStringField("iteration", split[1]);
+            jGenerator.writeStringField("fork", split[2]);
+
+            StatisticsStore.SessionPoolStats sps = store.sessionPoolStats.get(data.phase);
+            String[] addresses = new String[sps.records.size()];
+            Iterator<StatisticsStore.SessionPoolRecord>[] iterators = new Iterator[sps.records.size()];
+            int counter = 0;
+            for (Map.Entry<String, List<StatisticsStore.SessionPoolRecord>> byAddress : sps.records.entrySet()) {
+               addresses[counter] = byAddress.getKey();
+               iterators[counter] = byAddress.getValue().iterator();
+               ++counter;
+            }
+            boolean hadNext;
+            jGenerator.writeFieldName("sessions");
+            jGenerator.writeStartArray();
+            do {
+               hadNext = false;
+               for (int i = 0; i < addresses.length; ++i) {
+                  if (iterators[i].hasNext()) {
+                     StatisticsStore.SessionPoolRecord record = iterators[i].next();
+                     jGenerator.writeStartObject();
+                     jGenerator.writeNumberField("timestamp", record.timestamp);
+                     jGenerator.writeStringField("address", addresses[i]);
+                     jGenerator.writeNumberField("minSessions", record.low);
+                     jGenerator.writeNumberField("maxSessions", record.high);
+                     jGenerator.writeEndObject();
+                     hadNext = true;
+                  }
+               }
+            } while (hadNext);
+            jGenerator.writeEndArray(); //sessions array
+            jGenerator.writeEndObject(); //phase session entry
+         }
+      }
+      jGenerator.writeEndArray();
+      String[] agents = store.data.values().stream()
+            .flatMap(m -> m.values().stream())
+            .flatMap(d -> d.perAgent.keySet().stream())
+            .distinct().sorted().toArray(String[]::new);
+      jGenerator.writeFieldName("agents");
+
+      jGenerator.writeStartArray(); //agents array
+
+      for (String agent : agents) {
+         jGenerator.writeStartObject(); //agent
+         jGenerator.writeStringField("name", agent);
+         jGenerator.writeFieldName("stats");
+
+         jGenerator.writeStartArray(); //agent stats array
+
+         for (Data data : sorted) {
+            if (data.perAgent.containsKey(agent)) {
+               StatisticsSnapshot agentStats = data.perAgent.get(agent);
+               jGenerator.writeStartObject(); // agent stats entry
+
+               jGenerator.writeStringField("name", data.phase);
+
+               String[] split = parsePhaseName(data.phase, "");
+               jGenerator.writeStringField("phase", split[0]);
+               jGenerator.writeStringField("iteration", split[1]);
+               jGenerator.writeStringField("fork", split[2]);
+               jGenerator.writeStringField("metric", data.metric);
+
+               jGenerator.writeFieldName("total");
+               writeTotalValue(
+                     jGenerator,
+                     data,
+                     d -> d.perAgent.get(agent),
+                     store.sessionPoolStats.getOrDefault(data.phase, new StatisticsStore.SessionPoolStats())
+                           .records.getOrDefault(agent, new ArrayList<>())
+                           .stream()
+                           .map(LowHigh.class::cast)
+                           .reduce(LowHigh::combine)
+                           .orElse(new LowHigh(0, 0))
+               );
+
+               jGenerator.writeFieldName("histogram");
+               jGenerator.writeStartObject(); // histograms
+
+               jGenerator.writeFieldName("percentiles");
+               histogramArray(jGenerator, data.perAgent.get(agent).histogram.percentiles(5).iterator());
+
+               jGenerator.writeFieldName("linear");
+               histogramArray(jGenerator, data.perAgent.get(agent).histogram.linearBucketValues(1_000_000).iterator());
+
+               jGenerator.writeEndObject(); // histograms
+
+               jGenerator.writeFieldName("series");
+               seriesArray(jGenerator, data.agentSeries.get(agent));
+
+               jGenerator.writeEndObject(); // agent stats entry
+            }
+         }
+         jGenerator.writeEndArray(); //agent stats array
+         jGenerator.writeEndObject(); //agent
+      }
+
+      jGenerator.writeEndArray(); //agents array
+
+      jGenerator.writeEndObject(); //root of object
+   }
 
    public static void writeJson(StatisticsStore store, JsonGenerator jGenerator, boolean standalone) throws IOException {
       Data[] sorted = store.data.values().stream().flatMap(map -> map.values().stream()).toArray(Data[]::new);
@@ -238,6 +437,10 @@ public class JsonWriter {
    }
 
    private static String[] parsePhaseName(String phase) {
+      return parsePhaseName(phase, DEFAULT_FIELD_NAME);
+   }
+
+   private static String[] parsePhaseName(String phase, String defaultName) {
       String[] rtrn = new String[3];
       if (phase.contains("/")) {
          rtrn[0] = phase.substring(0, phase.indexOf("/"));
@@ -247,8 +450,8 @@ public class JsonWriter {
          phase = "";
       }
       if (phase.isEmpty()) {
-         rtrn[1] = DEFAULT_FIELD_NAME;
-         rtrn[2] = DEFAULT_FIELD_NAME;
+         rtrn[1] = defaultName;
+         rtrn[2] = defaultName;
          return rtrn;
       }
 
@@ -256,7 +459,7 @@ public class JsonWriter {
          rtrn[1] = phase.substring(0, phase.indexOf("/"));
          phase = phase.substring(phase.indexOf("/") + 1);
          if (phase.isEmpty()) {
-            phase = DEFAULT_FIELD_NAME;
+            phase = defaultName;
          }
          rtrn[2] = phase;
          return rtrn;
@@ -264,9 +467,9 @@ public class JsonWriter {
          //TODO determine if it is an iteration or fork
          if (phase.matches("[0-9]+")) {
             rtrn[1] = phase;
-            rtrn[2] = DEFAULT_FIELD_NAME;
+            rtrn[2] = defaultName;
          } else {
-            rtrn[1] = DEFAULT_FIELD_NAME;
+            rtrn[1] = defaultName;
             rtrn[2] = phase;
          }
          return rtrn;
@@ -326,7 +529,38 @@ public class JsonWriter {
       jGenerator.flush();
    }
 
-   private static void totalArray(JsonGenerator jGenerator, Data[] dataList, Map<String, StatisticsStore.SessionPoolStats> sessionPoolStats, Function<Data, StatisticsSnapshot> selector, Function<StatisticsStore.SessionPoolStats, LowHigh> sessionPoolStatsSelector) throws IOException {
+   private static void writeTotalValue(JsonGenerator generator, Data data, Function<Data, StatisticsSnapshot> selector, LowHigh lowHigh) throws IOException {
+      StatisticsSnapshot snapshot = selector.apply(data);
+
+      generator.writeStartObject();
+      generator.writeStringField("phase", data.phase);
+      generator.writeStringField("metric", data.metric);
+      generator.writeNumberField("start", data.total.histogram.getStartTimeStamp());
+      generator.writeNumberField("end", data.total.histogram.getEndTimeStamp());
+      generator.writeObjectField("summary", snapshot.summary(StatisticsStore.PERCENTILES));
+      generator.writeFieldName("custom");
+
+      generator.writeStartObject();
+      for (Map.Entry<Object, CustomValue> entry : snapshot.custom.entrySet()) {
+         generator.writeStringField(String.valueOf(entry.getKey()), String.valueOf(entry.getValue()));
+      }
+      generator.writeEndObject();
+
+      if (lowHigh != null) {
+         generator.writeNumberField("minSessions", lowHigh.low);
+         generator.writeNumberField("maxSessions", lowHigh.high);
+      }
+
+      generator.writeEndObject();
+   }
+
+   private static void totalArray(
+         JsonGenerator jGenerator,
+         Data[] dataList,
+         Map<String, StatisticsStore.SessionPoolStats> sessionPoolStats,
+         Function<Data, StatisticsSnapshot> selector,
+         Function<StatisticsStore.SessionPoolStats, LowHigh> sessionPoolStatsSelector
+   ) throws IOException {
       jGenerator.writeStartArray();
       for (Data data : dataList) {
          StatisticsSnapshot snapshot = selector.apply(data);
