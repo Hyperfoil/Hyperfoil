@@ -286,7 +286,7 @@ class ControllerServer implements ApiService {
       }
       Run run;
       if (runId == null) {
-         run = controller.createRun(benchmark, runId);
+         run = controller.createRun(benchmark, desc);
       } else {
          run = controller.run(runId);
          if (run == null || run.startTime != Long.MIN_VALUE) {
