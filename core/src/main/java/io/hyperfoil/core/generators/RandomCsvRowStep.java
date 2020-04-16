@@ -1,10 +1,9 @@
 package io.hyperfoil.core.generators;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -18,6 +17,7 @@ import java.util.stream.Collectors;
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.PairBuilder;
 import io.hyperfoil.api.config.Step;
@@ -69,6 +69,7 @@ public class RandomCsvRowStep implements Step, ResourceUtilizer {
    @MetaInfServices(StepBuilder.class)
    @Name("randomCsvRow")
    public static class Builder extends BaseStepBuilder<Builder> {
+      private Locator locator;
       private String file;
       private boolean skipComments;
       private boolean removeQuotes;
@@ -76,14 +77,28 @@ public class RandomCsvRowStep implements Step, ResourceUtilizer {
       private int maxSize = 0;
 
       @Override
+      public Builder setLocator(Locator locator) {
+         this.locator = locator;
+         return this;
+      }
+
+      @Override
+      public Builder copy(Locator locator) {
+         Builder builder = new Builder().setLocator(locator)
+               .file(file).skipComments(skipComments).removeQuotes(removeQuotes);
+         builderColumns.forEach((column, position) -> builder.columns().accept(String.valueOf(position), column));
+         return builder;
+      }
+
+      @Override
       public List<Step> build() {
-         File f = new File(file);
-         if (!f.exists()) {
-            throw new BenchmarkDefinitionException("Supplied file cannot be found on system");
-         }
+         Predicate<String> comments = s -> (!skipComments || !(s.trim().startsWith("#")));
          List<String[]> rows;
-         try (BufferedReader reader = Files.newBufferedReader(Paths.get(f.getAbsolutePath()))) {
-            Predicate<String> comments = s -> (!skipComments || !(s.trim().startsWith("#")));
+         try (InputStream inputStream = locator.benchmark().data().readFile(file)) {
+            if (inputStream == null) {
+               throw new BenchmarkDefinitionException("Cannot load file " + file);
+            }
+            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
             rows = reader.lines()
                   .filter(comments)
                   .map(s -> removeQuotes ? s.replaceAll("\"", "") : s)

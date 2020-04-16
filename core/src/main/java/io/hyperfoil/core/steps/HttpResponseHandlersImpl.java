@@ -402,7 +402,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       }
 
       private ErgonomicsBuilder ergonomics() {
-         return locator.scenario().endScenario().endPhase().ergonomics();
+         return locator.benchmark().ergonomics();
       }
 
       @SuppressWarnings("unchecked")

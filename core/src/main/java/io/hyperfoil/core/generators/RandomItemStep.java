@@ -155,7 +155,7 @@ public class RandomItemStep implements Step, ResourceUtilizer {
          }
          List<String> list = new ArrayList<>(this.list);
          if (file != null) {
-            try (InputStream inputStream = locator.scenario().endScenario().endPhase().data().readFile(file)) {
+            try (InputStream inputStream = locator.benchmark().data().readFile(file)) {
                if (inputStream == null) {
                   throw new BenchmarkDefinitionException("Cannot load file `" + file + "` for randomItem (not found).");
                }

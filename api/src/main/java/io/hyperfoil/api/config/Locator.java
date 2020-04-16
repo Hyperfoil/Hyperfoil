@@ -8,6 +8,10 @@ public interface Locator {
 
    ScenarioBuilder scenario();
 
+   default BenchmarkBuilder benchmark() {
+      return scenario().endScenario().endPhase();
+   }
+
    static Locator get(StepBuilder<?> step, Locator locator) {
       return new Impl(step, locator.sequence());
    }

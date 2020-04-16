@@ -16,7 +16,6 @@ import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.BenchmarkExecutionException;
 import io.hyperfoil.api.config.Benchmark;
-import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.ErgonomicsBuilder;
 import io.hyperfoil.api.config.Http;
 import io.hyperfoil.api.config.Locator;
@@ -588,7 +587,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
       public void prepareBuild() {
          stepId = StatisticsStep.nextId();
 
-         ErgonomicsBuilder ergonomics = locator.scenario().endScenario().endPhase().ergonomics();
+         ErgonomicsBuilder ergonomics = locator.benchmark().ergonomics();
          if (ergonomics.repeatCookies()) {
             headerAppender(new CookieAppender());
          }
@@ -607,7 +606,6 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
 
       @Override
       public List<Step> build() {
-         BenchmarkBuilder simulation = locator.scenario().endScenario().endPhase();
          String guessedAuthority = null;
          boolean checkAuthority = true;
          SerializableFunction<Session, String> authority = this.authority != null ? this.authority.build() : null;
@@ -617,7 +615,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
          } catch (Throwable e) {
             checkAuthority = false;
          }
-         if (checkAuthority && !simulation.validateAuthority(guessedAuthority)) {
+         if (checkAuthority && !locator.benchmark().validateAuthority(guessedAuthority)) {
             String guessedPath = "<unknown path>";
             try {
                guessedPath = pathGenerator.apply(null);
@@ -886,7 +884,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
        * @return Self.
        */
       public BodyBuilder fromFile(String path) {
-         try (InputStream inputStream = parent.locator.scenario().endScenario().endPhase().data().readFile(path)) {
+         try (InputStream inputStream = parent.locator.benchmark().data().readFile(path)) {
             if (inputStream == null) {
                throw new BenchmarkDefinitionException("Cannot load file `" + path + "` for randomItem (not found).");
             }
