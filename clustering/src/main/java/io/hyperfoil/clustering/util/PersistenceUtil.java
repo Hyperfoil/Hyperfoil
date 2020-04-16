@@ -27,7 +27,7 @@ public class PersistenceUtil {
                Files.write(path, bytes);
                log.info("Stored benchmark '{}' in {}", benchmark.name(), path);
             } catch (IOException e) {
-               log.error(e, "Failed to persist benchmark {} to {}", benchmark.name(), path);
+               log.error("Failed to persist benchmark {} to {}", e, benchmark.name(), path);
             }
          }
       } catch (IOException e) {
@@ -94,9 +94,9 @@ public class PersistenceUtil {
             log.info("Loaded benchmark '{}' from {}", benchmark.name(), file);
             return benchmark;
          } catch (IOException e) {
-            log.error(e, "Cannot read file {}", file);
+            log.error("Cannot read file {}", e, file);
          } catch (ParserException e) {
-            log.error(e, "Cannot parser file {}", file);
+            log.error("Cannot parser file {}", e, file);
          }
       } else if (filename.endsWith(".serialized")) {
          try {
@@ -106,7 +106,7 @@ public class PersistenceUtil {
                return benchmark;
             }
          } catch (Exception e) {
-            log.error(e, "Cannot read file {}", file);
+            log.error("Cannot read file {}", e, file);
             return null;
          }
       } else if (file.toFile().isDirectory() && filename.endsWith(".data")) {
