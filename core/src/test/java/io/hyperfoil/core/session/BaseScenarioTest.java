@@ -43,7 +43,7 @@ public abstract class BaseScenarioTest {
 
    protected Map<String, List<StatisticsSnapshot>> runScenario() {
       Map<String, List<StatisticsSnapshot>> stats = new HashMap<>();
-      StatisticsCollector.StatisticsConsumer statisticsConsumer = (phase, isPhaseComplete, stepId, metric, snapshot, countDown)
+      StatisticsCollector.StatisticsConsumer statisticsConsumer = (phase, stepId, metric, snapshot, countDown)
             -> stats.computeIfAbsent(metric, n -> new ArrayList<>()).add(snapshot.clone());
       LocalSimulationRunner runner = new LocalSimulationRunner(benchmark(), statisticsConsumer, null);
       runner.run();

@@ -180,19 +180,31 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                if (statsMessage instanceof RequestStatsMessage) {
                   RequestStatsMessage requestStatsMessage = (RequestStatsMessage) statsMessage;
                   String phase = run.phase(requestStatsMessage.phaseId);
-                  log.trace("Run {}: Received stats from {}: {}/{}/{} ({} requests)",
-                        requestStatsMessage.runId, requestStatsMessage.address,
-                        phase, requestStatsMessage.stepId, requestStatsMessage.metric,
-                        requestStatsMessage.statistics.requestCount);
-                  run.statisticsStore.record(requestStatsMessage.address, requestStatsMessage.phaseId, requestStatsMessage.stepId,
-                        requestStatsMessage.metric, requestStatsMessage.statistics);
+                  if (requestStatsMessage.statistics != null) {
+                     log.debug("Run {}: Received stats from {}: {}/{}/{}:{} ({} requests)",
+                           requestStatsMessage.runId, requestStatsMessage.address,
+                           phase, requestStatsMessage.stepId, requestStatsMessage.metric,
+                           requestStatsMessage.statistics.sequenceId, requestStatsMessage.statistics.requestCount);
+                     run.statisticsStore.record(requestStatsMessage.address, requestStatsMessage.phaseId, requestStatsMessage.stepId,
+                           requestStatsMessage.metric, requestStatsMessage.statistics);
+                  }
                   if (requestStatsMessage.isPhaseComplete) {
-                     run.statisticsStore.completePhase(phase);
-                     if (!run.statisticsStore.validateSlas()) {
-                        log.info("SLA validation failed for {}", phase);
-                        ControllerPhase controllerPhase = run.phases.get(phase);
-                        controllerPhase.setFailed();
-                        failNotStartedPhases(run, controllerPhase);
+                     log.debug("Run {}: Received stats completion for phase {} from {}", requestStatsMessage.runId, phase, requestStatsMessage.address);
+                     AgentInfo agent = run.agents.stream().filter(a -> a.deploymentId.equals(requestStatsMessage.address)).findFirst().orElse(null);
+                     if (agent == null) {
+                        log.error("Cannot find agent {}", requestStatsMessage.address);
+                     } else {
+                        agent.phases.put(phase, PhaseInstance.Status.STATS_COMPLETE);
+                        if (run.agents.stream().map(a -> agent.phases.get(phase)).allMatch(s -> s == PhaseInstance.Status.STATS_COMPLETE)) {
+                           log.info("Run {}: completed stats for phase {}", run.id, phase);
+                           run.statisticsStore.completePhase(phase);
+                           if (!run.statisticsStore.validateSlas()) {
+                              log.info("SLA validation failed for {}", phase);
+                              ControllerPhase controllerPhase = run.phases.get(phase);
+                              controllerPhase.setFailed();
+                              failNotStartedPhases(run, controllerPhase);
+                           }
+                        }
                      }
                   }
                } else if (statsMessage instanceof SessionStatsMessage) {
@@ -743,9 +755,13 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       vertx.executeBlocking(future -> {
          try {
             Files.list(Controller.BENCHMARK_DIR).forEach(file -> {
-               Benchmark benchmark = PersistenceUtil.load(file);
-               if (benchmark != null) {
-                  benchmarks.put(benchmark.name(), benchmark);
+               try {
+                  Benchmark benchmark = PersistenceUtil.load(file);
+                  if (benchmark != null) {
+                     benchmarks.put(benchmark.name(), benchmark);
+                  }
+               } catch (Exception e) {
+                  log.error("Failed to load a benchmark from {}", e, file);
                }
             });
          } catch (IOException e) {

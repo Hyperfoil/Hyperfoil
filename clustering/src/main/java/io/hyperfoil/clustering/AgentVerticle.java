@@ -134,8 +134,10 @@ public class AgentVerticle extends AbstractVerticle {
                }
             }, 1);
             if (runner != null) {
+               // TODO: why do we have to visit&send stats here?
                runner.visitStatistics(requestStatsSender);
-               requestStatsSender.send(true, completion);
+               requestStatsSender.send(completion);
+               requestStatsSender.sendPhaseComplete(null, completion);
                runner.shutdown();
             }
             if (controlFeedConsumer != null) {
@@ -215,7 +217,8 @@ public class AgentVerticle extends AbstractVerticle {
          if (status == PhaseInstance.Status.TERMINATED) {
             context.runOnContext(nil -> {
                runner.visitStatistics(phase, requestStatsSender);
-               requestStatsSender.send(true, statisticsCountDown);
+               requestStatsSender.send(statisticsCountDown);
+               requestStatsSender.sendPhaseComplete(phase, statisticsCountDown);
             });
          }
          return Util.COMPLETED_VOID_FUTURE;
@@ -228,7 +231,7 @@ public class AgentVerticle extends AbstractVerticle {
       assert context.isEventLoopContext();
       statsTimerId = vertx.setPeriodic(benchmark.statisticsCollectionPeriod(), timerId -> {
          runner.visitStatistics(requestStatsSender);
-         requestStatsSender.send(false, statisticsCountDown);
+         requestStatsSender.send(statisticsCountDown);
          runner.visitSessionPoolStats(sessionStatsSender);
          sessionStatsSender.send();
       });

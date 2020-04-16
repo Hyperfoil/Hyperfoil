@@ -47,7 +47,8 @@ public interface PhaseInstance {
       RUNNING,
       FINISHED,
       TERMINATING,
-      TERMINATED;
+      TERMINATED,
+      STATS_COMPLETE;
 
       public boolean isFinished() {
          return this.ordinal() >= FINISHED.ordinal();

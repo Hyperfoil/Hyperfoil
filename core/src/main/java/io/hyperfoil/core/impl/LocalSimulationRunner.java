@@ -122,7 +122,7 @@ public class LocalSimulationRunner extends SimulationRunnerImpl {
       if (statsConsumer != null) {
          StatisticsCollector collector = new StatisticsCollector(benchmark);
          visitStatistics(phase, collector);
-         collector.visitStatistics(statsConsumer, true, null);
+         collector.visitStatistics(statsConsumer, null);
       }
       if (sessionPoolStatsConsumer != null) {
          visitSessionPoolStats(phase, sessionPoolStatsConsumer);
