@@ -63,7 +63,8 @@ public class JsonWriter {
 
       jGenerator.writeFieldName("failures");
       jGenerator.writeStartArray();
-      for (SLA.Failure failure : store.getFailures()) {
+      List<SLA.Failure> failures = store.getFailures();
+      for (SLA.Failure failure : failures) {
          jGenerator.writeStartObject();
          jGenerator.writeStringField("phase", failure.phase());
          jGenerator.writeStringField("metric", failure.metric());
@@ -92,7 +93,8 @@ public class JsonWriter {
          jGenerator.writeStringField("metric", data.metric);
 
          jGenerator.writeFieldName("total");
-         writeTotalValue(jGenerator, data, d -> d.total, store.sessionPoolStats.get(data.phase).findMinMax());
+         long numFailures = failures.stream().filter(f -> f.phase().equals(data.phase) && f.metric() == null || f.metric().equals(data.metric)).count();
+         writeTotalValue(jGenerator, data, d -> d.total, store.sessionPoolStats.get(data.phase).findMinMax(), numFailures);
 
          jGenerator.writeFieldName("histogram");
          jGenerator.writeStartObject();
@@ -192,8 +194,8 @@ public class JsonWriter {
                            .stream()
                            .map(LowHigh.class::cast)
                            .reduce(LowHigh::combine)
-                           .orElse(new LowHigh(0, 0))
-               );
+                           .orElse(new LowHigh(0, 0)),
+                     -1); // we don't track failures per agent
 
                jGenerator.writeFieldName("histogram");
                jGenerator.writeStartObject(); // histograms
@@ -529,7 +531,7 @@ public class JsonWriter {
       jGenerator.flush();
    }
 
-   private static void writeTotalValue(JsonGenerator generator, Data data, Function<Data, StatisticsSnapshot> selector, LowHigh lowHigh) throws IOException {
+   private static void writeTotalValue(JsonGenerator generator, Data data, Function<Data, StatisticsSnapshot> selector, LowHigh lowHigh, long failures) throws IOException {
       StatisticsSnapshot snapshot = selector.apply(data);
 
       generator.writeStartObject();
@@ -538,6 +540,9 @@ public class JsonWriter {
       generator.writeNumberField("start", data.total.histogram.getStartTimeStamp());
       generator.writeNumberField("end", data.total.histogram.getEndTimeStamp());
       generator.writeObjectField("summary", snapshot.summary(StatisticsStore.PERCENTILES));
+      if (failures >= 0) {
+         generator.writeNumberField("failures", failures);
+      }
       generator.writeFieldName("custom");
 
       generator.writeStartObject();
