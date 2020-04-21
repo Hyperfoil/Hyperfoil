@@ -54,7 +54,11 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
          } catch (SessionStopException e) {
             // ignored
          }
-         connection.onTimeout(this);
+         if (connection == null) {
+            log.warn("#{} connection is already null", uniqueId);
+         } else {
+            connection.onTimeout(this);
+         }
          // handleThrowable sets the request completed
       } else {
          log.trace("#{} Request {} is already completed.", uniqueId, this);
