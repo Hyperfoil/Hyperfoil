@@ -6,7 +6,6 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.hyperfoil.api.BenchmarkExecutionException;
-import io.hyperfoil.api.Version;
 import io.hyperfoil.api.config.Agent;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.Phase;
@@ -71,7 +70,6 @@ import java.util.stream.Collectors;
 
 public class ControllerVerticle extends AbstractVerticle implements NodeListener {
    private static final Logger log = LoggerFactory.getLogger(ControllerVerticle.class);
-   private static final String RUN_SCHEMA = "http://hyperfoil.io/run-schema/" + Version.VERSION;
 
    private EventBus eb;
    private ControllerServer server;
@@ -632,12 +630,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             jfactory.setCodec(new ObjectMapper());
             JsonGenerator jGenerator = jfactory.createGenerator(stream, JsonEncoding.UTF8);
             jGenerator.setCodec(new ObjectMapper());
-            Map<String, Object> props = new HashMap<>();
-            props.put("info", info);
-            props.put("$id", RUN_SCHEMA);
-            props.put("version", Version.VERSION);
-            props.put("commit", Version.COMMIT_ID);
-            JsonWriter.writeArrayJsons(run.statisticsStore, jGenerator, props);
+            JsonWriter.writeArrayJsons(run.statisticsStore, jGenerator, info);
             jGenerator.flush();
             jGenerator.close();
          } catch (IOException e) {

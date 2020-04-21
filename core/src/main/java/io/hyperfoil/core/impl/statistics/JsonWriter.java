@@ -2,13 +2,13 @@ package io.hyperfoil.core.impl.statistics;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 
+import io.hyperfoil.api.Version;
 import io.hyperfoil.api.config.SLA;
 import io.hyperfoil.api.statistics.CustomValue;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.api.statistics.StatisticsSummary;
 import io.hyperfoil.core.util.LowHigh;
 
-import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
 import org.HdrHistogram.Histogram;
@@ -24,42 +24,22 @@ import java.util.Map;
 import java.util.function.Function;
 
 public class JsonWriter {
+   private static final String RUN_SCHEMA = "http://hyperfoil.io/run-schema/v2.0";
    private static final String DEFAULT_FIELD_NAME = ":DEFAULT:";
 
-   public static void writeArrayJsons(StatisticsStore store, JsonGenerator jGenerator, Map<String, Object> props) throws IOException {
+   public static void writeArrayJsons(StatisticsStore store, JsonGenerator jGenerator, JsonObject info) throws IOException {
       Data[] sorted = store.data.values().stream().flatMap(map -> map.values().stream()).toArray(Data[]::new);
       Arrays.sort(sorted, Comparator.comparing((Data data) -> data.phase).thenComparing(d -> d.metric).thenComparingInt(d -> d.stepId));
 
       jGenerator.writeStartObject(); //root of object
 
-      if (props != null && !props.isEmpty()) {
-
-         props.forEach((key, value) -> {
-            try {
-               if (value instanceof JsonObject) {
-                  jGenerator.writeFieldName(key);
-                  jGenerator.writeRawValue(((JsonObject) value).encode());
-               } else if (value instanceof JsonArray) {
-                  jGenerator.writeFieldName(key);
-                  jGenerator.writeRawValue(((JsonArray) value).encode());
-               } else if (value instanceof Long) {
-                  jGenerator.writeNumberField(key, (Long) value);
-               } else if (value instanceof Integer) {
-                  jGenerator.writeNumberField(key, (Integer) value);
-               } else if (value instanceof Double) {
-                  jGenerator.writeNumberField(key, (Double) value);
-               } else if (value instanceof Float) {
-                  jGenerator.writeNumberField(key, (Float) value);
-               } else if (value instanceof Boolean) {
-                  jGenerator.writeBooleanField(key, (Boolean) value);
-               } else {
-                  jGenerator.writeStringField(key, value.toString());
-               }
-            } catch (IOException e) {
-               e.printStackTrace();
-            }
-         });
+      if (info != null && !info.isEmpty()) {
+         jGenerator.writeFieldName("info");
+         jGenerator.writeRawValue(info.encode());
       }
+      jGenerator.writeStringField("$schema", RUN_SCHEMA);
+      jGenerator.writeStringField("version", Version.VERSION);
+      jGenerator.writeStringField("commit", Version.COMMIT_ID);
 
       jGenerator.writeFieldName("failures");
       jGenerator.writeStartArray();

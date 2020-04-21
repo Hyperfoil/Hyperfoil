@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class StatisticsStore {
-   public static final double[] PERCENTILES = new double[]{ 0.5, 0.9, 0.99, 0.999, 0.9999 };
+   static final double[] PERCENTILES = new double[]{ 0.5, 0.9, 0.99, 0.999, 0.9999 };
    private static final Comparator<RequestStats> REQUEST_STATS_COMPARATOR =
          Comparator.<RequestStats, Long>comparing(rs -> rs.summary.startTime)
                .thenComparing(rs -> rs.phase).thenComparing(rs -> rs.metric);
