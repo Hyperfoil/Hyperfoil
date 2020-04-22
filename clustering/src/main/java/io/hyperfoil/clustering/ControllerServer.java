@@ -163,6 +163,10 @@ class ControllerServer implements ApiService {
    @Override
    public void addBenchmark$text_vnd_yaml(RoutingContext ctx, String ifMatch) {
       String source = ctx.getBodyAsString();
+      if (source == null || source.isEmpty()) {
+         log.error("Benchmark is empty, upload failed.");
+         ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end("Benchmark is empty.");
+      }
       try {
          Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(source, BenchmarkData.EMPTY);
          addBenchmarkAndReply(ctx, benchmark, ifMatch);

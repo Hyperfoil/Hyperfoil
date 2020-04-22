@@ -39,7 +39,9 @@ public class ExecRunHook extends RunHook {
                outputConsumer.accept("\n");
             }
          }
-         return process.waitFor() == 0;
+         int exitValue = process.waitFor();
+         log.info("{}: Completed command with exit code {}", name, exitValue);
+         return exitValue == 0;
       } catch (IOException e) {
          log.error("Cannot start {}", e, name);
          return false;
