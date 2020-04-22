@@ -50,7 +50,7 @@ public class RequestStatsSender extends StatisticsCollector {
          }
 
          countDown.increment();
-         eb.request(Feeds.STATS, new RequestStatsMessage(address, runId, phase.id(), true, -1, null, null),
+         eb.request(Feeds.STATS, new RequestStatsMessage(address, runId, phaseAndStepId >> 16, true, -1, null, null),
                reply -> countDown.countDown());
       }
    }
