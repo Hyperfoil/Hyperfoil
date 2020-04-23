@@ -86,11 +86,17 @@ class CustomHttp2ConnectionHandler extends io.netty.handler.codec.http2.Http2Con
       if (cause != SessionStopException.INSTANCE) {
          log.warn("Exception in {}", cause, this);
       }
-      if (getEmbeddedHttp2Exception(cause) != null) {
-         onError(ctx, false, cause);
-      } else {
-         connection.cancelRequests(cause);
-         ctx.close();
+      try {
+         if (getEmbeddedHttp2Exception(cause) != null) {
+            onError(ctx, false, cause);
+         } else {
+            if (connection != null) {
+               connection.cancelRequests(cause);
+            }
+            ctx.close();
+         }
+      } catch (Throwable t) {
+         log.error("Handling exception resulted in another exception", t);
       }
    }
 
