@@ -246,7 +246,7 @@
                                 <image>
                                     <name>quay.io/hyperfoil/hyperfoil:${project.version}</name>
                                     <build>
-                                        <from>registry.redhat.io/openjdk/openjdk-11-rhel8</from>
+                                        <from>docker.io/adoptopenjdk/openjdk11:ubi</from>
                                         <tags>
                                             <tag>latest</tag>
                                             <tag>${project.version}</tag>
@@ -255,14 +255,10 @@
                                             <port>8090</port>
                                         </ports>
                                         <runCmds>
-                                            <!-- these commands run as user 'jboss', not root... -->
-                                            <cmd>curl -L -s https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64 -o /home/jboss/jq</cmd>
-                                            <cmd>chmod a+x /home/jboss/jq</cmd>
+                                            <cmd>curl -s -L https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64 -o /usr/bin/jq</cmd>
+                                            <cmd>chmod a+x /usr/bin/jq</cmd>
                                         </runCmds>
                                         <optimise>true</optimise>
-                                        <env>
-                                            <PATH>${PATH}:/home/jboss</PATH>
-                                        </env>
                                         <assembly>
                                             <targetDir>/deployment</targetDir>
                                             <inline>
