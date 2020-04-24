@@ -96,7 +96,7 @@
 
         <version.sonatype.nexus>1.6.8</version.sonatype.nexus>
         <version.maven.source>3.0.1</version.maven.source>
-        <version.maven.javadoc>3.0.1</version.maven.javadoc>
+        <version.maven.javadoc>3.2.0</version.maven.javadoc>
         <version.maven.gpg>1.6</version.maven.gpg>
         <version.maven-core>3.5.4</version.maven-core>
         <version.maven-plugin-annotations>3.5.1</version.maven-plugin-annotations>
@@ -538,6 +538,9 @@
                                 <goals>
                                     <goal>jar</goal>
                                 </goals>
+                                <configuration>
+                                    <source>8</source>
+                                </configuration>
                             </execution>
                         </executions>
                     </plugin>

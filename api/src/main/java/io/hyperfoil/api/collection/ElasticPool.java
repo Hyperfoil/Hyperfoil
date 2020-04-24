@@ -8,6 +8,8 @@ package io.hyperfoil.api.collection;
 public interface ElasticPool<T> {
    /**
     * This can be called by single thread only.
+    *
+    * @return pooled or new object.
     */
    T acquire();
 
