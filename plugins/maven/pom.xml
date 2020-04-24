@@ -21,6 +21,16 @@
     </properties>
 
     <dependencies>
+        <!-- This is an artificial dependency to force test-suite module from being the last module
+             in the build reactor; test-suite does not produce any artifacts and therefore we skip
+             the deploy during release. However, being the last module in the reactor means that
+             the deployment is completely skipped: see https://issues.sonatype.org/browse/NEXUS-9138 -->
+        <dependency>
+            <groupId>io.hyperfoil</groupId>
+            <artifactId>hyperfoil-test-suite</artifactId>
+            <type>pom</type>
+        </dependency>
+
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>

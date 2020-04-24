@@ -176,6 +176,25 @@
                 <version>${project.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>io.hyperfoil</groupId>
+                <artifactId>hyperfoil-test-suite</artifactId>
+                <version>${project.version}</version>
+                <type>pom</type>
+            </dependency>
+
+            <dependency>
+                <groupId>io.hyperfoil</groupId>
+                <artifactId>hyperfoil-codegen-maven-plugin</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.hyperfoil</groupId>
+                <artifactId>hyperfoil-maven-plugin</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
             <!-- Netty will be logging through slf4j -->
             <dependency>
                 <groupId>org.slf4j</groupId>
