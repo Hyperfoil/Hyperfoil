@@ -27,6 +27,7 @@ class Run {
    long startTime = Long.MIN_VALUE;
    Promise<Long> terminateTime = Promise.promise();
    boolean cancelled;
+   boolean completed;
    StatisticsStore statisticsStore;
 
    Run(String id, Path dir, Benchmark benchmark) {

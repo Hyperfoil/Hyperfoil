@@ -520,6 +520,8 @@ components:
           format: date-time
         cancelled:
           type: boolean
+        completed:
+          type: boolean
         description:
           type: string
         phases:

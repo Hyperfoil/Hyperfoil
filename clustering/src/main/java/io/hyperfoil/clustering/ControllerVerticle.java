@@ -316,8 +316,11 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             return;
          }
       }
-      Run run = new Run(runId, runDir, new Benchmark(info.getString("benchmark", "<unknown>"), null, Collections.emptyMap(), new Agent[0], 0, null,
-            Collections.emptyMap(), Collections.emptyList(), Collections.emptyMap(), 0, null, Collections.emptyList(), Collections.emptyList()));
+      Benchmark benchmark = new Benchmark(info.getString("benchmark", "<unknown>"), null,
+            Collections.emptyMap(), new Agent[0], 0, null, Collections.emptyMap(), Collections.emptyList(),
+            Collections.emptyMap(), 0, null, Collections.emptyList(), Collections.emptyList());
+      Run run = new Run(runId, runDir, benchmark);
+      run.completed = true;
       run.startTime = info.getLong("startTime", 0L);
       run.terminateTime.complete(info.getLong("terminateTime", 0L));
       run.description = info.getString("description");
@@ -665,6 +668,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
 
          future.tryComplete();
       }, result -> {
+         run.completed = true;
          if (result.failed()) {
             log.error("Failed to persist run {}", result.cause(), run.id);
          } else {
