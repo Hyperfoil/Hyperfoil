@@ -277,12 +277,13 @@ class ControllerServer implements ApiService {
          ctx.response().setStatusCode(HttpResponseStatus.NOT_FOUND.code()).end("Benchmark not found");
          return;
       }
-      if (TRIGGER_URL != null) {
+      String triggerUrl = benchmark.triggerUrl() != null ? benchmark.triggerUrl() : TRIGGER_URL;
+      if (triggerUrl != null) {
          if (xTriggerJob == null) {
             Run run = controller.createRun(benchmark, desc);
             ctx.response()
                   .setStatusCode(HttpResponseStatus.MOVED_PERMANENTLY.code())
-                  .putHeader(HttpHeaders.LOCATION, TRIGGER_URL + "BENCHMARK=" + name + "&RUN_ID=" + run.id)
+                  .putHeader(HttpHeaders.LOCATION, triggerUrl + "BENCHMARK=" + name + "&RUN_ID=" + run.id)
                   .putHeader("x-run-id", run.id)
                   .end("This controller is configured to trigger jobs through CI instance.");
             return;

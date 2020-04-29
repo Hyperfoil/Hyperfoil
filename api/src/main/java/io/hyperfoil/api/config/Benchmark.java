@@ -48,6 +48,7 @@ public class Benchmark implements Serializable {
    private final Collection<Phase> phases;
    private final Map<String, Object> tags;
    private final long statisticsCollectionPeriod;
+   private final String triggerUrl;
    private final List<RunHook> preHooks;
    private final List<RunHook> postHooks;
 
@@ -57,7 +58,7 @@ public class Benchmark implements Serializable {
 
    public Benchmark(String name, String originalSource, Map<String, byte[]> files, Agent[] agents, int defaultThreads, Ergonomics ergonomics,
                     Map<String, Http> http, Collection<Phase> phases,
-                    Map<String, Object> tags, long statisticsCollectionPeriod, List<RunHook> preHooks, List<RunHook> postHooks) {
+                    Map<String, Object> tags, long statisticsCollectionPeriod, String triggerUrl, List<RunHook> preHooks, List<RunHook> postHooks) {
       this.name = name;
       this.originalSource = originalSource;
       this.files = files;
@@ -70,6 +71,7 @@ public class Benchmark implements Serializable {
       this.phases = phases;
       this.tags = tags;
       this.statisticsCollectionPeriod = statisticsCollectionPeriod;
+      this.triggerUrl = triggerUrl;
       this.preHooks = preHooks;
       this.postHooks = postHooks;
       this.version = Util.randomUUID().toString();
@@ -123,6 +125,10 @@ public class Benchmark implements Serializable {
 
    public long statisticsCollectionPeriod() {
       return statisticsCollectionPeriod;
+   }
+
+   public String triggerUrl() {
+      return triggerUrl;
    }
 
    public List<RunHook> preHooks() {

@@ -50,6 +50,7 @@ public class BenchmarkBuilder {
    private int threads = 1;
    private Map<String, PhaseBuilder<?>> phaseBuilders = new HashMap<>();
    private long statisticsCollectionPeriod = 1000;
+   private String triggerUrl;
    private List<RunHook> preHooks = new ArrayList<>();
    private List<RunHook> postHooks = new ArrayList<>();
 
@@ -115,6 +116,11 @@ public class BenchmarkBuilder {
          throw new BenchmarkDefinitionException("Benchmark already has defined phases; cannot use single-phase definition");
       }
       return (PhaseBuilder.ConstantRate) builder;
+   }
+
+   public BenchmarkBuilder triggerUrl(String url) {
+      this.triggerUrl = url;
+      return this;
    }
 
    public BenchmarkBuilder addPreHook(RunHook runHook) {
@@ -185,7 +191,7 @@ public class BenchmarkBuilder {
          return new Agent(a.name, a.inlineConfig, properties);
       }).toArray(Agent[]::new);
       Benchmark benchmark = new Benchmark(name, originalSource, files, agents, threads, ergonomics.build(),
-            httpMap, new ArrayList<>(phases.values()), tags, statisticsCollectionPeriod, preHooks, postHooks);
+            httpMap, new ArrayList<>(phases.values()), tags, statisticsCollectionPeriod, triggerUrl, preHooks, postHooks);
       bs.set(benchmark);
       return benchmark;
    }

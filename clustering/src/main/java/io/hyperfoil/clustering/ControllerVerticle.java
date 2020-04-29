@@ -317,7 +317,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
          }
       }
       Run run = new Run(runId, runDir, new Benchmark(info.getString("benchmark", "<unknown>"), null, Collections.emptyMap(), new Agent[0], 0, null,
-            Collections.emptyMap(), Collections.emptyList(), Collections.emptyMap(), 0, Collections.emptyList(), Collections.emptyList()));
+            Collections.emptyMap(), Collections.emptyList(), Collections.emptyMap(), 0, null, Collections.emptyList(), Collections.emptyList()));
       run.startTime = info.getLong("startTime", 0L);
       run.terminateTime.complete(info.getLong("terminateTime", 0L));
       run.description = info.getString("description");

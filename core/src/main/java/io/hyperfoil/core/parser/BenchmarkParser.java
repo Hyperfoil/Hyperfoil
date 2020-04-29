@@ -66,6 +66,7 @@ public class BenchmarkParser extends AbstractMappingParser<BenchmarkBuilder> {
       register("maxSessions", new PropertyParser.Int<>((bb, value) -> bb.singleConstantRatePhase().maxSessions(value)));
       register("scenario", (ctx, target) -> new ScenarioParser().parse(ctx, target.singleConstantRatePhase().scenario()));
       register("staircase", new StaircaseParser());
+      register("triggerUrl", new PropertyParser.String<>(BenchmarkBuilder::triggerUrl));
       register("pre", new RunHooksParser(BenchmarkBuilder::addPreHook));
       register("post", new RunHooksParser(BenchmarkBuilder::addPostHook));
    }
