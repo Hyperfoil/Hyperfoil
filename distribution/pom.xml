@@ -246,7 +246,7 @@
                                 <image>
                                     <name>quay.io/hyperfoil/hyperfoil:${project.version}</name>
                                     <build>
-                                        <from>docker.io/adoptopenjdk/openjdk11:ubi</from>
+                                        <from>docker.io/adoptopenjdk/openjdk14:ubi</from>
                                         <tags>
                                             <tag>latest</tag>
                                             <tag>${project.version}</tag>
