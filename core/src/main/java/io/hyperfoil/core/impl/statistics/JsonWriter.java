@@ -16,6 +16,7 @@ import org.HdrHistogram.HistogramIterationValue;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
@@ -72,7 +73,9 @@ public class JsonWriter {
 
          jGenerator.writeFieldName("total");
          long numFailures = failures.stream().filter(f -> f.phase().equals(data.phase) && f.metric() == null || f.metric().equals(data.metric)).count();
-         writeTotalValue(jGenerator, data, d -> d.total, store.sessionPoolStats.get(data.phase).findMinMax(), numFailures);
+         StatisticsStore.SessionPoolStats sessionPoolStats = store.sessionPoolStats.get(data.phase);
+         LowHigh minMaxSessions = sessionPoolStats == null ? new LowHigh(0, 0) : sessionPoolStats.findMinMax();
+         writeTotalValue(jGenerator, data, d -> d.total, minMaxSessions, numFailures);
 
          jGenerator.writeFieldName("histogram");
          jGenerator.writeStartObject();
@@ -103,10 +106,11 @@ public class JsonWriter {
             jGenerator.writeStringField("fork", split[2]);
 
             StatisticsStore.SessionPoolStats sps = store.sessionPoolStats.get(data.phase);
-            String[] addresses = new String[sps.records.size()];
-            Iterator<StatisticsStore.SessionPoolRecord>[] iterators = new Iterator[sps.records.size()];
+            Map<String, List<StatisticsStore.SessionPoolRecord>> records = sps != null ? sps.records : Collections.emptyMap();
+            String[] addresses = new String[records.size()];
+            Iterator<StatisticsStore.SessionPoolRecord>[] iterators = new Iterator[records.size()];
             int counter = 0;
-            for (Map.Entry<String, List<StatisticsStore.SessionPoolRecord>> byAddress : sps.records.entrySet()) {
+            for (Map.Entry<String, List<StatisticsStore.SessionPoolRecord>> byAddress : records.entrySet()) {
                addresses[counter] = byAddress.getKey();
                iterators[counter] = byAddress.getValue().iterator();
                ++counter;
@@ -288,7 +292,7 @@ public class JsonWriter {
       jGenerator.flush();
    }
 
-   private static void writeTotalValue(JsonGenerator generator, Data data, Function<Data, StatisticsSnapshot> selector, LowHigh lowHigh, long failures) throws IOException {
+   private static void writeTotalValue(JsonGenerator generator, Data data, Function<Data, StatisticsSnapshot> selector, LowHigh minMaxSessions, long failures) throws IOException {
       StatisticsSnapshot snapshot = selector.apply(data);
 
       generator.writeStartObject();
@@ -308,9 +312,9 @@ public class JsonWriter {
       }
       generator.writeEndObject();
 
-      if (lowHigh != null) {
-         generator.writeNumberField("minSessions", lowHigh.low);
-         generator.writeNumberField("maxSessions", lowHigh.high);
+      if (minMaxSessions != null) {
+         generator.writeNumberField("minSessions", minMaxSessions.low);
+         generator.writeNumberField("maxSessions", minMaxSessions.high);
       }
 
       generator.writeEndObject();
