@@ -193,7 +193,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                         log.error("Cannot find agent {}", requestStatsMessage.address);
                      } else {
                         agent.phases.put(phase, PhaseInstance.Status.STATS_COMPLETE);
-                        if (run.agents.stream().map(a -> agent.phases.get(phase)).allMatch(s -> s == PhaseInstance.Status.STATS_COMPLETE)) {
+                        if (run.agents.stream().map(a -> a.phases.get(phase)).allMatch(s -> s == PhaseInstance.Status.STATS_COMPLETE)) {
                            log.info("Run {}: completed stats for phase {}", run.id, phase);
                            run.statisticsStore.completePhase(phase);
                            if (!run.statisticsStore.validateSlas()) {
