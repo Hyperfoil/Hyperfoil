@@ -249,13 +249,13 @@ public class JsonWriter {
             if (from < 0) {
                from = iterValue.getValueIteratedFrom();
                total = iterValue.getTotalCountToThisValue();
-            } else {
-               to = iterValue.getValueIteratedTo();
-               percentileTo = iterValue.getPercentileLevelIteratedTo();
             }
+            to = iterValue.getValueIteratedTo();
+            percentileTo = iterValue.getPercentileLevelIteratedTo();
          } else {
             if (from >= 0) {
                writeBucket(jGenerator, from, to, percentileTo, 0, total);
+               from = -1;
             }
             writeBucket(jGenerator,
                   iterValue.getDoubleValueIteratedFrom(),
