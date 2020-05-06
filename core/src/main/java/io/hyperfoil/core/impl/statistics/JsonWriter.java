@@ -80,9 +80,9 @@ public class JsonWriter {
          jGenerator.writeFieldName("histogram");
          jGenerator.writeStartObject();
          jGenerator.writeFieldName("percentiles");
-         histogramArray(jGenerator, data.total.histogram.percentiles(5).iterator());
+         histogramArray(jGenerator, data.total.histogram.percentiles(5).iterator(), 100);
          jGenerator.writeFieldName("linear");
-         histogramArray(jGenerator, data.total.histogram.linearBucketValues(1_000_000).iterator());
+         histogramArray(jGenerator, data.total.histogram.linearBucketValues(1_000_000).iterator(), 95);
          jGenerator.writeEndObject(); //histogram
 
          jGenerator.writeFieldName("series");
@@ -182,10 +182,10 @@ public class JsonWriter {
                jGenerator.writeStartObject(); // histograms
 
                jGenerator.writeFieldName("percentiles");
-               histogramArray(jGenerator, data.perAgent.get(agent).histogram.percentiles(5).iterator());
+               histogramArray(jGenerator, data.perAgent.get(agent).histogram.percentiles(5).iterator(), 100);
 
                jGenerator.writeFieldName("linear");
-               histogramArray(jGenerator, data.perAgent.get(agent).histogram.linearBucketValues(1_000_000).iterator());
+               histogramArray(jGenerator, data.perAgent.get(agent).histogram.linearBucketValues(1_000_000).iterator(), 95);
 
                jGenerator.writeEndObject(); // histograms
 
@@ -239,12 +239,13 @@ public class JsonWriter {
       return rtrn;
    }
 
-   private static void histogramArray(JsonGenerator jGenerator, Iterator<HistogramIterationValue> iter) throws IOException {
+   private static void histogramArray(JsonGenerator jGenerator, Iterator<HistogramIterationValue> iter, double maxPercentile) throws IOException {
       jGenerator.writeStartArray(); //start histogram
       double from = -1, to = -1, percentileTo = -1;
       long total = 0;
+      HistogramIterationValue iterValue = null;
       while (iter.hasNext()) {
-         HistogramIterationValue iterValue = iter.next();
+         iterValue = iter.next();
          if (iterValue.getCountAddedInThisIterationStep() == 0) {
             if (from < 0) {
                from = iterValue.getValueIteratedFrom();
@@ -264,9 +265,25 @@ public class JsonWriter {
                   iterValue.getCountAddedInThisIterationStep(),
                   iterValue.getTotalCountToThisValue());
          }
+         if (iterValue.getPercentileLevelIteratedTo() > maxPercentile) {
+            break;
+         }
       }
       if (from >= 0) {
          writeBucket(jGenerator, from, to, percentileTo, 0, total);
+      }
+      if (iterValue != null) {
+         from = iterValue.getDoubleValueIteratedTo();
+         total = iterValue.getTotalCountToThisValue();
+         while (iter.hasNext()) {
+            iterValue = iter.next();
+         }
+         if (iterValue.getTotalCountToThisValue() != total) {
+            writeBucket(jGenerator, from, iterValue.getDoubleValueIteratedTo(),
+                  iterValue.getPercentileLevelIteratedTo(),
+                  iterValue.getTotalCountToThisValue() - total,
+                  iterValue.getTotalCountToThisValue());
+         }
       }
       jGenerator.writeEndArray(); //end histogram
    }
