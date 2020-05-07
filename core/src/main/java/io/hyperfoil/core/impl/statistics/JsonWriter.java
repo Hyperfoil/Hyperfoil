@@ -72,7 +72,7 @@ public class JsonWriter {
          jGenerator.writeStringField("metric", data.metric);
 
          jGenerator.writeFieldName("total");
-         long numFailures = failures.stream().filter(f -> f.phase().equals(data.phase) && f.metric() == null || f.metric().equals(data.metric)).count();
+         long numFailures = failures.stream().filter(f -> f.phase().equals(data.phase) && (f.metric() == null || f.metric().equals(data.metric))).count();
          StatisticsStore.SessionPoolStats sessionPoolStats = store.sessionPoolStats.get(data.phase);
          LowHigh minMaxSessions = sessionPoolStats == null ? new LowHigh(0, 0) : sessionPoolStats.findMinMax();
          writeTotalValue(jGenerator, data, d -> d.total, minMaxSessions, numFailures);
