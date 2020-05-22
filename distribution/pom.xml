@@ -246,19 +246,11 @@
                                 <image>
                                     <name>quay.io/hyperfoil/hyperfoil:${project.version}</name>
                                     <build>
-                                        <from>docker.io/adoptopenjdk/openjdk14:ubi</from>
+                                        <dockerFile>Dockerfile</dockerFile>
                                         <tags>
                                             <tag>latest</tag>
                                             <tag>${project.version}</tag>
                                         </tags>
-                                        <ports>
-                                            <port>8090</port>
-                                        </ports>
-                                        <runCmds>
-                                            <cmd>curl -s -L https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64 -o /usr/bin/jq</cmd>
-                                            <cmd>chmod a+x /usr/bin/jq</cmd>
-                                        </runCmds>
-                                        <optimise>true</optimise>
                                         <assembly>
                                             <targetDir>/deployment</targetDir>
                                             <inline>
@@ -270,7 +262,6 @@
                                                 </fileSets>
                                             </inline>
                                         </assembly>
-                                        <cmd>/deployment/bin/controller.sh</cmd>
                                     </build>
                                 </image>
                             </images>
