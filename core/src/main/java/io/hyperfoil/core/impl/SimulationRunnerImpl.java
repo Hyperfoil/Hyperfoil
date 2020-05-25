@@ -268,7 +268,9 @@ public class SimulationRunnerImpl implements SimulationRunner {
 
    @Override
    public void shutdown() {
-      jitterWatchdog.interrupt();
+      if (jitterWatchdog != null) {
+         jitterWatchdog.interrupt();
+      }
       for (HttpClientPool pool : httpClientPools.values()) {
          pool.shutdown();
       }
