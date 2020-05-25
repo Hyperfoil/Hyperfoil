@@ -160,7 +160,7 @@ public class OpenapiMojo extends AbstractMojo {
       ConstructorDeclaration ctor = clazz.addConstructor(Modifier.Keyword.PUBLIC);
       BlockStmt ctorBody = ctor.addParameter("ApiService", "service").addParameter("Router", "router").getBody();
       ctorBody.addStatement("this.service = service;");
-      ctorBody.addStatement("router.route().handler(BodyHandler.create());");
+      ctorBody.addStatement("router.route().handler(BodyHandler.create(System.getProperty(\"java.io.tmpdir\")));");
       ctorBody.addStatement("router.errorHandler(500, ctx -> {\n" +
             "            log.error(\"Error processing {} {}\", ctx.request().method(), ctx.request().uri(), ctx.failure());\n" +
             "        });");
