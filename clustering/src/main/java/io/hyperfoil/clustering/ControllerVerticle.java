@@ -410,13 +410,20 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       }
       for (Agent agent : run.benchmark.agents()) {
          if (activeAgents.contains(agent.name)) {
+            long currentTime = System.currentTimeMillis();
+            run.startTime = currentTime;
+            run.terminateTime.complete(currentTime);
+            run.completed = true;
             return "Agent " + agent + " is already used; try starting the benchmark later";
          }
       }
 
       if (run.benchmark.agents().length == 0) {
          if (vertx.isClustered()) {
-            run.terminateTime.complete(System.currentTimeMillis());
+            long currentTime = System.currentTimeMillis();
+            run.startTime = currentTime;
+            run.terminateTime.complete(currentTime);
+            run.completed = true;
             return "Server is started in clustered mode; benchmarks must define agents.";
          } else {
             run.agents.add(new AgentInfo("in-vm", 0));
