@@ -224,7 +224,9 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
 
       @Override
       public void reserveSessions() {
-         sessionPool.reserve(users);
+         if (users > 0) {
+            sessionPool.reserve(users);
+         }
       }
    }
 
@@ -246,7 +248,9 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
 
       @Override
       public void reserveSessions() {
-         sessionPool.reserve(users);
+         if (users > 0) {
+            sessionPool.reserve(users);
+         }
       }
 
       @Override
@@ -315,7 +319,9 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
 
       @Override
       public void reserveSessions() {
-         sessionPool.reserve(maxSessions);
+         if (maxSessions > 0) {
+            sessionPool.reserve(maxSessions);
+         }
       }
 
       @Override
