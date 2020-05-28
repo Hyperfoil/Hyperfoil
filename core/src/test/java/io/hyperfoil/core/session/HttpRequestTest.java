@@ -66,7 +66,7 @@ public class HttpRequestTest extends BaseScenarioTest {
    @Test
    public void testStringBody(TestContext ctx) {
       // @formatter:off
-      scenario()
+      scenario(10)
             .initialSequence("test")
                .step(SC).httpRequest(HttpMethod.POST)
                   .path("/test?expect=bar")
