@@ -27,15 +27,12 @@ import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.builders.BaseStepBuilder;
 import io.hyperfoil.core.session.SessionFactory;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 
 /**
  * A class that will initialise, build and randomly select a single row of data.
  * The row is exposed as columns.
  */
 public class RandomCsvRowStep implements Step, ResourceUtilizer {
-   private static final Logger log = LoggerFactory.getLogger(RandomCsvRowStep.class);
    private String[][] rows;
    private final Access[] columnVars;
 
@@ -69,7 +66,6 @@ public class RandomCsvRowStep implements Step, ResourceUtilizer {
    @MetaInfServices(StepBuilder.class)
    @Name("randomCsvRow")
    public static class Builder extends BaseStepBuilder<Builder> {
-      private Locator locator;
       private String file;
       private boolean skipComments;
       private boolean removeQuotes;
@@ -77,14 +73,8 @@ public class RandomCsvRowStep implements Step, ResourceUtilizer {
       private int maxSize = 0;
 
       @Override
-      public Builder setLocator(Locator locator) {
-         this.locator = locator;
-         return this;
-      }
-
-      @Override
-      public Builder copy(Locator locator) {
-         Builder builder = new Builder().setLocator(locator)
+      public Builder copy() {
+         Builder builder = new Builder()
                .file(file).skipComments(skipComments).removeQuotes(removeQuotes);
          builderColumns.forEach((column, position) -> builder.columns().accept(String.valueOf(position), column));
          return builder;
@@ -94,7 +84,7 @@ public class RandomCsvRowStep implements Step, ResourceUtilizer {
       public List<Step> build() {
          Predicate<String> comments = s -> (!skipComments || !(s.trim().startsWith("#")));
          List<String[]> rows;
-         try (InputStream inputStream = locator.benchmark().data().readFile(file)) {
+         try (InputStream inputStream = Locator.current().benchmark().data().readFile(file)) {
             if (inputStream == null) {
                throw new BenchmarkDefinitionException("Cannot load file " + file);
             }
@@ -117,8 +107,7 @@ public class RandomCsvRowStep implements Step, ResourceUtilizer {
                }
             }
          });
-         List<String> cols = new ArrayList<>();
-         cols.addAll(builderColumns.keySet());
+         List<String> cols = new ArrayList<>(builderColumns.keySet());
 
          return Collections.singletonList(new RandomCsvRowStep(rows.toArray(new String[][]{}), cols));
       }
@@ -174,8 +163,8 @@ public class RandomCsvRowStep implements Step, ResourceUtilizer {
           */
          @Override
          public void accept(String position, String columnVar) {
-            Integer pos = Integer.parseInt(position);
-            maxSize = (maxSize > pos ? maxSize : pos);
+            int pos = Integer.parseInt(position);
+            maxSize = Math.max(maxSize, pos);
             if ((builderColumns.put(columnVar, pos) != null)) {
                throw new BenchmarkDefinitionException("Duplicate item '" + columnVar + "' in randomCSVrow step!");
             }

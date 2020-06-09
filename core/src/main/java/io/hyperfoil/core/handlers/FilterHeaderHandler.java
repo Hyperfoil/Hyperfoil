@@ -1,7 +1,6 @@
 package io.hyperfoil.core.handlers;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
-import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.http.HeaderHandler;
@@ -66,7 +65,6 @@ public class FilterHeaderHandler implements HeaderHandler, ResourceUtilizer {
    public static class Builder implements HeaderHandler.Builder {
       private CharSequenceCondition.Builder<Builder> header = new CharSequenceCondition.Builder<>(this).caseSensitive(false);
       private HttpRequestProcessorBuilder processor;
-      private Locator locator;
 
       @Override
       public FilterHeaderHandler build() {
@@ -82,15 +80,9 @@ public class FilterHeaderHandler implements HeaderHandler, ResourceUtilizer {
       }
 
       @Override
-      public Builder setLocator(Locator locator) {
-         this.locator = locator;
-         return this;
-      }
-
-      @Override
-      public Builder copy(Locator locator) {
-         Builder copy = new Builder().setLocator(locator).processor(processor.copy(locator));
-         copy.header = header.copy(locator);
+      public Builder copy() {
+         Builder copy = new Builder().processor(processor.copy());
+         copy.header = header.copy();
          return copy;
       }
 
@@ -117,7 +109,7 @@ public class FilterHeaderHandler implements HeaderHandler, ResourceUtilizer {
        * @return Builder;
        */
       public ServiceLoadedBuilderProvider<HttpRequestProcessorBuilder> processor() {
-         return new ServiceLoadedBuilderProvider<>(HttpRequestProcessorBuilder.class, locator, this::processor);
+         return new ServiceLoadedBuilderProvider<>(HttpRequestProcessorBuilder.class, this::processor);
       }
    }
 }

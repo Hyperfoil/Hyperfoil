@@ -24,7 +24,7 @@ class StepParser extends BaseReflectionParser implements Parser<BaseSequenceBuil
    @Override
    public void parse(Context ctx, BaseSequenceBuilder target) throws ParserException {
       Event firstEvent = ctx.next();
-      ServiceLoadedBuilderProvider<StepBuilder> provider = new ServiceLoadedBuilderProvider<>(StepBuilder.class, target.createLocator(), target::stepBuilder);
+      ServiceLoadedBuilderProvider<StepBuilder> provider = new ServiceLoadedBuilderProvider<>(StepBuilder.class, target::stepBuilder);
       if (firstEvent instanceof ScalarEvent) {
          ServiceLoadedContract slc;
          String name = ((ScalarEvent) firstEvent).getValue();

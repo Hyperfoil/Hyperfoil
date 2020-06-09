@@ -52,7 +52,7 @@ class RunHooksParser implements Parser<BenchmarkBuilder> {
          } else if (next instanceof MappingStartEvent) {
             ScalarEvent typeEvent = ctx.expectEvent(ScalarEvent.class);
             ServiceLoadedBuilderProvider<RunHook.Builder> slbp =
-                  new ServiceLoadedBuilderProvider<>(RunHook.Builder.class, null, builder -> consumer.accept(target, builder.build(name)));
+                  new ServiceLoadedBuilderProvider<>(RunHook.Builder.class, builder -> consumer.accept(target, builder.build(name)));
             fillSLBP(ctx, typeEvent, slbp);
             ctx.expectEvent(MappingEndEvent.class);
          } else {

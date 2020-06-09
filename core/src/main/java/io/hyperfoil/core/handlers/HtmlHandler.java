@@ -293,14 +293,7 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
    @MetaInfServices(HttpRequestProcessorBuilder.class)
    @Name("parseHtml")
    public static class Builder implements HttpRequestProcessorBuilder {
-      private Locator locator;
       private EmbeddedResourceHandlerBuilder embeddedResourceHandler;
-
-      @Override
-      public Builder setLocator(Locator locator) {
-         this.locator = locator;
-         return this;
-      }
 
       /**
        * Handler firing upon reference to other resource, e.g. image, stylesheet...
@@ -311,7 +304,7 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
          if (embeddedResourceHandler != null) {
             throw new BenchmarkDefinitionException("Embedded resource handler already set!");
          }
-         return embeddedResourceHandler = new EmbeddedResourceHandlerBuilder().setLocator(locator);
+         return embeddedResourceHandler = new EmbeddedResourceHandlerBuilder();
       }
 
       @Override
@@ -320,9 +313,9 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
       }
 
       @Override
-      public Builder copy(Locator locator) {
-         Builder newBuilder = new Builder().setLocator(locator);
-         newBuilder.embeddedResourceHandler = embeddedResourceHandler.copy(locator);
+      public Builder copy() {
+         Builder newBuilder = new Builder();
+         newBuilder.embeddedResourceHandler = embeddedResourceHandler.copy();
          return newBuilder;
       }
 
@@ -344,16 +337,9 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
       private static final String[] TAGS = { "img", "link", "embed", "frame", "iframe", "object", "script" };
       private static final String[] ATTRS = { "src", "href", "src", "src", "src", "data", "src" };
 
-      private Locator locator;
       private boolean ignoreExternal = true;
       private Processor.Builder<?> processor;
       private FetchResourceBuilder fetchResource;
-
-      @Override
-      public EmbeddedResourceHandlerBuilder setLocator(Locator locator) {
-         this.locator = locator;
-         return this;
-      }
 
       /**
        * Ignore resources hosted on servers that are not covered in the <code>http</code> section.
@@ -372,14 +358,13 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
        * @return Builder.
        */
       public FetchResourceBuilder fetchResource() {
-         return this.fetchResource = new FetchResourceBuilder(locator);
+         return this.fetchResource = new FetchResourceBuilder();
       }
 
       public EmbeddedResourceHandlerBuilder processor(Processor.Builder<?> processor) {
          if (this.processor == null) {
             this.processor = processor;
          } else if (this.processor instanceof MultiProcessor.Builder) {
-            @SuppressWarnings("unchecked")
             MultiProcessor.Builder multiprocessor = (MultiProcessor.Builder) this.processor;
             multiprocessor.add(processor);
          } else {
@@ -395,7 +380,7 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
        * @return Builder.
        */
       public ServiceLoadedBuilderProvider<HttpRequestProcessorBuilder> processor() {
-         return new ServiceLoadedBuilderProvider<>(HttpRequestProcessorBuilder.class, locator, this::processor);
+         return new ServiceLoadedBuilderProvider<>(HttpRequestProcessorBuilder.class, this::processor);
       }
 
       public void prepareBuild() {
@@ -408,14 +393,14 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
       }
 
       @Override
-      public EmbeddedResourceHandlerBuilder copy(Locator locator) {
-         EmbeddedResourceHandlerBuilder builder = new EmbeddedResourceHandlerBuilder().setLocator(locator);
+      public EmbeddedResourceHandlerBuilder copy() {
+         EmbeddedResourceHandlerBuilder builder = new EmbeddedResourceHandlerBuilder();
          builder.ignoreExternal(ignoreExternal);
          if (processor != null) {
-            builder.processor(processor.copy(locator));
+            builder.processor(processor.copy());
          }
          if (fetchResource != null) {
-            builder.fetchResource = fetchResource.copy(locator);
+            builder.fetchResource = fetchResource.copy();
          }
          return builder;
       }
@@ -440,25 +425,16 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
     * Automates download of embedded resources.
     */
    public static class FetchResourceBuilder implements BuilderBase<FetchResourceBuilder> {
-      private final Locator locator;
-      private final String generatedSeqName;
-
       private int maxResources;
       private SerializableBiFunction<String, String, String> metricSelector;
       private Action.Builder onCompletion;
+      // initialized in prepareBuild()
+      private String generatedSeqName;
+      private String downloadUrlVar;
+      private String completionLatch;
 
-      FetchResourceBuilder(Locator locator) {
-         this.locator = locator;
-         this.generatedSeqName = String.format("%s_fetchResources_%08x",
-               locator.sequence().name(), ThreadLocalRandom.current().nextInt());
-      }
+      FetchResourceBuilder() {
 
-      private String completionLatch() {
-         return generatedSeqName + "_latch";
-      }
-
-      private String downloadUrlVar() {
-         return generatedSeqName + "_url";
       }
 
       /**
@@ -497,7 +473,7 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
        * @return Builder.
        */
       public ServiceLoadedBuilderProvider<Action.Builder> onCompletion() {
-         return new ServiceLoadedBuilderProvider<>(Action.Builder.class, locator, this::onCompletion);
+         return new ServiceLoadedBuilderProvider<>(Action.Builder.class, this::onCompletion);
       }
 
       public FetchResourceBuilder onCompletion(Action.Builder a) {
@@ -512,43 +488,47 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
          if (maxResources <= 0) {
             throw new BenchmarkDefinitionException("maxResources is missing or invalid.");
          }
-
+         Locator locator = Locator.current();
+         generatedSeqName = String.format("%s_fetchResources_%08x",
+               locator.sequence().name(), ThreadLocalRandom.current().nextInt());
+         downloadUrlVar = generatedSeqName + "_url";
+         completionLatch = generatedSeqName + "_latch";
          SequenceBuilder sequence = locator.scenario().sequence(generatedSeqName);
 
          HttpRequestStep.Builder requestBuilder = new HttpRequestStep.Builder().sync(false).method(HttpMethod.GET);
          requestBuilder.path(
-               new StringGeneratorImplBuilder<>(requestBuilder, false).fromVar(downloadUrlVar() + "[.]"));
+               new StringGeneratorImplBuilder<>(requestBuilder, false).fromVar(downloadUrlVar + "[.]"));
          if (metricSelector != null) {
             requestBuilder.metric(metricSelector);
          } else {
             // Rather than using auto-generated sequence name we'll use the full path
             requestBuilder.metric((authority, path) -> authority != null ? authority + path : path);
          }
-         requestBuilder.handler().onCompletion(new AddToIntAction.Builder().var(completionLatch()).value(-1));
-         requestBuilder.setLocator(sequence.createLocator());
+         requestBuilder.handler().onCompletion(new AddToIntAction.Builder().var(completionLatch).value(-1));
          sequence.stepBuilder(requestBuilder);
-         requestBuilder.prepareBuild();
+         // As we're preparing build, the list of sequences-to-be-prepared is already final and we need to prepare
+         // this one manually
+         sequence.prepareBuild();
 
          Action onCompletion = this.onCompletion.build();
          // We add unset step for cases where the step is retried and it's not sync
          locator.sequence().insertAfter(locator)
-               .step(new AwaitIntStep(completionLatch(), x -> x == 0))
-               .step(new StepBuilder.ActionStep(new UnsetAction(completionLatch())))
+               .step(new AwaitIntStep(completionLatch, x -> x == 0))
+               .step(new StepBuilder.ActionStep(new UnsetAction(completionLatch)))
                .step(new ResourceUtilizingStep(onCompletion));
       }
 
       @Override
-      public FetchResourceBuilder copy(Locator locator) {
-         return new FetchResourceBuilder(locator)
+      public FetchResourceBuilder copy() {
+         return new FetchResourceBuilder()
                .maxResources(maxResources)
                .metric(metricSelector)
                .onCompletion(onCompletion);
       }
 
-      @SuppressWarnings("unchecked")
       public FetchResourcesAdapter build() {
-         return new FetchResourcesAdapter(completionLatch(), new MultiProcessor(
-               new ArrayRecorder(downloadUrlVar(), DataFormat.STRING, maxResources),
+         return new FetchResourcesAdapter(completionLatch, new MultiProcessor(
+               new ArrayRecorder(downloadUrlVar, DataFormat.STRING, maxResources),
                new NewSequenceProcessor(maxResources, generatedSeqName + "_cnt", generatedSeqName)));
       }
    }

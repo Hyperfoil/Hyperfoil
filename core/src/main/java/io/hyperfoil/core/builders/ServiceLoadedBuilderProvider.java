@@ -10,10 +10,8 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
-import io.hyperfoil.api.config.BuilderBase;
 import io.hyperfoil.api.config.IncludeBuilders;
 import io.hyperfoil.api.config.InitFromParam;
-import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Name;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -24,7 +22,6 @@ public class ServiceLoadedBuilderProvider<B> {
    private static final Map<Class<?>, Map<String, BuilderInfo<?>>> BUILDERS = new HashMap<>();
 
    private final Class<B> builderClazz;
-   private final Locator locator;
    private final Consumer<B> consumer;
 
    public static synchronized Map<String, BuilderInfo<?>> builders(Class<?> clazz) {
@@ -70,9 +67,8 @@ public class ServiceLoadedBuilderProvider<B> {
       return builders;
    }
 
-   public ServiceLoadedBuilderProvider(Class<B> builderClazz, Locator locator, Consumer<B> consumer) {
+   public ServiceLoadedBuilderProvider(Class<B> builderClazz, Consumer<B> consumer) {
       this.builderClazz = builderClazz;
-      this.locator = locator;
       this.consumer = consumer;
    }
 
@@ -84,9 +80,6 @@ public class ServiceLoadedBuilderProvider<B> {
       }
       try {
          Object instance = builderInfo.implClazz.getDeclaredConstructor().newInstance();
-         if (instance instanceof BuilderBase) {
-            ((BuilderBase) instance).setLocator(locator);
-         }
          if (param != null && !param.isEmpty()) {
             if (instance instanceof InitFromParam) {
                ((InitFromParam) instance).init(param);

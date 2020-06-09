@@ -7,7 +7,6 @@ import java.util.stream.Collectors;
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
-import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.processor.Transformer;
 import io.hyperfoil.api.session.Access;
@@ -37,7 +36,7 @@ public class ActionsTransformer implements Transformer, ResourceUtilizer {
    public void transform(Session session, ByteBuf in, int offset, int length, boolean lastFragment, ByteBuf out) {
       assert lastFragment;
       var.setObject(session, format.convert(in, offset, length));
-      for (Action action: actions) {
+      for (Action action : actions) {
          action.run(session);
       }
       pattern.accept(session, out);
@@ -56,25 +55,15 @@ public class ActionsTransformer implements Transformer, ResourceUtilizer {
    @MetaInfServices(Transformer.Builder.class)
    @Name("actions")
    public static class Builder implements Transformer.Builder {
-      private Locator locator;
       private String var;
       private DataFormat format = DataFormat.STRING;
       private String pattern;
       private List<Action.Builder> actions = new ArrayList<>();
 
       @Override
-      public Builder setLocator(Locator locator) {
-         this.locator = locator;
-         for (Action.Builder a : actions) {
-            a.setLocator(locator);
-         }
-         return this;
-      }
-
-      @Override
-      public Builder copy(Locator locator) {
-         return new Builder().setLocator(locator).var(var).format(format).pattern(pattern)
-               .actions(actions.stream().map(a -> a.copy(locator)).collect(Collectors.toList()));
+      public Builder copy() {
+         return new Builder().var(var).format(format).pattern(pattern)
+               .actions(actions.stream().map(a -> a.copy()).collect(Collectors.toList()));
       }
 
       /**
@@ -117,7 +106,7 @@ public class ActionsTransformer implements Transformer, ResourceUtilizer {
        * @return Builder for creating the list of actions.
        */
       public ServiceLoadedBuilderProvider<Action.Builder> actions() {
-         return new ServiceLoadedBuilderProvider<>(Action.Builder.class, locator, actions::add);
+         return new ServiceLoadedBuilderProvider<>(Action.Builder.class, actions::add);
       }
 
       @Override

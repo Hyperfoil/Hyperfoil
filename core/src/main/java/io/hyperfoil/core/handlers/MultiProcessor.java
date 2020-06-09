@@ -3,7 +3,6 @@ package io.hyperfoil.core.handlers;
 import java.util.ArrayList;
 import java.util.List;
 
-import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
@@ -59,9 +58,9 @@ public final class MultiProcessor implements Processor, ResourceUtilizer {
       }
 
       @Override
-      public Builder copy(Locator locator) {
+      public Builder copy() {
          Builder builder = new Builder();
-         delegates.forEach(b -> builder.delegates.add(b.copy(locator)));
+         delegates.forEach(b -> builder.delegates.add(b.copy()));
          return builder;
       }
 

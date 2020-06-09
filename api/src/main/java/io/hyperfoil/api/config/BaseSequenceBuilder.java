@@ -47,7 +47,6 @@ public abstract class BaseSequenceBuilder implements Rewritable<BaseSequenceBuil
    // Calling this method step() would cause ambiguity with step(Step) defined through lambda
    public BaseSequenceBuilder stepBuilder(StepBuilder<?> stepBuilder) {
       steps.add(stepBuilder);
-      stepBuilder.setLocator(createLocator());
       return this;
    }
 
@@ -62,8 +61,7 @@ public abstract class BaseSequenceBuilder implements Rewritable<BaseSequenceBuil
    @Override
    public void readFrom(BaseSequenceBuilder other) {
       assert steps.isEmpty();
-      Locator locator = createLocator();
-      other.steps.forEach(s -> stepBuilder(s.copy(locator)));
+      other.steps.forEach(s -> stepBuilder(s.copy()));
    }
 
    public String name() {
@@ -89,8 +87,26 @@ public abstract class BaseSequenceBuilder implements Rewritable<BaseSequenceBuil
       throw new NoSuchElementException("Not found: " + locator.step());
    }
 
+   protected void prepareBuild() {
+      // This actually raises an exception if the Locator isn't set
+      assert Locator.current() != null;
+      // We need to make a defensive copy as prepareBuild() may trigger modifications
+      new ArrayList<>(steps).forEach(stepBuilder -> {
+         Locator.push(stepBuilder);
+         stepBuilder.prepareBuild();
+         Locator.pop();
+      });
+   }
+
    protected List<Step> buildSteps() {
-      return steps.stream().map(StepBuilder::build).flatMap(List::stream).collect(Collectors.toList());
+      // This actually raises an exception if the Locator isn't set
+      assert Locator.current() != null;
+      return steps.stream().map(stepBuilder -> {
+         Locator.push(stepBuilder);
+         List<Step> steps = stepBuilder.build();
+         Locator.pop();
+         return steps;
+      }).flatMap(List::stream).collect(Collectors.toList());
    }
 
    public Locator createLocator() {
@@ -118,20 +134,19 @@ public abstract class BaseSequenceBuilder implements Rewritable<BaseSequenceBuil
       }
 
       @Override
+      public void prepareBuild() {
+         super.prepareBuild();
+      }
+
+      @Override
       public List<Step> build() {
          return buildSteps();
       }
 
       @Override
-      public StepInserter setLocator(Locator locator) {
-         steps.stream().forEach(s -> s.setLocator(locator));
-         return this;
-      }
-
-      @Override
-      public StepInserter copy(Locator locator) {
-         StepInserter copy = new StepInserter(locator.sequence());
-         steps.stream().map(s -> s.copy(locator)).forEach(copy::stepBuilder);
+      public StepInserter copy() {
+         StepInserter copy = new StepInserter(Locator.current().sequence());
+         steps.stream().map(s -> s.copy()).forEach(copy::stepBuilder);
          return copy;
       }
    }
@@ -146,6 +161,12 @@ public abstract class BaseSequenceBuilder implements Rewritable<BaseSequenceBuil
       @Override
       public List<Step> build() {
          return Collections.singletonList(step);
+      }
+
+      @Override
+      public ProvidedStepBuilder copy() {
+         // This builder is immutable
+         return this;
       }
    }
 }

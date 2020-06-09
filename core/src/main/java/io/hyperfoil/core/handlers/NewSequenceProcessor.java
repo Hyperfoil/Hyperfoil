@@ -67,16 +67,9 @@ public class NewSequenceProcessor implements Processor, ResourceUtilizer {
    @MetaInfServices(RequestProcessorBuilder.class)
    @Name("newSequence")
    public static class Builder implements RequestProcessorBuilder {
-      private Locator locator;
       private int maxSequences = -1;
       private String counterVar;
       private String sequence;
-
-      @Override
-      public Builder setLocator(Locator locator) {
-         this.locator = locator;
-         return this;
-      }
 
       /**
        * Maximum number of sequences instantiated.
@@ -112,8 +105,8 @@ public class NewSequenceProcessor implements Processor, ResourceUtilizer {
       }
 
       @Override
-      public Builder copy(Locator locator) {
-         return new Builder().setLocator(locator).sequence(sequence).maxSequences(maxSequences).counterVar(counterVar);
+      public Builder copy() {
+         return new Builder().sequence(sequence).maxSequences(maxSequences).counterVar(counterVar);
       }
 
       @Override
@@ -127,7 +120,7 @@ public class NewSequenceProcessor implements Processor, ResourceUtilizer {
          String counterVar = this.counterVar;
          if (counterVar == null) {
             counterVar = String.format("%s_newSequence_counter_%08x",
-                  locator.sequence().name(), ThreadLocalRandom.current().nextInt());
+                  Locator.current().sequence().name(), ThreadLocalRandom.current().nextInt());
          }
          return new NewSequenceProcessor(maxSequences, counterVar, sequence);
       }

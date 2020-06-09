@@ -60,17 +60,10 @@ public class RecordHeaderTimeHandler implements HeaderHandler {
       private String header;
       private String metric;
       private String unit;
-      private Locator locator;
 
       @Override
-      public Builder setLocator(Locator locator) {
-         this.locator = locator;
-         return this;
-      }
-
-      @Override
-      public Builder copy(Locator locator) {
-         return new Builder().header(header).metric(metric).unit(unit).setLocator(locator);
+      public Builder copy() {
+         return new Builder().header(header).metric(metric).unit(unit);
       }
 
       @Override
@@ -102,7 +95,7 @@ public class RecordHeaderTimeHandler implements HeaderHandler {
             }
          }
 
-         return new RecordHeaderTimeHandler(locator.step().id(), header, metric, transform);
+         return new RecordHeaderTimeHandler(Locator.current().step().id(), header, metric, transform);
       }
 
       /**

@@ -51,38 +51,34 @@ public class StopwatchBeginStep implements Step, ResourceUtilizer {
    @MetaInfServices(StepBuilder.class)
    @Name("stopwatch")
    public static class Builder extends BaseSequenceBuilder implements StepBuilder<Builder> {
-      private Locator locator;
-
       public Builder() {
          super(null);
       }
 
       public Builder(BaseSequenceBuilder parent) {
          super(parent);
-         setLocator(parent.createLocator());
          parent.stepBuilder(this);
       }
 
       @Override
-      public Builder setLocator(Locator locator) {
-         this.locator = Locator.get(this, locator);
-         return this;
-      }
-
-      @Override
-      public Builder copy(Locator locator) {
-         Builder newBuilder = new Builder(parent);
-         newBuilder.setLocator(Locator.get(newBuilder, locator));
-         return newBuilder;
+      public void prepareBuild() {
+         Locator.push(createLocator());
+         super.prepareBuild();
+         Locator.pop();
       }
 
       @Override
       public List<Step> build() {
+         // We're creating a new locator instead of using current since the new locator
+         // should return this from .sequence(), too. On the other hand nothing will use
+         // .step() as that is going to be shadowed for each step in buildSteps()
+         Locator.push(createLocator());
          List<Step> steps = new ArrayList<>();
          Object key = new Object();
          steps.add(new StopwatchBeginStep(key));
          steps.addAll(super.buildSteps());
-         steps.add(new StopwatchEndStep(key, locator.sequence().name()));
+         steps.add(new StopwatchEndStep(key, name()));
+         Locator.pop();
          return steps;
       }
 

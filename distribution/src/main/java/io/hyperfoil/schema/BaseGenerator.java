@@ -7,7 +7,6 @@ import java.util.regex.Pattern;
 
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.ListBuilder;
-import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.MappingListBuilder;
 import io.hyperfoil.api.config.PairBuilder;
 import io.hyperfoil.api.config.PartialBuilder;
@@ -44,9 +43,7 @@ class BaseGenerator {
          return true;
       } else if (m.getName().equals("init") && m.getParameterCount() == 1 && m.getParameterTypes()[0] == String.class && InitFromParam.class.isAssignableFrom(builder)) {
          return true;
-      } else if (m.getName().equals("copy") && m.getParameterCount() == 1 && m.getParameterTypes()[0] == Locator.class) {
-         return true;
-      } else if (m.getName().equals("setLocator") && m.getParameterCount() == 1 && m.getParameterTypes()[0] == Locator.class) {
+      } else if (m.getName().equals("copy") && m.getParameterCount() == 0) {
          return true;
       }
       return false;

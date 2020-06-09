@@ -8,7 +8,6 @@ import java.util.function.Function;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.InitFromParam;
-import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.processor.Transformer;
 import io.hyperfoil.api.session.ResourceUtilizer;
@@ -462,7 +461,6 @@ public abstract class JsonParser implements Serializable, ResourceUtilizer {
    }
 
    public abstract static class BaseBuilder<S extends BaseBuilder<S>> implements InitFromParam<S> {
-      protected Locator locator;
       protected String query;
       protected boolean unquote = true;
       protected Processor.Builder<?> processor;
@@ -497,20 +495,15 @@ public abstract class JsonParser implements Serializable, ResourceUtilizer {
          return (S) this;
       }
 
-      public S setLocator(Locator locator) {
-         this.locator = locator;
-         return self();
-      }
-
       @SuppressWarnings("unchecked")
-      public S copy(Locator locator) {
+      public S copy() {
          S copy;
          try {
             copy = (S) getClass().newInstance();
          } catch (InstantiationException | IllegalAccessException e) {
             throw new IllegalStateException(e);
          }
-         return copy.setLocator(locator).query(query).unquote(unquote).processor(processor);
+         return copy.query(query).unquote(unquote).processor(processor);
       }
 
       /**
@@ -554,7 +547,7 @@ public abstract class JsonParser implements Serializable, ResourceUtilizer {
        * @return Builder.
        */
       public ServiceLoadedBuilderProvider<Transformer.Builder> replace() {
-         return new ServiceLoadedBuilderProvider<>(Transformer.Builder.class, locator, this::replace);
+         return new ServiceLoadedBuilderProvider<>(Transformer.Builder.class, this::replace);
       }
 
       public S replace(Transformer.Builder replace) {

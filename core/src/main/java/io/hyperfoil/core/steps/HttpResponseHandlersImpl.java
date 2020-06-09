@@ -278,7 +278,6 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          }
       };
       private final HttpRequestStep.Builder parent;
-      private Locator locator;
       private Boolean autoRangeCheck;
       private Boolean stopOnInvalid;
       private List<StatusHandler.Builder> statusHandlers = new ArrayList<>();
@@ -306,7 +305,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
        * @return Builder.
        */
       public ServiceLoadedBuilderProvider<StatusHandler.Builder> status() {
-         return new ServiceLoadedBuilderProvider<>(StatusHandler.Builder.class, locator, statusHandlers::add);
+         return new ServiceLoadedBuilderProvider<>(StatusHandler.Builder.class, statusHandlers::add);
       }
 
       public Builder header(HeaderHandler handler) {
@@ -314,7 +313,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       }
 
       public Builder header(HeaderHandler.Builder builder) {
-         headerHandlers.add(builder.setLocator(locator));
+         headerHandlers.add(builder);
          return this;
       }
 
@@ -324,7 +323,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
        * @return Builder.
        */
       public ServiceLoadedBuilderProvider<HeaderHandler.Builder> header() {
-         return new ServiceLoadedBuilderProvider<>(HeaderHandler.Builder.class, locator, headerHandlers::add);
+         return new ServiceLoadedBuilderProvider<>(HeaderHandler.Builder.class, headerHandlers::add);
       }
 
       public Builder body(HttpRequestProcessorBuilder builder) {
@@ -338,7 +337,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
        * @return Builder.
        */
       public ServiceLoadedBuilderProvider<HttpRequestProcessorBuilder> body() {
-         return new ServiceLoadedBuilderProvider<>(HttpRequestProcessorBuilder.class, locator, bodyHandlers::add);
+         return new ServiceLoadedBuilderProvider<>(HttpRequestProcessorBuilder.class, bodyHandlers::add);
       }
 
       public Builder onCompletion(Action handler) {
@@ -346,7 +345,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       }
 
       public Builder onCompletion(Action.Builder builder) {
-         completionHandlers.add(builder.setLocator(locator));
+         completionHandlers.add(builder);
          return this;
       }
 
@@ -356,7 +355,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
        * @return Builder.
        */
       public ServiceLoadedBuilderProvider<Action.Builder> onCompletion() {
-         return new ServiceLoadedBuilderProvider<>(Action.Builder.class, locator, completionHandlers::add);
+         return new ServiceLoadedBuilderProvider<>(Action.Builder.class, completionHandlers::add);
       }
 
       public Builder rawBytes(RawBytesHandler handler) {
@@ -375,7 +374,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
        * @return Builder.
        */
       public ServiceLoadedBuilderProvider<RawBytesHandler.Builder> rawBytes() {
-         return new ServiceLoadedBuilderProvider<>(RawBytesHandler.Builder.class, locator, this::rawBytes);
+         return new ServiceLoadedBuilderProvider<>(RawBytesHandler.Builder.class, this::rawBytes);
       }
 
       public HttpRequestStep.Builder endHandler() {
@@ -383,7 +382,8 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       }
 
       public void prepareBuild() {
-         if (ergonomics().repeatCookies()) {
+         ErgonomicsBuilder ergonomics = Locator.current().benchmark().ergonomics();
+         if (ergonomics.repeatCookies()) {
             header(new CookieRecorder());
          }
          // TODO: we might need defensive copies here
@@ -392,20 +392,15 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          bodyHandlers.forEach(HttpRequestProcessorBuilder::prepareBuild);
          completionHandlers.forEach(Action.Builder::prepareBuild);
          rawBytesHandlers.forEach(RawBytesHandler.Builder::prepareBuild);
-         if (autoRangeCheck == null && ergonomics().autoRangeCheck() || autoRangeCheck != null && autoRangeCheck) {
+         if (autoRangeCheck == null && ergonomics.autoRangeCheck() || autoRangeCheck != null && autoRangeCheck) {
             statusHandlers.add(new RangeStatusValidator.Builder().min(200).max(399));
          }
          // We must add this as the very last action since after calling session.stop() there other handlers won't be called
-         if (stopOnInvalid == null && ergonomics().stopOnInvalid() || stopOnInvalid != null && stopOnInvalid) {
+         if (stopOnInvalid == null && ergonomics.stopOnInvalid() || stopOnInvalid != null && stopOnInvalid) {
             completionHandlers.add(() -> STOP_ON_INVALID_RESPONSE);
          }
       }
 
-      private ErgonomicsBuilder ergonomics() {
-         return locator.benchmark().ergonomics();
-      }
-
-      @SuppressWarnings("unchecked")
       public HttpResponseHandlersImpl build() {
          return new HttpResponseHandlersImpl(
                toArray(statusHandlers, StatusHandler.Builder::build, StatusHandler[]::new),
@@ -423,24 +418,14 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          }
       }
 
-      public HttpResponseHandlersImpl.Builder copy(HttpRequestStep.Builder parent, Locator locator) {
-         Builder copy = new Builder(parent).setLocator(locator);
-         copy.statusHandlers.addAll(BuilderBase.copy(locator, this.statusHandlers));
-         copy.headerHandlers.addAll(BuilderBase.copy(locator, this.headerHandlers));
-         copy.bodyHandlers.addAll(BuilderBase.copy(locator, this.bodyHandlers));
-         copy.completionHandlers.addAll(BuilderBase.copy(locator, this.completionHandlers));
-         copy.rawBytesHandlers.addAll(BuilderBase.copy(locator, this.rawBytesHandlers));
+      public HttpResponseHandlersImpl.Builder copy(HttpRequestStep.Builder parent) {
+         Builder copy = new Builder(parent);
+         copy.statusHandlers.addAll(BuilderBase.copy(this.statusHandlers));
+         copy.headerHandlers.addAll(BuilderBase.copy(this.headerHandlers));
+         copy.bodyHandlers.addAll(BuilderBase.copy(this.bodyHandlers));
+         copy.completionHandlers.addAll(BuilderBase.copy(this.completionHandlers));
+         copy.rawBytesHandlers.addAll(BuilderBase.copy(this.rawBytesHandlers));
          return copy;
-      }
-
-      public Builder setLocator(Locator locator) {
-         this.locator = locator;
-         statusHandlers.forEach(builder -> builder.setLocator(locator));
-         headerHandlers.forEach(builder -> builder.setLocator(locator));
-         bodyHandlers.forEach(builder -> builder.setLocator(locator));
-         completionHandlers.forEach(builder -> builder.setLocator(locator));
-         rawBytesHandlers.forEach(builder -> builder.setLocator(locator));
-         return this;
       }
    }
 }

@@ -74,7 +74,6 @@ public class QueueProcessor implements Processor, ResourceUtilizer {
    @MetaInfServices(RequestProcessorBuilder.class)
    @Name("queue")
    public static class Builder implements RequestProcessorBuilder {
-      private Locator locator;
       private String var;
       private int maxSize;
       private DataFormat format = DataFormat.STRING;
@@ -85,16 +84,10 @@ public class QueueProcessor implements Processor, ResourceUtilizer {
       private Access varAccess;
 
       @Override
-      public Builder setLocator(Locator locator) {
-         this.locator = locator;
-         return this;
-      }
-
-      @Override
-      public Builder copy(Locator locator) {
-         return new Builder().setLocator(locator)
+      public Builder copy() {
+         return new Builder()
                .var(var).maxSize(maxSize).format(format).concurrency(concurrency)
-               .sequence(sequence).onCompletion(onCompletion.copy(locator));
+               .sequence(sequence).onCompletion(onCompletion.copy());
       }
 
       public Builder var(String var) {
@@ -123,7 +116,7 @@ public class QueueProcessor implements Processor, ResourceUtilizer {
       }
 
       public ServiceLoadedBuilderProvider<Action.Builder> onCompletion() {
-         return new ServiceLoadedBuilderProvider<>(Action.Builder.class, locator, this::onCompletion);
+         return new ServiceLoadedBuilderProvider<>(Action.Builder.class, this::onCompletion);
       }
 
       private Builder onCompletion(Action.Builder onCompletion) {
@@ -138,6 +131,7 @@ public class QueueProcessor implements Processor, ResourceUtilizer {
          }
          varAccess = SessionFactory.access(var);
 
+         Locator locator = Locator.current();
          SequenceBuilder originalSequence = locator.scenario().findSequence(this.sequence);
          generatedSeqName = String.format("%s_queue_%08x", this.sequence, ThreadLocalRandom.current().nextInt());
          SequenceBuilder newSequence = locator.scenario().sequence(generatedSeqName);

@@ -114,19 +114,11 @@ public class RandomItemStep implements Step, ResourceUtilizer {
    @MetaInfServices(StepBuilder.class)
    @Name("randomItem")
    public static class Builder extends BaseStepBuilder<Builder> implements InitFromParam<Builder> {
-      private Locator locator;
       private String fromVar;
       private List<String> list = new ArrayList<>();
       private Map<String, Double> weighted = new HashMap<>();
       private String file;
       private String toVar;
-
-      @Override
-      public Builder setLocator(Locator locator) {
-         // Note: copy() is not overridden as we use locator only to read external file.
-         this.locator = locator;
-         return this;
-      }
 
       /**
        * @param toFrom Use `toVar &lt;- fromVar` where fromVar is an array/collection.
@@ -155,7 +147,7 @@ public class RandomItemStep implements Step, ResourceUtilizer {
          }
          List<String> list = new ArrayList<>(this.list);
          if (file != null) {
-            try (InputStream inputStream = locator.benchmark().data().readFile(file)) {
+            try (InputStream inputStream = Locator.current().benchmark().data().readFile(file)) {
                if (inputStream == null) {
                   throw new BenchmarkDefinitionException("Cannot load file `" + file + "` for randomItem (not found).");
                }

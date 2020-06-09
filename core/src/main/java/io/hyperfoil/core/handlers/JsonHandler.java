@@ -112,7 +112,7 @@ public class JsonHandler extends JsonParser implements Processor, Session.Resour
        * @return Builder.
        */
       public ServiceLoadedBuilderProvider<RequestProcessorBuilder> processor() {
-         return new ServiceLoadedBuilderProvider<>(RequestProcessorBuilder.class, locator, this::processor);
+         return new ServiceLoadedBuilderProvider<>(RequestProcessorBuilder.class, this::processor);
       }
 
    }

@@ -50,7 +50,7 @@ public interface StepBuilder<S extends StepBuilder<S>> extends BuilderBase<S> {
    }
 
    class ActionAdapter implements StepBuilder<ActionAdapter> {
-      private Action.Builder builder;
+      private final Action.Builder builder;
 
       public ActionAdapter(Action.Builder builder) {
          this.builder = builder;
@@ -62,11 +62,8 @@ public interface StepBuilder<S extends StepBuilder<S>> extends BuilderBase<S> {
       }
 
       @Override
-      public ActionAdapter copy(Locator locator) {
-         ActionAdapter copy = new ActionAdapter(null);
-         Action.Builder bc = builder.copy(Locator.get(copy, locator));
-         copy.builder = bc;
-         return copy;
+      public ActionAdapter copy() {
+         return new ActionAdapter(builder.copy());
       }
 
       @Override

@@ -6,7 +6,6 @@ import java.util.List;
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
-import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.session.Action;
@@ -49,20 +48,13 @@ public class BreakSequenceStep extends DependencyStep {
    @MetaInfServices(StepBuilder.class)
    @Name("breakSequence")
    public static class Builder extends DependencyStepBuilder<Builder> {
-      private Locator locator;
       private Condition.Builder condition;
       private Action.Builder onBreak;
 
       @Override
-      public Builder setLocator(Locator locator) {
-         this.locator = Locator.get(this, locator);
-         return this;
-      }
-
-      @Override
-      public Builder copy(Locator locator) {
+      public Builder copy() {
          Builder newBuilder = new Builder();
-         return newBuilder.setLocator(Locator.get(newBuilder, locator)).condition(condition).onBreak(onBreak);
+         return newBuilder.condition(condition).onBreak(onBreak);
       }
 
       public Builder condition(Condition.Builder condition) {
@@ -106,7 +98,7 @@ public class BreakSequenceStep extends DependencyStep {
        * @return Service-loaded action builder.
        */
       public ServiceLoadedBuilderProvider<Action.Builder> onBreak() {
-         return new ServiceLoadedBuilderProvider<>(Action.Builder.class, locator, this::onBreak);
+         return new ServiceLoadedBuilderProvider<>(Action.Builder.class, this::onBreak);
       }
 
       @Override

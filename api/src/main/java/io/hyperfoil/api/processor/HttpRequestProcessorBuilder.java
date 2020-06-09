@@ -3,7 +3,6 @@ package io.hyperfoil.api.processor;
 import java.util.function.Function;
 
 import io.hyperfoil.api.config.IncludeBuilders;
-import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.session.Action;
 
 /**
@@ -34,8 +33,8 @@ public interface HttpRequestProcessorBuilder extends Processor.Builder<HttpReque
       }
 
       @Override
-      public RequestProcessorBuilderAdapter copy(Locator locator) {
-         return new RequestProcessorBuilderAdapter(builder.copy(locator));
+      public RequestProcessorBuilderAdapter copy() {
+         return new RequestProcessorBuilderAdapter(builder.copy());
       }
 
       @Override
@@ -64,8 +63,8 @@ public interface HttpRequestProcessorBuilder extends Processor.Builder<HttpReque
       }
 
       @Override
-      public ActionBuilderAdapter copy(Locator locator) {
-         return new ActionBuilderAdapter(builder.copy(locator));
+      public ActionBuilderAdapter copy() {
+         return new ActionBuilderAdapter(builder.copy());
       }
 
       @Override

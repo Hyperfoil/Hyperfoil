@@ -1,7 +1,8 @@
 package io.hyperfoil.api.config;
 
-public interface Locator {
+import java.util.Stack;
 
+public interface Locator {
    StepBuilder<?> step();
 
    BaseSequenceBuilder sequence();
@@ -12,8 +13,25 @@ public interface Locator {
       return scenario().endScenario().endPhase();
    }
 
-   static Locator get(StepBuilder<?> step, Locator locator) {
-      return new Impl(step, locator.sequence());
+   static Locator current() {
+      return Holder.current.get().peek();
+   }
+
+   static void push(Locator locator) {
+      Holder.current.get().push(locator);
+   }
+
+   static void push(StepBuilder<?> stepBuilder) {
+      Stack<Locator> stack = Holder.current.get();
+      stack.push(new Impl(stepBuilder, stack.peek().sequence()));
+   }
+
+   static void pop() {
+      Holder.current.get().pop();
+   }
+
+   class Holder {
+      private static ThreadLocal<Stack<Locator>> current = ThreadLocal.withInitial(Stack::new);
    }
 
    class Impl implements Locator {

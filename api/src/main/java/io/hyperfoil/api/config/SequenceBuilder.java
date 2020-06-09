@@ -20,11 +20,7 @@
 
 package io.hyperfoil.api.config;
 
-import java.util.ArrayList;
-import java.util.Objects;
-
 import io.hyperfoil.function.SerializableSupplier;
-import io.hyperfoil.impl.FutureSupplier;
 
 /**
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
@@ -72,7 +68,9 @@ public class SequenceBuilder extends BaseSequenceBuilder {
       return this;
    }
 
+   @Override
    public void prepareBuild() {
+      Locator.push(createLocator());
       // capture local var to prevent SequenceBuilder serialization
       String nextSequence = this.nextSequence;
       if (nextSequence != null) {
@@ -81,17 +79,17 @@ public class SequenceBuilder extends BaseSequenceBuilder {
             return true;
          });
       }
-      // We need to make a defensive copy as prepareBuild() may trigger modifications
-      new ArrayList<>(steps).forEach(StepBuilder::prepareBuild);
+      super.prepareBuild();
+      Locator.pop();
    }
 
    public Sequence build(SerializableSupplier<Phase> phase) {
       if (sequence != null) {
          return sequence;
       }
-      FutureSupplier<Sequence> ss = new FutureSupplier<>();
+      Locator.push(createLocator());
       sequence = new SequenceImpl(phase, this.name, id, this.concurrency, buildSteps().toArray(new Step[0]));
-      ss.set(sequence);
+      Locator.pop();
       return sequence;
    }
 

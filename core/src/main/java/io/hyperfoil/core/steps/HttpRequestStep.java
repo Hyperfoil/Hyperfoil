@@ -189,7 +189,6 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
    @Name("httpRequest")
    public static class Builder extends BaseStepBuilder<Builder> {
       private int stepId = -1;
-      private Locator locator;
       private HttpMethod method;
       private StringGeneratorBuilder authority;
       private StringGeneratorBuilder path;
@@ -201,13 +200,6 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
       private HttpResponseHandlersImpl.Builder handler = new HttpResponseHandlersImpl.Builder(this);
       private boolean sync = true;
       private SLABuilder.ListBuilder<Builder> sla = null;
-
-      @Override
-      public Builder setLocator(Locator locator) {
-         this.locator = Locator.get(this, locator);
-         handler.setLocator(this.locator);
-         return this;
-      }
 
       /**
        * HTTP method used for the request.
@@ -586,6 +578,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
       @Override
       public void prepareBuild() {
          stepId = StatisticsStep.nextId();
+         Locator locator = Locator.current();
 
          ErgonomicsBuilder ergonomics = locator.benchmark().ergonomics();
          if (ergonomics.repeatCookies()) {
@@ -615,7 +608,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
          } catch (Throwable e) {
             checkAuthority = false;
          }
-         if (checkAuthority && !locator.benchmark().validateAuthority(guessedAuthority)) {
+         if (checkAuthority && !Locator.current().benchmark().validateAuthority(guessedAuthority)) {
             String guessedPath = "<unknown path>";
             try {
                guessedPath = pathGenerator.apply(null);
@@ -636,7 +629,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
 
          SerializableBiFunction<String, String, String> metricSelector = this.metricSelector;
          if (metricSelector == null) {
-            String sequenceName = locator.sequence().name();
+            String sequenceName = Locator.current().sequence().name();
             metricSelector = (a, p) -> sequenceName;
          }
          HttpRequestStep step = new HttpRequestStep(stepId, method, authority, pathGenerator, bodyGenerator, headerAppenders, injectHostHeader, metricSelector, timeout, handler.build(), sla);
@@ -644,10 +637,9 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
       }
 
       @Override
-      public Builder copy(Locator locator) {
+      public Builder copy() {
          Builder newBuilder = new Builder();
-         locator = Locator.get(newBuilder, locator);
-         newBuilder.setLocator(locator)
+         newBuilder
                .method(method)
                .authority(authority)
                .path(path)
@@ -661,7 +653,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
          if (timeout > 0) {
             newBuilder.timeout(timeout, TimeUnit.MILLISECONDS);
          }
-         newBuilder.handler = handler.copy(newBuilder, locator);
+         newBuilder.handler = handler.copy(newBuilder);
          return newBuilder;
       }
    }
@@ -884,15 +876,17 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
        * @return Self.
        */
       public BodyBuilder fromFile(String path) {
-         try (InputStream inputStream = parent.locator.benchmark().data().readFile(path)) {
-            if (inputStream == null) {
-               throw new BenchmarkDefinitionException("Cannot load file `" + path + "` for randomItem (not found).");
+         parent.body(() -> {
+            try (InputStream inputStream = Locator.current().benchmark().data().readFile(path)) {
+               if (inputStream == null) {
+                  throw new BenchmarkDefinitionException("Cannot load file `" + path + "` for randomItem (not found).");
+               }
+               byte[] bytes = io.hyperfoil.util.Util.toByteArray(inputStream);
+               return new ConstantBytesGenerator(bytes);
+            } catch (IOException e) {
+               throw new BenchmarkDefinitionException("Cannot load file `" + path + "` for randomItem.", e);
             }
-            byte[] bytes = io.hyperfoil.util.Util.toByteArray(inputStream);
-            parent.body(new ConstantBytesGenerator(bytes));
-         } catch (IOException e) {
-            throw new BenchmarkDefinitionException("Cannot load file `" + path + "` for randomItem.", e);
-         }
+         });
          return this;
       }
 

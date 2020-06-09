@@ -3,7 +3,6 @@ package io.hyperfoil.api.processor;
 import java.util.function.Function;
 
 import io.hyperfoil.api.config.IncludeBuilders;
-import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.session.Action;
 
 /**
@@ -38,8 +37,8 @@ public interface RequestProcessorBuilder extends Processor.Builder<RequestProces
       }
 
       @Override
-      public RequestProcessorBuilder copy(Locator locator) {
-         return new ActionBuilderAdapter(builder.copy(locator));
+      public RequestProcessorBuilder copy() {
+         return new ActionBuilderAdapter(builder.copy());
       }
 
       @Override

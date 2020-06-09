@@ -248,7 +248,7 @@ public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.O
 
    @Override
    public ServiceLoadedBuilderProvider<StepBuilder> serviceLoaded() {
-      return new ServiceLoadedBuilderProvider<>(StepBuilder.class, parent.createLocator(), parent::stepBuilder);
+      return new ServiceLoadedBuilderProvider<>(StepBuilder.class, parent::stepBuilder);
    }
 
    // data

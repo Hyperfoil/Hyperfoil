@@ -10,24 +10,15 @@ import java.util.stream.Collectors;
 public interface BuilderBase<S extends BuilderBase<S>> {
    default void prepareBuild() {}
 
-   @SuppressWarnings("unchecked")
-   default S setLocator(Locator locator) {
-      return (S) this;
-   }
-
    /**
-    * Should be overridden if the {@link #setLocator(Locator)} is used.
-    * If the locator is not used it is legal to return <code>this</code>.
-    *
-    * @param locator The place where the copy should be inserted.
     * @return Deep copy of this object.
     */
    @SuppressWarnings("unchecked")
-   default S copy(Locator locator) {
+   default S copy() {
       return (S) this;
    }
 
-   static <T extends BuilderBase<T>> List<T> copy(Locator locator, Collection<T> builders) {
-      return builders.stream().map(b -> b.copy(locator)).collect(Collectors.toList());
+   static <T extends BuilderBase<T>> List<T> copy(Collection<T> builders) {
+      return builders.stream().map(b -> b.copy()).collect(Collectors.toList());
    }
 }
