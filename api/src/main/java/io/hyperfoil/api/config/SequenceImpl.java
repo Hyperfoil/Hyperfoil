@@ -13,18 +13,25 @@ class SequenceImpl implements Sequence {
    private final SerializableSupplier<Phase> phase;
    private final String name;
    private final int id;
+   private final int concurrency;
    private final Step[] steps;
 
-   public SequenceImpl(SerializableSupplier<Phase> phase, String name, int id, Step[] steps) {
+   public SequenceImpl(SerializableSupplier<Phase> phase, String name, int id, int concurrency, Step[] steps) {
       this.phase = phase;
       this.name = name;
       this.id = id;
+      this.concurrency = concurrency;
       this.steps = steps;
    }
 
    @Override
    public int id() {
       return id;
+   }
+
+   @Override
+   public int concurrency() {
+      return concurrency;
    }
 
    @Override

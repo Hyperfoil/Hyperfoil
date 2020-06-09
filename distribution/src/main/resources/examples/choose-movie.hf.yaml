@@ -72,7 +72,9 @@ scenario:
   # These sequences are defined but don't get scheduled at session start. We activate
   # them explicitly (and multiple times in parallel) in foreach step above.
   sequences:
-  - addComment:
+  # Sequences that can run multiple instances concurrently must declare the maximum
+  # concurrency level explicitly using the brackets.
+  - addComment[10]:
     # Variables `movies` hosts an array, and in the foreach step
     # we've created one sequence for each element. We'll access
     # the element through the '[.]' notation below.

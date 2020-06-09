@@ -33,6 +33,9 @@ public class SequenceBuilder extends BaseSequenceBuilder {
    private final ScenarioBuilder scenario;
    private final String name;
    private int id;
+   // Concurrency 0 means single instance (not allowing access to sequence-scoped vars)
+   // while 1 would be a special case of concurrent instances with only one allowed.
+   private int concurrency = 0;
    private Sequence sequence;
    // Next sequence as set by parser. It's not possible to add this as nextSequence step
    // since that would break anchors - we can insert it only after parsing is complete.
@@ -41,15 +44,32 @@ public class SequenceBuilder extends BaseSequenceBuilder {
    SequenceBuilder(ScenarioBuilder scenario, String name) {
       super(null);
       this.scenario = scenario;
-      this.name = Objects.requireNonNull(name);
+      int concurrencyIndex = name.indexOf('[');
+      this.name = concurrencyIndex < 0 ? name : name.substring(0, concurrencyIndex).trim();
+      if (concurrencyIndex >= 0) {
+         if (!name.endsWith("]")) {
+            throw new BenchmarkDefinitionException("Malformed sequence name with concurrency: " + name);
+         }
+         try {
+            this.concurrency = Integer.parseInt(name.substring(concurrencyIndex + 1, name.length() - 1));
+         } catch (NumberFormatException e) {
+            throw new BenchmarkDefinitionException("Malformed sequence name with concurrency: " + name);
+         }
+      }
    }
 
    SequenceBuilder(ScenarioBuilder scenario, SequenceBuilder other) {
       super(null);
       this.scenario = scenario;
       this.name = other.name;
+      this.concurrency = other.concurrency;
       readFrom(other);
       this.nextSequence = other.nextSequence;
+   }
+
+   public SequenceBuilder concurrency(int concurrency) {
+      this.concurrency = concurrency;
+      return this;
    }
 
    public void prepareBuild() {
@@ -70,7 +90,7 @@ public class SequenceBuilder extends BaseSequenceBuilder {
          return sequence;
       }
       FutureSupplier<Sequence> ss = new FutureSupplier<>();
-      sequence = new SequenceImpl(phase, this.name, id, buildSteps().toArray(new Step[0]));
+      sequence = new SequenceImpl(phase, this.name, id, this.concurrency, buildSteps().toArray(new Step[0]));
       ss.set(sequence);
       return sequence;
    }

@@ -34,6 +34,8 @@ public interface Sequence extends Serializable {
 
    int id();
 
+   int concurrency();
+
    void instantiate(Session session, int id);
 
    void reserve(Session session);

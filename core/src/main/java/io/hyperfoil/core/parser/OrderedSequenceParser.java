@@ -23,14 +23,15 @@ class OrderedSequenceParser implements Parser<ScenarioBuilder> {
       ScalarEvent sequenceNameEvent = ctx.expectEvent(ScalarEvent.class);
       SequenceBuilder lastBuilder = ctx.popVar(SequenceBuilder.class);
       SequenceBuilder sequenceBuilder;
+      String name = sequenceNameEvent.getValue();
       if (lastBuilder == null) {
-         sequenceBuilder = target.initialSequence(sequenceNameEvent.getValue());
+         sequenceBuilder = target.initialSequence(name);
       } else {
-         sequenceBuilder = target.sequence(sequenceNameEvent.getValue());
+         sequenceBuilder = target.sequence(name);
       }
       SequenceParser.parseSequence(ctx, sequenceBuilder);
       if (lastBuilder != null) {
-         lastBuilder.nextSequence(sequenceNameEvent.getValue());
+         lastBuilder.nextSequence(name);
       }
       ctx.pushVar(sequenceBuilder);
       ctx.expectEvent(MappingEndEvent.class);
