@@ -142,13 +142,6 @@ public abstract class BaseSequenceBuilder implements Rewritable<BaseSequenceBuil
       public List<Step> build() {
          return buildSteps();
       }
-
-      @Override
-      public StepInserter copy() {
-         StepInserter copy = new StepInserter(Locator.current().sequence());
-         steps.stream().map(s -> s.copy()).forEach(copy::stepBuilder);
-         return copy;
-      }
    }
 
    private static class ProvidedStepBuilder implements StepBuilder<ProvidedStepBuilder> {

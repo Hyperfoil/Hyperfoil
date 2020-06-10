@@ -79,6 +79,10 @@ public class BenchmarkParser extends AbstractMappingParser<BenchmarkBuilder> {
    }
 
    public Benchmark buildBenchmark(String source, BenchmarkData data) throws ParserException {
+      return builder(source, data).build();
+   }
+
+   public BenchmarkBuilder builder(String source, BenchmarkData data) throws ParserException {
       Yaml yaml = new Yaml();
 
       Iterator<Event> events = yaml.parse(new StringReader(source)).iterator();
@@ -97,7 +101,7 @@ public class BenchmarkParser extends AbstractMappingParser<BenchmarkBuilder> {
       ctx.expectEvent(DocumentEndEvent.class);
       ctx.expectEvent(StreamEndEvent.class);
 
-      return benchmarkBuilder.build();
+      return benchmarkBuilder;
    }
 
    public Benchmark buildBenchmark(InputStream inputStream, BenchmarkData data) throws ParserException, IOException {

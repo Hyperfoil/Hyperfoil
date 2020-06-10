@@ -495,17 +495,6 @@ public abstract class JsonParser implements Serializable, ResourceUtilizer {
          return (S) this;
       }
 
-      @SuppressWarnings("unchecked")
-      public S copy() {
-         S copy;
-         try {
-            copy = (S) getClass().newInstance();
-         } catch (InstantiationException | IllegalAccessException e) {
-            throw new IllegalStateException(e);
-         }
-         return copy.query(query).unquote(unquote).processor(processor);
-      }
-
       /**
        * Query selecting the part of JSON.
        *
@@ -551,7 +540,7 @@ public abstract class JsonParser implements Serializable, ResourceUtilizer {
       }
 
       public S replace(Transformer.Builder replace) {
-         if (replace == null) {
+         if (this.replace != null) {
             throw new BenchmarkDefinitionException("Calling replace twice!");
          }
          this.replace = replace;

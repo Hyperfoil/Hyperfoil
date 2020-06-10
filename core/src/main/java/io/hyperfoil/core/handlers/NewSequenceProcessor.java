@@ -105,11 +105,6 @@ public class NewSequenceProcessor implements Processor, ResourceUtilizer {
       }
 
       @Override
-      public Builder copy() {
-         return new Builder().sequence(sequence).maxSequences(maxSequences).counterVar(counterVar);
-      }
-
-      @Override
       public NewSequenceProcessor build(boolean fragmented) {
          if (maxSequences <= 0) {
             throw new BenchmarkDefinitionException("maxSequences is missing or invalid.");

@@ -73,14 +73,6 @@ public class RandomCsvRowStep implements Step, ResourceUtilizer {
       private int maxSize = 0;
 
       @Override
-      public Builder copy() {
-         Builder builder = new Builder()
-               .file(file).skipComments(skipComments).removeQuotes(removeQuotes);
-         builderColumns.forEach((column, position) -> builder.columns().accept(String.valueOf(position), column));
-         return builder;
-      }
-
-      @Override
       public List<Step> build() {
          Predicate<String> comments = s -> (!skipComments || !(s.trim().startsWith("#")));
          List<String[]> rows;

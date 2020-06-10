@@ -114,7 +114,6 @@ public class JsonHandler extends JsonParser implements Processor, Session.Resour
       public ServiceLoadedBuilderProvider<RequestProcessorBuilder> processor() {
          return new ServiceLoadedBuilderProvider<>(RequestProcessorBuilder.class, this::processor);
       }
-
    }
 
    static class ByteBufByteStream implements ByteStream {

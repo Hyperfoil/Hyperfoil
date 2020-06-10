@@ -54,6 +54,10 @@ public class BenchmarkBuilder {
    private List<RunHook> preHooks = new ArrayList<>();
    private List<RunHook> postHooks = new ArrayList<>();
 
+   public static Collection<PhaseBuilder<?>> phasesForTesting(BenchmarkBuilder builder) {
+      return builder.phaseBuilders.values();
+   }
+
    public BenchmarkBuilder(String originalSource, BenchmarkData data) {
       this.originalSource = originalSource;
       this.data = data;
@@ -243,10 +247,6 @@ public class BenchmarkBuilder {
    public BenchmarkBuilder statisticsCollectionPeriod(long statisticsCollectionPeriod) {
       this.statisticsCollectionPeriod = statisticsCollectionPeriod;
       return this;
-   }
-
-   Collection<PhaseBuilder<?>> phases() {
-      return phaseBuilders.values();
    }
 
    public boolean validateAuthority(String authority) {

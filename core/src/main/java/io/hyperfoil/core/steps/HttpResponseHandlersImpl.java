@@ -10,6 +10,7 @@ import java.util.function.IntFunction;
 import io.hyperfoil.api.config.BuilderBase;
 import io.hyperfoil.api.config.ErgonomicsBuilder;
 import io.hyperfoil.api.config.Locator;
+import io.hyperfoil.api.config.Rewritable;
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.processor.HttpRequestProcessorBuilder;
 import io.hyperfoil.api.processor.Processor;
@@ -270,7 +271,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
    /**
     * Manages processing of HTTP responses.
     */
-   public static class Builder {
+   public static class Builder implements Rewritable<Builder> {
       // prevents some weird serialization incompatibility
       private static final Action STOP_ON_INVALID_RESPONSE = session -> {
          if (!session.currentRequest().isValid()) {
@@ -418,14 +419,13 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          }
       }
 
-      public HttpResponseHandlersImpl.Builder copy(HttpRequestStep.Builder parent) {
-         Builder copy = new Builder(parent);
-         copy.statusHandlers.addAll(BuilderBase.copy(this.statusHandlers));
-         copy.headerHandlers.addAll(BuilderBase.copy(this.headerHandlers));
-         copy.bodyHandlers.addAll(BuilderBase.copy(this.bodyHandlers));
-         copy.completionHandlers.addAll(BuilderBase.copy(this.completionHandlers));
-         copy.rawBytesHandlers.addAll(BuilderBase.copy(this.rawBytesHandlers));
-         return copy;
+      @Override
+      public void readFrom(Builder other) {
+         statusHandlers.addAll(BuilderBase.copy(other.statusHandlers));
+         headerHandlers.addAll(BuilderBase.copy(other.headerHandlers));
+         bodyHandlers.addAll(BuilderBase.copy(other.bodyHandlers));
+         completionHandlers.addAll(BuilderBase.copy(other.completionHandlers));
+         rawBytesHandlers.addAll(BuilderBase.copy(other.rawBytesHandlers));
       }
    }
 }

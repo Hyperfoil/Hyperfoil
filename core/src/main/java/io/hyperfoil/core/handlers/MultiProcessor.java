@@ -57,13 +57,6 @@ public final class MultiProcessor implements Processor, ResourceUtilizer {
          delegates.forEach(Processor.Builder::prepareBuild);
       }
 
-      @Override
-      public Builder copy() {
-         Builder builder = new Builder();
-         delegates.forEach(b -> builder.delegates.add(b.copy()));
-         return builder;
-      }
-
       public Builder add(Processor.Builder<?> processor) {
          delegates.add(processor);
          return this;

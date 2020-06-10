@@ -313,13 +313,6 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
       }
 
       @Override
-      public Builder copy() {
-         Builder newBuilder = new Builder();
-         newBuilder.embeddedResourceHandler = embeddedResourceHandler.copy();
-         return newBuilder;
-      }
-
-      @Override
       public HtmlHandler build(boolean fragmented) {
          return new HtmlHandler(embeddedResourceHandler.build());
       }
@@ -390,19 +383,6 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
          if (fetchResource != null) {
             fetchResource.prepareBuild();
          }
-      }
-
-      @Override
-      public EmbeddedResourceHandlerBuilder copy() {
-         EmbeddedResourceHandlerBuilder builder = new EmbeddedResourceHandlerBuilder();
-         builder.ignoreExternal(ignoreExternal);
-         if (processor != null) {
-            builder.processor(processor.copy());
-         }
-         if (fetchResource != null) {
-            builder.fetchResource = fetchResource.copy();
-         }
-         return builder;
       }
 
       public BaseTagAttributeHandler build() {
@@ -516,14 +496,6 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
                .step(new AwaitIntStep(completionLatch, x -> x == 0))
                .step(new StepBuilder.ActionStep(new UnsetAction(completionLatch)))
                .step(new ResourceUtilizingStep(onCompletion));
-      }
-
-      @Override
-      public FetchResourceBuilder copy() {
-         return new FetchResourceBuilder()
-               .maxResources(maxResources)
-               .metric(metricSelector)
-               .onCompletion(onCompletion);
       }
 
       public FetchResourcesAdapter build() {

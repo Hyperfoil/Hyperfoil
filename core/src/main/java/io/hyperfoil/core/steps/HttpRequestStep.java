@@ -197,7 +197,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
       private boolean injectHostHeader = true;
       private SerializableBiFunction<String, String, String> metricSelector;
       private long timeout = Long.MIN_VALUE;
-      private HttpResponseHandlersImpl.Builder handler = new HttpResponseHandlersImpl.Builder(this);
+      private final HttpResponseHandlersImpl.Builder handler = new HttpResponseHandlersImpl.Builder(this);
       private boolean sync = true;
       private SLABuilder.ListBuilder<Builder> sla = null;
 
@@ -634,27 +634,6 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
          }
          HttpRequestStep step = new HttpRequestStep(stepId, method, authority, pathGenerator, bodyGenerator, headerAppenders, injectHostHeader, metricSelector, timeout, handler.build(), sla);
          return Collections.singletonList(step);
-      }
-
-      @Override
-      public Builder copy() {
-         Builder newBuilder = new Builder();
-         newBuilder
-               .method(method)
-               .authority(authority)
-               .path(path)
-               .body(body)
-               .metric(metricSelector)
-               .sync(sync);
-         headerAppenders.forEach(newBuilder::headerAppender);
-         if (sla != null) {
-            newBuilder.sla().readFrom(sla);
-         }
-         if (timeout > 0) {
-            newBuilder.timeout(timeout, TimeUnit.MILLISECONDS);
-         }
-         newBuilder.handler = handler.copy(newBuilder);
-         return newBuilder;
       }
    }
 

@@ -51,12 +51,6 @@ public class BreakSequenceStep extends DependencyStep {
       private Condition.Builder condition;
       private Action.Builder onBreak;
 
-      @Override
-      public Builder copy() {
-         Builder newBuilder = new Builder();
-         return newBuilder.condition(condition).onBreak(onBreak);
-      }
-
       public Builder condition(Condition.Builder condition) {
          if (this.condition != null) {
             throw new BenchmarkDefinitionException("Condition already set.");

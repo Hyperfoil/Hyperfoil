@@ -2,7 +2,6 @@ package io.hyperfoil.core.generators;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.kohsuke.MetaInfServices;
 
@@ -59,12 +58,6 @@ public class ActionsTransformer implements Transformer, ResourceUtilizer {
       private DataFormat format = DataFormat.STRING;
       private String pattern;
       private List<Action.Builder> actions = new ArrayList<>();
-
-      @Override
-      public Builder copy() {
-         return new Builder().var(var).format(format).pattern(pattern)
-               .actions(actions.stream().map(a -> a.copy()).collect(Collectors.toList()));
-      }
 
       /**
        * Variable used as the intermediate storage for the data.

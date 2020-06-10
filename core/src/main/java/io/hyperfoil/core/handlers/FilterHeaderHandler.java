@@ -79,13 +79,6 @@ public class FilterHeaderHandler implements HeaderHandler, ResourceUtilizer {
          processor.prepareBuild();
       }
 
-      @Override
-      public Builder copy() {
-         Builder copy = new Builder().processor(processor.copy());
-         copy.header = header.copy();
-         return copy;
-      }
-
       public Builder processor(HttpRequestProcessorBuilder processor) {
          if (this.processor != null) {
             throw new IllegalStateException("Processor already set.");

@@ -62,11 +62,6 @@ public class RecordHeaderTimeHandler implements HeaderHandler {
       private String unit;
 
       @Override
-      public Builder copy() {
-         return new Builder().header(header).metric(metric).unit(unit);
-      }
-
-      @Override
       public Builder init(String param) {
          header = param;
          return this;

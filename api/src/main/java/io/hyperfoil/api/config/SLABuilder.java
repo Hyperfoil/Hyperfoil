@@ -158,6 +158,11 @@ public class SLABuilder<P> implements Rewritable<SLABuilder<P>> {
       private final P parent;
       private final ArrayList<SLABuilder<ListBuilder<P>>> sla = new ArrayList<>();
 
+      // used only for copy()
+      public ListBuilder() {
+         this(null);
+      }
+
       public ListBuilder(P parent) {
          this.parent = parent;
       }

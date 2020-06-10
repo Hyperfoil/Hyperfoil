@@ -83,13 +83,6 @@ public class QueueProcessor implements Processor, ResourceUtilizer {
       private String generatedSeqName;
       private Access varAccess;
 
-      @Override
-      public Builder copy() {
-         return new Builder()
-               .var(var).maxSize(maxSize).format(format).concurrency(concurrency)
-               .sequence(sequence).onCompletion(onCompletion.copy());
-      }
-
       public Builder var(String var) {
          this.var = var;
          return this;
