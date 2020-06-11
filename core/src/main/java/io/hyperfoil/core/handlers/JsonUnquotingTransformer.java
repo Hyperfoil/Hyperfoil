@@ -154,7 +154,7 @@ public class JsonUnquotingTransformer implements Transformer, Processor, Resourc
    @Override
    public void reserve(Session session) {
       ResourceUtilizer.reserve(session, delegate);
-      session.declareResource(this, new Context());
+      session.declareResource(this, Context::new);
    }
 
    public static class Context implements Session.Resource {

@@ -153,7 +153,7 @@ public class SetAction implements Action, ResourceUtilizer {
 
       @Override
       public void reserve(Session session) {
-         session.declareResource(this, new ValueResource<>(supplier.apply(session)));
+         session.declareResource(this, () -> new ValueResource<>(supplier.apply(session)));
       }
    }
 

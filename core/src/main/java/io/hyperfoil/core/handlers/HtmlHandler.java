@@ -205,7 +205,7 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
 
    @Override
    public void reserve(Session session) {
-      session.declareResource(this, new Context());
+      session.declareResource(this, Context::new);
       ResourceUtilizer.reserve(session, (Object[]) handlers);
    }
 

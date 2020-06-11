@@ -267,7 +267,7 @@ public class JsonHandlerTest {
 
       @Override
       public void reserve(Session session) {
-         session.declareResource(this, new Context());
+         session.declareResource(this, Context::new);
       }
 
       public static class Context implements Session.Resource {

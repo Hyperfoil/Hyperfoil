@@ -98,7 +98,7 @@ public class SearchHandler implements Processor, ResourceUtilizer, Session.Resou
 
    @Override
    public void reserve(Session session) {
-      session.declareResource(this, new Context());
+      session.declareResource(this, Context::new);
    }
 
    class Context extends BaseSearchContext {

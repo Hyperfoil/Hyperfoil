@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.function.Supplier;
 
 class SessionImpl implements Session, Callable<Void> {
    private static final Logger log = LoggerFactory.getLogger(SessionImpl.class);
@@ -36,7 +37,7 @@ class SessionImpl implements Session, Callable<Void> {
    // Note: HashMap.get() is allocation-free, so we can use it for direct lookups. Replacing put() is also
    // allocation-free, so vars are OK to write as long as we have them declared.
    private final Map<Object, Var> vars = new HashMap<>();
-   private final Map<ResourceKey, Resource> resources = new HashMap<>();
+   private final Map<ResourceKey<?>, Object> resources = new HashMap<>();
    private final List<Var> allVars = new ArrayList<>();
    private final LimitedPool<SequenceInstance> sequencePool;
    private final LimitedPool<HttpRequest> requestPool;
@@ -75,8 +76,12 @@ class SessionImpl implements Session, Callable<Void> {
    public void reserve(Scenario scenario) {
       Sequence[] sequences = scenario.sequences();
       for (int i = 0; i < sequences.length; i++) {
+         // We set current sequence so that we know the concurrency of current context in declareResource()
          Sequence sequence = sequences[i];
+         currentSequence(sequencePool.acquire().reset(sequence, 0, null));
          sequence.reserve(this);
+         sequencePool.release(currentSequence);
+         currentSequence = null;
       }
       for (String var : scenario.objectVars()) {
          declareObject(var);
@@ -195,14 +200,37 @@ class SessionImpl implements Session, Callable<Void> {
    }
 
    @Override
-   public <R extends Resource> void declareResource(ResourceKey<R> key, R resource) {
-      resources.put(key, resource);
+   public <R extends Resource> void declareResource(ResourceKey<R> key, Supplier<R> resourceSupplier) {
+      declareResource(key, resourceSupplier, false);
+   }
+
+   @Override
+   public <R extends Resource> void declareResource(ResourceKey<R> key, Supplier<R> resourceSupplier, boolean singleton) {
+      // Current sequence should be null only during unit testing
+      int concurrency = currentSequence == null ? 0 : currentSequence.definition().concurrency();
+      if (!singleton && concurrency > 0) {
+         Resource[] array = new Resource[concurrency];
+         for (int i = 0; i < concurrency; ++i) {
+            array[i] = resourceSupplier.get();
+         }
+         resources.put(key, array);
+      } else {
+         resources.put(key, resourceSupplier.get());
+      }
    }
 
    @SuppressWarnings("unchecked")
    @Override
    public <R extends Resource> R getResource(ResourceKey<R> key) {
-      return (R) resources.get(key);
+      Object res = resources.get(key);
+      if (res == null) {
+         return null;
+      } else if (res instanceof Resource[]) {
+         Resource[] array = (Resource[]) res;
+         return (R) array[currentSequence.index()];
+      } else {
+         return (R) res;
+      }
    }
 
    @SuppressWarnings("unchecked")

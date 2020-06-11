@@ -1,5 +1,6 @@
 package io.hyperfoil.api.session;
 
+import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.Step;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -9,8 +10,7 @@ public class SequenceInstance {
    private static final Logger log = LoggerFactory.getLogger(SequenceInstance.class);
    private static final boolean trace = log.isTraceEnabled();
 
-   private String name;
-   private int sourceId;
+   private Sequence sequence;
    private int index;
    private Step[] steps;
    private int currentStep = 0;
@@ -21,13 +21,13 @@ public class SequenceInstance {
       while (currentStep < steps.length) {
          Step step = steps[currentStep];
          if (trace) {
-            log.trace("#{} {}({}) invoking step {}", session.uniqueId(), name, index, step);
+            log.trace("#{} {}({}) invoking step {}", session.uniqueId(), sequence.name(), index, step);
          }
          session.currentSequence(this);
          try {
             if (!step.invoke(session)) {
                if (trace) {
-                  log.trace("#{} {}({}) step {} is blocked", session.uniqueId(), name, index, step);
+                  log.trace("#{} {}({}) step {} is blocked", session.uniqueId(), sequence.name(), index, step);
                }
                if (currentStep >= steps.length) {
                   log.warn("#{} Last step reported being blocked but it has also interrupted the sequence.", session.uniqueId());
@@ -38,7 +38,7 @@ public class SequenceInstance {
             // just rethrow
             throw e;
          } catch (Throwable t) {
-            log.error("#{} {}({}) failure invoking step {}", t, session.uniqueId(), name, index, step);
+            log.error("#{} {}({}) failure invoking step {}", t, session.uniqueId(), sequence.name(), index, step);
             session.fail(t);
             return false;
          } finally {
@@ -52,9 +52,8 @@ public class SequenceInstance {
       return progressed;
    }
 
-   public SequenceInstance reset(String name, int sourceId, int index, Step[] steps) {
-      this.name = name;
-      this.sourceId = sourceId;
+   public SequenceInstance reset(Sequence sequence, int index, Step[] steps) {
+      this.sequence = sequence;
       this.index = index;
       this.steps = steps;
       this.currentStep = 0;
@@ -69,8 +68,8 @@ public class SequenceInstance {
       return index;
    }
 
-   public String name() {
-      return name;
+   public Sequence definition() {
+      return sequence;
    }
 
    public void setBlockedTimestamp() {
@@ -93,7 +92,7 @@ public class SequenceInstance {
    }
 
    public StringBuilder appendTo(StringBuilder sb) {
-      return sb.append(name).append('(').append(index).append(")(").append(currentStep + 1).append('/').append(steps == null ? 0 : steps.length).append(')');
+      return sb.append(sequence.name()).append('(').append(index).append(")(").append(currentStep + 1).append('/').append(steps == null ? 0 : steps.length).append(')');
    }
 
    public void breakSequence(Session session) {

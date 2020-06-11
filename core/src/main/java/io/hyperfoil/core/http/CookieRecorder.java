@@ -18,7 +18,7 @@ public class CookieRecorder implements HeaderHandler, ResourceUtilizer {
    @Override
    public void reserve(Session session) {
       if (session.getResource(CookieStore.COOKIES) == null) {
-         session.declareResource(CookieStore.COOKIES, new CookieStore());
+         session.declareResource(CookieStore.COOKIES, CookieStore::new, true);
       }
    }
 }

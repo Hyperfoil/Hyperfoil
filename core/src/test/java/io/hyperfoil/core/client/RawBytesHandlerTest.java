@@ -92,7 +92,7 @@ public class RawBytesHandlerTest extends VertxBaseTest {
       newRequest.path = "/ping";
       newRequest.cacheControl.noCache = true;
       SequenceInstance sequence = new SequenceInstance();
-      sequence.reset("foo", 0, 0, new Step[0]);
+      sequence.reset(null, 0, new Step[0]);
       newRequest.start(handlersRef.get(), sequence, new Statistics(System.currentTimeMillis()));
       ctx.assertTrue(pool.request(newRequest, null, true, null, false));
    }

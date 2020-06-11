@@ -105,7 +105,7 @@ public class JsonStep implements Step, ResourceUtilizer {
       @Override
       public void reserve(Session session) {
          super.reserve(session);
-         session.declareResource(this, new Context());
+         session.declareResource(this, Context::new);
       }
 
       @Override

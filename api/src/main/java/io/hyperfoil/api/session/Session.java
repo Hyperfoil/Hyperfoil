@@ -1,6 +1,9 @@
 package io.hyperfoil.api.session;
 
+import java.util.function.Supplier;
+
 import io.hyperfoil.api.config.Scenario;
+import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.connection.HttpDestinationTable;
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.connection.Request;
@@ -47,7 +50,28 @@ public interface Session {
    void pruneStats(Phase phase);
 
    // Resources
-   <R extends Session.Resource> void declareResource(ResourceKey<R> key, R resource);
+
+   /**
+    * See {@link #declareResource(ResourceKey, Supplier, boolean)}, with <code>singleton</code> defaulting to <code>false</code>
+    *
+    * @param key              Unique key (usually the step or handler itself)
+    * @param resourceSupplier Supplier creating the resource, possible multiple times.
+    * @param <R>              Resource type.
+    */
+   <R extends Session.Resource> void declareResource(ResourceKey<R> key, Supplier<R> resourceSupplier);
+
+   /**
+    * Reserve space in the session for a resource, stored under given key. If this is executed within
+    * a {@link Sequence sequence} with non-zero {@link Sequence#concurrency() concurrency} the session
+    * stores one resource for each concurrent instance. If this behaviour should be avoided set
+    * <code>singleton</code> to true.
+    *
+    * @param key              Unique key (usually the step or handler itself)
+    * @param resourceSupplier Supplier creating the resource, possible multiple times.
+    * @param singleton        Is the resource shared amongst concurrent sequences?
+    * @param <R>              Resource type.
+    */
+   <R extends Session.Resource> void declareResource(ResourceKey<R> key, Supplier<R> resourceSupplier, boolean singleton);
 
    <R extends Session.Resource> R getResource(ResourceKey<R> key);
 

@@ -41,7 +41,7 @@ class SequenceImpl implements Sequence {
          log.error("Cannot instantiate sequence {}({}), no free instances.", name, id);
          session.fail(new IllegalStateException("No free sequence instances"));
       } else {
-         instance.reset(name, id, index, steps);
+         instance.reset(this, index, steps);
          session.enableSequence(instance);
       }
    }

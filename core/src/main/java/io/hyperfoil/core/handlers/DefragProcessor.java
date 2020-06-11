@@ -35,7 +35,7 @@ public class DefragProcessor extends Processor.BaseDelegating implements Session
       // Note: contrary to the recommended pattern the Context won't reserve all objects ahead, the CompositeByteBuf
       // will be allocated only if needed (and only once). This is necessary since we don't know the type of allocator
       // that is used for the received buffers ahead.
-      session.declareResource(this, new Context());
+      session.declareResource(this, Context::new);
       ResourceUtilizer.reserve(session, delegate);
    }
 
