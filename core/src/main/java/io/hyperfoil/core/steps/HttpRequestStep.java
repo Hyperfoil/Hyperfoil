@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
@@ -37,6 +36,7 @@ import io.hyperfoil.core.http.CookieAppender;
 import io.hyperfoil.core.http.HttpUtil;
 import io.hyperfoil.core.http.UserAgentAppender;
 import io.hyperfoil.core.session.SessionFactory;
+import io.hyperfoil.core.util.BitSetResource;
 import io.hyperfoil.core.util.ConstantBytesGenerator;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -601,11 +601,13 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
             headerAppender(new UserAgentAppender());
          }
          if (sync) {
-            String var = String.format("%s_sync_%08x", locator.sequence().name(), ThreadLocalRandom.current().nextInt());
-            Access access = SessionFactory.access(var);
-            locator.sequence().insertBefore(locator).step(new SyncRequestIncrementStep(SessionFactory.access(var)));
-            handler.onCompletion(s -> access.addToInt(s, -1));
-            locator.sequence().insertAfter(locator).step(new AwaitIntStep(SessionFactory.access(var), x -> x == 0));
+            // We need to perform this in prepareBuild() because the completion handlers must not be modified
+            // in the build() method. Alternative would be caching the key and returning the wrapping steps
+            // in the list.
+            BeforeSyncRequestStep beforeSyncRequestStep = new BeforeSyncRequestStep();
+            locator.sequence().insertBefore(locator).step(beforeSyncRequestStep);
+            handler.onCompletion(s -> s.getResource(beforeSyncRequestStep).set(s.currentSequence().index()));
+            locator.sequence().insertAfter(locator).step(new AfterSyncRequestStep(beforeSyncRequestStep));
          }
          handler.prepareBuild();
       }
@@ -651,30 +653,32 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
       }
    }
 
-   private static class SyncRequestIncrementStep implements Step, ResourceUtilizer {
-      private final Access var;
-
-      public SyncRequestIncrementStep(Access var) {
-         this.var = var;
-      }
-
+   private static class BeforeSyncRequestStep implements Step, ResourceUtilizer, Session.ResourceKey<BitSetResource> {
       @Override
       public boolean invoke(Session s) {
-         if (var.isSet(s)) {
-            if (var.getInt(s) == 0) {
-               s.fail(new IllegalStateException("Synchronous HTTP request executed multiple times."));
-            } else {
-               var.addToInt(s, 1);
-            }
-         } else {
-            var.setInt(s, 1);
-         }
+         BitSetResource resource = s.getResource(this);
+         resource.clear(s.currentSequence().index());
          return true;
       }
 
       @Override
       public void reserve(Session session) {
-         var.declareInt(session);
+         int concurrency = session.currentSequence().definition().concurrency();
+         session.declareResource(this, () -> new BitSetResource(concurrency), true);
+      }
+   }
+
+   private static class AfterSyncRequestStep implements Step {
+      private final Session.ResourceKey<BitSetResource> key;
+
+      private AfterSyncRequestStep(Session.ResourceKey<BitSetResource> key) {
+         this.key = key;
+      }
+
+      @Override
+      public boolean invoke(Session session) {
+         BitSetResource resource = session.getResource(key);
+         return resource.get(session.currentSequence().index());
       }
    }
 
