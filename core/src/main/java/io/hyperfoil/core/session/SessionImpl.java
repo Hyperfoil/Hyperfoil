@@ -62,7 +62,7 @@ class SessionImpl implements Session, Callable<Void> {
       this.sequencePool = new LimitedPool<>(scenario.maxSequences(), SequenceInstance::new);
       this.agentId = agentId;
       this.threadId = threadId;
-      this.requests = new HttpRequest[16];
+      this.requests = new HttpRequest[scenario.maxRequests()];
       for (int i = 0; i < requests.length; ++i) {
          this.requests[i] = new HttpRequest(this);
       }
