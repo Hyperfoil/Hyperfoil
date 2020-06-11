@@ -18,8 +18,8 @@ public class LoopStep implements Step, ResourceUtilizer {
    private final int repeats;
    private final String sequence;
 
-   public LoopStep(String counterVar, int repeats, String sequence) {
-      this.counterVar = SessionFactory.access(counterVar);
+   public LoopStep(Access counterVar, int repeats, String sequence) {
+      this.counterVar = counterVar;
       this.repeats = repeats;
       this.sequence = sequence;
    }
@@ -59,7 +59,7 @@ public class LoopStep implements Step, ResourceUtilizer {
 
       @Override
       public List<Step> build() {
-         return Collections.singletonList(new LoopStep(counterVar, repeats, this.sequence));
+         return Collections.singletonList(new LoopStep(SessionFactory.access(counterVar), repeats, this.sequence));
       }
 
       /**

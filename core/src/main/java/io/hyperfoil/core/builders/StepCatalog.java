@@ -1,8 +1,6 @@
 package io.hyperfoil.core.builders;
 
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 import org.kohsuke.MetaInfServices;
@@ -17,6 +15,7 @@ import io.hyperfoil.core.generators.RandomCsvRowStep;
 import io.hyperfoil.core.generators.RandomIntStep;
 import io.hyperfoil.core.generators.RandomItemStep;
 import io.hyperfoil.core.generators.TemplateStep;
+import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.steps.AwaitAllResponsesStep;
 import io.hyperfoil.core.steps.AwaitConditionStep;
 import io.hyperfoil.core.steps.AwaitDelayStep;
@@ -36,6 +35,8 @@ import io.hyperfoil.core.steps.PushSharedMapStep;
 import io.hyperfoil.core.steps.ScheduleDelayStep;
 import io.hyperfoil.core.steps.StopStep;
 import io.hyperfoil.core.steps.StopwatchBeginStep;
+import io.hyperfoil.function.SerializableFunction;
+import io.hyperfoil.function.SerializablePredicate;
 import io.hyperfoil.impl.StepCatalogFactory;
 
 /**
@@ -67,7 +68,7 @@ public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.O
    }
 
    public BaseSequenceBuilder loop(String counterVar, int repeats, String loopedSequence) {
-      return parent.step(new LoopStep(counterVar, repeats, loopedSequence));
+      return parent.stepBuilder(new LoopStep.Builder().counterVar(counterVar).repeats(repeats).sequence(loopedSequence));
    }
 
    public ForeachStep.Builder foreach() {
@@ -134,7 +135,7 @@ public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.O
     * @return This sequence.
     */
    public BaseSequenceBuilder awaitDelay(String key) {
-      return parent.step(new AwaitDelayStep(key));
+      return parent.step(() -> new AwaitDelayStep(SessionFactory.access(key)));
    }
 
    public AwaitDelayStep.Builder awaitDelay() {
@@ -173,7 +174,7 @@ public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.O
     * @param condition Condition predicate.
     * @return This sequence.
     */
-   public BaseSequenceBuilder awaitCondition(Predicate<Session> condition) {
+   public BaseSequenceBuilder awaitCondition(SerializablePredicate<Session> condition) {
       return parent.step(new AwaitConditionStep(condition));
    }
 
@@ -193,14 +194,14 @@ public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.O
     * @return This sequence.
     */
    public BaseSequenceBuilder awaitVar(String var) {
-      return parent.step(new AwaitVarStep(var));
+      return parent.stepBuilder(new AwaitVarStep.Builder().var(var));
    }
 
    public BaseSequenceBuilder action(Action.Builder builder) {
-      return parent.step(new StepBuilder.ActionStep(builder.build()));
+      return parent.stepBuilder(new StepBuilder.ActionAdapter(builder));
    }
 
-   public <T> PollStep.Builder<T> poll(Function<Session, T> provider, String intoVar) {
+   public <T> PollStep.Builder<T> poll(SerializableFunction<Session, T> provider, String intoVar) {
       return new PollStep.Builder<>(provider, intoVar).addTo(parent);
    }
 

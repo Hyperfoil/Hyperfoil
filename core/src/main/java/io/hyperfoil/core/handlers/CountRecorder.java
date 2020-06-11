@@ -2,7 +2,6 @@ package io.hyperfoil.core.handlers;
 
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.session.Access;
-import io.hyperfoil.core.session.SessionFactory;
 import io.netty.buffer.ByteBuf;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.ResourceUtilizer;
@@ -10,8 +9,8 @@ import io.hyperfoil.api.session.ResourceUtilizer;
 public class CountRecorder implements Processor, ResourceUtilizer {
    private final Access toVar;
 
-   public CountRecorder(String toVar) {
-      this.toVar = SessionFactory.access(toVar);
+   public CountRecorder(Access toVar) {
+      this.toVar = toVar;
    }
 
    @Override

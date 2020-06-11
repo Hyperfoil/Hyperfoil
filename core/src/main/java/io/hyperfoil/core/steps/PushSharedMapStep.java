@@ -24,9 +24,9 @@ public class PushSharedMapStep implements Step, ResourceUtilizer {
    private final String key;
    private final Access[] vars;
 
-   public PushSharedMapStep(String key, String[] vars) {
+   public PushSharedMapStep(String key, Access[] vars) {
       this.key = key;
-      this.vars = Stream.of(vars).map(SessionFactory::access).toArray(Access[]::new);
+      this.vars = vars;
    }
 
    @Override
@@ -62,7 +62,8 @@ public class PushSharedMapStep implements Step, ResourceUtilizer {
          if (vars.isEmpty()) {
             throw new BenchmarkDefinitionException("No variables pushed for key " + key);
          }
-         return Collections.singletonList(new PushSharedMapStep(key, vars.toArray(new String[0])));
+         final String[] vars1 = vars.toArray(new String[0]);
+         return Collections.singletonList(new PushSharedMapStep(key, Stream.of(vars1).map(SessionFactory::access).toArray(Access[]::new)));
       }
 
       /**

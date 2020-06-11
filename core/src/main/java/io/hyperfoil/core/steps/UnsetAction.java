@@ -12,8 +12,8 @@ import io.hyperfoil.core.session.SessionFactory;
 public class UnsetAction implements Action {
    public final Access var;
 
-   public UnsetAction(String var) {
-      this.var = SessionFactory.access(var);
+   public UnsetAction(Access var) {
+      this.var = var;
    }
 
    @Override
@@ -55,7 +55,7 @@ public class UnsetAction implements Action {
 
       @Override
       public UnsetAction build() {
-         return new UnsetAction(var);
+         return new UnsetAction(SessionFactory.access(var));
       }
    }
 }

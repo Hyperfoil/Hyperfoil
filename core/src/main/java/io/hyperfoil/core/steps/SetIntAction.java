@@ -23,8 +23,8 @@ public class SetIntAction implements Action, ResourceUtilizer {
    private final boolean onlyIfNotSet;
    private final IntCondition condition;
 
-   public SetIntAction(String var, int value, boolean onlyIfNotSet, IntCondition condition) {
-      this.var = SessionFactory.access(var);
+   public SetIntAction(Access var, int value, boolean onlyIfNotSet, IntCondition condition) {
+      this.var = var;
       this.value = value;
       this.onlyIfNotSet = onlyIfNotSet;
       this.condition = condition;
@@ -128,7 +128,7 @@ public class SetIntAction implements Action, ResourceUtilizer {
          if (var == null) {
             throw new BenchmarkDefinitionException("No variable set!");
          }
-         return new SetIntAction(var, value, onlyIfNotSet, intCondition == null ? null : intCondition.build(var));
+         return new SetIntAction(SessionFactory.access(var), value, onlyIfNotSet, intCondition == null ? null : intCondition.build(var));
       }
    }
 }

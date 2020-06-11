@@ -23,8 +23,8 @@ public class ArrayRecorder implements Processor, ResourceUtilizer {
    private final DataFormat format;
    private final int maxSize;
 
-   public ArrayRecorder(String toVar, DataFormat format, int maxSize) {
-      this.toVar = SessionFactory.access(toVar);
+   public ArrayRecorder(Access toVar, DataFormat format, int maxSize) {
+      this.toVar = toVar;
       this.format = format;
       this.maxSize = maxSize;
    }
@@ -88,7 +88,7 @@ public class ArrayRecorder implements Processor, ResourceUtilizer {
 
       @Override
       public Processor build(boolean fragmented) {
-         ArrayRecorder arrayRecorder = new ArrayRecorder(toVar, format, maxSize);
+         ArrayRecorder arrayRecorder = new ArrayRecorder(SessionFactory.access(toVar), format, maxSize);
          return fragmented ? new DefragProcessor(arrayRecorder) : arrayRecorder;
       }
 

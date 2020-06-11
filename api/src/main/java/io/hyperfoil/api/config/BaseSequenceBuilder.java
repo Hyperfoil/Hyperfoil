@@ -44,6 +44,11 @@ public abstract class BaseSequenceBuilder implements Rewritable<BaseSequenceBuil
       return this;
    }
 
+   public BaseSequenceBuilder step(SimpleBuilder builder) {
+      steps.add(new SimpleAdapter(builder));
+      return this;
+   }
+
    // Calling this method step() would cause ambiguity with step(Step) defined through lambda
    public BaseSequenceBuilder stepBuilder(StepBuilder<?> stepBuilder) {
       steps.add(stepBuilder);
@@ -128,6 +133,14 @@ public abstract class BaseSequenceBuilder implements Rewritable<BaseSequenceBuil
       };
    }
 
+   /**
+    * Simplified interface that works better with lambdas
+    */
+   @FunctionalInterface
+   public interface SimpleBuilder {
+      Step build();
+   }
+
    private static class StepInserter extends BaseSequenceBuilder implements StepBuilder<StepInserter> {
       private StepInserter(BaseSequenceBuilder parent) {
          super(parent);
@@ -160,6 +173,19 @@ public abstract class BaseSequenceBuilder implements Rewritable<BaseSequenceBuil
       public ProvidedStepBuilder copy() {
          // This builder is immutable
          return this;
+      }
+   }
+
+   public static class SimpleAdapter implements StepBuilder<SimpleAdapter> {
+      private final SimpleBuilder builder;
+
+      public SimpleAdapter(SimpleBuilder builder) {
+         this.builder = builder;
+      }
+
+      @Override
+      public List<Step> build() {
+         return Collections.singletonList(builder.build());
       }
    }
 }

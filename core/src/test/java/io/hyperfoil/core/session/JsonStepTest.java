@@ -20,24 +20,28 @@ public class JsonStepTest extends BaseScenarioTest {
 
    @Test
    public void test() {
-      Access json = SessionFactory.access("json");
-      Access output = SessionFactory.access("output");
       scenario()
             .objectVar("json")
             .objectVar("output")
             .initialSequence("test")
-            .step(s -> {
-               json.setObject(s, "{ \"foo\" : \"bar\\nbar\" }".getBytes(StandardCharsets.UTF_8));
-               return true;
+            .step(() -> {
+               Access json = SessionFactory.access("json");
+               return s1 -> {
+                  json.setObject(s1, "{ \"foo\" : \"bar\\nbar\" }".getBytes(StandardCharsets.UTF_8));
+                  return true;
+               };
             })
             .stepBuilder(new JsonStep.Builder()
                   .fromVar("json")
                   .query(".foo")
                   .toVar("output")
                   .format(DataFormat.STRING))
-            .step(s -> {
-               assertThat(output.getObject(s)).isEqualTo("bar\nbar");
-               return true;
+            .step(() -> {
+               Access output = SessionFactory.access("output");
+               return s -> {
+                  assertThat(output.getObject(s)).isEqualTo("bar\nbar");
+                  return true;
+               };
             });
       runScenario();
    }

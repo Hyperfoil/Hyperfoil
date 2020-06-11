@@ -33,8 +33,8 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
    private final Type type;
    private final SerializableToLongFunction<Session> duration;
 
-   public ScheduleDelayStep(Object key, Type type, SerializableToLongFunction<Session> duration) {
-      this.key = SessionFactory.access(Objects.requireNonNull(key));
+   public ScheduleDelayStep(Access key, Type type, SerializableToLongFunction<Session> duration) {
+      this.key = key;
       this.type = type;
       this.duration = duration;
    }
@@ -239,7 +239,7 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
             default:
                throw new BenchmarkDefinitionException("Unknown randomness type: " + randomType);
          }
-         return Collections.singletonList(new ScheduleDelayStep(key, type, func));
+         return Collections.singletonList(new ScheduleDelayStep(SessionFactory.access(Objects.requireNonNull(key)), type, func));
       }
 
       /**
@@ -271,7 +271,7 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
 
       @Override
       public List<Step> build() {
-         return Arrays.asList(super.build().get(0), new AwaitDelayStep(key));
+         return Arrays.asList(super.build().get(0), new AwaitDelayStep(SessionFactory.access(key)));
       }
 
       /**

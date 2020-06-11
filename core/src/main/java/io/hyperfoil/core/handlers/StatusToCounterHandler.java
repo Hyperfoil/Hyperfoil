@@ -18,9 +18,9 @@ public class StatusToCounterHandler implements StatusHandler, ResourceUtilizer {
    private final Integer add;
    private final Integer set;
 
-   public StatusToCounterHandler(int expectStatus, String var, int init, Integer add, Integer set) {
+   public StatusToCounterHandler(int expectStatus, Access var, int init, Integer add, Integer set) {
       this.expectStatus = expectStatus;
-      this.var = SessionFactory.access(var);
+      this.var = var;
       this.init = init;
       this.add = add;
       this.set = set;
@@ -123,7 +123,7 @@ public class StatusToCounterHandler implements StatusHandler, ResourceUtilizer {
          } else if (add == null && set == null) {
             throw new BenchmarkDefinitionException("Use either 'add' or 'set'");
          }
-         return new StatusToCounterHandler(expectStatus, var, init, add, set);
+         return new StatusToCounterHandler(expectStatus, SessionFactory.access(var), init, add, set);
       }
    }
 }

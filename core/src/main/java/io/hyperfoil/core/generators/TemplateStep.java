@@ -19,9 +19,9 @@ public class TemplateStep implements Step, ResourceUtilizer {
    private final Pattern pattern;
    private final Access toVar;
 
-   public TemplateStep(Pattern pattern, String toVar) {
+   public TemplateStep(Pattern pattern, Access toVar) {
       this.pattern = pattern;
-      this.toVar = SessionFactory.access(toVar);
+      this.toVar = toVar;
    }
 
    @Override
@@ -41,7 +41,7 @@ public class TemplateStep implements Step, ResourceUtilizer {
    @MetaInfServices(StepBuilder.class)
    @Name("template")
    public static class Builder extends BaseStepBuilder<Builder> {
-      private Pattern pattern;
+      private String pattern;
       private String toVar;
 
       /**
@@ -51,7 +51,7 @@ public class TemplateStep implements Step, ResourceUtilizer {
        * @return Self.
        */
       public Builder pattern(String pattern) {
-         this.pattern = new Pattern(pattern, false);
+         this.pattern = pattern;
          return this;
       }
 
@@ -74,7 +74,7 @@ public class TemplateStep implements Step, ResourceUtilizer {
          if (toVar == null) {
             throw new BenchmarkDefinitionException("Missing target var for template.");
          }
-         return Collections.singletonList(new TemplateStep(pattern, toVar));
+         return Collections.singletonList(new TemplateStep(new Pattern(pattern, false), SessionFactory.access(toVar)));
       }
    }
 }

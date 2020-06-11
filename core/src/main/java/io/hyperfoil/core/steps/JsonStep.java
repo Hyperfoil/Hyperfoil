@@ -27,8 +27,8 @@ public class JsonStep implements Step, ResourceUtilizer {
    private final ByteArrayParser byteArrayParser;
    private final Access fromVar;
 
-   private JsonStep(String fromVar, String query, boolean delete, Transformer replace, Processor processor) {
-      this.fromVar = SessionFactory.access(fromVar);
+   private JsonStep(Access fromVar, String query, boolean delete, Transformer replace, Processor processor) {
+      this.fromVar = fromVar;
       this.byteArrayParser = new ByteArrayParser(query, delete, replace, processor);
    }
 
@@ -84,7 +84,7 @@ public class JsonStep implements Step, ResourceUtilizer {
             processor = new JsonUnquotingTransformer(processor);
             replace = replace == null ? null : new JsonUnquotingTransformer(replace);
          }
-         return Collections.singletonList(new JsonStep(fromVar, query, delete, replace, processor));
+         return Collections.singletonList(new JsonStep(SessionFactory.access(fromVar), query, delete, replace, processor));
       }
 
       public Builder addTo(BaseSequenceBuilder parent) {

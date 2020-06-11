@@ -440,8 +440,11 @@ class SessionImpl implements Session, Callable<Void> {
 
    @Override
    public void fail(Throwable t) {
-      stop();
-      phase.fail(t);
+      try {
+         stop();
+      } finally {
+         phase.fail(t);
+      }
    }
 
    @Override

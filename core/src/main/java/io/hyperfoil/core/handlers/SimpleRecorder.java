@@ -21,8 +21,8 @@ public class SimpleRecorder implements Processor, ResourceUtilizer {
    private final Access toVar;
    private final DataFormat format;
 
-   public SimpleRecorder(String toVar, DataFormat format) {
-      this.toVar = SessionFactory.access(toVar);
+   public SimpleRecorder(Access toVar, DataFormat format) {
+      this.toVar = toVar;
       this.format = format;
    }
 
@@ -86,7 +86,7 @@ public class SimpleRecorder implements Processor, ResourceUtilizer {
 
       @Override
       public Processor build(boolean fragmented) {
-         SimpleRecorder simpleRecorder = new SimpleRecorder(toVar, format);
+         SimpleRecorder simpleRecorder = new SimpleRecorder(SessionFactory.access(toVar), format);
          return fragmented ? new DefragProcessor(simpleRecorder) : simpleRecorder;
       }
    }

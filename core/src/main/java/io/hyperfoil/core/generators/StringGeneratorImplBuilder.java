@@ -3,6 +3,7 @@ package io.hyperfoil.core.generators;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.function.Supplier;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.session.Access;
@@ -22,18 +23,19 @@ public class StringGeneratorImplBuilder<T> implements StringGeneratorBuilder {
 
    private final T parent;
    private final boolean urlEncode;
-   private SerializableFunction<Session, String> function;
+   // We need the Supplier indirection to capture any Access object only during prepareBuild() or build()
+   private Supplier<SerializableFunction<Session, String>> supplier;
 
    public StringGeneratorImplBuilder(T parent, boolean urlEncode) {
       this.parent = parent;
       this.urlEncode = urlEncode;
    }
 
-   private void set(SerializableFunction<Session, String> function) {
-      if (this.function != null) {
+   private void set(Supplier<SerializableFunction<Session, String>> function) {
+      if (this.supplier != null) {
          throw new BenchmarkDefinitionException("Specify only one of: value, var, pattern");
       }
-      this.function = function;
+      this.supplier = function;
    }
 
    /**
@@ -46,12 +48,12 @@ public class StringGeneratorImplBuilder<T> implements StringGeneratorBuilder {
       if (urlEncode) {
          try {
             String encoded = URLEncoder.encode(value, StandardCharsets.UTF_8.name());
-            set(session -> encoded);
+            set(() -> session -> encoded);
          } catch (UnsupportedEncodingException e) {
             throw new IllegalStateException(e);
          }
       } else {
-         set(session -> value);
+         set(() -> session -> value);
       }
       return this;
    }
@@ -63,23 +65,25 @@ public class StringGeneratorImplBuilder<T> implements StringGeneratorBuilder {
     * @return Self.
     */
    public StringGeneratorImplBuilder<T> fromVar(String var) {
-      Access access = SessionFactory.access(var);
       boolean urlEncode = this.urlEncode;
-      set(session -> {
-         Object value = access.getObject(session);
-         if (value instanceof String) {
-            if (urlEncode) {
-               try {
-                  return URLEncoder.encode((String) value, StandardCharsets.UTF_8.name());
-               } catch (UnsupportedEncodingException e) {
-                  throw new IllegalStateException(e);
+      set(() -> {
+         Access access = SessionFactory.access(var);
+         return session -> {
+            Object value = access.getObject(session);
+            if (value instanceof String) {
+               if (urlEncode) {
+                  try {
+                     return URLEncoder.encode((String) value, StandardCharsets.UTF_8.name());
+                  } catch (UnsupportedEncodingException e) {
+                     throw new IllegalStateException(e);
+                  }
                }
+               return (String) value;
+            } else {
+               log.error("Cannot retrieve string from {}, the content is {}", var, value);
+               return null;
             }
-            return (String) value;
-         } else {
-            log.error("Cannot retrieve string from {}, the content is {}", var, value);
-            return null;
-         }
+         };
       });
       return this;
    }
@@ -91,7 +95,7 @@ public class StringGeneratorImplBuilder<T> implements StringGeneratorBuilder {
     * @return Self.
     */
    public StringGeneratorImplBuilder<T> pattern(String pattern) {
-      set(new Pattern(pattern, urlEncode));
+      set(() -> new Pattern(pattern, urlEncode));
       return this;
    }
 
@@ -101,6 +105,6 @@ public class StringGeneratorImplBuilder<T> implements StringGeneratorBuilder {
 
    @Override
    public SerializableFunction<Session, String> build() {
-      return function;
+      return supplier.get();
    }
 }

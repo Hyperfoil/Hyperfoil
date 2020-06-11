@@ -4,8 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.charset.StandardCharsets;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
+import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
@@ -13,6 +16,16 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 
 public class PatternTest {
+   @Before
+   public void before() {
+      Locator.push(Locator.forTesting());
+   }
+
+   @After
+   public void after() {
+      Locator.pop();
+   }
+
    @Test
    public void testString() {
       Pattern pattern = new Pattern("foo${var}bar", false);

@@ -17,8 +17,8 @@ import io.hyperfoil.core.session.SessionFactory;
 public class AwaitDelayStep implements Step {
    private final Access key;
 
-   public AwaitDelayStep(Object key) {
-      this.key = SessionFactory.access(key);
+   public AwaitDelayStep(Access key) {
+      this.key = key;
    }
 
    @Override
@@ -57,7 +57,7 @@ public class AwaitDelayStep implements Step {
 
       @Override
       public List<Step> build() {
-         return Collections.singletonList(new AwaitDelayStep(key));
+         return Collections.singletonList(new AwaitDelayStep(SessionFactory.access(key)));
       }
    }
 }

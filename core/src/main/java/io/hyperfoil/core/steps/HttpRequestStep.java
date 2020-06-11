@@ -11,6 +11,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import org.kohsuke.MetaInfServices;
 
@@ -96,42 +97,54 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
 
    @Override
    public boolean invoke(Session session) {
+      SequenceInstance sequence = session.currentSequence();
       HttpRequest request = session.httpRequestPool().acquire();
       if (request == null) {
          log.warn("#{} Request pool too small; increase it to prevent blocking.", session.uniqueId());
          return false;
       }
-
-      String authority = this.authority == null ? null : this.authority.apply(session);
-      String path = pathGenerator.apply(session);
-      boolean isHttp;
-      if (authority == null && (isHttp = path.startsWith(HttpUtil.HTTP_PREFIX) || path.startsWith(HttpUtil.HTTPS_PREFIX))) {
-         for (String hostPort : session.httpDestinations().authorities()) {
-            // TODO: fixme: this does consider default port match
-            if (path.regionMatches(prefixLength(isHttp), hostPort, 0, hostPort.length())) {
-               authority = hostPort;
+      HttpConnectionPool connectionPool;
+      String path;
+      try {
+         String authority = this.authority == null ? null : this.authority.apply(session);
+         path = pathGenerator.apply(session);
+         boolean isHttp;
+         if (authority == null && (isHttp = path.startsWith(HttpUtil.HTTP_PREFIX) || path.startsWith(HttpUtil.HTTPS_PREFIX))) {
+            for (String hostPort : session.httpDestinations().authorities()) {
+               // TODO: fixme: this does consider default port match
+               if (path.regionMatches(prefixLength(isHttp), hostPort, 0, hostPort.length())) {
+                  authority = hostPort;
+               }
             }
+            if (authority == null) {
+               log.error("Cannot access {}: no base url configured", path);
+               return true;
+            }
+            path = path.substring(prefixLength(isHttp) + authority.length());
          }
-         if (authority == null) {
-            log.error("Cannot access {}: no base url configured", path);
-            return true;
-         }
-         path = path.substring(prefixLength(isHttp) + authority.length());
-      }
-      String metric = metricSelector.apply(authority, path);
-      Statistics statistics = session.statistics(id(), metric);
-      SequenceInstance sequence = session.currentSequence();
-      request.method = method;
-      request.path = path;
-      request.start(handler, sequence, statistics);
+         String metric = metricSelector.apply(authority, path);
+         Statistics statistics = session.statistics(id(), metric);
+         request.method = method;
+         request.path = path;
+         request.start(handler, sequence, statistics);
 
-      HttpConnectionPool connectionPool = session.httpDestinations().getConnectionPool(authority);
-      if (connectionPool == null) {
-         session.fail(new BenchmarkExecutionException("There is no connection pool with authority '" + authority +
-               "', available pools are: " + Arrays.asList(session.httpDestinations().authorities())));
-         return false;
+         connectionPool = session.httpDestinations().getConnectionPool(authority);
+         if (connectionPool == null) {
+            session.fail(new BenchmarkExecutionException("There is no connection pool with authority '" + authority +
+                  "', available pools are: " + Arrays.asList(session.httpDestinations().authorities())));
+            return false;
+         }
+         request.authority = authority == null ? connectionPool.clientPool().authority() : authority;
+      } catch (Throwable t) {
+         // If any error happens we still need to release the request
+         // The request is either IDLE or RUNNING - we need to make it running, otherwise we could not release it
+         if (!request.isRunning()) {
+            request.start(null, null);
+         }
+         request.setCompleted();
+         request.release();
+         throw t;
       }
-      request.authority = authority == null ? connectionPool.clientPool().authority() : authority;
       if (!connectionPool.request(request, headerAppenders, injectHostHeader, bodyGenerator, false)) {
          request.setCompleted();
          request.release();
@@ -152,7 +165,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
          request.setTimeout(timeout, TimeUnit.MILLISECONDS);
       } else {
          Benchmark benchmark = session.phase().benchmark();
-         Http http = authority == null ? benchmark.defaultHttp() : benchmark.http().get(authority);
+         Http http = authority == null ? benchmark.defaultHttp() : benchmark.http().get(authority.apply(session));
          long timeout = http.requestTimeout();
          if (timeout > 0) {
             request.setTimeout(timeout, TimeUnit.MILLISECONDS);
@@ -193,7 +206,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
       private StringGeneratorBuilder authority;
       private StringGeneratorBuilder path;
       private BodyGeneratorBuilder body;
-      private List<SerializableBiConsumer<Session, HttpRequestWriter>> headerAppenders = new ArrayList<>();
+      private List<Supplier<SerializableBiConsumer<Session, HttpRequestWriter>>> headerAppenders = new ArrayList<>();
       private boolean injectHostHeader = true;
       private SerializableBiFunction<String, String, String> metricSelector;
       private long timeout = Long.MIN_VALUE;
@@ -472,7 +485,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
       }
 
       public Builder headerAppender(SerializableBiConsumer<Session, HttpRequestWriter> headerAppender) {
-         headerAppenders.add(headerAppender);
+         headerAppenders.add(() -> headerAppender);
          return this;
       }
 
@@ -590,9 +603,9 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
          if (sync) {
             String var = String.format("%s_sync_%08x", locator.sequence().name(), ThreadLocalRandom.current().nextInt());
             Access access = SessionFactory.access(var);
-            locator.sequence().insertBefore(locator).step(new SyncRequestIncrementStep(var));
+            locator.sequence().insertBefore(locator).step(new SyncRequestIncrementStep(SessionFactory.access(var)));
             handler.onCompletion(s -> access.addToInt(s, -1));
-            locator.sequence().insertAfter(locator).step(new AwaitIntStep(var, x -> x == 0));
+            locator.sequence().insertAfter(locator).step(new AwaitIntStep(SessionFactory.access(var), x -> x == 0));
          }
          handler.prepareBuild();
       }
@@ -622,7 +635,8 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
          }
          @SuppressWarnings("unchecked")
          SerializableBiConsumer<Session, HttpRequestWriter>[] headerAppenders =
-               this.headerAppenders.isEmpty() ? null : this.headerAppenders.toArray(new SerializableBiConsumer[0]);
+               this.headerAppenders.isEmpty() ? null :
+                     this.headerAppenders.stream().map(Supplier::get).toArray(SerializableBiConsumer[]::new);
 
          SLA[] sla = this.sla != null ? this.sla.build() : SLA.DEFAULT;
          SerializableBiFunction<Session, Connection, ByteBuf> bodyGenerator = this.body != null ? this.body.build() : null;
@@ -640,8 +654,8 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
    private static class SyncRequestIncrementStep implements Step, ResourceUtilizer {
       private final Access var;
 
-      public SyncRequestIncrementStep(String var) {
-         this.var = SessionFactory.access(var);
+      public SyncRequestIncrementStep(Access var) {
+         this.var = var;
       }
 
       @Override
@@ -673,7 +687,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
 
       public HeadersBuilder header(CharSequence header, CharSequence value) {
          warnIfUsingHostHeader(header);
-         parent.headerAppenders.add((session, writer) -> writer.putHeader(header, value));
+         parent.headerAppender((session, writer) -> writer.putHeader(header, value));
          return this;
       }
 
@@ -683,7 +697,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
       @Override
       public void accept(String header, String value) {
          warnIfUsingHostHeader(header);
-         parent.headerAppenders.add((session, writer) -> writer.putHeader(header, value));
+         parent.headerAppender((session, writer) -> writer.putHeader(header, value));
       }
 
       public Builder endHeaders() {
@@ -728,15 +742,17 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
        */
       public PartialHeadersBuilder fromVar(String var) {
          ensureOnce();
-         Access access = SessionFactory.access(var);
-         String myHeader = header;
-         parent.parent.headerAppenders.add((session, writer) -> {
-            Object value = access.getObject(session);
-            if (value instanceof CharSequence) {
-               writer.putHeader(myHeader, (CharSequence) value);
-            } else {
-               log.error("#{} Cannot convert variable {}: {} to CharSequence", session.uniqueId(), access, value);
-            }
+         parent.parent.headerAppenders.add(() -> {
+            Access access = SessionFactory.access(var);
+            String myHeader = header;
+            return (session, writer) -> {
+               Object value = access.getObject(session);
+               if (value instanceof CharSequence) {
+                  writer.putHeader(myHeader, (CharSequence) value);
+               } else {
+                  log.error("#{} Cannot convert variable {}: {} to CharSequence", session.uniqueId(), access, value);
+               }
+            };
          });
          return this;
       }
@@ -748,11 +764,13 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
        * @return Builder.
        */
       public PartialHeadersBuilder pattern(String patternString) {
-         Pattern pattern = new Pattern(patternString, false);
-         String myHeader = header;
-         parent.parent.headerAppenders.add((session, writer) -> {
-            String value = pattern.apply(session);
-            writer.putHeader(myHeader, value);
+         parent.parent.headerAppenders.add(() -> {
+            Pattern pattern = new Pattern(patternString, false);
+            String myHeader = header;
+            return (session, writer) -> {
+               String value = pattern.apply(session);
+               writer.putHeader(myHeader, value);
+            };
          });
          return this;
       }
@@ -791,20 +809,22 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
        * @return Self.
        */
       public BodyBuilder fromVar(String var) {
-         Access access = SessionFactory.access(var);
-         parent.body((session, connection) -> {
-            Object value = access.getObject(session);
-            if (value instanceof ByteBuf) {
-               return (ByteBuf) value;
-            } else if (value instanceof String) {
-               String str = (String) value;
-               return Util.string2byteBuf(str, connection.context().alloc().buffer(str.length()));
-            } else if (value instanceof byte[]) {
-               return Unpooled.wrappedBuffer((byte[]) value);
-            } else {
-               log.error("#{} Cannot encode request body from var {}: {}", session.uniqueId(), access, value);
-               return null;
-            }
+         parent.body(() -> {
+            Access access = SessionFactory.access(var);
+            return (session, connection) -> {
+               Object value = access.getObject(session);
+               if (value instanceof ByteBuf) {
+                  return (ByteBuf) value;
+               } else if (value instanceof String) {
+                  String str = (String) value;
+                  return Util.string2byteBuf(str, connection.context().alloc().buffer(str.length()));
+               } else if (value instanceof byte[]) {
+                  return Unpooled.wrappedBuffer((byte[]) value);
+               } else {
+                  log.error("#{} Cannot encode request body from var {}: {}", session.uniqueId(), access, value);
+                  return null;
+               }
+            };
          });
          return this;
       }
@@ -816,10 +836,12 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
        * @return Self.
        */
       public BodyBuilder pattern(String pattern) {
-         Pattern p = new Pattern(pattern, false);
-         parent.body((session, connection) -> {
-            String str = p.apply(session);
-            return Util.string2byteBuf(str, connection.context().alloc().buffer(str.length()));
+         parent.body(() -> {
+            Pattern p = new Pattern(pattern, false);
+            return (session, connection) -> {
+               String str = p.apply(session);
+               return Util.string2byteBuf(str, connection.context().alloc().buffer(str.length()));
+            };
          });
          return this;
       }

@@ -24,9 +24,9 @@ public class PullSharedMapStep implements Step, ResourceUtilizer {
    private final String key;
    private final Access match;
 
-   public PullSharedMapStep(String key, String match) {
+   public PullSharedMapStep(String key, Access match) {
       this.key = key;
-      this.match = SessionFactory.access(match);
+      this.match = match;
    }
 
    @Override
@@ -78,7 +78,7 @@ public class PullSharedMapStep implements Step, ResourceUtilizer {
 
       @Override
       public List<Step> build() {
-         return Collections.singletonList(new PullSharedMapStep(key, match));
+         return Collections.singletonList(new PullSharedMapStep(key, SessionFactory.access(match)));
       }
 
       /**

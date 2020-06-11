@@ -295,6 +295,11 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          this.parent = parent;
       }
 
+      public Builder status(StatusHandler.Builder builder) {
+         statusHandlers.add(builder);
+         return this;
+      }
+
       public Builder status(StatusHandler handler) {
          statusHandlers.add(() -> handler);
          return this;

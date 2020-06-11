@@ -473,7 +473,7 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
                locator.sequence().name(), ThreadLocalRandom.current().nextInt());
          downloadUrlVar = generatedSeqName + "_url";
          completionLatch = generatedSeqName + "_latch";
-         SequenceBuilder sequence = locator.scenario().sequence(generatedSeqName);
+         SequenceBuilder sequence = locator.scenario().sequence(generatedSeqName).concurrency(maxResources);
 
          HttpRequestStep.Builder requestBuilder = new HttpRequestStep.Builder().sync(false).method(HttpMethod.GET);
          requestBuilder.path(
@@ -492,16 +492,18 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
 
          Action onCompletion = this.onCompletion.build();
          // We add unset step for cases where the step is retried and it's not sync
+         // Note: we should push different locators for resolving access in these steps but since
+         // we are in full control of the completionLatch this is in practice not necessary.
          locator.sequence().insertAfter(locator)
-               .step(new AwaitIntStep(completionLatch, x -> x == 0))
-               .step(new StepBuilder.ActionStep(new UnsetAction(completionLatch)))
+               .step(new AwaitIntStep(SessionFactory.access(completionLatch), x -> x == 0))
+               .step(new StepBuilder.ActionStep(new UnsetAction(SessionFactory.access(completionLatch))))
                .step(new ResourceUtilizingStep(onCompletion));
       }
 
       public FetchResourcesAdapter build() {
-         return new FetchResourcesAdapter(completionLatch, new MultiProcessor(
-               new ArrayRecorder(downloadUrlVar, DataFormat.STRING, maxResources),
-               new NewSequenceProcessor(maxResources, generatedSeqName + "_cnt", generatedSeqName)));
+         return new FetchResourcesAdapter(SessionFactory.access(completionLatch), new MultiProcessor(
+               new ArrayRecorder(SessionFactory.access(downloadUrlVar), DataFormat.STRING, maxResources),
+               new NewSequenceProcessor(maxResources, SessionFactory.access(generatedSeqName + "_cnt"), generatedSeqName)));
       }
    }
 
@@ -528,8 +530,8 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
       private final Access completionCounter;
       private final Processor delegate;
 
-      private FetchResourcesAdapter(String completionCounter, Processor delegate) {
-         this.completionCounter = SessionFactory.access(completionCounter);
+      private FetchResourcesAdapter(Access completionCounter, Processor delegate) {
+         this.completionCounter = completionCounter;
          this.delegate = delegate;
       }
 

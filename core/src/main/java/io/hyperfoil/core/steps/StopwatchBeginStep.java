@@ -18,8 +18,8 @@ import io.hyperfoil.core.session.SessionFactory;
 public class StopwatchBeginStep implements Step, ResourceUtilizer {
    private final Access key;
 
-   public StopwatchBeginStep(Object key) {
-      this.key = SessionFactory.access(key);
+   public StopwatchBeginStep(Access key) {
+      this.key = key;
    }
 
    @Override
@@ -75,9 +75,9 @@ public class StopwatchBeginStep implements Step, ResourceUtilizer {
          Locator.push(createLocator());
          List<Step> steps = new ArrayList<>();
          Object key = new Object();
-         steps.add(new StopwatchBeginStep(key));
+         steps.add(new StopwatchBeginStep(SessionFactory.access(key)));
          steps.addAll(super.buildSteps());
-         steps.add(new StopwatchEndStep(key, name()));
+         steps.add(new StopwatchEndStep(SessionFactory.access(key), name()));
          Locator.pop();
          return steps;
       }

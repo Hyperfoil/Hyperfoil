@@ -20,11 +20,11 @@ public class ForeachStep extends DependencyStep implements ResourceUtilizer {
    private final Access counterVar;
    private final String sequence;
 
-   public ForeachStep(Access[] dependencies, String fromVar, String counterVar, String template) {
+   public ForeachStep(Access[] dependencies, Access fromVar, Access counterVar, String sequence) {
       super(dependencies);
-      this.fromVar = SessionFactory.access(fromVar);
-      this.counterVar = SessionFactory.access(counterVar);
-      this.sequence = template;
+      this.fromVar = fromVar;
+      this.counterVar = counterVar;
+      this.sequence = sequence;
    }
 
    @Override
@@ -105,7 +105,8 @@ public class ForeachStep extends DependencyStep implements ResourceUtilizer {
          if (this.sequence == null) {
             throw new BenchmarkDefinitionException("Template sequence must be defined");
          }
-         return Collections.singletonList(new ForeachStep(dependencies(), fromVar, counterVar, this.sequence));
+         return Collections.singletonList(new ForeachStep(dependencies(),
+               SessionFactory.access(fromVar), SessionFactory.access(counterVar), this.sequence));
       }
    }
 }

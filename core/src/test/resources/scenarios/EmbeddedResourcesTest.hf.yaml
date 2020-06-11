@@ -63,7 +63,7 @@ phases:
                             set: allFetched <- true
           - awaitVar: allFetched
         sequences:
-        - embeddedResourceForArray:
+        - embeddedResourceForArray[16]:
           - httpRequest:
               GET:
                 fromVar: downloadUrl[.]
@@ -81,7 +81,7 @@ phases:
                   addToInt: completionLatch -= 1
         # We need different sequences as both array in downloadUrl
         # and queue in downloadQueue are pre-allocated and we cannot reuse the var
-        - embeddedResourceForQueue:
+        - embeddedResourceForQueue[8]:
           - httpRequest:
               GET:
                 fromVar: downloadQueue[.]

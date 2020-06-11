@@ -27,9 +27,9 @@ public class NewSequenceProcessor implements Processor, ResourceUtilizer {
    private final Access counterVar;
    private final String sequence;
 
-   public NewSequenceProcessor(int maxSequences, String counterVar, String sequence) {
+   public NewSequenceProcessor(int maxSequences, Access counterVar, String sequence) {
       this.maxSequences = maxSequences;
-      this.counterVar = SessionFactory.access(counterVar);
+      this.counterVar = counterVar;
       this.sequence = sequence;
    }
 
@@ -117,7 +117,7 @@ public class NewSequenceProcessor implements Processor, ResourceUtilizer {
             counterVar = String.format("%s_newSequence_counter_%08x",
                   Locator.current().sequence().name(), ThreadLocalRandom.current().nextInt());
          }
-         return new NewSequenceProcessor(maxSequences, counterVar, sequence);
+         return new NewSequenceProcessor(maxSequences, SessionFactory.access(counterVar), sequence);
       }
    }
 }

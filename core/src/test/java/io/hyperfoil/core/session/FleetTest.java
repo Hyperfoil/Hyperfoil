@@ -1,6 +1,7 @@
 package io.hyperfoil.core.session;
 
 import static io.hyperfoil.core.builders.StepCatalog.SC;
+import static io.hyperfoil.core.session.SessionFactory.access;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -26,6 +27,7 @@ import io.hyperfoil.core.steps.SetIntAction;
 import io.hyperfoil.core.test.CrewMember;
 import io.hyperfoil.core.test.Fleet;
 import io.hyperfoil.core.test.Ship;
+import io.hyperfoil.function.SerializableFunction;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.Json;
 import io.vertx.ext.unit.Async;
@@ -83,9 +85,6 @@ public class FleetTest extends BaseScenarioTest {
       ProcessorAssertion shipAssertion = new ProcessorAssertion(3, true);
       ProcessorAssertion crewAssertion = new ProcessorAssertion(2, true);
 
-      Access numberOfShips = SessionFactory.access(NUMBER_OF_SHIPS);
-      Access numberOfSunkShips = SessionFactory.access(NUMBER_OF_SUNK_SHIPS);
-
       // @formatter:off
       scenario(2)
             .intVar(NUMBER_OF_SUNK_SHIPS)
@@ -111,8 +110,9 @@ public class FleetTest extends BaseScenarioTest {
                .endStep()
             .endSequence()
             .sequence("ship")
+               .concurrency(3)
                .step(SC).httpRequest(HttpMethod.GET)
-                  .path(FleetTest::currentShipQuery)
+                  .path(this::currentShipQuery)
                   .sync(false)
                   .handler()
                      .body(HttpRequestProcessorBuilder.adapt(new JsonHandler.Builder()
@@ -132,27 +132,30 @@ public class FleetTest extends BaseScenarioTest {
                   //  is lower than the size of crew. It doesn't matter here as we're just comparing > 0.
                   //  We could use separate variable (array) for body processing completion.
                   .intCondition().fromVar("crewCount[.]").greaterThan(0).end()
-                  .onBreak(new AddToIntAction(NUMBER_OF_SHIPS, -1, null))
+                  .onBreak(new AddToIntAction.Builder().var(NUMBER_OF_SHIPS).value(-1))
                .endStep()
                .step(SC).httpRequest(HttpMethod.DELETE)
-                  .path(FleetTest::currentShipQuery)
+                  .path(this::currentShipQuery)
                   .sync(false)
                   .handler()
-                     .status(((request, status) -> {
-                        if (status == 204) {
-                           numberOfSunkShips.addToInt(request.session, -1);
-                        } else {
-                           ctx.fail("Unexpected status " + status);
-                        }
-                     }))
+                     .status(() -> {
+                        Access numberOfSunkShips = access(NUMBER_OF_SUNK_SHIPS);
+                        return (request, status) -> {
+                           if (status == 204) {
+                              numberOfSunkShips.addToInt(request.session, -1);
+                           } else {
+                              ctx.fail("Unexpected status " + status);
+                           }
+                        };
+                     })
                   .endHandler()
                .endStep()
                .step(SC).action(new AddToIntAction.Builder().var(NUMBER_OF_SUNK_SHIPS).value(1))
                .step(SC).action(new AddToIntAction.Builder().var(NUMBER_OF_SHIPS).value(-1))
             .endSequence()
             .initialSequence("final")
-               .step(new AwaitConditionStep(s -> numberOfShips.isSet(s) && numberOfShips.getInt(s) <= 0))
-               .step(new AwaitConditionStep(s -> numberOfSunkShips.getInt(s) <= 0))
+               .stepBuilder(new AwaitConditionStep.Builder(NUMBER_OF_SHIPS, (s, numberOfShips) -> numberOfShips.isSet(s) && numberOfShips.getInt(s) <= 0))
+               .stepBuilder(new AwaitConditionStep.Builder(NUMBER_OF_SUNK_SHIPS, (s, numberOfSunkShips) -> numberOfSunkShips.getInt(s) <= 0))
                .step(s -> {
                   log.info("Test completed");
                   shipAssertion.runAssertions(ctx);
@@ -165,11 +168,9 @@ public class FleetTest extends BaseScenarioTest {
       runScenario();
    }
 
-   private static Access currentShipName = SessionFactory.access("shipNames[.]");
-
-   private static String currentShipQuery(Session s) {
-      // TODO: avoid allocations when constructing URL
-      return "/ship?name=" + encode((String) currentShipName.getObject(s));
+   private SerializableFunction<Session, String> currentShipQuery() {
+      Access shipName = access("shipNames[.]");
+      return s1 -> "/ship?name=" + encode((String) shipName.getObject(s1));
    }
 
    private static String encode(String string) {

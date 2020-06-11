@@ -14,24 +14,48 @@ public interface Locator {
    }
 
    static Locator current() {
-      return Holder.current.get().peek();
+      Stack<Locator> stack = Holder.CURRENT.get();
+      if (stack.isEmpty()) {
+         throw new IllegalArgumentException("Locator is not set. This method must be invoked within the prepareBuild() or build() phase of scenario.");
+      }
+      return stack.peek();
    }
 
    static void push(Locator locator) {
-      Holder.current.get().push(locator);
+      Holder.CURRENT.get().push(locator);
    }
 
    static void push(StepBuilder<?> stepBuilder) {
-      Stack<Locator> stack = Holder.current.get();
+      Stack<Locator> stack = Holder.CURRENT.get();
       stack.push(new Impl(stepBuilder, stack.peek().sequence()));
    }
 
    static void pop() {
-      Holder.current.get().pop();
+      Holder.CURRENT.get().pop();
+   }
+
+   static Locator forTesting() {
+      return Holder.TESTING_MOCK;
    }
 
    class Holder {
-      private static ThreadLocal<Stack<Locator>> current = ThreadLocal.withInitial(Stack::new);
+      private static final ThreadLocal<Stack<Locator>> CURRENT = ThreadLocal.withInitial(Stack::new);
+      private static final Locator TESTING_MOCK = new Locator() {
+         @Override
+         public StepBuilder<?> step() {
+            throw new UnsupportedOperationException();
+         }
+
+         @Override
+         public BaseSequenceBuilder sequence() {
+            throw new UnsupportedOperationException();
+         }
+
+         @Override
+         public ScenarioBuilder scenario() {
+            throw new UnsupportedOperationException();
+         }
+      };
    }
 
    class Impl implements Locator {

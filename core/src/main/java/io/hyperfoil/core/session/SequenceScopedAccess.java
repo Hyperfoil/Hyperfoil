@@ -9,9 +9,11 @@ import io.hyperfoil.core.data.Queue;
 
 class SequenceScopedAccess implements Access {
    private final String key;
+   private final int maxConcurrency;
 
-   SequenceScopedAccess(String key) {
+   SequenceScopedAccess(String key, int maxConcurrency) {
       this.key = key;
+      this.maxConcurrency = maxConcurrency;
    }
 
    @Override
@@ -26,7 +28,6 @@ class SequenceScopedAccess implements Access {
 
    @Override
    public boolean isSet(Session session) {
-      Object result;
       SessionImpl impl = (SessionImpl) session;
       Session.Var var = impl.getVar(key);
       if (!var.isSet()) {
@@ -177,6 +178,9 @@ class SequenceScopedAccess implements Access {
          throw new IllegalStateException("Variable " + key + " is null!");
       }
       int index = session.currentSequence().index();
+      if (index >= maxConcurrency) {
+         throw new IllegalStateException("Variable " + key + " reads item at index " + index + " but the maximum concurrency is " + maxConcurrency);
+      }
       if (collection.getClass().isArray()) {
          return Array.get(collection, index);
       } else if (collection instanceof List) {

@@ -11,8 +11,8 @@ public class IntCondition implements SerializablePredicate<Session> {
    private final Access fromVar;
    private final SerializableIntPredicate predicate;
 
-   public IntCondition(String fromVar, SerializableIntPredicate predicate) {
-      this.fromVar = SessionFactory.access(fromVar);
+   public IntCondition(Access fromVar, SerializableIntPredicate predicate) {
+      this.fromVar = fromVar;
       this.predicate = predicate;
    }
 
@@ -56,7 +56,7 @@ public class IntCondition implements SerializablePredicate<Session> {
 
       @Override
       public IntCondition build() {
-         return new IntCondition(fromVar, buildPredicate());
+         return new IntCondition(SessionFactory.access(fromVar), buildPredicate());
       }
    }
 
@@ -66,7 +66,7 @@ public class IntCondition implements SerializablePredicate<Session> {
       }
 
       public IntCondition build(String var) {
-         return new IntCondition(var, buildPredicate());
+         return new IntCondition(SessionFactory.access(var), buildPredicate());
       }
    }
 

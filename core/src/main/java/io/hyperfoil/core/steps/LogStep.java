@@ -28,9 +28,9 @@ public class LogStep implements Step {
    private final String message;
    private final Access[] vars;
 
-   public LogStep(String message, List<String> vars) {
+   public LogStep(String message, Access[] vars) {
       this.message = message;
-      this.vars = vars.stream().map(SessionFactory::access).toArray(Access[]::new);
+      this.vars = vars;
    }
 
    @Override
@@ -96,7 +96,7 @@ public class LogStep implements Step {
          if (message == null) {
             throw new BenchmarkDefinitionException("Missing message");
          }
-         return Collections.singletonList(new LogStep(message, vars));
+         return Collections.singletonList(new LogStep(message, vars.stream().map(SessionFactory::access).toArray(Access[]::new)));
       }
    }
 }

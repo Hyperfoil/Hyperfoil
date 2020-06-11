@@ -36,9 +36,9 @@ public class RandomCsvRowStep implements Step, ResourceUtilizer {
    private String[][] rows;
    private final Access[] columnVars;
 
-   public RandomCsvRowStep(String[][] rows, List<String> vars) {
+   public RandomCsvRowStep(String[][] rows, Access[] columnVars) {
       this.rows = rows;
-      this.columnVars = vars.stream().map(SessionFactory::access).toArray(Access[]::new);
+      this.columnVars = columnVars;
    }
 
    @Override
@@ -101,7 +101,8 @@ public class RandomCsvRowStep implements Step, ResourceUtilizer {
          });
          List<String> cols = new ArrayList<>(builderColumns.keySet());
 
-         return Collections.singletonList(new RandomCsvRowStep(rows.toArray(new String[][]{}), cols));
+         Access[] columnVars = cols.stream().map(SessionFactory::access).toArray(Access[]::new);
+         return Collections.singletonList(new RandomCsvRowStep(rows.toArray(new String[][]{}), columnVars));
       }
 
       /**

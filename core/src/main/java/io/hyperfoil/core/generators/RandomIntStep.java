@@ -23,8 +23,8 @@ public class RandomIntStep implements Step, ResourceUtilizer {
    private final SerializableToIntFunction<Session> minInclusive;
    private final SerializableToIntFunction<Session> maxInclusive;
 
-   public RandomIntStep(String toVar, SerializableToIntFunction<Session> minInclusive, SerializableToIntFunction<Session> maxInclusive) {
-      this.toVar = SessionFactory.access(toVar);
+   public RandomIntStep(Access toVar, SerializableToIntFunction<Session> minInclusive, SerializableToIntFunction<Session> maxInclusive) {
+      this.toVar = toVar;
       this.minInclusive = minInclusive;
       this.maxInclusive = maxInclusive;
    }
@@ -120,7 +120,7 @@ public class RandomIntStep implements Step, ResourceUtilizer {
          if (min.compareTo(max) > 0) {
             throw new BenchmarkDefinitionException("min must be less than max");
          }
-         return Collections.singletonList(new RandomIntStep(toVar, min.build(), max.build()));
+         return Collections.singletonList(new RandomIntStep(SessionFactory.access(toVar), min.build(), max.build()));
       }
    }
 }

@@ -5,6 +5,7 @@ import java.util.Collections;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.session.Access;
 import io.netty.util.concurrent.EventExecutorGroup;
 import io.netty.util.concurrent.ImmediateEventExecutor;
@@ -56,12 +57,20 @@ public final class SessionFactory {
    }
 
    public static Access access(Object key) {
+      // This should be invoked only from prepareBuild() or build()
+      assert Locator.current() != null;
       if (key == null) {
          return null;
       } else if (key instanceof String) {
          String expression = (String) key;
          if (expression.endsWith("[.]")) {
-            return new SequenceScopedAccess(expression.substring(0, expression.length() - 3));
+            Locator locator = Locator.current();
+            int maxConcurrency = locator.sequence().end().concurrency();
+            if (maxConcurrency <= 0) {
+               throw new BenchmarkDefinitionException(locator.step() + " in sequence " + locator.sequence().name() +
+                     " uses sequence-scoped access but this sequence is not declared as concurrent.");
+            }
+            return new SequenceScopedAccess(expression.substring(0, expression.length() - 3), maxConcurrency);
          } else if (expression.startsWith("hyperfoil.")) {
             for (SpecialAccess access : SPECIAL) {
                if (access.name.equals(expression)) {

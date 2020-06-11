@@ -68,6 +68,10 @@ public class SequenceBuilder extends BaseSequenceBuilder {
       return this;
    }
 
+   public int concurrency() {
+      return concurrency;
+   }
+
    @Override
    public void prepareBuild() {
       Locator.push(createLocator());

@@ -7,7 +7,7 @@ import io.hyperfoil.api.session.Access;
 import io.hyperfoil.core.session.SessionFactory;
 
 public abstract class DependencyStepBuilder<S extends DependencyStepBuilder<S>> extends BaseStepBuilder<S> {
-   private Collection<Access> dependencies = new ArrayList<>();
+   private Collection<String> dependencies = new ArrayList<>();
 
    /**
     * This step is blocked if this variable does not have set value (none by default).
@@ -18,12 +18,12 @@ public abstract class DependencyStepBuilder<S extends DependencyStepBuilder<S>> 
    @SuppressWarnings("unchecked")
    public S dependency(String var) {
       if (var != null) {
-         dependencies.add(SessionFactory.access(var));
+         dependencies.add(var);
       }
       return (S) this;
    }
 
    protected Access[] dependencies() {
-      return dependencies.toArray(new Access[0]);
+      return dependencies.stream().map(SessionFactory::access).toArray(Access[]::new);
    }
 }

@@ -25,13 +25,13 @@ public class DivideStep implements Step, ResourceUtilizer {
    private final Access toVar;
    private final int divisor;
 
-   public DivideStep(String fromVar, String toVar, int divisor) {
+   public DivideStep(Access fromVar, Access toVar, int divisor) {
       // Variables in session are not accessed directly using map lookup but
       // through the Access objects. This is necessary as the scenario can use
       // some simple expressions that are parsed when the scenario is built
       // (in this constructor), not at runtime.
-      this.fromVar = SessionFactory.access(fromVar);
-      this.toVar = SessionFactory.access(toVar);
+      this.fromVar = fromVar;
+      this.toVar = toVar;
       this.divisor = divisor;
    }
 
@@ -119,7 +119,7 @@ public class DivideStep implements Step, ResourceUtilizer {
          }
          // The builder has a bit more flexibility and it can create more than
          // one step at once.
-         return Collections.singletonList(new DivideStep(fromVar, toVar, divisor));
+         return Collections.singletonList(new DivideStep(SessionFactory.access(fromVar), SessionFactory.access(toVar), divisor));
       }
    }
 }

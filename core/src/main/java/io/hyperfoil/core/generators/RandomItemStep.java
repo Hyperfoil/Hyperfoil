@@ -39,11 +39,11 @@ public class RandomItemStep implements Step, ResourceUtilizer {
    private final String[] list;
    private final Access toVar;
 
-   public RandomItemStep(String fromVar, double[] cummulativeProbs, String[] list, String toVar) {
-      this.fromVar = SessionFactory.access(fromVar);
+   public RandomItemStep(Access fromVar, double[] cummulativeProbs, String[] list, Access toVar) {
+      this.fromVar = fromVar;
       this.cummulativeProbs = cummulativeProbs;
       this.list = list;
-      this.toVar = SessionFactory.access(toVar);
+      this.toVar = toVar;
    }
 
    @Override
@@ -190,7 +190,7 @@ public class RandomItemStep implements Step, ResourceUtilizer {
          } else if (toVar.isEmpty()) {
             throw new BenchmarkDefinitionException("toVar is empty");
          }
-         return Collections.singletonList(new RandomItemStep(fromVar, cummulativeProbs, list.isEmpty() ? null : list.toArray(new String[0]), toVar));
+         return Collections.singletonList(new RandomItemStep(SessionFactory.access(fromVar), cummulativeProbs, list.isEmpty() ? null : list.toArray(new String[0]), SessionFactory.access(toVar)));
       }
 
       /**

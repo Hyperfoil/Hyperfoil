@@ -6,13 +6,21 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import org.junit.Test;
 
+import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.SharedData;
 
 public class SharedDataTest {
    private static final String FOO = "foo";
-   private static final Access FOOA = SessionFactory.access("foo");
-   private static final Access NUMBERA = SessionFactory.access("number");
+   private static final Access FOOA;
+   private static final Access NUMBERA;
+
+   static {
+      Locator.push(Locator.forTesting());
+      FOOA = SessionFactory.access("foo");
+      NUMBERA = SessionFactory.access("number");
+      Locator.pop();
+   }
 
    @Test
    public void testFlatData() {

@@ -15,8 +15,8 @@ public class AddToIntAction implements Action {
    protected final int value;
    protected final Integer orElseSetTo;
 
-   public AddToIntAction(String var, int value, Integer orElseSetTo) {
-      this.var = SessionFactory.access(var);
+   public AddToIntAction(Access var, int value, Integer orElseSetTo) {
+      this.var = var;
       this.value = value;
       this.orElseSetTo = orElseSetTo;
    }
@@ -95,6 +95,7 @@ public class AddToIntAction implements Action {
 
       /**
        * If the variable is currently not set, set it to this value instead of addition.
+       *
        * @param value New value.
        * @return Self.
        */
@@ -111,7 +112,7 @@ public class AddToIntAction implements Action {
          if (value == 0) {
             throw new BenchmarkDefinitionException("It makes no sense to add 0.");
          }
-         return new AddToIntAction(var, value, orElseSetTo);
+         return new AddToIntAction(SessionFactory.access(var), value, orElseSetTo);
       }
    }
 }

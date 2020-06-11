@@ -159,6 +159,9 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
             }
             assert request.isCompleted();
             request.release();
+            if (trace) {
+               log.trace("Releasing request");
+            }
 
             releasePoolAndPulse();
          }

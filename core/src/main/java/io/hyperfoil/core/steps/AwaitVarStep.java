@@ -14,15 +14,8 @@ import io.hyperfoil.api.session.Access;
 import io.hyperfoil.core.session.SessionFactory;
 
 public class AwaitVarStep extends DependencyStep {
-   public AwaitVarStep(String var) {
-      super(new Access[]{ access(var) });
-   }
-
-   private static Access access(String var) {
-      if (var.startsWith("!")) {
-         return new NegatedAccess(SessionFactory.access(var.substring(1).trim()));
-      }
-      return SessionFactory.access(var);
+   public AwaitVarStep(Access var) {
+      super(new Access[]{ var });
    }
 
    public static class NegatedAccess implements Access {
@@ -118,7 +111,13 @@ public class AwaitVarStep extends DependencyStep {
 
       @Override
       public List<Step> build() {
-         return Collections.singletonList(new AwaitVarStep(var));
+         Access access;
+         if (var.startsWith("!")) {
+            access = new NegatedAccess(SessionFactory.access(var.substring(1).trim()));
+         } else {
+            access = SessionFactory.access(var);
+         }
+         return Collections.singletonList(new AwaitVarStep(access));
       }
    }
 }

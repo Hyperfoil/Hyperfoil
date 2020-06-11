@@ -19,8 +19,8 @@ public class AwaitIntStep implements Step {
    private final Access var;
    private final SerializableIntPredicate predicate;
 
-   public AwaitIntStep(String var, SerializableIntPredicate predicate) {
-      this.var = SessionFactory.access(var);
+   public AwaitIntStep(Access var, SerializableIntPredicate predicate) {
+      this.var = var;
       this.predicate = predicate;
    }
 
@@ -64,7 +64,7 @@ public class AwaitIntStep implements Step {
 
       @Override
       public List<Step> build() {
-         return Collections.singletonList(new AwaitIntStep(var, buildPredicate()));
+         return Collections.singletonList(new AwaitIntStep(SessionFactory.access(var), buildPredicate()));
       }
 
       public BaseSequenceBuilder endStep() {

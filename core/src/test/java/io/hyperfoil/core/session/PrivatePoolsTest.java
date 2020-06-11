@@ -27,7 +27,6 @@ public class PrivatePoolsTest extends BaseScenarioTest {
 
    @Test
    public void test(TestContext ctx) {
-      Access connection = SessionFactory.access("connection");
       benchmarkBuilder.ergonomics().privateHttpPools(true);
       benchmarkBuilder.http().sharedConnections(2).endHttp().threads(1);
       // We don't need to synchronize since we're using single executor
@@ -39,8 +38,11 @@ public class PrivatePoolsTest extends BaseScenarioTest {
                .step(SC).httpRequest(HttpMethod.GET)
                   .path("/")
                   .handler()
-                     .status((request, status) -> {
-                        connection.setObject(request.session, request.connection());
+                     .status(() -> {
+                        Access connection = SessionFactory.access("connection");
+                        return (request, status) -> {
+                           connection.setObject(request.session, request.connection());
+                        };
                      })
                   .endHandler()
                .endStep()
@@ -54,9 +56,12 @@ public class PrivatePoolsTest extends BaseScenarioTest {
                      .header(HttpHeaderNames.CACHE_CONTROL, "no-cache")
                   .endHeaders()
                   .handler()
-                     .status((request, status) -> {
-                        ctx.assertEquals(connection.getObject(request.session), request.connection());
-                        runningSessions.add(request.session);
+                     .status(() -> {
+                        Access connection = SessionFactory.access("connection");
+                        return (request, status) -> {
+                           ctx.assertEquals(connection.getObject(request.session), request.connection());
+                           runningSessions.add(request.session);
+                        };
                      });
       // @formatter:on
       runScenario();

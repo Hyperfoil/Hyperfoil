@@ -127,7 +127,7 @@ public class QueueProcessor implements Processor, ResourceUtilizer {
          Locator locator = Locator.current();
          SequenceBuilder originalSequence = locator.scenario().findSequence(this.sequence);
          generatedSeqName = String.format("%s_queue_%08x", this.sequence, ThreadLocalRandom.current().nextInt());
-         SequenceBuilder newSequence = locator.scenario().sequence(generatedSeqName);
+         SequenceBuilder newSequence = locator.scenario().sequence(generatedSeqName).concurrency(concurrency);
          newSequence.readFrom(originalSequence);
          newSequence.step(s -> {
             Queue queue = (Queue) varAccess.getObject(s);

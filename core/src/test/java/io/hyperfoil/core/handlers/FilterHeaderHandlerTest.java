@@ -2,6 +2,7 @@ package io.hyperfoil.core.handlers;
 
 import org.junit.Test;
 
+import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.core.http.BaseMockConnection;
@@ -61,6 +62,7 @@ public class FilterHeaderHandlerTest {
    @Test
    public void testMatchVar() {
       ExpectProcessor expect = new ExpectProcessor().expect(0, 6, true);
+      Locator.push(Locator.forTesting());
       FilterHeaderHandler handler = new FilterHeaderHandler.Builder()
             .processor(f -> expect)
             .header()
@@ -71,6 +73,7 @@ public class FilterHeaderHandlerTest {
       Access access = SessionFactory.access("myVar");
       access.declareObject(request.session);
       access.setObject(request.session, "Foo");
+      Locator.pop();
 
       handler.beforeHeaders(request);
       handler.handleHeader(request, "foo", "barxxx");

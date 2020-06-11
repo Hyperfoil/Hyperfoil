@@ -22,8 +22,8 @@ public class SetAction implements Action, ResourceUtilizer {
    private final Access var;
    private final SerializableFunction<Session, Object> valueSupplier;
 
-   public SetAction(String var, SerializableFunction<Session, Object> valueSupplier) {
-      this.var = SessionFactory.access(var);
+   public SetAction(Access var, SerializableFunction<Session, Object> valueSupplier) {
+      this.var = var;
       this.valueSupplier = valueSupplier;
    }
 
@@ -118,11 +118,11 @@ public class SetAction implements Action, ResourceUtilizer {
          }
          if (value != null) {
             Object myValue = value;
-            return new SetAction(var, s -> myValue);
+            return new SetAction(SessionFactory.access(var), s -> myValue);
          } else if (objectArray != null) {
-            return new SetAction(var, objectArray.build());
+            return new SetAction(SessionFactory.access(var), objectArray.build());
          } else {
-            return new SetAction(var, intArray.build());
+            return new SetAction(SessionFactory.access(var), intArray.build());
          }
       }
    }

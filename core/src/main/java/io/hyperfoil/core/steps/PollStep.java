@@ -4,11 +4,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiConsumer;
-import java.util.function.BiPredicate;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Predicate;
 
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
@@ -16,23 +11,28 @@ import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.core.builders.BaseStepBuilder;
 import io.hyperfoil.core.session.SessionFactory;
+import io.hyperfoil.function.SerializableBiConsumer;
+import io.hyperfoil.function.SerializableBiPredicate;
+import io.hyperfoil.function.SerializableConsumer;
+import io.hyperfoil.function.SerializableFunction;
+import io.hyperfoil.function.SerializablePredicate;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
 public class PollStep<T> implements Step, ResourceUtilizer {
    private static final Logger log = LoggerFactory.getLogger(PollStep.class);
 
-   private final Function<Session, T> provider;
+   private final SerializableFunction<Session, T> provider;
    private final Access toVar;
-   private final BiPredicate<Session, T> filter;
-   private final BiConsumer<Session, T> recycler;
+   private final SerializableBiPredicate<Session, T> filter;
+   private final SerializableBiConsumer<Session, T> recycler;
    private final long periodMs;
    private final int maxRetries;
 
-   public PollStep(Function<Session, T> provider, String toVar, BiPredicate<Session, T> filter, BiConsumer<Session, T> recycler, long periodMs, int maxRetries) {
+   public PollStep(SerializableFunction<Session, T> provider, Access toVar, SerializableBiPredicate<Session, T> filter, SerializableBiConsumer<Session, T> recycler, long periodMs, int maxRetries) {
       this.provider = provider;
       this.filter = filter;
-      this.toVar = SessionFactory.access(toVar);
+      this.toVar = toVar;
       this.recycler = recycler;
       this.periodMs = periodMs;
       this.maxRetries = maxRetries;
@@ -69,25 +69,25 @@ public class PollStep<T> implements Step, ResourceUtilizer {
     * Periodically tries to insert object into session variable.
     */
    public static class Builder<T> extends BaseStepBuilder<Builder<T>> {
-      private final Function<Session, T> provider;
+      private final SerializableFunction<Session, T> provider;
       private final String var;
-      private BiPredicate<Session, T> filter = (s, o) -> true;
-      private BiConsumer<Session, T> recycler;
+      private SerializableBiPredicate<Session, T> filter = (s, o) -> true;
+      private SerializableBiConsumer<Session, T> recycler;
       private long periodMs = 50;
       private int maxRetries = 16;
 
-      public Builder(Function<Session, T> provider, String var) {
+      public Builder(SerializableFunction<Session, T> provider, String var) {
          this.provider = provider;
          this.var = var;
       }
 
-      public Builder<T> filter(BiPredicate<Session, T> filter, BiConsumer<Session, T> recycler) {
+      public Builder<T> filter(SerializableBiPredicate<Session, T> filter, SerializableBiConsumer<Session, T> recycler) {
          this.filter = Objects.requireNonNull(filter);
          this.recycler = Objects.requireNonNull(recycler);
          return this;
       }
 
-      public Builder<T> filter(Predicate<T> filter, Consumer<T> recycler) {
+      public Builder<T> filter(SerializablePredicate<T> filter, SerializableConsumer<T> recycler) {
          Objects.requireNonNull(filter);
          Objects.requireNonNull(recycler);
          this.filter = (s, ship) -> filter.test(ship);
@@ -119,7 +119,7 @@ public class PollStep<T> implements Step, ResourceUtilizer {
 
       @Override
       public List<Step> build() {
-         return Collections.singletonList(new PollStep<>(provider, var, filter, recycler, periodMs, maxRetries));
+         return Collections.singletonList(new PollStep<>(provider, SessionFactory.access(var), filter, recycler, periodMs, maxRetries));
       }
    }
 }
