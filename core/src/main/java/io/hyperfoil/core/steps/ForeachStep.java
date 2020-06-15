@@ -8,6 +8,7 @@ import org.kohsuke.MetaInfServices;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.StepBuilder;
+import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.session.Access;
@@ -41,7 +42,13 @@ public class ForeachStep extends DependencyStep implements ResourceUtilizer {
       int i = 0;
       for (; i < array.length; i++) {
          if (!array[i].isSet()) break;
-         session.phase().scenario().sequence(sequence).instantiate(session, i);
+         SequenceInstance instance = session.startSequence(sequence, Session.ConcurrencyPolicy.FAIL);
+         // This is a bit fragile; we rely on the fact that
+         // 1) instance always gets the lowest possible index
+         // 2) this loop starts sequences all at once, so the sequence cannot finish before we start them all
+         if (instance.index() != i) {
+            throw new IllegalStateException("This step assumes that there are no already running instances of " + sequence);
+         }
       }
       if (counterVar != null) {
          counterVar.setInt(session, i);

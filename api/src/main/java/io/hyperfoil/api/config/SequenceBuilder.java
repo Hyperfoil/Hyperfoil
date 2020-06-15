@@ -20,6 +20,7 @@
 
 package io.hyperfoil.api.config;
 
+import io.hyperfoil.api.session.Session;
 import io.hyperfoil.function.SerializableSupplier;
 
 /**
@@ -79,7 +80,7 @@ public class SequenceBuilder extends BaseSequenceBuilder {
       String nextSequence = this.nextSequence;
       if (nextSequence != null) {
          step(s -> {
-            s.nextSequence(nextSequence);
+            s.startSequence(nextSequence, Session.ConcurrencyPolicy.FAIL);
             return true;
          });
       }
@@ -87,12 +88,12 @@ public class SequenceBuilder extends BaseSequenceBuilder {
       Locator.pop();
    }
 
-   public Sequence build(SerializableSupplier<Phase> phase) {
+   public Sequence build(SerializableSupplier<Phase> phase, int offset) {
       if (sequence != null) {
          return sequence;
       }
       Locator.push(createLocator());
-      sequence = new SequenceImpl(phase, this.name, id, this.concurrency, buildSteps().toArray(new Step[0]));
+      sequence = new SequenceImpl(phase, this.name, id, this.concurrency, offset, buildSteps().toArray(new Step[0]));
       Locator.pop();
       return sequence;
    }

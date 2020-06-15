@@ -91,7 +91,7 @@ public interface Session {
 
    void reset();
 
-   void nextSequence(String name);
+   SequenceInstance startSequence(String name, ConcurrencyPolicy policy);
 
    void stop();
 
@@ -102,10 +102,6 @@ public interface Session {
    LimitedPool<HttpRequest> httpRequestPool();
 
    HttpCache httpCache();
-
-   SequenceInstance acquireSequence();
-
-   void enableSequence(SequenceInstance instance);
 
    /**
     * @return Currently executed request, or <code>null</code> if not in scope.
@@ -144,4 +140,12 @@ public interface Session {
    }
 
    interface ResourceKey<R extends Resource> {}
+
+   /**
+    * Behaviour when a new sequence start is requested but the concurrency factor is exceeded.
+    */
+   enum ConcurrencyPolicy {
+      FAIL,
+      WARN,
+   }
 }

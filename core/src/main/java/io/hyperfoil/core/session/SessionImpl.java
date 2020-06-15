@@ -24,6 +24,7 @@ import io.vertx.core.logging.LoggerFactory;
 
 import java.time.Clock;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +45,7 @@ class SessionImpl implements Session, Callable<Void> {
    private final HttpRequest[] requests;
    private final HttpCacheImpl httpCache;
    private final SequenceInstance[] runningSequences;
+   private final BitSet usedSequences;
    private PhaseInstance phase;
    private int lastRunningSequence = -1;
    private SequenceInstance currentSequence;
@@ -68,6 +70,7 @@ class SessionImpl implements Session, Callable<Void> {
       }
       this.requestPool = new LimitedPool<>(this.requests);
       this.runningSequences = new SequenceInstance[scenario.maxSequences()];
+      this.usedSequences = new BitSet(scenario.sumConcurrency());
       this.uniqueId = uniqueId;
       this.httpCache = new HttpCacheImpl(clock);
    }
@@ -314,6 +317,7 @@ class SessionImpl implements Session, Callable<Void> {
                      log.trace("#{} was stopped.");
                      return;
                   }
+                  usedSequences.clear(sequence.definition().offset() + sequence.index());
                   sequencePool.release(sequence);
                   if (i >= lastRunningSequence) {
                      runningSequences[i] = null;
@@ -402,9 +406,53 @@ class SessionImpl implements Session, Callable<Void> {
       }
       resetPhase(phase);
       for (Sequence sequence : phase.definition().scenario().initialSequences()) {
-         sequence.instantiate(this, 0);
+         startSequence(sequence, ConcurrencyPolicy.FAIL);
       }
       proceed();
+   }
+
+   @Override
+   public SequenceInstance startSequence(String name, ConcurrencyPolicy policy) {
+      return startSequence(phase.definition().scenario().sequence(name), policy);
+   }
+
+   private SequenceInstance startSequence(Sequence sequence, ConcurrencyPolicy policy) {
+      SequenceInstance instance = sequencePool.acquire();
+      // Lookup first unused index
+      int index = 0;
+      for (; ; ) {
+         if (sequence.concurrency() > 0 && index >= sequence.concurrency()) {
+            if (instance != null) {
+               sequencePool.release(instance);
+            }
+            if (policy == ConcurrencyPolicy.WARN) {
+               log.warn("Cannot instantiate sequence {}, exceeded maximum concurrency ({})", sequence.name(), sequence.concurrency());
+            } else {
+               log.error("Cannot instantiate sequence {}, exceeded maximum concurrency ({})", sequence.name(), sequence.concurrency());
+               fail(new IllegalStateException("Concurrency limit exceeded"));
+            }
+            return null;
+         } else if (!usedSequences.get(sequence.offset() + index)) {
+            break;
+         }
+         ++index;
+      }
+      if (instance == null) {
+         log.error("Cannot instantiate sequence {}, no free instances.", sequence.name());
+         fail(new IllegalStateException("No free sequence instances"));
+      } else {
+         log.trace("#{} starting sequence {}({})", uniqueId(), sequence.name(), index);
+         usedSequences.set(sequence.offset() + index);
+         instance.reset(sequence, index, sequence.steps());
+
+         if (lastRunningSequence >= runningSequences.length - 1) {
+            throw new IllegalStateException("Maximum number of scheduled sequences exceeded!");
+         }
+         lastRunningSequence++;
+         assert runningSequences[lastRunningSequence] == null;
+         runningSequences[lastRunningSequence] = instance;
+      }
+      return instance;
    }
 
    @Override
@@ -424,6 +472,7 @@ class SessionImpl implements Session, Callable<Void> {
 
    @Override
    public void reset() {
+      assert usedSequences.isEmpty();
       assert sequencePool.isFull();
       assert requestPool.isFull();
       for (int i = 0; i < allVars.size(); ++i) {
@@ -445,14 +494,11 @@ class SessionImpl implements Session, Callable<Void> {
    }
 
    @Override
-   public void nextSequence(String name) {
-      phase.definition().scenario().sequence(name).instantiate(this, 0);
-   }
-
-   @Override
    public void stop() {
       for (int i = 0; i <= lastRunningSequence; ++i) {
-         sequencePool.release(runningSequences[i]);
+         SequenceInstance sequence = runningSequences[i];
+         usedSequences.clear(sequence.definition().offset() + sequence.index());
+         sequencePool.release(sequence);
          runningSequences[i] = null;
       }
       lastRunningSequence = -1;
@@ -488,21 +534,6 @@ class SessionImpl implements Session, Callable<Void> {
    @Override
    public HttpCache httpCache() {
       return httpCache;
-   }
-
-   @Override
-   public SequenceInstance acquireSequence() {
-      return sequencePool.acquire();
-   }
-
-   @Override
-   public void enableSequence(SequenceInstance instance) {
-      if (lastRunningSequence >= runningSequences.length - 1) {
-         throw new IllegalStateException("Maximum number of scheduled sequences exceeded!");
-      }
-      lastRunningSequence++;
-      assert runningSequences[lastRunningSequence] == null;
-      runningSequences[lastRunningSequence] = instance;
    }
 
    @Override

@@ -2,6 +2,8 @@
 name: download embedded resources
 http:
   host: http://localhost:8080
+  # Do not limit concurrency through default connection limits
+  sharedConnections: 17
 phases:
 - testPhase:
     atOnce:
@@ -9,7 +11,26 @@ phases:
       duration: 0
       scenario:
         orderedSequences:
+        - manual:
+          - httpRequest:
+              GET: /foobar/index.html
+              handler:
+                body:
+                  parseHtml:
+                    onEmbeddedResource:
+                      ignoreExternal: true
+                      processor:
+                      - queue:
+                          var: downloadQueue
+                          maxSize: 4
+                          concurrency: 2
+                          sequence: embeddedResource
+                          onCompletion:
+                            set: allFetched <- true
+          - awaitVar: allFetched
+          - clearHttpCache # otherwise we wouldn't download index second time
         - automatic:
+          - unset: allFetched
           - httpRequest:
               GET: /foobar/index.html
               handler:
@@ -24,8 +45,15 @@ phases:
                         onCompletion:
                           set: allFetched <- true
           - awaitVar: allFetched
-          - clearHttpCache # otherwise we wouldn't download index second time
-        - manual:
+          - clearHttpCache # otherwise we wouldn't download index third time
+
+        # THIS CODE IS LEFT AS A LEGACY ONLY AND SHOULD NOT BE CONSIDERED A BEST-PRACTICE EXAMPLE.
+        # Sequence 'automatic' now uses queue, too. Approach shown here is quite fragile
+        # as there's no direct relation between the downloadUrl and newSequence indices;
+        # this works even in case of chunked transfer only because both ArrayRecorder and NewSequence
+        # always pick lowest available index and completion handler in embeddedResourceForArray unsets
+        # the downloadUrl[.]
+        - legacy:
           - setInt: completionLatch <- 0
           - httpRequest:
               GET: /foobar/index.html
@@ -37,33 +65,25 @@ phases:
                       processor:
                       - addToInt: completionLatch += 1
                       - array: downloadUrl[16]
-                      - newSequence:
-                          maxSequences: 16
-                          sequence: embeddedResourceForArray
+                      - newSequence: legacyEmbeddedResource
           - awaitInt:
               var: completionLatch
               equalTo: 0
-          - clearHttpCache # otherwise we wouldn't download index third time
-        - queued:
-          - unset: allFetched
-          - httpRequest:
-              GET: /foobar/index.html
-              handler:
-                body:
-                  parseHtml:
-                    onEmbeddedResource:
-                      ignoreExternal: true
-                      processor:
-                      - queue:
-                          var: downloadQueue
-                          maxSize: 256
-                          concurrency: 8
-                          sequence: embeddedResourceForQueue
-                          onCompletion:
-                            set: allFetched <- true
-          - awaitVar: allFetched
         sequences:
-        - embeddedResourceForArray[16]:
+        - embeddedResource[2]:
+          - httpRequest:
+              GET:
+                fromVar: downloadQueue[.]
+              metric:
+              # Use full url for those matching pattern
+              - .*.js
+              - .*.ico
+              - .*.css
+              # Truncate query parameters but keep the base
+              - (.*.php).* -> $1
+              # Default match (otherwise it would be sequence name)
+              - -> other
+        - legacyEmbeddedResource[16]:
           - httpRequest:
               GET:
                 fromVar: downloadUrl[.]
@@ -78,19 +98,7 @@ phases:
               - -> other
               handler:
                 onCompletion:
-                  addToInt: completionLatch -= 1
-        # We need different sequences as both array in downloadUrl
-        # and queue in downloadQueue are pre-allocated and we cannot reuse the var
-        - embeddedResourceForQueue[8]:
-          - httpRequest:
-              GET:
-                fromVar: downloadQueue[.]
-              metric:
-              # Use full url for those matching pattern
-              - .*.js
-              - .*.ico
-              - .*.css
-              # Truncate query parameters but keep the base
-              - (.*.php).* -> $1
-              # Default match (otherwise it would be sequence name)
-              - -> other
+                # See 'manual' sequence comments - the unset action here makes sure that
+                # downloadUrl and newSequence indices stay in sync.
+                - unset: downloadUrl[.]
+                - addToInt: completionLatch -= 1

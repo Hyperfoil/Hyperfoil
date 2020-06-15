@@ -11,25 +11,17 @@ import io.hyperfoil.api.config.BuilderBase;
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.SequenceBuilder;
-import io.hyperfoil.api.config.Step;
-import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.processor.HttpRequestProcessorBuilder;
 import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.api.processor.Processor;
-import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.ResourceUtilizer;
-import io.hyperfoil.core.data.DataFormat;
 import io.hyperfoil.core.generators.StringGeneratorImplBuilder;
-import io.hyperfoil.core.session.SessionFactory;
-import io.hyperfoil.core.steps.AddToIntAction;
-import io.hyperfoil.core.steps.AwaitIntStep;
 import io.hyperfoil.core.steps.HttpRequestStep;
 import io.hyperfoil.core.steps.PathMetricSelector;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
-import io.hyperfoil.core.steps.UnsetAction;
 import io.hyperfoil.core.util.Trie;
 import io.hyperfoil.core.util.Util;
 import io.hyperfoil.function.SerializableBiFunction;
@@ -405,16 +397,10 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
     * Automates download of embedded resources.
     */
    public static class FetchResourceBuilder implements BuilderBase<FetchResourceBuilder> {
-      private int maxResources;
       private SerializableBiFunction<String, String, String> metricSelector;
-      private Action.Builder onCompletion;
-      // initialized in prepareBuild()
-      private String generatedSeqName;
-      private String downloadUrlVar;
-      private String completionLatch;
+      private QueueProcessor.Builder queue = new QueueProcessor.Builder().concurrency(8);
 
       FetchResourceBuilder() {
-
       }
 
       /**
@@ -424,7 +410,18 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
        * @return Self.
        */
       public FetchResourceBuilder maxResources(int maxResources) {
-         this.maxResources = maxResources;
+         queue.maxSize(maxResources);
+         return this;
+      }
+
+      /**
+       * Maximum number of resources fetched concurrently. Default is 8.
+       *
+       * @param concurrency Max concurrently fetched resources.
+       * @return Self.
+       */
+      public FetchResourceBuilder concurrency(int concurrency) {
+         queue.concurrency(concurrency);
          return this;
       }
 
@@ -453,27 +450,20 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
        * @return Builder.
        */
       public ServiceLoadedBuilderProvider<Action.Builder> onCompletion() {
-         return new ServiceLoadedBuilderProvider<>(Action.Builder.class, this::onCompletion);
+         return queue.onCompletion();
       }
 
       public FetchResourceBuilder onCompletion(Action.Builder a) {
-         if (onCompletion != null) {
-            throw new BenchmarkDefinitionException("Completion action already set!");
-         }
-         onCompletion = a;
+         queue.onCompletion(a);
          return this;
       }
 
       public void prepareBuild() {
-         if (maxResources <= 0) {
-            throw new BenchmarkDefinitionException("maxResources is missing or invalid.");
-         }
          Locator locator = Locator.current();
-         generatedSeqName = String.format("%s_fetchResources_%08x",
+         String generatedSequenceName = String.format("%s_fetchResources_%08x",
                locator.sequence().name(), ThreadLocalRandom.current().nextInt());
-         downloadUrlVar = generatedSeqName + "_url";
-         completionLatch = generatedSeqName + "_latch";
-         SequenceBuilder sequence = locator.scenario().sequence(generatedSeqName).concurrency(maxResources);
+         String downloadUrlVar = generatedSequenceName + "_url";
+
 
          HttpRequestStep.Builder requestBuilder = new HttpRequestStep.Builder().sync(false).method(HttpMethod.GET);
          requestBuilder.path(
@@ -484,79 +474,16 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
             // Rather than using auto-generated sequence name we'll use the full path
             requestBuilder.metric((authority, path) -> authority != null ? authority + path : path);
          }
-         requestBuilder.handler().onCompletion(new AddToIntAction.Builder().var(completionLatch).value(-1));
+         SequenceBuilder sequence = locator.scenario().sequence(generatedSequenceName);
          sequence.stepBuilder(requestBuilder);
+         queue.var(downloadUrlVar).sequence(sequence, requestBuilder.handler()::onCompletion);
          // As we're preparing build, the list of sequences-to-be-prepared is already final and we need to prepare
          // this one manually
-         sequence.prepareBuild();
-
-         Action onCompletion = this.onCompletion.build();
-         // We add unset step for cases where the step is retried and it's not sync
-         // Note: we should push different locators for resolving access in these steps but since
-         // we are in full control of the completionLatch this is in practice not necessary.
-         locator.sequence().insertAfter(locator)
-               .step(new AwaitIntStep(SessionFactory.access(completionLatch), x -> x == 0))
-               .step(new StepBuilder.ActionStep(new UnsetAction(SessionFactory.access(completionLatch))))
-               .step(new ResourceUtilizingStep(onCompletion));
+         queue.prepareBuild();
       }
 
-      public FetchResourcesAdapter build() {
-         return new FetchResourcesAdapter(SessionFactory.access(completionLatch), new MultiProcessor(
-               new ArrayRecorder(SessionFactory.access(downloadUrlVar), DataFormat.STRING, maxResources),
-               new NewSequenceProcessor(maxResources, SessionFactory.access(generatedSeqName + "_cnt"), generatedSeqName)));
-      }
-   }
-
-   private static class ResourceUtilizingStep implements Step, ResourceUtilizer {
-      private final Action action;
-
-      public ResourceUtilizingStep(Action action) {
-         this.action = action;
-      }
-
-      @Override
-      public boolean invoke(Session session) {
-         action.run(session);
-         return true;
-      }
-
-      @Override
-      public void reserve(Session session) {
-         ResourceUtilizer.reserve(session, action);
-      }
-   }
-
-   private static class FetchResourcesAdapter implements Processor, ResourceUtilizer {
-      private final Access completionCounter;
-      private final Processor delegate;
-
-      private FetchResourcesAdapter(Access completionCounter, Processor delegate) {
-         this.completionCounter = completionCounter;
-         this.delegate = delegate;
-      }
-
-      @Override
-      public void before(Session session) {
-         completionCounter.setInt(session, 1);
-         delegate.before(session);
-      }
-
-      @Override
-      public void process(Session session, ByteBuf data, int offset, int length, boolean isLastPart) {
-         completionCounter.addToInt(session, 1);
-         delegate.process(session, data, offset, length, isLastPart);
-      }
-
-      @Override
-      public void after(Session session) {
-         completionCounter.addToInt(session, -1);
-         delegate.after(session);
-      }
-
-      @Override
-      public void reserve(Session session) {
-         completionCounter.declareInt(session);
-         ResourceUtilizer.reserve(session, delegate);
+      public Processor build() {
+         return queue.build(false);
       }
    }
 

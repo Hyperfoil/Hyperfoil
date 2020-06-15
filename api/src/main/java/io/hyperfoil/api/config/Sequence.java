@@ -36,7 +36,10 @@ public interface Sequence extends Serializable {
 
    int concurrency();
 
-   void instantiate(Session session, int id);
+   /**
+    * @return Index for first instance for cases where we need an array of all concurrent instances.
+    */
+   int offset();
 
    void reserve(Session session);
 

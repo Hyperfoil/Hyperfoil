@@ -1,6 +1,7 @@
 package io.hyperfoil.core.handlers;
 
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Consumer;
 
 import org.kohsuke.MetaInfServices;
 
@@ -17,6 +18,7 @@ import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 import io.hyperfoil.core.data.DataFormat;
 import io.hyperfoil.core.data.Queue;
+import io.hyperfoil.core.session.ObjectVar;
 import io.hyperfoil.core.session.SessionFactory;
 import io.netty.buffer.ByteBuf;
 
@@ -27,8 +29,10 @@ public class QueueProcessor implements Processor, ResourceUtilizer {
    private final String sequence;
    private final int concurrency;
    private final Action onCompletion;
+   private final Session.ResourceKey<Queue> key;
 
-   public QueueProcessor(Access var, int maxSize, DataFormat format, String sequence, int concurrency, Action onCompletion) {
+   public QueueProcessor(Session.ResourceKey<Queue> key, Access var, int maxSize, DataFormat format, String sequence, int concurrency, Action onCompletion) {
+      this.key = key;
       this.var = var;
       this.maxSize = maxSize;
       this.format = format;
@@ -37,37 +41,35 @@ public class QueueProcessor implements Processor, ResourceUtilizer {
       this.onCompletion = onCompletion;
    }
 
-   private Queue queue(Session session) {
-      return (Queue) var.getObject(session);
-   }
-
    @Override
    public void before(Session session) {
-      Queue queue = queue(session);
+      Queue queue = session.getResource(key);
       queue.reset();
    }
 
    @Override
    public void process(Session session, ByteBuf data, int offset, int length, boolean isLastPart) {
       ensureDefragmented(isLastPart);
-      Queue queue = queue(session);
+      Queue queue = session.getResource(key);
       Object value = format.convert(data, offset, length);
       queue.push(session, value);
    }
 
    @Override
    public void after(Session session) {
-      Queue queue = queue(session);
+      Queue queue = session.getResource(key);
       queue.producerComplete(session);
    }
 
    @Override
    public void reserve(Session session) {
       var.declareObject(session);
-      if (var.isSet(session)) {
-         throw new BenchmarkDefinitionException("Queue is already defined in " + var);
+      // If there are multiple concurrent requests all the data end up in single queue;
+      // there's no way to set up different output var so merging them is the only useful behaviour.
+      if (!var.isSet(session)) {
+         var.setObject(session, ObjectVar.newArray(session, concurrency));
       }
-      var.setObject(session, new Queue(session, var.toString(), maxSize, concurrency, sequence, onCompletion));
+      session.declareResource(key, () -> new Queue(var, maxSize, concurrency, sequence, onCompletion), true);
       ResourceUtilizer.reserve(session, onCompletion);
    }
 
@@ -80,8 +82,10 @@ public class QueueProcessor implements Processor, ResourceUtilizer {
       private int concurrency;
       private String sequence;
       private Action.Builder onCompletion;
-      private String generatedSeqName;
       private Access varAccess;
+      private Session.ResourceKey<Queue> key;
+      private SequenceBuilder sequenceBuilder;
+      private Consumer<Action.Builder> sequenceCompletion;
 
       public Builder var(String var) {
          this.var = var;
@@ -108,11 +112,17 @@ public class QueueProcessor implements Processor, ResourceUtilizer {
          return this;
       }
 
+      public Builder sequence(SequenceBuilder sequenceBuilder, Consumer<Action.Builder> sequenceCompletion) {
+         this.sequenceBuilder = sequenceBuilder;
+         this.sequenceCompletion = sequenceCompletion;
+         return this;
+      }
+
       public ServiceLoadedBuilderProvider<Action.Builder> onCompletion() {
          return new ServiceLoadedBuilderProvider<>(Action.Builder.class, this::onCompletion);
       }
 
-      private Builder onCompletion(Action.Builder onCompletion) {
+      public Builder onCompletion(Action.Builder onCompletion) {
          this.onCompletion = onCompletion;
          return this;
       }
@@ -123,24 +133,39 @@ public class QueueProcessor implements Processor, ResourceUtilizer {
             throw new BenchmarkDefinitionException("Missing 'var' to store the queue.");
          }
          varAccess = SessionFactory.access(var);
+         key = new Session.ResourceKey<Queue>() {};
 
          Locator locator = Locator.current();
-         SequenceBuilder originalSequence = locator.scenario().findSequence(this.sequence);
-         generatedSeqName = String.format("%s_queue_%08x", this.sequence, ThreadLocalRandom.current().nextInt());
-         SequenceBuilder newSequence = locator.scenario().sequence(generatedSeqName).concurrency(concurrency);
-         newSequence.readFrom(originalSequence);
-         newSequence.step(s -> {
-            Queue queue = (Queue) varAccess.getObject(s);
-            queue.consumed(s, s.currentSequence().index());
-            return true;
-         });
+         if (sequence != null && sequenceBuilder != null) {
+            throw new BenchmarkDefinitionException("Cannot set sequence using both name and builder.");
+         } else if (sequence == null && sequenceBuilder == null) {
+            throw new BenchmarkDefinitionException("No sequence was set!");
+         }
+         if (sequenceBuilder == null) {
+            SequenceBuilder originalSequence = locator.scenario().findSequence(sequence);
+            String generatedSeqName = String.format("%s_queue_%08x", this.sequence, ThreadLocalRandom.current().nextInt());
+            sequenceBuilder = locator.scenario().sequence(generatedSeqName);
+            sequenceBuilder.readFrom(originalSequence);
+         }
+         if (sequenceCompletion == null) {
+            sequenceBuilder.step(s -> {
+               s.getResource(key).consumed(s);
+               return true;
+            });
+         } else {
+            sequenceCompletion.accept(() -> s -> s.getResource(key).consumed(s));
+         }
+         sequenceBuilder.concurrency(concurrency);
          // We must invoke the prepareBuild() in copied sequences manually
-         newSequence.prepareBuild();
+         sequenceBuilder.prepareBuild();
       }
 
       @Override
       public Processor build(boolean fragmented) {
-         QueueProcessor processor = new QueueProcessor(varAccess, maxSize, format, generatedSeqName, concurrency, onCompletion.build());
+         if (maxSize <= 0) {
+            throw new BenchmarkDefinitionException("Maximum size for queue to " + var + " must be set!");
+         }
+         QueueProcessor processor = new QueueProcessor(key, varAccess, maxSize, format, sequenceBuilder.name(), concurrency, onCompletion.build());
          return fragmented ? new DefragProcessor(processor) : processor;
       }
    }

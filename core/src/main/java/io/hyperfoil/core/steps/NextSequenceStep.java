@@ -20,7 +20,7 @@ public class NextSequenceStep implements Step {
 
    @Override
    public boolean invoke(Session session) {
-      session.nextSequence(name);
+      session.startSequence(name, Session.ConcurrencyPolicy.FAIL);
       return true;
    }
 

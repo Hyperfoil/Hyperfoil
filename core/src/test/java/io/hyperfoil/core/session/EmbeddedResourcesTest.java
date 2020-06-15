@@ -27,7 +27,14 @@ public class EmbeddedResourcesTest extends BaseScenarioTest {
       router.route("/foobar/index.html").handler(ctx -> {
          try {
             InputStream index = getClass().getClassLoader().getResourceAsStream("data/EmbeddedResourcesTest_index.html");
-            ctx.response().end(Util.toString(index));
+            String html = Util.toString(index);
+            // We'll send the body in two chunks to make sure the code works even if the body is not delivered in one row
+            ctx.response().setChunked(true);
+            int bodyStartIndex = html.indexOf("<body>");
+            ctx.response().write(html.substring(0, bodyStartIndex), result -> vertx.setTimer(100, ignores -> {
+               ctx.response().write(html.substring(bodyStartIndex));
+               ctx.response().end();
+            }));
          } catch (IOException e) {
             ctx.response().setStatusCode(500).end();
          }
@@ -44,7 +51,7 @@ public class EmbeddedResourcesTest extends BaseScenarioTest {
       for (Map.Entry<String, List<StatisticsSnapshot>> entry : stats.entrySet()) {
          String name = entry.getKey();
          int hits;
-         if (name.equals("automatic") || name.equals("manual") || name.equals("queued")) {
+         if (name.equals("automatic") || name.equals("manual") || name.equals("legacy")) {
             hits = 1;
          } else {
             assertThat(name).matches(".*\\.(css|js|ico|php)");

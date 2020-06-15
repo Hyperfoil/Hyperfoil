@@ -5,7 +5,6 @@ import java.util.List;
 
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.core.data.Queue;
 
 class SequenceScopedAccess implements Access {
    private final String key;
@@ -185,8 +184,6 @@ class SequenceScopedAccess implements Access {
          return Array.get(collection, index);
       } else if (collection instanceof List) {
          return ((List) collection).get(index);
-      } else if (collection instanceof Queue) {
-         return ((Queue) collection).get(index);
       } else {
          throw new IllegalStateException("Unknown type to access by index: " + collection);
       }

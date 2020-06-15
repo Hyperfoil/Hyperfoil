@@ -24,6 +24,7 @@ import io.hyperfoil.function.SerializableSupplier;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**
@@ -32,8 +33,8 @@ import java.util.stream.Collectors;
 public class ScenarioBuilder implements Rewritable<ScenarioBuilder> {
 
    private final PhaseBuilder<?> phaseBuilder;
-   private Collection<SequenceBuilder> initialSequences = new ArrayList<>();
-   private Collection<SequenceBuilder> sequences = new ArrayList<>();
+   private List<SequenceBuilder> initialSequences = new ArrayList<>();
+   private List<SequenceBuilder> sequences = new ArrayList<>();
    private Collection<String> objectVars = new ArrayList<>();
    private Collection<String> intVars = new ArrayList<>();
    private Scenario scenario;
@@ -112,9 +113,24 @@ public class ScenarioBuilder implements Rewritable<ScenarioBuilder> {
       if (initialSequences.isEmpty()) {
          throw new BenchmarkDefinitionException("No initial sequences in phase " + endScenario().name());
       }
+
+      Sequence[] initialSequences = new Sequence[this.initialSequences.size()];
+      int offset = 0;
+      for (int i = 0; i < this.initialSequences.size(); i++) {
+         Sequence sequence = this.initialSequences.get(i).build(phase, offset);
+         initialSequences[i] = sequence;
+         offset += sequence.concurrency() > 0 ? sequence.concurrency() : 1;
+      }
+      Sequence[] sequences = new Sequence[this.sequences.size()];
+      for (int i = 0; i < this.sequences.size(); i++) {
+         Sequence sequence = this.sequences.get(i).build(phase, offset);
+         sequences[i] = sequence;
+         offset += sequence.concurrency() > 0 ? sequence.concurrency() : 1;
+      }
+
       return scenario = new Scenario(
-            initialSequences.stream().map(sequenceBuilder -> sequenceBuilder.build(phase)).toArray(Sequence[]::new),
-            sequences.stream().map(sequenceBuilder1 -> sequenceBuilder1.build(phase)).toArray(Sequence[]::new),
+            initialSequences,
+            sequences,
             objectVars.toArray(new String[0]),
             intVars.toArray(new String[0]),
             maxRequests,

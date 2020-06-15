@@ -1,7 +1,6 @@
 package io.hyperfoil.api.config;
 
 import io.hyperfoil.api.session.ResourceUtilizer;
-import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.function.SerializableSupplier;
 import io.vertx.core.logging.Logger;
@@ -14,13 +13,15 @@ class SequenceImpl implements Sequence {
    private final String name;
    private final int id;
    private final int concurrency;
+   private final int offset;
    private final Step[] steps;
 
-   public SequenceImpl(SerializableSupplier<Phase> phase, String name, int id, int concurrency, Step[] steps) {
+   public SequenceImpl(SerializableSupplier<Phase> phase, String name, int id, int concurrency, int offset, Step[] steps) {
       this.phase = phase;
       this.name = name;
       this.id = id;
       this.concurrency = concurrency;
+      this.offset = offset;
       this.steps = steps;
    }
 
@@ -35,15 +36,8 @@ class SequenceImpl implements Sequence {
    }
 
    @Override
-   public void instantiate(Session session, int index) {
-      SequenceInstance instance = session.acquireSequence();
-      if (instance == null) {
-         log.error("Cannot instantiate sequence {}({}), no free instances.", name, id);
-         session.fail(new IllegalStateException("No free sequence instances"));
-      } else {
-         instance.reset(this, index, steps);
-         session.enableSequence(instance);
-      }
+   public int offset() {
+      return offset;
    }
 
    @Override

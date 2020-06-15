@@ -19,6 +19,7 @@ import io.vertx.core.logging.LoggerFactory;
 
 public class ArrayRecorder implements Processor, ResourceUtilizer {
    private static final Logger log = LoggerFactory.getLogger(ArrayRecorder.class);
+   private static final boolean trace = log.isTraceEnabled();
    private final Access toVar;
    private final DataFormat format;
    private final int maxSize;
@@ -43,6 +44,9 @@ public class ArrayRecorder implements Processor, ResourceUtilizer {
       Object value = format.convert(data, offset, length);
       for (int i = 0; i < array.length; ++i) {
          if (array[i].isSet()) continue;
+         if (trace) {
+            log.trace("#{} Set {}[{}] <- {}", session.uniqueId(), toVar.toString(), i, value);
+         }
          array[i].set(value);
          return;
       }

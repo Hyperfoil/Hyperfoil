@@ -1,41 +1,28 @@
 package io.hyperfoil.core.handlers;
 
-
-import java.util.concurrent.ThreadLocalRandom;
-
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
-import io.hyperfoil.api.config.Locator;
+import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.processor.RequestProcessorBuilder;
-import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.api.session.ResourceUtilizer;
-import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.util.Util;
 import io.netty.buffer.ByteBuf;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-public class NewSequenceProcessor implements Processor, ResourceUtilizer {
+public class NewSequenceProcessor implements Processor {
    private static final Logger log = LoggerFactory.getLogger(NewSequenceProcessor.class);
    private static final boolean trace = log.isTraceEnabled();
 
-   private final int maxSequences;
-   private final Access counterVar;
    private final String sequence;
+   private final Session.ConcurrencyPolicy policy;
 
-   public NewSequenceProcessor(int maxSequences, Access counterVar, String sequence) {
-      this.maxSequences = maxSequences;
-      this.counterVar = counterVar;
+   public NewSequenceProcessor(String sequence, Session.ConcurrencyPolicy policy) {
       this.sequence = sequence;
-   }
-
-   @Override
-   public void before(Session session) {
-      counterVar.setInt(session, 0);
+      this.policy = policy;
    }
 
    @Override
@@ -43,22 +30,12 @@ public class NewSequenceProcessor implements Processor, ResourceUtilizer {
       if (!isLastPart) {
          return;
       }
-      int counter = counterVar.addToInt(session, 1);
-      if (counter >= maxSequences) {
-         log.debug("#{} Exceeded maxSequences, not creating another sequence", session.uniqueId());
-         return;
-      }
       if (trace) {
          String value = Util.toString(data, offset, length);
-         log.trace("#{}, Creating new sequence {}, id {}, value (possibly incomplete) {}", session.uniqueId(),
-               sequence, counter, value);
+         log.trace("#{}, Creating new sequence {}, value (possibly incomplete) {}", session.uniqueId(),
+               sequence, value);
       }
-      session.phase().scenario().sequence(sequence).instantiate(session, counter);
-   }
-
-   @Override
-   public void reserve(Session session) {
-      counterVar.declareInt(session);
+      session.startSequence(sequence, policy);
    }
 
    /**
@@ -66,10 +43,18 @@ public class NewSequenceProcessor implements Processor, ResourceUtilizer {
     */
    @MetaInfServices(RequestProcessorBuilder.class)
    @Name("newSequence")
-   public static class Builder implements RequestProcessorBuilder {
-      private int maxSequences = -1;
-      private String counterVar;
+   public static class Builder implements RequestProcessorBuilder, InitFromParam<Builder> {
       private String sequence;
+      private Session.ConcurrencyPolicy policy = Session.ConcurrencyPolicy.FAIL;
+
+      /**
+       * @param param Sequence name.
+       * @return Self.
+       */
+      @Override
+      public Builder init(String param) {
+         return sequence(param);
+      }
 
       /**
        * Maximum number of sequences instantiated.
@@ -77,8 +62,9 @@ public class NewSequenceProcessor implements Processor, ResourceUtilizer {
        * @param maxSequences Number of sequences.
        * @return Self.
        */
+      @Deprecated
       public Builder maxSequences(int maxSequences) {
-         this.maxSequences = maxSequences;
+         log.warn("Property nextSequence.maxSequences is deprecated. Use concurrency setting in target sequence instead.");
          return this;
       }
 
@@ -88,8 +74,9 @@ public class NewSequenceProcessor implements Processor, ResourceUtilizer {
        * @param counterVar Variable name.
        * @return Self.
        */
+      @Deprecated
       public Builder counterVar(String counterVar) {
-         this.counterVar = counterVar;
+         log.warn("Property nextSequence.maxSequences is deprecated. Counters are held internally.");
          return this;
       }
 
@@ -104,20 +91,23 @@ public class NewSequenceProcessor implements Processor, ResourceUtilizer {
          return this;
       }
 
+      /**
+       * What should we do when the sequence concurrency factor is exceeded.
+       *
+       * @param policy The behaviour.
+       * @return Self.
+       */
+      public Builder concurrencyPolicy(Session.ConcurrencyPolicy policy) {
+         this.policy = policy;
+         return this;
+      }
+
       @Override
       public NewSequenceProcessor build(boolean fragmented) {
-         if (maxSequences <= 0) {
-            throw new BenchmarkDefinitionException("maxSequences is missing or invalid.");
-         }
          if (sequence == null) {
             throw new BenchmarkDefinitionException("Undefined sequence template");
          }
-         String counterVar = this.counterVar;
-         if (counterVar == null) {
-            counterVar = String.format("%s_newSequence_counter_%08x",
-                  Locator.current().sequence().name(), ThreadLocalRandom.current().nextInt());
-         }
-         return new NewSequenceProcessor(maxSequences, SessionFactory.access(counterVar), sequence);
+         return new NewSequenceProcessor(sequence, policy);
       }
    }
 }

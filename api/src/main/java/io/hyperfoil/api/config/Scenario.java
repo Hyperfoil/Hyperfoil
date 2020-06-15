@@ -30,8 +30,9 @@ public class Scenario implements Serializable {
    private final String[] objectVars;
    private final String[] intVars;
    private final Map<String, Sequence> sequenceMap;
-   private int maxRequests;
-   private int maxSequences;
+   private final int maxRequests;
+   private final int maxSequences;
+   private final int sumConcurrency;
 
    public Scenario(Sequence[] initialSequences, Sequence[] sequences, String[] objectVars, String[] intVars, int maxRequests, int maxSequences) {
       this.initialSequences = initialSequences;
@@ -40,7 +41,8 @@ public class Scenario implements Serializable {
       this.intVars = intVars;
       this.maxRequests = maxRequests;
       this.maxSequences = maxSequences;
-      sequenceMap = Stream.of(sequences).collect(Collectors.toMap(s -> s.name(), Function.identity()));
+      sequenceMap = Stream.of(sequences).collect(Collectors.toMap(Sequence::name, Function.identity()));
+      sumConcurrency = sequenceMap.values().stream().mapToInt(Sequence::concurrency).sum();
    }
 
    public Sequence[] initialSequences() {
@@ -65,6 +67,10 @@ public class Scenario implements Serializable {
 
    public int maxSequences() {
       return maxSequences;
+   }
+
+   public int sumConcurrency() {
+      return sumConcurrency;
    }
 
    public Sequence sequence(String name) {

@@ -92,7 +92,9 @@ public class SequenceInstance {
    }
 
    public StringBuilder appendTo(StringBuilder sb) {
-      return sb.append(sequence.name()).append('(').append(index).append(")(").append(currentStep + 1).append('/').append(steps == null ? 0 : steps.length).append(')');
+      return sb.append(sequence != null ? sequence.name() : "<none>")
+            .append('(').append(index).append(")(")
+            .append(currentStep + 1).append('/').append(steps == null ? 0 : steps.length).append(')');
    }
 
    public void breakSequence(Session session) {
@@ -100,5 +102,13 @@ public class SequenceInstance {
       if (trace) {
          log.trace("#{} was interrupted", session.uniqueId());
       }
+   }
+
+   public void restart(Session session) {
+      log.trace("#{} Restarting current sequence.", session.uniqueId());
+      // FIXME: hack - setting this to -1 causes the progress() increment to 0 and start from the beginning
+      // Steps cannot use just reset(...) because the increment after a non-blocking step would skip the first
+      // step in this sequence.
+      this.currentStep = -1;
    }
 }
