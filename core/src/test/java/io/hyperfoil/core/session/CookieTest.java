@@ -3,7 +3,6 @@ package io.hyperfoil.core.session;
 import static io.hyperfoil.core.builders.StepCatalog.SC;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.List;
 import java.util.Map;
 
 import org.junit.Test;
@@ -48,9 +47,9 @@ public class CookieTest extends BaseScenarioTest {
                .endStep()
             .endSequence();
       // @formatter:on
-      Map<String, List<StatisticsSnapshot>> stats = runScenario();
-      StatisticsSnapshot test1 = assertSingleItem(stats.get("test1"));
-      StatisticsSnapshot test2 = assertSingleItem(stats.get("test1"));
+      Map<String, StatisticsSnapshot> stats = runScenario();
+      StatisticsSnapshot test1 = stats.get("test1");
+      StatisticsSnapshot test2 = stats.get("test1");
       assertThat(test1.status_5xx).isEqualTo(0);
       assertThat(test1.status_2xx).isEqualTo(1);
       assertThat(test2.status_5xx).isEqualTo(0);

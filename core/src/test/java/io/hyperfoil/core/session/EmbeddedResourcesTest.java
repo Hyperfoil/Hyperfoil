@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.List;
 import java.util.Map;
 
 import org.junit.Test;
@@ -46,9 +45,9 @@ public class EmbeddedResourcesTest extends BaseScenarioTest {
 
    @Test
    public void test() {
-      Map<String, List<StatisticsSnapshot>> stats = runScenario();
+      Map<String, StatisticsSnapshot> stats = runScenario();
       assertThat(stats.size()).isEqualTo(6);
-      for (Map.Entry<String, List<StatisticsSnapshot>> entry : stats.entrySet()) {
+      for (Map.Entry<String, StatisticsSnapshot> entry : stats.entrySet()) {
          String name = entry.getKey();
          int hits;
          if (name.equals("automatic") || name.equals("manual") || name.equals("legacy")) {
@@ -57,12 +56,9 @@ public class EmbeddedResourcesTest extends BaseScenarioTest {
             assertThat(name).matches(".*\\.(css|js|ico|php)");
             hits = 3;
          }
-         List<StatisticsSnapshot> list = entry.getValue();
-         assertThat(list.size()).isEqualTo(hits);
-         for (StatisticsSnapshot snapshot : list) {
-            assertThat(snapshot.requestCount).as(name).isEqualTo(1);
-            assertThat(snapshot.status_2xx).as(name).isEqualTo(1);
-         }
+         StatisticsSnapshot snapshot = entry.getValue();
+         assertThat(snapshot.requestCount).as(name).isEqualTo(hits);
+         assertThat(snapshot.status_2xx).as(name).isEqualTo(hits);
       }
    }
 }

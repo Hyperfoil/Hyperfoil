@@ -2,8 +2,6 @@ package io.hyperfoil.core.session;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 
 import org.junit.Test;
@@ -41,8 +39,8 @@ public class JsonReplaceTest extends BaseScenarioTest {
 
    @Test
    public void test() {
-      Map<String, List<StatisticsSnapshot>> stats = runScenario();
-      stats.values().stream().flatMap(Collection::stream).forEach(s -> assertThat(s.errors()).isEqualTo(0));
-      assertThat(stats.values().stream().flatMap(Collection::stream).mapToInt(s -> s.responseCount).sum()).isEqualTo(2);
+      Map<String, StatisticsSnapshot> stats = runScenario();
+      stats.values().forEach(s -> assertThat(s.errors()).isEqualTo(0));
+      assertThat(stats.values().stream().mapToInt(s -> s.responseCount).sum()).isEqualTo(2);
    }
 }

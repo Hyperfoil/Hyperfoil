@@ -6,7 +6,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
@@ -165,9 +164,9 @@ public class HttpRequestTest extends BaseScenarioTest {
                .autoRangeCheck(false)
                .stopOnInvalid(false);
       // @formatter:on
-      Map<String, List<StatisticsSnapshot>> stats = runScenario();
-      StatisticsSnapshot snapshot0 = stats.get("expectOK").iterator().next();
-      StatisticsSnapshot snapshot1 = stats.get("expectFail").iterator().next();
+      Map<String, StatisticsSnapshot> stats = runScenario();
+      StatisticsSnapshot snapshot0 = stats.get("expectOK");
+      StatisticsSnapshot snapshot1 = stats.get("expectFail");
       assertThat(snapshot0.status_2xx).isEqualTo(1);
       assertThat(snapshot0.status_4xx).isEqualTo(0);
       assertThat(snapshot1.status_2xx).isEqualTo(0);
@@ -189,12 +188,9 @@ public class HttpRequestTest extends BaseScenarioTest {
                .endStep()
             .endSequence();
       // @formatter:on
-      Map<String, List<StatisticsSnapshot>> stats = runScenario();
-      assertThat(assertSingleItem(stats.get("test")).requestCount).isEqualTo(1);
-      List<StatisticsSnapshot> foo = stats.get("x-foo");
-      assertThat(foo.size()).isEqualTo(1);
-      StatisticsSnapshot snapshot = foo.iterator().next();
-      assertThat(snapshot.histogram.getCountAtValue(TimeUnit.MILLISECONDS.toNanos(5))).isEqualTo(1);
+      Map<String, StatisticsSnapshot> stats = runScenario();
+      assertThat(stats.get("test").requestCount).isEqualTo(1);
+      assertThat(stats.get("x-foo").histogram.getCountAtValue(TimeUnit.MILLISECONDS.toNanos(5))).isEqualTo(1);
    }
 
    @Test
@@ -228,8 +224,8 @@ public class HttpRequestTest extends BaseScenarioTest {
                .endStep()
             .endSequence();
       // @formatter:on
-      Map<String, List<StatisticsSnapshot>> stats = runScenario();
-      assertThat(assertSingleItem(stats.get("testFromVar")).status_2xx).isEqualTo(1);
-      assertThat(assertSingleItem(stats.get("testPattern")).status_2xx).isEqualTo(1);
+      Map<String, StatisticsSnapshot> stats = runScenario();
+      assertThat(stats.get("testFromVar").status_2xx).isEqualTo(1);
+      assertThat(stats.get("testPattern").status_2xx).isEqualTo(1);
    }
 }

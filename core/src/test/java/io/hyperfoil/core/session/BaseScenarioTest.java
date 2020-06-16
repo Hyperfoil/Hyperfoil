@@ -1,7 +1,5 @@
 package io.hyperfoil.core.session;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.Protocol;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
@@ -28,9 +26,7 @@ import org.junit.Before;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public abstract class BaseScenarioTest {
@@ -41,10 +37,13 @@ public abstract class BaseScenarioTest {
    protected BenchmarkBuilder benchmarkBuilder;
    protected HttpServer server;
 
-   protected Map<String, List<StatisticsSnapshot>> runScenario() {
-      Map<String, List<StatisticsSnapshot>> stats = new HashMap<>();
-      StatisticsCollector.StatisticsConsumer statisticsConsumer = (phase, stepId, metric, snapshot, countDown)
-            -> stats.computeIfAbsent(metric, n -> new ArrayList<>()).add(snapshot.clone());
+   protected Map<String, StatisticsSnapshot> runScenario() {
+      Map<String, StatisticsSnapshot> stats = new HashMap<>();
+      StatisticsCollector.StatisticsConsumer statisticsConsumer = (phase, stepId, metric, snapshot, countDown) -> {
+         log.debug("Adding stats for {}/{}/{} - #{}: {} requests {} responses", phase, stepId, metric,
+               snapshot.sequenceId, snapshot.requestCount, snapshot.responseCount);
+         snapshot.addInto(stats.computeIfAbsent(metric, n -> new StatisticsSnapshot()));
+      };
       LocalSimulationRunner runner = new LocalSimulationRunner(benchmark(), statisticsConsumer, null);
       runner.run();
       return stats;
@@ -115,11 +114,5 @@ public abstract class BaseScenarioTest {
 
    protected int threads() {
       return 3;
-   }
-
-   protected StatisticsSnapshot assertSingleItem(List<StatisticsSnapshot> list) {
-      assertThat(list).isNotNull();
-      assertThat(list.size()).isEqualTo(1);
-      return list.iterator().next();
    }
 }

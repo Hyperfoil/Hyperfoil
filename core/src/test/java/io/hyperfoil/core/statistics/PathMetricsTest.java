@@ -3,7 +3,6 @@ package io.hyperfoil.core.statistics;
 import static io.hyperfoil.core.builders.StepCatalog.SC;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -49,15 +48,10 @@ public class PathMetricsTest extends BaseScenarioTest {
             .metric(selector)
             .endStep();
 
-      Map<String, List<StatisticsSnapshot>> stats = runScenario();
-      verifyRequest(stats.get("/foo.js"));
-      verifyRequest(stats.get("/bar.php"));
-      verifyRequest(stats.get("others"));
+      Map<String, StatisticsSnapshot> stats = runScenario();
+      assertThat(stats.get("/foo.js").requestCount).isEqualTo(1);
+      assertThat(stats.get("/bar.php").requestCount).isEqualTo(1);
+      assertThat(stats.get("others").requestCount).isEqualTo(1);
    }
 
-   private void verifyRequest(List<StatisticsSnapshot> stats) {
-      assertThat(stats).isNotNull();
-      assertThat(stats.size()).isEqualTo(1);
-      assertThat(stats.iterator().next().requestCount).isEqualTo(1);
-   }
 }

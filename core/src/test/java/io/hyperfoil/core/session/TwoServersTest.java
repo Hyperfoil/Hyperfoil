@@ -3,7 +3,6 @@ package io.hyperfoil.core.session;
 import static io.hyperfoil.core.builders.StepCatalog.SC;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -66,10 +65,10 @@ public class TwoServersTest extends BaseScenarioTest {
             .endStep()
             .step(SC).awaitAllResponses();
       // @formatter:on
-      Map<String, List<StatisticsSnapshot>> stats = runScenario();
-      StatisticsSnapshot s1 = assertSingleItem(stats.get("server1"));
+      Map<String, StatisticsSnapshot> stats = runScenario();
+      StatisticsSnapshot s1 = stats.get("server1");
       assertThat(s1.status_2xx).isEqualTo(1);
-      StatisticsSnapshot s2 = assertSingleItem(stats.get("server2"));
+      StatisticsSnapshot s2 = stats.get("server2");
       assertThat(s2.status_3xx).isEqualTo(1);
    }
 }
