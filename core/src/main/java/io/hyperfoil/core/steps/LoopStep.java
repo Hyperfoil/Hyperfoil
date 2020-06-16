@@ -28,10 +28,11 @@ public class LoopStep implements Step, ResourceUtilizer {
    public boolean invoke(Session session) {
       if (!counterVar.isSet(session)) {
          counterVar.setInt(session, 1);
+         session.startSequence(sequence, Session.ConcurrencyPolicy.FAIL);
       } else if (counterVar.getInt(session) < repeats) {
          counterVar.addToInt(session, 1);
+         session.startSequence(sequence, Session.ConcurrencyPolicy.FAIL);
       }
-      session.startSequence(sequence, Session.ConcurrencyPolicy.FAIL);
       return true;
    }
 
