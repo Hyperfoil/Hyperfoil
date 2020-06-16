@@ -69,7 +69,9 @@ public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.O
 
    public LoopStep.Builder loop(String counterVar, int repeats) {
       // We don't return .steps() because that would be more prone to incorrect nesting
-      return new LoopStep.Builder(parent).counterVar(counterVar).repeats(repeats);
+      LoopStep.Builder builder = new LoopStep.Builder(parent).counterVar(counterVar).repeats(repeats);
+      parent.stepBuilder(builder);
+      return builder;
    }
 
    public ForeachStep.Builder foreach() {
@@ -164,7 +166,9 @@ public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.O
    }
 
    public StopwatchBeginStep.Builder stopwatch() {
-      return new StopwatchBeginStep.Builder(parent);
+      StopwatchBeginStep.Builder builder = new StopwatchBeginStep.Builder(parent);
+      parent.stepBuilder(builder);
+      return builder;
    }
 
    // general
@@ -250,7 +254,7 @@ public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.O
 
    @Override
    public ServiceLoadedBuilderProvider<StepBuilder> serviceLoaded() {
-      return new ServiceLoadedBuilderProvider<>(StepBuilder.class, parent::stepBuilder);
+      return new ServiceLoadedBuilderProvider<>(StepBuilder.class, parent::stepBuilder, parent);
    }
 
    // data

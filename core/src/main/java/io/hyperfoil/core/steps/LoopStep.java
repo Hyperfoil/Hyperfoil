@@ -2,6 +2,7 @@ package io.hyperfoil.core.steps;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import org.kohsuke.MetaInfServices;
 
@@ -14,7 +15,6 @@ import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.session.ResourceUtilizer;
-import io.hyperfoil.core.builders.BaseStepBuilder;
 import io.hyperfoil.core.session.SessionFactory;
 
 public class LoopStep implements Step, ResourceUtilizer {
@@ -71,20 +71,19 @@ public class LoopStep implements Step, ResourceUtilizer {
     */
    @MetaInfServices(StepBuilder.class)
    @Name("loop")
-   public static class Builder extends BaseStepBuilder<Builder> {
+   public static class Builder implements StepBuilder<Builder> {
       private String counterVar;
       private int repeats;
-      private final LoopStepsBuilder steps;
+      private final BaseSequenceBuilder steps;
 
+      // This constructor is going to be used only for service-loaded instantiation
+      // to find the @Name annotation
       public Builder() {
-         this(null);
+         steps = null;
       }
 
       public Builder(BaseSequenceBuilder parent) {
-         steps = new LoopStepsBuilder(parent);
-         if (parent != null) {
-            addTo(parent);
-         }
+         steps = new BaseSequenceBuilder(Objects.requireNonNull(parent)) {};
       }
 
       /**
@@ -114,7 +113,7 @@ public class LoopStep implements Step, ResourceUtilizer {
          throw new BenchmarkDefinitionException("Sequence is not supported anymore; place loop as the first step in a sequence.");
       }
 
-      public LoopStepsBuilder steps() {
+      public BaseSequenceBuilder steps() {
          return steps;
       }
 
@@ -144,12 +143,6 @@ public class LoopStep implements Step, ResourceUtilizer {
          allSteps.addAll(steps.buildSteps());
          allSteps.add(new LoopStep(counter, repeats));
          return allSteps;
-      }
-
-      public class LoopStepsBuilder extends BaseSequenceBuilder {
-         public LoopStepsBuilder(BaseSequenceBuilder parent) {
-            super(parent);
-         }
       }
    }
 }

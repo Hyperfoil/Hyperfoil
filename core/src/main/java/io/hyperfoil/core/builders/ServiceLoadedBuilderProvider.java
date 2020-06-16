@@ -1,5 +1,6 @@
 package io.hyperfoil.core.builders;
 
+import java.lang.reflect.Constructor;
 import java.util.ArrayDeque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -8,7 +9,9 @@ import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
+import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.IncludeBuilders;
 import io.hyperfoil.api.config.InitFromParam;
@@ -23,6 +26,7 @@ public class ServiceLoadedBuilderProvider<B> {
 
    private final Class<B> builderClazz;
    private final Consumer<B> consumer;
+   private final BaseSequenceBuilder parent;
 
    public static synchronized Map<String, BuilderInfo<?>> builders(Class<?> clazz) {
       Map<String, BuilderInfo<?>> builders = BUILDERS.get(clazz);
@@ -68,8 +72,13 @@ public class ServiceLoadedBuilderProvider<B> {
    }
 
    public ServiceLoadedBuilderProvider(Class<B> builderClazz, Consumer<B> consumer) {
+      this(builderClazz, consumer, null);
+   }
+
+   public ServiceLoadedBuilderProvider(Class<B> builderClazz, Consumer<B> consumer, BaseSequenceBuilder parent) {
       this.builderClazz = builderClazz;
       this.consumer = consumer;
+      this.parent = parent;
    }
 
    public ServiceLoadedContract forName(String name, String param) {
@@ -79,7 +88,7 @@ public class ServiceLoadedBuilderProvider<B> {
          throw new BenchmarkDefinitionException(String.format("No builder implementing %s with @Name %s", builderClazz, name));
       }
       try {
-         Object instance = builderInfo.implClazz.getDeclaredConstructor().newInstance();
+         Object instance = newInstance(builderInfo);
          if (param != null && !param.isEmpty()) {
             if (instance instanceof InitFromParam) {
                ((InitFromParam) instance).init(param);
@@ -91,6 +100,23 @@ public class ServiceLoadedBuilderProvider<B> {
       } catch (Exception e) {
          throw new BenchmarkDefinitionException("Failed to instantiate " + builderInfo.implClazz, e);
       }
+   }
+
+   private Object newInstance(BuilderInfo<B> builderInfo) throws InstantiationException, IllegalAccessException, java.lang.reflect.InvocationTargetException {
+      if (parent != null) {
+         Constructor<?> parentCtor = Stream.of(builderInfo.implClazz.getDeclaredConstructors())
+               .filter(ctor -> ctor.getParameterCount() == 1 && ctor.getParameterTypes()[0] == BaseSequenceBuilder.class)
+               .findFirst().orElse(null);
+         if (parentCtor != null) {
+            return parentCtor.newInstance(parent);
+         }
+      }
+      Constructor<?> noArgCtor = Stream.of(builderInfo.implClazz.getDeclaredConstructors())
+            .filter(ctor -> ctor.getParameterCount() == 0).findFirst().orElse(null);
+      if (noArgCtor == null) {
+         throw new BenchmarkDefinitionException("Class " + builderInfo.implClazz.getName() + " does not have a parameterless constructor.");
+      }
+      return noArgCtor.newInstance();
    }
 
    public interface Owner<B> {

@@ -2,6 +2,7 @@ package io.hyperfoil.core.steps;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import org.kohsuke.MetaInfServices;
 
@@ -50,13 +51,14 @@ public class StopwatchBeginStep implements Step, ResourceUtilizer {
    @MetaInfServices(StepBuilder.class)
    @Name("stopwatch")
    public static class Builder extends BaseSequenceBuilder implements StepBuilder<Builder> {
+      // This constructor is going to be used only for service-loaded instantiation
+      // to find the @Name annotation
       public Builder() {
          super(null);
       }
 
       public Builder(BaseSequenceBuilder parent) {
-         super(parent);
-         parent.stepBuilder(this);
+         super(Objects.requireNonNull(parent));
       }
 
       @Override
