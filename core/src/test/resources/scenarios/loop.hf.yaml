@@ -1,0 +1,17 @@
+name: loop
+http:
+  host: http://localhost:8080
+# 10 users will be starting the scenario every second
+usersPerSec: 10
+duration: 5s
+scenario:
+- test:
+  - loop:
+      counterVar: myCounter
+      repeats: 5
+      steps:
+      - httpRequest:
+          GET: /
+  - log:
+      message: "Final value: {}"
+      vars: [ myCounter ]
