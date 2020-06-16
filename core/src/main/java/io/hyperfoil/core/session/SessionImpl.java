@@ -50,6 +50,7 @@ class SessionImpl implements Session, Callable<Void> {
    private int lastRunningSequence = -1;
    private SequenceInstance currentSequence;
    private Request currentRequest;
+   private boolean scheduled;
 
    private HttpDestinationTable httpDestinations;
    private EventExecutor executor;
@@ -258,6 +259,7 @@ class SessionImpl implements Session, Callable<Void> {
 
    @Override
    public Void call() {
+      scheduled = false;
       try {
          runSession();
       } catch (SessionStopException e) {
@@ -457,7 +459,10 @@ class SessionImpl implements Session, Callable<Void> {
 
    @Override
    public void proceed() {
-      executor.submit(this);
+      if (!scheduled) {
+         scheduled = true;
+         executor.submit(this);
+      }
    }
 
    @Override
