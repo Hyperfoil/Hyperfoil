@@ -42,6 +42,8 @@ public interface PhaseInstance {
 
    int agentFirstThreadId();
 
+   void setStatsComplete();
+
    enum Status {
       NOT_STARTED,
       RUNNING,

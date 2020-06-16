@@ -100,7 +100,7 @@ public class LocalSimulationRunner extends SimulationRunnerImpl {
                statusLock.unlock();
             }
          }
-      } while (instances.values().stream().anyMatch(phase -> phase.status() != PhaseInstance.Status.TERMINATED));
+      } while (instances.values().stream().anyMatch(phase -> phase.status() != PhaseInstance.Status.STATS_COMPLETE));
    }
 
    @Override
@@ -108,6 +108,7 @@ public class LocalSimulationRunner extends SimulationRunnerImpl {
       return super.phaseChanged(phase, status, sessionLimitExceeded, error).thenRun(() -> {
          if (status == PhaseInstance.Status.TERMINATED) {
             publishStats(phase);
+            instances.get(phase.name).setStatsComplete();
          }
          statusLock.lock();
          try {

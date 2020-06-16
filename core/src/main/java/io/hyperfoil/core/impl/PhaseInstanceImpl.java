@@ -181,6 +181,15 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       return agentFirstThreadId;
    }
 
+   @Override
+   public void setStatsComplete() {
+      // This method is used only for local simulation (in tests)
+      if (status != Status.TERMINATED) {
+         throw new IllegalStateException();
+      }
+      status = Status.STATS_COMPLETE;
+   }
+
    protected boolean startNewSession() {
       int numActive = activeSessions.incrementAndGet();
       if (numActive < 0) {
