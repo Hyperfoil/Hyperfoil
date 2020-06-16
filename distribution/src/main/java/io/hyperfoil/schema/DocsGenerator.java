@@ -90,7 +90,7 @@ public class DocsGenerator extends BaseGenerator {
          ClassOrInterfaceDeclaration cd = findClass(newBuilder);
          if (cd != null) {
             String inlineParamDocs = findInlineParamDocs(cd);
-            addStep(entry.getKey(), newBuilder, null, InitFromParam.class.isAssignableFrom(newBuilder), inlineParamDocs);
+            addStep(entry.getKey(), newBuilder, InitFromParam.class.isAssignableFrom(newBuilder), inlineParamDocs);
          }
       }
       for (Map.Entry<Class<?>, Docs> entry : docs.entrySet()) {
@@ -256,9 +256,19 @@ public class DocsGenerator extends BaseGenerator {
       }
    }
 
+   private static String javadocToMarkdown(String text) {
+      if (text == null) {
+         return null;
+      }
+      return text.replaceAll("<pre>", "\n```")
+            .replaceAll("</pre>", "```\n")
+            .replaceAll("\\{@code +([^}]*)\\}", "<code>$1</code>")
+            .replaceAll("<p>", "\n\n");
+   }
+
    private String findInlineParamDocs(ClassOrInterfaceDeclaration cd) {
       return cd.findFirst(MethodDeclaration.class, md -> matches(md, "init", String.class))
-            .map(md -> getJavadocParams(md.getJavadoc()).get("param")).orElse(null);
+            .map(md -> javadocToMarkdown(getJavadocParams(md.getJavadoc()).get("param"))).orElse(null);
    }
 
    private MethodDeclaration findMatching(List<MethodDeclaration> methods, Method method) {
@@ -376,6 +386,7 @@ public class DocsGenerator extends BaseGenerator {
    private String getJavadocDescription(NodeWithJavadoc<?> declaration) {
       return declaration == null ? null : declaration.getJavadoc()
             .map(javadoc -> trimEmptyLines(javadoc.getDescription().toText()))
+            .map(DocsGenerator::javadocToMarkdown)
             .map(text -> text.contains("<ul>") ? "{::nomarkdown}" + text + "{:/}" : text)
             .orElse(null);
    }
@@ -390,11 +401,22 @@ public class DocsGenerator extends BaseGenerator {
          if (!lines[lastLine].trim().isEmpty()) break;
       }
       StringBuilder sb = new StringBuilder();
+      boolean preformatted = false;
       for (int i = firstLine; i <= lastLine; ++i) {
+         if (lines[i].contains("<pre>")) {
+            preformatted = true;
+         }
+         if (lines[i].contains("</pre>")) {
+            preformatted = false;
+         }
          if (lines[i].trim().isEmpty()) {
             sb.append("<br>");
          }
-         sb.append(lines[i]).append(" ");
+         if (preformatted) {
+            sb.append(lines[i]).append('\n');
+         } else {
+            sb.append(lines[i]).append(" ");
+         }
       }
       if (sb.length() == 0) {
          return "";
@@ -410,29 +432,20 @@ public class DocsGenerator extends BaseGenerator {
             .orElse(Collections.emptyMap());
    }
 
-   private void addStep(String name, Class<?> builder, String description, boolean inline, String inlineDocs) {
+   private void addStep(String name, Class<?> builder, boolean inline, String inlineDocs) {
       Docs step = steps.get(name);
       if (step == null) {
          step = describeBuilder(builder);
-         if (description == null) {
-            step.ownerDescription = firstLine(step.typeDescription);
-         } else {
-            step.ownerDescription = description;
-         }
-         if (step == null) {
-            return;
-         }
+         step.ownerDescription = firstLine(step.typeDescription);
          steps.put(name, step);
       } else if (step.params.isEmpty()) {
          // The step could have been created from inline-param version in StepCatalog
          Docs docs = describeBuilder(builder);
-         step.typeDescription = description != null ? description : docs.typeDescription;
+         step.typeDescription = docs.typeDescription;
          step.params.putAll(docs.params);
          if (step.ownerDescription == null) {
             step.ownerDescription = firstLine(step.typeDescription);
          }
-      } else if (step.ownerDescription == null && description != null) {
-         step.ownerDescription = description;
       }
       if (step.inlineParam == null && inline) {
          step.inlineParam = inlineDocs;
