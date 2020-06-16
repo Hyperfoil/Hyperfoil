@@ -75,7 +75,6 @@ public class SequenceBuilder extends BaseSequenceBuilder {
 
    @Override
    public void prepareBuild() {
-      Locator.push(createLocator());
       // capture local var to prevent SequenceBuilder serialization
       String nextSequence = this.nextSequence;
       if (nextSequence != null) {
@@ -85,16 +84,13 @@ public class SequenceBuilder extends BaseSequenceBuilder {
          });
       }
       super.prepareBuild();
-      Locator.pop();
    }
 
    public Sequence build(SerializableSupplier<Phase> phase, int offset) {
       if (sequence != null) {
          return sequence;
       }
-      Locator.push(createLocator());
       sequence = new SequenceImpl(phase, this.name, id, this.concurrency, offset, buildSteps().toArray(new Step[0]));
-      Locator.pop();
       return sequence;
    }
 
@@ -103,7 +99,7 @@ public class SequenceBuilder extends BaseSequenceBuilder {
    }
 
    @Override
-   public SequenceBuilder end() {
+   public SequenceBuilder rootSequence() {
       return this;
    }
 

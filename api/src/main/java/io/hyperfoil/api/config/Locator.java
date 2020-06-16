@@ -3,6 +3,7 @@ package io.hyperfoil.api.config;
 import java.util.Stack;
 
 public interface Locator {
+
    StepBuilder<?> step();
 
    BaseSequenceBuilder sequence();
@@ -25,9 +26,9 @@ public interface Locator {
       Holder.CURRENT.get().push(locator);
    }
 
-   static void push(StepBuilder<?> stepBuilder) {
+   static void push(StepBuilder<?> stepBuilder, BaseSequenceBuilder sequenceBuilder) {
       Stack<Locator> stack = Holder.CURRENT.get();
-      stack.push(new Impl(stepBuilder, stack.peek().sequence()));
+      stack.push(new Impl(stepBuilder, sequenceBuilder));
    }
 
    static void pop() {

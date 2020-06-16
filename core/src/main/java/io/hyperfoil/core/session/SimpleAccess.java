@@ -86,6 +86,11 @@ class SimpleAccess implements Access {
    }
 
    @Override
+   public boolean isSequenceScoped() {
+      return false;
+   }
+
+   @Override
    public String toString() {
       return key.toString();
    }

@@ -158,6 +158,11 @@ class SequenceScopedAccess implements Access {
    }
 
    @Override
+   public boolean isSequenceScoped() {
+      return true;
+   }
+
+   @Override
    public String toString() {
       return key + "[.]";
    }

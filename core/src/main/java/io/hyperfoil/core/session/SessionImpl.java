@@ -423,18 +423,27 @@ class SessionImpl implements Session, Callable<Void> {
       // Lookup first unused index
       int index = 0;
       for (; ; ) {
-         if (sequence.concurrency() > 0 && index >= sequence.concurrency()) {
+         if (sequence.concurrency() == 0) {
+            if (index > 1) {
+               log.error("Cannot start sequence {} as it has already started and it is not marked as concurrent", sequence.name());
+               if (sequence == currentSequence.definition()) {
+                  log.info("Hint: maybe you intended only to restart the current sequence?");
+               }
+               fail(new IllegalStateException("Sequence is not concurrent"));
+            }
+         } else if (index >= sequence.concurrency()) {
             if (instance != null) {
                sequencePool.release(instance);
             }
             if (policy == ConcurrencyPolicy.WARN) {
-               log.warn("Cannot instantiate sequence {}, exceeded maximum concurrency ({})", sequence.name(), sequence.concurrency());
+               log.warn("Cannot start sequence {}, exceeded maximum concurrency ({})", sequence.name(), sequence.concurrency());
             } else {
-               log.error("Cannot instantiate sequence {}, exceeded maximum concurrency ({})", sequence.name(), sequence.concurrency());
+               log.error("Cannot start sequence {}, exceeded maximum concurrency ({})", sequence.name(), sequence.concurrency());
                fail(new IllegalStateException("Concurrency limit exceeded"));
             }
             return null;
-         } else if (!usedSequences.get(sequence.offset() + index)) {
+         }
+         if (!usedSequences.get(sequence.offset() + index)) {
             break;
          }
          ++index;

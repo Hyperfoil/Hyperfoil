@@ -5,7 +5,6 @@ import java.util.List;
 
 import org.kohsuke.MetaInfServices;
 
-import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
@@ -61,24 +60,15 @@ public class StopwatchBeginStep implements Step, ResourceUtilizer {
       }
 
       @Override
-      public void prepareBuild() {
-         Locator.push(createLocator());
-         super.prepareBuild();
-         Locator.pop();
-      }
-
-      @Override
       public List<Step> build() {
          // We're creating a new locator instead of using current since the new locator
          // should return this from .sequence(), too. On the other hand nothing will use
          // .step() as that is going to be shadowed for each step in buildSteps()
-         Locator.push(createLocator());
          List<Step> steps = new ArrayList<>();
          Object key = new Object();
          steps.add(new StopwatchBeginStep(SessionFactory.access(key)));
          steps.addAll(super.buildSteps());
          steps.add(new StopwatchEndStep(SessionFactory.access(key), name()));
-         Locator.pop();
          return steps;
       }
 

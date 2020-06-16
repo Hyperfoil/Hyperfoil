@@ -13,6 +13,11 @@ abstract class SpecialAccess implements Access {
       this.name = name;
    }
 
+   @Override
+   public boolean isSequenceScoped() {
+      return false;
+   }
+
    static class Int extends SpecialAccess {
       private final SerializableToIntFunction<Session> supplier;
       private final Var var = new Var();

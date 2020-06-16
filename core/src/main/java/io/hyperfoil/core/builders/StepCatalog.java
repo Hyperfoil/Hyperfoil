@@ -67,8 +67,9 @@ public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.O
       return parent.step(new NextSequenceStep(name));
    }
 
-   public BaseSequenceBuilder loop(String counterVar, int repeats, String loopedSequence) {
-      return parent.stepBuilder(new LoopStep.Builder().counterVar(counterVar).repeats(repeats).sequence(loopedSequence));
+   public LoopStep.Builder loop(String counterVar, int repeats) {
+      // We don't return .steps() because that would be more prone to incorrect nesting
+      return new LoopStep.Builder(parent).counterVar(counterVar).repeats(repeats);
    }
 
    public ForeachStep.Builder foreach() {

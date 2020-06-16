@@ -65,7 +65,7 @@ public final class SessionFactory {
          String expression = (String) key;
          if (expression.endsWith("[.]")) {
             Locator locator = Locator.current();
-            int maxConcurrency = locator.sequence().end().concurrency();
+            int maxConcurrency = locator.sequence().rootSequence().concurrency();
             if (maxConcurrency <= 0) {
                throw new BenchmarkDefinitionException(locator.step() + " in sequence " + locator.sequence().name() +
                      " uses sequence-scoped access but this sequence is not declared as concurrent.");

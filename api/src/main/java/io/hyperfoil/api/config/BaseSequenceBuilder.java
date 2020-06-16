@@ -55,12 +55,16 @@ public abstract class BaseSequenceBuilder implements Rewritable<BaseSequenceBuil
       return this;
    }
 
-   public SequenceBuilder end() {
-      return parent.end();
+   public BaseSequenceBuilder end() {
+      return parent;
+   }
+
+   public SequenceBuilder rootSequence() {
+      return parent.rootSequence();
    }
 
    public ScenarioBuilder endSequence() {
-      return end().endSequence();
+      return rootSequence().endSequence();
    }
 
    @Override
@@ -92,45 +96,30 @@ public abstract class BaseSequenceBuilder implements Rewritable<BaseSequenceBuil
       throw new NoSuchElementException("Not found: " + locator.step());
    }
 
-   protected void prepareBuild() {
-      // This actually raises an exception if the Locator isn't set
-      assert Locator.current() != null;
+   public void prepareBuild() {
       // We need to make a defensive copy as prepareBuild() may trigger modifications
       new ArrayList<>(steps).forEach(stepBuilder -> {
-         Locator.push(stepBuilder);
+         Locator.push(stepBuilder, BaseSequenceBuilder.this);
          stepBuilder.prepareBuild();
          Locator.pop();
       });
    }
 
-   protected List<Step> buildSteps() {
-      // This actually raises an exception if the Locator isn't set
-      assert Locator.current() != null;
+   public List<Step> buildSteps() {
       return steps.stream().map(stepBuilder -> {
-         Locator.push(stepBuilder);
+         Locator.push(stepBuilder, BaseSequenceBuilder.this);
          List<Step> steps = stepBuilder.build();
          Locator.pop();
          return steps;
       }).flatMap(List::stream).collect(Collectors.toList());
    }
 
-   public Locator createLocator() {
-      return new Locator() {
-         @Override
-         public StepBuilder<?> step() {
-            throw new UnsupportedOperationException();
-         }
+   public int indexOf(StepBuilder<?> builder) {
+      return steps.indexOf(builder);
+   }
 
-         @Override
-         public BaseSequenceBuilder sequence() {
-            return BaseSequenceBuilder.this;
-         }
-
-         @Override
-         public ScenarioBuilder scenario() {
-            return endSequence();
-         }
-      };
+   public boolean isEmpty() {
+      return steps.isEmpty();
    }
 
    /**

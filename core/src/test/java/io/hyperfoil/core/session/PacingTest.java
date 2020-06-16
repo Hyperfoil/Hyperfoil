@@ -32,15 +32,16 @@ public class PacingTest extends BaseScenarioTest {
    @Test
    public void testThinkTimes() {
       scenario().initialSequence("loop")
+            .step(SC).loop("counter", 5)
+            .steps()
             .step(SC).httpRequest(HttpMethod.GET).path("/test").endStep()
             .step(SC).clearHttpCache()
             .step(SC).thinkTime(500, TimeUnit.MILLISECONDS).endStep()
-            .step(SC).loop("counter", 5, "loop")
+            .end()
             .endSequence();
 
       Map<String, StatisticsSnapshot> stats = runScenario();
-      // The loop step actually schedules 5 MORE repetitions
-      assertRequests(stats, 6);
+      assertRequests(stats, 5);
    }
 
    private void assertRequests(Map<String, StatisticsSnapshot> stats, int expected) {
@@ -53,33 +54,36 @@ public class PacingTest extends BaseScenarioTest {
    @Test
    public void testCycleTimes() {
       scenario().initialSequence("loop")
+            .step(SC).loop("counter", 5)
+            .steps()
             // Delaying from now accumulates time skew as it always plans from this timestamp
             .step(SC).scheduleDelay("foo", 1, TimeUnit.SECONDS).fromNow().endStep()
             .step(SC).httpRequest(HttpMethod.GET).path("/test").endStep()
             .step(SC).clearHttpCache()
             .step(SC).awaitDelay("foo")
-            .step(SC).loop("counter", 5, "loop")
+            .end()
+            .step(SC).log().message("Final value: {}").addVar("counter").endStep()
             .endSequence();
 
       Map<String, StatisticsSnapshot> stats = runScenario();
-      // The loop step actually schedules 5 MORE repetitions
-      assertRequests(stats, 6);
+      assertRequests(stats, 5);
    }
 
    @Test
    public void testCycleTimesPrecise() {
       scenario().initialSequence("loop")
+            .step(SC).loop("counter", 5)
+            .steps()
             // Delaying from last does not accumulate time skew as it bases the delay on previous iteration
             .step(SC).scheduleDelay("foo", 1, TimeUnit.SECONDS).fromLast().endStep()
             .step(SC).httpRequest(HttpMethod.GET).path("/test").endStep()
             .step(SC).clearHttpCache()
             .step(SC).awaitDelay("foo")
-            .step(SC).loop("counter", 5, "loop")
+            .end()
             .endSequence();
 
       Map<String, StatisticsSnapshot> stats = runScenario();
-      // The loop step actually schedules 5 MORE repetitions
-      assertRequests(stats, 6);
+      assertRequests(stats, 5);
    }
 
 }

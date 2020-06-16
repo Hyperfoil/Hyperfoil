@@ -30,4 +30,6 @@ public interface Access extends Serializable {
    Object activate(Session session);
 
    void unset(Session session);
+
+   boolean isSequenceScoped();
 }

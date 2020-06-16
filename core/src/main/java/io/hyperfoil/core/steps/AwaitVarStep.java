@@ -79,6 +79,11 @@ public class AwaitVarStep extends DependencyStep {
       public void unset(Session session) {
          throw new UnsupportedOperationException();
       }
+
+      @Override
+      public boolean isSequenceScoped() {
+         return access.isSequenceScoped();
+      }
    }
 
    /**
