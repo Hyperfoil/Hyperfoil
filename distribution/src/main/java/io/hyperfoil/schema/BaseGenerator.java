@@ -5,6 +5,7 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.util.regex.Pattern;
 
+import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.ListBuilder;
 import io.hyperfoil.api.config.MappingListBuilder;
@@ -44,6 +45,10 @@ class BaseGenerator {
       } else if (m.getName().equals("init") && m.getParameterCount() == 1 && m.getParameterTypes()[0] == String.class && InitFromParam.class.isAssignableFrom(builder)) {
          return true;
       } else if (m.getName().equals("copy") && m.getParameterCount() == 0) {
+         return true;
+      } else if (m.getAnnotation(Deprecated.class) != null) {
+         return true;
+      } else if (m.getName().equals("rootSequence") && BaseSequenceBuilder.class.isAssignableFrom(m.getDeclaringClass())) {
          return true;
       }
       return false;

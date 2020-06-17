@@ -8,8 +8,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.TreeSet;
 
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.ListBuilder;
@@ -26,6 +28,70 @@ import io.vertx.core.json.JsonObject;
 public class Generator extends BaseGenerator {
    private static final JsonObject TYPE_NULL = new JsonObject().put("type", "null");
    private static final JsonObject TYPE_STRING = new JsonObject().put("type", "string");
+   private static final Comparator<JsonObject> JSON_COMPARATOR = new Comparator<JsonObject>() {
+      @Override
+      public int compare(JsonObject o1, JsonObject o2) {
+         TreeSet<String> keys = new TreeSet<>(o1.fieldNames());
+         keys.addAll(o2.fieldNames());
+         for (String key : keys) {
+            int result = compareItems(o1.getValue(key), o2.getValue(key));
+            if (result != 0) {
+               return result;
+            }
+         }
+         return 0;
+      }
+
+      private int compareItems(Object v1, Object v2) {
+         // Sorting nulls at end
+         if (v1 == null) {
+            return v2 == null ? 0 : 1;
+         } else if (v2 == null) {
+            return -1;
+         }
+         if (v1 instanceof JsonObject) {
+            if (v2 instanceof JsonObject) {
+               return this.compare((JsonObject) v1, (JsonObject) v2);
+            } else {
+               throw new IllegalArgumentException(v1 + ", " + v2);
+            }
+         } else if (v1 instanceof JsonArray) {
+            JsonArray a1 = (JsonArray) v1;
+            JsonArray a2 = (JsonArray) v2;
+            for (int i = 0; i < Math.min(a1.size(), a2.size()); ++i) {
+               int result = compareItems(a1.getValue(i), a2.getValue(i));
+               if (result != 0) {
+                  return result;
+               }
+            }
+            return Integer.compare(a1.size(), a2.size());
+         } else if (v1 instanceof String) {
+            if (v2 instanceof String) {
+               return ((String) v1).compareTo((String) v2);
+            } else {
+               throw new IllegalArgumentException(v1 + ", " + v2);
+            }
+         } else if (v1 instanceof Integer) {
+            if (v2 instanceof Integer) {
+               return ((Integer) v1).compareTo((Integer) v2);
+            } else {
+               throw new IllegalArgumentException(v1 + ", " + v2);
+            }
+         } else if (v1 instanceof Boolean) {
+            if (v2 instanceof Boolean) {
+               boolean b1 = (boolean) v1;
+               if (b1 != (boolean) v2) {
+                  return b1 ? 1 : -1;
+               }
+            } else {
+               throw new IllegalArgumentException(v1 + ", " + v2);
+            }
+         } else {
+            throw new IllegalArgumentException(String.valueOf(v1));
+         }
+         return 0;
+      }
+   };
 
    private final Path input;
    private final Path output;
@@ -144,12 +210,6 @@ public class Generator extends BaseGenerator {
          options.add(object);
          options.add(arrayOf(sequenceObject));
       }
-      if (BaseSequenceBuilder.class.isAssignableFrom(m.getReturnType())) {
-         options.add(new JsonObject()
-               .put("type", "array")
-               .put("additionalItems", false)
-               .put("items", new JsonObject().put("$ref", "#/definitions/step")));
-      }
       if (ListBuilder.class.isAssignableFrom(m.getReturnType())) {
          options.add(new JsonObject()
                .put("type", "array")
@@ -173,12 +233,24 @@ public class Generator extends BaseGenerator {
          options.add(discriminator);
          options.add(arrayOf(discriminator));
       }
+      if (BaseSequenceBuilder.class.isAssignableFrom(m.getReturnType())) {
+         options.add(new JsonObject()
+               .put("type", "array")
+               .put("additionalItems", false)
+               .put("items", new JsonObject().put("$ref", "#/definitions/step")));
+         // return early to avoid reporting BaseSequenceBuilder
+         return optionsToObject(options);
+      }
       if (m.getReturnType().getName().endsWith("Builder")) {
          JsonObject builderReference = describeBuilder(m.getReturnType());
          options.add(builderReference);
          options.add(arrayOf(builderReference));
       }
 
+      return optionsToObject(options);
+   }
+
+   private JsonObject optionsToObject(ArrayList<JsonObject> options) {
       if (options.isEmpty()) {
          return null;
       } else if (options.size() == 1) {
@@ -232,12 +304,21 @@ public class Generator extends BaseGenerator {
       } else if (existingProperty.equals(newProperty)) {
          return;
       }
-      JsonArray oneOf = existingProperty.getJsonArray("oneOf");
-      if (oneOf == null) {
-         properties.put(name, new JsonObject().put("oneOf", new JsonArray().add(existingProperty).add(newProperty)));
+      ArrayList<JsonObject> props = new ArrayList<>();
+      JsonArray existingOneOf = existingProperty.getJsonArray("oneOf");
+      if (existingOneOf == null) {
+         props.add(existingProperty);
       } else {
-         oneOf.add(newProperty);
+         existingOneOf.forEach(p -> props.add((JsonObject) p));
       }
+      JsonArray newOneOf = newProperty.getJsonArray("oneOf");
+      if (newOneOf == null) {
+         props.add(newProperty);
+      } else {
+         newOneOf.forEach(p -> props.add((JsonObject) p));
+      }
+      props.sort(JSON_COMPARATOR);
+      properties.put(name, new JsonObject().put("oneOf", new JsonArray(props)));
    }
 
    private static JsonObject arrayOf(JsonObject sequenceObject) {
