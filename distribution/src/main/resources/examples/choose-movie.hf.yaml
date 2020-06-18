@@ -102,12 +102,12 @@ scenario:
     - httpRequest:
         # URLs with spaces and other characters don't work well;
         # let's encode it (e.g. space -> %20)
-        POST: /movie/${urlencode:movieNames[.]}/comment
+        POST: /movie/${urlencode:movieNames[.]}/comments
         body:
           text: This movie sucks.
-        # The sync shortcut actually creates a counter incremented with
-        # each request and decremented with each response. Therefore
-        # This sequence won't continue until we get all responses.
+        # The sync shortcut actually sets up a bit in the session state
+        # cleared before the request and set when the request is complete,
+        # automatically waiting it after this step.
         # You can write your own handlers (using sequence-scoped vars)
         # to change this behaviour.
         sync: true
