@@ -1,13 +1,10 @@
 package io.hyperfoil.core.client.netty;
 
 import io.hyperfoil.api.connection.HttpRequest;
-import io.hyperfoil.api.session.SessionStopException;
+import io.hyperfoil.core.util.Util;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelPromise;
-import io.netty.handler.codec.http.HttpContent;
 import io.netty.handler.codec.http.HttpHeaderNames;
-import io.netty.handler.codec.http.HttpResponseStatus;
-import io.netty.handler.codec.http.HttpVersion;
 import io.hyperfoil.api.connection.Connection;
 import io.hyperfoil.api.connection.HttpConnection;
 import io.hyperfoil.api.connection.HttpConnectionPool;
@@ -15,18 +12,13 @@ import io.hyperfoil.api.connection.HttpRequestWriter;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.codec.http.DefaultFullHttpRequest;
-import io.netty.handler.codec.http.HttpResponse;
-import io.netty.handler.codec.http.LastHttpContent;
-import io.hyperfoil.api.http.HttpResponseHandlers;
 import io.hyperfoil.api.session.Session;
-import io.netty.util.ReferenceCounted;
+import io.netty.util.AsciiString;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
-import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 
@@ -36,6 +28,7 @@ import java.util.function.BiFunction;
 class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    private static final Logger log = LoggerFactory.getLogger(Http1xConnection.class);
    private static final boolean trace = log.isTraceEnabled();
+   private static final byte[] HTTP1_1 = { ' ', 'H', 'T', 'T', 'P', '/', '1', '.', '1', '\r', '\n' };
 
    private final Deque<HttpRequest> inflights;
    private final BiConsumer<HttpConnection, Throwable> activationHandler;
@@ -77,99 +70,8 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
 
    @Override
    public void channelRead(ChannelHandlerContext ctx, Object msg) {
-      try {
-         if (msg instanceof HttpResponse) {
-            HttpResponse response = (HttpResponse) msg;
-            HttpRequest request = inflights.peek();
-            if (request == null) {
-               if (HttpResponseStatus.REQUEST_TIMEOUT.equals(response.status())) {
-                  // HAProxy sends 408 when we allocate the connection but do not use it within 10 seconds.
-                  log.debug("Closing connection {} as server timed out waiting for our first request.", this);
-               } else {
-                  log.error("Received unsolicited response (status {}) on {}, discarding: {}", response.status(), this, msg);
-               }
-               return;
-            }
-            if (request.isCompleted()) {
-               log.trace("Request on connection {} has been already completed (error in handlers?), ignoring", this);
-            } else {
-               HttpResponseHandlers handlers = request.handlers();
-               request.enter();
-               try {
-                  handlers.handleStatus(request, response.status().code(), response.status().reasonPhrase());
-                  for (Map.Entry<String, String> header : response.headers()) {
-                     handlers.handleHeader(request, header.getKey(), header.getValue());
-                  }
-               } catch (SessionStopException e) {
-                  log.trace("Stopped processing as the session was stopped.");
-               } catch (Throwable t) {
-                  log.error("Response processing failed on {}", t, this);
-                  handlers.handleThrowable(request, t);
-               } finally {
-                  request.exit();
-               }
-               request.session.proceed();
-            }
-         }
-         if (msg instanceof HttpContent) {
-            HttpRequest request = inflights.peek();
-            // When previous handlers throw an error the request is already completed
-            if (request != null && !request.isCompleted()) {
-               HttpResponseHandlers handlers = request.handlers();
-               request.enter();
-               try {
-                  ByteBuf data = ((HttpContent) msg).content();
-                  handlers.handleBodyPart(request, data, data.readerIndex(), data.readableBytes(), msg instanceof LastHttpContent);
-               } catch (SessionStopException e) {
-                  log.trace("Stopped processing as the session was stopped.");
-               } catch (Throwable t) {
-                  log.error("Response processing failed on {}", t, this);
-                  handlers.handleThrowable(request, t);
-               } finally {
-                  request.exit();
-               }
-               request.session.proceed();
-            }
-         }
-         if (msg instanceof LastHttpContent) {
-            HttpRequest request = inflights.poll();
-            if (request == null) {
-               // We've already logged debug message above
-               assert size == 0;
-               return;
-            }
-            size--;
-            // When previous handlers throw an error the request is already completed
-            if (!request.isCompleted()) {
-               request.enter();
-               try {
-                  request.handlers().handleEnd(request, true);
-                  if (trace) {
-                     log.trace("Completed response on {}", this);
-                  }
-               } catch (SessionStopException e) {
-                  log.trace("Stopped processing as the session was stopped.");
-               } catch (Throwable t) {
-                  log.error("Response processing failed on {}", t, this);
-                  request.handlers().handleThrowable(request, t);
-               } finally {
-                  request.exit();
-               }
-               request.session.proceed();
-            }
-            assert request.isCompleted();
-            request.release();
-            if (trace) {
-               log.trace("Releasing request");
-            }
-
-            releasePoolAndPulse();
-         }
-      } finally {
-         if (msg instanceof ReferenceCounted) {
-            ((ReferenceCounted) msg).release();
-         }
-      }
+      // We should have handled that before
+      throw new UnsupportedOperationException();
    }
 
    @Override
@@ -202,25 +104,38 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
                        boolean injectHostHeader,
                        BiFunction<Session, Connection, ByteBuf> bodyGenerator) {
       size++;
-      ByteBuf buf = bodyGenerator != null ? bodyGenerator.apply(request.session, request.connection()) : null;
-      if (buf == null) {
-         buf = Unpooled.EMPTY_BUFFER;
+      ByteBuf buf = ctx.alloc().buffer();
+      buf.writeBytes(request.method.netty.asciiName().array());
+      buf.writeByte(' ');
+      for (int i = 0; i < request.path.length(); ++i) {
+         buf.writeByte(0xFF & request.path.charAt(i));
       }
-      DefaultFullHttpRequest msg = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, request.method.netty, request.path, buf, false);
+      buf.writeBytes(HTTP1_1);
+
       if (injectHostHeader) {
-         msg.headers().add(HttpHeaderNames.HOST, pool.clientPool().authority());
+         writeHeader(buf, HttpHeaderNames.HOST.array(), pool.clientPool().authorityBytes());
       }
-      if (buf.readableBytes() > 0) {
-         msg.headers().add(HttpHeaderNames.CONTENT_LENGTH, String.valueOf(buf.readableBytes()));
+      // TODO: adjust interface - we can't send static buffers anyway
+      ByteBuf body = bodyGenerator != null ? bodyGenerator.apply(request.session, request.connection()) : null;
+      if (body == null) {
+         body = Unpooled.EMPTY_BUFFER;
       }
+      if (body.readableBytes() > 0) {
+         buf.writeBytes(HttpHeaderNames.CONTENT_LENGTH.array()).writeByte(':').writeByte(' ');
+         Util.intAsText2byteBuf(body.readableBytes(), buf);
+         buf.writeByte('\r').writeByte('\n');
+      }
+
       request.session.httpCache().beforeRequestHeaders(request);
-      HttpRequestWriterImpl writer = new HttpRequestWriterImpl(request, msg);
+      // TODO: if headers are strings, UTF-8 conversion creates a lot of trash
+      HttpRequestWriterImpl writer = new HttpRequestWriterImpl(request, buf);
       if (headerAppenders != null) {
          // TODO: allocation, if it's not eliminated we could store a reusable object
          for (BiConsumer<Session, HttpRequestWriter> headerAppender : headerAppenders) {
             headerAppender.accept(request.session, writer);
          }
       }
+      buf.writeByte('\r').writeByte('\n');
       assert ctx.executor().inEventLoop();
       if (request.session.httpCache().isCached(request, writer)) {
          if (trace) {
@@ -234,10 +149,19 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
       inflights.add(request);
       ChannelPromise writePromise = ctx.newPromise();
       writePromise.addListener(request);
-      ctx.writeAndFlush(msg, writePromise);
+      if (body.isReadable()) {
+         ctx.write(buf);
+         ctx.writeAndFlush(body, writePromise);
+      } else {
+         ctx.writeAndFlush(buf, writePromise);
+      }
    }
 
-   private void releasePoolAndPulse() {
+   private void writeHeader(ByteBuf buf, byte[] name, byte[] value) {
+      buf.writeBytes(name).writeByte(':').writeByte(' ').writeBytes(value).writeByte('\r').writeByte('\n');
+   }
+
+   void releasePoolAndPulse() {
       // If this connection was not available we make it available
       // TODO: it would be better to check this in connection pool
       HttpConnectionPool pool = this.pool;
@@ -261,6 +185,18 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    public HttpRequest peekRequest(int streamId) {
       assert streamId == 0;
       return inflights.peek();
+   }
+
+   @Override
+   public void removeRequest(int stremId, HttpRequest request) {
+      HttpRequest req = inflights.poll();
+      if (req != request) {
+         throw new IllegalStateException();
+      } else if (request == null) {
+         // We've already logged debug message above
+         return;
+      }
+      size--;
    }
 
    @Override
@@ -321,11 +257,11 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
 
    private class HttpRequestWriterImpl implements HttpRequestWriter {
       private final HttpRequest request;
-      private final DefaultFullHttpRequest msg;
+      private final ByteBuf buf;
 
-      HttpRequestWriterImpl(HttpRequest request, DefaultFullHttpRequest msg) {
+      HttpRequestWriterImpl(HttpRequest request, ByteBuf buf) {
          this.request = request;
-         this.msg = msg;
+         this.buf = buf;
       }
 
       @Override
@@ -340,7 +276,18 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
 
       @Override
       public void putHeader(CharSequence header, CharSequence value) {
-         msg.headers().add(header, value);
+         if (header instanceof AsciiString) {
+            buf.writeBytes(((AsciiString) header).array());
+         } else {
+            Util.string2byteBuf(header.toString(), buf);
+         }
+         buf.writeByte(':').writeByte(' ');
+         if (value instanceof AsciiString) {
+            buf.writeBytes(((AsciiString) value).array());
+         } else {
+            Util.string2byteBuf(value.toString(), buf);
+         }
+         buf.writeByte('\r').writeByte('\n');
          request.session.httpCache().requestHeader(request, header, value);
       }
    }

@@ -73,7 +73,7 @@ public class StreamQueue {
       }
       ByteStream part = parts[i];
       int partIndex = index - userIndex[i];
-      if (partIndex >= part.writerIndex()) {
+      if (part.readerIndex() + partIndex >= part.writerIndex()) {
          return -1;
       }
       return part.getByte(part.readerIndex() + partIndex);

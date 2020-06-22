@@ -177,8 +177,8 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       session.currentRequest(request);
 
       if (trace) {
-         log.trace("#{} Received part ({} bytes):\n{}", session.uniqueId(), data.readableBytes(),
-               data.toString(data.readerIndex(), data.readableBytes(), StandardCharsets.UTF_8));
+         log.trace("#{} Received part ({} bytes):\n{}", session.uniqueId(), length,
+               data.toString(offset, length, StandardCharsets.UTF_8));
       }
 
       int dataStartIndex = data.readerIndex();

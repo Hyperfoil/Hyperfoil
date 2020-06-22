@@ -32,6 +32,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.KeyFactory;
 import java.security.KeyStore;
@@ -66,6 +67,7 @@ public class HttpClientPoolImpl implements HttpClientPool {
    final String host;
    final String scheme;
    final String authority;
+   final byte[] authorityBytes;
    final SslContext sslContext;
    final boolean forceH2c;
    private final HttpConnectionPoolImpl[] children;
@@ -92,6 +94,7 @@ public class HttpClientPoolImpl implements HttpClientPool {
       this.port = http.port();
       this.scheme = sslContext == null ? "http" : "https";
       this.authority = host + ":" + port;
+      this.authorityBytes = authority.getBytes(StandardCharsets.UTF_8);
       this.forceH2c = http.versions().length == 1 && http.versions()[0] == HttpVersion.HTTP_2_0;
 
       this.children = new HttpConnectionPoolImpl[executors.length];
@@ -315,6 +318,11 @@ public class HttpClientPoolImpl implements HttpClientPool {
    @Override
    public String authority() {
       return authority;
+   }
+
+   @Override
+   public byte[] authorityBytes() {
+      return authorityBytes;
    }
 
    @Override

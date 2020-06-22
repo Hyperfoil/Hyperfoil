@@ -182,6 +182,11 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
    }
 
    @Override
+   public void removeRequest(int streamId, HttpRequest request) {
+      throw new UnsupportedOperationException();
+   }
+
+   @Override
    public void setClosed() {
       status = Status.CLOSED;
    }

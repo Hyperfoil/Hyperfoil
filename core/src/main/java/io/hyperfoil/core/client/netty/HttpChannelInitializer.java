@@ -87,10 +87,9 @@ class HttpChannelInitializer extends ChannelInitializer<Channel> {
    private void initHttp1xConnection(ChannelPipeline pipeline) {
       Http1xConnection connection = new Http1xConnection(clientPool, handler);
       if (clientPool.http.rawBytesHandlers()) {
-         pipeline.addLast(new Http1XRawResponseHandler(connection));
+         pipeline.addLast(new Http1xResponseHandler(connection));
          pipeline.addLast(new RawRequestHandler(connection));
       }
-      pipeline.addLast("codec", new HttpClientCodec(4096, 8192, 8192, false, false));
       pipeline.addLast("handler", connection);
    }
 }

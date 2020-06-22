@@ -17,6 +17,7 @@ import io.hyperfoil.api.connection.HttpConnection;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.http.RawBytesHandler;
 import io.hyperfoil.core.test.TestUtil;
+import io.hyperfoil.core.util.Util;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.CompositeByteBuf;
 import io.netty.channel.ChannelHandler;
@@ -111,8 +112,17 @@ public class ChunkedTransferTest extends BaseScenarioTest {
             });
       AtomicInteger counter = new AtomicInteger();
       for (int i = 0; i < 16; ++i) {
-         sequence.step(SC).httpRequest(HttpMethod.GET).path("/test3").sync(false)
-               .handler().onCompletion(s -> counter.incrementAndGet());
+         sequence.step(SC).httpRequest(HttpMethod.GET).path("/test3")
+               .headers().header("cache-control", "no-cache").endHeaders()
+               .sync(false)
+               .handler()
+                  .body(fragmented -> (session, data, offset, length, isLastPart) -> {
+                     String str = Util.toString(data, offset, length);
+                     if (str.contains("\n")) {
+                        session.fail(new AssertionError(str));
+                     }
+                  })
+                  .onCompletion(s -> counter.incrementAndGet());
       }
       sequence.step(SC).awaitAllResponses();
       runScenario();

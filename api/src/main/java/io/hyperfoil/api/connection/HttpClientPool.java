@@ -42,6 +42,8 @@ public interface HttpClientPool {
 
    String authority();
 
+   byte[] authorityBytes();
+
    String scheme();
 
    boolean isSecure();

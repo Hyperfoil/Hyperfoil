@@ -32,6 +32,10 @@ public class BaseMockConnection implements HttpConnection {
    }
 
    @Override
+   public void removeRequest(int streamId, HttpRequest request) {
+   }
+
+   @Override
    public void setClosed() {
    }
 

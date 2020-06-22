@@ -7,11 +7,11 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.hyperfoil.api.connection.HttpConnection;
 import io.hyperfoil.api.http.HttpResponseHandlers;
 
-public abstract class BaseRawResponseHandler extends ChannelInboundHandlerAdapter {
+public abstract class BaseResponseHandler extends ChannelInboundHandlerAdapter {
    protected final HttpConnection connection;
    protected int responseBytes = 0;
 
-   public BaseRawResponseHandler(HttpConnection connection) {
+   public BaseResponseHandler(HttpConnection connection) {
       this.connection = connection;
    }
 
@@ -22,20 +22,27 @@ public abstract class BaseRawResponseHandler extends ChannelInboundHandlerAdapte
       }
       if (buf.readableBytes() > responseBytes) {
          ByteBuf slice = buf.readRetainedSlice(responseBytes);
-         invokeHandler(request, slice, slice.readerIndex(), slice.readableBytes(), true);
-         ctx.fireChannelRead(slice);
+         onRawData(request, slice, true);
+         onCompletion(request);
+         onData(ctx, slice);
          responseBytes = 0;
          channelRead(ctx, buf);
       } else {
-         invokeHandler(request, buf, buf.readerIndex(), buf.readableBytes(), buf.readableBytes() == responseBytes);
+         boolean isLastPart = buf.readableBytes() == responseBytes;
+         if (request != null) {
+            onRawData(request, buf, isLastPart);
+         }
          responseBytes -= buf.readableBytes();
-         ctx.fireChannelRead(buf);
+         if (isLastPart && request != null) {
+            onCompletion(request);
+         }
+         onData(ctx, buf);
       }
    }
 
    protected abstract boolean isRequestStream(int streamId);
 
-   protected void invokeHandler(HttpRequest request, ByteBuf data, int offset, int length, boolean isLastPart) {
+   protected void onRawData(HttpRequest request, ByteBuf data, boolean isLastPart) {
       // When the request times out it is marked as completed and handlers are removed
       // but the connection is not closed automatically.
       if (request != null && !request.isCompleted()) {
@@ -43,7 +50,7 @@ public abstract class BaseRawResponseHandler extends ChannelInboundHandlerAdapte
          HttpResponseHandlers handlers = request.handlers();
          request.enter();
          try {
-            handlers.handleRawResponse(request, data, offset, length, isLastPart);
+            handlers.handleRawResponse(request, data, data.readerIndex(), data.readableBytes(), isLastPart);
          } catch (Throwable t) {
             handlers.handleThrowable(request, t);
          } finally {
@@ -55,5 +62,21 @@ public abstract class BaseRawResponseHandler extends ChannelInboundHandlerAdapte
             throw new IllegalStateException("Handler has changed readerIndex on the buffer!");
          }
       }
+   }
+
+   protected void onData(ChannelHandlerContext ctx, ByteBuf buf) {
+      ctx.fireChannelRead(buf);
+   }
+
+   protected void onStatus(int status) {
+   }
+
+   protected void onHeaderRead(ByteBuf buf, int startOfName, int endOfName, int startOfValue, int endOfValue) {
+   }
+
+   protected void onBodyPart(ByteBuf buf, int startOffset, int length, boolean isLastPart) {
+   }
+
+   protected void onCompletion(HttpRequest request) {
    }
 }

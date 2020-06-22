@@ -150,6 +150,9 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
    public void operationComplete(Future<Void> future) {
       // This is called when the request is written on the wire
       sendTimestampNanos = System.nanoTime();
+      if (!future.isSuccess()) {
+         handleThrowable(future.cause());
+      }
    }
 
    public abstract void release();

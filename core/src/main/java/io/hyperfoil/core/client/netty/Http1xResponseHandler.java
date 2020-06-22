@@ -2,18 +2,23 @@ package io.hyperfoil.core.client.netty;
 
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.connection.HttpConnection;
+import io.hyperfoil.api.http.HttpResponseHandlers;
+import io.hyperfoil.api.session.SessionStopException;
 import io.hyperfoil.core.util.Util;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaderValues;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.util.AsciiString;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-public class Http1XRawResponseHandler extends BaseRawResponseHandler {
-   private static final Logger log = LoggerFactory.getLogger(Http1XRawResponseHandler.class);
+public class Http1xResponseHandler extends BaseResponseHandler {
+   private static final Logger log = LoggerFactory.getLogger(Http1xResponseHandler.class);
+   private static final boolean trace = log.isTraceEnabled();
    private static final byte CR = 13;
    private static final byte LF = 10;
    private static final int MAX_LINE_LENGTH = 4096;
@@ -33,7 +38,7 @@ public class Http1XRawResponseHandler extends BaseRawResponseHandler {
       TRAILERS
    }
 
-   Http1XRawResponseHandler(HttpConnection connection) {
+   Http1xResponseHandler(HttpConnection connection) {
       super(connection);
    }
 
@@ -123,7 +128,9 @@ public class Http1XRawResponseHandler extends BaseRawResponseHandler {
             if (status >= 100 && status < 200 || status == 204 || status == 304) {
                contentLength = 0;
             }
+            onStatus(status);
             state = State.HEADERS;
+            lastLine.writerIndex(0);
             return readerIndex + 1;
          } else {
             crRead = false;
@@ -136,6 +143,7 @@ public class Http1XRawResponseHandler extends BaseRawResponseHandler {
 
    private int readHeaders(ChannelHandlerContext ctx, ByteBuf buf, int readerIndex) throws Exception {
       int lineStartIndex = readerIndex;
+      int lineEndIndex;
       for (; readerIndex < buf.writerIndex(); ++readerIndex) {
          byte val = buf.getByte(readerIndex);
          if (val == CR) {
@@ -143,7 +151,10 @@ public class Http1XRawResponseHandler extends BaseRawResponseHandler {
          } else if (val == LF && crRead) {
             crRead = false;
             ByteBuf lineBuf;
-            if (readerIndex - lineStartIndex == 1 || lastLine.writerIndex() == 1 && readerIndex == buf.readerIndex()) {
+            // lineStartIndex is valid only if lastLine is empty - otherwise we would ignore an incomplete line
+            // in the buffer
+            if (readerIndex - lineStartIndex == 1 && lastLine.writerIndex() == 0
+                  || lastLine.writerIndex() == 1 && readerIndex == buf.readerIndex()) {
                // empty line ends the headers
                HttpRequest httpRequest = connection.peekRequest(0);
                // Unsolicited response 408 may not have a matching request
@@ -155,22 +166,20 @@ public class Http1XRawResponseHandler extends BaseRawResponseHandler {
                         chunked = false;
                   }
                }
+               state = State.BODY;
+               lastLine.writerIndex(0);
                if (contentLength >= 0) {
                   responseBytes = readerIndex - buf.readerIndex() + contentLength + 1;
-                  reset();
-                  handleBuffer(ctx, buf, 0);
-                  // handleBuffer calls channelRead recursively so we must not continue reading here
-                  return -1;
-               } else {
-                  state = State.BODY;
                }
                return readerIndex + 1;
             } else if (lastLine.isReadable()) {
                copyLastLine(buf, lineStartIndex, readerIndex);
                lineBuf = lastLine;
+               lineEndIndex = lastLine.readableBytes() + readerIndex - lineStartIndex - 1; // account the CR
                lineStartIndex = 0;
             } else {
                lineBuf = buf;
+               lineEndIndex = readerIndex - 1; // account the CR
             }
             if (matches(lineBuf, lineStartIndex, HttpHeaderNames.CONTENT_LENGTH)) {
                contentLength = readDecNumber(lineBuf, lineStartIndex + HttpHeaderNames.CONTENT_LENGTH.length() + 1);
@@ -178,6 +187,15 @@ public class Http1XRawResponseHandler extends BaseRawResponseHandler {
                chunked = matches(lineBuf, lineStartIndex + HttpHeaderNames.TRANSFER_ENCODING.length() + 1, HttpHeaderValues.CHUNKED);
                skipChunkBytes = 0;
             }
+            int endOfNameIndex = lineStartIndex, startOfValueIndex = lineStartIndex;
+            for (int i = lineStartIndex + 1; i < lineEndIndex; ++i) {
+               if (lineBuf.getByte(i) == ':') {
+                  for (endOfNameIndex = i - 1; endOfNameIndex >= lineStartIndex && lineBuf.getByte(endOfNameIndex) == ' '; --endOfNameIndex);
+                  for (startOfValueIndex = i + 1; startOfValueIndex < lineEndIndex && lineBuf.getByte(startOfValueIndex) == ' '; ++startOfValueIndex);
+                  break;
+               }
+            }
+            onHeaderRead(lineBuf, lineStartIndex, endOfNameIndex + 1, startOfValueIndex, lineEndIndex);
             lastLine.writerIndex(0);
             lineStartIndex = readerIndex + 1;
          } else {
@@ -193,20 +211,30 @@ public class Http1XRawResponseHandler extends BaseRawResponseHandler {
       if (chunked) {
          int readable = buf.writerIndex() - readerIndex;
          if (skipChunkBytes > readable) {
+            int readableBody = Math.min(skipChunkBytes - 2, readable);
             skipChunkBytes -= readable;
+            onBodyPart(buf, readerIndex, readableBody, false);
             passFullBuffer(ctx, buf);
             return -1;
          } else {
+            // skipChunkBytes includes the CRLF
+            onBodyPart(buf, readerIndex, skipChunkBytes - 2, false);
             readerIndex += skipChunkBytes;
             skipChunkBytes = 0;
             return readChunks(ctx, buf, readerIndex);
          }
       } else if (responseBytes > 0) {
-         reset();
+         boolean isLastPart = buf.readableBytes() >= responseBytes;
+         onBodyPart(buf, readerIndex, Math.min(buf.writerIndex(), buf.readerIndex() + responseBytes) - readerIndex, isLastPart);
+         if (isLastPart) {
+            reset();
+         }
          handleBuffer(ctx, buf, 0);
          return -1;
       } else {
          // Body length is unknown and it is not chunked => the request is delimited by connection close
+         // TODO: make sure we invoke this with isLastPart=true once
+         onBodyPart(buf, readerIndex, buf.writerIndex() - readerIndex, false);
          passFullBuffer(ctx, buf);
          return -1;
       }
@@ -228,10 +256,12 @@ public class Http1XRawResponseHandler extends BaseRawResponseHandler {
                }
                int partSize = readHexNumber(lineBuf, lineStartOffset);
                if (partSize == 0) {
+                  onBodyPart(Unpooled.EMPTY_BUFFER, 0, 0, true);
                   chunked = false;
                   state = State.TRAILERS;
                   return readerIndex + 1;
                } else if (readerIndex + 3 + partSize < buf.writerIndex()) {
+                  onBodyPart(buf, readerIndex + 1, partSize, false);
                   readerIndex += partSize; // + 1 from for loop, +2 below
                   if (buf.getByte(++readerIndex) != CR || buf.getByte(++readerIndex) != LF) {
                      throw new IllegalStateException("Chunk must end with CRLF!");
@@ -239,6 +269,7 @@ public class Http1XRawResponseHandler extends BaseRawResponseHandler {
                   lineStartOffset = readerIndex + 1;
                   assert skipChunkBytes == 0;
                } else {
+                  onBodyPart(buf, readerIndex + 1, Math.min(buf.writerIndex() - readerIndex - 1, partSize), false);
                   skipChunkBytes = readerIndex + 3 + partSize - buf.writerIndex();
                   passFullBuffer(ctx, buf);
                   return -1;
@@ -275,8 +306,7 @@ public class Http1XRawResponseHandler extends BaseRawResponseHandler {
             crRead = false;
          }
       }
-      // We don't analyze trailers so we have no need to copy last line, but we need to mark the length
-      lastLine.writerIndex(readerIndex - lineStartIndex);
+      copyLastLine(buf, lineStartIndex, readerIndex);
       passFullBuffer(ctx, buf);
       return -1;
    }
@@ -305,8 +335,8 @@ public class Http1XRawResponseHandler extends BaseRawResponseHandler {
    private void passFullBuffer(ChannelHandlerContext ctx, ByteBuf buf) {
       HttpRequest request = connection.peekRequest(0);
       // Note: we cannot reliably know if this is the last part as the body might be delimited by closing the connection.
-      invokeHandler(request, buf, buf.readerIndex(), buf.readableBytes(), false);
-      ctx.fireChannelRead(buf);
+      onRawData(request, buf, false);
+      onData(ctx, buf);
    }
 
    private boolean matches(ByteBuf buf, int bufOffset, AsciiString string) {
@@ -387,5 +417,124 @@ public class Http1XRawResponseHandler extends BaseRawResponseHandler {
             ", chunked=" + chunked +
             ", skipChunkBytes=" + skipChunkBytes +
             '}';
+   }
+
+   @Override
+   protected void onData(ChannelHandlerContext ctx, ByteBuf buf) {
+      // noop - do not send to upper layers
+   }
+
+   @Override
+   protected void onStatus(int status) {
+      HttpRequest request = connection.peekRequest(0);
+      if (request == null) {
+         if (HttpResponseStatus.REQUEST_TIMEOUT.code() == status) {
+            // HAProxy sends 408 when we allocate the connection but do not use it within 10 seconds.
+            log.debug("Closing connection {} as server timed out waiting for our first request.", connection);
+         } else {
+            log.error("Received unsolicited response (status {}) on {}", status, connection);
+         }
+         return;
+      }
+      if (request.isCompleted()) {
+         log.trace("Request on connection {} has been already completed (error in handlers?), ignoring", connection);
+      } else {
+         HttpResponseHandlers handlers = request.handlers();
+         request.enter();
+         try {
+            handlers.handleStatus(request, status, null); // TODO parse reason
+         } catch (SessionStopException e) {
+            log.trace("Stopped processing as the session was stopped.");
+         } catch (Throwable t) {
+            log.error("Response processing failed on {}", t, this);
+            handlers.handleThrowable(request, t);
+         } finally {
+            request.exit();
+         }
+         request.session.proceed();
+      }
+   }
+
+   @Override
+   protected void onHeaderRead(ByteBuf buf, int startOfName, int endOfName, int startOfValue, int endOfValue) {
+      HttpRequest request = connection.peekRequest(0);
+      if (request == null) {
+         if (trace) {
+            String name = Util.toString(buf, startOfName, endOfName - startOfName);
+            String value = Util.toString(buf, startOfValue, endOfValue - startOfValue);
+            log.trace("No request, received headers: {}: {}", name, value);
+         }
+      } else if (request.isCompleted()) {
+         log.trace("Request on connection {} has been already completed (error in handlers?), ignoring", connection);
+      } else {
+         HttpResponseHandlers handlers = request.handlers();
+         request.enter();
+         try {
+            String name = Util.toString(buf, startOfName, endOfName - startOfName);
+            String value = Util.toString(buf, startOfValue, endOfValue - startOfValue);
+            handlers.handleHeader(request, name, value);
+         } catch (SessionStopException e) {
+            log.trace("Stopped processing as the session was stopped.");
+         } catch (Throwable t) {
+            log.error("Response processing failed on {}", t, this);
+            handlers.handleThrowable(request, t);
+         } finally {
+            request.exit();
+         }
+         request.session.proceed();
+      }
+   }
+
+   @Override
+   protected void onBodyPart(ByteBuf buf, int startOffset, int length, boolean isLastPart) {
+      if (length < 0 || length == 0 && !isLastPart) {
+         return;
+      }
+      HttpRequest request = connection.peekRequest(0);
+      // When previous handlers throw an error the request is already completed
+      if (request != null && !request.isCompleted()) {
+         HttpResponseHandlers handlers = request.handlers();
+         request.enter();
+         try {
+            handlers.handleBodyPart(request, buf, startOffset, length, isLastPart);
+         } catch (SessionStopException e) {
+            log.trace("Stopped processing as the session was stopped.");
+         } catch (Throwable t) {
+            log.error("Response processing failed on {}", t, this);
+            handlers.handleThrowable(request, t);
+         } finally {
+            request.exit();
+         }
+         request.session.proceed();
+      }
+   }
+
+   @Override
+   protected void onCompletion(HttpRequest request) {
+      connection.removeRequest(0, request);
+      // When previous handlers throw an error the request is already completed
+      if (!request.isCompleted()) {
+         request.enter();
+         try {
+            request.handlers().handleEnd(request, true);
+            if (trace) {
+               log.trace("Completed response on {}", this);
+            }
+         } catch (SessionStopException e) {
+            log.trace("Stopped processing as the session was stopped.");
+         } catch (Throwable t) {
+            log.error("Response processing failed on {}", t, this);
+            request.handlers().handleThrowable(request, t);
+         } finally {
+            request.exit();
+         }
+         request.session.proceed();
+      }
+      assert request.isCompleted();
+      request.release();
+      if (trace) {
+         log.trace("Releasing request");
+      }
+      ((Http1xConnection) connection).releasePoolAndPulse();
    }
 }
