@@ -56,15 +56,17 @@ public class YamlParserTest {
       assertThat(benchmark.name()).isEqualTo("simple benchmark");
       Phase[] phases = benchmark.phases().toArray(new Phase[0]);
       assertThat(phases.length).isEqualTo(3);
-      Sequence[] sequences = phases[0].scenario().sequences();
-      assertThat(sequences.length).isEqualTo(1);
-      Step[] steps = sequences[0].steps();
-      assertThat(steps.length).isEqualTo(5);
-      assertThat(steps[0]).isInstanceOf(HttpRequestStep.class);
-      assertThat(steps[1]).isInstanceOf(HttpRequestStep.class);
-      assertThat(steps[2]).isInstanceOf(NoopStep.class);
-      assertThat(steps[3]).isInstanceOf(AwaitIntStep.class);
-      assertThat(steps[4]).isInstanceOf(ScheduleDelayStep.class);
+      for (Phase p : phases) {
+         Sequence[] sequences = p.scenario().sequences();
+         assertThat(sequences.length).isEqualTo(1);
+         Step[] steps = sequences[0].steps();
+         assertThat(steps.length).isEqualTo(5);
+         assertThat(steps[0]).isInstanceOf(HttpRequestStep.class);
+         assertThat(steps[1]).isInstanceOf(HttpRequestStep.class);
+         assertThat(steps[2]).isInstanceOf(NoopStep.class);
+         assertThat(steps[3]).isInstanceOf(AwaitIntStep.class);
+         assertThat(steps[4]).isInstanceOf(ScheduleDelayStep.class);
+      }
    }
 
    @Test

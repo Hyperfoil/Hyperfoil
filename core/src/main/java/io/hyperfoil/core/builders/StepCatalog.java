@@ -189,7 +189,9 @@ public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.O
     * @return Builder.
     */
    public AwaitIntStep.Builder awaitInt() {
-      return new AwaitIntStep.Builder(parent);
+      AwaitIntStep.Builder builder = new AwaitIntStep.Builder(parent);
+      parent.stepBuilder(builder);
+      return builder;
    }
 
    /**

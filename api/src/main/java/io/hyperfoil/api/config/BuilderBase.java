@@ -80,6 +80,9 @@ public interface BuilderBase<S extends BuilderBase<S>> {
                      Collection<Object> copyCollection = (Collection<Object>) copyValue;
                      copyCollection.clear();
                      copyCollection.addAll((Collection<?>) CopyUtil.deepCopy(thisValue));
+                  } else if (f.getName().equals("parent")) {
+                     // Fluent builders often require parent element reference; in YAML configuration these are not used.
+                     continue;
                   }
                   // This could be e.g. final list and we wouldn't copy it
                   throw new UnsupportedOperationException(cls.getName() + "." + f.getName() + " is final (actual instance: " + this + ")");

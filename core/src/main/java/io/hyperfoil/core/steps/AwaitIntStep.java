@@ -46,9 +46,6 @@ public class AwaitIntStep implements Step {
 
       public Builder(BaseSequenceBuilder parent) {
          super(parent);
-         if (parent != null) {
-            parent.stepBuilder(this);
-         }
       }
 
       /**
