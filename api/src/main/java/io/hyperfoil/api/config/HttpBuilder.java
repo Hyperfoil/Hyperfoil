@@ -34,7 +34,7 @@ import java.util.List;
 /**
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
  */
-public class HttpBuilder {
+public class HttpBuilder implements Rewritable<HttpBuilder> {
 
    private final BenchmarkBuilder parent;
    private Http http;
@@ -77,6 +77,10 @@ public class HttpBuilder {
       }
       this.protocol = protocol;
       return this;
+   }
+
+   public String host() {
+      return host;
    }
 
    public HttpBuilder host(String host) {
@@ -200,7 +204,25 @@ public class HttpBuilder {
             sharedConnections, directHttp2, requestTimeout, rawBytesHandlers, keyManager.build(), trustManager.build());
    }
 
-   public class KeyManagerBuilder {
+   @Override
+   public void readFrom(HttpBuilder other) {
+      this.protocol = other.protocol;
+      this.host = other.host;
+      this.port = other.port;
+      this.addresses = new ArrayList<>(addresses);
+      this.allowHttp1x = other.allowHttp1x;
+      this.allowHttp2 = other.allowHttp2;
+      this.sharedConnections = other.sharedConnections;
+      this.maxHttp2Streams = other.maxHttp2Streams;
+      this.pipeliningLimit = other.pipeliningLimit;
+      this.directHttp2 = other.directHttp2;
+      this.requestTimeout = other.requestTimeout;
+      this.rawBytesHandlers = other.rawBytesHandlers;
+      this.keyManager.readFrom(other.keyManager);
+      this.trustManager.readFrom(other.trustManager);
+   }
+
+   public class KeyManagerBuilder implements Rewritable<KeyManagerBuilder> {
       private String storeType = "JKS";
       private byte[] storeBytes;
       private String password;
@@ -272,9 +294,19 @@ public class HttpBuilder {
       public Http.KeyManager build() {
          return new Http.KeyManager(storeType, storeBytes, password, alias, certBytes, keyBytes);
       }
+
+      @Override
+      public void readFrom(KeyManagerBuilder other) {
+         this.storeType = other.storeType;
+         this.storeBytes = other.storeBytes;
+         this.password = other.password;
+         this.alias = other.alias;
+         this.certBytes = other.certBytes;
+         this.keyBytes = other.keyBytes;
+      }
    }
 
-   public class TrustManagerBuilder {
+   public class TrustManagerBuilder implements Rewritable<TrustManagerBuilder> {
       private String storeType = "JKS";
       private byte[] storeBytes;
       private String password;
@@ -324,6 +356,14 @@ public class HttpBuilder {
 
       public Http.TrustManager build() {
          return new Http.TrustManager(storeType, storeBytes, password, certBytes);
+      }
+
+      @Override
+      public void readFrom(TrustManagerBuilder other) {
+         this.storeType = other.storeType;
+         this.storeBytes = other.storeBytes;
+         this.password = other.password;
+         this.certBytes = other.certBytes;
       }
    }
 

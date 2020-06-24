@@ -19,6 +19,7 @@ import org.junit.runners.Parameterized;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkBuilder;
+import io.hyperfoil.api.config.HttpBuilder;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.config.PhaseBuilder;
 import io.hyperfoil.api.config.PhaseForkBuilder;
@@ -71,7 +72,12 @@ public class ValidateExampleTest {
          String source = io.hyperfoil.core.util.Util.toString(loadOrFail());
          BenchmarkBuilder original = BenchmarkParser.instance().builder(source, new LocalBenchmarkData());
          BenchmarkBuilder builder = new BenchmarkBuilder(null, new LocalBenchmarkData());
-         builder.http().host("http://localhost");
+         BenchmarkBuilder.httpForTesting(original).forEach(http -> {
+            HttpBuilder newHttp = builder.decoupledHttp();
+            newHttp.readFrom(http);
+            builder.addHttp(newHttp);
+         });
+         builder.prepareBuild();
          for (PhaseBuilder<?> phase : BenchmarkBuilder.phasesForTesting(original)) {
             TestingPhaseBuilder copy = new TestingPhaseBuilder(builder);
             // This triggers the copy

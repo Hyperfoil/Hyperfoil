@@ -58,6 +58,18 @@ public class BenchmarkBuilder {
       return builder.phaseBuilders.values();
    }
 
+   public static Collection<HttpBuilder> httpForTesting(BenchmarkBuilder builder) {
+      if (builder.defaultHttp == null) {
+         return Collections.unmodifiableList(builder.httpList);
+      } else if (builder.httpList.isEmpty()) {
+         return Collections.singletonList(builder.defaultHttp);
+      } else {
+         ArrayList<HttpBuilder> list = new ArrayList<>(builder.httpList);
+         list.add(builder.defaultHttp);
+         return list;
+      }
+   }
+
    public BenchmarkBuilder(String originalSource, BenchmarkData data) {
       this.originalSource = originalSource;
       this.data = data;

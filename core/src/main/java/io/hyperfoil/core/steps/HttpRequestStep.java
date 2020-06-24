@@ -631,6 +631,8 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
             }
             if (authority == null) {
                throw new BenchmarkDefinitionException(String.format("%s to <default route>%s is invalid as we don't have a default route set.", method, guessedPath));
+            } else if (!guessedAuthority.contains(":")) {
+               throw new BenchmarkDefinitionException(String.format("%s to %s%s is invalid - did you forget the port number?.", method, guessedAuthority, guessedPath));
             } else {
                throw new BenchmarkDefinitionException(String.format("%s to %s%s is invalid - no HTTP configuration defined.", method, guessedAuthority, guessedPath));
             }
