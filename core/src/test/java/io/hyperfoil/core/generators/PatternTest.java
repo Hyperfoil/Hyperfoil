@@ -68,6 +68,13 @@ public class PatternTest {
       test(pattern, session, "foo+%40%2B%C4%9B%C5%A1%C4%8D%C5%99+");
    }
 
+   @Test
+   public void testEscape() {
+      Pattern pattern = new Pattern("foo${var}$${var}${var}$$${var}", false);
+      Session session = setObject("var", "bar");
+      test(pattern, session, "foobar${var}bar$${var}");
+   }
+
    private Session setObject(String name, String value) {
       Session session = SessionFactory.forTesting();
       Access var = SessionFactory.access(name);

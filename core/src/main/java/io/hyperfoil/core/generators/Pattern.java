@@ -26,19 +26,24 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
    public Pattern(String str, boolean urlEncode) {
       this.urlEncode = urlEncode;
       List<Component> components = new ArrayList<>();
-      int last = 0;
+      int last = 0, lastSearch = 0;
       for (; ; ) {
-         int openPar = str.indexOf("${", last);
+         int openPar = str.indexOf("${", lastSearch);
          if (openPar < 0) {
             String substring = str.substring(last);
             if (!str.isEmpty()) {
-               components.add(new StringComponent(substring));
+               components.add(new StringComponent(substring.replaceAll("\\$\\$\\{", "\\${")));
                lengthEstimate += substring.length();
             }
             break;
          } else {
+            if (openPar > 0 && str.charAt(openPar - 1) == '$') {
+               // $${...} = escape syntax
+               lastSearch = openPar + 1;
+               continue;
+            }
             String substring = str.substring(last, openPar);
-            components.add(new StringComponent(substring));
+            components.add(new StringComponent(substring.replaceAll("\\$\\$\\{", "\\${")));
             lengthEstimate += substring.length() + VAR_LENGTH_ESTIMATE;
             int closePar = str.indexOf("}", openPar);
             int colon = str.indexOf(":", openPar);
@@ -61,7 +66,7 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
                Access key = SessionFactory.access(str.substring(openPar + 2, closePar).trim());
                components.add(new VarComponent(key, urlEncode));
             }
-            last = closePar + 1;
+            lastSearch = last = closePar + 1;
          }
       }
       this.components = components.toArray(new Component[0]);
