@@ -130,7 +130,7 @@ public class HttpRequestTest extends BaseScenarioTest {
                   .var("x")
                   .value("bar"))
                .step(SC).httpRequest(HttpMethod.POST)
-                  .path().pattern("/test?expect=${x}").end()
+                  .path("/test?expect=${x}")
                   .body("bar")
                   .handler().status(verifyStatus(ctx))
                   .endHandler()

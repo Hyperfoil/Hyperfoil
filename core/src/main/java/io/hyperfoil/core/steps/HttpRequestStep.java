@@ -18,6 +18,7 @@ import io.hyperfoil.api.BenchmarkExecutionException;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.ErgonomicsBuilder;
 import io.hyperfoil.api.config.Http;
+import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.MappingListBuilder;
 import io.hyperfoil.api.config.Name;
@@ -403,7 +404,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
        * @return Self.
        */
       public Builder authority(String authority) {
-         return authority(session -> authority);
+         return authority(() -> new Pattern(authority, false));
       }
 
       public Builder authority(SerializableFunction<Session, String> authorityGenerator) {
@@ -427,7 +428,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
       }
 
       public Builder path(String path) {
-         return path(s -> path);
+         return path(() -> new Pattern(path, false));
       }
 
       /**
@@ -454,13 +455,13 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
       }
 
       /**
-       * HTTP request body (specified as string).
+       * HTTP request body (possibly a pattern).
        *
-       * @param string Body as string.
+       * @param string Request body.
        * @return Self.
        */
       public Builder body(String string) {
-         return body(new ConstantBytesGenerator(string.getBytes(StandardCharsets.UTF_8)));
+         return body().pattern(string).endBody();
       }
 
       /**
@@ -698,12 +699,11 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
       }
 
       /**
-       * Use header name (e.g. <code>Content-Type</code>) as key and value verbatim.
+       * Use header name (e.g. <code>Content-Type</code>) as key and value (possibly a pattern).
        */
       @Override
       public void accept(String header, String value) {
-         warnIfUsingHostHeader(header);
-         parent.headerAppender((session, writer) -> writer.putHeader(header, value));
+         withKey(header).pattern(value);
       }
 
       public Builder endHeaders() {
@@ -730,7 +730,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
    /**
     * Specifies value that should be sent in headers.
     */
-   public static class PartialHeadersBuilder {
+   public static class PartialHeadersBuilder implements InitFromParam<PartialHeadersBuilder> {
       private final HeadersBuilder parent;
       private final String header;
       private boolean added;
@@ -738,6 +738,11 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
       private PartialHeadersBuilder(HeadersBuilder parent, String header) {
          this.parent = parent;
          this.header = header;
+      }
+
+      @Override
+      public PartialHeadersBuilder init(String param) {
+         return pattern(param);
       }
 
       /**
@@ -770,6 +775,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
        * @return Builder.
        */
       public PartialHeadersBuilder pattern(String patternString) {
+         ensureOnce();
          parent.parent.headerAppenders.add(() -> {
             Pattern pattern = new Pattern(patternString, false);
             String myHeader = header;
@@ -905,7 +911,8 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
    /**
     * Build an URL-encoded HTML form body.
     */
-   private static class FormBuilder extends PairBuilder.OfString implements BodyGeneratorBuilder, MappingListBuilder<FormInputBuilder> {
+   // Note: we cannot implement both a PairBuilder and MappingListBuilder at the same time
+   private static class FormBuilder implements BodyGeneratorBuilder, MappingListBuilder<FormInputBuilder> {
       private final ArrayList<FormInputBuilder> inputs = new ArrayList<>();
 
       /**
@@ -924,17 +931,6 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
       @Override
       public SerializableBiFunction<Session, Connection, ByteBuf> build() {
          return new FormGenerator(inputs.stream().map(FormInputBuilder::build).toArray(SerializableBiConsumer[]::new));
-      }
-
-      /**
-       * Add simple name=value input pair.
-       *
-       * @param name  Input name.
-       * @param value Input value.
-       */
-      @Override
-      public void accept(String name, String value) {
-         inputs.add(new FormInputBuilder().name(name).value(value));
       }
    }
 

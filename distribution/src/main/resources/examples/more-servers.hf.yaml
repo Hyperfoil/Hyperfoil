@@ -40,6 +40,5 @@ scenario:
       # The target must be configured in the 'http' section above; the correctness
       # is usually validated when parsing/building the benchmark but sometimes it is
       # only possible at runtime, potentially resulting in errors during execution.
-      authority:
-        pattern: ${hostname}:80
+      authority: ${hostname}:80
       GET: /foo

@@ -6,6 +6,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.function.Supplier;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
@@ -18,7 +19,7 @@ import io.vertx.core.logging.LoggerFactory;
 /**
  * Generic builder for generating a string.
  */
-public class StringGeneratorImplBuilder<T> implements StringGeneratorBuilder {
+public class StringGeneratorImplBuilder<T> implements StringGeneratorBuilder, InitFromParam<StringGeneratorImplBuilder<T>> {
    private static final Logger log = LoggerFactory.getLogger(StringGeneratorImplBuilder.class);
 
    private final T parent;
@@ -29,6 +30,11 @@ public class StringGeneratorImplBuilder<T> implements StringGeneratorBuilder {
    public StringGeneratorImplBuilder(T parent, boolean urlEncode) {
       this.parent = parent;
       this.urlEncode = urlEncode;
+   }
+
+   @Override
+   public StringGeneratorImplBuilder<T> init(String param) {
+      return pattern(param);
    }
 
    private void set(Supplier<SerializableFunction<Session, String>> function) {

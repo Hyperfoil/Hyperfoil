@@ -50,11 +50,11 @@ scenario:
       GET: /secured/page
       # Note that HTTP headers are case-insensitive (use your preferred capitalization)
       headers:
-        # Headers with hard-coded value can be set inline
+        # Headers can be set inline
         accept: text/html
-        # Values from session variables are loaded using pattern or fromVar
-        authorization:
-          pattern: Bearer ${token}
+        # Session variables are replaced using the pattern syntax
+        authorization: Bearer ${token}
+        # Values from session variables can be also loaded using fromVar
         if-match:
           fromVar: etag
 - nonDefaultMetric:
