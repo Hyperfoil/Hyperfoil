@@ -106,8 +106,9 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
       }
       HttpConnectionPool connectionPool;
       String path;
+      String authority;
       try {
-         String authority = this.authority == null ? null : this.authority.apply(session);
+         authority = this.authority == null ? null : this.authority.apply(session);
          path = pathGenerator.apply(session);
          boolean isHttp;
          if (authority == null && (isHttp = path.startsWith(HttpUtil.HTTP_PREFIX) || path.startsWith(HttpUtil.HTTPS_PREFIX))) {
@@ -160,13 +161,18 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
       if (blockedTime > 0) {
          request.statistics().incrementBlockedTime(request.startTimestampMillis(), blockedTime);
       }
+      if (request.isCompleted()) {
+         // When the request handlers call Session.stop() due to a failure it does not make sense to continue
+         request.release();
+         return true;
+      }
       // Set up timeout only after successful request
       if (timeout > 0) {
          // TODO alloc!
          request.setTimeout(timeout, TimeUnit.MILLISECONDS);
       } else {
          Benchmark benchmark = session.phase().benchmark();
-         Http http = authority == null ? benchmark.defaultHttp() : benchmark.http().get(authority.apply(session));
+         Http http = authority == null ? benchmark.defaultHttp() : benchmark.http().get(authority);
          long timeout = http.requestTimeout();
          if (timeout > 0) {
             request.setTimeout(timeout, TimeUnit.MILLISECONDS);

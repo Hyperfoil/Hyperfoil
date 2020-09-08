@@ -149,9 +149,17 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
    @Override
    public void operationComplete(Future<Void> future) {
       // This is called when the request is written on the wire
-      sendTimestampNanos = System.nanoTime();
-      if (!future.isSuccess()) {
-         handleThrowable(future.cause());
+      // It doesn't make sense to throw any exceptions from this method
+      // since DefaultPromise.notifyListener0 would swallow them with a warning.
+      try {
+         sendTimestampNanos = System.nanoTime();
+         if (!future.isSuccess()) {
+            handleThrowable(future.cause());
+         }
+      } catch (SessionStopException e) {
+         // ignoring, session stopped
+      } catch (Throwable t) {
+         log.error("#{} Exception thrown from handleThrowable()", t, session.uniqueId());
       }
    }
 

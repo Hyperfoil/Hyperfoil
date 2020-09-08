@@ -159,6 +159,10 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
                }
             }
          }
+      } catch (Throwable t) {
+         log.warn("#{} Exception {} thrown while handling another exception: ", throwable, session.uniqueId(), t.toString());
+         t.addSuppressed(throwable);
+         throw t;
       } finally {
          request.statistics().incrementResets(request.startTimestampMillis());
          request.setCompleted();

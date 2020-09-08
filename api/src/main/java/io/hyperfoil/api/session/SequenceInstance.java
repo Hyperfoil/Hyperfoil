@@ -34,6 +34,10 @@ public class SequenceInstance {
                }
                return progressed;
             }
+            // If session becomes inactive it means that the originally thrown exception was not properly propagated
+            if (!session.isActive()) {
+               throw SessionStopException.INSTANCE;
+            }
          } catch (SessionStopException e) {
             // just rethrow
             throw e;
