@@ -61,6 +61,8 @@ class SessionImpl implements Session, Callable<Void> {
    private final int threadId;
    private final int uniqueId;
 
+   private final Callable<Void> deferredStart = this::deferredStart;
+
    SessionImpl(Scenario scenario, int agentId, int threadId, int uniqueId, Clock clock) {
       this.sequencePool = new LimitedPool<>(scenario.maxSequences(), SequenceInstance::new);
       this.agentId = agentId;
@@ -407,10 +409,15 @@ class SessionImpl implements Session, Callable<Void> {
          log.trace("#{} Session starting in {}", uniqueId, phase.definition().name);
       }
       resetPhase(phase);
+      executor.submit(deferredStart);
+   }
+
+   private Void deferredStart() {
       for (Sequence sequence : phase.definition().scenario().initialSequences()) {
          startSequence(sequence, ConcurrencyPolicy.FAIL);
       }
-      proceed();
+      call();
+      return null;
    }
 
    @Override
