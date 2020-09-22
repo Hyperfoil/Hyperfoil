@@ -133,10 +133,8 @@ public interface Session {
       }
    }
 
-   /**
-    * Just a marker interface.
-    */
    interface Resource {
+      default void onSessionReset() {}
    }
 
    interface ResourceKey<R extends Resource> {}

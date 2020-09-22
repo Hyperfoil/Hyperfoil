@@ -40,6 +40,7 @@ class SessionImpl implements Session, Callable<Void> {
    private final Map<Object, Var> vars = new HashMap<>();
    private final Map<ResourceKey<?>, Object> resources = new HashMap<>();
    private final List<Var> allVars = new ArrayList<>();
+   private final List<Resource> allResources = new ArrayList<>();
    private final LimitedPool<SequenceInstance> sequencePool;
    private final LimitedPool<HttpRequest> requestPool;
    private final HttpRequest[] requests;
@@ -217,11 +218,15 @@ class SessionImpl implements Session, Callable<Void> {
       if (!singleton && concurrency > 0) {
          Resource[] array = new Resource[concurrency];
          for (int i = 0; i < concurrency; ++i) {
-            array[i] = resourceSupplier.get();
+            R resource = resourceSupplier.get();
+            array[i] = resource;
+            allResources.add(resource);
          }
          resources.put(key, array);
       } else {
-         resources.put(key, resourceSupplier.get());
+         R resource = resourceSupplier.get();
+         resources.put(key, resource);
+         allResources.add(resource);
       }
    }
 
@@ -369,7 +374,9 @@ class SessionImpl implements Session, Callable<Void> {
                if (trace) {
                   log.trace("Canceling request on {}", request.connection());
                }
-               request.connection().close();
+               if (request.connection() != null) {
+                  request.connection().close();
+               }
                if (!request.isCompleted()) {
                   // Connection.close() cancels everything in flight but if this is called
                   // from handleEnd() the request is not in flight anymore
@@ -498,6 +505,10 @@ class SessionImpl implements Session, Callable<Void> {
       assert requestPool.isFull();
       for (int i = 0; i < allVars.size(); ++i) {
          allVars.get(i).unset();
+      }
+      for (int i = 0; i < allResources.size(); i++) {
+         Resource r = allResources.get(i);
+         r.onSessionReset();
       }
       httpCache.clear();
       httpDestinations.onSessionReset();

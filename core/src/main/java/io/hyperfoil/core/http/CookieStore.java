@@ -10,7 +10,6 @@ import io.vertx.core.logging.LoggerFactory;
 
 class CookieStore implements Session.Resource {
    private static final Logger log = LoggerFactory.getLogger(CookieRecorder.class);
-   private static final boolean trace = log.isTraceEnabled();
 
    // We need only single object for all cookies
    public static final Session.ResourceKey<CookieStore> COOKIES = new Session.ResourceKey<CookieStore>() {};
@@ -19,10 +18,16 @@ class CookieStore implements Session.Resource {
    private static final int MAX_SITES = 16;
    private final Cookie[] cookies = new Cookie[MAX_SITES];
 
-
    public CookieStore() {
       for (int i = 0; i < cookies.length; ++i) {
          cookies[i] = new Cookie();
+      }
+   }
+
+   @Override
+   public void onSessionReset() {
+      for (int i = 0; i < cookies.length; ++i) {
+         cookies[i].clear();
       }
    }
 
@@ -179,6 +184,16 @@ class CookieStore implements Session.Resource {
       CharSequence path;
       long expires;
       boolean secure;
+
+      public void clear() {
+         name = null;
+         nameValue = null;
+         domain = null;
+         exactDomain = false;
+         path = null;
+         expires = 0;
+         secure = false;
+      }
    }
 
    private enum Attribute {
