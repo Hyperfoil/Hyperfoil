@@ -100,6 +100,9 @@ public class RandomCsvRowStep implements Step, ResourceUtilizer {
             }
          });
          List<String> cols = new ArrayList<>(builderColumns.keySet());
+         for (String key : builderColumns.keySet()) {
+            cols.set(builderColumns.get(key), key);
+         }
 
          Access[] columnVars = cols.stream().map(SessionFactory::access).toArray(Access[]::new);
          return Collections.singletonList(new RandomCsvRowStep(rows.toArray(new String[][]{}), columnVars));
