@@ -10,6 +10,7 @@ import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 
 import io.hyperfoil.api.connection.HttpRequest;
+import io.hyperfoil.api.session.SessionStopException;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.EventLoop;
@@ -32,6 +33,8 @@ import io.vertx.core.logging.LoggerFactory;
 class HttpConnectionPoolImpl implements HttpConnectionPool {
    private static final Logger log = LoggerFactory.getLogger(HttpConnectionPoolImpl.class);
    private static final boolean trace = log.isTraceEnabled();
+   //TODO: configurable
+   private static final int MAX_FAILURES = 100;
 
    private final HttpClientPoolImpl clientPool;
    private final ArrayList<HttpConnection> connections = new ArrayList<>();
@@ -73,6 +76,8 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
          // would have messed up current request in session.
          // Handlers must not block anyway, so this is illegal way to run request
          // and happens only with programmatic configuration in testsuite.
+         log.error("#{} Invoking request directly from a request handler; current: {}, requested {}", new IllegalStateException(),
+               request.session.uniqueId(), request.session.currentRequest(), request);
          return false;
       }
       HttpConnection connection;
@@ -80,6 +85,11 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
          for (; ; ) {
             connection = available.pollFirst();
             if (connection == null) {
+               log.debug("No connection to {} available", clientPool.authority);
+               if (failures > MAX_FAILURES) {
+                  log.error("The request cannot be made since the failures to connect to {} exceeded a threshold. Stopping session.");
+                  throw SessionStopException.INSTANCE;
+               }
                return false;
             } else if (!connection.isClosed()) {
                if (exclusiveConnection && connection.inFlight() > 0) {
@@ -94,6 +104,8 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
                   available.addLast(connection);
                }
                return true;
+            } else {
+               log.trace("Connection {} to {} is already closed", connection, clientPool.authority);
             }
          }
       } finally {
@@ -133,7 +145,7 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
    public void pulse() {
       Session session = waitingSessions.poll();
       if (trace) {
-         log.trace("Pulse #{}", session == null ? "<none>" : session.uniqueId());
+         log.trace("Pulse #{} to {} ({} waiting)", session == null ? "<none>" : session.uniqueId(), clientPool.authority, waitingSessions.size());
       }
       if (session != null) {
          session.proceed();
@@ -163,8 +175,7 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
       if (shutdown) {
          return;
       }
-      //TODO:: configurable
-      if (failures > 100) {
+      if (failures > MAX_FAILURES) {
          // When the connection is not available we'll let sessions see & terminate if it's past the duration
          Handler<AsyncResult<Void>> handler = this.startedHandler;
          if (handler != null) {
@@ -185,7 +196,7 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
             if (err != null) {
                count--;
                failures++;
-               log.warn("Cannot create connection (created: {}, failures: {})", err, created, failures);
+               log.warn("Cannot create connection to {} (created: {}, failures: {})", err, clientPool.authority, created, failures);
                // scheduling task when the executor is shut down causes errors
                if (!eventLoop.isShuttingDown() && !eventLoop.isShutdown()) {
                   eventLoop.execute(this::checkCreateConnections);
@@ -193,50 +204,50 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
             } else {
                // we are using this eventloop as the bootstrap group so the connection should be created for us
                assert conn.context().executor() == eventLoop;
-               log.debug("Connection {} created ({}/{}, currently)", conn, created, size, count);
-               connectionCreated(conn);
+               assert eventLoop.inEventLoop();
+
+               Handler<AsyncResult<Void>> handler = null;
+               connections.add(conn);
+               created++;
+               // With each success we reset the counter - otherwise we'd eventually
+               // stop trying to create new connections and the sessions would be stuck.
+               failures = 0;
+               available.add(conn);
+               log.debug("Connection {} to {} created ({}->{}=?{}:{}/{})", conn, clientPool.authority, count, created, connections.size(), available.size(), size);
+
+               if (count < size) {
+                  checkCreateConnections();
+               } else {
+                  if (created == size) {
+                     handler = startedHandler;
+                     startedHandler = null;
+                  }
+               }
+
+               conn.context().channel().closeFuture().addListener(v -> {
+                  conn.setClosed();
+                  log.debug("Connection {} to {} closed. ({}->{}=?{}:{}/{})", conn, clientPool.authority, count, created, connections.size(), available.size(), size);
+                  count--;
+                  created--;
+                  closed++;
+                  if (!shutdown) {
+                     if (closed > size) {
+                        // do cleanup
+                        connections.removeIf(HttpConnection::isClosed);
+                        closed = 0;
+                     }
+                     checkCreateConnections();
+                  }
+               });
+
+               if (handler != null) {
+                  handler.handle(Future.succeededFuture());
+               }
+               pulse();
             }
          });
          eventLoop.schedule(() -> checkCreateConnections(), 2, TimeUnit.MILLISECONDS);
       }
-   }
-
-   private void connectionCreated(HttpConnection conn) {
-      assert eventLoop.inEventLoop();
-
-      Handler<AsyncResult<Void>> handler = null;
-      connections.add(conn);
-      created++;
-      available.add(conn);
-      if (count < size) {
-         checkCreateConnections();
-      } else {
-         if (created == size) {
-            handler = startedHandler;
-            startedHandler = null;
-         }
-      }
-
-      conn.context().channel().closeFuture().addListener(v -> {
-         conn.setClosed();
-         log.debug("Connection {} closed.", conn);
-         count--;
-         created--;
-         closed++;
-         if (!shutdown) {
-            if (closed > size) {
-               // do cleanup
-               connections.removeIf(HttpConnection::isClosed);
-               closed = 0;
-            }
-            checkCreateConnections();
-         }
-      });
-
-      if (handler != null) {
-         handler.handle(Future.succeededFuture());
-      }
-      pulse();
    }
 
    void start(Handler<AsyncResult<Void>> handler) {

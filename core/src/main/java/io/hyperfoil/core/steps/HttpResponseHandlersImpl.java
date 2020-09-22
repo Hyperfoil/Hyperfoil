@@ -15,6 +15,7 @@ import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.processor.HttpRequestProcessorBuilder;
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.session.Action;
+import io.hyperfoil.api.session.SessionStopException;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 import io.hyperfoil.core.handlers.RangeStatusValidator;
 import io.hyperfoil.core.http.CookieRecorder;
@@ -159,6 +160,8 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
                }
             }
          }
+      } catch (SessionStopException e) {
+         throw e;
       } catch (Throwable t) {
          log.warn("#{} Exception {} thrown while handling another exception: ", throwable, session.uniqueId(), t.toString());
          t.addSuppressed(throwable);
