@@ -7,6 +7,7 @@ import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.core.http.BaseMockConnection;
 import io.hyperfoil.core.session.SessionFactory;
+import io.hyperfoil.core.test.TestUtil;
 import io.netty.channel.ChannelHandlerAdapter;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.embedded.EmbeddedChannel;
@@ -62,7 +63,7 @@ public class FilterHeaderHandlerTest {
    @Test
    public void testMatchVar() {
       ExpectProcessor expect = new ExpectProcessor().expect(0, 6, true);
-      Locator.push(Locator.forTesting());
+      Locator.push(TestUtil.locator());
       FilterHeaderHandler handler = new FilterHeaderHandler.Builder()
             .processor(f -> expect)
             .header()

@@ -29,8 +29,16 @@ public final class SessionFactory {
       return forTesting(Clock.systemDefaultZone());
    }
 
+   public static Session forTesting(String[] objectVars, String[] intVars) {
+      return forTesting(Clock.systemDefaultZone(), objectVars, intVars);
+   }
+
    public static Session forTesting(Clock clock) {
-      Scenario dummyScenario = new Scenario(new Sequence[0], new Sequence[0], new String[0], new String[0], 16, 16);
+      return forTesting(clock, new String[0], new String[0]);
+   }
+
+   public static Session forTesting(Clock clock, String[] objectVars, String[] intVars) {
+      Scenario dummyScenario = new Scenario(new Sequence[0], new Sequence[0], objectVars, intVars, 16, 16);
       SessionImpl session = new SessionImpl(dummyScenario, 0, 0, 0, clock);
       Phase dummyPhase = new Phase(() -> Benchmark.forTesting(), 0, 0, "dummy", dummyScenario, 0,
             Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), 0, -1, null) {

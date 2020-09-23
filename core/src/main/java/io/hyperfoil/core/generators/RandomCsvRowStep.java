@@ -7,12 +7,10 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.kohsuke.MetaInfServices;
 
@@ -45,12 +43,9 @@ public class RandomCsvRowStep implements Step, ResourceUtilizer {
    public boolean invoke(Session session) {
       // columns provided by csv
       ThreadLocalRandom random = ThreadLocalRandom.current();
-      int next = random.nextInt(rows.length);
-      int last = columnVars.length;
-      for (int i = 0, j = 0; i < last; i += 1) {
-         if (rows[next][i] != null) {
-            columnVars[j++].setObject(session, rows[next][i]);
-         }
+      String[] row = rows[random.nextInt(rows.length)];
+      for (int i = 0, j = 0; i < columnVars.length; i += 1) {
+         columnVars[j++].setObject(session, row[i]);
       }
       return true;
    }
@@ -69,43 +64,48 @@ public class RandomCsvRowStep implements Step, ResourceUtilizer {
       private String file;
       private boolean skipComments;
       private boolean removeQuotes;
-      private Map<String, Integer> builderColumns = new HashMap<>();
-      private int maxSize = 0;
+      private List<String> builderColumns = new ArrayList<>();
 
       @Override
       public List<Step> build() {
-         Predicate<String> comments = s -> (!skipComments || !(s.trim().startsWith("#")));
-         List<String[]> rows;
+         int[] srcIndex = new int[(int) builderColumns.stream().filter(Objects::nonNull).count()];
+         int next = 0;
+         for (int i = 0; i < builderColumns.size(); ++i) {
+            if (builderColumns.get(i) != null) {
+               srcIndex[next++] = i;
+            }
+         }
+         assert next == srcIndex.length;
+
          try (InputStream inputStream = Locator.current().benchmark().data().readFile(file)) {
             if (inputStream == null) {
                throw new BenchmarkDefinitionException("Cannot load file " + file);
             }
             BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
-            rows = reader.lines()
-                  .filter(comments)
-                  .map(s -> removeQuotes ? s.replaceAll("\"", "") : s)
-                  .map(line -> line.split(","))
-                  .collect(Collectors.toList());
-         } catch (IOException ioe) {
-            throw new BenchmarkDefinitionException(ioe.getMessage());
-         }
-         if (rows.isEmpty()) {
-            throw new BenchmarkDefinitionException("Missing CSV row data. Rows were not detected after initial processing of file.");
-         }
-         rows.forEach(arr -> {
-            for (int i = 0; i < arr.length; i += 1) {
-               if (!builderColumns.containsValue(i)) {
-                  arr[i] = null;
-               }
+            Stream<String> lines = reader.lines();
+            if (skipComments) {
+               lines = lines.filter(line -> !line.trim().startsWith("#"));
             }
-         });
-         List<String> cols = new ArrayList<>(builderColumns.keySet());
-         for (String key : builderColumns.keySet()) {
-            cols.set(builderColumns.get(key), key);
-         }
+            String[][] rows = lines.map(line -> {
+               if (removeQuotes) {
+                  line = line.replaceAll("\"", "");
+               }
+               String[] cols = line.split(",");
+               String[] arr = new String[srcIndex.length];
+               for (int i = 0; i < arr.length; ++i) {
+                  arr[i] = cols[srcIndex[i]];
+               }
+               return arr;
+            }).toArray(String[][]::new);
+            if (rows.length == 0) {
+               throw new BenchmarkDefinitionException("Missing CSV row data. Rows were not detected after initial processing of file.");
+            }
 
-         Access[] columnVars = cols.stream().map(SessionFactory::access).toArray(Access[]::new);
-         return Collections.singletonList(new RandomCsvRowStep(rows.toArray(new String[][]{}), columnVars));
+            Access[] columnVars = builderColumns.stream().filter(Objects::nonNull).map(SessionFactory::access).toArray(Access[]::new);
+            return Collections.singletonList(new RandomCsvRowStep(rows, columnVars));
+         } catch (IOException ioe) {
+            throw new BenchmarkDefinitionException("Failed to read file " + file, ioe);
+         }
       }
 
       /**
@@ -160,9 +160,15 @@ public class RandomCsvRowStep implements Step, ResourceUtilizer {
          @Override
          public void accept(String position, String columnVar) {
             int pos = Integer.parseInt(position);
-            maxSize = Math.max(maxSize, pos);
-            if ((builderColumns.put(columnVar, pos) != null)) {
-               throw new BenchmarkDefinitionException("Duplicate item '" + columnVar + "' in randomCSVrow step!");
+            if (pos < 0) {
+               throw new BenchmarkDefinitionException("Negative column index is not supported.");
+            }
+            while (pos >= builderColumns.size()) {
+               builderColumns.add(null);
+            }
+            String prev = builderColumns.set(pos, columnVar);
+            if (prev != null) {
+               throw new BenchmarkDefinitionException("Column " + pos + " is already mapped to '" + prev + "', don't map to '" + columnVar + "'");
             }
          }
       }

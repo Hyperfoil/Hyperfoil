@@ -9,6 +9,7 @@ import org.junit.Test;
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.SharedData;
+import io.hyperfoil.core.test.TestUtil;
 
 public class SharedDataTest {
    private static final String FOO = "foo";
@@ -16,7 +17,7 @@ public class SharedDataTest {
    private static final Access NUMBERA;
 
    static {
-      Locator.push(Locator.forTesting());
+      Locator.push(TestUtil.locator());
       FOOA = SessionFactory.access("foo");
       NUMBERA = SessionFactory.access("number");
       Locator.pop();

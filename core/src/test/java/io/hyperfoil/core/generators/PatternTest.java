@@ -12,13 +12,14 @@ import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
+import io.hyperfoil.core.test.TestUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 
 public class PatternTest {
    @Before
    public void before() {
-      Locator.push(Locator.forTesting());
+      Locator.push(TestUtil.locator());
    }
 
    @After

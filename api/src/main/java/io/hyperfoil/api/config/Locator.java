@@ -35,28 +35,8 @@ public interface Locator {
       Holder.CURRENT.get().pop();
    }
 
-   static Locator forTesting() {
-      return Holder.TESTING_MOCK;
-   }
-
    class Holder {
       private static final ThreadLocal<Stack<Locator>> CURRENT = ThreadLocal.withInitial(Stack::new);
-      private static final Locator TESTING_MOCK = new Locator() {
-         @Override
-         public StepBuilder<?> step() {
-            throw new UnsupportedOperationException();
-         }
-
-         @Override
-         public BaseSequenceBuilder sequence() {
-            throw new UnsupportedOperationException();
-         }
-
-         @Override
-         public ScenarioBuilder scenario() {
-            throw new UnsupportedOperationException();
-         }
-      };
    }
 
    class Impl implements Locator {
