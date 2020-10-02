@@ -8,6 +8,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -533,6 +534,21 @@ class ControllerServer implements ApiService {
       withStats(ctx, runId, run -> {
          Histogram histogram = run.statisticsStore.histogram(phase, stepId, metric);
          ctx.response().end(Json.encode(histogram));
+      });
+   }
+
+   @Override
+   public void getRunFile(RoutingContext ctx, String runId, String file) {
+      withRun(ctx, runId, run -> {
+         Path runDir = controller.getRunDir(run).toAbsolutePath();
+         Path path = runDir.resolve(file).toAbsolutePath();
+         if (!path.startsWith(runDir)) {
+            ctx.response().setStatusCode(403).end("Requested file is not within the run directory!");
+         } else if (!path.toFile().exists() || !path.toFile().isFile()) {
+            ctx.response().setStatusCode(404).end("Requested file was not found");
+         } else {
+            ctx.response().sendFile(path.toString());
+         }
       });
    }
 
