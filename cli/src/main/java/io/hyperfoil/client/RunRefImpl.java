@@ -168,4 +168,12 @@ public class RunRefImpl implements Client.RunRef {
             handler -> client.client.request(HttpMethod.GET, "/run/" + id + "/stats/custom").send(handler), 200,
             response -> JacksonCodec.decodeValue(response.body(), new TypeReference<Collection<CustomStats>>() {}));
    }
+
+   @Override
+   public byte[] file(String filename) {
+      return client.sync(
+            handler -> client.client.request(HttpMethod.GET, "/run/" + id + "/file").addQueryParam("file", filename).send(handler), 200,
+            response -> response.body().getBytes()
+      );
+   }
 }

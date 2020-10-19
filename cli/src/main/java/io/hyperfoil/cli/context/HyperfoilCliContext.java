@@ -35,11 +35,13 @@ import org.aesh.command.registry.CommandRegistry;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.controller.Client;
 import io.hyperfoil.client.RestClient;
+import io.vertx.core.Vertx;
 
 /**
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
  */
 public class HyperfoilCliContext {
+   private Vertx vertx = Vertx.vertx();
    private Benchmark benchmark;
    private RestClient client;
    private Client.BenchmarkRef serverBenchmark;
@@ -171,6 +173,7 @@ public class HyperfoilCliContext {
       for (Runnable c : cleanup) {
          c.run();
       }
+      vertx.close();
    }
 
    public void setOnline(boolean online) {
@@ -187,5 +190,9 @@ public class HyperfoilCliContext {
 
    public CommandRegistry<HyperfoilCommandInvocation> commandRegistry() {
       return commandRegistry;
+   }
+
+   public Vertx vertx() {
+      return vertx;
    }
 }

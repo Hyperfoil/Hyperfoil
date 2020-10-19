@@ -33,14 +33,15 @@ import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 
 public class RestClient implements Client, Closeable {
-   final Vertx vertx = Vertx.vertx();
+   final Vertx vertx;
    final WebClientOptions options;
    final WebClient client;
 
-   public RestClient(String host, int port) {
+   public RestClient(Vertx vertx, String host, int port) {
+      this.vertx = vertx;
       // Actually there's little point in using async client, but let's stay in Vert.x libs
       options = new WebClientOptions().setDefaultHost(host).setDefaultPort(port);
-      client = WebClient.create(vertx, options.setFollowRedirects(false));
+      client = WebClient.create(this.vertx, options.setFollowRedirects(false));
    }
 
    static RestClientException unexpected(HttpResponse<Buffer> response) {
@@ -267,7 +268,6 @@ public class RestClient implements Client, Closeable {
    @Override
    public void close() {
       client.close();
-      vertx.close();
    }
 
    public String toString() {

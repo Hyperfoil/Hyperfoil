@@ -1,8 +1,11 @@
 package io.hyperfoil.cli.commands;
 
+import java.awt.Desktop;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -73,6 +76,23 @@ public abstract class ServerCommand implements Command<HyperfoilCommandInvocatio
       return editor;
    }
 
+   protected void openInBrowser(String url) throws CommandException {
+      if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+         Desktop desktop = Desktop.getDesktop();
+         try {
+            desktop.browse(new URI(url));
+         } catch (IOException | URISyntaxException e) {
+            throw new CommandException("Cannot open '" + url + "' in browser: " + Util.explainCauses(e), e);
+         }
+      } else {
+         try {
+            Runtime.getRuntime().exec("xdg-open " + url);
+         } catch (IOException e) {
+            throw new CommandException("Cannot open '" + url + "' in browser: " + Util.explainCauses(e), e);
+         }
+      }
+   }
+
    protected void ensureConnection(HyperfoilCommandInvocation invocation) throws CommandException {
       HyperfoilCliContext ctx = invocation.context();
       if (ctx.client() != null) {
@@ -84,7 +104,7 @@ public abstract class ServerCommand implements Command<HyperfoilCommandInvocatio
 
    protected void connect(HyperfoilCommandInvocation invocation, String host, int port, boolean quiet) throws CommandException {
       HyperfoilCliContext ctx = invocation.context();
-      ctx.setClient(new RestClient(host, port));
+      ctx.setClient(new RestClient(ctx.vertx(), host, port));
       try {
          long preMillis = System.currentTimeMillis();
          io.hyperfoil.controller.model.Version version = ctx.client().version();

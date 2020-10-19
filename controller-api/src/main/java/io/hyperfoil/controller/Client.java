@@ -73,6 +73,8 @@ public interface Client {
       Histogram histogram(String phase, int stepId, String metric);
 
       Collection<CustomStats> customStats();
+
+      byte[] file(String filename);
    }
 
    class MinMax {
