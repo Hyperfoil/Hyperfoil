@@ -86,7 +86,7 @@
         <version.hdrhistogram>2.1.11</version.hdrhistogram>
         <version.javaparser>3.14.12</version.javaparser>
         <version.marshalling>2.0.6.Final</version.marshalling>
-        <version.junit>4.12</version.junit>
+        <version.junit>4.13.1</version.junit>
         <version.log4j2>2.13.3</version.log4j2>
         <version.metainf-services>1.8</version.metainf-services>
         <version.netty.tcnative.boringssl>2.0.34.Final</version.netty.tcnative.boringssl>
