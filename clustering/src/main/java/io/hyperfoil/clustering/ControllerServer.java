@@ -5,7 +5,9 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.net.InetAddress;
 import java.net.URLEncoder;
+import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -87,7 +89,16 @@ class ControllerServer implements ApiService {
             .listen(CONTROLLER_PORT, CONTROLLER_HOST, serverResult -> {
                if (serverResult.succeeded()) {
                   if (CONTROLLER_EXTERNAL_URI == null) {
-                     baseURL = "http://" + CONTROLLER_HOST + ":" + serverResult.result().actualPort();
+                     String host = CONTROLLER_HOST;
+                     // Can't advertise 0.0.0.0 as
+                     if (host.equals("0.0.0.0")) {
+                        try {
+                           host = InetAddress.getLocalHost().getHostName();
+                        } catch (UnknownHostException e) {
+                           host = "localhost";
+                        }
+                     }
+                     baseURL = "http://" + host + ":" + serverResult.result().actualPort();
                   } else {
                      baseURL = CONTROLLER_EXTERNAL_URI;
                   }
