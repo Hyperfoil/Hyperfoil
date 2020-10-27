@@ -36,11 +36,11 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.cluster.infinispan.InfinispanClusterManager;
 
-class Hyperfoil {
-   static final Logger log = LoggerFactory.getLogger(Controller.class);
+public class Hyperfoil {
+   static final Logger log = LoggerFactory.getLogger(Hyperfoil.class);
    private static final Set<String> LOCALHOST_IPS = new HashSet<>(Arrays.asList("127.0.0.1", "::1", "[::1]"));
 
-   static void clusteredVertx(boolean isController, Handler<Vertx> startedHandler) {
+   public static void clusteredVertx(boolean isController, Handler<Vertx> startedHandler, Runnable onError) {
       logVersion();
       Thread.setDefaultUncaughtExceptionHandler(Hyperfoil::defaultUncaughtExceptionHandler);
       log.info("Starting Vert.x...");
@@ -70,7 +70,7 @@ class Hyperfoil {
                   "an invalid configuration for clustering. Make sure `hostname -i` does not return 127.0.0.1 or ::1 " +
                   " or set -D" + Properties.CONTROLLER_CLUSTER_IP + "=x.x.x.x to use different address. " +
                   "(if you set that to 127.0.0.1 you won't be able to connect from agents on other machines).");
-            System.exit(1);
+            onError.run();
          }
          // We are using numeric address because if this is running in a pod its hostname
          // wouldn't be resolvable even within the cluster/namespace.
@@ -86,14 +86,14 @@ class Hyperfoil {
          }
       } catch (UnknownHostException e) {
          log.error("Cannot lookup hostname", e);
-         System.exit(1);
+         onError.run();
       }
       DefaultCacheManager cacheManager = createCacheManager();
       options.setClusterManager(new InfinispanClusterManager(cacheManager));
       Vertx.clusteredVertx(options, result -> {
          if (result.failed()) {
             log.error("Cannot start Vert.x", result.cause());
-            System.exit(1);
+            onError.run();
          }
          Vertx vertx = result.result();
          Codecs.register(vertx);
@@ -113,7 +113,7 @@ class Hyperfoil {
                return false;
             }
          }).flatMap(nic -> Collections.list(nic.getInetAddresses()).stream()).collect(Collectors.toList());
-         log.info("Agent must choose NIC with best subnet match to controller ({}/{}), available IPs: {}",
+         log.info("Agent must choose NIC with best subnet match to controller ({}/{}), available IPs: {} (loopback is ignored)",
                controllerAddress.getHostName(), controllerAddress.getHostAddress(), allAddresses);
          int longestMatch = -1;
          BitSet controllerBits = BitSet.valueOf(controllerAddress.getAddress());
@@ -184,13 +184,13 @@ class Hyperfoil {
 
    public static class Agent extends Hyperfoil {
       public static void main(String[] args) {
-         clusteredVertx(false, vertx -> deploy(vertx, AgentVerticle.class));
+         clusteredVertx(false, vertx -> deploy(vertx, AgentVerticle.class), () -> System.exit(1));
       }
    }
 
    public static class Controller extends Hyperfoil {
       public static void main(String[] args) {
-         clusteredVertx(true, vertx -> deploy(vertx, ControllerVerticle.class));
+         clusteredVertx(true, vertx -> deploy(vertx, ControllerVerticle.class), () -> System.exit(1));
       }
    }
 

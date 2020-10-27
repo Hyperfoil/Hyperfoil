@@ -9,39 +9,39 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 
 import io.hyperfoil.api.config.BenchmarkBuilder;
+import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.api.session.Access;
+import io.hyperfoil.benchmark.BaseBenchmarkTest;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.util.RandomConcurrentSet;
-import io.vertx.core.Vertx;
-import io.vertx.core.http.HttpServer;
+import io.hyperfoil.core.test.TestUtil;
+import io.vertx.core.Handler;
+import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.ext.web.Router;
 
 @RunWith(VertxUnitRunner.class)
 @Category(io.hyperfoil.test.Benchmark.class)
-public class TwoScenariosTest {
+public class TwoScenariosTest extends BaseBenchmarkTest {
 
-   protected Vertx vertx;
    protected Router router;
-
    private ConcurrentMap<String, SailsState> serverState = new ConcurrentHashMap<>();
-   private HttpServer server;
 
-   @Before
-   public void before(TestContext ctx) {
-      vertx = Vertx.vertx();
-      router = Router.router(vertx);
-      initRouter();
-      server = vertx.createHttpServer().requestHandler(router).listen(0, "localhost", ctx.asyncAssertSuccess());
+   @Override
+   protected Handler<HttpServerRequest> getRequestHandler() {
+      if (router == null) {
+         router = Router.router(vertx);
+         initRouter();
+      }
+      return router;
    }
 
    @After
@@ -93,13 +93,18 @@ public class TwoScenariosTest {
       ships.put(new ShipInfo("Santiago", SailsState.FURLED));
       ships.put(new ShipInfo("Victoria", SailsState.FURLED));
 
+      Locator.push(TestUtil.locator());
       Access ship = SessionFactory.access("ship");
+      Locator.pop();
 
       // @formatter:off
       BenchmarkBuilder benchmark = BenchmarkBuilder.builder()
             .name("Test Benchmark")
+            .ergonomics()
+               .stopOnInvalid(false)
+            .endErgonomics()
             .http()
-               .host("localhost").port(server.actualPort())
+               .host("localhost").port(httpServer.actualPort())
                .sharedConnections(10)
             .endHttp()
             .addPhase("rig").constantRate(3)

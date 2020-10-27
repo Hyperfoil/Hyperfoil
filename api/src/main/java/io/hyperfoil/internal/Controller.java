@@ -10,7 +10,7 @@ import java.nio.file.Paths;
 public interface Controller {
    Path DEFAULT_ROOT_DIR = Paths.get(System.getProperty("java.io.tmpdir"), "hyperfoil");
    String DEPLOYER = Properties.get(Properties.DEPLOYER, "ssh");
-   long DEPLOY_TIMEOUT = Properties.getLong(Properties.DEPLOY_TIMEOUT, 15000);
+   long DEPLOY_TIMEOUT = Properties.getLong(Properties.DEPLOY_TIMEOUT, 60000);
    Path ROOT_DIR = Properties.get(Properties.ROOT_DIR, Paths::get, DEFAULT_ROOT_DIR);
    Path BENCHMARK_DIR = Properties.get(Properties.BENCHMARK_DIR, Paths::get, ROOT_DIR.resolve("benchmark"));
    Path HOOKS_DIR = ROOT_DIR.resolve("hooks");

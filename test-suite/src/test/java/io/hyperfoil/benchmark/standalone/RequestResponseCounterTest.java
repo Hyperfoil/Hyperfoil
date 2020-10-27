@@ -23,15 +23,15 @@ package io.hyperfoil.benchmark.standalone;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.api.config.BenchmarkBuilder;
+import io.hyperfoil.benchmark.BaseBenchmarkTest;
 import io.hyperfoil.core.handlers.TransferSizeRecorder;
 import io.hyperfoil.core.impl.LocalBenchmarkData;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
-import io.vertx.core.Vertx;
-import io.vertx.core.http.HttpServer;
+import io.vertx.core.Handler;
+import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -49,24 +49,21 @@ import static org.junit.Assert.assertEquals;
  */
 @Category(io.hyperfoil.test.Benchmark.class)
 @RunWith(VertxUnitRunner.class)
-public class RequestResponseCounterTest {
-
+public class RequestResponseCounterTest extends BaseBenchmarkTest {
    private AtomicLong counter;
-   private Vertx vertx = Vertx.vertx();
-   private HttpServer httpServer;
 
    @Before
    public void before(TestContext ctx) {
+      super.before(ctx);
       counter = new AtomicLong();
-      httpServer = vertx.createHttpServer().requestHandler(req -> {
-         counter.getAndIncrement();
-         req.response().end("hello from server");
-      }).listen(0, "localhost", ctx.asyncAssertSuccess());
    }
 
-   @After
-   public void after(TestContext ctx) {
-      vertx.close(ctx.asyncAssertSuccess());
+   @Override
+   protected Handler<HttpServerRequest> getRequestHandler() {
+      return req -> {
+         counter.getAndIncrement();
+         req.response().end("hello from server");
+      };
    }
 
    @Test

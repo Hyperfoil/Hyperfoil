@@ -521,7 +521,7 @@ class SessionImpl implements Session, Callable<Void> {
       }
       assert phase == null || newPhase.definition().scenario() == phase.definition().scenario();
       assert phase == null || newPhase.definition().sharedResources.equals(phase.definition().sharedResources);
-      assert phase == null || phase.status() == PhaseInstance.Status.TERMINATED;
+      assert phase == null || phase.status().isTerminated();
       phase = newPhase;
    }
 

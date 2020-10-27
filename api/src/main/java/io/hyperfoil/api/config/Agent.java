@@ -19,6 +19,7 @@
 package io.hyperfoil.api.config;
 
 import java.io.Serializable;
+import java.util.Collections;
 import java.util.Map;
 
 public class Agent implements Serializable {
@@ -31,7 +32,7 @@ public class Agent implements Serializable {
    public Agent(String name, String inlineConfig, Map<String, String> properties) {
       this.name = name;
       this.inlineConfig = inlineConfig;
-      this.properties = properties;
+      this.properties = properties == null ? Collections.emptyMap() : properties;
    }
 
    public int threads() {

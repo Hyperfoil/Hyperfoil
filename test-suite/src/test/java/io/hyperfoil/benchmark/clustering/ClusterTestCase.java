@@ -1,12 +1,10 @@
-package io.hyperfoil.clustering;
+package io.hyperfoil.benchmark.clustering;
 
 import io.hyperfoil.test.Benchmark;
 import io.hyperfoil.test.TestBenchmarks;
-import io.vertx.core.DeploymentOptions;
-import io.vertx.core.Vertx;
-import io.vertx.core.VertxOptions;
+import io.vertx.core.Handler;
 import io.vertx.core.http.HttpHeaders;
-import io.vertx.core.http.HttpServer;
+import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.TestContext;
@@ -36,34 +34,22 @@ public class ClusterTestCase extends BaseClusteredTest {
    private static final String CONTROLLER_URL = "http://localhost:8090";
    private static final int AGENTS = 2;
 
-   private final int EXPECTED_COUNT = AGENTS * 5000;
-   private HttpServer httpServer;
-
-   @Before
-   public void before(TestContext ctx) {
-
-      //dummy http server to test against
-
-      httpServer = standalone().createHttpServer().requestHandler(req -> {
+   @Override
+   protected Handler<HttpServerRequest> getRequestHandler() {
+      return req -> {
          try {
             Thread.sleep(10);
          } catch (InterruptedException e) {
             e.printStackTrace();  // TODO: Customise this generated block
          }
          req.response().end("test");
-      }).listen(0, "localhost", ctx.asyncAssertSuccess());
-
-      VertxOptions opts = new VertxOptions();
-      opts.getEventBusOptions().setClustered(true);
-
-      //configure multi node vert.x cluster
-      initiateClustered(opts, ControllerVerticle.class, new DeploymentOptions().setConfig(null).setWorker(false), ctx, ctx.async());
+      };
    }
 
-   Vertx standalone() {
-      Vertx vertx = Vertx.vertx();
-      servers.add(vertx);
-      return vertx;
+   @Before
+   public void before(TestContext ctx) {
+      super.before(ctx);
+      startController(ctx);
    }
 
    @Test(timeout = 120_000)
