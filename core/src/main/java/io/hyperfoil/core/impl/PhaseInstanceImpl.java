@@ -281,7 +281,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
 
       protected OpenModelPhase(P def, int agentId) {
          super(def, agentId);
-         maxSessions = def.benchmark().slice(def.maxSessions, agentId);
+         maxSessions = Math.max(1, def.benchmark().slice(def.maxSessions, agentId));
       }
 
       @Override
@@ -328,9 +328,8 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
 
       @Override
       public void reserveSessions() {
-         if (maxSessions > 0) {
-            sessionPool.reserve(maxSessions);
-         }
+         log.debug("Phase {} reserving {} sessions", def.name, maxSessions);
+         sessionPool.reserve(maxSessions);
       }
 
       @Override
