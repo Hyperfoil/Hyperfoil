@@ -584,12 +584,14 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             if (reply.succeeded()) {
                agent.status = AgentInfo.Status.STOPPED;
                checkAgentsStopped(run);
+               log.debug("Agent {}/{} stopped.", agent.name, agent.deploymentId);
             } else {
                agent.status = AgentInfo.Status.FAILED;
-               log.error("Agent {} failed to stop", reply.cause(), agent.deploymentId);
+               log.error("Agent {}/{} failed to stop", reply.cause(), agent.name, agent.deploymentId);
             }
             if (agent.deployedAgent != null) {
-               agent.deployedAgent.stop();
+               // Give agents 3 seconds to leave the cluster
+               vertx.setTimer(3000, timerId -> agent.deployedAgent.stop());
             }
          });
       }

@@ -28,10 +28,12 @@ import io.hyperfoil.clustering.Codecs;
 import io.hyperfoil.internal.Properties;
 import io.netty.util.ResourceLeakDetector;
 import io.vertx.core.DeploymentOptions;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Verticle;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
+import io.vertx.core.impl.VertxInternal;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.cluster.infinispan.InfinispanClusterManager;
@@ -97,6 +99,10 @@ public class Hyperfoil {
          }
          Vertx vertx = result.result();
          Codecs.register(vertx);
+         ((VertxInternal) vertx).addCloseHook(handler -> {
+            cacheManager.stop();
+            handler.handle(Future.succeededFuture());
+         });
          startedHandler.handle(vertx);
       });
       ensureNettyResourceLeakDetection();
