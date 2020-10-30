@@ -8,7 +8,7 @@ import io.hyperfoil.api.processor.HttpRequestProcessorBuilder;
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.core.builders.CharSequenceCondition;
+import io.hyperfoil.core.builders.StringConditionBuilder;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 import io.hyperfoil.core.util.Util;
 import io.hyperfoil.function.SerializableBiPredicate;
@@ -63,7 +63,7 @@ public class FilterHeaderHandler implements HeaderHandler, ResourceUtilizer {
    @MetaInfServices(HeaderHandler.Builder.class)
    @Name("filter")
    public static class Builder implements HeaderHandler.Builder {
-      private CharSequenceCondition.Builder<Builder> header = new CharSequenceCondition.Builder<>(this).caseSensitive(false);
+      private StringConditionBuilder<?, Builder> header = new StringConditionBuilder<>(this).caseSensitive(false);
       private HttpRequestProcessorBuilder processor;
 
       @Override
@@ -71,7 +71,7 @@ public class FilterHeaderHandler implements HeaderHandler, ResourceUtilizer {
          if (processor == null) {
             throw new BenchmarkDefinitionException("Processor was not set!");
          }
-         return new FilterHeaderHandler(header.build(), processor.build(false));
+         return new FilterHeaderHandler(header.buildPredicate(), processor.build(false));
       }
 
       @Override
@@ -92,7 +92,7 @@ public class FilterHeaderHandler implements HeaderHandler, ResourceUtilizer {
        *
        * @return Builder.
        */
-      public CharSequenceCondition.Builder<Builder> header() {
+      public StringConditionBuilder<?, Builder> header() {
          return header;
       }
 

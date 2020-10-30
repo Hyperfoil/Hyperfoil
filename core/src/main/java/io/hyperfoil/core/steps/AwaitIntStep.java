@@ -11,7 +11,7 @@ import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.config.BaseSequenceBuilder;
-import io.hyperfoil.core.builders.IntCondition;
+import io.hyperfoil.core.builders.IntConditionBuilder;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.function.SerializableIntPredicate;
 
@@ -37,7 +37,7 @@ public class AwaitIntStep implements Step {
     */
    @MetaInfServices(StepBuilder.class)
    @Name("awaitInt")
-   public static class Builder extends IntCondition.BaseBuilder<Builder, BaseSequenceBuilder> implements StepBuilder<Builder> {
+   public static class Builder extends IntConditionBuilder<Builder, BaseSequenceBuilder> implements StepBuilder<Builder> {
       private String var;
 
       public Builder() {

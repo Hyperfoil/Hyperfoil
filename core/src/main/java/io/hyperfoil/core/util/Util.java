@@ -166,6 +166,12 @@ public class Util {
       return true;
    }
 
+   public static int pow(int base, int exp) {
+      int res = 1;
+      while (exp-- > 0) res *= base;
+      return res;
+   }
+
    private static class URLEncoding {
       private static final BitSet DONT_NEED_ENCODING = new BitSet();
 

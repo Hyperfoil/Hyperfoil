@@ -59,7 +59,7 @@ public class BreakSequenceStep extends DependencyStep {
          return this;
       }
 
-      public Builder condition(SerializablePredicate<Session> condition) {
+      public Builder condition(Condition condition) {
          return condition(() -> condition);
       }
 
@@ -100,7 +100,7 @@ public class BreakSequenceStep extends DependencyStep {
          if (condition == null) {
             throw new BenchmarkDefinitionException("In breakSequence step the condition must be defined.");
          }
-         return Collections.singletonList(new BreakSequenceStep(dependencies(), condition.build(), onBreak != null ? onBreak.build() : null));
+         return Collections.singletonList(new BreakSequenceStep(dependencies(), condition.buildCondition(), onBreak != null ? onBreak.build() : null));
       }
    }
 
