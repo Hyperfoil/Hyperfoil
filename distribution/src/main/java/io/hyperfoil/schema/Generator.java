@@ -160,19 +160,16 @@ public class Generator extends BaseGenerator {
       return new JsonObject().put("$ref", "#/definitions/" + builder.getName());
    }
 
-   private void describeBuilder(Class<?> builder, JsonObject step, JsonObject properties) {
-      step.put("type", "object");
-      step.put("additionalProperties", false);
-      step.put("properties", properties);
-      for (Method m : builder.getMethods()) {
-         if (isMethodIgnored(builder, m)) {
-            continue;
-         }
-         JsonObject property = describeMethod(builder, m);
+   private void describeBuilder(Class<?> builder, JsonObject definition, JsonObject properties) {
+      definition.put("type", "object");
+      definition.put("additionalProperties", false);
+      definition.put("properties", properties);
+      findProperties(builder, m -> {
+         JsonObject property = describeMethod(m.getDeclaringClass(), m);
          if (property != null) {
             addProperty(properties, m.getName(), property);
          }
-      }
+      });
    }
 
    private JsonObject describeMethod(Class<?> builder, Method m) {

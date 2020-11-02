@@ -1,11 +1,18 @@
 package io.hyperfoil.schema;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
+import java.util.ArrayDeque;
+import java.util.HashSet;
+import java.util.Queue;
+import java.util.Set;
+import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
 import io.hyperfoil.api.config.BaseSequenceBuilder;
+import io.hyperfoil.api.config.Embed;
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.ListBuilder;
 import io.hyperfoil.api.config.MappingListBuilder;
@@ -56,5 +63,35 @@ class BaseGenerator {
 
    private static boolean isParamConvertible(Class<?> type) {
       return type == String.class || type == CharSequence.class || type.isPrimitive() || type.isEnum();
+   }
+
+   protected static void findProperties(Class<?> root, Consumer<Method> processProperty) {
+      Queue<Class<?>> todo = new ArrayDeque<>();
+      Set<Class<?>> visited = new HashSet<>();
+      todo.add(root);
+      while (!todo.isEmpty()) {
+         Class<?> b = todo.poll();
+         visited.add(b);
+         for (Method m : b.getMethods()) {
+            if (isMethodIgnored(b, m)) {
+               continue;
+            }
+            processProperty.accept(m);
+         }
+         for (Field f : b.getFields()) {
+            if (f.isAnnotationPresent(Embed.class)) {
+               if (!visited.contains(f.getType()) && !Modifier.isStatic(f.getModifiers())) {
+                  todo.add(f.getType());
+               }
+            }
+         }
+         for (Method m : b.getMethods()) {
+            if (m.isAnnotationPresent(Embed.class)) {
+               if (!visited.contains(m.getReturnType()) && m.getParameterCount() == 0 && !Modifier.isStatic(m.getModifiers())) {
+                  todo.add(m.getReturnType());
+               }
+            }
+         }
+      }
    }
 }

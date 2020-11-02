@@ -464,7 +464,7 @@ public class DocsGenerator extends BaseGenerator {
       if (cd == null) {
          return null;
       }
-      List<MethodDeclaration> methods = findAllMethods(builder);
+      Map<Class<?>, List<MethodDeclaration>> methods = new HashMap<>();
       Docs docs = new Docs(null);
       docs.typeDescription = getJavadocDescription(cd);
       if (InitFromParam.class.isAssignableFrom(builder)) {
@@ -474,15 +474,13 @@ public class DocsGenerator extends BaseGenerator {
       if (BaseSequenceBuilder.class.isAssignableFrom(builder)) {
          return docs;
       }
-      for (Method m : builder.getMethods()) {
-         if (isMethodIgnored(builder, m)) {
-            continue;
-         }
-         Docs param = describeMethod(builder, m, findMatching(methods, m));
+      findProperties(builder, m -> {
+         List<MethodDeclaration> mds = methods.computeIfAbsent(m.getDeclaringClass(), this::findAllMethods);
+         Docs param = describeMethod(m.getDeclaringClass(), m, findMatching(mds, m));
          if (param != null) {
             docs.addParam(m.getName(), param);
          }
-      }
+      });
       return docs;
    }
 

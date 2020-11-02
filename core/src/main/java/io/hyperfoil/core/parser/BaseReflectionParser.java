@@ -1,8 +1,17 @@
 package io.hyperfoil.core.parser;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Queue;
+import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import org.yaml.snakeyaml.events.Event;
@@ -14,6 +23,7 @@ import org.yaml.snakeyaml.events.SequenceStartEvent;
 
 import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.api.config.Embed;
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.ListBuilder;
 import io.hyperfoil.api.config.MappingListBuilder;
@@ -155,24 +165,24 @@ class BaseReflectionParser {
          acceptPair(builder, key, value, valueEvent);
          return;
       }
-      Result<Method> result = findMethod(keyEvent, target, key, 1);
-      if (result.value != null) {
+      Invocable invocable = findMethod(keyEvent, target, key, 1);
+      if (invocable.method != null) {
          try {
-            if (result.value.getParameterCount() == 1) {
-               Object param = convert(valueEvent, value, result.value.getParameterTypes()[0]);
-               result.value.invoke(target, param);
+            if (invocable.method.getParameterCount() == 1) {
+               Object param = convert(valueEvent, value, invocable.method.getParameterTypes()[0]);
+               invocable.method.invoke(invocable.targetSupplier.get(), param);
             } else {
-               assert result.value.getParameterCount() == 0;
-               Object builder = result.value.invoke(target);
+               assert invocable.method.getParameterCount() == 0;
+               Object builder = invocable.method.invoke(invocable.targetSupplier.get());
                ((InitFromParam) builder).init(value);
             }
          } catch (IllegalAccessException | InvocationTargetException e) {
             throw cannotCreate(keyEvent, e);
          }
       } else if (target instanceof ServiceLoadedBuilderProvider.Owner) {
-         getLoadedBuilder((ServiceLoadedBuilderProvider.Owner<?>) target, keyEvent, key, value, result.exception).complete();
+         getLoadedBuilder((ServiceLoadedBuilderProvider.Owner<?>) target, keyEvent, key, value, invocable.exception).complete();
       } else {
-         throw result.exception;
+         throw invocable.exception;
       }
    }
 
@@ -198,17 +208,17 @@ class BaseReflectionParser {
       if (target instanceof PartialBuilder) {
          return ((PartialBuilder) target).withKey(key);
       }
-      Result<Method> result = findMethod(keyEvent, target, key, 0);
-      if (result.value != null) {
+      Invocable invocable = findMethod(keyEvent, target, key, 0);
+      if (invocable.method != null) {
          try {
-            return result.value.invoke(target);
+            return invocable.method.invoke(invocable.targetSupplier.get());
          } catch (IllegalAccessException | InvocationTargetException e) {
             throw cannotCreate(keyEvent, e);
          }
       } else if (target instanceof ServiceLoadedBuilderProvider.Owner) {
-         return getLoadedBuilder((ServiceLoadedBuilderProvider.Owner<?>) target, keyEvent, key, null, result.exception);
+         return getLoadedBuilder((ServiceLoadedBuilderProvider.Owner<?>) target, keyEvent, key, null, invocable.exception);
       } else {
-         throw result.exception;
+         throw invocable.exception;
       }
    }
 
@@ -225,19 +235,64 @@ class BaseReflectionParser {
       }
    }
 
-   private Result<Method> findMethod(Event event, Object target, String name, int params) {
-      Method[] matchingName = Stream.of(target.getClass().getMethods()).filter(m -> m.getName().equals(name)).toArray(Method[]::new);
-      Method[] candidates = Stream.of(matchingName).filter(m -> m.getParameterCount() == params)
-            .filter(m -> Stream.of(m.getParameterTypes()).allMatch(this::isParamConvertible)).toArray(Method[]::new);
+   private Invocable findMethod(Event event, Object target, String name, int params) {
+      List<Invocable> matchingName = new ArrayList<>();
+      Queue<Invocable> todo = new ArrayDeque<>();
+      Set<Class<?>> visited = new HashSet<>();
+      todo.add(new Invocable(target.getClass(), () -> target, null));
+      while (!todo.isEmpty()) {
+         Invocable inv = todo.poll();
+         visited.add(inv.builderType);
+         for (Method m : inv.builderType.getMethods()) {
+            if (m.getName().equals(name)) {
+               matchingName.add(new Invocable(inv.builderType, inv.targetSupplier, m));
+            }
+         }
+         for (Field f : inv.builderType.getFields()) {
+            if (f.isAnnotationPresent(Embed.class)) {
+               // ideally the field should be final as well but we won't enforce that
+               if (visited.contains(f.getType()) || f.getType().isPrimitive() || Modifier.isStatic(f.getModifiers())) {
+                  continue;
+               }
+               todo.add(new Invocable(f.getType(), () -> {
+                  try {
+                     return f.get(inv.targetSupplier.get());
+                  } catch (IllegalAccessException e) {
+                     throw new BenchmarkDefinitionException("Cannot access " + inv.builderType.getName() + "." + f.getName(), e);
+                  }
+               }, null));
+            }
+         }
+         for (Method m : inv.builderType.getMethods()) {
+            if (m.isAnnotationPresent(Embed.class)) {
+               if (visited.contains(m.getReturnType()) || m.getParameterCount() > 0 || Modifier.isStatic(m.getModifiers())) {
+                  continue;
+               }
+               todo.add(new Invocable(m.getReturnType(), () -> {
+                  try {
+                     return m.invoke(inv.targetSupplier.get());
+                  } catch (IllegalAccessException | InvocationTargetException e) {
+                     throw new BenchmarkDefinitionException("Cannot access " + inv.builderType.getName() + "." + m.getName(), e);
+                  }
+               }, null));
+            }
+         }
+      }
+
+
+      Invocable[] candidates = matchingName.stream()
+            .filter(inv -> inv.method.getParameterCount() == params)
+            .filter(inv -> Stream.of(inv.method.getParameterTypes()).allMatch(this::isParamConvertible))
+            .toArray(Invocable[]::new);
       if (params == 1 && candidates.length == 0) {
-         candidates = Stream.of(matchingName).filter(m -> InitFromParam.class.isAssignableFrom(m.getReturnType())).toArray(Method[]::new);
+         candidates = matchingName.stream().filter(inv -> InitFromParam.class.isAssignableFrom(inv.method.getReturnType())).toArray(Invocable[]::new);
       }
       if (candidates.length == 0) {
-         return new Result<>(new ParserException(event, "Cannot find method '" + name + "' on '" + target + "'"));
+         return new Invocable(new ParserException(event, "Cannot find method '" + name + "' on '" + target + "'"));
       } else if (candidates.length == 1) {
-         return new Result<>(candidates[0]);
+         return candidates[0];
       } else { // candidates.length > 1
-         return new Result<>(new ParserException(event, "Ambiguous candidates for '" + name + "' on '" + target + "': " + Arrays.asList(candidates)));
+         return new Invocable(new ParserException(event, "Ambiguous candidates for '" + name + "' on '" + target + "': " + Arrays.asList(candidates)));
       }
    }
 
@@ -272,17 +327,23 @@ class BaseReflectionParser {
       return new ParserException(event, "Cannot create step/builder '" + event.getValue() + "'", exception);
    }
 
-   private static class Result<T> {
-      final T value;
+   private static class Invocable {
+      final Class<?> builderType;
+      final Supplier<Object> targetSupplier;
+      final Method method;
       final ParserException exception;
 
-      private Result(T value) {
-         this.value = value;
+      private Invocable(Class<?> builderType, Supplier<Object> targetSupplier, Method method) {
+         this.builderType = builderType;
+         this.targetSupplier = targetSupplier;
+         this.method = method;
          this.exception = null;
       }
 
-      private Result(ParserException exception) {
-         this.value = null;
+      private Invocable(ParserException exception) {
+         this.builderType = null;
+         this.targetSupplier = null;
+         this.method = null;
          this.exception = exception;
       }
    }
