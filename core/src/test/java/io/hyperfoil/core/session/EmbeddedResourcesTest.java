@@ -12,6 +12,7 @@ import org.junit.runner.RunWith;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.core.util.Util;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 
 @RunWith(VertxUnitRunner.class)
@@ -23,6 +24,10 @@ public class EmbeddedResourcesTest extends BaseScenarioTest {
 
    @Override
    protected void initRouter() {
+      router.route().handler(ctx -> {
+         ctx.response().putHeader(HttpHeaders.CACHE_CONTROL, "no-store");
+         ctx.next();
+      });
       router.route("/foobar/index.html").handler(ctx -> {
          try {
             InputStream index = getClass().getClassLoader().getResourceAsStream("data/EmbeddedResourcesTest_index.html");

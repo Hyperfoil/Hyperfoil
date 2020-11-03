@@ -28,7 +28,6 @@ phases:
                           onCompletion:
                             set: allFetched <- true
           - awaitVar: allFetched
-          - clearHttpCache # otherwise we wouldn't download index second time
         - automatic:
           - unset: allFetched
           - httpRequest:
@@ -45,7 +44,6 @@ phases:
                         onCompletion:
                           set: allFetched <- true
           - awaitVar: allFetched
-          - clearHttpCache # otherwise we wouldn't download index third time
 
         # THIS CODE IS LEFT AS A LEGACY ONLY AND SHOULD NOT BE CONSIDERED A BEST-PRACTICE EXAMPLE.
         # Sequence 'automatic' now uses queue, too. Approach shown here is quite fragile
