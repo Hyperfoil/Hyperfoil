@@ -269,22 +269,32 @@ public class HttpCacheImpl implements HttpCache {
          } else {
             return false;
          }
-      } else if (request.cacheControl.noCache) {
-         Record mostRecent = null;
-         for (HttpCache.Record r : request.cacheControl.matchingCached) {
-            Record record = (Record) r;
-            if (mostRecent == null || record.date < mostRecent.date) {
-               mostRecent = record;
-            }
-         }
-         if (mostRecent.etag != null) {
-            writer.putHeader(HttpHeaderNames.IF_NONE_MATCH, mostRecent.etag);
-         } else if (mostRecent.lastModified > Long.MIN_VALUE) {
-            writer.putHeader(HttpHeaderNames.IF_MODIFIED_SINCE, HttpUtil.formatDate(mostRecent.lastModified));
-         }
-         return false;
       } else {
+         Record mostRecent = findMostRecent(request);
+         if (request.cacheControl.noCache || mostRecent.noCache) {
+            addValidationHeaders(mostRecent, writer);
+            return false;
+         }
          return true;
+      }
+   }
+
+   private Record findMostRecent(HttpRequest request) {
+      Record mostRecent = null;
+      for (HttpCache.Record r : request.cacheControl.matchingCached) {
+         Record record = (Record) r;
+         if (mostRecent == null || record.date < mostRecent.date) {
+            mostRecent = record;
+         }
+      }
+      return mostRecent;
+   }
+
+   private void addValidationHeaders(Record record, HttpRequestWriter writer) {
+      if (record.etag != null) {
+         writer.putHeader(HttpHeaderNames.IF_NONE_MATCH, record.etag);
+      } else if (record.lastModified > Long.MIN_VALUE) {
+         writer.putHeader(HttpHeaderNames.IF_MODIFIED_SINCE, HttpUtil.formatDate(record.lastModified));
       }
    }
 
