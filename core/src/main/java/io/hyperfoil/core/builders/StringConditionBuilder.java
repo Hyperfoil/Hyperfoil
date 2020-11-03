@@ -15,6 +15,7 @@ public class StringConditionBuilder<B extends StringConditionBuilder<B, P>, P> i
    private boolean caseSensitive = true;
    private String matchVar;
    private CompareMode compareMode;
+   private boolean negate;
 
    public StringConditionBuilder() {
       this(null);
@@ -45,7 +46,8 @@ public class StringConditionBuilder<B extends StringConditionBuilder<B, P>, P> i
                   default:
                      throw new IllegalStateException("Unexpected value: " + compareMode);
                }
-               return Util.regionMatches(myValue, 0, string, offset, length);
+               boolean matches = Util.regionMatches(myValue, 0, string, offset, length);
+               return negate != matches;
             };
          } else {
             Access access = SessionFactory.access(matchVar);
@@ -53,9 +55,10 @@ public class StringConditionBuilder<B extends StringConditionBuilder<B, P>, P> i
                Object value = access.getObject(s);
                if (value instanceof CharSequence) {
                   CharSequence v = (CharSequence) value;
-                  return Util.regionMatches(v, 0, string, 0, Math.max(v.length(), string.length()));
+                  boolean matches = Util.regionMatches(v, 0, string, 0, Math.max(v.length(), string.length()));
+                  return negate != matches;
                }
-               return false;
+               return negate;
             };
          }
       } else {
@@ -75,7 +78,8 @@ public class StringConditionBuilder<B extends StringConditionBuilder<B, P>, P> i
                   default:
                      throw new IllegalStateException("Unexpected value: " + compareMode);
                }
-               return Util.regionMatchesIgnoreCase(myValue, 0, string, offset, length);
+               boolean matches = Util.regionMatchesIgnoreCase(myValue, 0, string, offset, length);
+               return negate != matches;
             };
          } else {
             Access access = SessionFactory.access(matchVar);
@@ -83,9 +87,10 @@ public class StringConditionBuilder<B extends StringConditionBuilder<B, P>, P> i
                Object value = access.getObject(s);
                if (value instanceof CharSequence) {
                   CharSequence v = (CharSequence) value;
-                  return Util.regionMatchesIgnoreCase(v, 0, string, 0, Math.max(v.length(), string.length()));
+                  boolean matches = Util.regionMatchesIgnoreCase(v, 0, string, 0, Math.max(v.length(), string.length()));
+                  return negate != matches;
                }
-               return false;
+               return negate;
             };
          }
       }
@@ -97,6 +102,7 @@ public class StringConditionBuilder<B extends StringConditionBuilder<B, P>, P> i
     */
    @Override
    public StringConditionBuilder<B, P> init(String param) {
+      ensureNotSet();
       this.value = param;
       return this;
    }
@@ -119,7 +125,7 @@ public class StringConditionBuilder<B extends StringConditionBuilder<B, P>, P> i
 
    private void ensureNotSet() {
       if (value != null || matchVar != null) {
-         throw new BenchmarkDefinitionException("Must set only one of: 'value', 'startsWith', 'endsWith' or 'matchVar'!");
+         throw new BenchmarkDefinitionException("Must set only one of: 'value'/'equalTo', 'notEqualTo', 'startsWith', 'endsWith' or 'matchVar'!");
       }
    }
 
@@ -137,12 +143,31 @@ public class StringConditionBuilder<B extends StringConditionBuilder<B, P>, P> i
    }
 
    /**
+    * Literal value the condition should match (the same as <code>value</code>).
+    *
+    * @param value String
+    * @return
+    */
+   public B equalTo(CharSequence value) {
+      return value(value);
+   }
+
+   /**
+    *
+    */
+   public B notEqualTo(CharSequence value) {
+      this.negate = true;
+      return value(value);
+   }
+
+   /**
     * Prefix for the string.
     *
     * @param value String.
     * @return Self.
     */
    public B startsWith(CharSequence value) {
+      ensureNotSet();
       this.value = value;
       this.compareMode = CompareMode.PREFIX;
       return self();
@@ -155,6 +180,7 @@ public class StringConditionBuilder<B extends StringConditionBuilder<B, P>, P> i
     * @return Self.
     */
    public B endsWith(CharSequence value) {
+      ensureNotSet();
       this.value = value;
       this.compareMode = CompareMode.SUFFIX;
       return self();
@@ -167,7 +193,19 @@ public class StringConditionBuilder<B extends StringConditionBuilder<B, P>, P> i
     * @return Self.
     */
    public B matchVar(String var) {
+      ensureNotSet();
       this.matchVar = var;
+      return self();
+   }
+
+   /**
+    * Invert the logic of this condition. Defaults to false.
+    *
+    * @param negate Use <code>true</code> if the logic should be inverted.
+    * @return Self
+    */
+   public B negate(boolean negate) {
+      this.negate = negate;
       return self();
    }
 

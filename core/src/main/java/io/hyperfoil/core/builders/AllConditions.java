@@ -2,6 +2,7 @@ package io.hyperfoil.core.builders;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.BuilderBase;
@@ -54,7 +55,7 @@ public class AllConditions implements Condition {
          if (list.isEmpty()) {
             throw new BenchmarkDefinitionException("Condition list is empty!");
          }
-         return new AllConditions(list.stream().map(TypesBuilder::buildCondition).toArray(Condition[]::new));
+         return new AllConditions(list.stream().map(TypesBuilder::buildCondition).filter(Objects::nonNull).toArray(Condition[]::new));
       }
    }
 }

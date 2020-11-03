@@ -1,0 +1,67 @@
+package io.hyperfoil.core.handlers;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.kohsuke.MetaInfServices;
+
+import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.api.config.Embed;
+import io.hyperfoil.api.config.Name;
+import io.hyperfoil.api.processor.Processor;
+import io.hyperfoil.api.processor.RequestProcessorBuilder;
+import io.hyperfoil.api.session.ResourceUtilizer;
+import io.hyperfoil.api.session.Session;
+import io.hyperfoil.core.builders.Condition;
+import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
+import io.netty.buffer.ByteBuf;
+
+public class ConditionalProcessor implements Processor, ResourceUtilizer {
+   private final Condition condition;
+   private final Processor[] processors;
+
+   public ConditionalProcessor(Condition condition, Processor[] processors) {
+      this.condition = condition;
+      this.processors = processors;
+   }
+
+   @Override
+   public void process(Session session, ByteBuf data, int offset, int length, boolean isLastPart) {
+      if (condition == null || condition.test(session)) {
+         for (Processor p : processors) {
+            p.process(session, data, offset, length, isLastPart);
+         }
+      }
+   }
+
+   @Override
+   public void reserve(Session session) {
+      ResourceUtilizer.reserve(session, processors);
+   }
+
+   @MetaInfServices(RequestProcessorBuilder.class)
+   @Name("conditional")
+   public static class Builder implements RequestProcessorBuilder {
+      private List<Processor.Builder<?>> processors = new ArrayList<>();
+
+      @Embed
+      public final Condition.TypesBuilder<Builder> condition = new Condition.TypesBuilder<>(this);
+
+      public Builder processor(Processor.Builder<?> processor) {
+         this.processors.add(processor);
+         return this;
+      }
+
+      public ServiceLoadedBuilderProvider<RequestProcessorBuilder> processor() {
+         return new ServiceLoadedBuilderProvider<>(RequestProcessorBuilder.class, this::processor);
+      }
+
+      @Override
+      public Processor build(boolean fragmented) {
+         if (processors.isEmpty()) {
+            throw new BenchmarkDefinitionException("Condition does not delegate to any processors.");
+         }
+         return new ConditionalProcessor(condition.buildCondition(), processors.stream().map(pb -> pb.build(fragmented)).toArray(Processor[]::new));
+      }
+   }
+}

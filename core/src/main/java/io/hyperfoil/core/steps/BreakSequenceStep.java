@@ -1,11 +1,13 @@
 package io.hyperfoil.core.steps;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.api.config.Embed;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.session.Action;
@@ -20,9 +22,9 @@ import io.hyperfoil.function.SerializablePredicate;
 
 public class BreakSequenceStep extends DependencyStep {
    private final SerializablePredicate<Session> condition;
-   private final Action onBreak;
+   private final Action[] onBreak;
 
-   public BreakSequenceStep(Access[] dependencies, SerializablePredicate<Session> condition, Action onBreak) {
+   public BreakSequenceStep(Access[] dependencies, SerializablePredicate<Session> condition, Action[] onBreak) {
       super(dependencies);
       this.condition = condition;
       this.onBreak = onBreak;
@@ -35,7 +37,9 @@ public class BreakSequenceStep extends DependencyStep {
       }
       if (condition.test(session)) {
          if (onBreak != null) {
-            onBreak.run(session);
+            for (Action a : onBreak) {
+               a.run(session);
+            }
          }
          session.currentSequence().breakSequence(session);
       }
@@ -48,30 +52,12 @@ public class BreakSequenceStep extends DependencyStep {
    @MetaInfServices(StepBuilder.class)
    @Name("breakSequence")
    public static class Builder extends DependencyStepBuilder<Builder> {
-      private Condition.Builder condition;
-      private Action.Builder onBreak;
+      private final List<Action.Builder> onBreak = new ArrayList<>();
+      private final Condition.TypesBuilder<Builder> condition = new Condition.TypesBuilder<>(this);
 
-      public Builder condition(Condition.Builder condition) {
-         if (this.condition != null) {
-            throw new BenchmarkDefinitionException("Condition already set.");
-         }
-         this.condition = condition;
-         return this;
-      }
-
-      public Builder condition(Condition condition) {
-         return condition(() -> condition);
-      }
-
-      /**
-       * Action performed when the condition is true and the sequence is to be ended.
-       *
-       * @return Builder.
-       */
-      public IntCondition.Builder<BreakSequenceStep.Builder> intCondition() {
-         IntCondition.Builder<BreakSequenceStep.Builder> builder = new IntCondition.Builder<>(this);
-         condition(builder);
-         return builder;
+      @Embed
+      public Condition.TypesBuilder<Builder> condition() {
+         return condition;
       }
 
       public Builder onBreak(Action onBreak) {
@@ -79,10 +65,7 @@ public class BreakSequenceStep extends DependencyStep {
       }
 
       public Builder onBreak(Action.Builder onBreak) {
-         if (this.onBreak != null) {
-            throw new BenchmarkDefinitionException("Break action already set");
-         }
-         this.onBreak = onBreak;
+         this.onBreak.add(onBreak);
          return this;
       }
 
@@ -97,10 +80,12 @@ public class BreakSequenceStep extends DependencyStep {
 
       @Override
       public List<Step> build() {
+         Condition condition = this.condition.buildCondition();
          if (condition == null) {
             throw new BenchmarkDefinitionException("In breakSequence step the condition must be defined.");
          }
-         return Collections.singletonList(new BreakSequenceStep(dependencies(), condition.buildCondition(), onBreak != null ? onBreak.build() : null));
+         Action[] onBreak = this.onBreak.isEmpty() ? null : this.onBreak.stream().map(Action.Builder::build).toArray(Action[]::new);
+         return Collections.singletonList(new BreakSequenceStep(dependencies(), condition, onBreak));
       }
    }
 

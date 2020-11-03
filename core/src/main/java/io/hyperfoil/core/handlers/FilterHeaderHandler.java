@@ -1,5 +1,8 @@
 package io.hyperfoil.core.handlers;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.connection.HttpRequest;
@@ -64,26 +67,24 @@ public class FilterHeaderHandler implements HeaderHandler, ResourceUtilizer {
    @Name("filter")
    public static class Builder implements HeaderHandler.Builder {
       private StringConditionBuilder<?, Builder> header = new StringConditionBuilder<>(this).caseSensitive(false);
-      private HttpRequestProcessorBuilder processor;
+      private List<HttpRequestProcessorBuilder> processors = new ArrayList<>();
 
       @Override
       public FilterHeaderHandler build() {
-         if (processor == null) {
+         if (processors.isEmpty()) {
             throw new BenchmarkDefinitionException("Processor was not set!");
          }
-         return new FilterHeaderHandler(header.buildPredicate(), processor.build(false));
+         Processor processor = processors.size() == 1 ? processors.get(0).build(false) : new MultiProcessor(processors.stream().map(p -> p.build(false)).toArray(Processor[]::new));
+         return new FilterHeaderHandler(header.buildPredicate(), processor);
       }
 
       @Override
       public void prepareBuild() {
-         processor.prepareBuild();
+         processors.forEach(Processor.Builder::prepareBuild);
       }
 
       public Builder processor(HttpRequestProcessorBuilder processor) {
-         if (this.processor != null) {
-            throw new IllegalStateException("Processor already set.");
-         }
-         this.processor = processor;
+         this.processors.add(processor);
          return this;
       }
 

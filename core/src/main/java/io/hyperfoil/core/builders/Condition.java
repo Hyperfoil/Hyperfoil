@@ -77,8 +77,9 @@ public interface Condition extends SerializablePredicate<Session> {
             return boolCondition.buildCondition();
          } else if (allConditions != null) {
             return allConditions.buildCondition();
+         } else {
+            return null;
          }
-         throw new BenchmarkDefinitionException("No condition was set!");
       }
    }
 }

@@ -111,7 +111,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
          authority = this.authority == null ? null : this.authority.apply(session);
          path = pathGenerator.apply(session);
          boolean isHttp;
-         if (authority == null && (isHttp = path.startsWith(HttpUtil.HTTP_PREFIX) || path.startsWith(HttpUtil.HTTPS_PREFIX))) {
+         if (authority == null && ((isHttp = path.startsWith(HttpUtil.HTTP_PREFIX)) || path.startsWith(HttpUtil.HTTPS_PREFIX))) {
             for (String hostPort : session.httpDestinations().authorities()) {
                // TODO: fixme: this does consider default port match
                if (path.regionMatches(prefixLength(isHttp), hostPort, 0, hostPort.length())) {
@@ -213,7 +213,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
       private StringGeneratorBuilder authority;
       private StringGeneratorBuilder path;
       private BodyGeneratorBuilder body;
-      private List<Supplier<SerializableBiConsumer<Session, HttpRequestWriter>>> headerAppenders = new ArrayList<>();
+      private final List<Supplier<SerializableBiConsumer<Session, HttpRequestWriter>>> headerAppenders = new ArrayList<>();
       private boolean injectHostHeader = true;
       private SerializableBiFunction<String, String, String> metricSelector;
       private long timeout = Long.MIN_VALUE;
@@ -247,7 +247,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
        *
        * @return Builder.
        */
-      public StringGeneratorImplBuilder GET() {
+      public StringGeneratorImplBuilder<Builder> GET() {
          return method(HttpMethod.GET).path();
       }
 
@@ -266,7 +266,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
        *
        * @return Builder.
        */
-      public StringGeneratorImplBuilder HEAD() {
+      public StringGeneratorImplBuilder<Builder> HEAD() {
          return method(HttpMethod.HEAD).path();
       }
 
@@ -285,7 +285,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
        *
        * @return Builder.
        */
-      public StringGeneratorImplBuilder POST() {
+      public StringGeneratorImplBuilder<Builder> POST() {
          return method(HttpMethod.POST).path();
       }
 
@@ -304,7 +304,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
        *
        * @return Builder.
        */
-      public StringGeneratorImplBuilder PUT() {
+      public StringGeneratorImplBuilder<Builder> PUT() {
          return method(HttpMethod.PUT).path();
       }
 
@@ -323,7 +323,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
        *
        * @return Builder.
        */
-      public StringGeneratorImplBuilder DELETE() {
+      public StringGeneratorImplBuilder<Builder> DELETE() {
          return method(HttpMethod.DELETE).path();
       }
 
@@ -342,7 +342,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
        *
        * @return Builder.
        */
-      public StringGeneratorImplBuilder OPTIONS() {
+      public StringGeneratorImplBuilder<Builder> OPTIONS() {
          return method(HttpMethod.OPTIONS).path();
       }
 
@@ -361,7 +361,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
        *
        * @return Builder.
        */
-      public StringGeneratorImplBuilder PATCH() {
+      public StringGeneratorImplBuilder<Builder> PATCH() {
          return method(HttpMethod.PATCH).path();
       }
 
@@ -380,7 +380,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
        *
        * @return Builder.
        */
-      public StringGeneratorImplBuilder TRACE() {
+      public StringGeneratorImplBuilder<Builder> TRACE() {
          return method(HttpMethod.TRACE).path();
       }
 
@@ -399,7 +399,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
        *
        * @return Builder.
        */
-      public StringGeneratorImplBuilder CONNECT() {
+      public StringGeneratorImplBuilder<Builder> CONNECT() {
          return method(HttpMethod.CONNECT).path();
       }
 
@@ -633,7 +633,9 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
          if (checkAuthority && !Locator.current().benchmark().validateAuthority(guessedAuthority)) {
             String guessedPath = "<unknown path>";
             try {
-               guessedPath = pathGenerator.apply(null);
+               if (pathGenerator != null) {
+                  guessedPath = pathGenerator.apply(null);
+               }
             } catch (Throwable e) {
             }
             if (authority == null) {

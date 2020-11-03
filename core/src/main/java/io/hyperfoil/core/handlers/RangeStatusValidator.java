@@ -7,6 +7,7 @@ import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.http.StatusHandler;
+import io.hyperfoil.core.util.Util;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
@@ -59,7 +60,7 @@ public class RangeStatusValidator implements StatusHandler {
                max = Integer.parseInt(param.substring(dash + 1).trim());
             } else {
                int value = Integer.parseInt(param.substring(0, param.length() - xn));
-               int mul = pow(10, xn);
+               int mul = Util.pow(10, xn);
                min = value * mul;
                max = (value + 1) * mul - 1;
             }
@@ -67,12 +68,6 @@ public class RangeStatusValidator implements StatusHandler {
             throw new BenchmarkDefinitionException("Cannot parse '" + param + "' as status range");
          }
          return this;
-      }
-
-      private static int pow(int base, int exp) {
-         int res = 1;
-         while (exp-- > 0) res *= base;
-         return res;
       }
 
       @Override

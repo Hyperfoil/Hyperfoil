@@ -1,0 +1,64 @@
+# For parser testing
+name: follow redirects
+http:
+  host: http://localhost:8080
+  # Do not limit concurrency through default connection limits
+  sharedConnections: 10
+phases:
+- testPhase:
+    atOnce:
+      users: 10
+      duration: 0
+      scenario:
+        orderedSequences:
+        - locationManual:
+          # All variables should be potentially concurrency-aware
+          - set: redirect <- false
+          - unset: location
+          - unset: actualBody
+          - httpRequest:
+              GET: /redirectMeViaLocation
+              headers:
+                x-preserve: repeat me with redirect
+              handler:
+                status:
+                  action:
+                    # Note: non-get redirection should set new request method rather than simply boolean
+                    301, 302, 303, 307, 308:
+                    - set: redirect <- true
+                header:
+                  filter:
+                    header:
+                      value: location
+                    processor:
+                    - simple: location
+                    - newSequence: redirectLocationManual
+                body:
+                  # Any handlers need to be wrapped and prevented from application
+                  conditional:
+                    boolCondition:
+                      fromVar: redirect
+                      value: false
+                    processor:
+                      simple: actualBody
+          - awaitVar: actualBody
+          - fail:
+              message: not redirected but wrong response
+              stringCondition:
+                fromVar: actualBody
+                notEqualTo: this is the response
+        sequences:
+        # Concurrency of this sequence should be equal to the originating sequence
+        - redirectLocationManual:
+          - httpRequest:
+              # Method type should be based on status
+              GET:
+                fromVar: location
+              headers:
+                # All headers should be repeated
+                x-preserve: repeat me with redirect
+              metric: locationManual_redirect
+              # We should loop the redirection to this sequence
+              handler:
+                body:
+                  simple: actualBody
