@@ -559,8 +559,7 @@ class SessionImpl implements Session, Callable<Void> {
    public void stop() {
       for (int i = 0; i <= lastRunningSequence; ++i) {
          SequenceInstance sequence = runningSequences[i];
-         usedSequences.clear(sequence.definition().offset() + sequence.index());
-         sequencePool.release(sequence);
+         sequence.decRefCnt(this);
          runningSequences[i] = null;
       }
       lastRunningSequence = -1;
