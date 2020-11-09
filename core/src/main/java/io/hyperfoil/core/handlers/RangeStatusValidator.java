@@ -5,7 +5,7 @@ import org.kohsuke.MetaInfServices;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Name;
-import io.hyperfoil.api.connection.Request;
+import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.http.StatusHandler;
 import io.hyperfoil.core.util.Util;
 import io.vertx.core.logging.Logger;
@@ -23,7 +23,7 @@ public class RangeStatusValidator implements StatusHandler {
    }
 
    @Override
-   public void handleStatus(Request request, int status) {
+   public void handleStatus(HttpRequest request, int status) {
       boolean valid = status >= min && status <= max;
       if (!valid) {
          request.markInvalid();

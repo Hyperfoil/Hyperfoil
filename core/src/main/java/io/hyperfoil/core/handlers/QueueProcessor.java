@@ -133,7 +133,7 @@ public class QueueProcessor implements Processor, ResourceUtilizer {
             throw new BenchmarkDefinitionException("Missing 'var' to store the queue.");
          }
          varAccess = SessionFactory.access(var);
-         key = new Session.ResourceKey<Queue>() {};
+         key = new Queue.Key();
 
          Locator locator = Locator.current();
          if (sequence != null && sequenceBuilder != null) {

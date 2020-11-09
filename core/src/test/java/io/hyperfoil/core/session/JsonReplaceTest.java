@@ -16,11 +16,6 @@ import io.vertx.ext.web.handler.BodyHandler;
 @RunWith(VertxUnitRunner.class)
 public class JsonReplaceTest extends BaseScenarioTest {
    @Override
-   protected Benchmark benchmark() {
-      return loadScenario("scenarios/JsonReplaceTest.hf.yaml");
-   }
-
-   @Override
    protected void initRouter() {
       router.get("/get").handler(ctx -> {
          ctx.response().end(new JsonObject().put("name", "John Doe").put("age", 33).encode());
@@ -39,7 +34,8 @@ public class JsonReplaceTest extends BaseScenarioTest {
 
    @Test
    public void test() {
-      Map<String, StatisticsSnapshot> stats = runScenario();
+      Benchmark benchmark = loadScenario("scenarios/JsonReplaceTest.hf.yaml");
+      Map<String, StatisticsSnapshot> stats = runScenario(benchmark);
       stats.values().forEach(s -> assertThat(s.errors()).isEqualTo(0));
       assertThat(stats.values().stream().mapToInt(s -> s.responseCount).sum()).isEqualTo(2);
    }

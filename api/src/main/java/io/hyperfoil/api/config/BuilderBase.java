@@ -80,6 +80,7 @@ public interface BuilderBase<S extends BuilderBase<S>> {
                      Collection<Object> copyCollection = (Collection<Object>) copyValue;
                      copyCollection.clear();
                      copyCollection.addAll((Collection<?>) CopyUtil.deepCopy(thisValue));
+                     continue;
                   } else if (f.getName().equals("parent")) {
                      // Fluent builders often require parent element reference; in YAML configuration these are not used.
                      continue;

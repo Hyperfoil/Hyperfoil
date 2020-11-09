@@ -1,6 +1,7 @@
 package io.hyperfoil.core.handlers;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import io.hyperfoil.api.processor.Processor;
@@ -8,7 +9,7 @@ import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.netty.buffer.ByteBuf;
 
-public final class MultiProcessor implements Processor, ResourceUtilizer {
+public class MultiProcessor implements Processor, ResourceUtilizer {
    protected final Processor[] delegates;
 
    @SafeVarargs
@@ -42,14 +43,19 @@ public final class MultiProcessor implements Processor, ResourceUtilizer {
       ResourceUtilizer.reserve(session, (Object[]) delegates);
    }
 
-   public static class Builder implements Processor.Builder<Builder> {
+   public static class Builder<S extends Builder<S>> implements Processor.Builder<S> {
       public final List<Processor.Builder<?>> delegates = new ArrayList<>();
 
       @SuppressWarnings("unchecked")
       @Override
       public Processor build(boolean fragmented) {
-         Processor[] delegates = this.delegates.stream().map(d -> d.build(fragmented)).toArray(Processor[]::new);
+         Processor[] delegates = buildProcessors(fragmented);
          return new MultiProcessor(delegates);
+      }
+
+      protected Processor[] buildProcessors(boolean fragmented) {
+         Processor[] delegates = this.delegates.stream().map(d -> d.build(fragmented)).toArray(Processor[]::new);
+         return delegates;
       }
 
       @Override
@@ -57,9 +63,19 @@ public final class MultiProcessor implements Processor, ResourceUtilizer {
          delegates.forEach(Processor.Builder::prepareBuild);
       }
 
-      public Builder add(Processor.Builder<?> processor) {
+      public S processor(Processor.Builder<?> processor) {
          delegates.add(processor);
-         return this;
+         return self();
+      }
+
+      public S processors(Collection<? extends Processor.Builder<?> > processors) {
+         delegates.addAll(processors);
+         return self();
+      }
+
+      @SuppressWarnings("unchecked")
+      protected S self() {
+         return (S) this;
       }
    }
 }

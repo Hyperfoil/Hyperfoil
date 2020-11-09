@@ -70,7 +70,7 @@ public class StringGeneratorImplBuilder<T> implements StringGeneratorBuilder, In
     * @param var Variable name.
     * @return Self.
     */
-   public StringGeneratorImplBuilder<T> fromVar(String var) {
+   public StringGeneratorImplBuilder<T> fromVar(Object var) {
       boolean urlEncode = this.urlEncode;
       set(() -> {
          Access access = SessionFactory.access(var);

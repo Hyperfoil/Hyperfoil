@@ -38,19 +38,19 @@ public abstract class BaseScenarioTest {
    protected HttpServer server;
 
    protected Map<String, StatisticsSnapshot> runScenario() {
+      return runScenario(benchmarkBuilder.build());
+   }
+
+   protected Map<String, StatisticsSnapshot> runScenario(Benchmark benchmark) {
       Map<String, StatisticsSnapshot> stats = new HashMap<>();
       StatisticsCollector.StatisticsConsumer statisticsConsumer = (phase, stepId, metric, snapshot, countDown) -> {
          log.debug("Adding stats for {}/{}/{} - #{}: {} requests {} responses", phase, stepId, metric,
                snapshot.sequenceId, snapshot.requestCount, snapshot.responseCount);
          snapshot.addInto(stats.computeIfAbsent(metric, n -> new StatisticsSnapshot()));
       };
-      LocalSimulationRunner runner = new LocalSimulationRunner(benchmark(), statisticsConsumer, null);
+      LocalSimulationRunner runner = new LocalSimulationRunner(benchmark, statisticsConsumer, null);
       runner.run();
       return stats;
-   }
-
-   protected Benchmark benchmark() {
-      return benchmarkBuilder.build();
    }
 
    @Before

@@ -79,7 +79,7 @@ public class SequenceBuilder extends BaseSequenceBuilder {
       String nextSequence = this.nextSequence;
       if (nextSequence != null) {
          step(s -> {
-            s.startSequence(nextSequence, Session.ConcurrencyPolicy.FAIL);
+            s.startSequence(nextSequence, false, Session.ConcurrencyPolicy.FAIL);
             return true;
          });
       }

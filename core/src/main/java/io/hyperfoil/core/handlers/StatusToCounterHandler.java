@@ -4,7 +4,7 @@ import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Name;
-import io.hyperfoil.api.connection.Request;
+import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.http.StatusHandler;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
@@ -27,7 +27,7 @@ public class StatusToCounterHandler implements StatusHandler, ResourceUtilizer {
    }
 
    @Override
-   public void handleStatus(Request request, int status) {
+   public void handleStatus(HttpRequest request, int status) {
       if (expectStatus != null && expectStatus != status) {
          return;
       }

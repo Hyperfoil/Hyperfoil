@@ -8,10 +8,12 @@ import io.hyperfoil.function.SerializableIntPredicate;
 
 public class IntCondition implements Condition {
    private final Access fromVar;
+   private final boolean isSet;
    private final SerializableIntPredicate predicate;
 
-   public IntCondition(Access fromVar, SerializableIntPredicate predicate) {
+   public IntCondition(Access fromVar, boolean isSet, SerializableIntPredicate predicate) {
       this.fromVar = fromVar;
+      this.isSet = isSet;
       this.predicate = predicate;
    }
 
@@ -19,7 +21,11 @@ public class IntCondition implements Condition {
    public boolean test(Session session) {
       Session.Var var = fromVar.getVar(session);
       if (!var.isSet()) {
+         return !isSet;
+      } else if (!isSet) {
          return false;
+      } else if (predicate == null) {
+         return true;
       }
       int value;
       if (var.type() == VarType.INTEGER) {
@@ -36,7 +42,8 @@ public class IntCondition implements Condition {
     * Condition comparing integer in session variable.
     */
    public static class Builder<P> extends IntConditionBuilder<Builder<P>, P> implements Condition.Builder<Builder<P>> {
-      private String fromVar;
+      private Object fromVar;
+      private boolean isSet = true;
 
       public Builder() {
          this(null);
@@ -52,14 +59,25 @@ public class IntCondition implements Condition {
        * @param var Variable name.
        * @return Self.
        */
-      public Builder<P> fromVar(String var) {
+      public Builder<P> fromVar(Object var) {
          this.fromVar = var;
+         return this;
+      }
+
+      /**
+       * Check if the value is set or unset. By default the variable must be set.
+       *
+       * @param isSet True or false.
+       * @return Self.
+       */
+      public Builder<P> isSet(boolean isSet) {
+         this.isSet = isSet;
          return this;
       }
 
       @Override
       public IntCondition buildCondition() {
-         return new IntCondition(SessionFactory.access(fromVar), buildPredicate());
+         return new IntCondition(SessionFactory.access(fromVar), isSet, buildPredicate());
       }
    }
 
@@ -69,7 +87,7 @@ public class IntCondition implements Condition {
       }
 
       public IntCondition build(String var) {
-         return new IntCondition(SessionFactory.access(var), buildPredicate());
+         return new IntCondition(SessionFactory.access(var), true, buildPredicate());
       }
    }
 

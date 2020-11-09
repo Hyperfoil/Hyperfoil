@@ -7,6 +7,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -16,6 +17,7 @@ import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.BenchmarkExecutionException;
 import io.hyperfoil.api.config.Benchmark;
+import io.hyperfoil.api.config.BuilderBase;
 import io.hyperfoil.api.config.ErgonomicsBuilder;
 import io.hyperfoil.api.config.Http;
 import io.hyperfoil.api.config.InitFromParam;
@@ -30,6 +32,7 @@ import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.api.session.Session.VarType;
 import io.hyperfoil.api.statistics.Statistics;
+import io.hyperfoil.core.generators.HttpMethodBuilder;
 import io.hyperfoil.core.generators.Pattern;
 import io.hyperfoil.core.generators.StringGeneratorBuilder;
 import io.hyperfoil.core.generators.StringGeneratorImplBuilder;
@@ -64,7 +67,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
    private static final Logger log = LoggerFactory.getLogger(HttpRequestStep.class);
    private static final boolean trace = log.isTraceEnabled();
 
-   final HttpMethod method;
+   final SerializableFunction<Session, HttpMethod> method;
    final SerializableFunction<Session, String> authority;
    final SerializableFunction<Session, String> pathGenerator;
    final SerializableBiFunction<Session, Connection, ByteBuf> bodyGenerator;
@@ -75,7 +78,8 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
    final HttpResponseHandlersImpl handler;
    final SLA[] sla;
 
-   public HttpRequestStep(int stepId, HttpMethod method,
+   public HttpRequestStep(int stepId,
+                          SerializableFunction<Session, HttpMethod> method,
                           SerializableFunction<Session, String> authority,
                           SerializableFunction<Session, String> pathGenerator,
                           SerializableBiFunction<Session, Connection, ByteBuf> bodyGenerator,
@@ -104,6 +108,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
          log.warn("#{} Request pool too small; increase it to prevent blocking.", session.uniqueId());
          return false;
       }
+      request.method = method.apply(session);
       HttpConnectionPool connectionPool;
       String path;
       String authority;
@@ -126,7 +131,6 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
          }
          String metric = metricSelector.apply(authority, path);
          Statistics statistics = session.statistics(id(), metric);
-         request.method = method;
          request.path = path;
          request.start(handler, sequence, statistics);
 
@@ -209,7 +213,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
    @Name("httpRequest")
    public static class Builder extends BaseStepBuilder<Builder> {
       private int stepId = -1;
-      private HttpMethod method;
+      private HttpMethodBuilder method;
       private StringGeneratorBuilder authority;
       private StringGeneratorBuilder path;
       private BodyGeneratorBuilder body;
@@ -228,6 +232,10 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
        * @return Self.
        */
       public Builder method(HttpMethod method) {
+         return method(() -> session -> method);
+      }
+
+      public Builder method(HttpMethodBuilder method) {
          this.method = method;
          return this;
       }
@@ -433,6 +441,10 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
          return this;
       }
 
+      StringGeneratorBuilder getAuthority() {
+         return authority;
+      }
+
       public Builder path(String path) {
          return path(() -> new Pattern(path, false));
       }
@@ -491,9 +503,22 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
          return this;
       }
 
+      BodyGeneratorBuilder bodyBuilder() {
+         return body;
+      }
+
       public Builder headerAppender(SerializableBiConsumer<Session, HttpRequestWriter> headerAppender) {
          headerAppenders.add(() -> headerAppender);
          return this;
+      }
+
+      public Builder headerAppenders(Collection<? extends Supplier<SerializableBiConsumer<Session, HttpRequestWriter>>> appenders) {
+         headerAppenders.addAll(appenders);
+         return this;
+      }
+
+      List<Supplier<SerializableBiConsumer<Session, HttpRequestWriter>>> headerAppenders() {
+         return Collections.unmodifiableList(headerAppenders);
       }
 
       /**
@@ -659,7 +684,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
             String sequenceName = Locator.current().sequence().name();
             metricSelector = (a, p) -> sequenceName;
          }
-         HttpRequestStep step = new HttpRequestStep(stepId, method, authority, pathGenerator, bodyGenerator, headerAppenders, injectHostHeader, metricSelector, timeout, handler.build(), sla);
+         HttpRequestStep step = new HttpRequestStep(stepId, method.build(), authority, pathGenerator, bodyGenerator, headerAppenders, injectHostHeader, metricSelector, timeout, handler.build(), sla);
          return Collections.singletonList(step);
       }
    }
@@ -807,7 +832,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
       }
    }
 
-   public interface BodyGeneratorBuilder {
+   public interface BodyGeneratorBuilder extends BuilderBase<BodyGeneratorBuilder> {
       SerializableBiFunction<Session, Connection, ByteBuf> build();
    }
 
@@ -920,7 +945,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
     * Build an URL-encoded HTML form body.
     */
    // Note: we cannot implement both a PairBuilder and MappingListBuilder at the same time
-   private static class FormBuilder implements BodyGeneratorBuilder, MappingListBuilder<FormInputBuilder> {
+   public static class FormBuilder implements BodyGeneratorBuilder, MappingListBuilder<FormInputBuilder> {
       private final ArrayList<FormInputBuilder> inputs = new ArrayList<>();
 
       /**

@@ -53,7 +53,7 @@ public class SimpleRecorder implements Processor, ResourceUtilizer {
    @MetaInfServices(RequestProcessorBuilder.class)
    @Name("simple")
    public static class Builder implements RequestProcessorBuilder, InitFromParam<Builder> {
-      private String toVar;
+      private Object toVar;
       private DataFormat format = DataFormat.STRING;
 
       @Override
@@ -68,7 +68,7 @@ public class SimpleRecorder implements Processor, ResourceUtilizer {
        * @param toVar Variable name.
        * @return Self.
        */
-      public Builder toVar(String toVar) {
+      public Builder toVar(Object toVar) {
          this.toVar = toVar;
          return this;
       }

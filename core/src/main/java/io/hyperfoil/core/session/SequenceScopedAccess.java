@@ -5,12 +5,17 @@ import java.util.List;
 
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 
 class SequenceScopedAccess implements Access {
-   private final String key;
+   private static final Logger log = LoggerFactory.getLogger(SequenceScopedAccess.class);
+   private static final boolean trace = log.isTraceEnabled();
+
+   private final Object key;
    private final int maxConcurrency;
 
-   SequenceScopedAccess(String key, int maxConcurrency) {
+   SequenceScopedAccess(Object key, int maxConcurrency) {
       this.key = key;
       this.maxConcurrency = maxConcurrency;
    }
@@ -19,10 +24,22 @@ class SequenceScopedAccess implements Access {
    public void declareObject(Session session) {
       // When a step/action sets a variable, it doesn't know if that's a global or sequence-scoped
       // and must declare it, just in case.
+      SessionImpl impl = (SessionImpl) session;
+      impl.declareObject(key);
+      ObjectVar var = impl.getVar(key);
+      if (!var.isSet() && var.objectValue(session) == null) {
+         var.set(ObjectVar.newArray(session, maxConcurrency));
+      }
    }
 
    @Override
    public void declareInt(Session session) {
+      SessionImpl impl = (SessionImpl) session;
+      impl.declareObject(key);
+      ObjectVar var = impl.getVar(key);
+      if (!var.isSet() && var.objectValue(session) == null) {
+         var.set(IntVar.newArray(session, maxConcurrency));
+      }
    }
 
    @Override
@@ -61,9 +78,13 @@ class SequenceScopedAccess implements Access {
 
    @Override
    public void setObject(Session session, Object value) {
-      Object o = getItem(session);
+      Session.Var var = getVarToSet(session);
+      Object o = getItemFromVar(session, var);
 
       if (o instanceof ObjectVar) {
+         if (trace) {
+            log.trace("#{} {}[{}] <- {}", session.uniqueId(), key, session.currentSequence().index(), value);
+         }
          ((ObjectVar) o).set(value);
       } else {
          int index = session.currentSequence().index();
@@ -90,14 +111,29 @@ class SequenceScopedAccess implements Access {
 
    @Override
    public void setInt(Session session, int value) {
-      Object o = getItem(session);
+      Session.Var var = getVarToSet(session);
+      Object o = getItemFromVar(session, var);
 
       if (o instanceof IntVar) {
+         if (trace) {
+            log.trace("#{} {}[{}] <- {}", session.uniqueId(), key, session.currentSequence().index(), value);
+         }
          ((IntVar) o).set(value);
       } else {
          int index = session.currentSequence().index();
          throw new IllegalStateException("Variable " + key + "[" + index + "] should contain IntVar but contains " + o);
       }
+   }
+
+   private Session.Var getVarToSet(Session session) {
+      SessionImpl impl = (SessionImpl) session;
+      Session.Var var = impl.getVar(key);
+      if (var instanceof ObjectVar) {
+         ((ObjectVar) var).set = true;
+      } else {
+         throw new IllegalStateException("Variable " + key + " does not hold an object variable (cannot hold array).");
+      }
+      return var;
    }
 
    @Override
@@ -123,6 +159,9 @@ class SequenceScopedAccess implements Access {
             throw new IllegalStateException("Variable " + key + "[" + index + "] was not set yet!");
          }
          int prev = iv.intValue(session);
+         if (trace) {
+            log.trace("#{} {}[{}] += {}", session.uniqueId(), key, session.currentSequence().index(), delta);
+         }
          iv.add(delta);
          return prev;
       } else {
@@ -137,6 +176,9 @@ class SequenceScopedAccess implements Access {
 
       if (o instanceof ObjectVar) {
          ObjectVar ov = (ObjectVar) o;
+         if (trace) {
+            log.trace("#{} activate {}[{}]", session.uniqueId(), key, session.currentSequence().index());
+         }
          ov.set = true;
          return ov.objectValue(session);
       } else {
@@ -147,9 +189,13 @@ class SequenceScopedAccess implements Access {
 
    @Override
    public void unset(Session session) {
-      Object o = getItem(session);
+      Session.Var var = getVarToSet(session);
+      Object o = getItemFromVar(session, var);
 
       if (o instanceof Session.Var) {
+         if (trace) {
+            log.trace("#{} unset {}[{}] <- {}", session.uniqueId(), key, session.currentSequence().index());
+         }
          ((Session.Var) o).unset();
       } else {
          int index = session.currentSequence().index();
@@ -188,7 +234,7 @@ class SequenceScopedAccess implements Access {
       if (collection.getClass().isArray()) {
          return Array.get(collection, index);
       } else if (collection instanceof List) {
-         return ((List) collection).get(index);
+         return ((List<?>) collection).get(index);
       } else {
          throw new IllegalStateException("Unknown type to access by index: " + collection);
       }

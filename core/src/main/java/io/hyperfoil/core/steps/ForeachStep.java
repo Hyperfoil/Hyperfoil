@@ -42,7 +42,7 @@ public class ForeachStep extends DependencyStep implements ResourceUtilizer {
       int i = 0;
       for (; i < array.length; i++) {
          if (!array[i].isSet()) break;
-         SequenceInstance instance = session.startSequence(sequence, Session.ConcurrencyPolicy.FAIL);
+         SequenceInstance instance = session.startSequence(sequence, false, Session.ConcurrencyPolicy.FAIL);
          // This is a bit fragile; we rely on the fact that
          // 1) instance always gets the lowest possible index
          // 2) this loop starts sequences all at once, so the sequence cannot finish before we start them all

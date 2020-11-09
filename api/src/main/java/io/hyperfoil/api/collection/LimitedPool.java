@@ -1,5 +1,6 @@
 package io.hyperfoil.api.collection;
 
+import java.util.Arrays;
 import java.util.function.Supplier;
 
 import io.vertx.core.logging.Logger;
@@ -18,7 +19,7 @@ public class LimitedPool<T> {
    public LimitedPool(int capacity, Supplier<T> init) {
       mask = (1 << 32 - Integer.numberOfLeadingZeros(capacity - 1)) - 1;
       elements = new Object[mask + 1];
-      for (int i = 0; i < elements.length; ++i) {
+      for (int i = 0; i < capacity; ++i) {
          elements[i] = init.get();
       }
    }
@@ -27,6 +28,14 @@ public class LimitedPool<T> {
       mask = (1 << 32 - Integer.numberOfLeadingZeros(array.length - 1)) - 1;
       elements = new Object[mask + 1];
       System.arraycopy(array, 0, elements, 0, array.length);
+   }
+
+   public void reset(Object[] array) {
+      if (array.length > elements.length) {
+         throw new IllegalArgumentException();
+      }
+      System.arraycopy(array, 0, elements, 0, array.length);
+      Arrays.fill(elements, array.length, elements.length, null);
    }
 
    public T acquire() {

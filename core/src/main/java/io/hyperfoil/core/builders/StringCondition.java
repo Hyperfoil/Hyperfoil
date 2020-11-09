@@ -7,10 +7,12 @@ import io.hyperfoil.function.SerializableBiPredicate;
 
 public class StringCondition implements Condition {
    private final Access fromVar;
+   private final boolean isSet;
    private final SerializableBiPredicate<Session, CharSequence> predicate;
 
-   public StringCondition(Access fromVar, SerializableBiPredicate<Session, CharSequence> predicate) {
+   public StringCondition(Access fromVar, boolean isSet, SerializableBiPredicate<Session, CharSequence> predicate) {
       this.fromVar = fromVar;
+      this.isSet = isSet;
       this.predicate = predicate;
    }
 
@@ -18,7 +20,11 @@ public class StringCondition implements Condition {
    public boolean test(Session session) {
       Session.Var var = fromVar.getVar(session);
       if (!var.isSet()) {
+         return !isSet;
+      } else if (!isSet) {
          return false;
+      } else if (predicate == null) {
+         return true;
       }
       CharSequence value;
       if (var.type() == Session.VarType.INTEGER) {
@@ -36,19 +42,31 @@ public class StringCondition implements Condition {
    }
 
    public static class Builder<P> extends StringConditionBuilder<Builder<P>, P> implements Condition.Builder<Builder<P>> {
-      private String fromVar;
+      private Object fromVar;
+      private boolean isSet;
 
       public Builder(P parent) {
          super(parent);
       }
 
-      public Builder<P> fromVar(String var) {
+      public Builder<P> fromVar(Object var) {
          this.fromVar = var;
          return this;
       }
 
+      /**
+       * Check if the value is set or unset. By default the variable must be set.
+       *
+       * @param isSet True or false.
+       * @return Self.
+       */
+      public Builder<P> isSet(boolean isSet) {
+         this.isSet = isSet;
+         return this;
+      }
+
       public StringCondition buildCondition() {
-         return new StringCondition(SessionFactory.access(fromVar), buildPredicate());
+         return new StringCondition(SessionFactory.access(fromVar), isSet, isSet ? buildPredicate() : null);
       }
    }
 }

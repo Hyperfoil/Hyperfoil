@@ -297,7 +297,7 @@ class BaseReflectionParser {
    }
 
    private Object convert(Event event, String str, Class<?> type) throws ParserException {
-      if (type == String.class || type == CharSequence.class) {
+      if (type == String.class || type == CharSequence.class || type == Object.class) {
          return str;
       } else if (type == boolean.class) {
          return Boolean.parseBoolean(str);
@@ -315,7 +315,7 @@ class BaseReflectionParser {
    }
 
    private boolean isParamConvertible(Class<?> type) {
-      return type == String.class || type.isPrimitive() || type.isEnum();
+      return type == String.class || type == Object.class || type.isPrimitive() || type.isEnum();
    }
 
    @SuppressWarnings("unchecked")

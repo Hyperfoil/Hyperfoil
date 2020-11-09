@@ -1,6 +1,7 @@
 package io.hyperfoil.core.handlers;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import org.kohsuke.MetaInfServices;
@@ -26,10 +27,28 @@ public class ConditionalProcessor implements Processor, ResourceUtilizer {
    }
 
    @Override
+   public void before(Session session) {
+      if (condition.test(session)) {
+         for (Processor p : processors) {
+            p.before(session);
+         }
+      }
+   }
+
+   @Override
    public void process(Session session, ByteBuf data, int offset, int length, boolean isLastPart) {
-      if (condition == null || condition.test(session)) {
+      if (condition.test(session)) {
          for (Processor p : processors) {
             p.process(session, data, offset, length, isLastPart);
+         }
+      }
+   }
+
+   @Override
+   public void after(Session session) {
+      if (condition.test(session)) {
+         for (Processor p : processors) {
+            p.after(session);
          }
       }
    }
@@ -39,16 +58,29 @@ public class ConditionalProcessor implements Processor, ResourceUtilizer {
       ResourceUtilizer.reserve(session, processors);
    }
 
+   /**
+    * Passes the data to nested processor if the condition holds.
+    * Note that the condition may be evaluated multiple times and therefore
+    * any nested processors should not change the results of the condition.
+    */
    @MetaInfServices(RequestProcessorBuilder.class)
    @Name("conditional")
    public static class Builder implements RequestProcessorBuilder {
       private List<Processor.Builder<?>> processors = new ArrayList<>();
+      private Condition.TypesBuilder<Builder> condition = new Condition.TypesBuilder<>(this);
 
       @Embed
-      public final Condition.TypesBuilder<Builder> condition = new Condition.TypesBuilder<>(this);
+      public Condition.TypesBuilder<Builder> condition() {
+         return condition;
+      }
 
       public Builder processor(Processor.Builder<?> processor) {
          this.processors.add(processor);
+         return this;
+      }
+
+      public Builder processors(Collection<? extends Processor.Builder<?>> processors) {
+         this.processors.addAll(processors);
          return this;
       }
 
@@ -59,9 +91,13 @@ public class ConditionalProcessor implements Processor, ResourceUtilizer {
       @Override
       public Processor build(boolean fragmented) {
          if (processors.isEmpty()) {
-            throw new BenchmarkDefinitionException("Condition does not delegate to any processors.");
+            throw new BenchmarkDefinitionException("Conditional processor does not delegate to any processors.");
          }
-         return new ConditionalProcessor(condition.buildCondition(), processors.stream().map(pb -> pb.build(fragmented)).toArray(Processor[]::new));
+         Condition condition = this.condition.buildCondition();
+         if (condition == null) {
+            throw new BenchmarkDefinitionException("Conditional processor must specify a condition.");
+         }
+         return new ConditionalProcessor(condition, processors.stream().map(pb -> pb.build(fragmented)).toArray(Processor[]::new));
       }
    }
 }

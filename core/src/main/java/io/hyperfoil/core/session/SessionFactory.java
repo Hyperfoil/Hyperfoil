@@ -7,6 +7,7 @@ import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.session.Access;
+import io.hyperfoil.core.util.Unique;
 import io.netty.util.concurrent.EventExecutorGroup;
 import io.netty.util.concurrent.ImmediateEventExecutor;
 import io.hyperfoil.api.config.Phase;
@@ -72,13 +73,7 @@ public final class SessionFactory {
       } else if (key instanceof String) {
          String expression = (String) key;
          if (expression.endsWith("[.]")) {
-            Locator locator = Locator.current();
-            int maxConcurrency = locator.sequence().rootSequence().concurrency();
-            if (maxConcurrency <= 0) {
-               throw new BenchmarkDefinitionException(locator.step() + " in sequence " + locator.sequence().name() +
-                     " uses sequence-scoped access but this sequence is not declared as concurrent.");
-            }
-            return new SequenceScopedAccess(expression.substring(0, expression.length() - 3), maxConcurrency);
+            return sequenceScopedAccess(expression.substring(0, expression.length() - 3));
          } else if (expression.startsWith("hyperfoil.")) {
             for (SpecialAccess access : SPECIAL) {
                if (access.name.equals(expression)) {
@@ -89,8 +84,25 @@ public final class SessionFactory {
          } else {
             return new SimpleAccess(key);
          }
+      } else if (key instanceof Unique) {
+         if (((Unique) key).isSequenceScoped()) {
+            return sequenceScopedAccess(key);
+         } else {
+            return new SimpleAccess(key);
+         }
       } else {
          return new SimpleAccess(key);
       }
+   }
+
+   public static Access sequenceScopedAccess(Object key) {
+      Locator locator = Locator.current();
+      assert locator != null;
+      int maxConcurrency = locator.sequence().rootSequence().concurrency();
+      if (maxConcurrency <= 0) {
+         throw new BenchmarkDefinitionException(locator.step() + " in sequence " + locator.sequence().name() +
+               " uses sequence-scoped access but this sequence is not declared as concurrent.");
+      }
+      return new SequenceScopedAccess(key, maxConcurrency);
    }
 }

@@ -17,6 +17,10 @@ public interface Condition extends SerializablePredicate<Session> {
       private BoolCondition.Builder<P> boolCondition;
       private AllConditions.Builder<P> allConditions;
 
+      public TypesBuilder() {
+         this(null);
+      }
+
       public TypesBuilder(P parent) {
          this.parent = parent;
       }

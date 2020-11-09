@@ -109,7 +109,7 @@ public class BigResponseParsingTest extends VertxBaseTest {
          HttpRequest newRequest = session.httpRequestPool().acquire();
          newRequest.method = HttpMethod.GET;
          newRequest.path = "/";
-         SequenceInstance sequence = new SequenceInstance().reset(null, 0, new Step[0]);
+         SequenceInstance sequence = new SequenceInstance().reset(null, 0, new Step[0], null);
          newRequest.start(handlers, sequence, new Statistics(System.currentTimeMillis()));
          ctx.assertTrue(client.next().request(newRequest, null, true, null, false));
       });

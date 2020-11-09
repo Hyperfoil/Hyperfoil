@@ -71,7 +71,7 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
    public void start(SequenceInstance sequence, Statistics statistics) {
       this.startTimestampMillis = System.currentTimeMillis();
       this.startTimestampNanos = System.nanoTime();
-      this.sequence = sequence;
+      this.sequence = sequence.incRefCnt();
       this.statistics = statistics;
       this.status = Status.RUNNING;
       this.result = Result.VALID;
@@ -111,6 +111,7 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
          timeoutFuture = null;
       }
       connection = null;
+      sequence.decRefCnt(session);
       // handleEnd may indirectly call handleThrowable which calls setCompleted first
       if (status != Status.IDLE) {
          status = Status.COMPLETED;
@@ -173,6 +174,13 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
    public void exit() {
       session.currentSequence(null);
       session.currentRequest(null);
+   }
+
+   /**
+    * Use this method very cautiously!
+    */
+   public void unsafeEnterSequence(SequenceInstance sequence) {
+      this.sequence = sequence;
    }
 
    protected void setIdle() {

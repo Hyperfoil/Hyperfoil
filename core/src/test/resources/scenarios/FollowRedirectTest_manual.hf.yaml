@@ -1,5 +1,5 @@
 # For parser testing
-name: follow redirects
+name: follow redirects manual
 http:
   host: http://localhost:8080
   # Do not limit concurrency through default connection limits
@@ -21,6 +21,7 @@ phases:
               headers:
                 x-preserve: repeat me with redirect
               handler:
+                followRedirect: NEVER # Disable automatic redirect
                 status:
                   action:
                     # Note: non-get redirection should set new request method rather than simply boolean
@@ -54,6 +55,7 @@ phases:
               # Method type should be based on status
               GET:
                 fromVar: location
+              sync: false # No need to insert sync steps
               headers:
                 # All headers should be repeated
                 x-preserve: repeat me with redirect

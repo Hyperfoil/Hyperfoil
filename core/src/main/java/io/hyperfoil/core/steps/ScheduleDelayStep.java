@@ -3,7 +3,6 @@ package io.hyperfoil.core.steps;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
@@ -12,6 +11,7 @@ import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.InitFromParam;
+import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.config.StepBuilder;
@@ -107,6 +107,7 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
    @Name("scheduleDelay")
    public static class Builder extends BaseStepBuilder<Builder> {
       protected Object key;
+      protected Access keyAccess;
       private long duration;
       private Type type = Type.FROM_NOW;
       private RandomType randomType = RandomType.CONSTANT;
@@ -205,6 +206,14 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
       }
 
       @Override
+      public void prepareBuild() {
+         if (key == null) {
+            throw new BenchmarkDefinitionException("Key was not defined.");
+         }
+         keyAccess = SessionFactory.access(key);
+      }
+
+      @Override
       public List<Step> build() {
          long duration = this.duration;
          long min = this.min;
@@ -239,7 +248,7 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
             default:
                throw new BenchmarkDefinitionException("Unknown randomness type: " + randomType);
          }
-         return Collections.singletonList(new ScheduleDelayStep(SessionFactory.access(Objects.requireNonNull(key)), type, func));
+         return Collections.singletonList(new ScheduleDelayStep(keyAccess, type, func));
       }
 
       /**
@@ -260,18 +269,24 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
    @MetaInfServices(StepBuilder.class)
    @Name("thinkTime")
    public static class ThinkTimeBuilder extends Builder implements InitFromParam<ThinkTimeBuilder> {
-      public ThinkTimeBuilder() {
-         this.key = new Unique();
-      }
-
       @Override
       public ThinkTimeBuilder addTo(BaseSequenceBuilder parent) {
          return (ThinkTimeBuilder) super.addTo(parent);
       }
 
       @Override
+      public void prepareBuild() {
+         key = new Unique();
+         if (Locator.current().sequence().rootSequence().concurrency() > 0) {
+            keyAccess = SessionFactory.sequenceScopedAccess(key);
+         } else {
+            keyAccess = SessionFactory.access(key);
+         }
+      }
+
+      @Override
       public List<Step> build() {
-         return Arrays.asList(super.build().get(0), new AwaitDelayStep(SessionFactory.access(key)));
+         return Arrays.asList(super.build().get(0), new AwaitDelayStep(keyAccess));
       }
 
       /**

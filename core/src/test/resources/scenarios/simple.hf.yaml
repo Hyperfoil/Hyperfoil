@@ -18,6 +18,7 @@ phases:
                 limits:
                   0.9: 2s
               handler:
+                followRedirect: NEVER
                 status:
                   counter:
                     expectStatus: 204
@@ -33,6 +34,7 @@ phases:
               - Foo:
                   fromVar: foo
               handler:
+              - followRedirect: NEVER
               # notice this is a list, for repeated invocations
               - status:
                   counter:

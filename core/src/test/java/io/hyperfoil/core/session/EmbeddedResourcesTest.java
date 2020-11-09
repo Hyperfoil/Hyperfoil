@@ -18,11 +18,6 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
 @RunWith(VertxUnitRunner.class)
 public class EmbeddedResourcesTest extends BaseScenarioTest {
    @Override
-   protected Benchmark benchmark() {
-      return loadScenario("scenarios/EmbeddedResourcesTest.hf.yaml");
-   }
-
-   @Override
    protected void initRouter() {
       router.route().handler(ctx -> {
          ctx.response().putHeader(HttpHeaders.CACHE_CONTROL, "no-store");
@@ -50,7 +45,8 @@ public class EmbeddedResourcesTest extends BaseScenarioTest {
 
    @Test
    public void test() {
-      Map<String, StatisticsSnapshot> stats = runScenario();
+      Benchmark benchmark = loadScenario("scenarios/EmbeddedResourcesTest.hf.yaml");
+      Map<String, StatisticsSnapshot> stats = runScenario(benchmark);
       assertThat(stats.size()).isEqualTo(6);
       for (Map.Entry<String, StatisticsSnapshot> entry : stats.entrySet()) {
          String name = entry.getKey();

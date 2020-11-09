@@ -27,7 +27,7 @@ public class UnsetAction implements Action {
    @MetaInfServices(Action.Builder.class)
    @Name("unset")
    public static class Builder implements InitFromParam<Builder>, Action.Builder {
-      private String var;
+      private Object var;
 
       public Builder() {
       }
@@ -48,7 +48,7 @@ public class UnsetAction implements Action {
        * @param var Variable name.
        * @return Self.
        */
-      public Builder var(String var) {
+      public Builder var(Object var) {
          this.var = var;
          return this;
       }

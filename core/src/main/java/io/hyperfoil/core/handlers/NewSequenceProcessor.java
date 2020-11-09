@@ -18,10 +18,12 @@ public class NewSequenceProcessor implements Processor {
    private static final boolean trace = log.isTraceEnabled();
 
    private final String sequence;
+   private final boolean forceSameIndex;
    private final Session.ConcurrencyPolicy policy;
 
-   public NewSequenceProcessor(String sequence, Session.ConcurrencyPolicy policy) {
+   public NewSequenceProcessor(String sequence, boolean forceSameIndex, Session.ConcurrencyPolicy policy) {
       this.sequence = sequence;
+      this.forceSameIndex = forceSameIndex;
       this.policy = policy;
    }
 
@@ -35,7 +37,7 @@ public class NewSequenceProcessor implements Processor {
          log.trace("#{}, Creating new sequence {}, value (possibly incomplete) {}", session.uniqueId(),
                sequence, value);
       }
-      session.startSequence(sequence, policy);
+      session.startSequence(sequence, forceSameIndex, policy);
    }
 
    /**
@@ -45,6 +47,7 @@ public class NewSequenceProcessor implements Processor {
    @Name("newSequence")
    public static class Builder implements RequestProcessorBuilder, InitFromParam<Builder> {
       private String sequence;
+      private boolean forceSameIndex;
       private Session.ConcurrencyPolicy policy = Session.ConcurrencyPolicy.FAIL;
 
       /**
@@ -92,6 +95,19 @@ public class NewSequenceProcessor implements Processor {
       }
 
       /**
+       * Forces that the sequence will have the same index as the currently executing sequence.
+       * This can be useful if the sequence is passing some data to the new sequence using sequence-scoped variables.
+       * Note that the new sequence must have same concurrency factor as the currently executing sequence.
+       *
+       * @param force True if the index is forced, false otherwise (default is false).
+       * @return Self.
+       */
+      public Builder forceSameIndex(boolean force) {
+         this.forceSameIndex = force;
+         return this;
+      }
+
+      /**
        * What should we do when the sequence concurrency factor is exceeded.
        *
        * @param policy The behaviour.
@@ -107,7 +123,7 @@ public class NewSequenceProcessor implements Processor {
          if (sequence == null) {
             throw new BenchmarkDefinitionException("Undefined sequence template");
          }
-         return new NewSequenceProcessor(sequence, policy);
+         return new NewSequenceProcessor(sequence, forceSameIndex, policy);
       }
    }
 }

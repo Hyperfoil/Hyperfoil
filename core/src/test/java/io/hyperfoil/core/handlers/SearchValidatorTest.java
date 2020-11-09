@@ -7,6 +7,7 @@ import java.nio.charset.StandardCharsets;
 import org.junit.Test;
 
 import io.hyperfoil.api.connection.HttpRequest;
+import io.hyperfoil.api.session.SequenceInstance;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.hyperfoil.api.session.Session;
@@ -65,7 +66,7 @@ public class SearchValidatorTest {
    private HttpRequest runValidator(SearchValidator validator, String... text) {
       Session session = SessionFactory.forTesting();
       HttpRequest request = session.httpRequestPool().acquire();
-      request.start(null, null);
+      request.start(new SequenceInstance(), null);
       session.currentRequest(request);
       validator.reserve(session);
       validator.before(session);

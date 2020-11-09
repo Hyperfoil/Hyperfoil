@@ -16,7 +16,6 @@ import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.core.builders.Condition;
 import io.hyperfoil.core.builders.DependencyStepBuilder;
-import io.hyperfoil.core.builders.IntCondition;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 import io.hyperfoil.function.SerializablePredicate;
 
@@ -53,7 +52,7 @@ public class BreakSequenceStep extends DependencyStep {
    @Name("breakSequence")
    public static class Builder extends DependencyStepBuilder<Builder> {
       private final List<Action.Builder> onBreak = new ArrayList<>();
-      private final Condition.TypesBuilder<Builder> condition = new Condition.TypesBuilder<>(this);
+      private Condition.TypesBuilder<Builder> condition = new Condition.TypesBuilder<>(this);
 
       @Embed
       public Condition.TypesBuilder<Builder> condition() {

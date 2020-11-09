@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 class SessionImpl implements Session, Callable<Void> {
@@ -47,6 +48,7 @@ class SessionImpl implements Session, Callable<Void> {
    private final HttpCacheImpl httpCache;
    private final SequenceInstance[] runningSequences;
    private final BitSet usedSequences;
+   private final Consumer<SequenceInstance> releaseSequence = this::releaseSequence;
    private PhaseInstance phase;
    private int lastRunningSequence = -1;
    private SequenceInstance currentSequence;
@@ -85,7 +87,7 @@ class SessionImpl implements Session, Callable<Void> {
       for (int i = 0; i < sequences.length; i++) {
          // We set current sequence so that we know the concurrency of current context in declareResource()
          Sequence sequence = sequences[i];
-         currentSequence(sequencePool.acquire().reset(sequence, 0, null));
+         currentSequence(sequencePool.acquire().reset(sequence, 0, null, null));
          sequence.reserve(this);
          sequencePool.release(currentSequence);
          currentSequence = null;
@@ -159,8 +161,10 @@ class SessionImpl implements Session, Callable<Void> {
    }
 
    public Session declareObject(Object key) {
-      ObjectVar var = new ObjectVar(this);
-      vars.putIfAbsent(key, var);
+      if (!vars.containsKey(key)) {
+         ObjectVar var = new ObjectVar(this);
+         vars.put(key, var);
+      }
       return this;
    }
 
@@ -179,8 +183,10 @@ class SessionImpl implements Session, Callable<Void> {
    }
 
    public Session declareInt(Object key) {
-      IntVar var = new IntVar(this);
-      vars.put(key, var);
+      if (!vars.containsKey(key)) {
+         IntVar var = new IntVar(this);
+         vars.put(key, var);
+      }
       return this;
    }
 
@@ -320,14 +326,13 @@ class SessionImpl implements Session, Callable<Void> {
                lastProgressedSequence = i;
                if (sequence.isCompleted()) {
                   if (trace) {
-                     log.trace("#{} Completed {}", uniqueId, sequence);
+                     log.trace("#{} Completed {}({})", uniqueId, sequence, sequence.index());
                   }
                   if (lastRunningSequence == -1) {
                      log.trace("#{} was stopped.");
                      return;
                   }
-                  usedSequences.clear(sequence.definition().offset() + sequence.index());
-                  sequencePool.release(sequence);
+                  sequence.decRefCnt(this);
                   if (i >= lastRunningSequence) {
                      runningSequences[i] = null;
                   } else {
@@ -363,6 +368,11 @@ class SessionImpl implements Session, Callable<Void> {
       }
       reset();
       phase.notifyFinished(this);
+   }
+
+   private void releaseSequence(SequenceInstance sequence) {
+      usedSequences.clear(sequence.definition().offset() + sequence.index());
+      sequencePool.release(sequence);
    }
 
    private void cancelRequests() {
@@ -421,21 +431,34 @@ class SessionImpl implements Session, Callable<Void> {
 
    private Void deferredStart() {
       for (Sequence sequence : phase.definition().scenario().initialSequences()) {
-         startSequence(sequence, ConcurrencyPolicy.FAIL);
+         startSequence(sequence, false, ConcurrencyPolicy.FAIL);
       }
       call();
       return null;
    }
 
    @Override
-   public SequenceInstance startSequence(String name, ConcurrencyPolicy policy) {
-      return startSequence(phase.definition().scenario().sequence(name), policy);
+   public SequenceInstance startSequence(String name, boolean forceSameIndex, ConcurrencyPolicy policy) {
+      return startSequence(phase.definition().scenario().sequence(name), forceSameIndex, policy);
    }
 
-   private SequenceInstance startSequence(Sequence sequence, ConcurrencyPolicy policy) {
+   private SequenceInstance startSequence(Sequence sequence, boolean forceSameIndex, ConcurrencyPolicy policy) {
+      int index = 0;
+
+      if (forceSameIndex) {
+         if (currentSequence == null) {
+            fail(new IllegalStateException("Current sequence is not set!"));
+         } else if (sequence.concurrency() != currentSequence.definition().concurrency()) {
+            fail(new IllegalArgumentException("Sequence '" + sequence.name() +
+                  "' does not have the same concurrency factor (" + sequence.concurrency() +
+                  ") as the spawning sequence '" + currentSequence.definition().name() +
+                  "' (" + currentSequence.definition().concurrency() + ")"));
+         }
+         index = currentSequence.index();
+      }
+
       SequenceInstance instance = sequencePool.acquire();
       // Lookup first unused index
-      int index = 0;
       for (; ; ) {
          if (sequence.concurrency() == 0) {
             if (index > 1) {
@@ -459,6 +482,13 @@ class SessionImpl implements Session, Callable<Void> {
          }
          if (!usedSequences.get(sequence.offset() + index)) {
             break;
+         } else if (forceSameIndex) {
+            if (policy == ConcurrencyPolicy.WARN) {
+               log.warn("Cannot start sequence {} with index {} as it is already executing.", sequence.name(), index);
+            } else {
+               log.error("Cannot start sequence {} with index {} as it is already executing.", sequence.name(), index);
+               fail(new IllegalArgumentException("Cannot start sequence with forced index."));
+            }
          }
          ++index;
       }
@@ -468,7 +498,7 @@ class SessionImpl implements Session, Callable<Void> {
       } else {
          log.trace("#{} starting sequence {}({})", uniqueId(), sequence.name(), index);
          usedSequences.set(sequence.offset() + index);
-         instance.reset(sequence, index, sequence.steps());
+         instance.reset(sequence, index, sequence.steps(), releaseSequence);
 
          if (lastRunningSequence >= runningSequences.length - 1) {
             throw new IllegalStateException("Maximum number of scheduled sequences exceeded!");

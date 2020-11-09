@@ -1,5 +1,6 @@
 package io.hyperfoil.api.session;
 
+import java.io.Serializable;
 import java.util.function.Supplier;
 
 import io.hyperfoil.api.config.Scenario;
@@ -91,7 +92,7 @@ public interface Session {
 
    void reset();
 
-   SequenceInstance startSequence(String name, ConcurrencyPolicy policy);
+   SequenceInstance startSequence(String name, boolean forceSameIndex, ConcurrencyPolicy policy);
 
    void stop();
 
@@ -137,7 +138,7 @@ public interface Session {
       default void onSessionReset() {}
    }
 
-   interface ResourceKey<R extends Resource> {}
+   interface ResourceKey<R extends Resource> extends Serializable {}
 
    /**
     * Behaviour when a new sequence start is requested but the concurrency factor is exceeded.

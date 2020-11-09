@@ -3,7 +3,9 @@ package io.hyperfoil.core.steps;
 import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 
@@ -11,20 +13,30 @@ import io.hyperfoil.api.config.BuilderBase;
 import io.hyperfoil.api.config.ErgonomicsBuilder;
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Rewritable;
+import io.hyperfoil.api.config.SequenceBuilder;
 import io.hyperfoil.api.connection.HttpRequest;
+import io.hyperfoil.api.http.FollowRedirect;
 import io.hyperfoil.api.processor.HttpRequestProcessorBuilder;
 import io.hyperfoil.api.processor.Processor;
+import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.SessionStopException;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
+import io.hyperfoil.core.data.LimitedPoolResource;
+import io.hyperfoil.core.data.Queue;
+import io.hyperfoil.core.handlers.ConditionalAction;
+import io.hyperfoil.core.handlers.ConditionalHeaderHandler;
+import io.hyperfoil.core.handlers.ConditionalProcessor;
 import io.hyperfoil.core.handlers.RangeStatusValidator;
+import io.hyperfoil.core.handlers.Redirect;
 import io.hyperfoil.core.http.CookieRecorder;
+import io.hyperfoil.core.session.SessionFactory;
+import io.hyperfoil.core.util.Unique;
 import io.netty.buffer.ByteBuf;
 import io.hyperfoil.api.http.HeaderHandler;
 import io.hyperfoil.api.http.HttpResponseHandlers;
 import io.hyperfoil.api.http.RawBytesHandler;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.api.http.StatusHandler;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.util.AsciiString;
@@ -35,13 +47,13 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
    private static final Logger log = LoggerFactory.getLogger(HttpResponseHandlersImpl.class);
    private static final boolean trace = log.isTraceEnabled();
 
-   final StatusHandler[] statusHandlers;
+   final io.hyperfoil.api.http.StatusHandler[] statusHandlers;
    final HeaderHandler[] headerHandlers;
    final Processor[] bodyHandlers;
    final Action[] completionHandlers;
    final RawBytesHandler[] rawBytesHandlers;
 
-   private HttpResponseHandlersImpl(StatusHandler[] statusHandlers,
+   private HttpResponseHandlersImpl(io.hyperfoil.api.http.StatusHandler[] statusHandlers,
                                     HeaderHandler[] headerHandlers,
                                     Processor[] bodyHandlers,
                                     Action[] completionHandlers,
@@ -90,7 +102,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
 
       request.statistics().addStatus(request.startTimestampMillis(), status);
       if (statusHandlers != null) {
-         for (StatusHandler handler : statusHandlers) {
+         for (io.hyperfoil.api.http.StatusHandler handler : statusHandlers) {
             handler.handleStatus(request, status);
          }
       }
@@ -288,7 +300,8 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       private final HttpRequestStep.Builder parent;
       private Boolean autoRangeCheck;
       private Boolean stopOnInvalid;
-      private List<StatusHandler.Builder> statusHandlers = new ArrayList<>();
+      private FollowRedirect followRedirect;
+      private List<io.hyperfoil.api.http.StatusHandler.Builder> statusHandlers = new ArrayList<>();
       private List<HeaderHandler.Builder> headerHandlers = new ArrayList<>();
       private List<HttpRequestProcessorBuilder> bodyHandlers = new ArrayList<>();
       private List<Action.Builder> completionHandlers = new ArrayList<>();
@@ -302,12 +315,12 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          this.parent = parent;
       }
 
-      public Builder status(StatusHandler.Builder builder) {
+      public Builder status(io.hyperfoil.api.http.StatusHandler.Builder builder) {
          statusHandlers.add(builder);
          return this;
       }
 
-      public Builder status(StatusHandler handler) {
+      public Builder status(io.hyperfoil.api.http.StatusHandler handler) {
          statusHandlers.add(() -> handler);
          return this;
       }
@@ -317,8 +330,8 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
        *
        * @return Builder.
        */
-      public ServiceLoadedBuilderProvider<StatusHandler.Builder> status() {
-         return new ServiceLoadedBuilderProvider<>(StatusHandler.Builder.class, statusHandlers::add);
+      public ServiceLoadedBuilderProvider<io.hyperfoil.api.http.StatusHandler.Builder> status() {
+         return new ServiceLoadedBuilderProvider<>(io.hyperfoil.api.http.StatusHandler.Builder.class, statusHandlers::add);
       }
 
       public Builder header(HeaderHandler handler) {
@@ -390,6 +403,24 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          return new ServiceLoadedBuilderProvider<>(RawBytesHandler.Builder.class, this::rawBytes);
       }
 
+      public Builder autoRangeCheck(boolean autoRangeCheck) {
+         this.autoRangeCheck = autoRangeCheck;
+         return this;
+      }
+
+      public Builder stopOnInvalid(boolean stopOnInvalid) {
+         this.stopOnInvalid = stopOnInvalid;
+         return this;
+      }
+
+      public Builder followRedirect(FollowRedirect followRedirect) {
+         this.followRedirect = followRedirect;
+         if (followRedirect == FollowRedirect.ALWAYS || followRedirect == FollowRedirect.HTML_ONLY) {
+            throw new IllegalArgumentException("FollowRedirect with HTML not implemented.");
+         }
+         return this;
+      }
+
       public HttpRequestStep.Builder endHandler() {
          return parent;
       }
@@ -400,23 +431,123 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
             header(new CookieRecorder());
          }
          // TODO: we might need defensive copies here
-         statusHandlers.forEach(StatusHandler.Builder::prepareBuild);
+         statusHandlers.forEach(io.hyperfoil.api.http.StatusHandler.Builder::prepareBuild);
          headerHandlers.forEach(HeaderHandler.Builder::prepareBuild);
          bodyHandlers.forEach(HttpRequestProcessorBuilder::prepareBuild);
          completionHandlers.forEach(Action.Builder::prepareBuild);
          rawBytesHandlers.forEach(RawBytesHandler.Builder::prepareBuild);
-         if (autoRangeCheck == null && ergonomics.autoRangeCheck() || autoRangeCheck != null && autoRangeCheck) {
+         if (autoRangeCheck != null ? autoRangeCheck : ergonomics.autoRangeCheck()) {
             statusHandlers.add(new RangeStatusValidator.Builder().min(200).max(399));
          }
          // We must add this as the very last action since after calling session.stop() there other handlers won't be called
-         if (stopOnInvalid == null && ergonomics.stopOnInvalid() || stopOnInvalid != null && stopOnInvalid) {
+         if (stopOnInvalid != null ? stopOnInvalid : ergonomics.stopOnInvalid()) {
             completionHandlers.add(() -> STOP_ON_INVALID_RESPONSE);
+         }
+         FollowRedirect followRedirect = this.followRedirect != null ? this.followRedirect : ergonomics.followRedirect();
+         switch (followRedirect) {
+            case LOCATION_ONLY:
+            case ALWAYS:
+               applyLocationRedirect();
+               break;
+            case HTML_ONLY:
+               throw new UnsupportedOperationException("HTML redirect not implemented");
+         }
+      }
+
+      protected void applyLocationRedirect() {
+         Locator locator = Locator.current();
+         // Not sequence-scoped as queue output var, requesting sequence-scoped access explicitly where needed
+         Unique coordVar = new Unique();
+         String redirectSequenceName = String.format("%s_redirect_%08x",
+               locator.sequence().name(), ThreadLocalRandom.current().nextInt());
+         // The redirect sequence (and queue) needs to have twice the concurrency of the original sequence
+         // because while executing one redirect it might activate a second redirect
+         int redirectConcurrency = 2 * Math.max(1, locator.sequence().rootSequence().concurrency());
+
+         LimitedPoolResource.Key<Redirect.Coords> poolKey = new LimitedPoolResource.Key<>();
+         Session.ResourceKey<Queue> queueKey = new Queue.Key();
+
+         {
+            // Note: there's a lot of copy-paste between current handler because we need to use
+            // different method variable for current sequence and new sequence since these have incompatible
+            // indices - had we used the same var one sequence would overwrite other's var.
+            Unique newMethodVar = new Unique(true);
+            HttpRequestStep.BodyGeneratorBuilder bodyBuilder = parent.bodyBuilder();
+            HttpRequestStep.Builder httpRequest = new HttpRequestStep.Builder()
+                  .method(() -> new Redirect.GetMethod(SessionFactory.sequenceScopedAccess(coordVar)))
+                  .path(() -> new Redirect.GetLocation(SessionFactory.sequenceScopedAccess(coordVar)))
+                  .authority(parent.getAuthority())
+                  .headerAppenders(parent.headerAppenders())
+                  .body(bodyBuilder == null ? null : bodyBuilder.copy())
+                  .sync(false);
+            httpRequest.handler()
+                  // we want to reuse the same sequence
+                  // TODO: something with HTML redirect
+                  .followRedirect(FollowRedirect.NEVER)
+                  // support recursion
+                  .status(new Redirect.StatusHandler.Builder().methodVar(newMethodVar).handlers(statusHandlers))
+                  .header(new Redirect.LocationRecorder.Builder()
+                        .originalSequenceSupplier(() -> {
+                           Access access = SessionFactory.sequenceScopedAccess(coordVar);
+                           return s -> ((Redirect.Coords) access.getObject(s)).originalSequence;
+                        })
+                        .concurrency(redirectConcurrency).inputVar(newMethodVar).outputVar(coordVar).queueKey(queueKey).poolKey(poolKey).sequence(redirectSequenceName));
+            if (!headerHandlers.isEmpty()) {
+               httpRequest.handler().header(new ConditionalHeaderHandler.Builder()
+                     .condition().stringCondition().fromVar(newMethodVar).isSet(false).end()
+                     .handler(new Redirect.WrappingHeaderHandler.Builder().coordVar(coordVar).handlers(headerHandlers)));
+            }
+            if (!bodyHandlers.isEmpty()) {
+               httpRequest.handler().body(HttpRequestProcessorBuilder.adapt(new ConditionalProcessor.Builder()
+                     .condition().stringCondition().fromVar(newMethodVar).isSet(false).end()
+                     .processor(new Redirect.WrappingProcessor.Builder().coordVar(coordVar).processors(bodyHandlers))));
+            }
+            if (!completionHandlers.isEmpty()) {
+               httpRequest.handler().onCompletion(new ConditionalAction.Builder()
+                     .condition().stringCondition().fromVar(newMethodVar).isSet(false).end()
+                     .action(new Redirect.WrappingAction.Builder().coordVar(coordVar).actions(completionHandlers)));
+            }
+            httpRequest.handler().onCompletion(() -> new Redirect.Complete(poolKey, queueKey, SessionFactory.sequenceScopedAccess(coordVar)));
+            SequenceBuilder redirectSequence = locator.scenario().sequence(redirectSequenceName)
+                  .concurrency(redirectConcurrency)
+                  .stepBuilder(httpRequest)
+                  .rootSequence();
+            redirectSequence.prepareBuild();
+         }
+
+         Unique methodVar = new Unique(locator.sequence().rootSequence().concurrency() > 0);
+         statusHandlers = Collections.singletonList(
+               new Redirect.StatusHandler.Builder().methodVar(methodVar).handlers(statusHandlers));
+
+         // Note: we are using stringCondition.isSet despite the variable is not a string - it doesn't matter for the purpose of this check
+         List<HeaderHandler.Builder> headerHandlers = new ArrayList<>();
+         headerHandlers.add(new Redirect.LocationRecorder.Builder()
+               .originalSequenceSupplier(() -> Session::currentSequence)
+               .concurrency(redirectConcurrency).inputVar(methodVar).outputVar(coordVar).queueKey(queueKey).poolKey(poolKey).sequence(redirectSequenceName));
+         if (!this.headerHandlers.isEmpty()) {
+            headerHandlers.add(new ConditionalHeaderHandler.Builder()
+                  .condition().stringCondition().fromVar(methodVar).isSet(false).end()
+                  .handlers(this.headerHandlers));
+         }
+         this.headerHandlers = headerHandlers;
+
+         if (!bodyHandlers.isEmpty()) {
+            bodyHandlers = Collections.singletonList(
+                  HttpRequestProcessorBuilder.adapt(new ConditionalProcessor.Builder()
+                        .condition().stringCondition().fromVar(methodVar).isSet(false).end()
+                        .processors(bodyHandlers)));
+         }
+         if (!completionHandlers.isEmpty()) {
+            completionHandlers = Collections.singletonList(
+                  new ConditionalAction.Builder()
+                        .condition().stringCondition().fromVar(methodVar).isSet(false).end()
+                        .actions(completionHandlers));
          }
       }
 
       public HttpResponseHandlersImpl build() {
          return new HttpResponseHandlersImpl(
-               toArray(statusHandlers, StatusHandler.Builder::build, StatusHandler[]::new),
+               toArray(statusHandlers, io.hyperfoil.api.http.StatusHandler.Builder::build, io.hyperfoil.api.http.StatusHandler[]::new),
                toArray(headerHandlers, HeaderHandler.Builder::build, HeaderHandler[]::new),
                toArray(bodyHandlers, b -> b.build(true), Processor[]::new),
                toArray(completionHandlers, Action.Builder::build, Action[]::new),
@@ -438,6 +569,10 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          bodyHandlers.addAll(BuilderBase.copy(other.bodyHandlers));
          completionHandlers.addAll(BuilderBase.copy(other.completionHandlers));
          rawBytesHandlers.addAll(BuilderBase.copy(other.rawBytesHandlers));
+         autoRangeCheck = other.autoRangeCheck;
+         stopOnInvalid = other.stopOnInvalid;
+         followRedirect = other.followRedirect;
       }
+
    }
 }

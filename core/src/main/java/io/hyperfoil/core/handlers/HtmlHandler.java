@@ -350,10 +350,10 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
          if (this.processor == null) {
             this.processor = processor;
          } else if (this.processor instanceof MultiProcessor.Builder) {
-            MultiProcessor.Builder multiprocessor = (MultiProcessor.Builder) this.processor;
-            multiprocessor.add(processor);
+            MultiProcessor.Builder<?> multiprocessor = (MultiProcessor.Builder<?>) this.processor;
+            multiprocessor.processor(processor);
          } else {
-            this.processor = new MultiProcessor.Builder().add(this.processor).add(processor);
+            this.processor = new MultiProcessor.Builder<>().processor(this.processor).processor(processor);
          }
          return this;
       }

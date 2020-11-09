@@ -25,6 +25,9 @@ public class FailAction implements Action {
       }
    }
 
+   /**
+    * Fail the phase with given message. Used mostly for testing/debugging.
+    */
    @MetaInfServices(Action.Builder.class)
    @Name("fail")
    public static class Builder implements Action.Builder {
@@ -33,6 +36,12 @@ public class FailAction implements Action {
       @Embed
       public final Condition.TypesBuilder<Builder> condition = new Condition.TypesBuilder<>(this);
 
+      /**
+       * Message attached to the failure exception.
+       *
+       * @param message Message
+       * @return Self
+       */
       public Builder message(String message) {
          this.message = message;
          return this;

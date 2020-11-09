@@ -1,5 +1,7 @@
 package io.hyperfoil.api.config;
 
+import io.hyperfoil.api.http.FollowRedirect;
+
 public class ErgonomicsBuilder {
    private final BenchmarkBuilder parent;
    private boolean repeatCookies = true;
@@ -7,6 +9,7 @@ public class ErgonomicsBuilder {
    private boolean privateHttpPools = false;
    private boolean autoRangeCheck = true;
    private boolean stopOnInvalid = true;
+   private FollowRedirect followRedirect = FollowRedirect.LOCATION_ONLY;
 
    public ErgonomicsBuilder(BenchmarkBuilder parent) {
       this.parent = parent;
@@ -59,11 +62,20 @@ public class ErgonomicsBuilder {
       return this;
    }
 
+   public FollowRedirect followRedirect() {
+      return followRedirect;
+   }
+
+   public ErgonomicsBuilder followRedirect(FollowRedirect followRedirect) {
+      this.followRedirect = followRedirect;
+      return this;
+   }
+
    public BenchmarkBuilder endErgonomics() {
       return parent;
    }
 
    public Ergonomics build() {
-      return new Ergonomics(repeatCookies, userAgentFromSession, privateHttpPools, autoRangeCheck, stopOnInvalid);
+      return new Ergonomics(repeatCookies, userAgentFromSession, privateHttpPools, autoRangeCheck, stopOnInvalid, followRedirect);
    }
 }

@@ -1,0 +1,29 @@
+# For parser testing
+name: follow redirects
+http:
+  host: http://localhost:8080
+  # Do not limit concurrency through default connection limits
+  sharedConnections: 10
+phases:
+- testPhase:
+    atOnce:
+      users: 10
+      duration: 0
+      scenario:
+        orderedSequences:
+        - locationAutomatic:
+          - unset: actualBody
+          - httpRequest:
+              GET: /redirectMeViaLocation?allowRecurse=yes
+              headers:
+                x-preserve: repeat me with redirect
+              handler:
+                followRedirect: LOCATION_ONLY
+                body:
+                  simple: actualBody
+          - fail:
+              message: wrong response
+              allConditions:
+              - stringCondition:
+                  fromVar: actualBody
+                  notEqualTo: this is the response
