@@ -27,8 +27,8 @@ import io.hyperfoil.clustering.AgentVerticle;
 import io.hyperfoil.clustering.Codecs;
 import io.hyperfoil.internal.Properties;
 import io.netty.util.ResourceLeakDetector;
+import io.vertx.core.AsyncResult;
 import io.vertx.core.DeploymentOptions;
-import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Verticle;
 import io.vertx.core.Vertx;
@@ -36,6 +36,7 @@ import io.vertx.core.VertxOptions;
 import io.vertx.core.impl.VertxInternal;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import io.vertx.core.spi.cluster.ClusterManager;
 import io.vertx.ext.cluster.infinispan.InfinispanClusterManager;
 
 public class Hyperfoil {
@@ -99,10 +100,6 @@ public class Hyperfoil {
          }
          Vertx vertx = result.result();
          Codecs.register(vertx);
-         ((VertxInternal) vertx).addCloseHook(handler -> {
-            cacheManager.stop();
-            handler.handle(Future.succeededFuture());
-         });
          startedHandler.handle(vertx);
       });
       ensureNettyResourceLeakDetection();
@@ -186,6 +183,22 @@ public class Hyperfoil {
                leakDetectionLevel, ResourceLeakDetector.Level.values());
       }
       ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.SIMPLE);
+   }
+
+   public static void shutdownVertx(Vertx vertx, Handler<AsyncResult<Void>> handler) {
+      ClusterManager clusterManager = ((VertxInternal) vertx).getClusterManager();
+      DefaultCacheManager cacheManager = (DefaultCacheManager) ((InfinispanClusterManager) clusterManager).getCacheContainer();
+      vertx.close(result -> {
+         try {
+            cacheManager.close();
+         } catch (IOException e) {
+            log.error("Failed to close Infinispan cache manager", e);
+         } finally {
+            if (handler != null) {
+               handler.handle(result);
+            }
+         }
+      });
    }
 
    public static class Agent extends Hyperfoil {

@@ -1,5 +1,7 @@
 package io.hyperfoil.benchmark.clustering;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -56,5 +58,6 @@ public class MoreAgentsThanUsersTest extends BaseClusteredTest {
          info = run.get();
          Thread.sleep(100);
       } while (!info.completed);
+      assertThat(info.errors).isEmpty();
    }
 }

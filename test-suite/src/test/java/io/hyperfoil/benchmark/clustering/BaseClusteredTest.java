@@ -20,7 +20,7 @@ public abstract class BaseClusteredTest extends BaseBenchmarkTest {
 
    @After
    public void teardown(TestContext ctx) {
-      servers.forEach(vertx -> vertx.close(ctx.asyncAssertSuccess()));
+      servers.forEach(vertx -> Hyperfoil.shutdownVertx(vertx, ctx.asyncAssertSuccess()));
    }
 
    protected void startController(TestContext ctx) {

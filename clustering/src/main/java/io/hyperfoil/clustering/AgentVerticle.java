@@ -4,6 +4,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 
+import io.hyperfoil.Hyperfoil;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.session.PhaseInstance;
 import io.hyperfoil.clustering.messages.AgentControlMessage;
@@ -128,7 +129,7 @@ public class AgentVerticle extends AbstractVerticle {
                message.reply(result.succeeded() ? "OK" : result.cause());
                if (vertx.isClustered()) {
                   // Give the message some time to be sent
-                  vertx.setTimer(1000, id -> vertx.close());
+                  vertx.setTimer(1000, id -> Hyperfoil.shutdownVertx(vertx, null));
                } else {
                   vertx.undeploy(deploymentID());
                }

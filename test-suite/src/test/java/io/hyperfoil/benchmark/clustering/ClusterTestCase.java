@@ -53,7 +53,7 @@ public class ClusterTestCase extends BaseClusteredTest {
    }
 
    @Test(timeout = 120_000)
-   public void startClusteredBenchmarkTest() throws IOException, InterruptedException {
+   public void startClusteredBenchmarkTest(TestContext ctx) throws IOException, InterruptedException {
       try (AsyncHttpClient asyncHttpClient = asyncHttpClient()) {
          // upload benchmark
          asyncHttpClient
@@ -95,20 +95,25 @@ public class ClusterTestCase extends BaseClusteredTest {
                .execute()
                .toCompletableFuture()
                .thenApply(response -> {
-                  assertThat(response.getStatusCode()).isEqualTo(200);
-                  String responseBody = response.getResponseBody();
-                  JsonObject status = new JsonObject(responseBody);
-                  assertThat(status.getString("benchmark")).isEqualTo("test");
-                  System.out.println(status.encodePrettily());
-                  boolean terminated = status.getString("terminated") != null;
-                  if (terminated) {
-                     assertThat(status.getString("started")).isNotNull();
-                     JsonArray agents = status.getJsonArray("agents");
-                     for (int i = 0; i < agents.size(); ++i) {
-                        assertThat(agents.getJsonObject(i).getString("status")).isNotEqualTo("STARTING");
+                  try {
+                     assertThat(response.getStatusCode()).isEqualTo(200);
+                     String responseBody = response.getResponseBody();
+                     JsonObject status = new JsonObject(responseBody);
+                     assertThat(status.getString("benchmark")).isEqualTo("test");
+                     System.out.println(status.encodePrettily());
+                     boolean terminated = status.getString("terminated") != null;
+                     if (terminated) {
+                        assertThat(status.getString("started")).isNotNull();
+                        JsonArray agents = status.getJsonArray("agents");
+                        for (int i = 0; i < agents.size(); ++i) {
+                           assertThat(agents.getJsonObject(i).getString("status")).isNotEqualTo("STARTING");
+                        }
                      }
+                     return terminated;
+                  } catch (Throwable t) {
+                     ctx.fail(t);
+                     throw t;
                   }
-                  return terminated;
                }).join()) {
             Thread.sleep(1000);
          }

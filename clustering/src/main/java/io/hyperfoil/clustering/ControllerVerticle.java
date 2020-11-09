@@ -572,6 +572,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
          return;
       }
       run.terminateTime.complete(System.currentTimeMillis());
+      run.completed = true;
       for (AgentInfo agent : run.agents) {
          if (agent.deploymentId == null) {
             assert agent.status == AgentInfo.Status.STARTING;
