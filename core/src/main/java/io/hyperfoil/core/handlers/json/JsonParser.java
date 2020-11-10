@@ -16,7 +16,7 @@ import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 import io.hyperfoil.core.data.DataFormat;
 import io.hyperfoil.core.generators.Pattern;
 import io.hyperfoil.core.handlers.ArrayRecorder;
-import io.hyperfoil.core.handlers.SimpleRecorder;
+import io.hyperfoil.core.handlers.StoreProcessor;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.vertx.core.logging.Logger;
@@ -577,7 +577,7 @@ public abstract class JsonParser implements Serializable, ResourceUtilizer {
        * @return Self.
        */
       public S toVar(String var) {
-         return processor(new SimpleRecorder.Builder().toVar(var).format(format));
+         return processor(new StoreProcessor.Builder().toVar(var).format(format));
       }
 
       public S processor(Processor.Builder<?> processor) {

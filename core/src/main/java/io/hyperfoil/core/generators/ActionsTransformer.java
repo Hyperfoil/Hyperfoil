@@ -107,7 +107,7 @@ public class ActionsTransformer implements Transformer, ResourceUtilizer {
          if (var == null) {
             throw new BenchmarkDefinitionException("Missing variable name");
          } else if (actions.isEmpty()) {
-            throw new BenchmarkDefinitionException("No actions; use `simple` processor instead.");
+            throw new BenchmarkDefinitionException("No actions; use `store` processor instead.");
          }
          ActionsTransformer transformer = new ActionsTransformer(SessionFactory.access(var), format,
                actions.stream().map(Action.Builder::build).toArray(Action[]::new), new Pattern(pattern, false));

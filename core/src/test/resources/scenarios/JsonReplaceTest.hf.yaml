@@ -21,7 +21,7 @@ phases:
                       - addToInt: age++
                       pattern: ${age}
                   processor:
-                  - simple:
+                  - store:
                       toVar: updated
                       format: BYTES
         - httpRequest:

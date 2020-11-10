@@ -20,7 +20,7 @@ phases:
               handler:
                 followRedirect: LOCATION_ONLY
                 body:
-                  simple: actualBody
+                  store: actualBody
           - fail:
               message: wrong response
               allConditions:

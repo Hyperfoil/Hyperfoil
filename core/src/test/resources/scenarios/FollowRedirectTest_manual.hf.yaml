@@ -32,7 +32,7 @@ phases:
                     header:
                       value: location
                     processor:
-                    - simple: location
+                    - store: location
                     - newSequence: redirectLocationManual
                 body:
                   # Any handlers need to be wrapped and prevented from application
@@ -41,7 +41,7 @@ phases:
                       fromVar: redirect
                       value: false
                     processor:
-                      simple: actualBody
+                      store: actualBody
           - awaitVar: actualBody
           - fail:
               message: not redirected but wrong response
@@ -63,4 +63,4 @@ phases:
               # We should loop the redirection to this sequence
               handler:
                 body:
-                  simple: actualBody
+                  store: actualBody

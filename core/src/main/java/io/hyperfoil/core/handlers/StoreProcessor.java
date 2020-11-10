@@ -15,13 +15,13 @@ import io.hyperfoil.api.session.ResourceUtilizer;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-public class SimpleRecorder implements Processor, ResourceUtilizer {
-   private static final Logger log = LoggerFactory.getLogger(SimpleRecorder.class);
+public class StoreProcessor implements Processor, ResourceUtilizer {
+   private static final Logger log = LoggerFactory.getLogger(StoreProcessor.class);
 
    private final Access toVar;
    private final DataFormat format;
 
-   public SimpleRecorder(Access toVar, DataFormat format) {
+   public StoreProcessor(Access toVar, DataFormat format) {
       this.toVar = toVar;
       this.format = format;
    }
@@ -51,7 +51,7 @@ public class SimpleRecorder implements Processor, ResourceUtilizer {
     * Stores data in a session variable (overwriting on multiple occurences).
     */
    @MetaInfServices(RequestProcessorBuilder.class)
-   @Name("simple")
+   @Name("store")
    public static class Builder implements RequestProcessorBuilder, InitFromParam<Builder> {
       private Object toVar;
       private DataFormat format = DataFormat.STRING;
@@ -86,8 +86,15 @@ public class SimpleRecorder implements Processor, ResourceUtilizer {
 
       @Override
       public Processor build(boolean fragmented) {
-         SimpleRecorder simpleRecorder = new SimpleRecorder(SessionFactory.access(toVar), format);
-         return fragmented ? new DefragProcessor(simpleRecorder) : simpleRecorder;
+         StoreProcessor storeProcessor = new StoreProcessor(SessionFactory.access(toVar), format);
+         return fragmented ? new DefragProcessor(storeProcessor) : storeProcessor;
       }
    }
+
+   /**
+    * DEPRECATED: Use <code>store</code> processor instead.
+    */
+   @MetaInfServices(RequestProcessorBuilder.class)
+   @Name("simple")
+   public static class LegacyBuilder extends Builder {}
 }

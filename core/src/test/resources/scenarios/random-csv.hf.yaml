@@ -1,4 +1,4 @@
-name: simple benchmark
+name: random-csv
 http:
 - host: http://localhost:8099
 phases:
