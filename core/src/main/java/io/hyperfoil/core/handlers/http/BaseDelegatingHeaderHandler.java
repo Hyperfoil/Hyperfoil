@@ -1,4 +1,4 @@
-package io.hyperfoil.core.handlers;
+package io.hyperfoil.core.handlers.http;
 
 import java.util.ArrayList;
 import java.util.Collection;

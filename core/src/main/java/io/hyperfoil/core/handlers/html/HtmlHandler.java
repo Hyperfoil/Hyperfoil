@@ -1,30 +1,17 @@
-package io.hyperfoil.core.handlers;
+package io.hyperfoil.core.handlers.html;
 
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Stream;
 
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
-import io.hyperfoil.api.config.BuilderBase;
-import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Name;
-import io.hyperfoil.api.config.SequenceBuilder;
-import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.processor.HttpRequestProcessorBuilder;
-import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.api.processor.Processor;
-import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.ResourceUtilizer;
-import io.hyperfoil.core.generators.StringGeneratorImplBuilder;
-import io.hyperfoil.core.steps.HttpRequestStep;
-import io.hyperfoil.core.steps.PathMetricSelector;
-import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 import io.hyperfoil.core.util.Trie;
-import io.hyperfoil.core.util.Util;
-import io.hyperfoil.function.SerializableBiFunction;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.vertx.core.logging.Logger;
@@ -310,184 +297,7 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
       }
    }
 
-   /**
-    * Handles <code>&lt;img src="..."&gt;</code>, <code>&lt;link href="..."&gt;</code>,
-    * <code>&lt;embed src="..."&gt;</code>, <code>&lt;frame src="..."&gt;</code>,
-    * <code>&lt;iframe src="..."&gt;</code>, <code>&lt;object data="..."&gt;</code> and <code>&lt;script src="..."&gt;</code>.
-    * <p>
-    * Does not handle <code>&lt;source src="..."&gt;</code> or <code>&lt;track src="..."&gt;</code> because browser
-    * would choose only one of the options.
-    */
-   public static class EmbeddedResourceHandlerBuilder implements BuilderBase<EmbeddedResourceHandlerBuilder> {
-      private static final String[] TAGS = { "img", "link", "embed", "frame", "iframe", "object", "script" };
-      private static final String[] ATTRS = { "src", "href", "src", "src", "src", "data", "src" };
-
-      private boolean ignoreExternal = true;
-      private Processor.Builder<?> processor;
-      private FetchResourceBuilder fetchResource;
-
-      /**
-       * Ignore resources hosted on servers that are not covered in the <code>http</code> section.
-       *
-       * @param ignoreExternal Ignore?
-       * @return Self.
-       */
-      public EmbeddedResourceHandlerBuilder ignoreExternal(boolean ignoreExternal) {
-         this.ignoreExternal = ignoreExternal;
-         return this;
-      }
-
-      /**
-       * Automatically download referenced resource.
-       *
-       * @return Builder.
-       */
-      public FetchResourceBuilder fetchResource() {
-         return this.fetchResource = new FetchResourceBuilder();
-      }
-
-      public EmbeddedResourceHandlerBuilder processor(Processor.Builder<?> processor) {
-         if (this.processor == null) {
-            this.processor = processor;
-         } else if (this.processor instanceof MultiProcessor.Builder) {
-            MultiProcessor.Builder<?> multiprocessor = (MultiProcessor.Builder<?>) this.processor;
-            multiprocessor.processor(processor);
-         } else {
-            this.processor = new MultiProcessor.Builder<>().processor(this.processor).processor(processor);
-         }
-         return this;
-      }
-
-      /**
-       * Custom processor invoked pointing to attribute data - e.g. in case of <code>&lt;img&gt;</code> tag
-       * the processor gets contents of the <code>src</code> attribute.
-       *
-       * @return Builder.
-       */
-      public ServiceLoadedBuilderProvider<HttpRequestProcessorBuilder> processor() {
-         return new ServiceLoadedBuilderProvider<>(HttpRequestProcessorBuilder.class, this::processor);
-      }
-
-      public void prepareBuild() {
-         if (processor != null) {
-            processor.prepareBuild();
-         }
-         if (fetchResource != null) {
-            fetchResource.prepareBuild();
-         }
-      }
-
-      public BaseTagAttributeHandler build() {
-         if (processor != null && fetchResource != null) {
-            throw new BenchmarkDefinitionException("Only one of processor/fetchResource allowed!");
-         }
-         Processor p;
-         if (fetchResource != null) {
-            p = fetchResource.build();
-         } else if (processor != null) {
-            p = processor.build(false);
-         } else {
-            throw new BenchmarkDefinitionException("Embedded resource handler is missing the processor");
-         }
-         return new BaseTagAttributeHandler(TAGS, ATTRS, new EmbeddedResourceProcessor(ignoreExternal, p));
-      }
-   }
-
-   /**
-    * Automates download of embedded resources.
-    */
-   public static class FetchResourceBuilder implements BuilderBase<FetchResourceBuilder> {
-      private SerializableBiFunction<String, String, String> metricSelector;
-      private QueueProcessor.Builder queue = new QueueProcessor.Builder().concurrency(8);
-
-      FetchResourceBuilder() {
-      }
-
-      /**
-       * Maximum number of resources that can be fetched.
-       *
-       * @param maxResources Max resources.
-       * @return Self.
-       */
-      public FetchResourceBuilder maxResources(int maxResources) {
-         queue.maxSize(maxResources);
-         return this;
-      }
-
-      /**
-       * Maximum number of resources fetched concurrently. Default is 8.
-       *
-       * @param concurrency Max concurrently fetched resources.
-       * @return Self.
-       */
-      public FetchResourceBuilder concurrency(int concurrency) {
-         queue.concurrency(concurrency);
-         return this;
-      }
-
-      /**
-       * Metrics selector for downloaded resources.
-       *
-       * @return Builder.
-       */
-      public PathMetricSelector metric() {
-         PathMetricSelector metricSelector = new PathMetricSelector();
-         metric(metricSelector);
-         return metricSelector;
-      }
-
-      public FetchResourceBuilder metric(SerializableBiFunction<String, String, String> metricSelector) {
-         if (this.metricSelector != null) {
-            throw new BenchmarkDefinitionException("Metric already set!");
-         }
-         this.metricSelector = metricSelector;
-         return this;
-      }
-
-      /**
-       * Action performed when the download of all resources completes.
-       *
-       * @return Builder.
-       */
-      public ServiceLoadedBuilderProvider<Action.Builder> onCompletion() {
-         return queue.onCompletion();
-      }
-
-      public FetchResourceBuilder onCompletion(Action.Builder a) {
-         queue.onCompletion(a);
-         return this;
-      }
-
-      public void prepareBuild() {
-         Locator locator = Locator.current();
-         String generatedSequenceName = String.format("%s_fetchResources_%08x",
-               locator.sequence().name(), ThreadLocalRandom.current().nextInt());
-         String downloadUrlVar = generatedSequenceName + "_url";
-
-
-         HttpRequestStep.Builder requestBuilder = new HttpRequestStep.Builder().sync(false).method(HttpMethod.GET);
-         requestBuilder.path(
-               new StringGeneratorImplBuilder<>(requestBuilder, false).fromVar(downloadUrlVar + "[.]"));
-         if (metricSelector != null) {
-            requestBuilder.metric(metricSelector);
-         } else {
-            // Rather than using auto-generated sequence name we'll use the full path
-            requestBuilder.metric((authority, path) -> authority != null ? authority + path : path);
-         }
-         SequenceBuilder sequence = locator.scenario().sequence(generatedSequenceName);
-         sequence.stepBuilder(requestBuilder);
-         queue.var(downloadUrlVar).sequence(sequence, requestBuilder.handler()::onCompletion);
-         // As we're preparing build, the list of sequences-to-be-prepared is already final and we need to prepare
-         // this one manually
-         queue.prepareBuild();
-      }
-
-      public Processor build() {
-         return queue.build(false);
-      }
-   }
-
-   private static class BaseTagAttributeHandler implements TagHandler, ResourceUtilizer {
+   static class BaseTagAttributeHandler implements TagHandler, ResourceUtilizer {
       private final Trie trie;
       private final byte[][] attributes;
       private final Processor processor;
@@ -521,7 +331,7 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
          private final Trie.State trieState = trie.newState();
          private int tagMatched = -1;
          private int attrMatchedIndex = -1;
-         private ByteBuf valueBuffer = ByteBufAllocator.DEFAULT.buffer();
+         private final ByteBuf valueBuffer = ByteBufAllocator.DEFAULT.buffer();
 
          @Override
          public void onTag(Session session, boolean close, ByteBuf data, int offset, int length, boolean isLast) {
@@ -582,86 +392,4 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
       }
    }
 
-   private static class EmbeddedResourceProcessor extends Processor.BaseDelegating {
-      private static final byte[] HTTP_PREFIX = "http".getBytes(StandardCharsets.UTF_8);
-
-      private final boolean ignoreExternal;
-
-      EmbeddedResourceProcessor(boolean ignoreExternal, Processor delegate) {
-         super(delegate);
-         this.ignoreExternal = ignoreExternal;
-      }
-
-      @Override
-      public void process(Session session, ByteBuf data, int offset, int length, boolean isLastPart) {
-         assert isLastPart;
-         // TODO: here we should normalize the URL, remove escapes etc...
-
-         boolean isAbsolute = hasPrefix(data, offset, length, HTTP_PREFIX);
-         if (isAbsolute) {
-            if (ignoreExternal) {
-               int authorityStart = indexOf(data, offset, length, ':') + 3;
-               boolean external = true;
-               for (byte[] authority : session.httpDestinations().authorityBytes()) {
-                  if (hasPrefix(data, offset + authorityStart, length, authority)) {
-                     external = false;
-                     break;
-                  }
-               }
-               if (external) {
-                  if (trace) {
-                     log.trace("#{} Ignoring external URL {}", session.uniqueId(), Util.toString(data, offset, length));
-                  }
-                  return;
-               }
-            }
-            if (trace) {
-               log.trace("#{} Matched URL {}", session.uniqueId(), Util.toString(data, offset, length));
-            }
-            delegate.process(session, data, offset, length, true);
-         } else if (data.getByte(offset) == '/') {
-            // No need to rewrite relative URL
-            if (trace) {
-               log.trace("#{} Matched URL {}", session.uniqueId(), Util.toString(data, offset, length));
-            }
-            delegate.process(session, data, offset, length, true);
-         } else {
-            HttpRequest request = (HttpRequest) session.currentRequest();
-            ByteBuf buffer = ByteBufAllocator.DEFAULT.buffer(request.path.length() + length);
-            Util.string2byteBuf(request.path, buffer);
-            for (int i = buffer.writerIndex() - 1; i >= 0; --i) {
-               if (buffer.getByte(i) == '/') {
-                  buffer.writerIndex(i + 1);
-                  break;
-               }
-            }
-            buffer.ensureWritable(length);
-            buffer.writeBytes(data, offset, length);
-            if (trace) {
-               log.trace("#{} Rewritten relative URL to {}", session.uniqueId(), Util.toString(buffer, buffer.readerIndex(), buffer.readableBytes()));
-            }
-            delegate.process(session, buffer, buffer.readerIndex(), buffer.readableBytes(), true);
-            buffer.release();
-         }
-      }
-
-      private int indexOf(ByteBuf data, int offset, int length, char c) {
-         for (int i = 0; i <= length; ++i) {
-            if (data.getByte(offset + i) == c) {
-               return i;
-            }
-         }
-         return -1;
-      }
-
-      private boolean hasPrefix(ByteBuf data, int offset, int length, byte[] authority) {
-         int i = 0;
-         for (; i < authority.length && i < length; i++) {
-            if (data.getByte(offset + i) != authority[i]) {
-               return false;
-            }
-         }
-         return i == authority.length;
-      }
-   }
 }

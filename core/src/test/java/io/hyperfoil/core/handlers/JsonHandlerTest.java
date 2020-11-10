@@ -13,6 +13,8 @@ import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.processor.Transformer;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
+import io.hyperfoil.core.handlers.json.JsonHandler;
+import io.hyperfoil.core.handlers.json.JsonUnquotingTransformer;
 import io.hyperfoil.core.session.SessionFactory;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;

@@ -1,4 +1,4 @@
-package io.hyperfoil.core.handlers;
+package io.hyperfoil.core.handlers.http;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,6 +13,7 @@ import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.builders.StringConditionBuilder;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
+import io.hyperfoil.core.handlers.MultiProcessor;
 import io.hyperfoil.core.util.Util;
 import io.hyperfoil.function.SerializableBiPredicate;
 import io.netty.buffer.ByteBuf;

@@ -19,7 +19,7 @@ import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.data.DataFormat;
 import io.hyperfoil.core.handlers.ArrayRecorder;
 import io.hyperfoil.core.handlers.ProcessorAssertion;
-import io.hyperfoil.core.handlers.JsonHandler;
+import io.hyperfoil.core.handlers.json.JsonHandler;
 import io.hyperfoil.core.steps.AddToIntAction;
 import io.hyperfoil.core.steps.AwaitConditionStep;
 import io.hyperfoil.core.steps.SetAction;

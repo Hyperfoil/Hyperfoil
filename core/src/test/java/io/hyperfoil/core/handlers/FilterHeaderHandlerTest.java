@@ -5,6 +5,7 @@ import org.junit.Test;
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.session.Access;
+import io.hyperfoil.core.handlers.http.FilterHeaderHandler;
 import io.hyperfoil.core.http.BaseMockConnection;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.test.TestUtil;

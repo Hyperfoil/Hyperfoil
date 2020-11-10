@@ -18,9 +18,9 @@ import io.hyperfoil.api.processor.Transformer;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.core.handlers.ByteStream;
-import io.hyperfoil.core.handlers.JsonParser;
-import io.hyperfoil.core.handlers.JsonUnquotingTransformer;
+import io.hyperfoil.core.handlers.json.ByteStream;
+import io.hyperfoil.core.handlers.json.JsonParser;
+import io.hyperfoil.core.handlers.json.JsonUnquotingTransformer;
 import io.hyperfoil.core.session.SessionFactory;
 
 public class JsonStep implements Step, ResourceUtilizer {

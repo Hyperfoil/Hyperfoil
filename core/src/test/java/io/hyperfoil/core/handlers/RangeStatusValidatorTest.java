@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Test;
 
+import io.hyperfoil.core.handlers.http.RangeStatusValidator;
+
 public class RangeStatusValidatorTest {
    @Test
    public void test1() {

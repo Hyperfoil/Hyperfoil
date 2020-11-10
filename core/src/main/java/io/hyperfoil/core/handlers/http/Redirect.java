@@ -1,4 +1,4 @@
-package io.hyperfoil.core.handlers;
+package io.hyperfoil.core.handlers.http;
 
 import java.util.Objects;
 import java.util.function.Supplier;
@@ -16,6 +16,8 @@ import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.data.LimitedPoolResource;
 import io.hyperfoil.core.data.Queue;
+import io.hyperfoil.core.handlers.BaseDelegatingAction;
+import io.hyperfoil.core.handlers.MultiProcessor;
 import io.hyperfoil.core.session.ObjectVar;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.util.Util;

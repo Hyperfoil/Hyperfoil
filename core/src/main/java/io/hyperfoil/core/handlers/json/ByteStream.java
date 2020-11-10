@@ -1,4 +1,4 @@
-package io.hyperfoil.core.handlers;
+package io.hyperfoil.core.handlers.json;
 
 /**
  * Abstract wrapper over {@link io.netty.buffer.ByteBuf}, <code>byte[]</code> or {@link String}.

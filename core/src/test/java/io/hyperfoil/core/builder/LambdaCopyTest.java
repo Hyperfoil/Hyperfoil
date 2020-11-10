@@ -2,7 +2,7 @@ package io.hyperfoil.core.builder;
 
 import org.junit.Test;
 
-import io.hyperfoil.core.handlers.RangeStatusValidator;
+import io.hyperfoil.core.handlers.http.RangeStatusValidator;
 import io.hyperfoil.core.steps.HttpRequestStep;
 
 public class LambdaCopyTest {

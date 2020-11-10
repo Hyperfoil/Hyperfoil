@@ -23,7 +23,7 @@ import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.http.StatusHandler;
-import io.hyperfoil.core.handlers.RangeStatusValidator;
+import io.hyperfoil.core.handlers.http.RangeStatusValidator;
 import io.hyperfoil.core.impl.LocalBenchmarkData;
 import io.hyperfoil.core.parser.BenchmarkParser;
 import io.hyperfoil.core.parser.ParserException;

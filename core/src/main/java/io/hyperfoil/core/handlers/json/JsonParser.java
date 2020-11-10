@@ -1,4 +1,4 @@
-package io.hyperfoil.core.handlers;
+package io.hyperfoil.core.handlers.json;
 
 import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
@@ -15,6 +15,8 @@ import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 import io.hyperfoil.core.data.DataFormat;
 import io.hyperfoil.core.generators.Pattern;
+import io.hyperfoil.core.handlers.ArrayRecorder;
+import io.hyperfoil.core.handlers.SimpleRecorder;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.vertx.core.logging.Logger;

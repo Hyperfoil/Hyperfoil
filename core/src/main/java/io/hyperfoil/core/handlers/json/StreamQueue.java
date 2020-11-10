@@ -1,4 +1,4 @@
-package io.hyperfoil.core.handlers;
+package io.hyperfoil.core.handlers.json;
 
 import java.io.Serializable;
 import java.util.Arrays;
