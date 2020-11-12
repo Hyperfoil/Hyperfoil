@@ -38,11 +38,6 @@ public interface HttpRequestProcessorBuilder extends Processor.Builder<HttpReque
       }
 
       @Override
-      public void prepareBuild() {
-         builder.prepareBuild();
-      }
-
-      @Override
       public Processor build(boolean fragmented) {
          return builder.build(fragmented);
       }
@@ -65,11 +60,6 @@ public interface HttpRequestProcessorBuilder extends Processor.Builder<HttpReque
       @Override
       public ActionBuilderAdapter copy() {
          return new ActionBuilderAdapter(builder.copy());
-      }
-
-      @Override
-      public void prepareBuild() {
-         builder.prepareBuild();
       }
 
       @Override

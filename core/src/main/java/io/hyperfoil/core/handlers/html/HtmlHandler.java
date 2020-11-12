@@ -271,11 +271,11 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
        * Since there's no buffering the element name might be only partial - check the <code>isLast</code> parameter.
        *
        * @param session Current session.
-       * @param close Is it the closing (&lt;/foo&gt;) form?
-       * @param data Buffer with element name.
-       * @param offset Starting index in the buffer.
-       * @param length Number of bytes in the buffer that contain the name.
-       * @param isLast True if the element name is complete.
+       * @param close   Is it the closing (&lt;/foo&gt;) form?
+       * @param data    Buffer with element name.
+       * @param offset  Starting index in the buffer.
+       * @param length  Number of bytes in the buffer that contain the name.
+       * @param isLast  True if the element name is complete.
        */
       // TODO: this API does not inform if the element is self-closing! Make close into enum
       void onTag(Session session, boolean close, ByteBuf data, int offset, int length, boolean isLast);
@@ -317,11 +317,6 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
       public Builder handler(TagHandlerBuilder<?> handler) {
          handlers.add(handler);
          return this;
-      }
-
-      @Override
-      public void prepareBuild() {
-         handlers.forEach(TagHandlerBuilder::prepareBuild);
       }
 
       @Override

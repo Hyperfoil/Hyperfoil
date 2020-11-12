@@ -68,10 +68,5 @@ public abstract class BaseDelegatingHeaderHandler implements HeaderHandler, Reso
       protected HeaderHandler[] buildHandlers() {
          return handlers.stream().map(HeaderHandler.Builder::build).toArray(HeaderHandler[]::new);
       }
-
-      @Override
-      public void prepareBuild() {
-         handlers.forEach(HeaderHandler.Builder::prepareBuild);
-      }
    }
 }

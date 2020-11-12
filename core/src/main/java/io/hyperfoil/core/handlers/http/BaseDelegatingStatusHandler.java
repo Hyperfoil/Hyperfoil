@@ -9,7 +9,7 @@ import io.hyperfoil.api.http.StatusHandler;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 
-public abstract class BaseDelegatingStatusHandler implements StatusHandler, ResourceUtilizer  {
+public abstract class BaseDelegatingStatusHandler implements StatusHandler, ResourceUtilizer {
    protected final StatusHandler[] handlers;
 
    public BaseDelegatingStatusHandler(StatusHandler[] handlers) {
@@ -35,11 +35,6 @@ public abstract class BaseDelegatingStatusHandler implements StatusHandler, Reso
       public S handlers(Collection<? extends StatusHandler.Builder> handlers) {
          this.handlers.addAll(handlers);
          return (S) this;
-      }
-
-      @Override
-      public void prepareBuild() {
-         handlers.forEach(StatusHandler.Builder::prepareBuild);
       }
 
       protected StatusHandler[] buildHandlers() {

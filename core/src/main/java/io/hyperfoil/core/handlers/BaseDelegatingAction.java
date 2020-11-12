@@ -49,6 +49,7 @@ public abstract class BaseDelegatingAction implements Action, ResourceUtilizer {
 
       /**
        * Actions that should be executed should the condition hold.
+       *
        * @return Builder.
        */
       public ServiceLoadedBuilderProvider<Action.Builder> actions() {
@@ -57,11 +58,6 @@ public abstract class BaseDelegatingAction implements Action, ResourceUtilizer {
 
       protected Action[] buildActions() {
          return actions.stream().map(Action.Builder::build).toArray(Action[]::new);
-      }
-
-      @Override
-      public void prepareBuild() {
-         actions.forEach(Action.Builder::prepareBuild);
       }
    }
 }

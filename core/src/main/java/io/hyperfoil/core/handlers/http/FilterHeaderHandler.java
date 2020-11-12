@@ -79,11 +79,6 @@ public class FilterHeaderHandler implements HeaderHandler, ResourceUtilizer {
          return new FilterHeaderHandler(header.buildPredicate(), processor);
       }
 
-      @Override
-      public void prepareBuild() {
-         processors.forEach(Processor.Builder::prepareBuild);
-      }
-
       public Builder processor(HttpRequestProcessorBuilder processor) {
          this.processors.add(processor);
          return this;

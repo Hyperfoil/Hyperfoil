@@ -58,17 +58,12 @@ public class MultiProcessor implements Processor, ResourceUtilizer {
          return delegates;
       }
 
-      @Override
-      public void prepareBuild() {
-         delegates.forEach(Processor.Builder::prepareBuild);
-      }
-
       public S processor(Processor.Builder<?> processor) {
          delegates.add(processor);
          return self();
       }
 
-      public S processors(Collection<? extends Processor.Builder<?> > processors) {
+      public S processors(Collection<? extends Processor.Builder<?>> processors) {
          delegates.addAll(processors);
          return self();
       }

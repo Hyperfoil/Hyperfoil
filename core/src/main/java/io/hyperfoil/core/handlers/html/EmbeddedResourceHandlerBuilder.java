@@ -64,15 +64,6 @@ public class EmbeddedResourceHandlerBuilder implements HtmlHandler.TagHandlerBui
       return new ServiceLoadedBuilderProvider<>(HttpRequestProcessorBuilder.class, this::processor);
    }
 
-   public void prepareBuild() {
-      if (processor != null) {
-         processor.prepareBuild();
-      }
-      if (fetchResource != null) {
-         fetchResource.prepareBuild();
-      }
-   }
-
    @Override
    public HtmlHandler.BaseTagAttributeHandler build() {
       if (processor != null && fetchResource != null) {

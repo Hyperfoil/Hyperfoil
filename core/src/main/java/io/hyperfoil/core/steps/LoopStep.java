@@ -118,11 +118,6 @@ public class LoopStep implements Step, ResourceUtilizer {
       }
 
       @Override
-      public void prepareBuild() {
-         steps.prepareBuild();
-      }
-
-      @Override
       public List<Step> build() {
          Locator locator = Locator.current();
          if (locator.sequence().indexOf(this) != 0) {

@@ -136,11 +136,6 @@ public abstract class BaseSequenceBuilder implements Rewritable<BaseSequenceBuil
       }
 
       @Override
-      public void prepareBuild() {
-         super.prepareBuild();
-      }
-
-      @Override
       public List<Step> build() {
          return buildSteps();
       }

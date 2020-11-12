@@ -83,7 +83,7 @@ public class QueueProcessor implements Processor, ResourceUtilizer {
       private String sequence;
       private Action.Builder onCompletion;
       private Access varAccess;
-      private Session.ResourceKey<Queue> key;
+      private Queue.Key key;
       private SequenceBuilder sequenceBuilder;
       private Consumer<Action.Builder> sequenceCompletion;
 
@@ -153,7 +153,8 @@ public class QueueProcessor implements Processor, ResourceUtilizer {
                return true;
             });
          } else {
-            sequenceCompletion.accept(() -> s -> s.getResource(key).consumed(s));
+            Queue.Key myKey = key; // prevent capturing self reference
+            sequenceCompletion.accept(() -> s -> s.getResource(myKey).consumed(s));
          }
          sequenceBuilder.concurrency(concurrency);
          // We must invoke the prepareBuild() in copied sequences manually

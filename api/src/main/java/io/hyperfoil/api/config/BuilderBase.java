@@ -12,7 +12,44 @@ import java.util.stream.Collectors;
  * Intended base for all builders that might need relocation when the step is copied over.
  */
 public interface BuilderBase<S extends BuilderBase<S>> {
-   default void prepareBuild() {}
+   default void prepareBuild() {
+      Class<?> clz = getClass();
+      while (clz != null && clz != Object.class) {
+         for (Field f : clz.getDeclaredFields()) {
+            if (f.isSynthetic() || Modifier.isStatic(f.getModifiers()) || "parent".equals(f.getName())) {
+               continue;
+            }
+            f.setAccessible(true);
+            try {
+               if (BuilderBase.class.isAssignableFrom(f.getType())) {
+                  Object value = f.get(this);
+                  if (value != null) {
+                     ((BuilderBase<?>) value).prepareBuild();
+                  }
+               } else if (Collection.class.isAssignableFrom(f.getType())) {
+                  Object value = f.get(this);
+                  if (value != null) {
+                     for (Object item : (Collection<?>) value) {
+                        if (item instanceof BuilderBase) {
+                           ((BuilderBase<?>) item).prepareBuild();
+                        }
+                     }
+                  }
+               } else if (BaseSequenceBuilder.class.isAssignableFrom(f.getType())) {
+                  Object value = f.get(this);
+                  if (value != null) {
+                     ((BaseSequenceBuilder) value).prepareBuild();
+                  }
+               } else if (f.getType().isArray()) {
+                  throw new UnsupportedOperationException(clz.getName() + "." + f.getName() + " is an array (actual instance: " + this + ")");
+               }
+            } catch (IllegalAccessException e) {
+               throw new UnsupportedOperationException("Cannot get value of " + clz.getName() + "." + f.getName() + " (actual instance: " + this + ")");
+            }
+         }
+         clz = clz.getSuperclass();
+      }
+   }
 
    /**
     * Some scenarios copy its parts from one place to another, either during parsing

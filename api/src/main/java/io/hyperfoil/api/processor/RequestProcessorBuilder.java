@@ -32,11 +32,6 @@ public interface RequestProcessorBuilder extends Processor.Builder<RequestProces
       }
 
       @Override
-      public void prepareBuild() {
-         builder.prepareBuild();
-      }
-
-      @Override
       public RequestProcessorBuilder copy() {
          return new ActionBuilderAdapter(builder.copy());
       }
