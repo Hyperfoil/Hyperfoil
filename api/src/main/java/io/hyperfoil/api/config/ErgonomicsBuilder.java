@@ -9,7 +9,7 @@ public class ErgonomicsBuilder {
    private boolean privateHttpPools = false;
    private boolean autoRangeCheck = true;
    private boolean stopOnInvalid = true;
-   private FollowRedirect followRedirect = FollowRedirect.LOCATION_ONLY;
+   private FollowRedirect followRedirect = FollowRedirect.NEVER;
 
    public ErgonomicsBuilder(BenchmarkBuilder parent) {
       this.parent = parent;

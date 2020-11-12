@@ -17,7 +17,6 @@ phases:
               sla:
                 meanResponseTime: 1s
               handler:
-                followRedirect: NEVER
                 status:
                   range: 2xx
           - httpRequest:
@@ -28,7 +27,6 @@ phases:
               - window: 10s
                 meanResponseTime: 1s
               handler:
-                followRedirect: NEVER
                 status:
                 # Check list syntax
                 - range:
