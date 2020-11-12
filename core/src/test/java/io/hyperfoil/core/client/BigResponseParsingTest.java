@@ -88,7 +88,7 @@ public class BigResponseParsingTest extends VertxBaseTest {
    public void test(TestContext ctx) {
       Async async = ctx.async();
       AtomicInteger responseSize = new AtomicInteger();
-      getClientPool(ctx).setHandler(result -> {
+      getClientPool(ctx).onComplete(result -> {
          HttpClientPool client = result.result();
          Session session = SessionFactory.forTesting();
          HttpResponseHandlers handlers = HttpResponseHandlersImpl.Builder.forTesting()

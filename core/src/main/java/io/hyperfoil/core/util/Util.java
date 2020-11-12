@@ -17,6 +17,7 @@ import io.netty.buffer.ByteBuf;
 
 public class Util {
    public static final CompletableFuture<Void> COMPLETED_VOID_FUTURE = CompletableFuture.completedFuture(null);
+   private static final NumberFormatException NUMBER_FORMAT_EXCEPTION = new NumberFormatException();
 
    private Util() {}
 
@@ -24,11 +25,11 @@ public class Util {
       return b1 == b2 || toUpperCase(b1) == toUpperCase(b2) || toLowerCase(b1) == toLowerCase(b2);
    }
 
-   private static byte toLowerCase(byte b) {
+   public static byte toLowerCase(byte b) {
       return b >= 'A' && b <= 'Z' ? (byte) (b + 32) : b;
    }
 
-   private static byte toUpperCase(byte b) {
+   public static byte toUpperCase(byte b) {
       return b >= 'a' && b <= 'z' ? (byte) (b - 32) : b;
    }
 
@@ -166,10 +167,33 @@ public class Util {
       return true;
    }
 
+   public static boolean startsWith(CharSequence sequence, int offset, CharSequence prefix) {
+      return regionMatches(sequence, offset, prefix, 0, prefix.length());
+   }
+
    public static int pow(int base, int exp) {
       int res = 1;
       while (exp-- > 0) res *= base;
       return res;
+   }
+
+   public static long parseLong(ByteBuf data, int offset, int length) {
+      long value = 0;
+      int i = offset;
+      while (Character.isWhitespace(data.getByte(i))) ++i;
+      byte sign = data.getByte(i);
+      if (sign == '-' || sign == '+') ++i;
+      while (Character.isWhitespace(data.getByte(i))) ++i;
+      while (length > 0 && Character.isWhitespace(data.getByte(offset + length - 1))) --length;
+      for (; i < offset + length; ++i) {
+         byte digit = data.getByte(i);
+         if (digit < '0' || digit > '9') {
+            throw NUMBER_FORMAT_EXCEPTION;
+         }
+         value *= 10;
+         value += digit - '0';
+      }
+      return sign == '-' ? -value : value;
    }
 
    private static class URLEncoding {

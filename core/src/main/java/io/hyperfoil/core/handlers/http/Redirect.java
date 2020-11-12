@@ -18,6 +18,7 @@ import io.hyperfoil.core.data.LimitedPoolResource;
 import io.hyperfoil.core.data.Queue;
 import io.hyperfoil.core.handlers.BaseDelegatingAction;
 import io.hyperfoil.core.handlers.MultiProcessor;
+import io.hyperfoil.core.http.HttpUtil;
 import io.hyperfoil.core.session.ObjectVar;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.util.Util;
@@ -31,27 +32,36 @@ public class Redirect {
    private static final boolean trace = log.isTraceEnabled();
 
    public static class StatusHandler extends BaseDelegatingStatusHandler {
-      private final Access methodVar;
+      private final Access coordsVar;
+      private final LimitedPoolResource.Key<Coords> poolKey;
+      private final int concurrency;
 
-      public StatusHandler(Access methodVar, io.hyperfoil.api.http.StatusHandler[] handlers) {
+      public StatusHandler(Access coordsVar, io.hyperfoil.api.http.StatusHandler[] handlers, LimitedPoolResource.Key<Coords> poolKey, int concurrency) {
          super(handlers);
-         this.methodVar = methodVar;
+         this.coordsVar = coordsVar;
+         this.poolKey = poolKey;
+         this.concurrency = concurrency;
       }
 
       @Override
       public void handleStatus(HttpRequest request, int status) {
+         Coords coords;
          switch (status) {
             case 301:
             case 302:
             case 303:
-               methodVar.setObject(request.session, HttpMethod.GET);
+               coords = request.session.getResource(poolKey).acquire();
+               coords.method = HttpMethod.GET;
+               coordsVar.setObject(request.session, coords);
                break;
             case 307:
             case 308:
-               methodVar.setObject(request.session, request.method);
+               coords = request.session.getResource(poolKey).acquire();
+               coords.method = request.method;
+               coordsVar.setObject(request.session, coords);
                break;
             default:
-               methodVar.unset(request.session);
+               coordsVar.unset(request.session);
                super.handleStatus(request, status);
          }
       }
@@ -59,39 +69,56 @@ public class Redirect {
       @Override
       public void reserve(Session session) {
          super.reserve(session);
-         methodVar.declareObject(session);
+         coordsVar.declareObject(session);
+         session.declareResource(poolKey, () -> LimitedPoolResource.create(concurrency, Coords.class, Coords::new), true);
       }
 
       public static class Builder extends BaseDelegatingStatusHandler.Builder<Builder> {
-         private Object methodVar;
+         private Object coordsVar;
+         private LimitedPoolResource.Key<Coords> poolKey;
+         private int concurrency;
 
-         public Builder methodVar(Object methodVar) {
-            this.methodVar = methodVar;
+         public Builder coordsVar(Object coordsVar) {
+            this.coordsVar = coordsVar;
+            return this;
+         }
+
+         public Builder poolKey(LimitedPoolResource.Key<Coords> poolKey) {
+            this.poolKey = poolKey;
+            return this;
+         }
+
+         public Builder concurrency(int concurrency) {
+            this.concurrency = concurrency;
             return this;
          }
 
          @Override
          public StatusHandler build() {
-            return new StatusHandler(SessionFactory.access(methodVar), buildHandlers());
+            return new StatusHandler(SessionFactory.access(coordsVar), buildHandlers(), poolKey, concurrency);
          }
       }
    }
 
    public static class Coords {
       public HttpMethod method;
-      public CharSequence location;
+      public CharSequence authority;
+      public CharSequence path;
+      public int delay;
       public SequenceInstance originalSequence;
 
       public Coords reset() {
          method = null;
-         location = null;
+         authority = null;
+         path = null;
+         delay = 0;
          originalSequence = null;
          return this;
       }
 
       @Override
       public String toString() {
-         return method + " " + location;
+         return method + " " + path;
       }
    }
 
@@ -99,16 +126,14 @@ public class Redirect {
       private static final String LOCATION = "location";
 
       private final int concurrency;
-      private final LimitedPoolResource.Key<Coords> poolKey;
       private final Session.ResourceKey<Queue> queueKey;
       private final Access inputVar;
       private final Access outputVar;
       private final String sequence;
       private final SerializableFunction<Session, SequenceInstance> originalSequenceSupplier;
 
-      public LocationRecorder(int concurrency, LimitedPoolResource.Key<Coords> poolKey, Session.ResourceKey<Queue> queueKey, Access inputVar, Access outputVar, String sequence, SerializableFunction<Session, SequenceInstance> originalSequenceSupplier) {
+      public LocationRecorder(int concurrency, Session.ResourceKey<Queue> queueKey, Access inputVar, Access outputVar, String sequence, SerializableFunction<Session, SequenceInstance> originalSequenceSupplier) {
          this.concurrency = concurrency;
-         this.poolKey = poolKey;
          this.queueKey = queueKey;
          this.inputVar = inputVar;
          this.outputVar = outputVar;
@@ -124,20 +149,18 @@ public class Redirect {
             if (!var.isSet()) {
                return;
             }
-            Object obj = var.objectValue(session);
-            if (obj instanceof HttpMethod) {
-               LimitedPoolResource<Coords> pool = session.getResource(poolKey);
-               Coords coords = pool.acquire();
-               coords.method = (HttpMethod) obj;
-               coords.location = value;
+            Coords coords = (Coords) var.objectValue(session);
+            if (coords.path == null) {
+               if (!Util.startsWith(value, 0, HttpUtil.HTTP_PREFIX) && !Util.startsWith(value, 0, HttpUtil.HTTPS_PREFIX)) {
+                  coords.authority = request.authority;
+               }
+               coords.path = value;
                coords.originalSequence = originalSequenceSupplier.apply(request.session);
                var.set(coords);
                Queue queue = session.getResource(queueKey);
                queue.push(session, coords);
-            } else if (obj instanceof Coords) {
-               log.error("Duplicate location header: previously got {}, now {}. Ignoring the second match.", ((Coords) obj).location, value);
             } else {
-               log.error("Unexpected value in methodVar: {}", obj);
+               log.error("Duplicate location header: previously got {}, now {}. Ignoring the second match.", coords.path, value);
             }
          }
       }
@@ -157,17 +180,17 @@ public class Redirect {
          if (!outputVar.isSet(session)) {
             outputVar.setObject(session, ObjectVar.newArray(session, concurrency));
          }
-         session.declareResource(poolKey, () -> LimitedPoolResource.create(concurrency, Coords.class, Coords::new), true);
          session.declareResource(queueKey, () -> new Queue(outputVar, concurrency, concurrency, sequence, null));
       }
 
       public static class Builder implements HeaderHandler.Builder {
          private Session.ResourceKey<Queue> queueKey;
          private Object inputVar, outputVar;
-         private LimitedPoolResource.Key<Coords> poolKey;
          private int concurrency;
          private String sequence;
          private Supplier<SerializableFunction<Session, SequenceInstance>> originalSequenceSupplier;
+
+         public Builder() {}
 
          public Builder concurrency(int concurrency) {
             this.concurrency = concurrency;
@@ -189,11 +212,6 @@ public class Redirect {
             return this;
          }
 
-         public Builder poolKey(LimitedPoolResource.Key<Coords> poolKey) {
-            this.poolKey = poolKey;
-            return this;
-         }
-
          public Builder sequence(String sequence) {
             this.sequence = sequence;
             return this;
@@ -212,8 +230,7 @@ public class Redirect {
             assert inputVar != null;
             assert outputVar != null;
             assert sequence != null;
-            assert poolKey != null;
-            return new LocationRecorder(concurrency, poolKey, queueKey, SessionFactory.access(inputVar), SessionFactory.access(outputVar), this.sequence, originalSequenceSupplier.get());
+            return new LocationRecorder(concurrency, queueKey, SessionFactory.access(inputVar), SessionFactory.access(outputVar), this.sequence, originalSequenceSupplier.get());
          }
       }
    }
@@ -232,17 +249,31 @@ public class Redirect {
       }
    }
 
-   public static class GetLocation implements SerializableFunction<Session, String> {
+   public static class GetAuthority implements SerializableFunction<Session, String> {
       private final Access coordVar;
 
-      public GetLocation(Access coordVar) {
+      public GetAuthority(Access coordVar) {
          this.coordVar = coordVar;
       }
 
       @Override
       public String apply(Session session) {
          Coords coords = (Coords) coordVar.getObject(session);
-         return coords.location.toString();
+         return coords.authority == null ? null : coords.authority.toString();
+      }
+   }
+
+   public static class GetPath implements SerializableFunction<Session, String> {
+      private final Access coordVar;
+
+      public GetPath(Access coordVar) {
+         this.coordVar = coordVar;
+      }
+
+      @Override
+      public String apply(Session session) {
+         Coords coords = (Coords) coordVar.getObject(session);
+         return coords.path.toString();
       }
    }
 
@@ -460,6 +491,19 @@ public class Redirect {
          public WrappingAction build() {
             return new WrappingAction(buildActions(), SessionFactory.sequenceScopedAccess(coordVar));
          }
+      }
+   }
+
+   public static class GetOriginalSequence implements SerializableFunction<Session, SequenceInstance> {
+      private final Access coordVar;
+
+      public GetOriginalSequence(Access coordVar) {
+         this.coordVar = coordVar;
+      }
+
+      @Override
+      public SequenceInstance apply(Session session) {
+         return ((Redirect.Coords) coordVar.getObject(session)).originalSequence;
       }
    }
 }

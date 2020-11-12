@@ -7,18 +7,18 @@ http:
 phases:
 - testPhase:
     atOnce:
-      users: 10
+      users: 100
       duration: 0
       scenario:
         orderedSequences:
-        - locationAutomatic:
+        - redirectMe:
           - unset: actualBody
           - httpRequest:
-              GET: /redirectMeViaLocation?allowRecurse=yes
+              GET: /redirectMeSomehow?allowRecurse=yes
               headers:
                 x-preserve: repeat me with redirect
               handler:
-                followRedirect: LOCATION_ONLY
+                followRedirect: ALWAYS
                 body:
                   store: actualBody
           - fail:

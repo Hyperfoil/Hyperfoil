@@ -145,7 +145,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
          // If any error happens we still need to release the request
          // The request is either IDLE or RUNNING - we need to make it running, otherwise we could not release it
          if (!request.isRunning()) {
-            request.start(null, null);
+            request.start(sequence, null);
          }
          request.setCompleted();
          request.release();

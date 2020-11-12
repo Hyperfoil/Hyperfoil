@@ -219,6 +219,9 @@ class SessionImpl implements Session, Callable<Void> {
 
    @Override
    public <R extends Resource> void declareResource(ResourceKey<R> key, Supplier<R> resourceSupplier, boolean singleton) {
+      if (resources.containsKey(key)) {
+         return;
+      }
       // Current sequence should be null only during unit testing
       int concurrency = currentSequence == null ? 0 : currentSequence.definition().concurrency();
       if (!singleton && concurrency > 0) {

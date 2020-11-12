@@ -14,7 +14,7 @@ import io.hyperfoil.api.session.Action;
 })
 public interface HttpRequestProcessorBuilder extends Processor.Builder<HttpRequestProcessorBuilder> {
 
-   static HttpRequestProcessorBuilder adapt(RequestProcessorBuilder builder) {
+   static HttpRequestProcessorBuilder adapt(Processor.Builder<?> builder) {
       return new RequestProcessorBuilderAdapter(builder);
    }
 
@@ -26,9 +26,9 @@ public interface HttpRequestProcessorBuilder extends Processor.Builder<HttpReque
    }
 
    class RequestProcessorBuilderAdapter implements HttpRequestProcessorBuilder {
-      private final RequestProcessorBuilder builder;
+      private final Processor.Builder<?> builder;
 
-      public RequestProcessorBuilderAdapter(RequestProcessorBuilder builder) {
+      public RequestProcessorBuilderAdapter(Processor.Builder<?> builder) {
          this.builder = builder;
       }
 

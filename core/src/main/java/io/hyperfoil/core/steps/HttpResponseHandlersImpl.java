@@ -1,11 +1,16 @@
 package io.hyperfoil.core.steps;
 
+import static io.hyperfoil.core.session.SessionFactory.access;
+import static io.hyperfoil.core.session.SessionFactory.sequenceScopedAccess;
+
 import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 
@@ -14,6 +19,7 @@ import io.hyperfoil.api.config.ErgonomicsBuilder;
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Rewritable;
 import io.hyperfoil.api.config.SequenceBuilder;
+import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.http.FollowRedirect;
 import io.hyperfoil.api.processor.HttpRequestProcessorBuilder;
@@ -25,13 +31,16 @@ import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 import io.hyperfoil.core.data.LimitedPoolResource;
 import io.hyperfoil.core.data.Queue;
 import io.hyperfoil.core.handlers.ConditionalAction;
+import io.hyperfoil.core.handlers.html.HtmlHandler;
+import io.hyperfoil.core.handlers.html.MetaRefreshHandler;
+import io.hyperfoil.core.handlers.html.RefreshHandler;
 import io.hyperfoil.core.handlers.http.ConditionalHeaderHandler;
 import io.hyperfoil.core.handlers.ConditionalProcessor;
 import io.hyperfoil.core.handlers.http.RangeStatusValidator;
 import io.hyperfoil.core.handlers.http.Redirect;
 import io.hyperfoil.core.http.CookieRecorder;
-import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.util.Unique;
+import io.hyperfoil.function.SerializableToLongFunction;
 import io.netty.buffer.ByteBuf;
 import io.hyperfoil.api.http.HeaderHandler;
 import io.hyperfoil.api.http.HttpResponseHandlers;
@@ -415,9 +424,6 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
 
       public Builder followRedirect(FollowRedirect followRedirect) {
          this.followRedirect = followRedirect;
-         if (followRedirect == FollowRedirect.ALWAYS || followRedirect == FollowRedirect.HTML_ONLY) {
-            throw new IllegalArgumentException("FollowRedirect with HTML not implemented.");
-         }
          return this;
       }
 
@@ -446,101 +452,178 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          FollowRedirect followRedirect = this.followRedirect != null ? this.followRedirect : ergonomics.followRedirect();
          switch (followRedirect) {
             case LOCATION_ONLY:
-            case ALWAYS:
-               applyLocationRedirect();
+               applyRedirect(true, false);
                break;
             case HTML_ONLY:
-               throw new UnsupportedOperationException("HTML redirect not implemented");
+               applyRedirect(false, true);
+               break;
+            case ALWAYS:
+               applyRedirect(true, true);
+               break;
          }
       }
 
-      protected void applyLocationRedirect() {
+      private void applyRedirect(boolean location, boolean html) {
          Locator locator = Locator.current();
          // Not sequence-scoped as queue output var, requesting sequence-scoped access explicitly where needed
-         Unique coordVar = new Unique();
+         Unique coordsVar = new Unique();
+
          String redirectSequenceName = String.format("%s_redirect_%08x",
                locator.sequence().name(), ThreadLocalRandom.current().nextInt());
+         String delaySequenceName = String.format("%s_delay_%08x",
+               locator.sequence().name(), ThreadLocalRandom.current().nextInt());
+
+         Queue.Key queueKey = new Queue.Key();
+         Queue.Key delayedQueueKey = new Queue.Key();
+         Unique delayedCoordVar = new Unique();
+
+         int concurrency = Math.max(1, locator.sequence().rootSequence().concurrency());
+
+         if (html) {
+            Unique delay = new Unique();
+            SequenceBuilder delaySequence = locator.scenario().sequence(delaySequenceName);
+            delaySequence.concurrency(Math.max(1, concurrency))
+                  .step(() -> {
+                     Access inputVar = sequenceScopedAccess(delayedCoordVar);
+                     Access delayVar = sequenceScopedAccess(delay);
+                     SerializableToLongFunction<Session> delayFunc = session -> TimeUnit.SECONDS.toMillis(((Redirect.Coords) inputVar.getObject(session)).delay);
+                     return new ScheduleDelayStep(delayVar, ScheduleDelayStep.Type.FROM_NOW, delayFunc);
+                  })
+                  .step(() -> new AwaitDelayStep(sequenceScopedAccess(delay)))
+                  .stepBuilder(new StepBuilder.ActionAdapter(() -> new PushQueueAction(
+                        sequenceScopedAccess(delayedCoordVar), queueKey)))
+                  .step(session -> {
+                     session.getResource(delayedQueueKey).consumed(session);
+                     return true;
+                  });
+            Locator.push(null, delaySequence);
+            delaySequence.prepareBuild();
+            Locator.pop();
+         }
+
          // The redirect sequence (and queue) needs to have twice the concurrency of the original sequence
          // because while executing one redirect it might activate a second redirect
-         int redirectConcurrency = 2 * Math.max(1, locator.sequence().rootSequence().concurrency());
-
+         int redirectConcurrency = 2 * concurrency;
          LimitedPoolResource.Key<Redirect.Coords> poolKey = new LimitedPoolResource.Key<>();
-         Session.ResourceKey<Queue> queueKey = new Queue.Key();
 
          {
             // Note: there's a lot of copy-paste between current handler because we need to use
             // different method variable for current sequence and new sequence since these have incompatible
             // indices - had we used the same var one sequence would overwrite other's var.
-            Unique newMethodVar = new Unique(true);
+            Unique newTempCoordsVar = new Unique(true);
             HttpRequestStep.BodyGeneratorBuilder bodyBuilder = parent.bodyBuilder();
             HttpRequestStep.Builder httpRequest = new HttpRequestStep.Builder()
-                  .method(() -> new Redirect.GetMethod(SessionFactory.sequenceScopedAccess(coordVar)))
-                  .path(() -> new Redirect.GetLocation(SessionFactory.sequenceScopedAccess(coordVar)))
-                  .authority(parent.getAuthority())
+                  .method(() -> new Redirect.GetMethod(sequenceScopedAccess(coordsVar)))
+                  .path(() -> new Redirect.GetPath(sequenceScopedAccess(coordsVar)))
+                  .authority(() -> new Redirect.GetAuthority(sequenceScopedAccess(coordsVar)))
                   .headerAppenders(parent.headerAppenders())
                   .body(bodyBuilder == null ? null : bodyBuilder.copy())
-                  .sync(false);
-            httpRequest.handler()
-                  // we want to reuse the same sequence
-                  // TODO: something with HTML redirect
-                  .followRedirect(FollowRedirect.NEVER)
-                  // support recursion
-                  .status(new Redirect.StatusHandler.Builder().methodVar(newMethodVar).handlers(statusHandlers))
-                  .header(new Redirect.LocationRecorder.Builder()
-                        .originalSequenceSupplier(() -> {
-                           Access access = SessionFactory.sequenceScopedAccess(coordVar);
-                           return s -> ((Redirect.Coords) access.getObject(s)).originalSequence;
-                        })
-                        .concurrency(redirectConcurrency).inputVar(newMethodVar).outputVar(coordVar).queueKey(queueKey).poolKey(poolKey).sequence(redirectSequenceName));
-            if (!headerHandlers.isEmpty()) {
-               httpRequest.handler().header(new ConditionalHeaderHandler.Builder()
-                     .condition().stringCondition().fromVar(newMethodVar).isSet(false).end()
-                     .handler(new Redirect.WrappingHeaderHandler.Builder().coordVar(coordVar).handlers(headerHandlers)));
+                  .sync(false)
+                  // we want to reuse the same sequence for subsequent requests
+                  .handler().followRedirect(FollowRedirect.NEVER).endHandler();
+            if (location) {
+               httpRequest.handler()
+                     .status(new Redirect.StatusHandler.Builder()
+                           .poolKey(poolKey).concurrency(redirectConcurrency).coordsVar(newTempCoordsVar).handlers(statusHandlers))
+                     .header(new Redirect.LocationRecorder.Builder()
+                           .originalSequenceSupplier(() -> new Redirect.GetOriginalSequence(sequenceScopedAccess(coordsVar)))
+                           .concurrency(redirectConcurrency).inputVar(newTempCoordsVar).outputVar(coordsVar)
+                           .queueKey(queueKey).sequence(redirectSequenceName));
             }
-            if (!bodyHandlers.isEmpty()) {
-               httpRequest.handler().body(HttpRequestProcessorBuilder.adapt(new ConditionalProcessor.Builder()
-                     .condition().stringCondition().fromVar(newMethodVar).isSet(false).end()
-                     .processor(new Redirect.WrappingProcessor.Builder().coordVar(coordVar).processors(bodyHandlers))));
+            if (!headerHandlers.isEmpty()) {
+               Redirect.WrappingHeaderHandler.Builder wrappingHandler = new Redirect.WrappingHeaderHandler.Builder().coordVar(coordsVar).handlers(headerHandlers);
+               if (location) {
+                  httpRequest.handler().header(new ConditionalHeaderHandler.Builder()
+                        .condition().stringCondition().fromVar(newTempCoordsVar).isSet(false).end()
+                        .handler(wrappingHandler));
+               } else {
+                  httpRequest.handler().header(wrappingHandler);
+               }
+            }
+            if (!bodyHandlers.isEmpty() || html) {
+               Consumer<HttpRequestProcessorBuilder> handlerConsumer;
+               ConditionalProcessor.Builder conditionalBodyHandler;
+               Redirect.WrappingProcessor.Builder wrappingProcessor = new Redirect.WrappingProcessor.Builder().coordVar(coordsVar).processors(bodyHandlers);
+               if (location) {
+                  if (!bodyHandlers.isEmpty() || html) {
+                     conditionalBodyHandler = new ConditionalProcessor.Builder()
+                           .condition().stringCondition().fromVar(newTempCoordsVar).isSet(false).end()
+                           .processor(wrappingProcessor);
+                     handlerConsumer = conditionalBodyHandler::processor;
+                     httpRequest.handler().body(HttpRequestProcessorBuilder.adapt(conditionalBodyHandler));
+                  } else {
+                     handlerConsumer = null;
+                  }
+               } else {
+                  assert html;
+                  httpRequest.handler().body(HttpRequestProcessorBuilder.adapt(wrappingProcessor));
+                  handlerConsumer = httpRequest.handler()::body;
+               }
+               if (html) {
+                  handlerConsumer.accept(new HtmlHandler.Builder().handler(new MetaRefreshHandler.Builder()
+                     .processor(fragmented -> new RefreshHandler(
+                        queueKey, delayedQueueKey, poolKey, redirectConcurrency, access(coordsVar), access(delayedCoordVar),
+                        redirectSequenceName, delaySequenceName, access(newTempCoordsVar), new Redirect.GetOriginalSequence(sequenceScopedAccess(coordsVar))))));
+               }
             }
             if (!completionHandlers.isEmpty()) {
                httpRequest.handler().onCompletion(new ConditionalAction.Builder()
-                     .condition().stringCondition().fromVar(newMethodVar).isSet(false).end()
-                     .action(new Redirect.WrappingAction.Builder().coordVar(coordVar).actions(completionHandlers)));
+                     .condition().stringCondition().fromVar(newTempCoordsVar).isSet(false).end()
+                     .action(new Redirect.WrappingAction.Builder().coordVar(coordsVar).actions(completionHandlers)));
             }
-            httpRequest.handler().onCompletion(() -> new Redirect.Complete(poolKey, queueKey, SessionFactory.sequenceScopedAccess(coordVar)));
+            httpRequest.handler().onCompletion(() -> new Redirect.Complete(poolKey, queueKey, sequenceScopedAccess(coordsVar)));
             SequenceBuilder redirectSequence = locator.scenario().sequence(redirectSequenceName)
                   .concurrency(redirectConcurrency)
                   .stepBuilder(httpRequest)
                   .rootSequence();
+            Locator.push(null, redirectSequence);
             redirectSequence.prepareBuild();
+            Locator.pop();
          }
 
-         Unique methodVar = new Unique(locator.sequence().rootSequence().concurrency() > 0);
-         statusHandlers = Collections.singletonList(
-               new Redirect.StatusHandler.Builder().methodVar(methodVar).handlers(statusHandlers));
+         Unique tempCoordsVar = new Unique(locator.sequence().rootSequence().concurrency() > 0);
 
-         // Note: we are using stringCondition.isSet despite the variable is not a string - it doesn't matter for the purpose of this check
-         List<HeaderHandler.Builder> headerHandlers = new ArrayList<>();
-         headerHandlers.add(new Redirect.LocationRecorder.Builder()
-               .originalSequenceSupplier(() -> Session::currentSequence)
-               .concurrency(redirectConcurrency).inputVar(methodVar).outputVar(coordVar).queueKey(queueKey).poolKey(poolKey).sequence(redirectSequenceName));
-         if (!this.headerHandlers.isEmpty()) {
-            headerHandlers.add(new ConditionalHeaderHandler.Builder()
-                  .condition().stringCondition().fromVar(methodVar).isSet(false).end()
-                  .handlers(this.headerHandlers));
+         if (location) {
+            statusHandlers = Collections.singletonList(
+                  new Redirect.StatusHandler.Builder().poolKey(poolKey).concurrency(redirectConcurrency).coordsVar(tempCoordsVar).handlers(statusHandlers));
+            List<HeaderHandler.Builder> headerHandlers = new ArrayList<>();
+            headerHandlers.add(new Redirect.LocationRecorder.Builder()
+                  .originalSequenceSupplier(() -> Session::currentSequence)
+                  .concurrency(redirectConcurrency).inputVar(tempCoordsVar).outputVar(coordsVar).queueKey(queueKey).sequence(redirectSequenceName));
+            if (!this.headerHandlers.isEmpty()) {
+               // Note: we are using stringCondition.isSet despite the variable is not a string - it doesn't matter for the purpose of this check
+               headerHandlers.add(new ConditionalHeaderHandler.Builder()
+                     .condition().stringCondition().fromVar(tempCoordsVar).isSet(false).end()
+                     .handlers(this.headerHandlers));
+            }
+            this.headerHandlers = headerHandlers;
          }
-         this.headerHandlers = headerHandlers;
 
-         if (!bodyHandlers.isEmpty()) {
-            bodyHandlers = Collections.singletonList(
-                  HttpRequestProcessorBuilder.adapt(new ConditionalProcessor.Builder()
-                        .condition().stringCondition().fromVar(methodVar).isSet(false).end()
-                        .processors(bodyHandlers)));
+         if (!bodyHandlers.isEmpty() || html) {
+            Consumer<HttpRequestProcessorBuilder> handlerConsumer;
+            ConditionalProcessor.Builder conditionalBodyHandler = null;
+            if (location) {
+               conditionalBodyHandler = new ConditionalProcessor.Builder()
+                     .condition().stringCondition().fromVar(tempCoordsVar).isSet(false).end()
+                     .processors(bodyHandlers);
+               handlerConsumer = conditionalBodyHandler::processor;
+            } else {
+               handlerConsumer = bodyHandlers::add;
+            }
+            if (html) {
+               handlerConsumer.accept(new HtmlHandler.Builder().handler(new MetaRefreshHandler.Builder()
+                     .processor(fragmented -> new RefreshHandler(
+                        queueKey, delayedQueueKey, poolKey, redirectConcurrency, access(coordsVar), access(delayedCoordVar),
+                        redirectSequenceName, delaySequenceName, access(tempCoordsVar), Session::currentSequence))));
+            }
+            if (location) {
+               bodyHandlers = Collections.singletonList(HttpRequestProcessorBuilder.adapt(conditionalBodyHandler));
+            }
          }
          if (!completionHandlers.isEmpty()) {
             completionHandlers = Collections.singletonList(
                   new ConditionalAction.Builder()
-                        .condition().stringCondition().fromVar(methodVar).isSet(false).end()
+                        .condition().stringCondition().fromVar(tempCoordsVar).isSet(false).end()
                         .actions(completionHandlers));
          }
       }

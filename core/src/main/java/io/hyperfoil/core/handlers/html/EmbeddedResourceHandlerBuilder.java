@@ -1,7 +1,6 @@
 package io.hyperfoil.core.handlers.html;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
-import io.hyperfoil.api.config.BuilderBase;
 import io.hyperfoil.api.processor.HttpRequestProcessorBuilder;
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
@@ -15,7 +14,7 @@ import io.hyperfoil.core.handlers.MultiProcessor;
  * Does not handle <code>&lt;source src="..."&gt;</code> or <code>&lt;track src="..."&gt;</code> because browser
  * would choose only one of the options.
  */
-public class EmbeddedResourceHandlerBuilder implements BuilderBase<EmbeddedResourceHandlerBuilder> {
+public class EmbeddedResourceHandlerBuilder implements HtmlHandler.TagHandlerBuilder<EmbeddedResourceHandlerBuilder> {
    private static final String[] TAGS = { "img", "link", "embed", "frame", "iframe", "object", "script" };
    private static final String[] ATTRS = { "src", "href", "src", "src", "src", "data", "src" };
 
@@ -74,6 +73,7 @@ public class EmbeddedResourceHandlerBuilder implements BuilderBase<EmbeddedResou
       }
    }
 
+   @Override
    public HtmlHandler.BaseTagAttributeHandler build() {
       if (processor != null && fetchResource != null) {
          throw new BenchmarkDefinitionException("Only one of processor/fetchResource allowed!");

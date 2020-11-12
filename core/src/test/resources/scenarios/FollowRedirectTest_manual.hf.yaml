@@ -7,11 +7,11 @@ http:
 phases:
 - testPhase:
     atOnce:
-      users: 10
+      users: 100
       duration: 0
       scenario:
         orderedSequences:
-        - locationManual:
+        - redirectMe:
           # All variables should be potentially concurrency-aware
           - set: redirect <- false
           - unset: location
@@ -33,7 +33,7 @@ phases:
                       value: location
                     processor:
                     - store: location
-                    - newSequence: redirectLocationManual
+                    - newSequence: redirectMe_redirect
                 body:
                   # Any handlers need to be wrapped and prevented from application
                   conditional:
@@ -50,7 +50,7 @@ phases:
                 notEqualTo: this is the response
         sequences:
         # Concurrency of this sequence should be equal to the originating sequence
-        - redirectLocationManual:
+        - redirectMe_redirect:
           - httpRequest:
               # Method type should be based on status
               GET:
@@ -59,8 +59,8 @@ phases:
               headers:
                 # All headers should be repeated
                 x-preserve: repeat me with redirect
-              metric: locationManual_redirect
               # We should loop the redirection to this sequence
               handler:
+                followRedirect: NEVER
                 body:
                   store: actualBody

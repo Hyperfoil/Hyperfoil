@@ -8,6 +8,7 @@ import java.util.function.Predicate;
 
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.session.Session;
+import io.hyperfoil.core.util.Util;
 import io.netty.buffer.ByteBuf;
 
 public class ExpectProcessor implements Processor {
@@ -26,7 +27,9 @@ public class ExpectProcessor implements Processor {
    public void process(Session session, ByteBuf data, int offset, int length, boolean isLastPart) {
       Invocation invocation = invocations.pollFirst();
       assertThat(invocation).isNotNull();
-      if (invocation.data != null) assertThat(data).matches(invocation.data);
+      if (invocation.data != null) {
+         assertThat(data).withFailMessage(Util.toString(data, offset, length)).matches(invocation.data);
+      }
       if (invocation.offset >= 0) {
          assertThat(offset).as("Invocation #%d", invoked).isEqualTo(invocation.offset);
       }
@@ -50,6 +53,11 @@ public class ExpectProcessor implements Processor {
 
    public ExpectProcessor expect(ByteBuf data, int offset, int length, boolean isLastPart) {
       invocations.add(new Invocation(data::equals, offset, length, isLastPart));
+      return this;
+   }
+
+   public ExpectProcessor expect(ByteBuf data) {
+      invocations.add(new Invocation(data::equals, -1, -1, true));
       return this;
    }
 

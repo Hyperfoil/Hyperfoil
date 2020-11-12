@@ -22,7 +22,7 @@ public class Queue implements Session.Resource {
    private final String sequence;
    private final Action onCompletion;
 
-   private int head, tail, active;
+   private int head, tail, active, size;
    private boolean producerComplete;
 
    public Queue(Access var, int size, int concurrency, String sequence, Action onCompletion) {
@@ -47,8 +47,10 @@ public class Queue implements Session.Resource {
    }
 
    public void reset() {
+      assert active == 0;
       head = 0;
       tail = 0;
+      size = 0;
       producerComplete = false;
       Arrays.fill(data, null);
    }
@@ -56,16 +58,24 @@ public class Queue implements Session.Resource {
    public void push(Session session, Object value) {
       log.trace("#{} adding {} to queue -> {}", session.uniqueId(), value, var);
       Objects.requireNonNull(value);
-      if (tail < data.length) {
+      if (size < data.length) {
          data[tail++] = value;
+         if (tail >= data.length) {
+            tail = 0;
+         }
+         ++size;
       } else {
          // TODO: add some stats for this? Or fail the session?
-         log.warn("Exceed maximum size of queue {} ({}), dropping value {}", var, data.length, value);
+         log.error("#{} Exceeded maximum size of queue {} ({}), dropping value {}", session.uniqueId(), var, data.length, value);
       }
-      if (active < concurrency && head < tail) {
+      if (active < concurrency && size > 0) {
          ++active;
+         --size;
          Object queuedValue = data[head];
          data[head++] = null;
+         if (head >= data.length) {
+            head = 0;
+         }
          SequenceInstance instance = session.startSequence(sequence, false, Session.ConcurrencyPolicy.FAIL);
          if (trace) {
             log.trace("#{} starting {} with queued value {} in {}[{}]", session.uniqueId(), sequence, queuedValue, var, instance.index());

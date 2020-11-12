@@ -14,7 +14,10 @@ public enum FollowRedirect {
    LOCATION_ONLY,
    /**
     * Handle only HTML response with META refresh header.
-    * All handlers are executed as usual.
+    * Status, headers and body handlers are invoked both on the original response
+    * and on the response from subsequent requests.
+    * Completion handlers are suppressed on this request and invoked after the last
+    * response arrives (in case of multiple redirections).
     */
    HTML_ONLY,
    /**

@@ -1,17 +1,21 @@
 package io.hyperfoil.core.handlers.html;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Stream;
 
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.api.config.BuilderBase;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.processor.HttpRequestProcessorBuilder;
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.core.util.Trie;
+import io.hyperfoil.core.util.Util;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.vertx.core.logging.Logger;
@@ -115,6 +119,7 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
                   ctx.onTag(session, ctx.tagClosing, data, offset - 1, true);
                   ctx.tagStatus = TagStatus.BEFORE_ATTR;
                } else if (c == '>') {
+                  ctx.onTag(session, ctx.tagClosing, data, offset - 1, true);
                   ctx.endTag(session);
                }
                break;
@@ -171,13 +176,13 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
       }
       switch (ctx.tagStatus) {
          case PARSING_TAG:
-            ctx.onTag(session, ctx.tagClosing, data, offset - 1, false);
+            ctx.onTag(session, ctx.tagClosing, data, offset, false);
             break;
          case PARSING_ATTR:
-            ctx.onAttr(session, data, offset - 1, false);
+            ctx.onAttr(session, data, offset, false);
             break;
          case PARSING_VALUE:
-            ctx.onValue(session, data, offset - 1, false);
+            ctx.onValue(session, data, offset, false);
             break;
       }
    }
@@ -188,7 +193,11 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
       ResourceUtilizer.reserve(session, (Object[]) handlers);
    }
 
-   interface TagHandler {
+   public interface TagHandlerBuilder<S extends TagHandlerBuilder<S>> extends BuilderBase<S> {
+      TagHandler build();
+   }
+
+   public interface TagHandler {
       Processor processor();
 
       HandlerContext newContext();
@@ -257,12 +266,29 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
    }
 
    interface HandlerContext {
+      /**
+       * Called upon both opening (&lt;foo&gt;), closing (&lt;/foo&gt;) and self-closing (&lt<foo /&gt;) element.
+       * Since there's no buffering the element name might be only partial - check the <code>isLast</code> parameter.
+       *
+       * @param session Current session.
+       * @param close Is it the closing (&lt;/foo&gt;) form?
+       * @param data Buffer with element name.
+       * @param offset Starting index in the buffer.
+       * @param length Number of bytes in the buffer that contain the name.
+       * @param isLast True if the element name is complete.
+       */
+      // TODO: this API does not inform if the element is self-closing! Make close into enum
       void onTag(Session session, boolean close, ByteBuf data, int offset, int length, boolean isLast);
 
       void onAttr(Session session, ByteBuf data, int offset, int length, boolean isLast);
 
       void onValue(Session session, ByteBuf data, int offset, int length, boolean isLast);
 
+      /**
+       * Called when the &gt; is reached while parsing a tag (opening, closing or self-closing).
+       *
+       * @param session Current session.
+       */
       void endTag(Session session);
    }
 
@@ -272,7 +298,7 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
    @MetaInfServices(HttpRequestProcessorBuilder.class)
    @Name("parseHtml")
    public static class Builder implements HttpRequestProcessorBuilder {
-      private EmbeddedResourceHandlerBuilder embeddedResourceHandler;
+      private List<TagHandlerBuilder<?>> handlers = new ArrayList<>();
 
       /**
        * Handler firing upon reference to other resource, e.g. image, stylesheet...
@@ -280,20 +306,28 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
        * @return Builder.
        */
       public EmbeddedResourceHandlerBuilder onEmbeddedResource() {
-         if (embeddedResourceHandler != null) {
+         if (handlers.stream().anyMatch(EmbeddedResourceHandlerBuilder.class::isInstance)) {
             throw new BenchmarkDefinitionException("Embedded resource handler already set!");
          }
-         return embeddedResourceHandler = new EmbeddedResourceHandlerBuilder();
+         EmbeddedResourceHandlerBuilder builder = new EmbeddedResourceHandlerBuilder();
+         handler(builder);
+         return builder;
+      }
+
+      public Builder handler(TagHandlerBuilder<?> handler) {
+         handlers.add(handler);
+         return this;
       }
 
       @Override
       public void prepareBuild() {
-         embeddedResourceHandler.prepareBuild();
+         handlers.forEach(TagHandlerBuilder::prepareBuild);
       }
 
       @Override
       public HtmlHandler build(boolean fragmented) {
-         return new HtmlHandler(embeddedResourceHandler.build());
+         TagHandler[] tagHandlers = handlers.stream().map(TagHandlerBuilder::build).toArray(TagHandler[]::new);
+         return new HtmlHandler(tagHandlers);
       }
    }
 
@@ -336,7 +370,7 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
          @Override
          public void onTag(Session session, boolean close, ByteBuf data, int offset, int length, boolean isLast) {
             for (int i = 0; i < length; ++i) {
-               int terminal = trieState.next(data.getByte(offset + i));
+               int terminal = trieState.next(Util.toLowerCase(data.getByte(offset + i)));
                if (isLast && terminal >= 0) {
                   tagMatched = terminal;
                   attrMatchedIndex = 0;

@@ -4,8 +4,13 @@ import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.function.SerializableBiPredicate;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 
 public class StringCondition implements Condition {
+   private static final Logger log = LoggerFactory.getLogger(StringCondition.class);
+   private static final boolean trace = log.isTraceEnabled();
+
    private final Access fromVar;
    private final boolean isSet;
    private final SerializableBiPredicate<Session, CharSequence> predicate;
@@ -20,10 +25,19 @@ public class StringCondition implements Condition {
    public boolean test(Session session) {
       Session.Var var = fromVar.getVar(session);
       if (!var.isSet()) {
+         if (trace) {
+            log.trace("#{} Variable {} is not set, condition result: {}", session.uniqueId(), fromVar, !isSet);
+         }
          return !isSet;
       } else if (!isSet) {
+         if (trace) {
+            log.trace("#{} Variable {} is set, condition result: false", session.uniqueId(), fromVar);
+         }
          return false;
       } else if (predicate == null) {
+         if (trace) {
+            log.trace("#{} No predicate on variable {}, condition result: true", session.uniqueId(), fromVar);
+         }
          return true;
       }
       CharSequence value;
@@ -38,7 +52,11 @@ public class StringCondition implements Condition {
       } else {
          throw new IllegalStateException("Unknown type of var: " + var);
       }
-      return predicate.test(session, value);
+      boolean result = predicate.test(session, value);
+      if (trace) {
+         log.trace("#{} Variable {} = {}, condition result: {}", session.uniqueId(), fromVar, value, result);
+      }
+      return result;
    }
 
    public static class Builder<P> extends StringConditionBuilder<Builder<P>, P> implements Condition.Builder<Builder<P>> {
