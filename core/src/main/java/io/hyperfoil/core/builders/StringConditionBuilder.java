@@ -29,12 +29,15 @@ public class StringConditionBuilder<B extends StringConditionBuilder<B, P>, P> i
       if (value == null && matchVar == null) {
          throw new BenchmarkDefinitionException("Must set one of: 'value', 'startsWith', 'endsWith' or 'matchVar'!");
       }
+      CompareMode myCompareMode = compareMode;
+      boolean myNegate = negate;
+
       if (caseSensitive) {
          if (value != null) {
             CharSequence myValue = value;
             return (s, string) -> {
                int offset = 0, length = myValue.length();
-               switch (compareMode) {
+               switch (myCompareMode) {
                   case FULL:
                      length = Math.max(string.length(), length);
                      break;
@@ -44,10 +47,10 @@ public class StringConditionBuilder<B extends StringConditionBuilder<B, P>, P> i
                      offset = string.length() - length;
                      break;
                   default:
-                     throw new IllegalStateException("Unexpected value: " + compareMode);
+                     throw new IllegalStateException("Unexpected value: " + myCompareMode);
                }
                boolean matches = Util.regionMatches(myValue, 0, string, offset, length);
-               return negate != matches;
+               return myNegate != matches;
             };
          } else {
             Access access = SessionFactory.access(matchVar);
@@ -56,9 +59,9 @@ public class StringConditionBuilder<B extends StringConditionBuilder<B, P>, P> i
                if (value instanceof CharSequence) {
                   CharSequence v = (CharSequence) value;
                   boolean matches = Util.regionMatches(v, 0, string, 0, Math.max(v.length(), string.length()));
-                  return negate != matches;
+                  return myNegate != matches;
                }
-               return negate;
+               return myNegate;
             };
          }
       } else {
@@ -66,7 +69,7 @@ public class StringConditionBuilder<B extends StringConditionBuilder<B, P>, P> i
             String myValue = value.toString();
             return (s, string) -> {
                int offset = 0, length = myValue.length();
-               switch (compareMode) {
+               switch (myCompareMode) {
                   case FULL:
                      length = Math.max(string.length(), length);
                      break;
@@ -76,10 +79,10 @@ public class StringConditionBuilder<B extends StringConditionBuilder<B, P>, P> i
                      offset = string.length() - length;
                      break;
                   default:
-                     throw new IllegalStateException("Unexpected value: " + compareMode);
+                     throw new IllegalStateException("Unexpected value: " + myCompareMode);
                }
                boolean matches = Util.regionMatchesIgnoreCase(myValue, 0, string, offset, length);
-               return negate != matches;
+               return myNegate != matches;
             };
          } else {
             Access access = SessionFactory.access(matchVar);
@@ -88,9 +91,9 @@ public class StringConditionBuilder<B extends StringConditionBuilder<B, P>, P> i
                if (value instanceof CharSequence) {
                   CharSequence v = (CharSequence) value;
                   boolean matches = Util.regionMatchesIgnoreCase(v, 0, string, 0, Math.max(v.length(), string.length()));
-                  return negate != matches;
+                  return myNegate != matches;
                }
-               return negate;
+               return myNegate;
             };
          }
       }

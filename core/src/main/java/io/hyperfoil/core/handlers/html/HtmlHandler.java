@@ -1,5 +1,6 @@
 package io.hyperfoil.core.handlers.html;
 
+import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -197,7 +198,7 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
       TagHandler build();
    }
 
-   public interface TagHandler {
+   public interface TagHandler extends Serializable {
       Processor processor();
 
       HandlerContext newContext();

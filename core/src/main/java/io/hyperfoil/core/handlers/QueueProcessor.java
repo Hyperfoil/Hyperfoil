@@ -147,13 +147,13 @@ public class QueueProcessor implements Processor, ResourceUtilizer {
             sequenceBuilder = locator.scenario().sequence(generatedSeqName);
             sequenceBuilder.readFrom(originalSequence);
          }
+         Queue.Key myKey = key; // prevent capturing self reference
          if (sequenceCompletion == null) {
             sequenceBuilder.step(s -> {
-               s.getResource(key).consumed(s);
+               s.getResource(myKey).consumed(s);
                return true;
             });
          } else {
-            Queue.Key myKey = key; // prevent capturing self reference
             sequenceCompletion.accept(() -> s -> s.getResource(myKey).consumed(s));
          }
          sequenceBuilder.concurrency(concurrency);

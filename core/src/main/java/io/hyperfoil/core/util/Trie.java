@@ -1,5 +1,6 @@
 package io.hyperfoil.core.util;
 
+import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -8,7 +9,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class Trie {
+public class Trie implements Serializable {
    private final Node[] firstNodes;
 
    public Trie(String... strings) {
@@ -69,7 +70,7 @@ public class Trie {
       }
    }
 
-   private static class Node {
+   private static class Node implements Serializable {
       final byte b;
       final int terminal;
       final Node[] nextNodes;

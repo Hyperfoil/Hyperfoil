@@ -116,20 +116,20 @@ public class ChunkedTransferTest extends BaseScenarioTest {
                .headers().header("cache-control", "no-cache").endHeaders()
                .sync(false)
                .handler()
-                  .body(fragmented -> (session, data, offset, length, isLastPart) -> {
-                     String str = Util.toString(data, offset, length);
-                     if (str.contains("\n")) {
-                        session.fail(new AssertionError(str));
-                     }
-                  })
-                  .onCompletion(s -> counter.incrementAndGet());
+               .body(fragmented -> (session, data, offset, length, isLastPart) -> {
+                  String str = Util.toString(data, offset, length);
+                  if (str.contains("\n")) {
+                     session.fail(new AssertionError(str));
+                  }
+               })
+               .onCompletion(s -> counter.incrementAndGet());
       }
       sequence.step(SC).awaitAllResponses();
       runScenario();
       assertThat(counter.get()).isEqualTo(16 * 64);
    }
 
-   private void injectChannelHandler(HttpConnection c, ChannelHandler channelHandler) {
+   private static void injectChannelHandler(HttpConnection c, ChannelHandler channelHandler) {
       try {
          Field f = c.getClass().getDeclaredField("ctx");
          f.setAccessible(true);
@@ -143,7 +143,7 @@ public class ChunkedTransferTest extends BaseScenarioTest {
       }
    }
 
-   private class BufferingDecoder extends ChannelInboundHandlerAdapter {
+   private static class BufferingDecoder extends ChannelInboundHandlerAdapter {
       CompositeByteBuf composite = null;
       boolean buffering = true;
 
@@ -166,7 +166,7 @@ public class ChunkedTransferTest extends BaseScenarioTest {
       }
    }
 
-   private class RandomLengthDecoder extends ChannelInboundHandlerAdapter {
+   private static class RandomLengthDecoder extends ChannelInboundHandlerAdapter {
       @Override
       public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
          if (msg instanceof ByteBuf) {

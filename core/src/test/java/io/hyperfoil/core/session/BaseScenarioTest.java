@@ -1,5 +1,7 @@
 package io.hyperfoil.core.session;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.Protocol;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
@@ -87,7 +89,11 @@ public abstract class BaseScenarioTest {
       try {
          InputStream config = getClass().getClassLoader().getResourceAsStream(name);
          String configString = Util.toString(config).replaceAll("http://localhost:8080", "http://localhost:" + server.actualPort());
-         return BenchmarkParser.instance().buildBenchmark(configString, new LocalBenchmarkData());
+         Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(configString, new LocalBenchmarkData());
+         // Serialization here is solely for the purpose of asserting serializability for all the components
+         byte[] bytes = io.hyperfoil.util.Util.serialize(benchmark);
+         assertThat(bytes).isNotNull();
+         return benchmark;
       } catch (IOException | ParserException e) {
          throw new AssertionError(e);
       }
