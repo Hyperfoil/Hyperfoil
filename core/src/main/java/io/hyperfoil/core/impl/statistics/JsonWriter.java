@@ -108,6 +108,7 @@ public class JsonWriter {
             StatisticsStore.SessionPoolStats sps = store.sessionPoolStats.get(data.phase);
             Map<String, List<StatisticsStore.SessionPoolRecord>> records = sps != null ? sps.records : Collections.emptyMap();
             String[] addresses = new String[records.size()];
+            @SuppressWarnings("unchecked")
             Iterator<StatisticsStore.SessionPoolRecord>[] iterators = new Iterator[records.size()];
             int counter = 0;
             for (Map.Entry<String, List<StatisticsStore.SessionPoolRecord>> byAddress : records.entrySet()) {

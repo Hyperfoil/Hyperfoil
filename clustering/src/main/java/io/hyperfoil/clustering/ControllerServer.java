@@ -711,7 +711,7 @@ class ControllerServer implements ApiService {
             futures.add(promise.future());
             controller.kill(run, result -> promise.complete());
          }
-         CompositeFuture.all(futures).setHandler(nil -> {
+         CompositeFuture.all(futures).onComplete(nil -> {
             ctx.response().end();
             controller.shutdown();
          });

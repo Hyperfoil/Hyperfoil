@@ -134,6 +134,7 @@ public interface BuilderBase<S extends BuilderBase<S>> {
             return ((BuilderBase<?>) o).copy();
          } else if (Collection.class.isAssignableFrom(o.getClass())) {
             Collection<?> thisCollection = (Collection<?>) o;
+            @SuppressWarnings("unchecked")
             Collection<Object> newCollection = thisCollection.getClass().getConstructor().newInstance();
             for (Object item : thisCollection) {
                newCollection.add(deepCopy(item));
@@ -141,6 +142,7 @@ public interface BuilderBase<S extends BuilderBase<S>> {
             return newCollection;
          } else if (Map.class.isAssignableFrom(o.getClass())) {
             Map<?, ?> thisMap = (Map<?, ?>) o;
+            @SuppressWarnings("unchecked")
             Map<Object, Object> newMap = thisMap.getClass().getConstructor().newInstance();
             for (Map.Entry<?, ?> entry : thisMap.entrySet()) {
                newMap.put(deepCopy(entry.getKey()), deepCopy(entry.getValue()));

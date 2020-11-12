@@ -81,7 +81,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
    Map<String, Run> runs = new HashMap<>();
 
    @Override
-   public void start(Future<Void> future) {
+   public void start(Promise<Void> future) {
       log.info("Starting in directory {}...", Controller.ROOT_DIR);
       CountDown startCountDown = new CountDown(future, 2);
       server = new ControllerServer(this, startCountDown);
@@ -725,7 +725,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                }
             }
          }
-         run.terminateTime.future().setHandler(result -> handler.handle(result.mapEmpty()));
+         run.terminateTime.future().onComplete(result -> handler.handle(result.mapEmpty()));
       } catch (Throwable e) {
          handler.handle(Future.failedFuture(e));
       }

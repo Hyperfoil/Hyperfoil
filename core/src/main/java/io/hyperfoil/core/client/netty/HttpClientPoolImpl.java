@@ -10,7 +10,6 @@ import io.netty.channel.EventLoop;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.ssl.ApplicationProtocolConfig;
-import io.netty.handler.ssl.OpenSsl;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslProvider;
@@ -124,7 +123,7 @@ public class HttpClientPoolImpl implements HttpClientPool {
    }
 
    private SslContext createSslContext() throws SSLException {
-      SslProvider provider = OpenSsl.isAlpnSupported() ? SslProvider.OPENSSL : SslProvider.JDK;
+      SslProvider provider = SslProvider.isAlpnSupported(SslProvider.OPENSSL) ? SslProvider.OPENSSL : SslProvider.JDK;
       TrustManagerFactory trustManagerFactory = createTrustManagerFactory();
 
       SslContextBuilder builder = SslContextBuilder.forClient()

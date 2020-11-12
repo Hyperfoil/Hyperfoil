@@ -189,7 +189,7 @@ public class SimulationRunnerImpl implements SimulationRunner {
       }
 
       CompositeFuture composite = CompositeFuture.join(futures);
-      composite.setHandler(result -> {
+      composite.onComplete(result -> {
          if (result.failed()) {
             log.error("One of the HTTP client pools failed to start.");
          }

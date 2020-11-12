@@ -8,6 +8,7 @@ import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.PhaseBuilder;
 
 public class InvalidBenchmarkTest {
+   @SuppressWarnings("deprecation")
    @Rule
    public ExpectedException thrown = ExpectedException.none();
 

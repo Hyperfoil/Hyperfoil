@@ -55,7 +55,7 @@ public class ConditionalProcessor implements Processor, ResourceUtilizer {
 
    @Override
    public void reserve(Session session) {
-      ResourceUtilizer.reserve(session, processors);
+      ResourceUtilizer.reserve(session, (Object[]) processors);
    }
 
    /**
