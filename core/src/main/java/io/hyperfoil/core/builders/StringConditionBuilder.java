@@ -133,7 +133,7 @@ public class StringConditionBuilder<B extends StringConditionBuilder<B, P>, P> i
    }
 
    /**
-    * Literal value the condition should match.
+    * Literal value the string should match.
     *
     * @param value String.
     * @return Self.
@@ -146,17 +146,20 @@ public class StringConditionBuilder<B extends StringConditionBuilder<B, P>, P> i
    }
 
    /**
-    * Literal value the condition should match (the same as <code>value</code>).
+    * Literal value the string should match (the same as {@link #value}).
     *
-    * @param value String
-    * @return
+    * @param value String.
+    * @return Self.
     */
    public B equalTo(CharSequence value) {
       return value(value);
    }
 
    /**
+    * Value that the string must not match.
     *
+    * @param value String.
+    * @return Self.
     */
    public B notEqualTo(CharSequence value) {
       this.negate = true;

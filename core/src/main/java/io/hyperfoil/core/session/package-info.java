@@ -23,7 +23,7 @@
  * <p>
  * After the session is constructed or reset you should create {@link io.hyperfoil.api.session.SequenceInstance sequence instances}
  * from the {@link io.hyperfoil.api.config.Sequence templates} and subsequently
- * {@link io.hyperfoil.core.session.SessionImpl#enableSequence(SequenceInstance) enable}
+ * {@link io.hyperfoil.core.session.SessionImpl#startSequence(java.lang.String, boolean, io.hyperfoil.api.session.Session.ConcurrencyPolicy) start}
  * them in the session. Upon {@link io.hyperfoil.core.session.SessionImpl#runSession()} the session tries to invoke all enabled
  * sequence instances; some of the enabled sequences may be blocked because of missing data dependency.
  * <p>
