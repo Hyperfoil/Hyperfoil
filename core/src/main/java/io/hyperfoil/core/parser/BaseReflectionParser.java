@@ -31,6 +31,7 @@ import io.hyperfoil.api.config.PairBuilder;
 import io.hyperfoil.api.config.PartialBuilder;
 import io.hyperfoil.core.builders.ServiceLoadedContract;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
+import io.hyperfoil.core.util.Util;
 
 class BaseReflectionParser {
 
@@ -282,7 +283,7 @@ class BaseReflectionParser {
 
       Invocable[] candidates = matchingName.stream()
             .filter(inv -> inv.method.getParameterCount() == params)
-            .filter(inv -> Stream.of(inv.method.getParameterTypes()).allMatch(this::isParamConvertible))
+            .filter(inv -> Stream.of(inv.method.getParameterTypes()).allMatch(Util::isParamConvertible))
             .toArray(Invocable[]::new);
       if (params == 1 && candidates.length == 0) {
          candidates = matchingName.stream().filter(inv -> InitFromParam.class.isAssignableFrom(inv.method.getReturnType())).toArray(Invocable[]::new);
@@ -312,10 +313,6 @@ class BaseReflectionParser {
       } else {
          throw new ParserException(event, "Cannot convert " + str + " to " + type);
       }
-   }
-
-   private boolean isParamConvertible(Class<?> type) {
-      return type == String.class || type == Object.class || type.isPrimitive() || type.isEnum();
    }
 
    @SuppressWarnings("unchecked")

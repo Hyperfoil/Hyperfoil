@@ -412,10 +412,11 @@ public class DocsGenerator extends BaseGenerator {
          if (lines[i].trim().isEmpty()) {
             sb.append("<br>");
          }
+         sb.append(lines[i]);
          if (preformatted) {
-            sb.append(lines[i]).append('\n');
-         } else {
-            sb.append(lines[i]).append(" ");
+            sb.append('\n');
+         } else if (i != lastLine) {
+            sb.append(" ");
          }
       }
       if (sb.length() == 0) {

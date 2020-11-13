@@ -196,6 +196,10 @@ public class Util {
       return sign == '-' ? -value : value;
    }
 
+   public static boolean isParamConvertible(Class<?> type) {
+      return type == String.class || type == CharSequence.class || type == Object.class || type.isPrimitive() || type.isEnum();
+   }
+
    private static class URLEncoding {
       private static final BitSet DONT_NEED_ENCODING = new BitSet();
 
