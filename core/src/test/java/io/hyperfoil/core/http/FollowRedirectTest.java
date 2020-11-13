@@ -21,10 +21,12 @@ import io.vertx.ext.web.RoutingContext;
 @RunWith(VertxUnitRunner.class)
 public class FollowRedirectTest extends BaseScenarioTest {
    private final AtomicInteger redirects = new AtomicInteger();
+   private final AtomicInteger notFound = new AtomicInteger();
 
    @Before
    public void resetRedirects() {
       redirects.set(0);
+      notFound.set(0);
    }
 
    @Override
@@ -54,12 +56,18 @@ public class FollowRedirectTest extends BaseScenarioTest {
       if (!ensureHeaders(ctx)) {
          return;
       }
-      if (ThreadLocalRandom.current().nextBoolean()) {
-         String refreshContent = ThreadLocalRandom.current().nextInt(2) + "; " + target(ctx);
+      ThreadLocalRandom random = ThreadLocalRandom.current();
+      if (random.nextBoolean()) {
+         String refreshContent = random.nextInt(2) + "; url=" + target(ctx);
          ctx.response().end("<html><head><meta http-equiv=\"refresh\" content=\"" + refreshContent + "\" /></head></html>");
          redirects.incrementAndGet();
       } else {
-         ctx.response().end("this is the response");
+         if (random.nextBoolean()) {
+            ctx.response().end("this is the response");
+         } else {
+            notFound.incrementAndGet();
+            ctx.response().setStatusCode(404).end("Not Found (sort of)");
+         }
       }
    }
 
@@ -67,11 +75,17 @@ public class FollowRedirectTest extends BaseScenarioTest {
       if (!ensureHeaders(ctx)) {
          return;
       }
-      if (ThreadLocalRandom.current().nextBoolean()) {
+      ThreadLocalRandom random = ThreadLocalRandom.current();
+      if (random.nextBoolean()) {
          ctx.response().putHeader(HttpHeaders.LOCATION, target(ctx)).setStatusCode(303).end();
          redirects.incrementAndGet();
       } else {
-         ctx.response().end("this is the response");
+         if (random.nextBoolean()) {
+            ctx.response().end("this is the response");
+         } else {
+            notFound.incrementAndGet();
+            ctx.response().setStatusCode(404).end("Not Found (sort of)");
+         }
       }
    }
 
@@ -98,7 +112,8 @@ public class FollowRedirectTest extends BaseScenarioTest {
       Map<String, StatisticsSnapshot> stats = runScenario(benchmark);
       StatisticsSnapshot redirectMe = stats.get("redirectMe");
       assertThat(redirectMe.status_3xx).isEqualTo(redirects.get());
-      assertThat(redirectMe.status_2xx).isEqualTo(users - redirects.get());
+      assertThat(redirectMe.status_2xx).isEqualTo(users - redirects.get() - notFound.get());
+      assertThat(redirectMe.status_4xx).isEqualTo(notFound.get());
       StatisticsSnapshot redirectMe_redirect = stats.get("redirectMe_redirect");
       assertThat(redirectMe_redirect.status_2xx).isEqualTo(redirects.get());
    }
@@ -113,13 +128,15 @@ public class FollowRedirectTest extends BaseScenarioTest {
       String redirectMetric = stats.keySet().stream().filter(m -> !m.equals("redirectMe")).findFirst().orElse(null);
       if (redirectMetric == null) {
          // rare case when we'd not get any redirects
-         assertThat(redirectMe.status_2xx).isEqualTo(users);
+         assertThat(redirectMe.status_2xx).isEqualTo(users - notFound.get());
          assertThat(redirectMe.status_3xx).isEqualTo(0);
+         assertThat(redirectMe.status_4xx).isEqualTo(notFound.get());
          assertThat(redirects.get()).isEqualTo(0);
       } else {
          StatisticsSnapshot redirectStats = stats.get(redirectMetric);
+         assertThat(redirectMe.status_2xx + redirectStats.status_2xx).isEqualTo(users - notFound.get());
          assertThat(redirectMe.status_3xx + redirectStats.status_3xx).isEqualTo(redirects.get());
-         assertThat(redirectMe.status_2xx + redirectStats.status_2xx).isEqualTo(users);
+         assertThat(redirectMe.status_4xx + redirectStats.status_4xx).isEqualTo(notFound.get());
       }
    }
 
@@ -134,12 +151,14 @@ public class FollowRedirectTest extends BaseScenarioTest {
       if (redirectMetric == null) {
          // rare case when we'd not get any redirects
          assertThat(redirects.get()).isEqualTo(0);
+         assertThat(redirectMe.status_2xx).isEqualTo(users - notFound.get());
+         assertThat(redirectMe.status_4xx).isEqualTo(notFound.get());
       } else {
          StatisticsSnapshot redirectStats = stats.get(redirectMetric);
-         assertThat(redirectStats.status_2xx).isEqualTo(redirects.get());
+         assertThat(redirectStats.status_2xx + redirectMe.status_2xx).isEqualTo(users + redirects.get() - notFound.get());
          assertThat(redirectStats.status_3xx).isEqualTo(0);
+         assertThat(redirectStats.status_4xx + redirectMe.status_4xx).isEqualTo(notFound.get());
       }
-      assertThat(redirectMe.status_2xx).isEqualTo(users);
       assertThat(redirectMe.status_3xx).isEqualTo(0);
    }
 
@@ -153,13 +172,15 @@ public class FollowRedirectTest extends BaseScenarioTest {
       String redirectMetric = stats.keySet().stream().filter(m -> !m.equals("redirectMe")).findFirst().orElse(null);
       if (redirectMetric == null) {
          // rare case when we'd not get any redirects
-         assertThat(redirectMe.status_2xx).isEqualTo(users);
+         assertThat(redirectMe.status_2xx).isEqualTo(users - notFound.get());
          assertThat(redirectMe.status_3xx).isEqualTo(0);
+         assertThat(redirectMe.status_4xx).isEqualTo(notFound.get());
          assertThat(redirects.get()).isEqualTo(0);
       } else {
          StatisticsSnapshot redirectStats = stats.get(redirectMetric);
-         assertThat(redirectMe.status_2xx + redirectMe.status_3xx).isEqualTo(users);
-         assertThat(redirectStats.status_2xx + redirectStats.status_3xx).isEqualTo(redirects.get());
+         assertThat(redirectMe.status_2xx + redirectMe.status_3xx).isLessThanOrEqualTo(users).isGreaterThanOrEqualTo(users - notFound.get());
+         assertThat(redirectStats.status_2xx + redirectStats.status_3xx).isLessThanOrEqualTo(redirects.get()).isGreaterThanOrEqualTo(redirects.get() - notFound.get());
+         assertThat(redirectStats.status_4xx + redirectMe.status_4xx).isEqualTo(notFound.get());
       }
    }
 }

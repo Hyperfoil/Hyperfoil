@@ -2,6 +2,8 @@ package io.hyperfoil.core.handlers.html;
 
 import static io.hyperfoil.api.connection.HttpRequest.log;
 
+import java.nio.charset.StandardCharsets;
+
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.api.processor.Processor;
@@ -18,6 +20,7 @@ import io.hyperfoil.function.SerializableFunction;
 import io.netty.buffer.ByteBuf;
 
 public class RefreshHandler implements Processor, ResourceUtilizer {
+   private static final byte[] URL = "url".getBytes(StandardCharsets.UTF_8);
    private final Queue.Key immediateQueueKey;
    private final Queue.Key delayedQueueKey;
    private final LimitedPoolResource.Key<Redirect.Coords> poolKey;
@@ -60,7 +63,22 @@ public class RefreshHandler implements Processor, ResourceUtilizer {
                ++i;
                while (Character.isWhitespace(data.getByte(offset + i))) ++i;
                while (length > 0 && Character.isWhitespace(data.getByte(offset + length - 1))) --length;
+               for (int j = 0; j < URL.length; ++j, ++i) {
+                  if (Util.toLowerCase(data.getByte(offset + i)) != URL[j]) {
+                     log.warn("#{} Failed to parse META refresh content (missing URL): {}", session.uniqueId(), Util.toString(data, offset, length));
+                     return;
+                  }
+               }
+               while (Character.isWhitespace(data.getByte(offset + i))) ++i;
+               if (data.getByte(offset + i) != '=') {
+                  log.warn("#{} Failed to parse META refresh content (missing = after URL): {}", session.uniqueId(), Util.toString(data, offset, length));
+                  return;
+               } else {
+                  ++i;
+               }
+               while (Character.isWhitespace(data.getByte(offset + i))) ++i;
                url = Util.toString(data, offset + i, length - i);
+               break;
             }
          }
          if (url == null) {
@@ -104,7 +122,6 @@ public class RefreshHandler implements Processor, ResourceUtilizer {
          var.setObject(session, ObjectVar.newArray(session, concurrency));
       }
    }
-
 
 
 }
