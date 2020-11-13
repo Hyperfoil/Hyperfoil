@@ -128,6 +128,7 @@ public class SequenceInstance {
    }
 
    public void decRefCnt(Session session) {
+      assert refCnt > 0;
       if (--refCnt == 0) {
          if (trace) {
             log.trace("#{} Releasing sequence {}[{}]", session.uniqueId(), sequence.name(), index);

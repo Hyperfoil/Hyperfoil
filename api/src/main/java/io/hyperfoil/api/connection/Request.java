@@ -28,6 +28,7 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
    private long startTimestampNanos;
    private long sendTimestampNanos;
    private SequenceInstance sequence;
+   private SequenceInstance completionSequence;
    private Statistics statistics;
    private ScheduledFuture<?> timeoutFuture;
    private Connection connection;
@@ -71,7 +72,12 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
    public void start(SequenceInstance sequence, Statistics statistics) {
       this.startTimestampMillis = System.currentTimeMillis();
       this.startTimestampNanos = System.nanoTime();
-      this.sequence = sequence.incRefCnt();
+      this.sequence = sequence;
+      // The reason for using separate sequence reference just for the sake of decrementing
+      // its counter is that the request sequence might be overridden (wrapped) through
+      // `unsafeEnterSequence` when the request is cancelled (e.g. because the session
+      // is being stopped). In that case we would decrement counters on a wrong sequence.
+      this.completionSequence = sequence.incRefCnt();
       this.statistics = statistics;
       this.status = Status.RUNNING;
       this.result = Result.VALID;
@@ -111,10 +117,12 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
          timeoutFuture = null;
       }
       connection = null;
-      sequence.decRefCnt(session);
+      sequence = null;
       // handleEnd may indirectly call handleThrowable which calls setCompleted first
       if (status != Status.IDLE) {
          status = Status.COMPLETED;
+         completionSequence.decRefCnt(session);
+         completionSequence = null;
       }
    }
 

@@ -47,7 +47,8 @@ public class Queue implements Session.Resource {
    }
 
    public void reset() {
-      assert active == 0;
+      // When the session is stopped there might be active sequences
+      active = 0;
       head = 0;
       tail = 0;
       size = 0;
