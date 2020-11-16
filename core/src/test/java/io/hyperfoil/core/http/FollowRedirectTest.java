@@ -12,7 +12,10 @@ import org.junit.runner.RunWith;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.Phase;
+import io.hyperfoil.api.http.FollowRedirect;
+import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
+import io.hyperfoil.core.builders.StepCatalog;
 import io.hyperfoil.core.session.BaseScenarioTest;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -50,6 +53,10 @@ public class FollowRedirectTest extends BaseScenarioTest {
          }
          ctx.response().end("this is the response");
       });
+      router.route("/redirect/me/relatively").handler(ctx -> ctx.response().putHeader(HttpHeaders.LOCATION, "elsewhere").setStatusCode(302).end());
+      router.route("/redirect/me/elsewhere").handler(ctx ->
+            ctx.response().end("<html><head><meta http-equiv=\"refresh\" content=\"0; URL=../theEnd\" /></head></html>"));
+      router.route("/redirect/theEnd").handler(ctx -> ctx.response().end("Final destination"));
    }
 
    private void redirectViaHtml(RoutingContext ctx) {
@@ -182,5 +189,20 @@ public class FollowRedirectTest extends BaseScenarioTest {
          assertThat(redirectStats.status_2xx + redirectStats.status_3xx).isLessThanOrEqualTo(redirects.get()).isGreaterThanOrEqualTo(redirects.get() - notFound.get());
          assertThat(redirectStats.status_4xx + redirectMe.status_4xx).isEqualTo(notFound.get());
       }
+   }
+
+   @Test
+   public void testRelative() {
+      scenario().initialSequence("test").step(StepCatalog.SC).httpRequest(HttpMethod.GET)
+            .path("/redirect/me/relatively")
+            .handler().followRedirect(FollowRedirect.ALWAYS).endHandler();
+
+      Map<String, StatisticsSnapshot> stats = runScenario();
+      StatisticsSnapshot testStats = stats.get("test");
+      assertThat(testStats.status_3xx).isEqualTo(1);
+      assertThat(testStats.responseCount).isEqualTo(1);
+      StatisticsSnapshot otherStats = stats.entrySet().stream()
+            .filter(e -> !e.getKey().equals("test")).map(Map.Entry::getValue).findFirst().orElse(null);
+      assertThat(otherStats.status_2xx).isEqualTo(2);
    }
 }

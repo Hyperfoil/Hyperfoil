@@ -14,6 +14,7 @@ import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.data.LimitedPoolResource;
 import io.hyperfoil.core.data.Queue;
 import io.hyperfoil.core.handlers.http.Redirect;
+import io.hyperfoil.core.http.HttpUtil;
 import io.hyperfoil.core.session.ObjectVar;
 import io.hyperfoil.core.util.Util;
 import io.hyperfoil.function.SerializableFunction;
@@ -93,9 +94,23 @@ public class RefreshHandler implements Processor, ResourceUtilizer {
             HttpRequest request = (HttpRequest) session.currentRequest();
             coords.authority = request.authority;
             coords.path = request.path;
-         } else {
+         } else if (url.startsWith(HttpUtil.HTTP_PREFIX) || url.startsWith(HttpUtil.HTTPS_PREFIX)) {
             coords.authority = null;
             coords.path = url;
+         } else {
+            HttpRequest request = (HttpRequest) session.currentRequest();
+            coords.authority = request.authority;
+            if (url.startsWith("/")) {
+               coords.path = url;
+            } else {
+               int lastSlash = request.path.lastIndexOf('/');
+               if (lastSlash < 0) {
+                  log.warn("#{} Did the request have a relative path? {}", session.uniqueId(), request.path);
+                  coords.path = "/" + url;
+               } else {
+                  coords.path = request.path.substring(0, lastSlash + 1) + url;
+               }
+            }
          }
 
          session.getResource(seconds == 0 ? immediateQueueKey : delayedQueueKey).push(session, coords);

@@ -153,7 +153,16 @@ public class Redirect {
             if (coords.path == null) {
                if (!Util.startsWith(value, 0, HttpUtil.HTTP_PREFIX) && !Util.startsWith(value, 0, HttpUtil.HTTPS_PREFIX)) {
                   coords.authority = request.authority;
+                  if (!Util.startsWith(value, 0, "/")) {
+                     int lastSlash = request.path.lastIndexOf('/');
+                     if (lastSlash < 0) {
+                        log.warn("#{} Did the request have a relative path? {}", session.uniqueId(), request.path);
+                        value = "/" + value;
+                     }
+                     value = request.path.substring(0, lastSlash + 1) + value;
+                  }
                }
+
                coords.path = value;
                coords.originalSequence = originalSequenceSupplier.apply(request.session);
                var.set(coords);
