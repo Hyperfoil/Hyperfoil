@@ -131,9 +131,11 @@ public class SequenceInstance {
       assert refCnt > 0;
       if (--refCnt == 0) {
          if (trace) {
-            log.trace("#{} Releasing sequence {}[{}]", session.uniqueId(), sequence.name(), index);
+            log.trace("#{} Releasing sequence {}[{}]", session.uniqueId(), sequence == null ? "<noseq>" : sequence.name(), index);
          }
-         releaseHandler.accept(this);
+         if (releaseHandler != null) {
+            releaseHandler.accept(this);
+         }
       } else if (trace) {
          // session is null in some mocked tests
          log.trace("#{} Not releasing sequence {}[{}] - refCnt {}",

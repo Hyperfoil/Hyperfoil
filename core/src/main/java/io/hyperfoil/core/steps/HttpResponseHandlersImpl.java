@@ -170,7 +170,6 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          // Do not mark as invalid when timed out
          request.markInvalid();
       }
-      session.currentRequest(request);
 
       try {
          if (request.isRunning()) {
@@ -202,7 +201,6 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          }
          return;
       }
-      session.currentRequest(request);
 
       if (trace) {
          log.trace("#{} Received part ({} bytes):\n{}", session.uniqueId(), length,
@@ -216,7 +214,6 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
             data.readerIndex(dataStartIndex);
          }
       }
-      session.currentRequest(null);
    }
 
    @Override
@@ -228,7 +225,6 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          }
          return;
       }
-      session.currentRequest(request);
       if (trace) {
          log.trace("#{} Completed request on {}", session.uniqueId(), request.connection());
       }
@@ -561,9 +557,9 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
                }
                if (html) {
                   handlerConsumer.accept(new HtmlHandler.Builder().handler(new MetaRefreshHandler.Builder()
-                     .processor(fragmented -> new RefreshHandler(
-                        queueKey, delayedQueueKey, poolKey, redirectConcurrency, access(coordsVar), access(delayedCoordVar),
-                        redirectSequenceName, delaySequenceName, access(newTempCoordsVar), new Redirect.GetOriginalSequence(sequenceScopedAccess(coordsVar))))));
+                        .processor(fragmented -> new RefreshHandler(
+                              queueKey, delayedQueueKey, poolKey, redirectConcurrency, access(coordsVar), access(delayedCoordVar),
+                              redirectSequenceName, delaySequenceName, access(newTempCoordsVar), new Redirect.GetOriginalSequence(sequenceScopedAccess(coordsVar))))));
                }
             }
             if (!completionHandlers.isEmpty()) {
@@ -613,8 +609,8 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
             if (html) {
                handlerConsumer.accept(new HtmlHandler.Builder().handler(new MetaRefreshHandler.Builder()
                      .processor(fragmented -> new RefreshHandler(
-                        queueKey, delayedQueueKey, poolKey, redirectConcurrency, access(coordsVar), access(delayedCoordVar),
-                        redirectSequenceName, delaySequenceName, access(tempCoordsVar), Session::currentSequence))));
+                           queueKey, delayedQueueKey, poolKey, redirectConcurrency, access(coordsVar), access(delayedCoordVar),
+                           redirectSequenceName, delaySequenceName, access(tempCoordsVar), Session::currentSequence))));
             }
             if (location) {
                bodyHandlers = Collections.singletonList(HttpRequestProcessorBuilder.adapt(conditionalBodyHandler));
