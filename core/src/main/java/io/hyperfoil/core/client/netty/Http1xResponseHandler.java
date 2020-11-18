@@ -190,8 +190,10 @@ public class Http1xResponseHandler extends BaseResponseHandler {
             int endOfNameIndex = lineStartIndex, startOfValueIndex = lineStartIndex;
             for (int i = lineStartIndex + 1; i < lineEndIndex; ++i) {
                if (lineBuf.getByte(i) == ':') {
-                  for (endOfNameIndex = i - 1; endOfNameIndex >= lineStartIndex && lineBuf.getByte(endOfNameIndex) == ' '; --endOfNameIndex);
-                  for (startOfValueIndex = i + 1; startOfValueIndex < lineEndIndex && lineBuf.getByte(startOfValueIndex) == ' '; ++startOfValueIndex);
+                  for (endOfNameIndex = i - 1; endOfNameIndex >= lineStartIndex && lineBuf.getByte(endOfNameIndex) == ' '; --endOfNameIndex)
+                     ;
+                  for (startOfValueIndex = i + 1; startOfValueIndex < lineEndIndex && lineBuf.getByte(startOfValueIndex) == ' '; ++startOfValueIndex)
+                     ;
                   break;
                }
             }
@@ -422,6 +424,7 @@ public class Http1xResponseHandler extends BaseResponseHandler {
    @Override
    protected void onData(ChannelHandlerContext ctx, ByteBuf buf) {
       // noop - do not send to upper layers
+      buf.release();
    }
 
    @Override
