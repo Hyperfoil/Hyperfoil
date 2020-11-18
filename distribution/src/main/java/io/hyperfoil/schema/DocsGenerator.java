@@ -47,8 +47,8 @@ import io.hyperfoil.api.config.MappingListBuilder;
 import io.hyperfoil.api.config.PairBuilder;
 import io.hyperfoil.api.config.PartialBuilder;
 import io.hyperfoil.api.config.StepBuilder;
+import io.hyperfoil.api.processor.HttpRequestProcessorBuilder;
 import io.hyperfoil.api.processor.Processor;
-import io.hyperfoil.api.processor.RequestProcessorBuilder;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.core.builders.BuilderInfo;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
@@ -117,8 +117,8 @@ public class DocsGenerator extends BaseGenerator {
             printLink("action", action.getKey(), action.getValue().iterator().next(), out);
          }
          out.println("\n\n## Processors");
-         for (Map.Entry<String, List<Docs>> action : docs.get(RequestProcessorBuilder.class).params.entrySet()) {
-            printLink("processor", action.getKey(), action.getValue().iterator().next(), out);
+         for (Map.Entry<String, List<Docs>> processor : docs.get(HttpRequestProcessorBuilder.class).params.entrySet()) {
+            printLink("processor", processor.getKey(), processor.getValue().iterator().next(), out);
          }
       } catch (IOException e) {
          System.err.printf("Cannot write index file %s: %s%n", indexPath, e);
@@ -133,7 +133,7 @@ public class DocsGenerator extends BaseGenerator {
          }
       }
       printRootType("action", Action.Builder.class);
-      printRootType("processor", RequestProcessorBuilder.class);
+      printRootType("processor", HttpRequestProcessorBuilder.class);
    }
 
    private void printRootType(String type, Class<?> builderClazz) {
@@ -246,7 +246,7 @@ public class DocsGenerator extends BaseGenerator {
             out.printf("| %s ", d.type);
          } else {
             out.printf("| [%s](#%s) ", d.type, reverseLookup.get(d)
-                  .replaceAll("&lt;", "").replaceAll("&gt;", "").replaceAll(" ", "-").replaceAll("[^a-zA-Z0-9-_]", ""));
+                  .replaceAll("&lt;", "").replaceAll("&gt;", "").replaceAll(" ", "-").replaceAll("[^a-zA-Z0-9-_]", "").toLowerCase());
          }
          out.printf("| %s |%n", d.ownerDescription == null ? NO_DESCRIPTION : d.ownerDescription);
          ++printed;
