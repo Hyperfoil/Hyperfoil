@@ -15,7 +15,6 @@ import io.hyperfoil.client.RestClientException;
 import io.hyperfoil.controller.model.CustomStats;
 import io.hyperfoil.controller.model.RequestStatisticsResponse;
 import io.hyperfoil.controller.model.RequestStats;
-import io.hyperfoil.core.util.Util;
 
 @CommandDefinition(name = "stats", description = "Show run statistics")
 public class Stats extends BaseRunIdCommand {
@@ -93,7 +92,7 @@ public class Stats extends BaseRunIdCommand {
                invocation.println("");
                return;
             }
-            invocation.println("ERROR: " + Util.explainCauses(e));
+            invocation.error(e);
             throw new CommandException("Cannot fetch stats for run " + runRef.id(), e);
          }
          if ("TERMINATED".equals(stats.status)) {
@@ -126,7 +125,7 @@ public class Stats extends BaseRunIdCommand {
          Collection<CustomStats> customStats = runRef.customStats();
          invocation.println(CUSTOM_STATS_TABLE.print(customStats.stream()));
       } catch (RestClientException e) {
-         invocation.println("ERROR: " + Util.explainCauses(e));
+         invocation.error(e);
          throw new CommandException("Cannot fetch custom stats for run " + runRef.id(), e);
       }
    }

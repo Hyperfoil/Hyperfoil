@@ -12,7 +12,6 @@ import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.controller.Client;
 import io.hyperfoil.client.RestClientException;
 import io.hyperfoil.controller.model.Phase;
-import io.hyperfoil.core.util.Util;
 
 @CommandDefinition(name = "status", description = "Prints information about executing or completed run.")
 public class Status extends BaseRunIdCommand {
@@ -37,7 +36,7 @@ public class Status extends BaseRunIdCommand {
       try {
          run = runRef.get();
       } catch (RestClientException e) {
-         invocation.println("ERROR: " + Util.explainCauses(e));
+         invocation.error(e);
          throw new CommandException("Cannot fetch status for run " + runRef.id(), e);
       }
       invocation.println("Run " + run.id + ", benchmark " + run.benchmark);
@@ -84,7 +83,7 @@ public class Status extends BaseRunIdCommand {
                invocation.println("");
                return CommandResult.SUCCESS;
             }
-            invocation.println("ERROR: " + Util.explainCauses(e));
+            invocation.error(e);
             throw new CommandException("Cannot fetch status for run " + runRef.id(), e);
          }
          int lines = 4;

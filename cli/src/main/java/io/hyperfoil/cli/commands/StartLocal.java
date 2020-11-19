@@ -9,7 +9,6 @@ import org.aesh.command.option.Argument;
 import org.aesh.command.option.Option;
 import org.aesh.io.FileResource;
 import org.aesh.io.Resource;
-import org.aesh.terminal.utils.ANSI;
 
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.internal.Controller;
@@ -30,7 +29,7 @@ public class StartLocal extends ServerCommand {
    public CommandResult execute(HyperfoilCommandInvocation invocation) throws CommandException {
       if (invocation.context().localControllerHost() != null || invocation.context().localControllerPort() > 0) {
          if (!quiet) {
-            invocation.println(ANSI.YELLOW_TEXT + "WARNING: local controller is already running, not starting." + ANSI.RESET);
+            invocation.warn("Local controller is already running, not starting.");
          }
       } else {
          Controller.Factory factory = null;

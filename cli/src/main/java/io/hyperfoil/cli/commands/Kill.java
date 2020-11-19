@@ -8,7 +8,6 @@ import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.controller.Client;
 import io.hyperfoil.client.RestClientException;
 import io.hyperfoil.controller.model.Phase;
-import io.hyperfoil.core.util.Util;
 
 @CommandDefinition(name = "kill", description = "Terminate run.")
 public class Kill extends BaseRunIdCommand {
@@ -40,7 +39,7 @@ public class Kill extends BaseRunIdCommand {
       try {
          runRef.kill();
       } catch (RestClientException e) {
-         invocation.println("ERROR: " + Util.explainCauses(e));
+         invocation.error(e);
          throw new CommandException("Failed to kill run " + run.id, e);
       }
       invocation.println("Killed.");

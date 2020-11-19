@@ -8,7 +8,6 @@ import org.aesh.command.option.Option;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.controller.Client;
 import io.hyperfoil.client.RestClientException;
-import io.hyperfoil.core.util.Util;
 
 @CommandDefinition(name = "run", description = "Starts benchmark on Hyperfoil Controller server")
 public class Run extends BenchmarkCommand {
@@ -22,13 +21,13 @@ public class Run extends BenchmarkCommand {
          invocation.context().setServerRun(benchmarkRef.start(description));
          invocation.println("Started run " + invocation.context().serverRun().id());
       } catch (RestClientException e) {
-         invocation.println("ERROR: " + Util.explainCauses(e));
+         invocation.error(e);
          throw new CommandException("Failed to start benchmark " + benchmarkRef.name(), e);
       }
       try {
          invocation.executeCommand("status");
       } catch (Exception e) {
-         invocation.println("ERROR: " + Util.explainCauses(e));
+         invocation.error(e);
          throw new CommandException(e);
       }
       return CommandResult.SUCCESS;

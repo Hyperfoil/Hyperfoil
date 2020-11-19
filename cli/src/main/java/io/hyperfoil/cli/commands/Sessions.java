@@ -14,7 +14,6 @@ import io.hyperfoil.cli.Table;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.controller.Client;
 import io.hyperfoil.client.RestClientException;
-import io.hyperfoil.core.util.Util;
 
 @CommandDefinition(name = "sessions", description = "Show sessions statistics")
 public class Sessions extends BaseRunIdCommand {
@@ -50,7 +49,7 @@ public class Sessions extends BaseRunIdCommand {
                invocation.println("");
                return CommandResult.SUCCESS;
             }
-            invocation.println("ERROR: " + Util.explainCauses(e));
+            invocation.error(e);
             throw new CommandException("Cannot display session stats.", e);
          }
       }

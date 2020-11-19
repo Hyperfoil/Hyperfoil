@@ -261,6 +261,7 @@ class ControllerServer implements ApiService {
       } else {
          ctx.response()
                .putHeader(HttpHeaders.CONTENT_TYPE, "text/vnd.yaml; charset=UTF-8")
+               .putHeader(HttpHeaders.ETAG.toString(), benchmark.version())
                .end(benchmark.source());
       }
    }

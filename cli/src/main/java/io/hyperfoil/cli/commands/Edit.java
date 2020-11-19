@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.ArrayList;
 
 import org.aesh.command.CommandDefinition;
 import org.aesh.command.CommandException;
@@ -31,19 +32,22 @@ public class Edit extends BenchmarkCommand {
    public CommandResult execute(HyperfoilCommandInvocation invocation) throws CommandException {
       Client.BenchmarkRef benchmarkRef = ensureBenchmark(invocation);
       File sourceFile;
-      Benchmark benchmark;
+      Client.BenchmarkSource source;
       try {
-         benchmark = benchmarkRef.get();
-         if (benchmark.source() == null) {
-            throw new CommandException("No source available for benchmark '" + benchmark.name() + "', cannot edit.");
+         source = benchmarkRef.source();
+         if (source == null) {
+            throw new CommandException("No source available for benchmark '" + benchmarkRef.name() + "', cannot edit.");
          }
       } catch (RestClientException e) {
-         invocation.println("ERROR: " + Util.explainCauses(e));
+         invocation.error(e);
          throw new CommandException("Cannot get benchmark " + benchmarkRef.name());
       }
+      if (source.version == null) {
+         invocation.warn("Server did not send benchmark source version, modification conflicts won't be prevented.");
+      }
       try {
-         sourceFile = File.createTempFile(benchmark.name() + "-", ".yaml");
-         Files.write(sourceFile.toPath(), benchmark.source().getBytes(StandardCharsets.UTF_8));
+         sourceFile = File.createTempFile(benchmarkRef.name() + "-", ".yaml");
+         Files.write(sourceFile.toPath(), source.source.getBytes(StandardCharsets.UTF_8));
       } catch (IOException e) {
          throw new CommandException("Cannot create temporary file for edits.", e);
       }
@@ -65,7 +69,7 @@ public class Edit extends BenchmarkCommand {
             updated = BenchmarkParser.instance().buildBenchmark(new ByteArrayInputStream(Files.readAllBytes(sourceFile.toPath())), new LocalBenchmarkData());
             break;
          } catch (ParserException | BenchmarkDefinitionException e) {
-            invocation.println("ERROR: " + Util.explainCauses(e));
+            invocation.error(e);
             invocation.println("Retry edits? [Y/n] ");
             try {
                switch (invocation.inputLine().trim().toLowerCase()) {
@@ -79,17 +83,18 @@ public class Edit extends BenchmarkCommand {
                return CommandResult.FAILURE;
             }
          } catch (IOException e) {
-            invocation.println("ERROR: " + Util.explainCauses(e));
+            invocation.error(e);
             throw new CommandException("Failed to load the benchmark.", e);
          }
       }
       try {
-         String prevVersion = benchmark.version();
-         if (!updated.name().equals(benchmark.name())) {
-            invocation.println("NOTE: Renamed benchmark " + benchmark.name() + " to " + updated.name() + "; old benchmark won't be deleted.");
+         String prevVersion = source.version;
+         if (!updated.name().equals(benchmarkRef.name())) {
+            invocation.println("NOTE: Renamed benchmark " + benchmarkRef.name() + " to " + updated.name() + "; old benchmark won't be deleted.");
             prevVersion = null;
          }
-         invocation.context().client().register(updated, prevVersion);
+         invocation.println("Uploading benchmark " + updated.name() + "...");
+         invocation.context().client().register(sourceFile.getAbsolutePath(), new ArrayList<>(updated.files().keySet()), prevVersion);
          sourceFile.delete();
       } catch (RestClientException e) {
          if (e.getCause() instanceof Client.EditConflictException) {

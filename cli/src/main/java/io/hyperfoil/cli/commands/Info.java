@@ -10,11 +10,9 @@ import org.aesh.command.CommandException;
 import org.aesh.command.CommandResult;
 import org.aesh.command.option.Option;
 
-import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.controller.Client;
 import io.hyperfoil.client.RestClientException;
-import io.hyperfoil.core.util.Util;
 
 @CommandDefinition(name = "info", description = "Provides information about the benchmark.")
 public class Info extends BenchmarkCommand {
@@ -28,25 +26,25 @@ public class Info extends BenchmarkCommand {
    public CommandResult execute(HyperfoilCommandInvocation invocation) throws CommandException {
       ensureConnection(invocation);
       String benchmarkName = "<unknown>";
-      Benchmark benchmark;
+      Client.BenchmarkSource source;
       try {
          if (runId != null) {
             Client.RunRef run = invocation.context().client().run(runId);
             benchmarkName = run.get().benchmark;
-            benchmark = run.benchmark();
+            source = invocation.context().client().benchmark(benchmarkName).source();
          } else {
             Client.BenchmarkRef benchmarkRef = ensureBenchmark(invocation);
             benchmarkName = benchmarkRef.name();
-            benchmark = benchmarkRef.get();
+            source = benchmarkRef.source();
          }
-         if (benchmark.source() == null) {
-            invocation.println("No source available for benchmark '" + benchmark.name() + "'.");
+         if (source == null) {
+            invocation.println("No source available for benchmark '" + benchmarkName + "'.");
          } else {
             File sourceFile;
             try {
-               sourceFile = File.createTempFile(benchmark.name() + "-", ".yaml");
+               sourceFile = File.createTempFile(benchmarkName + "-", ".yaml");
                sourceFile.deleteOnExit();
-               Files.write(sourceFile.toPath(), benchmark.source().getBytes(StandardCharsets.UTF_8));
+               Files.write(sourceFile.toPath(), source.source.getBytes(StandardCharsets.UTF_8));
             } catch (IOException e) {
                throw new CommandException("Cannot create temporary file for edits.", e);
             }
@@ -60,7 +58,7 @@ public class Info extends BenchmarkCommand {
          }
          return CommandResult.SUCCESS;
       } catch (RestClientException e) {
-         invocation.println("ERROR: " + Util.explainCauses(e));
+         invocation.error(e);
          throw new CommandException("Cannot get benchmark " + benchmarkName);
       }
    }

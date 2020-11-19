@@ -31,10 +31,12 @@ import org.aesh.command.validator.CommandValidatorException;
 import org.aesh.command.validator.OptionValidatorException;
 import org.aesh.readline.Prompt;
 import org.aesh.readline.action.KeyAction;
+import org.aesh.terminal.utils.ANSI;
 
 import java.io.IOException;
 
 import io.hyperfoil.cli.HyperfoilCli;
+import io.hyperfoil.core.util.Util;
 
 public class HyperfoilCommandInvocation implements CommandInvocation<HyperfoilCommandInvocation> {
 
@@ -125,5 +127,17 @@ public class HyperfoilCommandInvocation implements CommandInvocation<HyperfoilCo
    @Override
    public CommandInvocationConfiguration getConfiguration() {
       return commandInvocation.getConfiguration();
+   }
+
+   public void warn(String message) {
+      println(ANSI.YELLOW_TEXT + "WARNING: " + message + ANSI.RESET);
+   }
+
+   public void error(String message) {
+      println(ANSI.RED_TEXT + "ERROR: " + message + ANSI.RESET);
+   }
+
+   public void error(Throwable t) {
+      error(Util.explainCauses(t));
    }
 }

@@ -33,6 +33,24 @@ class BenchmarkRefImpl implements Client.BenchmarkRef {
    }
 
    @Override
+   public Client.BenchmarkSource source() {
+      return client.sync(
+            handler -> client.client.request(HttpMethod.GET, "/benchmark/" + encode(name))
+                  .putHeader(HttpHeaders.ACCEPT.toString(), "text/vnd.yaml")
+                  .send(handler), 0,
+            response -> {
+               if (response.statusCode() == 200) {
+                  return new Client.BenchmarkSource(response.bodyAsString(), response.getHeader(HttpHeaders.ETAG.toString()));
+               } else if (response.statusCode() == 406) {
+                  return null;
+               } else {
+                  throw RestClient.unexpected(response);
+               }
+            }
+      );
+   }
+
+   @Override
    public Benchmark get() {
       return client.sync(
             handler -> client.client.request(HttpMethod.GET, "/benchmark/" + encode(name))

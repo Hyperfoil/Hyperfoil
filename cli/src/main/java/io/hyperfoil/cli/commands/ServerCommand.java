@@ -114,10 +114,10 @@ public abstract class ServerCommand implements Command<HyperfoilCommandInvocatio
          }
          ctx.setOnline(true);
          if (!quiet && version.serverTime != null && (version.serverTime.getTime() < preMillis || version.serverTime.getTime() > postMillis)) {
-            invocation.println(ANSI.YELLOW_TEXT + "WARNING: Controller time seems to be off by " + (postMillis + preMillis - 2 * version.serverTime.getTime()) / 2 + " ms" + ANSI.RESET);
+            invocation.warn("Controller time seems to be off by " + (postMillis + preMillis - 2 * version.serverTime.getTime()) / 2 + " ms");
          }
          if (!quiet && !Objects.equals(version.commitId, io.hyperfoil.api.Version.COMMIT_ID)) {
-            invocation.println(ANSI.YELLOW_TEXT + "WARNING: Controller version is different from CLI version. Benchmark upload may fail due to binary incompatibility." + ANSI.RESET);
+            invocation.warn("Controller version is different from CLI version. Benchmark upload may fail due to binary incompatibility.");
          }
          String shortHost = host;
          if (host.equals(invocation.context().localControllerHost()) && port == invocation.context().localControllerPort()) {
@@ -151,7 +151,7 @@ public abstract class ServerCommand implements Command<HyperfoilCommandInvocatio
       } catch (RestClientException e) {
          ctx.client().close();
          ctx.setClient(null);
-         invocation.println("ERROR: " + Util.explainCauses(e));
+         invocation.error(e);
          throw new CommandException("Failed connecting to " + host + ":" + port, e);
       }
    }

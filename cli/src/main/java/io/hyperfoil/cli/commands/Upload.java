@@ -1,6 +1,7 @@
 package io.hyperfoil.cli.commands;
 
 import java.io.IOException;
+import java.util.ArrayList;
 
 import org.aesh.command.CommandDefinition;
 import org.aesh.command.CommandException;
@@ -10,13 +11,14 @@ import org.aesh.io.Resource;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
-import io.hyperfoil.cli.Util;
 import io.hyperfoil.cli.context.HyperfoilCliContext;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.client.RestClientException;
+import io.hyperfoil.controller.Client;
 import io.hyperfoil.core.impl.LocalBenchmarkData;
 import io.hyperfoil.core.parser.BenchmarkParser;
 import io.hyperfoil.core.parser.ParserException;
+import io.hyperfoil.core.util.Util;
 
 @CommandDefinition(name = "upload", description = "Uploads benchmark definition to Hyperfoil Controller server")
 public class Upload extends ServerCommand {
@@ -30,21 +32,30 @@ public class Upload extends ServerCommand {
       HyperfoilCliContext ctx = invocation.context();
       Benchmark benchmark;
       try {
-         benchmark = BenchmarkParser.instance().buildBenchmark(io.hyperfoil.core.util.Util.toString(Util.sanitize(benchmarkResource).read()), new LocalBenchmarkData());
+         benchmark = BenchmarkParser.instance().buildBenchmark(Util.toString(io.hyperfoil.cli.Util.sanitize(benchmarkResource).read()), new LocalBenchmarkData());
       } catch (ParserException | BenchmarkDefinitionException e) {
-         invocation.println("ERROR: " + io.hyperfoil.core.util.Util.explainCauses(e));
+         invocation.error(e);
          throw new CommandException("Failed to parse the benchmark.", e);
       } catch (IOException e) {
-         invocation.println("ERROR: " + io.hyperfoil.core.util.Util.explainCauses(e));
+         invocation.error(e);
          throw new CommandException("Failed to load the benchmark.", e);
       }
       invocation.println("Loaded benchmark " + benchmark.name() + ", uploading...");
+      // Note: we are loading and serializing the benchmark here just to fail fast - actual upload
+      // will be done in text+binary form to avoid the pain with syncing client and server
       try {
-         ctx.setServerBenchmark(ctx.client().register(benchmark, null));
+         io.hyperfoil.util.Util.serialize(benchmark);
+      } catch (IOException e) {
+         invocation.error("Failed to serialize the benchmark: " + Util.explainCauses(e));
+      }
+      try {
+         Client.BenchmarkRef benchmarkRef = ctx.client().register(
+               benchmarkResource.getAbsolutePath(), new ArrayList<>(benchmark.files().keySet()), null);
+         ctx.setServerBenchmark(benchmarkRef);
          invocation.println("... done.");
          return CommandResult.SUCCESS;
       } catch (RestClientException e) {
-         invocation.println("ERROR: " + io.hyperfoil.core.util.Util.explainCauses(e));
+         invocation.error(e);
          throw new CommandException("Failed to upload the benchmark.", e);
       }
    }

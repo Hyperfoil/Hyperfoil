@@ -20,6 +20,8 @@ import io.hyperfoil.controller.model.Version;
 public interface Client {
    BenchmarkRef register(Benchmark benchmark, String prevVersion);
 
+   BenchmarkRef register(String benchmarkFile, List<String> otherFiles, String prevVersion);
+
    List<String> benchmarks();
 
    BenchmarkRef benchmark(String name);
@@ -41,9 +43,21 @@ public interface Client {
    interface BenchmarkRef {
       String name();
 
+      BenchmarkSource source();
+
       Benchmark get();
 
       RunRef start(String description);
+   }
+
+   class BenchmarkSource {
+      public final String source;
+      public final String version;
+
+      public BenchmarkSource(String source, String version) {
+         this.source = source;
+         this.version = version;
+      }
    }
 
    interface RunRef {
