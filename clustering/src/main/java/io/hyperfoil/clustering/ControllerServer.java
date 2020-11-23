@@ -25,9 +25,11 @@ import java.util.stream.Collectors;
 
 import io.hyperfoil.api.Version;
 import io.hyperfoil.api.config.Benchmark;
+import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.BenchmarkData;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Phase;
+import io.hyperfoil.clustering.util.PersistedBenchmarkData;
 import io.hyperfoil.controller.ApiService;
 import io.hyperfoil.controller.model.CustomStats;
 import io.hyperfoil.controller.model.Histogram;
@@ -39,6 +41,7 @@ import io.hyperfoil.core.parser.ParserException;
 import io.hyperfoil.core.util.CountDown;
 import io.hyperfoil.core.util.LowHigh;
 import io.hyperfoil.core.util.Util;
+import io.hyperfoil.internal.Controller;
 import io.hyperfoil.internal.Properties;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
@@ -140,8 +143,8 @@ class ControllerServer implements ApiService {
    }
 
    @Override
-   public void addBenchmark$application_json(RoutingContext ctx, String ifMatch) {
-      addBenchmark$text_vnd_yaml(ctx, ifMatch);
+   public void addBenchmark$application_json(RoutingContext ctx, String ifMatch, boolean useStoredFiles) {
+      addBenchmark$text_vnd_yaml(ctx, ifMatch, useStoredFiles);
    }
 
    private void addBenchmarkAndReply(RoutingContext ctx, Benchmark benchmark, String prevVersion) {
@@ -173,15 +176,18 @@ class ControllerServer implements ApiService {
    }
 
    @Override
-   public void addBenchmark$text_vnd_yaml(RoutingContext ctx, String ifMatch) {
+   public void addBenchmark$text_vnd_yaml(RoutingContext ctx, String ifMatch, boolean useStoredFiles) {
       String source = ctx.getBodyAsString();
       if (source == null || source.isEmpty()) {
          log.error("Benchmark is empty, upload failed.");
          ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end("Benchmark is empty.");
       }
       try {
-         Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(source, BenchmarkData.EMPTY);
-         addBenchmarkAndReply(ctx, benchmark, ifMatch);
+         BenchmarkBuilder builder = BenchmarkParser.instance().builder(source, BenchmarkData.EMPTY);
+         if (useStoredFiles) {
+            builder.data(new PersistedBenchmarkData(Controller.BENCHMARK_DIR.resolve(builder.name() + ".data")));
+         }
+         addBenchmarkAndReply(ctx, builder.build(), ifMatch);
       } catch (ParserException | BenchmarkDefinitionException e) {
          respondParsingError(ctx, e);
       }
@@ -193,7 +199,10 @@ class ControllerServer implements ApiService {
    }
 
    @Override
-   public void addBenchmark$application_java_serialized_object(RoutingContext ctx, String ifMatch) {
+   public void addBenchmark$application_java_serialized_object(RoutingContext ctx, String ifMatch, boolean useStoredData) {
+      if (useStoredData) {
+         log.warn("Ignoring parameter useStoredData for serialized benchmark upload.");
+      }
       byte[] bytes = ctx.getBody().getBytes();
       try {
          Benchmark benchmark = io.hyperfoil.util.Util.deserialize(bytes);
@@ -214,7 +223,7 @@ class ControllerServer implements ApiService {
    }
 
    @Override
-   public void addBenchmark$multipart_form_data(RoutingContext ctx, String ifMatch) {
+   public void addBenchmark$multipart_form_data(RoutingContext ctx, String ifMatch, boolean useStoredFiles) {
       String source = null;
       RequestBenchmarkData data = new RequestBenchmarkData();
       for (FileUpload upload : ctx.fileUploads()) {
@@ -241,8 +250,25 @@ class ControllerServer implements ApiService {
          return;
       }
       try {
-         Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(source, data);
-         addBenchmarkAndReply(ctx, benchmark, ifMatch);
+         BenchmarkBuilder builder = BenchmarkParser.instance().builder(source, data);
+         if (useStoredFiles) {
+            Path dataDirPath = Controller.BENCHMARK_DIR.resolve(builder.name() + ".data");
+            log.info("Trying to use stored files from {}, adding files from request: {}", dataDirPath, data.files().keySet());
+            if (!data.files().isEmpty()) {
+               File dataDir = dataDirPath.toFile();
+               dataDir.mkdirs();
+               if (dataDir.exists() && dataDir.isDirectory()) {
+                  try {
+                     PersistedBenchmarkData.store(data.files(), dataDirPath);
+                  } catch (IOException e) {
+                     ctx.response().setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code())
+                           .end("Failed to store benchmark files.");
+                  }
+               }
+            }
+            builder.data(new PersistedBenchmarkData(dataDirPath));
+         }
+         addBenchmarkAndReply(ctx, builder.build(), ifMatch);
       } catch (ParserException | BenchmarkDefinitionException e) {
          respondParsingError(ctx, e);
       }

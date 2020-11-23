@@ -18,6 +18,12 @@ public class PersistedBenchmarkData implements BenchmarkData {
    private static final Logger log = LoggerFactory.getLogger(PersistedBenchmarkData.class);
    private final Path dir;
 
+   public static void store(Map<String, byte[]> files, Path dir) throws IOException {
+      for (Map.Entry<String, byte[]> entry : files.entrySet()) {
+         Files.write(dir.resolve(sanitize(entry.getKey())), entry.getValue());
+      }
+   }
+
    public PersistedBenchmarkData(Path dir) {
       this.dir = dir;
    }

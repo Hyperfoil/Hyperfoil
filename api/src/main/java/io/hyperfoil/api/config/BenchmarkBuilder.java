@@ -40,7 +40,7 @@ import io.hyperfoil.impl.FutureSupplier;
 public class BenchmarkBuilder {
 
    private final String originalSource;
-   private final BenchmarkData data;
+   private BenchmarkData data;
    private String name;
    private Map<String, String> defaultAgentProperties = Collections.emptyMap();
    private Collection<Agent> agents = new ArrayList<>();
@@ -82,6 +82,10 @@ public class BenchmarkBuilder {
    public BenchmarkBuilder name(String name) {
       this.name = name;
       return this;
+   }
+
+   public String name() {
+      return name;
    }
 
    public BenchmarkBuilder addAgent(String name, String inlineConfig, Map<String, String> properties) {
@@ -278,6 +282,11 @@ public class BenchmarkBuilder {
 
    public BenchmarkData data() {
       return data;
+   }
+
+   public BenchmarkBuilder data(BenchmarkData data) {
+      this.data = data;
+      return this;
    }
 
    public BenchmarkBuilder setDefaultAgentProperties(Map<String, String> properties) {

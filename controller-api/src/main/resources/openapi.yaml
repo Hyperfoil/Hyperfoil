@@ -52,6 +52,11 @@ paths:
         description: If we are updating an existing benchmark, expected previous version.
         schema:
           type: string
+      - in: query
+        name: useStoredFiles
+        description: Use previously uploaded extra files rather than loading them from multi-part upload.
+        schema:
+          type: boolean
       requestBody:
         content:
           application/json:

@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Map;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkData;
@@ -47,29 +46,27 @@ public class PersistenceUtil {
             log.error("Failed to persist benchmark {} to {}", e, benchmark.name(), path);
          }
          Path dataDirPath = dir.resolve(benchmark.name() + ".data");
-         if (!benchmark.files().isEmpty()) {
-            File dataDir = dataDirPath.toFile();
-            if (dataDir.exists()) {
-               // Make sure the directory is empty
-               for (String file : dataDir.list()) {
-                  if (!dataDirPath.resolve(file).toFile().delete()) {
-                     log.warn("Could not delete old file {}/{}", dataDirPath, file);
-                  }
+         File dataDir = dataDirPath.toFile();
+         if (dataDir.exists()) {
+            // Make sure the directory is empty
+            for (File file : dataDir.listFiles()) {
+               if (file.delete()) {
+                  log.warn("Could not delete old file {}", file);
                }
-            } else {
-               if (!dataDir.mkdir()) {
-                  log.error("Couldn't create data dir {}", dataDir);
-                  return;
-               }
+            }
+            if (benchmark.files().isEmpty()) {
+               dataDir.delete();
+            }
+         } else if (!dataDir.exists() && !benchmark.files().isEmpty()) {
+            if (!dataDir.mkdir()) {
+               log.error("Couldn't create data dir {}", dataDir);
+               return;
             }
          }
-         for (Map.Entry<String, byte[]> entry : benchmark.files().entrySet()) {
-            try {
-               String sanitizedName = PersistedBenchmarkData.sanitize(entry.getKey());
-               Files.write(dataDirPath.resolve(sanitizedName), entry.getValue());
-            } catch (IOException e) {
-               log.error("Couldn't persist data file {}", e, entry.getKey());
-            }
+         try {
+            PersistedBenchmarkData.store(benchmark.files(), dataDirPath);
+         } catch (IOException e) {
+            log.error("Couldn't persist files for benchmark {}", e, benchmark.name());
          }
       }
    }
