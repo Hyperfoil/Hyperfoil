@@ -143,8 +143,8 @@ class ControllerServer implements ApiService {
    }
 
    @Override
-   public void addBenchmark$application_json(RoutingContext ctx, String ifMatch, boolean useStoredFiles) {
-      addBenchmark$text_vnd_yaml(ctx, ifMatch, useStoredFiles);
+   public void addBenchmark$application_json(RoutingContext ctx, String ifMatch, String storedFilesBenchmark) {
+      addBenchmark$text_vnd_yaml(ctx, ifMatch, storedFilesBenchmark);
    }
 
    private void addBenchmarkAndReply(RoutingContext ctx, Benchmark benchmark, String prevVersion) {
@@ -176,7 +176,7 @@ class ControllerServer implements ApiService {
    }
 
    @Override
-   public void addBenchmark$text_vnd_yaml(RoutingContext ctx, String ifMatch, boolean useStoredFiles) {
+   public void addBenchmark$text_vnd_yaml(RoutingContext ctx, String ifMatch, String storedFilesBenchmark) {
       String source = ctx.getBodyAsString();
       if (source == null || source.isEmpty()) {
          log.error("Benchmark is empty, upload failed.");
@@ -184,8 +184,9 @@ class ControllerServer implements ApiService {
       }
       try {
          BenchmarkBuilder builder = BenchmarkParser.instance().builder(source, BenchmarkData.EMPTY);
-         if (useStoredFiles) {
-            builder.data(new PersistedBenchmarkData(Controller.BENCHMARK_DIR.resolve(builder.name() + ".data")));
+         if (storedFilesBenchmark != null) {
+            storedFilesBenchmark = PersistedBenchmarkData.sanitize(storedFilesBenchmark);
+            builder.data(new PersistedBenchmarkData(Controller.BENCHMARK_DIR.resolve(storedFilesBenchmark + ".data")));
          }
          addBenchmarkAndReply(ctx, builder.build(), ifMatch);
       } catch (ParserException | BenchmarkDefinitionException e) {
@@ -199,8 +200,8 @@ class ControllerServer implements ApiService {
    }
 
    @Override
-   public void addBenchmark$application_java_serialized_object(RoutingContext ctx, String ifMatch, boolean useStoredData) {
-      if (useStoredData) {
+   public void addBenchmark$application_java_serialized_object(RoutingContext ctx, String ifMatch, String storedFilesBenchmark) {
+      if (storedFilesBenchmark != null) {
          log.warn("Ignoring parameter useStoredData for serialized benchmark upload.");
       }
       byte[] bytes = ctx.getBody().getBytes();
@@ -223,7 +224,7 @@ class ControllerServer implements ApiService {
    }
 
    @Override
-   public void addBenchmark$multipart_form_data(RoutingContext ctx, String ifMatch, boolean useStoredFiles) {
+   public void addBenchmark$multipart_form_data(RoutingContext ctx, String ifMatch, String storedFilesBenchmark) {
       String source = null;
       RequestBenchmarkData data = new RequestBenchmarkData();
       for (FileUpload upload : ctx.fileUploads()) {
@@ -251,8 +252,10 @@ class ControllerServer implements ApiService {
       }
       try {
          BenchmarkBuilder builder = BenchmarkParser.instance().builder(source, data);
-         if (useStoredFiles) {
-            Path dataDirPath = Controller.BENCHMARK_DIR.resolve(builder.name() + ".data");
+         if (storedFilesBenchmark != null) {
+            // sanitize to prevent directory escape
+            storedFilesBenchmark = PersistedBenchmarkData.sanitize(storedFilesBenchmark);
+            Path dataDirPath = Controller.BENCHMARK_DIR.resolve(storedFilesBenchmark + ".data");
             log.info("Trying to use stored files from {}, adding files from request: {}", dataDirPath, data.files().keySet());
             if (!data.files().isEmpty()) {
                File dataDir = dataDirPath.toFile();

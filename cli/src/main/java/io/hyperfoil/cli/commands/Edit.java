@@ -149,7 +149,7 @@ public class Edit extends BenchmarkCommand {
          invocation.println("Uploading benchmark " + updated.name() + "...");
          List<String> fileList = filesToUpload.entrySet().stream()
                .filter(Map.Entry::getValue).map(Map.Entry::getKey).collect(Collectors.toList());
-         invocation.context().client().register(sourceFile.getAbsolutePath(), fileList, prevVersion, true);
+         invocation.context().client().register(sourceFile.getAbsolutePath(), fileList, prevVersion, benchmarkRef.name());
          sourceFile.delete();
       } catch (RestClientException e) {
          if (e.getCause() instanceof Client.EditConflictException) {

@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -40,6 +41,9 @@ public class PersistedBenchmarkData implements BenchmarkData {
 
    @Override
    public Map<String, byte[]> files() {
+      if (!dir.toFile().exists() || !dir.toFile().isDirectory()) {
+         return Collections.emptyMap();
+      }
       try {
          return Files.list(dir).collect(Collectors.toMap(path -> path.getFileName().toString(), (Path path) -> {
             try {
@@ -54,7 +58,7 @@ public class PersistedBenchmarkData implements BenchmarkData {
       }
    }
 
-   static String sanitize(String file) {
+   public static String sanitize(String file) {
       return file.replace(File.separatorChar, '_').replace(File.pathSeparatorChar, '_');
    }
 }

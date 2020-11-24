@@ -20,7 +20,7 @@ import io.hyperfoil.controller.model.Version;
 public interface Client {
    BenchmarkRef register(Benchmark benchmark, String prevVersion);
 
-   BenchmarkRef register(String benchmarkFile, List<String> otherFiles, String prevVersion, boolean useStoredFiles);
+   BenchmarkRef register(String benchmarkFile, List<String> otherFiles, String prevVersion, String storedFilesBenchmark);
 
    List<String> benchmarks();
 

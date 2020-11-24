@@ -53,10 +53,10 @@ paths:
         schema:
           type: string
       - in: query
-        name: useStoredFiles
-        description: Use previously uploaded extra files rather than loading them from multi-part upload.
+        name: storedFilesBenchmark
+        description: Name of previously uploaded benchmark where extra files should be loaded from during multi-part upload. Usually this is the same benchmark unless it is being renamed.
         schema:
-          type: boolean
+          type: string
       requestBody:
         content:
           application/json:

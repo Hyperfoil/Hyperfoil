@@ -50,7 +50,7 @@ public class Upload extends ServerCommand {
       }
       try {
          Client.BenchmarkRef benchmarkRef = ctx.client().register(
-               benchmarkResource.getAbsolutePath(), new ArrayList<>(benchmark.files().keySet()), null, false);
+               benchmarkResource.getAbsolutePath(), new ArrayList<>(benchmark.files().keySet()), null, null);
          ctx.setServerBenchmark(benchmarkRef);
          invocation.println("... done.");
          return CommandResult.SUCCESS;

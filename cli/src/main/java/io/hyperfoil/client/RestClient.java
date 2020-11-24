@@ -93,7 +93,7 @@ public class RestClient implements Client, Closeable {
    }
 
    @Override
-   public BenchmarkRef register(String benchmarkFile, List<String> otherFiles, String prevVersion, boolean useStoredFiles) {
+   public BenchmarkRef register(String benchmarkFile, List<String> otherFiles, String prevVersion, String storedFilesBenchmark) {
       return sync(
             handler -> {
                MultipartForm multipart = MultipartForm.create()
@@ -103,8 +103,8 @@ public class RestClient implements Client, Closeable {
                   multipart.binaryFileUpload(filename, file, file, "application/octet-stream");
                }
                HttpRequest<Buffer> request = client.request(HttpMethod.POST, "/benchmark");
-               if (useStoredFiles) {
-                  request.addQueryParam("useStoredFiles", "true");
+               if (storedFilesBenchmark != null) {
+                  request.addQueryParam("storedFilesBenchmark", storedFilesBenchmark);
                }
                if (prevVersion != null) {
                   request.putHeader(HttpHeaders.IF_MATCH.toString(), prevVersion);
