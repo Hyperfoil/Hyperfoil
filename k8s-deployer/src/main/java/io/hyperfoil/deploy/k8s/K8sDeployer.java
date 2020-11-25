@@ -121,7 +121,7 @@ public class K8sDeployer implements Deployer {
       int threads = agent.threads() < 0 ? benchmark.defaultThreads() : agent.threads();
       ContainerBuilder containerBuilder = new ContainerBuilder()
             .withImage(agent.properties.getOrDefault("image", DEFAULT_IMAGE))
-            .withImagePullPolicy("Always")
+            .withImagePullPolicy(agent.properties.getOrDefault("imagePullPolicy", "Always"))
             .withName("hyperfoil-agent")
             .withPorts(new ContainerPort(7800, null, null, "jgroups", "TCP"))
             .withNewResources()
