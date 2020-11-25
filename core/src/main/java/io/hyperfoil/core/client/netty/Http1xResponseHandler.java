@@ -3,7 +3,6 @@ package io.hyperfoil.core.client.netty;
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.connection.HttpConnection;
 import io.hyperfoil.api.http.HttpResponseHandlers;
-import io.hyperfoil.api.session.SessionStopException;
 import io.hyperfoil.core.util.Util;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
@@ -446,11 +445,6 @@ public class Http1xResponseHandler extends BaseResponseHandler {
          request.enter();
          try {
             handlers.handleStatus(request, status, null); // TODO parse reason
-         } catch (SessionStopException e) {
-            log.trace("Stopped processing as the session was stopped.");
-         } catch (Throwable t) {
-            log.error("Response processing failed on {}", t, this);
-            handlers.handleThrowable(request, t);
          } finally {
             request.exit();
          }
@@ -476,11 +470,6 @@ public class Http1xResponseHandler extends BaseResponseHandler {
             String name = Util.toString(buf, startOfName, endOfName - startOfName);
             String value = Util.toString(buf, startOfValue, endOfValue - startOfValue);
             handlers.handleHeader(request, name, value);
-         } catch (SessionStopException e) {
-            log.trace("Stopped processing as the session was stopped.");
-         } catch (Throwable t) {
-            log.error("Response processing failed on {}", t, this);
-            handlers.handleThrowable(request, t);
          } finally {
             request.exit();
          }
@@ -500,11 +489,6 @@ public class Http1xResponseHandler extends BaseResponseHandler {
          request.enter();
          try {
             handlers.handleBodyPart(request, buf, startOffset, length, isLastPart);
-         } catch (SessionStopException e) {
-            log.trace("Stopped processing as the session was stopped.");
-         } catch (Throwable t) {
-            log.error("Response processing failed on {}", t, this);
-            handlers.handleThrowable(request, t);
          } finally {
             request.exit();
          }
@@ -523,11 +507,6 @@ public class Http1xResponseHandler extends BaseResponseHandler {
             if (trace) {
                log.trace("Completed response on {}", this);
             }
-         } catch (SessionStopException e) {
-            log.trace("Stopped processing as the session was stopped.");
-         } catch (Throwable t) {
-            log.error("Response processing failed on {}", t, this);
-            request.handlers().handleThrowable(request, t);
          } finally {
             request.exit();
          }

@@ -101,6 +101,16 @@ public class Statistics {
       }
    }
 
+   public void incrementInternalErrors(long timestamp) {
+      long criticalValueAtEnter = recordingPhaser.writerCriticalSectionEnter();
+      try {
+         StatisticsSnapshot active = active(timestamp);
+         active.internalErrors++;
+      } finally {
+         recordingPhaser.writerCriticalSectionExit(criticalValueAtEnter);
+      }
+   }
+
    public void incrementBlockedCount(long timestamp) {
       long criticalValueAtEnter = recordingPhaser.writerCriticalSectionEnter();
       try {

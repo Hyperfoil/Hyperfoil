@@ -3,6 +3,7 @@ package io.hyperfoil.api.connection;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 
+import io.hyperfoil.api.http.HttpVersion;
 import io.netty.buffer.ByteBuf;
 import io.hyperfoil.api.session.Session;
 
@@ -25,6 +26,8 @@ public interface HttpConnection extends Connection {
    void removeRequest(int streamId, HttpRequest request);
 
    boolean isSecure();
+
+   HttpVersion version();
 
    enum Status {
       OPEN,

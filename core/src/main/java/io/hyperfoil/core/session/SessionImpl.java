@@ -384,9 +384,16 @@ class SessionImpl implements Session, Callable<Void> {
       if (!requestPool.isFull()) {
          for (HttpRequest request : requests) {
             if (!request.isCompleted()) {
+               // When one of the handlers calls Session.stop() it may terminate the phase completely,
+               // sending stats before recording the invalid request in HttpResponseHandlersImpl.handleEnd().
+               // That's why we record it here instead and mark the request as completed (to recording the stats twice)
+               if (!request.isValid()) {
+                  request.statistics().addInvalid(request.startTimestampMillis());
+               }
                if (trace) {
                   log.trace("Canceling request on {}", request.connection());
                }
+               request.setCompleting();
                if (request.connection() != null) {
                   request.connection().close();
                }

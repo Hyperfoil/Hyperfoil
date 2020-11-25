@@ -26,6 +26,7 @@ public class StatisticsSummary {
    public final int cacheHits;
    public final int resetCount;
    public final int timeouts;
+   public final int internalErrors;
    public final int blockedCount;
    public final long blockedTime;
 
@@ -49,6 +50,7 @@ public class StatisticsSummary {
                             @JsonProperty("cacheHits") int cacheHits,
                             @JsonProperty("resetCount") int resetCount,
                             @JsonProperty("timeouts") int timeouts,
+                            @JsonProperty("internalErrors") int internalErrors,
                             @JsonProperty("blockedCount") int blockedCount,
                             @JsonProperty("blockedTime") long blockedTime) {
       this.startTime = startTime;
@@ -70,6 +72,7 @@ public class StatisticsSummary {
       this.cacheHits = cacheHits;
       this.resetCount = resetCount;
       this.timeouts = timeouts;
+      this.internalErrors = internalErrors;
       this.blockedCount = blockedCount;
       this.blockedTime = blockedTime;
    }
@@ -81,7 +84,7 @@ public class StatisticsSummary {
          writer.print(p * 100);
          writer.print(',');
       }
-      writer.print("Max,MeanSendTime,ConnFailure,Reset,Timeouts,2xx,3xx,4xx,5xx,Other,Invalid,CacheHits,BlockedCount,BlockedTime");
+      writer.print("Max,MeanSendTime,ConnFailure,Reset,Timeouts,2xx,3xx,4xx,5xx,Other,Invalid,CacheHits,BlockedCount,BlockedTime,InternalErrors");
    }
 
    public void printTo(PrintWriter writer) {
@@ -124,5 +127,7 @@ public class StatisticsSummary {
       writer.print(blockedCount);
       writer.print(',');
       writer.print(blockedTime);
+      writer.print(',');
+      writer.print(internalErrors);
    }
 }

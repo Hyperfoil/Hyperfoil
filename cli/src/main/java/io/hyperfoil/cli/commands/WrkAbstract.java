@@ -327,7 +327,7 @@ public abstract class WrkAbstract {
          }
          invocation.println(stats.requestCount + " requests in " + durationSeconds + "s, " + Util.prettyPrintData(dataSent + dataReceived) + " read");
          invocation.println("Requests/sec: " + String.format("%.02f", stats.requestCount / durationSeconds));
-         if (stats.connectFailureCount + stats.resetCount + stats.timeouts + stats.status_4xx + stats.status_5xx > 0) {
+         if (stats.connectFailureCount + stats.resetCount + stats.timeouts + stats.internalErrors + stats.status_4xx + stats.status_5xx > 0) {
             invocation.println("Socket errors: connect " + stats.connectFailureCount + ", reset " + stats.resetCount + ", timeout " + stats.timeouts);
             invocation.println("Non-2xx or 3xx responses: " + stats.status_4xx + stats.status_5xx + stats.status_other);
          }

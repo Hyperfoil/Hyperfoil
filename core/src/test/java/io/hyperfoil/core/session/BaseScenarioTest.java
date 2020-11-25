@@ -63,7 +63,7 @@ public abstract class BaseScenarioTest {
       initRouter();
       HttpServerOptions options = new HttpServerOptions();
       if (useHttps()) {
-         options.setSsl(true).setKeyStoreOptions(new JksOptions().setPath("keystore.jks").setPassword("test123"));
+         options.setSsl(true).setUseAlpn(true).setKeyStoreOptions(new JksOptions().setPath("keystore.jks").setPassword("test123"));
       }
       server = vertx.createHttpServer(options).requestHandler(router)
             .listen(0, "localhost", ctx.asyncAssertSuccess(srv -> initWithServer(ctx)));

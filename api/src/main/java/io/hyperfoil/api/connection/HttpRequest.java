@@ -73,15 +73,9 @@ public class HttpRequest extends Request {
 
    public void handleCached() {
       statistics().addCacheHit(startTimestampMillis());
-      HttpConnection connection = connection();
       enter();
       try {
          handlers.handleEnd(this, false);
-      } catch (SessionStopException e) {
-         throw e;
-      } catch (Throwable t) {
-         log.error("{} Cached response processing failed on {}", t, session.uniqueId(), connection);
-         handlers.handleThrowable(this, t);
       } finally {
          exit();
          release();
@@ -90,7 +84,7 @@ public class HttpRequest extends Request {
    }
 
    public void cancel(Throwable cause) {
-      if (!isCompleted()) {
+      if (isRunning()) {
          enter();
          try {
             handlers.handleThrowable(this, cause);

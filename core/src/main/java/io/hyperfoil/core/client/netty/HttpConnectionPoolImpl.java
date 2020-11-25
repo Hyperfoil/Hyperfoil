@@ -196,9 +196,9 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
             if (err != null) {
                count--;
                failures++;
-               log.warn("Cannot create connection to {} (created: {}, failures: {})", err, clientPool.authority, created, failures);
                // scheduling task when the executor is shut down causes errors
                if (!eventLoop.isShuttingDown() && !eventLoop.isShutdown()) {
+                  log.warn("Cannot create connection to {} (created: {}, failures: {})", err, clientPool.authority, created, failures);
                   eventLoop.execute(this::checkCreateConnections);
                }
             } else {

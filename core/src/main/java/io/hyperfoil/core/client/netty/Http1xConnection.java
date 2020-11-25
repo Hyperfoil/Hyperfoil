@@ -1,6 +1,8 @@
 package io.hyperfoil.core.client.netty;
 
 import io.hyperfoil.api.connection.HttpRequest;
+import io.hyperfoil.api.http.HttpVersion;
+import io.hyperfoil.api.session.SessionStopException;
 import io.hyperfoil.core.util.Util;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelPromise;
@@ -76,8 +78,12 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
 
    @Override
    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-      log.warn("Exception in {}", cause, this);
-      cancelRequests(cause);
+      if (cause instanceof SessionStopException) {
+         // ignore
+      } else {
+         log.warn("Exception in {}", cause, this);
+         cancelRequests(cause);
+      }
       ctx.close();
    }
 
@@ -212,6 +218,11 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    @Override
    public boolean isSecure() {
       return secure;
+   }
+
+   @Override
+   public HttpVersion version() {
+      return HttpVersion.HTTP_1_1;
    }
 
    @Override

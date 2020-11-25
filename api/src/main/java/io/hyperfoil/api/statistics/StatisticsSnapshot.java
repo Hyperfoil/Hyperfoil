@@ -28,6 +28,7 @@ public class StatisticsSnapshot implements Serializable {
    public int cacheHits;
    public int resetCount;
    public int timeouts;
+   public int internalErrors;
    public int blockedCount;
    public long blockedTime;
    public final Map<Object, CustomValue> custom = new HashMap<>();
@@ -39,7 +40,7 @@ public class StatisticsSnapshot implements Serializable {
    public boolean isEmpty() {
       return connectFailureCount + requestCount + responseCount +
             status_2xx + status_3xx + status_4xx + status_5xx + status_other +
-            invalid + cacheHits + resetCount + timeouts + blockedCount == 0 &&
+            invalid + cacheHits + resetCount + timeouts + internalErrors + blockedCount == 0 &&
             custom.values().stream().allMatch(CustomValue::isNull);
    }
 
@@ -58,6 +59,7 @@ public class StatisticsSnapshot implements Serializable {
       cacheHits = 0;
       resetCount = 0;
       timeouts = 0;
+      internalErrors = 0;
       blockedCount = 0;
       blockedTime = 0;
       for (CustomValue value : custom.values()) {
@@ -89,6 +91,7 @@ public class StatisticsSnapshot implements Serializable {
       target.cacheHits = cacheHits;
       target.resetCount = resetCount;
       target.timeouts = timeouts;
+      target.internalErrors = internalErrors;
       target.blockedCount = blockedCount;
       target.blockedTime = blockedTime;
       for (Object key : custom.keySet()) {
@@ -124,6 +127,7 @@ public class StatisticsSnapshot implements Serializable {
       target.cacheHits += cacheHits;
       target.resetCount += resetCount;
       target.timeouts += timeouts;
+      target.internalErrors += internalErrors;
       target.blockedCount += blockedCount;
       target.blockedTime += blockedTime;
       for (Object key : custom.keySet()) {
@@ -165,6 +169,7 @@ public class StatisticsSnapshot implements Serializable {
       target.cacheHits -= cacheHits;
       target.resetCount -= resetCount;
       target.timeouts -= timeouts;
+      target.internalErrors -= internalErrors;
       target.blockedCount -= blockedCount;
       target.blockedTime -= blockedTime;
       for (Object key : custom.keySet()) {
@@ -192,13 +197,11 @@ public class StatisticsSnapshot implements Serializable {
             histogram.getMinValue(), (long) histogram.getMean(), histogram.getMaxValue(),
             responseCount > 0 ? totalSendTime / responseCount : resetCount,
             percentilesMap, connectFailureCount, requestCount, responseCount,
-            status_2xx, status_3xx, status_4xx, status_5xx, status_other, invalid, cacheHits, resetCount, timeouts, blockedCount, blockedTime);
+            status_2xx, status_3xx, status_4xx, status_5xx, status_other, invalid, cacheHits, resetCount, timeouts, internalErrors, blockedCount, blockedTime);
    }
 
    public long errors() {
-      // TODO
-
-      return status_4xx + status_5xx + connectFailureCount + resetCount + timeouts;
+      return status_4xx + status_5xx + connectFailureCount + resetCount + timeouts + internalErrors;
    }
 
    @Override
@@ -220,6 +223,7 @@ public class StatisticsSnapshot implements Serializable {
             ", cacheHits=" + cacheHits +
             ", resetCount=" + resetCount +
             ", timeouts=" + timeouts +
+            ", internalErros=" + internalErrors +
             ", blockedCount=" + blockedCount +
             ", blockedTime=" + blockedTime +
             ", custom=" + custom +

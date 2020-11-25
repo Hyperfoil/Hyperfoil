@@ -51,8 +51,6 @@ public abstract class BaseResponseHandler extends ChannelInboundHandlerAdapter {
          request.enter();
          try {
             handlers.handleRawResponse(request, data, data.readerIndex(), data.readableBytes(), isLastPart);
-         } catch (Throwable t) {
-            handlers.handleThrowable(request, t);
          } finally {
             request.exit();
          }

@@ -258,9 +258,6 @@ public class HttpCacheImpl implements HttpCache {
             request.enter();
             try {
                request.handlers().handleStatus(request, 504, "Request was cache-only.");
-            } catch (Throwable t) {
-               log.error("Response processing failed on {}", t, this);
-               request.handlers().handleThrowable(request, t);
             } finally {
                request.exit();
                request.session.proceed();

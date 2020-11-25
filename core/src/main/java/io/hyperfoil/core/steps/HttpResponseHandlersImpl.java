@@ -88,43 +88,52 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          log.trace("#{} Received status {}: {}", session.uniqueId(), status, reason);
       }
 
-      switch (request.method) {
-         case GET:
-         case HEAD:
-            // TODO: should we store 203, 300, 301 and 410?
-            // TODO: partial response 206
-            if (status != 200) {
+      try {
+         switch (request.method) {
+            case GET:
+            case HEAD:
+               // TODO: should we store 203, 300, 301 and 410?
+               // TODO: partial response 206
+               if (status != 200) {
+                  request.cacheControl.noStore = true;
+               }
+               break;
+            case POST:
+            case PUT:
+            case DELETE:
+            case PATCH:
+               if (status >= 200 && status <= 399) {
+                  request.session.httpCache().invalidate(request.authority, request.path);
+                  request.cacheControl.invalidate = true;
+               }
                request.cacheControl.noStore = true;
-            }
-            break;
-         case POST:
-         case PUT:
-         case DELETE:
-         case PATCH:
-            if (status >= 200 && status <= 399) {
-               request.session.httpCache().invalidate(request.authority, request.path);
-               request.cacheControl.invalidate = true;
-            }
-            request.cacheControl.noStore = true;
-            break;
-      }
+               break;
+         }
 
-      request.statistics().addStatus(request.startTimestampMillis(), status);
-      if (statusHandlers != null) {
-         for (io.hyperfoil.api.http.StatusHandler handler : statusHandlers) {
-            handler.handleStatus(request, status);
+         request.statistics().addStatus(request.startTimestampMillis(), status);
+         if (statusHandlers != null) {
+            for (io.hyperfoil.api.http.StatusHandler handler : statusHandlers) {
+               handler.handleStatus(request, status);
+            }
          }
-      }
 
-      if (headerHandlers != null) {
-         for (HeaderHandler handler : headerHandlers) {
-            handler.beforeHeaders(request);
+         if (headerHandlers != null) {
+            for (HeaderHandler handler : headerHandlers) {
+               handler.beforeHeaders(request);
+            }
          }
-      }
-      if (bodyHandlers != null) {
-         for (Processor handler : bodyHandlers) {
-            handler.before(request.session);
+         if (bodyHandlers != null) {
+            for (Processor handler : bodyHandlers) {
+               handler.before(request.session);
+            }
          }
+      } catch (SessionStopException e) {
+         throw e;
+      } catch (Throwable t) {
+         log.error("#{} Response status processing failed on {}", t, session.uniqueId(), this);
+         request.statistics().incrementInternalErrors(request.startTimestampMillis());
+         request.markInvalid();
+         session.stop();
       }
    }
 
@@ -140,18 +149,27 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       if (trace) {
          log.trace("#{} Received header {}: {}", session.uniqueId(), header, value);
       }
-      if (request.cacheControl.invalidate) {
-         if (AsciiString.contentEqualsIgnoreCase(header, HttpHeaderNames.LOCATION)
-               || AsciiString.contentEqualsIgnoreCase(header, HttpHeaderNames.CONTENT_LOCATION)) {
-            session.httpCache().invalidate(request.authority, value);
+      try {
+         if (request.cacheControl.invalidate) {
+            if (AsciiString.contentEqualsIgnoreCase(header, HttpHeaderNames.LOCATION)
+                  || AsciiString.contentEqualsIgnoreCase(header, HttpHeaderNames.CONTENT_LOCATION)) {
+               session.httpCache().invalidate(request.authority, value);
+            }
          }
-      }
-      if (headerHandlers != null) {
-         for (HeaderHandler handler : headerHandlers) {
-            handler.handleHeader(request, header, value);
+         if (headerHandlers != null) {
+            for (HeaderHandler handler : headerHandlers) {
+               handler.handleHeader(request, header, value);
+            }
          }
+         request.session.httpCache().responseHeader(request, header, value);
+      } catch (SessionStopException e) {
+         throw e;
+      } catch (Throwable t) {
+         log.error("#{} Response header processing failed on {}", t, session.uniqueId(), this);
+         request.statistics().incrementInternalErrors(request.startTimestampMillis());
+         request.markInvalid();
+         session.stop();
       }
-      request.session.httpCache().responseHeader(request, header, value);
    }
 
    @Override
@@ -173,6 +191,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
 
       try {
          if (request.isRunning()) {
+            request.statistics().incrementResets(request.startTimestampMillis());
             request.setCompleting();
             if (completionHandlers != null) {
                for (Action handler : completionHandlers) {
@@ -183,11 +202,11 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       } catch (SessionStopException e) {
          throw e;
       } catch (Throwable t) {
-         log.warn("#{} Exception {} thrown while handling another exception: ", throwable, session.uniqueId(), t.toString());
          t.addSuppressed(throwable);
-         throw t;
+         log.error("#{} Exception {} thrown while handling another exception: ", t, session.uniqueId(), throwable.toString());
+         request.statistics().incrementInternalErrors(request.startTimestampMillis());
+         session.stop();
       } finally {
-         request.statistics().incrementResets(request.startTimestampMillis());
          request.setCompleted();
       }
    }
@@ -207,12 +226,21 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
                data.toString(offset, length, StandardCharsets.UTF_8));
       }
 
-      int dataStartIndex = data.readerIndex();
-      if (bodyHandlers != null) {
-         for (Processor handler : bodyHandlers) {
-            handler.process(request.session, data, offset, length, isLastPart);
-            data.readerIndex(dataStartIndex);
+      try {
+         int dataStartIndex = data.readerIndex();
+         if (bodyHandlers != null) {
+            for (Processor handler : bodyHandlers) {
+               handler.process(request.session, data, offset, length, isLastPart);
+               data.readerIndex(dataStartIndex);
+            }
          }
+      } catch (SessionStopException e) {
+         throw e;
+      } catch (Throwable t) {
+         log.error("#{} Response body processing failed on {}", t, session.uniqueId(), this);
+         request.statistics().incrementInternalErrors(request.startTimestampMillis());
+         request.markInvalid();
+         session.stop();
       }
    }
 
@@ -231,8 +259,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
 
       try {
          if (executed) {
-            long endTime = System.nanoTime();
-            request.statistics().recordResponse(request.startTimestampMillis(), request.sendTimestampNanos() - request.startTimestampNanos(), endTime - request.startTimestampNanos());
+            request.recordResponse(System.nanoTime());
 
             if (headerHandlers != null) {
                for (HeaderHandler handler : headerHandlers) {
@@ -255,8 +282,19 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
                }
             }
          }
+      } catch (SessionStopException e) {
+         throw e;
+      } catch (Throwable t) {
+         log.error("#{} Response completion failed on {}, stopping the session.", t, request.session.uniqueId(), this);
+         request.statistics().incrementInternalErrors(request.startTimestampMillis());
+         request.markInvalid();
+         session.stop();
       } finally {
-         if (executed && !request.isValid()) {
+         // When one of the handlers calls Session.stop() it may terminate the phase completely,
+         // sending stats before this finally-block may run. In that case this request gets completed
+         // when cancelling all the request (including the current request) and we record the invalid
+         // request directly there.
+         if (executed && !request.isValid() && !request.isCompleted()) {
             request.statistics().addInvalid(request.startTimestampMillis());
          }
          request.setCompleted();
@@ -268,8 +306,16 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       if (rawBytesHandlers == null) {
          return;
       }
-      for (RawBytesHandler rawBytesHandler : rawBytesHandlers) {
-         rawBytesHandler.onRequest(request, data, offset, length);
+      try {
+         for (RawBytesHandler rawBytesHandler : rawBytesHandlers) {
+            rawBytesHandler.onRequest(request, data, offset, length);
+         }
+      } catch (SessionStopException e) {
+         throw e;
+      } catch (Throwable t) {
+         log.error("#{} Raw request processing failed on {}", t, request.session.uniqueId(), this);
+         request.markInvalid();
+         request.session.stop();
       }
    }
 
@@ -278,8 +324,16 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       if (rawBytesHandlers == null) {
          return;
       }
-      for (RawBytesHandler rawBytesHandler : rawBytesHandlers) {
-         rawBytesHandler.onResponse(request, data, offset, length, isLastPart);
+      try {
+         for (RawBytesHandler rawBytesHandler : rawBytesHandlers) {
+            rawBytesHandler.onResponse(request, data, offset, length, isLastPart);
+         }
+      } catch (SessionStopException e) {
+         throw e;
+      } catch (Throwable t) {
+         log.error("#{} Raw response processing failed on {}", t, request.session.uniqueId(), this);
+         request.markInvalid();
+         request.session.stop();
       }
    }
 

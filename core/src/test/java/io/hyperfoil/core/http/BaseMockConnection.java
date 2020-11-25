@@ -8,6 +8,7 @@ import io.hyperfoil.api.connection.HttpConnection;
 import io.hyperfoil.api.connection.HttpConnectionPool;
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.connection.HttpRequestWriter;
+import io.hyperfoil.api.http.HttpVersion;
 import io.hyperfoil.api.session.Session;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
@@ -47,6 +48,11 @@ public class BaseMockConnection implements HttpConnection {
    @Override
    public boolean isSecure() {
       return false;
+   }
+
+   @Override
+   public HttpVersion version() {
+      return null;
    }
 
    @Override

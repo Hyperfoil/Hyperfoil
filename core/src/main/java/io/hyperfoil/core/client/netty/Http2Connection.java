@@ -7,7 +7,8 @@ import java.util.function.BiFunction;
 
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.connection.Request;
-import io.hyperfoil.api.session.SessionStopException;
+import io.hyperfoil.api.http.HttpVersion;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelPromise;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http2.DefaultHttp2Headers;
@@ -201,6 +202,11 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
       return secure;
    }
 
+   @Override
+   public HttpVersion version() {
+      return HttpVersion.HTTP_2_0;
+   }
+
    private int nextStreamId() {
       return connection.local().incrementAndGetNextStreamId();
    }
@@ -248,9 +254,9 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
                for (Map.Entry<CharSequence, CharSequence> header : headers) {
                   handlers.handleHeader(request, header.getKey(), header.getValue());
                }
-            } catch (Throwable t) {
-               log.error("Response processing failed on {}", t, this);
-               handlers.handleThrowable(request, t);
+               if (endStream) {
+                  handlers.handleBodyPart(request, Unpooled.EMPTY_BUFFER, 0, 0, true);
+               }
             } finally {
                request.exit();
             }
@@ -270,11 +276,6 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
             request.enter();
             try {
                handlers.handleBodyPart(request, data, data.readerIndex(), data.readableBytes(), endOfStream);
-            } catch (SessionStopException e) {
-               log.trace("Stopped processing as the session was stopped.");
-            } catch (Throwable t) {
-               log.error("Response processing failed on {}", t, this);
-               handlers.handleThrowable(request, t);
             } finally {
                request.exit();
             }
@@ -318,11 +319,6 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
                   if (trace) {
                      log.trace("Completed response on {}", this);
                   }
-               } catch (SessionStopException e) {
-                  log.trace("Stopped processing as the session was stopped.");
-               } catch (Throwable t) {
-                  log.error("Response processing failed on {}", t, this);
-                  request.handlers().handleThrowable(request, t);
                } finally {
                   request.exit();
                }
