@@ -10,7 +10,6 @@ import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 
 import io.hyperfoil.api.connection.HttpRequest;
-import io.hyperfoil.api.session.SessionStopException;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.EventLoop;
@@ -87,8 +86,8 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
             if (connection == null) {
                log.debug("No connection to {} available", clientPool.authority);
                if (failures > MAX_FAILURES) {
-                  log.error("The request cannot be made since the failures to connect to {} exceeded a threshold. Stopping session.");
-                  throw SessionStopException.INSTANCE;
+                  log.error("The request cannot be made since the failures to connect to {} exceeded a threshold. Stopping session.", clientPool.authority);
+                  request.session.stop();
                }
                return false;
             } else if (!connection.isClosed()) {
