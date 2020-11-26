@@ -175,6 +175,10 @@ public class CsvWriter {
          writer.println("Phase,Metric,Custom,Value");
          for (Data data : sorted) {
             StatisticsSnapshot snapshot = selector.apply(data);
+            if (snapshot == null) {
+               log.error("Missing statistics for {}/{} -> {}", data.phase, data.metric, fileName);
+               continue;
+            }
             for (Map.Entry<Object, CustomValue> entry : snapshot.custom.entrySet()) {
                writer.print(data.phase);
                writer.print(',');
