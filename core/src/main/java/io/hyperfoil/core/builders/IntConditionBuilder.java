@@ -13,7 +13,7 @@ public class IntConditionBuilder<B extends IntConditionBuilder<B, P>, P> impleme
    protected Integer lessOrEqualTo;
 
    protected static SerializableIntPredicate and(SerializableIntPredicate p1, SerializableIntPredicate p2) {
-      return p1 == null ? p2 : (p2 == null ? null : x -> p1.test(x) && p2.test(x));
+      return p1 == null ? p2 : (p2 == null ? null : new And(p1, p2));
    }
 
    public IntConditionBuilder() {
@@ -98,33 +98,120 @@ public class IntConditionBuilder<B extends IntConditionBuilder<B, P>, P> impleme
    protected SerializableIntPredicate buildPredicate() {
       SerializableIntPredicate predicate = null;
       if (equalTo != null) {
-         int val = equalTo;
-         predicate = v -> v == val;
+         predicate = new EqualTo(equalTo);
       }
       if (notEqualTo != null) {
-         int val = notEqualTo;
-         predicate = and(predicate, v -> v != val);
+         predicate = and(predicate, new NotEqualTo(notEqualTo));
       }
       if (greaterThan != null) {
-         int val = greaterThan;
-         predicate = and(predicate, v -> v > val);
+         predicate = and(predicate, new GreaterThan(greaterThan));
       }
       if (greaterOrEqualTo != null) {
-         int val = greaterOrEqualTo;
-         predicate = and(predicate, v -> v >= val);
+         predicate = and(predicate, new GreaterOrEqualTo(greaterOrEqualTo));
       }
       if (lessThan != null) {
-         int val = lessThan;
-         predicate = and(predicate, v -> v < val);
+         predicate = and(predicate, new LessThan(lessThan));
       }
       if (lessOrEqualTo != null) {
-         int val = lessOrEqualTo;
-         predicate = and(predicate, v -> v <= val);
+         predicate = and(predicate, new LessOrEqualTo(lessOrEqualTo));
       }
       return predicate;
    }
 
    public P end() {
       return parent;
+   }
+
+   private static class And implements SerializableIntPredicate {
+      private final SerializableIntPredicate p1;
+      private final SerializableIntPredicate p2;
+
+      public And(SerializableIntPredicate p1, SerializableIntPredicate p2) {
+         this.p1 = p1;
+         this.p2 = p2;
+      }
+
+      @Override
+      public boolean test(int x) {
+         return p1.test(x) && p2.test(x);
+      }
+   }
+
+   private static class EqualTo implements SerializableIntPredicate {
+      private final int val;
+
+      public EqualTo(int val) {
+         this.val = val;
+      }
+
+      @Override
+      public boolean test(int v) {
+         return v == val;
+      }
+   }
+
+   private static class NotEqualTo implements SerializableIntPredicate {
+      private final int val;
+
+      public NotEqualTo(int val) {
+         this.val = val;
+      }
+
+      @Override
+      public boolean test(int v) {
+         return v != val;
+      }
+   }
+
+   private static class GreaterThan implements SerializableIntPredicate {
+      private final int val;
+
+      public GreaterThan(int val) {
+         this.val = val;
+      }
+
+      @Override
+      public boolean test(int v) {
+         return v > val;
+      }
+   }
+
+   private static class GreaterOrEqualTo implements SerializableIntPredicate {
+      private final int val;
+
+      public GreaterOrEqualTo(int val) {
+         this.val = val;
+      }
+
+      @Override
+      public boolean test(int v) {
+         return v >= val;
+      }
+   }
+
+   private static class LessThan implements SerializableIntPredicate {
+      private final int val;
+
+      public LessThan(int val) {
+         this.val = val;
+      }
+
+      @Override
+      public boolean test(int v) {
+         return v < val;
+      }
+   }
+
+   private static class LessOrEqualTo implements SerializableIntPredicate {
+      private final int val;
+
+      public LessOrEqualTo(int val) {
+         this.val = val;
+      }
+
+      @Override
+      public boolean test(int v) {
+         return v <= val;
+      }
    }
 }

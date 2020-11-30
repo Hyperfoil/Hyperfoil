@@ -226,7 +226,7 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
                } else if (this.duration <= 0) {
                   throw new BenchmarkDefinitionException("Duration must be positive.");
                }
-               func = session -> duration;
+               func = new ConstantDuration(duration);
                break;
             case LINEAR:
                if (this.duration != 0) {
@@ -236,14 +236,10 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
                } else if (this.max > TimeUnit.HOURS.toMillis(24)) {
                   throw new BenchmarkDefinitionException("The maximum duration is over 24 hours: that's likely an error.");
                }
-               func = session -> ThreadLocalRandom.current().nextLong(min, max + 1);
+               func = new RandomLinearDuration(min, max);
                break;
             case NEGATIVE_EXPONENTIAL:
-               func = session -> {
-                  double rand = ThreadLocalRandom.current().nextDouble();
-                  long delay = (long) (duration * -Math.log(Math.max(rand, 1e-20d)));
-                  return Math.max(Math.min(delay, max), min);
-               };
+               func = new RandomNegExpDuration(duration, max, min);
                break;
             default:
                throw new BenchmarkDefinitionException("Unknown randomness type: " + randomType);
@@ -261,6 +257,7 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
          this.type = type;
          return this;
       }
+
    }
 
    /**
@@ -297,6 +294,53 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
       public ThinkTimeBuilder init(String param) {
          duration(param);
          return this;
+      }
+   }
+
+   private static class ConstantDuration implements SerializableToLongFunction<Session> {
+      private final long duration;
+
+      public ConstantDuration(long duration) {
+         this.duration = duration;
+      }
+
+      @Override
+      public long applyAsLong(Session session) {
+         return duration;
+      }
+   }
+
+   private static class RandomLinearDuration implements SerializableToLongFunction<Session> {
+      private final long min;
+      private final long max;
+
+      public RandomLinearDuration(long min, long max) {
+         this.min = min;
+         this.max = max;
+      }
+
+      @Override
+      public long applyAsLong(Session session) {
+         return ThreadLocalRandom.current().nextLong(min, max + 1);
+      }
+   }
+
+   private static class RandomNegExpDuration implements SerializableToLongFunction<Session> {
+      private final long duration;
+      private final long max;
+      private final long min;
+
+      public RandomNegExpDuration(long duration, long max, long min) {
+         this.duration = duration;
+         this.max = max;
+         this.min = min;
+      }
+
+      @Override
+      public long applyAsLong(Session session) {
+         double rand = ThreadLocalRandom.current().nextDouble();
+         long delay = (long) (duration * -Math.log(Math.max(rand, 1e-20d)));
+         return Math.max(Math.min(delay, max), min);
       }
    }
 }

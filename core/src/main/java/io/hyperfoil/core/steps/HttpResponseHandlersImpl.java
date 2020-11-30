@@ -350,12 +350,6 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
     * Manages processing of HTTP responses.
     */
    public static class Builder implements Rewritable<Builder> {
-      // prevents some weird serialization incompatibility
-      private static final Action STOP_ON_INVALID_RESPONSE = session -> {
-         if (!session.currentRequest().isValid()) {
-            session.stop();
-         }
-      };
       private final HttpRequestStep.Builder parent;
       private Boolean autoRangeCheck;
       private Boolean stopOnInvalid;
@@ -497,7 +491,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          }
          // We must add this as the very last action since after calling session.stop() there other handlers won't be called
          if (stopOnInvalid != null ? stopOnInvalid : ergonomics.stopOnInvalid()) {
-            completionHandlers.add(() -> STOP_ON_INVALID_RESPONSE);
+            completionHandlers.add(() -> StopOnInvalidAction.INSTANCE);
          }
          FollowRedirect followRedirect = this.followRedirect != null ? this.followRedirect : ergonomics.followRedirect();
          switch (followRedirect) {
@@ -706,6 +700,17 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          stopOnInvalid = other.stopOnInvalid;
          followRedirect = other.followRedirect;
       }
+   }
 
+   private static class StopOnInvalidAction implements Action {
+      // prevents some weird serialization incompatibility
+      private static final Action INSTANCE = new StopOnInvalidAction();
+
+      @Override
+      public void run(Session session) {
+         if (!session.currentRequest().isValid()) {
+            session.stop();
+         }
+      }
    }
 }

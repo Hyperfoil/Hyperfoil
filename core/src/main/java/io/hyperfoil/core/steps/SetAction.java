@@ -118,11 +118,24 @@ public class SetAction implements Action, ResourceUtilizer {
          }
          if (value != null) {
             Object myValue = value;
-            return new SetAction(SessionFactory.access(var), s -> myValue);
+            return new SetAction(SessionFactory.access(var), new ConstantValue(myValue));
          } else if (objectArray != null) {
             return new SetAction(SessionFactory.access(var), objectArray.build());
          } else {
             return new SetAction(SessionFactory.access(var), intArray.build());
+         }
+      }
+
+      private static class ConstantValue implements SerializableFunction<Session, Object> {
+         private final Object value;
+
+         public ConstantValue(Object value) {
+            this.value = value;
+         }
+
+         @Override
+         public Object apply(Session s) {
+            return value;
          }
       }
    }
@@ -207,7 +220,20 @@ public class SetAction implements Action, ResourceUtilizer {
       private ValueSupplier<ObjectVar[]> build() {
          // prevent capturing this object reference in the lambda
          int mySize = ensurePositiveSize();
-         return new ValueSupplier<>(session -> ObjectVar.newArray(session, mySize), BaseArrayBuilder::resetArray);
+         return new ValueSupplier<>(new ObjectArraySupplier(mySize), BaseArrayBuilder::resetArray);
+      }
+
+      private static class ObjectArraySupplier implements SerializableFunction<Session, ObjectVar[]> {
+         private final int size;
+
+         public ObjectArraySupplier(int size) {
+            this.size = size;
+         }
+
+         @Override
+         public ObjectVar[] apply(Session session) {
+            return ObjectVar.newArray(session, size);
+         }
       }
    }
 
@@ -222,7 +248,20 @@ public class SetAction implements Action, ResourceUtilizer {
       private ValueSupplier<IntVar[]> build() {
          // prevent capturing this object reference in the lambda
          int mySize = ensurePositiveSize();
-         return new ValueSupplier<>(session -> IntVar.newArray(session, mySize), BaseArrayBuilder::resetArray);
+         return new ValueSupplier<>(new IntArraySupplier(mySize), BaseArrayBuilder::resetArray);
+      }
+
+      private static class IntArraySupplier implements SerializableFunction<Session, IntVar[]> {
+         private final int size;
+
+         public IntArraySupplier(int size) {
+            this.size = size;
+         }
+
+         @Override
+         public IntVar[] apply(Session session) {
+            return IntVar.newArray(session, size);
+         }
       }
    }
 }

@@ -78,10 +78,7 @@ public class SequenceBuilder extends BaseSequenceBuilder {
       // capture local var to prevent SequenceBuilder serialization
       String nextSequence = this.nextSequence;
       if (nextSequence != null) {
-         step(s -> {
-            s.startSequence(nextSequence, false, Session.ConcurrencyPolicy.FAIL);
-            return true;
-         });
+         step(new NextSequenceStep(nextSequence));
       }
       super.prepareBuild();
    }
@@ -113,5 +110,19 @@ public class SequenceBuilder extends BaseSequenceBuilder {
 
    public void nextSequence(String nextSequence) {
       this.nextSequence = nextSequence;
+   }
+
+   private static class NextSequenceStep implements Step {
+      private final String sequence;
+
+      public NextSequenceStep(String sequence) {
+         this.sequence = sequence;
+      }
+
+      @Override
+      public boolean invoke(Session s) {
+         s.startSequence(sequence, false, Session.ConcurrencyPolicy.FAIL);
+         return true;
+      }
    }
 }

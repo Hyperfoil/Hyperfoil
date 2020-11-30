@@ -213,7 +213,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
       if (fork == null || fork.name == null) {
          return name;
       } else {
-         return name + "/" + fork;
+         return name + "/" + fork.name;
       }
    }
 

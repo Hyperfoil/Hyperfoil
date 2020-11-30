@@ -11,9 +11,12 @@ public abstract class Phase implements Serializable {
    protected static final Logger log = LoggerFactory.getLogger(Phase.class);
    protected static final boolean trace = log.isTraceEnabled();
 
+   @Visitor.Ignore
    protected final SerializableSupplier<Benchmark> benchmark;
+   @Visitor.Ignore
    public final int id;
    public final int iteration;
+   @Visitor.Ignore
    public final String name;
    public final Scenario scenario;
    public final long startTime;

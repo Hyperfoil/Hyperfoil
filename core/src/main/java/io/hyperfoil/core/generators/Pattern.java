@@ -8,18 +8,22 @@ import java.util.ArrayList;
 import java.util.List;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.api.config.Visitor;
+import io.hyperfoil.api.connection.Connection;
 import io.hyperfoil.api.processor.Transformer;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.util.Util;
 import io.hyperfoil.function.SerializableBiConsumer;
+import io.hyperfoil.function.SerializableBiFunction;
 import io.hyperfoil.function.SerializableFunction;
 import io.netty.buffer.ByteBuf;
 
 public class Pattern implements SerializableFunction<Session, String>, SerializableBiConsumer<Session, ByteBuf>, Transformer {
    private static final int VAR_LENGTH_ESTIMATE = 32;
    private final Component[] components;
+   @Visitor.Ignore
    private int lengthEstimate;
    private final boolean urlEncode;
 
@@ -106,14 +110,28 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
       }
    }
 
+   public Generator generator() {
+      return new Generator();
+   }
+
    interface Component extends Serializable {
       void accept(Session session, StringBuilder sb);
 
       void accept(Session session, ByteBuf buf);
    }
 
+   private class Generator implements SerializableBiFunction<Session, Connection, ByteBuf> {
+      @Override
+      public ByteBuf apply(Session session, Connection connection) {
+         ByteBuf buffer = connection.context().alloc().buffer(lengthEstimate);
+         accept(session, buffer);
+         return buffer;
+      }
+   }
+
    private class StringComponent implements Component {
       private final String substring;
+      @Visitor.Ignore
       private final byte[] bytes;
 
       StringComponent(String substring) {

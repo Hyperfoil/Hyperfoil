@@ -1,10 +1,5 @@
 package io.hyperfoil.core.steps;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -22,16 +17,17 @@ import io.hyperfoil.api.config.ErgonomicsBuilder;
 import io.hyperfoil.api.config.Http;
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Locator;
-import io.hyperfoil.api.config.MappingListBuilder;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.SLA;
 import io.hyperfoil.api.config.SLABuilder;
 import io.hyperfoil.api.config.StepBuilder;
+import io.hyperfoil.api.config.Visitor;
 import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.session.Access;
+import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.SequenceInstance;
-import io.hyperfoil.api.session.Session.VarType;
 import io.hyperfoil.api.statistics.Statistics;
+import io.hyperfoil.core.generators.BodyBuilder;
 import io.hyperfoil.core.generators.HttpMethodBuilder;
 import io.hyperfoil.core.generators.Pattern;
 import io.hyperfoil.core.generators.StringGeneratorBuilder;
@@ -41,9 +37,7 @@ import io.hyperfoil.core.http.HttpUtil;
 import io.hyperfoil.core.http.UserAgentAppender;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.util.BitSetResource;
-import io.hyperfoil.core.util.ConstantBytesGenerator;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import io.hyperfoil.api.config.PairBuilder;
 import io.hyperfoil.api.config.PartialBuilder;
 import io.hyperfoil.api.connection.Connection;
@@ -55,11 +49,9 @@ import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.builders.BaseStepBuilder;
 import io.hyperfoil.api.session.ResourceUtilizer;
-import io.hyperfoil.core.util.Util;
 import io.hyperfoil.function.SerializableBiConsumer;
 import io.hyperfoil.function.SerializableBiFunction;
 import io.hyperfoil.function.SerializableFunction;
-import io.netty.handler.codec.http.HttpHeaderNames;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
@@ -72,6 +64,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
    final SerializableFunction<Session, String> pathGenerator;
    final SerializableBiFunction<Session, Connection, ByteBuf> bodyGenerator;
    final SerializableBiConsumer<Session, HttpRequestWriter>[] headerAppenders;
+   @Visitor.Ignore
    private final boolean injectHostHeader;
    final SerializableBiFunction<String, String, String> metricSelector;
    final long timeout;
@@ -232,7 +225,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
        * @return Self.
        */
       public Builder method(HttpMethod method) {
-         return method(() -> session -> method);
+         return method(() -> new HttpMethodBuilder.Provided(method));
       }
 
       public Builder method(HttpMethodBuilder method) {
@@ -559,7 +552,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
        * @return Self.
        */
       public Builder metric(String name) {
-         return metric((authority, path) -> name);
+         return metric(new ProvidedMetricSelector(name));
       }
 
       public Builder metric(SerializableBiFunction<String, String, String> selector) {
@@ -638,7 +631,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
             // in the list.
             BeforeSyncRequestStep beforeSyncRequestStep = new BeforeSyncRequestStep();
             locator.sequence().insertBefore(locator).step(beforeSyncRequestStep);
-            handler.onCompletion(s -> s.getResource(beforeSyncRequestStep).set(s.currentSequence().index()));
+            handler.onCompletion(new ReleaseSyncAction(beforeSyncRequestStep));
             locator.sequence().insertAfter(locator).step(new AfterSyncRequestStep(beforeSyncRequestStep));
          }
          handler.prepareBuild();
@@ -682,10 +675,37 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
          SerializableBiFunction<String, String, String> metricSelector = this.metricSelector;
          if (metricSelector == null) {
             String sequenceName = Locator.current().sequence().name();
-            metricSelector = (a, p) -> sequenceName;
+            metricSelector = new ProvidedMetricSelector(sequenceName);
          }
          HttpRequestStep step = new HttpRequestStep(stepId, method.build(), authority, pathGenerator, bodyGenerator, headerAppenders, injectHostHeader, metricSelector, timeout, handler.build(), sla);
          return Collections.singletonList(step);
+      }
+
+      private static class ProvidedMetricSelector implements SerializableBiFunction<String, String, String> {
+         private final String name;
+
+         private ProvidedMetricSelector(String name) {
+            this.name = name;
+         }
+
+         @Override
+         public String apply(String s, String s2) {
+            return name;
+         }
+      }
+
+      private static class ReleaseSyncAction implements Action {
+         @Visitor.Ignore
+         private final BeforeSyncRequestStep beforeSyncRequestStep;
+
+         public ReleaseSyncAction(BeforeSyncRequestStep beforeSyncRequestStep) {
+            this.beforeSyncRequestStep = beforeSyncRequestStep;
+         }
+
+         @Override
+         public void run(Session s) {
+            s.getResource(beforeSyncRequestStep).set(s.currentSequence().index());
+         }
       }
    }
 
@@ -786,18 +806,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
        */
       public PartialHeadersBuilder fromVar(String var) {
          ensureOnce();
-         parent.parent.headerAppenders.add(() -> {
-            Access access = SessionFactory.access(var);
-            String myHeader = header;
-            return (session, writer) -> {
-               Object value = access.getObject(session);
-               if (value instanceof CharSequence) {
-                  writer.putHeader(myHeader, (CharSequence) value);
-               } else {
-                  log.error("#{} Cannot convert variable {}: {} to CharSequence", session.uniqueId(), access, value);
-               }
-            };
-         });
+         parent.parent.headerAppenders.add(() -> new FromVarHeaderWriter(header, SessionFactory.access(var)));
          return this;
       }
 
@@ -809,14 +818,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
        */
       public PartialHeadersBuilder pattern(String patternString) {
          ensureOnce();
-         parent.parent.headerAppenders.add(() -> {
-            Pattern pattern = new Pattern(patternString, false);
-            String myHeader = header;
-            return (session, writer) -> {
-               String value = pattern.apply(session);
-               writer.putHeader(myHeader, value);
-            };
-         });
+         parent.parent.headerAppenders.add(() -> new PatternHeaderWriter(header, new Pattern(patternString, false)));
          return this;
       }
 
@@ -830,266 +832,44 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
       public HeadersBuilder end() {
          return parent;
       }
+
+      private static class PatternHeaderWriter implements SerializableBiConsumer<Session, HttpRequestWriter> {
+         private final String header;
+         private final Pattern pattern;
+
+         public PatternHeaderWriter(String header, Pattern pattern) {
+            this.header = header;
+            this.pattern = pattern;
+         }
+
+         @Override
+         public void accept(Session session, HttpRequestWriter writer) {
+            writer.putHeader(header, pattern.apply(session));
+         }
+      }
    }
 
    public interface BodyGeneratorBuilder extends BuilderBase<BodyGeneratorBuilder> {
       SerializableBiFunction<Session, Connection, ByteBuf> build();
    }
 
-   /**
-    * Allows building HTTP request body from session variables.
-    */
-   public static class BodyBuilder {
-      private static final String APPLICATION_X_WWW_FORM_URLENCODED = "application/x-www-form-urlencoded";
-      private final Builder parent;
+   private static class FromVarHeaderWriter implements SerializableBiConsumer<Session, HttpRequestWriter> {
+      private final CharSequence header;
+      private final Access fromVar;
 
-      private BodyBuilder(Builder parent) {
-         this.parent = parent;
-      }
-
-      /**
-       * Use variable content as request body.
-       *
-       * @param var Variable name.
-       * @return Self.
-       */
-      public BodyBuilder fromVar(String var) {
-         parent.body(() -> {
-            Access access = SessionFactory.access(var);
-            return (session, connection) -> {
-               Object value = access.getObject(session);
-               if (value instanceof ByteBuf) {
-                  return (ByteBuf) value;
-               } else if (value instanceof String) {
-                  String str = (String) value;
-                  return Util.string2byteBuf(str, connection.context().alloc().buffer(str.length()));
-               } else if (value instanceof byte[]) {
-                  return Unpooled.wrappedBuffer((byte[]) value);
-               } else {
-                  log.error("#{} Cannot encode request body from var {}: {}", session.uniqueId(), access, value);
-                  return null;
-               }
-            };
-         });
-         return this;
-      }
-
-      /**
-       * Pattern replacing <code>${sessionvar}</code> with variable contents in a string.
-       *
-       * @param pattern Pattern.
-       * @return Self.
-       */
-      public BodyBuilder pattern(String pattern) {
-         parent.body(() -> {
-            Pattern p = new Pattern(pattern, false);
-            return (session, connection) -> {
-               String str = p.apply(session);
-               return Util.string2byteBuf(str, connection.context().alloc().buffer(str.length()));
-            };
-         });
-         return this;
-      }
-
-      /**
-       * String sent as-is.
-       *
-       * @param text String.
-       * @return Self.
-       */
-      public BodyBuilder text(String text) {
-         parent.body(new ConstantBytesGenerator(text.getBytes(StandardCharsets.UTF_8)));
-         return this;
-      }
-
-      /**
-       * Build form as if we were sending the request using HTML form. This option automatically adds
-       * <code>Content-Type: application/x-www-form-urlencoded</code> to the request headers.
-       *
-       * @return Builder.
-       */
-      public FormBuilder form() {
-         FormBuilder builder = new FormBuilder();
-         parent.headerAppender((session, writer) -> writer.putHeader(HttpHeaderNames.CONTENT_TYPE, APPLICATION_X_WWW_FORM_URLENCODED));
-         parent.body(builder);
-         return builder;
-      }
-
-      /**
-       * Send contents of the file. Note that this method does NOT set content-type automatically.
-       *
-       * @param path Path to loaded file.
-       * @return Self.
-       */
-      public BodyBuilder fromFile(String path) {
-         parent.body(() -> {
-            try (InputStream inputStream = Locator.current().benchmark().data().readFile(path)) {
-               if (inputStream == null) {
-                  throw new BenchmarkDefinitionException("Cannot load file `" + path + "` for randomItem (not found).");
-               }
-               byte[] bytes = io.hyperfoil.util.Util.toByteArray(inputStream);
-               return new ConstantBytesGenerator(bytes);
-            } catch (IOException e) {
-               throw new BenchmarkDefinitionException("Cannot load file `" + path + "` for randomItem.", e);
-            }
-         });
-         return this;
-      }
-
-      public Builder endBody() {
-         return parent;
-      }
-   }
-
-   /**
-    * Build an URL-encoded HTML form body.
-    */
-   // Note: we cannot implement both a PairBuilder and MappingListBuilder at the same time
-   public static class FormBuilder implements BodyGeneratorBuilder, MappingListBuilder<FormInputBuilder> {
-      private final ArrayList<FormInputBuilder> inputs = new ArrayList<>();
-
-      /**
-       * Add input pair described in the mapping.
-       *
-       * @return Builder.
-       */
-      @Override
-      public FormInputBuilder addItem() {
-         FormInputBuilder input = new FormInputBuilder();
-         inputs.add(input);
-         return input;
-      }
-
-      @SuppressWarnings("unchecked")
-      @Override
-      public SerializableBiFunction<Session, Connection, ByteBuf> build() {
-         return new FormGenerator(inputs.stream().map(FormInputBuilder::build).toArray(SerializableBiConsumer[]::new));
-      }
-   }
-
-   private static class FormGenerator implements SerializableBiFunction<Session, Connection, ByteBuf> {
-      private final SerializableBiConsumer<Session, ByteBuf>[] inputs;
-
-      private FormGenerator(SerializableBiConsumer<Session, ByteBuf>[] inputs) {
-         this.inputs = inputs;
+      public FromVarHeaderWriter(CharSequence header, Access fromVar) {
+         this.fromVar = fromVar;
+         this.header = header;
       }
 
       @Override
-      public ByteBuf apply(Session session, Connection connection) {
-         if (inputs.length == 0) {
-            return Unpooled.EMPTY_BUFFER;
+      public void accept(Session session, HttpRequestWriter writer) {
+         Object value = fromVar.getObject(session);
+         if (value instanceof CharSequence) {
+            writer.putHeader(header, (CharSequence) value);
+         } else {
+            log.error("#{} Cannot convert variable {}: {} to CharSequence", session.uniqueId(), fromVar, value);
          }
-         ByteBuf buffer = connection.context().alloc().buffer();
-         inputs[0].accept(session, buffer);
-         for (int i = 1; i < inputs.length; ++i) {
-            buffer.ensureWritable(1);
-            buffer.writeByte('&');
-            inputs[i].accept(session, buffer);
-         }
-         return buffer;
-      }
-   }
-
-   /**
-    * Form element (e.g. as if coming from an INPUT field).
-    */
-   public static class FormInputBuilder {
-      private String name;
-      private String value;
-      private String fromVar;
-      private String pattern;
-
-      public SerializableBiConsumer<Session, ByteBuf> build() {
-         if (value != null && fromVar != null && pattern != null) {
-            throw new BenchmarkDefinitionException("Form input: Must set only one of 'value', 'var', 'pattern'");
-         } else if (value == null && fromVar == null && pattern == null) {
-            throw new BenchmarkDefinitionException("Form input: Must set one of 'value' or 'var' or 'pattern'");
-         } else if (name == null) {
-            throw new BenchmarkDefinitionException("Form input: 'name' must be set.");
-         }
-         try {
-            byte[] nameBytes = URLEncoder.encode(name, StandardCharsets.UTF_8.name()).getBytes(StandardCharsets.UTF_8);
-            if (value != null) {
-               byte[] valueBytes = URLEncoder.encode(value, StandardCharsets.UTF_8.name()).getBytes(StandardCharsets.UTF_8);
-               return (session, buf) -> buf.writeBytes(nameBytes).writeByte('=').writeBytes(valueBytes);
-            } else if (fromVar != null) {
-               String myVar = this.fromVar; // avoid this capture
-               Access access = SessionFactory.access(fromVar);
-               return (session, buf) -> {
-                  buf.writeBytes(nameBytes).writeByte('=');
-                  Session.Var var = access.getVar(session);
-                  if (!var.isSet()) {
-                     throw new IllegalStateException("Variable " + myVar + " was not set yet!");
-                  }
-                  if (var.type() == VarType.INTEGER) {
-                     Util.intAsText2byteBuf(var.intValue(session), buf);
-                  } else if (var.type() == VarType.OBJECT) {
-                     Object o = var.objectValue(session);
-                     if (o == null) {
-                        // keep it empty
-                     } else if (o instanceof byte[]) {
-                        buf.writeBytes((byte[]) o);
-                     } else {
-                        Util.urlEncode(o.toString(), buf);
-                     }
-                  } else {
-                     throw new IllegalStateException();
-                  }
-               };
-            } else {
-               Pattern pattern = new Pattern(this.pattern, true);
-               return (session, buf) -> {
-                  buf.writeBytes(nameBytes).writeByte('=');
-                  pattern.accept(session, buf);
-               };
-            }
-         } catch (UnsupportedEncodingException e) {
-            throw new IllegalStateException(e);
-         }
-      }
-
-      /**
-       * Input field name.
-       *
-       * @param name Input name.
-       * @return Self.
-       */
-      public FormInputBuilder name(String name) {
-         this.name = name;
-         return this;
-      }
-
-      /**
-       * Input field value (verbatim).
-       *
-       * @param value Input value.
-       * @return Self.
-       */
-      public FormInputBuilder value(String value) {
-         this.value = value;
-         return this;
-      }
-
-      /**
-       * Input field value from session variable.
-       *
-       * @param var Variable name.
-       * @return Self.
-       */
-      public FormInputBuilder fromVar(String var) {
-         this.fromVar = var;
-         return this;
-      }
-
-      /**
-       * Input field value replacing session variables in a pattern, e.g. <code>foo${myvariable}var</code>
-       *
-       * @param pattern Template pattern.
-       * @return Self.
-       */
-      public FormInputBuilder pattern(String pattern) {
-         this.pattern = pattern;
-         return this;
       }
    }
 }

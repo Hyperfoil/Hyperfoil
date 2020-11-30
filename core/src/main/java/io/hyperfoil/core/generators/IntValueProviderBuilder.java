@@ -70,7 +70,7 @@ public class IntValueProviderBuilder<P> implements InitFromParam<IntValueProvide
          return access::getInt;
       } else {
          int unbox = value == null ? defaultValue : value;
-         return session -> unbox;
+         return new ConstValue(unbox);
       }
    }
 
@@ -91,5 +91,18 @@ public class IntValueProviderBuilder<P> implements InitFromParam<IntValueProvide
       int v1 = assertionValue();
       int v2 = other.assertionValue();
       return Integer.compare(v1, v2);
+   }
+
+   private static class ConstValue implements SerializableToIntFunction<Session> {
+      private final int value;
+
+      private ConstValue(int value) {
+         this.value = value;
+      }
+
+      @Override
+      public int applyAsInt(Session session) {
+         return value;
+      }
    }
 }

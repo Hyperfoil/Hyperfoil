@@ -3,9 +3,12 @@ package io.hyperfoil.example;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.fail;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Collection;
@@ -26,6 +29,8 @@ import io.hyperfoil.api.config.PhaseForkBuilder;
 import io.hyperfoil.api.config.Scenario;
 import io.hyperfoil.core.impl.LocalBenchmarkData;
 import io.hyperfoil.core.parser.BenchmarkParser;
+import io.hyperfoil.core.parser.ParserException;
+import io.hyperfoil.core.print.YamlVisitor;
 import io.hyperfoil.function.SerializableSupplier;
 import io.hyperfoil.util.Util;
 
@@ -88,6 +93,19 @@ public class ValidateExampleTest {
       } catch (Exception e) {
          throw new AssertionError("Failure in " + exampleFile, e);
       }
+   }
+
+   @Test
+   public void testPrint() throws IOException, ParserException {
+      Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(loadOrFail(), new LocalBenchmarkData());
+      ByteArrayOutputStream output = new ByteArrayOutputStream();
+      try (PrintStream stream = new PrintStream(output, false, StandardCharsets.UTF_8.name())) {
+         new YamlVisitor(stream).walk(benchmark);
+      }
+      String str = new String(output.toByteArray(), StandardCharsets.UTF_8);
+      // We want the common stuff properly named
+      assertThat(str).doesNotContain("<recursion detected>");
+      assertThat(str).doesNotContain("<lambda>");
    }
 
    private static class TestingPhaseBuilder extends PhaseBuilder<TestingPhaseBuilder> {

@@ -8,6 +8,7 @@ import java.util.function.Function;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.InitFromParam;
+import io.hyperfoil.api.config.Visitor;
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.processor.Transformer;
 import io.hyperfoil.api.session.ResourceUtilizer;
@@ -31,7 +32,8 @@ public abstract class JsonParser implements Serializable, ResourceUtilizer {
    protected final Transformer replace;
    protected final Processor processor;
    private final JsonParser.Selector[] selectors;
-   private StreamQueue.Consumer<Context, Session> record = JsonParser.this::record;
+   @Visitor.Ignore
+   private final StreamQueue.Consumer<Context, Session> record = JsonParser.this::record;
 
    public JsonParser(String query, boolean delete, Transformer replace, Processor processor) {
       this.query = query;

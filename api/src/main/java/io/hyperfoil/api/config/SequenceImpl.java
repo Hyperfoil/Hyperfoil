@@ -9,6 +9,7 @@ import io.vertx.core.logging.LoggerFactory;
 class SequenceImpl implements Sequence {
    private static final Logger log = LoggerFactory.getLogger(SequenceImpl.class);
 
+   @Visitor.Ignore
    private final SerializableSupplier<Phase> phase;
    private final String name;
    private final int id;

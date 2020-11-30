@@ -16,4 +16,9 @@ public final class Unique implements Serializable {
    public boolean isSequenceScoped() {
       return sequenceScoped;
    }
+
+   @Override
+   public String toString() {
+      return String.format("%s@%08x", (sequenceScoped ? "<unique[]>" : "<unique>"), System.identityHashCode(this));
+   }
 }

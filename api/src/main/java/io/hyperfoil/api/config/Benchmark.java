@@ -37,13 +37,16 @@ public class Benchmark implements Serializable {
 
    private final String name;
    private final String version;
+   @Visitor.Ignore
    private final String originalSource;
+   @Visitor.Ignore
    private final Map<String, byte[]> files;
    private final Agent[] agents;
    private final int defaultThreads;
    private final int totalThreads;
    private final Ergonomics ergonomics;
    private final Map<String, Http> http;
+   @Visitor.Ignore
    private final Http defaultHttp;
    private final Collection<Phase> phases;
    private final Map<String, Object> tags;
