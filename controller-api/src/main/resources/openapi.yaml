@@ -105,6 +105,8 @@ paths:
               schema:
                 type: string
                 format: binary
+        '404':
+          description: Benchmark is not defined.
         '406':
           description: Benchmark does not preserve the original source.
   /benchmark/{name}/start:
@@ -155,6 +157,28 @@ paths:
           description: There is an ongoing run. Try later.
         '404':
           description: Requested benchmark is not defined.
+  /benchmark/{name}/structure:
+    get:
+      summary: Inspect the rendered structure of the benchmark.
+      operationId: getBenchmarkStructure
+      parameters:
+      - in: path
+        name: name
+        required: true
+        allowEmptyValue: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Benchmark structure.
+          content:
+            text/vnd.yaml:
+              schema:
+                type: object
+        '404':
+          description: Benchmark is not defined.
+        '406':
+          description: Benchmark does not preserve the original source.
   /run:
     get:
       summary: List known runs.

@@ -48,6 +48,8 @@ public interface Client {
       Benchmark get();
 
       RunRef start(String description);
+
+      String structure();
    }
 
    class BenchmarkSource {

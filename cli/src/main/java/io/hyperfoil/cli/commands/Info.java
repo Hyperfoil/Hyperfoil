@@ -1,10 +1,5 @@
 package io.hyperfoil.cli.commands;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-
 import org.aesh.command.CommandDefinition;
 import org.aesh.command.CommandException;
 import org.aesh.command.CommandResult;
@@ -40,21 +35,7 @@ public class Info extends BenchmarkCommand {
          if (source == null) {
             invocation.println("No source available for benchmark '" + benchmarkName + "'.");
          } else {
-            File sourceFile;
-            try {
-               sourceFile = File.createTempFile(benchmarkName + "-", ".yaml");
-               sourceFile.deleteOnExit();
-               Files.write(sourceFile.toPath(), source.source.getBytes(StandardCharsets.UTF_8));
-            } catch (IOException e) {
-               throw new CommandException("Cannot create temporary file for edits.", e);
-            }
-            try {
-               execProcess(invocation, true, pager == null ? PAGER : pager, sourceFile.getPath());
-            } catch (IOException e) {
-               throw new CommandException("Cannot open file " + sourceFile, e);
-            } finally {
-               sourceFile.delete();
-            }
+            openInPager(invocation, source.source, benchmarkName + "-", ".yaml", pager);
          }
          return CommandResult.SUCCESS;
       } catch (RestClientException e) {

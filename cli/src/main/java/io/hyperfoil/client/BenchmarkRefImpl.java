@@ -117,7 +117,16 @@ class BenchmarkRefImpl implements Client.BenchmarkRef {
             }
          });
       });
-      return client.waitFor(future);
+      return RestClient.waitFor(future);
+   }
+
+   @Override
+   public String structure() {
+      return client.sync(
+            handler -> client.client.request(HttpMethod.GET, "/benchmark/" + encode(name) + "/structure")
+                  .putHeader(HttpHeaders.ACCEPT.toString(), "text/vnd.yaml")
+                  .send(handler), 200,
+            HttpResponse::bodyAsString);
    }
 
    private String encode(String name) {

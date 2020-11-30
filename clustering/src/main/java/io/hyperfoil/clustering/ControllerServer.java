@@ -1,9 +1,11 @@
 package io.hyperfoil.clustering;
 
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.net.URLEncoder;
@@ -38,6 +40,7 @@ import io.hyperfoil.controller.router.ApiRouter;
 import io.hyperfoil.core.impl.statistics.StatisticsStore;
 import io.hyperfoil.core.parser.BenchmarkParser;
 import io.hyperfoil.core.parser.ParserException;
+import io.hyperfoil.core.print.YamlVisitor;
 import io.hyperfoil.core.util.CountDown;
 import io.hyperfoil.core.util.LowHigh;
 import io.hyperfoil.core.util.Util;
@@ -350,6 +353,17 @@ class ControllerServer implements ApiService {
          ctx.response()
                .setStatusCode(HttpResponseStatus.FORBIDDEN.code()).end(error);
       }
+   }
+
+   @Override
+   public void getBenchmarkStructure(RoutingContext ctx, String name) {
+      withBenchmark(ctx, name, benchmark -> {
+         ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+         try (PrintStream stream = new PrintStream(byteStream)) {
+            new YamlVisitor(stream).walk(benchmark);
+         }
+         ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_YAML).end(Buffer.buffer(byteStream.toByteArray()));
+      });
    }
 
    @Override

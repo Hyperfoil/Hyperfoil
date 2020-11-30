@@ -27,6 +27,7 @@ import io.hyperfoil.cli.commands.Exit;
 import io.hyperfoil.cli.commands.Export;
 import io.hyperfoil.cli.commands.Help;
 import io.hyperfoil.cli.commands.Info;
+import io.hyperfoil.cli.commands.Inspect;
 import io.hyperfoil.cli.commands.Kill;
 import io.hyperfoil.cli.commands.Oc;
 import io.hyperfoil.cli.commands.Log;
@@ -108,6 +109,7 @@ public class HyperfoilCli {
                               .command(Export.class)
                               .command(Help.class)
                               .command(Info.class)
+                              .command(Inspect.class)
                               .command(Kill.class)
                               .command(Log.class)
                               .command(Oc.class)

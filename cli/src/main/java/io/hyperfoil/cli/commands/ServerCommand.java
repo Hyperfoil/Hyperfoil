@@ -2,11 +2,13 @@ package io.hyperfoil.cli.commands;
 
 import java.awt.Desktop;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -204,6 +206,24 @@ public abstract class ServerCommand implements Command<HyperfoilCommandInvocatio
          if (process != null) {
             process.destroy();
          }
+      }
+   }
+
+   protected void openInPager(HyperfoilCommandInvocation invocation, String text, String prefix, String suffix, String pager) throws CommandException {
+      File file;
+      try {
+         file = File.createTempFile(prefix, suffix);
+         file.deleteOnExit();
+         Files.write(file.toPath(), text.getBytes(StandardCharsets.UTF_8));
+      } catch (IOException e) {
+         throw new CommandException("Cannot create temporary file for edits.", e);
+      }
+      try {
+         execProcess(invocation, true, pager == null ? PAGER : pager, file.getPath());
+      } catch (IOException e) {
+         throw new CommandException("Cannot open file " + file, e);
+      } finally {
+         file.delete();
       }
    }
 }
