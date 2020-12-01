@@ -53,7 +53,8 @@ public class SLABuilder<P> implements Rewritable<SLABuilder<P>> {
    }
 
    /**
-    * Maximum allowed ratio of errors. Valid values are 0.0 - 1.0 (inclusive).
+    * Maximum allowed ratio of errors: connection failures or resets, timeouts and internal errors. Valid values are 0.0 - 1.0 (inclusive).
+    * Note: 4xx and 5xx statuses are NOT considered errors for this SLA parameter. Use <code>invalidRatio</code> for that.
     *
     * @param errorRatio Ratio.
     * @return Self.
@@ -65,6 +66,8 @@ public class SLABuilder<P> implements Rewritable<SLABuilder<P>> {
 
    /**
     * Maximum allowed ratio of responses marked as invalid. Valid values are 0.0 - 1.0 (inclusive).
+    * Note: With default settings 4xx and 5xx statuses are considered invalid. Check out
+    * <code>ergonomics.autoRangeCheck</code> or <code>httpRequest.handler.autoRangeCheck</code> to change this.
     *
     * @param invalidRatio Ratio.
     * @return Self.

@@ -201,7 +201,7 @@ public class StatisticsSnapshot implements Serializable {
    }
 
    public long errors() {
-      return status_4xx + status_5xx + connectFailureCount + resetCount + timeouts + internalErrors;
+      return connectFailureCount + resetCount + timeouts + internalErrors;
    }
 
    @Override

@@ -37,7 +37,7 @@ public class ErrorRatioTest extends BaseScenarioTest {
       assertThat(stats.invalid).isEqualTo(1);
       assertThat(stats.cacheHits).isEqualTo(0);
       assertThat(stats.connectFailureCount).isEqualTo(0);
-      assertThat(stats.errors()).isEqualTo(1);
+      assertThat(stats.errors()).isEqualTo(0);
    }
 
    protected Action validateConnection(TestContext ctx) {
