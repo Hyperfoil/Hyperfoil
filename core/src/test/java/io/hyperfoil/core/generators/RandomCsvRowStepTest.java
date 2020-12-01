@@ -36,7 +36,7 @@ public class RandomCsvRowStepTest {
    private void test(String[] vars) {
       RandomCsvRowStep.Builder builder = new RandomCsvRowStep.Builder()
             .skipComments(true)
-            .file("src/test/resources/data/testdata.csv");
+            .file("data/testdata.csv");
       for (int i = 0; i < vars.length; ++i) {
          if (vars[i] != null) {
             builder.columns().accept(String.valueOf(i), vars[i]);

@@ -5,10 +5,12 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -93,14 +95,13 @@ public class RestClient implements Client, Closeable {
    }
 
    @Override
-   public BenchmarkRef register(String benchmarkFile, List<String> otherFiles, String prevVersion, String storedFilesBenchmark) {
+   public BenchmarkRef register(String benchmarkFile, Map<String, Path> otherFiles, String prevVersion, String storedFilesBenchmark) {
       return sync(
             handler -> {
                MultipartForm multipart = MultipartForm.create()
                      .textFileUpload("benchmark", "benchmark.yaml", benchmarkFile, "text/vnd.yaml");
-               for (String file : otherFiles) {
-                  String filename = Paths.get(file).getFileName().toString();
-                  multipart.binaryFileUpload(filename, file, file, "application/octet-stream");
+               for (Map.Entry<String, Path> entry : otherFiles.entrySet()) {
+                  multipart.binaryFileUpload(entry.getKey(), entry.getKey(), entry.getValue().toString(), "application/octet-stream");
                }
                HttpRequest<Buffer> request = client.request(HttpMethod.POST, "/benchmark");
                if (storedFilesBenchmark != null) {

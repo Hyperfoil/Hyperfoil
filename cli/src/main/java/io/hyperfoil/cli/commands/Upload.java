@@ -1,7 +1,10 @@
 package io.hyperfoil.cli.commands;
 
 import java.io.IOException;
-import java.util.ArrayList;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.aesh.command.CommandDefinition;
 import org.aesh.command.CommandException;
@@ -32,7 +35,8 @@ public class Upload extends ServerCommand {
       HyperfoilCliContext ctx = invocation.context();
       Benchmark benchmark;
       try {
-         benchmark = BenchmarkParser.instance().buildBenchmark(Util.toString(io.hyperfoil.cli.Util.sanitize(benchmarkResource).read()), new LocalBenchmarkData());
+         Resource sanitizedResource = io.hyperfoil.cli.Util.sanitize(benchmarkResource);
+         benchmark = BenchmarkParser.instance().buildBenchmark(Util.toString(sanitizedResource.read()), new LocalBenchmarkData(Paths.get(sanitizedResource.getAbsolutePath())));
       } catch (ParserException | BenchmarkDefinitionException e) {
          invocation.error(e);
          throw new CommandException("Failed to parse the benchmark.", e);
@@ -49,8 +53,14 @@ public class Upload extends ServerCommand {
          invocation.error("Failed to serialize the benchmark: " + Util.explainCauses(e));
       }
       try {
+         Path benchmarkDir = Paths.get(benchmarkResource.getAbsolutePath()).getParent();
+         Map<String, Path> extraFiles = benchmark.files().keySet().stream()
+               .collect(Collectors.toMap(file -> file, file -> {
+                  Path path = Paths.get(file);
+                  return path.isAbsolute() ? path : benchmarkDir.resolve(file);
+               }));
          Client.BenchmarkRef benchmarkRef = ctx.client().register(
-               benchmarkResource.getAbsolutePath(), new ArrayList<>(benchmark.files().keySet()), null, null);
+               benchmarkResource.getAbsolutePath(), extraFiles, null, null);
          ctx.setServerBenchmark(benchmarkRef);
          invocation.println("... done.");
          return CommandResult.SUCCESS;

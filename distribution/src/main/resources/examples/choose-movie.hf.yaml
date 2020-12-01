@@ -21,7 +21,7 @@ scenario:
   - home:
     # Pick a random username from a file
     - randomItem:
-        file: examples/usernames.txt
+        file: usernames.txt
         toVar: username
     # The page would load a profile, e.g. to display full name.
     - httpRequest:

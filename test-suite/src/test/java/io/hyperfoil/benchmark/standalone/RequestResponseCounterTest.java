@@ -21,11 +21,11 @@
 package io.hyperfoil.benchmark.standalone;
 
 import io.hyperfoil.api.config.Benchmark;
+import io.hyperfoil.api.config.BenchmarkData;
 import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.benchmark.BaseBenchmarkTest;
 import io.hyperfoil.core.handlers.TransferSizeRecorder;
-import io.hyperfoil.core.impl.LocalBenchmarkData;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpServerRequest;
@@ -70,7 +70,7 @@ public class RequestResponseCounterTest extends BaseBenchmarkTest {
    public void testNumberOfRequestsAndResponsesMatch() {
       // @formatter:off
       BenchmarkBuilder builder =
-            new BenchmarkBuilder(null, new LocalBenchmarkData())
+            new BenchmarkBuilder(null, BenchmarkData.EMPTY)
                   .name("requestResponseCounter " + new SimpleDateFormat("YY/MM/dd HH:mm:ss").format(new Date()))
                   .http()
                      .host("localhost").port(httpServer.actualPort())

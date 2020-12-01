@@ -1,5 +1,6 @@
 package io.hyperfoil.controller;
 
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -20,7 +21,7 @@ import io.hyperfoil.controller.model.Version;
 public interface Client {
    BenchmarkRef register(Benchmark benchmark, String prevVersion);
 
-   BenchmarkRef register(String benchmarkFile, List<String> otherFiles, String prevVersion, String storedFilesBenchmark);
+   BenchmarkRef register(String benchmarkFile, Map<String, Path> otherFiles, String prevVersion, String storedFilesBenchmark);
 
    List<String> benchmarks();
 

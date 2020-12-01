@@ -8,11 +8,11 @@ import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.HttpBuilder;
 import io.hyperfoil.api.config.ScenarioBuilder;
-import io.hyperfoil.core.impl.LocalBenchmarkData;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
 import io.hyperfoil.core.impl.statistics.StatisticsCollector;
 import io.hyperfoil.core.parser.BenchmarkParser;
 import io.hyperfoil.core.parser.ParserException;
+import io.hyperfoil.core.test.TestUtil;
 import io.hyperfoil.core.util.Util;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServer;
@@ -89,7 +89,7 @@ public abstract class BaseScenarioTest {
       try {
          InputStream config = getClass().getClassLoader().getResourceAsStream(name);
          String configString = Util.toString(config).replaceAll("http://localhost:8080", "http://localhost:" + server.actualPort());
-         Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(configString, new LocalBenchmarkData());
+         Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(configString, TestUtil.benchmarkData());
          // Serialization here is solely for the purpose of asserting serializability for all the components
          byte[] bytes = io.hyperfoil.util.Util.serialize(benchmark);
          assertThat(bytes).isNotNull();

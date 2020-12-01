@@ -27,6 +27,7 @@ import java.io.InputStream;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.HashMap;
 
 import static io.vertx.core.logging.LoggerFactory.LOGGER_DELEGATE_FACTORY_CLASS_NAME;
@@ -59,7 +60,7 @@ public class RunMojo extends AbstractMojo {
       // TODO: as we're aggregating snapshots for the same stage we're printing the stats only at the end
       HashMap<String, StatisticsSnapshot> total = new HashMap<>();
       try {
-         benchmark = buildBenchmark(new FileInputStream(yaml));
+         benchmark = buildBenchmark(new FileInputStream(yaml), yaml.toPath());
 
          if (benchmark != null) {
             // We want to log all stats in the same thread to not break the output layout too much.
@@ -84,13 +85,13 @@ public class RunMojo extends AbstractMojo {
    }
 
 
-   private Benchmark buildBenchmark(InputStream inputStream) throws MojoFailureException {
+   private Benchmark buildBenchmark(InputStream inputStream, Path path) throws MojoFailureException {
       if (inputStream == null)
          log.error("Could not find benchmark configuration");
 
       try {
          String source = Util.toString(inputStream);
-         Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(source, new LocalBenchmarkData());
+         Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(source, new LocalBenchmarkData(path));
 
          if (benchmark == null)
             log.info("Failed to parse benchmark configuration");

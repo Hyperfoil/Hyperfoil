@@ -5,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
@@ -15,20 +16,29 @@ import io.vertx.core.logging.LoggerFactory;
 
 public class LocalBenchmarkData implements BenchmarkData {
    private static final Logger log = LoggerFactory.getLogger(LocalBenchmarkData.class);
-   private Map<String, byte[]> readFiles = new HashMap<>();
+   private final Path benchmarkPath;
+   private final Map<String, byte[]> readFiles = new HashMap<>();
+
+   public LocalBenchmarkData(Path benchmarkPath) {
+      this.benchmarkPath = benchmarkPath;
+   }
 
    @Override
    public InputStream readFile(String file) {
+      Path path = Paths.get(file);
+      if (!path.isAbsolute()) {
+         path = benchmarkPath.getParent().resolve(file);
+      }
       try {
-         readFiles.put(file, Files.readAllBytes(Paths.get(file)));
+         readFiles.put(file, Files.readAllBytes(path));
       } catch (IOException e) {
-         log.error("Local file {} cannot be read.", e, file);
+         log.error("Local file {} ({}) cannot be read.", e, file, path.toAbsolutePath());
          return null;
       }
       try {
-         return new FileInputStream(file);
+         return new FileInputStream(path.toFile());
       } catch (FileNotFoundException e) {
-         log.error("Local file {} not found.", e, file);
+         log.error("Local file {} ({}) not found.", e, file, path.toAbsolutePath());
          return null;
       }
    }

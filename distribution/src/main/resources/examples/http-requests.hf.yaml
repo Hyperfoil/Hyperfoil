@@ -42,7 +42,7 @@ scenario:
       body:
         # This simply loads the file and sends it as the body without any conversion.
         # It does not add any headers nor make it a multipart upload as the browser would do.
-        fromFile: examples/usernames.txt
+        fromFile: usernames.txt
 - customHeaders:
   - set: token <- dGhpcyBpcyBhIG5pY2UgYW5kIHNlY3VyZSB0b2tlbgo=
   - set: etag <- "ETag received in some previous request"

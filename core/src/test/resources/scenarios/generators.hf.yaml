@@ -20,7 +20,7 @@ phases:
               - C
               toVar: "y" # without the quotes `y` means `true` = boolean, not string
           - randomItem:
-              file: src/test/resources/data/YamlParserTest_testGeneratorsYaml_foo.txt
+              file: data/YamlParserTest_testGeneratorsYaml_foo.txt
               toVar: z
           - randomItem:
               list:

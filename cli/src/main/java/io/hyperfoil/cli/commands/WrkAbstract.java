@@ -21,6 +21,7 @@
 package io.hyperfoil.cli.commands;
 
 import io.hyperfoil.api.config.BenchmarkBuilder;
+import io.hyperfoil.api.config.BenchmarkData;
 import io.hyperfoil.api.config.PhaseBuilder;
 import io.hyperfoil.api.config.Protocol;
 import io.hyperfoil.api.http.HttpMethod;
@@ -35,7 +36,6 @@ import io.hyperfoil.controller.model.CustomStats;
 import io.hyperfoil.controller.model.RequestStatisticsResponse;
 import io.hyperfoil.controller.model.RequestStats;
 import io.hyperfoil.core.handlers.TransferSizeRecorder;
-import io.hyperfoil.core.impl.LocalBenchmarkData;
 import io.hyperfoil.core.util.Util;
 
 import org.HdrHistogram.AbstractHistogram;
@@ -201,7 +201,7 @@ public abstract class WrkAbstract {
 
          Protocol protocol = Protocol.fromScheme(uri.getScheme());
          // @formatter:off
-         BenchmarkBuilder builder = new BenchmarkBuilder(null, new LocalBenchmarkData())
+         BenchmarkBuilder builder = new BenchmarkBuilder(null, BenchmarkData.EMPTY)
                .name(getCommand())
                .ergonomics()
                   .repeatCookies(false)

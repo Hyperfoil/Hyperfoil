@@ -62,7 +62,7 @@ public class ValidateExampleTest {
    @Test
    public void testSerializable() {
       try {
-         Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(loadOrFail(), new LocalBenchmarkData());
+         Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(loadOrFail(), new LocalBenchmarkData(Paths.get(exampleFile)));
          assertThat(benchmark.name()).isEqualTo(exampleFile.replace(".hf.yaml", "").replaceFirst("[^" + File.separatorChar + "]*.", ""));
          byte[] bytes = Util.serialize(benchmark);
          assertThat(bytes).isNotNull();
@@ -75,8 +75,8 @@ public class ValidateExampleTest {
    public void testCopy() {
       try {
          String source = io.hyperfoil.core.util.Util.toString(loadOrFail());
-         BenchmarkBuilder original = BenchmarkParser.instance().builder(source, new LocalBenchmarkData());
-         BenchmarkBuilder builder = new BenchmarkBuilder(null, new LocalBenchmarkData());
+         BenchmarkBuilder original = BenchmarkParser.instance().builder(source, new LocalBenchmarkData(Paths.get(exampleFile)));
+         BenchmarkBuilder builder = new BenchmarkBuilder(null, new LocalBenchmarkData(Paths.get(exampleFile)));
          BenchmarkBuilder.httpForTesting(original).forEach(http -> {
             HttpBuilder newHttp = builder.decoupledHttp();
             newHttp.readFrom(http);
@@ -97,7 +97,7 @@ public class ValidateExampleTest {
 
    @Test
    public void testPrint() throws IOException, ParserException {
-      Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(loadOrFail(), new LocalBenchmarkData());
+      Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(loadOrFail(), new LocalBenchmarkData(Paths.get(exampleFile)));
       ByteArrayOutputStream output = new ByteArrayOutputStream();
       try (PrintStream stream = new PrintStream(output, false, StandardCharsets.UTF_8.name())) {
          new YamlVisitor(stream).walk(benchmark);

@@ -24,7 +24,6 @@ import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.http.StatusHandler;
 import io.hyperfoil.core.handlers.http.RangeStatusValidator;
-import io.hyperfoil.core.impl.LocalBenchmarkData;
 import io.hyperfoil.core.parser.BenchmarkParser;
 import io.hyperfoil.core.parser.ParserException;
 import io.hyperfoil.core.steps.AwaitIntStep;
@@ -32,6 +31,7 @@ import io.hyperfoil.core.steps.HttpRequestStep;
 import io.hyperfoil.core.steps.HttpRequestStepUtil;
 import io.hyperfoil.core.steps.NoopStep;
 import io.hyperfoil.core.steps.ScheduleDelayStep;
+import io.hyperfoil.core.test.TestUtil;
 import io.hyperfoil.util.Util;
 
 import org.assertj.core.api.Condition;
@@ -215,7 +215,8 @@ public class YamlParserTest {
    }
 
    private Benchmark buildBenchmark(String s) {
-      return buildBenchmark(this.getClass().getClassLoader().getResourceAsStream(s));
+      ClassLoader classLoader = this.getClass().getClassLoader();
+      return buildBenchmark(classLoader.getResourceAsStream(s));
    }
 
    private Benchmark buildBenchmark(InputStream inputStream) {
@@ -223,7 +224,7 @@ public class YamlParserTest {
          fail("Could not find benchmark configuration");
 
       try {
-         Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(inputStream, new LocalBenchmarkData());
+         Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(inputStream, TestUtil.benchmarkData());
          Assert.assertNotNull(benchmark);
          try {
             byte[] bytes = Util.serialize(benchmark);

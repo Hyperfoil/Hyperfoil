@@ -1,15 +1,30 @@
 package io.hyperfoil.core.test;
 
+import java.io.InputStream;
+import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
 import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.api.config.BenchmarkBuilder;
+import io.hyperfoil.api.config.BenchmarkData;
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.ScenarioBuilder;
 import io.hyperfoil.api.config.StepBuilder;
-import io.hyperfoil.core.impl.LocalBenchmarkData;
 
 public class TestUtil {
+   private static final BenchmarkData TESTING_DATA = new BenchmarkData() {
+      @Override
+      public InputStream readFile(String file) {
+         return getClass().getClassLoader().getResourceAsStream(file);
+      }
+
+      @Override
+      public Map<String, byte[]> files() {
+         return Collections.emptyMap();
+      }
+   };
+
    private static final Locator TESTING_MOCK = new Locator() {
       @Override
       public StepBuilder<?> step() {
@@ -28,7 +43,7 @@ public class TestUtil {
 
       @Override
       public BenchmarkBuilder benchmark() {
-         return new BenchmarkBuilder(null, new LocalBenchmarkData());
+         return new BenchmarkBuilder(null, TESTING_DATA);
       }
    };
 
@@ -43,5 +58,9 @@ public class TestUtil {
 
    public static Locator locator() {
       return TESTING_MOCK;
+   }
+
+   public static BenchmarkData benchmarkData() {
+      return TESTING_DATA;
    }
 }
