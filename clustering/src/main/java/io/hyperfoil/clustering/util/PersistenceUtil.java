@@ -103,7 +103,8 @@ public class PersistenceUtil {
                return benchmark;
             }
          } catch (Exception e) {
-            log.error("Cannot read file {}", e, file);
+            log.info("Cannot load serialized benchmark from {} (likely a serialization issue, see traces for details)", file);
+            log.trace("Cannot read file {}", e, file);
             return null;
          }
       } else if (file.toFile().isDirectory() && filename.endsWith(".data")) {
