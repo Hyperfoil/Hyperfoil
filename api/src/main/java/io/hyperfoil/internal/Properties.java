@@ -13,6 +13,8 @@ public interface Properties {
    String CONTROLLER_HOST = "io.hyperfoil.controller.host";
    String CONTROLLER_KEYSTORE_PATH = "io.hyperfoil.controller.keystore.path";
    String CONTROLLER_KEYSTORE_PASSWORD = "io.hyperfoil.controller.keystore.password";
+   String CONTROLLER_PEM_KEYS = "io.hyperfoil.controller.pem.keys";
+   String CONTROLLER_PEM_CERTS = "io.hyperfoil.controller.pem.certs";
    String CONTROLLER_SECURED_VIA_PROXY = "io.hyperfoil.controller.secured.via.proxy";
    String CONTROLLER_PASSWORD = "io.hyperfoil.controller.password";
    String CONTROLLER_LOG = "io.hyperfoil.controller.log.file";

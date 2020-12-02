@@ -64,6 +64,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.net.JksOptions;
+import io.vertx.core.net.PemKeyCertOptions;
 import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -80,6 +81,8 @@ class ControllerServer implements ApiService {
    private static final int CONTROLLER_PORT = Properties.getInt(Properties.CONTROLLER_PORT, 8090);
    private static final String KEYSTORE_PATH = Properties.get(Properties.CONTROLLER_KEYSTORE_PATH, null);
    private static final String KEYSTORE_PASSWORD = Properties.get(Properties.CONTROLLER_KEYSTORE_PASSWORD, null);
+   private static final String PEM_KEYS = Properties.get(Properties.CONTROLLER_PEM_KEYS, null);
+   private static final String PEM_CERTS = Properties.get(Properties.CONTROLLER_PEM_CERTS, null);
    private static final String CONTROLLER_PASSWORD = Properties.get(Properties.CONTROLLER_PASSWORD, null);
    private static final boolean CONTROLLER_SECURED_VIA_PROXY = Properties.getBoolean(Properties.CONTROLLER_SECURED_VIA_PROXY);
    private static final String CONTROLLER_EXTERNAL_URI = Properties.get(Properties.CONTROLLER_EXTERNAL_URI, null);
@@ -100,6 +103,19 @@ class ControllerServer implements ApiService {
       if (KEYSTORE_PATH != null) {
          options.setSsl(true).setUseAlpn(true).setKeyCertOptions(
                new JksOptions().setPath(KEYSTORE_PATH).setPassword(KEYSTORE_PASSWORD));
+      } else if (PEM_CERTS != null || PEM_KEYS != null) {
+         PemKeyCertOptions pem = new PemKeyCertOptions();
+         if (PEM_CERTS != null) {
+            for (String certPath : PEM_CERTS.split(",")) {
+               pem.addCertPath(certPath.trim());
+            }
+         }
+         if (PEM_KEYS != null) {
+            for (String keyPath : PEM_KEYS.split(",")) {
+               pem.addKeyPath(keyPath.trim());
+            }
+         }
+         options.setSsl(true).setUseAlpn(true).setKeyCertOptions(pem);
       }
 
       Router router = Router.router(controller.getVertx());
