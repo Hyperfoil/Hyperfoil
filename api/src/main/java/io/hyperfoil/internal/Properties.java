@@ -11,6 +11,8 @@ public interface Properties {
    String CONTROLLER_CLUSTER_PORT = "io.hyperfoil.controller.cluster.port";
    String CONTROLLER_EXTERNAL_URI = "io.hyperfoil.controller.external.uri";
    String CONTROLLER_HOST = "io.hyperfoil.controller.host";
+   String CONTROLLER_KEYSTORE_PATH = "io.hyperfoil.controller.keystore.path";
+   String CONTROLLER_KEYSTORE_PASSWORD = "io.hyperfoil.controller.keystore.password";
    String CONTROLLER_LOG = "io.hyperfoil.controller.log.file";
    String CONTROLLER_LOG_LEVEL = "io.hyperfoil.controller.log.level";
    String CONTROLLER_PORT = "io.hyperfoil.controller.port";

@@ -55,6 +55,7 @@ import io.vertx.core.Promise;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServer;
+import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.impl.NoStackTraceThrowable;
 import io.vertx.core.json.Json;
@@ -62,6 +63,7 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import io.vertx.core.net.JksOptions;
 import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -76,10 +78,13 @@ class ControllerServer implements ApiService {
 
    private static final String CONTROLLER_HOST = Properties.get(Properties.CONTROLLER_HOST, "0.0.0.0");
    private static final int CONTROLLER_PORT = Properties.getInt(Properties.CONTROLLER_PORT, 8090);
-   private static final String CONTROLLER_EXTERNAL_URI = System.getProperty(Properties.CONTROLLER_EXTERNAL_URI);
+   private static final String KEYSTORE_PATH = Properties.get(Properties.CONTROLLER_KEYSTORE_PATH, null);
+   private static final String KEYSTORE_PASSWORD = Properties.get(Properties.CONTROLLER_KEYSTORE_PASSWORD, null);
+   private static final String CONTROLLER_EXTERNAL_URI = Properties.get(Properties.CONTROLLER_EXTERNAL_URI, null);
+   private static final String TRIGGER_URL = Properties.get(Properties.TRIGGER_URL, null);
+
    private static final Comparator<ControllerPhase> PHASE_COMPARATOR =
          Comparator.<ControllerPhase, Long>comparing(ControllerPhase::absoluteStartTime).thenComparing(p -> p.definition().name);
-   private static final String TRIGGER_URL = System.getProperty(Properties.TRIGGER_URL);
    private static final BinaryOperator<Run> LAST_RUN_OPERATOR = (r1, r2) -> r1.id.compareTo(r2.id) > 0 ? r1 : r2;
 
    final ControllerVerticle controller;
@@ -91,7 +96,12 @@ class ControllerServer implements ApiService {
       Router router = Router.router(controller.getVertx());
       new ApiRouter(this, router);
 
-      httpServer = controller.getVertx().createHttpServer().requestHandler(router)
+      HttpServerOptions options = new HttpServerOptions();
+      if (KEYSTORE_PATH != null) {
+         options.setSsl(true).setUseAlpn(true).setKeyCertOptions(
+               new JksOptions().setPath(KEYSTORE_PATH).setPassword(KEYSTORE_PASSWORD));
+      }
+      httpServer = controller.getVertx().createHttpServer(options).requestHandler(router)
             .listen(CONTROLLER_PORT, CONTROLLER_HOST, serverResult -> {
                if (serverResult.succeeded()) {
                   if (CONTROLLER_EXTERNAL_URI == null) {
@@ -104,7 +114,7 @@ class ControllerServer implements ApiService {
                            host = "localhost";
                         }
                      }
-                     baseURL = "http://" + host + ":" + serverResult.result().actualPort();
+                     baseURL = (options.isSsl() ? "https://" : "http://") + host + ":" + serverResult.result().actualPort();
                   } else {
                      baseURL = CONTROLLER_EXTERNAL_URI;
                   }

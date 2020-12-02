@@ -68,7 +68,7 @@ public class StartLocal extends ServerCommand {
       if (invocation.context().client() != null) {
          invocation.context().client().close();
       }
-      connect(invocation, invocation.context().localControllerHost(), invocation.context().localControllerPort(), quiet);
+      connect(invocation, invocation.context().localControllerHost(), invocation.context().localControllerPort(), quiet, false, false);
       return CommandResult.SUCCESS;
    }
 }

@@ -15,18 +15,42 @@ import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 
 @CommandDefinition(name = "connect", description = "Connects CLI to Hyperfoil Controller server")
 public class Connect extends ServerCommand {
-   @Argument(description = "Hyperfoil host", defaultValue = "localhost")
+   private static final int DEFAULT_PORT = 8090;
+   @Argument(description = "Hyperfoil host")
    String host;
 
-   @Option(shortName = 'p', name = "port", description = "Hyperfoil port", defaultValue = "8090")
-   int port;
+   @Option(shortName = 'p', description = "Hyperfoil port")
+   Integer port;
+
+   @Option(shortName = 't', description = "Use secure (HTTPS/TLS) connections.", hasValue = false)
+   boolean tls;
+
+   @Option(name = "no-tls", description = "Do not use (HTTPS/TLS) connections.", hasValue = false)
+   boolean noTls;
+
+   @Option(shortName = 'k', description = "Do not verify certificate validity.", hasValue = false)
+   boolean insecure;
 
    @Override
    public CommandResult execute(HyperfoilCommandInvocation invocation) throws CommandException {
       HyperfoilCliContext ctx = invocation.context();
+      if (host != null && host.startsWith("http://")) {
+         host = host.substring(7);
+         if (port == null) {
+            port = 80;
+         }
+      } else if (host != null && host.startsWith("https://")) {
+         host = host.substring(8);
+         if (port == null) {
+            port = 443;
+         }
+      }
+      if (port != null && port % 1000 == 443 && !noTls) {
+         tls = true;
+      }
       if (ctx.client() != null) {
-         if (ctx.client().host().equals(host) && ctx.client().port() == port) {
-            invocation.println("Already connected to " + host + ":" + port + ", not reconnecting.");
+         if (ctx.client().host().equals(host) && (ctx.client().port() == DEFAULT_PORT && port == null || port != null && ctx.client().port() == port)) {
+            invocation.println("Already connected to " + ctx.client().host() + ":" + ctx.client().port() + ", not reconnecting.");
             return CommandResult.SUCCESS;
          } else {
             invocation.println("Closing connection to " + ctx.client());
@@ -35,11 +59,16 @@ public class Connect extends ServerCommand {
                   new TerminalColor(Color.GREEN, Color.DEFAULT, Color.Intensity.BRIGHT))));
          }
       }
-      if ("localhost".equals(host) && port == 8090 && invocation.context().localControllerPort() > 0) {
+      if (host == null && port == null && invocation.context().localControllerPort() > 0) {
          host = invocation.context().localControllerHost();
          port = invocation.context().localControllerPort();
+      } else if (host == null) {
+         host = "localhost";
       }
-      connect(invocation, host, port, false);
+      if (port == null) {
+         port = DEFAULT_PORT;
+      }
+      connect(invocation, host, port, false, tls, insecure);
       return CommandResult.SUCCESS;
    }
 }

@@ -40,10 +40,16 @@ public class RestClient implements Client, Closeable {
    final WebClientOptions options;
    final WebClient client;
 
-   public RestClient(Vertx vertx, String host, int port) {
+   public RestClient(Vertx vertx, String host, int port, boolean ssl, boolean insecure) {
       this.vertx = vertx;
       // Actually there's little point in using async client, but let's stay in Vert.x libs
       options = new WebClientOptions().setDefaultHost(host).setDefaultPort(port);
+      if (ssl) {
+         options.setSsl(true).setUseAlpn(true);
+      }
+      if (insecure) {
+         options.setTrustAll(true).setVerifyHost(false);
+      }
       client = WebClient.create(this.vertx, options.setFollowRedirects(false));
    }
 

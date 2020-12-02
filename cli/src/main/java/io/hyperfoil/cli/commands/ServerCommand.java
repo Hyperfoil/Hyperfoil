@@ -15,6 +15,8 @@ import java.util.Collection;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
+import javax.net.ssl.SSLHandshakeException;
+
 import org.aesh.command.Command;
 import org.aesh.command.CommandException;
 import org.aesh.readline.Prompt;
@@ -101,12 +103,15 @@ public abstract class ServerCommand implements Command<HyperfoilCommandInvocatio
          return;
       }
       invocation.println("Not connected, trying to connect to localhost:8090...");
-      connect(invocation, "localhost", 8090, false);
+      connect(invocation, "localhost", 8090, false, false, false);
    }
 
-   protected void connect(HyperfoilCommandInvocation invocation, String host, int port, boolean quiet) throws CommandException {
+   protected void connect(HyperfoilCommandInvocation invocation, String host, int port, boolean quiet, boolean ssl, boolean insecure) throws CommandException {
       HyperfoilCliContext ctx = invocation.context();
-      ctx.setClient(new RestClient(ctx.vertx(), host, port));
+      ctx.setClient(new RestClient(ctx.vertx(), host, port, ssl, insecure));
+      if (ssl && insecure) {
+         invocation.warn("Hyperfoil TLS certificiate validity is not checked. Your credentials might get compromised.");
+      }
       try {
          long preMillis = System.currentTimeMillis();
          io.hyperfoil.controller.model.Version version = ctx.client().version();
@@ -154,6 +159,12 @@ public abstract class ServerCommand implements Command<HyperfoilCommandInvocatio
          ctx.client().close();
          ctx.setClient(null);
          invocation.error(e);
+         if (e.getCause().getMessage().equals("Connection was closed")) {
+            invocation.println("Hint: Server might be secured; use --tls.");
+         }
+         if (e.getCause() instanceof SSLHandshakeException) {
+            invocation.println("Hint: TLS certificate verification might have failed. Use --insecure to disable validation.");
+         }
          throw new CommandException("Failed connecting to " + host + ":" + port, e);
       }
    }
