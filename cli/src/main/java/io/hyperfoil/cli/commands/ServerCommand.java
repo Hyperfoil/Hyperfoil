@@ -103,19 +103,35 @@ public abstract class ServerCommand implements Command<HyperfoilCommandInvocatio
          return;
       }
       invocation.println("Not connected, trying to connect to localhost:8090...");
-      connect(invocation, "localhost", 8090, false, false, false);
+      connect(invocation, "localhost", 8090, false, false, false, null);
    }
 
-   protected void connect(HyperfoilCommandInvocation invocation, String host, int port, boolean quiet, boolean ssl, boolean insecure) throws CommandException {
+   protected void connect(HyperfoilCommandInvocation invocation, String host, int port, boolean quiet, boolean ssl, boolean insecure, String password) throws CommandException {
       HyperfoilCliContext ctx = invocation.context();
-      ctx.setClient(new RestClient(ctx.vertx(), host, port, ssl, insecure));
+      ctx.setClient(new RestClient(ctx.vertx(), host, port, ssl, insecure, password));
       if (ssl && insecure) {
          invocation.warn("Hyperfoil TLS certificiate validity is not checked. Your credentials might get compromised.");
       }
       try {
-         long preMillis = System.currentTimeMillis();
-         io.hyperfoil.controller.model.Version version = ctx.client().version();
-         long postMillis = System.currentTimeMillis();
+         long preMillis, postMillis;
+         io.hyperfoil.controller.model.Version version;
+         for (; ; ) {
+            try {
+               preMillis = System.currentTimeMillis();
+               version = ctx.client().version();
+               postMillis = System.currentTimeMillis();
+               break;
+            } catch (RestClient.Unauthorized e) {
+               if (!updatePassword(invocation, ctx)) {
+                  return;
+               }
+            } catch (RestClient.Forbidden e) {
+               invocation.println("Provided password is incorrect, please type again:");
+               if (!updatePassword(invocation, ctx)) {
+                  return;
+               }
+            }
+         }
          if (!quiet) {
             invocation.println("Connected!");
          }
@@ -159,13 +175,32 @@ public abstract class ServerCommand implements Command<HyperfoilCommandInvocatio
          ctx.client().close();
          ctx.setClient(null);
          invocation.error(e);
-         if (e.getCause().getMessage().equals("Connection was closed")) {
+         if (Objects.equals(e.getCause().getMessage(), "Connection was closed")) {
             invocation.println("Hint: Server might be secured; use --tls.");
          }
          if (e.getCause() instanceof SSLHandshakeException) {
             invocation.println("Hint: TLS certificate verification might have failed. Use --insecure to disable validation.");
          }
          throw new CommandException("Failed connecting to " + host + ":" + port, e);
+      }
+   }
+
+   private boolean updatePassword(HyperfoilCommandInvocation invocation, HyperfoilCliContext ctx) {
+      try {
+         String password = invocation.inputLine(new Prompt("password: ", '*'));
+         if (password == null || password.isEmpty()) {
+            invocation.println("Empty password, not connecting.");
+            ctx.client().close();
+            ctx.setClient(null);
+            return false;
+         }
+         ctx.client().setPassword(password);
+         return true;
+      } catch (InterruptedException ie) {
+         ctx.client().close();
+         ctx.setClient(null);
+         invocation.println("Not connected.");
+         return false;
       }
    }
 

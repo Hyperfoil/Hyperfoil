@@ -8,6 +8,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +30,7 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
+import io.vertx.core.net.impl.SocketAddressImpl;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
@@ -38,9 +40,10 @@ import io.vertx.ext.web.multipart.MultipartForm;
 public class RestClient implements Client, Closeable {
    final Vertx vertx;
    final WebClientOptions options;
-   final WebClient client;
+   private final WebClient client;
+   private String authorization;
 
-   public RestClient(Vertx vertx, String host, int port, boolean ssl, boolean insecure) {
+   public RestClient(Vertx vertx, String host, int port, boolean ssl, boolean insecure, String password) {
       this.vertx = vertx;
       // Actually there's little point in using async client, but let's stay in Vert.x libs
       options = new WebClientOptions().setDefaultHost(host).setDefaultPort(port);
@@ -51,6 +54,16 @@ public class RestClient implements Client, Closeable {
          options.setTrustAll(true).setVerifyHost(false);
       }
       client = WebClient.create(this.vertx, options.setFollowRedirects(false));
+      setPassword(password);
+   }
+
+   public void setPassword(String password) {
+      if (password != null) {
+         // server ignores username
+         authorization = "Basic " + Base64.getEncoder().encodeToString(("hyperfoil:" + password).getBytes(StandardCharsets.UTF_8));
+      } else {
+         authorization = null;
+      }
    }
 
    static RestClientException unexpected(HttpResponse<Buffer> response) {
@@ -71,6 +84,17 @@ public class RestClient implements Client, Closeable {
       return options.getDefaultPort();
    }
 
+   HttpRequest<Buffer> request(HttpMethod method, String path) {
+      HttpRequest<Buffer> request = client.request(method, path);
+      if (authorization != null) {
+         request.putHeader(HttpHeaders.AUTHORIZATION.toString(), authorization);
+      }
+      return request;
+   }
+
+   HttpRequest<Buffer> request(HttpMethod method, int port, String host, String path) {
+      return client.request(method, new SocketAddressImpl(port, host), path);
+   }
 
    @Override
    public BenchmarkRef register(Benchmark benchmark, String prevVersion) {
@@ -82,7 +106,7 @@ public class RestClient implements Client, Closeable {
       }
       return sync(
             handler -> {
-               HttpRequest<Buffer> request = client.request(HttpMethod.POST, "/benchmark");
+               HttpRequest<Buffer> request = request(HttpMethod.POST, "/benchmark");
                if (prevVersion != null) {
                   request.putHeader(HttpHeaders.IF_MATCH.toString(), prevVersion);
                }
@@ -109,7 +133,7 @@ public class RestClient implements Client, Closeable {
                for (Map.Entry<String, Path> entry : otherFiles.entrySet()) {
                   multipart.binaryFileUpload(entry.getKey(), entry.getKey(), entry.getValue().toString(), "application/octet-stream");
                }
-               HttpRequest<Buffer> request = client.request(HttpMethod.POST, "/benchmark");
+               HttpRequest<Buffer> request = request(HttpMethod.POST, "/benchmark");
                if (storedFilesBenchmark != null) {
                   request.addQueryParam("storedFilesBenchmark", storedFilesBenchmark);
                }
@@ -137,7 +161,7 @@ public class RestClient implements Client, Closeable {
    @Override
    public List<String> benchmarks() {
       return sync(
-            handler -> client.request(HttpMethod.GET, "/benchmark").send(handler), 200,
+            handler -> request(HttpMethod.GET, "/benchmark").send(handler), 200,
             response -> Arrays.asList(Json.decodeValue(response.body(), String[].class)));
    }
 
@@ -149,7 +173,7 @@ public class RestClient implements Client, Closeable {
    @Override
    public List<io.hyperfoil.controller.model.Run> runs(boolean details) {
       return sync(
-            handler -> client.request(HttpMethod.GET, "/run?details=" + details).send(handler), 200,
+            handler -> request(HttpMethod.GET, "/run?details=" + details).send(handler), 200,
             response -> Arrays.asList(Json.decodeValue(response.body(), io.hyperfoil.controller.model.Run[].class)));
    }
 
@@ -160,7 +184,7 @@ public class RestClient implements Client, Closeable {
 
    @Override
    public long ping() {
-      return sync(handler -> client.request(HttpMethod.GET, "/").send(handler), 200, response -> {
+      return sync(handler -> request(HttpMethod.GET, "/").send(handler), 200, response -> {
          try {
             String header = response.getHeader("x-epoch-millis");
             return header != null ? Long.parseLong(header) : 0L;
@@ -172,13 +196,20 @@ public class RestClient implements Client, Closeable {
 
    @Override
    public Version version() {
-      return sync(handler -> client.request(HttpMethod.GET, "/version").send(handler), 200,
-            response -> Json.decodeValue(response.body(), Version.class));
+      return sync(handler -> request(HttpMethod.GET, "/version").send(handler), 0,
+            response -> {
+               if (response.statusCode() == 401) {
+                  throw new Unauthorized();
+               } else if (response.statusCode() == 403) {
+                  throw new Forbidden();
+               }
+               return Json.decodeValue(response.body(), Version.class);
+            });
    }
 
    @Override
    public Collection<String> agents() {
-      return sync(handler -> client.request(HttpMethod.GET, "/agents").send(handler), 200,
+      return sync(handler -> request(HttpMethod.GET, "/agents").send(handler), 200,
             response -> Arrays.asList(Json.decodeValue(response.body(), String[].class)));
    }
 
@@ -189,7 +220,7 @@ public class RestClient implements Client, Closeable {
       // the etag does not match
       CompletableFuture<String> future = new CompletableFuture<>();
       vertx.runOnContext(ctx -> {
-         HttpRequest<Buffer> request = client.request(HttpMethod.GET, url + "?offset=" + offset);
+         HttpRequest<Buffer> request = request(HttpMethod.GET, url + "?offset=" + offset);
          if (logId != null) {
             request.putHeader(HttpHeaders.IF_MATCH.toString(), logId);
          }
@@ -245,12 +276,12 @@ public class RestClient implements Client, Closeable {
 
    @Override
    public void shutdown(boolean force) {
-      sync(handler -> client.request(HttpMethod.GET, "/shutdown?force=" + force).send(handler), 200, response -> null);
+      sync(handler -> request(HttpMethod.GET, "/shutdown?force=" + force).send(handler), 200, response -> null);
    }
 
    private void downloadFullLog(String destinationFile, String url, CompletableFuture<String> future) {
       // the etag does not match
-      client.request(HttpMethod.GET, url).send(rsp -> {
+      request(HttpMethod.GET, url).send(rsp -> {
          if (rsp.failed()) {
             future.completeExceptionally(rsp.cause());
             return;
@@ -315,5 +346,17 @@ public class RestClient implements Client, Closeable {
 
    public String toString() {
       return options.getDefaultHost() + ":" + options.getDefaultPort();
+   }
+
+   public static class Unauthorized extends RestClientException {
+      public Unauthorized() {
+         super("Unauthorized: password required");
+      }
+   }
+
+   public static class Forbidden extends RestClientException {
+      public Forbidden() {
+         super("Forbidden: password incorrect");
+      }
    }
 }

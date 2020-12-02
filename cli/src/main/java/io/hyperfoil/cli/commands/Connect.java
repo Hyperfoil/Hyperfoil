@@ -31,6 +31,9 @@ public class Connect extends ServerCommand {
    @Option(shortName = 'k', description = "Do not verify certificate validity.", hasValue = false)
    boolean insecure;
 
+   @Option(description = "Password used for server access (will be queried if necessary).")
+   String password;
+
    @Override
    public CommandResult execute(HyperfoilCommandInvocation invocation) throws CommandException {
       HyperfoilCliContext ctx = invocation.context();
@@ -44,6 +47,20 @@ public class Connect extends ServerCommand {
          if (port == null) {
             port = 443;
          }
+         if (!noTls) {
+            tls = true;
+         }
+      }
+      if (host != null) {
+         int colonIndex = host.indexOf(':');
+         if (colonIndex >= 0) {
+            try {
+               port = Integer.parseInt(host.substring(colonIndex + 1));
+               host = host.substring(0, colonIndex);
+            } catch (NumberFormatException e) {
+               // ignored
+            }
+         }
       }
       if (port != null && port % 1000 == 443 && !noTls) {
          tls = true;
@@ -55,6 +72,8 @@ public class Connect extends ServerCommand {
          } else {
             invocation.println("Closing connection to " + ctx.client());
             ctx.client().close();
+            ctx.setClient(null);
+            ctx.setOnline(false);
             invocation.setPrompt(new Prompt(new TerminalString("[hyperfoil]$ ",
                   new TerminalColor(Color.GREEN, Color.DEFAULT, Color.Intensity.BRIGHT))));
          }
@@ -68,7 +87,7 @@ public class Connect extends ServerCommand {
       if (port == null) {
          port = DEFAULT_PORT;
       }
-      connect(invocation, host, port, false, tls, insecure);
+      connect(invocation, host, port, false, tls, insecure, password);
       return CommandResult.SUCCESS;
    }
 }

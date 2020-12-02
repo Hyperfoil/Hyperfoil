@@ -49,7 +49,7 @@ public class MoreAgentsThanUsersTest extends BaseClusteredTest {
             .endPhase();
       //@formatter:on
 
-      RestClient client = new RestClient(vertx, "localhost", 8090, false, false);
+      RestClient client = new RestClient(vertx, "localhost", 8090, false, false, null);
       Client.BenchmarkRef ref = client.register(benchmark.build(), null);
       Client.RunRef run = ref.start(null);
 

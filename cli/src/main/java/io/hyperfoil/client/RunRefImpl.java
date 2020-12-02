@@ -47,14 +47,14 @@ public class RunRefImpl implements Client.RunRef {
    @Override
    public Run get() {
       return client.sync(
-            handler -> client.client.request(HttpMethod.GET, "/run/" + id).send(handler), 200,
+            handler -> client.request(HttpMethod.GET, "/run/" + id).send(handler), 200,
             response -> Json.decodeValue(response.body(), Run.class));
    }
 
    @Override
    public Client.RunRef kill() {
       client.sync(
-            handler -> client.client.request(HttpMethod.GET, "/run/" + id + "/kill").send(handler), 202,
+            handler -> client.request(HttpMethod.GET, "/run/" + id + "/kill").send(handler), 202,
             response -> null);
       return this;
    }
@@ -62,7 +62,7 @@ public class RunRefImpl implements Client.RunRef {
    @Override
    public Benchmark benchmark() {
       return client.sync(
-            handler -> client.client.request(HttpMethod.GET, "/run/" + id + "/benchmark")
+            handler -> client.request(HttpMethod.GET, "/run/" + id + "/benchmark")
                   .putHeader(HttpHeaders.ACCEPT.toString(), "application/java-serialized-object")
                   .send(handler), 200,
             response -> {
@@ -77,7 +77,7 @@ public class RunRefImpl implements Client.RunRef {
    @Override
    public Map<String, Map<String, Client.MinMax>> sessionStatsRecent() {
       return client.sync(
-            handler -> client.client.request(HttpMethod.GET, "/run/" + id + "/sessions/recent").send(handler), 200,
+            handler -> client.request(HttpMethod.GET, "/run/" + id + "/sessions/recent").send(handler), 200,
             response -> JacksonCodec.decodeValue(response.body(), new TypeReference<Map<String, Map<String, Client.MinMax>>>() {})
       );
    }
@@ -85,7 +85,7 @@ public class RunRefImpl implements Client.RunRef {
    @Override
    public Map<String, Map<String, Client.MinMax>> sessionStatsTotal() {
       return client.sync(
-            handler -> client.client.request(HttpMethod.GET, "/run/" + id + "/sessions/total").send(handler), 200,
+            handler -> client.request(HttpMethod.GET, "/run/" + id + "/sessions/total").send(handler), 200,
             response -> JacksonCodec.decodeValue(response.body(), new TypeReference<Map<String, Map<String, Client.MinMax>>>() {})
       );
    }
@@ -93,14 +93,14 @@ public class RunRefImpl implements Client.RunRef {
    @Override
    public Collection<String> sessions() {
       return client.sync(
-            handler -> client.client.request(HttpMethod.GET, "/run/" + id + "/sessions").send(handler), 200,
+            handler -> client.request(HttpMethod.GET, "/run/" + id + "/sessions").send(handler), 200,
             response -> Arrays.asList(response.bodyAsString().split("\n")));
    }
 
    @Override
    public Collection<String> connections() {
       return client.sync(
-            handler -> client.client.request(HttpMethod.GET, "/run/" + id + "/connections").send(handler), 200,
+            handler -> client.request(HttpMethod.GET, "/run/" + id + "/connections").send(handler), 200,
             response -> Arrays.asList(response.bodyAsString().split("\n")));
 
    }
@@ -108,7 +108,7 @@ public class RunRefImpl implements Client.RunRef {
    @Override
    public RequestStatisticsResponse statsRecent() {
       return client.sync(
-            handler -> client.client.request(HttpMethod.GET, "/run/" + id + "/stats/recent")
+            handler -> client.request(HttpMethod.GET, "/run/" + id + "/stats/recent")
                   .putHeader(HttpHeaders.ACCEPT.toString(), "application/json").send(handler), 200,
             response -> Json.decodeValue(response.body(), RequestStatisticsResponse.class));
    }
@@ -116,7 +116,7 @@ public class RunRefImpl implements Client.RunRef {
    @Override
    public RequestStatisticsResponse statsTotal() {
       return client.sync(
-            handler -> client.client.request(HttpMethod.GET, "/run/" + id + "/stats/total")
+            handler -> client.request(HttpMethod.GET, "/run/" + id + "/stats/total")
                   .putHeader(HttpHeaders.ACCEPT.toString(), "application/json").send(handler), 200,
             response -> Json.decodeValue(response.body(), RequestStatisticsResponse.class));
    }
@@ -125,7 +125,7 @@ public class RunRefImpl implements Client.RunRef {
    public void statsAll(String format, String destinationFile) {
       CompletableFuture<String> future = new CompletableFuture<>();
       client.vertx.runOnContext(ctx -> {
-         client.client.request(HttpMethod.GET, "/run/" + id + "/stats/all")
+         client.request(HttpMethod.GET, "/run/" + id + "/stats/all")
                .putHeader(HttpHeaders.ACCEPT.toString(), format)
                .send(rsp -> {
                   if (rsp.failed()) {
@@ -153,7 +153,7 @@ public class RunRefImpl implements Client.RunRef {
    @Override
    public Histogram histogram(String phase, int stepId, String metric) {
       return client.sync(
-            handler -> client.client.request(HttpMethod.GET, "/run/" + id + "/stats/histogram")
+            handler -> client.request(HttpMethod.GET, "/run/" + id + "/stats/histogram")
                   .addQueryParam("phase", phase)
                   .addQueryParam("stepId", String.valueOf(stepId))
                   .addQueryParam("metric", metric)
@@ -165,14 +165,14 @@ public class RunRefImpl implements Client.RunRef {
    @Override
    public Collection<CustomStats> customStats() {
       return client.sync(
-            handler -> client.client.request(HttpMethod.GET, "/run/" + id + "/stats/custom").send(handler), 200,
+            handler -> client.request(HttpMethod.GET, "/run/" + id + "/stats/custom").send(handler), 200,
             response -> JacksonCodec.decodeValue(response.body(), new TypeReference<Collection<CustomStats>>() {}));
    }
 
    @Override
    public byte[] file(String filename) {
       return client.sync(
-            handler -> client.client.request(HttpMethod.GET, "/run/" + id + "/file").addQueryParam("file", filename).send(handler), 200,
+            handler -> client.request(HttpMethod.GET, "/run/" + id + "/file").addQueryParam("file", filename).send(handler), 200,
             response -> response.body().getBytes()
       );
    }

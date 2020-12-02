@@ -1,6 +1,5 @@
 package io.hyperfoil.clustering;
 
-
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -15,6 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
@@ -80,6 +80,8 @@ class ControllerServer implements ApiService {
    private static final int CONTROLLER_PORT = Properties.getInt(Properties.CONTROLLER_PORT, 8090);
    private static final String KEYSTORE_PATH = Properties.get(Properties.CONTROLLER_KEYSTORE_PATH, null);
    private static final String KEYSTORE_PASSWORD = Properties.get(Properties.CONTROLLER_KEYSTORE_PASSWORD, null);
+   private static final String CONTROLLER_PASSWORD = Properties.get(Properties.CONTROLLER_PASSWORD, null);
+   private static final boolean CONTROLLER_SECURED_VIA_PROXY = Properties.getBoolean(Properties.CONTROLLER_SECURED_VIA_PROXY);
    private static final String CONTROLLER_EXTERNAL_URI = Properties.get(Properties.CONTROLLER_EXTERNAL_URI, null);
    private static final String TRIGGER_URL = Properties.get(Properties.TRIGGER_URL, null);
 
@@ -93,14 +95,25 @@ class ControllerServer implements ApiService {
 
    ControllerServer(ControllerVerticle controller, CountDown countDown) {
       this.controller = controller;
-      Router router = Router.router(controller.getVertx());
-      new ApiRouter(this, router);
 
       HttpServerOptions options = new HttpServerOptions();
       if (KEYSTORE_PATH != null) {
          options.setSsl(true).setUseAlpn(true).setKeyCertOptions(
                new JksOptions().setPath(KEYSTORE_PATH).setPassword(KEYSTORE_PASSWORD));
       }
+
+      Router router = Router.router(controller.getVertx());
+      if (CONTROLLER_PASSWORD != null) {
+         if (!options.isSsl() && !CONTROLLER_SECURED_VIA_PROXY) {
+            throw new IllegalStateException("Server uses basic authentication scheme (" + Properties.CONTROLLER_PASSWORD +
+                  " is set) but it does not use TLS connections. If the confidentiality is guaranteed by a proxy set -D" +
+                  Properties.CONTROLLER_SECURED_VIA_PROXY + "=true.");
+         }
+         log.info("Server is protected using a password.");
+         router.route().handler(new BasicAuthHandler());
+      }
+      new ApiRouter(this, router);
+
       httpServer = controller.getVertx().createHttpServer(options).requestHandler(router)
             .listen(CONTROLLER_PORT, CONTROLLER_HOST, serverResult -> {
                if (serverResult.succeeded()) {
@@ -792,5 +805,28 @@ class ControllerServer implements ApiService {
          return;
       }
       consumer.accept(benchmark);
+   }
+
+   private static class BasicAuthHandler implements Handler<RoutingContext> {
+      @Override
+      public void handle(RoutingContext ctx) {
+         String authorization = ctx.request().getHeader(HttpHeaders.AUTHORIZATION);
+         if (authorization != null && authorization.startsWith("Basic ")) {
+            byte[] credentials = Base64.getDecoder().decode(authorization.substring(6).trim());
+            for (int i = 0; i < credentials.length; ++i) {
+               if (credentials[i] == ':') {
+                  String password = new String(credentials, i + 1, credentials.length - i - 1, StandardCharsets.UTF_8);
+                  if (password.equals(CONTROLLER_PASSWORD)) {
+                     ctx.next();
+                     return;
+                  }
+                  break;
+               }
+            }
+            ctx.response().setStatusCode(403).end();
+         } else {
+            ctx.response().setStatusCode(401).putHeader("WWW-Authenticate", "Basic realm=\"hyperfoil\", charset=\"UTF-8\"").end();
+         }
+      }
    }
 }

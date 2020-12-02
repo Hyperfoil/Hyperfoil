@@ -13,6 +13,8 @@ public interface Properties {
    String CONTROLLER_HOST = "io.hyperfoil.controller.host";
    String CONTROLLER_KEYSTORE_PATH = "io.hyperfoil.controller.keystore.path";
    String CONTROLLER_KEYSTORE_PASSWORD = "io.hyperfoil.controller.keystore.password";
+   String CONTROLLER_SECURED_VIA_PROXY = "io.hyperfoil.controller.secured.via.proxy";
+   String CONTROLLER_PASSWORD = "io.hyperfoil.controller.password";
    String CONTROLLER_LOG = "io.hyperfoil.controller.log.file";
    String CONTROLLER_LOG_LEVEL = "io.hyperfoil.controller.log.level";
    String CONTROLLER_PORT = "io.hyperfoil.controller.port";
@@ -36,6 +38,10 @@ public interface Properties {
 
    static int getInt(String property, int def) {
       return get(property, Integer::valueOf, def);
+   }
+
+   static boolean getBoolean(String property) {
+      return get(property, Boolean::valueOf, false);
    }
 
    static <T> T get(String property, Function<String, T> f, T def) {

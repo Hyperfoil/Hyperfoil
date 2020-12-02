@@ -15,7 +15,6 @@ import io.hyperfoil.util.Util;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.net.impl.SocketAddressImpl;
 import io.vertx.ext.web.client.HttpResponse;
 
 class BenchmarkRefImpl implements Client.BenchmarkRef {
@@ -35,7 +34,7 @@ class BenchmarkRefImpl implements Client.BenchmarkRef {
    @Override
    public Client.BenchmarkSource source() {
       return client.sync(
-            handler -> client.client.request(HttpMethod.GET, "/benchmark/" + encode(name))
+            handler -> client.request(HttpMethod.GET, "/benchmark/" + encode(name))
                   .putHeader(HttpHeaders.ACCEPT.toString(), "text/vnd.yaml")
                   .send(handler), 0,
             response -> {
@@ -53,7 +52,7 @@ class BenchmarkRefImpl implements Client.BenchmarkRef {
    @Override
    public Benchmark get() {
       return client.sync(
-            handler -> client.client.request(HttpMethod.GET, "/benchmark/" + encode(name))
+            handler -> client.request(HttpMethod.GET, "/benchmark/" + encode(name))
                   .putHeader(HttpHeaders.ACCEPT.toString(), "application/java-serialized-object")
                   .send(handler), 200,
             response -> {
@@ -76,7 +75,7 @@ class BenchmarkRefImpl implements Client.BenchmarkRef {
             } catch (UnsupportedEncodingException e) {
             }
          }
-         client.client.request(HttpMethod.GET, query).send(rsp -> {
+         client.request(HttpMethod.GET, query).send(rsp -> {
             if (rsp.succeeded()) {
                HttpResponse<Buffer> response = rsp.result();
                String location = response.getHeader(HttpHeaders.LOCATION.toString());
@@ -97,7 +96,7 @@ class BenchmarkRefImpl implements Client.BenchmarkRef {
                      return;
                   }
                   String runId = response.getHeader("x-run-id");
-                  client.client.request(HttpMethod.GET, new SocketAddressImpl(url.getPort(), url.getHost()), url.getFile()).send(rsp2 -> {
+                  client.request(HttpMethod.GET, url.getPort(), url.getHost(), url.getFile()).send(rsp2 -> {
                      if (rsp2.succeeded()) {
                         HttpResponse<Buffer> response2 = rsp2.result();
                         if (response2.statusCode() >= 200 && response2.statusCode() < 300) {
@@ -123,7 +122,7 @@ class BenchmarkRefImpl implements Client.BenchmarkRef {
    @Override
    public String structure() {
       return client.sync(
-            handler -> client.client.request(HttpMethod.GET, "/benchmark/" + encode(name) + "/structure")
+            handler -> client.request(HttpMethod.GET, "/benchmark/" + encode(name) + "/structure")
                   .putHeader(HttpHeaders.ACCEPT.toString(), "text/vnd.yaml")
                   .send(handler), 200,
             HttpResponse::bodyAsString);
