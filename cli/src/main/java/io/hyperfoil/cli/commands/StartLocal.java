@@ -10,6 +10,7 @@ import org.aesh.command.option.Option;
 import org.aesh.io.FileResource;
 import org.aesh.io.Resource;
 
+import io.hyperfoil.cli.context.HyperfoilCliContext;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.internal.Controller;
 import io.hyperfoil.internal.Properties;
@@ -27,7 +28,8 @@ public class StartLocal extends ServerCommand {
 
    @Override
    public CommandResult execute(HyperfoilCommandInvocation invocation) throws CommandException {
-      if (invocation.context().localControllerHost() != null || invocation.context().localControllerPort() > 0) {
+      HyperfoilCliContext ctx = invocation.context();
+      if (ctx.localControllerHost() != null || ctx.localControllerPort() > 0) {
          if (!quiet) {
             invocation.warn("Local controller is already running, not starting.");
          }
@@ -55,20 +57,20 @@ public class StartLocal extends ServerCommand {
             System.setProperty(Properties.CONTROLLER_LOG_LEVEL, logLevel);
          }
          Controller controller = factory.start(rootDir == null ? null : ((FileResource) rootDir).getFile().toPath());
-         invocation.context().setLocalControllerHost(controller.host());
-         invocation.context().setLocalControllerPort(controller.port());
+         ctx.setLocalControllerHost(controller.host());
+         ctx.setLocalControllerPort(controller.port());
          if (!quiet) {
             invocation.println("Controller started, listening on " + controller.host() + ":" + controller.port());
          }
-         invocation.context().addCleanup(() -> controller.stop());
+         ctx.addCleanup(() -> controller.stop());
       }
       if (!quiet) {
          invocation.println("Connecting to the controller...");
       }
-      if (invocation.context().client() != null) {
-         invocation.context().client().close();
+      if (ctx.client() != null) {
+         ctx.client().close();
       }
-      connect(invocation, invocation.context().localControllerHost(), invocation.context().localControllerPort(), quiet, false, false, null);
+      connect(invocation, quiet, ctx.localControllerHost(), ctx.localControllerPort(), false, false, null);
       return CommandResult.SUCCESS;
    }
 }

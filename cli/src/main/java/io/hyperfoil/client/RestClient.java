@@ -202,6 +202,18 @@ public class RestClient implements Client, Closeable {
                   throw new Unauthorized();
                } else if (response.statusCode() == 403) {
                   throw new Forbidden();
+               } else if (response.statusCode() >= 300 && response.statusCode() <= 399) {
+                  String location = response.getHeader(HttpHeaders.LOCATION.toString());
+                  if (location == null) {
+                     throw new RestClientException("Servers suggests redirection but does not include the Location header");
+                  }
+                  int pathIndex = location.indexOf('/', 8); // 8 should work for both http and https
+                  if (pathIndex >= 0) {
+                     location = location.substring(0, pathIndex);
+                  }
+                  throw new RedirectToHost(location);
+               } else if (response.statusCode() != 200) {
+                  throw unexpected(response);
                }
                return Json.decodeValue(response.body(), Version.class);
             });
@@ -357,6 +369,15 @@ public class RestClient implements Client, Closeable {
    public static class Forbidden extends RestClientException {
       public Forbidden() {
          super("Forbidden: password incorrect");
+      }
+   }
+
+   public static class RedirectToHost extends RestClientException {
+      public String host;
+
+      public RedirectToHost(String host) {
+         super("Required redirect");
+         this.host = host;
       }
    }
 }

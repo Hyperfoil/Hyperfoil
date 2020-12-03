@@ -87,7 +87,7 @@ public class Connect extends ServerCommand {
       if (port == null) {
          port = DEFAULT_PORT;
       }
-      connect(invocation, host, port, false, tls, insecure, password);
+      connect(invocation, false, host, port, tls, insecure, password);
       return CommandResult.SUCCESS;
    }
 }

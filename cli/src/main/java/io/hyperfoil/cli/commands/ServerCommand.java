@@ -103,14 +103,14 @@ public abstract class ServerCommand implements Command<HyperfoilCommandInvocatio
          return;
       }
       invocation.println("Not connected, trying to connect to localhost:8090...");
-      connect(invocation, "localhost", 8090, false, false, false, null);
+      connect(invocation, false, "localhost", 8090, false, false, null);
    }
 
-   protected void connect(HyperfoilCommandInvocation invocation, String host, int port, boolean quiet, boolean ssl, boolean insecure, String password) throws CommandException {
+   protected void connect(HyperfoilCommandInvocation invocation, boolean quiet, String host, int port, boolean ssl, boolean insecure, String password) throws CommandException {
       HyperfoilCliContext ctx = invocation.context();
       ctx.setClient(new RestClient(ctx.vertx(), host, port, ssl, insecure, password));
       if (ssl && insecure) {
-         invocation.warn("Hyperfoil TLS certificiate validity is not checked. Your credentials might get compromised.");
+         invocation.warn("Hyperfoil TLS certificate validity is not checked. Your credentials might get compromised.");
       }
       try {
          long preMillis, postMillis;
@@ -130,6 +130,16 @@ public abstract class ServerCommand implements Command<HyperfoilCommandInvocatio
                if (!updatePassword(invocation, ctx)) {
                   return;
                }
+            } catch (RestClient.RedirectToHost e) {
+               ctx.client().close();
+               ctx.setClient(null);
+               invocation.println("CLI is redirected to " + e.host);
+               Connect connect = new Connect();
+               connect.host = e.host;
+               connect.password = password;
+               connect.insecure = insecure;
+               connect.execute(invocation);
+               return;
             }
          }
          if (!quiet) {
@@ -249,9 +259,7 @@ public abstract class ServerCommand implements Command<HyperfoilCommandInvocatio
          process = new ProcessBuilder(cmdline.toArray(new String[0])).inheritIO().start();
          process.waitFor();
       } catch (InterruptedException e) {
-         if (process != null) {
-            process.destroy();
-         }
+         process.destroy();
       }
    }
 
