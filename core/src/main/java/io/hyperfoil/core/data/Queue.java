@@ -42,7 +42,7 @@ public class Queue implements Session.Resource {
    }
 
    @Override
-   public void onSessionReset() {
+   public void onSessionReset(Session session) {
       reset();
    }
 

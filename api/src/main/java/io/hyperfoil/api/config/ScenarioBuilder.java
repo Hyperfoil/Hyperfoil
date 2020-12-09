@@ -57,6 +57,12 @@ public class ScenarioBuilder implements Rewritable<ScenarioBuilder> {
       return this;
    }
 
+   public List<SequenceBuilder> resetInitialSequences() {
+      List<SequenceBuilder> prev = this.initialSequences;
+      initialSequences = new ArrayList<>();
+      return prev;
+   }
+
    public SequenceBuilder initialSequence(String name) {
       SequenceBuilder builder = new SequenceBuilder(this, name);
       initialSequence(builder);
@@ -73,6 +79,10 @@ public class ScenarioBuilder implements Rewritable<ScenarioBuilder> {
       SequenceBuilder builder = new SequenceBuilder(this, name);
       sequence(builder);
       return builder;
+   }
+
+   public boolean hasSequence(String name) {
+      return sequences.stream().anyMatch(sb -> name.equals(sb.name()));
    }
 
    public SequenceBuilder findSequence(String name) {

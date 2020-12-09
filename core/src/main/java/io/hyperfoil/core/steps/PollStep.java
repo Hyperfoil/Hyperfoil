@@ -3,7 +3,6 @@ package io.hyperfoil.core.steps;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
 import io.hyperfoil.api.session.Access;
@@ -46,9 +45,7 @@ public class PollStep<T> implements Step, ResourceUtilizer {
          if (object == null) {
             // Note: it's possible that we'll try to poll earlier
             log.trace("Did not fetch object, scheduling #{} in {}", session.uniqueId(), periodMs);
-            @SuppressWarnings("unchecked")
-            Callable<Void> callableSession = (Callable<Void>) session;
-            session.executor().schedule(callableSession, periodMs, TimeUnit.MILLISECONDS);
+            session.executor().schedule(session, periodMs, TimeUnit.MILLISECONDS);
             return false;
          } else if (filter.test(session, object)) {
             toVar.setObject(session, object);

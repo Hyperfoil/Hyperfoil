@@ -18,8 +18,11 @@ import io.hyperfoil.api.config.Http;
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Name;
+import io.hyperfoil.api.config.PhaseBuilder;
 import io.hyperfoil.api.config.SLA;
 import io.hyperfoil.api.config.SLABuilder;
+import io.hyperfoil.api.config.ScenarioBuilder;
+import io.hyperfoil.api.config.SequenceBuilder;
 import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.config.Visitor;
 import io.hyperfoil.api.connection.HttpRequest;
@@ -37,6 +40,7 @@ import io.hyperfoil.core.http.HttpUtil;
 import io.hyperfoil.core.http.UserAgentAppender;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.util.BitSetResource;
+import io.hyperfoil.core.util.DoubleIncrementBuilder;
 import io.netty.buffer.ByteBuf;
 import io.hyperfoil.api.config.PairBuilder;
 import io.hyperfoil.api.config.PartialBuilder;
@@ -217,6 +221,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
       private final HttpResponseHandlersImpl.Builder handler = new HttpResponseHandlersImpl.Builder(this);
       private boolean sync = true;
       private SLABuilder.ListBuilder<Builder> sla = null;
+      private CompensationBuilder compensation;
 
       /**
        * HTTP method used for the request.
@@ -607,6 +612,15 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
          return sla;
       }
 
+      /**
+       * Configures additional statistic compensating coordinated omission.
+       *
+       * @return Builder.
+       */
+      public CompensationBuilder compensation() {
+         return this.compensation = new CompensationBuilder(this);
+      }
+
       @Override
       public int id() {
          assert stepId >= 0;
@@ -633,6 +647,14 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
             locator.sequence().insertBefore(locator).step(beforeSyncRequestStep);
             handler.onCompletion(new ReleaseSyncAction(beforeSyncRequestStep));
             locator.sequence().insertAfter(locator).step(new AfterSyncRequestStep(beforeSyncRequestStep));
+         }
+         if (metricSelector == null) {
+            String sequenceName = Locator.current().sequence().name();
+            metricSelector = new ProvidedMetricSelector(sequenceName);
+         }
+
+         if (compensation != null) {
+            compensation.prepareBuild();
          }
          handler.prepareBuild();
       }
@@ -672,11 +694,6 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
          SLA[] sla = this.sla != null ? this.sla.build() : SLA.DEFAULT;
          SerializableBiFunction<Session, Connection, ByteBuf> bodyGenerator = this.body != null ? this.body.build() : null;
 
-         SerializableBiFunction<String, String, String> metricSelector = this.metricSelector;
-         if (metricSelector == null) {
-            String sequenceName = Locator.current().sequence().name();
-            metricSelector = new ProvidedMetricSelector(sequenceName);
-         }
          HttpRequestStep step = new HttpRequestStep(stepId, method.build(), authority, pathGenerator, bodyGenerator, headerAppenders, injectHostHeader, metricSelector, timeout, handler.build(), sla);
          return Collections.singletonList(step);
       }
@@ -869,6 +886,113 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
             writer.putHeader(header, (CharSequence) value);
          } else {
             log.error("#{} Cannot convert variable {}: {} to CharSequence", session.uniqueId(), fromVar, value);
+         }
+      }
+   }
+
+   public static class CompensationBuilder {
+      private static final String DELAY_SESSION_START = "__delay-session-start";
+      private final Builder builder;
+      public SerializableBiFunction<String, String, String> metricSelector;
+      public double targetRate;
+      public double targetRateIncrement;
+      private DoubleIncrementBuilder targetRateBuilder;
+
+      public CompensationBuilder(Builder builder) {
+         this.builder = builder;
+      }
+
+      public CompensationBuilder targetRate(double targetRate) {
+         this.targetRate = targetRate;
+         return this;
+      }
+
+      public DoubleIncrementBuilder targetRate() {
+         return targetRateBuilder = new DoubleIncrementBuilder((base, inc) -> {
+            this.targetRate = base;
+            this.targetRateIncrement = inc;
+         });
+      }
+
+      public CompensationBuilder metric(String name) {
+         this.metricSelector = new Builder.ProvidedMetricSelector(name);
+         return this;
+      }
+
+      public PathMetricSelector metric() {
+         PathMetricSelector metricSelector = new PathMetricSelector();
+         this.metricSelector = metricSelector;
+         return metricSelector;
+      }
+
+      public void prepareBuild() {
+         if (targetRateBuilder != null) {
+            targetRateBuilder.apply();
+         }
+         ScenarioBuilder scenario = Locator.current().scenario();
+         PhaseBuilder<?> phaseBuilder = scenario.endScenario();
+         if (!(phaseBuilder instanceof PhaseBuilder.Always)) {
+            throw new BenchmarkDefinitionException("delaySessionStart step makes sense only in phase type 'always'");
+         }
+
+         if (!scenario.hasSequence(DELAY_SESSION_START)) {
+            List<SequenceBuilder> prev = scenario.resetInitialSequences();
+            scenario.initialSequence(DELAY_SESSION_START)
+                  .step(new DelaySessionStartStep(prev.stream().map(SequenceBuilder::name).toArray(String[]::new), targetRate, targetRateIncrement, true));
+         } else {
+            log.warn("Scenario for phase {} contains multiple compensating HTTP requests: make sure that all use the same rate.", phaseBuilder.name());
+         }
+         builder.handler.onCompletion(new CompensatedResponseRecorder.Builder().metric(metricSelector));
+      }
+
+      public Builder end() {
+         return builder;
+      }
+   }
+
+   public static class CompensatedResponseRecorder implements Action {
+      private final int stepId;
+      private final SerializableBiFunction<String, String, String> metricSelector;
+
+      public CompensatedResponseRecorder(int stepId, SerializableBiFunction<String, String, String> metricSelector) {
+         this.stepId = stepId;
+         this.metricSelector = metricSelector;
+      }
+
+      @Override
+      public void run(Session session) {
+         HttpRequest request = (HttpRequest) session.currentRequest();
+         String metric = "compensated-" + metricSelector.apply(request.authority, request.path);
+         Statistics statistics = session.statistics(stepId, metric);
+
+         DelaySessionStartStep.Holder holder = session.getResource(DelaySessionStartStep.KEY);
+         long startTimeMs = holder.lastStartTime();
+         statistics.incrementRequests(startTimeMs);
+         if (request.cacheControl.wasCached) {
+            statistics.addCacheHit(startTimeMs);
+         } else {
+            long now = System.currentTimeMillis();
+            log.trace("#{} Session start {}, now {}, diff {}", session.uniqueId(), startTimeMs, now, now - startTimeMs);
+            statistics.recordResponse(startTimeMs, 0, TimeUnit.MILLISECONDS.toNanos(now - startTimeMs));
+         }
+      }
+
+      public static class Builder implements Action.Builder {
+         private SerializableBiFunction<String, String, String> metricSelector;
+
+         @Override
+         public Action build() {
+            HttpRequestStep.Builder stepBuilder = (HttpRequestStep.Builder) Locator.current().step();
+            SerializableBiFunction<String, String, String> metricSelector = this.metricSelector;
+            if (metricSelector == null) {
+               metricSelector = stepBuilder.metricSelector;
+            }
+            return new CompensatedResponseRecorder(stepBuilder.id(), metricSelector);
+         }
+
+         public Builder metric(SerializableBiFunction<String, String, String> metricSelector) {
+            this.metricSelector = metricSelector;
+            return this;
          }
       }
    }

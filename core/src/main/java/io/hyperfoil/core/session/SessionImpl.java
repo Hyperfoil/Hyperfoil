@@ -32,7 +32,7 @@ import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-class SessionImpl implements Session, Callable<Void> {
+class SessionImpl implements Session {
    private static final Logger log = LoggerFactory.getLogger(SessionImpl.class);
    private static final boolean trace = log.isTraceEnabled();
 
@@ -154,6 +154,11 @@ class SessionImpl implements Session, Callable<Void> {
    @Override
    public Phase phase() {
       return phase != null ? phase.definition() : null;
+   }
+
+   @Override
+   public long phaseStartTimestamp() {
+      return phase.absoluteStartTime();
    }
 
    void registerVar(Var var) {
@@ -548,7 +553,7 @@ class SessionImpl implements Session, Callable<Void> {
       }
       for (int i = 0; i < allResources.size(); i++) {
          Resource r = allResources.get(i);
-         r.onSessionReset();
+         r.onSessionReset(this);
       }
       httpCache.clear();
       httpDestinations.onSessionReset();

@@ -23,7 +23,7 @@ public class LimitedPoolResource<T> extends LimitedPool<T> implements Session.Re
    }
 
    @Override
-   public void onSessionReset() {
+   public void onSessionReset(Session session) {
       reset(originalObjects);
    }
 

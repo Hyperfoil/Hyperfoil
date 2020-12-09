@@ -262,17 +262,17 @@ public class HttpCacheImpl implements HttpCache {
                request.exit();
                request.session.proceed();
             }
-            return true;
+            return request.cacheControl.wasCached = true;
          } else {
-            return false;
+            return request.cacheControl.wasCached = false;
          }
       } else {
          Record mostRecent = findMostRecent(request);
          if (request.cacheControl.noCache || mostRecent.noCache) {
             addValidationHeaders(mostRecent, writer);
-            return false;
+            return request.cacheControl.wasCached = false;
          }
-         return true;
+         return request.cacheControl.wasCached = true;
       }
    }
 

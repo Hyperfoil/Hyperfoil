@@ -22,6 +22,8 @@ public class CacheControl {
    public long responseDate = Long.MIN_VALUE;
    public long responseLastModified = Long.MIN_VALUE;
 
+   public boolean wasCached;
+
    public void reset() {
       noCache = false;
       noStore = false;
@@ -38,5 +40,7 @@ public class CacheControl {
       responseEtag = null;
       responseDate = Long.MIN_VALUE;
       responseLastModified = Long.MIN_VALUE;
+
+      wasCached = false;
    }
 }

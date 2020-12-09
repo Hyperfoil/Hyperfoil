@@ -308,9 +308,9 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
          }
          return new Phase.Always(benchmark, id, i, iterationName(i, f.name), f.scenario.build(phase),
                iterationStartTime(i), iterationReferences(startAfter, i, false),
-               iterationReferences(startAfterStrict, i, true), iterationReferences(terminateAfterStrict, i, false), duration,
-               maxDuration,
-               sharedResources(f), (int) Math.round((this.users + usersIncrement * i) * f.weight));
+               iterationReferences(startAfterStrict, i, true), iterationReferences(terminateAfterStrict, i, false),
+               duration, maxDuration, sharedResources(f),
+               (int) Math.round((this.users + usersIncrement * i) * f.weight));
       }
 
       public Always users(int users) {

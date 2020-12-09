@@ -76,6 +76,8 @@ public class HttpRequest extends Request {
       enter();
       try {
          handlers.handleEnd(this, false);
+      } catch (SessionStopException e) {
+         // ignore, other exceptions would propagate
       } finally {
          exit();
          release();

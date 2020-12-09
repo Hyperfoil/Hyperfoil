@@ -241,7 +241,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
    }
 
    public static class Always extends PhaseInstanceImpl<Phase.Always> {
-      int users;
+      final int users;
 
       public Always(Phase.Always def, int agentId) {
          super(def, agentId);

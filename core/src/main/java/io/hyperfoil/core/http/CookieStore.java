@@ -25,7 +25,7 @@ class CookieStore implements Session.Resource {
    }
 
    @Override
-   public void onSessionReset() {
+   public void onSessionReset(Session session) {
       for (int i = 0; i < cookies.length; ++i) {
          cookies[i].clear();
       }

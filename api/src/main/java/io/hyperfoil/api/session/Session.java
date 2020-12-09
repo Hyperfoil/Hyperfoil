@@ -1,6 +1,7 @@
 package io.hyperfoil.api.session;
 
 import java.io.Serializable;
+import java.util.concurrent.Callable;
 import java.util.function.Supplier;
 
 import io.hyperfoil.api.config.Scenario;
@@ -16,7 +17,7 @@ import io.hyperfoil.api.connection.HttpConnectionPool;
 import io.hyperfoil.api.statistics.Statistics;
 import io.hyperfoil.api.config.Phase;
 
-public interface Session {
+public interface Session extends Callable<Void> {
 
    void reserve(Scenario scenario);
 
@@ -45,6 +46,8 @@ public interface Session {
    SharedData sharedData();
 
    Phase phase();
+
+   long phaseStartTimestamp();
 
    Statistics statistics(int stepId, String name);
 
@@ -135,7 +138,7 @@ public interface Session {
    }
 
    interface Resource {
-      default void onSessionReset() {}
+      default void onSessionReset(Session session) {}
    }
 
    interface ResourceKey<R extends Resource> extends Serializable {}
