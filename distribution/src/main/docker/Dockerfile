@@ -4,4 +4,6 @@ RUN dnf install -y less && curl -s -L https://github.com/stedolan/jq/releases/do
 USER jboss
 EXPOSE 8090
 COPY maven /deployment/
+# executable permissions in bin/*.sh are lost somewhere
+RUN chmod a+x /deployment/bin/*.sh
 CMD /deployment/bin/controller.sh

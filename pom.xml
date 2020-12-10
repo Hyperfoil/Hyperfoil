@@ -82,7 +82,7 @@
         <version.assertj>3.10.0</version.assertj>
         <version.eddsa>0.3.0</version.eddsa>
         <version.fabric8.kubernetes-client>4.6.0</version.fabric8.kubernetes-client>
-        <version.fabric8.maven-plugin>4.4.1</version.fabric8.maven-plugin>
+        <version.jkube.maven-plugin>1.0.2</version.jkube.maven-plugin>
         <version.hdrhistogram>2.1.11</version.hdrhistogram>
         <version.javaparser>3.14.12</version.javaparser>
         <version.marshalling>2.0.6.Final</version.marshalling>
@@ -497,9 +497,9 @@
                 </plugin>
 
                 <plugin>
-                    <groupId>io.fabric8</groupId>
-                    <artifactId>fabric8-maven-plugin</artifactId>
-                    <version>${version.fabric8.maven-plugin}</version>
+                    <groupId>org.eclipse.jkube</groupId>
+                    <artifactId>kubernetes-maven-plugin</artifactId>
+                    <version>${version.jkube.maven-plugin}</version>
                 </plugin>
 
                 <plugin>

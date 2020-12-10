@@ -222,6 +222,48 @@
 
     <profiles>
         <profile>
+            <id>podman</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <properties>
+                <jkube.docker.host>tcp://localhost:2375</jkube.docker.host>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>podman-system-service</id>
+                                <phase>prepare-package</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <skip>false</skip>
+                                    <async>true</async>
+                                    <!-- We're not terminating this forcefully as podman 2.0.6 seems to hang
+                                         in shutdown when SIGTERM is received. Without killing it it correctly
+                                         stops after 1 minute of inactivity -->
+                                    <!-- <asyncDestroyOnShutdown>true</asyncDestroyOnShutdown> -->
+                                    <executable>podman</executable>
+                                    <arguments>
+                                        <argument>system</argument>
+                                        <argument>service</argument>
+                                        <argument>-t</argument>
+                                        <argument>60</argument>
+                                        <argument>tcp:localhost:2375</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
             <id>build-image</id>
             <activation>
                 <activeByDefault>false</activeByDefault>
@@ -229,8 +271,8 @@
             <build>
                 <plugins>
                     <plugin>
-                        <groupId>io.fabric8</groupId>
-                        <artifactId>fabric8-maven-plugin</artifactId>
+                        <groupId>org.eclipse.jkube</groupId>
+                        <artifactId>kubernetes-maven-plugin</artifactId>
                         <executions>
                             <execution>
                                 <id>build-image</id>
@@ -241,18 +283,21 @@
                             </execution>
                         </executions>
                         <configuration>
-                            <mode>kubernetes</mode>
+                            <access>
+                                <!-- We shouldn't connect anywhere, this is here to fail faster -->
+                                <masterUrl>http://127.0.0.1:12345</masterUrl>
+                            </access>
                             <images>
                                 <image>
                                     <name>quay.io/hyperfoil/hyperfoil:${project.version}</name>
                                     <build>
-                                        <dockerFile>Dockerfile</dockerFile>
+                                        <contextDir>${project.basedir}/src/main/docker/</contextDir>
                                         <tags>
                                             <tag>latest</tag>
                                             <tag>${project.version}</tag>
                                         </tags>
                                         <assembly>
-                                            <targetDir>/deployment</targetDir>
+                                            <name>maven</name>
                                             <inline>
                                                 <fileSets>
                                                     <fileSet>
