@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import io.hyperfoil.api.config.BenchmarkData;
+import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
@@ -32,14 +33,12 @@ public class LocalBenchmarkData implements BenchmarkData {
       try {
          readFiles.put(file, Files.readAllBytes(path));
       } catch (IOException e) {
-         log.error("Local file {} ({}) cannot be read.", e, file, path.toAbsolutePath());
-         return null;
+         throw new BenchmarkDefinitionException("Local file " + file + " (" + path.toAbsolutePath() + ") cannot be read.", e);
       }
       try {
          return new FileInputStream(path.toFile());
       } catch (FileNotFoundException e) {
-         log.error("Local file {} ({}) not found.", e, file, path.toAbsolutePath());
-         return null;
+         throw new BenchmarkDefinitionException("Local file " + file + " (" + path.toAbsolutePath() + ") was not found.", e);
       }
    }
 

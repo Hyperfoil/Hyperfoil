@@ -18,6 +18,7 @@ import io.netty.buffer.ByteBuf;
 public class Util {
    public static final CompletableFuture<Void> COMPLETED_VOID_FUTURE = CompletableFuture.completedFuture(null);
    private static final NumberFormatException NUMBER_FORMAT_EXCEPTION = new NumberFormatException();
+   private static final int[] HEX = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
 
    private Util() {}
 
@@ -200,6 +201,34 @@ public class Util {
       return type == String.class || type == CharSequence.class || type == Object.class || type.isPrimitive() || type.isEnum();
    }
 
+   public static String prettyPrintObject(Object value) {
+      if (value instanceof byte[]) {
+         byte[] bytes = (byte[]) value;
+         if (bytes.length == 0) {
+            return "";
+         }
+         StringBuilder sb = new StringBuilder("[");
+         sb.append((char) HEX[(bytes[0] >> 4)]);
+         sb.append((char) HEX[(bytes[0] & 0xF)]);
+         for (int i = 1; i < 32; ++i) {
+            sb.append(", ");
+            sb.append((char) HEX[(bytes[i] >> 4)]);
+            sb.append((char) HEX[(bytes[i] & 0xF)]);
+         }
+         if (bytes.length > 32) {
+            sb.append(", ... (total length: ").append(bytes.length).append(")");
+         }
+         sb.append("]=");
+         sb.append(new String(bytes, 0, Math.min(bytes.length, 32), StandardCharsets.UTF_8));
+         if (bytes.length > 32) {
+            sb.append("...");
+         }
+         return sb.toString();
+      } else {
+         return String.valueOf(value);
+      }
+   }
+
    private static class URLEncoding {
       private static final BitSet DONT_NEED_ENCODING = new BitSet();
 
@@ -219,7 +248,6 @@ public class Util {
          DONT_NEED_ENCODING.set('*');
       }
 
-      private static final int[] HEX = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
    }
 
    public static void urlEncode(String string, ByteBuf buf) {
@@ -235,8 +263,8 @@ public class Util {
          } else {
             buf.ensureWritable(3);
             buf.writeByte('%');
-            buf.writeByte(URLEncoding.HEX[(b >> 4) & 0xF]);
-            buf.writeByte(URLEncoding.HEX[b & 0xF]);
+            buf.writeByte(HEX[(b >> 4) & 0xF]);
+            buf.writeByte(HEX[b & 0xF]);
          }
       }
    }

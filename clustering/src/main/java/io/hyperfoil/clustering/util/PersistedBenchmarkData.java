@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import io.hyperfoil.api.config.BenchmarkData;
+import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
@@ -31,11 +32,11 @@ public class PersistedBenchmarkData implements BenchmarkData {
 
    @Override
    public InputStream readFile(String file) {
+      String sanitized = sanitize(file);
       try {
-         return new FileInputStream(dir.resolve(sanitize(file)).toFile());
+         return new FileInputStream(dir.resolve(sanitized).toFile());
       } catch (FileNotFoundException e) {
-         log.error("Cannot load file {} from directory {}", e, file, dir);
-         return null;
+         throw new BenchmarkDefinitionException("Cannot load file " + file + "(" + sanitized + ") from directory " + dir, e);
       }
    }
 

@@ -8,7 +8,7 @@ public interface BenchmarkData {
    BenchmarkData EMPTY = new BenchmarkData() {
       @Override
       public InputStream readFile(String file) {
-         return null;
+         throw new BenchmarkDefinitionException("Cannot load file " + file + " (file set is empty).");
       }
 
       @Override

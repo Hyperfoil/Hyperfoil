@@ -8,6 +8,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.BenchmarkData;
+import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.ScenarioBuilder;
 import io.hyperfoil.api.config.StepBuilder;
@@ -16,7 +17,11 @@ public class TestUtil {
    private static final BenchmarkData TESTING_DATA = new BenchmarkData() {
       @Override
       public InputStream readFile(String file) {
-         return getClass().getClassLoader().getResourceAsStream(file);
+         InputStream stream = getClass().getClassLoader().getResourceAsStream(file);
+         if (stream == null) {
+            throw new BenchmarkDefinitionException("Cannot load file " + file + " from current classloader.");
+         }
+         return stream;
       }
 
       @Override

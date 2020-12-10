@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import io.hyperfoil.api.config.BenchmarkData;
+import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
@@ -22,8 +23,7 @@ public class RequestBenchmarkData implements BenchmarkData {
    public InputStream readFile(String file) {
       byte[] bytes = files.get(file);
       if (bytes == null) {
-         log.error("Missing request file {}, available files are: {}", file, files.keySet());
-         return null;
+         throw new BenchmarkDefinitionException("Missing request file " + file + ", available files are: " + files.keySet());
       }
       return new ByteArrayInputStream(bytes);
    }

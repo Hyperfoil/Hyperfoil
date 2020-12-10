@@ -32,6 +32,11 @@ phases:
                 foo: 0.9
                 bar: 0.1
               toVar: zzz
+          - randomFile:
+              files: # Reuse some existing files
+              - data/testdata.csv
+              - data/random-sample-test.csv
+              toVar: xxx
 - anotherPhase:
     atOnce:
       users: 1

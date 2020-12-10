@@ -78,9 +78,6 @@ public class RandomCsvRowStep implements Step, ResourceUtilizer {
          assert next == srcIndex.length;
 
          try (InputStream inputStream = Locator.current().benchmark().data().readFile(file)) {
-            if (inputStream == null) {
-               throw new BenchmarkDefinitionException("Cannot load file " + file);
-            }
             BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
             Stream<String> lines = reader.lines();
             if (skipComments) {

@@ -9,6 +9,7 @@ import io.hyperfoil.api.session.SessionStopException;
 import io.hyperfoil.api.session.SharedData;
 import io.hyperfoil.api.statistics.SessionStatistics;
 import io.hyperfoil.core.http.HttpCacheImpl;
+import io.hyperfoil.core.util.Util;
 import io.netty.util.concurrent.EventExecutor;
 import io.hyperfoil.api.collection.LimitedPool;
 import io.hyperfoil.api.config.Phase;
@@ -179,7 +180,7 @@ class SessionImpl implements Session {
 
    public Session setObject(Object key, Object value) {
       if (trace) {
-         log.trace("#{} {} <- {}", uniqueId, key, value);
+         log.trace("#{} {} <- {}", uniqueId, key, Util.prettyPrintObject(value));
       }
       ObjectVar var = getVar(key);
       var.value = value;

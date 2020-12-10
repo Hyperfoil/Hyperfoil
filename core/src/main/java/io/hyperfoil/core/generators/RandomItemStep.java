@@ -7,23 +7,20 @@ import java.io.InputStreamReader;
 import java.lang.reflect.Array;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Stream;
 
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.InitFromParam;
-import io.hyperfoil.api.config.ListBuilder;
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Name;
-import io.hyperfoil.api.config.PairBuilder;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.session.Access;
@@ -35,14 +32,12 @@ import io.hyperfoil.core.session.SessionFactory;
 
 public class RandomItemStep implements Step, ResourceUtilizer {
    private final Access fromVar;
-   private final double[] cummulativeProbs;
-   private final String[] list;
+   private final WeightedGenerator generator;
    private final Access toVar;
 
-   public RandomItemStep(Access fromVar, double[] cummulativeProbs, String[] list, Access toVar) {
+   public RandomItemStep(Access fromVar, WeightedGenerator generator, Access toVar) {
       this.fromVar = fromVar;
-      this.cummulativeProbs = cummulativeProbs;
-      this.list = list;
+      this.generator = generator;
       this.toVar = toVar;
    }
 
@@ -50,20 +45,10 @@ public class RandomItemStep implements Step, ResourceUtilizer {
    public boolean invoke(Session session) {
       ThreadLocalRandom random = ThreadLocalRandom.current();
       Object item;
-      if (list != null) {
-         int index;
-         if (cummulativeProbs != null) {
-            assert cummulativeProbs.length == list.length - 1;
-            index = Arrays.binarySearch(cummulativeProbs, random.nextDouble());
-            if (index < 0) {
-               index = -index - 1;
-            }
-         } else {
-            index = random.nextInt(list.length);
-         }
-         item = list[index];
+      if (generator != null) {
+         assert fromVar == null;
+         item = generator.randomItem();
       } else {
-         assert cummulativeProbs == null;
          Object data = fromVar.getObject(session);
          Object element;
          if (data instanceof ObjectVar[]) {
@@ -81,11 +66,11 @@ public class RandomItemStep implements Step, ResourceUtilizer {
             int length = Array.getLength(data);
             element = Array.get(data, random.nextInt(length));
          } else if (data instanceof List) {
-            List dataList = (List) data;
+            List<?> dataList = (List<?>) data;
             element = dataList.get(random.nextInt(dataList.size()));
          } else if (data instanceof Collection) {
-            Collection dataCollection = (Collection) data;
-            Iterator iterator = dataCollection.iterator();
+            Collection<?> dataCollection = (Collection<?>) data;
+            Iterator<?> iterator = dataCollection.iterator();
             for (int i = random.nextInt(dataCollection.size()) - 1; i > 0; --i) {
                iterator.next();
             }
@@ -115,8 +100,7 @@ public class RandomItemStep implements Step, ResourceUtilizer {
    @Name("randomItem")
    public static class Builder extends BaseStepBuilder<Builder> implements InitFromParam<Builder> {
       private String fromVar;
-      private List<String> list = new ArrayList<>();
-      private Map<String, Double> weighted = new HashMap<>();
+      private WeightedGenerator.Builder weighted;
       private String file;
       private String toVar;
 
@@ -140,17 +124,21 @@ public class RandomItemStep implements Step, ResourceUtilizer {
 
       @Override
       public List<Step> build() {
-         if (fromVar != null && (!list.isEmpty() || !weighted.isEmpty() || file != null)) {
-            throw new BenchmarkDefinitionException("randomItem cannot combine `fromVar` and `list` or `file`");
-         } else if (file != null && !(list.isEmpty() && weighted.isEmpty())) {
-            throw new BenchmarkDefinitionException("randomItem cannot combine `list` and `file`");
+         if (toVar.isEmpty()) {
+            throw new BenchmarkDefinitionException("toVar is empty");
          }
-         List<String> list = new ArrayList<>(this.list);
-         if (file != null) {
+         long usedProperties = Stream.of(file, weighted, fromVar).filter(Objects::nonNull).count();
+         if (usedProperties > 1) {
+            throw new BenchmarkDefinitionException("randomItem cannot combine `fromVar` and `list` or `file`");
+         } else if (usedProperties == 0) {
+            throw new BenchmarkDefinitionException("randomItem must define one of: `fromVar`, `list` or `file`");
+         }
+         WeightedGenerator generator;
+         if (weighted != null) {
+            generator = weighted.build();
+         } else if (file != null) {
+            List<String> list = new ArrayList<>();
             try (InputStream inputStream = Locator.current().benchmark().data().readFile(file)) {
-               if (inputStream == null) {
-                  throw new BenchmarkDefinitionException("Cannot load file `" + file + "` for randomItem (not found).");
-               }
                try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
                   String line;
                   while ((line = reader.readLine()) != null) {
@@ -162,35 +150,15 @@ public class RandomItemStep implements Step, ResourceUtilizer {
             } catch (IOException e) {
                throw new BenchmarkDefinitionException("Cannot load file `" + file + "` for randomItem.", e);
             }
-         }
-         double[] cummulativeProbs = null;
-         if (!weighted.isEmpty()) {
-            if (!list.isEmpty()) {
-               throw new BenchmarkDefinitionException("Cannot combine weighted and not-weighted items.");
+            generator = new WeightedGenerator(null, list.toArray(new String[0]));
+         } else {
+            if (fromVar.isEmpty()) {
+               throw new BenchmarkDefinitionException("fromVar is empty");
             }
-            cummulativeProbs = new double[weighted.size() - 1];
-            double normalizer = weighted.values().stream().mapToDouble(Double::doubleValue).sum();
-            double acc = 0;
-            int i = 0;
-            for (Map.Entry<String, Double> entry : weighted.entrySet()) {
-               acc += entry.getValue() / normalizer;
-               if (i < weighted.size() - 1) {
-                  cummulativeProbs[i++] = acc;
-               } else {
-                  assert acc > 0.999 && acc <= 1.001;
-               }
-               list.add(entry.getKey());
-            }
+            generator = null;
          }
-         if (fromVar == null && list.isEmpty()) {
-            throw new BenchmarkDefinitionException("randomItem has empty list and `fromVar` was not defined.");
-         }
-         if (fromVar != null && fromVar.isEmpty()) {
-            throw new BenchmarkDefinitionException("fromVar is empty");
-         } else if (toVar.isEmpty()) {
-            throw new BenchmarkDefinitionException("toVar is empty");
-         }
-         return Collections.singletonList(new RandomItemStep(SessionFactory.access(fromVar), cummulativeProbs, list.isEmpty() ? null : list.toArray(new String[0]), SessionFactory.access(toVar)));
+
+         return Collections.singletonList(new RandomItemStep(SessionFactory.access(fromVar), generator, SessionFactory.access(toVar)));
       }
 
       /**
@@ -209,8 +177,11 @@ public class RandomItemStep implements Step, ResourceUtilizer {
        *
        * @return Builder.
        */
-      public ItemBuilder list() {
-         return new ItemBuilder();
+      public WeightedGenerator.Builder list() {
+         if (weighted == null) {
+            weighted = new WeightedGenerator.Builder();
+         }
+         return weighted;
       }
 
       /**
@@ -233,26 +204,6 @@ public class RandomItemStep implements Step, ResourceUtilizer {
       public Builder file(String file) {
          this.file = file;
          return this;
-      }
-
-      public class ItemBuilder extends PairBuilder.OfDouble implements ListBuilder {
-         @Override
-         public void nextItem(String item) {
-            list.add(item);
-         }
-
-         /**
-          * Item as the key and weight (arbitrary floating-point number, defaults to 1.0) as the value.
-          *
-          * @param item   Item.
-          * @param weight Weight.
-          */
-         @Override
-         public void accept(String item, Double weight) {
-            if (weighted.putIfAbsent(item, weight) != null) {
-               throw new BenchmarkDefinitionException("Duplicate item '" + item + "' in randomItem step!");
-            }
-         }
       }
    }
 }
