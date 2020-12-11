@@ -22,6 +22,7 @@ import java.util.function.Function;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.controller.Client;
 import io.hyperfoil.controller.model.Version;
+import io.hyperfoil.internal.Properties;
 import io.hyperfoil.util.Util;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
@@ -38,6 +39,8 @@ import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.ext.web.multipart.MultipartForm;
 
 public class RestClient implements Client, Closeable {
+   private static final long REQUEST_TIMEOUT = Properties.getLong(Properties.CLI_REQUEST_TIMEOUT, 30000);
+
    final Vertx vertx;
    final WebClientOptions options;
    private final WebClient client;
@@ -314,7 +317,7 @@ public class RestClient implements Client, Closeable {
 
    static <T> T waitFor(CompletableFuture<T> future) {
       try {
-         return future.get(30, TimeUnit.SECONDS);
+         return future.get(REQUEST_TIMEOUT, TimeUnit.MILLISECONDS);
       } catch (InterruptedException e) {
          Thread.currentThread().interrupt();
          throw new RestClientException(e);
@@ -324,7 +327,7 @@ public class RestClient implements Client, Closeable {
          }
          throw new RestClientException(e.getCause() == null ? e : e.getCause());
       } catch (TimeoutException e) {
-         throw new RestClientException("Request did not complete within 30 seconds.");
+         throw new RestClientException("Request did not complete within " + REQUEST_TIMEOUT + " ms");
       }
    }
 

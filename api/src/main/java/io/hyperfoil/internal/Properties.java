@@ -29,6 +29,7 @@ public interface Properties {
    String RUN_DIR = "io.hyperfoil.rundir";
    String RUN_ID = "io.hyperfoil.runid";
    String TRIGGER_URL = "io.hyperfoil.trigger.url";
+   String CLI_REQUEST_TIMEOUT = "io.hyperfoil.cli.request.timeout";
 
    static String get(String property, String def) {
       return get(property, Function.identity(), def);
