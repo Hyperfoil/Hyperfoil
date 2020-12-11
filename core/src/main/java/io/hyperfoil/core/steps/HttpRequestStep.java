@@ -706,8 +706,23 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
          }
 
          @Override
-         public String apply(String s, String s2) {
+         public String apply(String authority, String path) {
             return name;
+         }
+      }
+
+      private static class PrefixMetricSelector implements SerializableBiFunction<String, String, String> {
+         private final String prefix;
+         private final SerializableBiFunction<String, String, String> delegate;
+
+         private PrefixMetricSelector(String prefix, SerializableBiFunction<String, String, String> delegate) {
+            this.prefix = prefix;
+            this.delegate = delegate;
+         }
+
+         @Override
+         public String apply(String authority, String path) {
+            return prefix + delegate.apply(authority, path);
          }
       }
 
@@ -962,7 +977,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
       @Override
       public void run(Session session) {
          HttpRequest request = (HttpRequest) session.currentRequest();
-         String metric = "compensated-" + metricSelector.apply(request.authority, request.path);
+         String metric = metricSelector.apply(request.authority, request.path);
          Statistics statistics = session.statistics(stepId, metric);
 
          DelaySessionStartStep.Holder holder = session.getResource(DelaySessionStartStep.KEY);
@@ -985,7 +1000,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
             HttpRequestStep.Builder stepBuilder = (HttpRequestStep.Builder) Locator.current().step();
             SerializableBiFunction<String, String, String> metricSelector = this.metricSelector;
             if (metricSelector == null) {
-               metricSelector = stepBuilder.metricSelector;
+               metricSelector = new HttpRequestStep.Builder.PrefixMetricSelector("compensated-", stepBuilder.metricSelector);
             }
             return new CompensatedResponseRecorder(stepBuilder.id(), metricSelector);
          }
