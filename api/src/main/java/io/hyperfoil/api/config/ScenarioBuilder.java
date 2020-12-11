@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
@@ -39,8 +40,8 @@ public class ScenarioBuilder implements Rewritable<ScenarioBuilder> {
    private Collection<String> intVars = new ArrayList<>();
    private Scenario scenario;
    private int maxRequests = 16;
+   // We don't use sum of concurrency because that could be excessively high
    private int maxSequences = 16;
-
 
    ScenarioBuilder(PhaseBuilder<?> phaseBuilder) {
       this.phaseBuilder = phaseBuilder;
@@ -138,6 +139,10 @@ public class ScenarioBuilder implements Rewritable<ScenarioBuilder> {
          offset += sequence.concurrency() > 0 ? sequence.concurrency() : 1;
       }
 
+      int maxSequences = Math.max(Stream.of(sequences).mapToInt(sequence -> {
+         boolean isInitial = Stream.of(initialSequences).anyMatch(s -> s == sequence);
+         return isInitial ? sequence.concurrency() : sequence.concurrency() + 1;
+      }).max().orElse(1), this.maxSequences);
       return scenario = new Scenario(
             initialSequences,
             sequences,

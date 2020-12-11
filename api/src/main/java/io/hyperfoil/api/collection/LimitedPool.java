@@ -12,13 +12,15 @@ import io.vertx.core.logging.LoggerFactory;
 public class LimitedPool<T> {
    private static final Logger log = LoggerFactory.getLogger(LimitedPool.class);
 
-   private Object[] elements;
-   private int mask;
+   private final Object[] elements;
+   private final int size;
+   private final int mask;
    private int index;
 
    public LimitedPool(int capacity, Supplier<T> init) {
       mask = (1 << 32 - Integer.numberOfLeadingZeros(capacity - 1)) - 1;
       elements = new Object[mask + 1];
+      size = capacity;
       for (int i = 0; i < capacity; ++i) {
          elements[i] = init.get();
       }
@@ -27,12 +29,13 @@ public class LimitedPool<T> {
    public LimitedPool(T[] array) {
       mask = (1 << 32 - Integer.numberOfLeadingZeros(array.length - 1)) - 1;
       elements = new Object[mask + 1];
+      size = array.length;
       System.arraycopy(array, 0, elements, 0, array.length);
    }
 
    public void reset(Object[] array) {
-      if (array.length > elements.length) {
-         throw new IllegalArgumentException();
+      if (array.length != size) {
+         throw new IllegalArgumentException("Pool should be initialized with " + size + " objects (actual: " + array.length + ")");
       }
       System.arraycopy(array, 0, elements, 0, array.length);
       Arrays.fill(elements, array.length, elements.length, null);
@@ -74,10 +77,13 @@ public class LimitedPool<T> {
    }
 
    public boolean isFull() {
+      int currentSize = 0;
       for (Object o : elements) {
-         if (o == null) return false;
+         if (o != null) {
+            currentSize++;
+         }
       }
-      return true;
+      return currentSize == size;
    }
 
    public boolean isDepleted() {
