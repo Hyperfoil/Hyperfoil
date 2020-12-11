@@ -223,6 +223,7 @@ public class YamlVisitor implements Visitor {
 
    private void printScenario(Scenario scenario) {
       stream.println();
+      indent += 2;
       printIndent();
       stream.println("initialSequences:");
       for (Sequence s : scenario.initialSequences()) {
@@ -233,6 +234,7 @@ public class YamlVisitor implements Visitor {
       Stream.of(scenario.sequences())
             .filter(s -> Stream.of(scenario.initialSequences()).noneMatch(s2 -> s == s2))
             .forEach(s -> printItem(s, Sequence.class));
+      indent -= 2;
    }
 
    private String getName(Object value, Class<?> cls) {

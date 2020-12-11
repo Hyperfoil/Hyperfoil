@@ -217,7 +217,9 @@ public class AgentVerticle extends AbstractVerticle {
          eb.send(Feeds.RESPONSE, new PhaseChangeMessage(deploymentId, runId, phase.name(), status, sessionLimitExceeded, error));
          if (status == PhaseInstance.Status.TERMINATED) {
             context.runOnContext(nil -> {
-               runner.visitStatistics(phase, requestStatsSender);
+               if (runner != null) {
+                  runner.visitStatistics(phase, requestStatsSender);
+               }
                requestStatsSender.send(statisticsCountDown);
                requestStatsSender.sendPhaseComplete(phase, statisticsCountDown);
             });
