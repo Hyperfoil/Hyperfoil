@@ -103,6 +103,9 @@ public class ClusterTestCase extends BaseClusteredTest {
                      System.out.println(status.encodePrettily());
                      boolean terminated = status.getString("terminated") != null;
                      if (terminated) {
+                        JsonArray errors = status.getJsonArray("errors");
+                        assertThat(errors).isNotNull();
+                        assertThat(errors.size()).withFailMessage("Found errors: %s", errors).isEqualTo(0);
                         assertThat(status.getString("started")).isNotNull();
                         JsonArray agents = status.getJsonArray("agents");
                         for (int i = 0; i < agents.size(); ++i) {
