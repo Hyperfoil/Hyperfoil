@@ -29,28 +29,27 @@ public class ServiceLoadedBuilderProvider<B> {
    private final BaseSequenceBuilder parent;
 
    public static synchronized Map<String, BuilderInfo<?>> builders(Class<?> clazz) {
-      Map<String, BuilderInfo<?>> builders = BUILDERS.get(clazz);
-      if (builders != null) {
-         return builders;
-      }
-      builders = new HashMap<>();
+      return BUILDERS.computeIfAbsent(clazz, ServiceLoadedBuilderProvider::scanBuilders);
+   }
+
+   private static Map<String, BuilderInfo<?>> scanBuilders(Class<?> clazz) {
+      Map<String, BuilderInfo<?>> builders = new HashMap<>();
       Set<Class<?>> included = new HashSet<>();
       ArrayDeque<BuilderInfo<Object>> deque = new ArrayDeque<>();
       deque.add(new BuilderInfo<>(clazz, Function.identity()));
       included.add(clazz);
       while (!deque.isEmpty()) {
          BuilderInfo<Object> builderInfo = deque.poll();
-         // TODO: once we rebase on JDK 9+ we could user ServiceLoader.stream to inspect without instantiation
-         for (Object builder : ServiceLoader.load(builderInfo.implClazz)) {
-            Name name = builder.getClass().getAnnotation(Name.class);
+         ServiceLoader.load(builderInfo.implClazz).stream().forEach(provider -> {
+            Name name = provider.type().getAnnotation(Name.class);
             if (name == null || name.value().isEmpty()) {
-               log.error("Service-loaded class {} is missing @Name annotation!", builder.getClass());
+               log.error("Service-loaded class {} is missing @Name annotation!", provider.type());
             } else {
                // Collisions may exist, e.g. due to different chains of adapters. First match
                // (the first in breadth-first search, so the closest) wins.
-               builders.putIfAbsent(name.value(), new BuilderInfo<>(builder.getClass(), builderInfo.adapter));
+               builders.putIfAbsent(name.value(), new BuilderInfo<>(provider.type(), builderInfo.adapter));
             }
-         }
+         });
          IncludeBuilders include = builderInfo.implClazz.getAnnotation(IncludeBuilders.class);
          if (include != null) {
             for (IncludeBuilders.Conversion conversion : include.value()) {
@@ -67,7 +66,6 @@ public class ServiceLoadedBuilderProvider<B> {
             }
          }
       }
-      BUILDERS.put(clazz, builders);
       return builders;
    }
 
