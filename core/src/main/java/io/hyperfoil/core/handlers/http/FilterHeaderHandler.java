@@ -46,7 +46,7 @@ public class FilterHeaderHandler implements HeaderHandler, ResourceUtilizer {
          if (value == null || value.length() == 0) {
             processor.process(request.session, Unpooled.EMPTY_BUFFER, 0, 0, true);
          } else {
-            ByteBuf byteBuf = Util.string2byteBuf(value.toString(), request.connection().context().alloc().buffer());
+            ByteBuf byteBuf = Util.string2byteBuf(value, request.connection().context().alloc().buffer());
             try {
                processor.process(request.session, byteBuf, byteBuf.readerIndex(), byteBuf.readableBytes(), true);
             } finally {

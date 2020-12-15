@@ -290,13 +290,13 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
          if (header instanceof AsciiString) {
             buf.writeBytes(((AsciiString) header).array());
          } else {
-            Util.string2byteBuf(header.toString(), buf);
+            Util.string2byteBuf(header, buf);
          }
          buf.writeByte(':').writeByte(' ');
          if (value instanceof AsciiString) {
             buf.writeBytes(((AsciiString) value).array());
          } else {
-            Util.string2byteBuf(value.toString(), buf);
+            Util.string2byteBuf(value, buf);
          }
          buf.writeByte('\r').writeByte('\n');
          request.session.httpCache().requestHeader(request, header, value);

@@ -84,7 +84,7 @@ public class Util {
       return result.toString(StandardCharsets.UTF_8.name());
    }
 
-   public static ByteBuf string2byteBuf(String str, ByteBuf buffer) {
+   public static ByteBuf string2byteBuf(CharSequence str, ByteBuf buffer) {
       // TODO: allocations everywhere but at least not the bytes themselves...
       CharBuffer input = CharBuffer.wrap(str);
       ByteBuffer output = buffer.nioBuffer(buffer.writerIndex(), buffer.capacity() - buffer.writerIndex());

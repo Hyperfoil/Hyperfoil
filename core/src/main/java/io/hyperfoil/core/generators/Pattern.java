@@ -228,7 +228,8 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
                      if (urlEncode) {
                         Util.urlEncode(o.toString(), buf);
                      } else {
-                        Util.string2byteBuf(o.toString(), buf);
+                        CharSequence str = o instanceof CharSequence ? (CharSequence) o : o.toString();
+                        Util.string2byteBuf(str, buf);
                      }
                   }
                   break;
