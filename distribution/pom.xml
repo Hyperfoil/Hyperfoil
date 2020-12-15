@@ -271,6 +271,25 @@
             <build>
                 <plugins>
                     <plugin>
+                        <artifactId>maven-assembly-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>image-tars</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>single</goal>
+                                </goals>
+                                <configuration>
+                                    <descriptors>
+                                        <descriptor>src/assembly/dependency-tar.xml</descriptor>
+                                        <descriptor>src/assembly/hyperfoil-tar.xml</descriptor>
+                                    </descriptors>
+                                    <tarLongFileMode>posix</tarLongFileMode>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
                         <groupId>org.eclipse.jkube</groupId>
                         <artifactId>kubernetes-maven-plugin</artifactId>
                         <executions>
@@ -301,8 +320,15 @@
                                             <inline>
                                                 <fileSets>
                                                     <fileSet>
+                                                        <outputDirectory>bin</outputDirectory>
+                                                        <directory>target/distribution/bin</directory>
+                                                    </fileSet>
+                                                    <fileSet>
                                                         <outputDirectory>.</outputDirectory>
-                                                        <directory>target/distribution</directory>
+                                                        <directory>target</directory>
+                                                        <includes>
+                                                            <include>hyperfoil-*.tar</include>
+                                                        </includes>
                                                     </fileSet>
                                                 </fileSets>
                                             </inline>
