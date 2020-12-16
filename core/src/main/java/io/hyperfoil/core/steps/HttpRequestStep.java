@@ -229,7 +229,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
       private boolean sync = true;
       private SLABuilder.ListBuilder<Builder> sla = null;
       private CompensationBuilder compensation;
-      private final CompressionBuilder compression = new CompressionBuilder(this);
+      private CompressionBuilder compression = new CompressionBuilder(this);
 
       /**
        * HTTP method used for the request.
@@ -1080,10 +1080,14 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
       }
    }
 
-   public static class CompressionBuilder {
+   public static class CompressionBuilder implements BuilderBase<CompressionBuilder> {
       private final Builder parent;
       private String encoding;
       private CompressionType type = CompressionType.CONTENT_ENCODING;
+
+      public CompressionBuilder() {
+         this(null);
+      }
 
       public CompressionBuilder(Builder parent) {
          this.parent = parent;
