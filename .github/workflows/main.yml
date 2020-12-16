@@ -36,8 +36,7 @@ jobs:
     - name: Fix home dir permissions
       run: chmod go-w /home/$USER && chmod 700 /home/$USER/.ssh && chmod 600 /home/$USER/.ssh/authorized_keys
     - name: Build with Maven
-      #run: mvn -B package --file pom.xml -Pbenchmark -Pbuild-image
-      run: mvn -B package --file pom.xml -DskipTests -Pbuild-image
+      run: mvn -B package --file pom.xml -Pbenchmark -Pbuild-image
     - name: Get version
       run: echo PROJECT_VERSION=$( mvn org.apache.maven.plugins:maven-help-plugin:3.1.0:evaluate -Dexpression=project.version -q -DforceStdout ) >> $GITHUB_ENV
     - name: Login to Quay.io
