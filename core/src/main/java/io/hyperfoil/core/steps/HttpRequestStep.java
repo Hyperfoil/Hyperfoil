@@ -951,21 +951,34 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
 
    public static class CompensationBuilder {
       private static final String DELAY_SESSION_START = "__delay-session-start";
-      private final Builder builder;
+      private final Builder parent;
       public SerializableBiFunction<String, String, String> metricSelector;
       public double targetRate;
       public double targetRateIncrement;
       private DoubleIncrementBuilder targetRateBuilder;
 
-      public CompensationBuilder(Builder builder) {
-         this.builder = builder;
+      public CompensationBuilder(Builder parent) {
+         this.parent = parent;
       }
 
+      /**
+       * Desired rate of new virtual users per second. This is similar to <code>constantRate.usersPerSec</code>
+       * phase settings but works closer to legacy benchmark drivers by fixing the concurrency.
+       *
+       * @param targetRate Used for calculating the period of each virtual user.
+       * @return Self.
+       */
       public CompensationBuilder targetRate(double targetRate) {
          this.targetRate = targetRate;
          return this;
       }
 
+      /**
+       * Desired rate of new virtual users per second. This is similar to <code>constantRate.usersPerSec</code>
+       * phase settings but works closer to legacy benchmark drivers by fixing the concurrency.
+       *
+       * @return Builder.
+       */
       public DoubleIncrementBuilder targetRate() {
          return targetRateBuilder = new DoubleIncrementBuilder((base, inc) -> {
             this.targetRate = base;
@@ -973,11 +986,22 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
          });
       }
 
+      /**
+       * Metric name for the compensated results.
+       *
+       * @param name Metric name.
+       * @return Self.
+       */
       public CompensationBuilder metric(String name) {
          this.metricSelector = new Builder.ProvidedMetricSelector(name);
          return this;
       }
 
+      /**
+       * Configure a custom metric for the compensated results.
+       *
+       * @return Builder.
+       */
       public PathMetricSelector metric() {
          PathMetricSelector metricSelector = new PathMetricSelector();
          this.metricSelector = metricSelector;
@@ -1001,11 +1025,11 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
          } else {
             log.warn("Scenario for phase {} contains multiple compensating HTTP requests: make sure that all use the same rate.", phaseBuilder.name());
          }
-         builder.handler.onCompletion(new CompensatedResponseRecorder.Builder().metric(metricSelector));
+         parent.handler.onCompletion(new CompensatedResponseRecorder.Builder().metric(metricSelector));
       }
 
       public Builder end() {
-         return builder;
+         return parent;
       }
    }
 
