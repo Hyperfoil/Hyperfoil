@@ -221,6 +221,11 @@ public class StringConditionBuilder<B extends StringConditionBuilder<B, P>, P> i
       return self();
    }
 
+   /**
+    * Check the length of the string.
+    *
+    * @return Builder.
+    */
    public IntConditionBuilder<?, B> length() {
       if (length == null) {
          length = new IntConditionBuilder(this);

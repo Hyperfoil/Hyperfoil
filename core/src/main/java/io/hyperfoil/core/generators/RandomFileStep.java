@@ -54,20 +54,20 @@ public class RandomFileStep implements Step, ResourceUtilizer {
     * Reads bytes from a randomly chosen file into a variable.
     * Two formats are supported:
     * Example 1 - without weights:
-    * <code>
+    * <pre>
     * toVar: myVar
     * files:
     * - /path/to/file1.txt
     * - file2_relative_to_benchmark.txt
-    * </code>
+    * </pre>
     * <p>
     * Example 2 - with weights (the second file will be returned twice as often):
-    * <code>
+    * <pre>
     * toVar: myVar
     * files:
-    * /path/to/file1.txt: 1
-    * file2_relative_to_benchmark.txt: 2
-    * </code>
+    *   /path/to/file1.txt: 1
+    *   file2_relative_to_benchmark.txt: 2
+    * </pre>
     */
    @MetaInfServices(StepBuilder.class)
    @Name("randomFile")

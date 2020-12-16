@@ -621,7 +621,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
       }
 
       /**
-       * Configures additional statistic compensating coordinated omission.
+       * Configures additional metric compensated for coordinated omission.
        *
        * @return Builder.
        */
@@ -1094,7 +1094,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
       }
 
       /**
-       * Encoding used for 'Accept-Encoding' header. The only currently supported is <code>gzip</code>.
+       * Encoding used for <code>Accept-Encoding</code>/<code>TE</code> header. The only currently supported is <code>gzip</code>.
        *
        * @param encoding Content encoding.
        * @return Self.
@@ -1145,7 +1145,13 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
    }
 
    public enum CompressionType {
+      /**
+       * Use <code>Accept-Encoding</code> in request and expect <code>Content-Encoding</code> in response.
+       */
       CONTENT_ENCODING,
+      /**
+       * Use <code>TE</code> in request and expect <code>Transfer-Encoding</code> in response.
+       */
       TRANSFER_ENCODING
    }
 }
