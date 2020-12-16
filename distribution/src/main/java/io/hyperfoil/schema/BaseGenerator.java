@@ -51,9 +51,13 @@ class BaseGenerator {
          return true;
       } else if (m.getName().equals("copy") && m.getParameterCount() == 0) {
          return true;
-      } else if (m.getAnnotation(Deprecated.class) != null) {
+      } else if (m.isAnnotationPresent(Deprecated.class)) {
          return true;
       } else if (m.getName().equals("rootSequence") && BaseSequenceBuilder.class.isAssignableFrom(m.getDeclaringClass())) {
+         return true;
+      } else if (m.isAnnotationPresent(Embed.class)) {
+         return true;
+      } else if (m.getName().equals("self") && m.getParameterCount() == 0) {
          return true;
       }
       return false;

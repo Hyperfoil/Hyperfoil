@@ -67,6 +67,7 @@ public class DocsGenerator extends BaseGenerator {
    private final Map<Class<?>, Docs> docs = new HashMap<>();
    private final Map<Docs, Class<?>> reverseTypes = new HashMap<>();
    private final JavaParser parser = new JavaParser();
+   private final List<Docs> needsResolve = new ArrayList<>();
 
    public static void main(String[] args) {
       List<Path> sourceDirs = new ArrayList<>();
@@ -93,6 +94,7 @@ public class DocsGenerator extends BaseGenerator {
             addStep(entry.getKey(), newBuilder, InitFromParam.class.isAssignableFrom(newBuilder), inlineParamDocs);
          }
       }
+      needsResolve.forEach(Docs::resolveLazyParams);
       for (Map.Entry<Class<?>, Docs> entry : docs.entrySet()) {
          reverseTypes.put(entry.getValue(), entry.getKey());
       }
@@ -603,7 +605,8 @@ public class DocsGenerator extends BaseGenerator {
          } else if (Processor.Builder.class.isAssignableFrom(builderClazz)) {
             param.link = "index.html#processors";
          }
-         param.addParams(getServiceLoadedImplementations(builderClazz).params);
+         param.lazyParams.add(getServiceLoadedImplementations(builderClazz).params);
+         needsResolve.add(param);
       }
       if (m.getReturnType().getName().endsWith("Builder")) {
          Docs inner = describeBuilder(m.getReturnType());
@@ -611,10 +614,11 @@ public class DocsGenerator extends BaseGenerator {
             param.typeDescription = inner.typeDescription;
             param.inlineParam = inner.inlineParam;
             param.type = "Builder";
-            param.addParams(inner.params);
+            param.lazyParams.add(inner.params);
+            needsResolve.add(param);
          }
       }
-      if (param.params.isEmpty()) {
+      if (param.params.isEmpty() && param.lazyParams.isEmpty()) {
          return null;
       } else {
          return param;
@@ -689,13 +693,15 @@ public class DocsGenerator extends BaseGenerator {
             .<Docs, Integer>comparing(d -> d.params.size())
             .thenComparing(d -> d.inlineParam == null ? "" : d.inlineParam)
             .thenComparing(d -> d.typeDescription == null ? "" : d.typeDescription)
-            .thenComparing(d -> d.ownerDescription == null ? "" : d.ownerDescription);
+            .thenComparing(d -> d.ownerDescription == null ? "" : d.ownerDescription)
+            .thenComparing(d -> d.type == null ? "" : d.type);
       String ownerDescription;
       String typeDescription;
       String inlineParam;
       Map<String, List<Docs>> params = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
       String link;
       String type;
+      List<Map<String, List<Docs>>> lazyParams = new ArrayList<>();
 
       private Docs(String ownerDescription) {
          this.ownerDescription = ownerDescription;
@@ -709,15 +715,18 @@ public class DocsGenerator extends BaseGenerator {
             params.put(name, options);
          }
          options.add(docs);
-         Collections.sort(options, DOCS_COMPARATOR);
+         options.sort(DOCS_COMPARATOR);
       }
 
-      public void addParams(Map<String, List<Docs>> params) {
-         for (Map.Entry<String, List<Docs>> param : params.entrySet()) {
-            for (Docs d : param.getValue()) {
-               addParam(param.getKey(), d);
+      public void resolveLazyParams() {
+         for (Map<String, List<Docs>> params : lazyParams) {
+            for (Map.Entry<String, List<Docs>> param : params.entrySet()) {
+               for (Docs d : param.getValue()) {
+                  addParam(param.getKey(), d);
+               }
             }
          }
+         lazyParams.clear();
       }
    }
 
