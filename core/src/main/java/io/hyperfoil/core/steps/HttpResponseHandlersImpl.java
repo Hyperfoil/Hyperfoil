@@ -6,6 +6,7 @@ import static io.hyperfoil.core.session.SessionFactory.sequenceScopedAccess;
 import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
@@ -473,6 +474,13 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
 
       public HttpRequestStep.Builder endHandler() {
          return parent;
+      }
+
+      public Builder wrapBodyHandlers(Function<Collection<HttpRequestProcessorBuilder>, HttpRequestProcessorBuilder> func) {
+         HttpRequestProcessorBuilder wrapped = func.apply(bodyHandlers);
+         this.bodyHandlers = new ArrayList<>();
+         this.bodyHandlers.add(wrapped);
+         return this;
       }
 
       public void prepareBuild() {

@@ -65,6 +65,9 @@ public abstract class BaseScenarioTest {
       if (useHttps()) {
          options.setSsl(true).setUseAlpn(true).setKeyStoreOptions(new JksOptions().setPath("keystore.jks").setPassword("test123"));
       }
+      if (useCompression()) {
+         options.setCompressionSupported(true);
+      }
       server = vertx.createHttpServer(options).requestHandler(router)
             .listen(0, "localhost", ctx.asyncAssertSuccess(srv -> initWithServer(ctx)));
    }
@@ -73,6 +76,11 @@ public abstract class BaseScenarioTest {
    protected boolean useHttps() {
       return false;
    }
+
+   protected boolean useCompression() {
+      return false;
+   }
+
 
    protected void initWithServer(TestContext ctx) {
       benchmarkBuilder

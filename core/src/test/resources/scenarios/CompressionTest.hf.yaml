@@ -1,0 +1,35 @@
+name: CompressionTest
+http:
+  host: http://localhost:8080
+phases:
+- testPhase:
+    atOnce:
+      users: 1
+      duration: 0
+      scenario:
+      - short:
+        - httpRequest:
+            GET: /short
+            compression: gzip
+            handler:
+              body:
+                store:
+                  toVar: short
+        - fail:
+            stringCondition:
+              fromVar: short
+              notEqualTo: "Short message to be encoded."
+      - long:
+        - httpRequest:
+            GET: /long
+            compression:
+              encoding: gzip
+            handler:
+              body:
+                store:
+                  toVar: long
+        - fail:
+            stringCondition:
+              fromVar: long
+              length:
+                notEqualTo: 10000

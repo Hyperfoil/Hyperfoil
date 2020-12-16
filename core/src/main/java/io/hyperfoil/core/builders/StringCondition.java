@@ -61,7 +61,7 @@ public class StringCondition implements Condition {
 
    public static class Builder<P> extends StringConditionBuilder<Builder<P>, P> implements Condition.Builder<Builder<P>> {
       private Object fromVar;
-      private boolean isSet;
+      private boolean isSet = true;
 
       public Builder(P parent) {
          super(parent);

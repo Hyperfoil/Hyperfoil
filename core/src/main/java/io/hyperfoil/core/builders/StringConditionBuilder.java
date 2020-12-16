@@ -8,6 +8,7 @@ import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.util.Util;
 import io.hyperfoil.function.SerializableBiPredicate;
+import io.hyperfoil.function.SerializableIntPredicate;
 
 public class StringConditionBuilder<B extends StringConditionBuilder<B, P>, P> implements InitFromParam<StringConditionBuilder<B, P>>, BuilderBase<B> {
    private final P parent;
@@ -16,6 +17,7 @@ public class StringConditionBuilder<B extends StringConditionBuilder<B, P>, P> i
    private String matchVar;
    private CompareMode compareMode;
    private boolean negate;
+   private IntConditionBuilder<?, B> length;
 
    public StringConditionBuilder() {
       this(null);
@@ -26,76 +28,66 @@ public class StringConditionBuilder<B extends StringConditionBuilder<B, P>, P> i
    }
 
    public SerializableBiPredicate<Session, CharSequence> buildPredicate() {
-      if (value == null && matchVar == null) {
-         throw new BenchmarkDefinitionException("Must set one of: 'value', 'startsWith', 'endsWith' or 'matchVar'!");
+      if (value == null && matchVar == null && length == null) {
+         throw new BenchmarkDefinitionException("Must set one of: 'value', 'startsWith', 'endsWith', 'matchVar' or 'length'!");
       }
-      CompareMode myCompareMode = compareMode;
-      boolean myNegate = negate;
+      SerializableBiPredicate<Session, CharSequence> predicate = contentPredicate();
+      if (length != null) {
+         SerializableIntPredicate lengthPredicate = length.buildPredicate();
+         SerializableBiPredicate<Session, CharSequence> strLengthPredicate =
+               (session, string) -> lengthPredicate.test(string == null ? 0 : string.length());
+         if (predicate == null) {
+            predicate = strLengthPredicate;
+         } else {
+            SerializableBiPredicate<Session, CharSequence> myPredicate = predicate;
+            predicate = (session, string) -> strLengthPredicate.test(session, string) && myPredicate.test(session, string);
+         }
+      }
+      if (predicate == null) {
+         throw new BenchmarkDefinitionException("No condition set in string condition.");
+      }
+      return negate ? predicate.negate() : predicate;
+   }
 
-      if (caseSensitive) {
-         if (value != null) {
-            CharSequence myValue = value;
-            return (s, string) -> {
-               int offset = 0, length = myValue.length();
-               switch (myCompareMode) {
-                  case FULL:
-                     length = Math.max(string.length(), length);
-                     break;
-                  case PREFIX:
-                     break;
-                  case SUFFIX:
-                     offset = string.length() - length;
-                     break;
-                  default:
-                     throw new IllegalStateException("Unexpected value: " + myCompareMode);
-               }
-               boolean matches = Util.regionMatches(myValue, 0, string, offset, length);
-               return myNegate != matches;
-            };
-         } else {
-            Access access = SessionFactory.access(matchVar);
-            return (s, string) -> {
-               Object value = access.getObject(s);
-               if (value instanceof CharSequence) {
-                  CharSequence v = (CharSequence) value;
-                  boolean matches = Util.regionMatches(v, 0, string, 0, Math.max(v.length(), string.length()));
-                  return myNegate != matches;
-               }
-               return myNegate;
-            };
-         }
+   private SerializableBiPredicate<Session, CharSequence> contentPredicate() {
+      CompareMode myCompareMode = compareMode;
+      boolean myCaseSensitive = caseSensitive;
+
+      if (value != null) {
+         CharSequence myValue = value;
+
+         return (s, string) -> {
+            int offset = 0, valueLength = myValue.length();
+            switch (myCompareMode) {
+               case FULL:
+                  valueLength = Math.max(string.length(), valueLength);
+                  break;
+               case PREFIX:
+                  break;
+               case SUFFIX:
+                  offset = string.length() - valueLength;
+                  break;
+               default:
+                  throw new IllegalStateException("Unexpected value: " + myCompareMode);
+            }
+            return myCaseSensitive
+                  ? Util.regionMatches(myValue, 0, string, offset, valueLength)
+                  : Util.regionMatchesIgnoreCase(myValue, 0, string, offset, valueLength);
+         };
+      } else if (matchVar != null) {
+         Access access = SessionFactory.access(matchVar);
+         return (s, string) -> {
+            Object value = access.getObject(s);
+            if (value instanceof CharSequence) {
+               CharSequence v = (CharSequence) value;
+               return myCaseSensitive
+                     ? Util.regionMatches(v, 0, string, 0, Math.max(v.length(), string.length()))
+                     : Util.regionMatchesIgnoreCase(v, 0, string, 0, Math.max(v.length(), string.length()));
+            }
+            return false;
+         };
       } else {
-         if (value != null) {
-            String myValue = value.toString();
-            return (s, string) -> {
-               int offset = 0, length = myValue.length();
-               switch (myCompareMode) {
-                  case FULL:
-                     length = Math.max(string.length(), length);
-                     break;
-                  case PREFIX:
-                     break;
-                  case SUFFIX:
-                     offset = string.length() - length;
-                     break;
-                  default:
-                     throw new IllegalStateException("Unexpected value: " + myCompareMode);
-               }
-               boolean matches = Util.regionMatchesIgnoreCase(myValue, 0, string, offset, length);
-               return myNegate != matches;
-            };
-         } else {
-            Access access = SessionFactory.access(matchVar);
-            return (s, string) -> {
-               Object value = access.getObject(s);
-               if (value instanceof CharSequence) {
-                  CharSequence v = (CharSequence) value;
-                  boolean matches = Util.regionMatchesIgnoreCase(v, 0, string, 0, Math.max(v.length(), string.length()));
-                  return myNegate != matches;
-               }
-               return myNegate;
-            };
-         }
+         return null;
       }
    }
 
@@ -208,11 +200,32 @@ public class StringConditionBuilder<B extends StringConditionBuilder<B, P>, P> i
     * Invert the logic of this condition. Defaults to false.
     *
     * @param negate Use <code>true</code> if the logic should be inverted.
-    * @return Self
+    * @return Self.
     */
    public B negate(boolean negate) {
       this.negate = negate;
       return self();
+   }
+
+   /**
+    * Check the length of the string.
+    *
+    * @param exactLength String length.
+    * @return Self.
+    */
+   public B length(int exactLength) {
+      if (length == null) {
+         length = new IntConditionBuilder(this);
+      }
+      length.equalTo(exactLength);
+      return self();
+   }
+
+   public IntConditionBuilder<?, B> length() {
+      if (length == null) {
+         length = new IntConditionBuilder(this);
+      }
+      return length;
    }
 
    public P end() {

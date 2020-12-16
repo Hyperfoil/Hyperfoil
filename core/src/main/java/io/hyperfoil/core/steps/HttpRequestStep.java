@@ -26,6 +26,7 @@ import io.hyperfoil.api.config.SequenceBuilder;
 import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.config.Visitor;
 import io.hyperfoil.api.connection.HttpRequest;
+import io.hyperfoil.api.processor.HttpRequestProcessorBuilder;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.SequenceInstance;
@@ -35,12 +36,16 @@ import io.hyperfoil.core.generators.HttpMethodBuilder;
 import io.hyperfoil.core.generators.Pattern;
 import io.hyperfoil.core.generators.StringGeneratorBuilder;
 import io.hyperfoil.core.generators.StringGeneratorImplBuilder;
+import io.hyperfoil.core.handlers.StoreProcessor;
+import io.hyperfoil.core.handlers.http.FilterHeaderHandler;
 import io.hyperfoil.core.http.CookieAppender;
+import io.hyperfoil.core.http.GzipInflatorProcessor;
 import io.hyperfoil.core.http.HttpUtil;
 import io.hyperfoil.core.http.UserAgentAppender;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.util.BitSetResource;
 import io.hyperfoil.core.util.DoubleIncrementBuilder;
+import io.hyperfoil.core.util.Unique;
 import io.netty.buffer.ByteBuf;
 import io.hyperfoil.api.config.PairBuilder;
 import io.hyperfoil.api.config.PartialBuilder;
@@ -56,6 +61,8 @@ import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.function.SerializableBiConsumer;
 import io.hyperfoil.function.SerializableBiFunction;
 import io.hyperfoil.function.SerializableFunction;
+import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.util.AsciiString;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
@@ -222,6 +229,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
       private boolean sync = true;
       private SLABuilder.ListBuilder<Builder> sla = null;
       private CompensationBuilder compensation;
+      private final CompressionBuilder compression = new CompressionBuilder(this);
 
       /**
        * HTTP method used for the request.
@@ -621,6 +629,26 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
          return this.compensation = new CompensationBuilder(this);
       }
 
+      /**
+       * Request server to respond with compressed entity using specified content encoding.
+       *
+       * @param encoding Encoding. Currently supports only <code>gzip</code>.
+       * @return Self.
+       */
+      public Builder compression(String encoding) {
+         compression().encoding(encoding);
+         return this;
+      }
+
+      /**
+       * Configure response compression.
+       *
+       * @return Builder.
+       */
+      public CompressionBuilder compression() {
+         return compression;
+      }
+
       @Override
       public int id() {
          assert stepId >= 0;
@@ -656,6 +684,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
          if (compensation != null) {
             compensation.prepareBuild();
          }
+         compression.prepareBuild();
          handler.prepareBuild();
       }
 
@@ -779,7 +808,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
 
       public HeadersBuilder header(CharSequence header, CharSequence value) {
          warnIfUsingHostHeader(header);
-         parent.headerAppender((session, writer) -> writer.putHeader(header, value));
+         parent.headerAppender(new StaticHeaderWriter(header, value));
          return this;
       }
 
@@ -809,6 +838,21 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
             log.warn("Setting `host` header explicitly is not recommended. Use the HTTP host and adjust actual target using `addresses` property.");
             parent.injectHostHeader = false;
          }
+      }
+   }
+
+   private static class StaticHeaderWriter implements SerializableBiConsumer<Session, HttpRequestWriter> {
+      private final CharSequence header;
+      private final CharSequence value;
+
+      private StaticHeaderWriter(CharSequence header, CharSequence value) {
+         this.header = header;
+         this.value = value;
+      }
+
+      @Override
+      public void accept(Session session, HttpRequestWriter writer) {
+         writer.putHeader(header, value);
       }
    }
 
@@ -1010,5 +1054,70 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
             return this;
          }
       }
+   }
+
+   public static class CompressionBuilder {
+      private final Builder parent;
+      private String encoding;
+      private CompressionType type = CompressionType.CONTENT_ENCODING;
+
+      public CompressionBuilder(Builder parent) {
+         this.parent = parent;
+      }
+
+      /**
+       * Encoding used for 'Accept-Encoding' header. The only currently supported is <code>gzip</code>.
+       *
+       * @param encoding Content encoding.
+       * @return Self.
+       */
+      public CompressionBuilder encoding(String encoding) {
+         this.encoding = encoding;
+         return this;
+      }
+
+      /**
+       * Type of compression (resource vs. transfer based).
+       *
+       * @param type Compression type.
+       * @return Self.
+       */
+      public CompressionBuilder type(CompressionType type) {
+         this.type = type;
+         return this;
+      }
+
+      public Builder end() {
+         return parent;
+      }
+
+      public void prepareBuild() {
+         if (encoding == null) {
+            // ignore
+         } else if (!encoding.equalsIgnoreCase("gzip")) {
+            throw new BenchmarkDefinitionException("The only supported compression encoding is 'gzip'");
+         } else {
+            Unique encoding = new Unique(Locator.current().sequence().rootSequence().concurrency() > 0);
+            AsciiString expectedHeader;
+            if (type == CompressionType.CONTENT_ENCODING) {
+               parent.headerAppender(new StaticHeaderWriter(HttpHeaderNames.ACCEPT_ENCODING.toString(), this.encoding));
+               expectedHeader = HttpHeaderNames.CONTENT_ENCODING;
+            } else if (type == CompressionType.TRANSFER_ENCODING) {
+               parent.headerAppender(new StaticHeaderWriter(HttpHeaderNames.TE, this.encoding));
+               expectedHeader = HttpHeaderNames.TRANSFER_ENCODING;
+            } else {
+               throw new BenchmarkDefinitionException("Unexpected compression type: " + type);
+            }
+            parent.handler.header(new FilterHeaderHandler.Builder()
+                  .header().equalTo(expectedHeader.toString()).end()
+                  .processor(HttpRequestProcessorBuilder.adapt(new StoreProcessor.Builder().toVar(encoding))));
+            parent.handler.wrapBodyHandlers(handlers -> new GzipInflatorProcessor.Builder().processors(handlers).encodingVar(encoding));
+         }
+      }
+   }
+
+   public enum CompressionType {
+      CONTENT_ENCODING,
+      TRANSFER_ENCODING
    }
 }
