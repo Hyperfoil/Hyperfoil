@@ -5,6 +5,8 @@ import java.util.concurrent.ThreadLocalRandom;
 import io.hyperfoil.benchmark.BaseBenchmarkTest;
 import io.hyperfoil.cli.commands.Wrk;
 import io.hyperfoil.cli.commands.Wrk2;
+
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
@@ -37,11 +39,13 @@ public class WrkTest extends BaseBenchmarkTest {
       }
    }
 
+   @Ignore
    @Test
    public void testWrk() {
       Wrk.main(new String[]{ "-c", "10", "-d", "5s", "--latency", "--timeout", "1s", "localhost:" + httpServer.actualPort() + "/foo/bar" });
    }
 
+   @Ignore
    @Test
    public void testWrk2() {
       Wrk2.main(new String[]{ "-c", "10", "-d", "5s", "-R", "20", "--latency", "--timeout", "1s", "localhost:" + httpServer.actualPort() + "/foo/bar" });
