@@ -148,6 +148,7 @@ class ControllerServer implements ApiService {
                      baseURL = CONTROLLER_EXTERNAL_URI;
                   }
                }
+               log.info("Hyperfoil controller listening on {}", baseURL);
                countDown.handle(serverResult.mapEmpty());
             });
    }
