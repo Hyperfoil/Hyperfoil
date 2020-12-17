@@ -50,16 +50,32 @@ public class StringToIntAction implements Action, ResourceUtilizer {
       String fromVar;
       String toVar;
 
+      /**
+       * Source variable name.
+       *
+       * @param fromVar Variable name.
+       * @return Self.
+       */
       public Builder fromVar(String fromVar) {
          this.fromVar = fromVar;
          return this;
       }
 
+      /**
+       * Target variable name.
+       *
+       * @param toVar Variable name.
+       * @return Self.
+       */
       public Builder toVar(String toVar) {
          this.toVar = toVar;
          return this;
       }
 
+      /**
+       * @param param Use `fromVar -&gt; toVar`
+       * @return Self.
+       */
       @Override
       public Builder init(String param) {
          int index = param.indexOf("->");

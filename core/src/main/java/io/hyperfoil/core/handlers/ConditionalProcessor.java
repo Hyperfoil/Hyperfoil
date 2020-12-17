@@ -84,6 +84,11 @@ public class ConditionalProcessor implements Processor, ResourceUtilizer {
          return this;
       }
 
+      /**
+       * One or more processors that should be invoked if the condition holds.
+       *
+       * @return Builder.
+       */
       public ServiceLoadedBuilderProvider<RequestProcessorBuilder> processor() {
          return new ServiceLoadedBuilderProvider<>(RequestProcessorBuilder.class, this::processor);
       }

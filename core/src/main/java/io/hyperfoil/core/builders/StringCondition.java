@@ -59,6 +59,9 @@ public class StringCondition implements Condition {
       return result;
    }
 
+   /**
+    * Condition comparing string in session variable.
+    */
    public static class Builder<P> extends StringConditionBuilder<Builder<P>, P> implements Condition.Builder<Builder<P>> {
       private Object fromVar;
       private boolean isSet = true;
@@ -67,6 +70,12 @@ public class StringCondition implements Condition {
          super(parent);
       }
 
+      /**
+       * Variable name.
+       *
+       * @param var Variable name.
+       * @return Self.
+       */
       public Builder<P> fromVar(Object var) {
          this.fromVar = var;
          return this;

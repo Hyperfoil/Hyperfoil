@@ -61,6 +61,11 @@ public abstract class BaseDelegatingHeaderHandler implements HeaderHandler, Reso
          return self();
       }
 
+      /**
+       * One or more header handlers that should be invoked.
+       *
+       * @return Builder.
+       */
       public ServiceLoadedBuilderProvider<HeaderHandler.Builder> handler() {
          return new ServiceLoadedBuilderProvider<>(HeaderHandler.Builder.class, this::handler);
       }

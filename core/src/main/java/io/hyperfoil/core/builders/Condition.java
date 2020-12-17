@@ -10,6 +10,9 @@ public interface Condition extends SerializablePredicate<Session> {
       Condition buildCondition();
    }
 
+   /**
+    * Selector for condition type.
+    */
    class TypesBuilder<P> implements Builder<TypesBuilder<P>> {
       private final P parent;
       private IntCondition.Builder<P> intCondition;

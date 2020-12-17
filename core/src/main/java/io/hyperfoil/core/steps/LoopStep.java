@@ -87,7 +87,9 @@ public class LoopStep implements Step, ResourceUtilizer {
       }
 
       /**
-       * @param counterVar Variable holding number of iterations.
+       * Variable holding number of iterations.
+       *
+       * @param counterVar Variable name.
        * @return Self.
        */
       public Builder counterVar(String counterVar) {
@@ -96,7 +98,9 @@ public class LoopStep implements Step, ResourceUtilizer {
       }
 
       /**
-       * @param repeats Number of iterations that should be executed.
+       * Number of iterations that should be executed.
+       *
+       * @param repeats Number of iterations.
        * @return Self.
        */
       public Builder repeats(int repeats) {
@@ -105,7 +109,9 @@ public class LoopStep implements Step, ResourceUtilizer {
       }
 
       /**
-       * @param sequence Name of the sequence that should be instantiated.
+       * Name of the sequence that should be instantiated.
+       *
+       * @param sequence Sequence name.
        * @return Self.
        */
       @Deprecated
@@ -113,6 +119,11 @@ public class LoopStep implements Step, ResourceUtilizer {
          throw new BenchmarkDefinitionException("Sequence is not supported anymore; place loop as the first step in a sequence.");
       }
 
+      /**
+       * List of steps that should be looped.
+       *
+       * @return Builder.
+       */
       public BaseSequenceBuilder steps() {
          return steps;
       }

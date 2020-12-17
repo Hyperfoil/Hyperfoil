@@ -28,6 +28,9 @@ public class AllConditions implements Condition {
       return true;
    }
 
+   /**
+    * Test more conditions and combine the results using AND logic.
+    */
    public static class Builder<P> implements MappingListBuilder<Condition.Builder<?>>, BuilderBase<Builder<P>>, Condition.Builder<Builder<P>> {
       private final P parent;
       private final List<TypesBuilder<Builder<P>>> list = new ArrayList<>();
@@ -40,6 +43,11 @@ public class AllConditions implements Condition {
          this.parent = parent;
       }
 
+      /**
+       * List of conditions.
+       *
+       * @return Builder.
+       */
       @Override
       public TypesBuilder<Builder<P>> addItem() {
          TypesBuilder<Builder<P>> builder = new TypesBuilder<>(this);

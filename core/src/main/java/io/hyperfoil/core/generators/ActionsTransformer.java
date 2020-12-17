@@ -82,7 +82,9 @@ public class ActionsTransformer implements Transformer, ResourceUtilizer {
       }
 
       /**
-       * @param pattern Pattern to use when fetching the transformed value.
+       * Pattern to use when fetching the transformed value.
+       *
+       * @param pattern Pattern replacing `${myVar}` by the variable value.
        * @return Self.
        */
       public Builder pattern(String pattern) {
@@ -96,7 +98,9 @@ public class ActionsTransformer implements Transformer, ResourceUtilizer {
       }
 
       /**
-       * @return Builder for creating the list of actions.
+       * Actions to be executed.
+       *
+       * @return Builder.
        */
       public ServiceLoadedBuilderProvider<Action.Builder> actions() {
          return new ServiceLoadedBuilderProvider<>(Action.Builder.class, actions::add);

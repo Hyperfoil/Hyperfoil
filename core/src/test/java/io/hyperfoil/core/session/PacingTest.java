@@ -62,7 +62,7 @@ public class PacingTest extends BaseScenarioTest {
             .step(SC).clearHttpCache()
             .step(SC).awaitDelay("foo")
             .end()
-            .step(SC).log().message("Final value: {}").addVar("counter").endStep()
+            .step(SC).log().message("Final value: {}").addVar("counter", null).endStep()
             .endSequence();
 
       Map<String, StatisticsSnapshot> stats = runScenario();

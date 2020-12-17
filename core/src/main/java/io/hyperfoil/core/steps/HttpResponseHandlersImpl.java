@@ -457,16 +457,40 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          return new ServiceLoadedBuilderProvider<>(RawBytesHandler.Builder.class, this::rawBytes);
       }
 
+      /**
+       * Inject status handler that marks the request as invalid on status 4xx or 5xx.
+       * Default value depends on <code>ergonomics.autoRangeCheck</code>
+       * (see <a href="https://hyperfoil.io/userguide/benchmark/ergonomics.html">User Guide</a>).
+       *
+       * @param autoRangeCheck True for inserting the handler, false otherwise.
+       * @return Self.
+       */
       public Builder autoRangeCheck(boolean autoRangeCheck) {
          this.autoRangeCheck = autoRangeCheck;
          return this;
       }
 
+      /**
+       * Inject completion handler that will stop the session if the request has been marked as invalid.
+       * Default value depends on <code>ergonomics.stopOnInvalid</code>
+       * (see <a href="https://hyperfoil.io/userguide/benchmark/ergonomics.html">User Guide</a>).
+       *
+       * @param stopOnInvalid
+       * @return
+       */
       public Builder stopOnInvalid(boolean stopOnInvalid) {
          this.stopOnInvalid = stopOnInvalid;
          return this;
       }
 
+      /**
+       * Automatically fire requests when the server responds with redirection.
+       * Default value depends on <code>ergonomics.followRedirect</code>
+       * (see <a href="https://hyperfoil.io/userguide/benchmark/ergonomics.html">User Guide</a>).
+       *
+       * @param followRedirect Types of server response that will trigger the request.
+       * @return Self.
+       */
       public Builder followRedirect(FollowRedirect followRedirect) {
          this.followRedirect = followRedirect;
          return this;

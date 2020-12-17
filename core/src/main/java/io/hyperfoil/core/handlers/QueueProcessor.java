@@ -73,6 +73,11 @@ public class QueueProcessor implements Processor, ResourceUtilizer {
       ResourceUtilizer.reserve(session, onCompletion);
    }
 
+   /**
+    * Stores defragmented data in a queue. For each item in the queue a new sequence instance will be started
+    * (subject the concurrency constraints) with sequence index that allows it to read an object from an array
+    * using sequence-scoped access.
+    */
    @MetaInfServices(RequestProcessorBuilder.class)
    @Name("queue")
    public static class Builder implements RequestProcessorBuilder {
@@ -87,26 +92,56 @@ public class QueueProcessor implements Processor, ResourceUtilizer {
       private SequenceBuilder sequenceBuilder;
       private Consumer<Action.Builder> sequenceCompletion;
 
+      /**
+       * Variable storing the array that it used as a output object from the queue.
+       *
+       * @param var Variable name.
+       * @return Self.
+       */
       public Builder var(String var) {
          this.var = var;
          return this;
       }
 
+      /**
+       * Maximum number of elements that can be stored in the queue.
+       *
+       * @param maxSize Number of objects.
+       * @return Self.
+       */
       public Builder maxSize(int maxSize) {
          this.maxSize = maxSize;
          return this;
       }
 
+      /**
+       * Conversion format from byte buffers. Default format is STRING.
+       *
+       * @param format Data format.
+       * @return Self.
+       */
       public Builder format(DataFormat format) {
          this.format = format;
          return this;
       }
 
+      /**
+       * Maximum number of started sequences that can be running at one moment.
+       *
+       * @param concurrency Number of sequences.
+       * @return Self.
+       */
       public Builder concurrency(int concurrency) {
          this.concurrency = concurrency;
          return this;
       }
 
+      /**
+       * Name of the started sequence.
+       *
+       * @param sequence Name.
+       * @return Self.
+       */
       public Builder sequence(String sequence) {
          this.sequence = sequence;
          return this;
@@ -118,6 +153,12 @@ public class QueueProcessor implements Processor, ResourceUtilizer {
          return this;
       }
 
+      /**
+       * Custom action that should be performed when the last consuming sequence reports that it has processed
+       * the last element from the queue. Note that the sequence is NOT automatically augmented to report completion.
+       *
+       * @return Builder.
+       */
       public ServiceLoadedBuilderProvider<Action.Builder> onCompletion() {
          return new ServiceLoadedBuilderProvider<>(Action.Builder.class, this::onCompletion);
       }

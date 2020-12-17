@@ -170,6 +170,11 @@ public class SLABuilder<P> implements Rewritable<SLABuilder<P>> {
          this.parent = parent;
       }
 
+      /**
+       * One or more SLA configurations.
+       *
+       * @return Builder.
+       */
       @Override
       public SLABuilder<ListBuilder<P>> addItem() {
          SLABuilder<ListBuilder<P>> sb = new SLABuilder<>(this);

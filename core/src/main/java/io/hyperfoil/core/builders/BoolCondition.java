@@ -41,6 +41,9 @@ public class BoolCondition implements Condition {
       }
    }
 
+   /**
+    * Tests session variable containing boolean value.
+    */
    public static class Builder<P> implements Condition.Builder<Builder<P>> {
       private final P parent;
       private String fromVar;
@@ -55,11 +58,23 @@ public class BoolCondition implements Condition {
          return new BoolCondition(SessionFactory.access(fromVar), value);
       }
 
+      /**
+       * Variable name.
+       *
+       * @param fromVar Variable name.
+       * @return Self.
+       */
       public Builder<P> fromVar(String fromVar) {
          this.fromVar = fromVar;
          return this;
       }
 
+      /**
+       * Expected value.
+       *
+       * @param value True or false.
+       * @return Self.
+       */
       public Builder<P> value(boolean value) {
          this.value = value;
          return this;

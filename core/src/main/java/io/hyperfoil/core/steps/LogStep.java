@@ -86,7 +86,8 @@ public class LogStep implements Step {
          return vars::add;
       }
 
-      public Builder addVar(String var) {
+      // the ignored parameter removes this method from YAML-based configuration
+      public Builder addVar(String var, Void ignored) {
          vars.add(var);
          return this;
       }
