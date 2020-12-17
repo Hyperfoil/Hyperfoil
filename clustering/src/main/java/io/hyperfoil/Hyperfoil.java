@@ -50,7 +50,7 @@ public class Hyperfoil {
       VertxOptions options = new VertxOptions();
       options.getEventBusOptions().setClustered(true);
       try {
-         String clusterIp = System.getProperty(Properties.CONTROLLER_CLUSTER_IP);
+         String clusterIp = Properties.get(Properties.CONTROLLER_CLUSTER_IP, null);
          InetAddress address;
          if (isController && clusterIp != null) {
             address = InetAddress.getByName(clusterIp);
@@ -83,7 +83,7 @@ public class Hyperfoil {
          if (System.getProperty("jgroups.tcp.address") == null) {
             System.setProperty("jgroups.tcp.address", hostAddress);
          }
-         String clusterPort = System.getProperty(Properties.CONTROLLER_CLUSTER_PORT);
+         String clusterPort = Properties.get(Properties.CONTROLLER_CLUSTER_PORT, null);
          if (isController && clusterPort != null && System.getProperty("jgroups.tcp.port") == null) {
             System.setProperty("jgroups.tcp.port", clusterPort);
          }

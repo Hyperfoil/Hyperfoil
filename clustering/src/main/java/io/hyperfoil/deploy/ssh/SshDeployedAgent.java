@@ -34,7 +34,7 @@ import io.vertx.core.logging.LoggerFactory;
 public class SshDeployedAgent implements DeployedAgent {
    private static final Logger log = LoggerFactory.getLogger(SshDeployedAgent.class);
    private static final String PROMPT = "<_#%@_hyperfoil_@%#_>";
-   private static final String DEBUG_ADDRESS = System.getProperty(Properties.AGENT_DEBUG_PORT);
+   private static final String DEBUG_ADDRESS = Properties.get(Properties.AGENT_DEBUG_PORT, null);
    private static final String DEBUG_SUSPEND = Properties.get(Properties.AGENT_DEBUG_SUSPEND, "n");
    private static final String AGENTLIB = "/agentlib";
 
@@ -148,7 +148,7 @@ public class SshDeployedAgent implements DeployedAgent {
          }
          runCommand(rmCommand.toString(), true);
       }
-      String log4jConfigurationFile = System.getProperty(Properties.LOG4J2_CONFIGURATION_FILE);
+      String log4jConfigurationFile = Properties.get(Properties.LOG4J2_CONFIGURATION_FILE, null);
       if (log4jConfigurationFile != null) {
          if (log4jConfigurationFile.startsWith("file://")) {
             log4jConfigurationFile = log4jConfigurationFile.substring("file://".length());
@@ -168,8 +168,8 @@ public class SshDeployedAgent implements DeployedAgent {
       startAgentCommmand.append(" -Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.Log4j2LogDelegateFactory");
       startAgentCommmand.append(" -D").append(Properties.AGENT_NAME).append('=').append(name);
       startAgentCommmand.append(" -D").append(Properties.RUN_ID).append('=').append(runId);
-      startAgentCommmand.append(" -D").append(Properties.CONTROLLER_CLUSTER_IP).append('=').append(System.getProperty(Properties.CONTROLLER_CLUSTER_IP));
-      startAgentCommmand.append(" -D").append(Properties.CONTROLLER_CLUSTER_PORT).append('=').append(System.getProperty(Properties.CONTROLLER_CLUSTER_PORT));
+      startAgentCommmand.append(" -D").append(Properties.CONTROLLER_CLUSTER_IP).append('=').append(Properties.get(Properties.CONTROLLER_CLUSTER_IP, ""));
+      startAgentCommmand.append(" -D").append(Properties.CONTROLLER_CLUSTER_PORT).append('=').append(Properties.get(Properties.CONTROLLER_CLUSTER_PORT, ""));
       if (DEBUG_ADDRESS != null) {
          startAgentCommmand.append(" -agentlib:jdwp=transport=dt_socket,server=y,suspend=").append(DEBUG_SUSPEND).append(",address=").append(DEBUG_ADDRESS);
       }

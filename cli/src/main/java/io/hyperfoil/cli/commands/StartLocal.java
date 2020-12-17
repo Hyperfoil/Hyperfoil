@@ -1,5 +1,7 @@
 package io.hyperfoil.cli.commands;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ServiceLoader;
 
 import org.aesh.command.CommandDefinition;
@@ -9,11 +11,16 @@ import org.aesh.command.option.Argument;
 import org.aesh.command.option.Option;
 import org.aesh.io.FileResource;
 import org.aesh.io.Resource;
+import org.apache.logging.log4j.core.Logger;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.config.ConfigurationSource;
+import org.apache.logging.log4j.core.config.xml.XmlConfiguration;
 
 import io.hyperfoil.cli.context.HyperfoilCliContext;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.internal.Controller;
 import io.hyperfoil.internal.Properties;
+import io.vertx.core.logging.LoggerFactory;
 
 @CommandDefinition(name = "start-local", description = "Start non-clustered controller within the CLI process.")
 public class StartLocal extends ServerCommand {
@@ -52,17 +59,17 @@ public class StartLocal extends ServerCommand {
             invocation.println("Starting controller in " + (rootDir == null ? "default directory (/tmp/hyperfoil)" : rootDir.getAbsolutePath()));
          }
          // disable logs from controller
-         System.setProperty(Properties.LOG4J2_CONFIGURATION_FILE, getClass().getClassLoader().getResource("log4j2-local-controller.xml").toString());
          if (!logLevel.isEmpty()) {
             System.setProperty(Properties.CONTROLLER_LOG_LEVEL, logLevel);
          }
+         reconfigureLogging(invocation);
          Controller controller = factory.start(rootDir == null ? null : ((FileResource) rootDir).getFile().toPath());
          ctx.setLocalControllerHost(controller.host());
          ctx.setLocalControllerPort(controller.port());
          if (!quiet) {
             invocation.println("Controller started, listening on " + controller.host() + ":" + controller.port());
          }
-         ctx.addCleanup(() -> controller.stop());
+         ctx.addCleanup(controller::stop);
       }
       if (!quiet) {
          invocation.println("Connecting to the controller...");
@@ -72,5 +79,16 @@ public class StartLocal extends ServerCommand {
       }
       connect(invocation, quiet, ctx.localControllerHost(), ctx.localControllerPort(), false, false, null);
       return CommandResult.SUCCESS;
+   }
+
+   private void reconfigureLogging(HyperfoilCommandInvocation invocation) {
+      try {
+         LoggerContext context = ((Logger) LoggerFactory.getLogger(getClass()).getDelegate().unwrap()).getContext();
+         InputStream configStream = getClass().getClassLoader().getResourceAsStream("log4j2-local-controller.xml");
+         context.setConfiguration(new XmlConfiguration(context, new ConfigurationSource(configStream)));
+      } catch (IOException e) {
+         invocation.error("Failed to set logger configuration");
+         invocation.error(e);
+      }
    }
 }

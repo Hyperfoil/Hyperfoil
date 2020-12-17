@@ -73,7 +73,7 @@ import okhttp3.Response;
  */
 public class K8sDeployer implements Deployer {
    private static final Logger log = LoggerFactory.getLogger(K8sDeployer.class);
-   private static final String API_SERVER = System.getProperty("io.hyperfoil.deployer.k8s.apiserver", "https://kubernetes.default.svc.cluster.local/");
+   private static final String API_SERVER = Properties.get("io.hyperfoil.deployer.k8s.apiserver", "https://kubernetes.default.svc.cluster.local/");
    private static final String DEFAULT_IMAGE = "quay.io/hyperfoil/hyperfoil:" + Version.VERSION;
    private static final String CONTROLLER_POD_NAME = System.getenv("HOSTNAME");
    private static final String NAMESPACE;
@@ -172,8 +172,8 @@ public class K8sDeployer implements Deployer {
       command.add("-Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.Log4j2LogDelegateFactory");
       command.add("-D" + Properties.AGENT_NAME + "=" + agent.name);
       command.add("-D" + Properties.RUN_ID + "=" + runId);
-      command.add("-D" + Properties.CONTROLLER_CLUSTER_IP + "=" + System.getProperty(Properties.CONTROLLER_CLUSTER_IP));
-      command.add("-D" + Properties.CONTROLLER_CLUSTER_PORT + "=" + System.getProperty(Properties.CONTROLLER_CLUSTER_PORT));
+      command.add("-D" + Properties.CONTROLLER_CLUSTER_IP + "=" + Properties.get(Properties.CONTROLLER_CLUSTER_IP, null));
+      command.add("-D" + Properties.CONTROLLER_CLUSTER_PORT + "=" + Properties.get(Properties.CONTROLLER_CLUSTER_PORT, null));
       if (agent.properties.containsKey("extras")) {
          command.addAll(Arrays.asList(agent.properties.get("extras").split(" ", 0)));
       }

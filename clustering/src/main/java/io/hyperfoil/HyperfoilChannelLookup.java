@@ -23,8 +23,8 @@ public class HyperfoilChannelLookup implements JGroupsChannelLookup {
       try (InputStream stream = FileLookupFactory.newInstance().lookupFile("jgroups-tcp.xml", Thread.currentThread().getContextClassLoader())) {
          JChannel channel = new JChannel(stream);
          TCPPING ping = channel.getProtocolStack().findProtocol(TCPPING.class);
-         String controllerIP = System.getProperty(Properties.CONTROLLER_CLUSTER_IP);
-         String controllerPort = System.getProperty(Properties.CONTROLLER_CLUSTER_PORT);
+         String controllerIP = Properties.get(Properties.CONTROLLER_CLUSTER_IP, null);
+         String controllerPort = Properties.get(Properties.CONTROLLER_CLUSTER_PORT, null);
          if (controllerIP != null && controllerPort != null) {
             log.info("Connecting to controller {}:{}", controllerIP, controllerPort);
             ping.initialHosts(Collections.singletonList(new InetSocketAddress(controllerIP, Integer.parseInt(controllerPort))));

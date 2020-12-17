@@ -77,8 +77,6 @@ class ControllerServer implements ApiService {
    private static final String MIME_TYPE_TEXT_PLAIN = "text/plain";
    private static final String MIME_TYPE_YAML = "text/vnd.yaml";
 
-   private static final String CONTROLLER_HOST = Properties.get(Properties.CONTROLLER_HOST, "0.0.0.0");
-   private static final int CONTROLLER_PORT = Properties.getInt(Properties.CONTROLLER_PORT, 8090);
    private static final String KEYSTORE_PATH = Properties.get(Properties.CONTROLLER_KEYSTORE_PATH, null);
    private static final String KEYSTORE_PASSWORD = Properties.get(Properties.CONTROLLER_KEYSTORE_PASSWORD, null);
    private static final String PEM_KEYS = Properties.get(Properties.CONTROLLER_PEM_KEYS, null);
@@ -130,11 +128,13 @@ class ControllerServer implements ApiService {
       }
       new ApiRouter(this, router);
 
+      String controllerHost = Properties.get(Properties.CONTROLLER_HOST, controller.getConfig().getString(Properties.CONTROLLER_HOST, "0.0.0.0"));
+      int controllerPort = Properties.getInt(Properties.CONTROLLER_PORT, controller.getConfig().getInteger(Properties.CONTROLLER_PORT, 8090));
       httpServer = controller.getVertx().createHttpServer(options).requestHandler(router)
-            .listen(CONTROLLER_PORT, CONTROLLER_HOST, serverResult -> {
+            .listen(controllerPort, controllerHost, serverResult -> {
                if (serverResult.succeeded()) {
                   if (CONTROLLER_EXTERNAL_URI == null) {
-                     String host = CONTROLLER_HOST;
+                     String host = controllerHost;
                      // Can't advertise 0.0.0.0 as
                      if (host.equals("0.0.0.0")) {
                         try {
@@ -688,7 +688,7 @@ class ControllerServer implements ApiService {
 
    @Override
    public void getControllerLog(RoutingContext ctx, long offset, String ifMatch) {
-      String logPath = System.getProperty(Properties.CONTROLLER_LOG);
+      String logPath = Properties.get(Properties.CONTROLLER_LOG, controller.getConfig().getString(Properties.CONTROLLER_LOG));
       if (ifMatch != null && !ifMatch.equals(controller.deploymentID())) {
          ctx.response().setStatusCode(HttpResponseStatus.PRECONDITION_FAILED.code()).end();
          return;

@@ -887,4 +887,8 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
    public Path getRunDir(Run run) {
       return Controller.RUN_DIR.resolve(run.id);
    }
+
+   public JsonObject getConfig() {
+      return context.config();
+   }
 }

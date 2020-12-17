@@ -11,6 +11,7 @@ import io.hyperfoil.internal.Properties;
 import io.hyperfoil.internal.Controller;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonObject;
 
 public class LocalController implements Controller {
    private final Vertx vertx;
@@ -51,19 +52,21 @@ public class LocalController implements Controller {
       @Override
       public Controller start(Path rootDir) {
          if (rootDir != null) {
+            // TODO: setting property could break test suite but it's that easy to override all uses of Controller.ROOT_DIR
             System.setProperty(Properties.ROOT_DIR, rootDir.toFile().getAbsolutePath());
          } else {
             rootDir = Controller.DEFAULT_ROOT_DIR;
          }
-         System.setProperty(Properties.CONTROLLER_LOG, rootDir.resolve("hyperfoil.local.log").toFile().getAbsolutePath());
-         System.setProperty(Properties.CONTROLLER_HOST, "127.0.0.1");
-         System.setProperty(Properties.CONTROLLER_PORT, "0");
+         JsonObject config = new JsonObject();
+         config.put(Properties.CONTROLLER_LOG, rootDir.resolve("hyperfoil.local.log").toFile().getAbsolutePath());
+         config.put(Properties.CONTROLLER_HOST, "127.0.0.1");
+         config.put(Properties.CONTROLLER_PORT, 0);
          Vertx vertx = Vertx.vertx();
          Codecs.register(vertx);
          Hyperfoil.ensureNettyResourceLeakDetection();
          CompletableFuture<Integer> completion = new CompletableFuture<>();
          ControllerVerticle controller = new ControllerVerticle();
-         vertx.deployVerticle(controller, new DeploymentOptions(), event -> {
+         vertx.deployVerticle(controller, new DeploymentOptions().setConfig(config), event -> {
             if (event.succeeded()) {
                completion.complete(controller.actualPort());
             } else {
