@@ -117,14 +117,11 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
       String space = "%20";
       for (int i = 0; i < request.path.length(); ++i) {
          if (request.path.charAt(i) == ' ') {
-             log.info("MOSS SPACE : " + request.path.charAt(i));
              buf.writeCharSequence(space, StandardCharsets.US_ASCII);
          } else if (request.path.charAt(i) == '?') {
-             log.info("MOSS QUESTION : " + request.path.charAt(i));
              buf.writeByte(0xFF & request.path.charAt(i));
              space = "+";
          } else {
-             log.info("MOSS : " + request.path.charAt(i));
              buf.writeByte(0xFF & request.path.charAt(i));
          }
       }
