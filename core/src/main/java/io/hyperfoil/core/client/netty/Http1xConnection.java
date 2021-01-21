@@ -19,7 +19,6 @@ import io.netty.util.AsciiString;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.function.BiConsumer;
@@ -114,14 +113,20 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
       ByteBuf buf = ctx.alloc().buffer();
       buf.writeBytes(request.method.netty.asciiName().array());
       buf.writeByte(' ');
-      String space = "%20";
+      boolean beforeQuestion = true;
       for (int i = 0; i < request.path.length(); ++i) {
          if (request.path.charAt(i) == ' ') {
-             buf.writeCharSequence(space, StandardCharsets.US_ASCII);
-         } else if (request.path.charAt(i) == '?') {
-             buf.writeByte(0xFF & request.path.charAt(i));
-             space = "+";
+             if (beforeQuestion) {
+                 buf.writeByte(0xFF & '%');
+                 buf.writeByte(0xFF & '2');
+                 buf.writeByte(0xFF & '0');
+             } else {
+                 buf.writeByte(0xFF & '+');
+             }
          } else {
+             if (request.path.charAt(i) == '?') {
+                 beforeQuestion = false;
+             }
              buf.writeByte(0xFF & request.path.charAt(i));
          }
       }
