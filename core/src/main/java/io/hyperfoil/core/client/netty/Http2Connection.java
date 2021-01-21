@@ -131,6 +131,19 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
 
       ByteBuf buf = bodyGenerator != null ? bodyGenerator.apply(request.session, this) : null;
 
+      if (request.path.contains(" ")) {
+          int question = request.path.indexOf("?");
+          String subFirst = "";
+          String subSecond = "";
+          if (question != -1) {
+              subFirst = request.path.substring(0 , question);
+              subFirst = subFirst.replaceAll(" ", "%20");
+              subSecond = request.path.substring(request.path.lastIndexOf("?"));
+              subSecond = subSecond.replace(' ', '+');
+          }
+          request.path = (subFirst + subSecond);
+      }
+
       Http2Headers headers = new DefaultHttp2Headers().method(request.method.name()).scheme(httpClientPool.scheme())
             .path(request.path).authority(httpClientPool.authority());
       // HTTPS selects host via SNI headers, duplicate Host header could confuse the server/proxy
