@@ -74,7 +74,7 @@ public class ValidateExampleTest {
    @Test
    public void testCopy() {
       try {
-         String source = io.hyperfoil.core.util.Util.toString(loadOrFail());
+         String source = Util.toString(loadOrFail());
          BenchmarkBuilder original = BenchmarkParser.instance().builder(source, new LocalBenchmarkData(Paths.get(exampleFile)));
          BenchmarkBuilder builder = new BenchmarkBuilder(null, new LocalBenchmarkData(Paths.get(exampleFile)));
          BenchmarkBuilder.httpForTesting(original).forEach(http -> {

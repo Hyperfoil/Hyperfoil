@@ -21,7 +21,7 @@ package io.hyperfoil.core.parser;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.BenchmarkData;
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.util.Util;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 

@@ -167,7 +167,7 @@ class ControllerServer implements ApiService {
             payload = Buffer.buffer("API definition not available");
             contentType = MIME_TYPE_TEXT_PLAIN;
          } else {
-            payload = Buffer.buffer(Util.toString(stream));
+            payload = Buffer.buffer(io.hyperfoil.util.Util.toString(stream));
             contentType = MIME_TYPE_YAML;
          }
          ctx.response()

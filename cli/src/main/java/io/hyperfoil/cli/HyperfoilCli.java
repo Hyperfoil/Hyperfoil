@@ -65,9 +65,15 @@ import org.aesh.readline.terminal.formatting.TerminalColor;
 import org.aesh.readline.terminal.formatting.TerminalString;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static io.vertx.core.logging.LoggerFactory.LOGGER_DELEGATE_FACTORY_CLASS_NAME;
 
@@ -84,16 +90,16 @@ public class HyperfoilCli {
    }
 
 
-   public static void main(String[] args) throws IOException, CommandRegistryException {
+   public static void main(String[] args) throws CommandRegistryException {
 
       //set logger impl
       System.setProperty(LOGGER_DELEGATE_FACTORY_CLASS_NAME, "io.vertx.core.logging.Log4j2LogDelegateFactory");
 
       HyperfoilCliContext context = new HyperfoilCliContext();
-      Settings<HyperfoilCommandInvocation, ConverterInvocation, CompleterInvocation, ValidatorInvocation,
+      Settings<HyperfoilCommandInvocation, ConverterInvocation, CompleterInvocation, ValidatorInvocation<?, ?>,
             OptionActivator, CommandActivator> settings =
             SettingsBuilder.<HyperfoilCommandInvocation, ConverterInvocation, CompleterInvocation,
-                  ValidatorInvocation, OptionActivator, CommandActivator>builder()
+                  ValidatorInvocation<?, ?>, OptionActivator, CommandActivator>builder()
                   .logging(true)
                   .enableMan(false)
                   .enableAlias(false)
@@ -142,7 +148,46 @@ public class HyperfoilCli {
          runner.prompt(new Prompt(cliPrompt));
       }
 
+      CompletableFuture<List<String>> endpoints = suggestedEndpoints();
+      endpoints.whenComplete((list, e) -> {
+         if (e == null && !list.isEmpty()) {
+            context.setSuggestedControllerHosts(list);
+         }
+      });
+
       runner.start();
    }
+
+   private static CompletableFuture<List<String>> suggestedEndpoints() {
+      CompletableFuture<List<String>> openshiftPorts;
+      try {
+         Process start = new ProcessBuilder("oc", "get", "route", "-A", "-l", "hyperfoil", "-o", "jsonpath={range .items[*]}{.spec.tls.termination}:{.status.ingress[0].host} ").start();
+         openshiftPorts = CompletableFuture.supplyAsync(() -> {
+            try {
+               return Stream.of(io.hyperfoil.util.Util.toString(start.getInputStream()).split("[ \\n\\t]+"))
+                     .map(endpoint -> {
+                        int index = endpoint.indexOf(':');
+                        String prefix = index == 0 ? "http://" : "https://";
+                        return prefix + endpoint.substring(index + 1);
+                     }).collect(Collectors.toList());
+            } catch (IOException e) {
+               return Collections.emptyList();
+            }
+         });
+      } catch (IOException e) {
+         openshiftPorts = CompletableFuture.completedFuture(Collections.emptyList());
+      }
+      return openshiftPorts.thenApply(list -> {
+         if (Util.isPortListening("localhost", 8090)) {
+            ArrayList<String> copy = new ArrayList<>(list);
+            copy.add("localhost:8090");
+            return copy;
+         } else {
+            return list;
+         }
+      });
+   }
+
+
 }
 

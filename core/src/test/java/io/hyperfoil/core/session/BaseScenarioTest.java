@@ -13,7 +13,7 @@ import io.hyperfoil.core.impl.statistics.StatisticsCollector;
 import io.hyperfoil.core.parser.BenchmarkParser;
 import io.hyperfoil.core.parser.ParserException;
 import io.hyperfoil.core.test.TestUtil;
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.util.Util;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;

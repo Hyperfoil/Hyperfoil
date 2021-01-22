@@ -21,6 +21,7 @@
 package io.hyperfoil.cli.context;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -61,6 +62,7 @@ public class HyperfoilCliContext {
    // We'll start with online set to true to not say 'we're back online' when connecting the first time
    private boolean online = true;
    private CommandRegistry<HyperfoilCommandInvocation> commandRegistry;
+   private List<String> suggestedControllerHosts = Collections.emptyList();
 
    public HyperfoilCliContext() {
    }
@@ -194,5 +196,13 @@ public class HyperfoilCliContext {
 
    public Vertx vertx() {
       return vertx;
+   }
+
+   public synchronized List<String> suggestedControllerHosts() {
+      return suggestedControllerHosts;
+   }
+
+   public synchronized void setSuggestedControllerHosts(List<String> suggestedControllerHosts) {
+      this.suggestedControllerHosts = suggestedControllerHosts;
    }
 }

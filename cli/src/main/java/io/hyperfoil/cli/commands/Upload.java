@@ -36,7 +36,7 @@ public class Upload extends ServerCommand {
       Benchmark benchmark;
       try {
          Resource sanitizedResource = io.hyperfoil.cli.Util.sanitize(benchmarkResource);
-         benchmark = BenchmarkParser.instance().buildBenchmark(Util.toString(sanitizedResource.read()), new LocalBenchmarkData(Paths.get(sanitizedResource.getAbsolutePath())));
+         benchmark = BenchmarkParser.instance().buildBenchmark(io.hyperfoil.util.Util.toString(sanitizedResource.read()), new LocalBenchmarkData(Paths.get(sanitizedResource.getAbsolutePath())));
       } catch (ParserException | BenchmarkDefinitionException e) {
          invocation.error(e);
          throw new CommandException("Failed to parse the benchmark.", e);

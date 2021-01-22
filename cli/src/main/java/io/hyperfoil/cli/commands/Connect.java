@@ -16,7 +16,7 @@ import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 @CommandDefinition(name = "connect", description = "Connects CLI to Hyperfoil Controller server")
 public class Connect extends ServerCommand {
    private static final int DEFAULT_PORT = 8090;
-   @Argument(description = "Hyperfoil host")
+   @Argument(description = "Hyperfoil host", completer = HostCompleter.class)
    String host;
 
    @Option(shortName = 'p', description = "Hyperfoil port")
