@@ -170,16 +170,17 @@ public class HttpDecodeSpaceTest extends VertxBaseTest {
    }
 
    private static void isPathCorrect(HttpServerRequest req) {
-      int status = -1;
-      if (req.path().contains(" ")) {
+      int status = 0;
+      String url = req.uri();
+      if (url.contains(" ")) {
           status = 600;
       } else {
-          int question = req.path().indexOf("?");
+          int question = url.indexOf("?");
           String subFirst = "";
           String subSecond = "";
           if (question != -1) {
-              subFirst = req.path().substring(0 , question);
-              subSecond = req.path().substring(req.path().lastIndexOf("?") + 1);
+              subFirst = url.substring(0 , question);
+              subSecond = url.substring(url.lastIndexOf("?") + 1);
               if (subFirst.contains("+")) {
                   status = 601;
               } else if (subFirst.contains("%20")) {
@@ -196,6 +197,8 @@ public class HttpDecodeSpaceTest extends VertxBaseTest {
                       status = 200;
                   }
               }
+          } else {
+              status = 200;
           }
       }
       req.response().setStatusCode(status).end("Hello");
