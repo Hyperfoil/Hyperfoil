@@ -183,16 +183,12 @@ public class HttpDecodeSpaceTest extends VertxBaseTest {
               subSecond = url.substring(url.lastIndexOf("?") + 1);
               if (subFirst.contains("+")) {
                   status = 601;
-              } else if (subFirst.contains("%20")) {
-                  status = 200;
               } else {
                   status = 200;
               }
               if (status == 200) {
                   if (subSecond.contains("%20")) {
                       status = 602;
-                  } else if (subSecond.contains("+")) {
-                      status = 200;
                   } else {
                       status = 200;
                   }
