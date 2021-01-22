@@ -113,8 +113,22 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
       ByteBuf buf = ctx.alloc().buffer();
       buf.writeBytes(request.method.netty.asciiName().array());
       buf.writeByte(' ');
+      boolean beforeQuestion = true;
       for (int i = 0; i < request.path.length(); ++i) {
-         buf.writeByte(0xFF & request.path.charAt(i));
+         if (request.path.charAt(i) == ' ') {
+             if (beforeQuestion) {
+                 buf.writeByte(0xFF & '%');
+                 buf.writeByte(0xFF & '2');
+                 buf.writeByte(0xFF & '0');
+             } else {
+                 buf.writeByte(0xFF & '+');
+             }
+         } else {
+             if (request.path.charAt(i) == '?') {
+                 beforeQuestion = false;
+             }
+             buf.writeByte(0xFF & request.path.charAt(i));
+         }
       }
       buf.writeBytes(HTTP1_1);
 

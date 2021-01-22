@@ -1,8 +1,5 @@
 package io.hyperfoil.core.util;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.CharsetEncoder;
@@ -72,16 +69,6 @@ public class Util {
          buf.getBytes(offset, strBytes, 0, length);
          return new String(strBytes, StandardCharsets.UTF_8);
       }
-   }
-
-   public static String toString(InputStream inputStream) throws IOException {
-      ByteArrayOutputStream result = new ByteArrayOutputStream();
-      byte[] buffer = new byte[1024];
-      int length;
-      while ((length = inputStream.read(buffer)) != -1) {
-         result.write(buffer, 0, length);
-      }
-      return result.toString(StandardCharsets.UTF_8.name());
    }
 
    public static ByteBuf string2byteBuf(CharSequence str, ByteBuf buffer) {

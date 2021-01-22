@@ -17,7 +17,7 @@ phases:
       # The only sequence in this scenario is called `test`.
       - test:
         # In the only step in this sequence we'll do a HTTP GET request
-        # to `http://hyperofoil.io/`
+        # to `http://hyperfoil.io/`
         - httpRequest:
             GET: /
             # Inject helpers to make this request synchronous, i.e. keep

@@ -8,6 +8,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
@@ -111,16 +112,23 @@ public final class Util {
       return sign == '-' ? -value : value;
    }
 
-   public static byte[] toByteArray(InputStream stream) throws IOException {
+   private static ByteArrayOutputStream toByteArrayOutputStream(InputStream stream) throws IOException {
       ByteArrayOutputStream result = new ByteArrayOutputStream();
       byte[] buffer = new byte[1024];
       int length;
       while ((length = stream.read(buffer)) != -1) {
          result.write(buffer, 0, length);
       }
-      byte[] bytes = result.toByteArray();
       stream.close();
-      return bytes;
+      return result;
+   }
+
+   public static byte[] toByteArray(InputStream stream) throws IOException {
+      return toByteArrayOutputStream(stream).toByteArray();
+   }
+
+   public static String toString(InputStream stream) throws IOException {
+      return toByteArrayOutputStream(stream).toString(StandardCharsets.UTF_8.name());
    }
 
    public static UUID randomUUID() {

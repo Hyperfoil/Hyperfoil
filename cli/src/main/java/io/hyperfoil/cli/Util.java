@@ -21,6 +21,9 @@
 package io.hyperfoil.cli;
 
 import java.io.File;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.ServerSocket;
 
 import org.aesh.io.FileResource;
 import org.aesh.io.Resource;
@@ -37,5 +40,15 @@ public final class Util {
          }
       }
       return resource;
+   }
+
+   public static boolean isPortListening(String hostname, int port) {
+      try (ServerSocket serverSocket = new ServerSocket()) {
+         serverSocket.setReuseAddress(false);
+         serverSocket.bind(new InetSocketAddress(InetAddress.getByName(hostname), port), 1);
+         return false;
+      } catch (Exception ex) {
+         return true;
+      }
    }
 }
