@@ -27,6 +27,7 @@ import io.netty.handler.codec.http2.Http2Headers;
 import io.netty.handler.codec.http2.Http2Settings;
 import io.netty.util.collection.IntObjectHashMap;
 import io.netty.util.collection.IntObjectMap;
+import io.netty.util.internal.AppendableCharSequence;
 import io.hyperfoil.api.http.HttpResponseHandlers;
 import io.hyperfoil.api.session.Session;
 import io.vertx.core.logging.Logger;
@@ -130,6 +131,29 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
       HttpClientPool httpClientPool = pool.clientPool();
 
       ByteBuf buf = bodyGenerator != null ? bodyGenerator.apply(request.session, this) : null;
+
+      if (request.path.contains(" ")) {
+          int length = request.path.length();
+          AppendableCharSequence temp = new AppendableCharSequence(length);
+          boolean beforeQuestion = true;
+          for (int i = 0; i < length; ++i) {
+              if (request.path.charAt(i) == ' ') {
+                  if (beforeQuestion) {
+                      temp.append('%');
+                      temp.append('2');
+                      temp.append('0');
+                  } else {
+                      temp.append('+');
+                  }
+              } else {
+                  if (request.path.charAt(i) == '?') {
+                      beforeQuestion = false;
+                  }
+                  temp.append(request.path.charAt(i));
+              }
+           }
+          request.path = temp.toString();
+      }
 
       Http2Headers headers = new DefaultHttp2Headers().method(request.method.name()).scheme(httpClientPool.scheme())
             .path(request.path).authority(httpClientPool.authority());
