@@ -87,6 +87,20 @@ public class StatisticsStore {
       }
    }
 
+   // When there's only few requests during the phase we could use too short interval for throughput calculation.
+   // We cannot do this in completePhase() because that's invoked from the STATS feed and the overall completion
+   // is notified from the RESPONSE feed.
+   public void adjustPhaseTimestamps(String phase, long start, long completion) {
+      for (Map<String, Data> m : this.data.values()) {
+         for (Data data : m.values()) {
+            if (data.phase.equals(phase)) {
+               data.total.histogram.setStartTimeStamp(Math.min(start, data.total.histogram.getStartTimeStamp()));
+               data.total.histogram.setEndTimeStamp(Math.max(completion, data.total.histogram.getEndTimeStamp()));
+            }
+         }
+      }
+   }
+
    public boolean validateSlas() {
       return failures.isEmpty();
    }

@@ -601,6 +601,9 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
 
    private void checkAgentsStopped(Run run) {
       if (run.agents.stream().allMatch(a -> a.status.ordinal() >= AgentInfo.Status.STOPPED.ordinal())) {
+         for (var phase : run.phases.values()) {
+            run.statisticsStore.adjustPhaseTimestamps(phase.definition().name(), phase.absoluteStartTime(), phase.absoluteCompletionTime());
+         }
          persistRun(run);
          log.info("Run {} completed", run.id);
       }
