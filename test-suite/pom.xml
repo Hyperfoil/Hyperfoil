@@ -15,9 +15,6 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
-
         <junit.excluded.categories>io.hyperfoil.test.Benchmark</junit.excluded.categories>
         <module.skipCopyDependencies>true</module.skipCopyDependencies>
     </properties>
