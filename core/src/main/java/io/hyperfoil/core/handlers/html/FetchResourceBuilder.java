@@ -87,8 +87,9 @@ public class FetchResourceBuilder implements BuilderBase<FetchResourceBuilder> {
             locator.sequence().name(), ThreadLocalRandom.current().nextInt());
       String downloadUrlVar = generatedSequenceName + "_url";
 
-
-      HttpRequestStep.Builder requestBuilder = new HttpRequestStep.Builder().sync(false).method(HttpMethod.GET);
+      // We'll keep the request synchronous to keep the session running while the resources are fetched
+      // even if the benchmark did not specify any completion action.
+      HttpRequestStep.Builder requestBuilder = new HttpRequestStep.Builder().sync(true).method(HttpMethod.GET);
       requestBuilder.path(
             new StringGeneratorImplBuilder<>(requestBuilder, false).fromVar(downloadUrlVar + "[.]"));
       if (metricSelector != null) {

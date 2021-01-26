@@ -406,7 +406,7 @@ class SessionImpl implements Session {
                if (!request.isCompleted()) {
                   // Connection.close() cancels everything in flight but if this is called
                   // from handleEnd() the request is not in flight anymore
-                  log.trace("#{} Connection close did not completed the request.", request.session != null ? request.session.uniqueId() : 0);
+                  log.trace("#{} Connection close did not complete the request.", request.session != null ? request.session.uniqueId() : 0);
                   request.setCompleted();
                   request.release();
                }

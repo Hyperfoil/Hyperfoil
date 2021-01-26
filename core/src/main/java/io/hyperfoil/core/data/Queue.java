@@ -43,10 +43,10 @@ public class Queue implements Session.Resource {
 
    @Override
    public void onSessionReset(Session session) {
-      reset();
+      reset(session);
    }
 
-   public void reset() {
+   public void reset(Session session) {
       // When the session is stopped there might be active sequences
       active = 0;
       head = 0;
@@ -54,6 +54,7 @@ public class Queue implements Session.Resource {
       size = 0;
       producerComplete = false;
       Arrays.fill(data, null);
+      var.activate(session);
    }
 
    public void push(Session session, Object value) {
@@ -123,7 +124,7 @@ public class Queue implements Session.Resource {
    private void complete(Session session) {
       assert head == tail;
       log.trace("#{} queue {} completed", session.uniqueId(), var);
-      reset();
+      reset(session);
       if (onCompletion != null) {
          onCompletion.run(session);
       }

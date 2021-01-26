@@ -44,7 +44,7 @@ public class QueueProcessor implements Processor, ResourceUtilizer {
    @Override
    public void before(Session session) {
       Queue queue = session.getResource(key);
-      queue.reset();
+      queue.reset(session);
    }
 
    @Override
@@ -207,7 +207,8 @@ public class QueueProcessor implements Processor, ResourceUtilizer {
          if (maxSize <= 0) {
             throw new BenchmarkDefinitionException("Maximum size for queue to " + var + " must be set!");
          }
-         QueueProcessor processor = new QueueProcessor(key, varAccess, maxSize, format, sequenceBuilder.name(), concurrency, onCompletion.build());
+         Action completionAction = onCompletion == null ? null : onCompletion.build();
+         QueueProcessor processor = new QueueProcessor(key, varAccess, maxSize, format, sequenceBuilder.name(), concurrency, completionAction);
          return fragmented ? new DefragProcessor(processor) : processor;
       }
    }
