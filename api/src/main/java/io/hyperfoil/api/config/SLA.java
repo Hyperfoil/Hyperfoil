@@ -72,7 +72,10 @@ public class SLA implements Serializable {
          return new SLA.Failure(this, phase, metric, statistics.clone(),
                String.format("Error ratio exceeded: required %.3f, actual %.3f", errorRatio, actualErrorRatio));
       }
-      double actualInvalidRatio = statistics.responseCount == 0 ? 0 : (double) statistics.invalid / statistics.responseCount;
+      // Note: when a handler throws an exception the request is marked as invalid.
+      // However the response is not recorded (because we might not be finished reading the response).
+      // Therefore we rather compute the ration from requests to make sure invalid <= all.
+      double actualInvalidRatio = statistics.responseCount == 0 ? 0 : (double) statistics.invalid / statistics.requestCount;
       if (statistics.invalid > 0 && actualInvalidRatio >= invalidRatio) {
          return new SLA.Failure(this, phase, metric, statistics.clone(),
                String.format("Invalid response ratio exceeded: required %.3f, actual %.3f", invalidRatio, actualInvalidRatio));
