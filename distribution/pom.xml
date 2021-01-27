@@ -324,6 +324,13 @@
                                                         <directory>target/distribution/bin</directory>
                                                     </fileSet>
                                                     <fileSet>
+                                                        <outputDirectory>examples</outputDirectory>
+                                                        <directory>target/distribution/examples</directory>
+                                                        <includes>
+                                                            <includes>*.hf.yaml</includes>
+                                                        </includes>
+                                                    </fileSet>
+                                                    <fileSet>
                                                         <outputDirectory>.</outputDirectory>
                                                         <directory>target</directory>
                                                         <includes>

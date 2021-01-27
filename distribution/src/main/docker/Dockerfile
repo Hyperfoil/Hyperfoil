@@ -4,6 +4,7 @@ RUN dnf install -y less vim && curl -s -L https://github.com/stedolan/jq/release
 EXPOSE 8090
 ENV EDITOR=vim
 COPY maven/bin /deployment/bin/
+COPY maven/examples /home/jboss/examples/
 ADD maven/hyperfoil-*-deps.tar /deployment/
 ADD maven/hyperfoil-*-hyperfoil.tar /deployment/
 RUN mkdir /deployment/extensions
