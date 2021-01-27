@@ -187,13 +187,16 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                            requestStatsMessage.metric, requestStatsMessage.statistics);
                   }
                   if (requestStatsMessage.isPhaseComplete) {
-                     log.debug("Run {}: Received stats completion for phase {} from {}", requestStatsMessage.runId, phase, requestStatsMessage.address);
+                     log.debug("Run {}: Received stats completion for phase {} from {}", run.id, phase, requestStatsMessage.address);
                      AgentInfo agent = run.agents.stream().filter(a -> a.deploymentId.equals(requestStatsMessage.address)).findFirst().orElse(null);
                      if (agent == null) {
-                        log.error("Cannot find agent {}", requestStatsMessage.address);
+                        log.error("Run {}: Cannot find agent {}", run.id, requestStatsMessage.address);
                      } else {
-                        agent.phases.put(phase, PhaseInstance.Status.STATS_COMPLETE);
-                        if (run.agents.stream().map(a -> a.phases.get(phase)).allMatch(s -> s == PhaseInstance.Status.STATS_COMPLETE)) {
+                        PhaseInstance.Status prevStatus = agent.phases.put(phase, PhaseInstance.Status.STATS_COMPLETE);
+                        if (prevStatus == PhaseInstance.Status.STATS_COMPLETE) {
+                           // TODO: the stats might be completed both regularly and when the agent receives STOP
+                           log.info("Run {}: stats for phase {} are already completed, ignoring.", run.id, phase);
+                        } else if (run.agents.stream().map(a -> a.phases.get(phase)).allMatch(s -> s == PhaseInstance.Status.STATS_COMPLETE)) {
                            log.info("Run {}: completed stats for phase {}", run.id, phase);
                            run.statisticsStore.completePhase(phase);
                            if (!run.statisticsStore.validateSlas()) {

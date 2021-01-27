@@ -105,6 +105,7 @@ final class Data {
       if (perAgent.values().stream().mapToLong(ss -> ss.requestCount).sum() != total.requestCount) {
          log.error("We lost some data (per agent) in phase {} metric {}", phase, metric);
       }
+      log.trace("Validating failures for " + phase + "/" + metric);
       for (SLA sla : totalSlas) {
          SLA.Failure failure = sla.validate(phase, metric, total);
          if (failure != null) {
