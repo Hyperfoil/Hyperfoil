@@ -46,7 +46,7 @@ public class MetaRefreshHandler implements HtmlHandler.TagHandler, ResourceUtili
       @Override
       public void onTag(Session session, boolean close, ByteBuf data, int offset, int length, boolean isLast) {
          if (close) {
-            endTag(session);
+            endTag(session, true);
          } else {
             meta.shift(data, offset, length, isLast, META);
          }
@@ -78,7 +78,7 @@ public class MetaRefreshHandler implements HtmlHandler.TagHandler, ResourceUtili
       }
 
       @Override
-      public void endTag(Session session) {
+      public void endTag(Session session, boolean closing) {
          meta.reset();
          httpEquiv.reset();
          content.reset();

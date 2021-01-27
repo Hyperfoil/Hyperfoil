@@ -25,6 +25,7 @@ import io.vertx.core.logging.LoggerFactory;
 public class HtmlHandler implements Processor, ResourceUtilizer, Session.ResourceKey<HtmlHandler.Context> {
    private static final Logger log = LoggerFactory.getLogger(HtmlHandler.class);
    private static final boolean trace = log.isTraceEnabled();
+   private static final byte[] SCRIPT = "script".getBytes(StandardCharsets.UTF_8);
 
    private final TagHandler[] handlers;
 
@@ -117,25 +118,31 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
                break;
             case PARSING_TAG:
                if (Character.isWhitespace(c)) {
-                  ctx.onTag(session, ctx.tagClosing, data, offset - 1, true);
+                  // setting the tag status before to let onTag overwrite it
                   ctx.tagStatus = TagStatus.BEFORE_ATTR;
+                  ctx.onTag(session, data, offset - 1, true);
                } else if (c == '>') {
-                  ctx.onTag(session, ctx.tagClosing, data, offset - 1, true);
+                  ctx.onTag(session, data, offset - 1, true);
                   ctx.endTag(session);
                }
                break;
             case BEFORE_ATTR:
                if (c == '>') {
                   ctx.endTag(session);
+               } else if (c == '/') {
+                  ctx.tagClosing = true;
                } else if (!Character.isWhitespace(c)) {
                   ctx.attrStart = offset - 1;
                   ctx.tagStatus = TagStatus.PARSING_ATTR;
+                  ctx.tagClosing = false;
                }
                break;
             case PARSING_ATTR:
                if (c == '=' || Character.isWhitespace(c)) {
                   ctx.onAttr(session, data, offset - 1, true);
                   ctx.tagStatus = TagStatus.BEFORE_VALUE;
+               } else if (c == '/') {
+                  ctx.tagClosing = true;
                } else if (c == '>') {
                   ctx.onAttr(session, data, offset - 1, true);
                   ctx.endTag(session);
@@ -177,7 +184,7 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
       }
       switch (ctx.tagStatus) {
          case PARSING_TAG:
-            ctx.onTag(session, ctx.tagClosing, data, offset, false);
+            ctx.onTag(session, data, offset, false);
             break;
          case PARSING_ATTR:
             ctx.onAttr(session, data, offset, false);
@@ -213,7 +220,9 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
       PARSING_ATTR,
       DOCTYPE_START, // doctype, comment
       DOCTYPE,
-      BEFORE_VALUE, PARSING_VALUE, COMMENT
+      BEFORE_VALUE,
+      PARSING_VALUE,
+      COMMENT,
    }
 
    class Context implements Session.Resource {
@@ -225,16 +234,26 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
       int attrStart = -1;
       int valueStart = -1;
       int comment;
+      // We need alternative parsing when
+      Match scriptMatch = new Match();
+      boolean inScript;
       HandlerContext[] handlerCtx;
 
       Context() {
          handlerCtx = Stream.of(handlers).map(TagHandler::newContext).toArray(HandlerContext[]::new);
       }
 
-      void onTag(Session session, boolean close, ByteBuf data, int tagEnd, boolean isLast) {
+      void onTag(Session session, ByteBuf data, int tagEnd, boolean isLast) {
          assert tagStart >= 0;
+         scriptMatch.shift(data, tagStart, tagEnd - tagStart, isLast, SCRIPT);
+         if (inScript && !(tagClosing && scriptMatch.hasMatch())) {
+            // this is not a tag
+            tagStart = -1;
+            tagStatus = TagStatus.NO_TAG;
+            return;
+         }
          for (HandlerContext handlerCtx : handlerCtx) {
-            handlerCtx.onTag(session, close, data, tagStart, tagEnd - tagStart, isLast);
+            handlerCtx.onTag(session, tagClosing, data, tagStart, tagEnd - tagStart, isLast);
          }
          tagStart = -1;
       }
@@ -258,11 +277,17 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
       // TODO: content handling
 
       private void endTag(Session session) {
+         if (!inScript && !tagClosing && scriptMatch.hasMatch()) {
+            inScript = true;
+         } else if (inScript && tagClosing && scriptMatch.hasMatch()) {
+            inScript = false;
+         }
+         scriptMatch.reset();
+         for (int i = 0; i < handlerCtx.length; ++i) {
+            handlerCtx[i].endTag(session, tagClosing);
+         }
          tagStatus = TagStatus.NO_TAG;
          tagClosing = false;
-         for (int i = 0; i < handlerCtx.length; ++i) {
-            handlerCtx[i].endTag(session);
-         }
       }
    }
 
@@ -289,8 +314,9 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
        * Called when the &gt; is reached while parsing a tag (opening, closing or self-closing).
        *
        * @param session Current session.
+       * @param closing Set to true if this is closing or self-closing tag.
        */
-      void endTag(Session session);
+      void endTag(Session session, boolean closing);
    }
 
    /**
@@ -414,7 +440,7 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
          }
 
          @Override
-         public void endTag(Session session) {
+         public void endTag(Session session, boolean closing) {
             trieState.reset();
             tagMatched = -1;
             attrMatchedIndex = -1;
