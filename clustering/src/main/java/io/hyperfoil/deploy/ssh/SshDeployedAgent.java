@@ -122,7 +122,8 @@ public class SshDeployedAgent implements DeployedAgent {
          return;
       }
 
-      StringBuilder startAgentCommmand = new StringBuilder("java -cp ");
+      String java = Properties.get(Properties.AGENT_JAVA_EXECUTABLE, "java");
+      StringBuilder startAgentCommmand = new StringBuilder().append(java).append(" -cp ");
 
       for (Map.Entry<String, String> entry : localMd5.entrySet()) {
          int lastSlash = entry.getKey().lastIndexOf("/");

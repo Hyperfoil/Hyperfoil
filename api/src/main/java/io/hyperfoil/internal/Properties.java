@@ -5,6 +5,7 @@ import java.util.function.Function;
 public interface Properties {
    String AGENT_DEBUG_PORT = "io.hyperfoil.agent.debug.port";
    String AGENT_DEBUG_SUSPEND = "io.hyperfoil.agent.debug.suspend";
+   String AGENT_JAVA_EXECUTABLE = "io.hyperfoil.agent.java.executable";
    String AGENT_NAME = "io.hyperfoil.agent.name";
    String BENCHMARK_DIR = "io.hyperfoil.benchmarkdir";
    String CONTROLLER_CLUSTER_IP = "io.hyperfoil.controller.cluster.ip";
