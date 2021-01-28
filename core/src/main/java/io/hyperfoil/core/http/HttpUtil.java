@@ -1,5 +1,7 @@
 package io.hyperfoil.core.http;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.TimeZone;
 
@@ -7,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.hyperfoil.util.Util;
+import io.netty.buffer.ByteBuf;
 import io.netty.util.AsciiString;
 
 public final class HttpUtil {
@@ -14,6 +17,8 @@ public final class HttpUtil {
    private static final CharSequence[] MONTHS = { "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec" };
    private static final TimeZone UTC = TimeZone.getTimeZone("UTC");
    private static final TimeZone GMT = TimeZone.getTimeZone("GMT");
+   private static final byte[] BYTES_80 = "80".getBytes(StandardCharsets.UTF_8);
+   private static final byte[] BYTES_443 = "443".getBytes(StandardCharsets.UTF_8);
 
    public static final String HTTP_PREFIX = "http://";
    public static final String HTTPS_PREFIX = "https://";
@@ -210,12 +215,26 @@ public final class HttpUtil {
       return new AsciiString(bytes, false);
    }
 
-   public static boolean authorityMatch(CharSequence path, CharSequence authority, String prefix, String defaultPort) {
+   public static boolean authorityMatch(CharSequence path, CharSequence authority, boolean isHttp) {
+      return isHttp ? authorityMatchHttp(path, authority) : authorityMatchHttps(path, authority);
+   }
+
+   public static boolean authorityMatchHttp(CharSequence path, CharSequence authority) {
+      return authorityMatch(path, authority, "80", HTTP_PREFIX.length());
+   }
+
+   public static boolean authorityMatchHttps(CharSequence path, CharSequence authority) {
+      return authorityMatch(path, authority, "443", HTTPS_PREFIX.length());
+   }
+
+   public static boolean authorityMatch(CharSequence path, CharSequence authority, String defaultPort, int prefixLength) {
       int colonIndex = indexOf(authority, 0, ':');
-      if (!AsciiString.regionMatches(path, false, prefix.length(), authority, 0, colonIndex)) {
+      // hostname match is case-insensitive
+      if (!AsciiString.regionMatches(path, true, prefixLength, authority, 0, colonIndex)) {
          return false;
       }
-      if (path.charAt(prefix.length() + colonIndex) == ':') {
+      if (path.charAt(prefixLength + colonIndex) == ':') {
+         // path uses explicit port
          CharSequence port;
          int portOffset, portLength;
          if (authority.length() == colonIndex) {
@@ -227,11 +246,81 @@ public final class HttpUtil {
             portOffset = colonIndex + 1;
             portLength = authority.length() - colonIndex - 1;
          }
-         return AsciiString.regionMatches(path, false, prefix.length() + colonIndex, port, portOffset, portLength);
+         return AsciiString.regionMatches(path, false, prefixLength + colonIndex, port, portOffset, portLength);
       } else {
          return colonIndex == authority.length() ||
                colonIndex == authority.length() - defaultPort.length() - 1 &&
                      AsciiString.regionMatches(authority, false, authority.length() - defaultPort.length(), defaultPort, 0, defaultPort.length());
       }
+   }
+
+   public static boolean authorityMatch(ByteBuf pathData, int pathOffset, int pathLength, byte[] authority, boolean isHttp) {
+      return isHttp ? authorityMatchHttp(pathData, pathOffset, pathLength, authority) : authorityMatchHttps(pathData, pathOffset, pathLength, authority);
+   }
+
+   public static boolean authorityMatchHttp(ByteBuf pathData, int pathOffset, int pathLength, byte[] authority) {
+      return authorityMatch(pathData, pathOffset, pathLength, authority, BYTES_80, HTTP_PREFIX.length());
+   }
+
+   public static boolean authorityMatchHttps(ByteBuf pathData, int pathOffset, int pathLength, byte[] authority) {
+      return authorityMatch(pathData, pathOffset, pathLength, authority, BYTES_443, HTTPS_PREFIX.length());
+   }
+
+   public static boolean authorityMatch(ByteBuf pathData, int pathOffset, int pathLength, byte[] authority, byte[] defaultPort, int prefixLength) {
+      int colonIndex = indexOf(authority, (byte) ':');
+      // For simplicity we won't bother with case-insensitive match
+      if (!regionMatches(pathData, pathOffset + prefixLength, pathLength - prefixLength, authority, 0, colonIndex)) {
+         return false;
+      }
+      if (pathData.getByte(prefixLength + colonIndex) == ':') {
+         // path uses explicit port
+         byte[] port;
+         int portOffset, portLength;
+         if (authority.length == colonIndex) {
+            port = defaultPort;
+            portOffset = 0;
+            portLength = defaultPort.length;
+         } else {
+            port = authority;
+            portOffset = colonIndex + 1;
+            portLength = authority.length - colonIndex - 1;
+         }
+         return regionMatches(pathData, pathOffset + prefixLength + colonIndex, pathLength - prefixLength - colonIndex, port, portOffset, portLength);
+      } else {
+         return colonIndex == authority.length ||
+               colonIndex == authority.length - defaultPort.length - 1 &&
+                     Arrays.equals(authority, authority.length - defaultPort.length, authority.length, defaultPort, 0, defaultPort.length);
+      }
+   }
+
+   private static boolean regionMatches(ByteBuf data, int offset, int dataLength, byte[] bytes, int bs, int length) {
+      if (dataLength < length) {
+         return false;
+      }
+      assert bytes.length >= bs + length;
+      for (int i = 0; i < length; ++i) {
+         if (data.getByte(offset + i) != bytes[bs + i]) {
+            return false;
+         }
+      }
+      return true;
+   }
+
+   static int indexOf(byte[] bytes, byte b) {
+      for (int i = 0; i <= bytes.length; ++i) {
+         if (bytes[i] == b) {
+            return i;
+         }
+      }
+      return bytes.length;
+   }
+
+   public static int indexOf(ByteBuf data, int offset, int length, char c) {
+      for (int i = 0; i <= length; ++i) {
+         if (data.getByte(offset + i) == c) {
+            return i;
+         }
+      }
+      return length;
    }
 }

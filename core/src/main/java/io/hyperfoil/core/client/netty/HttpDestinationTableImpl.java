@@ -52,6 +52,11 @@ public class HttpDestinationTableImpl implements HttpDestinationTable {
    }
 
    @Override
+   public boolean hasSingleDestination() {
+      return authorities.length == 1;
+   }
+
+   @Override
    public HttpConnectionPool getConnectionPool(String authority) {
       return pools.get(authority);
    }

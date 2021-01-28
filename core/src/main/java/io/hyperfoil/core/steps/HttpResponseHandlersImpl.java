@@ -37,6 +37,7 @@ import io.hyperfoil.core.handlers.html.MetaRefreshHandler;
 import io.hyperfoil.core.handlers.html.RefreshHandler;
 import io.hyperfoil.core.handlers.http.ConditionalHeaderHandler;
 import io.hyperfoil.core.handlers.ConditionalProcessor;
+import io.hyperfoil.core.handlers.http.Location;
 import io.hyperfoil.core.handlers.http.RangeStatusValidator;
 import io.hyperfoil.core.handlers.http.Redirect;
 import io.hyperfoil.core.http.CookieRecorder;
@@ -590,8 +591,8 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
             HttpRequestStep.BodyGeneratorBuilder bodyBuilder = parent.bodyBuilder();
             HttpRequestStep.Builder httpRequest = new HttpRequestStep.Builder()
                   .method(() -> new Redirect.GetMethod(sequenceScopedAccess(coordsVar)))
-                  .path(() -> new Redirect.GetPath(sequenceScopedAccess(coordsVar)))
-                  .authority(() -> new Redirect.GetAuthority(sequenceScopedAccess(coordsVar)))
+                  .path(() -> new Location.GetPath(sequenceScopedAccess(coordsVar)))
+                  .authority(() -> new Location.GetAuthority(sequenceScopedAccess(coordsVar)))
                   .headerAppenders(parent.headerAppenders())
                   .body(bodyBuilder == null ? null : bodyBuilder.copy())
                   .sync(false)
@@ -647,7 +648,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
                      .condition().stringCondition().fromVar(newTempCoordsVar).isSet(false).end()
                      .action(new Redirect.WrappingAction.Builder().coordVar(coordsVar).actions(completionHandlers)));
             }
-            httpRequest.handler().onCompletion(() -> new Redirect.Complete(poolKey, queueKey, sequenceScopedAccess(coordsVar)));
+            httpRequest.handler().onCompletion(() -> new Location.Complete<>(poolKey, queueKey, sequenceScopedAccess(coordsVar)));
             SequenceBuilder redirectSequence = locator.scenario().sequence(redirectSequenceName)
                   .concurrency(redirectConcurrency)
                   .stepBuilder(httpRequest)

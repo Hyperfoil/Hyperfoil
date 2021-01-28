@@ -216,6 +216,19 @@ public class Util {
       }
    }
 
+   public static boolean hasPrefix(ByteBuf data, int offset, int length, byte[] prefix) {
+      int i = 0;
+      if (length < prefix.length) {
+         return false;
+      }
+      for (; i < prefix.length; i++) {
+         if (data.getByte(offset + i) != prefix[i]) {
+            return false;
+         }
+      }
+      return true;
+   }
+
    private static class URLEncoding {
       private static final BitSet DONT_NEED_ENCODING = new BitSet();
 

@@ -358,12 +358,12 @@ public class HttpCacheImpl implements HttpCache {
    @Override
    public void invalidate(CharSequence authority, CharSequence path) {
       if (AsciiString.regionMatches(HttpUtil.HTTP_PREFIX, false, 0, path, 0, HttpUtil.HTTP_PREFIX.length())) {
-         if (!HttpUtil.authorityMatch(path, authority, HttpUtil.HTTP_PREFIX, "80")) {
+         if (!HttpUtil.authorityMatchHttp(path, authority)) {
             return;
          }
          path = path.subSequence(HttpUtil.indexOf(path, HttpUtil.HTTP_PREFIX.length(), '/'), path.length());
       } else if (AsciiString.regionMatches(HttpUtil.HTTPS_PREFIX, false, 0, path, 0, HttpUtil.HTTPS_PREFIX.length())) {
-         if (!HttpUtil.authorityMatch(path, authority, HttpUtil.HTTPS_PREFIX, "443")) {
+         if (!HttpUtil.authorityMatchHttps(path, authority)) {
             return;
          }
          path = path.subSequence(HttpUtil.indexOf(path, HttpUtil.HTTPS_PREFIX.length(), '/'), path.length());

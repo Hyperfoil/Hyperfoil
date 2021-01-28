@@ -11,4 +11,6 @@ public interface HttpDestinationTable {
    byte[][] authorityBytes();
 
    void onSessionReset();
+
+   boolean hasSingleDestination();
 }

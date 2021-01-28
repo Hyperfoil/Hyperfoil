@@ -100,17 +100,15 @@ public class Redirect {
       }
    }
 
-   public static class Coords {
+   public static class Coords extends Location {
       public HttpMethod method;
-      public CharSequence authority;
-      public CharSequence path;
       public int delay;
       public SequenceInstance originalSequence;
 
+      @Override
       public Coords reset() {
+         super.reset();
          method = null;
-         authority = null;
-         path = null;
          delay = 0;
          originalSequence = null;
          return this;
@@ -255,60 +253,6 @@ public class Redirect {
       public HttpMethod apply(Session session) {
          Coords coords = (Coords) coordVar.getObject(session);
          return coords.method;
-      }
-   }
-
-   public static class GetAuthority implements SerializableFunction<Session, String> {
-      private final Access coordVar;
-
-      public GetAuthority(Access coordVar) {
-         this.coordVar = coordVar;
-      }
-
-      @Override
-      public String apply(Session session) {
-         Coords coords = (Coords) coordVar.getObject(session);
-         return coords.authority == null ? null : coords.authority.toString();
-      }
-   }
-
-   public static class GetPath implements SerializableFunction<Session, String> {
-      private final Access coordVar;
-
-      public GetPath(Access coordVar) {
-         this.coordVar = coordVar;
-      }
-
-      @Override
-      public String apply(Session session) {
-         Coords coords = (Coords) coordVar.getObject(session);
-         return coords.path.toString();
-      }
-   }
-
-   public static class Complete implements Action {
-      private final LimitedPoolResource.Key<Coords> poolKey;
-      private final Session.ResourceKey<Queue> queueKey;
-      private final Access coordVar;
-
-      public Complete(LimitedPoolResource.Key<Coords> poolKey, Session.ResourceKey<Queue> queueKey, Access coordVar) {
-         this.poolKey = poolKey;
-         this.queueKey = queueKey;
-         this.coordVar = coordVar;
-      }
-
-      @Override
-      public void run(Session session) {
-         LimitedPoolResource<Coords> pool = session.getResource(poolKey);
-         ObjectVar var = (ObjectVar) coordVar.getVar(session);
-         Coords coords = (Coords) var.get();
-         if (trace) {
-            log.trace("#{} releasing {} from {}[{}]", session.uniqueId(), coords, coordVar, session.currentSequence().index());
-         }
-         pool.release(coords.reset());
-         var.set(null);
-         var.unset();
-         session.getResource(queueKey).consumed(session);
       }
    }
 

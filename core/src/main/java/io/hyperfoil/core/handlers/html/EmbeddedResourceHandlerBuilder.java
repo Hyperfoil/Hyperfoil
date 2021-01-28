@@ -20,7 +20,7 @@ public class EmbeddedResourceHandlerBuilder implements HtmlHandler.TagHandlerBui
 
    private boolean ignoreExternal = true;
    private Processor.Builder<?> processor;
-   private FetchResourceBuilder fetchResource;
+   private FetchResourceHandler.Builder fetchResource;
 
    /**
     * Ignore resources hosted on servers that are not covered in the <code>http</code> section.
@@ -38,8 +38,8 @@ public class EmbeddedResourceHandlerBuilder implements HtmlHandler.TagHandlerBui
     *
     * @return Builder.
     */
-   public FetchResourceBuilder fetchResource() {
-      return this.fetchResource = new FetchResourceBuilder();
+   public FetchResourceHandler.Builder fetchResource() {
+      return this.fetchResource = new FetchResourceHandler.Builder();
    }
 
    public EmbeddedResourceHandlerBuilder processor(Processor.Builder<?> processor) {
@@ -66,17 +66,11 @@ public class EmbeddedResourceHandlerBuilder implements HtmlHandler.TagHandlerBui
 
    @Override
    public HtmlHandler.BaseTagAttributeHandler build() {
-      if (processor != null && fetchResource != null) {
-         throw new BenchmarkDefinitionException("Only one of processor/fetchResource allowed!");
+      if (processor == null && fetchResource == null) {
+         throw new BenchmarkDefinitionException("embedded resource handler must define either processor or fetchResource!");
       }
-      Processor p;
-      if (fetchResource != null) {
-         p = fetchResource.build();
-      } else if (processor != null) {
-         p = processor.build(false);
-      } else {
-         throw new BenchmarkDefinitionException("Embedded resource handler is missing the processor");
-      }
-      return new HtmlHandler.BaseTagAttributeHandler(TAGS, ATTRS, new EmbeddedResourceProcessor(ignoreExternal, p));
+      Processor processor = this.processor != null ? this.processor.build(false) : null;
+      FetchResourceHandler fetchResource = this.fetchResource != null ? this.fetchResource.build() : null;
+      return new HtmlHandler.BaseTagAttributeHandler(TAGS, ATTRS, new EmbeddedResourceProcessor(ignoreExternal, processor, fetchResource));
    }
 }

@@ -122,9 +122,9 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
          boolean isHttp;
          if (authority == null && ((isHttp = path.startsWith(HttpUtil.HTTP_PREFIX)) || path.startsWith(HttpUtil.HTTPS_PREFIX))) {
             for (String hostPort : session.httpDestinations().authorities()) {
-               // TODO: fixme: this does consider default port match
-               if (path.regionMatches(prefixLength(isHttp), hostPort, 0, hostPort.length())) {
+               if (HttpUtil.authorityMatch(path, hostPort, isHttp)) {
                   authority = hostPort;
+                  break;
                }
             }
             if (authority == null) {
@@ -133,7 +133,8 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
             }
             path = path.substring(prefixLength(isHttp) + authority.length());
          }
-         String metric = metricSelector.apply(authority, path);
+         String metric = session.httpDestinations().hasSingleDestination() ?
+               metricSelector.apply(null, path) : metricSelector.apply(authority, path);
          Statistics statistics = session.statistics(id(), metric);
          request.path = path;
          request.start(handler, sequence, statistics);
