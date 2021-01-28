@@ -188,7 +188,7 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
       session.currentRequest(null);
    }
 
-   /**
+   /*
     * Use this method very cautiously!
     */
    public void unsafeEnterSequence(SequenceInstance sequence) {
