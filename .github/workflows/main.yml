@@ -58,6 +58,9 @@ jobs:
     - name: Push to Docker Hub
       if: env.QUAY_BOT_LOGIN != '' && github.ref == 'refs/heads/master'
       run: docker push quay.io/hyperfoil/hyperfoil:${{ env.PROJECT_VERSION }}
+    - name: Push the tag latest to Docker Hub
+      if: env.QUAY_BOT_LOGIN != ''  && startsWith(github.ref, 'refs/tags/release-')
+      run: docker push quay.io/hyperfoil/hyperfoil:latest
     - name: Create Release
       if: startsWith(github.ref, 'refs/tags/release-')
       id: create_release
