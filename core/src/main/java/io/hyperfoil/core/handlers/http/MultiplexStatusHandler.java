@@ -59,9 +59,10 @@ public class MultiplexStatusHandler extends BaseRangeStatusHandler implements Re
       private final Map<String, List<StatusHandler.Builder>> handlers = new HashMap<>();
 
       /**
-       * Run another handler if the range matches.
+       * Run another handler if the range matches. Use range as the key and another status handler in the mapping.
+       * Possible values of the status should be separated by commas (,). Ranges can be set using low-high (inclusive) (e.g. 200-299), or replacing lower digits with 'x' (e.g. 2xx).
        *
-       * @param range Possible values of the status separated by commas (,). Ranges can be set using low-high (inclusive) (e.g. 200-299), or replacing lower digits with 'x' (e.g. 2xx).
+       * @param range Status range.
        * @return Builder
        */
       @Override

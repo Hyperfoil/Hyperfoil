@@ -438,12 +438,12 @@ public class DocsGenerator extends BaseGenerator {
    private void addStep(String name, Class<?> builder, boolean inline, String inlineDocs) {
       Docs step = steps.get(name);
       if (step == null) {
-         step = describeBuilder(builder);
+         step = describeBuilder(builder, false);
          step.ownerDescription = firstLine(step.typeDescription);
          steps.put(name, step);
       } else if (step.params.isEmpty()) {
          // The step could have been created from inline-param version in StepCatalog
-         Docs docs = describeBuilder(builder);
+         Docs docs = describeBuilder(builder, false);
          step.typeDescription = docs.typeDescription;
          step.params.putAll(docs.params);
          if (step.ownerDescription == null) {
@@ -459,9 +459,12 @@ public class DocsGenerator extends BaseGenerator {
       return text == null ? null : text.replaceFirst("(\n|<br>|<p>).*", "");
    }
 
-   private Docs describeBuilder(Class<?> builder) {
+   private Docs describeBuilder(Class<?> builder, boolean addParamsFromType) {
       if (docs.containsKey(builder)) {
          return docs.get(builder);
+      }
+      if (builder == ServiceLoadedBuilderProvider.class) {
+         throw new IllegalArgumentException();
       }
       ClassOrInterfaceDeclaration cd = findClass(builder);
       if (cd == null) {
@@ -477,6 +480,10 @@ public class DocsGenerator extends BaseGenerator {
       if (BaseSequenceBuilder.class.isAssignableFrom(builder)) {
          return docs;
       }
+      if (addParamsFromType) {
+         addParamsFromBuilders(docs, builder, builder);
+      }
+
       findProperties(builder, m -> {
          List<MethodDeclaration> mds = methods.computeIfAbsent(m.getDeclaringClass(), this::findAllMethods);
          Docs param = describeMethod(m.getDeclaringClass(), m, findMatching(mds, m));
@@ -541,75 +548,20 @@ public class DocsGenerator extends BaseGenerator {
 
       Docs param = new Docs(description.length() == 0 ? null : description.toString());
 
-      if (PairBuilder.class.isAssignableFrom(m.getReturnType())) {
-         Docs inner = describeBuilder(m.getReturnType());
-         ClassOrInterfaceDeclaration cd = findClass(m.getReturnType());
-         if (cd != null) {
-            inner.ownerDescription = cd.findFirst(MethodDeclaration.class, md -> md.getNameAsString().equals("accept") && md.getParameters().size() == 2)
-                  .map(this::getJavadocDescription).orElse(null);
-         }
-         param.type = inner.type = getRawClass(getGenericParams(m.getGenericReturnType(), PairBuilder.class)[0]).getSimpleName();
-         param.addParam("&lt;any&gt;", inner);
-      }
-      if (PartialBuilder.class.isAssignableFrom(m.getReturnType())) {
-         try {
-            Class<?> innerBuilder = m.getReturnType().getMethod("withKey", String.class).getReturnType();
-            Docs inner = describeBuilder(innerBuilder);
-            ClassOrInterfaceDeclaration cd = findClass(m.getReturnType());
-            if (cd != null) {
-               inner.ownerDescription = cd.findFirst(MethodDeclaration.class, md -> md.getNameAsString().equals("withKey") && md.getParameters().size() == 1)
-                     .map(this::getJavadocDescription).orElse(null);
-            }
-            param.type = inner.type = "Builder";
-            param.addParam("&lt;any&gt;", inner);
-         } catch (NoSuchMethodException e) {
-            throw new IllegalStateException(e);
-         }
-      }
-
       if (BaseSequenceBuilder.class.isAssignableFrom(m.getReturnType())) {
          param.addParam("&lt;list of steps&gt;", EMPTY_DOCS);
          param.type = "&lt;list of steps&gt;";
          param.link = "index.html#steps";
       }
-      if (ListBuilder.class.isAssignableFrom(m.getReturnType())) {
-         Docs inner = describeBuilder(m.getReturnType());
-         if (inner == null) {
-            inner = new Docs(null);
-         } else if (inner.ownerDescription == null) {
-            inner.ownerDescription = inner.typeDescription;
-         }
-         param.type = inner.type = "&lt;list of strings&gt;";
-         param.addParam("&lt;list of strings&gt;", inner);
-      }
-      if (MappingListBuilder.class.isAssignableFrom(m.getReturnType())) {
-         try {
-            Docs inner = describeBuilder(m.getReturnType().getMethod("addItem").getReturnType());
-            ClassOrInterfaceDeclaration cd = findClass(m.getReturnType());
-            if (cd != null) {
-               inner.ownerDescription = cd.findFirst(MethodDeclaration.class, md -> md.getNameAsString().equals("addItem") && md.getParameters().size() == 0)
-                     .map(this::getJavadocDescription).orElse(null);
-            }
-            param.type = inner.type = "&lt;list of builders&gt;";
-            param.addParam("&lt;list of mappings&gt;", inner);
-         } catch (NoSuchMethodException e) {
-            throw new IllegalStateException(e);
-         }
-      }
+      addParamsFromBuilders(param, m.getReturnType(), m.getGenericReturnType());
+
       if (ServiceLoadedBuilderProvider.class.isAssignableFrom(m.getReturnType())) {
          ParameterizedType returnType = (ParameterizedType) m.getAnnotatedReturnType().getType();
          Class<?> builderClazz = getRawClass(returnType.getActualTypeArguments()[0]);
-         param.type = builderType(builderClazz);
-         if (builderClazz == Action.Builder.class) {
-            param.link = "index.html#actions";
-         } else if (Processor.Builder.class.isAssignableFrom(builderClazz)) {
-            param.link = "index.html#processors";
-         }
-         param.lazyParams.add(getServiceLoadedImplementations(builderClazz).params);
-         needsResolve.add(param);
+         setServiceLoaded(param, builderClazz);
       }
       if (m.getReturnType().getName().endsWith("Builder")) {
-         Docs inner = describeBuilder(m.getReturnType());
+         Docs inner = describeBuilder(m.getReturnType(), false);
          if (inner != null) {
             param.typeDescription = inner.typeDescription;
             param.inlineParam = inner.inlineParam;
@@ -623,6 +575,83 @@ public class DocsGenerator extends BaseGenerator {
       } else {
          return param;
       }
+   }
+
+   private void setServiceLoaded(Docs param, Class<?> builderClazz) {
+      param.type = builderType(builderClazz);
+      if (builderClazz == Action.Builder.class) {
+         param.link = "index.html#actions";
+      } else if (Processor.Builder.class.isAssignableFrom(builderClazz)) {
+         param.link = "index.html#processors";
+      }
+      param.lazyParams.add(getServiceLoadedImplementations(builderClazz).params);
+      needsResolve.add(param);
+   }
+
+   private void addParamsFromBuilders(Docs docs, Class<?> builder, java.lang.reflect.Type genericType) {
+      if (PairBuilder.class.isAssignableFrom(builder)) {
+         Docs inner = describeBuilder(builder, false);
+         ClassOrInterfaceDeclaration cd = findClass(builder);
+         if (cd != null) {
+            inner.ownerDescription = getMethodJavadoc(cd, "accept", 2);
+         }
+         docs.type = inner.type = getRawClass(getGenericParams(genericType, PairBuilder.class)[0]).getSimpleName();
+         docs.addParam("&lt;any&gt;", inner);
+      }
+      if (PartialBuilder.class.isAssignableFrom(builder)) {
+         try {
+            Method withKey = builder.getMethod("withKey", String.class);
+            Class<?> innerBuilder = withKey.getReturnType();
+            String ownerDescription = null;
+            ClassOrInterfaceDeclaration cd = findClass(builder);
+            if (cd != null) {
+               ownerDescription = getMethodJavadoc(cd, "withKey", 1);
+            }
+            Docs inner;
+            if (innerBuilder == ServiceLoadedBuilderProvider.class) {
+               Class<?> implBuilder = getRawClass(((ParameterizedType) withKey.getGenericReturnType()).getActualTypeArguments()[0]);
+               inner = new Docs(ownerDescription);
+               setServiceLoaded(inner, implBuilder);
+            } else {
+               inner = describeBuilder(innerBuilder, false);
+               inner.ownerDescription = ownerDescription;
+            }
+
+            docs.type = inner.type = "Builder";
+            docs.addParam("&lt;any&gt;", inner);
+         } catch (NoSuchMethodException e) {
+            throw new IllegalStateException(e);
+         }
+      }
+
+      if (ListBuilder.class.isAssignableFrom(builder)) {
+         Docs inner = describeBuilder(builder, false);
+         if (inner == null) {
+            inner = new Docs(null);
+         } else if (inner.ownerDescription == null) {
+            inner.ownerDescription = inner.typeDescription;
+         }
+         docs.type = inner.type = "&lt;list of strings&gt;";
+         docs.addParam("&lt;list of strings&gt;", inner);
+      }
+      if (MappingListBuilder.class.isAssignableFrom(builder)) {
+         try {
+            Docs inner = describeBuilder(builder.getMethod("addItem").getReturnType(), false);
+            ClassOrInterfaceDeclaration cd = findClass(builder);
+            if (cd != null) {
+               inner.ownerDescription = getMethodJavadoc(cd, "addItem", 0);
+            }
+            docs.type = inner.type = "&lt;list of builders&gt;";
+            docs.addParam("&lt;list of mappings&gt;", inner);
+         } catch (NoSuchMethodException e) {
+            throw new IllegalStateException(e);
+         }
+      }
+   }
+
+   private String getMethodJavadoc(ClassOrInterfaceDeclaration cd, String methodName, int paramCount) {
+      return cd.findFirst(MethodDeclaration.class, md -> md.getNameAsString().equals(methodName) && md.getParameters().size() == paramCount)
+            .map(this::getJavadocDescription).orElse(null);
    }
 
    private String builderType(Class<?> builderClazz) {
@@ -677,7 +706,7 @@ public class DocsGenerator extends BaseGenerator {
       implementations.typeDescription = getJavadocDescription(fd);
       for (Map.Entry<String, BuilderInfo<?>> entry : ServiceLoadedBuilderProvider.builders(builderClazz).entrySet()) {
          Class<?> newBuilder = entry.getValue().implClazz;
-         Docs docs = describeBuilder(newBuilder);
+         Docs docs = describeBuilder(newBuilder, true);
          if (docs == null) {
             continue;
          }

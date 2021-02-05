@@ -62,9 +62,10 @@ public class ActionStatusHandler extends BaseRangeStatusHandler implements Resou
       private final Map<String, List<Action.Builder>> actions = new HashMap<>();
 
       /**
-       * Perform a sequence of actions if the range matches.
+       * Perform a sequence of actions if the range matches. Use range as the key and action in the mapping.
+       * Possible values of the status should be separated by commas (,). Ranges can be set using low-high (inclusive) (e.g. 200-299), or replacing lower digits with 'x' (e.g. 2xx).
        *
-       * @param range Possible values of the status separated by commas (,). Ranges can be set using low-high (inclusive) (e.g. 200-299), or replacing lower digits with 'x' (e.g. 2xx).
+       * @param range Status range.
        * @return Builder
        */
       @Override

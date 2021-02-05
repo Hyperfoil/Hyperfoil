@@ -111,8 +111,9 @@ public class Generator extends BaseGenerator {
       String template = Files.readAllLines(input).stream()
             .reduce(new StringBuilder(), StringBuilder::append, StringBuilder::append).toString();
       JsonObject schema = new JsonObject(template);
-      definitions = schema.getJsonObject("definitions");
-      JsonObject step = definitions.getJsonObject("step");
+      JsonObject schemaDefinitions = schema.getJsonObject("definitions");
+      definitions = new JsonObject(new TreeMap<>());
+      JsonObject step = schemaDefinitions.getJsonObject("step");
       JsonArray oneOf = step.getJsonArray("oneOf");
       TreeMap<String, Object> sortedMap = new TreeMap<>();
       sortedMap.putAll(oneOf.getJsonObject(0).getJsonObject("properties").getMap());
@@ -130,6 +131,7 @@ public class Generator extends BaseGenerator {
       if (simpleBuilders.size() == 0) {
          oneOf.remove(1);
       }
+      definitions.forEach(e -> schemaDefinitions.put(e.getKey(), e.getValue()));
 
       Files.write(output, schema.encodePrettily().getBytes(StandardCharsets.UTF_8));
    }
@@ -164,6 +166,21 @@ public class Generator extends BaseGenerator {
       definition.put("type", "object");
       definition.put("additionalProperties", false);
       definition.put("properties", properties);
+      if (PartialBuilder.class.isAssignableFrom(builder)) {
+         try {
+            Method withKey = builder.getMethod("withKey", String.class);
+            Class<?> innerBuilder = withKey.getReturnType();
+            JsonObject propertyType;
+            if (ServiceLoadedBuilderProvider.class == innerBuilder) {
+               propertyType = getServiceLoadedImplementations(getRawClass(((ParameterizedType) withKey.getGenericReturnType()).getActualTypeArguments()[0]));
+            } else {
+               propertyType = describeBuilder(innerBuilder);
+            }
+            definition.put("patternProperties", new JsonObject().put(".*", propertyType));
+         } catch (NoSuchMethodException e) {
+            throw new IllegalStateException(e);
+         }
+      }
       findProperties(builder, m -> {
          JsonObject property = describeMethod(m.getDeclaringClass(), m);
          if (property != null) {
