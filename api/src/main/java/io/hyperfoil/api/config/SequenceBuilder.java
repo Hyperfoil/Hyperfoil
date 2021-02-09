@@ -21,7 +21,6 @@
 package io.hyperfoil.api.config;
 
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.function.SerializableSupplier;
 
 /**
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
@@ -83,11 +82,11 @@ public class SequenceBuilder extends BaseSequenceBuilder {
       super.prepareBuild();
    }
 
-   public Sequence build(SerializableSupplier<Phase> phase, int offset) {
+   public Sequence build(int offset) {
       if (sequence != null) {
          return sequence;
       }
-      sequence = new SequenceImpl(phase, this.name, id, this.concurrency, offset, buildSteps().toArray(new Step[0]));
+      sequence = new Sequence(this.name, id, this.concurrency, offset, buildSteps().toArray(new Step[0]));
       return sequence;
    }
 

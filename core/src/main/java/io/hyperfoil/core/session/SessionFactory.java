@@ -5,15 +5,15 @@ import java.util.Collections;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Locator;
-import io.hyperfoil.api.session.Access;
-import io.hyperfoil.core.util.Unique;
-import io.netty.util.concurrent.EventExecutorGroup;
-import io.netty.util.concurrent.ImmediateEventExecutor;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.config.Scenario;
 import io.hyperfoil.api.config.Sequence;
+import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.impl.PhaseInstanceImpl;
+import io.hyperfoil.core.util.Unique;
+import io.netty.util.concurrent.EventExecutorGroup;
+import io.netty.util.concurrent.ImmediateEventExecutor;
 
 public final class SessionFactory {
    private static final SpecialAccess[] SPECIAL = new SpecialAccess[]{

@@ -1,25 +1,8 @@
-/*
- * Copyright 2018 Red Hat Inc. and/or its affiliates and other contributors
- * as indicated by the @authors tag. All rights reserved.
- * See the copyright.txt in the distribution for a
- * full listing of individual contributors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package io.hyperfoil.api.config;
 
 import java.io.Serializable;
 
+import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 
 /**
@@ -27,25 +10,47 @@ import io.hyperfoil.api.session.Session;
  * State is shared between sequences via the {@link Session}. This allows sequences to pass request scoped state between {@link Step} invocations.
  * <p>
  * Sequences form the basis of a timed operation.
- *
- * @author John O'Hara
  */
-public interface Sequence extends Serializable {
+public class Sequence implements Serializable {
 
-   int id();
+   private final String name;
+   private final int id;
+   private final int concurrency;
+   private final int offset;
+   private final Step[] steps;
 
-   int concurrency();
+   public Sequence(String name, int id, int concurrency, int offset, Step[] steps) {
+      this.name = name;
+      this.id = id;
+      this.concurrency = concurrency;
+      this.offset = offset;
+      this.steps = steps;
+   }
+
+   public int id() {
+      return id;
+   }
+
+   public int concurrency() {
+      return concurrency;
+   }
 
    /**
-    * @return Index for first instance for cases where we need an array of all concurrent instances.
-    */
-   int offset();
+       * @return Index for first instance for cases where we need an array of all concurrent instances.
+       */
+   public int offset() {
+      return offset;
+   }
 
-   void reserve(Session session);
+   public void reserve(Session session) {
+      ResourceUtilizer.reserve(session, (Object[]) steps);
+   }
 
-   String name();
+   public String name() {
+      return name;
+   }
 
-   Phase phase();
-
-   Step[] steps();
+   public Step[] steps() {
+      return steps;
+   }
 }

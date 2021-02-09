@@ -2,7 +2,6 @@
 
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
-    <!-- Parent -->
     <parent>
         <groupId>io.hyperfoil</groupId>
         <artifactId>hyperfoil-all</artifactId>
@@ -56,14 +55,11 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>hyperfoil-api</artifactId>
-            <version>${project.version}</version>
-            <scope>compile</scope>
         </dependency>
+
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>hyperfoil-core</artifactId>
-            <version>${project.version}</version>
-            <scope>compile</scope>
         </dependency>
 
         <dependency>
@@ -87,9 +83,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-plugin-plugin</artifactId>
-                <version>3.6.0</version>
             </plugin>
-            <!-- other plugins -->
         </plugins>
     </build>
 </project>

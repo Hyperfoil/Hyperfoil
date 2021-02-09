@@ -20,8 +20,6 @@
 
 package io.hyperfoil.api.config;
 
-import io.hyperfoil.function.SerializableSupplier;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -117,7 +115,7 @@ public class ScenarioBuilder implements Rewritable<ScenarioBuilder> {
       new ArrayList<>(sequences).forEach(SequenceBuilder::prepareBuild);
    }
 
-   public Scenario build(SerializableSupplier<Phase> phase) {
+   public Scenario build() {
       if (scenario != null) {
          return scenario;
       }
@@ -128,13 +126,13 @@ public class ScenarioBuilder implements Rewritable<ScenarioBuilder> {
       Sequence[] initialSequences = new Sequence[this.initialSequences.size()];
       int offset = 0;
       for (int i = 0; i < this.initialSequences.size(); i++) {
-         Sequence sequence = this.initialSequences.get(i).build(phase, offset);
+         Sequence sequence = this.initialSequences.get(i).build(offset);
          initialSequences[i] = sequence;
          offset += sequence.concurrency() > 0 ? sequence.concurrency() : 1;
       }
       Sequence[] sequences = new Sequence[this.sequences.size()];
       for (int i = 0; i < this.sequences.size(); i++) {
-         Sequence sequence = this.sequences.get(i).build(phase, offset);
+         Sequence sequence = this.sequences.get(i).build(offset);
          sequences[i] = sequence;
          offset += sequence.concurrency() > 0 ? sequence.concurrency() : 1;
       }

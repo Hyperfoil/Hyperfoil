@@ -1,6 +1,7 @@
 package io.hyperfoil.core.session;
 
 import io.hyperfoil.api.config.Benchmark;
+import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.session.SessionStopException;
 import io.hyperfoil.api.session.SharedData;
@@ -10,7 +11,6 @@ import io.netty.util.concurrent.EventExecutor;
 import io.hyperfoil.api.collection.LimitedPool;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.config.Scenario;
-import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.statistics.Statistics;

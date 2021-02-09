@@ -7,7 +7,6 @@ import io.hyperfoil.api.config.Step;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-// TODO maybe we should extract an interface
 public class SequenceInstance {
    private static final Logger log = LoggerFactory.getLogger(SequenceInstance.class);
    private static final boolean trace = log.isTraceEnabled();

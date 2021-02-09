@@ -5,7 +5,6 @@ import java.util.concurrent.Callable;
 import java.util.function.Supplier;
 
 import io.hyperfoil.api.config.Scenario;
-import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.statistics.SessionStatistics;
 import io.netty.util.concurrent.EventExecutor;
@@ -56,7 +55,8 @@ public interface Session extends Callable<Void> {
 
    /**
     * Reserve space in the session for a resource, stored under given key. If this is executed within
-    * a {@link Sequence sequence} with non-zero {@link Sequence#concurrency() concurrency} the session
+    * a {@link io.hyperfoil.api.config.Sequence sequence} with non-zero
+    * {@link io.hyperfoil.api.config.Sequence#concurrency() concurrency} the session
     * stores one resource for each concurrent instance. If this behaviour should be avoided set
     * <code>singleton</code> to true.
     *
