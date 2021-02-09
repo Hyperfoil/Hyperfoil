@@ -12,7 +12,6 @@ import java.util.stream.IntStream;
 
 import io.hyperfoil.function.SerializableSupplier;
 import io.hyperfoil.impl.FutureSupplier;
-import io.hyperfoil.util.Util;
 
 /**
  * The builder creates a matrix of phases (not just single phase); we allow multiple iterations of a phase
@@ -86,10 +85,6 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
 
    }
 
-   public PB startTime(String startTime) {
-      return startTime(Util.parseToMillis(startTime));
-   }
-
    public PB startAfter(String phase) {
       this.startAfter.add(new PhaseReference(phase, RelativeIteration.NONE, null));
       return self();
@@ -115,17 +110,9 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
       return self();
    }
 
-   public PB duration(String duration) {
-      return duration(Util.parseToMillis(duration));
-   }
-
    public PB maxDuration(long maxDuration) {
       this.maxDuration = maxDuration;
       return self();
-   }
-
-   public PB maxDuration(String duration) {
-      return maxDuration(Util.parseToMillis(duration));
    }
 
    public PB maxIterations(int iterations) {

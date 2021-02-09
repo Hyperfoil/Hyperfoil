@@ -28,8 +28,8 @@ import java.net.ServerSocket;
 import org.aesh.io.FileResource;
 import org.aesh.io.Resource;
 
-public final class Util {
-   private Util() {
+public final class CliUtil {
+   private CliUtil() {
    }
 
    public static Resource sanitize(Resource resource) {

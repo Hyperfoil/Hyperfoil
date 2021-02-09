@@ -1,13 +1,13 @@
 package io.hyperfoil.controller;
 
 import io.hyperfoil.api.config.Benchmark;
-import io.hyperfoil.api.config.SLA;
 import io.hyperfoil.api.statistics.CustomValue;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.api.statistics.StatisticsSummary;
 import io.hyperfoil.controller.model.CustomStats;
 import io.hyperfoil.controller.model.Histogram;
 import io.hyperfoil.controller.model.RequestStats;
+import io.hyperfoil.core.builders.SLA;
 import io.hyperfoil.core.util.LowHigh;
 
 import java.util.ArrayList;

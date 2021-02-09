@@ -22,6 +22,7 @@ package io.hyperfoil.http.config;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -30,8 +31,8 @@ import java.util.List;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Rewritable;
+import io.hyperfoil.core.util.Util;
 import io.hyperfoil.http.api.HttpVersion;
-import io.hyperfoil.util.Util;
 
 /**
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
@@ -90,7 +91,17 @@ public class HttpBuilder implements Rewritable<HttpBuilder> {
       if (this.host != null) {
          throw new BenchmarkDefinitionException("Duplicate 'host'. Are you missing '-'s?");
       }
-      URL url = Util.parseURL(host);
+      URL result;
+      String spec = host;
+      if (!spec.contains("://")) {
+         spec = "http://" + spec;
+      }
+      try {
+         result = new URL(spec);
+      } catch (MalformedURLException e) {
+         throw new BenchmarkDefinitionException("Failed to parse host:port", e);
+      }
+      URL url = result;
       this.protocol = protocol == null ? Protocol.fromScheme(url.getProtocol()) : protocol;
       this.host = url.getHost();
       this.port = url.getPort();

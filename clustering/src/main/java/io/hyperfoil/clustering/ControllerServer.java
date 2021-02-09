@@ -167,7 +167,7 @@ class ControllerServer implements ApiService {
             payload = Buffer.buffer("API definition not available");
             contentType = MIME_TYPE_TEXT_PLAIN;
          } else {
-            payload = Buffer.buffer(io.hyperfoil.util.Util.toString(stream));
+            payload = Buffer.buffer(Util.toString(stream));
             contentType = MIME_TYPE_YAML;
          }
          ctx.response()
@@ -249,7 +249,7 @@ class ControllerServer implements ApiService {
       }
       byte[] bytes = ctx.getBody().getBytes();
       try {
-         Benchmark benchmark = io.hyperfoil.util.Util.deserialize(bytes);
+         Benchmark benchmark = Util.deserialize(bytes);
          addBenchmarkAndReply(ctx, benchmark, ifMatch);
       } catch (IOException | ClassNotFoundException e) {
          log.error("Failed to deserialize", e);
@@ -257,7 +257,7 @@ class ControllerServer implements ApiService {
          message.append("This partial stack-track might help you diagnose the problematic part:\n---\n");
          for (StackTraceElement ste : e.getStackTrace()) {
             message.append(ste).append('\n');
-            if (ste.getClassName().equals(io.hyperfoil.util.Util.class.getName())) {
+            if (ste.getClassName().equals(Util.class.getName())) {
                break;
             }
          }
@@ -345,7 +345,7 @@ class ControllerServer implements ApiService {
 
    private void sendSerializedBenchmark(RoutingContext ctx, Benchmark benchmark) {
       try {
-         byte[] bytes = io.hyperfoil.util.Util.serialize(benchmark);
+         byte[] bytes = Util.serialize(benchmark);
          ctx.response()
                .putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_SERIALIZED)
                .end(Buffer.buffer(bytes));

@@ -22,7 +22,7 @@ import io.hyperfoil.core.api.Plugin;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.BenchmarkData;
-import io.hyperfoil.util.Util;
+import io.hyperfoil.core.util.Util;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
@@ -62,8 +62,8 @@ public class BenchmarkParser extends AbstractMappingParser<BenchmarkBuilder> {
       register("statisticsCollectionPeriod", new PropertyParser.Int<>(BenchmarkBuilder::statisticsCollectionPeriod));
       // simplified single-phase definition
       register("usersPerSec", new PropertyParser.Double<>((bb, value) -> bb.singleConstantRatePhase().usersPerSec(value)));
-      register("duration", new PropertyParser.String<>((bb, value) -> bb.singleConstantRatePhase().duration(value)));
-      register("maxDuration", new PropertyParser.String<>((bb, value) -> bb.singleConstantRatePhase().maxDuration(value)));
+      register("duration", new PropertyParser.String<>((bb, value) -> bb.singleConstantRatePhase().duration(Util.parseToMillis(value))));
+      register("maxDuration", new PropertyParser.String<>((bb, value) -> bb.singleConstantRatePhase().maxDuration(Util.parseToMillis(value))));
       register("maxSessions", new PropertyParser.Int<>((bb, value) -> bb.singleConstantRatePhase().maxSessions(value)));
       register("scenario", (ctx, target) -> new ScenarioParser().parse(ctx, target.singleConstantRatePhase().scenario()));
       register("staircase", new StaircaseParser());

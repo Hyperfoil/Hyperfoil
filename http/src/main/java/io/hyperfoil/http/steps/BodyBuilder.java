@@ -11,6 +11,7 @@ import io.hyperfoil.core.generators.Pattern;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.util.ConstantBytesGenerator;
 import io.hyperfoil.core.util.FromVarBytesGenerator;
+import io.hyperfoil.core.util.Util;
 
 /**
  * Allows building HTTP request body from session variables.
@@ -83,7 +84,7 @@ public class BodyBuilder {
             if (inputStream == null) {
                throw new BenchmarkDefinitionException("Cannot load file `" + path + "` for randomItem (not found).");
             }
-            byte[] bytes = io.hyperfoil.util.Util.toByteArray(inputStream);
+            byte[] bytes = Util.toByteArray(inputStream);
             return new ConstantBytesGenerator(bytes);
          } catch (IOException e) {
             throw new BenchmarkDefinitionException("Cannot load file `" + path + "` for randomItem.", e);

@@ -30,10 +30,10 @@ import io.hyperfoil.core.impl.LocalBenchmarkData;
 import io.hyperfoil.core.parser.BenchmarkParser;
 import io.hyperfoil.core.parser.ParserException;
 import io.hyperfoil.core.print.YamlVisitor;
+import io.hyperfoil.core.util.Util;
 import io.hyperfoil.function.SerializableSupplier;
 import io.hyperfoil.http.config.HttpBuilder;
 import io.hyperfoil.http.config.HttpPluginBuilder;
-import io.hyperfoil.util.Util;
 
 @RunWith(Parameterized.class)
 public class ValidateExampleTest {

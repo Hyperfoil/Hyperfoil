@@ -1,15 +1,20 @@
-package io.hyperfoil.api.config;
+package io.hyperfoil.core.builders;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 
-import io.hyperfoil.util.Util;
+import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.api.config.MappingListBuilder;
+import io.hyperfoil.api.config.PairBuilder;
+import io.hyperfoil.api.config.Rewritable;
+import io.hyperfoil.core.util.Util;
 
 /**
  * Defines a Service Level Agreement (SLA) - conditions that must hold for benchmark to be deemed successful.
  */
 public class SLABuilder<P> implements Rewritable<SLABuilder<P>> {
+   public static final SLA[] DEFAULT = new SLA[]{ new SLABuilder<>(null).build() };
    private final P parent;
    private long window = -1;
    private double errorRatio = 1.01; // 101% of errors allowed

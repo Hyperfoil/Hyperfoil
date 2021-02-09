@@ -11,8 +11,8 @@ import org.junit.runner.RunWith;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
+import io.hyperfoil.core.util.Util;
 import io.hyperfoil.http.HttpScenarioTest;
-import io.hyperfoil.util.Util;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 

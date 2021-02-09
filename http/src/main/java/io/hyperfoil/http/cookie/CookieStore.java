@@ -1,9 +1,9 @@
 package io.hyperfoil.http.cookie;
 
+import io.hyperfoil.core.util.Util;
 import io.hyperfoil.http.api.HttpRequestWriter;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.http.HttpUtil;
-import io.hyperfoil.util.Util;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.util.AsciiString;
 import io.vertx.core.logging.Logger;

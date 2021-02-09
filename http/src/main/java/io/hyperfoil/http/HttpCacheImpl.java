@@ -11,14 +11,14 @@ import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.hyperfoil.http.api.HttpRequest;
-import io.hyperfoil.http.api.HttpRequestWriter;
-import io.hyperfoil.http.api.CacheControl;
 import io.hyperfoil.api.session.Session;
+import io.hyperfoil.core.util.Trie;
+import io.hyperfoil.core.util.Util;
+import io.hyperfoil.http.api.CacheControl;
 import io.hyperfoil.http.api.HttpCache;
 import io.hyperfoil.http.api.HttpMethod;
-import io.hyperfoil.core.util.Trie;
-import io.hyperfoil.util.Util;
+import io.hyperfoil.http.api.HttpRequest;
+import io.hyperfoil.http.api.HttpRequestWriter;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.util.AsciiString;
 

@@ -6,7 +6,7 @@ import io.hyperfoil.api.config.PhaseBuilder;
 import io.hyperfoil.api.config.PhaseReference;
 import io.hyperfoil.api.config.RelativeIteration;
 import io.hyperfoil.api.config.ScenarioBuilder;
-import io.hyperfoil.util.Util;
+import io.hyperfoil.core.util.Util;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 

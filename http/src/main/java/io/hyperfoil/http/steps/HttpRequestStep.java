@@ -13,13 +13,14 @@ import org.kohsuke.MetaInfServices;
 import io.hyperfoil.api.BenchmarkExecutionException;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BuilderBase;
+import io.hyperfoil.core.util.Util;
 import io.hyperfoil.http.config.Http;
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.PhaseBuilder;
-import io.hyperfoil.api.config.SLA;
-import io.hyperfoil.api.config.SLABuilder;
+import io.hyperfoil.core.builders.SLA;
+import io.hyperfoil.core.builders.SLABuilder;
 import io.hyperfoil.api.config.ScenarioBuilder;
 import io.hyperfoil.api.config.SequenceBuilder;
 import io.hyperfoil.api.config.StepBuilder;
@@ -563,7 +564,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
        * @return Self.
        */
       public Builder timeout(String timeout) {
-         return timeout(io.hyperfoil.util.Util.parseToMillis(timeout), TimeUnit.MILLISECONDS);
+         return timeout(Util.parseToMillis(timeout), TimeUnit.MILLISECONDS);
       }
 
       /**
@@ -728,7 +729,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
                this.headerAppenders.isEmpty() ? null :
                      this.headerAppenders.stream().map(Supplier::get).toArray(SerializableBiConsumer[]::new);
 
-         SLA[] sla = this.sla != null ? this.sla.build() : SLA.DEFAULT;
+         SLA[] sla = this.sla != null ? this.sla.build() : SLABuilder.DEFAULT;
          SerializableBiFunction<Session, Connection, ByteBuf> bodyGenerator = this.body != null ? this.body.build() : null;
 
          HttpRequestStep step = new HttpRequestStep(stepId, method.build(), authority, pathGenerator, bodyGenerator, headerAppenders, injectHostHeader, metricSelector, timeout, handler.build(), sla);

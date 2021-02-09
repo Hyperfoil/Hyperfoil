@@ -23,10 +23,10 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-
-import io.hyperfoil.util.Util;
 
 /**
  * A benchmark is a collection of simulation, user,
@@ -73,7 +73,12 @@ public class Benchmark implements Serializable {
       this.triggerUrl = triggerUrl;
       this.preHooks = preHooks;
       this.postHooks = postHooks;
-      this.version = Util.randomUUID().toString();
+      this.version = randomUUID().toString();
+   }
+
+   private static UUID randomUUID() {
+      ThreadLocalRandom random = ThreadLocalRandom.current();
+      return new UUID(random.nextLong(), random.nextLong());
    }
 
    public String name() {

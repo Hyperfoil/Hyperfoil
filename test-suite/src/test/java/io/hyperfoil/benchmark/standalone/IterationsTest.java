@@ -13,7 +13,7 @@ import io.hyperfoil.benchmark.BaseBenchmarkTest;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
 import io.hyperfoil.core.parser.BenchmarkParser;
 import io.hyperfoil.core.parser.ParserException;
-import io.hyperfoil.util.Util;
+import io.hyperfoil.core.util.Util;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 
 @RunWith(VertxUnitRunner.class)

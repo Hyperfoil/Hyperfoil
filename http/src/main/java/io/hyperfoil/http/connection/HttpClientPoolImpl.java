@@ -30,12 +30,12 @@ import javax.net.ssl.TrustManagerFactory;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.core.util.Util;
 import io.hyperfoil.http.config.Http;
 import io.hyperfoil.http.api.HttpVersion;
 import io.hyperfoil.http.api.HttpClientPool;
 import io.hyperfoil.http.api.HttpConnection;
 import io.hyperfoil.http.api.HttpConnectionPool;
-import io.hyperfoil.util.Util;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelOption;

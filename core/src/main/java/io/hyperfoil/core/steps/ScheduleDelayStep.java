@@ -21,6 +21,7 @@ import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.core.builders.BaseStepBuilder;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.util.Unique;
+import io.hyperfoil.core.util.Util;
 import io.hyperfoil.function.SerializableToLongFunction;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -137,7 +138,7 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
        * @return Self.
        */
       public Builder duration(String duration) {
-         this.duration = io.hyperfoil.util.Util.parseToMillis(duration);
+         this.duration = Util.parseToMillis(duration);
          return this;
       }
 
@@ -184,7 +185,7 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
        * @return Self.
        */
       public Builder min(String min) {
-         this.min = io.hyperfoil.util.Util.parseToMillis(min);
+         this.min = Util.parseToMillis(min);
          return this;
       }
 
@@ -200,7 +201,7 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
        * @return Self.
        */
       public Builder max(String max) {
-         this.max = io.hyperfoil.util.Util.parseToMillis(max);
+         this.max = Util.parseToMillis(max);
          return this;
       }
 

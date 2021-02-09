@@ -17,7 +17,7 @@ import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
-import io.hyperfoil.util.Util;
+import io.hyperfoil.core.util.Util;
 
 public class RandomFileStep implements Step, ResourceUtilizer {
    private final WeightedGenerator generator;

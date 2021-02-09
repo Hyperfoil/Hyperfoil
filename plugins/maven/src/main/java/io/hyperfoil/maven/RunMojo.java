@@ -90,7 +90,7 @@ public class RunMojo extends AbstractMojo {
          log.error("Could not find benchmark configuration");
 
       try {
-         String source = io.hyperfoil.util.Util.toString(inputStream);
+         String source = Util.toString(inputStream);
          Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(source, new LocalBenchmarkData(path));
 
          if (benchmark == null)

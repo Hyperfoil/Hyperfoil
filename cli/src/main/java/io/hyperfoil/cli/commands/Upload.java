@@ -14,6 +14,7 @@ import org.aesh.io.Resource;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.cli.CliUtil;
 import io.hyperfoil.cli.context.HyperfoilCliContext;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.client.RestClientException;
@@ -35,8 +36,8 @@ public class Upload extends ServerCommand {
       HyperfoilCliContext ctx = invocation.context();
       Benchmark benchmark;
       try {
-         Resource sanitizedResource = io.hyperfoil.cli.Util.sanitize(benchmarkResource);
-         benchmark = BenchmarkParser.instance().buildBenchmark(io.hyperfoil.util.Util.toString(sanitizedResource.read()), new LocalBenchmarkData(Paths.get(sanitizedResource.getAbsolutePath())));
+         Resource sanitizedResource = CliUtil.sanitize(benchmarkResource);
+         benchmark = BenchmarkParser.instance().buildBenchmark(Util.toString(sanitizedResource.read()), new LocalBenchmarkData(Paths.get(sanitizedResource.getAbsolutePath())));
       } catch (ParserException | BenchmarkDefinitionException e) {
          invocation.error(e);
          throw new CommandException("Failed to parse the benchmark.", e);
@@ -48,7 +49,7 @@ public class Upload extends ServerCommand {
       // Note: we are loading and serializing the benchmark here just to fail fast - actual upload
       // will be done in text+binary form to avoid the pain with syncing client and server
       try {
-         io.hyperfoil.util.Util.serialize(benchmark);
+         Util.serialize(benchmark);
       } catch (IOException e) {
          invocation.error("Failed to serialize the benchmark: " + Util.explainCauses(e));
       }

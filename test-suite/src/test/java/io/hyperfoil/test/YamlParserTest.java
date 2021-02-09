@@ -22,6 +22,7 @@ import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.Step;
+import io.hyperfoil.core.util.Util;
 import io.hyperfoil.http.api.StatusHandler;
 import io.hyperfoil.http.config.HttpPluginConfig;
 import io.hyperfoil.http.handlers.RangeStatusValidator;
@@ -33,7 +34,6 @@ import io.hyperfoil.core.steps.ScheduleDelayStep;
 import io.hyperfoil.core.test.TestUtil;
 import io.hyperfoil.http.steps.HttpRequestStep;
 import io.hyperfoil.http.steps.HttpRequestStepUtil;
-import io.hyperfoil.util.Util;
 
 import org.assertj.core.api.Condition;
 import org.junit.Assert;

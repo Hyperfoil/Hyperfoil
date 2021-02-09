@@ -19,6 +19,7 @@ import io.hyperfoil.core.impl.statistics.StatisticsCollector;
 import io.hyperfoil.core.parser.BenchmarkParser;
 import io.hyperfoil.core.parser.ParserException;
 import io.hyperfoil.core.test.TestUtil;
+import io.hyperfoil.core.util.Util;
 import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -58,7 +59,7 @@ public abstract class BaseScenarioTest {
          InputStream config = getClass().getClassLoader().getResourceAsStream(name);
          Benchmark benchmark = loadBenchmark(config);
          // Serialization here is solely for the purpose of asserting serializability for all the components
-         byte[] bytes = io.hyperfoil.util.Util.serialize(benchmark);
+         byte[] bytes = Util.serialize(benchmark);
          assertThat(bytes).isNotNull();
          return benchmark;
       } catch (IOException | ParserException e) {

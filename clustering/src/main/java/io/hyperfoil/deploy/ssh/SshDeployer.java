@@ -2,6 +2,7 @@ package io.hyperfoil.deploy.ssh;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
@@ -20,11 +21,11 @@ import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.Agent;
 import io.hyperfoil.api.config.Benchmark;
+import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.deployment.DeployedAgent;
 import io.hyperfoil.api.deployment.Deployer;
 import io.hyperfoil.api.deployment.DeploymentException;
 import io.hyperfoil.internal.Controller;
-import io.hyperfoil.util.Util;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
@@ -54,8 +55,12 @@ public class SshDeployer implements Deployer {
       int port = -1;
       String dir = null, extras = null;
       if (agent.inlineConfig != null) {
-         // This 'url' is missing protocol spec so it will default to http - we'll just ignore that
-         URL url = Util.parseURL(agent.inlineConfig);
+         URL url;
+         try {
+            url = new URL(agent.inlineConfig);
+         } catch (MalformedURLException e) {
+            throw new BenchmarkDefinitionException("Failed to parse host:port", e);
+         }
          hostname = url.getHost();
          port = url.getPort();
          username = url.getUserInfo();

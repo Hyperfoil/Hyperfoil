@@ -52,7 +52,7 @@ public class ClusterTestCase extends BaseClusteredTest {
                .endHttp()
             .endPlugin()
             .addPhase("test").always(agents)
-               .duration("5s")
+               .duration(5000)
                .scenario()
                   .initialSequence("test")
                      .step(SC).httpRequest(HttpMethod.GET)

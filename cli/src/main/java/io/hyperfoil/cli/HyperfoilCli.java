@@ -48,6 +48,7 @@ import io.hyperfoil.cli.context.HyperfoilCliContext;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocationProvider;
 import io.hyperfoil.cli.context.HyperfoilCompleterData;
+import io.hyperfoil.core.util.Util;
 
 import org.aesh.AeshConsoleRunner;
 import org.aesh.command.activator.CommandActivator;
@@ -164,7 +165,7 @@ public class HyperfoilCli {
          Process start = new ProcessBuilder("oc", "get", "route", "-A", "-l", "hyperfoil", "-o", "jsonpath={range .items[*]}{.spec.tls.termination}:{.status.ingress[0].host} ").start();
          openshiftPorts = CompletableFuture.supplyAsync(() -> {
             try {
-               return Stream.of(io.hyperfoil.util.Util.toString(start.getInputStream()).split("[ \\n\\t]+"))
+               return Stream.of(Util.toString(start.getInputStream()).split("[ \\n\\t]+"))
                      .map(endpoint -> {
                         int index = endpoint.indexOf(':');
                         String prefix = index == 0 ? "http://" : "https://";
@@ -178,7 +179,7 @@ public class HyperfoilCli {
          openshiftPorts = CompletableFuture.completedFuture(Collections.emptyList());
       }
       return openshiftPorts.thenApply(list -> {
-         if (Util.isPortListening("localhost", 8090)) {
+         if (CliUtil.isPortListening("localhost", 8090)) {
             ArrayList<String> copy = new ArrayList<>(list);
             copy.add("localhost:8090");
             return copy;

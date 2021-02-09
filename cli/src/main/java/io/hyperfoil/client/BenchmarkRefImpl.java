@@ -11,7 +11,7 @@ import java.util.concurrent.CompletionException;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.controller.Client;
-import io.hyperfoil.util.Util;
+import io.hyperfoil.core.util.Util;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;

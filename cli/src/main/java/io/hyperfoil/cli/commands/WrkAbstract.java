@@ -235,7 +235,7 @@ public abstract class WrkAbstract {
          addPhase(builder, "calibration", "6s");
          // We can start only after calibration has full completed because otherwise some sessions
          // would not have connection available from the beginning.
-         addPhase(builder, "test", duration).startAfterStrict("calibration").maxDuration(duration);
+         addPhase(builder, "test", duration).startAfterStrict("calibration").maxDuration(Util.parseToMillis(duration));
 
          RestClient client = invocation.context().client();
          if (client == null) {
@@ -285,7 +285,7 @@ public abstract class WrkAbstract {
          String[][] parsedHeaders = this.parsedHeaders;
          // @formatter:off
          return phaseConfig(benchmarkBuilder.addPhase(phase))
-                 .duration(duration)
+                 .duration(Util.parseToMillis(duration))
                  .scenario()
                   .initialSequence("request")
                      .step(SC).httpRequest(HttpMethod.GET)
