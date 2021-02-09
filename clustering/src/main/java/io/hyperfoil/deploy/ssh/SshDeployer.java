@@ -57,7 +57,8 @@ public class SshDeployer implements Deployer {
       if (agent.inlineConfig != null) {
          URL url;
          try {
-            url = new URL(agent.inlineConfig);
+            // the scheme will be later ignored
+            url = new URL("http://" + agent.inlineConfig);
          } catch (MalformedURLException e) {
             throw new BenchmarkDefinitionException("Failed to parse host:port", e);
          }
