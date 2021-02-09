@@ -24,11 +24,11 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -44,9 +44,7 @@ public class BenchmarkBuilder {
    private String name;
    private Map<String, String> defaultAgentProperties = Collections.emptyMap();
    private Collection<Agent> agents = new ArrayList<>();
-   private ErgonomicsBuilder ergonomics = new ErgonomicsBuilder(this);
-   private HttpBuilder defaultHttp;
-   private List<HttpBuilder> httpList = new ArrayList<>();
+   private Map<Class<? extends PluginBuilder>, PluginBuilder> plugins = new HashMap<>();
    private int threads = 1;
    private Map<String, PhaseBuilder<?>> phaseBuilders = new HashMap<>();
    private long statisticsCollectionPeriod = 1000;
@@ -56,18 +54,6 @@ public class BenchmarkBuilder {
 
    public static Collection<PhaseBuilder<?>> phasesForTesting(BenchmarkBuilder builder) {
       return builder.phaseBuilders.values();
-   }
-
-   public static Collection<HttpBuilder> httpForTesting(BenchmarkBuilder builder) {
-      if (builder.defaultHttp == null) {
-         return Collections.unmodifiableList(builder.httpList);
-      } else if (builder.httpList.isEmpty()) {
-         return Collections.singletonList(builder.defaultHttp);
-      } else {
-         ArrayList<HttpBuilder> list = new ArrayList<>(builder.httpList);
-         list.add(builder.defaultHttp);
-         return list;
-      }
    }
 
    public BenchmarkBuilder(String originalSource, BenchmarkData data) {
@@ -99,23 +85,6 @@ public class BenchmarkBuilder {
 
    int numAgents() {
       return agents.size();
-   }
-
-   public ErgonomicsBuilder ergonomics() {
-      return ergonomics;
-   }
-
-   public HttpBuilder http() {
-      if (defaultHttp == null) {
-         defaultHttp = new HttpBuilder(this);
-      }
-      return defaultHttp;
-   }
-
-   public HttpBuilder http(String host) {
-      HttpBuilder builder = new HttpBuilder(this).host(host);
-      httpList.add(builder);
-      return builder;
    }
 
    public BenchmarkBuilder threads(int threads) {
@@ -154,35 +123,13 @@ public class BenchmarkBuilder {
    }
 
    public void prepareBuild() {
-      if (defaultHttp == null) {
-         if (httpList.isEmpty()) {
-            // may be removed in the future when we define more than HTTP connections
-            throw new BenchmarkDefinitionException("No default HTTP target set!");
-         } else if (httpList.size() == 1) {
-            defaultHttp = httpList.iterator().next();
-         }
-      } else {
-         if (httpList.stream().anyMatch(http -> http.authority().equals(defaultHttp.authority()))) {
-            throw new BenchmarkDefinitionException("Ambiguous HTTP definition for "
-                  + defaultHttp.authority() + ": defined both as default and non-default");
-         }
-         httpList.add(defaultHttp);
-      }
-      HashSet<String> authorities = new HashSet<>();
-      for (HttpBuilder http : httpList) {
-         if (!authorities.add(http.authority())) {
-            throw new BenchmarkDefinitionException("Duplicit HTTP definition for " + http.authority());
-         }
-      }
-      httpList.forEach(HttpBuilder::prepareBuild);
+      plugins.values().forEach(PluginBuilder::prepareBuild);
       phaseBuilders.values().forEach(PhaseBuilder::prepareBuild);
    }
 
    public Benchmark build() {
       prepareBuild();
       FutureSupplier<Benchmark> bs = new FutureSupplier<>();
-      Map<String, Http> httpMap = httpList.stream()
-            .collect(Collectors.toMap(HttpBuilder::authority, http -> http.build(http == defaultHttp)));
 
       AtomicInteger phaseIdCounter = new AtomicInteger(0);
       Map<String, Phase> phases = phaseBuilders.values().stream()
@@ -194,11 +141,7 @@ public class BenchmarkBuilder {
          checkDeadlock(phase, phases);
       }
       Map<String, Object> tags = new HashMap<>();
-      if (defaultHttp != null) {
-         Http defaultHttp = this.defaultHttp.build(true);
-         tags.put("url", defaultHttp.protocol().scheme + "://" + defaultHttp.host() + ":" + defaultHttp.port());
-         tags.put("protocol", defaultHttp.protocol().scheme);
-      }
+      plugins.values().forEach(builder -> builder.addTags(tags));
       tags.put("threads", threads);
 
       // It is important to gather files only after all other potentially file-reading builders
@@ -210,8 +153,10 @@ public class BenchmarkBuilder {
          properties.putAll(a.properties);
          return new Agent(a.name, a.inlineConfig, properties);
       }).toArray(Agent[]::new);
-      Benchmark benchmark = new Benchmark(name, originalSource, files, agents, threads, ergonomics.build(),
-            httpMap, new ArrayList<>(phases.values()), tags, statisticsCollectionPeriod, triggerUrl, preHooks, postHooks);
+      Map<Class<? extends PluginConfig>, PluginConfig> plugins = this.plugins.values().stream()
+            .map(PluginBuilder::build).collect(Collectors.toMap(PluginConfig::getClass, Function.identity()));
+      Benchmark benchmark = new Benchmark(name, originalSource, files, agents, threads, plugins,
+            new ArrayList<>(phases.values()), tags, statisticsCollectionPeriod, triggerUrl, preHooks, postHooks);
       bs.set(benchmark);
       return benchmark;
    }
@@ -265,21 +210,6 @@ public class BenchmarkBuilder {
       return this;
    }
 
-   public boolean validateAuthority(String authority) {
-      return authority == null && defaultHttp != null || httpList.stream().anyMatch(http -> http.authority().equals(authority));
-   }
-
-   public HttpBuilder decoupledHttp() {
-      return new HttpBuilder(this);
-   }
-
-   public void addHttp(HttpBuilder builder) {
-      if (builder.authority() == null) {
-         throw new BenchmarkDefinitionException("Missing hostname!");
-      }
-      httpList.add(builder);
-   }
-
    public BenchmarkData data() {
       return data;
    }
@@ -292,5 +222,19 @@ public class BenchmarkBuilder {
    public BenchmarkBuilder setDefaultAgentProperties(Map<String, String> properties) {
       this.defaultAgentProperties = properties;
       return this;
+   }
+
+   @SuppressWarnings("unchecked")
+   public <T extends PluginBuilder<?>> T plugin(Class<T> clz) {
+      return (T) plugins.get(clz);
+   }
+
+   public <P extends PluginBuilder<?>> P addPlugin(Function<BenchmarkBuilder, P> ctor) {
+      P plugin = ctor.apply(this);
+      PluginBuilder<?> prev = plugins.putIfAbsent(plugin.getClass(), plugin);
+      if (prev != null) {
+         throw new BenchmarkDefinitionException("Adding the same plugin twice! " + plugin.getClass().getName());
+      }
+      return plugin;
    }
 }

@@ -1,6 +1,5 @@
 package io.hyperfoil.core.session;
 
-import java.time.Clock;
 import java.util.Collections;
 
 import io.hyperfoil.api.config.Benchmark;
@@ -17,30 +16,21 @@ import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.impl.PhaseInstanceImpl;
 
 public final class SessionFactory {
-   private static final Clock DEFAULT_CLOCK = Clock.systemDefaultZone();
    private static final SpecialAccess[] SPECIAL = new SpecialAccess[]{
          new SpecialAccess.Int("hyperfoil.phase.iteration", s -> s.phase().iteration)
    };
 
    public static Session create(Scenario scenario, int agentId, int executorId, int uniqueId) {
-      return new SessionImpl(scenario, agentId, executorId, uniqueId, DEFAULT_CLOCK);
+      return new SessionImpl(scenario, agentId, executorId, uniqueId);
    }
 
    public static Session forTesting() {
-      return forTesting(Clock.systemDefaultZone());
+      return forTesting(new String[0], new String[0]);
    }
 
    public static Session forTesting(String[] objectVars, String[] intVars) {
-      return forTesting(Clock.systemDefaultZone(), objectVars, intVars);
-   }
-
-   public static Session forTesting(Clock clock) {
-      return forTesting(clock, new String[0], new String[0]);
-   }
-
-   public static Session forTesting(Clock clock, String[] objectVars, String[] intVars) {
       Scenario dummyScenario = new Scenario(new Sequence[0], new Sequence[0], objectVars, intVars, 16, 16);
-      SessionImpl session = new SessionImpl(dummyScenario, 0, 0, 0, clock);
+      SessionImpl session = new SessionImpl(dummyScenario, 0, 0, 0);
       Phase dummyPhase = new Phase(() -> Benchmark.forTesting(), 0, 0, "dummy", dummyScenario, 0,
             Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), 0, -1, null) {
          @Override
@@ -57,7 +47,7 @@ public final class SessionFactory {
          public void reserveSessions() {
          }
       });
-      session.attach(ImmediateEventExecutor.INSTANCE, null, null, null);
+      session.attach(ImmediateEventExecutor.INSTANCE, null, null);
       session.reserve(dummyScenario);
       return session;
    }

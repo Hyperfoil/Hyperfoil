@@ -2,7 +2,9 @@ package io.hyperfoil.api.config;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.ServiceLoader;
 import java.util.stream.Collectors;
@@ -10,17 +12,13 @@ import java.util.stream.Collectors;
 import io.hyperfoil.impl.StepCatalogFactory;
 
 public abstract class BaseSequenceBuilder implements Rewritable<BaseSequenceBuilder> {
-   private static final StepCatalogFactory sdf;
+   private static final Map<Class<? extends Step.Catalog>, StepCatalogFactory> factories = new HashMap<>();
 
    protected final BaseSequenceBuilder parent;
    protected final List<StepBuilder<?>> steps = new ArrayList<>();
 
    static {
-      StepCatalogFactory singleSdf = null;
-      for (StepCatalogFactory sdf : ServiceLoader.load(StepCatalogFactory.class)) {
-         singleSdf = sdf;
-      }
-      sdf = singleSdf;
+      ServiceLoader.load(StepCatalogFactory.class).forEach(factory -> factories.put(factory.clazz(), factory));
    }
 
    public BaseSequenceBuilder(BaseSequenceBuilder parent) {
@@ -28,10 +26,11 @@ public abstract class BaseSequenceBuilder implements Rewritable<BaseSequenceBuil
    }
 
    public <D extends Step.Catalog> D step(Class<D> catalogClass) {
-      if (sdf == null) {
+      StepCatalogFactory factory = factories.get(catalogClass);
+      if (factory == null) {
          throw new IllegalStateException("Cannot load step catalog");
       }
-      Step.Catalog catalog = sdf.create(this);
+      Step.Catalog catalog = factory.create(this);
       if (catalogClass.isInstance(catalog)) {
          return catalogClass.cast(catalog);
       } else {

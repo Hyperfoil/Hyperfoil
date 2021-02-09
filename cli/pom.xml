@@ -39,6 +39,11 @@
 
         <dependency>
             <groupId>io.hyperfoil</groupId>
+            <artifactId>hyperfoil-http</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.hyperfoil</groupId>
             <artifactId>hyperfoil-controller-api</artifactId>
         </dependency>
 

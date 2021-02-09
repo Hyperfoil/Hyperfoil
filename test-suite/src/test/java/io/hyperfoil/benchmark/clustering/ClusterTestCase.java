@@ -1,7 +1,9 @@
 package io.hyperfoil.benchmark.clustering;
 
+import io.hyperfoil.api.config.BenchmarkBuilder;
+import io.hyperfoil.http.api.HttpMethod;
+import io.hyperfoil.http.config.HttpPluginBuilder;
 import io.hyperfoil.test.Benchmark;
-import io.hyperfoil.test.TestBenchmarks;
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
@@ -20,7 +22,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.util.concurrent.TimeUnit;
 
+import static io.hyperfoil.http.steps.HttpStepCatalog.SC;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.asynchttpclient.Dsl.asyncHttpClient;
 
@@ -33,6 +37,39 @@ public class ClusterTestCase extends BaseClusteredTest {
 
    private static final String CONTROLLER_URL = "http://localhost:8090";
    private static final int AGENTS = 2;
+
+   public static io.hyperfoil.api.config.Benchmark testBenchmark(int agents, int port) {
+      BenchmarkBuilder benchmarkBuilder = BenchmarkBuilder.builder().name("test");
+      for (int i = 0; i < agents; ++i) {
+         benchmarkBuilder.addAgent("agent" + i, "localhost", null);
+      }
+      // @formatter:off
+      benchmarkBuilder
+            .addPlugin(HttpPluginBuilder::new)
+               .http()
+                  .host("localhost").port(port)
+                  .sharedConnections(10)
+               .endHttp()
+            .endPlugin()
+            .addPhase("test").always(agents)
+               .duration("5s")
+               .scenario()
+                  .initialSequence("test")
+                     .step(SC).httpRequest(HttpMethod.GET)
+                        .path("test")
+                        .sla().addItem()
+                           .meanResponseTime(10, TimeUnit.MILLISECONDS)
+                           .limits().add(0.99, TimeUnit.MILLISECONDS.toNanos(100)).end()
+                           .errorRatio(0.02)
+                           .window(3000, TimeUnit.MILLISECONDS)
+                        .endSLA().endList()
+                     .endStep()
+                  .endSequence()
+               .endScenario()
+            .endPhase();
+      // @formatter:on
+      return benchmarkBuilder.build();
+   }
 
    @Override
    protected Handler<HttpServerRequest> getRequestHandler() {
@@ -59,7 +96,7 @@ public class ClusterTestCase extends BaseClusteredTest {
          asyncHttpClient
                .preparePost(CONTROLLER_URL + "/benchmark")
                .setHeader(HttpHeaders.CONTENT_TYPE, "application/java-serialized-object")
-               .setBody(serialize(TestBenchmarks.testBenchmark(AGENTS, httpServer.actualPort())))
+               .setBody(serialize(testBenchmark(AGENTS, httpServer.actualPort())))
                .execute()
                .toCompletableFuture()
                .thenAccept(response -> {

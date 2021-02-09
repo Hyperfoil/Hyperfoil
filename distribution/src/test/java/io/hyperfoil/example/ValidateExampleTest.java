@@ -22,7 +22,6 @@ import org.junit.runners.Parameterized;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkBuilder;
-import io.hyperfoil.api.config.HttpBuilder;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.config.PhaseBuilder;
 import io.hyperfoil.api.config.PhaseForkBuilder;
@@ -32,6 +31,8 @@ import io.hyperfoil.core.parser.BenchmarkParser;
 import io.hyperfoil.core.parser.ParserException;
 import io.hyperfoil.core.print.YamlVisitor;
 import io.hyperfoil.function.SerializableSupplier;
+import io.hyperfoil.http.config.HttpBuilder;
+import io.hyperfoil.http.config.HttpPluginBuilder;
 import io.hyperfoil.util.Util;
 
 @RunWith(Parameterized.class)
@@ -77,10 +78,11 @@ public class ValidateExampleTest {
          String source = Util.toString(loadOrFail());
          BenchmarkBuilder original = BenchmarkParser.instance().builder(source, new LocalBenchmarkData(Paths.get(exampleFile)));
          BenchmarkBuilder builder = new BenchmarkBuilder(null, new LocalBenchmarkData(Paths.get(exampleFile)));
-         BenchmarkBuilder.httpForTesting(original).forEach(http -> {
-            HttpBuilder newHttp = builder.decoupledHttp();
+         HttpPluginBuilder plugin = builder.addPlugin(HttpPluginBuilder::new);
+         HttpPluginBuilder.httpForTesting(original).forEach(http -> {
+            HttpBuilder newHttp = plugin.decoupledHttp();
             newHttp.readFrom(http);
-            builder.addHttp(newHttp);
+            plugin.addHttp(newHttp);
          });
          builder.prepareBuild();
          for (PhaseBuilder<?> phase : BenchmarkBuilder.phasesForTesting(original)) {

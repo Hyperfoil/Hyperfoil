@@ -1,0 +1,34 @@
+package io.hyperfoil.http.api;
+
+import java.util.Collection;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
+
+import io.hyperfoil.api.connection.Connection;
+import io.netty.buffer.ByteBuf;
+import io.netty.channel.EventLoop;
+import io.hyperfoil.api.session.Session;
+
+public interface HttpConnectionPool {
+   HttpClientPool clientPool();
+
+   boolean request(HttpRequest request,
+                   BiConsumer<Session, HttpRequestWriter>[] headerAppenders,
+                   boolean injectHostHeader,
+                   BiFunction<Session, Connection, ByteBuf> bodyGenerator,
+                   boolean reserveConnection);
+
+   void registerWaitingSession(Session session);
+
+   int waitingSessions();
+
+   EventLoop executor();
+
+   void pulse();
+
+   Collection<? extends HttpConnection> connections();
+
+   void release(HttpConnection connection);
+
+   void onSessionReset();
+}

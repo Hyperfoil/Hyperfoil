@@ -2,7 +2,7 @@ package io.hyperfoil.core.parser;
 
 import java.util.function.Function;
 
-class Adapter<A, B> implements Parser<A> {
+public class Adapter<A, B> implements Parser<A> {
    private final Function<A, B> adapter;
    private final Parser<B> parser;
 

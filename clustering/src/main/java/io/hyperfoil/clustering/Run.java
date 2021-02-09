@@ -8,7 +8,7 @@ import java.util.Map;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.Phase;
-import io.hyperfoil.core.impl.statistics.StatisticsStore;
+import io.hyperfoil.controller.StatisticsStore;
 import io.hyperfoil.core.util.Util;
 import io.vertx.core.Promise;
 

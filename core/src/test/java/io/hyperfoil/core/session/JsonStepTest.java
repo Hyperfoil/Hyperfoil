@@ -14,10 +14,6 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
 
 @RunWith(VertxUnitRunner.class)
 public class JsonStepTest extends BaseScenarioTest {
-   @Override
-   protected void initRouter() {
-   }
-
    @Test
    public void test() {
       scenario()

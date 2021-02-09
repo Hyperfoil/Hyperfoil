@@ -1,6 +1,6 @@
 package io.hyperfoil.benchmark.standalone;
 
-import static io.hyperfoil.core.builders.StepCatalog.SC;
+import static io.hyperfoil.http.steps.HttpStepCatalog.SC;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -15,13 +15,14 @@ import org.junit.runner.RunWith;
 
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.Locator;
-import io.hyperfoil.api.http.HttpMethod;
+import io.hyperfoil.http.api.HttpMethod;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.benchmark.BaseBenchmarkTest;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.util.RandomConcurrentSet;
 import io.hyperfoil.core.test.TestUtil;
+import io.hyperfoil.http.config.HttpPluginBuilder;
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.unit.TestContext;
@@ -100,13 +101,15 @@ public class TwoScenariosTest extends BaseBenchmarkTest {
       // @formatter:off
       BenchmarkBuilder benchmark = BenchmarkBuilder.builder()
             .name("Test Benchmark")
-            .ergonomics()
-               .stopOnInvalid(false)
-            .endErgonomics()
-            .http()
-               .host("localhost").port(httpServer.actualPort())
-               .sharedConnections(10)
-            .endHttp()
+            .addPlugin(HttpPluginBuilder::new)
+               .ergonomics()
+                  .stopOnInvalid(false)
+               .endErgonomics()
+               .http()
+                  .host("localhost").port(httpServer.actualPort())
+                  .sharedConnections(10)
+               .endHttp()
+            .endPlugin()
             .addPhase("rig").constantRate(3)
                .duration(5000)
                .maxDuration(10000)

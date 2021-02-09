@@ -20,29 +20,30 @@
 
 package io.hyperfoil.benchmark.standalone;
 
-import io.hyperfoil.api.config.Benchmark;
-import io.hyperfoil.api.config.BenchmarkData;
-import io.hyperfoil.api.http.HttpMethod;
-import io.hyperfoil.api.config.BenchmarkBuilder;
-import io.hyperfoil.benchmark.BaseBenchmarkTest;
-import io.hyperfoil.core.handlers.TransferSizeRecorder;
-import io.hyperfoil.core.impl.LocalSimulationRunner;
-import io.vertx.core.Handler;
-import io.vertx.core.http.HttpServerRequest;
-import io.vertx.ext.unit.TestContext;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
+import static io.hyperfoil.http.steps.HttpStepCatalog.SC;
+import static org.junit.Assert.assertEquals;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.concurrent.atomic.AtomicLong;
-
-import static io.hyperfoil.core.builders.StepCatalog.SC;
-import static org.junit.Assert.assertEquals;
+import io.hyperfoil.api.config.Benchmark;
+import io.hyperfoil.api.config.BenchmarkBuilder;
+import io.hyperfoil.api.config.BenchmarkData;
+import io.hyperfoil.benchmark.BaseBenchmarkTest;
+import io.hyperfoil.core.handlers.TransferSizeRecorder;
+import io.hyperfoil.core.impl.LocalSimulationRunner;
+import io.hyperfoil.http.api.HttpMethod;
+import io.hyperfoil.http.config.HttpPluginBuilder;
+import io.vertx.core.Handler;
+import io.vertx.core.http.HttpServerRequest;
+import io.vertx.ext.unit.TestContext;
+import io.vertx.ext.unit.junit.VertxUnitRunner;
 
 /**
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
@@ -72,10 +73,10 @@ public class RequestResponseCounterTest extends BaseBenchmarkTest {
       BenchmarkBuilder builder =
             new BenchmarkBuilder(null, BenchmarkData.EMPTY)
                   .name("requestResponseCounter " + new SimpleDateFormat("YY/MM/dd HH:mm:ss").format(new Date()))
-                  .http()
+                  .addPlugin(HttpPluginBuilder::new).http()
                      .host("localhost").port(httpServer.actualPort())
                      .sharedConnections(50)
-                  .endHttp()
+                  .endHttp().endPlugin()
                   .threads(2);
 
       builder.addPhase("run").constantRate(500)

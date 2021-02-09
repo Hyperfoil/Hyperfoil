@@ -18,6 +18,6 @@
  */
 package io.hyperfoil.core.parser;
 
-interface Parser<T> {
+public interface Parser<T> {
    void parse(Context ctx, T target) throws ParserException;
 }

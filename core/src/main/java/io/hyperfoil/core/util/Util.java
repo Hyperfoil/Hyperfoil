@@ -197,7 +197,8 @@ public class Util {
          StringBuilder sb = new StringBuilder("[");
          sb.append((char) HEX[(bytes[0] >> 4)]);
          sb.append((char) HEX[(bytes[0] & 0xF)]);
-         for (int i = 1; i < 32; ++i) {
+         int length = Math.min(32, bytes.length);
+         for (int i = 1; i < length; ++i) {
             sb.append(", ");
             sb.append((char) HEX[(bytes[i] >> 4)]);
             sb.append((char) HEX[(bytes[i] & 0xF)]);

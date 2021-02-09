@@ -13,7 +13,7 @@ import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.session.PhaseInstance;
 import io.hyperfoil.core.impl.statistics.StatisticsCollector;
 
-public class LocalSimulationRunner extends SimulationRunnerImpl {
+public class LocalSimulationRunner extends SimulationRunner {
    private final StatisticsCollector.StatisticsConsumer statsConsumer;
    private final SessionStatsConsumer sessionPoolStatsConsumer;
    private final Lock statusLock = new ReentrantLock();

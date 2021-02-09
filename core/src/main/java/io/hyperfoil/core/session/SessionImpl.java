@@ -1,21 +1,16 @@
 package io.hyperfoil.core.session;
 
 import io.hyperfoil.api.config.Benchmark;
-import io.hyperfoil.api.connection.HttpDestinationTable;
-import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.connection.Request;
-import io.hyperfoil.api.http.HttpCache;
 import io.hyperfoil.api.session.SessionStopException;
 import io.hyperfoil.api.session.SharedData;
 import io.hyperfoil.api.statistics.SessionStatistics;
-import io.hyperfoil.core.http.HttpCacheImpl;
 import io.hyperfoil.core.util.Util;
 import io.netty.util.concurrent.EventExecutor;
 import io.hyperfoil.api.collection.LimitedPool;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.config.Scenario;
 import io.hyperfoil.api.config.Sequence;
-import io.hyperfoil.api.connection.HttpConnectionPool;
 import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.statistics.Statistics;
@@ -23,7 +18,6 @@ import io.hyperfoil.api.session.PhaseInstance;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-import java.time.Clock;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
@@ -44,9 +38,6 @@ class SessionImpl implements Session {
    private final List<Var> allVars = new ArrayList<>();
    private final List<Resource> allResources = new ArrayList<>();
    private final LimitedPool<SequenceInstance> sequencePool;
-   private final LimitedPool<HttpRequest> requestPool;
-   private final HttpRequest[] requests;
-   private final HttpCacheImpl httpCache;
    private final SequenceInstance[] runningSequences;
    private final BitSet usedSequences;
    private final Consumer<SequenceInstance> releaseSequence = this::releaseSequence;
@@ -56,7 +47,6 @@ class SessionImpl implements Session {
    private Request currentRequest;
    private boolean scheduled;
 
-   private HttpDestinationTable httpDestinations;
    private EventExecutor executor;
    private SharedData sharedData;
    private SessionStatistics statistics;
@@ -67,19 +57,13 @@ class SessionImpl implements Session {
 
    private final Callable<Void> deferredStart = this::deferredStart;
 
-   SessionImpl(Scenario scenario, int agentId, int threadId, int uniqueId, Clock clock) {
+   SessionImpl(Scenario scenario, int agentId, int threadId, int uniqueId) {
       this.sequencePool = new LimitedPool<>(scenario.maxSequences(), SequenceInstance::new);
       this.agentId = agentId;
       this.threadId = threadId;
-      this.requests = new HttpRequest[scenario.maxRequests()];
-      for (int i = 0; i < requests.length; ++i) {
-         this.requests[i] = new HttpRequest(this);
-      }
-      this.requestPool = new LimitedPool<>(this.requests);
       this.runningSequences = new SequenceInstance[scenario.maxSequences()];
       this.usedSequences = new BitSet(scenario.sumConcurrency());
       this.uniqueId = uniqueId;
-      this.httpCache = new HttpCacheImpl(clock);
    }
 
    @Override
@@ -130,16 +114,6 @@ class SessionImpl implements Session {
    @Override
    public int agentId() {
       return agentId;
-   }
-
-   @Override
-   public HttpConnectionPool httpConnectionPool(String authority) {
-      return httpDestinations.getConnectionPool(authority);
-   }
-
-   @Override
-   public HttpDestinationTable httpDestinations() {
-      return httpDestinations;
    }
 
    @Override
@@ -243,6 +217,15 @@ class SessionImpl implements Session {
          resources.put(key, resource);
          allResources.add(resource);
       }
+   }
+
+   @Override
+   public <R extends Resource> void declareSingletonResource(ResourceKey<R> key, R resource) {
+      if (resources.containsKey(key)) {
+         return;
+      }
+      resources.put(key, resource);
+      allResources.add(resource);
    }
 
    @SuppressWarnings("unchecked")
@@ -363,18 +346,6 @@ class SessionImpl implements Session {
       if (trace) {
          log.trace("#{} Session finished", uniqueId);
       }
-      if (!requestPool.isFull()) {
-         // We can't guarantee that requests will be back in session's requestPool when it terminates
-         // because if the requests did timeout (calling handlers and eventually letting the session terminate)
-         // it might still be held in the connection.
-         for (HttpRequest request : requests) {
-            if (!request.isCompleted()) {
-               log.warn("#{} Session completed with requests in-flight!", uniqueId);
-               break;
-            }
-         }
-         cancelRequests();
-      }
       reset();
       phase.notifyFinished(this);
    }
@@ -384,36 +355,6 @@ class SessionImpl implements Session {
       sequencePool.release(sequence);
    }
 
-   private void cancelRequests() {
-      // We need to close all connections used to ongoing requests, despite these might
-      // carry requests from independent phases/sessions
-      if (!requestPool.isFull()) {
-         for (HttpRequest request : requests) {
-            if (!request.isCompleted()) {
-               // When one of the handlers calls Session.stop() it may terminate the phase completely,
-               // sending stats before recording the invalid request in HttpResponseHandlersImpl.handleEnd().
-               // That's why we record it here instead and mark the request as completed (to recording the stats twice)
-               if (!request.isValid()) {
-                  request.statistics().addInvalid(request.startTimestampMillis());
-               }
-               if (trace) {
-                  log.trace("Canceling request on {}", request.connection());
-               }
-               request.setCompleting();
-               if (request.connection() != null) {
-                  request.connection().close();
-               }
-               if (!request.isCompleted()) {
-                  // Connection.close() cancels everything in flight but if this is called
-                  // from handleEnd() the request is not in flight anymore
-                  log.trace("#{} Connection close did not complete the request.", request.session != null ? request.session.uniqueId() : 0);
-                  request.setCompleted();
-                  request.release();
-               }
-            }
-         }
-      }
-   }
 
    @Override
    public void currentSequence(SequenceInstance current) {
@@ -428,11 +369,10 @@ class SessionImpl implements Session {
    }
 
    @Override
-   public void attach(EventExecutor executor, SharedData sharedData, HttpDestinationTable httpDestinations, SessionStatistics statistics) {
+   public void attach(EventExecutor executor, SharedData sharedData, SessionStatistics statistics) {
       assert this.executor == null;
       this.executor = executor;
       this.sharedData = sharedData;
-      this.httpDestinations = httpDestinations;
       this.statistics = statistics;
    }
 
@@ -546,9 +486,6 @@ class SessionImpl implements Session {
 
    @Override
    public void reset() {
-      assert usedSequences.isEmpty();
-      assert sequencePool.isFull();
-      assert requestPool.isFull();
       for (int i = 0; i < allVars.size(); ++i) {
          allVars.get(i).unset();
       }
@@ -556,8 +493,8 @@ class SessionImpl implements Session {
          Resource r = allResources.get(i);
          r.onSessionReset(this);
       }
-      httpCache.clear();
-      httpDestinations.onSessionReset();
+      assert usedSequences.isEmpty();
+      assert sequencePool.isFull();
    }
 
    public void resetPhase(PhaseInstance newPhase) {
@@ -583,7 +520,6 @@ class SessionImpl implements Session {
       if (trace) {
          log.trace("#{} Session stopped.", uniqueId);
       }
-      cancelRequests();
       reset();
       phase.notifyFinished(this);
       throw SessionStopException.INSTANCE;
@@ -601,16 +537,6 @@ class SessionImpl implements Session {
    @Override
    public boolean isActive() {
       return lastRunningSequence >= 0;
-   }
-
-   @Override
-   public LimitedPool<HttpRequest> httpRequestPool() {
-      return requestPool;
-   }
-
-   @Override
-   public HttpCache httpCache() {
-      return httpCache;
    }
 
    @Override

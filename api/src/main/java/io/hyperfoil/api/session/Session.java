@@ -6,14 +6,9 @@ import java.util.function.Supplier;
 
 import io.hyperfoil.api.config.Scenario;
 import io.hyperfoil.api.config.Sequence;
-import io.hyperfoil.api.connection.HttpDestinationTable;
-import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.connection.Request;
-import io.hyperfoil.api.http.HttpCache;
 import io.hyperfoil.api.statistics.SessionStatistics;
 import io.netty.util.concurrent.EventExecutor;
-import io.hyperfoil.api.collection.LimitedPool;
-import io.hyperfoil.api.connection.HttpConnectionPool;
 import io.hyperfoil.api.statistics.Statistics;
 import io.hyperfoil.api.config.Phase;
 
@@ -35,11 +30,6 @@ public interface Session extends Callable<Void> {
    int globalThreads();
 
    int agentId();
-
-   /// Common utility objects
-   HttpConnectionPool httpConnectionPool(String authority);
-
-   HttpDestinationTable httpDestinations();
 
    EventExecutor executor();
 
@@ -77,6 +67,8 @@ public interface Session extends Callable<Void> {
     */
    <R extends Session.Resource> void declareResource(ResourceKey<R> key, Supplier<R> resourceSupplier, boolean singleton);
 
+   <R extends Session.Resource> void declareSingletonResource(ResourceKey<R> key, R resource);
+
    <R extends Session.Resource> R getResource(ResourceKey<R> key);
 
    // Sequence related methods
@@ -84,7 +76,7 @@ public interface Session extends Callable<Void> {
 
    SequenceInstance currentSequence();
 
-   void attach(EventExecutor executor, SharedData sharedData, HttpDestinationTable httpDestinations, SessionStatistics statistics);
+   void attach(EventExecutor executor, SharedData sharedData, SessionStatistics statistics);
 
    void start(PhaseInstance phase);
 
@@ -102,10 +94,6 @@ public interface Session extends Callable<Void> {
    void fail(Throwable t);
 
    boolean isActive();
-
-   LimitedPool<HttpRequest> httpRequestPool();
-
-   HttpCache httpCache();
 
    /**
     * @return Currently executed request, or <code>null</code> if not in scope.

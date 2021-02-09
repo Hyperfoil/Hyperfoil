@@ -8,7 +8,6 @@ import org.kohsuke.MetaInfServices;
 import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.config.StepBuilder;
-import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.generators.RandomCsvRowStep;
@@ -16,15 +15,12 @@ import io.hyperfoil.core.generators.RandomIntStep;
 import io.hyperfoil.core.generators.RandomItemStep;
 import io.hyperfoil.core.generators.TemplateStep;
 import io.hyperfoil.core.session.SessionFactory;
-import io.hyperfoil.core.steps.AwaitAllResponsesStep;
 import io.hyperfoil.core.steps.AwaitConditionStep;
 import io.hyperfoil.core.steps.AwaitDelayStep;
 import io.hyperfoil.core.steps.AwaitIntStep;
 import io.hyperfoil.core.steps.AwaitVarStep;
 import io.hyperfoil.core.steps.BreakSequenceStep;
-import io.hyperfoil.core.steps.ClearHttpCacheAction;
 import io.hyperfoil.core.steps.ForeachStep;
-import io.hyperfoil.core.steps.HttpRequestStep;
 import io.hyperfoil.core.steps.JsonStep;
 import io.hyperfoil.core.steps.LogStep;
 import io.hyperfoil.core.steps.LoopStep;
@@ -45,9 +41,9 @@ import io.hyperfoil.impl.StepCatalogFactory;
 public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.Owner<StepBuilder> {
    public static Class<StepCatalog> SC = StepCatalog.class;
 
-   private final BaseSequenceBuilder parent;
+   protected final BaseSequenceBuilder parent;
 
-   StepCatalog(BaseSequenceBuilder parent) {
+   protected StepCatalog(BaseSequenceBuilder parent) {
       this.parent = parent;
    }
 
@@ -85,36 +81,6 @@ public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.O
     */
    public BaseSequenceBuilder stop() {
       return parent.step(new StopStep());
-   }
-
-   // requests
-
-   /**
-    * Issue a HTTP request.
-    *
-    * @param method HTTP method.
-    * @return Builder.
-    */
-   public HttpRequestStep.Builder httpRequest(HttpMethod method) {
-      return new HttpRequestStep.Builder().addTo(parent).method(method);
-   }
-
-   /**
-    * Block current sequence until all requests receive the response.
-    *
-    * @return This sequence.
-    */
-   public BaseSequenceBuilder awaitAllResponses() {
-      return parent.step(new AwaitAllResponsesStep());
-   }
-
-   /**
-    * Drop all entries from HTTP cache in the session.
-    *
-    * @return This sequence.
-    */
-   public BaseSequenceBuilder clearHttpCache() {
-      return parent.step(new StepBuilder.ActionStep(new ClearHttpCacheAction()));
    }
 
    // timing
@@ -291,6 +257,11 @@ public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.O
 
    @MetaInfServices(StepCatalogFactory.class)
    public static class Factory implements StepCatalogFactory {
+      @Override
+      public Class<? extends Step.Catalog> clazz() {
+         return StepCatalog.class;
+      }
+
       @Override
       public Step.Catalog create(BaseSequenceBuilder sequenceBuilder) {
          return new StepCatalog(sequenceBuilder);

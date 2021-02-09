@@ -18,6 +18,7 @@
  */
 package io.hyperfoil.core.parser;
 
+import io.hyperfoil.core.api.Plugin;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.BenchmarkData;
@@ -40,6 +41,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
 import java.util.Iterator;
+import java.util.ServiceLoader;
 
 public class BenchmarkParser extends AbstractMappingParser<BenchmarkBuilder> {
    private static final Logger log = LoggerFactory.getLogger(BenchmarkParser.class);
@@ -55,7 +57,6 @@ public class BenchmarkParser extends AbstractMappingParser<BenchmarkBuilder> {
       register("name", new PropertyParser.String<>(BenchmarkBuilder::name));
       register("agents", new AgentsParser());
       register("ergonomics", new ErgonomicsParser());
-      register("http", new HttpParser());
       register("phases", new PhasesParser());
       register("threads", new PropertyParser.Int<>(BenchmarkBuilder::threads));
       register("statisticsCollectionPeriod", new PropertyParser.Int<>(BenchmarkBuilder::statisticsCollectionPeriod));
@@ -69,6 +70,7 @@ public class BenchmarkParser extends AbstractMappingParser<BenchmarkBuilder> {
       register("triggerUrl", new PropertyParser.String<>(BenchmarkBuilder::triggerUrl));
       register("pre", new RunHooksParser(BenchmarkBuilder::addPreHook));
       register("post", new RunHooksParser(BenchmarkBuilder::addPostHook));
+      ServiceLoader.load(Plugin.class).forEach(instance -> register(instance.name(), instance.parser()));
    }
 
    private void checkSchema(BenchmarkBuilder builder, String schema) {

@@ -19,7 +19,7 @@ import org.yaml.snakeyaml.events.SequenceStartEvent;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Rewritable;
 
-class Context {
+public class Context {
    private final Map<String, Anchor> anchors = new HashMap<>();
    private final Iterator<Event> events;
    private Event peeked;
@@ -53,7 +53,7 @@ class Context {
    }
 
 
-   boolean hasNext() throws ParserException {
+   public boolean hasNext() throws ParserException {
       try {
          return events.hasNext();
       } catch (org.yaml.snakeyaml.parser.ParserException e) {
@@ -61,7 +61,7 @@ class Context {
       }
    }
 
-   Event next() throws ParserException {
+   public Event next() throws ParserException {
       if (peeked == null) {
          try {
             return events.next();
@@ -75,7 +75,7 @@ class Context {
       }
    }
 
-   Event peek() throws ParserException {
+   public Event peek() throws ParserException {
       if (peeked == null) {
          try {
             peeked = events.next();
@@ -86,13 +86,13 @@ class Context {
       return peeked;
    }
 
-   void consumePeeked(Event event) throws ParserException {
+   public void consumePeeked(Event event) throws ParserException {
       Event peekedEvent = next();
       assert peekedEvent == event;
    }
 
 
-   void setAnchor(Event event, String anchor, Object object) throws ParserException {
+   public void setAnchor(Event event, String anchor, Object object) throws ParserException {
       Objects.requireNonNull(anchor);
       Objects.requireNonNull(object);
       Anchor prev = anchors.putIfAbsent(anchor + ":" + object.getClass().getName(), new Anchor(event, object));
@@ -101,7 +101,7 @@ class Context {
       }
    }
 
-   <T> T getAnchor(Event event, String alias, Class<T> clazz) throws ParserException {
+   public <T> T getAnchor(Event event, String alias, Class<T> clazz) throws ParserException {
       Objects.requireNonNull(alias);
       Anchor anchor = anchors.get(alias + ":" + clazz.getName());
       if (anchor == null) {
@@ -126,7 +126,7 @@ class Context {
       return object;
    }
 
-   <E extends Event> E expectEvent(Class<E> eventClazz) throws ParserException {
+   public <E extends Event> E expectEvent(Class<E> eventClazz) throws ParserException {
       if (hasNext()) {
          Event event = next();
          if (!eventClazz.isInstance(event)) {
@@ -141,16 +141,16 @@ class Context {
    }
 
    @SafeVarargs
-   final ParserException noMoreEvents(Class<? extends Event>... eventClazzes) {
+   public final ParserException noMoreEvents(Class<? extends Event>... eventClazzes) {
       String expected = Stream.of(eventClazzes).map(this::translate).collect(Collectors.joining(", "));
       return new ParserException("Expected one of [" + expected + "] but there are no more events.");
    }
 
-   ParserException unexpectedEvent(Event event) {
+   public ParserException unexpectedEvent(Event event) {
       return new ParserException(event, "Unexpected " + translate(event.getClass()) + ": " + event);
    }
 
-   <LI> void parseList(LI target, Parser<LI> consumer) throws ParserException {
+   public <LI> void parseList(LI target, Parser<LI> consumer) throws ParserException {
       if (!hasNext()) {
          throw noMoreEvents(SequenceStartEvent.class, ScalarEvent.class);
       }
@@ -186,7 +186,7 @@ class Context {
       }
    }
 
-   <A extends Rewritable<A>> void parseAliased(Class<A> aliasType, A target, Parser<A> parser) throws ParserException {
+   public <A extends Rewritable<A>> void parseAliased(Class<A> aliasType, A target, Parser<A> parser) throws ParserException {
       Event event = peek();
       try {
          if (event instanceof MappingStartEvent) {
@@ -208,7 +208,7 @@ class Context {
       }
    }
 
-   <S> void parseMapping(S target, BuilderProvider<S> builderProvider) throws ParserException {
+   public <S> void parseMapping(S target, BuilderProvider<S> builderProvider) throws ParserException {
       expectEvent(MappingStartEvent.class);
       while (hasNext()) {
          Event next = next();
@@ -226,11 +226,11 @@ class Context {
    }
 
 
-   void pushVar(Object var) {
+   public void pushVar(Object var) {
       vars.push(var);
    }
 
-   <T> T popVar(Class<T> clazz) {
+   public <T> T popVar(Class<T> clazz) {
       Object top = vars.peek();
       if (clazz != null && top != null && !clazz.isInstance(top)) {
          throw new IllegalStateException("On the top of the stack is '" + top + "'");
@@ -240,7 +240,7 @@ class Context {
       return popped;
    }
 
-   <T> T peekVar(Class<T> clazz) {
+   public <T> T peekVar(Class<T> clazz) {
       Object top = vars.peek();
       if (clazz != null && top != null && !clazz.isInstance(top)) {
          throw new IllegalStateException("On the top of the stack is '" + top + "'");

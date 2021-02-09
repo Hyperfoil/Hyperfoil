@@ -39,6 +39,11 @@
 
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>hyperfoil-http</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>hyperfoil-k8s-deployer</artifactId>
         </dependency>
 
@@ -185,6 +190,7 @@
                                 <argument>io.hyperfoil.schema.DocsGenerator</argument>
                                 <argument>${project.basedir}/../api/src/main/java/</argument>
                                 <argument>${project.basedir}/../core/src/main/java/</argument>
+                                <argument>${project.basedir}/../http/src/main/java/</argument>
                                 <argument>${project.build.directory}/steps</argument>
                             </arguments>
                         </configuration>

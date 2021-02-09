@@ -53,15 +53,15 @@ import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.RunHook;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.config.StepBuilder;
-import io.hyperfoil.api.connection.HttpRequest;
 import io.hyperfoil.api.connection.Request;
-import io.hyperfoil.api.http.HeaderHandler;
-import io.hyperfoil.api.http.RawBytesHandler;
-import io.hyperfoil.api.http.StatusHandler;
 import io.hyperfoil.api.processor.HttpRequestProcessorBuilder;
 import io.hyperfoil.api.processor.Processor;
+import io.hyperfoil.api.processor.RawBytesHandler;
 import io.hyperfoil.api.processor.RequestProcessorBuilder;
 import io.hyperfoil.api.session.Action;
+import io.hyperfoil.http.api.HeaderHandler;
+import io.hyperfoil.http.api.HttpRequest;
+import io.hyperfoil.http.api.StatusHandler;
 
 @Mojo(name = "skeleton", defaultPhase = LifecyclePhase.GENERATE_SOURCES)
 public class SkeletonMojo extends AbstractMojo {

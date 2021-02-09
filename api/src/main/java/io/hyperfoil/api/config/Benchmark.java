@@ -44,10 +44,8 @@ public class Benchmark implements Serializable {
    private final Agent[] agents;
    private final int defaultThreads;
    private final int totalThreads;
-   private final Ergonomics ergonomics;
-   private final Map<String, Http> http;
-   @Visitor.Ignore
-   private final Http defaultHttp;
+   @Visitor.Invoke(method = "plugins")
+   private final Map<Class<? extends PluginConfig>, PluginConfig> plugins;
    private final Collection<Phase> phases;
    private final Map<String, Object> tags;
    private final long statisticsCollectionPeriod;
@@ -56,21 +54,19 @@ public class Benchmark implements Serializable {
    private final List<RunHook> postHooks;
 
    public static Benchmark forTesting() {
-      return BenchmarkBuilder.builder().http("http://localhost:8080").endHttp().build();
+      return BenchmarkBuilder.builder().build();
    }
 
-   public Benchmark(String name, String originalSource, Map<String, byte[]> files, Agent[] agents, int defaultThreads, Ergonomics ergonomics,
-                    Map<String, Http> http, Collection<Phase> phases,
+   public Benchmark(String name, String originalSource, Map<String, byte[]> files, Agent[] agents, int defaultThreads,
+                    Map<Class<? extends PluginConfig>, PluginConfig> plugins, Collection<Phase> phases,
                     Map<String, Object> tags, long statisticsCollectionPeriod, String triggerUrl, List<RunHook> preHooks, List<RunHook> postHooks) {
       this.name = name;
       this.originalSource = originalSource;
       this.files = files;
       this.agents = agents;
       this.defaultThreads = defaultThreads;
+      this.plugins = plugins;
       this.totalThreads = agents.length == 0 ? defaultThreads : Stream.of(agents).mapToInt(Agent::threads).map(n -> n <= 0 ? defaultThreads : n).sum();
-      this.ergonomics = ergonomics;
-      this.http = http;
-      this.defaultHttp = http.values().stream().filter(Http::isDefault).findFirst().orElse(null);
       this.phases = phases;
       this.tags = tags;
       this.statisticsCollectionPeriod = statisticsCollectionPeriod;
@@ -118,14 +114,6 @@ public class Benchmark implements Serializable {
       return tags;
    }
 
-   public Map<String, Http> http() {
-      return http;
-   }
-
-   public Http defaultHttp() {
-      return defaultHttp;
-   }
-
    public long statisticsCollectionPeriod() {
       return statisticsCollectionPeriod;
    }
@@ -142,17 +130,13 @@ public class Benchmark implements Serializable {
       return postHooks;
    }
 
-   public Ergonomics ergonomics() {
-      return ergonomics;
-   }
-
    @Override
    public String toString() {
       return "Benchmark{name='" + name + '\'' +
             ", originalSource='" + originalSource + '\'' +
             ", agents=" + Arrays.toString(agents) +
             ", threads=" + defaultThreads +
-            ", http=" + http +
+            ", plugins=" + plugins +
             ", phases=" + phases +
             ", tags=" + tags +
             ", statisticsCollectionPeriod=" + statisticsCollectionPeriod +
@@ -197,5 +181,14 @@ public class Benchmark implements Serializable {
 
    public int totalThreads() {
       return totalThreads;
+   }
+
+   @SuppressWarnings("unchecked")
+   public <T extends PluginConfig> T plugin(Class<T> clazz) {
+      return (T) plugins.get(clazz);
+   }
+
+   public Collection<PluginConfig> plugins() {
+      return plugins.values();
    }
 }

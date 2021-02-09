@@ -6,7 +6,7 @@ import org.yaml.snakeyaml.events.Event;
 import org.yaml.snakeyaml.events.MappingStartEvent;
 import org.yaml.snakeyaml.events.ScalarEvent;
 
-class IncrementPropertyParser<T, V> implements Parser<T> {
+public class IncrementPropertyParser<T, V> implements Parser<T> {
    private final IncrementPropertyConsumer<T, V> consumer;
    private final Function<String, V> conversion;
 

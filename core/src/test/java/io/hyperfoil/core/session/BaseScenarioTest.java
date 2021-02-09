@@ -2,42 +2,33 @@ package io.hyperfoil.core.session;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.hyperfoil.api.config.Benchmark;
-import io.hyperfoil.api.config.Protocol;
-import io.hyperfoil.api.statistics.StatisticsSnapshot;
-import io.hyperfoil.api.config.BenchmarkBuilder;
-import io.hyperfoil.api.config.HttpBuilder;
-import io.hyperfoil.api.config.ScenarioBuilder;
-import io.hyperfoil.core.impl.LocalSimulationRunner;
-import io.hyperfoil.core.impl.statistics.StatisticsCollector;
-import io.hyperfoil.core.parser.BenchmarkParser;
-import io.hyperfoil.core.parser.ParserException;
-import io.hyperfoil.core.test.TestUtil;
-import io.hyperfoil.util.Util;
-import io.vertx.core.Vertx;
-import io.vertx.core.http.HttpServer;
-import io.vertx.core.http.HttpServerOptions;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
-import io.vertx.core.net.JksOptions;
-import io.vertx.ext.unit.TestContext;
-import io.vertx.ext.web.Router;
-
-import org.junit.After;
-import org.junit.Before;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.junit.After;
+import org.junit.Before;
+
+import io.hyperfoil.api.config.Benchmark;
+import io.hyperfoil.api.config.BenchmarkBuilder;
+import io.hyperfoil.api.config.ScenarioBuilder;
+import io.hyperfoil.api.statistics.StatisticsSnapshot;
+import io.hyperfoil.core.impl.LocalSimulationRunner;
+import io.hyperfoil.core.impl.statistics.StatisticsCollector;
+import io.hyperfoil.core.parser.BenchmarkParser;
+import io.hyperfoil.core.parser.ParserException;
+import io.hyperfoil.core.test.TestUtil;
+import io.vertx.core.Vertx;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
+import io.vertx.ext.unit.TestContext;
+
 public abstract class BaseScenarioTest {
    protected final Logger log = LoggerFactory.getLogger(getClass());
 
    protected Vertx vertx;
-   protected Router router;
    protected BenchmarkBuilder benchmarkBuilder;
-   protected HttpServer server;
 
    protected Map<String, StatisticsSnapshot> runScenario() {
       return runScenario(benchmarkBuilder.build());
@@ -58,46 +49,14 @@ public abstract class BaseScenarioTest {
    @Before
    public void before(TestContext ctx) {
       benchmarkBuilder = BenchmarkBuilder.builder();
+      benchmarkBuilder.threads(threads());
       vertx = Vertx.vertx();
-      router = Router.router(vertx);
-      initRouter();
-      HttpServerOptions options = new HttpServerOptions();
-      if (useHttps()) {
-         options.setSsl(true).setUseAlpn(true).setKeyStoreOptions(new JksOptions().setPath("keystore.jks").setPassword("test123"));
-      }
-      if (useCompression()) {
-         options.setCompressionSupported(true);
-      }
-      server = vertx.createHttpServer(options).requestHandler(router)
-            .listen(0, "localhost", ctx.asyncAssertSuccess(srv -> initWithServer(ctx)));
-   }
-
-   // override me
-   protected boolean useHttps() {
-      return false;
-   }
-
-   protected boolean useCompression() {
-      return false;
-   }
-
-
-   protected void initWithServer(TestContext ctx) {
-      benchmarkBuilder
-            .threads(threads())
-            .http().protocol(useHttps() ? Protocol.HTTPS : Protocol.HTTP).host("localhost").port(server.actualPort());
-
-      initHttp(benchmarkBuilder.http());
-   }
-
-   protected void initHttp(HttpBuilder http) {
    }
 
    protected Benchmark loadScenario(String name) {
       try {
          InputStream config = getClass().getClassLoader().getResourceAsStream(name);
-         String configString = Util.toString(config).replaceAll("http://localhost:8080", "http://localhost:" + server.actualPort());
-         Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(configString, TestUtil.benchmarkData());
+         Benchmark benchmark = loadBenchmark(config);
          // Serialization here is solely for the purpose of asserting serializability for all the components
          byte[] bytes = io.hyperfoil.util.Util.serialize(benchmark);
          assertThat(bytes).isNotNull();
@@ -107,7 +66,9 @@ public abstract class BaseScenarioTest {
       }
    }
 
-   protected abstract void initRouter();
+   protected Benchmark loadBenchmark(InputStream config) throws IOException, ParserException {
+      return BenchmarkParser.instance().buildBenchmark(config, TestUtil.benchmarkData());
+   }
 
    @After
    public void after(TestContext ctx) {

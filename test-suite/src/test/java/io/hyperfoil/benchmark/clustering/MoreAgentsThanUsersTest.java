@@ -8,11 +8,12 @@ import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 
 import io.hyperfoil.api.config.BenchmarkBuilder;
-import io.hyperfoil.api.http.HttpMethod;
 import io.hyperfoil.client.RestClient;
 import io.hyperfoil.controller.Client;
 import io.hyperfoil.controller.model.Run;
-import io.hyperfoil.core.builders.StepCatalog;
+import io.hyperfoil.http.api.HttpMethod;
+import io.hyperfoil.http.config.HttpPluginBuilder;
+import io.hyperfoil.http.steps.HttpStepCatalog;
 import io.hyperfoil.test.Benchmark;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -35,15 +36,17 @@ public class MoreAgentsThanUsersTest extends BaseClusteredTest {
             .addAgent("a1", "localhost", null)
             .addAgent("a2", "localhost", null)
             .threads(2)
-            .http()
-               .host("localhost").port(httpServer.actualPort())
-               .sharedConnections(4)
-            .endHttp()
+            .addPlugin(HttpPluginBuilder::new)
+               .http()
+                  .host("localhost").port(httpServer.actualPort())
+                  .sharedConnections(4)
+               .endHttp()
+            .endPlugin()
             .addPhase("test").always(1)
             .duration(1000)
             .scenario()
                .initialSequence("test")
-                  .step(StepCatalog.SC).httpRequest(HttpMethod.GET).path("/").endStep()
+                  .step(HttpStepCatalog.SC).httpRequest(HttpMethod.GET).path("/").endStep()
                .endSequence()
             .endScenario()
             .endPhase();

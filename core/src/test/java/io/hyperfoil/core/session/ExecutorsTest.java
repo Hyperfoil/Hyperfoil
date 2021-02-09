@@ -35,10 +35,6 @@ public class ExecutorsTest extends BaseScenarioTest {
    }
 
    @Override
-   protected void initRouter() {
-   }
-
-   @Override
    protected int threads() {
       return CLIENT_THREADS;
    }

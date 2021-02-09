@@ -23,10 +23,10 @@ import java.util.Map;
 
 import org.yaml.snakeyaml.events.ScalarEvent;
 
-abstract class AbstractParser<T, S> implements Parser<T> {
+public abstract class AbstractParser<T, S> implements Parser<T> {
    Map<String, Parser<S>> subBuilders = new HashMap<>();
 
-   void callSubBuilders(Context ctx, S target) throws ParserException {
+   public void callSubBuilders(Context ctx, S target) throws ParserException {
       ctx.parseMapping(target, this::getSubBuilder);
    }
 

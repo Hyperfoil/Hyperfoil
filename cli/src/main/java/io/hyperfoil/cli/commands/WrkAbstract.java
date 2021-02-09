@@ -20,23 +20,19 @@
 
 package io.hyperfoil.cli.commands;
 
-import io.hyperfoil.api.config.BenchmarkBuilder;
-import io.hyperfoil.api.config.BenchmarkData;
-import io.hyperfoil.api.config.PhaseBuilder;
-import io.hyperfoil.api.config.Protocol;
-import io.hyperfoil.api.http.HttpMethod;
-import io.hyperfoil.api.statistics.StatisticsSummary;
-import io.hyperfoil.cli.context.HyperfoilCliContext;
-import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
-import io.hyperfoil.cli.context.HyperfoilCommandInvocationProvider;
-import io.hyperfoil.client.RestClient;
-import io.hyperfoil.controller.Client;
-import io.hyperfoil.controller.HistogramConverter;
-import io.hyperfoil.controller.model.CustomStats;
-import io.hyperfoil.controller.model.RequestStatisticsResponse;
-import io.hyperfoil.controller.model.RequestStats;
-import io.hyperfoil.core.handlers.TransferSizeRecorder;
-import io.hyperfoil.core.util.Util;
+import static io.hyperfoil.http.steps.HttpStepCatalog.SC;
+import static io.vertx.core.logging.LoggerFactory.LOGGER_DELEGATE_FACTORY_CLASS_NAME;
+
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.HdrHistogram.AbstractHistogram;
 import org.HdrHistogram.HistogramIterationValue;
@@ -54,19 +50,24 @@ import org.aesh.command.option.OptionList;
 import org.aesh.terminal.utils.ANSI;
 import org.aesh.terminal.utils.Config;
 
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Handler;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import static io.hyperfoil.core.builders.StepCatalog.SC;
-import static io.vertx.core.logging.LoggerFactory.LOGGER_DELEGATE_FACTORY_CLASS_NAME;
+import io.hyperfoil.api.config.BenchmarkBuilder;
+import io.hyperfoil.api.config.BenchmarkData;
+import io.hyperfoil.api.config.PhaseBuilder;
+import io.hyperfoil.api.statistics.StatisticsSummary;
+import io.hyperfoil.cli.context.HyperfoilCliContext;
+import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
+import io.hyperfoil.cli.context.HyperfoilCommandInvocationProvider;
+import io.hyperfoil.client.RestClient;
+import io.hyperfoil.controller.Client;
+import io.hyperfoil.controller.HistogramConverter;
+import io.hyperfoil.controller.model.CustomStats;
+import io.hyperfoil.controller.model.RequestStatisticsResponse;
+import io.hyperfoil.controller.model.RequestStats;
+import io.hyperfoil.core.handlers.TransferSizeRecorder;
+import io.hyperfoil.core.util.Util;
+import io.hyperfoil.http.api.HttpMethod;
+import io.hyperfoil.http.config.HttpPluginBuilder;
+import io.hyperfoil.http.config.Protocol;
 
 
 public abstract class WrkAbstract {
@@ -203,15 +204,17 @@ public abstract class WrkAbstract {
          // @formatter:off
          BenchmarkBuilder builder = new BenchmarkBuilder(null, BenchmarkData.EMPTY)
                .name(getCommand())
-               .ergonomics()
-                  .repeatCookies(false)
-                  .userAgentFromSession(false)
-               .endErgonomics()
-               .http()
-                  .protocol(protocol).host(uri.getHost()).port(protocol.portOrDefault(uri.getPort()))
-                  .allowHttp2(enableHttp2)
-                  .sharedConnections(connections)
-               .endHttp()
+               .addPlugin(HttpPluginBuilder::new)
+                  .ergonomics()
+                     .repeatCookies(false)
+                     .userAgentFromSession(false)
+                  .endErgonomics()
+                  .http()
+                     .protocol(protocol).host(uri.getHost()).port(protocol.portOrDefault(uri.getPort()))
+                     .allowHttp2(enableHttp2)
+                     .sharedConnections(connections)
+                  .endHttp()
+               .endPlugin()
                .threads(this.threads);
          // @formatter:on
          if (agent != null) {

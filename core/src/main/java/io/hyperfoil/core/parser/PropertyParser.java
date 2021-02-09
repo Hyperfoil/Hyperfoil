@@ -23,13 +23,13 @@ import java.util.function.BiConsumer;
 
 import org.yaml.snakeyaml.events.ScalarEvent;
 
-class PropertyParser {
+public class PropertyParser {
    private PropertyParser() {}
 
-   static class String<T> implements Parser<T> {
+   public static class String<T> implements Parser<T> {
       private final BiConsumer<T, java.lang.String> consumer;
 
-      String(BiConsumer<T, java.lang.String> consumer) {
+      public String(BiConsumer<T, java.lang.String> consumer) {
          this.consumer = consumer;
       }
 
@@ -40,10 +40,10 @@ class PropertyParser {
       }
    }
 
-   static class Int<T> implements Parser<T> {
+   public static class Int<T> implements Parser<T> {
       private final BiConsumer<T, Integer> consumer;
 
-      Int(BiConsumer<T, Integer> consumer) {
+      public Int(BiConsumer<T, Integer> consumer) {
          this.consumer = consumer;
       }
 
@@ -58,10 +58,10 @@ class PropertyParser {
       }
    }
 
-   static class Long<T> implements Parser<T> {
+   public static class Long<T> implements Parser<T> {
       private final BiConsumer<T, java.lang.Long> consumer;
 
-      Long(BiConsumer<T, java.lang.Long> consumer) {
+      public Long(BiConsumer<T, java.lang.Long> consumer) {
          this.consumer = consumer;
       }
 
@@ -76,10 +76,10 @@ class PropertyParser {
       }
    }
 
-   static class Double<T> implements Parser<T> {
+   public static class Double<T> implements Parser<T> {
       private final BiConsumer<T, java.lang.Double> consumer;
 
-      Double(BiConsumer<T, java.lang.Double> consumer) {
+      public Double(BiConsumer<T, java.lang.Double> consumer) {
          this.consumer = consumer;
       }
 
@@ -94,10 +94,10 @@ class PropertyParser {
       }
    }
 
-   static class Boolean<T> implements Parser<T> {
+   public static class Boolean<T> implements Parser<T> {
       private final BiConsumer<T, java.lang.Boolean> consumer;
 
-      Boolean(BiConsumer<T, java.lang.Boolean> consumer) {
+      public Boolean(BiConsumer<T, java.lang.Boolean> consumer) {
          this.consumer = consumer;
       }
 

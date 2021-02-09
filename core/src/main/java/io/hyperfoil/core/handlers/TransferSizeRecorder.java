@@ -3,11 +3,11 @@ package io.hyperfoil.core.handlers;
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.Name;
-import io.netty.buffer.ByteBuf;
 import io.hyperfoil.api.connection.Request;
-import io.hyperfoil.api.http.RawBytesHandler;
+import io.hyperfoil.api.processor.RawBytesHandler;
 import io.hyperfoil.api.statistics.LongValue;
 import io.hyperfoil.api.statistics.Statistics;
+import io.netty.buffer.ByteBuf;
 
 public class TransferSizeRecorder implements RawBytesHandler {
    private final String requestMetric;

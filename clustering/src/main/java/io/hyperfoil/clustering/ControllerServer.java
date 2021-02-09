@@ -37,7 +37,7 @@ import io.hyperfoil.controller.model.CustomStats;
 import io.hyperfoil.controller.model.Histogram;
 import io.hyperfoil.controller.model.RequestStats;
 import io.hyperfoil.controller.router.ApiRouter;
-import io.hyperfoil.core.impl.statistics.StatisticsStore;
+import io.hyperfoil.controller.StatisticsStore;
 import io.hyperfoil.core.parser.BenchmarkParser;
 import io.hyperfoil.core.parser.ParserException;
 import io.hyperfoil.core.print.YamlVisitor;

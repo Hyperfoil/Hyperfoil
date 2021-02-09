@@ -57,6 +57,7 @@
         <module>controller-api</module>
         <module>core</module>
         <module>distribution</module>
+        <module>http</module>
         <module>k8s-deployer</module>
         <module>plugins/codegen</module>
         <module>plugins/maven</module>
@@ -161,6 +162,26 @@
             <dependency>
                 <groupId>io.hyperfoil</groupId>
                 <artifactId>hyperfoil-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.hyperfoil</groupId>
+                <artifactId>hyperfoil-core</artifactId>
+                <type>test-jar</type>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.hyperfoil</groupId>
+                <artifactId>hyperfoil-http</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.hyperfoil</groupId>
+                <artifactId>hyperfoil-http</artifactId>
+                <type>test-jar</type>
                 <version>${project.version}</version>
             </dependency>
 

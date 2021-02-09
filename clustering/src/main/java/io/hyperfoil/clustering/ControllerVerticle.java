@@ -25,9 +25,9 @@ import io.hyperfoil.clustering.messages.SessionStatsMessage;
 import io.hyperfoil.clustering.messages.StatsMessage;
 import io.hyperfoil.clustering.util.PersistenceUtil;
 import io.hyperfoil.core.hooks.ExecRunHook;
-import io.hyperfoil.core.impl.statistics.CsvWriter;
-import io.hyperfoil.core.impl.statistics.JsonWriter;
-import io.hyperfoil.core.impl.statistics.StatisticsStore;
+import io.hyperfoil.controller.CsvWriter;
+import io.hyperfoil.controller.JsonWriter;
+import io.hyperfoil.controller.StatisticsStore;
 import io.hyperfoil.core.util.CountDown;
 import io.hyperfoil.internal.Controller;
 import io.vertx.core.AbstractVerticle;
@@ -320,7 +320,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
          }
       }
       Benchmark benchmark = new Benchmark(info.getString("benchmark", "<unknown>"), null,
-            Collections.emptyMap(), new Agent[0], 0, null, Collections.emptyMap(), Collections.emptyList(),
+            Collections.emptyMap(), new Agent[0], 0, Collections.emptyMap(), Collections.emptyList(),
             Collections.emptyMap(), 0, null, Collections.emptyList(), Collections.emptyList());
       Run run = new Run(runId, runDir, benchmark);
       run.completed = true;

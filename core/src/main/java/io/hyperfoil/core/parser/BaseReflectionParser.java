@@ -33,7 +33,7 @@ import io.hyperfoil.core.builders.ServiceLoadedContract;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 import io.hyperfoil.core.util.Util;
 
-class BaseReflectionParser {
+public class BaseReflectionParser {
 
    protected void invokeWithParameters(Context ctx, Object target, ScalarEvent keyEvent) throws ParserException {
       Event defEvent = ctx.peek();

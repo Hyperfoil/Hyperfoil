@@ -12,7 +12,7 @@ import io.hyperfoil.clustering.messages.AgentHello;
 import io.hyperfoil.clustering.messages.AgentReadyMessage;
 import io.hyperfoil.clustering.messages.ErrorMessage;
 import io.hyperfoil.core.util.CountDown;
-import io.hyperfoil.core.impl.SimulationRunnerImpl;
+import io.hyperfoil.core.impl.SimulationRunner;
 import io.hyperfoil.clustering.messages.PhaseChangeMessage;
 import io.hyperfoil.clustering.messages.PhaseControlMessage;
 import io.hyperfoil.core.util.Util;
@@ -37,7 +37,7 @@ public class AgentVerticle extends AbstractVerticle {
    private String runId;
    private EventBus eb;
 
-   private SimulationRunnerImpl runner;
+   private SimulationRunner runner;
    private MessageConsumer<Object> controlFeedConsumer;
    private long statsTimerId = -1;
    private RequestStatsSender requestStatsSender;
@@ -206,7 +206,7 @@ public class AgentVerticle extends AbstractVerticle {
 
       Context context = vertx.getOrCreateContext();
 
-      runner = new SimulationRunnerImpl(benchmark, agentId);
+      runner = new SimulationRunner(benchmark, agentId);
       controlFeedConsumer = listenOnControl();
       requestStatsSender = new RequestStatsSender(benchmark, eb, deploymentId, runId);
       statisticsCountDown = new CountDown(1);

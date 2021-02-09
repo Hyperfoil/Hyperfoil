@@ -15,16 +15,15 @@ public class InvalidBenchmarkTest {
    @Test
    public void testMissingPhase() {
       thrown.expectMessage(" is not defined");
-      BenchmarkBuilder builder = BenchmarkBuilder.builder().http("http://localhost:8080").endHttp();
+      BenchmarkBuilder builder = BenchmarkBuilder.builder();
       initPhase(builder.addPhase("foo").always(1).startAfter("bar"));
       builder.build();
    }
 
-
    @Test
    public void testDeadlock() {
       thrown.expectMessage("Phase dependencies contain cycle");
-      BenchmarkBuilder builder = BenchmarkBuilder.builder().http("http://localhost:8080").endHttp();
+      BenchmarkBuilder builder = BenchmarkBuilder.builder();
       initPhase(builder.addPhase("foo").always(1).startAfter("bar"));
       initPhase(builder.addPhase("bar").always(1).startAfterStrict("goo"));
       initPhase(builder.addPhase("goo").always(1).startAfter("foo"));
