@@ -31,6 +31,7 @@ public abstract class JsonParser implements Serializable, ResourceUtilizer {
    protected final boolean delete;
    protected final Transformer replace;
    protected final Processor processor;
+   @Visitor.Ignore
    private final JsonParser.Selector[] selectors;
    @Visitor.Ignore
    private final StreamQueue.Consumer<Context, Session> record = JsonParser.this::record;

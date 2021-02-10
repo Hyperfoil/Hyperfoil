@@ -5,47 +5,35 @@ import org.kohsuke.MetaInfServices;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Name;
-import io.hyperfoil.api.processor.Processor;
-import io.hyperfoil.api.processor.RequestProcessorBuilder;
+import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.core.util.Util;
-import io.netty.buffer.ByteBuf;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-public class NewSequenceProcessor implements Processor {
-   private static final Logger log = LoggerFactory.getLogger(NewSequenceProcessor.class);
-   private static final boolean trace = log.isTraceEnabled();
+public class NewSequenceAction implements Action {
+   private static final Logger log = LoggerFactory.getLogger(NewSequenceAction.class);
 
    private final String sequence;
    private final boolean forceSameIndex;
    private final Session.ConcurrencyPolicy policy;
 
-   public NewSequenceProcessor(String sequence, boolean forceSameIndex, Session.ConcurrencyPolicy policy) {
+   public NewSequenceAction(String sequence, boolean forceSameIndex, Session.ConcurrencyPolicy policy) {
       this.sequence = sequence;
       this.forceSameIndex = forceSameIndex;
       this.policy = policy;
    }
 
    @Override
-   public void process(Session session, ByteBuf data, int offset, int length, boolean isLastPart) {
-      if (!isLastPart) {
-         return;
-      }
-      if (trace) {
-         String value = Util.toString(data, offset, length);
-         log.trace("#{}, Creating new sequence {}, value (possibly incomplete) {}", session.uniqueId(),
-               sequence, value);
-      }
+   public void run(Session session) {
       session.startSequence(sequence, forceSameIndex, policy);
    }
 
    /**
-    * Instantiates a sequence for each invocation. The sequences will have increasing sequence ID.
+    * Instantiates a sequence for each invocation.
     */
-   @MetaInfServices(RequestProcessorBuilder.class)
+   @MetaInfServices(Action.Builder.class)
    @Name("newSequence")
-   public static class Builder implements RequestProcessorBuilder, InitFromParam<Builder> {
+   public static class Builder implements Action.Builder, InitFromParam<Builder> {
       private String sequence;
       private boolean forceSameIndex;
       private Session.ConcurrencyPolicy policy = Session.ConcurrencyPolicy.FAIL;
@@ -66,6 +54,7 @@ public class NewSequenceProcessor implements Processor {
        * @return Self.
        */
       @Deprecated
+      @SuppressWarnings("unused")
       public Builder maxSequences(int maxSequences) {
          log.warn("Property nextSequence.maxSequences is deprecated. Use concurrency setting in target sequence instead.");
          return this;
@@ -78,6 +67,7 @@ public class NewSequenceProcessor implements Processor {
        * @return Self.
        */
       @Deprecated
+      @SuppressWarnings("unused")
       public Builder counterVar(String counterVar) {
          log.warn("Property nextSequence.maxSequences is deprecated. Counters are held internally.");
          return this;
@@ -119,11 +109,11 @@ public class NewSequenceProcessor implements Processor {
       }
 
       @Override
-      public NewSequenceProcessor build(boolean fragmented) {
+      public NewSequenceAction build() {
          if (sequence == null) {
             throw new BenchmarkDefinitionException("Undefined sequence template");
          }
-         return new NewSequenceProcessor(sequence, forceSameIndex, policy);
+         return new NewSequenceAction(sequence, forceSameIndex, policy);
       }
    }
 }
