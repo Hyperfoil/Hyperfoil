@@ -66,6 +66,7 @@ public abstract class HttpScenarioTest extends BaseScenarioTest {
 
    protected abstract void initRouter();
 
+   @Override
    protected Benchmark loadBenchmark(InputStream config) throws IOException, ParserException {
       String configString = Util.toString(config).replaceAll("http://localhost:8080", "http://localhost:" + server.actualPort());
       Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(configString, TestUtil.benchmarkData());

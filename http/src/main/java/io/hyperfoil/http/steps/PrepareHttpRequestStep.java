@@ -7,8 +7,8 @@ import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.statistics.Statistics;
+import io.hyperfoil.core.metric.MetricSelector;
 import io.hyperfoil.core.steps.StatisticsStep;
-import io.hyperfoil.function.SerializableBiFunction;
 import io.hyperfoil.function.SerializableFunction;
 import io.hyperfoil.http.HttpRequestPool;
 import io.hyperfoil.http.HttpUtil;
@@ -26,14 +26,14 @@ public class PrepareHttpRequestStep extends StatisticsStep implements ResourceUt
    final SerializableFunction<Session, HttpMethod> method;
    final SerializableFunction<Session, String> authority;
    final SerializableFunction<Session, String> pathGenerator;
-   final SerializableBiFunction<String, String, String> metricSelector;
+   final MetricSelector metricSelector;
    final HttpResponseHandlersImpl handler;
 
    public PrepareHttpRequestStep(int stepId, HttpRequestContext.Key contextKey,
                                  SerializableFunction<Session, HttpMethod> method,
                                  SerializableFunction<Session, String> authority,
                                  SerializableFunction<Session, String> pathGenerator,
-                                 SerializableBiFunction<String, String, String> metricSelector,
+                                 MetricSelector metricSelector,
                                  HttpResponseHandlersImpl handler) {
       super(stepId);
       this.contextKey = contextKey;

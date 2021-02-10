@@ -10,7 +10,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
-import io.hyperfoil.core.steps.PathMetricSelector;
+import io.hyperfoil.core.metric.PathMetricSelector;
 import io.hyperfoil.http.HttpScenarioTest;
 import io.hyperfoil.http.api.HttpMethod;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
