@@ -17,7 +17,7 @@ public abstract class StatisticsStep implements Step {
 
    protected StatisticsStep(int id) {
       if (id < 0) {
-         throw new IllegalArgumentException();
+         throw new IllegalArgumentException("id cannot be less than 0");
       }
       this.id = id;
    }

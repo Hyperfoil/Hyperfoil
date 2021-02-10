@@ -36,9 +36,11 @@ import io.hyperfoil.core.generators.StringGeneratorBuilder;
 import io.hyperfoil.core.generators.StringGeneratorImplBuilder;
 import io.hyperfoil.core.handlers.GzipInflatorProcessor;
 import io.hyperfoil.core.handlers.StoreProcessor;
+import io.hyperfoil.core.metric.MetricSelector;
+import io.hyperfoil.core.metric.ProvidedMetricSelector;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.steps.DelaySessionStartStep;
-import io.hyperfoil.core.steps.PathMetricSelector;
+import io.hyperfoil.core.metric.PathMetricSelector;
 import io.hyperfoil.core.steps.StatisticsStep;
 import io.hyperfoil.core.util.DoubleIncrementBuilder;
 import io.hyperfoil.core.util.Unique;
@@ -77,7 +79,7 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
    private BodyGeneratorBuilder body;
    private final List<Supplier<SerializableBiConsumer<Session, HttpRequestWriter>>> headerAppenders = new ArrayList<>();
    private boolean injectHostHeader = true;
-   private SerializableBiFunction<String, String, String> metricSelector;
+   private MetricSelector metricSelector;
    private long timeout = Long.MIN_VALUE;
    private final HttpResponseHandlersImpl.Builder handler = new HttpResponseHandlersImpl.Builder(this);
    private boolean sync = true;
@@ -422,7 +424,7 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
       return metric(new ProvidedMetricSelector(name));
    }
 
-   public HttpRequestStepBuilder metric(SerializableBiFunction<String, String, String> selector) {
+   public HttpRequestStepBuilder metric(MetricSelector selector) {
       this.metricSelector = selector;
       return this;
    }
@@ -601,19 +603,6 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
 
    public interface BodyGeneratorBuilder extends BuilderBase<BodyGeneratorBuilder> {
       SerializableBiFunction<Session, Connection, ByteBuf> build();
-   }
-
-   private static class ProvidedMetricSelector implements SerializableBiFunction<String, String, String> {
-      private final String name;
-
-      private ProvidedMetricSelector(String name) {
-         this.name = name;
-      }
-
-      @Override
-      public String apply(String authority, String path) {
-         return name;
-      }
    }
 
    private static class PrefixMetricSelector implements SerializableBiFunction<String, String, String> {

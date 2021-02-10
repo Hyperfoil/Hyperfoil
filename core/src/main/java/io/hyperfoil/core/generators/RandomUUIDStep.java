@@ -36,7 +36,7 @@ public class RandomUUIDStep implements Step, ResourceUtilizer {
    }
 
    /**
-    * Stores random string into session variable based on the generator.
+    * Stores random string into session variable based on the UUID generator.
     */
    @MetaInfServices(StepBuilder.class)
    @Name("randomUUID")
