@@ -73,6 +73,10 @@ public class SequenceInstance {
       return currentStep >= steps.length;
    }
 
+   public boolean isLastStep() {
+      return currentStep == steps.length - 1;
+   }
+
    public int index() {
       return index;
    }

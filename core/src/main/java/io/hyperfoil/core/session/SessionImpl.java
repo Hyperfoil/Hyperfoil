@@ -417,11 +417,12 @@ class SessionImpl implements Session {
       // Lookup first unused index
       for (; ; ) {
          if (sequence.concurrency() == 0) {
-            if (index > 1) {
+            if (index >= 1) {
                log.error("Cannot start sequence {} as it has already started and it is not marked as concurrent", sequence.name());
                if (sequence == currentSequence.definition()) {
                   log.info("Hint: maybe you intended only to restart the current sequence?");
                }
+               sequencePool.release(instance);
                fail(new IllegalStateException("Sequence is not concurrent"));
             }
          } else if (index >= sequence.concurrency()) {

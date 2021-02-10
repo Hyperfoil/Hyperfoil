@@ -9,6 +9,7 @@ import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.config.StepBuilder;
+import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.api.session.Session;
 
 public class NextSequenceStep implements Step {
@@ -20,7 +21,12 @@ public class NextSequenceStep implements Step {
 
    @Override
    public boolean invoke(Session session) {
-      session.startSequence(name, false, Session.ConcurrencyPolicy.FAIL);
+      SequenceInstance sequence = session.currentSequence();
+      if (sequence.definition().name().equals(name) && sequence.isLastStep()) {
+         sequence.restart(session);
+      } else {
+         session.startSequence(name, false, Session.ConcurrencyPolicy.FAIL);
+      }
       return true;
    }
 
