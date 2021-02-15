@@ -85,22 +85,22 @@ public class Report extends BaseRunIdCommand {
       File destination = new File(this.destination);
       if (destination.exists()) {
          if (destination.isFile()) {
-            invocation.print("File " + destination + " already exists, overwrite? [y/N]: ");
-            boolean overwrite = false;
-            try {
-               String confirmation = invocation.getShell().readLine();
-               switch (confirmation.trim().toLowerCase()) {
-                  case "y":
-                  case "yes":
-                     overwrite = true;
-                     break;
-               }
-            } catch (InterruptedException e) {
-               // ignore
-            }
-            if (!overwrite) {
-               invocation.println("Cancelled. You can change destination file with '-d /path/to/reporth.html'");
+            if (!askForOverwrite(invocation, destination)) {
+               invocation.println("Cancelled. You can change destination file with '-d /path/to/report.html'");
                return CommandResult.SUCCESS;
+            }
+         } else if (destination.isDirectory()) {
+            destination = destination.toPath().resolve(runRef.id() + ".html").toFile();
+            if (destination.exists()) {
+               if (destination.isFile()) {
+                  if (!askForOverwrite(invocation, destination)) {
+                     invocation.println("Cancelled. You can change destination file with '-d /path/to/report.html'");
+                     return CommandResult.SUCCESS;
+                  }
+               } else if (destination.isDirectory()) {
+                  invocation.println("Both " + this.destination + " and " + destination + " are directories. Please use another path.");
+                  return CommandResult.SUCCESS;
+               }
             }
          }
       }
@@ -109,8 +109,28 @@ public class Report extends BaseRunIdCommand {
       } catch (IOException e) {
          throw new CommandException("Cannot write to '" + destination.toString() + "': ", e);
       }
-      openInBrowser("file://" + destination.toString());
+      invocation.println("Written to " + destination);
+      if (!"true".equalsIgnoreCase(System.getenv("HYPERFOIL_CONTAINER"))) {
+         openInBrowser("file://" + destination.toString());
+      }
       return CommandResult.SUCCESS;
+   }
+
+   private boolean askForOverwrite(HyperfoilCommandInvocation invocation, File destination) {
+      invocation.print("File " + destination + " already exists, overwrite? [y/N]: ");
+      boolean overwrite = false;
+      try {
+         String confirmation = invocation.getShell().readLine();
+         switch (confirmation.trim().toLowerCase()) {
+            case "y":
+            case "yes":
+               overwrite = true;
+               break;
+         }
+      } catch (InterruptedException e) {
+         // ignore
+      }
+      return overwrite;
    }
 
    private String fetchTemplate(HyperfoilCommandInvocation invocation) {
