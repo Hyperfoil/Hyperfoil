@@ -15,10 +15,7 @@
     <div id="result"><input id="command" type="text" autofocus/></div>
     <div id="upload">
         <label id="upload-benchmark-label" for="upload-benchmark" class="hfbutton">Select benchmark file</label>
-        <input id="upload-benchmark" type="file" class="hidden-upload" onchange="showUploadExtrasAndSubmit()" />
-        <label id="upload-files-label" style="display: none" for="upload-files" class="hfbutton">Select extra files</label>
-        <input id="upload-files" type="file" multiple class="hidden-upload" onchange="uploadBenchmark()"/>
-        <input id="upload-submit" style="display: none" type="button" class="hfbutton" value="Upload" onclick="uploadBenchmark()"/>
+        <input id="upload-benchmark" type="file" class="hidden-upload" onchange="sendBenchmarkForFiles()" />
     </div>
     <div id="pager" style="visibility: hidden">
         <input id="pager-close" type="button" class="hfbutton" value="Close" onclick="stopPaging()"/>

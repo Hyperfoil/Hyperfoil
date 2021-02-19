@@ -1,10 +1,5 @@
 package io.hyperfoil.clustering.webcli;
 
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
 import org.aesh.command.CommandDefinition;
@@ -12,7 +7,6 @@ import org.aesh.command.CommandException;
 import org.aesh.command.CommandResult;
 
 import io.hyperfoil.api.config.Benchmark;
-import io.hyperfoil.api.config.BenchmarkData;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.cli.commands.BaseEditCommand;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
@@ -78,13 +72,13 @@ public class WebEdit extends BaseEditCommand {
       synchronized (context) {
          latch = context.latch = new CountDownLatch(1);
       }
-      invocation.println("__HYPERFOIL_EDIT_COMPLETE_MAGIC__");
+      invocation.println("__HYPERFOIL_BENCHMARK_FILE_LIST__");
       invocation.println(benchmark);
       invocation.println(prevVersion == null ? "" : prevVersion);
       for (String file : filesData.files) {
          invocation.println(file);
       }
-      invocation.println("__HYPERFOIL_EDIT_END_OF_FILES__");
+      invocation.println("__HYPERFOIL_BENCHMARK_END_OF_FILES__");
       try {
          latch.await();
       } catch (InterruptedException e) {
@@ -92,18 +86,4 @@ public class WebEdit extends BaseEditCommand {
       return CommandResult.SUCCESS;
    }
 
-   private static class WebBenchmarkData implements BenchmarkData {
-      final List<String> files = new ArrayList<>();
-
-      @Override
-      public InputStream readFile(String file) {
-         files.add(file);
-         return EMPTY_INPUT_STREAM;
-      }
-
-      @Override
-      public Map<String, byte[]> files() {
-         return Collections.emptyMap();
-      }
-   }
 }

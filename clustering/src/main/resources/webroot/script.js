@@ -1,7 +1,7 @@
 const INTERRUPT_SIGNAL = "__HYPERFOIL_INTERRUPT_SIGNAL__"
 const PAGER_MAGIC = "__HYPERFOIL_PAGER_MAGIC__\n"
 const EDIT_MAGIC = "__HYPERFOIL_EDIT_MAGIC__\n"
-const EDIT_COMPLETE_MAGIC = "__HYPERFOIL_EDIT_COMPLETE_MAGIC__\n"
+const BENCHMARK_FILE_LIST = "__HYPERFOIL_BENCHMARK_FILE_LIST__\n"
 const DOWNLOAD_MAGIC = "__HYPERFOIL_DOWNLOAD_MAGIC__"
 const DIRECT_DOWNLOAD_MAGIC = "__HYPERFOIL_DIRECT_DOWNLOAD_MAGIC__\n";
 const DIRECT_DOWNLOAD_END = "__HYPERFOIL_DIRECT_DOWNLOAD_END__\n";
@@ -77,14 +77,12 @@ function sendCommand(command) {
 
 var authToken;
 var authSent = false;
-var blocked = false;
-var blockedContent = "";
+var benchmarkForm = undefined;
+var benchmarkVersion = ""
 var paging = false;
 var editing = false;
-var editedBenchmarkForm = undefined;
-var editedVersion = ""
-var editData = "";
-var editCompleting = false;
+var fileList = "";
+var receivingFileList = false;
 var downloading = false;
 var downloadContent = ""
 
@@ -111,15 +109,13 @@ function addResultToWindow(commandResult) {
           break
       }
    }
-   if (blocked) {
-      blockedContent += commandResult;
-   } else if (paging) {
+   if (paging) {
       document.getElementById('pager-content').innerHTML += commandResult;
    } else if (editing) {
       window.editor.setValue(window.editor.getValue() + commandResult)
-   } else if (editCompleting) {
-      editData += commandResult
-      checkEditData()
+   } else if (receivingFileList) {
+      fileList += commandResult
+      checkFileList()
    } else if (downloading) {
       let endIndex = commandResult.indexOf(DIRECT_DOWNLOAD_END)
       if (endIndex >= 0) {
@@ -135,7 +131,6 @@ function addResultToWindow(commandResult) {
       }
    } else if (commandResult.startsWith("__HYPERFOIL_UPLOAD_MAGIC__")) {
       resultWindow.appendChild(upload)
-      blocked = true;
    } else if (commandResult.startsWith(PAGER_MAGIC)) {
       commandResult = commandResult.slice(PAGER_MAGIC.length);
       paging = true;
@@ -153,10 +148,10 @@ function addResultToWindow(commandResult) {
       editor.style.visibility = 'visible'
       window.editor.setValue(commandResult)
       window.editor.focus()
-   } else if (commandResult.startsWith(EDIT_COMPLETE_MAGIC)) {
-      editData = commandResult.slice(EDIT_COMPLETE_MAGIC.length)
-      editCompleting = true
-      checkEditData()
+   } else if (commandResult.startsWith(BENCHMARK_FILE_LIST)) {
+      fileList = commandResult.slice(BENCHMARK_FILE_LIST.length)
+      receivingFileList = true
+      checkFileList()
    } else if (commandResult.startsWith(DOWNLOAD_MAGIC)) {
       let parts = commandResult.split(' ')
       download(window.location + parts[1], parts[2])
@@ -185,31 +180,97 @@ function download(url, filename) {
    a.click();
 }
 
-function showUploadExtrasAndSubmit() {
-   document.getElementById('upload-benchmark-label').style.display = 'none';
-   document.getElementById('upload-files-label').style.display = 'inline-block';
-   document.getElementById('upload-submit').style.display = 'inline-block';
+function sendBenchmarkForFiles() {
+   benchmarkForm = new FormData()
+   benchmarkVersion = ""
+   const benchmark = document.getElementById('upload-benchmark').files[0]
+   benchmarkForm.append('benchmark', benchmark)
+   benchmark.text().then(content => sendEdits(content))
+   upload.remove()
+}
+
+function stopPaging() {
+   document.getElementById('pager-content').innerHtml = ""
+   pager.style.visibility = 'hidden'
+   paging = false
+   document.onkeydown = event => defaultKeyDown(event)
+   sendCommand(INTERRUPT_SIGNAL)
+}
+
+function saveEdits() {
+   editing = false;
+   let editedBenchmark = window.editor.getValue()
+   benchmarkForm = new FormData()
+   benchmarkForm.append('benchmark', new Blob([editedBenchmark]), "benchmark.hf.yaml")
+   sendEdits(editedBenchmark)
+   window.editor.setValue("");
+   editor.style.visibility = 'hidden'
+}
+
+function sendEdits(benchmark) {
+   sendCommand('__HYPERFOIL_EDITS_BEGIN__\n')
+   sendCommand(benchmark)
+   sendCommand('__HYPERFOIL_EDITS_END__\n')
+}
+
+function checkFileList() {
+   let endOfFiles = fileList.indexOf('__HYPERFOIL_BENCHMARK_END_OF_FILES__\n')
+   if (endOfFiles < 0) {
+      return
+   }
+   let lines = fileList.slice(0, endOfFiles).split('\n')
+   receivingFileList = false
+   fileList = "";
+
+   let benchmark = lines[0]
+   benchmarkVersion = lines[1]
+   if (addUploadFiles(lines.slice(2))) {
+      uploadBenchmark()
+   }
+}
+
+function addUploadFiles(files) {
+   let uploadEntries = document.createElement('div')
+   uploadEntries.id = "upload-entries"
+   resultWindow.appendChild(uploadEntries)
+   var numFiles = 0;
+   for (var i = 0; i < files.length; ++i) {
+      if (files[i] === "") continue;
+      ++numFiles
+      uploadEntries.innerHTML += `<label class="hfbutton" style="margin: 2px 0 2px 0">
+          <input class="hidden-upload" type="file" onchange="addUploadFile('${files[i]}', this)">
+          ${files[i]}: <span id="filename">(not uploading)</span>
+      </label>\n`
+   }
+   if (numFiles > 0) {
+      uploadEntries.innerHTML += '<input type="button" class="hfbutton" value="Upload" onclick="uploadBenchmark()" />'
+      return false
+   }
+   return true;
+}
+
+function addUploadFile(name, fileInput) {
+   benchmarkForm.delete(name)
+   benchmarkForm.append(name, fileInput.files[0], name)
+   let siblings = fileInput.parentNode.childNodes
+   for (var i = 0; i < siblings.length; ++i) {
+      if (siblings[i].id === "filename") {
+          siblings[i].innerHTML = fileInput.files[0].name
+          break
+      }
+   }
 }
 
 function uploadBenchmark() {
-   var form = new FormData();
-   form.append('benchmark', document.getElementById('upload-benchmark').files[0])
-   Array.from(document.getElementById('upload-files').files).forEach((file, i) => form.append('extra' + i, file));
-
-   document.getElementById('upload-benchmark-label').style.display = 'inline-block';
-   document.getElementById('upload-files-label').style.display = 'none';
-   document.getElementById('upload-submit').style.display = 'none';
-   upload.remove();
-
-   uploadBenchmarkForm(form, {})
-}
-
-function uploadBenchmarkForm(form, headers) {
+   var headers = {};
+   if (benchmarkVersion && benchmarkVersion !== "") {
+      headers["if-match"] = benchmarkVersion;
+   }
    resultWindow.innerHTML += "Uploading... "
    return fetch(window.location + "/benchmark", {
       method: 'POST',
       headers: Object.assign(headers, { Authorization: 'Bearer ' + authToken }),
-      body: form,
+      body: benchmarkForm,
    }).then(res => {
       if (res.ok) {
           resultWindow.innerHTML += " done.\n"
@@ -224,82 +285,13 @@ function uploadBenchmarkForm(form, headers) {
    }, error => {
       resultWindow.innerHTML += error
    }).finally(() => {
-      blocked = false;
-      addResultToWindow(blockedContent)
-      blockedContent = ""
-   })
-}
-
-function stopPaging() {
-   document.getElementById('pager-content').innerHtml = ""
-   pager.style.visibility = 'hidden'
-   paging = false
-   document.onkeydown = event => defaultKeyDown(event)
-   sendCommand(INTERRUPT_SIGNAL)
-}
-
-function saveEdits() {
-   editing = false;
-   let editedBenchmark = window.editor.getValue()
-   editedBenchmarkForm = new FormData()
-   editedBenchmarkForm.append('benchmark', new Blob([editedBenchmark]), "benchmark.hf.yaml")
-   sendCommand('__HYPERFOIL_EDITS_BEGIN__\n')
-   sendCommand(editedBenchmark)
-   sendCommand('__HYPERFOIL_EDITS_END__\n')
-   window.editor.setValue("");
-   editor.style.visibility = 'hidden'
-}
-
-function checkEditData() {
-   let endOfFiles = editData.indexOf('__HYPERFOIL_EDIT_END_OF_FILES__\n')
-   if (endOfFiles < 0) {
-      return
-   }
-   let lines = editData.slice(0, endOfFiles).split('\n')
-   editCompleting = false
-   editData = "";
-
-   let benchmark = lines[0]
-   editedVersion = lines[1]
-   var numFiles = 0
-   let uploadEntries = document.createElement('div')
-   uploadEntries.id = "upload-entries"
-   resultWindow.appendChild(uploadEntries)
-   for (var i = 2; i < lines.length; ++i) {
-      if (lines[i] === "") continue;
-      ++numFiles
-      uploadEntries.innerHTML += `<label class="hfbutton" style="margin: 2px 0 2px 0">
-          <input class="hidden-upload" type="file" onchange="addUploadFile('${lines[i]}', this)">
-          ${lines[i]}: <span id="filename">(not uploading)</span>
-      </label>\n`
-   }
-   if (numFiles > 0) {
-      uploadEntries.innerHTML += '<input type="button" class="hfbutton" value="Upload" onclick="uploadEditedBenchmark()" />'
-   } else {
-      uploadEditedBenchmark()
-   }
-}
-
-function addUploadFile(name, fileInput) {
-   editedBenchmarkForm.delete(name)
-   editedBenchmarkForm.append(name, fileInput.files[0], name)
-   let siblings = fileInput.parentNode.childNodes
-   for (var i = 0; i < siblings.length; ++i) {
-      if (siblings[i].id === "filename") {
-          siblings[i].innerHTML = fileInput.files[0].name
-          break
-      }
-   }
-}
-
-function uploadEditedBenchmark() {
-   uploadBenchmarkForm(editedBenchmarkForm, editedVersion === "" ? {} : { "if-match" : editedVersion }).finally(() => {
-      editedBenchmarkForm = undefined
-      editedVersion = ""
+      benchmarkForm = undefined
+      benchmarkVersion = ""
       document.getElementById("upload-entries").remove()
       sendCommand(INTERRUPT_SIGNAL)
    })
 }
+
 
 function cancelEdits() {
    editing = false;
