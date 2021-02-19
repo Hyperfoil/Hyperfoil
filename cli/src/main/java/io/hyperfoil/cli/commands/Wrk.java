@@ -39,7 +39,7 @@ public class Wrk extends WrkAbstract {
       return CMD;
    }
 
-   @CommandDefinition(name = CMD, description = "Runs a workload simluation against one endpoint using the same vm")
+   @CommandDefinition(name = CMD, description = "Runs a workload simulation against one endpoint using the same vm")
    public class WrkCommand extends WrkAbstract.AbstractWrkCommand {
 
       @Override

@@ -119,7 +119,7 @@ public abstract class WrkAbstract {
       }
    }
 
-   //   @CommandDefinition(name = "wrk", description = "Runs a workload simluation against one endpoint using the same vm")
+   //   @CommandDefinition(name = "wrk", description = "Runs a workload simulation against one endpoint using the same vm")
    public abstract class AbstractWrkCommand implements Command<HyperfoilCommandInvocation> {
       @Option(shortName = 'c', description = "Total number of HTTP connections to keep open", defaultValue = "10")
       int connections;
