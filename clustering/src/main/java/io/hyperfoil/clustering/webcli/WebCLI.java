@@ -41,6 +41,7 @@ public class WebCLI extends HyperfoilCli implements Handler<ServerWebSocket> {
    private static final String EDITS_END = "__HYPERFOIL_EDITS_END__\n";
    private static final String INTERRUPT_SIGNAL = "__HYPERFOIL_INTERRUPT_SIGNAL__";
    private static final String AUTH_TOKEN = "__HYPERFOIL_AUTH_TOKEN__";
+   private static final String SET_BENCHMARK = "__HYPERFOIL_SET_BENCHMARK__";
 
    private final Vertx vertx;
 
@@ -111,6 +112,9 @@ public class WebCLI extends HyperfoilCli implements Handler<ServerWebSocket> {
                return;
             } else if (msg.startsWith(AUTH_TOKEN)) {
                context.client().setToken(msg.substring(AUTH_TOKEN.length()));
+               return;
+            } else if (msg.startsWith(SET_BENCHMARK)) {
+               context.setServerBenchmark(context.client().benchmark(msg.substring(SET_BENCHMARK.length())));
                return;
             }
          }

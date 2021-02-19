@@ -135,7 +135,6 @@ function addResultToWindow(commandResult) {
       }
    } else if (commandResult.startsWith("__HYPERFOIL_UPLOAD_MAGIC__")) {
       resultWindow.appendChild(upload)
-      upload.focus();
       blocked = true;
    } else if (commandResult.startsWith(PAGER_MAGIC)) {
       commandResult = commandResult.slice(PAGER_MAGIC.length);
@@ -214,6 +213,9 @@ function uploadBenchmarkForm(form, headers) {
    }).then(res => {
       if (res.ok) {
           resultWindow.innerHTML += " done.\n"
+          const location = res.headers.get('Location')
+          const name = location.slice(location.lastIndexOf('/') + 1)
+          sendCommand("__HYPERFOIL_SET_BENCHMARK__" + name)
       } else {
           return res.text().then(error => {
               resultWindow.innerHTML += '\n<span style="color: red">' + error + '</span>\n'
