@@ -40,7 +40,7 @@ public class Wrk2 extends WrkAbstract {
       return CMD;
    }
 
-   @CommandDefinition(name = CMD, description = "Runs a workload simluation against one endpoint using the same vm")
+   @CommandDefinition(name = CMD, description = "Runs a workload simulation against one endpoint using the same vm")
    public class Wrk2Command extends WrkAbstract.AbstractWrkCommand {
 
       @Option(shortName = 'R', description = "Work rate (throughput)", required = true)
