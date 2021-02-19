@@ -9,7 +9,7 @@ info:
     name: Apache 2.0
     url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
 paths:
-  /:
+  /openapi:
     get:
       summary: Serve this OpenAPI 3 definition.
       operationId: openApi
@@ -325,6 +325,46 @@ paths:
             application/json:
               schema:
                 type: object
+  /run/{runId}/stats/all/json:
+    get:
+      summary: Get complete statistics from the run.
+      description: >
+        This can be invoked only after the run completes.
+        Provides exported statistics as JSON object.
+      operationId: getAllStatsJson
+      parameters:
+      - in: path
+        name: runId
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Retrieved successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+  /run/{runId}/stats/all/csv:
+    get:
+      summary: Get complete statistics from the run.
+      description: >
+        This can be invoked only after the run completes.
+        Provides exported statistics as ZIP file with CSV files
+      operationId: getAllStatsCsv
+      parameters:
+      - in: path
+        name: runId
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Retrieved successfully.
+          content:
+            application/zip:
+              schema:
+                type: object
   /run/{runId}/stats/recent:
     get:
       summary: Actual statistics from last 5 seconds of run.
@@ -539,6 +579,14 @@ paths:
           description: Shutting down
         '403':
           description: Some runs are in progress and force=false
+  /token:
+    get:
+      summary: Get authorization token
+      description: Returns authorization token that can be used instead of credentials with Basic Auth.
+      operationId: getToken
+      responses:
+        '200':
+          description: Serving token
   /version:
     get:
       summary: Fetch controller version

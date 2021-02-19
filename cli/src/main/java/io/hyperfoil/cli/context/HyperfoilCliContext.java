@@ -20,6 +20,7 @@
 
 package io.hyperfoil.cli.context;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -34,6 +35,8 @@ import org.aesh.command.CommandException;
 import org.aesh.command.registry.CommandRegistry;
 
 import io.hyperfoil.api.config.Benchmark;
+import io.hyperfoil.cli.Pager;
+import io.hyperfoil.cli.ProcessPager;
 import io.hyperfoil.controller.Client;
 import io.hyperfoil.client.RestClient;
 import io.vertx.core.Vertx;
@@ -42,12 +45,13 @@ import io.vertx.core.Vertx;
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
  */
 public class HyperfoilCliContext {
-   private Vertx vertx = Vertx.vertx();
+   private final Vertx vertx;
+   private final boolean providedVertx;
    private Benchmark benchmark;
    private RestClient client;
    private Client.BenchmarkRef serverBenchmark;
    private Client.RunRef serverRun;
-   private Map<String, String> logFiles = new HashMap<>();
+   private Map<String, File> logFiles = new HashMap<>();
    private Map<String, String> logIds = new HashMap<>();
    private ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(r -> {
       Thread thread = new Thread(r, "CLI-scheduled-executor");
@@ -65,6 +69,12 @@ public class HyperfoilCliContext {
    private List<String> suggestedControllerHosts = Collections.emptyList();
 
    public HyperfoilCliContext() {
+      this(Vertx.vertx(), false);
+   }
+
+   protected HyperfoilCliContext(Vertx vertx, boolean providedVertx) {
+      this.vertx = vertx;
+      this.providedVertx = providedVertx;
    }
 
    /**
@@ -102,7 +112,7 @@ public class HyperfoilCliContext {
       return serverRun;
    }
 
-   public String getLogFile(String node) {
+   public File getLogFile(String node) {
       return logFiles.get(node);
    }
 
@@ -110,7 +120,7 @@ public class HyperfoilCliContext {
       return logIds.get(node);
    }
 
-   public void addLog(String node, String file, String id) throws CommandException {
+   public void addLog(String node, File file, String id) throws CommandException {
       if (logFiles.containsKey(node) || logIds.containsKey(node)) {
          throw new CommandException("Log file for " + node + " already present");
       }
@@ -175,7 +185,9 @@ public class HyperfoilCliContext {
       for (Runnable c : cleanup) {
          c.run();
       }
-      vertx.close();
+      if (!providedVertx) {
+         vertx.close();
+      }
    }
 
    public void setOnline(boolean online) {
@@ -204,5 +216,13 @@ public class HyperfoilCliContext {
 
    public synchronized void setSuggestedControllerHosts(List<String> suggestedControllerHosts) {
       this.suggestedControllerHosts = suggestedControllerHosts;
+   }
+
+   public String interruptKey() {
+      return "Ctrl+C";
+   }
+
+   public Pager createPager(String pager) {
+      return new ProcessPager(pager);
    }
 }

@@ -3,7 +3,6 @@ package io.hyperfoil.cli.commands;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.stream.Stream;
 
 import org.aesh.command.CommandDefinition;
@@ -27,7 +26,7 @@ public class Log extends ServerCommand {
    public CommandResult execute(HyperfoilCommandInvocation invocation) throws CommandException, InterruptedException {
       ensureConnection(invocation);
 
-      String logFile = invocation.context().getLogFile(node);
+      File logFile = invocation.context().getLogFile(node);
       String logId = invocation.context().getLogId(node);
       long offset = 0;
 
@@ -35,14 +34,14 @@ public class Log extends ServerCommand {
          try {
             File tmpFile = File.createTempFile(node == null ? "hfc." : node + ".", ".log");
             tmpFile.deleteOnExit();
-            logFile = tmpFile.toString();
+            logFile = tmpFile;
          } catch (IOException e) {
             invocation.println("Cannot create temporary file for the log: " + Util.explainCauses(e));
             return CommandResult.FAILURE;
          }
       } else {
          try {
-            offset = Files.size(Paths.get(logFile));
+            offset = Files.size(logFile.toPath());
          } catch (IOException e) {
             invocation.println("Error fetching size of " + logFile + ": " + Util.explainCauses(e));
          }
@@ -54,12 +53,7 @@ public class Log extends ServerCommand {
       } else if (!logId.equals(newLogId)) {
          invocation.context().updateLogId(node, newLogId);
       }
-      try {
-         execProcess(invocation, true, pager == null ? PAGER : pager, logFile);
-      } catch (IOException e) {
-         invocation.println("Cannot display log file " + logFile + ": " + Util.explainCauses(e));
-         return CommandResult.FAILURE;
-      }
+      invocation.context().createPager(pager).open(invocation, logFile);
       return CommandResult.SUCCESS;
    }
 

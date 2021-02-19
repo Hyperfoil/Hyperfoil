@@ -35,7 +35,7 @@ public class Info extends BenchmarkCommand {
          if (source == null) {
             invocation.println("No source available for benchmark '" + benchmarkName + "'.");
          } else {
-            openInPager(invocation, source.source, benchmarkName + "-", ".yaml", pager);
+            invocation.context().createPager(pager).open(invocation, source.source, benchmarkName + "-", ".yaml");
          }
          return CommandResult.SUCCESS;
       } catch (RestClientException e) {

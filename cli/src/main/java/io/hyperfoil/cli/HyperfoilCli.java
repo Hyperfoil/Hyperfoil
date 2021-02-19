@@ -51,6 +51,7 @@ import io.hyperfoil.cli.context.HyperfoilCompleterData;
 import io.hyperfoil.core.util.Util;
 
 import org.aesh.AeshConsoleRunner;
+import org.aesh.command.Command;
 import org.aesh.command.activator.CommandActivator;
 import org.aesh.command.activator.OptionActivator;
 import org.aesh.command.completer.CompleterInvocation;
@@ -67,6 +68,7 @@ import org.aesh.readline.terminal.formatting.TerminalString;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -90,64 +92,16 @@ public class HyperfoilCli {
       }
    }
 
-
    public static void main(String[] args) throws CommandRegistryException {
-
       //set logger impl
       System.setProperty(LOGGER_DELEGATE_FACTORY_CLASS_NAME, "io.vertx.core.logging.Log4j2LogDelegateFactory");
 
-      HyperfoilCliContext context = new HyperfoilCliContext();
-      Settings<HyperfoilCommandInvocation, ConverterInvocation, CompleterInvocation, ValidatorInvocation<?, ?>,
-            OptionActivator, CommandActivator> settings =
-            SettingsBuilder.<HyperfoilCommandInvocation, ConverterInvocation, CompleterInvocation,
-                  ValidatorInvocation<?, ?>, OptionActivator, CommandActivator>builder()
-                  .logging(true)
-                  .enableMan(false)
-                  .enableAlias(false)
-                  .enableExport(false)
-                  .enableSearchInPaging(true)
-                  .readInputrc(true)
-                  .commandRegistry(
-                        AeshCommandRegistryBuilder.<HyperfoilCommandInvocation>builder()
-                              .command(Connect.class)
-                              .command(Compare.class)
-                              .command(Edit.class)
-                              .command(Exit.class)
-                              .command(Export.class)
-                              .command(Help.class)
-                              .command(Info.class)
-                              .command(Inspect.class)
-                              .command(Kill.class)
-                              .command(Log.class)
-                              .command(Oc.class)
-                              .command(Report.class)
-                              .command(RunLocal.class)
-                              .command(Run.class)
-                              .command(Runs.class)
-                              .command(Sessions.class)
-                              .command(Shutdown.class)
-                              .command(StartLocal.class)
-                              .command(Stats.class)
-                              .command(Status.class)
-                              .command(Upload.class)
-                              .command(Version.class)
-                              .command(Wrk.WrkCommand.class)
-                              .command(Wrk2.Wrk2Command.class)
-                              .create())
-                  .commandInvocationProvider(new HyperfoilCommandInvocationProvider(context))
-                  .completerInvocationProvider(completerInvocation -> new HyperfoilCompleterData(completerInvocation, context))
-                  .setConnectionClosedHandler(nil -> context.stop())
-                  .build();
-      context.commandRegistry(settings.commandRegistry());
+      new HyperfoilCli().run();
+   }
 
-      AeshConsoleRunner runner = AeshConsoleRunner.builder().settings(settings);
-      String cliPrompt = System.getenv(CLI_PROMPT);
-      if (cliPrompt == null) {
-         runner.prompt(new Prompt(new TerminalString("[hyperfoil]$ ",
-               new TerminalColor(Color.GREEN, Color.DEFAULT, Color.Intensity.BRIGHT))));
-      } else {
-         runner.prompt(new Prompt(cliPrompt));
-      }
+   public void run() throws CommandRegistryException {
+      HyperfoilCliContext context = new HyperfoilCliContext();
+      AeshConsoleRunner runner = configureRunner(context, settingsBuilder(context).build(), System.getenv(CLI_PROMPT));
 
       CompletableFuture<List<String>> endpoints = suggestedEndpoints();
       endpoints.whenComplete((list, e) -> {
@@ -157,6 +111,67 @@ public class HyperfoilCli {
       });
 
       runner.start();
+   }
+
+   protected AeshConsoleRunner configureRunner(HyperfoilCliContext context, Settings<HyperfoilCommandInvocation, ConverterInvocation, CompleterInvocation, ValidatorInvocation<?, ?>, OptionActivator, CommandActivator> settings, String cliPrompt) throws CommandRegistryException {
+      context.commandRegistry(settings.commandRegistry());
+
+      AeshConsoleRunner runner = AeshConsoleRunner.builder().settings(settings);
+      if (cliPrompt == null) {
+         runner.prompt(new Prompt(new TerminalString("[hyperfoil]$ ",
+               new TerminalColor(Color.GREEN, Color.DEFAULT, Color.Intensity.BRIGHT))));
+      } else {
+         runner.prompt(new Prompt(cliPrompt));
+      }
+      return runner;
+   }
+
+   protected SettingsBuilder<HyperfoilCommandInvocation, ConverterInvocation, CompleterInvocation, ValidatorInvocation<?, ?>, OptionActivator, CommandActivator> settingsBuilder(HyperfoilCliContext context) throws CommandRegistryException {
+      AeshCommandRegistryBuilder<HyperfoilCommandInvocation> commandRegistryBuilder = AeshCommandRegistryBuilder.builder();
+      for (Class<? extends Command> command : getCommands()) {
+         commandRegistryBuilder.command(command);
+      }
+      return SettingsBuilder.<HyperfoilCommandInvocation, ConverterInvocation, CompleterInvocation,
+            ValidatorInvocation<?, ?>, OptionActivator, CommandActivator>builder()
+            .logging(true)
+            .enableMan(false)
+            .enableAlias(false)
+            .enableExport(false)
+            .enableSearchInPaging(true)
+            .readInputrc(true)
+            .commandRegistry(commandRegistryBuilder.create())
+            .commandInvocationProvider(new HyperfoilCommandInvocationProvider(context))
+            .completerInvocationProvider(completerInvocation -> new HyperfoilCompleterData(completerInvocation, context))
+            .setConnectionClosedHandler(nil -> context.stop());
+   }
+
+   protected List<Class<? extends Command>> getCommands() {
+      return Arrays.asList(
+            Connect.class,
+            Compare.class,
+            Edit.class,
+            Exit.class,
+            Export.class,
+            Help.class,
+            Info.class,
+            Inspect.class,
+            Kill.class,
+            Log.class,
+            Oc.class,
+            Report.class,
+            RunLocal.class,
+            Run.class,
+            Runs.class,
+            Sessions.class,
+            Shutdown.class,
+            StartLocal.class,
+            Stats.class,
+            Status.class,
+            Upload.class,
+            Version.class,
+            Wrk.WrkCommand.class,
+            Wrk2.Wrk2Command.class
+      );
    }
 
    private static CompletableFuture<List<String>> suggestedEndpoints() {

@@ -1,16 +1,10 @@
 package io.hyperfoil.cli.commands;
 
 import java.awt.Desktop;
-import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -25,6 +19,7 @@ import org.aesh.readline.terminal.formatting.TerminalColor;
 import org.aesh.readline.terminal.formatting.TerminalString;
 import org.aesh.terminal.utils.ANSI;
 
+import io.hyperfoil.cli.CliUtil;
 import io.hyperfoil.cli.context.HyperfoilCliContext;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.client.RestClient;
@@ -35,7 +30,7 @@ public abstract class ServerCommand implements Command<HyperfoilCommandInvocatio
    protected static final String MOVE_LINE_UP = new String(new byte[]{ 27, 91, 49, 65 }, StandardCharsets.US_ASCII);
    protected static final String ERASE_WHOLE_LINE = new String(new byte[]{ 27, 91, 50, 75 }, StandardCharsets.US_ASCII);
    protected static final String EDITOR;
-   protected static final String PAGER;
+
 
    static {
       String editor = System.getenv("VISUAL");
@@ -43,41 +38,15 @@ public abstract class ServerCommand implements Command<HyperfoilCommandInvocatio
          editor = System.getenv("EDITOR");
       }
       if (editor == null || editor.isEmpty()) {
-         editor = fromCommand("update-alternatives", "--display", "editor");
+         editor = CliUtil.fromCommand("update-alternatives", "--display", "editor");
       }
       if (editor == null || editor.isEmpty()) {
-         editor = fromCommand("git", "var", "GIT_EDITOR");
+         editor = CliUtil.fromCommand("git", "var", "GIT_EDITOR");
       }
       if (editor == null || editor.isEmpty()) {
          editor = "vi";
       }
       EDITOR = editor;
-
-      String pager = System.getenv("PAGER");
-      if (pager == null || pager.isEmpty()) {
-         pager = fromCommand("update-alternatives", "--display", "pager");
-      }
-      if (pager == null || pager.isEmpty()) {
-         pager = fromCommand("git", "var", "GIT_PAGER");
-      }
-      if (pager == null || pager.isEmpty()) {
-         pager = "less";
-      }
-      PAGER = pager;
-   }
-
-   private static String fromCommand(String... command) {
-      String editor = null;
-      try {
-         Process gitEditor = new ProcessBuilder(command).start();
-         try (BufferedReader reader = new BufferedReader(new InputStreamReader(gitEditor.getInputStream()))) {
-            editor = reader.readLine();
-         }
-         gitEditor.destroy();
-      } catch (IOException e) {
-         // ignore error
-      }
-      return editor;
    }
 
    protected void openInBrowser(String url) throws CommandException {
@@ -236,7 +205,7 @@ public abstract class ServerCommand implements Command<HyperfoilCommandInvocatio
    }
 
    protected boolean interruptibleDelay(HyperfoilCommandInvocation invocation) {
-      invocation.println("Press Ctrl+C to stop watching...");
+      invocation.println("Press " + invocation.context().interruptKey() + " to stop watching...");
       try {
          Thread.sleep(1000);
       } catch (InterruptedException e) {
@@ -247,37 +216,5 @@ public abstract class ServerCommand implements Command<HyperfoilCommandInvocatio
       return false;
    }
 
-   protected void execProcess(HyperfoilCommandInvocation invocation, boolean expectNewWindow, String command, String... params) throws IOException {
-      Process process = null;
-      try {
-         if (expectNewWindow) {
-            invocation.println("Press Ctrl+C when done...");
-         }
-         ArrayList<String> cmdline = new ArrayList<>();
-         cmdline.addAll(Arrays.asList(command.split("[\t \n]+", 0)));
-         cmdline.addAll(Arrays.asList(params));
-         process = new ProcessBuilder(cmdline.toArray(new String[0])).inheritIO().start();
-         process.waitFor();
-      } catch (InterruptedException e) {
-         process.destroy();
-      }
-   }
 
-   protected void openInPager(HyperfoilCommandInvocation invocation, String text, String prefix, String suffix, String pager) throws CommandException {
-      File file;
-      try {
-         file = File.createTempFile(prefix, suffix);
-         file.deleteOnExit();
-         Files.write(file.toPath(), text.getBytes(StandardCharsets.UTF_8));
-      } catch (IOException e) {
-         throw new CommandException("Cannot create temporary file for edits.", e);
-      }
-      try {
-         execProcess(invocation, true, pager == null ? PAGER : pager, file.getPath());
-      } catch (IOException e) {
-         throw new CommandException("Cannot open file " + file, e);
-      } finally {
-         file.delete();
-      }
-   }
 }

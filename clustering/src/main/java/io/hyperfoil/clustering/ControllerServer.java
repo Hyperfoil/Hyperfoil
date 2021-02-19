@@ -13,6 +13,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Comparator;
@@ -32,6 +33,7 @@ import io.hyperfoil.api.config.BenchmarkData;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.clustering.util.PersistedBenchmarkData;
+import io.hyperfoil.clustering.webcli.WebCLI;
 import io.hyperfoil.controller.ApiService;
 import io.hyperfoil.controller.model.CustomStats;
 import io.hyperfoil.controller.model.Histogram;
@@ -68,6 +70,8 @@ import io.vertx.core.net.PemKeyCertOptions;
 import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.FaviconHandler;
+import io.vertx.ext.web.handler.StaticHandler;
 
 class ControllerServer implements ApiService {
    private static final Logger log = LoggerFactory.getLogger(ControllerServer.class);
@@ -86,9 +90,17 @@ class ControllerServer implements ApiService {
    private static final String CONTROLLER_EXTERNAL_URI = Properties.get(Properties.CONTROLLER_EXTERNAL_URI, null);
    private static final String TRIGGER_URL = Properties.get(Properties.TRIGGER_URL, null);
 
+   private static final String BEARER_TOKEN;
+
    private static final Comparator<ControllerPhase> PHASE_COMPARATOR =
          Comparator.<ControllerPhase, Long>comparing(ControllerPhase::absoluteStartTime).thenComparing(p -> p.definition().name);
    private static final BinaryOperator<Run> LAST_RUN_OPERATOR = (r1, r2) -> r1.id.compareTo(r2.id) > 0 ? r1 : r2;
+
+   static {
+      byte[] token = new byte[48];
+      new SecureRandom().nextBytes(token);
+      BEARER_TOKEN = Base64.getEncoder().encodeToString(token);
+   }
 
    final ControllerVerticle controller;
    HttpServer httpServer;
@@ -126,11 +138,16 @@ class ControllerServer implements ApiService {
          log.info("Server is protected using a password.");
          router.route().handler(new BasicAuthHandler());
       }
+      StaticHandler staticHandler = StaticHandler.create().setCachingEnabled(true);
+      router.route("/").handler(staticHandler);
+      router.route("/web/*").handler(staticHandler);
+      router.route("/favicon.ico").handler(FaviconHandler.create("webroot/favicon.ico"));
       new ApiRouter(this, router);
 
       String controllerHost = Properties.get(Properties.CONTROLLER_HOST, controller.getConfig().getString(Properties.CONTROLLER_HOST, "0.0.0.0"));
       int controllerPort = Properties.getInt(Properties.CONTROLLER_PORT, controller.getConfig().getInteger(Properties.CONTROLLER_PORT, 8090));
       httpServer = controller.getVertx().createHttpServer(options).requestHandler(router)
+            .webSocketHandler(new WebCLI(controller.getVertx()))
             .listen(controllerPort, controllerHost, serverResult -> {
                if (serverResult.succeeded()) {
                   if (CONTROLLER_EXTERNAL_URI == null) {
@@ -575,12 +592,22 @@ class ControllerServer implements ApiService {
 
    @Override
    public void getAllStats$application_zip(RoutingContext ctx, String runId) {
+      getAllStatsCsv(ctx, runId);
+   }
+
+   @Override
+   public void getAllStatsCsv(RoutingContext ctx, String runId) {
       withTerminatedRun(ctx, runId, run -> new Zipper(ctx.response(),
             controller.getRunDir(run).resolve("stats")).run());
    }
 
    @Override
    public void getAllStats$application_json(RoutingContext ctx, String runId) {
+      getAllStatsJson(ctx, runId);
+   }
+
+   @Override
+   public void getAllStatsJson(RoutingContext ctx, String runId) {
       withTerminatedRun(ctx, runId, run -> ctx.response()
             .putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_JSON)
             .sendFile(controller.getRunDir(run).resolve("all.json").toString()));
@@ -811,6 +838,11 @@ class ControllerServer implements ApiService {
    }
 
    @Override
+   public void getToken(RoutingContext ctx) {
+      ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, "text/plain; charset=utf-8").end(BEARER_TOKEN);
+   }
+
+   @Override
    public void getVersion(RoutingContext ctx) {
       ctx.response().end(Json.encodePrettily(new io.hyperfoil.controller.model.Version(Version.VERSION, Version.COMMIT_ID, controller.deploymentID(), new Date())));
    }
@@ -841,8 +873,14 @@ class ControllerServer implements ApiService {
                }
             }
             ctx.response().setStatusCode(403).end();
+         } else if (authorization != null && authorization.startsWith("Bearer ")) {
+            if (BEARER_TOKEN.equals(authorization.substring(7))) {
+               ctx.next();
+            } else {
+               ctx.response().setStatusCode(403).end();
+            }
          } else {
-            ctx.response().setStatusCode(401).putHeader("WWW-Authenticate", "Basic realm=\"hyperfoil\", charset=\"UTF-8\"").end();
+            ctx.response().setStatusCode(401).putHeader("WWW-Authenticate", "Basic realm=\"Hyperfoil\", charset=\"UTF-8\"").end();
          }
       }
    }

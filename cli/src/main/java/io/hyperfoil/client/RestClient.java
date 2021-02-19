@@ -1,12 +1,12 @@
 package io.hyperfoil.client;
 
 import java.io.Closeable;
+import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collection;
@@ -64,6 +64,14 @@ public class RestClient implements Client, Closeable {
       if (password != null) {
          // server ignores username
          authorization = "Basic " + Base64.getEncoder().encodeToString(("hyperfoil:" + password).getBytes(StandardCharsets.UTF_8));
+      } else {
+         authorization = null;
+      }
+   }
+
+   public void setToken(String token) {
+      if (token != null) {
+         authorization = "Bearer " + token;
       } else {
          authorization = null;
       }
@@ -229,7 +237,7 @@ public class RestClient implements Client, Closeable {
    }
 
    @Override
-   public String downloadLog(String node, String logId, long offset, String destinationFile) {
+   public String downloadLog(String node, String logId, long offset, File destinationFile) {
       String url = "/log" + (node == null ? "" : "/" + node);
       // When there's no more data, content-length won't be present and the body is null
       // the etag does not match
@@ -262,7 +270,7 @@ public class RestClient implements Client, Closeable {
                      } else {
                         bytes = response.body().getBytes();
                      }
-                     Files.write(Paths.get(destinationFile), bytes);
+                     Files.write(destinationFile.toPath(), bytes);
                   } catch (IOException e) {
                      throw new RestClientException(e);
                   }
@@ -294,7 +302,7 @@ public class RestClient implements Client, Closeable {
       sync(handler -> request(HttpMethod.GET, "/shutdown?force=" + force).send(handler), 200, response -> null);
    }
 
-   private void downloadFullLog(String destinationFile, String url, CompletableFuture<String> future) {
+   private void downloadFullLog(File destinationFile, String url, CompletableFuture<String> future) {
       // the etag does not match
       request(HttpMethod.GET, url).send(rsp -> {
          if (rsp.failed()) {
@@ -307,7 +315,7 @@ public class RestClient implements Client, Closeable {
             return;
          }
          try {
-            Files.write(Paths.get(destinationFile), response.body().getBytes());
+            Files.write(destinationFile.toPath(), response.body().getBytes());
             future.complete(response.getHeader(HttpHeaders.ETAG.toString()));
          } catch (Throwable t) {
             future.completeExceptionally(t);

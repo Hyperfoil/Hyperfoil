@@ -882,8 +882,13 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
    }
 
    public void shutdown() {
-      BasicCacheContainer cacheManager = ((InfinispanClusterManager) ((VertxInternal) vertx).getClusterManager()).getCacheContainer();
-      vertx.close(ar -> cacheManager.stop());
+      InfinispanClusterManager clusterManager = (InfinispanClusterManager) ((VertxInternal) vertx).getClusterManager();
+      if (clusterManager != null) {
+         BasicCacheContainer cacheManager = clusterManager.getCacheContainer();
+         vertx.close(ar -> cacheManager.stop());
+      } else {
+         vertx.close();
+      }
    }
 
    public int actualPort() {

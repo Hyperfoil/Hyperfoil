@@ -4,8 +4,6 @@ import static io.hyperfoil.client.RestClient.unexpected;
 import static io.hyperfoil.client.RestClient.waitFor;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
@@ -122,8 +120,8 @@ public class RunRefImpl implements Client.RunRef {
    }
 
    @Override
-   public void statsAll(String format, String destinationFile) {
-      CompletableFuture<String> future = new CompletableFuture<>();
+   public byte[] statsAll(String format) {
+      CompletableFuture<byte[]> future = new CompletableFuture<>();
       client.vertx.runOnContext(ctx -> {
          client.request(HttpMethod.GET, "/run/" + id + "/stats/all")
                .putHeader(HttpHeaders.ACCEPT.toString(), format)
@@ -138,16 +136,13 @@ public class RunRefImpl implements Client.RunRef {
                      return;
                   }
                   try {
-                     Files.write(Paths.get(destinationFile), response.body().getBytes());
-                     future.complete(null);
-                  } catch (IOException e) {
-                     future.completeExceptionally(new RestClientException(e));
+                     future.complete(response.body().getBytes());
                   } catch (Throwable t) {
                      future.completeExceptionally(t);
                   }
                });
       });
-      waitFor(future);
+      return waitFor(future);
    }
 
    @Override

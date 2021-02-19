@@ -1,0 +1,36 @@
+<html>
+
+<head>
+    <title>WebCLI - Hyperfoil</title>
+    <link rel="stylesheet" data-name="vs/editor/editor.main"
+          href="https://cdn.jsdelivr.net/npm/monaco-editor@0.22.3/min/vs/editor/editor.main.css">
+    <link rel="stylesheet" href="/web/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/ansi_up@4.0.4/ansi_up.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.22.3/min/vs/loader.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.20.0/min/vs/loader.min.js"></script>
+</head>
+
+<body>
+    <img id="logo" src="/web/logo_title.png" alt="Hyperfoil">
+    <div id="result"><input id="command" type="text" autofocus/></div>
+    <div id="upload">
+        <label id="upload-benchmark-label" for="upload-benchmark" class="hfbutton">Select benchmark file</label>
+        <input id="upload-benchmark" type="file" class="hidden-upload" onchange="showUploadExtrasAndSubmit()" />
+        <label id="upload-files-label" style="display: none" for="upload-files" class="hfbutton">Select extra files</label>
+        <input id="upload-files" type="file" multiple class="hidden-upload" onchange="uploadBenchmark()"/>
+        <input id="upload-submit" style="display: none" type="button" class="hfbutton" value="Upload" onclick="uploadBenchmark()"/>
+    </div>
+    <div id="pager" style="visibility: hidden">
+        <input id="pager-close" type="button" class="hfbutton" value="Close" onclick="stopPaging()"/>
+        <pre id="pager-content"></pre>
+    </div>
+    <div id="editor" style="visibility: hidden">
+        <div id="editor-content"></div>
+        <input type="button" class="hfbutton editor-button" value="Save edits" onclick="saveEdits()">
+        <input type="button" class="hfbutton editor-button" value="Cancel edits" onclick="cancelEdits()">
+    </div>
+    <iframe id="token-frame" loading="eager" src="/token"></iframe>
+    <script src="/web/script.js"></script>
+    <script src="/web/initEditor.js"></script>
+</body>
+</html>

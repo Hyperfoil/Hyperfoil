@@ -25,7 +25,7 @@ public class Inspect extends BenchmarkCommand {
          invocation.error(e);
          throw new CommandException("Cannot get benchmark " + benchmark);
       }
-      openInPager(invocation, structure, benchmark + "-structure-", ".yaml", pager);
+      invocation.context().createPager(pager).open(invocation, structure, benchmark + "-structure-", ".yaml");
       return CommandResult.SUCCESS;
    }
 

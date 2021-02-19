@@ -1,5 +1,6 @@
 package io.hyperfoil.controller;
 
+import java.io.File;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
@@ -37,7 +38,7 @@ public interface Client {
 
    Collection<String> agents();
 
-   String downloadLog(String node, String logId, long offset, String destinationFile);
+   String downloadLog(String node, String logId, long offset, File destinationFile);
 
    void shutdown(boolean force);
 
@@ -85,7 +86,7 @@ public interface Client {
 
       RequestStatisticsResponse statsTotal();
 
-      void statsAll(String format, String destinationFile);
+      byte[] statsAll(String format);
 
       Histogram histogram(String phase, int stepId, String metric);
 
