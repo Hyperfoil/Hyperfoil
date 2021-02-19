@@ -21,7 +21,8 @@ tokenFrame.onload = () => {
 }
 document.onkeydown = event => defaultKeyDown(event)
 
-const socket = new WebSocket("ws://" + window.location.host);
+const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://"
+const socket = new WebSocket(wsProtocol + window.location.host);
 resultWindow.appendChild(command)
 
 socket.onmessage = (event) => {
