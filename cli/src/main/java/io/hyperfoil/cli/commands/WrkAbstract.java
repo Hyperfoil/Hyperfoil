@@ -82,7 +82,7 @@ public abstract class WrkAbstract {
 
    protected abstract String getCommand();
 
-   public void mainMethod(String[] args, Class wrkClass) {
+   public void mainMethod(String[] args, Class<? extends AbstractWrkCommand> wrkClass) {
 
       //set logger impl
       System.setProperty(LOGGER_DELEGATE_FACTORY_CLASS_NAME, "io.vertx.core.logging.Log4j2LogDelegateFactory");
@@ -280,12 +280,14 @@ public abstract class WrkAbstract {
       protected abstract PhaseBuilder<?> phaseConfig(PhaseBuilder.Catalog catalog);
 
 
-      private PhaseBuilder<?> addPhase(BenchmarkBuilder benchmarkBuilder, String phase, String duration) {
+      private PhaseBuilder<?> addPhase(BenchmarkBuilder benchmarkBuilder, String phase, String durationStr) {
          // prevent capturing WrkCommand in closure
          String[][] parsedHeaders = this.parsedHeaders;
+         long duration = Util.parseToMillis(durationStr);
          // @formatter:off
          return phaseConfig(benchmarkBuilder.addPhase(phase))
-                 .duration(Util.parseToMillis(duration))
+                 .duration(duration)
+                 .maxDuration(duration + Util.parseToMillis(timeout))
                  .scenario()
                   .initialSequence("request")
                      .step(SC).httpRequest(HttpMethod.GET)
@@ -307,7 +309,7 @@ public abstract class WrkAbstract {
          // @formatter:on
       }
 
-      private void printStats(StatisticsSummary stats, AbstractHistogram histogram, Collection<CustomStats> custom, CommandInvocation invocation) {
+      private void printStats(StatisticsSummary stats, AbstractHistogram histogram, Collection<CustomStats> custom, CommandInvocation<?> invocation) {
          long dataSent = custom.stream().filter(cs -> cs.customName.equals("sent")).mapToLong(cs -> Long.parseLong(cs.value)).findFirst().orElse(0);
          long dataReceived = custom.stream().filter(cs -> cs.customName.equals("received")).mapToLong(cs -> Long.parseLong(cs.value)).findFirst().orElse(0);
          double durationSeconds = (stats.endTime - stats.startTime) / 1000d;
