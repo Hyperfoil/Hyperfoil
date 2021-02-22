@@ -4,7 +4,7 @@
     <parent>
         <artifactId>hyperfoil-all</artifactId>
         <groupId>io.hyperfoil</groupId>
-        <version>0.14-SNAPSHOT</version>
+        <version>0.14</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -50,7 +50,6 @@
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
-
 
         <dependency>
             <groupId>io.hyperfoil</groupId>
