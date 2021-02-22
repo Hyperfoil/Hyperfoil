@@ -209,6 +209,15 @@ class ControllerServer implements ApiService {
 
    private void addBenchmarkAndReply(RoutingContext ctx, Benchmark benchmark, String prevVersion) {
       if (benchmark != null) {
+         if (benchmark.agents().length == 0 && controller.getVertx().isClustered()) {
+            ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
+                  .end("Hyperfoil controller is clustered but the benchmark does not define any agents.");
+            return;
+         } else if (benchmark.agents().length != 0 && !controller.getVertx().isClustered()) {
+            ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
+                  .end("Hyperfoil runs in standalone mode but the benchmark defines agents for clustering");
+            return;
+         }
          String location = baseURL + "/benchmark/" + encode(benchmark.name());
          if (!controller.addBenchmark(benchmark, prevVersion, event -> {
             if (event.succeeded()) {
