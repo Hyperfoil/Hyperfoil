@@ -43,14 +43,14 @@ public class BenchmarkBuilder {
    private BenchmarkData data;
    private String name;
    private Map<String, String> defaultAgentProperties = Collections.emptyMap();
-   private Collection<Agent> agents = new ArrayList<>();
-   private Map<Class<? extends PluginBuilder>, PluginBuilder> plugins = new HashMap<>();
+   private final Collection<Agent> agents = new ArrayList<>();
+   private final Map<Class<? extends PluginBuilder<?>>, PluginBuilder<?>> plugins = new HashMap<>();
    private int threads = 1;
-   private Map<String, PhaseBuilder<?>> phaseBuilders = new HashMap<>();
+   private final Map<String, PhaseBuilder<?>> phaseBuilders = new HashMap<>();
    private long statisticsCollectionPeriod = 1000;
    private String triggerUrl;
-   private List<RunHook> preHooks = new ArrayList<>();
-   private List<RunHook> postHooks = new ArrayList<>();
+   private final List<RunHook> preHooks = new ArrayList<>();
+   private final List<RunHook> postHooks = new ArrayList<>();
 
    public static Collection<PhaseBuilder<?>> phasesForTesting(BenchmarkBuilder builder) {
       return builder.phaseBuilders.values();
@@ -231,7 +231,9 @@ public class BenchmarkBuilder {
 
    public <P extends PluginBuilder<?>> P addPlugin(Function<BenchmarkBuilder, P> ctor) {
       P plugin = ctor.apply(this);
-      PluginBuilder<?> prev = plugins.putIfAbsent(plugin.getClass(), plugin);
+      @SuppressWarnings("unchecked")
+      Class<? extends PluginBuilder<?>> pluginClass = (Class<? extends PluginBuilder<?>>) plugin.getClass();
+      PluginBuilder<?> prev = plugins.putIfAbsent(pluginClass, plugin);
       if (prev != null) {
          throw new BenchmarkDefinitionException("Adding the same plugin twice! " + plugin.getClass().getName());
       }

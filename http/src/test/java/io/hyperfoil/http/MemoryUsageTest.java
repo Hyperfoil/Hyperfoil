@@ -130,6 +130,7 @@ public class MemoryUsageTest {
       fireRequest(pool, request);
    }
 
+   @SuppressWarnings("unchecked")
    private void fireRequest(HttpConnectionPool pool, HttpRequest request) {
       if (!pool.request(request, NO_APPENDERS, true, null, false)) {
          pool.executor().schedule(() -> fireRequest(pool, request), 1, TimeUnit.MILLISECONDS);

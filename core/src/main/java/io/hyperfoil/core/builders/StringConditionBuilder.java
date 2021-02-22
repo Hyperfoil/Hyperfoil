@@ -17,7 +17,7 @@ public class StringConditionBuilder<B extends StringConditionBuilder<B, P>, P> i
    private String matchVar;
    private CompareMode compareMode;
    private boolean negate;
-   private IntConditionBuilder<?, B> length;
+   private LengthBuilder<B, P> length;
 
    public StringConditionBuilder() {
       this(null);
@@ -215,7 +215,7 @@ public class StringConditionBuilder<B extends StringConditionBuilder<B, P>, P> i
     */
    public B length(int exactLength) {
       if (length == null) {
-         length = new IntConditionBuilder(this);
+         length = new LengthBuilder<>(this);
       }
       length.equalTo(exactLength);
       return self();
@@ -226,15 +226,22 @@ public class StringConditionBuilder<B extends StringConditionBuilder<B, P>, P> i
     *
     * @return Builder.
     */
-   public IntConditionBuilder<?, B> length() {
+   public LengthBuilder<B, P> length() {
       if (length == null) {
-         length = new IntConditionBuilder(this);
+         length = new LengthBuilder<>(this);
       }
       return length;
    }
 
    public P end() {
       return parent;
+   }
+
+   public static class LengthBuilder<B extends StringConditionBuilder<B, P>, P> extends
+         IntConditionBuilder<LengthBuilder<B, P>, StringConditionBuilder<B, P>> {
+      public LengthBuilder(StringConditionBuilder<B, P> parent) {
+         super(parent);
+      }
    }
 
    public enum CompareMode {
