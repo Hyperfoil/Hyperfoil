@@ -67,6 +67,7 @@ body {
    max-height: 28px;
    width: 80%;
    font-family: "Courier New", monospace;
+   outline: none;
 }
 
 .ctrl-c {

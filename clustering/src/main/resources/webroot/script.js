@@ -51,7 +51,7 @@ command.addEventListener("keydown", (event) => {
       event.preventDefault();
       sendCommand(command.value + '\t');
       command.value = "";
-   } else if (event.key === "Backspace" && command.value === "") {
+   } else if (event.key === "Backspace" && command.selectionStart === 0) {
       command.remove();
       resultWindow.innerHTML = resultWindow.innerHTML.slice(0, -1);
       resultWindow.appendChild(command)
@@ -61,6 +61,17 @@ command.addEventListener("keydown", (event) => {
       sendCommand('\033[A');
    } else if (event.key === "ArrowDown") {
       sendCommand('\033[B');
+   } else if (event.key === "ArrowLeft" && command.selectionStart === 0) {
+      command.remove()
+      let lastChar = resultWindow.innerHTML.slice(-1);
+      if (lastChar !== ">") { // end of </span>
+         command.value = lastChar + command.value;
+         resultWindow.innerHTML = resultWindow.innerHTML.slice(0, -1);
+         sendCommand('\b');
+         command.selectionStart = 0
+      }
+      resultWindow.appendChild(command)
+      command.focus()
    } else if (event.key === "Escape" || (event.key == 'c' && event.ctrlKey)) {
       event.preventDefault();
       command.remove();
@@ -190,7 +201,7 @@ function sendBenchmarkForFiles() {
 }
 
 function stopPaging() {
-   document.getElementById('pager-content').innerHtml = ""
+   document.getElementById('pager-content').innerHTML = ""
    pager.style.visibility = 'hidden'
    paging = false
    document.onkeydown = event => defaultKeyDown(event)
