@@ -108,7 +108,6 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <addClasspath>true</addClasspath>
                             <mainClass/>
                         </manifest>
                     </archive>
