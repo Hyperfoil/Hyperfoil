@@ -11,10 +11,9 @@ import java.util.Optional;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import io.hyperfoil.api.processor.HttpRequestProcessorBuilder;
+import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.http.HttpScenarioTest;
 import io.hyperfoil.http.api.HttpMethod;
-import io.hyperfoil.api.processor.RequestProcessorBuilder;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.data.DataFormat;
@@ -95,12 +94,12 @@ public class FleetTest extends HttpScenarioTest {
                   .path("/fleet")
                   .sync(false)
                   .handler()
-                     .body(HttpRequestProcessorBuilder.adapt(new JsonHandler.Builder()
+                     .body(new JsonHandler.Builder()
                            .query(".ships[].name")
                            .processor(shipAssertion.processor(new ArrayRecorder.Builder()
                                  .toVar("shipNames")
                                  .format(DataFormat.STRING)
-                                 .maxSize(MAX_SHIPS)))))
+                                 .maxSize(MAX_SHIPS))))
                   .endHandler()
                .endStep()
                .step(SC).action(new SetAction.Builder().var("crewCount").intArray().size(MAX_SHIPS).end())
@@ -116,13 +115,13 @@ public class FleetTest extends HttpScenarioTest {
                   .path(this::currentShipQuery)
                   .sync(false)
                   .handler()
-                     .body(HttpRequestProcessorBuilder.adapt(new JsonHandler.Builder()
+                     .body(new JsonHandler.Builder()
                            .query(".crew[]")
                            .processor(crewAssertion.processor(
-                                 RequestProcessorBuilder.adapt(new AddToIntAction.Builder()
+                                 Processor.adapt(new AddToIntAction.Builder()
                                        .var("crewCount[.]")
                                        .value(1)
-                                       .orElseSetTo(1))))))
+                                       .orElseSetTo(1)))))
                      // We need to make sure crewCount is set even if there's no crew
                      .onCompletion(new SetIntAction.Builder().var("crewCount[.]").value(0).onlyIfNotSet(true))
                   .endHandler()

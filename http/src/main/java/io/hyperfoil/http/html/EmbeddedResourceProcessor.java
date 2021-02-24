@@ -61,7 +61,11 @@ class EmbeddedResourceProcessor extends Processor.BaseDelegating {
       assert isLastPart;
       // TODO: here we should normalize the URL, remove escapes etc...
 
-      HttpRequest request = (HttpRequest) session.currentRequest();
+      HttpRequest request = HttpRequest.ensure(session.currentRequest());
+      if (request == null) {
+         return;
+      }
+
       boolean isHttp = Util.hasPrefix(data, offset, length, HTTP_PREFIX);
       boolean isHttps = Util.hasPrefix(data, offset, length, HTTPS_PREFIX);
       if (isHttp || isHttps) {

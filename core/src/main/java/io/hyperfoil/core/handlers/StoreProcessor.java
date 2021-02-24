@@ -5,7 +5,6 @@ import org.kohsuke.MetaInfServices;
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.processor.Processor;
-import io.hyperfoil.api.processor.RequestProcessorBuilder;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.core.data.DataFormat;
 import io.hyperfoil.core.session.SessionFactory;
@@ -50,9 +49,9 @@ public class StoreProcessor implements Processor, ResourceUtilizer {
    /**
     * Stores data in a session variable (overwriting on multiple occurences).
     */
-   @MetaInfServices(RequestProcessorBuilder.class)
+   @MetaInfServices(Processor.Builder.class)
    @Name("store")
-   public static class Builder implements RequestProcessorBuilder, InitFromParam<Builder> {
+   public static class Builder implements Processor.Builder, InitFromParam<Builder> {
       private Object toVar;
       private DataFormat format = DataFormat.STRING;
 
@@ -94,7 +93,7 @@ public class StoreProcessor implements Processor, ResourceUtilizer {
    /**
     * DEPRECATED: Use <code>store</code> processor instead.
     */
-   @MetaInfServices(RequestProcessorBuilder.class)
+   @MetaInfServices(Processor.Builder.class)
    @Name("simple")
    public static class LegacyBuilder extends Builder {}
 }

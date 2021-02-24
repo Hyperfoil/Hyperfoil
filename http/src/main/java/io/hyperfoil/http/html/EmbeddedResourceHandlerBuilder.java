@@ -1,7 +1,6 @@
 package io.hyperfoil.http.html;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
-import io.hyperfoil.api.processor.HttpRequestProcessorBuilder;
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 import io.hyperfoil.core.handlers.MultiProcessor;
@@ -19,7 +18,7 @@ public class EmbeddedResourceHandlerBuilder implements HtmlHandler.TagHandlerBui
    private static final String[] ATTRS = { "src", "href", "src", "src", "src", "data", "src" };
 
    private boolean ignoreExternal = true;
-   private Processor.Builder<?> processor;
+   private Processor.Builder processor;
    private FetchResourceHandler.Builder fetchResource;
 
    /**
@@ -42,7 +41,7 @@ public class EmbeddedResourceHandlerBuilder implements HtmlHandler.TagHandlerBui
       return this.fetchResource = new FetchResourceHandler.Builder();
    }
 
-   public EmbeddedResourceHandlerBuilder processor(Processor.Builder<?> processor) {
+   public EmbeddedResourceHandlerBuilder processor(Processor.Builder processor) {
       if (this.processor == null) {
          this.processor = processor;
       } else if (this.processor instanceof MultiProcessor.Builder) {
@@ -60,8 +59,8 @@ public class EmbeddedResourceHandlerBuilder implements HtmlHandler.TagHandlerBui
     *
     * @return Builder.
     */
-   public ServiceLoadedBuilderProvider<HttpRequestProcessorBuilder> processor() {
-      return new ServiceLoadedBuilderProvider<>(HttpRequestProcessorBuilder.class, this::processor);
+   public ServiceLoadedBuilderProvider<Processor.Builder> processor() {
+      return new ServiceLoadedBuilderProvider<>(Processor.Builder.class, this::processor);
    }
 
    @Override

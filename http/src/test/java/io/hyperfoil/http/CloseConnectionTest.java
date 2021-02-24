@@ -8,10 +8,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import io.hyperfoil.api.processor.HttpRequestProcessorBuilder;
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.core.http.CloseConnectionHandler;
+import io.hyperfoil.core.handlers.CloseConnectionHandler;
 import io.hyperfoil.http.api.HttpMethod;
 import io.netty.buffer.ByteBuf;
 import io.vertx.ext.unit.TestContext;
@@ -37,7 +36,7 @@ public class CloseConnectionTest extends HttpScenarioTest {
                .step(SC).httpRequest(HttpMethod.POST)
                   .path(path)
                   .handler()
-                     .body(HttpRequestProcessorBuilder.adapt(new CloseConnectionHandler.Builder()))
+                     .body(new CloseConnectionHandler.Builder())
                      .body(f -> new TestProcessor(closed))
                   .endHandler()
                .endStep();

@@ -7,7 +7,6 @@ import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.processor.Processor;
-import io.hyperfoil.api.processor.RequestProcessorBuilder;
 import io.hyperfoil.api.processor.Transformer;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 import io.netty.buffer.ByteBuf;
@@ -86,9 +85,9 @@ public class JsonHandler extends JsonParser implements Processor, Session.Resour
    /**
     * Parses JSON responses using simple queries.
     */
-   @MetaInfServices(RequestProcessorBuilder.class)
+   @MetaInfServices(Processor.Builder.class)
    @Name("json")
-   public static class Builder extends BaseBuilder<Builder> implements RequestProcessorBuilder {
+   public static class Builder extends BaseBuilder<Builder> implements Processor.Builder {
       @Override
       public JsonHandler build(boolean fragmented) {
          Processor processor = this.processor.build(fragmented);
@@ -111,8 +110,8 @@ public class JsonHandler extends JsonParser implements Processor, Session.Resour
        *
        * @return Builder.
        */
-      public ServiceLoadedBuilderProvider<RequestProcessorBuilder> processor() {
-         return new ServiceLoadedBuilderProvider<>(RequestProcessorBuilder.class, this::processor);
+      public ServiceLoadedBuilderProvider<Processor.Builder> processor() {
+         return new ServiceLoadedBuilderProvider<>(Processor.Builder.class, this::processor);
       }
    }
 

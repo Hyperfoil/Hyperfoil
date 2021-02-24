@@ -10,7 +10,6 @@ import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.SequenceBuilder;
 import io.hyperfoil.api.processor.Processor;
-import io.hyperfoil.api.processor.RequestProcessorBuilder;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.ResourceUtilizer;
@@ -78,9 +77,9 @@ public class QueueProcessor implements Processor, ResourceUtilizer {
     * (subject the concurrency constraints) with sequence index that allows it to read an object from an array
     * using sequence-scoped access.
     */
-   @MetaInfServices(RequestProcessorBuilder.class)
+   @MetaInfServices(Processor.Builder.class)
    @Name("queue")
-   public static class Builder implements RequestProcessorBuilder {
+   public static class Builder implements Processor.Builder {
       private String var;
       private int maxSize;
       private DataFormat format = DataFormat.STRING;

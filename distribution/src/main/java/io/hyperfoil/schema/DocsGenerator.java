@@ -47,7 +47,6 @@ import io.hyperfoil.api.config.MappingListBuilder;
 import io.hyperfoil.api.config.PairBuilder;
 import io.hyperfoil.api.config.PartialBuilder;
 import io.hyperfoil.api.config.StepBuilder;
-import io.hyperfoil.api.processor.HttpRequestProcessorBuilder;
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.core.builders.BuilderInfo;
@@ -119,7 +118,7 @@ public class DocsGenerator extends BaseGenerator {
             printLink("action", action.getKey(), action.getValue().iterator().next(), out);
          }
          out.println("\n\n## Processors");
-         for (Map.Entry<String, List<Docs>> processor : docs.get(HttpRequestProcessorBuilder.class).params.entrySet()) {
+         for (Map.Entry<String, List<Docs>> processor : docs.get(Processor.Builder.class).params.entrySet()) {
             printLink("processor", processor.getKey(), processor.getValue().iterator().next(), out);
          }
       } catch (IOException e) {
@@ -135,7 +134,7 @@ public class DocsGenerator extends BaseGenerator {
          }
       }
       printRootType("action", Action.Builder.class);
-      printRootType("processor", HttpRequestProcessorBuilder.class);
+      printRootType("processor", Processor.Builder.class);
    }
 
    private void printRootType(String type, Class<?> builderClazz) {

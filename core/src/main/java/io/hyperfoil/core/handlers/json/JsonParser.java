@@ -468,7 +468,7 @@ public abstract class JsonParser implements Serializable, ResourceUtilizer {
    public abstract static class BaseBuilder<S extends BaseBuilder<S>> implements InitFromParam<S> {
       protected String query;
       protected boolean unquote = true;
-      protected Processor.Builder<?> processor;
+      protected Processor.Builder processor;
       protected DataFormat format = DataFormat.STRING;
       protected boolean delete;
       protected Transformer.Builder replace;
@@ -583,7 +583,7 @@ public abstract class JsonParser implements Serializable, ResourceUtilizer {
          return processor(new StoreProcessor.Builder().toVar(var).format(format));
       }
 
-      public S processor(Processor.Builder<?> processor) {
+      public S processor(Processor.Builder processor) {
          if (this.processor != null) {
             throw new BenchmarkDefinitionException("Processor already set!");
          }

@@ -3,7 +3,6 @@ package io.hyperfoil.http.html;
 import java.nio.charset.StandardCharsets;
 
 import io.hyperfoil.api.processor.Processor;
-import io.hyperfoil.api.processor.RequestProcessorBuilder;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.netty.buffer.ByteBuf;
@@ -88,9 +87,9 @@ public class MetaRefreshHandler implements HtmlHandler.TagHandler, ResourceUtili
    }
 
    public static class Builder implements HtmlHandler.TagHandlerBuilder<Builder> {
-      private RequestProcessorBuilder processor;
+      private Processor.Builder processor;
 
-      public Builder processor(RequestProcessorBuilder processor) {
+      public Builder processor(Processor.Builder processor) {
          this.processor = processor;
          return this;
       }

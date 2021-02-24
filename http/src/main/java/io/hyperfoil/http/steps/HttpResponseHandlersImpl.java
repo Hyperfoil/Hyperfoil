@@ -26,7 +26,6 @@ import io.hyperfoil.http.api.FollowRedirect;
 import io.hyperfoil.http.api.HeaderHandler;
 import io.hyperfoil.http.api.HttpResponseHandlers;
 import io.hyperfoil.api.processor.RawBytesHandler;
-import io.hyperfoil.api.processor.HttpRequestProcessorBuilder;
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Action;
@@ -365,7 +364,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       private FollowRedirect followRedirect;
       private List<StatusHandler.Builder> statusHandlers = new ArrayList<>();
       private List<HeaderHandler.Builder> headerHandlers = new ArrayList<>();
-      private List<HttpRequestProcessorBuilder> bodyHandlers = new ArrayList<>();
+      private List<Processor.Builder> bodyHandlers = new ArrayList<>();
       private List<Action.Builder> completionHandlers = new ArrayList<>();
       private List<RawBytesHandler.Builder> rawBytesHandlers = new ArrayList<>();
 
@@ -414,7 +413,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          return new ServiceLoadedBuilderProvider<>(HeaderHandler.Builder.class, headerHandlers::add);
       }
 
-      public Builder body(HttpRequestProcessorBuilder builder) {
+      public Builder body(Processor.Builder builder) {
          bodyHandlers.add(builder);
          return this;
       }
@@ -424,8 +423,8 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
        *
        * @return Builder.
        */
-      public ServiceLoadedBuilderProvider<HttpRequestProcessorBuilder> body() {
-         return new ServiceLoadedBuilderProvider<>(HttpRequestProcessorBuilder.class, bodyHandlers::add);
+      public ServiceLoadedBuilderProvider<Processor.Builder> body() {
+         return new ServiceLoadedBuilderProvider<>(Processor.Builder.class, bodyHandlers::add);
       }
 
       public Builder onCompletion(Action handler) {
@@ -508,8 +507,8 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          return parent;
       }
 
-      public Builder wrapBodyHandlers(Function<Collection<HttpRequestProcessorBuilder>, HttpRequestProcessorBuilder> func) {
-         HttpRequestProcessorBuilder wrapped = func.apply(bodyHandlers);
+      public Builder wrapBodyHandlers(Function<Collection<Processor.Builder>, Processor.Builder> func) {
+         Processor.Builder wrapped = func.apply(bodyHandlers);
          this.bodyHandlers = new ArrayList<>();
          this.bodyHandlers.add(wrapped);
          return this;
@@ -523,7 +522,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          // TODO: we might need defensive copies here
          statusHandlers.forEach(StatusHandler.Builder::prepareBuild);
          headerHandlers.forEach(HeaderHandler.Builder::prepareBuild);
-         bodyHandlers.forEach(HttpRequestProcessorBuilder::prepareBuild);
+         bodyHandlers.forEach(Processor.Builder::prepareBuild);
          completionHandlers.forEach(Action.Builder::prepareBuild);
          rawBytesHandlers.forEach(RawBytesHandler.Builder::prepareBuild);
          if (autoRangeCheck != null ? autoRangeCheck : ergonomics.autoRangeCheck()) {
@@ -625,7 +624,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
                }
             }
             if (!bodyHandlers.isEmpty() || html) {
-               Consumer<HttpRequestProcessorBuilder> handlerConsumer;
+               Consumer<Processor.Builder> handlerConsumer;
                ConditionalProcessor.Builder conditionalBodyHandler;
                Redirect.WrappingProcessor.Builder wrappingProcessor = new Redirect.WrappingProcessor.Builder().coordVar(coordsVar).processors(bodyHandlers);
                if (location) {
@@ -634,13 +633,13 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
                            .condition().stringCondition().fromVar(newTempCoordsVar).isSet(false).end()
                            .processor(wrappingProcessor);
                      handlerConsumer = conditionalBodyHandler::processor;
-                     httpRequest.handler().body(HttpRequestProcessorBuilder.adapt(conditionalBodyHandler));
+                     httpRequest.handler().body(conditionalBodyHandler);
                   } else {
                      handlerConsumer = null;
                   }
                } else {
                   assert html;
-                  httpRequest.handler().body(HttpRequestProcessorBuilder.adapt(wrappingProcessor));
+                  httpRequest.handler().body(wrappingProcessor);
                   handlerConsumer = httpRequest.handler()::body;
                }
                if (html) {
@@ -684,7 +683,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          }
 
          if (!bodyHandlers.isEmpty() || html) {
-            Consumer<HttpRequestProcessorBuilder> handlerConsumer;
+            Consumer<Processor.Builder> handlerConsumer;
             ConditionalProcessor.Builder conditionalBodyHandler = null;
             if (location) {
                conditionalBodyHandler = new ConditionalProcessor.Builder()
@@ -701,7 +700,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
                            redirectSequenceName, delaySequenceName, access(tempCoordsVar), Session::currentSequence))));
             }
             if (location) {
-               bodyHandlers = Collections.singletonList(HttpRequestProcessorBuilder.adapt(conditionalBodyHandler));
+               bodyHandlers = Collections.singletonList(conditionalBodyHandler);
             }
          }
          if (!completionHandlers.isEmpty()) {

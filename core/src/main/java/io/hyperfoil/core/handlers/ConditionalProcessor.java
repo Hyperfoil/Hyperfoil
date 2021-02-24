@@ -10,7 +10,6 @@ import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Embed;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.processor.Processor;
-import io.hyperfoil.api.processor.RequestProcessorBuilder;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.builders.Condition;
@@ -63,10 +62,10 @@ public class ConditionalProcessor implements Processor, ResourceUtilizer {
     * Note that the condition may be evaluated multiple times and therefore
     * any nested processors should not change the results of the condition.
     */
-   @MetaInfServices(RequestProcessorBuilder.class)
+   @MetaInfServices(Processor.Builder.class)
    @Name("conditional")
-   public static class Builder implements RequestProcessorBuilder {
-      private List<Processor.Builder<?>> processors = new ArrayList<>();
+   public static class Builder implements Processor.Builder {
+      private List<Processor.Builder> processors = new ArrayList<>();
       private Condition.TypesBuilder<Builder> condition = new Condition.TypesBuilder<>(this);
 
       @Embed
@@ -74,12 +73,12 @@ public class ConditionalProcessor implements Processor, ResourceUtilizer {
          return condition;
       }
 
-      public Builder processor(Processor.Builder<?> processor) {
+      public Builder processor(Processor.Builder processor) {
          this.processors.add(processor);
          return this;
       }
 
-      public Builder processors(Collection<? extends Processor.Builder<?>> processors) {
+      public Builder processors(Collection<? extends Processor.Builder> processors) {
          this.processors.addAll(processors);
          return this;
       }
@@ -89,8 +88,8 @@ public class ConditionalProcessor implements Processor, ResourceUtilizer {
        *
        * @return Builder.
        */
-      public ServiceLoadedBuilderProvider<RequestProcessorBuilder> processor() {
-         return new ServiceLoadedBuilderProvider<>(RequestProcessorBuilder.class, this::processor);
+      public ServiceLoadedBuilderProvider<Processor.Builder> processor() {
+         return new ServiceLoadedBuilderProvider<>(Processor.Builder.class, this::processor);
       }
 
       @Override

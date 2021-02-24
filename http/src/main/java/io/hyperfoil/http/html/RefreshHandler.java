@@ -57,6 +57,11 @@ public class RefreshHandler implements Processor, ResourceUtilizer {
    public void process(Session session, ByteBuf data, int offset, int length, boolean isLastPart) {
       assert isLastPart;
 
+      HttpRequest request = HttpRequest.ensure(session.currentRequest());
+      if (request == null) {
+         return;
+      }
+
       try {
          long seconds = 0;
          String url = null;
@@ -92,15 +97,16 @@ public class RefreshHandler implements Processor, ResourceUtilizer {
          coords.method = HttpMethod.GET;
          coords.originalSequence = originalSequenceSupplier.apply(session);
          coords.delay = (int) seconds;
+
+
          if (url == null) {
-            HttpRequest request = (HttpRequest) session.currentRequest();
+
             coords.authority = request.authority;
             coords.path = request.path;
          } else if (url.startsWith(HttpUtil.HTTP_PREFIX) || url.startsWith(HttpUtil.HTTPS_PREFIX)) {
             coords.authority = null;
             coords.path = url;
          } else {
-            HttpRequest request = (HttpRequest) session.currentRequest();
             coords.authority = request.authority;
             if (url.startsWith("/")) {
                coords.path = url;

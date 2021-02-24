@@ -1,18 +1,14 @@
 package io.hyperfoil.http.handlers;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.api.config.Embed;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.http.api.HttpRequest;
 import io.hyperfoil.http.api.HeaderHandler;
-import io.hyperfoil.api.processor.HttpRequestProcessorBuilder;
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.builders.StringConditionBuilder;
-import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 import io.hyperfoil.core.handlers.MultiProcessor;
 import io.hyperfoil.core.util.Util;
 import io.hyperfoil.function.SerializableBiPredicate;
@@ -68,20 +64,16 @@ public class FilterHeaderHandler implements HeaderHandler, ResourceUtilizer {
    @Name("filter")
    public static class Builder implements HeaderHandler.Builder {
       private StringConditionBuilder<?, Builder> header = new StringConditionBuilder<>(this).caseSensitive(false);
-      private List<HttpRequestProcessorBuilder> processors = new ArrayList<>();
+      @Embed
+      public MultiProcessor.Builder<?> processors = new MultiProcessor.Builder<>();
 
       @Override
       public FilterHeaderHandler build() {
          if (processors.isEmpty()) {
             throw new BenchmarkDefinitionException("Processor was not set!");
          }
-         Processor processor = processors.size() == 1 ? processors.get(0).build(false) : new MultiProcessor(processors.stream().map(p -> p.build(false)).toArray(Processor[]::new));
+         Processor processor = processors.buildSingle(false);
          return new FilterHeaderHandler(header.buildPredicate(), processor);
-      }
-
-      public Builder processor(HttpRequestProcessorBuilder processor) {
-         this.processors.add(processor);
-         return this;
       }
 
       /**
@@ -93,13 +85,9 @@ public class FilterHeaderHandler implements HeaderHandler, ResourceUtilizer {
          return header;
       }
 
-      /**
-       * Processor that will be invoked with the value (converted to ByteBuf).
-       *
-       * @return Builder;
-       */
-      public ServiceLoadedBuilderProvider<HttpRequestProcessorBuilder> processor() {
-         return new ServiceLoadedBuilderProvider<>(HttpRequestProcessorBuilder.class, this::processor);
+      public Builder processor(Processor.Builder processor) {
+         processors.processor(processor);
+         return this;
       }
    }
 }

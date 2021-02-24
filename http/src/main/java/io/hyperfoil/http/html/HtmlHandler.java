@@ -11,7 +11,6 @@ import org.kohsuke.MetaInfServices;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.BuilderBase;
 import io.hyperfoil.api.config.Name;
-import io.hyperfoil.api.processor.HttpRequestProcessorBuilder;
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.ResourceUtilizer;
@@ -322,9 +321,9 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
    /**
     * Parses HTML tags and invokes handlers based on criteria.
     */
-   @MetaInfServices(HttpRequestProcessorBuilder.class)
+   @MetaInfServices(Processor.Builder.class)
    @Name("parseHtml")
-   public static class Builder implements HttpRequestProcessorBuilder {
+   public static class Builder implements Processor.Builder {
       private List<TagHandlerBuilder<?>> handlers = new ArrayList<>();
 
       /**

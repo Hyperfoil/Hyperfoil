@@ -28,7 +28,6 @@ import io.hyperfoil.api.config.Visitor;
 import io.hyperfoil.http.HttpRequestPool;
 import io.hyperfoil.http.api.HttpDestinationTable;
 import io.hyperfoil.http.api.HttpRequest;
-import io.hyperfoil.api.processor.HttpRequestProcessorBuilder;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.SequenceInstance;
@@ -42,7 +41,7 @@ import io.hyperfoil.http.config.HttpPluginBuilder;
 import io.hyperfoil.http.config.HttpPluginConfig;
 import io.hyperfoil.http.handlers.FilterHeaderHandler;
 import io.hyperfoil.http.cookie.CookieAppender;
-import io.hyperfoil.core.http.GzipInflatorProcessor;
+import io.hyperfoil.core.handlers.GzipInflatorProcessor;
 import io.hyperfoil.http.HttpUtil;
 import io.hyperfoil.http.UserAgentAppender;
 import io.hyperfoil.core.session.SessionFactory;
@@ -1053,7 +1052,10 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
 
       @Override
       public void run(Session session) {
-         HttpRequest request = (HttpRequest) session.currentRequest();
+         HttpRequest request = HttpRequest.ensure(session.currentRequest());
+         if (request == null) {
+            return;
+         }
          String metric = metricSelector.apply(request.authority, request.path);
          Statistics statistics = session.statistics(stepId, metric);
 
@@ -1147,7 +1149,7 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
             }
             parent.handler.header(new FilterHeaderHandler.Builder()
                   .header().equalTo(expectedHeader.toString()).end()
-                  .processor(HttpRequestProcessorBuilder.adapt(new StoreProcessor.Builder().toVar(encoding))));
+                  .processor(new StoreProcessor.Builder().toVar(encoding)));
             parent.handler.wrapBodyHandlers(handlers -> new GzipInflatorProcessor.Builder().processors(handlers).encodingVar(encoding));
          }
       }

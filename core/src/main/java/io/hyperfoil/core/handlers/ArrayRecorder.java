@@ -6,7 +6,6 @@ import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.processor.Processor;
-import io.hyperfoil.api.processor.RequestProcessorBuilder;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.core.data.DataFormat;
 import io.hyperfoil.core.session.SessionFactory;
@@ -63,9 +62,9 @@ public class ArrayRecorder implements Processor, ResourceUtilizer {
    /**
     * Stores data in an array stored as session variable.
     */
-   @MetaInfServices(RequestProcessorBuilder.class)
+   @MetaInfServices(Processor.Builder.class)
    @Name("array")
-   public static class Builder implements RequestProcessorBuilder, InitFromParam<Builder> {
+   public static class Builder implements Processor.Builder, InitFromParam<Builder> {
       private String toVar;
       private DataFormat format = DataFormat.STRING;
       private int maxSize;

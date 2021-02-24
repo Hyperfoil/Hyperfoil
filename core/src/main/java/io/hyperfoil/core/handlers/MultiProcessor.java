@@ -7,6 +7,7 @@ import java.util.List;
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
+import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 import io.netty.buffer.ByteBuf;
 
 public class MultiProcessor implements Processor, ResourceUtilizer {
@@ -43,8 +44,8 @@ public class MultiProcessor implements Processor, ResourceUtilizer {
       ResourceUtilizer.reserve(session, (Object[]) delegates);
    }
 
-   public static class Builder<S extends Builder<S>> implements Processor.Builder<S> {
-      public final List<Processor.Builder<?>> delegates = new ArrayList<>();
+   public static class Builder<S extends Builder<S>> implements Processor.Builder {
+      public final List<Processor.Builder> delegates = new ArrayList<>();
 
       @SuppressWarnings("unchecked")
       @Override
@@ -58,19 +59,40 @@ public class MultiProcessor implements Processor, ResourceUtilizer {
          return delegates;
       }
 
-      public S processor(Processor.Builder<?> processor) {
+      public Processor buildSingle(boolean fragmented) {
+         if (delegates.size() == 1) {
+            return delegates.get(0).build(fragmented);
+         } else {
+            return new MultiProcessor(buildProcessors(fragmented));
+         }
+      }
+
+      public S processor(Processor.Builder processor) {
          delegates.add(processor);
          return self();
       }
 
-      public S processors(Collection<? extends Processor.Builder<?>> processors) {
+      public S processors(Collection<? extends Processor.Builder> processors) {
          delegates.addAll(processors);
          return self();
+      }
+
+      /**
+       * Add one or more delegated processors.
+       *
+       * @return Builder;
+       */
+      public ServiceLoadedBuilderProvider<Processor.Builder> processor() {
+         return new ServiceLoadedBuilderProvider<>(Processor.Builder.class, this::processor);
       }
 
       @SuppressWarnings("unchecked")
       protected S self() {
          return (S) this;
+      }
+
+      public boolean isEmpty() {
+         return delegates.isEmpty();
       }
    }
 }

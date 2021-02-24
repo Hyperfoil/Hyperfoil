@@ -22,6 +22,15 @@ public class HttpRequest extends Request {
       super(session);
    }
 
+   public static HttpRequest ensure(Request request) {
+      if (request instanceof HttpRequest) {
+         return (HttpRequest) request;
+      } else {
+         log.error("#{}: Expected HttpRequest, got {}", request.session.uniqueId(), request);
+         return null;
+      }
+   }
+
    public void start(HttpResponseHandlers handlers, SequenceInstance sequence, Statistics statistics) {
       this.handlers = handlers;
       start(sequence, statistics);

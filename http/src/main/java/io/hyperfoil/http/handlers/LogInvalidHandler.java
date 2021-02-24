@@ -5,8 +5,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.hyperfoil.api.config.Name;
+import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.http.api.HttpRequest;
-import io.hyperfoil.api.processor.HttpRequestProcessorBuilder;
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.http.api.HeaderHandler;
 import io.hyperfoil.api.session.Session;
@@ -14,14 +14,20 @@ import io.hyperfoil.core.util.Util;
 import io.netty.buffer.ByteBuf;
 
 public class LogInvalidHandler implements Processor, HeaderHandler {
-   private Logger log = LoggerFactory.getLogger(LogInvalidHandler.class);
+   private static final Logger log = LoggerFactory.getLogger(LogInvalidHandler.class);
 
    @Override
    public void process(Session session, ByteBuf data, int offset, int length, boolean isLast) {
-      HttpRequest request = (HttpRequest) session.currentRequest();
+      Request request = session.currentRequest();
       if (request != null && !request.isValid()) {
-         log.debug("#{}: {} {}/{}, {} bytes: {}", session.uniqueId(), request.method, request.authority, request.path, data.readableBytes(),
-               Util.toString(data, data.readerIndex(), data.readableBytes()));
+         if (request instanceof HttpRequest) {
+            HttpRequest httpRequest = (HttpRequest) request;
+            log.debug("#{}: {} {}/{}, {} bytes: {}", session.uniqueId(), httpRequest.method, httpRequest.authority, httpRequest.path, data.readableBytes(),
+                  Util.toString(data, data.readerIndex(), data.readableBytes()));
+         } else {
+            log.debug("#{}: {} bytes: {}", session.uniqueId(), data.readableBytes(),
+                  Util.toString(data, data.readerIndex(), data.readableBytes()));
+         }
       }
    }
 
@@ -35,9 +41,9 @@ public class LogInvalidHandler implements Processor, HeaderHandler {
    /**
     * Logs body chunks from requests marked as invalid.
     */
-   @MetaInfServices(HttpRequestProcessorBuilder.class)
+   @MetaInfServices(Processor.Builder.class)
    @Name("logInvalid")
-   public static class BodyHandlerBuilder implements HttpRequestProcessorBuilder {
+   public static class BodyHandlerBuilder implements Processor.Builder {
       @Override
       public LogInvalidHandler build(boolean fragmented) {
          return new LogInvalidHandler();

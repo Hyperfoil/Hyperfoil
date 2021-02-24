@@ -53,14 +53,10 @@ import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.RunHook;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.config.StepBuilder;
-import io.hyperfoil.api.connection.Request;
-import io.hyperfoil.api.processor.HttpRequestProcessorBuilder;
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.processor.RawBytesHandler;
-import io.hyperfoil.api.processor.RequestProcessorBuilder;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.http.api.HeaderHandler;
-import io.hyperfoil.http.api.HttpRequest;
 import io.hyperfoil.http.api.StatusHandler;
 
 @Mojo(name = "skeleton", defaultPhase = LifecyclePhase.GENERATE_SOURCES)
@@ -84,12 +80,7 @@ public class SkeletonMojo extends AbstractMojo {
    static {
       TYPES.put("step", new SkeletonType("Step", Step.class, StepBuilder.class));
       TYPES.put("action", new SkeletonType("Action", Action.class, Action.Builder.class));
-      TYPES.put("requestprocessor", new SkeletonType("Processor",
-            new ParameterizedTypeImpl(Processor.class, new MapBuilder<String, Type>().add("R", Request.class).map()),
-            RequestProcessorBuilder.class));
-      TYPES.put("httprequestprocessor", new SkeletonType("Processor",
-            new ParameterizedTypeImpl(Processor.class, new MapBuilder<String, Type>().add("R", HttpRequest.class).map()),
-            HttpRequestProcessorBuilder.class));
+      TYPES.put("requestprocessor", new SkeletonType("Processor", Processor.class, Processor.Builder.class));
       TYPES.put("headerhandler", new SkeletonType("HeaderHandler", HeaderHandler.class, HeaderHandler.Builder.class));
       TYPES.put("statushandler", new SkeletonType("StatusHandler", StatusHandler.class, StatusHandler.Builder.class));
       TYPES.put("rawbyteshandler", new SkeletonType("RawBytesHandler", RawBytesHandler.class, RawBytesHandler.Builder.class));

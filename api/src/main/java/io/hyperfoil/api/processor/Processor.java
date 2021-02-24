@@ -1,14 +1,20 @@
 package io.hyperfoil.api.processor;
 
 import java.io.Serializable;
+import java.util.function.Function;
 
 import io.hyperfoil.api.config.BuilderBase;
+import io.hyperfoil.api.config.IncludeBuilders;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.netty.buffer.ByteBuf;
 
 public interface Processor extends Serializable {
+   static Processor.Builder adapt(Action.Builder builder) {
+      return new ActionBuilderAdapter(builder);
+   }
+
    /**
     * Invoked before we record first value from given response.
     *
@@ -33,7 +39,10 @@ public interface Processor extends Serializable {
       }
    }
 
-   interface Builder<B extends Builder<B>> extends BuilderBase<B> {
+   @IncludeBuilders(
+         @IncludeBuilders.Conversion(from = Action.Builder.class, adapter = Processor.ActionBuilderConverter.class)
+   )
+   interface Builder extends BuilderBase<Builder> {
       Processor build(boolean fragmented);
    }
 
@@ -79,6 +88,31 @@ public interface Processor extends Serializable {
       @Override
       public void reserve(Session session) {
          ResourceUtilizer.reserve(session, action);
+      }
+   }
+
+   class ActionBuilderConverter implements Function<Action.Builder, Processor.Builder> {
+      @Override
+      public Processor.Builder apply(Action.Builder builder) {
+         return new ActionBuilderAdapter(builder);
+      }
+   }
+
+   class ActionBuilderAdapter implements Processor.Builder {
+      private final Action.Builder builder;
+
+      public ActionBuilderAdapter(Action.Builder builder) {
+         this.builder = builder;
+      }
+
+      @Override
+      public Processor.Builder copy() {
+         return new ActionBuilderAdapter(builder.copy());
+      }
+
+      @Override
+      public Processor build(boolean fragmented) {
+         return new ActionAdapter(builder.build());
       }
    }
 }

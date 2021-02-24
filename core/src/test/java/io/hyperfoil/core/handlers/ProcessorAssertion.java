@@ -1,7 +1,7 @@
 package io.hyperfoil.core.handlers;
 
 import io.hyperfoil.api.processor.Processor;
-import io.hyperfoil.api.processor.RequestProcessorBuilder;
+import io.hyperfoil.api.processor.Processor.Builder;
 import io.hyperfoil.api.session.Session;
 import io.netty.buffer.ByteBuf;
 import io.vertx.ext.unit.TestContext;
@@ -16,7 +16,7 @@ public class ProcessorAssertion {
       this.onlyLast = onlyLast;
    }
 
-   public RequestProcessorBuilder processor(RequestProcessorBuilder delegate) {
+   public Processor.Builder processor(Processor.Builder delegate) {
       return new Builder(delegate);
    }
 
@@ -25,10 +25,10 @@ public class ProcessorAssertion {
       actualInvocations = 0;
    }
 
-   private class Builder implements RequestProcessorBuilder {
-      private final RequestProcessorBuilder delegate;
+   private class Builder implements Processor.Builder {
+      private final Processor.Builder delegate;
 
-      private Builder(RequestProcessorBuilder delegate) {
+      private Builder(Processor.Builder delegate) {
          this.delegate = delegate;
       }
 

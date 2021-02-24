@@ -1,9 +1,6 @@
-package io.hyperfoil.core.http;
+package io.hyperfoil.core.handlers;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 
@@ -11,12 +8,9 @@ import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.connection.Request;
-import io.hyperfoil.api.processor.HttpRequestProcessorBuilder;
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
-import io.hyperfoil.core.handlers.MultiProcessor;
 import io.hyperfoil.core.session.SessionFactory;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
@@ -276,37 +270,15 @@ public class GzipInflatorProcessor extends MultiProcessor implements Session.Res
     * Decompresses a GZIP data and pipes the output to delegated processors. If the data contains multiple concatenated
     * GZIP streams it will pipe multiple decompressed objects with <code>isLastPart</code> set to true at the end of each stream.
     */
-   @MetaInfServices(HttpRequestProcessorBuilder.class)
+   @MetaInfServices(Processor.Builder.class)
    @Name("gzipInflator")
-   // TODO: inlines MultiProcessor.Builder due to generics...
-   public static class Builder implements HttpRequestProcessorBuilder {
-      public final List<Processor.Builder<?>> delegates = new ArrayList<>();
+   public static class Builder extends MultiProcessor.Builder<Builder> implements Processor.Builder {
       private Object encodingVar;
 
       @Override
       public Processor build(boolean fragmented) {
-         // The output likely won't be a one big buffer
-         Processor[] processors = this.delegates.stream().map(d -> d.build(true)).toArray(Processor[]::new);
+         Processor[] processors = buildProcessors(fragmented);
          return new GzipInflatorProcessor(processors, SessionFactory.access(encodingVar));
-      }
-
-      public Builder processor(Processor.Builder<?> processor) {
-         delegates.add(processor);
-         return this;
-      }
-
-      public Builder processors(Collection<? extends Processor.Builder<?>> processors) {
-         delegates.addAll(processors);
-         return this;
-      }
-
-      /**
-       * Add one or more delegated processors.
-       *
-       * @return Builder.
-       */
-      public ServiceLoadedBuilderProvider<HttpRequestProcessorBuilder> processor() {
-         return new ServiceLoadedBuilderProvider<>(HttpRequestProcessorBuilder.class, delegates::add);
       }
 
       /**
