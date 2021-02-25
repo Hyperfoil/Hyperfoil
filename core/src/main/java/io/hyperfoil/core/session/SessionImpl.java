@@ -529,6 +529,7 @@ class SessionImpl implements Session {
    @Override
    public void fail(Throwable t) {
       try {
+         log.error("#{} Failing phase {}", t, uniqueId, phase().name);
          stop();
       } finally {
          phase.fail(t);

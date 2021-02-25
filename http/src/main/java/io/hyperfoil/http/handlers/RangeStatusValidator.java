@@ -27,8 +27,8 @@ public class RangeStatusValidator implements StatusHandler {
       boolean valid = status >= min && status <= max;
       if (!valid) {
          request.markInvalid();
-         log.warn("#{} Sequence {}, connection {} received invalid status {}", request.session.uniqueId(),
-               request.sequence(), request.connection(), status);
+         log.warn("#{} Sequence {}, request {} on connection {} received invalid status {}", request.session.uniqueId(),
+               request.sequence(), request, request.connection(), status);
       }
    }
 

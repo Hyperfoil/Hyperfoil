@@ -20,6 +20,7 @@ import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Rewritable;
 import io.hyperfoil.api.config.SequenceBuilder;
 import io.hyperfoil.api.config.StepBuilder;
+import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.http.api.HttpCache;
 import io.hyperfoil.http.api.HttpRequest;
 import io.hyperfoil.http.api.FollowRedirect;
@@ -747,7 +748,9 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
 
       @Override
       public void run(Session session) {
-         if (!session.currentRequest().isValid()) {
+         Request request = session.currentRequest();
+         if (!request.isValid()) {
+            log.info("#{} Stopping session due to invalid request {} on connection {}", session.uniqueId(), request, request.connection());
             session.stop();
          }
       }
