@@ -43,6 +43,7 @@ public class AgentVerticle extends AbstractVerticle {
    private RequestStatsSender requestStatsSender;
    private CountDown statisticsCountDown;
    private SessionStatsSender sessionStatsSender;
+   private ConnectionStatsSender connectionStatsSender;
 
    @Override
    public void start() {
@@ -211,6 +212,7 @@ public class AgentVerticle extends AbstractVerticle {
       requestStatsSender = new RequestStatsSender(benchmark, eb, deploymentId, runId);
       statisticsCountDown = new CountDown(1);
       sessionStatsSender = new SessionStatsSender(eb, deploymentId, runId);
+      connectionStatsSender = new ConnectionStatsSender(eb, deploymentId, runId);
 
       runner.setPhaseChangeHandler((phase, status, sessionLimitExceeded, error) -> {
          log.debug("{} changed phase {} to {}", deploymentId, phase, status);
@@ -237,6 +239,8 @@ public class AgentVerticle extends AbstractVerticle {
          requestStatsSender.send(statisticsCountDown);
          runner.visitSessionPoolStats(sessionStatsSender);
          sessionStatsSender.send();
+         runner.visitConnectionStats(connectionStatsSender);
+         connectionStatsSender.send();
       });
 
       runner.openConnections(result -> {

@@ -15,6 +15,7 @@ import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.api.PluginRunData;
 import io.hyperfoil.api.config.Benchmark;
+import io.hyperfoil.core.impl.ConnectionStatsConsumer;
 import io.hyperfoil.http.api.HttpCache;
 import io.hyperfoil.http.api.HttpClientPool;
 import io.hyperfoil.http.api.HttpConnection;
@@ -127,6 +128,16 @@ public class HttpRunData implements PluginRunData {
                byType.computeIfAbsent(conn.getClass().getSimpleName() + (conn.isSecure() ? "(SSL)" : ""), k -> new AtomicInteger()).incrementAndGet();
             }
             connectionCollector.accept(String.format("%s: %d/%d available, %d in-flight requests, %d waiting sessions (estimate), types: %s", entry.getKey(), available, connections.size(), inFlight, pool.waitingSessions(), byType));
+         }
+      }
+   }
+
+   @Override
+   public void visitConnectionStats(ConnectionStatsConsumer consumer) {
+      for (var entry : clientPools.entrySet()) {
+         // default pool is in the map twice
+         if (entry.getKey() != null) {
+            entry.getValue().visitConnectionStats(consumer);
          }
       }
    }

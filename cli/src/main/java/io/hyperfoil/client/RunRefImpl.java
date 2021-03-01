@@ -104,6 +104,20 @@ public class RunRefImpl implements Client.RunRef {
    }
 
    @Override
+   public Map<String, Map<String, Client.MinMax>> connectionStatsRecent() {
+      return client.sync(
+            handler -> client.request(HttpMethod.GET, "/run/" + id + "/connections/recent").send(handler), 200,
+            response -> JacksonCodec.decodeValue(response.body(), new TypeReference<Map<String, Map<String, Client.MinMax>>>() {}));
+   }
+
+   @Override
+   public Map<String, Map<String, Client.MinMax>> connectionStatsTotal() {
+      return client.sync(
+            handler -> client.request(HttpMethod.GET, "/run/" + id + "/connections/total").send(handler), 200,
+            response -> JacksonCodec.decodeValue(response.body(), new TypeReference<Map<String, Map<String, Client.MinMax>>>() {}));
+   }
+
+   @Override
    public RequestStatisticsResponse statsRecent() {
       return client.sync(
             handler -> client.request(HttpMethod.GET, "/run/" + id + "/stats/recent")

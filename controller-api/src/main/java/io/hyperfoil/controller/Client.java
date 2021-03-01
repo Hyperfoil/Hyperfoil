@@ -82,6 +82,10 @@ public interface Client {
 
       Collection<String> connections();
 
+      Map<String, Map<String, MinMax>> connectionStatsRecent();
+
+      Map<String, Map<String, MinMax>> connectionStatsTotal();
+
       RequestStatisticsResponse statsRecent();
 
       RequestStatisticsResponse statsTotal();

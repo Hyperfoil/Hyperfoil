@@ -4,13 +4,17 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 
 import io.hyperfoil.api.connection.Connection;
 import io.hyperfoil.api.session.Session;
+import io.hyperfoil.core.impl.ConnectionStatsConsumer;
+import io.hyperfoil.core.util.Watermarks;
 import io.hyperfoil.http.api.HttpClientPool;
 import io.hyperfoil.http.api.HttpConnection;
 import io.hyperfoil.http.api.HttpConnectionPool;
@@ -39,6 +43,10 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
    private final ArrayList<HttpConnection> connections = new ArrayList<>();
    private final ArrayDeque<HttpConnection> available;
    private final List<HttpConnection> temporaryInFlight;
+   private final Watermarks usedConnections = new Watermarks();
+   private final Watermarks inFlight = new Watermarks();
+   private final Watermarks blockedSessions = new Watermarks();
+   private final Map<String, Watermarks> typeStats = new HashMap<>();
    private final int size;
    private final EventLoop eventLoop;
    private int count; // The estimated count : created + creating
@@ -47,7 +55,7 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
    private int failures;
    private Handler<AsyncResult<Void>> startedHandler;
    private boolean shutdown;
-   private Deque<Session> waitingSessions = new ArrayDeque<>();
+   private final Deque<Session> waitingSessions = new ArrayDeque<>();
    private ScheduledFuture<?> pulseFuture;
 
    HttpConnectionPoolImpl(HttpClientPoolImpl clientPool, EventLoop eventLoop, int size) {
@@ -95,6 +103,11 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
                   temporaryInFlight.add(connection);
                   continue;
                }
+               inFlight.incrementUsed();
+               if (connection.inFlight() == 0) {
+                  usedConnections.incrementUsed();
+               }
+
                request.attach(connection);
                connection.attach(this);
                connection.request(request, headerAppenders, injectHostHeader, bodyGenerator);
@@ -118,11 +131,41 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
    @Override
    public void release(HttpConnection connection) {
       available.add(connection);
+      inFlight.decrementUsed();
+      if (connection.inFlight() == 0) {
+         usedConnections.decrementUsed();
+      }
    }
 
    @Override
    public void onSessionReset() {
       // noop
+   }
+
+   @Override
+   public void visitConnectionStats(ConnectionStatsConsumer consumer) {
+      consumer.accept(clientPool.authority, "in-flight requests", inFlight.minUsed(), inFlight.maxUsed());
+      inFlight.resetStats();
+      consumer.accept(clientPool.authority, "used connections", usedConnections.minUsed(), usedConnections.maxUsed());
+      usedConnections.resetStats();
+      consumer.accept(clientPool.authority, "blocked sessions", blockedSessions.minUsed(), blockedSessions.maxUsed());
+      blockedSessions.resetStats();
+      for (var entry : typeStats.entrySet()) {
+         int min = entry.getValue().minUsed();
+         int max = entry.getValue().maxUsed();
+         entry.getValue().resetStats();
+         consumer.accept(clientPool.authority, entry.getKey(), min, max);
+      }
+   }
+
+   @Override
+   public void incrementBlockedSessions() {
+      blockedSessions.incrementUsed();
+   }
+
+   @Override
+   public void decrementBlockedSessions() {
+      blockedSessions.decrementUsed();
    }
 
    @Override
@@ -214,6 +257,10 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
                available.add(conn);
                log.debug("Connection {} to {} created ({}->{}=?{}:{}/{})", conn, clientPool.authority, count, created, connections.size(), available.size(), size);
 
+               Watermarks watermarks = typeStats.computeIfAbsent(tagConnection(conn), t -> new Watermarks());
+               watermarks.incrementUsed();
+               log.debug("Watermark: {}", watermarks.maxUsed());
+
                if (count < size) {
                   checkCreateConnections();
                } else {
@@ -229,6 +276,9 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
                   count--;
                   created--;
                   closed++;
+                  typeStats.get(tagConnection(conn)).decrementUsed();
+                  inFlight.decrementUsed(conn.inFlight() + 1);
+                  usedConnections.decrementUsed();
                   if (!shutdown) {
                      if (closed > size) {
                         // do cleanup
@@ -245,13 +295,13 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
                pulse();
             }
          });
-         eventLoop.schedule(() -> checkCreateConnections(), 2, TimeUnit.MILLISECONDS);
+         eventLoop.schedule(this::checkCreateConnections, 2, TimeUnit.MILLISECONDS);
       }
    }
 
    void start(Handler<AsyncResult<Void>> handler) {
       startedHandler = handler;
-      eventLoop.execute(() -> checkCreateConnections());
+      eventLoop.execute(this::checkCreateConnections);
    }
 
    void shutdown() {
@@ -274,4 +324,14 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
       });
    }
 
+   private String tagConnection(HttpConnection connection) {
+      switch (connection.version()) {
+         case HTTP_1_0:
+         case HTTP_1_1:
+            return connection.isSecure() ? "TLS + HTTP 1.x" : "HTTP 1.x";
+         case HTTP_2_0:
+            return connection.isSecure() ? "TLS + HTTP 2" : "HTTP 2";
+      }
+      return "unknown";
+   }
 }

@@ -168,12 +168,15 @@ public class HttpRequestStep extends StatisticsStep implements ResourceUtilizer,
          // TODO: when the phase is finished, max duration is not set and the connection cannot be obtained
          // we'll be waiting here forever. Maybe there should be a (default) timeout to obtain the connection.
          connectionPool.registerWaitingSession(session);
-         sequence.setBlockedTimestamp();
-         request.statistics().incrementBlockedCount(request.startTimestampMillis());
+         if (sequence.setBlockedTimestamp()) {
+            connectionPool.incrementBlockedSessions();
+            request.statistics().incrementBlockedCount(request.startTimestampMillis());
+         }
          return false;
       }
       long blockedTime = sequence.getBlockedTime();
       if (blockedTime > 0) {
+         connectionPool.decrementBlockedSessions();
          request.statistics().incrementBlockedTime(request.startTimestampMillis(), blockedTime);
       }
       if (request.isCompleted()) {

@@ -28,7 +28,9 @@ public class HttpRequestPool extends LimitedPoolResource<HttpRequest> {
          // because if the requests did timeout (calling handlers and eventually letting the session terminate)
          // it might still be held in the connection.
          for (HttpRequest request : (HttpRequest[]) originalObjects) {
-            if (!request.isCompleted()) {
+            // We won't issue the warning for invalid requests because these are likely not in flight anymore
+            // and we are stopping the session exactly due to the invalid request.
+            if (!request.isCompleted() && request.isValid()) {
                log.warn("#{} Session completed with requests in-flight!", session.uniqueId());
                break;
             }

@@ -300,6 +300,40 @@ paths:
             text/plain:
               schema:
                 type: string
+  /run/{runId}/connections/recent:
+    get:
+      summary: Actual numbers of connections for each host:port
+      operationId: getRecentConnections
+      parameters:
+      - in: path
+        name: runId
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Retrieved successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+  /run/{runId}/connections/total:
+    get:
+      summary: Total number of connections for each host:port
+      operationId: getTotalConnections
+      parameters:
+      - in: path
+        name: runId
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Retrieved successfully.
+          content:
+            application/json:
+              schema:
+                type: object
   /run/{runId}/stats/all:
     get:
       summary: Get complete statistics from the run.

@@ -5,13 +5,14 @@ import java.util.Map;
 
 import io.hyperfoil.clustering.messages.SessionStatsMessage;
 import io.hyperfoil.core.impl.SessionStatsConsumer;
+import io.hyperfoil.core.util.LowHigh;
 import io.vertx.core.eventbus.EventBus;
 
 public class SessionStatsSender implements SessionStatsConsumer {
    private final String address;
    private final String runId;
    private final EventBus eb;
-   private Map<String, SessionStatsMessage.MinMax> sessionStats;
+   private Map<String, LowHigh> sessionStats;
 
    public SessionStatsSender(EventBus eb, String address, String runId) {
       this.address = address;
@@ -31,6 +32,6 @@ public class SessionStatsSender implements SessionStatsConsumer {
       if (sessionStats == null) {
          sessionStats = new HashMap<>();
       }
-      sessionStats.put(phase, new SessionStatsMessage.MinMax(minSessions, maxSessions));
+      sessionStats.put(phase, new LowHigh(minSessions, maxSessions));
    }
 }

@@ -5,6 +5,7 @@ import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 
 import io.hyperfoil.api.connection.Connection;
+import io.hyperfoil.core.impl.ConnectionStatsConsumer;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.EventLoop;
 import io.hyperfoil.api.session.Session;
@@ -31,4 +32,10 @@ public interface HttpConnectionPool {
    void release(HttpConnection connection);
 
    void onSessionReset();
+
+   void visitConnectionStats(ConnectionStatsConsumer consumer);
+
+   void incrementBlockedSessions();
+
+   void decrementBlockedSessions();
 }

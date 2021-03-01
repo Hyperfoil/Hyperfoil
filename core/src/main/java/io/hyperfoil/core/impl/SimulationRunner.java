@@ -283,24 +283,29 @@ public class SimulationRunner {
             // Phase(s) with these resources have not been started yet
             continue;
          }
-         int minUsed = sharedResources.sessionPool.minUsed();
-         int maxUsed = sharedResources.sessionPool.maxUsed();
-         sharedResources.sessionPool.resetStats();
-         if (minUsed <= maxUsed && maxUsed != 0) {
-            consumer.accept(sharedResources.currentPhase.definition().name(), minUsed, maxUsed);
-         }
+         recordSessionStats(sharedResources.sessionPool, sharedResources.currentPhase.definition().name(), consumer);
       }
    }
 
    public void visitSessionPoolStats(Phase phase, SessionStatsConsumer consumer) {
       SharedResources sharedResources = this.sharedResources.get(phase.sharedResources);
       if (sharedResources != null) {
-         int minUsed = sharedResources.sessionPool.minUsed();
-         int maxUsed = sharedResources.sessionPool.maxUsed();
-         sharedResources.sessionPool.resetStats();
-         if (minUsed < maxUsed) {
-            consumer.accept(phase.name(), minUsed, maxUsed);
-         }
+         recordSessionStats(sharedResources.sessionPool, phase.name(), consumer);
+      }
+   }
+
+   private void recordSessionStats(ElasticPoolImpl<Session> sessionPool, String phaseName, SessionStatsConsumer consumer) {
+      int minUsed = sessionPool.minUsed();
+      int maxUsed = sessionPool.maxUsed();
+      sessionPool.resetStats();
+      if (minUsed <= maxUsed && maxUsed != 0) {
+         consumer.accept(phaseName, minUsed, maxUsed);
+      }
+   }
+
+   public void visitConnectionStats(ConnectionStatsConsumer consumer) {
+      for (PluginRunData plugin : runData) {
+         plugin.visitConnectionStats(consumer);
       }
    }
 

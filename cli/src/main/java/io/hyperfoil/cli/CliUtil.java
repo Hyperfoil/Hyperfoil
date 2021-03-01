@@ -29,11 +29,17 @@ import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.function.BinaryOperator;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.aesh.io.FileResource;
 import org.aesh.io.Resource;
 
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
+import io.hyperfoil.controller.Client;
 
 public final class CliUtil {
    private CliUtil() {
@@ -87,5 +93,18 @@ public final class CliUtil {
       } catch (InterruptedException e) {
          process.destroy();
       }
+   }
+
+   public static Map<String, Stream<Map.Entry<String, Client.MinMax>>> toMapOfStreams(Map<String, Map<String, Client.MinMax>> stats) {
+      return stats.entrySet().stream()
+            .collect(Collectors.toMap(Map.Entry::getKey, CliUtil::sortedEntries, throwingMerger(), TreeMap::new));
+   }
+
+   private static Stream<Map.Entry<String, Client.MinMax>> sortedEntries(Map.Entry<String, Map<String, Client.MinMax>> e) {
+      return e.getValue().entrySet().stream().sorted(Map.Entry.comparingByKey());
+   }
+
+   private static BinaryOperator<Stream<Map.Entry<String, Client.MinMax>>> throwingMerger() {
+      return (u, v) -> { throw new IllegalStateException(); };
    }
 }

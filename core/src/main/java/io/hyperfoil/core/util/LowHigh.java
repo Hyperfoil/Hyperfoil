@@ -1,12 +1,18 @@
 package io.hyperfoil.core.util;
 
-public class LowHigh {
-   public final int low;
-   public final int high;
+import java.io.Serializable;
+
+public class LowHigh implements Serializable {
+   public int low;
+   public int high;
+
+   public LowHigh() {
+      this(0, 0);
+   }
 
    public LowHigh(int low, int high) {
-      this.high = high;
       this.low = low;
+      this.high = high;
    }
 
    public static LowHigh sum(LowHigh r1, LowHigh r2) {

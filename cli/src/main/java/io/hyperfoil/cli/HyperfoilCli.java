@@ -22,6 +22,7 @@ package io.hyperfoil.cli;
 
 import io.hyperfoil.cli.commands.Compare;
 import io.hyperfoil.cli.commands.Connect;
+import io.hyperfoil.cli.commands.Connections;
 import io.hyperfoil.cli.commands.Edit;
 import io.hyperfoil.cli.commands.Exit;
 import io.hyperfoil.cli.commands.Export;
@@ -148,6 +149,7 @@ public class HyperfoilCli {
    protected List<Class<? extends Command>> getCommands() {
       return Arrays.asList(
             Connect.class,
+            Connections.class,
             Compare.class,
             Edit.class,
             Exit.class,

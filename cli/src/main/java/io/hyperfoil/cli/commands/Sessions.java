@@ -1,15 +1,12 @@
 package io.hyperfoil.cli.commands;
 
 import java.util.Map;
-import java.util.TreeMap;
-import java.util.function.BinaryOperator;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.aesh.command.CommandDefinition;
 import org.aesh.command.CommandException;
 import org.aesh.command.CommandResult;
 
+import io.hyperfoil.cli.CliUtil;
 import io.hyperfoil.cli.Table;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.controller.Client;
@@ -35,11 +32,13 @@ public class Sessions extends BaseRunIdCommand {
                io.hyperfoil.controller.model.Run run = runRef.get();
                if (run.terminated != null) {
                   invocation.println("Run " + run.id + " has terminated.");
-                  invocation.print(SESSION_STATS.print("PHASE", toMapOfStreams(runRef.sessionStatsTotal())));
+                  invocation.print(SESSION_STATS.print("PHASE", CliUtil.toMapOfStreams(runRef.sessionStatsTotal())));
                   return CommandResult.SUCCESS;
                }
             }
-            invocation.print(SESSION_STATS.print("PHASE", toMapOfStreams(sessionStats)));
+            if (sessionStats != null) {
+               invocation.print(SESSION_STATS.print("PHASE", CliUtil.toMapOfStreams(sessionStats)));
+            }
             if (interruptibleDelay(invocation)) {
                return CommandResult.SUCCESS;
             }
@@ -55,16 +54,4 @@ public class Sessions extends BaseRunIdCommand {
       }
    }
 
-   private Map<String, Stream<Map.Entry<String, Client.MinMax>>> toMapOfStreams(Map<String, Map<String, Client.MinMax>> sessionStats) {
-      return sessionStats.entrySet().stream()
-            .collect(Collectors.toMap(Map.Entry::getKey, Sessions::soretdEntries, throwingMerger(), TreeMap::new));
-   }
-
-   private static Stream<Map.Entry<String, Client.MinMax>> soretdEntries(Map.Entry<String, Map<String, Client.MinMax>> e) {
-      return e.getValue().entrySet().stream().sorted(Map.Entry.comparingByKey());
-   }
-
-   private static BinaryOperator<Stream<Map.Entry<String, Client.MinMax>>> throwingMerger() {
-      return (u, v) -> { throw new IllegalStateException(); };
-   }
 }

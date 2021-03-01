@@ -85,8 +85,12 @@ public class SequenceInstance {
       return sequence;
    }
 
-   public void setBlockedTimestamp() {
-      blockedTimestamp = System.nanoTime();
+   public boolean setBlockedTimestamp() {
+      if (blockedTimestamp == Long.MIN_VALUE) {
+         blockedTimestamp = System.nanoTime();
+         return true;
+      }
+      return false;
    }
 
    public long getBlockedTime() {

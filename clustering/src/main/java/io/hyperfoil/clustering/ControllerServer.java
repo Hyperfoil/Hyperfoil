@@ -600,6 +600,35 @@ class ControllerServer implements ApiService {
    }
 
    @Override
+   public void getRecentConnections(RoutingContext ctx, String runId) {
+      connectionStats(ctx, runId, StatisticsStore::recentConnectionsSummary);
+   }
+
+   @Override
+   public void getTotalConnections(RoutingContext ctx, String runId) {
+      connectionStats(ctx, runId, StatisticsStore::totalConnectionsSummary);
+   }
+
+   private void connectionStats(RoutingContext ctx, String runId, Function<StatisticsStore, Map<String, Map<String, LowHigh>>> mapper) {
+      withRun(ctx, runId, run -> {
+         if (run.statisticsStore == null) {
+            ctx.response().end("{}");
+         } else {
+            Map<String, Map<String, LowHigh>> stats = mapper.apply(run.statisticsStore);
+            JsonObject result = stats.entrySet().stream().collect(JsonObject::new,
+                  (json, e) -> json.put(e.getKey(), lowHighMapToJson(e.getValue())), JsonObject::mergeIn);
+            ctx.response().end(JsonObject.mapFrom(result).encodePrettily());
+         }
+      });
+   }
+
+   private static JsonObject lowHighMapToJson(Map<String, LowHigh> map) {
+      return map.entrySet().stream().collect(JsonObject::new,
+            (byType, e2) -> byType.put(e2.getKey(), new JsonObject().put("min", e2.getValue().low).put("max", e2.getValue().high)),
+            JsonObject::mergeIn);
+   }
+
+   @Override
    public void getAllStats$application_zip(RoutingContext ctx, String runId) {
       getAllStatsCsv(ctx, runId);
    }

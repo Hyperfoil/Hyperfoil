@@ -30,6 +30,7 @@ import javax.net.ssl.TrustManagerFactory;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.core.impl.ConnectionStatsConsumer;
 import io.hyperfoil.core.util.Util;
 import io.hyperfoil.http.config.Http;
 import io.hyperfoil.http.api.HttpVersion;
@@ -332,5 +333,12 @@ public class HttpClientPoolImpl implements HttpClientPool {
    @Override
    public boolean isSecure() {
       return sslContext != null;
+   }
+
+   @Override
+   public void visitConnectionStats(ConnectionStatsConsumer consumer) {
+      for (var pool : children) {
+         pool.visitConnectionStats(consumer);
+      }
    }
 }

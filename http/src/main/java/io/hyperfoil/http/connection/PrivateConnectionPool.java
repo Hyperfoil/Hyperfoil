@@ -6,6 +6,7 @@ import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 
 import io.hyperfoil.api.connection.Connection;
+import io.hyperfoil.core.impl.ConnectionStatsConsumer;
 import io.hyperfoil.http.api.HttpClientPool;
 import io.hyperfoil.http.api.HttpConnection;
 import io.hyperfoil.http.api.HttpConnectionPool;
@@ -92,5 +93,21 @@ public class PrivateConnectionPool implements HttpConnectionPool {
       while ((connection = available.pollFirst()) != null) {
          parent.release(connection);
       }
+   }
+
+   @Override
+   public void visitConnectionStats(ConnectionStatsConsumer consumer) {
+      // This should be never invoked because we're monitoring the shared pools only
+      throw new UnsupportedOperationException();
+   }
+
+   @Override
+   public void incrementBlockedSessions() {
+      parent.incrementBlockedSessions();
+   }
+
+   @Override
+   public void decrementBlockedSessions() {
+      parent.decrementBlockedSessions();
    }
 }

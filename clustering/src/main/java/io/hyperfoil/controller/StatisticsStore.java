@@ -37,6 +37,7 @@ public class StatisticsStore {
    private final int maxFailures = 100;
    private final Map<Integer, SLA.Provider> slaProviders;
    final Map<String, SessionPoolStats> sessionPoolStats = new HashMap<>();
+   final Map<String, Map<String, Map<String, List<ConnectionPoolStats>>>> connectionPoolStats = new HashMap<>();
 
    public StatisticsStore(Benchmark benchmark, Consumer<SLA.Failure> failureHandler) {
       this.benchmark = benchmark;
@@ -216,6 +217,59 @@ public class StatisticsStore {
       return result;
    }
 
+   public void recordConnectionStats(String address, long timestamp, Map<String, Map<String, LowHigh>> stats) {
+      for (var byAuthority : stats.entrySet()) {
+         for (var byType : byAuthority.getValue().entrySet()) {
+            var authorityData = connectionPoolStats.computeIfAbsent(byAuthority.getKey(), a -> new HashMap<>());
+            var typeData = authorityData.computeIfAbsent(byType.getKey(), t -> new HashMap<>());
+            var agentData = typeData.computeIfAbsent(address, a -> new ArrayList<>());
+            LowHigh value = byType.getValue();
+            agentData.add(new ConnectionPoolStats(timestamp, value.low, value.high));
+         }
+      }
+   }
+
+   public Map<String, Map<String, LowHigh>> recentConnectionsSummary() {
+      Map<String, Map<String, LowHigh>> summary = new HashMap<>();
+      long minTimestamp = System.currentTimeMillis() - 5000;
+      for (var byAuthority : connectionPoolStats.entrySet()) {
+         for (var byType : byAuthority.getValue().entrySet()) {
+            // we will simply take last range from every agent
+            if (byType.getValue().values().stream().anyMatch(list -> list.get(list.size() - 1).timestamp < minTimestamp)) {
+               // the results are too old, we will ignore this
+               continue;
+            }
+            LowHigh sum = byType.getValue().values().stream()
+                  .map(list -> (LowHigh) list.get(list.size() - 1))
+                  .reduce(LowHigh::sum).orElse(null);
+            if (sum != null) {
+               summary.computeIfAbsent(byAuthority.getKey(), a -> new HashMap<>()).put(byType.getKey(), sum);
+            }
+         }
+      }
+      return summary;
+   }
+
+   public Map<String, Map<String, LowHigh>> totalConnectionsSummary() {
+      Map<String, Map<String, LowHigh>> summary = new HashMap<>();
+      for (var byAuthority : connectionPoolStats.entrySet()) {
+         for (var byType : byAuthority.getValue().entrySet()) {
+            int maxSize = byType.getValue().values().stream().mapToInt(List::size).max().orElse(0);
+            LowHigh total = null;
+            for (int i = 0; i < maxSize; ++i) {
+               int ii = i;
+               total = LowHigh.combine(total, byType.getValue().values().stream()
+                     .map(list -> ii < list.size() ? (LowHigh) list.get(ii) : null)
+                     .reduce(LowHigh::sum).orElse(null));
+            }
+            if (total != null) {
+               summary.computeIfAbsent(byAuthority.getKey(), a -> new HashMap<>()).put(byType.getKey(), total);
+            }
+         }
+      }
+      return summary;
+   }
+
    static final class Window {
       private final StatisticsSnapshot[] ring;
       private final StatisticsSnapshot sum = new StatisticsSnapshot();
@@ -288,6 +342,15 @@ public class StatisticsStore {
 
       private SessionPoolRecord(long timestamp, int min, int max) {
          super(min, max);
+         this.timestamp = timestamp;
+      }
+   }
+
+   private static class ConnectionPoolStats extends LowHigh {
+      private final long timestamp;
+
+      private ConnectionPoolStats(long timestamp, int low, int high) {
+         super(low, high);
          this.timestamp = timestamp;
       }
    }

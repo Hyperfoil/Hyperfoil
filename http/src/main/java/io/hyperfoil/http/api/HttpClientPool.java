@@ -18,6 +18,7 @@
  */
 package io.hyperfoil.http.api;
 
+import io.hyperfoil.core.impl.ConnectionStatsConsumer;
 import io.netty.util.concurrent.EventExecutor;
 import io.hyperfoil.http.config.Http;
 import io.vertx.core.AsyncResult;
@@ -47,4 +48,6 @@ public interface HttpClientPool {
    String scheme();
 
    boolean isSecure();
+
+   void visitConnectionStats(ConnectionStatsConsumer consumer);
 }

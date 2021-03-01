@@ -17,6 +17,7 @@ import io.hyperfoil.clustering.messages.AgentControlMessage;
 import io.hyperfoil.clustering.messages.AgentHello;
 import io.hyperfoil.clustering.messages.AgentReadyMessage;
 import io.hyperfoil.clustering.messages.AgentStatusMessage;
+import io.hyperfoil.clustering.messages.ConnectionStatsMessage;
 import io.hyperfoil.clustering.messages.ErrorMessage;
 import io.hyperfoil.clustering.messages.PhaseChangeMessage;
 import io.hyperfoil.clustering.messages.PhaseControlMessage;
@@ -29,6 +30,7 @@ import io.hyperfoil.controller.CsvWriter;
 import io.hyperfoil.controller.JsonWriter;
 import io.hyperfoil.controller.StatisticsStore;
 import io.hyperfoil.core.util.CountDown;
+import io.hyperfoil.core.util.LowHigh;
 import io.hyperfoil.internal.Controller;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.AsyncResult;
@@ -211,10 +213,15 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                } else if (statsMessage instanceof SessionStatsMessage) {
                   SessionStatsMessage sessionStatsMessage = (SessionStatsMessage) statsMessage;
                   log.trace("Run {}: Received session pool stats from {}", sessionStatsMessage.runId, sessionStatsMessage.address);
-                  for (Map.Entry<String, SessionStatsMessage.MinMax> entry : sessionStatsMessage.sessionStats.entrySet()) {
+                  for (Map.Entry<String, LowHigh> entry : sessionStatsMessage.sessionStats.entrySet()) {
                      run.statisticsStore.recordSessionStats(sessionStatsMessage.address,
-                           sessionStatsMessage.timestamp, entry.getKey(), entry.getValue().min, entry.getValue().max);
+                           sessionStatsMessage.timestamp, entry.getKey(), entry.getValue().low, entry.getValue().high);
                   }
+               } else if (statsMessage instanceof ConnectionStatsMessage) {
+                  ConnectionStatsMessage connectionStatsMessage = (ConnectionStatsMessage) statsMessage;
+                  log.trace("Run {}: Received connection stats from {}", connectionStatsMessage.runId, connectionStatsMessage.address);
+                  run.statisticsStore.recordConnectionStats(connectionStatsMessage.address,
+                        connectionStatsMessage.timestamp, connectionStatsMessage.stats);
                }
             }
          } else {
