@@ -134,26 +134,26 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
       ByteBuf buf = bodyGenerator != null ? bodyGenerator.apply(request.session, this) : null;
 
       if (request.path.contains(" ")) {
-          int length = request.path.length();
-          AppendableCharSequence temp = new AppendableCharSequence(length);
-          boolean beforeQuestion = true;
-          for (int i = 0; i < length; ++i) {
-              if (request.path.charAt(i) == ' ') {
-                  if (beforeQuestion) {
-                      temp.append('%');
-                      temp.append('2');
-                      temp.append('0');
-                  } else {
-                      temp.append('+');
-                  }
-              } else {
-                  if (request.path.charAt(i) == '?') {
-                      beforeQuestion = false;
-                  }
-                  temp.append(request.path.charAt(i));
-              }
-           }
-          request.path = temp.toString();
+         int length = request.path.length();
+         AppendableCharSequence temp = new AppendableCharSequence(length);
+         boolean beforeQuestion = true;
+         for (int i = 0; i < length; ++i) {
+            if (request.path.charAt(i) == ' ') {
+               if (beforeQuestion) {
+                  temp.append('%');
+                  temp.append('2');
+                  temp.append('0');
+               } else {
+                  temp.append('+');
+               }
+            } else {
+               if (request.path.charAt(i) == '?') {
+                  beforeQuestion = false;
+               }
+               temp.append(request.path.charAt(i));
+            }
+         }
+         request.path = temp.toString();
       }
 
       Http2Headers headers = new DefaultHttp2Headers().method(request.method.name()).scheme(httpClientPool.scheme())
@@ -359,11 +359,7 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
       HttpConnectionPool pool = this.pool;
       if (pool != null) {
          // If this connection was not available we make it available
-         // TODO: it would be better to check this in connection pool
-         if (numStreams == maxStreams - 1) {
-            pool.release(Http2Connection.this);
-            this.pool = null;
-         }
+         pool.release(Http2Connection.this, numStreams == maxStreams - 1);
          pool.pulse();
       }
    }

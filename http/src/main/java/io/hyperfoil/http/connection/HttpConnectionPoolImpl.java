@@ -129,8 +129,10 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
    }
 
    @Override
-   public void release(HttpConnection connection) {
-      available.add(connection);
+   public void release(HttpConnection connection, boolean becameAvailable) {
+      if (becameAvailable) {
+         available.add(connection);
+      }
       inFlight.decrementUsed();
       if (connection.inFlight() == 0) {
          usedConnections.decrementUsed();
@@ -259,7 +261,6 @@ class HttpConnectionPoolImpl implements HttpConnectionPool {
 
                Watermarks watermarks = typeStats.computeIfAbsent(tagConnection(conn), t -> new Watermarks());
                watermarks.incrementUsed();
-               log.debug("Watermark: {}", watermarks.maxUsed());
 
                if (count < size) {
                   checkCreateConnections();

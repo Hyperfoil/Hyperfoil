@@ -29,7 +29,7 @@ public interface HttpConnectionPool {
 
    Collection<? extends HttpConnection> connections();
 
-   void release(HttpConnection connection);
+   void release(HttpConnection connection, boolean becameAvailable);
 
    void onSessionReset();
 

@@ -83,15 +83,17 @@ public class PrivateConnectionPool implements HttpConnectionPool {
    }
 
    @Override
-   public void release(HttpConnection connection) {
-      available.addLast(connection);
+   public void release(HttpConnection connection, boolean becameAvailable) {
+      if (becameAvailable) {
+         available.addLast(connection);
+      }
    }
 
    @Override
    public void onSessionReset() {
       HttpConnection connection;
       while ((connection = available.pollFirst()) != null) {
-         parent.release(connection);
+         parent.release(connection, true);
       }
    }
 

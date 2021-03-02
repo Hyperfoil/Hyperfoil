@@ -36,6 +36,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    private final Deque<HttpRequest> inflights;
    private final BiConsumer<HttpConnection, Throwable> activationHandler;
    private final boolean secure;
+   private final int pipeliningLimit;
 
    private HttpConnectionPool pool;
    private ChannelHandlerContext ctx;
@@ -46,8 +47,9 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
 
    Http1xConnection(HttpClientPoolImpl client, BiConsumer<HttpConnection, Throwable> handler) {
       this.activationHandler = handler;
-      this.inflights = new ArrayDeque<>(client.http.pipeliningLimit());
+      this.inflights = new ArrayDeque<>(client.config().pipeliningLimit());
       this.secure = client.isSecure();
+      this.pipeliningLimit = client.config().pipeliningLimit();
    }
 
    @Override
@@ -117,18 +119,18 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
       boolean beforeQuestion = true;
       for (int i = 0; i < request.path.length(); ++i) {
          if (request.path.charAt(i) == ' ') {
-             if (beforeQuestion) {
-                 buf.writeByte(0xFF & '%');
-                 buf.writeByte(0xFF & '2');
-                 buf.writeByte(0xFF & '0');
-             } else {
-                 buf.writeByte(0xFF & '+');
-             }
+            if (beforeQuestion) {
+               buf.writeByte(0xFF & '%');
+               buf.writeByte(0xFF & '2');
+               buf.writeByte(0xFF & '0');
+            } else {
+               buf.writeByte(0xFF & '+');
+            }
          } else {
-             if (request.path.charAt(i) == '?') {
-                 beforeQuestion = false;
-             }
-             buf.writeByte(0xFF & request.path.charAt(i));
+            if (request.path.charAt(i) == '?') {
+               beforeQuestion = false;
+            }
+            buf.writeByte(0xFF & request.path.charAt(i));
          }
       }
       buf.writeBytes(HTTP1_1);
@@ -185,15 +187,11 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
 
    void releasePoolAndPulse() {
       // If this connection was not available we make it available
-      // TODO: it would be better to check this in connection pool
       HttpConnectionPool pool = this.pool;
       if (pool != null) {
          // Note: the pool might be already released if the completion handler
          // invoked another request which was served from cache.
-         if (size == pool.clientPool().config().pipeliningLimit() - 1) {
-            pool.release(this);
-            this.pool = null;
-         }
+         pool.release(this, size == pipeliningLimit - 1);
          pool.pulse();
       }
    }
@@ -250,7 +248,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    public boolean isAvailable() {
       // Having pool not attached implies that the connection is not taken out of the pool
       // and therefore it's fully available
-      return pool == null || size < pool.clientPool().config().pipeliningLimit();
+      return pool == null || size < pipeliningLimit;
    }
 
    @Override
