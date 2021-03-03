@@ -112,7 +112,7 @@ public abstract class ServerCommand implements Command<HyperfoilCommandInvocatio
             }
          }
          if (!quiet) {
-            invocation.println("Connected!");
+            invocation.println("Connected to " + host + ":" + port + "!");
          }
          ctx.setOnline(true);
          if (!quiet && version.serverTime != null && (version.serverTime.getTime() < preMillis || version.serverTime.getTime() > postMillis)) {

@@ -73,6 +73,8 @@ public class Connect extends ServerCommand {
             invocation.println("Closing connection to " + ctx.client());
             ctx.client().close();
             ctx.setClient(null);
+            ctx.setServerRun(null);
+            ctx.setServerBenchmark(null);
             ctx.setOnline(false);
             invocation.setPrompt(new Prompt(new TerminalString("[hyperfoil]$ ",
                   new TerminalColor(Color.GREEN, Color.DEFAULT, Color.Intensity.BRIGHT))));
