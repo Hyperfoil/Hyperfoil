@@ -8,6 +8,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import io.hyperfoil.http.api.HttpConnectionPool;
 import io.hyperfoil.http.config.Http;
 import io.hyperfoil.http.config.HttpBuilder;
 import io.hyperfoil.http.config.Protocol;
@@ -111,8 +112,10 @@ public class BigResponseParsingTest extends VertxBaseTest {
          newRequest.method = HttpMethod.GET;
          newRequest.path = "/";
          SequenceInstance sequence = new SequenceInstance().reset(null, 0, new Step[0], null);
-         newRequest.start(handlers, sequence, new Statistics(System.currentTimeMillis()));
-         ctx.assertTrue(client.next().request(newRequest, null, true, null, false));
+
+         HttpConnectionPool pool = client.next();
+         newRequest.start(pool, handlers, sequence, new Statistics(System.currentTimeMillis()));
+         pool.acquire(false, c -> newRequest.send(c, null, true, null));
       });
    }
 }

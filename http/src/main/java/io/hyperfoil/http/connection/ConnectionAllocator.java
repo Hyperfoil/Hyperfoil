@@ -1,0 +1,104 @@
+package io.hyperfoil.http.connection;
+
+import java.util.Collection;
+import java.util.Collections;
+
+import io.hyperfoil.http.api.ConnectionConsumer;
+import io.hyperfoil.http.api.HttpClientPool;
+import io.hyperfoil.http.api.HttpConnection;
+import io.hyperfoil.http.api.HttpConnectionPool;
+import io.netty.channel.EventLoop;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Future;
+import io.vertx.core.Handler;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
+
+class ConnectionAllocator extends ConnectionPoolStats implements HttpConnectionPool {
+   private static final Logger log = LoggerFactory.getLogger(ConnectionAllocator.class);
+   private final HttpClientPoolImpl clientPool;
+   private final EventLoop eventLoop;
+
+   ConnectionAllocator(HttpClientPoolImpl clientPool, EventLoop eventLoop) {
+      super(clientPool.authority);
+      this.clientPool = clientPool;
+      this.eventLoop = eventLoop;
+   }
+
+   @Override
+   public HttpClientPool clientPool() {
+      return clientPool;
+   }
+
+   @Override
+   public void acquire(boolean exclusiveConnection, ConnectionConsumer consumer) {
+      log.trace("Creating connection to {}", authority);
+      blockedSessions.incrementUsed();
+      clientPool.connect(this, (conn, err) -> {
+         if (err != null) {
+            log.error("Cannot create connection to {}", err, authority);
+            // TODO retry couple of times?
+            blockedSessions.decrementUsed();
+            consumer.accept(null);
+         } else {
+            log.debug("Connection {} to {} created", conn, authority);
+            blockedSessions.decrementUsed();
+            inFlight.incrementUsed();
+            usedConnections.incrementUsed();
+            incrementTypeStats(conn);
+
+            conn.context().channel().closeFuture().addListener(v -> {
+               conn.setClosed();
+               log.debug("Connection {} to {} closed.", conn, authority);
+               decrementStatsOnClose(conn);
+            });
+            consumer.accept(conn);
+         }
+      });
+   }
+
+   @Override
+   public void afterRequestSent(HttpConnection connection) {
+   }
+
+   @Override
+   public int waitingSessions() {
+      return blockedSessions.current();
+   }
+
+   @Override
+   public EventLoop executor() {
+      return eventLoop;
+   }
+
+   @Override
+   public void pulse() {
+   }
+
+   @Override
+   public Collection<? extends HttpConnection> connections() {
+      return Collections.emptyList();
+   }
+
+   @Override
+   public void release(HttpConnection connection, boolean becameAvailable, boolean afterRequest) {
+      if (afterRequest) {
+         decrementInFlight();
+      }
+      connection.close();
+   }
+
+   @Override
+   public void onSessionReset() {
+   }
+
+   @Override
+   public void start(Handler<AsyncResult<Void>> handler) {
+      handler.handle(Future.succeededFuture());
+   }
+
+   @Override
+   public void shutdown() {
+      // noop
+   }
+}

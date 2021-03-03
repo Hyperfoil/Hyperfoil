@@ -94,8 +94,8 @@ public class RawBytesHandlerTest extends VertxBaseTest {
       newRequest.cacheControl.noCache = true;
       SequenceInstance sequence = new SequenceInstance();
       sequence.reset(null, 0, new Step[0], null);
-      newRequest.start(handlersRef.get(), sequence, new Statistics(System.currentTimeMillis()));
-      ctx.assertTrue(pool.request(newRequest, null, true, null, false));
+      newRequest.start(pool, handlersRef.get(), sequence, new Statistics(System.currentTimeMillis()));
+      pool.acquire(false, c -> newRequest.send(c, null, true, null));
    }
 
    private void handler(HttpServerRequest request) {

@@ -23,7 +23,7 @@ import io.hyperfoil.core.util.Unique;
 import io.hyperfoil.function.SerializableBiFunction;
 import io.hyperfoil.http.api.HttpMethod;
 import io.hyperfoil.http.handlers.Location;
-import io.hyperfoil.http.steps.HttpRequestStep;
+import io.hyperfoil.http.steps.HttpRequestStepBuilder;
 
 public class FetchResourceHandler implements Serializable, ResourceUtilizer {
    private final Access var;
@@ -159,7 +159,7 @@ public class FetchResourceHandler implements Serializable, ResourceUtilizer {
 
          // We'll keep the request synchronous to keep the session running while the resources are fetched
          // even if the benchmark did not specify any completion action.
-         HttpRequestStep.Builder requestBuilder = new HttpRequestStep.Builder().sync(true).method(HttpMethod.GET);
+         HttpRequestStepBuilder requestBuilder = new HttpRequestStepBuilder().sync(true).method(HttpMethod.GET);
          requestBuilder.path(() -> new Location.GetPath(sequenceScopedAccess(locationVar)));
          requestBuilder.authority(() -> new Location.GetAuthority(sequenceScopedAccess(locationVar)));
          if (metricSelector != null) {

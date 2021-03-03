@@ -110,8 +110,8 @@ public class HttpClientPoolHandlerTest {
                .build();
          request.method = HttpMethod.GET;
          request.path = "/";
-         request.start(handlers, new SequenceInstance(), new Statistics(System.currentTimeMillis()));
-         pool.request(request, null, true, null, false);
+         request.start(pool, handlers, new SequenceInstance(), new Statistics(System.currentTimeMillis()));
+         pool.acquire(false, c -> request.send(c, null, true, null));
       });
 
       assertThat(latch.await(3, TimeUnit.SECONDS)).isTrue();

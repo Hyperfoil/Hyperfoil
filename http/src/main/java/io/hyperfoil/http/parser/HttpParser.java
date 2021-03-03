@@ -4,6 +4,7 @@ import org.yaml.snakeyaml.events.ScalarEvent;
 import org.yaml.snakeyaml.events.SequenceStartEvent;
 
 import io.hyperfoil.api.config.BenchmarkBuilder;
+import io.hyperfoil.http.config.ConnectionStrategy;
 import io.hyperfoil.http.config.HttpBuilder;
 import io.hyperfoil.http.config.HttpPluginBuilder;
 import io.hyperfoil.http.config.Protocol;
@@ -15,7 +16,7 @@ import io.hyperfoil.core.parser.PropertyParser;
 import io.hyperfoil.core.parser.ReflectionParser;
 
 public class HttpParser extends AbstractParser<BenchmarkBuilder, HttpBuilder> {
-   private static AddressParser ADDRESS_PARSER = new AddressParser();
+   private static final AddressParser ADDRESS_PARSER = new AddressParser();
 
    public HttpParser() {
       register("protocol", new PropertyParser.String<>((builder, scheme) -> builder.protocol(Protocol.fromScheme(scheme))));
@@ -32,7 +33,7 @@ public class HttpParser extends AbstractParser<BenchmarkBuilder, HttpBuilder> {
       register("rawBytesHandlers", new PropertyParser.Boolean<>(HttpBuilder::rawBytesHandlers));
       register("keyManager", new ReflectionParser<>(HttpBuilder::keyManager));
       register("trustManager", new ReflectionParser<>(HttpBuilder::trustManager));
-      register("privatePools", new PropertyParser.Boolean<>(HttpBuilder::privatePools));
+      register("connectionStrategy", new PropertyParser.Enum<>(ConnectionStrategy.values(), HttpBuilder::connectionStrategy));
    }
 
    @Override

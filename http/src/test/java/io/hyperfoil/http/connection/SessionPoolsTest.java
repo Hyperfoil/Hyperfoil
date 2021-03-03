@@ -1,4 +1,4 @@
-package io.hyperfoil.http;
+package io.hyperfoil.http.connection;
 
 import static io.hyperfoil.http.steps.HttpStepCatalog.SC;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -14,14 +14,16 @@ import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.steps.ScheduleDelayStep;
+import io.hyperfoil.http.HttpScenarioTest;
 import io.hyperfoil.http.api.HttpMethod;
+import io.hyperfoil.http.config.ConnectionStrategy;
 import io.hyperfoil.http.config.HttpBuilder;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 
 @RunWith(VertxUnitRunner.class)
-public class PrivatePoolsTest extends HttpScenarioTest {
+public class SessionPoolsTest extends HttpScenarioTest {
    @Override
    protected void initRouter() {
       router.get("/").handler(ctx -> ctx.response().end());
@@ -30,12 +32,16 @@ public class PrivatePoolsTest extends HttpScenarioTest {
    @Override
    protected void initHttp(HttpBuilder http) {
       super.initHttp(http);
-      http.privatePools(true).sharedConnections(2);
+      http.connectionStrategy(ConnectionStrategy.SESSION_POOLS).sharedConnections(2);
+   }
+
+   @Override
+   protected int threads() {
+      return 1;
    }
 
    @Test
    public void test(TestContext ctx) {
-      benchmarkBuilder.threads(1);
       // We don't need to synchronize since we're using single executor
       Set<Session> runningSessions = new HashSet<>();
       // @formatter:off

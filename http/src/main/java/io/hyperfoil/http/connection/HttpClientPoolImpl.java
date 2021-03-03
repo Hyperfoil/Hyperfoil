@@ -19,7 +19,6 @@ import java.util.Base64;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -35,7 +34,6 @@ import io.hyperfoil.core.util.Util;
 import io.hyperfoil.http.config.Http;
 import io.hyperfoil.http.api.HttpVersion;
 import io.hyperfoil.http.api.HttpClientPool;
-import io.hyperfoil.http.api.HttpConnection;
 import io.hyperfoil.http.api.HttpConnectionPool;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelFuture;
@@ -63,6 +61,8 @@ public class HttpClientPoolImpl implements HttpClientPool {
    private static final Logger log = LoggerFactory.getLogger(HttpClientPoolImpl.class);
 
    final Http http;
+   final String[] addressHosts;
+   final int[] addressPorts;
    final int port;
    final String host;
    final String scheme;
@@ -70,7 +70,7 @@ public class HttpClientPoolImpl implements HttpClientPool {
    final byte[] authorityBytes;
    final SslContext sslContext;
    final boolean forceH2c;
-   private final HttpConnectionPoolImpl[] children;
+   private final HttpConnectionPool[] children;
    private final AtomicInteger idx = new AtomicInteger();
    private final Supplier<HttpConnectionPool> nextSupplier;
 
@@ -97,21 +97,37 @@ public class HttpClientPoolImpl implements HttpClientPool {
       this.authorityBytes = authority.getBytes(StandardCharsets.UTF_8);
       this.forceH2c = http.versions().length == 1 && http.versions()[0] == HttpVersion.HTTP_2_0;
 
-      this.children = new HttpConnectionPoolImpl[executors.length];
-      int sharedConnections = benchmark.slice(http.sharedConnections(), agentId);
-      if (sharedConnections < executors.length) {
-         log.warn("Connection pool size ({}) too small: the event loop has {} executors. Setting connection pool size to {}",
-               sharedConnections, executors.length, executors.length);
-         sharedConnections = executors.length;
+      this.children = new HttpConnectionPool[executors.length];
+      int sharedConnections;
+      switch (http.connectionStrategy()) {
+         case SHARED_POOL:
+         case SESSION_POOLS:
+            sharedConnections = benchmark.slice(http.sharedConnections(), agentId);
+            if (sharedConnections < executors.length) {
+               log.warn("Connection pool size ({}) too small: the event loop has {} executors. Setting connection pool size to {}",
+                     sharedConnections, executors.length, executors.length);
+               sharedConnections = executors.length;
+            }
+            log.info("Allocating {} connections in {} executors to {}", sharedConnections, executors.length, http.protocol().scheme + "://" + authority);
+            break;
+         case OPEN_ON_REQUEST:
+         case ALWAYS_NEW:
+            sharedConnections = 0;
+            break;
+         default:
+            throw new IllegalArgumentException("Unknow connection strategy " + http.connectionStrategy());
       }
-      log.info("Allocating {} connections in {} executors to {}", sharedConnections, executors.length, http.protocol().scheme + "://" + authority);
       // This algorithm should be the same as session -> executor assignment to prevent blocking
       // in always(N) scenario with N connections
       int share = sharedConnections / executors.length;
       int remainder = sharedConnections - share * executors.length;
       for (int i = 0; i < executors.length; ++i) {
          int childSize = share + (i < remainder ? 1 : 0);
-         children[i] = new HttpConnectionPoolImpl(this, executors[i], childSize);
+         if (sharedConnections > 0) {
+            children[i] = new SharedConnectionPool(this, executors[i], childSize);
+         } else {
+            children[i] = new ConnectionAllocator(this, executors[i]);
+         }
       }
 
       if (Integer.bitCount(children.length) == 1) {
@@ -120,6 +136,24 @@ public class HttpClientPoolImpl implements HttpClientPool {
          nextSupplier = () -> children[idx.getAndIncrement() & mask];
       } else {
          nextSupplier = () -> children[idx.getAndIncrement() % children.length];
+      }
+
+      addressHosts = new String[http.addresses().length];
+      addressPorts = new int[http.addresses().length];
+      String[] addresses = http.addresses();
+      for (int i = 0; i < addresses.length; i++) {
+         final String address = addresses[i];
+         // This code must handle addresses in form ipv4address, ipv4address:port, [ipv6address]:port, ipv6address
+         int bracketIndex = address.lastIndexOf(']');
+         int firstColonIndex = address.indexOf(':');
+         int lastColonIndex = address.lastIndexOf(':');
+         if (lastColonIndex >= 0 && ((bracketIndex >= 0 && lastColonIndex > bracketIndex) || (bracketIndex < 0 && lastColonIndex == firstColonIndex))) {
+            addressHosts[i] = address.substring(0, lastColonIndex);
+            addressPorts[i] = (int) Util.parseLong(address, lastColonIndex + 1, address.length(), port);
+         } else {
+            addressHosts[i] = address;
+            addressPorts[i] = port;
+         }
       }
    }
 
@@ -245,7 +279,7 @@ public class HttpClientPoolImpl implements HttpClientPool {
    @Override
    public void start(Handler<AsyncResult<Void>> completionHandler) {
       AtomicInteger countDown = new AtomicInteger(children.length);
-      for (HttpConnectionPoolImpl child : children) {
+      for (HttpConnectionPool child : children) {
          child.start(result -> {
             if (result.failed() || countDown.decrementAndGet() == 0) {
                if (result.failed()) {
@@ -259,12 +293,12 @@ public class HttpClientPoolImpl implements HttpClientPool {
 
    @Override
    public void shutdown() {
-      for (HttpConnectionPoolImpl child : children) {
+      for (HttpConnectionPool child : children) {
          child.shutdown();
       }
    }
 
-   void connect(final HttpConnectionPool pool, BiConsumer<HttpConnection, Throwable> handler) {
+   void connect(final HttpConnectionPool pool, ConnectionReceiver handler) {
       Bootstrap bootstrap = new Bootstrap();
       bootstrap.channel(NioSocketChannel.class);
       bootstrap.group(pool.executor());
@@ -275,24 +309,14 @@ public class HttpClientPoolImpl implements HttpClientPool {
 
       String address = this.host;
       int port = this.port;
-      if (http.addresses().length != 0) {
-         address = http.addresses()[ThreadLocalRandom.current().nextInt(http.addresses().length)];
-         // This code must handle addresses in form ipv4address, ipv4address:port, [ipv6address]:port, ipv6address
-         int bracketIndex = address.lastIndexOf(']');
-         int firstColonIndex = address.indexOf(':');
-         int lastColonIndex = address.lastIndexOf(':');
-         if (lastColonIndex >= 0 && ((bracketIndex >= 0 && lastColonIndex > bracketIndex) || (bracketIndex < 0 && lastColonIndex == firstColonIndex))) {
-            port = (int) Util.parseLong(address, lastColonIndex + 1, address.length(), port);
-            address = address.substring(0, lastColonIndex);
-         }
+      if (addressHosts.length > 0) {
+         int index = ThreadLocalRandom.current().nextInt(addressHosts.length);
+         address = addressHosts[index];
+         port = addressPorts[index];
       }
 
       ChannelFuture fut = bootstrap.connect(new InetSocketAddress(address, port));
-      fut.addListener(v -> {
-         if (!v.isSuccess()) {
-            handler.accept(null, v.cause());
-         }
-      });
+      fut.addListener(handler);
    }
 
    @Override
@@ -302,7 +326,7 @@ public class HttpClientPoolImpl implements HttpClientPool {
 
    @Override
    public HttpConnectionPool connectionPool(EventExecutor executor) {
-      for (HttpConnectionPoolImpl pool : children) {
+      for (HttpConnectionPool pool : children) {
          if (pool.executor() == executor) {
             return pool;
          }

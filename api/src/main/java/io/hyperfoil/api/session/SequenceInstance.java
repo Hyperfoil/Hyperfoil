@@ -16,7 +16,6 @@ public class SequenceInstance {
    private int index;
    private Step[] steps;
    private int currentStep = 0;
-   private long blockedTimestamp = Long.MIN_VALUE;
    private int refCnt = 0;
 
    public boolean progress(Session session) {
@@ -83,24 +82,6 @@ public class SequenceInstance {
 
    public Sequence definition() {
       return sequence;
-   }
-
-   public boolean setBlockedTimestamp() {
-      if (blockedTimestamp == Long.MIN_VALUE) {
-         blockedTimestamp = System.nanoTime();
-         return true;
-      }
-      return false;
-   }
-
-   public long getBlockedTime() {
-      long blockedTimestamp = this.blockedTimestamp;
-      if (blockedTimestamp == Long.MIN_VALUE) {
-         return 0;
-      } else {
-         this.blockedTimestamp = Long.MIN_VALUE;
-         return System.nanoTime() - blockedTimestamp;
-      }
    }
 
    @Override

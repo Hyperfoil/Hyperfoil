@@ -21,11 +21,12 @@ import io.hyperfoil.http.api.HttpClientPool;
 import io.hyperfoil.http.api.HttpConnection;
 import io.hyperfoil.http.api.HttpConnectionPool;
 import io.hyperfoil.http.api.HttpDestinationTable;
+import io.hyperfoil.http.config.ConnectionStrategy;
 import io.hyperfoil.http.config.Http;
 import io.hyperfoil.http.config.HttpPluginConfig;
 import io.hyperfoil.http.connection.HttpClientPoolImpl;
 import io.hyperfoil.http.connection.HttpDestinationTableImpl;
-import io.hyperfoil.http.connection.PrivateConnectionPool;
+import io.hyperfoil.http.connection.SessionConnectionPool;
 import io.netty.channel.EventLoop;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
@@ -34,11 +35,11 @@ public class HttpRunData implements PluginRunData {
    private final HttpPluginConfig plugin;
    private final HttpDestinationTableImpl[] destinations;
    private final Map<String, HttpClientPool> clientPools = new HashMap<>();
-   private final boolean hasPrivatePools;
+   private final boolean hasSessionPools;
 
    public HttpRunData(Benchmark benchmark, EventLoop[] executors, int agentId) {
       plugin = benchmark.plugin(HttpPluginConfig.class);
-      hasPrivatePools = plugin.http().values().stream().anyMatch(Http::privatePools);
+      hasSessionPools = plugin.http().values().stream().anyMatch(http -> http.connectionStrategy() != ConnectionStrategy.SHARED_POOL);
       @SuppressWarnings("unchecked")
       Map<String, HttpConnectionPool>[] connectionPools = new Map[executors.length];
       destinations = new HttpDestinationTableImpl[executors.length];
@@ -85,9 +86,21 @@ public class HttpRunData implements PluginRunData {
    @Override
    public void initSession(Session session, int executorId, Scenario scenario, Clock clock) {
       HttpDestinationTable destinations = this.destinations[executorId];
-      if (hasPrivatePools) {
+      if (hasSessionPools) {
          destinations = new HttpDestinationTableImpl(destinations,
-               pool -> pool.clientPool().config().privatePools() ? new PrivateConnectionPool(pool) : pool);
+               pool -> {
+                  ConnectionStrategy strategy = pool.clientPool().config().connectionStrategy();
+                  switch (strategy) {
+                     case SHARED_POOL:
+                     case ALWAYS_NEW:
+                        return pool;
+                     case SESSION_POOLS:
+                     case OPEN_ON_REQUEST:
+                        return new SessionConnectionPool(pool);
+                     default:
+                        throw new IllegalStateException();
+                  }
+               });
       }
       session.declareSingletonResource(HttpDestinationTable.KEY, destinations);
       session.declareSingletonResource(HttpCache.KEY, new HttpCacheImpl(clock));

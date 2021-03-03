@@ -323,4 +323,8 @@ public final class HttpUtil {
       }
       return length;
    }
+
+   public static int prefixLength(boolean isHttp) {
+      return isHttp ? HTTP_PREFIX.length() : HTTPS_PREFIX.length();
+   }
 }

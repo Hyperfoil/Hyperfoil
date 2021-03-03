@@ -359,7 +359,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
     * Manages processing of HTTP responses.
     */
    public static class Builder implements Rewritable<Builder> {
-      private final HttpRequestStep.Builder parent;
+      private final HttpRequestStepBuilder parent;
       private Boolean autoRangeCheck;
       private Boolean stopOnInvalid;
       private FollowRedirect followRedirect;
@@ -373,7 +373,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          return new Builder(null);
       }
 
-      Builder(HttpRequestStep.Builder parent) {
+      Builder(HttpRequestStepBuilder parent) {
          this.parent = parent;
       }
 
@@ -504,7 +504,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          return this;
       }
 
-      public HttpRequestStep.Builder endHandler() {
+      public HttpRequestStepBuilder endHandler() {
          return parent;
       }
 
@@ -595,8 +595,8 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
             // different method variable for current sequence and new sequence since these have incompatible
             // indices - had we used the same var one sequence would overwrite other's var.
             Unique newTempCoordsVar = new Unique(true);
-            HttpRequestStep.BodyGeneratorBuilder bodyBuilder = parent.bodyBuilder();
-            HttpRequestStep.Builder httpRequest = new HttpRequestStep.Builder()
+            HttpRequestStepBuilder.BodyGeneratorBuilder bodyBuilder = parent.bodyBuilder();
+            HttpRequestStepBuilder httpRequest = new HttpRequestStepBuilder()
                   .method(() -> new Redirect.GetMethod(sequenceScopedAccess(coordsVar)))
                   .path(() -> new Location.GetPath(sequenceScopedAccess(coordsVar)))
                   .authority(() -> new Location.GetAuthority(sequenceScopedAccess(coordsVar)))

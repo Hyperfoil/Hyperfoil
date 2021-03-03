@@ -2,7 +2,6 @@ package io.hyperfoil.http;
 
 import java.util.LinkedList;
 import java.util.Queue;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -252,17 +251,11 @@ public class HttpCacheTest extends VertxBaseTest {
             .build();
       configurator.accept(request);
       log.trace("Sending {} request to {}", request.method, request.path);
-      request.start(handlers, new SequenceInstance(), new Statistics(System.currentTimeMillis()));
+      HttpConnectionPool pool = context.pool.next();
+      request.start(pool, handlers, new SequenceInstance(), new Statistics(System.currentTimeMillis()));
       @SuppressWarnings("unchecked")
-      BiConsumer<Session, HttpRequestWriter>[] appenders = new BiConsumer[]{ headerAppender };
-      fireRequest(context.pool, request, headerAppender == null ? null : appenders);
-   }
-
-   private void fireRequest(HttpClientPool client, HttpRequest request, BiConsumer<Session, HttpRequestWriter>[] headerAppenders) {
-      HttpConnectionPool pool = client.next();
-      if (!pool.request(request, headerAppenders, true, null, false)) {
-         pool.executor().schedule(() -> fireRequest(client, request, headerAppenders), 1, TimeUnit.MILLISECONDS);
-      }
+      BiConsumer<Session, HttpRequestWriter>[] headerAppenders = headerAppender == null ? null : new BiConsumer[]{ headerAppender };
+      pool.acquire(false, connection -> request.send(connection, headerAppenders, true, null));
    }
 
    private class Context {

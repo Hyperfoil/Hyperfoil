@@ -16,6 +16,7 @@ import io.hyperfoil.http.api.HttpConnectionPool;
 import io.hyperfoil.http.api.HttpRequest;
 import io.hyperfoil.http.api.HttpRequestWriter;
 import io.hyperfoil.http.api.HttpResponseHandlers;
+import io.hyperfoil.http.config.Http;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
@@ -110,6 +111,11 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
    }
 
    @Override
+   public String authority() {
+      return pool.clientPool().authority();
+   }
+
+   @Override
    public void onTimeout(Request request) {
       for (IntObjectMap.PrimitiveEntry<HttpRequest> entry : streams.entries()) {
          if (entry.value() == request) {
@@ -177,6 +183,10 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
             log.trace("#{} Request is completed from cache", request.session.uniqueId());
          }
          --numStreams;
+         // prevent adding to available list twice
+         if (numStreams != maxStreams - 1) {
+            pool.afterRequestSent(this);
+         }
          request.handleCached();
          tryReleaseToPool();
          return;
@@ -195,6 +205,7 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
       writePromise.addListener(request);
       context.flush();
       dispatchedRequest = null;
+      pool.afterRequestSent(this);
    }
 
    @Override
@@ -230,6 +241,16 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
    @Override
    public HttpVersion version() {
       return HttpVersion.HTTP_2_0;
+   }
+
+   @Override
+   public Http config() {
+      return pool.clientPool().config();
+   }
+
+   @Override
+   public HttpConnectionPool pool() {
+      return pool;
    }
 
    private int nextStreamId() {
@@ -359,7 +380,7 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
       HttpConnectionPool pool = this.pool;
       if (pool != null) {
          // If this connection was not available we make it available
-         pool.release(Http2Connection.this, numStreams == maxStreams - 1);
+         pool.release(Http2Connection.this, numStreams == maxStreams - 1, true);
          pool.pulse();
       }
    }

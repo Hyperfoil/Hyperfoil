@@ -14,14 +14,21 @@ public interface Connection {
 
    int inFlight();
 
+   /**
+    * This is an external request to close the connection
+    */
    void close();
 
-   // TODO: what's the difference between close() and setClosed()?
+   /**
+    * Invoked by the pool when the connection got closed.
+    */
    void setClosed();
 
    boolean isClosed();
 
    String host();
+
+   String authority();
 
    default void onTimeout(Request request) {}
 }

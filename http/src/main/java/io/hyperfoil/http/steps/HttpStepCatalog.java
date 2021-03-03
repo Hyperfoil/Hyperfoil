@@ -22,8 +22,8 @@ public class HttpStepCatalog extends StepCatalog {
     * @param method HTTP method.
     * @return Builder.
     */
-   public HttpRequestStep.Builder httpRequest(HttpMethod method) {
-      return new HttpRequestStep.Builder().addTo(parent).method(method);
+   public HttpRequestStepBuilder httpRequest(HttpMethod method) {
+      return new HttpRequestStepBuilder().addTo(parent).method(method);
    }
 
    /**

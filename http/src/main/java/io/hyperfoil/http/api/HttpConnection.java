@@ -4,6 +4,7 @@ import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 
 import io.hyperfoil.api.connection.Connection;
+import io.hyperfoil.http.config.Http;
 import io.netty.buffer.ByteBuf;
 import io.hyperfoil.api.session.Session;
 
@@ -28,6 +29,10 @@ public interface HttpConnection extends Connection {
    boolean isSecure();
 
    HttpVersion version();
+
+   Http config();
+
+   HttpConnectionPool pool();
 
    enum Status {
       OPEN,

@@ -48,7 +48,7 @@ public class FormGenerator implements SerializableBiFunction<Session, Connection
     * Build an URL-encoded HTML form body.
     */
    // Note: we cannot implement both a PairBuilder and MappingListBuilder at the same time
-   public static class Builder implements HttpRequestStep.BodyGeneratorBuilder, MappingListBuilder<InputBuilder> {
+   public static class Builder implements HttpRequestStepBuilder.BodyGeneratorBuilder, MappingListBuilder<InputBuilder> {
       private final ArrayList<InputBuilder> inputs = new ArrayList<>();
 
       /**

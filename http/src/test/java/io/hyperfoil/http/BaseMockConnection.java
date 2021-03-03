@@ -10,6 +10,7 @@ import io.hyperfoil.http.api.HttpRequest;
 import io.hyperfoil.http.api.HttpRequestWriter;
 import io.hyperfoil.http.api.HttpVersion;
 import io.hyperfoil.api.session.Session;
+import io.hyperfoil.http.config.Http;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 
@@ -56,6 +57,16 @@ public class BaseMockConnection implements HttpConnection {
    }
 
    @Override
+   public Http config() {
+      return null;
+   }
+
+   @Override
+   public HttpConnectionPool pool() {
+      return null;
+   }
+
+   @Override
    public ChannelHandlerContext context() {
       return null;
    }
@@ -76,6 +87,11 @@ public class BaseMockConnection implements HttpConnection {
 
    @Override
    public String host() {
+      return null;
+   }
+
+   @Override
+   public String authority() {
       return null;
    }
 }

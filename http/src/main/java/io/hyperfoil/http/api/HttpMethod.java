@@ -18,6 +18,10 @@
  */
 package io.hyperfoil.http.api;
 
+import io.hyperfoil.api.config.BuilderBase;
+import io.hyperfoil.api.session.Session;
+import io.hyperfoil.function.SerializableFunction;
+
 public enum HttpMethod {
 
    GET, HEAD, POST, PUT, DELETE, OPTIONS, PATCH, TRACE, CONNECT;
@@ -26,5 +30,23 @@ public enum HttpMethod {
 
    HttpMethod() {
       this.netty = io.netty.handler.codec.http.HttpMethod.valueOf(name());
+   }
+
+   @FunctionalInterface
+   public interface Builder extends BuilderBase<Builder> {
+      SerializableFunction<Session, HttpMethod> build();
+   }
+
+   public static class Provided implements SerializableFunction<Session, HttpMethod> {
+      private final HttpMethod method;
+
+      public Provided(HttpMethod method) {
+         this.method = method;
+      }
+
+      @Override
+      public HttpMethod apply(Session o) {
+         return method;
+      }
    }
 }

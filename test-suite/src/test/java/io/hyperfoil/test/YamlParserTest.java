@@ -32,8 +32,9 @@ import io.hyperfoil.core.steps.AwaitIntStep;
 import io.hyperfoil.core.steps.NoopStep;
 import io.hyperfoil.core.steps.ScheduleDelayStep;
 import io.hyperfoil.core.test.TestUtil;
-import io.hyperfoil.http.steps.HttpRequestStep;
+import io.hyperfoil.http.steps.SendHttpRequestStep;
 import io.hyperfoil.http.steps.HttpRequestStepUtil;
+import io.hyperfoil.http.steps.PrepareHttpRequestStep;
 
 import org.assertj.core.api.Condition;
 import org.junit.Assert;
@@ -61,12 +62,14 @@ public class YamlParserTest {
          Sequence[] sequences = p.scenario().sequences();
          assertThat(sequences.length).isEqualTo(1);
          Step[] steps = sequences[0].steps();
-         assertThat(steps.length).isEqualTo(5);
-         assertThat(steps[0]).isInstanceOf(HttpRequestStep.class);
-         assertThat(steps[1]).isInstanceOf(HttpRequestStep.class);
-         assertThat(steps[2]).isInstanceOf(NoopStep.class);
-         assertThat(steps[3]).isInstanceOf(AwaitIntStep.class);
-         assertThat(steps[4]).isInstanceOf(ScheduleDelayStep.class);
+         assertThat(steps.length).isEqualTo(7);
+         assertThat(steps[0]).isInstanceOf(PrepareHttpRequestStep.class);
+         assertThat(steps[1]).isInstanceOf(SendHttpRequestStep.class);
+         assertThat(steps[2]).isInstanceOf(PrepareHttpRequestStep.class);
+         assertThat(steps[3]).isInstanceOf(SendHttpRequestStep.class);
+         assertThat(steps[4]).isInstanceOf(NoopStep.class);
+         assertThat(steps[5]).isInstanceOf(AwaitIntStep.class);
+         assertThat(steps[6]).isInstanceOf(ScheduleDelayStep.class);
       }
    }
 
@@ -136,13 +139,13 @@ public class YamlParserTest {
       Sequence testSequence = testPhase.scenario().sequences()[0];
       Iterator<Step> iterator = Arrays.asList(testSequence.steps()).iterator();
 
-      HttpRequestStep request1 = next(HttpRequestStep.class, iterator);
+      PrepareHttpRequestStep request1 = next(PrepareHttpRequestStep.class, iterator);
       StatusHandler[] statusHandlers1 = HttpRequestStepUtil.statusHandlers(request1);
       assertThat(statusHandlers1).isNotNull().hasSize(1);
       assertCondition((RangeStatusValidator) statusHandlers1[0], v -> v.min == 200);
       assertCondition((RangeStatusValidator) statusHandlers1[0], v -> v.max == 299);
 
-      HttpRequestStep request2 = next(HttpRequestStep.class, iterator);
+      PrepareHttpRequestStep request2 = next(PrepareHttpRequestStep.class, iterator);
       StatusHandler[] statusHandlers2 = HttpRequestStepUtil.statusHandlers(request2);
       assertThat(statusHandlers2).isNotNull().hasSize(2);
       assertCondition((RangeStatusValidator) statusHandlers2[0], v -> v.min == 201);

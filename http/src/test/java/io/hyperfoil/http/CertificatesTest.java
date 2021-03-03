@@ -8,6 +8,7 @@ import javax.net.ssl.SSLException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import io.hyperfoil.http.api.HttpConnectionPool;
 import io.hyperfoil.http.config.HttpBuilder;
 import io.hyperfoil.http.config.Protocol;
 import io.hyperfoil.http.api.HttpClientPool;
@@ -137,9 +138,10 @@ public class CertificatesTest {
                   }).build();
             request.method = HttpMethod.GET;
             request.path = "/ping";
-            request.start(handlers, new SequenceInstance(), new Statistics(System.currentTimeMillis()));
 
-            client.next().request(request, null, true, null, false);
+            HttpConnectionPool pool = client.next();
+            request.start(pool, handlers, new SequenceInstance(), new Statistics(System.currentTimeMillis()));
+            pool.acquire(false, c -> request.send(c, null, true, null));
          }));
       } catch (SSLException e) {
          server.close();

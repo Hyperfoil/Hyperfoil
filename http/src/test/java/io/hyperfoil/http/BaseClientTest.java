@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 
+import io.hyperfoil.http.api.HttpConnectionPool;
 import io.hyperfoil.http.config.HttpBuilder;
 import io.hyperfoil.http.config.Protocol;
 import io.hyperfoil.http.api.HttpClientPool;
@@ -104,9 +105,10 @@ public class BaseClientTest extends VertxBaseTest {
             }).build();
       request.method = method;
       request.path = path;
-      request.start(handlers, new SequenceInstance(), new Statistics(System.currentTimeMillis()));
 
-      client.next().request(request, null, true, null, false);
+      HttpConnectionPool pool = client.next();
+      request.start(pool, handlers, new SequenceInstance(), new Statistics(System.currentTimeMillis()));
+      pool.acquire(false, c -> request.send(c, null, true, null));
    }
 
    @FunctionalInterface

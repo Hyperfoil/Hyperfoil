@@ -1,25 +1,18 @@
 package io.hyperfoil.http.api;
 
 import java.util.Collection;
-import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
 
-import io.hyperfoil.api.connection.Connection;
 import io.hyperfoil.core.impl.ConnectionStatsConsumer;
-import io.netty.buffer.ByteBuf;
 import io.netty.channel.EventLoop;
-import io.hyperfoil.api.session.Session;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Handler;
 
 public interface HttpConnectionPool {
    HttpClientPool clientPool();
 
-   boolean request(HttpRequest request,
-                   BiConsumer<Session, HttpRequestWriter>[] headerAppenders,
-                   boolean injectHostHeader,
-                   BiFunction<Session, Connection, ByteBuf> bodyGenerator,
-                   boolean reserveConnection);
+   void acquire(boolean exclusiveConnection, ConnectionConsumer consumer);
 
-   void registerWaitingSession(Session session);
+   void afterRequestSent(HttpConnection connection);
 
    int waitingSessions();
 
@@ -29,13 +22,17 @@ public interface HttpConnectionPool {
 
    Collection<? extends HttpConnection> connections();
 
-   void release(HttpConnection connection, boolean becameAvailable);
+   void release(HttpConnection connection, boolean becameAvailable, boolean afterRequest);
 
    void onSessionReset();
 
+   void incrementInFlight();
+
+   void decrementInFlight();
+
    void visitConnectionStats(ConnectionStatsConsumer consumer);
 
-   void incrementBlockedSessions();
+   void start(Handler<AsyncResult<Void>> handler);
 
-   void decrementBlockedSessions();
+   void shutdown();
 }

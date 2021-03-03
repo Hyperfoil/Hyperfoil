@@ -3,24 +3,23 @@ package io.hyperfoil.http;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.BiConsumer;
 
 import javax.net.ssl.SSLException;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import io.hyperfoil.http.config.HttpBuilder;
-import io.hyperfoil.http.config.Protocol;
-import io.hyperfoil.http.api.HttpClientPool;
-import io.hyperfoil.http.api.HttpConnectionPool;
-import io.hyperfoil.http.api.HttpRequest;
-import io.hyperfoil.http.api.HttpMethod;
-import io.hyperfoil.http.api.HttpResponseHandlers;
 import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.statistics.Statistics;
 import io.hyperfoil.core.session.SessionFactory;
+import io.hyperfoil.http.api.HttpClientPool;
+import io.hyperfoil.http.api.HttpConnectionPool;
+import io.hyperfoil.http.api.HttpMethod;
+import io.hyperfoil.http.api.HttpRequest;
+import io.hyperfoil.http.api.HttpResponseHandlers;
+import io.hyperfoil.http.config.HttpBuilder;
+import io.hyperfoil.http.config.Protocol;
 import io.hyperfoil.http.connection.HttpClientPoolImpl;
 import io.hyperfoil.http.steps.HttpResponseHandlersImpl;
 import io.netty.buffer.ByteBufAllocator;
@@ -39,7 +38,6 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
 
 @RunWith(VertxUnitRunner.class)
 public class MemoryUsageTest {
-   private static final BiConsumer[] NO_APPENDERS = new BiConsumer[]{ (session, writer) -> { } };
 
    @Test
    public void testPlainHttp1x(TestContext context) {
@@ -126,15 +124,8 @@ public class MemoryUsageTest {
       request.path = "/";
       request.method = HttpMethod.GET;
       request.handlers = handlers;
-      request.start(handlers, new SequenceInstance(), new Statistics(System.currentTimeMillis()));
-      fireRequest(pool, request);
-   }
-
-   @SuppressWarnings("unchecked")
-   private void fireRequest(HttpConnectionPool pool, HttpRequest request) {
-      if (!pool.request(request, NO_APPENDERS, true, null, false)) {
-         pool.executor().schedule(() -> fireRequest(pool, request), 1, TimeUnit.MILLISECONDS);
-      }
+      request.start(pool, handlers, new SequenceInstance(), new Statistics(System.currentTimeMillis()));
+      pool.acquire(false, connection -> request.send(connection, null, true, null));
    }
 
 }

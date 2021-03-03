@@ -53,9 +53,9 @@ public class HttpBuilder implements Rewritable<HttpBuilder> {
    private boolean directHttp2 = false;
    private long requestTimeout = 30000;
    private boolean rawBytesHandlers = true;
-   private KeyManagerBuilder keyManager = new KeyManagerBuilder();
-   private TrustManagerBuilder trustManager = new TrustManagerBuilder();
-   private boolean privatePools = false;
+   private final KeyManagerBuilder keyManager = new KeyManagerBuilder();
+   private final TrustManagerBuilder trustManager = new TrustManagerBuilder();
+   private ConnectionStrategy connectionStrategy = ConnectionStrategy.SHARED_POOL;
 
    public static HttpBuilder forTesting() {
       return new HttpBuilder(null);
@@ -190,8 +190,8 @@ public class HttpBuilder implements Rewritable<HttpBuilder> {
       return trustManager;
    }
 
-   public HttpBuilder privatePools(boolean privatePools) {
-      this.privatePools = privatePools;
+   public HttpBuilder connectionStrategy(ConnectionStrategy connectionStrategy) {
+      this.connectionStrategy = connectionStrategy;
       return this;
    }
 
@@ -222,7 +222,7 @@ public class HttpBuilder implements Rewritable<HttpBuilder> {
       return http = new Http(isDefault, protocol, host, protocol.portOrDefault(port), addresses.toArray(new String[0]),
             httpVersions.toArray(new HttpVersion[0]), maxHttp2Streams, pipeliningLimit,
             sharedConnections, directHttp2, requestTimeout, rawBytesHandlers, keyManager.build(), trustManager.build(),
-            privatePools);
+            connectionStrategy);
    }
 
    @Override

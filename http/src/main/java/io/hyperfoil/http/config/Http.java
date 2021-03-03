@@ -43,12 +43,12 @@ public class Http implements Serializable {
    private final boolean rawBytesHandlers;
    private final KeyManager keyManager;
    private final TrustManager trustManager;
-   private final boolean privatePools;
+   private final ConnectionStrategy connectionStrategy;
 
    public Http(boolean isDefault, Protocol protocol, String host, int port, String[] addresses,
                HttpVersion[] versions, int maxHttp2Streams, int pipeliningLimit, int sharedConnections,
                boolean directHttp2, long requestTimeout, boolean rawBytesHandlers,
-               KeyManager keyManager, TrustManager trustManager, boolean privatePools) {
+               KeyManager keyManager, TrustManager trustManager, ConnectionStrategy connectionStrategy) {
       this.isDefault = isDefault;
       this.protocol = protocol;
       this.host = host;
@@ -63,7 +63,7 @@ public class Http implements Serializable {
       this.rawBytesHandlers = rawBytesHandlers;
       this.keyManager = keyManager;
       this.trustManager = trustManager;
-      this.privatePools = privatePools;
+      this.connectionStrategy = connectionStrategy;
    }
 
    public Protocol protocol() {
@@ -122,8 +122,8 @@ public class Http implements Serializable {
       return keyManager;
    }
 
-   public boolean privatePools() {
-      return privatePools;
+   public ConnectionStrategy connectionStrategy() {
+      return connectionStrategy;
    }
 
    public static class KeyManager implements Serializable {
@@ -197,4 +197,5 @@ public class Http implements Serializable {
          return certBytes;
       }
    }
+
 }

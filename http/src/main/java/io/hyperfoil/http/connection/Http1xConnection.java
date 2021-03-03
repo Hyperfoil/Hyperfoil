@@ -15,6 +15,7 @@ import io.hyperfoil.http.api.HttpConnection;
 import io.hyperfoil.http.api.HttpConnectionPool;
 import io.hyperfoil.http.api.HttpRequest;
 import io.hyperfoil.http.api.HttpRequestWriter;
+import io.hyperfoil.http.config.Http;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelDuplexHandler;
@@ -166,6 +167,10 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
             log.trace("#{} Request is completed from cache", request.session.uniqueId());
          }
          --size;
+         // prevent adding to available twice
+         if (size != pipeliningLimit - 1) {
+            pool.afterRequestSent(this);
+         }
          request.handleCached();
          releasePoolAndPulse();
          return;
@@ -179,6 +184,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
       } else {
          ctx.writeAndFlush(buf, writePromise);
       }
+      pool.afterRequestSent(this);
    }
 
    private void writeHeader(ByteBuf buf, byte[] name, byte[] value) {
@@ -191,7 +197,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
       if (pool != null) {
          // Note: the pool might be already released if the completion handler
          // invoked another request which was served from cache.
-         pool.release(this, size == pipeliningLimit - 1);
+         pool.release(this, size == pipeliningLimit - 1, true);
          pool.pulse();
       }
    }
@@ -208,7 +214,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    }
 
    @Override
-   public void removeRequest(int stremId, HttpRequest request) {
+   public void removeRequest(int streamId, HttpRequest request) {
       HttpRequest req = inflights.poll();
       if (req != request) {
          throw new IllegalStateException();
@@ -237,6 +243,16 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    @Override
    public HttpVersion version() {
       return HttpVersion.HTTP_1_1;
+   }
+
+   @Override
+   public Http config() {
+      return pool.clientPool().config();
+   }
+
+   @Override
+   public HttpConnectionPool pool() {
+      return pool;
    }
 
    @Override
@@ -270,6 +286,11 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    @Override
    public String host() {
       return pool.clientPool().host();
+   }
+
+   @Override
+   public String authority() {
+      return pool.clientPool().authority();
    }
 
    @Override

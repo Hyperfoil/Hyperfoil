@@ -17,9 +17,9 @@ import io.hyperfoil.core.util.Util;
  * Allows building HTTP request body from session variables.
  */
 public class BodyBuilder {
-   private final HttpRequestStep.Builder parent;
+   private final HttpRequestStepBuilder parent;
 
-   public BodyBuilder(HttpRequestStep.Builder parent) {
+   public BodyBuilder(HttpRequestStepBuilder parent) {
       this.parent = parent;
    }
 
@@ -93,7 +93,7 @@ public class BodyBuilder {
       return this;
    }
 
-   public HttpRequestStep.Builder endBody() {
+   public HttpRequestStepBuilder endBody() {
       return parent;
    }
 
