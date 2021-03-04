@@ -29,6 +29,7 @@ fi
 ROOT=$(dirname $0)/..
 CP=$(find $ROOT/lib $ROOT/extensions | tr '\n' ':')
 JAVA_OPTS="$JAVA_OPTS \
+   --add-opens java.base/java.lang=ALL-UNNAMED \
    -Djava.net.preferIPv4Stack=true \
    -Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.Log4j2LogDelegateFactory"
 
