@@ -57,6 +57,8 @@ public class HttpRequestPool extends LimitedPoolResource<HttpRequest> {
             request.setCompleting();
             if (request.connection() != null) {
                request.connection().close();
+               // the connection must be closed when we release it to let session-local pool return it
+               request.connection().pool().release(request.connection(), false, true);
             }
             if (!request.isCompleted()) {
                // Connection.close() cancels everything in flight but if this is called

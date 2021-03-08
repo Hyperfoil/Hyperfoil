@@ -31,7 +31,7 @@ public class SessionConnectionPool implements HttpConnectionPool {
    @Override
    public void acquire(boolean exclusiveConnection, ConnectionConsumer consumer) {
       assert !exclusiveConnection;
-      for (;;) {
+      for (; ; ) {
          HttpConnection connection = available.pollFirst();
          if (connection == null) {
             shared.acquire(true, consumer);
@@ -75,7 +75,11 @@ public class SessionConnectionPool implements HttpConnectionPool {
 
    @Override
    public void release(HttpConnection connection, boolean becameAvailable, boolean afterRequest) {
-      shared.decrementInFlight();
+      if (connection.isClosed()) {
+         shared.release(connection, false, true);
+      } else {
+         shared.decrementInFlight();
+      }
       if (becameAvailable) {
          log.trace("Added connection to session-local pool.");
          available.addLast(connection);

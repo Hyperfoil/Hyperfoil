@@ -4,16 +4,15 @@ import java.util.function.Predicate;
 
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.config.PhaseBuilder;
-import io.hyperfoil.core.util.Util;
 
 abstract class PhaseParser extends AbstractParser<PhaseBuilder.Catalog, PhaseBuilder<?>> {
 
    PhaseParser() {
-      register("startTime", new PropertyParser.String<>((pb, time) -> pb.startTime(Util.parseToMillis(time))));
+      register("startTime", new PropertyParser.TimeMillis<>(PhaseBuilder::startTime));
       register("startAfter", new StartAfterParser(PhaseBuilder::startAfter));
       register("startAfterStrict", new StartAfterParser(PhaseBuilder::startAfterStrict));
-      register("duration", new PropertyParser.String<>((pb, duration) -> pb.duration(Util.parseToMillis(duration))));
-      register("maxDuration", new PropertyParser.String<>((pb, duration) -> pb.maxDuration(Util.parseToMillis(duration))));
+      register("duration", new PropertyParser.TimeMillis<>(PhaseBuilder::duration));
+      register("maxDuration", new PropertyParser.TimeMillis<>(PhaseBuilder::maxDuration));
       register("maxIterations", new PropertyParser.Int<>(PhaseBuilder::maxIterations));
       register("scenario", new Adapter<>(PhaseBuilder::scenario, new ScenarioParser()));
       register("forks", new PhaseForkParser());

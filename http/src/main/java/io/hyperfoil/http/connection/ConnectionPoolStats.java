@@ -58,9 +58,4 @@ class ConnectionPoolStats {
    protected void incrementTypeStats(HttpConnection conn) {
       typeStats.computeIfAbsent(tagConnection(conn), t -> new Watermarks()).incrementUsed();
    }
-
-   protected void decrementStatsOnClose(HttpConnection conn) {
-      typeStats.get(tagConnection(conn)).decrementUsed();
-      usedConnections.decrementUsed();
-   }
 }

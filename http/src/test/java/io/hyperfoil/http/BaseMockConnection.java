@@ -67,6 +67,11 @@ public class BaseMockConnection implements HttpConnection {
    }
 
    @Override
+   public long lastUsed() {
+      return 0;
+   }
+
+   @Override
    public ChannelHandlerContext context() {
       return null;
    }

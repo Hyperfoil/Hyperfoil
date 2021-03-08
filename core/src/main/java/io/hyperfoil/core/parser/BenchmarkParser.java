@@ -62,8 +62,8 @@ public class BenchmarkParser extends AbstractMappingParser<BenchmarkBuilder> {
       register("statisticsCollectionPeriod", new PropertyParser.Int<>(BenchmarkBuilder::statisticsCollectionPeriod));
       // simplified single-phase definition
       register("usersPerSec", new PropertyParser.Double<>((bb, value) -> bb.singleConstantRatePhase().usersPerSec(value)));
-      register("duration", new PropertyParser.String<>((bb, value) -> bb.singleConstantRatePhase().duration(Util.parseToMillis(value))));
-      register("maxDuration", new PropertyParser.String<>((bb, value) -> bb.singleConstantRatePhase().maxDuration(Util.parseToMillis(value))));
+      register("duration", new PropertyParser.TimeMillis<>((bb, value) -> bb.singleConstantRatePhase().duration(value)));
+      register("maxDuration", new PropertyParser.TimeMillis<>((bb, value) -> bb.singleConstantRatePhase().maxDuration(value)));
       register("maxSessions", new PropertyParser.Int<>((bb, value) -> bb.singleConstantRatePhase().maxSessions(value)));
       register("scenario", (ctx, target) -> new ScenarioParser().parse(ctx, target.singleConstantRatePhase().scenario()));
       register("staircase", new StaircaseParser());

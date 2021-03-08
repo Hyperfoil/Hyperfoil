@@ -54,6 +54,7 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
    private long maxStreams;
    private Status status = Status.OPEN;
    private HttpRequest dispatchedRequest;
+   private long lastUsed = System.nanoTime();
 
    Http2Connection(ChannelHandlerContext context,
                    io.netty.handler.codec.http2.Http2Connection connection,
@@ -253,6 +254,11 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
       return pool;
    }
 
+   @Override
+   public long lastUsed() {
+      return lastUsed;
+   }
+
    private int nextStreamId() {
       return connection.local().incrementAndGetNextStreamId();
    }
@@ -268,6 +274,9 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
    void cancelRequests(Throwable cause) {
       for (IntObjectMap.PrimitiveEntry<HttpRequest> entry : streams.entries()) {
          HttpRequest request = entry.value();
+         if (request.isRunning()) {
+            pool.release(this, false, true);
+         }
          request.cancel(cause);
       }
       streams.clear();
@@ -377,6 +386,7 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
    }
 
    private void tryReleaseToPool() {
+      lastUsed = System.nanoTime();
       HttpConnectionPool pool = this.pool;
       if (pool != null) {
          // If this connection was not available we make it available

@@ -23,6 +23,8 @@ import java.util.function.BiConsumer;
 
 import org.yaml.snakeyaml.events.ScalarEvent;
 
+import io.hyperfoil.core.util.Util;
+
 public class PropertyParser {
    private PropertyParser() {}
 
@@ -135,6 +137,24 @@ public class PropertyParser {
             }
          }
          throw new ParserException("No match for enum value '" + event.getValue() + "', options are: " + Arrays.toString(values));
+      }
+   }
+
+   public static class TimeMillis<T> implements Parser<T> {
+      private final BiConsumer<T, java.lang.Long> consumer;
+
+      public TimeMillis(BiConsumer<T, java.lang.Long> consumer) {
+         this.consumer = consumer;
+      }
+
+      @Override
+      public void parse(Context ctx, T target) throws ParserException {
+         ScalarEvent event = ctx.expectEvent(ScalarEvent.class);
+         try {
+            consumer.accept(target, Util.parseToMillis(event.getValue()));
+         } catch (NumberFormatException e) {
+            throw new ParserException(event, "Failed to parse as long: " + event.getValue());
+         }
       }
    }
 }

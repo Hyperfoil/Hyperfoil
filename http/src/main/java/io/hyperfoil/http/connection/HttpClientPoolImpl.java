@@ -31,6 +31,7 @@ import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.core.impl.ConnectionStatsConsumer;
 import io.hyperfoil.core.util.Util;
+import io.hyperfoil.http.config.ConnectionPoolConfig;
 import io.hyperfoil.http.config.Http;
 import io.hyperfoil.http.api.HttpVersion;
 import io.hyperfoil.http.api.HttpClientPool;
@@ -98,33 +99,53 @@ public class HttpClientPoolImpl implements HttpClientPool {
       this.forceH2c = http.versions().length == 1 && http.versions()[0] == HttpVersion.HTTP_2_0;
 
       this.children = new HttpConnectionPool[executors.length];
-      int sharedConnections;
+      int coreConnections, maxConnections, bufferConnections;
       switch (http.connectionStrategy()) {
          case SHARED_POOL:
          case SESSION_POOLS:
-            sharedConnections = benchmark.slice(http.sharedConnections(), agentId);
-            if (sharedConnections < executors.length) {
-               log.warn("Connection pool size ({}) too small: the event loop has {} executors. Setting connection pool size to {}",
-                     sharedConnections, executors.length, executors.length);
-               sharedConnections = executors.length;
+            coreConnections = benchmark.slice(http.sharedConnections().core(), agentId);
+            maxConnections = benchmark.slice(http.sharedConnections().max(), agentId);
+            bufferConnections = benchmark.slice(http.sharedConnections().buffer(), agentId);
+            boolean hadBuffer = http.sharedConnections().buffer() > 0;
+            if (coreConnections < executors.length || maxConnections < executors.length ||
+                  (hadBuffer && bufferConnections < executors.length)) {
+               int prevCore = coreConnections;
+               int prevMax = maxConnections;
+               int prevBuffer = bufferConnections;
+               coreConnections = Math.max(coreConnections, executors.length);
+               maxConnections = Math.max(maxConnections, executors.length);
+               bufferConnections = Math.max(bufferConnections, hadBuffer ? executors.length : 0);
+               log.warn("Connection pool size (core {}, max {}, buffer {}) too small: the event loop has {} executors. " +
+                           "Setting connection pool size to core {}, max {}, buffer {}",
+                     prevCore, prevMax, prevBuffer, executors.length, coreConnections, maxConnections, bufferConnections);
             }
-            log.info("Allocating {} connections in {} executors to {}", sharedConnections, executors.length, http.protocol().scheme + "://" + authority);
+            log.info("Allocating {} connections (max {}, buffer {}) in {} executors to {}",
+                  coreConnections, maxConnections, bufferConnections, executors.length,
+                  http.protocol().scheme + "://" + authority);
             break;
          case OPEN_ON_REQUEST:
          case ALWAYS_NEW:
-            sharedConnections = 0;
+            coreConnections = 0;
+            maxConnections = 0;
+            bufferConnections = 0;
             break;
          default:
             throw new IllegalArgumentException("Unknow connection strategy " + http.connectionStrategy());
       }
       // This algorithm should be the same as session -> executor assignment to prevent blocking
       // in always(N) scenario with N connections
-      int share = sharedConnections / executors.length;
-      int remainder = sharedConnections - share * executors.length;
+      int coreShare = coreConnections / executors.length;
+      int maxShare = maxConnections / executors.length;
+      int bufferShare = bufferConnections / executors.length;
+      int coreRemainder = coreConnections - coreShare * executors.length;
+      int maxRemainder = maxConnections - maxShare * executors.length;
+      int bufferRemainder = bufferConnections - bufferShare * executors.length;
       for (int i = 0; i < executors.length; ++i) {
-         int childSize = share + (i < remainder ? 1 : 0);
-         if (sharedConnections > 0) {
-            children[i] = new SharedConnectionPool(this, executors[i], childSize);
+         if (maxConnections > 0) {
+            int core = coreShare + (i < coreRemainder ? 1 : 0);
+            int max = maxShare + (i < maxRemainder ? 1 : 0);
+            int buffer = bufferShare + (i < bufferRemainder ? 1 : 0);
+            children[i] = new SharedConnectionPool(this, executors[i], new ConnectionPoolConfig(core, max, buffer, http.sharedConnections().keepAliveTime()));
          } else {
             children[i] = new ConnectionAllocator(this, executors[i]);
          }

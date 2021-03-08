@@ -11,6 +11,7 @@ import io.hyperfoil.http.api.ConnectionConsumer;
 import io.hyperfoil.http.api.HttpClientPool;
 import io.hyperfoil.http.api.HttpConnection;
 import io.hyperfoil.http.api.HttpConnectionPool;
+import io.hyperfoil.http.config.ConnectionPoolConfig;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.EventLoop;
 import io.netty.util.concurrent.ScheduledFuture;
@@ -35,25 +36,28 @@ class SharedConnectionPool extends ConnectionPoolStats implements HttpConnection
    private final List<HttpConnection> temporaryInFlight;
    private final ConnectionReceiver handleNewConnection = this::handleNewConnection;
    private final Runnable checkCreateConnections = this::checkCreateConnections;
-   private final int size;
+   private final Runnable onConnectFailure = this::onConnectFailure;
+   private final ConnectionPoolConfig sizeConfig;
    private final EventLoop eventLoop;
 
-   private int count; // The estimated count : created + creating
+   private int connecting; // number of connections being opened
    private int created;
    private int closed; // number of closed connections in #connections
+   private int availableClosed; // connections closed but staying in available queue
    private int failures;
    private Handler<AsyncResult<Void>> startedHandler;
    private boolean shutdown;
    private final Deque<ConnectionConsumer> waiting = new ArrayDeque<>();
    private ScheduledFuture<?> pulseFuture;
+   private ScheduledFuture<?> keepAliveFuture;
 
-   SharedConnectionPool(HttpClientPoolImpl clientPool, EventLoop eventLoop, int size) {
+   SharedConnectionPool(HttpClientPoolImpl clientPool, EventLoop eventLoop, ConnectionPoolConfig sizeConfig) {
       super(clientPool.authority);
       this.clientPool = clientPool;
-      this.size = size;
+      this.sizeConfig = sizeConfig;
       this.eventLoop = eventLoop;
-      this.available = new ArrayDeque<>(size);
-      this.temporaryInFlight = new ArrayList<>(size);
+      this.available = new ArrayDeque<>(sizeConfig.max());
+      this.temporaryInFlight = new ArrayList<>(sizeConfig.max());
    }
 
    @Override
@@ -81,6 +85,7 @@ class SharedConnectionPool extends ConnectionPoolStats implements HttpConnection
 
                return connection;
             } else {
+               availableClosed--;
                log.trace("Connection {} to {} is already closed", connection, authority);
             }
          }
@@ -97,6 +102,7 @@ class SharedConnectionPool extends ConnectionPoolStats implements HttpConnection
       HttpConnection connection = acquireNow(exclusiveConnection);
       if (connection != null) {
          consumer.accept(connection);
+         checkCreateConnections();
       } else {
          if (failures > MAX_FAILURES) {
             log.error("The request cannot be made since the failures to connect to {} exceeded a threshold. Stopping session.", authority);
@@ -112,18 +118,49 @@ class SharedConnectionPool extends ConnectionPoolStats implements HttpConnection
    public void afterRequestSent(HttpConnection connection) {
       // Move it to the back of the queue if it is still available (do not prefer it for subsequent requests)
       if (connection.isAvailable()) {
-         available.addLast(connection);
+         if (connection.inFlight() == 0) {
+            // The request was not executed in the end (response was cached)
+            available.addFirst(connection);
+         } else {
+            available.addLast(connection);
+         }
       }
    }
 
    @Override
    public void release(HttpConnection connection, boolean becameAvailable, boolean afterRequest) {
+      assert !connection.isClosed();
       if (becameAvailable) {
-         available.add(connection);
+         if (connection.inFlight() == 0) {
+            // We are adding to the beginning of the queue to prefer reusing connections rather than cycling
+            // too many often-idle connections
+            available.addFirst(connection);
+         } else {
+            available.addLast(connection);
+         }
       }
-      inFlight.decrementUsed();
+      if (afterRequest) {
+         inFlight.decrementUsed();
+      }
       if (connection.inFlight() == 0) {
          usedConnections.decrementUsed();
+      }
+      if (keepAliveFuture == null && sizeConfig.keepAliveTime() > 0) {
+         long lastUsed = available.stream().filter(c -> !c.isClosed()).mapToLong(HttpConnection::lastUsed).min().orElse(connection.lastUsed());
+         long nextCheck = sizeConfig.keepAliveTime() - TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - lastUsed);
+         log.debug("Scheduling next keep-alive check in {} ms", nextCheck);
+         keepAliveFuture = eventLoop.schedule(() -> {
+            long now = System.nanoTime();
+            // We won't removing closed connections from available: acquire() will eventually remove these
+            for (HttpConnection c : available) {
+               if (c.isClosed()) continue;
+               long idleTime = TimeUnit.NANOSECONDS.toMillis(now - c.lastUsed());
+               if (idleTime > sizeConfig.keepAliveTime()) {
+                  c.close();
+               }
+            }
+            keepAliveFuture = null;
+         }, nextCheck, TimeUnit.MILLISECONDS);
       }
    }
 
@@ -199,22 +236,27 @@ class SharedConnectionPool extends ConnectionPoolStats implements HttpConnection
          pulse();
          return;
       }
-      if (count < size) {
-         count++;
+      if (needsMoreConnections()) {
+         connecting++;
          clientPool.connect(this, handleNewConnection);
          eventLoop.schedule(checkCreateConnections, 2, TimeUnit.MILLISECONDS);
       }
    }
 
+   private boolean needsMoreConnections() {
+      return created + connecting < sizeConfig.core() || (created + connecting < sizeConfig.max()
+            && connecting + available.size() - availableClosed < sizeConfig.buffer());
+   }
+
    private void handleNewConnection(HttpConnection conn, Throwable err) {
       // at this moment we're in unknown thread
       if (err != null) {
-         count--;
-         failures++;
+         // Accessing created & failures is unreliable - we need to access those in eventloop thread.
+         // For logging, though, we won't care.
+         log.warn("Cannot create connection to {} (created: {}, failures: {})", err, authority, created, failures + 1);
          // scheduling task when the executor is shut down causes errors
          if (!eventLoop.isShuttingDown() && !eventLoop.isShutdown()) {
-            log.warn("Cannot create connection to {} (created: {}, failures: {})", err, authority, created, failures);
-            eventLoop.execute(this::checkCreateConnections);
+            eventLoop.execute(onConnectFailure);
          }
       } else {
          // we are using this eventloop as the bootstrap group so the connection should be created for us
@@ -223,35 +265,29 @@ class SharedConnectionPool extends ConnectionPoolStats implements HttpConnection
 
          Handler<AsyncResult<Void>> handler = null;
          connections.add(conn);
+         connecting--;
          created++;
          // With each success we reset the counter - otherwise we'd eventually
          // stop trying to create new connections and the sessions would be stuck.
          failures = 0;
          available.add(conn);
-         log.debug("Connection {} to {} created ({}->{}=?{}:{}/{})", conn, authority, count, created, connections.size(), available.size(), size);
+         log.debug("Connection {} to {} created ({}+{}=?{}:{}/{})", conn, authority,
+               created, connecting, connections.size(), available.size() - availableClosed, sizeConfig.max());
 
          incrementTypeStats(conn);
 
-         if (count < size) {
-            checkCreateConnections();
-         } else {
-            if (created == size) {
-               handler = startedHandler;
-               startedHandler = null;
-            }
-         }
-
          conn.context().channel().closeFuture().addListener(v -> {
             conn.setClosed();
-            log.debug("Connection {} to {} closed. ({}->{}=?{}:{}/{})", conn, authority, count, created, connections.size(), available.size(), size);
-            count--;
+            log.debug("Connection {} to {} closed. ({}+{}=?{}:{}/{})", conn, authority,
+                  created, connecting, connections.size(), available.size() - availableClosed, sizeConfig.max());
             created--;
             closed++;
-            // TODO: this won't work if the connection is closed outside of request handler
-            inFlight.decrementUsed(conn.inFlight() + 1);
-            decrementStatsOnClose(conn);
+            if (available.contains(conn)) {
+               availableClosed++;
+            }
+            typeStats.get(tagConnection(conn)).decrementUsed();
             if (!shutdown) {
-               if (closed > size) {
+               if (closed >= sizeConfig.max()) {
                   // do cleanup
                   connections.removeIf(HttpConnection::isClosed);
                   closed = 0;
@@ -260,11 +296,26 @@ class SharedConnectionPool extends ConnectionPoolStats implements HttpConnection
             }
          });
 
+         if (needsMoreConnections()) {
+            checkCreateConnections();
+         } else {
+            if (startedHandler != null && created >= sizeConfig.core()) {
+               handler = startedHandler;
+               startedHandler = null;
+            }
+         }
+
          if (handler != null) {
             handler.handle(Future.succeededFuture());
          }
          pulse();
       }
+   }
+
+   private void onConnectFailure() {
+      failures++;
+      connecting--;
+      checkCreateConnections();
    }
 
    @Override

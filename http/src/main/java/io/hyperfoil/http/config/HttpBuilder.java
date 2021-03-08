@@ -47,7 +47,7 @@ public class HttpBuilder implements Rewritable<HttpBuilder> {
    private List<String> addresses = new ArrayList<>();
    private boolean allowHttp1x = true;
    private boolean allowHttp2 = true;
-   private int sharedConnections = 1;
+   private final ConnectionPoolConfig.Builder sharedConnections = new ConnectionPoolConfig.Builder(this);
    private int maxHttp2Streams = 100;
    private int pipeliningLimit = 1;
    private boolean directHttp2 = false;
@@ -135,8 +135,12 @@ public class HttpBuilder implements Rewritable<HttpBuilder> {
    }
 
    public HttpBuilder sharedConnections(int sharedConnections) {
-      this.sharedConnections = sharedConnections;
+      this.sharedConnections.core(sharedConnections).max(sharedConnections).buffer(0).keepAliveTime(0);
       return this;
+   }
+
+   public ConnectionPoolConfig.Builder sharedConnections() {
+      return this.sharedConnections;
    }
 
    public HttpBuilder maxHttp2Streams(int maxStreams) {
@@ -221,7 +225,7 @@ public class HttpBuilder implements Rewritable<HttpBuilder> {
       Protocol protocol = this.protocol != null ? this.protocol : Protocol.fromPort(port);
       return http = new Http(isDefault, protocol, host, protocol.portOrDefault(port), addresses.toArray(new String[0]),
             httpVersions.toArray(new HttpVersion[0]), maxHttp2Streams, pipeliningLimit,
-            sharedConnections, directHttp2, requestTimeout, rawBytesHandlers, keyManager.build(), trustManager.build(),
+            sharedConnections.build(), directHttp2, requestTimeout, rawBytesHandlers, keyManager.build(), trustManager.build(),
             connectionStrategy);
    }
 
@@ -233,7 +237,7 @@ public class HttpBuilder implements Rewritable<HttpBuilder> {
       this.addresses = new ArrayList<>(addresses);
       this.allowHttp1x = other.allowHttp1x;
       this.allowHttp2 = other.allowHttp2;
-      this.sharedConnections = other.sharedConnections;
+      this.sharedConnections.readFrom(other.sharedConnections);
       this.maxHttp2Streams = other.maxHttp2Streams;
       this.pipeliningLimit = other.pipeliningLimit;
       this.directHttp2 = other.directHttp2;

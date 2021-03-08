@@ -34,6 +34,11 @@ public interface HttpConnection extends Connection {
 
    HttpConnectionPool pool();
 
+   /**
+    * @return Timestamp form System.nanotime()
+    */
+   long lastUsed();
+
    enum Status {
       OPEN,
       CLOSING,

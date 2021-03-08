@@ -45,6 +45,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    private int size;
    private boolean activated;
    private Status status = Status.OPEN;
+   private long lastUsed = System.nanoTime();
 
    Http1xConnection(HttpClientPoolImpl client, BiConsumer<HttpConnection, Throwable> handler) {
       this.activationHandler = handler;
@@ -99,6 +100,9 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    private void cancelRequests(Throwable cause) {
       HttpRequest request;
       while ((request = inflights.poll()) != null) {
+         if (request.isRunning()) {
+            pool.release(this, false, true);
+         }
          request.cancel(cause);
       }
    }
@@ -192,6 +196,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    }
 
    void releasePoolAndPulse() {
+      lastUsed = System.nanoTime();
       // If this connection was not available we make it available
       HttpConnectionPool pool = this.pool;
       if (pool != null) {
@@ -253,6 +258,11 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    @Override
    public HttpConnectionPool pool() {
       return pool;
+   }
+
+   @Override
+   public long lastUsed() {
+      return lastUsed;
    }
 
    @Override

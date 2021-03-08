@@ -37,7 +37,7 @@ public class Http implements Serializable {
    private final HttpVersion[] versions;
    private final int maxHttp2Streams;
    private final int pipeliningLimit;
-   private final int sharedConnections;
+   private final ConnectionPoolConfig sharedConnections;
    private final boolean directHttp2;
    private final long requestTimeout;
    private final boolean rawBytesHandlers;
@@ -46,7 +46,7 @@ public class Http implements Serializable {
    private final ConnectionStrategy connectionStrategy;
 
    public Http(boolean isDefault, Protocol protocol, String host, int port, String[] addresses,
-               HttpVersion[] versions, int maxHttp2Streams, int pipeliningLimit, int sharedConnections,
+               HttpVersion[] versions, int maxHttp2Streams, int pipeliningLimit, ConnectionPoolConfig sharedConnections,
                boolean directHttp2, long requestTimeout, boolean rawBytesHandlers,
                KeyManager keyManager, TrustManager trustManager, ConnectionStrategy connectionStrategy) {
       this.isDefault = isDefault;
@@ -90,7 +90,7 @@ public class Http implements Serializable {
       return pipeliningLimit;
    }
 
-   public int sharedConnections() {
+   public ConnectionPoolConfig sharedConnections() {
       return sharedConnections;
    }
 

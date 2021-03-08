@@ -50,7 +50,8 @@ class ConnectionAllocator extends ConnectionPoolStats implements HttpConnectionP
             conn.context().channel().closeFuture().addListener(v -> {
                conn.setClosed();
                log.debug("Connection {} to {} closed.", conn, authority);
-               decrementStatsOnClose(conn);
+               typeStats.get(tagConnection(conn)).decrementUsed();
+               usedConnections.decrementUsed();
             });
             consumer.accept(conn);
          }
