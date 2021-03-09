@@ -107,33 +107,16 @@ public class JsonWriter {
 
             StatisticsStore.SessionPoolStats sps = store.sessionPoolStats.get(data.phase);
             Map<String, List<StatisticsStore.SessionPoolRecord>> records = sps != null ? sps.records : Collections.emptyMap();
-            String[] addresses = new String[records.size()];
-            @SuppressWarnings("unchecked")
-            Iterator<StatisticsStore.SessionPoolRecord>[] iterators = new Iterator[records.size()];
-            int counter = 0;
-            for (Map.Entry<String, List<StatisticsStore.SessionPoolRecord>> byAddress : records.entrySet()) {
-               addresses[counter] = byAddress.getKey();
-               iterators[counter] = byAddress.getValue().iterator();
-               ++counter;
-            }
-            boolean hadNext;
             jGenerator.writeFieldName("sessions");
             jGenerator.writeStartArray();
-            do {
-               hadNext = false;
-               for (int i = 0; i < addresses.length; ++i) {
-                  if (iterators[i].hasNext()) {
-                     StatisticsStore.SessionPoolRecord record = iterators[i].next();
-                     jGenerator.writeStartObject();
-                     jGenerator.writeNumberField("timestamp", record.timestamp);
-                     jGenerator.writeStringField("address", addresses[i]);
-                     jGenerator.writeNumberField("minSessions", record.low);
-                     jGenerator.writeNumberField("maxSessions", record.high);
-                     jGenerator.writeEndObject();
-                     hadNext = true;
-                  }
-               }
-            } while (hadNext);
+            WriterUtil.printInSync(records, (address, record) -> {
+               jGenerator.writeStartObject();
+               jGenerator.writeNumberField("timestamp", record.timestamp);
+               jGenerator.writeStringField("address", address);
+               jGenerator.writeNumberField("minSessions", record.low);
+               jGenerator.writeNumberField("maxSessions", record.high);
+               jGenerator.writeEndObject();
+            });
             jGenerator.writeEndArray(); //sessions array
             jGenerator.writeEndObject(); //phase session entry
          }
@@ -201,6 +184,25 @@ public class JsonWriter {
       }
 
       jGenerator.writeEndArray(); //agents array
+
+      jGenerator.writeObjectFieldStart("connections");
+      for (var targetEntry : store.connectionPoolStats.entrySet()) {
+         jGenerator.writeObjectFieldStart(targetEntry.getKey());
+         for (var typeEntry : targetEntry.getValue().entrySet()) {
+            jGenerator.writeArrayFieldStart(typeEntry.getKey());
+            WriterUtil.printInSync(typeEntry.getValue(), (address, record) -> {
+               jGenerator.writeStartObject();
+               jGenerator.writeNumberField("timestamp", record.timestamp);
+               jGenerator.writeStringField("address", address);
+               jGenerator.writeNumberField("min", record.low);
+               jGenerator.writeNumberField("max", record.high);
+               jGenerator.writeEndObject();
+            });
+            jGenerator.writeEndArray(); // type
+         }
+         jGenerator.writeEndObject(); // endpoint
+      }
+      jGenerator.writeEndObject(); // connections
 
       jGenerator.writeEndObject(); //root of object
    }

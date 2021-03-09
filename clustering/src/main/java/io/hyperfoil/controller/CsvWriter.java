@@ -9,7 +9,6 @@ import java.io.PrintWriter;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -138,34 +137,32 @@ public class CsvWriter {
       }
       for (Map.Entry<String, StatisticsStore.SessionPoolStats> entry : store.sessionPoolStats.entrySet()) {
          try (PrintWriter writer = new PrintWriter(dir + File.separator + sanitize(entry.getKey()) + ".sessions.csv")) {
-            StatisticsStore.SessionPoolStats sps = entry.getValue();
             writer.println("Timestamp,Address,MinSessions,MaxSessions");
-            String[] addresses = new String[sps.records.size()];
-            @SuppressWarnings("unchecked")
-            Iterator<StatisticsStore.SessionPoolRecord>[] iterators = new Iterator[sps.records.size()];
-            int counter = 0;
-            for (Map.Entry<String, List<StatisticsStore.SessionPoolRecord>> byAddress : sps.records.entrySet()) {
-               addresses[counter] = byAddress.getKey();
-               iterators[counter] = byAddress.getValue().iterator();
-               ++counter;
+            WriterUtil.printInSync(entry.getValue().records, (address, record) -> {
+               writer.print(record.timestamp);
+               writer.print(',');
+               writer.print(address);
+               writer.print(',');
+               writer.print(record.low);
+               writer.print(',');
+               writer.println(record.high);
+            });
+         }
+      }
+      for (var targetEntry : store.connectionPoolStats.entrySet()) {
+         for (var typeEntry : targetEntry.getValue().entrySet()) {
+            try (PrintWriter writer = new PrintWriter(dir + File.separator + sanitize(targetEntry.getKey()) + "." + sanitize(typeEntry.getKey()) + ".connections.csv")) {
+               writer.println("Timestamp,Address,MinConnections,MaxConnections");
+               WriterUtil.printInSync(typeEntry.getValue(), (address, record) -> {
+                  writer.print(record.timestamp);
+                  writer.print(',');
+                  writer.print(address);
+                  writer.print(',');
+                  writer.print(record.low);
+                  writer.print(',');
+                  writer.println(record.high);
+               });
             }
-            boolean hadNext;
-            do {
-               hadNext = false;
-               for (int i = 0; i < addresses.length; ++i) {
-                  if (iterators[i].hasNext()) {
-                     StatisticsStore.SessionPoolRecord record = iterators[i].next();
-                     writer.print(record.timestamp);
-                     writer.print(',');
-                     writer.print(addresses[i]);
-                     writer.print(',');
-                     writer.print(record.low);
-                     writer.print(',');
-                     writer.println(record.high);
-                     hadNext = true;
-                  }
-               }
-            } while (hadNext);
          }
       }
    }

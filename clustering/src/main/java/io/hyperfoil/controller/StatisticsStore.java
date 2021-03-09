@@ -346,8 +346,8 @@ public class StatisticsStore {
       }
    }
 
-   private static class ConnectionPoolStats extends LowHigh {
-      private final long timestamp;
+   static class ConnectionPoolStats extends LowHigh {
+      final long timestamp;
 
       private ConnectionPoolStats(long timestamp, int low, int high) {
          super(low, high);
