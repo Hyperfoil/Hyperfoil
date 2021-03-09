@@ -44,6 +44,7 @@ public class WebCLI extends HyperfoilCli implements Handler<ServerWebSocket> {
    private static final String SET_BENCHMARK = "__HYPERFOIL_SET_BENCHMARK__";
 
    private final Vertx vertx;
+   private int port = 8090;
 
    public WebCLI(Vertx vertx) {
       this.vertx = vertx;
@@ -64,7 +65,7 @@ public class WebCLI extends HyperfoilCli implements Handler<ServerWebSocket> {
       OutputStream stream = new WebsocketOutputStream(event);
 
       WebCliContext context = new WebCliContext(vertx);
-      context.setClient(new RestClient(context.vertx(), "localhost", 8090, false, false, null));
+      context.setClient(new RestClient(context.vertx(), "localhost", port, false, false, null));
       context.setOnline(true);
       AeshConsoleRunner runner;
       try {
@@ -158,6 +159,10 @@ public class WebCLI extends HyperfoilCli implements Handler<ServerWebSocket> {
       commands.add(WebReport.class);
       commands.add(WebUpload.class);
       return commands;
+   }
+
+   public void setPort(int port) {
+      this.port = port;
    }
 
    private static class WebsocketOutputStream extends OutputStream {

@@ -146,8 +146,9 @@ class ControllerServer implements ApiService {
 
       String controllerHost = Properties.get(Properties.CONTROLLER_HOST, controller.getConfig().getString(Properties.CONTROLLER_HOST, "0.0.0.0"));
       int controllerPort = Properties.getInt(Properties.CONTROLLER_PORT, controller.getConfig().getInteger(Properties.CONTROLLER_PORT, 8090));
+      WebCLI webCLI = new WebCLI(controller.getVertx());
       httpServer = controller.getVertx().createHttpServer(options).requestHandler(router)
-            .webSocketHandler(new WebCLI(controller.getVertx()))
+            .webSocketHandler(webCLI)
             .listen(controllerPort, controllerHost, serverResult -> {
                if (serverResult.succeeded()) {
                   if (CONTROLLER_EXTERNAL_URI == null) {
@@ -164,8 +165,9 @@ class ControllerServer implements ApiService {
                   } else {
                      baseURL = CONTROLLER_EXTERNAL_URI;
                   }
+                  webCLI.setPort(serverResult.result().actualPort());
+                  log.info("Hyperfoil controller listening on {}", baseURL);
                }
-               log.info("Hyperfoil controller listening on {}", baseURL);
                countDown.handle(serverResult.mapEmpty());
             });
    }
