@@ -98,6 +98,14 @@ public class HttpPluginBuilder extends PluginBuilder<HttpErgonomics> {
       return authority == null && defaultHttp != null || httpList.stream().anyMatch(http -> http.authority().equals(authority));
    }
 
+   public HttpBuilder getHttp(String authority) {
+      if (authority == null && defaultHttp != null) {
+         return defaultHttp;
+      } else {
+         return httpList.stream().filter(http -> http.authority().equals(authority)).findFirst().orElse(null);
+      }
+   }
+
    public HttpBuilder decoupledHttp() {
       return new HttpBuilder(this);
    }

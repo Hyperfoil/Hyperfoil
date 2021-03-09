@@ -50,6 +50,8 @@ import io.hyperfoil.http.UserAgentAppender;
 import io.hyperfoil.http.api.HttpMethod;
 import io.hyperfoil.http.api.HttpRequest;
 import io.hyperfoil.http.api.HttpRequestWriter;
+import io.hyperfoil.http.config.ConnectionStrategy;
+import io.hyperfoil.http.config.HttpBuilder;
 import io.hyperfoil.http.config.HttpErgonomics;
 import io.hyperfoil.http.config.HttpPluginBuilder;
 import io.hyperfoil.http.cookie.CookieAppender;
@@ -551,7 +553,8 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
       } catch (Throwable e) {
          checkAuthority = false;
       }
-      if (checkAuthority && !Locator.current().benchmark().plugin(HttpPluginBuilder.class).validateAuthority(guessedAuthority)) {
+      HttpPluginBuilder httpPlugin = Locator.current().benchmark().plugin(HttpPluginBuilder.class);
+      if (checkAuthority && !httpPlugin.validateAuthority(guessedAuthority)) {
          String guessedPath = "<unknown path>";
          try {
             if (pathGenerator != null) {
@@ -566,6 +569,10 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
          } else {
             throw new BenchmarkDefinitionException(String.format("%s to %s%s is invalid - no HTTP configuration defined.", method, guessedAuthority, guessedPath));
          }
+      }
+      HttpBuilder http = checkAuthority ? httpPlugin.getHttp(guessedAuthority) : null;
+      if (sla == null && http != null && (http.connectionStrategy() == ConnectionStrategy.OPEN_ON_REQUEST || http.connectionStrategy() == ConnectionStrategy.ALWAYS_NEW)) {
+         this.sla = new SLABuilder.ListBuilder<>(this).addItem().blockedRatio(1.01).endSLA();
       }
       @SuppressWarnings("unchecked")
       SerializableBiConsumer<Session, HttpRequestWriter>[] headerAppenders =

@@ -199,6 +199,9 @@ public class HttpBuilder implements Rewritable<HttpBuilder> {
       return this;
    }
 
+   public ConnectionStrategy connectionStrategy() {
+      return connectionStrategy;
+   }
 
    public void prepareBuild() {
    }
