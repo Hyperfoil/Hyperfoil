@@ -51,20 +51,20 @@ public class WebCLI extends HyperfoilCli implements Handler<ServerWebSocket> {
    }
 
    @Override
-   public void handle(ServerWebSocket event) {
+   public void handle(ServerWebSocket webSocket) {
       PipedOutputStream pos = new PipedOutputStream();
       PipedInputStream pis;
       try {
          pis = new PipedInputStream(pos);
       } catch (IOException e) {
          log.error("Failed to create input stream", e);
-         event.close();
+         webSocket.close();
          return;
       }
       OutputStreamWriter cmdInput = new OutputStreamWriter(pos);
-      OutputStream stream = new WebsocketOutputStream(event);
+      OutputStream stream = new WebsocketOutputStream(webSocket);
 
-      WebCliContext context = new WebCliContext(vertx);
+      WebCliContext context = new WebCliContext(vertx, webSocket);
       context.setClient(new RestClient(context.vertx(), "localhost", port, false, false, null));
       context.setOnline(true);
       AeshConsoleRunner runner;
@@ -77,16 +77,16 @@ public class WebCLI extends HyperfoilCli implements Handler<ServerWebSocket> {
                .outputStream(new PrintStream(stream));
 
          runner = configureRunner(context, settingsBuilder.build(), null);
-         Thread cliThread = new Thread(runner::start, "webcli-" + event.remoteAddress());
+         Thread cliThread = new Thread(runner::start, "webcli-" + webSocket.remoteAddress());
          cliThread.setDaemon(true);
-         event.closeHandler(nil -> runner.stop());
+         webSocket.closeHandler(nil -> runner.stop());
          cliThread.start();
       } catch (CommandRegistryException e) {
          throw new IllegalStateException(e);
       }
 
-      event.writeTextMessage("Welcome to Hyperfoil! Type 'help' for commands overview.\n");
-      event.textMessageHandler(msg -> {
+      webSocket.writeTextMessage("Welcome to Hyperfoil! Type 'help' for commands overview.\n");
+      webSocket.textMessageHandler(msg -> {
          synchronized (context) {
             if (context.editBenchmark != null) {
                int editsEnd = msg.indexOf(EDITS_END);
@@ -124,7 +124,7 @@ public class WebCLI extends HyperfoilCli implements Handler<ServerWebSocket> {
             cmdInput.flush();
          } catch (IOException e) {
             log.error("Failed to write '{}' to Aesh input", e, msg);
-            event.close();
+            webSocket.close();
          }
       });
    }

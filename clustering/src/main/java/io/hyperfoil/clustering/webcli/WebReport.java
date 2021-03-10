@@ -6,6 +6,7 @@ import org.aesh.command.CommandResult;
 
 import io.hyperfoil.cli.commands.BaseReportCommand;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
+import io.vertx.core.buffer.Buffer;
 
 @CommandDefinition(name = "report", description = "Generate HTML report")
 public class WebReport extends BaseReportCommand {
@@ -15,7 +16,7 @@ public class WebReport extends BaseReportCommand {
       invocation.println("Creating report...");
       invocation.println("__HYPERFOIL_DIRECT_DOWNLOAD_MAGIC__");
       invocation.println(getRunRef(invocation).id() + ".html");
-      invocation.println(report);
+      ((WebCliContext) invocation.context()).webSocket.writeBinaryMessage(Buffer.buffer(report));
       invocation.println("__HYPERFOIL_DIRECT_DOWNLOAD_END__");
       return CommandResult.SUCCESS;
    }

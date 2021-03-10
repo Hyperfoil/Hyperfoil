@@ -104,7 +104,9 @@ function addResultToWindow(commandResult) {
    }
    command.remove();
    while (true) {
-      if (commandResult.startsWith('\u001b[160D')) {
+      if (typeof commandResult !== 'string') {
+         break;
+      } else if (commandResult.startsWith('\u001b[160D')) {
          // arrow up, ignore
          commandResult = commandResult.slice(6);
       } else if (commandResult.startsWith('\u001b[2K') || commandResult.startsWith('\u001b[K')) {
@@ -128,17 +130,22 @@ function addResultToWindow(commandResult) {
       fileList += commandResult
       checkFileList()
    } else if (downloading) {
-      let endIndex = commandResult.indexOf(DIRECT_DOWNLOAD_END)
-      if (endIndex >= 0) {
-         downloadContent += commandResult.slice(0, endIndex)
-         let lineEnd = downloadContent.indexOf('\n')
-         let downloadFilename = downloadContent.slice(0, lineEnd)
-         download(window.URL.createObjectURL(new Blob([downloadContent.slice(lineEnd + 1)])), downloadFilename)
-         downloadContent = ""
-         downloading = false
-         addResultToWindow(commandResult.slice(endIndex + DIRECT_DOWNLOAD_END.length))
-      } else {
-          downloadContent += commandResult
+      if (typeof commandResult === 'string') {
+         let endIndex = commandResult.indexOf(DIRECT_DOWNLOAD_END)
+         if (endIndex >= 0) {
+            downloadMeta += commandResult.slice(0, endIndex)
+            let lineEnd = downloadMeta.indexOf('\n')
+            let downloadFilename = downloadMeta.slice(0, lineEnd)
+            download(window.URL.createObjectURL(downloadContent), downloadFilename)
+            downloadMeta = undefined
+            downloadContent = undefined
+            downloading = false
+            addResultToWindow(commandResult.slice(endIndex + DIRECT_DOWNLOAD_END.length))
+         } else {
+            downloadMeta += commandResult
+         }
+      } else if (commandResult instanceof Blob) {
+         downloadContent = commandResult;
       }
    } else if (commandResult.startsWith("__HYPERFOIL_UPLOAD_MAGIC__")) {
       resultWindow.appendChild(upload)
@@ -170,7 +177,8 @@ function addResultToWindow(commandResult) {
       command.focus();
    } else if (commandResult.startsWith(DIRECT_DOWNLOAD_MAGIC)) {
       downloading = true;
-      downloadContent = commandResult.slice(DIRECT_DOWNLOAD_MAGIC.length)
+      downloadMeta = commandResult.slice(DIRECT_DOWNLOAD_MAGIC.length)
+      downloadContent = undefined
    } else {
       resultWindow.innerHTML += ansiUp.ansi_to_html(commandResult);
       resultWindow.appendChild(command)

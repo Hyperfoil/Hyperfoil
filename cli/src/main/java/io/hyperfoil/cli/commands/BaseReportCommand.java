@@ -32,7 +32,7 @@ public abstract class BaseReportCommand extends BaseRunIdCommand {
       File templateCache = new File("./.report-template.html.cached");
       if (templateCache.exists() && templateCache.isFile()) {
          try {
-            template = Files.readString(templateCache.toPath());
+            template = Files.readString(templateCache.toPath(), StandardCharsets.UTF_8);
          } catch (IOException e) {
             throw new CommandException("Cannot read cached report template: ", e);
          }
