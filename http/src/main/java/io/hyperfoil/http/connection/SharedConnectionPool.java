@@ -129,8 +129,8 @@ class SharedConnectionPool extends ConnectionPoolStats implements HttpConnection
 
    @Override
    public void release(HttpConnection connection, boolean becameAvailable, boolean afterRequest) {
-      assert !connection.isClosed();
       if (becameAvailable) {
+         assert !connection.isClosed();
          if (connection.inFlight() == 0) {
             // We are adding to the beginning of the queue to prefer reusing connections rather than cycling
             // too many often-idle connections
