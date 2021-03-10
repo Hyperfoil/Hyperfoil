@@ -83,6 +83,7 @@ public class WebEdit extends BaseEditCommand {
          latch.await();
       } catch (InterruptedException e) {
       }
+      context.latch = null;
       return CommandResult.SUCCESS;
    }
 

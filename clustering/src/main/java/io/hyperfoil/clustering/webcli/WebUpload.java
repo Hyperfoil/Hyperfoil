@@ -63,6 +63,7 @@ public class WebUpload implements Command<HyperfoilCommandInvocation> {
          latch.await();
       } catch (InterruptedException e) {
       }
+      context.latch = null;
       return CommandResult.SUCCESS;
    }
 }
