@@ -31,6 +31,7 @@ socket.onmessage = (event) => {
 socket.onclose = () => {
    command.remove();
    resultWindow.innerHTML += '\n<span style="color: red">CLI connection has been closed. Please reload the page.</span>'
+   window.scrollTo(0,document.body.scrollHeight);
 }
 
 command.addEventListener("keydown", (event) => {

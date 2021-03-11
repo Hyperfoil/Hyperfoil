@@ -16,7 +16,7 @@ public class WebReport extends BaseReportCommand {
       invocation.println("Creating report...");
       invocation.println("__HYPERFOIL_DIRECT_DOWNLOAD_MAGIC__");
       invocation.println(getRunRef(invocation).id() + ".html");
-      ((WebCliContext) invocation.context()).webSocket.writeBinaryMessage(Buffer.buffer(report));
+      ((WebCliContext) invocation.context()).sendBinaryMessage(Buffer.buffer(report));
       invocation.println("__HYPERFOIL_DIRECT_DOWNLOAD_END__");
       return CommandResult.SUCCESS;
    }

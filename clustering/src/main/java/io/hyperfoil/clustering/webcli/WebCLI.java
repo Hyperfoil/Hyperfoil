@@ -1,13 +1,11 @@
 package io.hyperfoil.clustering.webcli;
 
 import java.io.IOException;
-import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.io.PrintStream;
 import java.lang.reflect.Field;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -62,9 +60,9 @@ public class WebCLI extends HyperfoilCli implements Handler<ServerWebSocket> {
          return;
       }
       OutputStreamWriter cmdInput = new OutputStreamWriter(pos);
-      OutputStream stream = new WebsocketOutputStream(webSocket);
+      WebsocketOutputStream stream = new WebsocketOutputStream(webSocket);
 
-      WebCliContext context = new WebCliContext(vertx, webSocket);
+      WebCliContext context = new WebCliContext(vertx, webSocket, stream);
       context.setClient(new RestClient(context.vertx(), "localhost", port, false, false, null));
       context.setOnline(true);
       AeshConsoleRunner runner;
@@ -163,29 +161,6 @@ public class WebCLI extends HyperfoilCli implements Handler<ServerWebSocket> {
 
    public void setPort(int port) {
       this.port = port;
-   }
-
-   private static class WebsocketOutputStream extends OutputStream {
-      private final ServerWebSocket event;
-
-      public WebsocketOutputStream(ServerWebSocket event) {
-         this.event = event;
-      }
-
-      @Override
-      public void write(byte[] b) {
-         event.writeTextMessage(new String(b, StandardCharsets.UTF_8));
-      }
-
-      @Override
-      public void write(byte[] b, int off, int len) {
-         event.writeTextMessage(new String(b, off, len, StandardCharsets.UTF_8));
-      }
-
-      @Override
-      public void write(int b) {
-         event.writeTextMessage(String.valueOf((char) b));
-      }
    }
 
 }
