@@ -25,4 +25,5 @@ require(["vs/editor/editor.main"], function () {
       automaticLayout: true,
    });
    window.editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_S, () => saveEdits());
+   window.editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Escape, () => cancelEdits());
 });
