@@ -54,8 +54,11 @@ command.addEventListener("keydown", (event) => {
       command.value = "";
    } else if (event.key === "Backspace" && command.selectionStart === 0) {
       command.remove();
-      resultWindow.innerHTML = resultWindow.innerHTML.slice(0, -1);
-      resultWindow.appendChild(command)
+      const lastLine = resultWindow.lastChild
+      if (lastLine.lastChild && lastLine.lastChild.nodeType === Node.TEXT_NODE) {
+         lastLine.lastChild.nodeValue = lastLine.lastChild.nodeValue.slice(0, -1)
+      }
+      lastLine.appendChild(command)
       command.focus();
       sendCommand('\b');
    } else if (event.key === "ArrowUp") {
@@ -64,14 +67,15 @@ command.addEventListener("keydown", (event) => {
       sendCommand('\033[B');
    } else if (event.key === "ArrowLeft" && command.selectionStart === 0) {
       command.remove()
-      let lastChar = resultWindow.innerHTML.slice(-1);
-      if (lastChar !== ">") { // end of </span>
+      const lastLine = resultWindow.lastChild
+      if (lastLine.lastChild && lastLine.lastChild.nodeType === Node.TEXT_NODE) {
+         let lastChar = lastLine.lastChild.nodeValue.slice(-1);
          command.value = lastChar + command.value;
-         resultWindow.innerHTML = resultWindow.innerHTML.slice(0, -1);
+         lastLine.lastChild.nodeValue = lastLine.lastChild.nodeValue.slice(0, -1);
          sendCommand('\b');
          command.selectionStart = 0
       }
-      resultWindow.appendChild(command)
+      lastLine.appendChild(command)
       command.focus()
    } else if (event.key === "Escape" || (event.key == 'c' && event.ctrlKey)) {
       event.preventDefault();
@@ -112,13 +116,10 @@ function addResultToWindow(commandResult) {
          commandResult = commandResult.slice(6);
       } else if (commandResult.startsWith('\u001b[2K') || commandResult.startsWith('\u001b[K')) {
          commandResult = commandResult.slice(commandResult.indexOf('K') + 1);
-         const lastLine = resultWindow.innerHTML.lastIndexOf('\n')
-         resultWindow.innerHTML = resultWindow.innerHTML.slice(0, lastLine + 1)
+         resultWindow.lastChild.innerHTML = ""
       } else if (commandResult.startsWith('\u001b[1A')) {
-          commandResult = commandResult.slice(4);
-          if (resultWindow.innerHTML.endsWith('\n')) {
-              resultWindow.innerHTML = resultWindow.innerHTML.slice(0, -1)
-          }
+         commandResult = commandResult.slice(4);
+         resultWindow.lastChild.remove()
       } else {
           break
       }
@@ -181,8 +182,22 @@ function addResultToWindow(commandResult) {
       downloadMeta = commandResult.slice(DIRECT_DOWNLOAD_MAGIC.length)
       downloadContent = undefined
    } else {
-      resultWindow.innerHTML += ansiUp.ansi_to_html(commandResult);
-      resultWindow.appendChild(command)
+      const html = ansiUp.ansi_to_html(commandResult)
+      const lines = html.split('\n')
+      var firstLine = 0;
+      var lastLine = resultWindow.lastChild
+      // when last node is text, it's a newline
+      if (lastLine && lastLine.nodeType !== Node.TEXT_NODE) {
+         lastLine.innerHTML += lines[0];
+         firstLine = 1;
+      }
+      for (var i = firstLine; i < lines.length; ++i) {
+         lastLine = document.createElement("span")
+         lastLine.classList.add("line")
+         lastLine.innerHTML = lines[i]
+         resultWindow.appendChild(lastLine)
+      }
+      lastLine.appendChild(command)
       command.focus();
    }
 }

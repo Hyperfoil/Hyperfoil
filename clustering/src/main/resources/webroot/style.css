@@ -58,6 +58,10 @@ body {
    white-space: pre-wrap;
 }
 
+.line {
+   display: flex;
+}
+
 #command {
    font-size: 16px;
    border: 0;
@@ -65,9 +69,9 @@ body {
    background-color: transparent;
    padding-bottom: 10px;
    max-height: 28px;
-   width: 80%;
    font-family: "Courier New", monospace;
    outline: none;
+   flex-grow: 100;
 }
 
 .ctrl-c {
