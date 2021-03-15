@@ -17,8 +17,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Consumer;
 
 import org.kohsuke.MetaInfServices;
@@ -76,12 +74,13 @@ public class K8sDeployer implements Deployer {
    private static final String API_SERVER = Properties.get("io.hyperfoil.deployer.k8s.apiserver", "https://kubernetes.default.svc.cluster.local/");
    private static final String DEFAULT_IMAGE = "quay.io/hyperfoil/hyperfoil:" + Version.VERSION;
    private static final String CONTROLLER_POD_NAME = System.getenv("HOSTNAME");
+   private static final String APP;
    private static final String NAMESPACE;
 
-   private final ScheduledExecutorService logReader = Executors.newScheduledThreadPool(1);
    private KubernetesClient client;
 
    static {
+      APP = System.getProperty("io.hyperfoil.deployer.k8s.app");
       NAMESPACE = getPropertyOrLoad("io.hyperfoil.deployer.k8s.namespace", "namespace");
    }
 
@@ -201,11 +200,17 @@ public class K8sDeployer implements Deployer {
          // about the container being started - we'll defer it until all containers become ready.
       }
 
+      Map<String, String> labels = new HashMap<>();
+      labels.put("role", "agent");
+      if (APP != null) {
+         labels.put("app", APP);
+      }
       // @formatter:off
       Pod pod = client.pods().inNamespace(NAMESPACE).createNew()
             .withNewMetadata()
                .withNamespace(NAMESPACE)
                .withName(podName)
+               .withLabels(labels)
             .endMetadata()
             .withSpec(spec.build()).done();
       // @formatter:on
