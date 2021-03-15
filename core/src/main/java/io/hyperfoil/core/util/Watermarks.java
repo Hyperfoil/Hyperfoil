@@ -1,17 +1,22 @@
 package io.hyperfoil.core.util;
 
-import java.util.concurrent.atomic.LongAdder;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 
 public class Watermarks {
-   protected final LongAdder used = new LongAdder();
+   private static final Logger log = LoggerFactory.getLogger(Watermarks.class);
+   // The fields are volatile as these can be read by any thread,
+   // but written only by the event-loop executor thread.
+   protected volatile int used = 0;
    protected volatile int minUsed;
    protected volatile int maxUsed;
 
    public void incrementUsed() {
-      used.increment();
-      long currentlyUsed = used.longValue();
-      if (currentlyUsed > maxUsed) {
-         maxUsed = (int) currentlyUsed;
+      assert used >= 0;
+      //noinspection NonAtomicOperationOnVolatileField
+      used++;
+      if (used > maxUsed) {
+         maxUsed = (int) (long) used;
       }
    }
 
@@ -20,11 +25,12 @@ public class Watermarks {
    }
 
    public void decrementUsed(int num) {
-      used.add(-num);
-      long currentlyUsed = used.longValue();
-      if (currentlyUsed < minUsed) {
-         minUsed = (int) currentlyUsed;
+      //noinspection NonAtomicOperationOnVolatileField
+      used -= num;
+      if (used < minUsed) {
+         minUsed = (int) (long) used;
       }
+      assert used >= 0;
    }
 
    public int minUsed() {
@@ -36,12 +42,11 @@ public class Watermarks {
    }
 
    public void resetStats() {
-      int current = used.intValue();
-      minUsed = current;
-      maxUsed = current;
+      minUsed = used;
+      maxUsed = used;
    }
 
    public int current() {
-      return used.intValue();
+      return used;
    }
 }

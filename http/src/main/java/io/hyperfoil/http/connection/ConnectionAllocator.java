@@ -41,15 +41,16 @@ class ConnectionAllocator extends ConnectionPoolStats implements HttpConnectionP
             blockedSessions.decrementUsed();
             consumer.accept(null);
          } else {
-            log.debug("Connection {} to {} created", conn, authority);
+            log.debug("Created {} to {}", conn, authority);
             blockedSessions.decrementUsed();
             inFlight.incrementUsed();
             usedConnections.incrementUsed();
             incrementTypeStats(conn);
+            conn.onAcquire();
 
             conn.context().channel().closeFuture().addListener(v -> {
                conn.setClosed();
-               log.debug("Connection {} to {} closed.", conn, authority);
+               log.debug("Closed {} to {}", conn, authority);
                typeStats.get(tagConnection(conn)).decrementUsed();
                usedConnections.decrementUsed();
             });

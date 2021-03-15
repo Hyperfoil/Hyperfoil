@@ -16,18 +16,20 @@ import io.hyperfoil.core.impl.statistics.StatisticsCollector;
 public class LocalSimulationRunner extends SimulationRunner {
    private final StatisticsCollector.StatisticsConsumer statsConsumer;
    private final SessionStatsConsumer sessionPoolStatsConsumer;
+   private final ConnectionStatsConsumer connectionsStatsConsumer;
    private final Lock statusLock = new ReentrantLock();
    private final Condition statusCondition = statusLock.newCondition();
    private long startTime;
 
    public LocalSimulationRunner(Benchmark benchmark) {
-      this(benchmark, null, null);
+      this(benchmark, null, null, null);
    }
 
-   public LocalSimulationRunner(Benchmark benchmark, StatisticsCollector.StatisticsConsumer statsConsumer, SessionStatsConsumer sessionPoolStatsConsumer) {
+   public LocalSimulationRunner(Benchmark benchmark, StatisticsCollector.StatisticsConsumer statsConsumer, SessionStatsConsumer sessionPoolStatsConsumer, ConnectionStatsConsumer connectionsStatsConsumer) {
       super(benchmark, 0);
       this.statsConsumer = statsConsumer;
       this.sessionPoolStatsConsumer = sessionPoolStatsConsumer;
+      this.connectionsStatsConsumer = connectionsStatsConsumer;
    }
 
    public void run() {
@@ -127,6 +129,9 @@ public class LocalSimulationRunner extends SimulationRunner {
       }
       if (sessionPoolStatsConsumer != null) {
          visitSessionPoolStats(phase, sessionPoolStatsConsumer);
+      }
+      if (connectionsStatsConsumer != null) {
+         visitConnectionStats(connectionsStatsConsumer);
       }
    }
 

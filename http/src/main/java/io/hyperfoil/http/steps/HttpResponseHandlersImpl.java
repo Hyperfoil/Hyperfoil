@@ -184,8 +184,8 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
    @Override
    public void handleThrowable(HttpRequest request, Throwable throwable) {
       Session session = request.session;
-      if (trace) {
-         log.trace("#{} {} Received exception", throwable, session.uniqueId(), request);
+      if (log.isDebugEnabled()) {
+         log.debug("#{} {} Received exception", throwable, session.uniqueId(), request);
       }
       if (request.isCompleted()) {
          if (trace) {
@@ -267,24 +267,25 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       }
 
       try {
-         if (executed) {
-            request.recordResponse(System.nanoTime());
-
-            if (headerHandlers != null) {
-               for (HeaderHandler handler : headerHandlers) {
-                  handler.afterHeaders(request);
-               }
-            }
-            if (bodyHandlers != null) {
-               for (Processor handler : bodyHandlers) {
-                  handler.after(request.session);
-               }
-            }
-            HttpCache.get(request.session).tryStore(request);
-         }
-
          if (request.isRunning()) {
             request.setCompleting();
+
+            if (executed) {
+               request.recordResponse(System.nanoTime());
+
+               if (headerHandlers != null) {
+                  for (HeaderHandler handler : headerHandlers) {
+                     handler.afterHeaders(request);
+                  }
+               }
+               if (bodyHandlers != null) {
+                  for (Processor handler : bodyHandlers) {
+                     handler.after(request.session);
+                  }
+               }
+               HttpCache.get(request.session).tryStore(request);
+            }
+
             if (completionHandlers != null) {
                for (Action handler : completionHandlers) {
                   handler.run(session);
@@ -750,7 +751,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       public void run(Session session) {
          Request request = session.currentRequest();
          if (!request.isValid()) {
-            log.info("#{} Stopping session due to invalid request {} on connection {}", session.uniqueId(), request, request.connection());
+            log.info("#{} Stopping session due to invalid response {} on connection {}", session.uniqueId(), request, request.connection());
             session.stop();
          }
       }

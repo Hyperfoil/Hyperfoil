@@ -73,7 +73,7 @@ public class RandomFileStep implements Step, ResourceUtilizer {
    @Name("randomFile")
    public static class Builder implements StepBuilder<Builder> {
       private String toVar;
-      private WeightedGenerator.Builder weighted = new WeightedGenerator.Builder();
+      private WeightedGenerator.Builder<Builder> weighted = new WeightedGenerator.Builder<>(this);
       private String filenameVar;
 
       /**
@@ -81,7 +81,7 @@ public class RandomFileStep implements Step, ResourceUtilizer {
        *
        * @return Builder.
        */
-      public WeightedGenerator.Builder files() {
+      public WeightedGenerator.Builder<Builder> files() {
          return weighted;
       }
 

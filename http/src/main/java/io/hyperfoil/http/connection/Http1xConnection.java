@@ -41,8 +41,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
 
    private HttpConnectionPool pool;
    private ChannelHandlerContext ctx;
-   // we can safely use non-atomic variables since the connection should be always accessed by single thread
-   private int size;
+   private int aboutToSend;
    private boolean activated;
    private Status status = Status.OPEN;
    private long lastUsed = System.nanoTime();
@@ -100,10 +99,10 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    private void cancelRequests(Throwable cause) {
       HttpRequest request;
       while ((request = inflights.poll()) != null) {
+         pool.release(this, false, true);
          if (request.isRunning()) {
-            pool.release(this, false, true);
+            request.cancel(cause);
          }
-         request.cancel(cause);
       }
    }
 
@@ -117,7 +116,8 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
                        BiConsumer<Session, HttpRequestWriter>[] headerAppenders,
                        boolean injectHostHeader,
                        BiFunction<Session, Connection, ByteBuf> bodyGenerator) {
-      size++;
+      assert aboutToSend > 0;
+      aboutToSend--;
       ByteBuf buf = ctx.alloc().buffer();
       buf.writeBytes(request.method.netty.asciiName().array());
       buf.writeByte(' ');
@@ -170,9 +170,8 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
          if (trace) {
             log.trace("#{} Request is completed from cache", request.session.uniqueId());
          }
-         --size;
          // prevent adding to available twice
-         if (size != pipeliningLimit - 1) {
+         if (inFlight() != pipeliningLimit - 1) {
             pool.afterRequestSent(this);
          }
          request.handleCached();
@@ -202,7 +201,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
       if (pool != null) {
          // Note: the pool might be already released if the completion handler
          // invoked another request which was served from cache.
-         pool.release(this, size == pipeliningLimit - 1, true);
+         pool.release(this, inFlight() == pipeliningLimit - 1 && !isClosed(), true);
          pool.pulse();
       }
    }
@@ -219,20 +218,25 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    }
 
    @Override
-   public void removeRequest(int streamId, HttpRequest request) {
+   public boolean removeRequest(int streamId, HttpRequest request) {
       HttpRequest req = inflights.poll();
-      if (req != request) {
+      if (req == null) {
+         // cancel() was called before draining the queue
+         return false;
+      } else if (req != request) {
          throw new IllegalStateException();
-      } else if (request == null) {
-         // We've already logged debug message above
-         return;
       }
-      size--;
+      return true;
    }
 
    @Override
    public void setClosed() {
       status = Status.CLOSED;
+   }
+
+   @Override
+   public boolean isOpen() {
+      return status == Status.OPEN;
    }
 
    @Override
@@ -271,15 +275,20 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    }
 
    @Override
+   public void onAcquire() {
+      aboutToSend++;
+   }
+
+   @Override
    public boolean isAvailable() {
       // Having pool not attached implies that the connection is not taken out of the pool
       // and therefore it's fully available
-      return pool == null || size < pipeliningLimit;
+      return pool == null || inFlight() < pipeliningLimit;
    }
 
    @Override
    public int inFlight() {
-      return size;
+      return inflights.size() + aboutToSend;
    }
 
    @Override
@@ -307,8 +316,8 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    public String toString() {
       return "Http1xConnection{" +
             ctx.channel().localAddress() + " -> " + ctx.channel().remoteAddress() +
-            ", size=" + size +
-            '}';
+            ", status=" + status +
+            ", size=" + inflights.size() + "+" + aboutToSend + ":" + inflights + '}';
    }
 
    private class HttpRequestWriterImpl implements HttpRequestWriter {

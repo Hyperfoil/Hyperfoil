@@ -12,6 +12,7 @@ import org.junit.Before;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkBuilder;
+import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.config.ScenarioBuilder;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
@@ -19,6 +20,7 @@ import io.hyperfoil.core.impl.statistics.StatisticsCollector;
 import io.hyperfoil.core.parser.BenchmarkParser;
 import io.hyperfoil.core.parser.ParserException;
 import io.hyperfoil.core.test.TestUtil;
+import io.hyperfoil.core.util.CountDown;
 import io.hyperfoil.core.util.Util;
 import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
@@ -36,15 +38,10 @@ public abstract class BaseScenarioTest {
    }
 
    protected Map<String, StatisticsSnapshot> runScenario(Benchmark benchmark) {
-      Map<String, StatisticsSnapshot> stats = new HashMap<>();
-      StatisticsCollector.StatisticsConsumer statisticsConsumer = (phase, stepId, metric, snapshot, countDown) -> {
-         log.debug("Adding stats for {}/{}/{} - #{}: {} requests {} responses", phase, stepId, metric,
-               snapshot.sequenceId, snapshot.requestCount, snapshot.responseCount);
-         snapshot.addInto(stats.computeIfAbsent(metric, n -> new StatisticsSnapshot()));
-      };
-      LocalSimulationRunner runner = new LocalSimulationRunner(benchmark, statisticsConsumer, null);
+      TestStatistics statisticsConsumer = new TestStatistics();
+      LocalSimulationRunner runner = new LocalSimulationRunner(benchmark, statisticsConsumer, null, null);
       runner.run();
-      return stats;
+      return statisticsConsumer.stats();
    }
 
    @Before
@@ -90,5 +87,20 @@ public abstract class BaseScenarioTest {
 
    protected int threads() {
       return 3;
+   }
+
+   public class TestStatistics implements StatisticsCollector.StatisticsConsumer {
+      private final Map<String, StatisticsSnapshot> stats = new HashMap<>();
+
+      @Override
+      public void accept(Phase phase, int stepId, String metric, StatisticsSnapshot snapshot, CountDown countDown) {
+         log.debug("Adding stats for {}/{}/{} - #{}: {} requests {} responses", phase, stepId, metric,
+               snapshot.sequenceId, snapshot.requestCount, snapshot.responseCount);
+         snapshot.addInto(stats.computeIfAbsent(metric, n -> new StatisticsSnapshot()));
+      }
+
+      public Map<String, StatisticsSnapshot> stats() {
+         return stats;
+      }
    }
 }

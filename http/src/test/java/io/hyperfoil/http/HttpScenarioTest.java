@@ -15,6 +15,8 @@ import io.hyperfoil.core.util.Util;
 import io.hyperfoil.http.config.HttpBuilder;
 import io.hyperfoil.http.config.HttpPluginBuilder;
 import io.hyperfoil.http.config.Protocol;
+import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.net.JksOptions;
@@ -32,16 +34,25 @@ public abstract class HttpScenarioTest extends BaseScenarioTest {
       super.before(ctx);
       router = Router.router(vertx);
       initRouter();
+      benchmarkBuilder.addPlugin(HttpPluginBuilder::new);
+      startServer(ctx, useHttps(), useCompression());
+   }
+
+   protected Future<Void> startServer(TestContext ctx, boolean tls, boolean compression) {
       HttpServerOptions options = new HttpServerOptions();
-      if (useHttps()) {
+      if (tls) {
          options.setSsl(true).setUseAlpn(true).setKeyStoreOptions(new JksOptions().setPath("keystore.jks").setPassword("test123"));
       }
-      if (useCompression()) {
+      if (compression) {
          options.setCompressionSupported(true);
       }
-      benchmarkBuilder.addPlugin(HttpPluginBuilder::new);
+      Promise<Void> promise = Promise.promise();
       server = vertx.createHttpServer(options).requestHandler(router)
-            .listen(0, "localhost", ctx.asyncAssertSuccess(srv -> initWithServer(ctx)));
+            .listen(0, "localhost", ctx.asyncAssertSuccess(srv -> {
+               initWithServer(tls);
+               promise.complete();
+            }));
+      return promise.future();
    }
 
    // override me
@@ -53,11 +64,11 @@ public abstract class HttpScenarioTest extends BaseScenarioTest {
       return false;
    }
 
-   protected void initWithServer(TestContext ctx) {
+   protected void initWithServer(boolean tls) {
       HttpPluginBuilder httpPlugin = benchmarkBuilder.plugin(HttpPluginBuilder.class);
       HttpBuilder http = httpPlugin.http();
-      http.protocol(useHttps() ? Protocol.HTTPS : Protocol.HTTP)
-          .host("localhost").port(server.actualPort());
+      http.protocol(tls ? Protocol.HTTPS : Protocol.HTTP)
+            .host("localhost").port(server.actualPort());
       initHttp(http);
    }
 

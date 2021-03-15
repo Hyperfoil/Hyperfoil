@@ -2,11 +2,9 @@ package io.hyperfoil.api.connection;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.api.session.SessionStopException;
 import io.hyperfoil.api.statistics.Statistics;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
@@ -16,7 +14,6 @@ import io.vertx.core.logging.LoggerFactory;
 
 public abstract class Request implements Callable<Void>, GenericFutureListener<Future<Void>> {
    private static final Logger log = LoggerFactory.getLogger(Request.class);
-   private static final TimeoutException TIMEOUT_EXCEPTION = new TimeoutException();
    private static final GenericFutureListener<Future<Object>> FAILURE_LISTENER = future -> {
       if (!future.isSuccess() && !future.isCancelled()) {
          log.error("Timeout task failed", future.cause());
@@ -45,20 +42,15 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
    @Override
    public Void call() {
       int uniqueId = session == null ? -1 : session.uniqueId();
-      log.warn("#{} Request timeout on connection {}", uniqueId, connection);
+      log.warn("#{} Request timeout, closing connection {}", uniqueId, connection);
       timeoutFuture = null;
       if (status != Status.COMPLETED) {
          result = Result.TIMED_OUT;
          statistics.incrementTimeouts(startTimestampMillis);
-         try {
-            handleThrowable(TIMEOUT_EXCEPTION);
-         } catch (SessionStopException e) {
-            // ignored
-         }
          if (connection == null) {
             log.warn("#{} connection is already null", uniqueId);
          } else {
-            connection.onTimeout(this);
+            connection.close();
          }
          // handleThrowable sets the request completed
       } else {
@@ -164,15 +156,12 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
       // This is called when the request is written on the wire
       // It doesn't make sense to throw any exceptions from this method
       // since DefaultPromise.notifyListener0 would swallow them with a warning.
-      try {
-         sendTimestampNanos = System.nanoTime();
-         if (!future.isSuccess()) {
-            handleThrowable(future.cause());
+      sendTimestampNanos = System.nanoTime();
+      if (!future.isSuccess()) {
+         log.error("Failed to write request {} to {}", this, connection);
+         if (connection != null) {
+            connection.close();
          }
-      } catch (SessionStopException e) {
-         // ignoring, session stopped
-      } catch (Throwable t) {
-         log.error("#{} Exception thrown from handleThrowable()", t, session.uniqueId());
       }
    }
 
@@ -197,6 +186,11 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
 
    protected void setIdle() {
       status = Status.IDLE;
+   }
+
+   @Override
+   public String toString() {
+      return "(#" + session.uniqueId() + ", " + status + ", " + result + ")";
    }
 
    public enum Result {

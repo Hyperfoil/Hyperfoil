@@ -95,7 +95,7 @@ public class HttpRequest extends Request {
 
    @Override
    public String toString() {
-      return "(" + status() + ") " + method + " " + authority + path;
+      return super.toString() + " " + method + " " + authority + path;
    }
 
    @Override

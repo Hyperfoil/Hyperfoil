@@ -82,6 +82,7 @@ class SharedConnectionPool extends ConnectionPoolStats implements HttpConnection
                if (connection.inFlight() == 0) {
                   usedConnections.incrementUsed();
                }
+               connection.onAcquire();
 
                return connection;
             } else {
@@ -129,6 +130,9 @@ class SharedConnectionPool extends ConnectionPoolStats implements HttpConnection
 
    @Override
    public void release(HttpConnection connection, boolean becameAvailable, boolean afterRequest) {
+      if (trace) {
+         log.trace("Release {} (became available={} after request={})", connection, becameAvailable, afterRequest);
+      }
       if (becameAvailable) {
          assert !connection.isClosed();
          if (connection.inFlight() == 0) {
@@ -271,14 +275,14 @@ class SharedConnectionPool extends ConnectionPoolStats implements HttpConnection
          // stop trying to create new connections and the sessions would be stuck.
          failures = 0;
          available.add(conn);
-         log.debug("Connection {} to {} created ({}+{}=?{}:{}/{})", conn, authority,
+         log.debug("Created {} to {} ({}+{}=?{}:{}/{})", conn, authority,
                created, connecting, connections.size(), available.size() - availableClosed, sizeConfig.max());
 
          incrementTypeStats(conn);
 
          conn.context().channel().closeFuture().addListener(v -> {
             conn.setClosed();
-            log.debug("Connection {} to {} closed. ({}+{}=?{}:{}/{})", conn, authority,
+            log.debug("Closed {} to {}. ({}+{}=?{}:{}/{})", conn, authority,
                   created, connecting, connections.size(), available.size() - availableClosed, sizeConfig.max());
             created--;
             closed++;

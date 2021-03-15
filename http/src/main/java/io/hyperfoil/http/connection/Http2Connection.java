@@ -1,12 +1,13 @@
 package io.hyperfoil.http.connection;
 
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 
 import io.hyperfoil.api.connection.Connection;
-import io.hyperfoil.api.connection.Request;
+import io.hyperfoil.api.session.SessionStopException;
 import io.hyperfoil.http.api.HttpVersion;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.http.api.HttpCache;
@@ -50,7 +51,7 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
    private final boolean secure;
 
    private HttpConnectionPool pool;
-   private int numStreams;
+   private int aboutToSend;
    private long maxStreams;
    private Status status = Status.OPEN;
    private HttpRequest dispatchedRequest;
@@ -79,13 +80,19 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
    }
 
    @Override
+   public void onAcquire() {
+      assert aboutToSend >= 0;
+      aboutToSend++;
+   }
+
+   @Override
    public boolean isAvailable() {
-      return numStreams < maxStreams;
+      return inFlight() < maxStreams;
    }
 
    @Override
    public int inFlight() {
-      return numStreams;
+      return streams.size() + aboutToSend;
    }
 
    public void incrementConnectionWindowSize(int increment) {
@@ -117,16 +124,6 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
    }
 
    @Override
-   public void onTimeout(Request request) {
-      for (IntObjectMap.PrimitiveEntry<HttpRequest> entry : streams.entries()) {
-         if (entry.value() == request) {
-            connection.stream(entry.key()).close();
-            break;
-         }
-      }
-   }
-
-   @Override
    public void attach(HttpConnectionPool pool) {
       this.pool = pool;
    }
@@ -135,7 +132,8 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
                        BiConsumer<Session, HttpRequestWriter>[] headerAppenders,
                        boolean injectHostHeader,
                        BiFunction<Session, Connection, ByteBuf> bodyGenerator) {
-      numStreams++;
+      assert aboutToSend > 0;
+      aboutToSend--;
       HttpClientPool httpClientPool = pool.clientPool();
 
       ByteBuf buf = bodyGenerator != null ? bodyGenerator.apply(request.session, this) : null;
@@ -183,9 +181,8 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
          if (trace) {
             log.trace("#{} Request is completed from cache", request.session.uniqueId());
          }
-         --numStreams;
          // prevent adding to available list twice
-         if (numStreams != maxStreams - 1) {
+         if (streams.size() != maxStreams - 1) {
             pool.afterRequestSent(this);
          }
          request.handleCached();
@@ -220,13 +217,18 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
    }
 
    @Override
-   public void removeRequest(int streamId, HttpRequest request) {
+   public boolean removeRequest(int streamId, HttpRequest request) {
       throw new UnsupportedOperationException();
    }
 
    @Override
    public void setClosed() {
       status = Status.CLOSED;
+   }
+
+   @Override
+   public boolean isOpen() {
+      return status == Status.OPEN;
    }
 
    @Override
@@ -267,19 +269,18 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
    public String toString() {
       return "Http2Connection{" +
             context.channel().localAddress() + " -> " + context.channel().remoteAddress() +
-            ", streams=" + streams +
+            ", status=" + status +
+            ", streams=" + streams.size() + "+" + aboutToSend + ":" + streams +
             '}';
    }
 
    void cancelRequests(Throwable cause) {
-      for (IntObjectMap.PrimitiveEntry<HttpRequest> entry : streams.entries()) {
-         HttpRequest request = entry.value();
-         if (request.isRunning()) {
-            pool.release(this, false, true);
-         }
+      for (Iterator<HttpRequest> iterator = streams.values().iterator(); iterator.hasNext(); ) {
+         HttpRequest request = iterator.next();
+         iterator.remove();
+         pool.release(this, false, true);
          request.cancel(cause);
       }
-      streams.clear();
    }
 
    private class EventAdapter extends Http2EventAdapter {
@@ -344,29 +345,34 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
 
       @Override
       public void onRstStreamRead(ChannelHandlerContext ctx, int streamId, long errorCode) {
-         HttpRequest request = streams.remove(streamId);
+         HttpRequest request = streams.get(streamId);
          if (request != null) {
-            numStreams--;
             HttpResponseHandlers handlers = request.handlers();
             if (!request.isCompleted()) {
                request.enter();
                try {
                   // TODO: maybe add a specific handler because we don't need to terminate other streams
                   handlers.handleThrowable(request, new IOException("HTTP2 stream was reset"));
+               } catch (SessionStopException e) {
+                  if (streams.remove(streamId) == request) {
+                     tryReleaseToPool();
+                  }
+                  throw e;
                } finally {
                   request.exit();
                }
                request.session.proceed();
             }
             request.release();
-            tryReleaseToPool();
+            if (streams.remove(streamId) == request) {
+               tryReleaseToPool();
+            }
          }
       }
 
       private void endStream(int streamId) {
-         HttpRequest request = streams.remove(streamId);
+         HttpRequest request = streams.get(streamId);
          if (request != null) {
-            numStreams--;
             if (!request.isCompleted()) {
                request.enter();
                try {
@@ -374,13 +380,20 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
                   if (trace) {
                      log.trace("Completed response on {}", this);
                   }
+               } catch (SessionStopException e) {
+                  if (streams.remove(streamId) == request) {
+                     tryReleaseToPool();
+                  }
+                  throw e;
                } finally {
                   request.exit();
                }
                request.session.proceed();
             }
             request.release();
-            tryReleaseToPool();
+            if (streams.remove(streamId) == request) {
+               tryReleaseToPool();
+            }
          }
       }
    }
@@ -390,7 +403,7 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
       HttpConnectionPool pool = this.pool;
       if (pool != null) {
          // If this connection was not available we make it available
-         pool.release(Http2Connection.this, numStreams == maxStreams - 1, true);
+         pool.release(Http2Connection.this, inFlight() == maxStreams - 1 && !isClosed(), true);
          pool.pulse();
       }
    }

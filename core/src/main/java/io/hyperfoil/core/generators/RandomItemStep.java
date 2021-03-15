@@ -100,7 +100,7 @@ public class RandomItemStep implements Step, ResourceUtilizer {
    @Name("randomItem")
    public static class Builder extends BaseStepBuilder<Builder> implements InitFromParam<Builder> {
       private String fromVar;
-      private WeightedGenerator.Builder weighted;
+      private WeightedGenerator.Builder<Builder> weighted;
       private String file;
       private String toVar;
 
@@ -177,9 +177,9 @@ public class RandomItemStep implements Step, ResourceUtilizer {
        *
        * @return Builder.
        */
-      public WeightedGenerator.Builder list() {
+      public WeightedGenerator.Builder<Builder> list() {
          if (weighted == null) {
-            weighted = new WeightedGenerator.Builder();
+            weighted = new WeightedGenerator.Builder<>(this);
          }
          return weighted;
       }

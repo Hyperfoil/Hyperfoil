@@ -3,14 +3,17 @@ package io.hyperfoil.core.impl;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Supplier;
 
 import io.hyperfoil.api.collection.ElasticPool;
-import io.hyperfoil.core.util.Watermarks;
 
-public class ElasticPoolImpl<T> extends Watermarks implements ElasticPool<T> {
+public class ElasticPoolImpl<T> implements ElasticPool<T> {
+   protected final LongAdder used = new LongAdder();
    private final Supplier<T> initSupplier;
    private final Supplier<T> depletionSupplier;
+   protected volatile int minUsed;
+   protected volatile int maxUsed;
    private ArrayBlockingQueue<T> primaryQueue;
    private final BlockingQueue<T> secondaryQueue = new LinkedBlockingQueue<>();
 
@@ -57,5 +60,44 @@ public class ElasticPoolImpl<T> extends Watermarks implements ElasticPool<T> {
       while (primaryQueue.size() < capacity) {
          primaryQueue.add(initSupplier.get());
       }
+   }
+
+   public void incrementUsed() {
+      used.increment();
+      long currentlyUsed = used.longValue();
+      if (currentlyUsed > maxUsed) {
+         maxUsed = (int) currentlyUsed;
+      }
+   }
+
+   public void decrementUsed() {
+      decrementUsed(1);
+   }
+
+   public void decrementUsed(int num) {
+      used.add(-num);
+      long currentlyUsed = used.longValue();
+      if (currentlyUsed < minUsed) {
+         minUsed = (int) currentlyUsed;
+      }
+      assert currentlyUsed >= 0;
+   }
+
+   public int minUsed() {
+      return minUsed;
+   }
+
+   public int maxUsed() {
+      return maxUsed;
+   }
+
+   public void resetStats() {
+      int current = used.intValue();
+      minUsed = current;
+      maxUsed = current;
+   }
+
+   public int current() {
+      return used.intValue();
    }
 }

@@ -34,11 +34,17 @@ public class BaseMockConnection implements HttpConnection {
    }
 
    @Override
-   public void removeRequest(int streamId, HttpRequest request) {
+   public boolean removeRequest(int streamId, HttpRequest request) {
+      return false;
    }
 
    @Override
    public void setClosed() {
+   }
+
+   @Override
+   public boolean isOpen() {
+      return false;
    }
 
    @Override
@@ -74,6 +80,10 @@ public class BaseMockConnection implements HttpConnection {
    @Override
    public ChannelHandlerContext context() {
       return null;
+   }
+
+   @Override
+   public void onAcquire() {
    }
 
    @Override

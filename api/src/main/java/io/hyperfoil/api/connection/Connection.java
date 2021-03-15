@@ -10,6 +10,8 @@ public interface Connection {
 
    ChannelHandlerContext context();
 
+   void onAcquire();
+
    boolean isAvailable();
 
    int inFlight();
@@ -24,11 +26,11 @@ public interface Connection {
     */
    void setClosed();
 
+   boolean isOpen();
+
    boolean isClosed();
 
    String host();
 
    String authority();
-
-   default void onTimeout(Request request) {}
 }

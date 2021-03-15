@@ -1,5 +1,6 @@
 package io.hyperfoil.http.connection;
 
+import io.hyperfoil.api.session.SessionStopException;
 import io.hyperfoil.http.api.HttpRequest;
 import io.hyperfoil.http.api.HttpConnection;
 import io.hyperfoil.http.api.HttpResponseHandlers;
@@ -498,7 +499,7 @@ public class Http1xResponseHandler extends BaseResponseHandler {
 
    @Override
    protected void onCompletion(HttpRequest request) {
-      connection.removeRequest(0, request);
+      boolean removed = false;
       // When previous handlers throw an error the request is already completed
       if (!request.isCompleted()) {
          request.enter();
@@ -507,9 +508,15 @@ public class Http1xResponseHandler extends BaseResponseHandler {
             if (trace) {
                log.trace("Completed response on {}", this);
             }
+         } catch (SessionStopException e) {
+            if (connection.removeRequest(0, request)) {
+               ((Http1xConnection) connection).releasePoolAndPulse();
+            }
+            throw e;
          } finally {
             request.exit();
          }
+         removed = connection.removeRequest(0, request);
          request.session.proceed();
       }
       assert request.isCompleted();
@@ -517,6 +524,8 @@ public class Http1xResponseHandler extends BaseResponseHandler {
       if (trace) {
          log.trace("Releasing request");
       }
-      ((Http1xConnection) connection).releasePoolAndPulse();
+      if (removed) {
+         ((Http1xConnection) connection).releasePoolAndPulse();
+      }
    }
 }

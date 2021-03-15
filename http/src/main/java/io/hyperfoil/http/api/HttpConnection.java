@@ -24,7 +24,7 @@ public interface HttpConnection extends Connection {
 
    HttpRequest peekRequest(int streamId);
 
-   void removeRequest(int streamId, HttpRequest request);
+   boolean removeRequest(int streamId, HttpRequest request);
 
    boolean isSecure();
 

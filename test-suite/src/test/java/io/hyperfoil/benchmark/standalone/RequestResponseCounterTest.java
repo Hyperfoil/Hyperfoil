@@ -38,6 +38,7 @@ import io.hyperfoil.api.config.BenchmarkData;
 import io.hyperfoil.benchmark.BaseBenchmarkTest;
 import io.hyperfoil.core.handlers.TransferSizeRecorder;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
+import io.hyperfoil.core.impl.statistics.StatisticsCollector;
 import io.hyperfoil.http.api.HttpMethod;
 import io.hyperfoil.http.config.HttpPluginBuilder;
 import io.vertx.core.Handler;
@@ -97,8 +98,9 @@ public class RequestResponseCounterTest extends BaseBenchmarkTest {
       Benchmark benchmark = builder.build();
 
       AtomicLong actualNumberOfRequests = new AtomicLong(0);
-      LocalSimulationRunner runner = new LocalSimulationRunner(benchmark,
-            (phase, stepId, metric, snapshot, countDown) -> actualNumberOfRequests.addAndGet(snapshot.histogram.getTotalCount()), null);
+      StatisticsCollector.StatisticsConsumer statisticsConsumer =
+            (phase, stepId, metric, snapshot, countDown) -> actualNumberOfRequests.addAndGet(snapshot.histogram.getTotalCount());
+      LocalSimulationRunner runner = new LocalSimulationRunner(benchmark, statisticsConsumer, null, null);
       runner.run();
 
       assertEquals(counter.get(), actualNumberOfRequests.get());

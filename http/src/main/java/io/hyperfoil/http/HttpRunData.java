@@ -96,7 +96,7 @@ public class HttpRunData implements PluginRunData {
                         return pool;
                      case SESSION_POOLS:
                      case OPEN_ON_REQUEST:
-                        return new SessionConnectionPool(pool);
+                        return new SessionConnectionPool(pool, scenario.maxRequests());
                      default:
                         throw new IllegalStateException();
                   }

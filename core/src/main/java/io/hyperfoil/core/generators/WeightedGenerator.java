@@ -45,8 +45,17 @@ public class WeightedGenerator implements Serializable {
       return items;
    }
 
-   public static class Builder extends PairBuilder.OfDouble implements ListBuilder {
+   public static class Builder<P> extends PairBuilder.OfDouble implements ListBuilder {
+      private final P parent;
       private final Map<String, Double> items = new HashMap<>();
+
+      public Builder(P parent) {
+         this.parent = parent;
+      }
+
+      public P end() {
+         return this.parent;
+      }
 
       @Override
       public void nextItem(String item) {
@@ -64,6 +73,11 @@ public class WeightedGenerator implements Serializable {
          if (items.putIfAbsent(item, weight) != null) {
             throw new BenchmarkDefinitionException("Duplicate item '" + item + "' in randomItem step!");
          }
+      }
+
+      public WeightedGenerator.Builder<P> add(String item, double weight) {
+         accept(item, weight);
+         return this;
       }
 
       public WeightedGenerator build() {

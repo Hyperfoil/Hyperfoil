@@ -52,13 +52,11 @@ public class HttpRequestPool extends LimitedPoolResource<HttpRequest> {
                request.statistics().addInvalid(request.startTimestampMillis());
             }
             if (trace) {
-               log.trace("Canceling request on {}", request.connection());
+               log.trace("Canceling request {} to {}", request, request.connection());
             }
             request.setCompleting();
             if (request.connection() != null) {
                request.connection().close();
-               // the connection must be closed when we release it to let session-local pool return it
-               request.connection().pool().release(request.connection(), false, true);
             }
             if (!request.isCompleted()) {
                // Connection.close() cancels everything in flight but if this is called
