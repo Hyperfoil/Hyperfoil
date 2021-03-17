@@ -152,6 +152,26 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-dependencies</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <skip>${module.skipCopyDependencies}</skip>
+                            <includeScope>runtime</includeScope>
+                            <excludeScope>test</excludeScope>
+                            <excludeGroupIds>com.github.ben-manes.caffeine,org.infinispan,org.infinispan.protostream,org.wildfly</excludeGroupIds>
+                            <silent>true</silent>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 </project>
