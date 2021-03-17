@@ -28,6 +28,7 @@ import io.fabric8.kubernetes.api.model.DoneablePod;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodSpecBuilder;
 import io.fabric8.kubernetes.api.model.Quantity;
+import io.fabric8.kubernetes.api.model.Toleration;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
 import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
 import io.fabric8.kubernetes.client.Config;
@@ -142,6 +143,8 @@ public class K8sDeployer implements Deployer {
             }
          }
          spec = spec.withNodeSelector(nodeSelector);
+         // Tolerate any taints if the node is set explicitly
+         spec = spec.withTolerations(new Toleration("", "", "Exists", null, null));
       }
 
       String logProperty = agent.properties.get("log");
@@ -180,6 +183,15 @@ public class K8sDeployer implements Deployer {
       command.add("/deployment/lib/*");
       command.add("io.hyperfoil.Hyperfoil$Agent");
 
+      // Keep the agent running after benchmark, e.g. to inspect logs
+      boolean stop = !"false".equalsIgnoreCase(agent.properties.getOrDefault("stop", "true"));
+
+      if (!stop) {
+         command.add("&&");
+         command.add("sleep");
+         command.add("86400");
+      }
+
       containerBuilder = containerBuilder.withCommand(command);
       spec = spec.withContainers(Collections.singletonList(containerBuilder.build()));
 
@@ -214,10 +226,6 @@ public class K8sDeployer implements Deployer {
             .endMetadata()
             .withSpec(spec.build()).done();
       // @formatter:on
-
-
-      // Keep the agent running after benchmark, e.g. to inspect logs
-      boolean stop = !"false".equalsIgnoreCase(agent.properties.getOrDefault("stop", "true"));
 
       K8sAgent k8sAgent = new K8sAgent(agent, client, pod, stop, outputPath, output);
       if (output != null) {
