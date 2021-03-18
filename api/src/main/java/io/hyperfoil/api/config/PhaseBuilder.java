@@ -36,7 +36,8 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
       parent.addPhase(name, this);
    }
 
-   public static Phase.Noop noop(SerializableSupplier<Benchmark> benchmark, int id, int iteration, String iterationName, List<String> startAfter, List<String> startAfterStrict, List<String> terminateAfterStrict) {
+   public static Phase.Noop noop(SerializableSupplier<Benchmark> benchmark, int id, int iteration, String iterationName,
+                                 Collection<String> startAfter, Collection<String> startAfterStrict, Collection<String> terminateAfterStrict) {
       FutureSupplier<Phase> ps = new FutureSupplier<>();
       Scenario scenario = new Scenario(new Sequence[0], new Sequence[0], new String[0], new String[0], 0, 0);
       Phase.Noop phase = new Phase.Noop(benchmark, id, iteration, iterationName, startAfter, startAfterStrict, terminateAfterStrict, scenario);
@@ -182,7 +183,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
       }
    }
 
-   private String formatIteration(String name, int iteration) {
+   String formatIteration(String name, int iteration) {
       return String.format("%s/%03d", name, iteration);
    }
 
@@ -239,6 +240,34 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
    public PB forceIterations(boolean force) {
       this.forceIterations = force;
       return self();
+   }
+
+   public static class Noop extends PhaseBuilder<Noop> {
+      protected Noop(BenchmarkBuilder parent, String name) {
+         super(parent, name);
+      }
+
+      @Override
+      public Collection<Phase> build(SerializableSupplier<Benchmark> benchmark, AtomicInteger idCounter) {
+         List<Phase> phases = IntStream.range(0, maxIterations)
+               .mapToObj(iteration -> PhaseBuilder.noop(benchmark, idCounter.getAndIncrement(),
+                     iteration, iterationName(iteration, null),
+                     iterationReferences(startAfter, iteration, false),
+                     iterationReferences(startAfterStrict, iteration, true),
+                     iterationReferences(terminateAfterStrict, iteration, false)))
+               .collect(Collectors.toList());
+         if (maxIterations > 1 || forceIterations) {
+            // Referencing phase with iterations with RelativeIteration.NONE means that it starts after all its iterations
+            List<String> lastIteration = Collections.singletonList(formatIteration(name, maxIterations - 1));
+            phases.add(noop(benchmark, idCounter.getAndIncrement(), 0, name, lastIteration, Collections.emptyList(), lastIteration));
+         }
+         return phases;
+      }
+
+      @Override
+      protected Phase buildPhase(SerializableSupplier<Benchmark> benchmark, int phaseId, int iteration, PhaseForkBuilder f) {
+         throw new UnsupportedOperationException();
+      }
    }
 
    public static class AtOnce extends PhaseBuilder<AtOnce> {
@@ -478,6 +507,10 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
       Catalog(BenchmarkBuilder parent, String name) {
          this.parent = parent;
          this.name = name;
+      }
+
+      public Noop noop() {
+         return new PhaseBuilder.Noop(parent, name);
       }
 
       public AtOnce atOnce(int users) {

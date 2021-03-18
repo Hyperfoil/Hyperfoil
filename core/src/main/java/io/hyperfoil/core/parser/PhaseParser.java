@@ -14,8 +14,6 @@ abstract class PhaseParser extends AbstractParser<PhaseBuilder.Catalog, PhaseBui
       register("duration", new PropertyParser.TimeMillis<>(PhaseBuilder::duration));
       register("maxDuration", new PropertyParser.TimeMillis<>(PhaseBuilder::maxDuration));
       register("maxIterations", new PropertyParser.Int<>(PhaseBuilder::maxIterations));
-      register("scenario", new Adapter<>(PhaseBuilder::scenario, new ScenarioParser()));
-      register("forks", new PhaseForkParser());
    }
 
    @Override
@@ -25,7 +23,21 @@ abstract class PhaseParser extends AbstractParser<PhaseBuilder.Catalog, PhaseBui
 
    protected abstract PhaseBuilder<?> type(PhaseBuilder.Catalog catalog);
 
-   static class AtOnce extends PhaseParser {
+   static class Noop extends PhaseParser {
+      @Override
+      protected PhaseBuilder<?> type(PhaseBuilder.Catalog catalog) {
+         return catalog.noop();
+      }
+   }
+
+   abstract static class BasePhaseParser extends PhaseParser {
+      BasePhaseParser() {
+         register("scenario", new Adapter<>(PhaseBuilder::scenario, new ScenarioParser()));
+         register("forks", new PhaseForkParser());
+      }
+   }
+
+   static class AtOnce extends BasePhaseParser {
       AtOnce() {
          register("users", new IncrementPropertyParser.Int<>((builder, base, inc) -> ((PhaseBuilder.AtOnce) builder).users(base, inc)));
       }
@@ -36,7 +48,7 @@ abstract class PhaseParser extends AbstractParser<PhaseBuilder.Catalog, PhaseBui
       }
    }
 
-   static class Always extends PhaseParser {
+   static class Always extends BasePhaseParser {
       Always() {
          register("users", new IncrementPropertyParser.Int<>((builder, base, inc) -> ((PhaseBuilder.Always) builder).users(base, inc)));
       }
@@ -47,7 +59,7 @@ abstract class PhaseParser extends AbstractParser<PhaseBuilder.Catalog, PhaseBui
       }
    }
 
-   abstract static class OpenModel extends PhaseParser {
+   abstract static class OpenModel extends BasePhaseParser {
       OpenModel() {
          register("maxSessions", new PropertyParser.Int<>((builder, sessions) -> ((PhaseBuilder.OpenModel<?>) builder).maxSessions(sessions)));
          register("variance", new PropertyParser.Boolean<>((builder, variance) -> ((PhaseBuilder.OpenModel<?>) builder).variance(variance)));

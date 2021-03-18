@@ -31,6 +31,7 @@ class PhasesParser extends AbstractParser<BenchmarkBuilder, PhaseBuilder.Catalog
    private static Logger log = LoggerFactory.getLogger(PhasesParser.class);
 
    PhasesParser() {
+      register("noop", new PhaseParser.Noop());
       register("atOnce", new PhaseParser.AtOnce());
       register("always", new PhaseParser.Always());
       register("rampPerSec", new PhaseParser.RampRate() {
