@@ -124,7 +124,7 @@ public class RandomItemStep implements Step, ResourceUtilizer {
 
       @Override
       public List<Step> build() {
-         if (toVar.isEmpty()) {
+         if (toVar == null || toVar.isEmpty()) {
             throw new BenchmarkDefinitionException("toVar is empty");
          }
          long usedProperties = Stream.of(file, weighted, fromVar).filter(Objects::nonNull).count();
