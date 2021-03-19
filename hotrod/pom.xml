@@ -127,6 +127,7 @@
                                     <include>com.github.ben-manes.caffeine:*</include>
                                     <include>org.infinispan:*</include>
                                     <include>org.infinispan.protostream:*</include>
+                                    <include>org.wildfly.common:*</include>
                                     <include>org.wildfly.security:*</include>
                                 </includes>
                             </artifactSet>
