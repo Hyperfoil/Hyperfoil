@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -22,7 +23,7 @@ import io.vertx.core.logging.LoggerFactory;
 public class ServiceLoadedBuilderProvider<B> {
    private static final Logger log = LoggerFactory.getLogger(ServiceLoadedBuilderProvider.class);
 
-   private static final Map<Class<?>, Map<String, BuilderInfo<?>>> BUILDERS = new HashMap<>();
+   private static final Map<Class<?>, Map<String, BuilderInfo<?>>> BUILDERS = new ConcurrentHashMap<>();
 
    private final Class<B> builderClazz;
    private final Consumer<B> consumer;
