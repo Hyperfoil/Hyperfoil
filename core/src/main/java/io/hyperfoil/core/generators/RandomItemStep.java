@@ -61,7 +61,11 @@ public class RandomItemStep implements Step, ResourceUtilizer {
                   break;
                }
             }
-            element = array[random.nextInt(length)];
+            if (length > 0) {
+               element = array[random.nextInt(length)];
+            } else {
+               throw new IllegalStateException("Collection " + fromVar + " is empty, can not select a random item");
+            }
          } else if (data != null && data.getClass().isArray()) {
             int length = Array.getLength(data);
             element = Array.get(data, random.nextInt(length));
