@@ -53,7 +53,7 @@ items:
   - kind: ServiceAccount
     name: controller
     namespace: hyperfoil
-- apiVersion: extensions/v1beta1
+- apiVersion: apps/v1
   kind: Deployment
   metadata:
     labels:
@@ -62,6 +62,9 @@ items:
     namespace: hyperfoil
   spec:
     replicas: 1
+    selector:
+      matchLabels:
+        app: hyperfoil
     template:
       metadata:
         labels:
