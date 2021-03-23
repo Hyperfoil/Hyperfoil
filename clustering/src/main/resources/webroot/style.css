@@ -74,6 +74,15 @@ body {
    flex-grow: 100;
 }
 
+#warning {
+   height: 0;
+   background: #f80;
+   width: 100%;
+   position: relative;
+   top: -20px;
+   transition: height 0.5s ease-out;
+}
+
 .ctrl-c {
    color: #888;
 }
@@ -85,6 +94,9 @@ body {
 .hfbutton {
    white-space: normal;
    background: linear-gradient(to bottom, #eee, #ccc);
+   border-width: 2px;
+   border-style: solid;
+   border-color: #ddd #888 #888 #ddd;
    border-radius:10px;
    color: black;
    font-size: 16px;

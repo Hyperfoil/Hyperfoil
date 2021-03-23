@@ -11,6 +11,7 @@ const resultWindow = document.getElementById("result");
 var logo = document.getElementById("logo");
 const command = document.getElementById("command");
 command.remove();
+const warning = document.getElementById('warning')
 const upload = document.getElementById("upload");
 upload.remove();
 const pager = document.getElementById("pager");
@@ -48,6 +49,7 @@ command.addEventListener("keydown", (event) => {
       event.preventDefault();
       sendCommand(command.value + '\n');
       command.value = "";
+      warning.style.height = 0
    } else if (event.key === "Tab") {
       event.preventDefault();
       sendCommand(command.value + '\t');
@@ -80,8 +82,9 @@ command.addEventListener("keydown", (event) => {
    } else if (event.key === "Escape" || (event.key == 'c' && event.ctrlKey)) {
       event.preventDefault();
       command.remove();
-      resultWindow.innerHTML += '<span class="ctrl-c">' + command.value + "</span>"
+      resultWindow.lastChild.innerHTML += '<span class="ctrl-c">' + command.value + "</span>"
       command.value = ""
+      warning.style.height = 0
       resultWindow.appendChild(command)
       sendCommand(INTERRUPT_SIGNAL)
    }
@@ -89,6 +92,17 @@ command.addEventListener("keydown", (event) => {
 
 function sendCommand(command) {
    socket.send(command);
+}
+
+function checkCommand() {
+   if (command.value.startsWith('upload') && !command.value.trim().endsWith('upload')) {
+      warning.innerText = "Benchmark filename cannot be passed as an argument; use 'upload' without arguments."
+      // we can't set size to 'auto', so the message must be single-line:
+      // see https://css-tricks.com/using-css-transitions-auto-dimensions/
+      warning.style.height = '1.2em';
+   } else {
+      warning.style.height = 0;
+   }
 }
 
 var authToken;
@@ -203,6 +217,10 @@ function addResultToWindow(commandResult) {
 }
 
 function defaultKeyDown(event) {
+   if (upload.parentNode && event.key === "Escape") {
+      upload.remove();
+      sendCommand(INTERRUPT_SIGNAL);
+   }
    if (!event.ctrlKey && !event.altKey) {
       command.focus();
    }

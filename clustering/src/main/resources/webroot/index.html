@@ -12,10 +12,12 @@
 
 <body>
     <img id="logo" src="/web/logo_title.png" alt="Hyperfoil">
-    <div id="result"><input id="command" type="text" autofocus/></div>
+    <div id="result"><input id="command" type="text" autofocus oninput="checkCommand()"/></div>
+    <div id="warning"></div>
     <div id="upload">
         <label id="upload-benchmark-label" for="upload-benchmark" class="hfbutton">Select benchmark file</label>
         <input id="upload-benchmark" type="file" class="hidden-upload" onchange="sendBenchmarkForFiles()" />
+        <input type="button" class="hfbutton" value="Cancel upload" onclick="upload.remove(); sendCommand(INTERRUPT_SIGNAL)" />
     </div>
     <div id="pager" style="visibility: hidden">
         <input id="pager-close" type="button" class="hfbutton" value="Close" onclick="stopPaging()"/>

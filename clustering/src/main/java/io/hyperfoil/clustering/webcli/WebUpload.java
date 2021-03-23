@@ -20,6 +20,9 @@ public class WebUpload implements Command<HyperfoilCommandInvocation> {
 
    @Override
    public CommandResult execute(HyperfoilCommandInvocation invocation) {
+      if (dummy != null && !dummy.isEmpty()) {
+         invocation.println("Argument '" + dummy + "' ignored: you must open file dialogue in WebCLI using the button below.");
+      }
       WebCliContext context = (WebCliContext) invocation.context();
       CountDownLatch latch;
       synchronized (context) {
