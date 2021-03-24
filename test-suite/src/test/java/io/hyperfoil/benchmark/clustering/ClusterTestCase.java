@@ -5,14 +5,20 @@ import io.hyperfoil.http.api.HttpMethod;
 import io.hyperfoil.http.config.HttpPluginBuilder;
 import io.hyperfoil.test.Benchmark;
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
+import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import io.vertx.ext.web.client.HttpResponse;
+import io.vertx.ext.web.client.WebClient;
+import io.vertx.ext.web.client.WebClientOptions;
 
-import org.asynchttpclient.AsyncHttpClient;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -26,7 +32,6 @@ import java.util.concurrent.TimeUnit;
 
 import static io.hyperfoil.http.steps.HttpStepCatalog.SC;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.asynchttpclient.Dsl.asyncHttpClient;
 
 // Note: this test won't run from IDE (probably) as SshDeployer copies just .jar files for the agents;
 // since it inspects classpath for .jars it won't copy the class files in the hyperfoil-clustering module.
@@ -34,9 +39,8 @@ import static org.asynchttpclient.Dsl.asyncHttpClient;
 @RunWith(VertxUnitRunner.class)
 @Category(Benchmark.class)
 public class ClusterTestCase extends BaseClusteredTest {
-
-   private static final String CONTROLLER_URL = "http://localhost:8090";
    private static final int AGENTS = 2;
+   private Vertx vertx = Vertx.vertx();
 
    public static io.hyperfoil.api.config.Benchmark testBenchmark(int agents, int port) {
       BenchmarkBuilder benchmarkBuilder = BenchmarkBuilder.builder().name("test");
@@ -91,73 +95,66 @@ public class ClusterTestCase extends BaseClusteredTest {
 
    @Test(timeout = 120_000)
    public void startClusteredBenchmarkTest(TestContext ctx) throws IOException, InterruptedException {
-      try (AsyncHttpClient asyncHttpClient = asyncHttpClient()) {
-         // upload benchmark
-         asyncHttpClient
-               .preparePost(CONTROLLER_URL + "/benchmark")
-               .setHeader(HttpHeaders.CONTENT_TYPE, "application/java-serialized-object")
-               .setBody(serialize(testBenchmark(AGENTS, httpServer.actualPort())))
-               .execute()
-               .toCompletableFuture()
-               .thenAccept(response -> {
-                  assertThat(response.getStatusCode()).isEqualTo(204);
-                  assertThat(response.getHeader(HttpHeaders.LOCATION)).isEqualTo(CONTROLLER_URL + "/benchmark/test");
-               })
-               .join();
+      WebClientOptions options = new WebClientOptions().setDefaultHost("localhost").setDefaultPort(8090);
+      WebClient client = WebClient.create(this.vertx, options.setFollowRedirects(false));
+      Async termination = ctx.async();
 
+      // upload benchmark
+      Promise<HttpResponse<Buffer>> uploadPromise = Promise.promise();
+      client.post("/benchmark")
+            .putHeader(HttpHeaders.CONTENT_TYPE.toString(), "application/java-serialized-object")
+            .sendBuffer(Buffer.buffer(serialize(testBenchmark(AGENTS, httpServer.actualPort()))), ctx.asyncAssertSuccess(uploadPromise::complete));
+
+      Promise<HttpResponse<Buffer>> benchmarkPromise = Promise.promise();
+      uploadPromise.future().onSuccess(response -> {
+         ctx.assertEquals(response.statusCode(), 204);
+         ctx.assertEquals(response.getHeader(HttpHeaders.LOCATION.toString()), "http://localhost:8090/benchmark/test");
          // list benchmarks
-         asyncHttpClient
-               .prepareGet(CONTROLLER_URL + "/benchmark")
-               .execute()
-               .toCompletableFuture()
-               .thenAccept(response -> {
-                  assertThat(response.getStatusCode()).isEqualTo(200);
-                  assertThat(new JsonArray(response.getResponseBody()).contains("test")).isTrue();
-               })
-               .join();
+         client.get("/benchmark").send(ctx.asyncAssertSuccess(benchmarkPromise::complete));
+      });
 
+      Promise<HttpResponse<Buffer>> startPromise = Promise.promise();
+      benchmarkPromise.future().onSuccess(response -> {
+         ctx.assertEquals(response.statusCode(), 200);
+         ctx.assertTrue(new JsonArray(response.bodyAsString()).contains("test"));
          //start benchmark running
-         String runLocation = asyncHttpClient
-               .prepareGet(CONTROLLER_URL + "/benchmark/test/start")
-               .execute()
-               .toCompletableFuture()
-               .thenApply(response -> {
-                  assertThat(response.getStatusCode()).isEqualTo(202);
-                  return response.getHeader(HttpHeaders.LOCATION);
-               })
-               .join();
+         client.get("/benchmark/test/start").send(ctx.asyncAssertSuccess(startPromise::complete));
+      });
 
-         while (!asyncHttpClient
-               .prepareGet(runLocation)
-               .execute()
-               .toCompletableFuture()
-               .thenApply(response -> {
-                  try {
-                     assertThat(response.getStatusCode()).isEqualTo(200);
-                     String responseBody = response.getResponseBody();
-                     JsonObject status = new JsonObject(responseBody);
-                     assertThat(status.getString("benchmark")).isEqualTo("test");
-                     System.out.println(status.encodePrettily());
-                     boolean terminated = status.getString("terminated") != null;
-                     if (terminated) {
-                        JsonArray errors = status.getJsonArray("errors");
-                        assertThat(errors).isNotNull();
-                        assertThat(errors.size()).withFailMessage("Found errors: %s", errors).isEqualTo(0);
-                        assertThat(status.getString("started")).isNotNull();
-                        JsonArray agents = status.getJsonArray("agents");
-                        for (int i = 0; i < agents.size(); ++i) {
-                           assertThat(agents.getJsonObject(i).getString("status")).isNotEqualTo("STARTING");
-                        }
-                     }
-                     return terminated;
-                  } catch (Throwable t) {
-                     ctx.fail(t);
-                     throw t;
-                  }
-               }).join()) {
-            Thread.sleep(1000);
+      startPromise.future().onSuccess(response -> {
+         ctx.assertEquals(response.statusCode(), 202);
+         String location = response.getHeader(HttpHeaders.LOCATION.toString());
+         getStatus(ctx, client, location, termination);
+      });
+   }
+
+   private void getStatus(TestContext ctx, WebClient client, String location, Async termination) {
+      client.get(location).send(ctx.asyncAssertSuccess(response -> {
+         ctx.assertEquals(response.statusCode(), 200);
+         try {
+            JsonObject status = new JsonObject(response.bodyAsString());
+            assertThat(status.getString("benchmark")).isEqualTo("test");
+            System.out.println(status.encodePrettily());
+            if (status.getString("terminated") != null) {
+               JsonArray errors = status.getJsonArray("errors");
+               assertThat(errors).isNotNull();
+               assertThat(errors.size()).withFailMessage("Found errors: %s", errors).isEqualTo(0);
+               assertThat(status.getString("started")).isNotNull();
+               JsonArray agents = status.getJsonArray("agents");
+               for (int i = 0; i < agents.size(); ++i) {
+                  assertThat(agents.getJsonObject(i).getString("status")).isNotEqualTo("STARTING");
+               }
+               termination.complete();
+            } else {
+               vertx.setTimer(100, id -> {
+                  getStatus(ctx, client, location, termination);
+               });
+            }
+         } catch (Throwable t) {
+            ctx.fail(t);
+            throw t;
          }
-      }
+      }));
    }
 
    private byte[] serialize(Serializable object) {
