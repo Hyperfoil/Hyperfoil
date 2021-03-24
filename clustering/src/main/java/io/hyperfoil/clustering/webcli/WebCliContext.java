@@ -1,6 +1,9 @@
 package io.hyperfoil.clustering.webcli;
 
+import java.io.OutputStreamWriter;
 import java.util.concurrent.CountDownLatch;
+
+import org.aesh.AeshConsoleRunner;
 
 import io.hyperfoil.cli.Pager;
 import io.hyperfoil.cli.context.HyperfoilCliContext;
@@ -9,15 +12,25 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.ServerWebSocket;
 
 class WebCliContext extends HyperfoilCliContext {
-   private final ServerWebSocket webSocket;
-   private final WebsocketOutputStream outputStream;
+   final String sessionId;
+   final OutputStreamWriter inputStream;
+   final WebsocketOutputStream outputStream;
+   ServerWebSocket webSocket;
+   AeshConsoleRunner runner;
    CountDownLatch latch;
    StringBuilder editBenchmark;
 
-   public WebCliContext(Vertx vertx, ServerWebSocket webSocket, WebsocketOutputStream outputStream) {
+   public WebCliContext(Vertx vertx, OutputStreamWriter inputStream, WebsocketOutputStream outputStream, ServerWebSocket webSocket) {
       super(vertx, true);
+      this.sessionId = webSocket.query();
+      this.inputStream = inputStream;
       this.webSocket = webSocket;
       this.outputStream = outputStream;
+   }
+
+   public void reattach(ServerWebSocket webSocket) {
+      this.webSocket = webSocket;
+      outputStream.reattach(webSocket);
    }
 
    @Override

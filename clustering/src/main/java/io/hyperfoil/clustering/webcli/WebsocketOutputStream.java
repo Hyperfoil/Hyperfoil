@@ -5,25 +5,21 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.Callable;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import io.vertx.core.http.ServerWebSocket;
 
 class WebsocketOutputStream extends OutputStream implements Callable<Void> {
-   private static final ScheduledExecutorService SENDER = Executors.newScheduledThreadPool(1, task -> {
-      Thread thread = new Thread(task);
-      thread.setDaemon(true);
-      return thread;
-   });
-
-   private final ServerWebSocket webSocket;
+   private ServerWebSocket webSocket;
    private final ByteArrayOutputStream bytes = new ByteArrayOutputStream();
    private ScheduledFuture<Void> future;
 
    public WebsocketOutputStream(ServerWebSocket webSocket) {
+      this.webSocket = webSocket;
+   }
+
+   public synchronized void reattach(ServerWebSocket webSocket) {
       this.webSocket = webSocket;
    }
 
@@ -65,7 +61,7 @@ class WebsocketOutputStream extends OutputStream implements Callable<Void> {
 
    private void scheduleSendTextFrame() {
       if (future == null) {
-         future = SENDER.schedule(this, 10, TimeUnit.MILLISECONDS);
+         future = WebCLI.SCHEDULED_EXECUTOR.schedule(this, 10, TimeUnit.MILLISECONDS);
       }
    }
 

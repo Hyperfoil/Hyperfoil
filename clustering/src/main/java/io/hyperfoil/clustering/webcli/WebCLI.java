@@ -8,6 +8,12 @@ import java.io.PrintStream;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 import org.aesh.AeshConsoleRunner;
 import org.aesh.command.Command;
@@ -27,6 +33,7 @@ import io.hyperfoil.cli.commands.RunLocal;
 import io.hyperfoil.cli.commands.StartLocal;
 import io.hyperfoil.cli.commands.Upload;
 import io.hyperfoil.client.RestClient;
+import io.hyperfoil.core.util.Util;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.ServerWebSocket;
@@ -40,8 +47,13 @@ public class WebCLI extends HyperfoilCli implements Handler<ServerWebSocket> {
    private static final String INTERRUPT_SIGNAL = "__HYPERFOIL_INTERRUPT_SIGNAL__";
    private static final String AUTH_TOKEN = "__HYPERFOIL_AUTH_TOKEN__";
    private static final String SET_BENCHMARK = "__HYPERFOIL_SET_BENCHMARK__";
+   private static final long SESSION_TIMEOUT = 60000;
+
+   static final ScheduledExecutorService SCHEDULED_EXECUTOR = Executors.newScheduledThreadPool(1, Util.daemonThreadFactory("webcli-timer"));
 
    private final Vertx vertx;
+   private final ConcurrentMap<String, WebCliContext> contextMap = new ConcurrentHashMap<>();
+   private final ConcurrentMap<String, ClosedContext> closedRunners = new ConcurrentHashMap<>();
    private int port = 8090;
 
    public WebCLI(Vertx vertx) {
@@ -50,40 +62,34 @@ public class WebCLI extends HyperfoilCli implements Handler<ServerWebSocket> {
 
    @Override
    public void handle(ServerWebSocket webSocket) {
-      PipedOutputStream pos = new PipedOutputStream();
-      PipedInputStream pis;
-      try {
-         pis = new PipedInputStream(pos);
-      } catch (IOException e) {
-         log.error("Failed to create input stream", e);
-         webSocket.close();
-         return;
+      String sessionId = webSocket.query();
+      if (sessionId == null || sessionId.isEmpty()) {
+         throw new IllegalStateException();
       }
-      OutputStreamWriter cmdInput = new OutputStreamWriter(pos);
-      WebsocketOutputStream stream = new WebsocketOutputStream(webSocket);
-
-      WebCliContext context = new WebCliContext(vertx, webSocket, stream);
-      context.setClient(new RestClient(context.vertx(), "localhost", port, false, false, null));
-      context.setOnline(true);
-      AeshConsoleRunner runner;
-      try {
-         var settingsBuilder = settingsBuilder(context);
-         settingsBuilder.inputStream(pis)
-               .persistHistory(false)
-               .historySize(Integer.MAX_VALUE)
-               .outputStreamError(new PrintStream(stream))
-               .outputStream(new PrintStream(stream));
-
-         runner = configureRunner(context, settingsBuilder.build(), null);
-         Thread cliThread = new Thread(runner::start, "webcli-" + webSocket.remoteAddress());
-         cliThread.setDaemon(true);
-         webSocket.closeHandler(nil -> runner.stop());
-         cliThread.start();
-      } catch (CommandRegistryException e) {
-         throw new IllegalStateException(e);
+      ClosedContext closed = closedRunners.remove(sessionId);
+      if (closed != null) {
+         closed.future.cancel(false);
       }
+      WebCliContext context = contextMap.compute(sessionId, (sid, existing) -> {
+         if (existing == null) {
+            return createNewContext(webSocket);
+         } else {
+            existing.reattach(webSocket);
+            return existing;
+         }
+      });
+      webSocket.closeHandler(nil -> {
+         ScheduledFuture<?> future = SCHEDULED_EXECUTOR.schedule(() -> {
+            ClosedContext closedContext = closedRunners.get(context.sessionId);
+            if (closedContext != null && closedContext.closed <= System.currentTimeMillis() - SESSION_TIMEOUT) {
+               closedContext.context.runner.stop();
+               contextMap.remove(context.sessionId);
+               closedRunners.remove(context.sessionId);
+            }
+         }, SESSION_TIMEOUT, TimeUnit.MILLISECONDS);
+         closedRunners.put(context.sessionId, new ClosedContext(System.currentTimeMillis(), context, future));
+      });
 
-      webSocket.writeTextMessage("Welcome to Hyperfoil! Type 'help' for commands overview.\n");
       webSocket.textMessageHandler(msg -> {
          synchronized (context) {
             if (context.editBenchmark != null) {
@@ -99,7 +105,7 @@ public class WebCLI extends HyperfoilCli implements Handler<ServerWebSocket> {
                if (context.latch != null) {
                   context.latch.countDown();
                } else {
-                  TerminalConnection connection = getConnection(runner);
+                  TerminalConnection connection = getConnection(context.runner);
                   if (connection != null) {
                      connection.getTerminal().raise(Signal.INT);
                   }
@@ -118,13 +124,50 @@ public class WebCLI extends HyperfoilCli implements Handler<ServerWebSocket> {
             }
          }
          try {
-            cmdInput.write(msg);
-            cmdInput.flush();
+            context.inputStream.write(msg);
+            context.inputStream.flush();
          } catch (IOException e) {
             log.error("Failed to write '{}' to Aesh input", e, msg);
             webSocket.close();
          }
       });
+   }
+
+   private WebCliContext createNewContext(ServerWebSocket webSocket) {
+      PipedOutputStream pos = new PipedOutputStream();
+      PipedInputStream pis;
+      try {
+         pis = new PipedInputStream(pos);
+      } catch (IOException e) {
+         log.error("Failed to create input stream", e);
+         webSocket.close();
+         throw new IllegalStateException(e);
+      }
+      OutputStreamWriter inputStream = new OutputStreamWriter(pos);
+      WebsocketOutputStream stream = new WebsocketOutputStream(webSocket);
+
+      WebCliContext ctx = new WebCliContext(vertx, inputStream, stream, webSocket);
+      ctx.setClient(new RestClient(vertx, "localhost", port, false, false, null));
+      ctx.setOnline(true);
+
+      try {
+         var settingsBuilder = settingsBuilder(ctx);
+         settingsBuilder.inputStream(pis)
+               .persistHistory(false)
+               .historySize(Integer.MAX_VALUE)
+               .outputStreamError(new PrintStream(stream))
+               .outputStream(new PrintStream(stream));
+         ctx.runner = configureRunner(ctx, settingsBuilder.build(), null);
+      } catch (CommandRegistryException e) {
+         throw new IllegalStateException(e);
+      }
+      Thread cliThread = new Thread(ctx.runner::start, "webcli-" + webSocket.remoteAddress());
+      cliThread.setDaemon(true);
+      cliThread.start();
+
+      webSocket.writeTextMessage("__HYPERFOIL_SESSION_START__\n");
+      webSocket.writeTextMessage("Welcome to Hyperfoil! Type 'help' for commands overview.\n");
+      return ctx;
    }
 
    private TerminalConnection getConnection(AeshConsoleRunner runner) {
@@ -161,6 +204,18 @@ public class WebCLI extends HyperfoilCli implements Handler<ServerWebSocket> {
 
    public void setPort(int port) {
       this.port = port;
+   }
+
+   private static class ClosedContext {
+      final long closed;
+      final WebCliContext context;
+      final ScheduledFuture<?> future;
+
+      private ClosedContext(long closed, WebCliContext context, ScheduledFuture<?> future) {
+         this.closed = closed;
+         this.context = context;
+         this.future = future;
+      }
    }
 
 }

@@ -114,7 +114,7 @@ public class HyperfoilCli {
       runner.start();
    }
 
-   protected AeshConsoleRunner configureRunner(HyperfoilCliContext context, Settings<HyperfoilCommandInvocation, ConverterInvocation, CompleterInvocation, ValidatorInvocation<?, ?>, OptionActivator, CommandActivator> settings, String cliPrompt) throws CommandRegistryException {
+   protected AeshConsoleRunner configureRunner(HyperfoilCliContext context, Settings<HyperfoilCommandInvocation, ConverterInvocation, CompleterInvocation, ValidatorInvocation<?, ?>, OptionActivator, CommandActivator> settings, String cliPrompt) {
       context.commandRegistry(settings.commandRegistry());
 
       AeshConsoleRunner runner = AeshConsoleRunner.builder().settings(settings);

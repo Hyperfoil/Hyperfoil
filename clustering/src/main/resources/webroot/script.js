@@ -5,6 +5,7 @@ const BENCHMARK_FILE_LIST = "__HYPERFOIL_BENCHMARK_FILE_LIST__\n"
 const DOWNLOAD_MAGIC = "__HYPERFOIL_DOWNLOAD_MAGIC__"
 const DIRECT_DOWNLOAD_MAGIC = "__HYPERFOIL_DIRECT_DOWNLOAD_MAGIC__\n";
 const DIRECT_DOWNLOAD_END = "__HYPERFOIL_DIRECT_DOWNLOAD_END__\n";
+const SESSION_START = "__HYPERFOIL_SESSION_START__\n";
 
 const ansiUp = new AnsiUp();
 const resultWindow = document.getElementById("result");
@@ -16,24 +17,50 @@ const upload = document.getElementById("upload");
 upload.remove();
 const pager = document.getElementById("pager");
 const editor = document.getElementById("editor");
+const reconnecting = document.getElementById("reconnecting")
 const tokenFrame = document.getElementById("token-frame");
 tokenFrame.onload = () => {
    authToken = tokenFrame.contentDocument.body.innerText
 }
 document.onkeydown = event => defaultKeyDown(event)
 
-const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://"
-const socket = new WebSocket(wsProtocol + window.location.host);
-resultWindow.appendChild(command)
+const sessionId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
 
-socket.onmessage = (event) => {
-   addResultToWindow(event.data);
-};
-socket.onclose = () => {
-   command.remove();
-   resultWindow.innerHTML += '\n<span style="color: red">CLI connection has been closed. Please reload the page.</span>'
-   window.scrollTo(0,document.body.scrollHeight);
+let socket = createWebSocket()
+
+function createWebSocket() {
+   const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://"
+   const s = new WebSocket(wsProtocol + window.location.host + "/?" + sessionId);
+   s.onmessage = (event) => {
+      addResultToWindow(event.data);
+   };
+   s.onclose = () => {
+      command.remove();
+      socket = createWebSocket();
+   }
+   s.onopen = () => {
+      reconnecting.style.visibility = 'hidden'
+      if (resultWindow.lastChild) {
+         resultWindow.lastChild.appendChild(command)
+      } else {
+         resultWindow.appendChild(command)
+      }
+      command.focus()
+   }
+   s.onerror = (e) => {
+      command.remove();
+      reconnecting.style.visibility = 'visible'
+   }
+   return s;
 }
+
+function sendCommand(command) {
+   socket.send(command);
+}
+
 
 command.addEventListener("keydown", (event) => {
    if (logo) {
@@ -90,10 +117,6 @@ command.addEventListener("keydown", (event) => {
    }
 });
 
-function sendCommand(command) {
-   socket.send(command);
-}
-
 function checkCommand() {
    if (command.value.startsWith('upload') && !command.value.trim().endsWith('upload')) {
       warning.innerText = "Benchmark filename cannot be passed as an argument; use 'upload' without arguments."
@@ -105,6 +128,7 @@ function checkCommand() {
    }
 }
 
+var started = false;
 var authToken;
 var authSent = false;
 var benchmarkForm = undefined;
@@ -195,6 +219,13 @@ function addResultToWindow(commandResult) {
       downloading = true;
       downloadMeta = commandResult.slice(DIRECT_DOWNLOAD_MAGIC.length)
       downloadContent = undefined
+   } else if (commandResult.startsWith(SESSION_START)) {
+      if (started) {
+         resultWindow.innerHTML += '<span class="line" style="color: yellow">Warning: Controller has been restarted.</span><span class="line"></span>'
+         command.value = ''
+      } else {
+         started = true;
+      }
    } else {
       const html = ansiUp.ansi_to_html(commandResult)
       const lines = html.split('\n')

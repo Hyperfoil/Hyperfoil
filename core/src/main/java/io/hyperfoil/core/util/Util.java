@@ -15,7 +15,9 @@ import java.util.BitSet;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
@@ -349,6 +351,19 @@ public class Util {
             break;
       }
       return unit.toMillis(Long.parseLong(prefix));
+   }
+
+   public static ThreadFactory daemonThreadFactory(String prefix) {
+      return new ThreadFactory() {
+         private final AtomicInteger counter = new AtomicInteger();
+
+         @Override
+         public Thread newThread(Runnable task) {
+            Thread thread = new Thread(task, prefix + "-" + counter.incrementAndGet());
+            thread.setDaemon(true);
+            return thread;
+         }
+      };
    }
 
    private static class URLEncoding {
