@@ -30,6 +30,7 @@ import javax.net.ssl.TrustManagerFactory;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.core.impl.ConnectionStatsConsumer;
+import io.hyperfoil.core.impl.EventLoopFactory;
 import io.hyperfoil.core.util.Util;
 import io.hyperfoil.http.config.ConnectionPoolConfig;
 import io.hyperfoil.http.config.Http;
@@ -40,8 +41,7 @@ import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoop;
-import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.channel.EventLoopGroup;
 import io.netty.handler.codec.http2.Http2SecurityUtil;
 import io.netty.handler.ssl.ApplicationProtocolConfig;
 import io.netty.handler.ssl.SslContext;
@@ -76,7 +76,7 @@ public class HttpClientPoolImpl implements HttpClientPool {
    private final Supplier<HttpConnectionPool> nextSupplier;
 
    public static HttpClientPoolImpl forTesting(Http http, int threads) throws SSLException {
-      NioEventLoopGroup eventLoopGroup = new NioEventLoopGroup(threads);
+      EventLoopGroup eventLoopGroup = EventLoopFactory.INSTANCE.create(threads);
       EventLoop[] executors = StreamSupport.stream(eventLoopGroup.spliterator(), false)
             .map(EventLoop.class::cast).toArray(EventLoop[]::new);
       return new HttpClientPoolImpl(http, executors, Benchmark.forTesting(), 0) {
@@ -321,7 +321,7 @@ public class HttpClientPoolImpl implements HttpClientPool {
 
    void connect(final HttpConnectionPool pool, ConnectionReceiver handler) {
       Bootstrap bootstrap = new Bootstrap();
-      bootstrap.channel(NioSocketChannel.class);
+      bootstrap.channel(EventLoopFactory.INSTANCE.socketChannel());
       bootstrap.group(pool.executor());
       bootstrap.option(ChannelOption.SO_KEEPALIVE, true);
       bootstrap.option(ChannelOption.SO_REUSEADDR, true);

@@ -2,9 +2,9 @@ package shaded.org.infinispan.client.hotrod.impl.transport.netty;
 
 import java.util.concurrent.ExecutorService;
 
+import io.hyperfoil.core.impl.EventLoopFactory;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
-import io.netty.channel.socket.nio.NioSocketChannel;
 
 /**
  * This class will replace <code>org.infinispan.client.hotrod.impl.transport.netty.TransportHelper</code>
@@ -13,7 +13,7 @@ import io.netty.channel.socket.nio.NioSocketChannel;
  */
 public class TransportHelper {
    public static Class<? extends SocketChannel> socketChannel() {
-      return NioSocketChannel.class;
+      return EventLoopFactory.INSTANCE.socketChannel();
    }
 
    public static EventLoopGroup createEventLoopGroup(int maxExecutors, ExecutorService executorService) {

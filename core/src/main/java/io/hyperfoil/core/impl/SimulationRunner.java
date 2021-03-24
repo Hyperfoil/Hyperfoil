@@ -30,7 +30,7 @@ import io.hyperfoil.core.session.SharedDataImpl;
 import io.hyperfoil.core.util.Util;
 import io.hyperfoil.internal.Properties;
 import io.netty.channel.EventLoop;
-import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.EventLoopGroup;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
@@ -52,7 +52,7 @@ public class SimulationRunner {
    protected final Map<String, PhaseInstance> instances = new HashMap<>();
    protected final List<Session> sessions = new ArrayList<>();
    private final Map<String, SharedResources> sharedResources = new HashMap<>();
-   protected final NioEventLoopGroup eventLoopGroup;
+   protected final EventLoopGroup eventLoopGroup;
    protected final EventLoop[] executors;
    private final Queue<Phase> toPrune;
    private final PluginRunData[] runData;
@@ -62,7 +62,7 @@ public class SimulationRunner {
    private Thread jitterWatchdog;
 
    public SimulationRunner(Benchmark benchmark, int agentId) {
-      this.eventLoopGroup = new NioEventLoopGroup(benchmark.threads(agentId));
+      this.eventLoopGroup = EventLoopFactory.INSTANCE.create(benchmark.threads(agentId));
       this.executors = StreamSupport.stream(eventLoopGroup.spliterator(), false).map(EventLoop.class::cast).toArray(EventLoop[]::new);
       this.benchmark = benchmark;
       this.agentId = agentId;
