@@ -10,6 +10,8 @@ import java.util.concurrent.ExecutorService;
 import org.infinispan.client.hotrod.RemoteCache;
 import org.infinispan.client.hotrod.RemoteCacheManager;
 import org.infinispan.client.hotrod.configuration.ConfigurationBuilder;
+import org.infinispan.client.hotrod.impl.ConfigurationProperties;
+import org.infinispan.client.hotrod.impl.HotRodURI;
 import org.infinispan.client.hotrod.impl.transport.netty.ChannelFactory;
 
 import io.hyperfoil.hotrod.api.HotRodRemoteCachePool;
@@ -33,10 +35,10 @@ public class HotRodRemoteCachePoolImpl implements HotRodRemoteCachePool {
    @Override
    public void start() {
       for (HotRodCluster cluster : clusters) {
+         ConfigurationBuilder cb = HotRodURI.create(cluster.uri()).toConfigurationBuilder();
          Properties properties = new Properties();
-         properties.setProperty("infinispan.client.hotrod.default_executor_factory.pool_size", "1");
-         ConfigurationBuilder cb = new ConfigurationBuilder().uri(cluster.uri());
-         cb.withProperties(properties);
+         properties.setProperty(ConfigurationProperties.DEFAULT_EXECUTOR_FACTORY_POOL_SIZE, "1");
+         cb.asyncExecutorFactory().withExecutorProperties(properties);
          cb.asyncExecutorFactory().factory(p -> eventLoop);
          RemoteCacheManager remoteCacheManager = new RemoteCacheManager(cb.build());
          this.remoteCacheManagers.put(cluster.uri(), remoteCacheManager);
