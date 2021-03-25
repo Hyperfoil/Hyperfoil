@@ -1,6 +1,10 @@
 package io.hyperfoil.core.steps;
 
-import io.hyperfoil.api.config.*;
+import io.hyperfoil.api.config.InitFromParam;
+import io.hyperfoil.api.config.Name;
+import io.hyperfoil.api.config.Step;
+import io.hyperfoil.api.config.StepBuilder;
+import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
