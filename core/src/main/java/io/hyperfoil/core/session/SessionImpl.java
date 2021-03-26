@@ -18,6 +18,7 @@ import io.hyperfoil.api.session.PhaseInstance;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.message.FormattedMessage;
 
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -272,7 +273,7 @@ class SessionImpl implements Session {
          log.trace("#{} Session was stopped.", uniqueId);
          // this one is OK
       } catch (Throwable t) {
-         log.error("#{} Uncaught error", t, uniqueId);
+         log.error(new FormattedMessage("#{} Uncaught error", uniqueId), t);
          if (phase != null) {
             phase.fail(t);
          }
@@ -530,7 +531,7 @@ class SessionImpl implements Session {
    @Override
    public void fail(Throwable t) {
       try {
-         log.error("#{} Failing phase {}", t, uniqueId, phase().name);
+         log.error(new FormattedMessage("#{} Failing phase {}", uniqueId, phase().name), t);
          stop();
       } finally {
          phase.fail(t);

@@ -40,6 +40,7 @@ import io.vertx.core.http.ServerWebSocket;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.message.FormattedMessage;
 
 public class WebCLI extends HyperfoilCli implements Handler<ServerWebSocket> {
    private static final Logger log = LogManager.getLogger(WebCLI.class);
@@ -128,7 +129,7 @@ public class WebCLI extends HyperfoilCli implements Handler<ServerWebSocket> {
             context.inputStream.write(msg);
             context.inputStream.flush();
          } catch (IOException e) {
-            log.error("Failed to write '{}' to Aesh input", e, msg);
+            log.error(new FormattedMessage("Failed to write '{}' to Aesh input", msg), e);
             webSocket.close();
          }
       });

@@ -21,6 +21,7 @@ import io.vertx.core.Handler;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.message.FormattedMessage;
 
 /**
  * This instance is not thread-safe as it should be accessed only the {@link #executor()}.
@@ -258,7 +259,7 @@ class SharedConnectionPool extends ConnectionPoolStats implements HttpConnection
       if (err != null) {
          // Accessing created & failures is unreliable - we need to access those in eventloop thread.
          // For logging, though, we won't care.
-         log.warn("Cannot create connection to {} (created: {}, failures: {})", err, authority, created, failures + 1);
+         log.warn(new FormattedMessage("Cannot create connection to {} (created: {}, failures: {})", authority, created, failures + 1), err);
          // scheduling task when the executor is shut down causes errors
          if (!eventLoop.isShuttingDown() && !eventLoop.isShutdown()) {
             eventLoop.execute(onConnectFailure);

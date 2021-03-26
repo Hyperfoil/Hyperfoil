@@ -51,7 +51,7 @@ public class PersistedBenchmarkData implements BenchmarkData {
             try {
                return Files.readAllBytes(path);
             } catch (IOException e) {
-               log.error("Cannot read file {}", e, path);
+               log.error("Cannot read file " + path, e);
                throw new RuntimeException(e);
             }
          }));

@@ -66,7 +66,7 @@ public class RunMojo extends AbstractMojo {
             runner.run();
          }
       } catch (FileNotFoundException e) {
-         log.error("Couldn't find yaml file: {}", e, yaml);
+         log.error("Couldn't find yaml file: " + yaml, e);
          throw new MojoExecutionException("yaml not found: " + yaml.toPath());
       }
       total.forEach(this::printStats);

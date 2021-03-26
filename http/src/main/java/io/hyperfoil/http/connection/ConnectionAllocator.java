@@ -37,7 +37,7 @@ class ConnectionAllocator extends ConnectionPoolStats implements HttpConnectionP
       blockedSessions.incrementUsed();
       clientPool.connect(this, (conn, err) -> {
          if (err != null) {
-            log.error("Cannot create connection to {}", err, authority);
+            log.error("Cannot create connection to " + authority, err);
             // TODO retry couple of times?
             blockedSessions.decrementUsed();
             consumer.accept(null);

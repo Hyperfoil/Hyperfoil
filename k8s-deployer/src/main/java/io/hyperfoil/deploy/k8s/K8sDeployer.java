@@ -6,7 +6,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -94,9 +93,9 @@ public class K8sDeployer implements Deployer {
       }
       String path = "/var/run/secrets/kubernetes.io/serviceaccount/" + file;
       try {
-         return new String(Files.readAllBytes(Paths.get(path)), StandardCharsets.UTF_8);
+         return Files.readString(Paths.get(path));
       } catch (IOException e) {
-         log.debug("Cannot load {} - not running as pod?", e, path);
+         log.debug("Cannot load " + path + " - not running as pod?", e);
          return "<cannot load>";
       }
    }
@@ -208,7 +207,7 @@ public class K8sDeployer implements Deployer {
          try {
             output = new FileOutputStream(outputPath.toFile());
          } catch (FileNotFoundException e) {
-            log.error("Cannot write to {}", e, outputPath);
+            log.error("Cannot write to " + outputPath, e);
          }
          // We cannot start reading the logs right away because we'd only read an error message
          // about the container being started - we'll defer it until all containers become ready.

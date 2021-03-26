@@ -86,7 +86,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
       if (cause instanceof SessionStopException) {
          // ignore
       } else {
-         log.warn("Exception in {}", cause, this);
+         log.warn("Exception in " + this, cause);
          cancelRequests(cause);
       }
       ctx.close();

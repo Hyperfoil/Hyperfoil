@@ -14,6 +14,7 @@ import io.netty.buffer.ByteBuf;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.message.FormattedMessage;
 
 public class HttpRequest extends Request {
    public static final Logger log = LogManager.getLogger(HttpRequest.class);
@@ -129,7 +130,7 @@ public class HttpRequest extends Request {
          } catch (SessionStopException e) {
             // ignore - the cancelled request decided to stop its session, too
          } catch (Exception e) {
-            log.error("{} {} threw an exception when cancelling", e, session.uniqueId(), this);
+            log.error(new FormattedMessage("{} {} threw an exception when cancelling", session.uniqueId(), this), e);
          } finally {
             exit();
             release();

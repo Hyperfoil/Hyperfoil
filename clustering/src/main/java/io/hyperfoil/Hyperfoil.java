@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.message.FormattedMessage;
 import org.infinispan.commons.util.FileLookupFactory;
 import org.infinispan.configuration.parsing.ConfigurationBuilderHolder;
 import org.infinispan.configuration.parsing.ParserRegistry;
@@ -111,7 +112,7 @@ public class Hyperfoil {
             try {
                return !nic.isLoopback() && nic.isUp();
             } catch (SocketException e) {
-               log.warn("Error enumerating NIC {}", e, nic);
+               log.warn("Error enumerating NIC " + nic, e);
                return false;
             }
          }).flatMap(nic -> Collections.list(nic.getInetAddresses()).stream()).collect(Collectors.toList());
@@ -161,7 +162,7 @@ public class Hyperfoil {
          if (event.succeeded()) {
             log.info("{} deployed.", verticleClass.getSimpleName());
          } else {
-            log.error("Failed to deploy {}.", event.cause(), verticleClass.getSimpleName());
+            log.error("Failed to deploy " + verticleClass.getSimpleName(), event.cause());
             System.exit(1);
          }
       });
@@ -178,7 +179,7 @@ public class Hyperfoil {
                return;
             }
          }
-         log.warn("Cannot parse Netty leak detection level '{}', use one of: ",
+         log.warn("Cannot parse Netty leak detection level '{}', use one of: {}",
                leakDetectionLevel, ResourceLeakDetector.Level.values());
       }
       ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.SIMPLE);
@@ -225,7 +226,7 @@ public class Hyperfoil {
    }
 
    private static void defaultUncaughtExceptionHandler(Thread thread, Throwable throwable) {
-      log.error("Uncaught exception in thread {}({})", throwable, thread.getName(), thread.getId());
+      log.error(new FormattedMessage("Uncaught exception in thread {}({})", thread.getName(), thread.getId()), throwable);
    }
 
    private static void logVersion() {

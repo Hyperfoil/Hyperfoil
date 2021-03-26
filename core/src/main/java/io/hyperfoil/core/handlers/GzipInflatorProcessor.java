@@ -4,6 +4,7 @@ import java.nio.ByteBuffer;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 
+import org.apache.logging.log4j.message.FormattedMessage;
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.Name;
@@ -213,7 +214,7 @@ public class GzipInflatorProcessor extends MultiProcessor implements Session.Res
                         }
                      }
                   } catch (DataFormatException e) {
-                     log.error("#{} Failed to decompress GZIPed data.", e, session.uniqueId());
+                     log.error(new FormattedMessage("#{} Failed to decompress GZIPed data.", session.uniqueId()), e);
                      invalidate(session);
                   }
                   break;

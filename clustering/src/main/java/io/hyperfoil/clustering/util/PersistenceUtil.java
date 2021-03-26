@@ -14,6 +14,7 @@ import io.hyperfoil.core.util.Util;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.message.FormattedMessage;
 
 public class PersistenceUtil {
    private static final Logger log = LogManager.getLogger(PersistenceUtil.class);
@@ -27,7 +28,7 @@ public class PersistenceUtil {
                Files.write(path, bytes);
                log.info("Stored benchmark '{}' in {}", benchmark.name(), path);
             } catch (IOException e) {
-               log.error("Failed to persist benchmark {} to {}", e, benchmark.name(), path);
+               log.error(new FormattedMessage("Failed to persist benchmark {} to {}", benchmark.name(), path), e);
             }
          }
       } catch (IOException e) {
@@ -44,7 +45,7 @@ public class PersistenceUtil {
             Files.write(path, benchmark.source().getBytes(StandardCharsets.UTF_8));
             log.info("Stored benchmark '{}' in {}", benchmark.name(), path);
          } catch (IOException e) {
-            log.error("Failed to persist benchmark {} to {}", e, benchmark.name(), path);
+            log.error(new FormattedMessage("Failed to persist benchmark {} to {}", benchmark.name(), path), e);
          }
          Path dataDirPath = dir.resolve(benchmark.name() + ".data");
          File dataDir = dataDirPath.toFile();
@@ -67,7 +68,7 @@ public class PersistenceUtil {
          try {
             PersistedBenchmarkData.store(benchmark.files(), dataDirPath);
          } catch (IOException e) {
-            log.error("Couldn't persist files for benchmark {}", e, benchmark.name());
+            log.error("Couldn't persist files for benchmark " + benchmark.name(), e);
          }
       }
    }
@@ -92,9 +93,9 @@ public class PersistenceUtil {
             log.info("Loaded benchmark '{}' from {}", benchmark.name(), file);
             return benchmark;
          } catch (IOException e) {
-            log.error("Cannot read file {}", e, file);
+            log.error("Cannot read file " + file, e);
          } catch (ParserException e) {
-            log.error("Cannot parser file {}", e, file);
+            log.error("Cannot parser file " + file, e);
          }
       } else if (filename.endsWith(".serialized")) {
          try {
@@ -105,7 +106,7 @@ public class PersistenceUtil {
             }
          } catch (Exception e) {
             log.info("Cannot load serialized benchmark from {} (likely a serialization issue, see traces for details)", file);
-            log.trace("Cannot read file {}", e, file);
+            log.trace("Cannot read file " + file, e);
             return null;
          }
       } else if (file.toFile().isDirectory() && filename.endsWith(".data")) {

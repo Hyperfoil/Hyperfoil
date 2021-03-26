@@ -305,7 +305,7 @@ class ControllerServer implements ApiService {
          try {
             bytes = Files.readAllBytes(Paths.get(upload.uploadedFileName()));
          } catch (IOException e) {
-            log.error("Cannot read uploaded file {}", e, upload.uploadedFileName());
+            log.error("Cannot read uploaded file " + upload.uploadedFileName(), e);
             ctx.response().setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code()).end();
             return;
          }

@@ -51,6 +51,7 @@ import io.vertx.core.spi.cluster.ClusterManager;
 import io.vertx.core.spi.cluster.NodeListener;
 import io.vertx.ext.cluster.infinispan.InfinispanClusterManager;
 
+import org.apache.logging.log4j.message.FormattedMessage;
 import org.infinispan.commons.api.BasicCacheContainer;
 
 import java.io.File;
@@ -96,7 +97,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
          } catch (IOException e) {
             log.error("Could not list run dir contents", e);
          } catch (Exception e) {
-            log.error("Cannot load previous runs from {}", e, Controller.RUN_DIR);
+            log.error("Cannot load previous runs from " + Controller.RUN_DIR, e);
          }
       }
       Controller.HOOKS_DIR.resolve("pre").toFile().mkdirs();
@@ -454,12 +455,12 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             log.debug("Starting agent {}", agent.name);
             vertx.executeBlocking(future -> agentInfo.deployedAgent = deployer.start(agent, run.id, run.benchmark, exception -> {
                run.errors.add(new Run.Error(agentInfo, new BenchmarkExecutionException("Failed to deploy agent", exception)));
-               log.error("Failed to deploy agent {}", exception, agent.name);
+               log.error("Failed to deploy agent " + agent.name, exception);
                vertx.runOnContext(nil -> stopSimulation(run));
             }), false, result -> {
                if (result.failed()) {
                   run.errors.add(new Run.Error(agentInfo, new BenchmarkExecutionException("Failed to start agent", result.cause())));
-                  log.error("Failed to start agent {}", result.cause(), agent.name);
+                  log.error("Failed to start agent " + agent.name, result.cause());
                }
             });
          }
@@ -486,7 +487,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             eb.request(agent.deploymentId, new AgentControlMessage(AgentControlMessage.Command.INITIALIZE, agent.id, run.benchmark), reply -> {
                if (!reply.succeeded()) {
                   agent.status = AgentInfo.Status.FAILED;
-                  log.error("{} Agent {}({}) failed to initialize", reply.cause(), run.id, agent.name, agent.deploymentId);
+                  log.error(new FormattedMessage("{} Agent {}({}) failed to initialize", run.id, agent.name, agent.deploymentId), reply.cause());
                   run.errors.add(new Run.Error(agent, reply.cause()));
                   stopSimulation(run);
                }
@@ -524,7 +525,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                runSimulation(run);
             });
          } else {
-            log.error("{} Failed to start the simulation", run.id, result.cause());
+            log.error(run.id + " Failed to start the simulation", result.cause());
             stopSimulation(run);
          }
       });
@@ -600,7 +601,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                log.debug("Agent {}/{} stopped.", agent.name, agent.deploymentId);
             } else {
                agent.status = AgentInfo.Status.FAILED;
-               log.error("Agent {}/{} failed to stop", reply.cause(), agent.name, agent.deploymentId);
+               log.error(new FormattedMessage("Agent {}/{} failed to stop", agent.name, agent.deploymentId), reply.cause());
             }
             if (agent.deployedAgent != null) {
                // Give agents 3 seconds to leave the cluster
@@ -695,7 +696,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       }, result -> {
          run.completed = true;
          if (result.failed()) {
-            log.error("Failed to persist run {}", result.cause(), run.id);
+            log.error("Failed to persist run " + run.id, result.cause());
          } else {
             log.info("Successfully persisted run {}", run.id);
          }
@@ -781,11 +782,11 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                      benchmarks.put(benchmark.name(), benchmark);
                   }
                } catch (Exception e) {
-                  log.error("Failed to load a benchmark from {}", e, file);
+                  log.error("Failed to load a benchmark from " + file, e);
                }
             });
          } catch (IOException e) {
-            log.error("Failed to list benchmark dir {}", e, Controller.BENCHMARK_DIR);
+            log.error("Failed to list benchmark dir " + Controller.BENCHMARK_DIR, e);
          }
          future.complete();
       }, handler);
@@ -838,7 +839,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
          agentCounter.incrementAndGet();
          eb.request(agent.deploymentId, new AgentControlMessage(command, agent.id, param), result -> {
             if (result.failed()) {
-               log.error("Failed to connect to agent {}", result.cause(), agent.name);
+               log.error("Failed to connect to agent " + agent.name, result.cause());
                completionHandler.handle(Future.failedFuture(result.cause()));
             } else {
                handler.accept(agent, result);

@@ -60,6 +60,7 @@ import io.netty.util.AsciiString;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.message.FormattedMessage;
 
 public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceUtilizer, Serializable {
    private static final Logger log = LogManager.getLogger(HttpResponseHandlersImpl.class);
@@ -139,7 +140,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       } catch (SessionStopException e) {
          throw e;
       } catch (Throwable t) {
-         log.error("#{} Response status processing failed on {}", t, session.uniqueId(), this);
+         log.error(new FormattedMessage("#{} Response status processing failed on {}", session.uniqueId(), this), t);
          request.statistics().incrementInternalErrors(request.startTimestampMillis());
          request.markInvalid();
          session.stop();
@@ -175,7 +176,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       } catch (SessionStopException e) {
          throw e;
       } catch (Throwable t) {
-         log.error("#{} Response header processing failed on {}", t, session.uniqueId(), this);
+         log.error(new FormattedMessage("#{} Response header processing failed on {}", session.uniqueId(), this), t);
          request.statistics().incrementInternalErrors(request.startTimestampMillis());
          request.markInvalid();
          session.stop();
@@ -213,7 +214,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          throw e;
       } catch (Throwable t) {
          t.addSuppressed(throwable);
-         log.error("#{} Exception {} thrown while handling another exception: ", t, session.uniqueId(), throwable.toString());
+         log.error(new FormattedMessage("#{} Exception {} thrown while handling another exception: ", session.uniqueId(), throwable.toString()), t);
          request.statistics().incrementInternalErrors(request.startTimestampMillis());
          session.stop();
       } finally {
@@ -247,7 +248,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       } catch (SessionStopException e) {
          throw e;
       } catch (Throwable t) {
-         log.error("#{} Response body processing failed on {}", t, session.uniqueId(), this);
+         log.error(new FormattedMessage("#{} Response body processing failed on {}", session.uniqueId(), this), t);
          request.statistics().incrementInternalErrors(request.startTimestampMillis());
          request.markInvalid();
          session.stop();
@@ -296,7 +297,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       } catch (SessionStopException e) {
          throw e;
       } catch (Throwable t) {
-         log.error("#{} Response completion failed on {}, stopping the session.", t, request.session.uniqueId(), this);
+         log.error(new FormattedMessage("#{} Response completion failed on {}, stopping the session.", request.session.uniqueId(), this), t);
          request.statistics().incrementInternalErrors(request.startTimestampMillis());
          request.markInvalid();
          session.stop();
@@ -324,7 +325,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       } catch (SessionStopException e) {
          throw e;
       } catch (Throwable t) {
-         log.error("#{} Raw request processing failed on {}", t, request.session.uniqueId(), this);
+         log.error(new FormattedMessage("#{} Raw request processing failed on {}", request.session.uniqueId(), this), t);
          request.markInvalid();
          request.session.stop();
       }
@@ -342,7 +343,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       } catch (SessionStopException e) {
          throw e;
       } catch (Throwable t) {
-         log.error("#{} Raw response processing failed on {}", t, request.session.uniqueId(), this);
+         log.error(new FormattedMessage("#{} Raw response processing failed on {}", request.session.uniqueId(), this), t);
          request.markInvalid();
          request.session.stop();
       }
