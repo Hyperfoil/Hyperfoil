@@ -31,6 +31,4 @@ public interface Connection {
    boolean isClosed();
 
    String host();
-
-   String authority();
 }

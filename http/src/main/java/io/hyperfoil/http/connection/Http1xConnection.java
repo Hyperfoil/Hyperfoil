@@ -141,7 +141,7 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
       buf.writeBytes(HTTP1_1);
 
       if (injectHostHeader) {
-         writeHeader(buf, HttpHeaderNames.HOST.array(), pool.clientPool().authorityBytes());
+         writeHeader(buf, HttpHeaderNames.HOST.array(), pool.clientPool().originalDestinationBytes());
       }
       // TODO: adjust interface - we can't send static buffers anyway
       ByteBuf body = bodyGenerator != null ? bodyGenerator.apply(request.session, request.connection()) : null;
@@ -305,11 +305,6 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
    @Override
    public String host() {
       return pool.clientPool().host();
-   }
-
-   @Override
-   public String authority() {
-      return pool.clientPool().authority();
    }
 
    @Override

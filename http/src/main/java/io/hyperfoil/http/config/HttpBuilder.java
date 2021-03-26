@@ -41,6 +41,7 @@ public class HttpBuilder implements Rewritable<HttpBuilder> {
 
    private final HttpPluginBuilder parent;
    private Http http;
+   private String originalDestination;
    private Protocol protocol;
    private String host;
    private int port = -1;
@@ -87,14 +88,19 @@ public class HttpBuilder implements Rewritable<HttpBuilder> {
       return host;
    }
 
-   public HttpBuilder host(String host) {
+   public HttpBuilder host(String destination) {
       if (this.host != null) {
          throw new BenchmarkDefinitionException("Duplicate 'host'. Are you missing '-'s?");
       }
       URL result;
-      String spec = host;
-      if (!spec.contains("://")) {
-         spec = "http://" + spec;
+      String spec;
+      int schemeEnd = destination.indexOf("://");
+      if (schemeEnd < 0) {
+         spec = "http://" + destination;
+         originalDestination = destination;
+      } else {
+         spec = destination;
+         originalDestination = destination.substring(schemeEnd + 3);
       }
       try {
          result = new URL(spec);
@@ -106,7 +112,7 @@ public class HttpBuilder implements Rewritable<HttpBuilder> {
       this.host = url.getHost();
       this.port = url.getPort();
       if (url.getFile() != null && !url.getFile().isEmpty()) {
-         throw new BenchmarkDefinitionException("Host must not contain any path: " + host);
+         throw new BenchmarkDefinitionException("Host must not contain any path: " + destination);
       }
       return this;
    }
@@ -225,8 +231,14 @@ public class HttpBuilder implements Rewritable<HttpBuilder> {
       if (directHttp2) {
          throw new UnsupportedOperationException("Direct HTTP/2 not implemented");
       }
+      if (originalDestination == null) {
+         originalDestination = host;
+         if (port >= 0) {
+            originalDestination += ":" + port;
+         }
+      }
       Protocol protocol = this.protocol != null ? this.protocol : Protocol.fromPort(port);
-      return http = new Http(isDefault, protocol, host, protocol.portOrDefault(port), addresses.toArray(new String[0]),
+      return http = new Http(isDefault, originalDestination, protocol, host, protocol.portOrDefault(port), addresses.toArray(new String[0]),
             httpVersions.toArray(new HttpVersion[0]), maxHttp2Streams, pipeliningLimit,
             sharedConnections.build(), directHttp2, requestTimeout, rawBytesHandlers, keyManager.build(), trustManager.build(),
             connectionStrategy);
@@ -234,6 +246,7 @@ public class HttpBuilder implements Rewritable<HttpBuilder> {
 
    @Override
    public void readFrom(HttpBuilder other) {
+      this.originalDestination = other.originalDestination;
       this.protocol = other.protocol;
       this.host = other.host;
       this.port = other.port;

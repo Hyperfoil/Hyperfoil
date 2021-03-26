@@ -30,6 +30,7 @@ import io.hyperfoil.http.api.HttpVersion;
 public class Http implements Serializable {
 
    private final boolean isDefault;
+   private final String originalDestination;
    private final Protocol protocol;
    private final String host;
    private final int port;
@@ -45,11 +46,12 @@ public class Http implements Serializable {
    private final TrustManager trustManager;
    private final ConnectionStrategy connectionStrategy;
 
-   public Http(boolean isDefault, Protocol protocol, String host, int port, String[] addresses,
+   public Http(boolean isDefault, String originalDestination, Protocol protocol, String host, int port, String[] addresses,
                HttpVersion[] versions, int maxHttp2Streams, int pipeliningLimit, ConnectionPoolConfig sharedConnections,
                boolean directHttp2, long requestTimeout, boolean rawBytesHandlers,
                KeyManager keyManager, TrustManager trustManager, ConnectionStrategy connectionStrategy) {
       this.isDefault = isDefault;
+      this.originalDestination = originalDestination;
       this.protocol = protocol;
       this.host = host;
       this.port = port;
@@ -64,6 +66,15 @@ public class Http implements Serializable {
       this.keyManager = keyManager;
       this.trustManager = trustManager;
       this.connectionStrategy = connectionStrategy;
+   }
+
+   /**
+    * The difference between this method and authority is that the port is optional;
+    * this is exactly what the user typed into the <code>host:</code> property and will
+    * be used for the Host/SNI header.
+    */
+   public String originalDestination() {
+      return originalDestination;
    }
 
    public Protocol protocol() {

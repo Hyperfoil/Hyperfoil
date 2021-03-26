@@ -43,7 +43,7 @@ public interface HttpClientPool {
 
    String authority();
 
-   byte[] authorityBytes();
+   byte[] originalDestinationBytes();
 
    String scheme();
 

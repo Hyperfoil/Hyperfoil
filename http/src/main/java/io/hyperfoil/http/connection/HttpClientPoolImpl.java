@@ -68,7 +68,7 @@ public class HttpClientPoolImpl implements HttpClientPool {
    final String host;
    final String scheme;
    final String authority;
-   final byte[] authorityBytes;
+   final byte[] originalDestinationBytes;
    final SslContext sslContext;
    final boolean forceH2c;
    private final HttpConnectionPool[] children;
@@ -95,7 +95,7 @@ public class HttpClientPoolImpl implements HttpClientPool {
       this.port = http.port();
       this.scheme = sslContext == null ? "http" : "https";
       this.authority = host + ":" + port;
-      this.authorityBytes = authority.getBytes(StandardCharsets.UTF_8);
+      this.originalDestinationBytes = http.originalDestination().getBytes(StandardCharsets.UTF_8);
       this.forceH2c = http.versions().length == 1 && http.versions()[0] == HttpVersion.HTTP_2_0;
 
       this.children = new HttpConnectionPool[executors.length];
@@ -366,8 +366,8 @@ public class HttpClientPoolImpl implements HttpClientPool {
    }
 
    @Override
-   public byte[] authorityBytes() {
-      return authorityBytes;
+   public byte[] originalDestinationBytes() {
+      return originalDestinationBytes;
    }
 
    @Override

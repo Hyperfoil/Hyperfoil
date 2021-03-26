@@ -119,11 +119,6 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
    }
 
    @Override
-   public String authority() {
-      return pool.clientPool().authority();
-   }
-
-   @Override
    public void attach(HttpConnectionPool pool) {
       this.pool = pool;
    }
@@ -165,7 +160,7 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
             .path(request.path).authority(httpClientPool.authority());
       // HTTPS selects host via SNI headers, duplicate Host header could confuse the server/proxy
       if (injectHostHeader && !pool.clientPool().config().protocol().secure()) {
-         headers.add(HttpHeaderNames.HOST, httpClientPool.authority());
+         headers.add(HttpHeaderNames.HOST, httpClientPool.config().originalDestination());
       }
       if (buf != null && buf.readableBytes() > 0) {
          headers.add(HttpHeaderNames.CONTENT_LENGTH, String.valueOf(buf.readableBytes()));

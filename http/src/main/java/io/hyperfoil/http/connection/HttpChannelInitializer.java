@@ -70,7 +70,7 @@ class HttpChannelInitializer extends ChannelInitializer<Channel> {
             @Override
             public void channelActive(ChannelHandlerContext ctx) throws Exception {
                DefaultFullHttpRequest upgradeRequest = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "/");
-               upgradeRequest.headers().add(HttpHeaderNames.HOST, clientPool.authority);
+               upgradeRequest.headers().add(HttpHeaderNames.HOST, clientPool.config().originalDestination());
                ctx.writeAndFlush(upgradeRequest);
                ctx.fireChannelActive();
                ctx.pipeline().remove(this);

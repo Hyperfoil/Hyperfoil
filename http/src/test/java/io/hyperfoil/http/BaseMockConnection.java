@@ -105,8 +105,4 @@ public class BaseMockConnection implements HttpConnection {
       return null;
    }
 
-   @Override
-   public String authority() {
-      return null;
-   }
 }
