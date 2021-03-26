@@ -12,11 +12,12 @@ import java.util.Map;
 
 import io.hyperfoil.api.config.BenchmarkData;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class LocalBenchmarkData implements BenchmarkData {
-   private static final Logger log = LoggerFactory.getLogger(LocalBenchmarkData.class);
+   private static final Logger log = LogManager.getLogger(LocalBenchmarkData.class);
    private final Path benchmarkPath;
    private final Map<String, byte[]> readFiles = new HashMap<>();
 

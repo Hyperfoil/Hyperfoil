@@ -15,12 +15,13 @@ import io.hyperfoil.core.session.SessionFactory;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.Unpooled;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 // Based on java.util.zip.GZIPInputStream
 public class GzipInflatorProcessor extends MultiProcessor implements Session.ResourceKey<GzipInflatorProcessor.InflaterResource> {
-   private static final Logger log = LoggerFactory.getLogger(GzipInflatorProcessor.class);
+   private static final Logger log = LogManager.getLogger(GzipInflatorProcessor.class);
    private static final int FHCRC = 2;    // Header CRC
    private static final int FEXTRA = 4;    // Extra field
    private static final int FNAME = 8;    // File name

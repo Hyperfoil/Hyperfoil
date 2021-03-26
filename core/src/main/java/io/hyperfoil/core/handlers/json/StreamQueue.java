@@ -3,15 +3,15 @@ package io.hyperfoil.core.handlers.json;
 import java.io.Serializable;
 import java.util.Arrays;
 
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 /**
  * This serves as an abstraction over several {@link ByteStream bytestreams} so that users can just append
  * new buffers to the back and use absolute positioning with single index.
  */
 public class StreamQueue {
-   protected static final Logger log = LoggerFactory.getLogger(StreamQueue.class);
+   protected static final Logger log = LogManager.getLogger(StreamQueue.class);
 
    private final ByteStream[] parts;
    // indices used by users for the beginning (readerIndex) of the bytestream

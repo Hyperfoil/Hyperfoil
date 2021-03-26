@@ -12,11 +12,12 @@ import io.hyperfoil.http.api.HttpRequest;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.util.internal.AppendableCharSequence;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 class EmbeddedResourceProcessor extends Processor.BaseDelegating {
-   private static final Logger log = LoggerFactory.getLogger(EmbeddedResourceProcessor.class);
+   private static final Logger log = LogManager.getLogger(EmbeddedResourceProcessor.class);
    private static final boolean trace = log.isTraceEnabled();
    private static final byte[] HTTP_PREFIX = HttpUtil.HTTP_PREFIX.getBytes(StandardCharsets.UTF_8);
    private static final byte[] HTTPS_PREFIX = HttpUtil.HTTP_PREFIX.getBytes(StandardCharsets.UTF_8);

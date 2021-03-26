@@ -11,11 +11,12 @@ import org.kohsuke.MetaInfServices;
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.RunHook;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class ExecRunHook extends RunHook {
-   private static final Logger log = LoggerFactory.getLogger(ExecRunHook.class);
+   private static final Logger log = LogManager.getLogger(ExecRunHook.class);
    private final String command;
 
    public ExecRunHook(String name, String command) {

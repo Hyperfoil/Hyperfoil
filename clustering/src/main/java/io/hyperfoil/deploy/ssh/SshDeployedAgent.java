@@ -28,11 +28,12 @@ import io.hyperfoil.internal.Properties;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class SshDeployedAgent implements DeployedAgent {
-   private static final Logger log = LoggerFactory.getLogger(SshDeployedAgent.class);
+   private static final Logger log = LogManager.getLogger(SshDeployedAgent.class);
    private static final String PROMPT = "<_#%@_hyperfoil_@%#_>";
    private static final String DEBUG_ADDRESS = Properties.get(Properties.AGENT_DEBUG_PORT, null);
    private static final String DEBUG_SUSPEND = Properties.get(Properties.AGENT_DEBUG_SUSPEND, "n");

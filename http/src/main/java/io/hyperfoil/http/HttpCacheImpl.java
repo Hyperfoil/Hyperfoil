@@ -8,8 +8,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.util.Trie;
@@ -26,7 +26,7 @@ import io.netty.util.AsciiString;
  * This represents a browser cache = private one.
  */
 public class HttpCacheImpl implements HttpCache {
-   private static final Logger log = LoggerFactory.getLogger(HttpCacheImpl.class);
+   private static final Logger log = LogManager.getLogger(HttpCacheImpl.class);
 
    // we're ignoring no-transform directive
    private static final Trie REQUEST_CACHE_CONTROL = new Trie("max-age=", "no-cache", "no-store", "max-stale=", "min-fresh=", "only-if-cached");

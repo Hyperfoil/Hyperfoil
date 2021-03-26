@@ -7,14 +7,15 @@ import io.hyperfoil.api.config.PhaseReference;
 import io.hyperfoil.api.config.RelativeIteration;
 import io.hyperfoil.api.config.ScenarioBuilder;
 import io.hyperfoil.core.util.Util;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 /**
  * This provides a convenient way to define alternating ramp-ups and steady-states.
  */
 class StaircaseParser extends AbstractParser<BenchmarkBuilder, StaircaseParser.StaircaseBuilder> {
-   private static final Logger log = LoggerFactory.getLogger(StaircaseParser.class);
+   private static final Logger log = LogManager.getLogger(StaircaseParser.class);
 
    public StaircaseParser() {
       register("initialRampUpDuration", new PropertyParser.String<>(StaircaseBuilder::initialRampUpDuration));

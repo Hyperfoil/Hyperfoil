@@ -13,11 +13,12 @@ import java.util.stream.Collectors;
 
 import io.hyperfoil.api.config.BenchmarkData;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class PersistedBenchmarkData implements BenchmarkData {
-   private static final Logger log = LoggerFactory.getLogger(PersistedBenchmarkData.class);
+   private static final Logger log = LogManager.getLogger(PersistedBenchmarkData.class);
    private final Path dir;
 
    public static void store(Map<String, byte[]> files, Path dir) throws IOException {

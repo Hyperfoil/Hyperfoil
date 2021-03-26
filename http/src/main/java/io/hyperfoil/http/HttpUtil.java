@@ -5,15 +5,15 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.TimeZone;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import io.hyperfoil.core.util.Util;
 import io.netty.buffer.ByteBuf;
 import io.netty.util.AsciiString;
 
 public final class HttpUtil {
-   private static final Logger log = LoggerFactory.getLogger(HttpUtil.class);
+   private static final Logger log = LogManager.getLogger(HttpUtil.class);
    private static final CharSequence[] MONTHS = { "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec" };
    private static final TimeZone UTC = TimeZone.getTimeZone("UTC");
    private static final TimeZone GMT = TimeZone.getTimeZone("GMT");

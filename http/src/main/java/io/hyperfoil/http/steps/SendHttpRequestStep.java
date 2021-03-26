@@ -13,11 +13,12 @@ import io.hyperfoil.function.SerializableBiFunction;
 import io.hyperfoil.http.api.HttpRequest;
 import io.hyperfoil.http.api.HttpRequestWriter;
 import io.netty.buffer.ByteBuf;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class SendHttpRequestStep extends StatisticsStep implements ResourceUtilizer, SLA.Provider {
-   private static final Logger log = LoggerFactory.getLogger(SendHttpRequestStep.class);
+   private static final Logger log = LogManager.getLogger(SendHttpRequestStep.class);
    private static final boolean trace = log.isTraceEnabled();
 
    final HttpRequestContext.Key contextKey;

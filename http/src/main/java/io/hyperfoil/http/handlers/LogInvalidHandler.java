@@ -1,8 +1,8 @@
 package io.hyperfoil.http.handlers;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.kohsuke.MetaInfServices;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.connection.Request;
@@ -14,7 +14,7 @@ import io.hyperfoil.core.util.Util;
 import io.netty.buffer.ByteBuf;
 
 public class LogInvalidHandler implements Processor, HeaderHandler {
-   private static final Logger log = LoggerFactory.getLogger(LogInvalidHandler.class);
+   private static final Logger log = LogManager.getLogger(LogInvalidHandler.class);
 
    @Override
    public void process(Session session, ByteBuf data, int offset, int length, boolean isLast) {

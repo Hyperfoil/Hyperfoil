@@ -11,8 +11,9 @@ import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.function.SerializableFunction;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 // To be recognized as a builder by Generator the class name must end with 'Builder'
 
@@ -20,7 +21,7 @@ import io.vertx.core.logging.LoggerFactory;
  * Generic builder for generating a string.
  */
 public class StringGeneratorImplBuilder<T> implements StringGeneratorBuilder, InitFromParam<StringGeneratorImplBuilder<T>> {
-   private static final Logger log = LoggerFactory.getLogger(StringGeneratorImplBuilder.class);
+   private static final Logger log = LogManager.getLogger(StringGeneratorImplBuilder.class);
 
    private final T parent;
    private final boolean urlEncode;

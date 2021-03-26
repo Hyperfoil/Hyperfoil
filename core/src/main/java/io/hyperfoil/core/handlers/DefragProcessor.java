@@ -5,11 +5,12 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.CompositeByteBuf;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.ResourceUtilizer;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class DefragProcessor extends Processor.BaseDelegating implements Session.ResourceKey<DefragProcessor.Context> {
-   private static final Logger log = LoggerFactory.getLogger(DefragProcessor.class);
+   private static final Logger log = LogManager.getLogger(DefragProcessor.class);
 
    public DefragProcessor(Processor delegate) {
       super(delegate);

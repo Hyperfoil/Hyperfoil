@@ -7,8 +7,9 @@ import io.hyperfoil.core.impl.LocalSimulationRunner;
 import io.hyperfoil.core.parser.BenchmarkParser;
 import io.hyperfoil.core.parser.ParserException;
 import io.hyperfoil.core.util.Util;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -30,12 +31,10 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.HashMap;
 
-import static io.vertx.core.logging.LoggerFactory.LOGGER_DELEGATE_FACTORY_CLASS_NAME;
-
 @Mojo(name = "run", defaultPhase = LifecyclePhase.INTEGRATION_TEST, requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME)
 public class RunMojo extends AbstractMojo {
 
-   private static final Logger log;
+   private static final Logger log = LogManager.getLogger(RunMojo.class);
 
    @Parameter(required = true, property = "hyperfoil.yaml")
    private File yaml;
@@ -44,11 +43,6 @@ public class RunMojo extends AbstractMojo {
    private Boolean outputPercentileDistribution;
 
    private Benchmark benchmark;
-
-   static {
-      System.setProperty(LOGGER_DELEGATE_FACTORY_CLASS_NAME, "io.vertx.core.logging.Log4j2LogDelegateFactory");
-      log = LoggerFactory.getLogger(RunMojo.class);
-   }
 
    @Override
    public void execute() throws MojoExecutionException, MojoFailureException {

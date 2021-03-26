@@ -4,11 +4,12 @@ import java.util.function.Consumer;
 
 import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.Step;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class SequenceInstance {
-   private static final Logger log = LoggerFactory.getLogger(SequenceInstance.class);
+   private static final Logger log = LogManager.getLogger(SequenceInstance.class);
    private static final boolean trace = log.isTraceEnabled();
 
    private Sequence sequence;

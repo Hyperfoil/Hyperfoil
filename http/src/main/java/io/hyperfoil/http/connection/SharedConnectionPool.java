@@ -18,14 +18,15 @@ import io.netty.util.concurrent.ScheduledFuture;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 /**
  * This instance is not thread-safe as it should be accessed only the {@link #executor()}.
  */
 class SharedConnectionPool extends ConnectionPoolStats implements HttpConnectionPool {
-   private static final Logger log = LoggerFactory.getLogger(SharedConnectionPool.class);
+   private static final Logger log = LogManager.getLogger(SharedConnectionPool.class);
    private static final boolean trace = log.isTraceEnabled();
    //TODO: configurable
    private static final int MAX_FAILURES = 100;

@@ -20,11 +20,12 @@ import io.hyperfoil.core.handlers.ArrayRecorder;
 import io.hyperfoil.core.handlers.StoreProcessor;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public abstract class JsonParser implements Serializable, ResourceUtilizer {
-   protected static final Logger log = LoggerFactory.getLogger(JsonParser.class);
+   protected static final Logger log = LogManager.getLogger(JsonParser.class);
    protected static final int MAX_PARTS = 16;
 
    protected final String query;

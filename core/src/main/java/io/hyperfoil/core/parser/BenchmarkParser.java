@@ -23,8 +23,9 @@ import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.BenchmarkData;
 import io.hyperfoil.core.util.Util;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.events.DocumentEndEvent;
@@ -44,7 +45,7 @@ import java.util.Iterator;
 import java.util.ServiceLoader;
 
 public class BenchmarkParser extends AbstractMappingParser<BenchmarkBuilder> {
-   private static final Logger log = LoggerFactory.getLogger(BenchmarkParser.class);
+   private static final Logger log = LogManager.getLogger(BenchmarkParser.class);
    private static final BenchmarkParser INSTANCE = new BenchmarkParser();
    private static final boolean DEBUG_PARSER = Boolean.getBoolean("io.hyperfoil.parser.debug");
 

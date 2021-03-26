@@ -7,11 +7,12 @@ import io.hyperfoil.core.data.LimitedPoolResource;
 import io.hyperfoil.core.data.Queue;
 import io.hyperfoil.core.session.ObjectVar;
 import io.hyperfoil.function.SerializableFunction;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class Location {
-   private static final Logger log = LoggerFactory.getLogger(Location.class);
+   private static final Logger log = LogManager.getLogger(Location.class);
    private static final boolean trace = log.isTraceEnabled();
 
    public CharSequence authority;

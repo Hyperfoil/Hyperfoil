@@ -148,15 +148,15 @@ public class OpenapiMojo extends AbstractMojo {
       unit.addImport("io.vertx.ext.web.handler.BodyHandler");
       unit.addImport("io.vertx.ext.web.Router");
       unit.addImport("io.vertx.ext.web.RoutingContext");
-      unit.addImport("io.vertx.core.logging.Logger");
-      unit.addImport("io.vertx.core.logging.LoggerFactory");
+      unit.addImport("org.apache.logging.log4j.Logger");
+      unit.addImport("org.apache.logging.log4j.LogManager");
       unit.addImport(modelPackage, false, true);
       unit.addImport(servicePackage + ".ApiService");
 
       ClassOrInterfaceDeclaration clazz = unit.addClass("ApiRouter", Modifier.Keyword.PUBLIC);
       clazz.addField("ApiService", "service", Modifier.Keyword.PRIVATE, Modifier.Keyword.FINAL);
       clazz.addField("Logger", "log", Modifier.Keyword.PRIVATE, Modifier.Keyword.STATIC, Modifier.Keyword.FINAL)
-            .getVariable(0).setInitializer("LoggerFactory.getLogger(ApiRouter.class)");
+            .getVariable(0).setInitializer("LogManager.getLogger(ApiRouter.class)");
       ConstructorDeclaration ctor = clazz.addConstructor(Modifier.Keyword.PUBLIC);
       BlockStmt ctorBody = ctor.addParameter("ApiService", "service").addParameter("Router", "router").getBody();
       ctorBody.addStatement("this.service = service;");

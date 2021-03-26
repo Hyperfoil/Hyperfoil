@@ -16,11 +16,12 @@ import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.IncludeBuilders;
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Name;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class ServiceLoadedBuilderProvider<B> {
-   private static final Logger log = LoggerFactory.getLogger(ServiceLoadedBuilderProvider.class);
+   private static final Logger log = LogManager.getLogger(ServiceLoadedBuilderProvider.class);
 
    private static final Map<Class<?>, Map<String, BuilderInfo<?>>> BUILDERS = new HashMap<>();
 

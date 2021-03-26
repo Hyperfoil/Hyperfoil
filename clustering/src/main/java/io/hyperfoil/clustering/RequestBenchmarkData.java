@@ -8,11 +8,12 @@ import java.util.Objects;
 
 import io.hyperfoil.api.config.BenchmarkData;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class RequestBenchmarkData implements BenchmarkData {
-   private static final Logger log = LoggerFactory.getLogger(RequestBenchmarkData.class);
+   private static final Logger log = LogManager.getLogger(RequestBenchmarkData.class);
    private final Map<String, byte[]> files = new HashMap<>();
 
    public void addFile(String name, byte[] bytes) {

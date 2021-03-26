@@ -28,15 +28,17 @@ import io.hyperfoil.http.steps.HttpResponseHandlersImpl;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerRequest;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 
 @RunWith(VertxUnitRunner.class)
 public class HttpCacheTest extends VertxBaseTest {
-   private static final Logger log = LoggerFactory.getLogger(HttpCacheTest.class);
+   private static final Logger log = LogManager.getLogger(HttpCacheTest.class);
    private static final TestClock CLOCK = new TestClock();
    private static final Consumer<HttpRequest> GET_TEST = request -> {
       request.method = HttpMethod.GET;

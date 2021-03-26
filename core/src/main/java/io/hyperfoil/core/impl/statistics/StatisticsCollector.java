@@ -13,11 +13,12 @@ import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.core.util.CountDown;
 import io.netty.util.collection.IntObjectHashMap;
 import io.netty.util.collection.IntObjectMap;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class StatisticsCollector implements Consumer<SessionStatistics> {
-   private static final Logger log = LoggerFactory.getLogger(StatisticsCollector.class);
+   private static final Logger log = LogManager.getLogger(StatisticsCollector.class);
    private static final boolean trace = log.isTraceEnabled();
 
    protected final Phase[] phases;

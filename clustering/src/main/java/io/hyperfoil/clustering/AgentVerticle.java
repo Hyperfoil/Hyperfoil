@@ -25,11 +25,12 @@ import io.vertx.core.eventbus.MessageConsumer;
 import io.vertx.core.eventbus.ReplyException;
 import io.vertx.core.eventbus.ReplyFailure;
 import io.vertx.core.impl.VertxInternal;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class AgentVerticle extends AbstractVerticle {
-   private static Logger log = LoggerFactory.getLogger(AgentVerticle.class);
+   private static Logger log = LogManager.getLogger(AgentVerticle.class);
 
    private String name;
    private String deploymentId;

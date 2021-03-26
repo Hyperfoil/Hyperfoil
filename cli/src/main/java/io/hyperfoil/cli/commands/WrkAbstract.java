@@ -21,7 +21,6 @@
 package io.hyperfoil.cli.commands;
 
 import static io.hyperfoil.http.steps.HttpStepCatalog.SC;
-import static io.vertx.core.logging.LoggerFactory.LOGGER_DELEGATE_FACTORY_CLASS_NAME;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -83,10 +82,6 @@ public abstract class WrkAbstract {
    protected abstract String getCommand();
 
    public void mainMethod(String[] args, Class<? extends AbstractWrkCommand> wrkClass) {
-
-      //set logger impl
-      System.setProperty(LOGGER_DELEGATE_FACTORY_CLASS_NAME, "io.vertx.core.logging.Log4j2LogDelegateFactory");
-
       CommandRuntime<HyperfoilCommandInvocation> cr = null;
       try {
          AeshCommandRuntimeBuilder<HyperfoilCommandInvocation> runtime = AeshCommandRuntimeBuilder.builder();

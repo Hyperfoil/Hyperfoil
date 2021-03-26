@@ -1,11 +1,12 @@
 package io.hyperfoil.clustering;
 
 import io.hyperfoil.api.config.Phase;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class ControllerPhase {
-   private static Logger log = LoggerFactory.getLogger(ControllerPhase.class);
+   private static Logger log = LogManager.getLogger(ControllerPhase.class);
 
    private final Phase definition;
    private Status status = Status.NOT_STARTED;

@@ -4,7 +4,7 @@ import java.net.URL;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 
-import io.vertx.core.logging.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
 
 public class Version {
    public static final String VERSION;
@@ -25,7 +25,7 @@ public class Version {
             version = attr.getValue("Implementation-Version");
          }
       } catch (Throwable e) {
-         LoggerFactory.getLogger(Version.class).error("Cannot find version info.", e);
+         LogManager.getLogger(Version.class).error("Cannot find version info.", e);
       } finally {
          VERSION = version;
          COMMIT_ID = commitId;

@@ -6,11 +6,12 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelOutboundHandlerAdapter;
 import io.netty.channel.ChannelPromise;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class RawRequestHandler extends ChannelOutboundHandlerAdapter {
-   private static final Logger log = LoggerFactory.getLogger(RawRequestHandler.class);
+   private static final Logger log = LogManager.getLogger(RawRequestHandler.class);
    private final HttpConnection connection;
 
    public RawRequestHandler(HttpConnection connection) {

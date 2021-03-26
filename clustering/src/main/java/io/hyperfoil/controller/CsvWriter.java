@@ -19,11 +19,12 @@ import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.api.statistics.StatisticsSummary;
 import io.hyperfoil.core.builders.SLA;
 import io.hyperfoil.core.util.LowHigh;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class CsvWriter {
-   private static final Logger log = LoggerFactory.getLogger(CsvWriter.class);
+   private static final Logger log = LogManager.getLogger(CsvWriter.class);
 
    public static void writeCsv(Path dir, StatisticsStore store) throws IOException {
       Optional<Data> incomplete = store.data.values().stream().flatMap(m -> m.values().stream()).filter(d -> !d.isCompleted()).findAny();

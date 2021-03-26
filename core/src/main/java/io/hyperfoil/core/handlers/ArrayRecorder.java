@@ -13,11 +13,12 @@ import io.netty.buffer.ByteBuf;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.ObjectVar;
 import io.hyperfoil.api.session.ResourceUtilizer;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class ArrayRecorder implements Processor, ResourceUtilizer {
-   private static final Logger log = LoggerFactory.getLogger(ArrayRecorder.class);
+   private static final Logger log = LogManager.getLogger(ArrayRecorder.class);
    private static final boolean trace = log.isTraceEnabled();
    private final Access toVar;
    private final DataFormat format;

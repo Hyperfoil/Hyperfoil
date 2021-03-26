@@ -63,8 +63,10 @@ import io.vertx.core.impl.NoStackTraceThrowable;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+
 import io.vertx.core.net.JksOptions;
 import io.vertx.core.net.PemKeyCertOptions;
 import io.vertx.ext.web.FileUpload;
@@ -74,7 +76,7 @@ import io.vertx.ext.web.handler.FaviconHandler;
 import io.vertx.ext.web.handler.StaticHandler;
 
 class ControllerServer implements ApiService {
-   private static final Logger log = LoggerFactory.getLogger(ControllerServer.class);
+   private static final Logger log = LogManager.getLogger(ControllerServer.class);
 
    private static final String MIME_TYPE_JSON = "application/json";
    private static final String MIME_TYPE_SERIALIZED = "application/java-serialized-object";

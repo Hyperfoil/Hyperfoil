@@ -16,11 +16,12 @@ import io.hyperfoil.function.SerializableBiPredicate;
 import io.hyperfoil.function.SerializableConsumer;
 import io.hyperfoil.function.SerializableFunction;
 import io.hyperfoil.function.SerializablePredicate;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class PollStep<T> implements Step, ResourceUtilizer {
-   private static final Logger log = LoggerFactory.getLogger(PollStep.class);
+   private static final Logger log = LogManager.getLogger(PollStep.class);
 
    private final SerializableFunction<Session, T> provider;
    private final Access toVar;

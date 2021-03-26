@@ -5,11 +5,12 @@ import java.nio.charset.StandardCharsets;
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.session.Session;
 import io.netty.buffer.ByteBuf;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class DebugProcessor implements Processor {
-   private static final Logger log = LoggerFactory.getLogger(DebugProcessor.class);
+   private static final Logger log = LogManager.getLogger(DebugProcessor.class);
 
    @Override
    public void before(Session session) {

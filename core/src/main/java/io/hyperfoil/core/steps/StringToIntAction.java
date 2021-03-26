@@ -10,11 +10,12 @@ import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class StringToIntAction implements Action, ResourceUtilizer {
-   private static final Logger log = LoggerFactory.getLogger(StringToIntAction.class);
+   private static final Logger log = LogManager.getLogger(StringToIntAction.class);
 
    private final Access fromVar;
    private final Access toVar;

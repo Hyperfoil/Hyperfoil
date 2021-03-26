@@ -5,11 +5,12 @@ import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.CompositeByteBuf;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class DefragTransformer extends Transformer.BaseDelegating implements Session.ResourceKey<DefragTransformer.Context> {
-   private static final Logger log = LoggerFactory.getLogger(DefragTransformer.class);
+   private static final Logger log = LogManager.getLogger(DefragTransformer.class);
 
    public DefragTransformer(Transformer delegate) {
       super(delegate);

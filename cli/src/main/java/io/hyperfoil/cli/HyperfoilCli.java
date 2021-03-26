@@ -79,8 +79,6 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static io.vertx.core.logging.LoggerFactory.LOGGER_DELEGATE_FACTORY_CLASS_NAME;
-
 public class HyperfoilCli {
 
    public static final String CLI_PROMPT = "CLI_PROMPT";
@@ -94,9 +92,6 @@ public class HyperfoilCli {
    }
 
    public static void main(String[] args) throws CommandRegistryException {
-      //set logger impl
-      System.setProperty(LOGGER_DELEGATE_FACTORY_CLASS_NAME, "io.vertx.core.logging.Log4j2LogDelegateFactory");
-
       new HyperfoilCli().run();
    }
 

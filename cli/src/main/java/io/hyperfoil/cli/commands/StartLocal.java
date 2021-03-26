@@ -21,7 +21,8 @@ import io.hyperfoil.cli.context.HyperfoilCliContext;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.internal.Controller;
 import io.hyperfoil.internal.Properties;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.LogManager;
 
 @CommandDefinition(name = "start-local", description = "Start non-clustered controller within the CLI process.")
 public class StartLocal extends ServerCommand {
@@ -85,7 +86,7 @@ public class StartLocal extends ServerCommand {
 
    private void reconfigureLogging(HyperfoilCommandInvocation invocation) {
       try {
-         LoggerContext context = ((Logger) LoggerFactory.getLogger(getClass()).getDelegate().unwrap()).getContext();
+         LoggerContext context = ((Logger) LogManager.getLogger(getClass())).getContext();
          InputStream configStream = getClass().getClassLoader().getResourceAsStream("log4j2-local-controller.xml");
          context.setConfiguration(new XmlConfiguration(context, new ConfigurationSource(configStream)));
       } catch (IOException e) {

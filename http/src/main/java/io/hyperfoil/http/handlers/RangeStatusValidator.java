@@ -8,11 +8,12 @@ import io.hyperfoil.api.config.Name;
 import io.hyperfoil.http.api.HttpRequest;
 import io.hyperfoil.http.api.StatusHandler;
 import io.hyperfoil.core.util.Util;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class RangeStatusValidator implements StatusHandler {
-   private static final Logger log = LoggerFactory.getLogger(RangeStatusValidator.class);
+   private static final Logger log = LogManager.getLogger(RangeStatusValidator.class);
 
    public final int min;
    public final int max;

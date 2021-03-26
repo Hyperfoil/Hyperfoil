@@ -37,11 +37,12 @@ import io.hyperfoil.core.util.Util;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.ServerWebSocket;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class WebCLI extends HyperfoilCli implements Handler<ServerWebSocket> {
-   private static final Logger log = LoggerFactory.getLogger(WebCLI.class);
+   private static final Logger log = LogManager.getLogger(WebCLI.class);
    private static final String EDITS_BEGIN = "__HYPERFOIL_EDITS_BEGIN__\n";
    private static final String EDITS_END = "__HYPERFOIL_EDITS_END__\n";
    private static final String INTERRUPT_SIGNAL = "__HYPERFOIL_INTERRUPT_SIGNAL__";

@@ -14,11 +14,12 @@ import io.hyperfoil.api.session.SharedData;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.core.builders.BaseStepBuilder;
 import io.hyperfoil.core.session.SessionFactory;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class PullSharedMapStep implements Step, ResourceUtilizer {
-   private static final Logger log = LoggerFactory.getLogger(PullSharedMapStep.class);
+   private static final Logger log = LogManager.getLogger(PullSharedMapStep.class);
    private static final boolean trace = log.isTraceEnabled();
 
    private final String key;

@@ -8,11 +8,12 @@ import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.netty.util.concurrent.ScheduledFuture;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class DelaySessionStartStep implements Step, ResourceUtilizer {
-   private static final Logger log = LoggerFactory.getLogger(DelaySessionStartStep.class);
+   private static final Logger log = LogManager.getLogger(DelaySessionStartStep.class);
    public static final Session.ResourceKey<Holder> KEY = new Session.ResourceKey<Holder>() {};
 
    private final String[] sequences;

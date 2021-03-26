@@ -9,11 +9,12 @@ import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.ObjectVar;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class Queue implements Session.Resource {
-   private static final Logger log = LoggerFactory.getLogger(Queue.class);
+   private static final Logger log = LogManager.getLogger(Queue.class);
    private static final boolean trace = log.isTraceEnabled();
 
    private final Access var;

@@ -13,11 +13,12 @@ import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.util.AsciiString;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class Http1xResponseHandler extends BaseResponseHandler {
-   private static final Logger log = LoggerFactory.getLogger(Http1xResponseHandler.class);
+   private static final Logger log = LogManager.getLogger(Http1xResponseHandler.class);
    private static final boolean trace = log.isTraceEnabled();
    private static final byte CR = 13;
    private static final byte LF = 10;

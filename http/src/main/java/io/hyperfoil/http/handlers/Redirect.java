@@ -24,11 +24,12 @@ import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.util.Util;
 import io.hyperfoil.function.SerializableFunction;
 import io.netty.buffer.ByteBuf;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class Redirect {
-   private static final Logger log = LoggerFactory.getLogger(Redirect.class);
+   private static final Logger log = LogManager.getLogger(Redirect.class);
    private static final boolean trace = log.isTraceEnabled();
 
    public static class StatusHandler extends BaseDelegatingStatusHandler {

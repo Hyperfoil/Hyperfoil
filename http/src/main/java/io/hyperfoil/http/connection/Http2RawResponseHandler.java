@@ -7,11 +7,12 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.hyperfoil.http.api.HttpConnection;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class Http2RawResponseHandler extends BaseResponseHandler {
-   private static final Logger log = LoggerFactory.getLogger(Http2RawResponseHandler.class);
+   private static final Logger log = LogManager.getLogger(Http2RawResponseHandler.class);
 
    private int streamId = -1;
    private byte[] frameHeader = new byte[FRAME_HEADER_LENGTH];

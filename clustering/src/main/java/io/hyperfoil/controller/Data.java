@@ -10,11 +10,12 @@ import io.hyperfoil.api.statistics.StatisticsSummary;
 import io.hyperfoil.core.builders.SLA;
 import io.netty.util.collection.IntObjectHashMap;
 import io.netty.util.collection.IntObjectMap;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 final class Data {
-   private static final Logger log = LoggerFactory.getLogger(Data.class);
+   private static final Logger log = LogManager.getLogger(Data.class);
 
    // When we receive snapshot with order #N we will attempt to compact agent snapshots #(N-60)
    // We are delaying this because the statistics for outlier may come with a significant delay

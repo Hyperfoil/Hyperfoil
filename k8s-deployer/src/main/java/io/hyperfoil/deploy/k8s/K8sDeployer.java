@@ -50,8 +50,10 @@ import io.hyperfoil.internal.Properties;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+
 import okhttp3.Request;
 import okhttp3.Response;
 
@@ -71,7 +73,7 @@ import okhttp3.Response;
  * You can also mount the configmap to controller.
  */
 public class K8sDeployer implements Deployer {
-   private static final Logger log = LoggerFactory.getLogger(K8sDeployer.class);
+   private static final Logger log = LogManager.getLogger(K8sDeployer.class);
    private static final String API_SERVER = Properties.get("io.hyperfoil.deployer.k8s.apiserver", "https://kubernetes.default.svc.cluster.local/");
    private static final String DEFAULT_IMAGE = "quay.io/hyperfoil/hyperfoil:" + Version.VERSION;
    private static final String CONTROLLER_POD_NAME = System.getenv("HOSTNAME");

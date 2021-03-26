@@ -12,11 +12,12 @@ import java.util.zip.ZipOutputStream;
 
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerResponse;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class Zipper {
-   private static final Logger log = LoggerFactory.getLogger(Zipper.class);
+   private static final Logger log = LogManager.getLogger(Zipper.class);
 
    private final HttpServerResponse response;
    private final ZipOutputStream zipStream;

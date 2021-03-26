@@ -12,11 +12,12 @@ import org.jgroups.protocols.TCPPING;
 import org.jgroups.protocols.pbcast.GMS;
 
 import io.hyperfoil.internal.Properties;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class HyperfoilChannelLookup implements JGroupsChannelLookup {
-   private static final Logger log = LoggerFactory.getLogger(HyperfoilChannelLookup.class);
+   private static final Logger log = LogManager.getLogger(HyperfoilChannelLookup.class);
 
    @Override
    public JChannel getJGroupsChannel(java.util.Properties p) {

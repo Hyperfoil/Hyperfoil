@@ -23,14 +23,15 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.util.AsciiString;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
  */
 class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
-   private static final Logger log = LoggerFactory.getLogger(Http1xConnection.class);
+   private static final Logger log = LogManager.getLogger(Http1xConnection.class);
    private static final boolean trace = log.isTraceEnabled();
    private static final byte[] HTTP1_1 = { ' ', 'H', 'T', 'T', 'P', '/', '1', '.', '1', '\r', '\n' };
 

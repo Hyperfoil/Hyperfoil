@@ -9,15 +9,15 @@ import java.util.function.Supplier;
 import org.HdrHistogram.SingleWriterRecorder;
 import org.HdrHistogram.WriterReaderPhaser;
 
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 /**
  * This is a copy/subset of {@link SingleWriterRecorder} but uses {@link StatisticsSnapshot} instead of only
  * the histogram.
  */
 public class Statistics {
-   private static final Logger log = LoggerFactory.getLogger(Statistics.class);
+   private static final Logger log = LogManager.getLogger(Statistics.class);
    private static final long SAMPLING_PERIOD_MILLIS = TimeUnit.SECONDS.toMillis(1);
 
    private static final AtomicIntegerFieldUpdater<Statistics> LU1 =

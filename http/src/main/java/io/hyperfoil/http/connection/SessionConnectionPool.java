@@ -12,11 +12,12 @@ import io.hyperfoil.http.api.HttpConnectionPool;
 import io.netty.channel.EventLoop;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class SessionConnectionPool implements HttpConnectionPool {
-   private static final Logger log = LoggerFactory.getLogger(SessionConnectionPool.class);
+   private static final Logger log = LogManager.getLogger(SessionConnectionPool.class);
    private static final boolean trace = log.isTraceEnabled();
    private final HttpConnectionPool shared;
    private final ArrayDeque<HttpConnection> available;

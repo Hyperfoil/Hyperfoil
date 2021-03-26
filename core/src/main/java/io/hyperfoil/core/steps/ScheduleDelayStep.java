@@ -23,11 +23,12 @@ import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.util.Unique;
 import io.hyperfoil.core.util.Util;
 import io.hyperfoil.function.SerializableToLongFunction;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class ScheduleDelayStep implements Step, ResourceUtilizer {
-   private static final Logger log = LoggerFactory.getLogger(ScheduleDelayStep.class);
+   private static final Logger log = LogManager.getLogger(ScheduleDelayStep.class);
 
    private final Access key;
    private final Type type;

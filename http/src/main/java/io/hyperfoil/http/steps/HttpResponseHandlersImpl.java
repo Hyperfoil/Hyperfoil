@@ -57,11 +57,12 @@ import io.hyperfoil.http.cookie.CookieRecorder;
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.util.AsciiString;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceUtilizer, Serializable {
-   private static final Logger log = LoggerFactory.getLogger(HttpResponseHandlersImpl.class);
+   private static final Logger log = LogManager.getLogger(HttpResponseHandlersImpl.class);
    private static final boolean trace = log.isTraceEnabled();
 
    final StatusHandler[] statusHandlers;

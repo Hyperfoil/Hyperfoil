@@ -11,11 +11,12 @@ import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.builders.IntCondition;
 import io.hyperfoil.core.session.SessionFactory;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class SetIntAction implements Action, ResourceUtilizer {
-   private static final Logger log = LoggerFactory.getLogger(SetIntAction.class);
+   private static final Logger log = LogManager.getLogger(SetIntAction.class);
    private static final boolean trace = log.isTraceEnabled();
 
    private final Access var;

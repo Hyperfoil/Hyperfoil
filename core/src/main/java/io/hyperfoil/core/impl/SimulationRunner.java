@@ -35,15 +35,16 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
  * @author <a href="mailto:johara@redhat.com">John O'Hara</a>
  */
 public class SimulationRunner {
-   protected static final Logger log = LoggerFactory.getLogger(SimulationRunner.class);
+   protected static final Logger log = LogManager.getLogger(SimulationRunner.class);
 
    private static final Clock DEFAULT_CLOCK = Clock.systemDefaultZone();
 

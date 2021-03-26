@@ -24,11 +24,12 @@ import org.yaml.snakeyaml.events.ScalarEvent;
 
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.PhaseBuilder;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 class PhasesParser extends AbstractParser<BenchmarkBuilder, PhaseBuilder.Catalog> {
-   private static Logger log = LoggerFactory.getLogger(PhasesParser.class);
+   private static Logger log = LogManager.getLogger(PhasesParser.class);
 
    PhasesParser() {
       register("noop", new PhaseParser.Noop());

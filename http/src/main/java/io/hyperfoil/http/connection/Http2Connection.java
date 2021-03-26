@@ -33,14 +33,15 @@ import io.netty.handler.codec.http2.Http2Settings;
 import io.netty.util.collection.IntObjectHashMap;
 import io.netty.util.collection.IntObjectMap;
 import io.netty.util.internal.AppendableCharSequence;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
  */
 class Http2Connection extends Http2EventAdapter implements HttpConnection {
-   private static final Logger log = LoggerFactory.getLogger(Http2Connection.class);
+   private static final Logger log = LogManager.getLogger(Http2Connection.class);
    private static final boolean trace = log.isTraceEnabled();
 
    private final ChannelHandlerContext context;

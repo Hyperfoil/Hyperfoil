@@ -5,11 +5,12 @@ import io.hyperfoil.api.config.Scenario;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.data.LimitedPoolResource;
 import io.hyperfoil.http.api.HttpRequest;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class HttpRequestPool extends LimitedPoolResource<HttpRequest> {
-   private static final Logger log = LoggerFactory.getLogger(HttpRequestPool.class);
+   private static final Logger log = LogManager.getLogger(HttpRequestPool.class);
    private static final boolean trace = log.isTraceEnabled();
    public static final Session.ResourceKey<LimitedPoolResource<HttpRequest>> KEY = new Key<>();
 

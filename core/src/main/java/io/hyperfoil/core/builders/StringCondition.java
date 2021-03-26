@@ -4,11 +4,12 @@ import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.function.SerializableBiPredicate;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class StringCondition implements Condition {
-   private static final Logger log = LoggerFactory.getLogger(StringCondition.class);
+   private static final Logger log = LogManager.getLogger(StringCondition.class);
    private static final boolean trace = log.isTraceEnabled();
 
    private final Access fromVar;

@@ -5,11 +5,12 @@ import java.util.List;
 
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 class SequenceScopedAccess implements Access {
-   private static final Logger log = LoggerFactory.getLogger(SequenceScopedAccess.class);
+   private static final Logger log = LogManager.getLogger(SequenceScopedAccess.class);
    private static final boolean trace = log.isTraceEnabled();
 
    private final Object key;

@@ -6,11 +6,12 @@ import java.util.Map;
 import io.hyperfoil.core.impl.ConnectionStatsConsumer;
 import io.hyperfoil.core.util.Watermarks;
 import io.hyperfoil.http.api.HttpConnection;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 class ConnectionPoolStats {
-   private static final Logger log = LoggerFactory.getLogger(ConnectionPoolStats.class);
+   private static final Logger log = LogManager.getLogger(ConnectionPoolStats.class);
    protected final String authority;
    protected final Watermarks usedConnections = new Watermarks();
    protected final Watermarks inFlight = new Watermarks();

@@ -16,11 +16,12 @@ import io.netty.handler.codec.http2.Http2ConnectionDecoder;
 import io.netty.handler.codec.http2.Http2ConnectionEncoder;
 import io.netty.handler.codec.http2.Http2Settings;
 import io.netty.util.internal.StringUtil;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 class CustomHttp2ConnectionHandler extends io.netty.handler.codec.http2.Http2ConnectionHandler {
-   private static final Logger log = LoggerFactory.getLogger(CustomHttp2ConnectionHandler.class);
+   private static final Logger log = LogManager.getLogger(CustomHttp2ConnectionHandler.class);
 
    private final BiConsumer<HttpConnection, Throwable> activationHandler;
    private final HttpClientPool clientPool;

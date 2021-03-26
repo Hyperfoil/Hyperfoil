@@ -61,8 +61,9 @@ import io.hyperfoil.http.handlers.FilterHeaderHandler;
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.util.AsciiString;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 /**
  * Issues a HTTP request and registers handlers for the response.
@@ -70,7 +71,7 @@ import io.vertx.core.logging.LoggerFactory;
 @MetaInfServices(StepBuilder.class)
 @Name("httpRequest")
 public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuilder> {
-   private static final Logger log = LoggerFactory.getLogger(SendHttpRequestStep.class);
+   private static final Logger log = LogManager.getLogger(SendHttpRequestStep.class);
 
    private int stepId = -1;
    private HttpMethod.Builder method;

@@ -17,11 +17,12 @@ import io.hyperfoil.function.SerializableFunction;
 import io.hyperfoil.http.HttpUtil;
 import io.hyperfoil.http.api.HttpRequest;
 import io.netty.buffer.ByteBuf;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class RefreshHandler implements Processor, ResourceUtilizer {
-   private static final Logger log = LoggerFactory.getLogger(RefreshHandler.class);
+   private static final Logger log = LogManager.getLogger(RefreshHandler.class);
 
    private static final byte[] URL = "url".getBytes(StandardCharsets.UTF_8);
    private final Queue.Key immediateQueueKey;

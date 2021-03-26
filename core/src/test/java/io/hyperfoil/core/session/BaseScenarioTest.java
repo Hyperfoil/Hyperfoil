@@ -23,12 +23,14 @@ import io.hyperfoil.core.test.TestUtil;
 import io.hyperfoil.core.util.CountDown;
 import io.hyperfoil.core.util.Util;
 import io.vertx.core.Vertx;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+
 import io.vertx.ext.unit.TestContext;
 
 public abstract class BaseScenarioTest {
-   protected final Logger log = LoggerFactory.getLogger(getClass());
+   protected final Logger log = LogManager.getLogger(getClass());
 
    protected Vertx vertx;
    protected BenchmarkBuilder benchmarkBuilder;

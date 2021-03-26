@@ -18,11 +18,12 @@ import io.hyperfoil.core.util.Trie;
 import io.hyperfoil.core.util.Util;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class HtmlHandler implements Processor, ResourceUtilizer, Session.ResourceKey<HtmlHandler.Context> {
-   private static final Logger log = LoggerFactory.getLogger(HtmlHandler.class);
+   private static final Logger log = LogManager.getLogger(HtmlHandler.class);
    private static final boolean trace = log.isTraceEnabled();
    private static final byte[] SCRIPT = "script".getBytes(StandardCharsets.UTF_8);
 

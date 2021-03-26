@@ -3,14 +3,14 @@ package io.hyperfoil.api.collection;
 import java.util.Arrays;
 import java.util.function.Supplier;
 
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 /**
  * Fixed-size pool that can be accessed by single thread only.
  */
 public class LimitedPool<T> {
-   private static final Logger log = LoggerFactory.getLogger(LimitedPool.class);
+   private static final Logger log = LogManager.getLogger(LimitedPool.class);
 
    private final Object[] elements;
    private final int size;

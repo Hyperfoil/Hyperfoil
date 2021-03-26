@@ -4,11 +4,12 @@ import java.io.Serializable;
 import java.util.Collection;
 
 import io.hyperfoil.function.SerializableSupplier;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public abstract class Phase implements Serializable {
-   protected static final Logger log = LoggerFactory.getLogger(Phase.class);
+   protected static final Logger log = LogManager.getLogger(Phase.class);
    protected static final boolean trace = log.isTraceEnabled();
 
    @Visitor.Ignore

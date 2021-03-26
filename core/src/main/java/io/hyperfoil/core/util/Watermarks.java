@@ -1,10 +1,10 @@
 package io.hyperfoil.core.util;
 
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class Watermarks {
-   private static final Logger log = LoggerFactory.getLogger(Watermarks.class);
+   private static final Logger log = LogManager.getLogger(Watermarks.class);
    // The fields are volatile as these can be read by any thread,
    // but written only by the event-loop executor thread.
    protected volatile int used = 0;

@@ -15,8 +15,9 @@ import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.statistics.Statistics;
 import io.hyperfoil.api.session.PhaseInstance;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -28,7 +29,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 class SessionImpl implements Session {
-   private static final Logger log = LoggerFactory.getLogger(SessionImpl.class);
+   private static final Logger log = LogManager.getLogger(SessionImpl.class);
    private static final boolean trace = log.isTraceEnabled();
 
    // Note: HashMap.get() is allocation-free, so we can use it for direct lookups. Replacing put() is also

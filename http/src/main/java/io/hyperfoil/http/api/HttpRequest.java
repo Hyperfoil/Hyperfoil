@@ -11,11 +11,12 @@ import io.hyperfoil.api.session.SessionStopException;
 import io.hyperfoil.api.statistics.Statistics;
 import io.hyperfoil.http.HttpRequestPool;
 import io.netty.buffer.ByteBuf;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class HttpRequest extends Request {
-   public static final Logger log = LoggerFactory.getLogger(HttpRequest.class);
+   public static final Logger log = LogManager.getLogger(HttpRequest.class);
 
    public HttpResponseHandlers handlers;
    public HttpMethod method;

@@ -52,14 +52,15 @@ import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.netty.util.concurrent.EventExecutor;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
  */
 public class HttpClientPoolImpl implements HttpClientPool {
-   private static final Logger log = LoggerFactory.getLogger(HttpClientPoolImpl.class);
+   private static final Logger log = LogManager.getLogger(HttpClientPoolImpl.class);
 
    final Http http;
    final String[] addressHosts;

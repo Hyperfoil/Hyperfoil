@@ -7,11 +7,12 @@ import io.hyperfoil.core.util.CountDown;
 import io.hyperfoil.core.impl.statistics.StatisticsCollector;
 import io.hyperfoil.clustering.messages.RequestStatsMessage;
 import io.vertx.core.eventbus.EventBus;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class RequestStatsSender extends StatisticsCollector {
-   private static final Logger log = LoggerFactory.getLogger(RequestStatsSender.class);
+   private static final Logger log = LogManager.getLogger(RequestStatsSender.class);
 
    private final String address;
    private final String runId;

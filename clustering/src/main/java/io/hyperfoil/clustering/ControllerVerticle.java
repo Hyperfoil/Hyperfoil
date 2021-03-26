@@ -43,8 +43,10 @@ import io.vertx.core.eventbus.Message;
 import io.vertx.core.impl.VertxInternal;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+
 import io.vertx.core.spi.cluster.ClusterManager;
 import io.vertx.core.spi.cluster.NodeListener;
 import io.vertx.ext.cluster.infinispan.InfinispanClusterManager;
@@ -71,7 +73,7 @@ import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 public class ControllerVerticle extends AbstractVerticle implements NodeListener {
-   private static final Logger log = LoggerFactory.getLogger(ControllerVerticle.class);
+   private static final Logger log = LogManager.getLogger(ControllerVerticle.class);
 
    private EventBus eb;
    private ControllerServer server;

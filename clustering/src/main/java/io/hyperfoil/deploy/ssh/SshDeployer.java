@@ -29,11 +29,12 @@ import io.hyperfoil.internal.Controller;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class SshDeployer implements Deployer {
-   private static final Logger log = LoggerFactory.getLogger(SshDeployer.class);
+   private static final Logger log = LogManager.getLogger(SshDeployer.class);
    static final long TIMEOUT = 10000;
 
    private final SshClient client;

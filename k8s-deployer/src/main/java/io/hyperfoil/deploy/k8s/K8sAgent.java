@@ -9,11 +9,12 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.dsl.LogWatch;
 import io.hyperfoil.api.config.Agent;
 import io.hyperfoil.api.deployment.DeployedAgent;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 class K8sAgent implements DeployedAgent {
-   private static final Logger log = LoggerFactory.getLogger(K8sAgent.class);
+   private static final Logger log = LogManager.getLogger(K8sAgent.class);
 
    final Agent def;
    final KubernetesClient client;

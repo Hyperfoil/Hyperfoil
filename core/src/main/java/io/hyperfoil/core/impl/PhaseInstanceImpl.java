@@ -8,8 +8,9 @@ import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.session.PhaseChangeHandler;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.PhaseInstance;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.util.HashMap;
 import java.util.List;
@@ -22,7 +23,7 @@ import java.util.function.BiFunction;
 import java.util.stream.IntStream;
 
 public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstance {
-   protected static final Logger log = LoggerFactory.getLogger(PhaseInstanceImpl.class);
+   protected static final Logger log = LogManager.getLogger(PhaseInstanceImpl.class);
    protected static final boolean trace = log.isTraceEnabled();
 
    private static Map<Class<? extends Phase>, BiFunction<? extends Phase, Integer, PhaseInstance>> constructors = new HashMap<>();

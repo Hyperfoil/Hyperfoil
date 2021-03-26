@@ -11,11 +11,12 @@ import io.netty.channel.EventLoop;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 class ConnectionAllocator extends ConnectionPoolStats implements HttpConnectionPool {
-   private static final Logger log = LoggerFactory.getLogger(ConnectionAllocator.class);
+   private static final Logger log = LogManager.getLogger(ConnectionAllocator.class);
    private final HttpClientPoolImpl clientPool;
    private final EventLoop eventLoop;
 

@@ -16,14 +16,15 @@ import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.Session.VarType;
 import io.hyperfoil.core.builders.BaseStepBuilder;
 import io.hyperfoil.core.session.SessionFactory;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 /**
  * This is a debugging step.
  */
 public class LogStep implements Step {
-   private static final Logger log = LoggerFactory.getLogger(LogStep.class);
+   private static final Logger log = LogManager.getLogger(LogStep.class);
 
    private final String message;
    private final Access[] vars;

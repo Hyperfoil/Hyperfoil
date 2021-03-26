@@ -7,11 +7,12 @@ import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.Session;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class NewSequenceAction implements Action {
-   private static final Logger log = LoggerFactory.getLogger(NewSequenceAction.class);
+   private static final Logger log = LogManager.getLogger(NewSequenceAction.class);
 
    private final String sequence;
    private final boolean forceSameIndex;

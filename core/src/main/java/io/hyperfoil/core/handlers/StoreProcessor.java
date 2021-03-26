@@ -11,11 +11,12 @@ import io.hyperfoil.core.session.SessionFactory;
 import io.netty.buffer.ByteBuf;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.ResourceUtilizer;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class StoreProcessor implements Processor, ResourceUtilizer {
-   private static final Logger log = LoggerFactory.getLogger(StoreProcessor.class);
+   private static final Logger log = LogManager.getLogger(StoreProcessor.class);
 
    private final Access toVar;
    private final DataFormat format;

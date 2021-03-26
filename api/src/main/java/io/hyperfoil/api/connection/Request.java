@@ -9,11 +9,12 @@ import io.hyperfoil.api.statistics.Statistics;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
 import io.netty.util.concurrent.ScheduledFuture;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public abstract class Request implements Callable<Void>, GenericFutureListener<Future<Void>> {
-   private static final Logger log = LoggerFactory.getLogger(Request.class);
+   private static final Logger log = LogManager.getLogger(Request.class);
    private static final GenericFutureListener<Future<Object>> FAILURE_LISTENER = future -> {
       if (!future.isSuccess() && !future.isCancelled()) {
          log.error("Timeout task failed", future.cause());

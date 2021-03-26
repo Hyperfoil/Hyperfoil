@@ -16,11 +16,12 @@ import io.hyperfoil.http.api.HttpConnectionPool;
 import io.hyperfoil.http.api.HttpDestinationTable;
 import io.hyperfoil.http.api.HttpMethod;
 import io.hyperfoil.http.api.HttpRequest;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class PrepareHttpRequestStep extends StatisticsStep implements ResourceUtilizer {
-   private static final Logger log = LoggerFactory.getLogger(PrepareHttpRequestStep.class);
+   private static final Logger log = LogManager.getLogger(PrepareHttpRequestStep.class);
 
    final HttpRequestContext.Key contextKey;
    final SerializableFunction<Session, HttpMethod> method;

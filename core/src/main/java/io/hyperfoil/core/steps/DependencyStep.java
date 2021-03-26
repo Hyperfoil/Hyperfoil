@@ -3,11 +3,12 @@ package io.hyperfoil.core.steps;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public abstract class DependencyStep implements Step {
-   private static final Logger log = LoggerFactory.getLogger(Step.class);
+   private static final Logger log = LogManager.getLogger(Step.class);
    private static final boolean trace = log.isTraceEnabled();
 
    private final Access[] dependencies;

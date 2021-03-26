@@ -6,11 +6,12 @@ import io.hyperfoil.api.session.Session;
 import io.hyperfoil.http.HttpUtil;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.util.AsciiString;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 class CookieStore implements Session.Resource {
-   private static final Logger log = LoggerFactory.getLogger(CookieRecorder.class);
+   private static final Logger log = LogManager.getLogger(CookieRecorder.class);
 
    // We need only single object for all cookies
    public static final Session.ResourceKey<CookieStore> COOKIES = new Session.ResourceKey<CookieStore>() {};

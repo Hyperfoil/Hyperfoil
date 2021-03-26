@@ -3,11 +3,12 @@ package io.hyperfoil.http.cookie;
 import io.hyperfoil.http.api.HttpRequestWriter;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.function.SerializableBiConsumer;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class CookieAppender implements SerializableBiConsumer<Session, HttpRequestWriter> {
-   private static final Logger log = LoggerFactory.getLogger(CookieAppender.class);
+   private static final Logger log = LogManager.getLogger(CookieAppender.class);
 
    @Override
    public void accept(Session session, HttpRequestWriter writer) {

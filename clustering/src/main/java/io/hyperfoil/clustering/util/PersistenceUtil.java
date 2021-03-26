@@ -11,11 +11,12 @@ import io.hyperfoil.api.config.BenchmarkData;
 import io.hyperfoil.core.parser.BenchmarkParser;
 import io.hyperfoil.core.parser.ParserException;
 import io.hyperfoil.core.util.Util;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class PersistenceUtil {
-   private static final Logger log = LoggerFactory.getLogger(PersistenceUtil.class);
+   private static final Logger log = LogManager.getLogger(PersistenceUtil.class);
 
    public static void store(Benchmark benchmark, Path dir) {
       try {

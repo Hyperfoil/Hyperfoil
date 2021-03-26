@@ -135,7 +135,6 @@
                         <argument>-cp</argument>
                         <classpath/>
                         <argument>-Djava.net.preferIPv4Stack=true</argument>
-                        <argument>-Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.Log4j2LogDelegateFactory</argument>
                         <argument>-Dio.hyperfoil.clustered=${io.hyperfoil.clustered}</argument>
                         <argument>${io.hyperfoil.debug}</argument>
                         <argument>io.hyperfoil.boot.Hyperfoil.Controller</argument>
