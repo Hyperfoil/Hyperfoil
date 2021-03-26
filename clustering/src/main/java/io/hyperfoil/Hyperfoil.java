@@ -30,9 +30,8 @@ import io.hyperfoil.clustering.AgentVerticle;
 import io.hyperfoil.clustering.Codecs;
 import io.hyperfoil.internal.Properties;
 import io.netty.util.ResourceLeakDetector;
-import io.vertx.core.AsyncResult;
 import io.vertx.core.DeploymentOptions;
-import io.vertx.core.Handler;
+import io.vertx.core.Future;
 import io.vertx.core.Verticle;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
@@ -44,7 +43,7 @@ public class Hyperfoil {
    static final Logger log = LogManager.getLogger(Hyperfoil.class);
    private static final Set<String> LOCALHOST_IPS = new HashSet<>(Arrays.asList("127.0.0.1", "::1", "[::1]"));
 
-   public static void clusteredVertx(boolean isController, Handler<Vertx> startedHandler, Runnable onError) {
+   public static Future<Vertx> clusteredVertx(boolean isController) {
       logVersion();
       Thread.setDefaultUncaughtExceptionHandler(Hyperfoil::defaultUncaughtExceptionHandler);
       log.info("Starting Vert.x...");
@@ -73,7 +72,7 @@ public class Hyperfoil {
                   "an invalid configuration for clustering. Make sure `hostname -i` does not return 127.0.0.1 or ::1 " +
                   " or set -D" + Properties.CONTROLLER_CLUSTER_IP + "=x.x.x.x to use different address. " +
                   "(if you set that to 127.0.0.1 you won't be able to connect from agents on other machines).");
-            onError.run();
+            return Future.failedFuture("Hostname resolves to 127.0.0.1");
          }
          // We are using numeric address because if this is running in a pod its hostname
          // wouldn't be resolvable even within the cluster/namespace.
@@ -89,20 +88,16 @@ public class Hyperfoil {
          }
       } catch (UnknownHostException e) {
          log.error("Cannot lookup hostname", e);
-         onError.run();
+         return Future.failedFuture("Cannot lookup hostname");
       }
       DefaultCacheManager cacheManager = createCacheManager();
       options.setClusterManager(new InfinispanClusterManager(cacheManager));
-      Vertx.clusteredVertx(options, result -> {
-         if (result.failed()) {
-            log.error("Cannot start Vert.x", result.cause());
-            onError.run();
-         }
-         Vertx vertx = result.result();
-         Codecs.register(vertx);
-         startedHandler.handle(vertx);
-      });
-      ensureNettyResourceLeakDetection();
+      return Vertx.clusteredVertx(options)
+            .onSuccess(vertx -> {
+               Codecs.register(vertx);
+               ensureNettyResourceLeakDetection();
+            })
+            .onFailure(error -> log.error("Cannot start Vert.x", error));
    }
 
    private static InetAddress getAddressWithBestMatch(InetAddress controllerAddress) {
@@ -185,31 +180,31 @@ public class Hyperfoil {
       ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.SIMPLE);
    }
 
-   public static void shutdownVertx(Vertx vertx, Handler<AsyncResult<Void>> handler) {
+   public static Future<Void> shutdownVertx(Vertx vertx) {
       ClusterManager clusterManager = ((VertxInternal) vertx).getClusterManager();
       DefaultCacheManager cacheManager = (DefaultCacheManager) ((InfinispanClusterManager) clusterManager).getCacheContainer();
-      vertx.close(result -> {
+      return vertx.close().onComplete(result -> {
          try {
             cacheManager.close();
          } catch (IOException e) {
             log.error("Failed to close Infinispan cache manager", e);
-         } finally {
-            if (handler != null) {
-               handler.handle(result);
-            }
          }
       });
    }
 
    public static class Agent extends Hyperfoil {
       public static void main(String[] args) {
-         clusteredVertx(false, vertx -> deploy(vertx, AgentVerticle.class), () -> System.exit(1));
+         clusteredVertx(false)
+               .onSuccess(vertx -> deploy(vertx, AgentVerticle.class))
+               .onFailure(error -> System.exit(1));
       }
    }
 
    public static class Controller extends Hyperfoil {
       public static void main(String[] args) {
-         clusteredVertx(true, vertx -> deploy(vertx, ControllerVerticle.class), () -> System.exit(1));
+         clusteredVertx(true)
+               .onSuccess(vertx -> deploy(vertx, ControllerVerticle.class))
+               .onFailure(error -> System.exit(1));
       }
    }
 

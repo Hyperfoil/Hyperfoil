@@ -131,7 +131,7 @@ public class AgentVerticle extends AbstractVerticle {
                message.reply(result.succeeded() ? "OK" : result.cause());
                if (vertx.isClustered()) {
                   // Give the message some time to be sent
-                  vertx.setTimer(1000, id -> Hyperfoil.shutdownVertx(vertx, null));
+                  vertx.setTimer(1000, id -> Hyperfoil.shutdownVertx(vertx));
                } else {
                   vertx.undeploy(deploymentID());
                }

@@ -19,7 +19,7 @@ public abstract class BaseClusteredTest extends BaseBenchmarkTest {
 
    @After
    public void teardown(TestContext ctx) {
-      servers.forEach(vertx -> Hyperfoil.shutdownVertx(vertx, ctx.asyncAssertSuccess()));
+      servers.forEach(vertx -> Hyperfoil.shutdownVertx(vertx).onComplete(ctx.asyncAssertSuccess()));
    }
 
    protected void startController(TestContext ctx) {
@@ -27,15 +27,10 @@ public abstract class BaseClusteredTest extends BaseBenchmarkTest {
       System.setProperty(Properties.CONTROLLER_HOST, "localhost");
       System.setProperty(Properties.CONTROLLER_CLUSTER_IP, "localhost");
       Async initAsync = ctx.async();
-      Hyperfoil.clusteredVertx(true, vertx -> {
+      Hyperfoil.clusteredVertx(true).onSuccess(vertx -> {
          servers.add(vertx);
-         vertx.deployVerticle(ControllerVerticle.class, new DeploymentOptions(), result -> {
-            if (result.succeeded()) {
-               initAsync.countDown();
-            } else {
-               ctx.fail(result.cause());
-            }
-         });
-      }, () -> ctx.fail("Failed to start clustered Vert.x, see log for details"));
+         vertx.deployVerticle(ControllerVerticle.class, new DeploymentOptions())
+               .onSuccess(v -> initAsync.countDown()).onFailure(ctx::fail);
+      }).onFailure(cause -> ctx.fail("Failed to start clustered Vert.x, see log for details"));
    }
 }
