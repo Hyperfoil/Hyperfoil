@@ -16,6 +16,7 @@ import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.config.ConfigurationSource;
 import org.apache.logging.log4j.core.config.xml.XmlConfiguration;
 
+import io.hyperfoil.cli.CliUtil;
 import io.hyperfoil.cli.context.HyperfoilCliContext;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.internal.Controller;
@@ -49,6 +50,7 @@ public class StartLocal extends ServerCommand {
          if (factory == null) {
             throw new CommandException("Controller is not on the classpath, cannot start.");
          }
+         rootDir = CliUtil.sanitize(rootDir);
          if (rootDir != null && rootDir.exists() && !(rootDir.isDirectory() && rootDir instanceof FileResource)) {
             if (!quiet) {
                invocation.println("You are trying to start Hyperfoil controller with root dir " + rootDir);

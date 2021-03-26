@@ -11,6 +11,7 @@ import org.aesh.command.CommandResult;
 import org.aesh.command.option.Option;
 import org.aesh.io.Resource;
 
+import io.hyperfoil.cli.CliUtil;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.controller.Client;
 
@@ -29,6 +30,7 @@ public class Export extends BaseExportCommand {
       Client.RunRef runRef = getRunRef(invocation);
       String acceptFormat = getAcceptFormat();
       String defaultFilename = getDefaultFilename(runRef);
+      destination = CliUtil.sanitize(destination);
       String destinationFile = destination.toString();
       if (destination.isDirectory()) {
          destinationFile = destination + File.separator + defaultFilename;

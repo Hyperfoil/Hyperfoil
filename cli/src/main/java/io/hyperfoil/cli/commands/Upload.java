@@ -34,9 +34,9 @@ public class Upload extends ServerCommand {
    public CommandResult execute(HyperfoilCommandInvocation invocation) throws CommandException {
       ensureConnection(invocation);
       HyperfoilCliContext ctx = invocation.context();
+      Resource sanitizedResource = CliUtil.sanitize(benchmarkResource);
       Benchmark benchmark;
       try {
-         Resource sanitizedResource = CliUtil.sanitize(benchmarkResource);
          benchmark = BenchmarkParser.instance().buildBenchmark(Util.toString(sanitizedResource.read()), new LocalBenchmarkData(Paths.get(sanitizedResource.getAbsolutePath())));
       } catch (ParserException | BenchmarkDefinitionException e) {
          invocation.error(e);
@@ -54,14 +54,14 @@ public class Upload extends ServerCommand {
          invocation.error("Failed to serialize the benchmark: " + Util.explainCauses(e));
       }
       try {
-         Path benchmarkDir = Paths.get(benchmarkResource.getAbsolutePath()).getParent();
+         Path benchmarkDir = Paths.get(sanitizedResource.getAbsolutePath()).getParent();
          Map<String, Path> extraFiles = benchmark.files().keySet().stream()
                .collect(Collectors.toMap(file -> file, file -> {
                   Path path = Paths.get(file);
                   return path.isAbsolute() ? path : benchmarkDir.resolve(file);
                }));
          Client.BenchmarkRef benchmarkRef = ctx.client().register(
-               benchmarkResource.getAbsolutePath(), extraFiles, null, null);
+               sanitizedResource.getAbsolutePath(), extraFiles, null, null);
          ctx.setServerBenchmark(benchmarkRef);
          invocation.println("... done.");
          return CommandResult.SUCCESS;
