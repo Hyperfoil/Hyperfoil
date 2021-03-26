@@ -110,7 +110,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
          String runId = hello.runId();
          Run run = runs.get(runId);
          if (run == null) {
-            log.error("Unknown run ID {}" + runId);
+            log.error("Unknown run ID " + runId);
             message.fail(1, "Unknown run ID");
             return;
          }
