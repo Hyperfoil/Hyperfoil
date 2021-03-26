@@ -23,6 +23,11 @@
             <scope>test</scope>
         </dependency>
 
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+
         <!--TODO:: remove these dependencies from api-->
         <dependency>
             <groupId>io.vertx</groupId>

@@ -141,7 +141,7 @@ class ControllerServer implements ApiService {
       StaticHandler staticHandler = StaticHandler.create().setCachingEnabled(true);
       router.route("/").handler(staticHandler);
       router.route("/web/*").handler(staticHandler);
-      router.route("/favicon.ico").handler(FaviconHandler.create("webroot/favicon.ico"));
+      router.route("/favicon.ico").handler(FaviconHandler.create(controller.getVertx(), "webroot/favicon.ico"));
       new ApiRouter(this, router);
 
       String controllerHost = Properties.get(Properties.CONTROLLER_HOST, controller.getConfig().getString(Properties.CONTROLLER_HOST, "0.0.0.0"));

@@ -85,7 +85,7 @@ public class AgentVerticle extends AbstractVerticle {
 
       if (vertx.isClustered()) {
          if (vertx instanceof VertxInternal) {
-            nodeId = ((VertxInternal) vertx).getClusterManager().getNodeID();
+            nodeId = ((VertxInternal) vertx).getClusterManager().getNodeId();
          }
       }
       vertx.setPeriodic(1000, timerId -> {

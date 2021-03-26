@@ -104,7 +104,7 @@ public class FollowRedirectTest extends HttpScenarioTest {
    private boolean ensureHeaders(io.vertx.ext.web.RoutingContext ctx) {
       if (!ctx.request().getHeader("x-preserve").equals("repeat me with redirect")) {
          log.error("Missing header x-preserve");
-         ctx.response().setStatusCode(500).write("Missing or incorrect x-preserve header").end();
+         ctx.response().setStatusCode(500).end("Missing or incorrect x-preserve header");
          return false;
       }
       return true;

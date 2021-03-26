@@ -63,11 +63,11 @@ public class FleetTest extends HttpScenarioTest {
             routingContext.response().setStatusCode(404).end();
             return;
          }
-         switch (routingContext.request().method()) {
-            case GET:
+         switch (routingContext.request().method().name()) {
+            case "GET":
                routingContext.response().end(Json.encodePrettily(ship.get()));
                break;
-            case DELETE:
+            case "DELETE":
                routingContext.response().setStatusCode(204).setStatusMessage("Ship sunk.").end();
                break;
          }

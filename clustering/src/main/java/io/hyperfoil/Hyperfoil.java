@@ -48,7 +48,6 @@ public class Hyperfoil {
       Thread.setDefaultUncaughtExceptionHandler(Hyperfoil::defaultUncaughtExceptionHandler);
       log.info("Starting Vert.x...");
       VertxOptions options = new VertxOptions();
-      options.getEventBusOptions().setClustered(true);
       try {
          String clusterIp = Properties.get(Properties.CONTROLLER_CLUSTER_IP, null);
          InetAddress address;
@@ -144,7 +143,7 @@ public class Hyperfoil {
 
    private static DefaultCacheManager createCacheManager() {
       try (InputStream stream = FileLookupFactory.newInstance().lookupFile("infinispan.xml", Thread.currentThread().getContextClassLoader())) {
-         ConfigurationBuilderHolder holder = new ParserRegistry().parse(stream);
+         ConfigurationBuilderHolder holder = new ParserRegistry().parse(stream, null);
          holder.getGlobalConfigurationBuilder().transport().defaultTransport()
                .addProperty(JGroupsTransport.CHANNEL_LOOKUP, HyperfoilChannelLookup.class.getName())
                .initialClusterSize(1);
