@@ -38,6 +38,10 @@ public interface PhaseInstance {
 
    Throwable getError();
 
+   String runId();
+
+   int agentId();
+
    int agentThreads();
 
    int agentFirstThreadId();

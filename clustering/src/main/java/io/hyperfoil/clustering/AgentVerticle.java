@@ -208,7 +208,7 @@ public class AgentVerticle extends AbstractVerticle {
 
       Context context = vertx.getOrCreateContext();
 
-      runner = new SimulationRunner(benchmark, agentId);
+      runner = new SimulationRunner(benchmark, runId, agentId);
       controlFeedConsumer = listenOnControl();
       requestStatsSender = new RequestStatsSender(benchmark, eb, deploymentId, runId);
       statisticsCountDown = new CountDown(1);

@@ -30,6 +30,8 @@ public interface Session extends Callable<Void> {
 
    int agentId();
 
+   String runId();
+
    EventExecutor executor();
 
    SharedData sharedData();

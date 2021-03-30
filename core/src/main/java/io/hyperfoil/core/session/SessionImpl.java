@@ -53,15 +53,13 @@ class SessionImpl implements Session {
    private SharedData sharedData;
    private SessionStatistics statistics;
 
-   private final int agentId;
    private final int threadId;
    private final int uniqueId;
 
    private final Callable<Void> deferredStart = this::deferredStart;
 
-   SessionImpl(Scenario scenario, int agentId, int threadId, int uniqueId) {
+   SessionImpl(Scenario scenario, int threadId, int uniqueId) {
       this.sequencePool = new LimitedPool<>(scenario.maxSequences(), SequenceInstance::new);
-      this.agentId = agentId;
       this.threadId = threadId;
       this.runningSequences = new SequenceInstance[scenario.maxSequences()];
       this.usedSequences = new BitSet(scenario.sumConcurrency());
@@ -115,7 +113,12 @@ class SessionImpl implements Session {
 
    @Override
    public int agentId() {
-      return agentId;
+      return phase.agentId();
+   }
+
+   @Override
+   public String runId() {
+      return phase.runId();
    }
 
    @Override

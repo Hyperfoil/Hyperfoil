@@ -17,11 +17,13 @@ import io.netty.util.concurrent.ImmediateEventExecutor;
 
 public final class SessionFactory {
    private static final SpecialAccess[] SPECIAL = new SpecialAccess[]{
-         new SpecialAccess.Int("hyperfoil.phase.iteration", s -> s.phase().iteration)
-   };
+         new SpecialAccess.Int("hyperfoil.phase.id", s -> s.phase().id),
+         new SpecialAccess.Int("hyperfoil.phase.iteration", s -> s.phase().iteration),
+         new SpecialAccess.Object("hyperfoil.run.id", s -> (Object) s.runId()),
+         };
 
-   public static Session create(Scenario scenario, int agentId, int executorId, int uniqueId) {
-      return new SessionImpl(scenario, agentId, executorId, uniqueId);
+   public static Session create(Scenario scenario, int executorId, int uniqueId) {
+      return new SessionImpl(scenario, executorId, uniqueId);
    }
 
    public static Session forTesting() {
@@ -30,7 +32,7 @@ public final class SessionFactory {
 
    public static Session forTesting(String[] objectVars, String[] intVars) {
       Scenario dummyScenario = new Scenario(new Sequence[0], new Sequence[0], objectVars, intVars, 16, 16);
-      SessionImpl session = new SessionImpl(dummyScenario, 0, 0, 0);
+      SessionImpl session = new SessionImpl(dummyScenario, 0, 0);
       Phase dummyPhase = new Phase(() -> Benchmark.forTesting(), 0, 0, "dummy", dummyScenario, 0,
             Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), 0, -1, null) {
          @Override
@@ -38,7 +40,7 @@ public final class SessionFactory {
             return "dummy";
          }
       };
-      session.resetPhase(new PhaseInstanceImpl<Phase>(dummyPhase, 0) {
+      session.resetPhase(new PhaseInstanceImpl<>(dummyPhase, "dummy", 0) {
          @Override
          public void proceed(EventExecutorGroup executorGroup) {
          }

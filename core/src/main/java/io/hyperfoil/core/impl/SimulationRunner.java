@@ -50,6 +50,7 @@ public class SimulationRunner {
 
    protected final Benchmark benchmark;
    protected final int agentId;
+   protected final String runId;
    protected final Map<String, PhaseInstance> instances = new HashMap<>();
    protected final List<Session> sessions = new ArrayList<>();
    private final Map<String, SharedResources> sharedResources = new HashMap<>();
@@ -62,10 +63,11 @@ public class SimulationRunner {
    private boolean isDepletedMessageQuietened;
    private Thread jitterWatchdog;
 
-   public SimulationRunner(Benchmark benchmark, int agentId) {
+   public SimulationRunner(Benchmark benchmark, String runId, int agentId) {
       this.eventLoopGroup = EventLoopFactory.INSTANCE.create(benchmark.threads(agentId));
       this.executors = StreamSupport.stream(eventLoopGroup.spliterator(), false).map(EventLoop.class::cast).toArray(EventLoop[]::new);
       this.benchmark = benchmark;
+      this.runId = runId;
       this.agentId = agentId;
       this.toPrune = new ArrayBlockingQueue<>(benchmark.phases().size());
       this.runData = benchmark.plugins().stream()
@@ -100,7 +102,7 @@ public class SimulationRunner {
                   // if the connection pool size = number of users we need to match the #sessions in
                   // each executor to the #connections.
                   executorId = phaseSessions.size() % executors.length;
-                  session = SessionFactory.create(def.scenario, agentId, executorId, this.sessions.size());
+                  session = SessionFactory.create(def.scenario, executorId, this.sessions.size());
                   this.sessions.add(session);
                   phaseSessions.add(session);
                }
@@ -124,7 +126,7 @@ public class SimulationRunner {
             });
             this.sharedResources.put(def.sharedResources, sharedResources);
          }
-         PhaseInstance phase = PhaseInstanceImpl.newInstance(def, agentId);
+         PhaseInstance phase = PhaseInstanceImpl.newInstance(def, runId, agentId);
          instances.put(def.name(), phase);
          phase.setComponents(sharedResources.sessionPool, sharedResources.sessions, this::phaseChanged);
          phase.reserveSessions();
