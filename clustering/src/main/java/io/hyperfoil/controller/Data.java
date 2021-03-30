@@ -47,6 +47,10 @@ final class Data {
    }
 
    void record(String address, StatisticsSnapshot stats) {
+      if (completed) {
+         log.warn("Ignoring statistics for completed {}/{}/{} (from {}, {} requests)", phase, stepId, metric, address, stats.requestCount);
+         return;
+      }
       stats.addInto(total);
       stats.addInto(perAgent.computeIfAbsent(address, a -> new StatisticsSnapshot()));
       IntObjectMap<StatisticsSnapshot> partialSnapshots = lastStats.computeIfAbsent(address, a -> new IntObjectHashMap<>());

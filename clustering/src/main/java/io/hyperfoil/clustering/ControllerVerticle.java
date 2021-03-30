@@ -17,6 +17,7 @@ import io.hyperfoil.clustering.messages.AgentControlMessage;
 import io.hyperfoil.clustering.messages.AgentHello;
 import io.hyperfoil.clustering.messages.AgentReadyMessage;
 import io.hyperfoil.clustering.messages.AgentStatusMessage;
+import io.hyperfoil.clustering.messages.AuxiliaryHello;
 import io.hyperfoil.clustering.messages.ConnectionStatsMessage;
 import io.hyperfoil.clustering.messages.ErrorMessage;
 import io.hyperfoil.clustering.messages.PhaseChangeMessage;
@@ -79,8 +80,8 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
    private EventBus eb;
    private ControllerServer server;
    private Deployer deployer;
-   private AtomicInteger runIds = new AtomicInteger();
-   private Map<String, Benchmark> benchmarks = new HashMap<>();
+   private final AtomicInteger runIds = new AtomicInteger();
+   private final Map<String, Benchmark> benchmarks = new HashMap<>();
    private long timerId = -1;
 
    Map<String, Run> runs = new HashMap<>();
@@ -106,36 +107,15 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       eb = vertx.eventBus();
 
       eb.consumer(Feeds.DISCOVERY, message -> {
-         AgentHello hello = (AgentHello) message.body();
-         String runId = hello.runId();
-         Run run = runs.get(runId);
-         if (run == null) {
-            log.error("Unknown run ID " + runId);
-            message.fail(1, "Unknown run ID");
-            return;
-         }
-         AgentInfo agentInfo = run.agents.stream().filter(a -> a.name.equals(hello.name())).findAny().orElse(null);
-         if (agentInfo == null) {
-            log.error("Unknown agent {} ({}/{})", hello.name(), hello.nodeId(), hello.deploymentId());
-            message.fail(1, "Unknown agent");
-            return;
-         }
-         if (agentInfo.status != AgentInfo.Status.STARTING) {
-            log.info("Ignoring message, {} is not starting", agentInfo.name);
-            message.reply("Ignoring");
-            return;
-         }
-         log.debug("Registering agent {} ({}/{})", hello.name(), hello.nodeId(), hello.deploymentId());
-         agentInfo.nodeId = hello.nodeId();
-         agentInfo.deploymentId = hello.deploymentId();
-         agentInfo.status = AgentInfo.Status.REGISTERED;
-         message.reply("Registered");
-
-         if (run.agents.stream().allMatch(a -> a.status != AgentInfo.Status.STARTING)) {
-            handleAgentsStarted(run);
+         if (message.body() instanceof AgentHello) {
+            handleAgentHello(message, (AgentHello) message.body());
+         } else if (message.body() instanceof AuxiliaryHello) {
+            AuxiliaryHello hello = (AuxiliaryHello) message.body();
+            log.info("Noticed auxiliary {} (node {}, {})", hello.name(), hello.nodeId(), hello.deploymentId());
+            String nodeId = ((VertxInternal) vertx).getClusterManager().getNodeId();
+            message.reply(nodeId);
          } else {
-            log.debug("Waiting for registration from agents {}",
-                  run.agents.stream().filter(a -> a.status == AgentInfo.Status.STARTING).collect(Collectors.toList()));
+            log.error("Unknown message on discovery feed! {}", message.body());
          }
       });
 
@@ -257,6 +237,39 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       startCountDown.increment();
       loadBenchmarks(startCountDown);
       startCountDown.countDown();
+   }
+
+   private void handleAgentHello(Message<Object> message, AgentHello hello) {
+      String runId = hello.runId();
+      Run run = runs.get(runId);
+      if (run == null) {
+         log.error("Unknown run ID " + runId);
+         message.fail(1, "Unknown run ID");
+         return;
+      }
+      AgentInfo agentInfo = run.agents.stream().filter(a -> a.name.equals(hello.name())).findAny().orElse(null);
+      if (agentInfo == null) {
+         log.error("Unknown agent {} ({}/{})", hello.name(), hello.nodeId(), hello.deploymentId());
+         message.fail(1, "Unknown agent");
+         return;
+      }
+      if (agentInfo.status != AgentInfo.Status.STARTING) {
+         log.info("Ignoring message, {} is not starting", agentInfo.name);
+         message.reply("Ignoring");
+         return;
+      }
+      log.debug("Registering agent {} ({}/{})", hello.name(), hello.nodeId(), hello.deploymentId());
+      agentInfo.nodeId = hello.nodeId();
+      agentInfo.deploymentId = hello.deploymentId();
+      agentInfo.status = AgentInfo.Status.REGISTERED;
+      message.reply("Registered");
+
+      if (run.agents.stream().allMatch(a -> a.status != AgentInfo.Status.STARTING)) {
+         handleAgentsStarted(run);
+      } else {
+         log.debug("Waiting for registration from agents {}",
+               run.agents.stream().filter(a -> a.status == AgentInfo.Status.STARTING).collect(Collectors.toList()));
+      }
    }
 
    private void handlePhaseChange(Run run, AgentInfo agent, PhaseChangeMessage phaseChange) {
@@ -461,6 +474,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                if (result.failed()) {
                   run.errors.add(new Run.Error(agentInfo, new BenchmarkExecutionException("Failed to start agent", result.cause())));
                   log.error("Failed to start agent " + agent.name, result.cause());
+                  vertx.runOnContext(nil -> stopSimulation(run));
                }
             });
          }

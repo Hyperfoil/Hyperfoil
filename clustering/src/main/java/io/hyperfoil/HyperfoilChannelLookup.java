@@ -27,8 +27,10 @@ public class HyperfoilChannelLookup implements JGroupsChannelLookup {
          String controllerIP = Properties.get(Properties.CONTROLLER_CLUSTER_IP, null);
          String controllerPort = Properties.get(Properties.CONTROLLER_CLUSTER_PORT, null);
          if (controllerIP != null && controllerPort != null) {
-            log.info("Connecting to controller {}:{}", controllerIP, controllerPort);
-            ping.initialHosts(Collections.singletonList(new InetSocketAddress(controllerIP, Integer.parseInt(controllerPort))));
+            InetSocketAddress address = new InetSocketAddress(controllerIP, Integer.parseInt(controllerPort));
+            log.info("Connecting to controller {}:{} ({}:{})", controllerIP, controllerPort,
+                  address.getAddress().getHostAddress(), address.getPort());
+            ping.initialHosts(Collections.singletonList(address));
          } else {
             log.info("Reducing join timeout.");
             GMS gms = channel.getProtocolStack().findProtocol(GMS.class);
