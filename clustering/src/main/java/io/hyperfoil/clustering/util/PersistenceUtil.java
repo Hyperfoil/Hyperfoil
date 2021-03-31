@@ -22,14 +22,12 @@ public class PersistenceUtil {
    public static void store(Benchmark benchmark, Path dir) {
       try {
          byte[] bytes = Util.serialize(benchmark);
-         if (bytes != null) {
-            Path path = dir.resolve(benchmark.name() + ".serialized");
-            try {
-               Files.write(path, bytes);
-               log.info("Stored benchmark '{}' in {}", benchmark.name(), path);
-            } catch (IOException e) {
-               log.error(new FormattedMessage("Failed to persist benchmark {} to {}", benchmark.name(), path), e);
-            }
+         Path path = dir.resolve(benchmark.name() + ".serialized");
+         try {
+            Files.write(path, bytes);
+            log.info("Stored benchmark '{}' in {}", benchmark.name(), path);
+         } catch (IOException e) {
+            log.error(new FormattedMessage("Failed to persist benchmark {} to {}", benchmark.name(), path), e);
          }
       } catch (IOException e) {
          log.error("Failed to serialize", e);
@@ -51,12 +49,14 @@ public class PersistenceUtil {
          File dataDir = dataDirPath.toFile();
          if (dataDir.exists()) {
             // Make sure the directory is empty
+            //noinspection ConstantConditions
             for (File file : dataDir.listFiles()) {
                if (file.delete()) {
                   log.warn("Could not delete old file {}", file);
                }
             }
             if (benchmark.files().isEmpty()) {
+               //noinspection ResultOfMethodCallIgnored
                dataDir.delete();
             }
          } else if (!dataDir.exists() && !benchmark.files().isEmpty()) {
@@ -88,7 +88,7 @@ public class PersistenceUtil {
             }
          }
          try {
-            String source = new String(Files.readAllBytes(file), StandardCharsets.UTF_8);
+            String source = Files.readString(file);
             Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(source, data);
             log.info("Loaded benchmark '{}' from {}", benchmark.name(), file);
             return benchmark;

@@ -100,7 +100,9 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             log.error("Cannot load previous runs from " + Controller.RUN_DIR, e);
          }
       }
+      //noinspection ResultOfMethodCallIgnored
       Controller.HOOKS_DIR.resolve("pre").toFile().mkdirs();
+      //noinspection ResultOfMethodCallIgnored
       Controller.HOOKS_DIR.resolve("post").toFile().mkdirs();
 
       eb = vertx.eventBus();
@@ -338,7 +340,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       JsonObject info = new JsonObject();
       if (infoFile.toFile().exists() && infoFile.toFile().isFile()) {
          try {
-            info = new JsonObject(new String(Files.readAllBytes(infoFile), StandardCharsets.UTF_8));
+            info = new JsonObject(Files.readString(infoFile));
          } catch (Exception e) {
             log.error("Cannot read info for run {}", runId);
             return;
@@ -372,13 +374,13 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
    }
 
    private void tryProgressStatus(Run run, String phase) {
-      PhaseInstance.Status minStatus = null;
+      PhaseInstance.Status minStatus = PhaseInstance.Status.TERMINATED;
       for (AgentInfo a : run.agents) {
          PhaseInstance.Status status = a.phases.get(phase);
          if (status == null) {
             // The status is not defined on one of the nodes, so we can't progress it.
             return;
-         } else if (minStatus == null || status.ordinal() < minStatus.ordinal()) {
+         } else if (status.ordinal() < minStatus.ordinal()) {
             minStatus = status;
          }
       }
@@ -416,12 +418,12 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
    Run createRun(Benchmark benchmark, String description) {
       String runId = String.format("%04X", runIds.getAndIncrement());
       Path runDir = Controller.RUN_DIR.resolve(runId);
+      //noinspection ResultOfMethodCallIgnored
       runDir.toFile().mkdirs();
       Run run = new Run(runId, runDir, benchmark);
       run.description = description;
-      run.statisticsStore = new StatisticsStore(run.benchmark, failure -> {
-         log.warn("Failed verify SLA(s) for {}/{}: {}", failure.phase(), failure.metric(), failure.message());
-      });
+      run.statisticsStore = new StatisticsStore(run.benchmark,
+            failure -> log.warn("Failed verify SLA(s) for {}/{}: {}", failure.phase(), failure.metric(), failure.message()));
       runs.put(run.id, run);
       PersistenceUtil.store(run.benchmark, run.dir);
       return run;

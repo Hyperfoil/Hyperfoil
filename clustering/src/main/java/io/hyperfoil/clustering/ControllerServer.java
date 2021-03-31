@@ -332,6 +332,7 @@ class ControllerServer implements ApiService {
             log.info("Trying to use stored files from {}, adding files from request: {}", dataDirPath, data.files().keySet());
             if (!data.files().isEmpty()) {
                File dataDir = dataDirPath.toFile();
+               //noinspection ResultOfMethodCallIgnored
                dataDir.mkdirs();
                if (dataDir.exists() && dataDir.isDirectory()) {
                   try {
@@ -740,12 +741,12 @@ class ControllerServer implements ApiService {
 
    @Override
    public void getBenchmarkForRun$text_vnd_yaml(RoutingContext ctx, String runId) {
-      withRun(ctx, runId, run -> sendYamlBenchmark(ctx, run.benchmark));
+      withRun(ctx, runId, run -> sendYamlBenchmark(ctx, controller.ensureBenchmark(run)));
    }
 
    @Override
    public void getBenchmarkForRun$application_java_serialized_object(RoutingContext ctx, String runId) {
-      withRun(ctx, runId, run -> sendSerializedBenchmark(ctx, run.benchmark));
+      withRun(ctx, runId, run -> sendSerializedBenchmark(ctx, controller.ensureBenchmark(run)));
    }
 
    @Override
@@ -768,9 +769,7 @@ class ControllerServer implements ApiService {
             tempFile.deleteOnExit();
             controller.downloadControllerLog(offset, tempFile, result -> {
                if (result.succeeded()) {
-                  ctx.response()
-                        .putHeader(HttpHeaders.ETAG, controller.deploymentID())
-                        .sendFile(tempFile.toString(), r -> tempFile.delete());
+                  sendFile(ctx, tempFile, controller.deploymentID());
                } else {
                   log.error("Failed to download controller log.", result.cause());
                   ctx.response()
@@ -807,6 +806,13 @@ class ControllerServer implements ApiService {
       }
    }
 
+   private void sendFile(RoutingContext ctx, File tempFile, String etag) {
+      //noinspection ResultOfMethodCallIgnored
+      ctx.response()
+            .putHeader(HttpHeaders.ETAG, etag)
+            .sendFile(tempFile.toString(), r -> tempFile.delete());
+   }
+
    @Override
    public void getAgentLog(RoutingContext ctx, String agent, long offset, String ifMatch) {
       if (agent == null || "controller".equals(agent)) {
@@ -821,7 +827,7 @@ class ControllerServer implements ApiService {
       Optional<AgentInfo> agentInfo = controller.runs.values().stream()
             .reduce(LAST_RUN_OPERATOR)
             .flatMap(run -> run.agents.stream().filter(ai -> agent.equals(ai.name)).findFirst());
-      if (!agentInfo.isPresent()) {
+      if (agentInfo.isEmpty()) {
          ctx.response()
                .setStatusCode(HttpResponseStatus.NOT_FOUND.code())
                .setStatusMessage("Agent " + agent + " not found.").end();
@@ -836,9 +842,7 @@ class ControllerServer implements ApiService {
          tempFile.deleteOnExit();
          controller.downloadAgentLog(agentInfo.get().deployedAgent, offset, tempFile, result -> {
             if (result.succeeded()) {
-               ctx.response()
-                     .putHeader(HttpHeaders.ETAG, agentInfo.get().deploymentId)
-                     .sendFile(tempFile.toString(), r -> tempFile.delete());
+               sendFile(ctx, tempFile, agentInfo.get().deploymentId);
             } else {
                log.error("Failed to download agent log for " + agentInfo.get(), result.cause());
                ctx.response()
