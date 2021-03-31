@@ -52,7 +52,6 @@ import io.vertx.core.spi.cluster.ClusterManager;
 import io.vertx.core.spi.cluster.NodeListener;
 import io.vertx.ext.cluster.infinispan.InfinispanClusterManager;
 
-import org.apache.logging.log4j.message.FormattedMessage;
 import org.infinispan.commons.api.BasicCacheContainer;
 
 import java.io.File;
@@ -496,15 +495,25 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
 
       for (AgentInfo agent : run.agents) {
          if (agent.status != AgentInfo.Status.REGISTERED) {
-            log.error("{} Already initializing {}, status is {}!", run.id, agent.deploymentId, agent.status);
+            log.error("{} Agent {}({}) already initializing, status is {}!", run.id, agent.name, agent.deploymentId, agent.status);
          } else {
             eb.request(agent.deploymentId, new AgentControlMessage(AgentControlMessage.Command.INITIALIZE, agent.id, run.benchmark), reply -> {
-               if (!reply.succeeded()) {
-                  agent.status = AgentInfo.Status.FAILED;
-                  log.error(new FormattedMessage("{} Agent {}({}) failed to initialize", run.id, agent.name, agent.deploymentId), reply.cause());
-                  run.errors.add(new Run.Error(agent, reply.cause()));
-                  stopSimulation(run);
+               Throwable cause;
+               if (reply.failed()) {
+                  cause = reply.cause();
+                  log.error("{} Agent {}({}) failed to initialize", run.id, agent.name, agent.deploymentId);
+                  log.error("Failure thrown on the controller (this node): ", cause);
+               } else if (reply.result() instanceof Throwable) {
+                  cause = (Throwable) reply.result();
+                  log.error("{} Agent {}({}) failed to initialize", run.id, agent.name, agent.deploymentId);
+                  log.error("Failure thrown on the agent node (see agent log for details): ", cause);
+               } else {
+                  log.debug("{} Agent {}({}) was initialized.", run.id, agent.name, agent.deploymentId);
+                  return;
                }
+               agent.status = AgentInfo.Status.FAILED;
+               run.errors.add(new Run.Error(agent, cause));
+               stopSimulation(run);
             });
          }
       }
@@ -609,13 +618,18 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             continue;
          }
          eb.request(agent.deploymentId, new AgentControlMessage(AgentControlMessage.Command.STOP, agent.id, null), reply -> {
-            if (reply.succeeded()) {
+            if (reply.succeeded() && !(reply.result() instanceof Throwable)) {
                agent.status = AgentInfo.Status.STOPPED;
                checkAgentsStopped(run);
                log.debug("Agent {}/{} stopped.", agent.name, agent.deploymentId);
             } else {
                agent.status = AgentInfo.Status.FAILED;
-               log.error(new FormattedMessage("Agent {}/{} failed to stop", agent.name, agent.deploymentId), reply.cause());
+               log.error("Agent {}/{} failed to stop", agent.name, agent.deploymentId);
+               if (reply.result() instanceof Throwable) {
+                  log.error("Failure thrown on the agent node (see agent log for details): ", (Throwable) reply.result());
+               } else {
+                  log.error("Failure thrown on the controller (this node): ", reply.cause());
+               }
             }
             if (agent.deployedAgent != null) {
                // Give agents 3 seconds to leave the cluster
@@ -825,20 +839,36 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
 
    public void listSessions(Run run, boolean includeInactive, BiConsumer<AgentInfo, String> sessionStateHandler, Handler<AsyncResult<Void>> completionHandler) {
       invokeOnAgents(run, AgentControlMessage.Command.LIST_SESSIONS, includeInactive, completionHandler, (agent, result) -> {
-         @SuppressWarnings("unchecked")
-         List<String> sessions = (List<String>) result.result().body();
-         for (String state : sessions) {
-            sessionStateHandler.accept(agent, state);
+         if (result.failed()) {
+            log.error("Agent " + agent + " failed listing sessions", result.cause());
+            sessionStateHandler.accept(agent, "");
+         } else if (result.result() instanceof Throwable) {
+            log.error("Agent " + agent + " has thrown an error while listing sessions", (Throwable) result.result());
+            sessionStateHandler.accept(agent, "");
+         } else {
+            @SuppressWarnings("unchecked")
+            List<String> sessions = (List<String>) result.result().body();
+            for (String state : sessions) {
+               sessionStateHandler.accept(agent, state);
+            }
          }
       });
    }
 
    public void listConnections(Run run, BiConsumer<AgentInfo, String> connectionHandler, Handler<AsyncResult<Void>> completionHandler) {
       invokeOnAgents(run, AgentControlMessage.Command.LIST_CONNECTIONS, null, completionHandler, (agent, result) -> {
-         @SuppressWarnings("unchecked")
-         List<String> connections = (List<String>) result.result().body();
-         for (String state : connections) {
-            connectionHandler.accept(agent, state);
+         if (result.failed()) {
+            log.error("Agent " + agent + " failed listing connections", result.cause());
+            connectionHandler.accept(agent, "");
+         } else if (result.result() instanceof Throwable) {
+            log.error("Agent " + agent + " has thrown an error while listing connections", (Throwable) result.result());
+            connectionHandler.accept(agent, "");
+         } else {
+            @SuppressWarnings("unchecked")
+            List<String> connections = (List<String>) result.result().body();
+            for (String state : connections) {
+               connectionHandler.accept(agent, state);
+            }
          }
       });
    }

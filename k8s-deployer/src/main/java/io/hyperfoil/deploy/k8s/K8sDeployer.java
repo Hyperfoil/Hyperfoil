@@ -116,7 +116,7 @@ public class K8sDeployer implements Deployer {
    public DeployedAgent start(Agent agent, String runId, Benchmark benchmark, Consumer<Throwable> exceptionHandler) {
       ensureClient();
 
-      PodSpecBuilder spec = new PodSpecBuilder();
+      PodSpecBuilder spec = new PodSpecBuilder().withRestartPolicy("Never");
       List<String> command = new ArrayList<>();
       command.add("java");
       int threads = agent.threads() < 0 ? benchmark.defaultThreads() : agent.threads();

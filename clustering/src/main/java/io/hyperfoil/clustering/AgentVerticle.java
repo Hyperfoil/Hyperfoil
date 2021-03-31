@@ -118,58 +118,73 @@ public class AgentVerticle extends AbstractVerticle {
                message.reply("OK");
             } catch (Throwable e) {
                log.error("Failed to initialize agent", e);
-               message.fail(1, e.getMessage());
+               message.reply(e);
             }
             break;
          case STOP:
             // collect stats one last time before acknowledging termination
             log.info("Received agent reset");
-            if (statsTimerId >= 0) {
-               vertx.cancelTimer(statsTimerId);
-            }
-            CountDown completion = new CountDown(result -> {
-               message.reply(result.succeeded() ? "OK" : result.cause());
-               if (vertx.isClustered()) {
-                  // Give the message some time to be sent
-                  vertx.setTimer(1000, id -> Hyperfoil.shutdownVertx(vertx));
-               } else {
-                  vertx.undeploy(deploymentID());
+            try {
+               if (statsTimerId >= 0) {
+                  vertx.cancelTimer(statsTimerId);
                }
-            }, 1);
-            if (runner != null) {
-               // TODO: why do we have to visit&send stats here?
-               runner.visitStatistics(requestStatsSender);
-               requestStatsSender.send(completion);
-               requestStatsSender.sendPhaseComplete(null, completion);
-               runner.shutdown();
-            }
-            if (controlFeedConsumer != null) {
-               controlFeedConsumer.unregister();
-            }
-            controlFeedConsumer = null;
-            runner = null;
-            requestStatsSender = null;
-            if (statisticsCountDown != null) {
-               statisticsCountDown.setHandler(result -> completion.countDown());
-               statisticsCountDown.countDown();
-            } else {
-               completion.countDown();
+               CountDown completion = new CountDown(result -> {
+                  message.reply(result.succeeded() ? "OK" : result.cause());
+                  if (vertx.isClustered()) {
+                     // Give the message some time to be sent
+                     vertx.setTimer(1000, id -> Hyperfoil.shutdownVertx(vertx));
+                  } else {
+                     vertx.undeploy(deploymentID());
+                  }
+               }, 1);
+               if (runner != null) {
+                  // TODO: why do we have to visit&send stats here?
+                  runner.visitStatistics(requestStatsSender);
+                  requestStatsSender.send(completion);
+                  requestStatsSender.sendPhaseComplete(null, completion);
+                  runner.shutdown();
+               }
+               if (controlFeedConsumer != null) {
+                  controlFeedConsumer.unregister();
+               }
+               controlFeedConsumer = null;
+               runner = null;
+               requestStatsSender = null;
+               if (statisticsCountDown != null) {
+                  statisticsCountDown.setHandler(result -> completion.countDown());
+                  statisticsCountDown.countDown();
+               } else {
+                  completion.countDown();
+               }
+            } catch (Throwable e) {
+               log.error("Exception thrown when stopping the agent", e);
+               message.reply(e);
             }
             break;
          case LIST_SESSIONS:
             log.debug("Listing sessions...");
-            ArrayList<String> sessions = new ArrayList<>();
-            boolean includeInactive = controlMessage.includeInactive();
-            runner.visitSessions(s -> {
-               if (s.isActive() || includeInactive) {
-                  sessions.add(s.toString());
-               }
-            });
-            message.reply(sessions);
+            try {
+               ArrayList<String> sessions = new ArrayList<>();
+               boolean includeInactive = controlMessage.includeInactive();
+               runner.visitSessions(s -> {
+                  if (s.isActive() || includeInactive) {
+                     sessions.add(s.toString());
+                  }
+               });
+               message.reply(sessions);
+            } catch (Throwable e) {
+               log.error("Exception thrown when listing sessions", e);
+               message.reply(e);
+            }
             break;
          case LIST_CONNECTIONS:
             log.debug("Listing connections...");
-            message.reply(runner.listConnections());
+            try {
+               message.reply(runner.listConnections());
+            } catch (Throwable e) {
+               log.error("Exception thrown when listing connections", e);
+               message.reply(e);
+            }
             break;
       }
    }
