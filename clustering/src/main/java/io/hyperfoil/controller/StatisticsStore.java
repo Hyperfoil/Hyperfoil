@@ -52,7 +52,7 @@ public class StatisticsStore {
             }));
    }
 
-   public void record(String address, int phaseId, int stepId, String metric, StatisticsSnapshot stats) {
+   public void record(String agentName, int phaseId, int stepId, String metric, StatisticsSnapshot stats) {
       Map<String, Data> map = this.data.computeIfAbsent((phaseId << 16) + stepId, phaseStep -> new HashMap<>());
       Data data = map.get(metric);
       if (data == null) {
@@ -67,7 +67,7 @@ public class StatisticsStore {
          String phase = benchmark.phases().stream().filter(p -> p.id() == phaseId).findFirst().get().name();
          map.put(metric, data = new Data(this, phase, stepId, metric, rings, total));
       }
-      data.record(address, stats);
+      data.record(agentName, stats);
    }
 
    public void addFailure(String phase, String metric, long startTimestamp, long endTimestamp, String cause) {

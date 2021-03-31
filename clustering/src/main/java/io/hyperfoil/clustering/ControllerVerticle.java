@@ -157,17 +157,20 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
          StatsMessage statsMessage = (StatsMessage) message.body();
          Run run = runs.get(statsMessage.runId);
          if (run != null) {
+            String agentName = run.agents.stream()
+                  .filter(ai -> ai.deploymentId.equals(statsMessage.address))
+                  .map(ai -> ai.name).findFirst().orElse("<unknown>");
             // Agents start sending stats before the server processes the confirmation for initialization
             if (run.statisticsStore != null) {
                if (statsMessage instanceof RequestStatsMessage) {
                   RequestStatsMessage requestStatsMessage = (RequestStatsMessage) statsMessage;
                   String phase = run.phase(requestStatsMessage.phaseId);
                   if (requestStatsMessage.statistics != null) {
-                     log.debug("Run {}: Received stats from {}: {}/{}/{}:{} ({} requests)",
-                           requestStatsMessage.runId, requestStatsMessage.address,
+                     log.debug("Run {}: Received stats from {}({}): {}/{}/{}:{} ({} requests)",
+                           requestStatsMessage.runId, agentName, requestStatsMessage.address,
                            phase, requestStatsMessage.stepId, requestStatsMessage.metric,
                            requestStatsMessage.statistics.sequenceId, requestStatsMessage.statistics.requestCount);
-                     run.statisticsStore.record(requestStatsMessage.address, requestStatsMessage.phaseId, requestStatsMessage.stepId,
+                     run.statisticsStore.record(agentName, requestStatsMessage.phaseId, requestStatsMessage.stepId,
                            requestStatsMessage.metric, requestStatsMessage.statistics);
                   }
                   if (requestStatsMessage.isPhaseComplete) {

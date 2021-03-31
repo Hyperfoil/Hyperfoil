@@ -46,14 +46,14 @@ final class Data {
       this.totalSlas = totalSlas;
    }
 
-   void record(String address, StatisticsSnapshot stats) {
+   void record(String agentName, StatisticsSnapshot stats) {
       if (completed) {
-         log.warn("Ignoring statistics for completed {}/{}/{} (from {}, {} requests)", phase, stepId, metric, address, stats.requestCount);
+         log.warn("Ignoring statistics for completed {}/{}/{} (from {}, {} requests)", phase, stepId, metric, agentName, stats.requestCount);
          return;
       }
       stats.addInto(total);
-      stats.addInto(perAgent.computeIfAbsent(address, a -> new StatisticsSnapshot()));
-      IntObjectMap<StatisticsSnapshot> partialSnapshots = lastStats.computeIfAbsent(address, a -> new IntObjectHashMap<>());
+      stats.addInto(perAgent.computeIfAbsent(agentName, a -> new StatisticsSnapshot()));
+      IntObjectMap<StatisticsSnapshot> partialSnapshots = lastStats.computeIfAbsent(agentName, a -> new IntObjectHashMap<>());
       StatisticsSnapshot partialSnapshot = partialSnapshots.get(stats.sequenceId);
       if (partialSnapshot == null) {
          partialSnapshots.put(stats.sequenceId, stats);
