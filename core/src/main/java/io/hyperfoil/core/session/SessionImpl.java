@@ -298,7 +298,7 @@ class SessionImpl implements Session {
          return;
       }
       if (trace) {
-         log.trace("#{} Run ({} runnning sequences)", uniqueId, lastRunningSequence + 1);
+         log.trace("#{} Run ({} running sequences)", uniqueId, lastRunningSequence + 1);
       }
       int lastProgressedSequence = -1;
       while (lastRunningSequence >= 0) {
@@ -326,7 +326,7 @@ class SessionImpl implements Session {
                      log.trace("#{} Completed {}({})", uniqueId, sequence, sequence.index());
                   }
                   if (lastRunningSequence == -1) {
-                     log.trace("#{} was stopped.");
+                     log.trace("#{} was stopped.", uniqueId);
                      return;
                   }
                   sequence.decRefCnt(this);
