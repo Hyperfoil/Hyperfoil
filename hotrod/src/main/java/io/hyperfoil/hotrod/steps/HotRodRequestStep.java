@@ -27,6 +27,7 @@ public class HotRodRequestStep extends StatisticsStep implements ResourceUtilize
    final MetricSelector metricSelector;
    final SerializableFunction<Session, String> keyGenerator;
    final SerializableFunction<Session, String> valueGenerator;
+
    protected HotRodRequestStep(int id, HotRodResource.Key futureWrapperKey,
                                SerializableFunction<Session, HotRodOperation> operation,
                                SerializableFunction<Session, String> cacheName,
@@ -97,7 +98,7 @@ public class HotRodRequestStep extends StatisticsStep implements ResourceUtilize
       if (ex instanceof TimeoutException || ex instanceof HotRodTimeoutException) {
          statistics.incrementTimeouts(System.currentTimeMillis());
       } else {
-         statistics.incrementResets(System.currentTimeMillis());
+         statistics.incrementConnectionErrors(System.currentTimeMillis());
       }
       session.stop();
    }
@@ -106,11 +107,10 @@ public class HotRodRequestStep extends StatisticsStep implements ResourceUtilize
       HotRodResource resource = session.getResource(futureWrapperKey);
       long startTimestampMillis = resource.getStartTimestampMillis();
       long startTimestampNanos = resource.getStartTimestampNanos();
-      long sendTimestampNanos = resource.getSendTimestampNanos();
       long endTimestampNanos = System.nanoTime();
 
       Statistics statistics = session.statistics(id(), metric);
-      statistics.recordResponse(startTimestampMillis, sendTimestampNanos - startTimestampNanos, endTimestampNanos - startTimestampNanos);
+      statistics.recordResponse(startTimestampMillis, endTimestampNanos - startTimestampNanos);
    }
 
    private Object getValue(Session.Var sessionVar) {

@@ -120,7 +120,7 @@ public class RunMojo extends AbstractMojo {
       }
 
       if (stats.errors() > 0) {
-         log.info("Socket errors: connect {}, reset {}, timeout {}", stats.connectFailureCount, stats.resetCount, stats.timeouts);
+         log.info("Socket errors: errors {}, timeouts {}", stats.connectionErrors, stats.requestTimeouts);
       }
       HttpStats httpStats = HttpStats.get(stats);
       if (httpStats.status_4xx + httpStats.status_5xx + httpStats.status_other > 0) {

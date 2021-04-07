@@ -15,35 +15,29 @@ import org.HdrHistogram.Histogram;
 public class StatisticsSnapshot implements Serializable {
    public int sequenceId = -1;
    public final Histogram histogram = new Histogram(TimeUnit.MINUTES.toNanos(1), 2);
-   public long totalSendTime;
    public int connectFailureCount;
    public int requestCount;
    public int responseCount;
    public int invalid;
-   public int resetCount;
-   public int timeouts;
+   public int connectionErrors;
+   public int requestTimeouts;
    public int internalErrors;
-   public int blockedCount;
    public long blockedTime;
    public final Map<String, StatsExtension> extensions = new HashMap<>();
 
    public boolean isEmpty() {
-      return connectFailureCount + requestCount + responseCount +
-            invalid + resetCount + timeouts + internalErrors + blockedCount == 0 &&
+      return requestCount + responseCount + invalid + connectionErrors + requestTimeouts + internalErrors == 0 &&
             extensions.values().stream().allMatch(StatsExtension::isNull);
    }
 
    public void reset() {
       histogram.reset();
-      totalSendTime = 0;
-      connectFailureCount = 0;
       requestCount = 0;
       responseCount = 0;
       invalid = 0;
-      resetCount = 0;
-      timeouts = 0;
+      connectionErrors = 0;
+      requestTimeouts = 0;
       internalErrors = 0;
-      blockedCount = 0;
       blockedTime = 0;
       for (StatsExtension value : extensions.values()) {
          if (value != null) {
@@ -61,15 +55,12 @@ public class StatisticsSnapshot implements Serializable {
 
    public void add(StatisticsSnapshot other) {
       histogram.add(other.histogram);
-      totalSendTime += other.totalSendTime;
-      connectFailureCount += other.connectFailureCount;
       requestCount += other.requestCount;
       responseCount += other.responseCount;
       invalid += other.invalid;
-      resetCount += other.resetCount;
-      timeouts += other.timeouts;
+      connectionErrors += other.connectionErrors;
+      requestTimeouts += other.requestTimeouts;
       internalErrors += other.internalErrors;
-      blockedCount += other.blockedCount;
       blockedTime += other.blockedTime;
       for (String key : other.extensions.keySet()) {
          StatsExtension their = other.extensions.get(key);
@@ -86,15 +77,12 @@ public class StatisticsSnapshot implements Serializable {
 
    public void subtract(StatisticsSnapshot other) {
       histogram.subtract(other.histogram);
-      totalSendTime -= other.totalSendTime;
-      connectFailureCount -= other.connectFailureCount;
       requestCount -= other.requestCount;
       responseCount -= other.responseCount;
       invalid -= other.invalid;
-      resetCount -= other.resetCount;
-      timeouts -= other.timeouts;
+      connectionErrors -= other.connectionErrors;
+      requestTimeouts -= other.requestTimeouts;
       internalErrors -= other.internalErrors;
-      blockedCount -= other.blockedCount;
       blockedTime -= other.blockedTime;
       for (String key : other.extensions.keySet()) {
          StatsExtension their = other.extensions.get(key);
@@ -116,9 +104,8 @@ public class StatisticsSnapshot implements Serializable {
       TreeMap<Double, Long> percentilesMap = getPercentiles(percentiles);
       return new StatisticsSummary(histogram.getStartTimeStamp(), histogram.getEndTimeStamp(),
             histogram.getMinValue(), (long) histogram.getMean(), histogram.getMaxValue(),
-            responseCount > 0 ? totalSendTime / responseCount : resetCount,
-            percentilesMap, connectFailureCount, requestCount, responseCount,
-            invalid, resetCount, timeouts, internalErrors, blockedCount, blockedTime, new TreeMap<>(extensions));
+            percentilesMap, requestCount, responseCount,
+            invalid, connectionErrors, requestTimeouts, internalErrors, blockedTime, new TreeMap<>(extensions));
    }
 
    public TreeMap<Double, Long> getPercentiles(double[] percentiles) {
@@ -127,7 +114,7 @@ public class StatisticsSnapshot implements Serializable {
    }
 
    public long errors() {
-      return connectFailureCount + resetCount + timeouts + internalErrors;
+      return connectionErrors + requestTimeouts + internalErrors;
    }
 
    @Override
@@ -136,15 +123,12 @@ public class StatisticsSnapshot implements Serializable {
             "sequenceId=" + sequenceId +
             ", start=" + histogram.getStartTimeStamp() +
             ", end=" + histogram.getEndTimeStamp() +
-            ", totalSendTime=" + totalSendTime +
-            ", connectFailureCount=" + connectFailureCount +
             ", requestCount=" + requestCount +
             ", responseCount=" + responseCount +
             ", invalid=" + invalid +
-            ", resetCount=" + resetCount +
-            ", timeouts=" + timeouts +
+            ", connectionErrors=" + connectionErrors +
+            ", requestTimeouts=" + requestTimeouts +
             ", internalErrors=" + internalErrors +
-            ", blockedCount=" + blockedCount +
             ", blockedTime=" + blockedTime +
             ", extensions=" + extensions + '}';
    }

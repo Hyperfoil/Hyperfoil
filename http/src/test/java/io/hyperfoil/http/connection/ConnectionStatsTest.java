@@ -331,7 +331,7 @@ public class ConnectionStatsTest extends HttpScenarioTest {
       StatisticsSnapshot snapshot = requestStats.stats().get("test");
       assertThat(snapshot.requestCount).isEqualTo(1);
       assertThat(snapshot.responseCount).isEqualTo(response ? 1 : 0);
-      assertThat(snapshot.resetCount).isEqualTo(response ? 0 : 1);
+      assertThat(snapshot.connectionErrors).isEqualTo(response ? 0 : 1);
 
       connectionStats.stats.forEach((tag, lowHigh) -> assertThat(lowHigh.low).describedAs(tag).isLessThanOrEqualTo(lowHigh.high));
       connectionStats.stats.forEach((tag, lowHigh) -> assertThat(lowHigh.low).describedAs(tag).isGreaterThanOrEqualTo(0));
@@ -362,8 +362,8 @@ public class ConnectionStatsTest extends HttpScenarioTest {
       HttpStats http = HttpStats.get(snapshot);
       assertThat(snapshot.requestCount).isGreaterThan(100);
       // When connection cancels requests from other sessions these are recorded as resets
-      assertThat(snapshot.responseCount).isEqualTo(snapshot.requestCount - snapshot.resetCount);
-      assertThat(snapshot.resetCount).isEqualTo(snapshot.requestCount - http.status_2xx - http.status_4xx);
+      assertThat(snapshot.responseCount).isEqualTo(snapshot.requestCount - snapshot.connectionErrors);
+      assertThat(snapshot.connectionErrors).isEqualTo(snapshot.requestCount - http.status_2xx - http.status_4xx);
       assertThat(http.status_2xx).isGreaterThan(30);
       if (errors) {
          assertThat(http.status_4xx).isGreaterThan(30);

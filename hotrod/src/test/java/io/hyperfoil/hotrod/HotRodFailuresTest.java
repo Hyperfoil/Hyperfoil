@@ -25,7 +25,7 @@ public class HotRodFailuresTest extends BaseHotRodTest {
       Benchmark benchmark = loadScenario("scenarios/HotRodPutTest.hf.yaml");
       Map<String, StatisticsSnapshot> stats = runScenario(benchmark);
       assertTrue(stats.get("example").requestCount > 0);
-      assertTrue(stats.get("example").resetCount > 0);
+      assertTrue(stats.get("example").connectionErrors > 0);
    }
 
    @Override

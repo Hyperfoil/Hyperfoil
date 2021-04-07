@@ -33,8 +33,8 @@ public class Stats extends BaseRunIdCommand {
          .columnNanos("p99", r -> r.summary.percentileResponseTime.get(99d))
          .columnNanos("p99.9", r -> r.summary.percentileResponseTime.get(99.9))
          .columnNanos("p99.99", r -> r.summary.percentileResponseTime.get(99.99))
-         .columnInt("TIMEOUTS", r -> r.summary.timeouts)
-         .columnInt("ERRORS", r -> r.summary.resetCount + r.summary.connectFailureCount + r.summary.internalErrors)
+         .columnInt("TIMEOUTS", r -> r.summary.requestTimeouts)
+         .columnInt("ERRORS", r -> r.summary.connectionErrors + r.summary.internalErrors)
          .columnNanos("BLOCKED", r -> r.summary.blockedTime);
 
    private static final String[] DIRECT_EXTENSIONS = { HttpStats.HTTP };
@@ -160,7 +160,7 @@ public class Stats extends BaseRunIdCommand {
    private void addDirectExtensions(RequestStatisticsResponse stats, Table<RequestStats> table) {
       boolean hasHttp = stats.statistics.stream().anyMatch(rs -> rs.summary.extensions.containsKey(HttpStats.HTTP));
       if (hasHttp) {
-          table.columnInt("2xx", r -> HttpStats.get(r.summary).status_2xx)
+         table.columnInt("2xx", r -> HttpStats.get(r.summary).status_2xx)
                .columnInt("3xx", r -> HttpStats.get(r.summary).status_3xx)
                .columnInt("4xx", r -> HttpStats.get(r.summary).status_4xx)
                .columnInt("5xx", r -> HttpStats.get(r.summary).status_5xx)

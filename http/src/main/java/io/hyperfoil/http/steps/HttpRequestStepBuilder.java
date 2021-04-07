@@ -892,7 +892,7 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
          } else {
             long now = System.currentTimeMillis();
             log.trace("#{} Session start {}, now {}, diff {}", session.uniqueId(), startTimeMs, now, now - startTimeMs);
-            statistics.recordResponse(startTimeMs, 0, TimeUnit.MILLISECONDS.toNanos(now - startTimeMs));
+            statistics.recordResponse(startTimeMs, TimeUnit.MILLISECONDS.toNanos(now - startTimeMs));
          }
       }
 

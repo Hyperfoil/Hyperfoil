@@ -34,10 +34,9 @@ public class ErrorRatioTest extends HttpScenarioTest {
       assertThat(stats.requestCount).isEqualTo(1);
       assertThat(stats.responseCount).isEqualTo(1);
       assertThat(http.status_4xx).isEqualTo(1);
-      assertThat(stats.resetCount).isEqualTo(0);
+      assertThat(stats.connectionErrors).isEqualTo(0);
       assertThat(stats.invalid).isEqualTo(1);
       assertThat(http.cacheHits).isEqualTo(0);
-      assertThat(stats.connectFailureCount).isEqualTo(0);
       assertThat(stats.errors()).isEqualTo(0);
    }
 
@@ -52,10 +51,9 @@ public class ErrorRatioTest extends HttpScenarioTest {
       StatisticsSnapshot stats = runScenario().get("close");
       assertThat(stats.requestCount).isEqualTo(1);
       assertThat(stats.responseCount).isEqualTo(0);
-      assertThat(stats.resetCount).isEqualTo(1);
+      assertThat(stats.connectionErrors).isEqualTo(1);
       assertThat(stats.invalid).isEqualTo(1);
       assertThat(HttpStats.get(stats).cacheHits).isEqualTo(0);
-      assertThat(stats.connectFailureCount).isEqualTo(0);
       assertThat(stats.errors()).isEqualTo(1);
    }
 
@@ -76,7 +74,7 @@ public class ErrorRatioTest extends HttpScenarioTest {
       assertThat(http.status_2xx).isEqualTo(1);
       assertThat(stats.invalid).isEqualTo(1);
       assertThat(http.cacheHits).isEqualTo(0);
-      assertThat(stats.resetCount).isEqualTo(0);
+      assertThat(stats.connectionErrors).isEqualTo(0);
       assertThat(stats.internalErrors).isEqualTo(1);
       assertThat(stats.errors()).isEqualTo(1);
    }
@@ -97,7 +95,7 @@ public class ErrorRatioTest extends HttpScenarioTest {
       assertThat(http.status_2xx).isEqualTo(1);
       assertThat(stats.invalid).isEqualTo(1);
       assertThat(http.cacheHits).isEqualTo(0);
-      assertThat(stats.resetCount).isEqualTo(0);
+      assertThat(stats.connectionErrors).isEqualTo(0);
       assertThat(stats.internalErrors).isEqualTo(1);
       assertThat(stats.errors()).isEqualTo(1);
    }

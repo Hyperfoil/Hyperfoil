@@ -24,7 +24,6 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
    public final Session session;
    private long startTimestampMillis;
    private long startTimestampNanos;
-   private long sendTimestampNanos;
    private SequenceInstance sequence;
    private SequenceInstance completionSequence;
    private Statistics statistics;
@@ -132,7 +131,7 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
    }
 
    public void recordResponse(long endTimestampNanos) {
-      statistics.recordResponse(startTimestampMillis, sendTimestampNanos - startTimestampNanos, endTimestampNanos - startTimestampNanos);
+      statistics.recordResponse(startTimestampMillis, endTimestampNanos - startTimestampNanos);
    }
 
    public long startTimestampMillis() {
@@ -141,10 +140,6 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
 
    public long startTimestampNanos() {
       return startTimestampNanos;
-   }
-
-   public long sendTimestampNanos() {
-      return sendTimestampNanos;
    }
 
    public void setTimeout(long timeout, TimeUnit timeUnit) {
@@ -157,7 +152,6 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
       // This is called when the request is written on the wire
       // It doesn't make sense to throw any exceptions from this method
       // since DefaultPromise.notifyListener0 would swallow them with a warning.
-      sendTimestampNanos = System.nanoTime();
       if (!future.isSuccess()) {
          log.error("Failed to write request {} to {}", this, connection);
          if (connection != null) {

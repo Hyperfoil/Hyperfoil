@@ -203,7 +203,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
 
       try {
          if (request.isRunning()) {
-            request.statistics().incrementResets(request.startTimestampMillis());
+            request.statistics().incrementConnectionErrors(request.startTimestampMillis());
             request.setCompleting();
             if (completionHandlers != null) {
                for (Action handler : completionHandlers) {

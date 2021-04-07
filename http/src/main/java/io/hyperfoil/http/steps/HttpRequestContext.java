@@ -50,7 +50,6 @@ class HttpRequestContext implements Session.Resource, ConnectionConsumer {
       if (waitTimestamp != Long.MIN_VALUE) {
          long blockedTime = System.nanoTime() - waitTimestamp;
          request.statistics().incrementBlockedTime(request.startTimestampMillis(), blockedTime);
-         request.statistics().incrementBlockedCount(request.startTimestampMillis());
       }
    }
 

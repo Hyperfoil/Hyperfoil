@@ -54,7 +54,7 @@ public class Statistics {
       highestTrackableValue = first.histogram.getHighestTrackableValue();
    }
 
-   public void recordResponse(long startTimestamp, long sendTime, long responseTime) {
+   public void recordResponse(long startTimestamp, long responseTime) {
       if (responseTime > highestTrackableValue) {
          // we don't use auto-resize histograms
          log.warn("Response time {} exceeded maximum trackable response time {}", responseTime, highestTrackableValue);
@@ -64,7 +64,6 @@ public class Statistics {
       try {
          StatisticsSnapshot active = active(startTimestamp);
          active.histogram.recordValue(responseTime);
-         active.totalSendTime += sendTime;
          active.responseCount++;
       } finally {
          recordingPhaser.writerCriticalSectionExit(criticalValueAtEnter);
@@ -85,17 +84,17 @@ public class Statistics {
       long criticalValueAtEnter = recordingPhaser.writerCriticalSectionEnter();
       try {
          StatisticsSnapshot active = active(timestamp);
-         active.timeouts++;
+         active.requestTimeouts++;
       } finally {
          recordingPhaser.writerCriticalSectionExit(criticalValueAtEnter);
       }
    }
 
-   public void incrementResets(long timestamp) {
+   public void incrementConnectionErrors(long timestamp) {
       long criticalValueAtEnter = recordingPhaser.writerCriticalSectionEnter();
       try {
          StatisticsSnapshot active = active(timestamp);
-         active.resetCount++;
+         active.connectionErrors++;
       } finally {
          recordingPhaser.writerCriticalSectionExit(criticalValueAtEnter);
       }
@@ -106,16 +105,6 @@ public class Statistics {
       try {
          StatisticsSnapshot active = active(timestamp);
          active.internalErrors++;
-      } finally {
-         recordingPhaser.writerCriticalSectionExit(criticalValueAtEnter);
-      }
-   }
-
-   public void incrementBlockedCount(long timestamp) {
-      long criticalValueAtEnter = recordingPhaser.writerCriticalSectionEnter();
-      try {
-         StatisticsSnapshot active = active(timestamp);
-         active.blockedCount++;
       } finally {
          recordingPhaser.writerCriticalSectionExit(criticalValueAtEnter);
       }
