@@ -98,7 +98,7 @@ public abstract class BaseScenarioTest {
       public void accept(Phase phase, int stepId, String metric, StatisticsSnapshot snapshot, CountDown countDown) {
          log.debug("Adding stats for {}/{}/{} - #{}: {} requests {} responses", phase, stepId, metric,
                snapshot.sequenceId, snapshot.requestCount, snapshot.responseCount);
-         snapshot.addInto(stats.computeIfAbsent(metric, n -> new StatisticsSnapshot()));
+         stats.computeIfAbsent(metric, n -> new StatisticsSnapshot()).add(snapshot);
       }
 
       public Map<String, StatisticsSnapshot> stats() {

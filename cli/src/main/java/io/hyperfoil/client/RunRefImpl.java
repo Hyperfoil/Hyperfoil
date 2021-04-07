@@ -14,7 +14,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.controller.Client;
-import io.hyperfoil.controller.model.CustomStats;
 import io.hyperfoil.controller.model.Histogram;
 import io.hyperfoil.controller.model.RequestStatisticsResponse;
 import io.hyperfoil.controller.model.Run;
@@ -136,7 +135,7 @@ public class RunRefImpl implements Client.RunRef {
    @Override
    public byte[] statsAll(String format) {
       CompletableFuture<byte[]> future = new CompletableFuture<>();
-      client.vertx.runOnContext(ctx -> {
+      client.vertx.runOnContext(ctx ->
          client.request(HttpMethod.GET, "/run/" + id + "/stats/all")
                .putHeader(HttpHeaders.ACCEPT.toString(), format)
                .send(rsp -> {
@@ -154,8 +153,7 @@ public class RunRefImpl implements Client.RunRef {
                   } catch (Throwable t) {
                      future.completeExceptionally(t);
                   }
-               });
-      });
+               }));
       return waitFor(future);
    }
 
@@ -169,13 +167,6 @@ public class RunRefImpl implements Client.RunRef {
                   .putHeader(HttpHeaders.ACCEPT.toString(), "application/json").send(handler), 200,
             response -> Json.decodeValue(response.body(), Histogram.class)
       );
-   }
-
-   @Override
-   public Collection<CustomStats> customStats() {
-      return client.sync(
-            handler -> client.request(HttpMethod.GET, "/run/" + id + "/stats/custom").send(handler), 200,
-            response -> JacksonCodec.decodeValue(response.body(), new TypeReference<Collection<CustomStats>>() {}));
    }
 
    @Override

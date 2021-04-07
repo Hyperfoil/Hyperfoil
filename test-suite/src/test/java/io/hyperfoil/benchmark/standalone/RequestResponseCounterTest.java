@@ -89,7 +89,7 @@ public class RequestResponseCounterTest extends BaseBenchmarkTest {
                      .path("/")
                      .timeout("60s")
                      .handler()
-                        .rawBytes(new TransferSizeRecorder("sent", "received"))
+                        .rawBytes(new TransferSizeRecorder("transfer"))
                      .endHandler()
                   .endStep()
                .endSequence();

@@ -24,7 +24,6 @@ import static io.hyperfoil.http.steps.HttpStepCatalog.SC;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Handler;
@@ -52,6 +51,7 @@ import org.aesh.terminal.utils.Config;
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.BenchmarkData;
 import io.hyperfoil.api.config.PhaseBuilder;
+import io.hyperfoil.http.statistics.HttpStats;
 import io.hyperfoil.api.statistics.StatisticsSummary;
 import io.hyperfoil.cli.context.HyperfoilCliContext;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
@@ -59,7 +59,6 @@ import io.hyperfoil.cli.context.HyperfoilCommandInvocationProvider;
 import io.hyperfoil.client.RestClient;
 import io.hyperfoil.controller.Client;
 import io.hyperfoil.controller.HistogramConverter;
-import io.hyperfoil.controller.model.CustomStats;
 import io.hyperfoil.controller.model.RequestStatisticsResponse;
 import io.hyperfoil.controller.model.RequestStats;
 import io.hyperfoil.core.handlers.TransferSizeRecorder;
@@ -263,12 +262,10 @@ public abstract class WrkAbstract {
          }
          invocation.println(Config.getLineSeparator() + "benchmark finished");
          RequestStatisticsResponse total = run.statsTotal();
-         Collection<CustomStats> custom = run.customStats().stream()
-               .filter(cs -> cs.phase.equals("test")).collect(Collectors.toList());
          RequestStats testStats = total.statistics.stream().filter(rs -> "test".equals(rs.phase))
                .findFirst().orElseThrow(() -> new IllegalStateException("Missing stats for phase 'test'"));
          AbstractHistogram histogram = HistogramConverter.convert(run.histogram(testStats.phase, testStats.stepId, testStats.metric));
-         printStats(testStats.summary, histogram, custom, invocation);
+         printStats(testStats.summary, histogram, invocation);
          return CommandResult.SUCCESS;
       }
 
@@ -296,7 +293,7 @@ public abstract class WrkAbstract {
                         })
                         .timeout(timeout)
                         .handler()
-                           .rawBytes(new TransferSizeRecorder("sent", "received"))
+                           .rawBytes(new TransferSizeRecorder("transfer"))
                         .endHandler()
                      .endStep()
                   .endSequence()
@@ -304,9 +301,9 @@ public abstract class WrkAbstract {
          // @formatter:on
       }
 
-      private void printStats(StatisticsSummary stats, AbstractHistogram histogram, Collection<CustomStats> custom, CommandInvocation<?> invocation) {
-         long dataSent = custom.stream().filter(cs -> cs.customName.equals("sent")).mapToLong(cs -> Long.parseLong(cs.value)).findFirst().orElse(0);
-         long dataReceived = custom.stream().filter(cs -> cs.customName.equals("received")).mapToLong(cs -> Long.parseLong(cs.value)).findFirst().orElse(0);
+      private void printStats(StatisticsSummary stats, AbstractHistogram histogram, CommandInvocation<?> invocation) {
+         TransferSizeRecorder.Stats transferStats = (TransferSizeRecorder.Stats) stats.extensions.get("transfer");
+         HttpStats httpStats = HttpStats.get(stats);
          double durationSeconds = (stats.endTime - stats.startTime) / 1000d;
          invocation.println("                  Avg     Stdev       Max");
          invocation.println("Latency:    " + Util.prettyPrintNanosFixed(stats.meanResponseTime) + " "
@@ -325,13 +322,13 @@ public abstract class WrkAbstract {
             }
             invocation.println("----------------------------------------------------------");
          }
-         invocation.println(stats.requestCount + " requests in " + durationSeconds + "s, " + Util.prettyPrintData(dataSent + dataReceived) + " read");
+         invocation.println(stats.requestCount + " requests in " + durationSeconds + "s, " + Util.prettyPrintData(transferStats.sent + transferStats.received) + " read");
          invocation.println("Requests/sec: " + String.format("%.02f", stats.requestCount / durationSeconds));
-         if (stats.connectFailureCount + stats.resetCount + stats.timeouts + stats.internalErrors + stats.status_4xx + stats.status_5xx > 0) {
+         if (stats.connectFailureCount + stats.resetCount + stats.timeouts + stats.internalErrors + httpStats.status_4xx + httpStats.status_5xx > 0) {
             invocation.println("Socket errors: connect " + stats.connectFailureCount + ", reset " + stats.resetCount + ", timeout " + stats.timeouts);
-            invocation.println("Non-2xx or 3xx responses: " + stats.status_4xx + stats.status_5xx + stats.status_other);
+            invocation.println("Non-2xx or 3xx responses: " + httpStats.status_4xx + httpStats.status_5xx + httpStats.status_other);
          }
-         invocation.println("Transfer/sec: " + Util.prettyPrintData((dataSent + dataReceived) / durationSeconds));
+         invocation.println("Transfer/sec: " + Util.prettyPrintData((transferStats.sent + transferStats.received) / durationSeconds));
       }
 
    }

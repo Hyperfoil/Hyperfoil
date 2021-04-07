@@ -3,7 +3,6 @@ package io.hyperfoil.controller;
 import com.fasterxml.jackson.core.JsonGenerator;
 
 import io.hyperfoil.api.Version;
-import io.hyperfoil.api.statistics.CustomValue;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.api.statistics.StatisticsSummary;
 import io.hyperfoil.core.builders.SLA;
@@ -24,7 +23,7 @@ import java.util.Map;
 import java.util.function.Function;
 
 public class JsonWriter {
-   private static final String RUN_SCHEMA = "http://hyperfoil.io/run-schema/v2.0";
+   private static final String RUN_SCHEMA = "http://hyperfoil.io/run-schema/v3.0";
 
    public static void writeArrayJsons(StatisticsStore store, JsonGenerator jGenerator, JsonObject info) throws IOException {
       Data[] sorted = store.data.values().stream().flatMap(map -> map.values().stream()).toArray(Data[]::new);
@@ -49,10 +48,9 @@ public class JsonWriter {
          jGenerator.writeStringField("metric", failure.metric());
          jGenerator.writeStringField("message", failure.message());
 
-         StatisticsSummary summary = failure.statistics().summary(StatisticsStore.PERCENTILES);
-         jGenerator.writeNumberField("start", summary.startTime);
-         jGenerator.writeNumberField("end", summary.endTime);
-         jGenerator.writeObjectField("percentileResponseTime", summary.percentileResponseTime);
+         jGenerator.writeNumberField("start", failure.statistics().histogram.getStartTimeStamp());
+         jGenerator.writeNumberField("end", failure.statistics().histogram.getEndTimeStamp());
+         jGenerator.writeObjectField("percentileResponseTime", failure.statistics().getPercentiles(StatisticsStore.PERCENTILES));
          jGenerator.writeEndObject();
       }
       jGenerator.writeEndArray();
@@ -324,13 +322,6 @@ public class JsonWriter {
       if (failures >= 0) {
          generator.writeNumberField("failures", failures);
       }
-      generator.writeFieldName("custom");
-
-      generator.writeStartObject();
-      for (Map.Entry<Object, CustomValue> entry : snapshot.custom.entrySet()) {
-         generator.writeStringField(String.valueOf(entry.getKey()), String.valueOf(entry.getValue()));
-      }
-      generator.writeEndObject();
 
       if (minMaxSessions != null) {
          generator.writeNumberField("minSessions", minMaxSessions.low);

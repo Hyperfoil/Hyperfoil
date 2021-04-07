@@ -433,25 +433,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RequestStatisticsResponse"
-  /run/{runId}/stats/custom:
-    get:
-      summary: Custom statistics.
-      operationId: getCustomStats
-      parameters:
-      - in: path
-        name: runId
-        required: true
-        schema:
-          type: string
-      responses:
-        '200':
-          description: Retrieved successfully.
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/CustomStats"
   /run/{runId}/stats/histogram:
     get:
       summary: Retrieve histogram for given metric.
@@ -734,19 +715,6 @@ components:
           type: array
           items:
             type: string
-    CustomStats:
-      type: object
-      properties:
-        phase:
-          type: string
-        stepId:
-          type: integer
-        metric:
-          type: string
-        customName:
-          type: string
-        value:
-          type: string
     Histogram:
       type: object
       properties:

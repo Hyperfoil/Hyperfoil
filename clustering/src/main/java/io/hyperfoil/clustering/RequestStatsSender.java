@@ -36,8 +36,7 @@ public class RequestStatsSender extends StatisticsCollector {
                statistics.sequenceId, statistics.requestCount, statistics.responseCount);
          // On clustered eventbus, ObjectCodec is not called synchronously so we *must* do a copy here.
          // (on a local eventbus we'd have to do a copy in transform() anyway)
-         StatisticsSnapshot copy = new StatisticsSnapshot();
-         statistics.copyInto(copy);
+         StatisticsSnapshot copy = statistics.clone();
          countDown.increment();
          eb.request(Feeds.STATS, new RequestStatsMessage(address, runId, phase.id(), false, stepId, metric, copy),
                reply -> countDown.countDown());

@@ -17,18 +17,13 @@ public class StatisticsSummary {
    public final int connectFailureCount;
    public final int requestCount;
    public final int responseCount;
-   public final int status_2xx;
-   public final int status_3xx;
-   public final int status_4xx;
-   public final int status_5xx;
-   public final int status_other;
    public final int invalid;
-   public final int cacheHits;
    public final int resetCount;
    public final int timeouts;
    public final int internalErrors;
    public final int blockedCount;
    public final long blockedTime;
+   public final SortedMap<String, StatsExtension> extensions;
 
    @JsonCreator
    public StatisticsSummary(@JsonProperty("startTime") long startTime,
@@ -41,18 +36,13 @@ public class StatisticsSummary {
                             @JsonProperty("connectFailureCount") int connectFailureCount,
                             @JsonProperty("requestCount") int requestCount,
                             @JsonProperty("responseCount") int responseCount,
-                            @JsonProperty("status_2xx") int status_2xx,
-                            @JsonProperty("status_3xx") int status_3xx,
-                            @JsonProperty("status_4xx") int status_4xx,
-                            @JsonProperty("status_5xx") int status_5xx,
-                            @JsonProperty("status_other") int status_other,
                             @JsonProperty("invalid") int invalid,
-                            @JsonProperty("cacheHits") int cacheHits,
                             @JsonProperty("resetCount") int resetCount,
                             @JsonProperty("timeouts") int timeouts,
                             @JsonProperty("internalErrors") int internalErrors,
                             @JsonProperty("blockedCount") int blockedCount,
-                            @JsonProperty("blockedTime") long blockedTime) {
+                            @JsonProperty("blockedTime") long blockedTime,
+                            @JsonProperty("custom") SortedMap<String, StatsExtension> extensions) {
       this.startTime = startTime;
       this.endTime = endTime;
       this.minResponseTime = minResponseTime;
@@ -63,18 +53,13 @@ public class StatisticsSummary {
       this.connectFailureCount = connectFailureCount;
       this.requestCount = requestCount;
       this.responseCount = responseCount;
-      this.status_2xx = status_2xx;
-      this.status_3xx = status_3xx;
-      this.status_4xx = status_4xx;
-      this.status_5xx = status_5xx;
-      this.status_other = status_other;
       this.invalid = invalid;
-      this.cacheHits = cacheHits;
       this.resetCount = resetCount;
       this.timeouts = timeouts;
       this.internalErrors = internalErrors;
       this.blockedCount = blockedCount;
       this.blockedTime = blockedTime;
+      this.extensions = extensions;
    }
 
    public static void printHeader(PrintWriter writer, double[] percentiles) {
@@ -84,10 +69,10 @@ public class StatisticsSummary {
          writer.print(p * 100);
          writer.print(',');
       }
-      writer.print("Max,MeanSendTime,ConnFailure,Reset,Timeouts,2xx,3xx,4xx,5xx,Other,Invalid,CacheHits,BlockedCount,BlockedTime,InternalErrors");
+      writer.print("Max,MeanSendTime,ConnFailure,Reset,Timeouts,Invalid,BlockedCount,BlockedTime,InternalErrors");
    }
 
-   public void printTo(PrintWriter writer) {
+   public void printTo(PrintWriter writer, String[] extensionHeaders) {
       writer.print(requestCount);
       writer.print(',');
       writer.print(responseCount);
@@ -110,24 +95,20 @@ public class StatisticsSummary {
       writer.print(',');
       writer.print(timeouts);
       writer.print(',');
-      writer.print(status_2xx);
-      writer.print(',');
-      writer.print(status_3xx);
-      writer.print(',');
-      writer.print(status_4xx);
-      writer.print(',');
-      writer.print(status_5xx);
-      writer.print(',');
-      writer.print(status_other);
-      writer.print(',');
       writer.print(invalid);
-      writer.print(',');
-      writer.print(cacheHits);
       writer.print(',');
       writer.print(blockedCount);
       writer.print(',');
       writer.print(blockedTime);
       writer.print(',');
       writer.print(internalErrors);
+      for (String header : extensionHeaders) {
+         writer.print(',');
+         int index = header.indexOf('.');
+         StatsExtension value = extensions.get(header.substring(0, index));
+         if (value != null) {
+            writer.print(value.byHeader(header.substring(index + 1)));
+         }
+      }
    }
 }

@@ -30,12 +30,13 @@ public class ErrorRatioTest extends HttpScenarioTest {
             .handler().onCompletion(validateConnection(ctx)).endHandler()
             .endStep();
       StatisticsSnapshot stats = runScenario().get("400");
+      HttpStats http = HttpStats.get(stats);
       assertThat(stats.requestCount).isEqualTo(1);
       assertThat(stats.responseCount).isEqualTo(1);
-      assertThat(stats.status_4xx).isEqualTo(1);
+      assertThat(http.status_4xx).isEqualTo(1);
       assertThat(stats.resetCount).isEqualTo(0);
       assertThat(stats.invalid).isEqualTo(1);
-      assertThat(stats.cacheHits).isEqualTo(0);
+      assertThat(http.cacheHits).isEqualTo(0);
       assertThat(stats.connectFailureCount).isEqualTo(0);
       assertThat(stats.errors()).isEqualTo(0);
    }
@@ -53,7 +54,7 @@ public class ErrorRatioTest extends HttpScenarioTest {
       assertThat(stats.responseCount).isEqualTo(0);
       assertThat(stats.resetCount).isEqualTo(1);
       assertThat(stats.invalid).isEqualTo(1);
-      assertThat(stats.cacheHits).isEqualTo(0);
+      assertThat(HttpStats.get(stats).cacheHits).isEqualTo(0);
       assertThat(stats.connectFailureCount).isEqualTo(0);
       assertThat(stats.errors()).isEqualTo(1);
    }
@@ -67,13 +68,14 @@ public class ErrorRatioTest extends HttpScenarioTest {
       }).endHandler().endStep();
 
       StatisticsSnapshot stats = runScenario().get("throw");
+      HttpStats http = HttpStats.get(stats);
       assertThat(stats.requestCount).isEqualTo(1);
       // handleEnd was not invoked and handleThrowable cannot record response
       // because it does not know if the complete physical response was received.
       assertThat(stats.responseCount).isEqualTo(0);
-      assertThat(stats.status_2xx).isEqualTo(1);
+      assertThat(http.status_2xx).isEqualTo(1);
       assertThat(stats.invalid).isEqualTo(1);
-      assertThat(stats.cacheHits).isEqualTo(0);
+      assertThat(http.cacheHits).isEqualTo(0);
       assertThat(stats.resetCount).isEqualTo(0);
       assertThat(stats.internalErrors).isEqualTo(1);
       assertThat(stats.errors()).isEqualTo(1);
@@ -88,12 +90,13 @@ public class ErrorRatioTest extends HttpScenarioTest {
       }).endHandler().endStep();
 
       StatisticsSnapshot stats = runScenario().get("throw");
+      HttpStats http = HttpStats.get(stats);
       assertThat(stats.requestCount).isEqualTo(1);
       // contrary to testThrowInBodyHandler the response is already recorded before the completion handlers run
       assertThat(stats.responseCount).isEqualTo(1);
-      assertThat(stats.status_2xx).isEqualTo(1);
+      assertThat(http.status_2xx).isEqualTo(1);
       assertThat(stats.invalid).isEqualTo(1);
-      assertThat(stats.cacheHits).isEqualTo(0);
+      assertThat(http.cacheHits).isEqualTo(0);
       assertThat(stats.resetCount).isEqualTo(0);
       assertThat(stats.internalErrors).isEqualTo(1);
       assertThat(stats.errors()).isEqualTo(1);

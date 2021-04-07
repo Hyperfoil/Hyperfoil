@@ -7,6 +7,7 @@ import io.hyperfoil.core.impl.LocalSimulationRunner;
 import io.hyperfoil.core.parser.BenchmarkParser;
 import io.hyperfoil.core.parser.ParserException;
 import io.hyperfoil.core.util.Util;
+import io.hyperfoil.http.statistics.HttpStats;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
@@ -59,7 +60,7 @@ public class RunMojo extends AbstractMojo {
          if (benchmark != null) {
             // We want to log all stats in the same thread to not break the output layout too much.
             LocalSimulationRunner runner = new LocalSimulationRunner(benchmark, (phase, stepId, metric, snapshot, ignored) -> {
-               snapshot.addInto(total.computeIfAbsent(phase.name() + "/" + metric, k -> new StatisticsSnapshot()));
+               total.computeIfAbsent(phase.name() + "/" + metric, k -> new StatisticsSnapshot()).add(snapshot);
             }, this::printSessionPoolInfo, null);
             log.info("Running for {}", benchmark.statisticsCollectionPeriod());
             log.info("{} threads", benchmark.defaultThreads());
@@ -120,7 +121,10 @@ public class RunMojo extends AbstractMojo {
 
       if (stats.errors() > 0) {
          log.info("Socket errors: connect {}, reset {}, timeout {}", stats.connectFailureCount, stats.resetCount, stats.timeouts);
-         log.info("Non-2xx or 3xx responses: {}", stats.status_4xx + stats.status_5xx + stats.status_other);
+      }
+      HttpStats httpStats = HttpStats.get(stats);
+      if (httpStats.status_4xx + httpStats.status_5xx + httpStats.status_other > 0) {
+         log.info("Non-2xx or 3xx responses: {}", httpStats.status_4xx + httpStats.status_5xx + httpStats.status_other);
       }
    }
 }

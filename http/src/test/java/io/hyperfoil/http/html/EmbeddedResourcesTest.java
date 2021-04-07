@@ -13,6 +13,7 @@ import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.core.util.Util;
 import io.hyperfoil.http.HttpScenarioTest;
+import io.hyperfoil.http.statistics.HttpStats;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 
@@ -60,7 +61,7 @@ public class EmbeddedResourcesTest extends HttpScenarioTest {
          }
          StatisticsSnapshot snapshot = entry.getValue();
          assertThat(snapshot.requestCount).as(name).isEqualTo(hits);
-         assertThat(snapshot.status_2xx).as(name).isEqualTo(hits);
+         assertThat(HttpStats.get(snapshot).status_2xx).as(name).isEqualTo(hits);
       }
    }
 }

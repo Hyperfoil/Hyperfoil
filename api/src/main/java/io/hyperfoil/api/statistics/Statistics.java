@@ -8,9 +8,8 @@ import java.util.function.Supplier;
 
 import org.HdrHistogram.SingleWriterRecorder;
 import org.HdrHistogram.WriterReaderPhaser;
-
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * This is a copy/subset of {@link SingleWriterRecorder} but uses {@link StatisticsSnapshot} instead of only
@@ -36,6 +35,7 @@ public class Statistics {
    @SuppressWarnings("unused")
    private volatile int lowestActive2;
    private volatile int highestActive;
+   @SuppressWarnings("AtomicFieldUpdaterNotStaticFinal")
    private volatile AtomicIntegerFieldUpdater<Statistics> lowestActiveUpdater = LU1;
    private volatile AtomicReferenceArray<StatisticsSnapshot> active;
    private AtomicReferenceArray<StatisticsSnapshot> inactive;
@@ -131,42 +131,33 @@ public class Statistics {
       }
    }
 
-   public void addStatus(long timestamp, int code) {
+   public <C extends StatsExtension> void update(String key, long timestamp, Supplier<C> creator, LongUpdater<C> updater, long value) {
       long criticalValueAtEnter = recordingPhaser.writerCriticalSectionEnter();
       try {
          StatisticsSnapshot active = active(timestamp);
-         switch (code / 100) {
-            case 2:
-               active.status_2xx++;
-               break;
-            case 3:
-               active.status_3xx++;
-               break;
-            case 4:
-               active.status_4xx++;
-               break;
-            case 5:
-               active.status_5xx++;
-               break;
-            default:
-               active.status_other++;
+         StatsExtension custom = active.extensions.get(key);
+         if (custom == null) {
+            custom = creator.get();
+            active.extensions.put(key, custom);
          }
+         //noinspection unchecked
+         updater.update((C) custom, value);
       } finally {
          recordingPhaser.writerCriticalSectionExit(criticalValueAtEnter);
       }
    }
 
-   @SuppressWarnings("unchecked")
-   public <T extends CustomValue> T getCustom(long timestamp, Object key, Supplier<T> identitySupplier) {
+   public <C extends StatsExtension> void update(String key, long timestamp, Supplier<C> creator, ObjectUpdater<C> updater, Object value) {
       long criticalValueAtEnter = recordingPhaser.writerCriticalSectionEnter();
       try {
          StatisticsSnapshot active = active(timestamp);
-         CustomValue custom = active.custom.get(key);
+         StatsExtension custom = active.extensions.get(key);
          if (custom == null) {
-            custom = identitySupplier.get();
-            active.custom.put(key, custom);
+            custom = creator.get();
+            active.extensions.put(key, custom);
          }
-         return (T) custom;
+         //noinspection unchecked
+         updater.update((C) custom, value);
       } finally {
          recordingPhaser.writerCriticalSectionExit(criticalValueAtEnter);
       }
@@ -177,16 +168,6 @@ public class Statistics {
       try {
          StatisticsSnapshot active = active(timestamp);
          active.invalid++;
-      } finally {
-         recordingPhaser.writerCriticalSectionExit(criticalValueAtEnter);
-      }
-   }
-
-   public void addCacheHit(long timestamp) {
-      long criticalValueAtEnter = recordingPhaser.writerCriticalSectionEnter();
-      try {
-         StatisticsSnapshot active = active(timestamp);
-         active.cacheHits++;
       } finally {
          recordingPhaser.writerCriticalSectionExit(criticalValueAtEnter);
       }
@@ -296,5 +277,13 @@ public class Statistics {
          highestActive = index;
       }
       return snapshot;
+   }
+
+   public interface LongUpdater<C extends StatsExtension> {
+      void update(C custom, long value);
+   }
+
+   public interface ObjectUpdater<C extends StatsExtension> {
+      void update(C custom, Object value);
    }
 }

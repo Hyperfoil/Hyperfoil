@@ -2,32 +2,32 @@ package io.hyperfoil.core.handlers;
 
 import org.kohsuke.MetaInfServices;
 
+import com.fasterxml.jackson.annotation.JsonTypeName;
+
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.processor.RawBytesHandler;
-import io.hyperfoil.api.statistics.LongValue;
+import io.hyperfoil.api.statistics.StatsExtension;
 import io.hyperfoil.api.statistics.Statistics;
 import io.netty.buffer.ByteBuf;
 
 public class TransferSizeRecorder implements RawBytesHandler {
-   private final String requestMetric;
-   private final String responseMetric;
+   private final String key;
 
-   public TransferSizeRecorder(String requestMetric, String responseMetric) {
-      this.requestMetric = requestMetric;
-      this.responseMetric = responseMetric;
+   public TransferSizeRecorder(String key) {
+      this.key = key;
    }
 
    @Override
    public void onRequest(Request request, ByteBuf buf, int offset, int length) {
       Statistics statistics = request.statistics();
-      statistics.getCustom(request.startTimestampMillis(), requestMetric, LongValue::new).add(length);
+      statistics.update(key, request.startTimestampMillis(), Stats::new, (s, l) -> s.sent += l, length);
    }
 
    @Override
    public void onResponse(Request request, ByteBuf buf, int offset, int length, boolean isLastPart) {
       Statistics statistics = request.statistics();
-      statistics.getCustom(request.startTimestampMillis(), responseMetric, LongValue::new).add(length);
+      statistics.update(key, request.startTimestampMillis(), Stats::new, (s, l) -> s.received += l, length);
    }
 
    /**
@@ -36,35 +36,88 @@ public class TransferSizeRecorder implements RawBytesHandler {
    @MetaInfServices(RawBytesHandler.Builder.class)
    @Name("transferSizeRecorder")
    public static class Builder implements RawBytesHandler.Builder {
-      private String requestMetric;
-      private String responseMetric;
+      private String key;
 
       /**
-       * Name of the custom metric for collecting sent request bytes.
+       * Name of the custom metric for collecting request/response bytes.
        *
-       * @param requestMetric Name of the custom metric.
+       * @param metric Name of the custom metric.
        * @return Self.
        */
-      public Builder requestMetric(String requestMetric) {
-         this.requestMetric = requestMetric;
-         return this;
-      }
-
-
-      /**
-       * Name of the custom metric for collecting response bytes.
-       *
-       * @param responseMetric Name of the custom metric.
-       * @return Self.
-       */
-      public Builder responseMetric(String responseMetric) {
-         this.responseMetric = responseMetric;
+      public Builder key(String metric) {
+         this.key = metric;
          return this;
       }
 
       @Override
       public TransferSizeRecorder build() {
-         return new TransferSizeRecorder(requestMetric, responseMetric);
+         return new TransferSizeRecorder(key);
+      }
+   }
+
+   @MetaInfServices(StatsExtension.class)
+   @JsonTypeName("transfersize")
+   public static class Stats implements StatsExtension {
+      private static final String[] HEADERS = { "sent", "received" };
+      public long sent;
+      public long received;
+
+      @Override
+      public boolean isNull() {
+         return sent + received == 0;
+      }
+
+      @Override
+      public void add(StatsExtension other) {
+         if (other instanceof Stats) {
+            Stats o = (Stats) other;
+            sent += o.sent;
+            received += o.received;
+         } else {
+            throw new IllegalArgumentException(other.toString());
+         }
+      }
+
+      @Override
+      public void subtract(StatsExtension other) {
+         if (other instanceof Stats) {
+            Stats o = (Stats) other;
+            sent -= o.sent;
+            received -= o.received;
+         } else {
+            throw new IllegalArgumentException(other.toString());
+         }
+      }
+
+      @Override
+      public void reset() {
+         sent = 0;
+         received = 0;
+      }
+
+      @Override
+      public StatsExtension clone() {
+         Stats copy = new Stats();
+         copy.sent = sent;
+         copy.received = received;
+         return copy;
+      }
+
+      @Override
+      public String[] headers() {
+         return HEADERS;
+      }
+
+      @Override
+      public String byHeader(String header) {
+         switch (header) {
+            case "sent":
+               return String.valueOf(sent);
+            case "received":
+               return String.valueOf(received);
+            default:
+               return "<unknown header: " + header + ">";
+         }
       }
    }
 }

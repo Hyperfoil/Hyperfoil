@@ -11,10 +11,10 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.function.Function;
+import java.util.Objects;
+import java.util.stream.Stream;
 
-import io.hyperfoil.api.statistics.CustomValue;
+import io.hyperfoil.api.statistics.StatsExtension;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.api.statistics.StatisticsSummary;
 import io.hyperfoil.core.builders.SLA;
@@ -27,10 +27,8 @@ public class CsvWriter {
    private static final Logger log = LogManager.getLogger(CsvWriter.class);
 
    public static void writeCsv(Path dir, StatisticsStore store) throws IOException {
-      Optional<Data> incomplete = store.data.values().stream().flatMap(m -> m.values().stream()).filter(d -> !d.isCompleted()).findAny();
-      if (incomplete.isPresent()) {
-         log.error("Phase {} metric {} was not completed!", incomplete.get().phase, incomplete.get().metric);
-      }
+      store.data.values().stream().flatMap(m -> m.values().stream()).filter(d -> !d.isCompleted()).findAny()
+            .ifPresent(incomplete -> log.error("Phase {} metric {} was not completed!", incomplete.phase, incomplete.metric));
       File statsDir = dir.toFile();
       if (!statsDir.exists() && !statsDir.mkdirs()) {
          throw new IOException("Cannot create directory " + dir);
@@ -41,6 +39,8 @@ public class CsvWriter {
       try (PrintWriter writer = new PrintWriter(dir + File.separator + "total.csv")) {
          writer.print("Phase,Metric,Start,End,");
          StatisticsSummary.printHeader(writer, StatisticsStore.PERCENTILES);
+         String[] extensionHeaders = getHeaders(Stream.of(sorted).map(d -> d.total.extensions));
+         printExtensionHeaders(writer, extensionHeaders);
          writer.println(",MinSessions,MaxSessions");
          for (Data data : sorted) {
             writer.print(data.phase);
@@ -51,7 +51,7 @@ public class CsvWriter {
             writer.print(',');
             writer.print(data.total.histogram.getEndTimeStamp());
             writer.print(',');
-            data.total.summary(StatisticsStore.PERCENTILES).printTo(writer);
+            data.total.summary(StatisticsStore.PERCENTILES).printTo(writer, extensionHeaders);
 
             StatisticsStore.SessionPoolStats sps = store.sessionPoolStats.get(data.phase);
             if (sps == null) {
@@ -70,7 +70,6 @@ public class CsvWriter {
          String filePrefix = dir + File.separator + sanitize(data.phase) + "." + sanitize(data.metric) + "." + data.stepId;
          writeHistogramAndSeries(filePrefix, data.total, data.series);
       }
-      writeCustomStats(sorted, data -> data.total, dir + File.separator + "custom.csv");
       String[] agents = store.data.values().stream()
             .flatMap(m -> m.values().stream())
             .flatMap(d -> d.perAgent.keySet().stream())
@@ -79,6 +78,8 @@ public class CsvWriter {
          try (PrintWriter writer = new PrintWriter(dir + File.separator + "agent." + sanitize(agent) + ".csv")) {
             writer.print("Phase,Metric,Start,End,");
             StatisticsSummary.printHeader(writer, StatisticsStore.PERCENTILES);
+            String[] extensionHeaders = getHeaders(Stream.of(sorted).map(d -> d.perAgent.get(agent)).filter(Objects::nonNull).map(s -> s.extensions));
+            printExtensionHeaders(writer, extensionHeaders);
             writer.println(",MinSessions,MaxSessions");
             for (Data data : sorted) {
                StatisticsSnapshot agentStats = data.perAgent.get(agent);
@@ -93,7 +94,7 @@ public class CsvWriter {
                writer.print(',');
                writer.print(data.total.histogram.getEndTimeStamp());
                writer.print(',');
-               agentStats.summary(StatisticsStore.PERCENTILES).printTo(writer);
+               agentStats.summary(StatisticsStore.PERCENTILES).printTo(writer, extensionHeaders);
 
                StatisticsStore.SessionPoolStats sps = store.sessionPoolStats.get(data.phase);
                if (sps == null || sps.records.get(agent) == null) {
@@ -114,11 +115,12 @@ public class CsvWriter {
             String filePrefix = dir + File.separator + sanitize(data.phase) + "." + sanitize(data.metric) + "." + data.stepId + ".agent." + agent;
             writeHistogramAndSeries(filePrefix, data.perAgent.get(agent), data.agentSeries.get(agent));
          }
-         writeCustomStats(sorted, data -> data.perAgent.get(agent), dir + File.separator + "agent." + sanitize(agent) + ".custom.csv");
       }
       try (PrintWriter writer = new PrintWriter(dir + File.separator + "failures.csv")) {
          writer.print("Phase,Metric,Message,Start,End,");
          StatisticsSummary.printHeader(writer, StatisticsStore.PERCENTILES);
+         String[] extensionHeaders = getHeaders(store.failures.stream().map(f -> f.statistics().extensions));
+         printExtensionHeaders(writer, extensionHeaders);
          writer.println();
          for (SLA.Failure failure : store.failures) {
             writer.print(failure.phase());
@@ -132,7 +134,7 @@ public class CsvWriter {
             writer.print(',');
             writer.print(summary.endTime);
             writer.print(',');
-            summary.printTo(writer);
+            summary.printTo(writer, extensionHeaders);
             writer.println();
          }
       }
@@ -168,28 +170,6 @@ public class CsvWriter {
       }
    }
 
-   private static void writeCustomStats(Data[] sorted, Function<Data, StatisticsSnapshot> selector, String fileName) throws FileNotFoundException {
-      try (PrintWriter writer = new PrintWriter(fileName)) {
-         writer.println("Phase,Metric,Custom,Value");
-         for (Data data : sorted) {
-            StatisticsSnapshot snapshot = selector.apply(data);
-            if (snapshot == null) {
-               log.error("Missing statistics for {}/{} -> {}", data.phase, data.metric, fileName);
-               continue;
-            }
-            for (Map.Entry<Object, CustomValue> entry : snapshot.custom.entrySet()) {
-               writer.print(data.phase);
-               writer.print(',');
-               writer.print(data.metric);
-               writer.print(',');
-               writer.print(entry.getKey());
-               writer.print(',');
-               writer.println(entry.getValue());
-            }
-         }
-      }
-   }
-
    private static String sanitize(String phase) {
       return phase.replaceAll(File.separator, "_");
    }
@@ -201,19 +181,35 @@ public class CsvWriter {
          }
       }
       if (series != null) {
+         String[] extensionHeaders = getHeaders(series.stream().map(ss -> ss.extensions));
          try (PrintWriter writer = new PrintWriter(filePrefix + ".series.csv")) {
             writer.print("Start,End,");
             StatisticsSummary.printHeader(writer, StatisticsStore.PERCENTILES);
+            printExtensionHeaders(writer, extensionHeaders);
             writer.println();
             for (StatisticsSummary summary : series) {
                writer.print(summary.startTime);
                writer.print(',');
                writer.print(summary.endTime);
                writer.print(',');
-               summary.printTo(writer);
+               summary.printTo(writer, extensionHeaders);
                writer.println();
             }
          }
       }
+   }
+
+   private static void printExtensionHeaders(PrintWriter writer, String[] extensionHeaders) {
+      for (String header : extensionHeaders) {
+         writer.print(',');
+         writer.print(header);
+      }
+   }
+
+   private static String[] getHeaders(Stream<? extends Map<String, StatsExtension>> extensions) {
+      return extensions.flatMap(ext ->
+            ext.entrySet().stream().flatMap(c ->
+                  Stream.of(c.getValue().headers()).map(h -> c.getKey() + "." + h)))
+            .sorted().distinct().toArray(String[]::new);
    }
 }

@@ -20,6 +20,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 import io.hyperfoil.api.config.Benchmark;
+import io.hyperfoil.api.statistics.StatsExtension;
 import io.hyperfoil.controller.Client;
 import io.hyperfoil.controller.model.Version;
 import io.hyperfoil.core.util.Util;
@@ -45,6 +46,10 @@ public class RestClient implements Client, Closeable {
    final WebClientOptions options;
    private final WebClient client;
    private String authorization;
+
+   static {
+      StatsExtension.registerSubtypes();
+   }
 
    public RestClient(Vertx vertx, String host, int port, boolean ssl, boolean insecure, String password) {
       this.vertx = vertx;

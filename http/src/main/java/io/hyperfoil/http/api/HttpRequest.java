@@ -8,6 +8,7 @@ import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.SessionStopException;
+import io.hyperfoil.http.statistics.HttpStats;
 import io.hyperfoil.api.statistics.Statistics;
 import io.hyperfoil.http.HttpRequestPool;
 import io.netty.buffer.ByteBuf;
@@ -109,7 +110,7 @@ public class HttpRequest extends Request {
    }
 
    public void handleCached() {
-      statistics().addCacheHit(startTimestampMillis());
+      HttpStats.addCacheHit(statistics(), startTimestampMillis());
       enter();
       try {
          handlers.handleEnd(this, false);

@@ -22,6 +22,7 @@ import io.hyperfoil.http.config.HttpPluginBuilder;
 import io.hyperfoil.http.handlers.RangeStatusValidator;
 import io.hyperfoil.http.handlers.RecordHeaderTimeHandler;
 import io.hyperfoil.core.steps.SetAction;
+import io.hyperfoil.http.statistics.HttpStats;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.ext.web.handler.BodyHandler;
@@ -169,10 +170,10 @@ public class HttpRequestTest extends HttpScenarioTest {
       Map<String, StatisticsSnapshot> stats = runScenario();
       StatisticsSnapshot snapshot0 = stats.get("expectOK");
       StatisticsSnapshot snapshot1 = stats.get("expectFail");
-      assertThat(snapshot0.status_2xx).isEqualTo(1);
-      assertThat(snapshot0.status_4xx).isEqualTo(0);
-      assertThat(snapshot1.status_2xx).isEqualTo(0);
-      assertThat(snapshot1.status_4xx).isEqualTo(1);
+      assertThat(HttpStats.get(snapshot0).status_2xx).isEqualTo(1);
+      assertThat(HttpStats.get(snapshot0).status_4xx).isEqualTo(0);
+      assertThat(HttpStats.get(snapshot1).status_2xx).isEqualTo(0);
+      assertThat(HttpStats.get(snapshot1).status_4xx).isEqualTo(1);
       assertThat(snapshot0.invalid).isEqualTo(0);
       assertThat(snapshot1.invalid).isEqualTo(1);
    }
@@ -227,7 +228,7 @@ public class HttpRequestTest extends HttpScenarioTest {
             .endSequence();
       // @formatter:on
       Map<String, StatisticsSnapshot> stats = runScenario();
-      assertThat(stats.get("testFromVar").status_2xx).isEqualTo(1);
-      assertThat(stats.get("testPattern").status_2xx).isEqualTo(1);
+      assertThat(HttpStats.get(stats.get("testFromVar")).status_2xx).isEqualTo(1);
+      assertThat(HttpStats.get(stats.get("testPattern")).status_2xx).isEqualTo(1);
    }
 }

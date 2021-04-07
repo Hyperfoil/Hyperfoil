@@ -13,6 +13,7 @@ import org.junit.runner.RunWith;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.http.api.HttpMethod;
 import io.hyperfoil.http.config.HttpPluginBuilder;
+import io.hyperfoil.http.statistics.HttpStats;
 import io.vertx.core.http.HttpServer;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -68,8 +69,8 @@ public class TwoServersTest extends HttpScenarioTest {
       // @formatter:on
       Map<String, StatisticsSnapshot> stats = runScenario();
       StatisticsSnapshot s1 = stats.get("server1");
-      assertThat(s1.status_2xx).isEqualTo(1);
+      assertThat(HttpStats.get(s1).status_2xx).isEqualTo(1);
       StatisticsSnapshot s2 = stats.get("server2");
-      assertThat(s2.status_3xx).isEqualTo(1);
+      assertThat(HttpStats.get(s2).status_3xx).isEqualTo(1);
    }
 }

@@ -16,9 +16,24 @@ public class Table<T> {
    private boolean boldHeader = true;
    private Function<T, String> rowPrefix;
    private Function<T, String> rowSuffix;
-   private final List<String> titles = new ArrayList<>();
-   private final List<Function<T, String>> functions = new ArrayList<>();
-   private final List<Align> aligns = new ArrayList<>();
+   private final List<String> titles;
+   private final List<Function<T, String>> functions;
+   private final List<Align> aligns;
+
+   public Table() {
+      titles = new ArrayList<>();
+      functions = new ArrayList<>();
+      aligns = new ArrayList<>();
+   }
+
+   public Table(Table<T> other) {
+      boldHeader = other.boldHeader;
+      rowPrefix = other.rowPrefix;
+      rowSuffix = other.rowSuffix;
+      titles = new ArrayList<>(other.titles);
+      functions = new ArrayList<>(other.functions);
+      aligns = new ArrayList<>(other.aligns);
+   }
 
    public Table<T> boldHeader(boolean boldHeader) {
       this.boldHeader = boldHeader;
@@ -80,10 +95,10 @@ public class Table<T> {
       map.forEach((key, value) -> {
          AtomicBoolean first = new AtomicBoolean(true);
          value.forEach(item -> {
-            if (rowPrefix != null) {
+            if (rowPrefix != null && prefixes != null) {
                prefixes.add(rowPrefix.apply(item));
             }
-            if (rowSuffix != null) {
+            if (rowSuffix != null && suffixes != null) {
                suffixes.add(rowSuffix.apply(item));
             }
             String[] row = new String[functions.size() + 1];
@@ -108,10 +123,10 @@ public class Table<T> {
       ArrayList<String> suffixes = rowSuffix == null ? null : new ArrayList<>();
       int[] width = titles.stream().mapToInt(Table::width).toArray();
       stream.forEach(item -> {
-         if (rowPrefix != null) {
+         if (rowPrefix != null && prefixes != null) {
             prefixes.add(rowPrefix.apply(item));
          }
-         if (rowSuffix != null) {
+         if (rowSuffix != null && suffixes != null) {
             suffixes.add(rowSuffix.apply(item));
          }
          String[] row = new String[functions.size()];
@@ -191,6 +206,7 @@ public class Table<T> {
    }
 
    private static void pad(StringBuilder sb, int n) {
+      //noinspection StringRepeatCanBeUsed
       for (int i = 0; i < n; ++i) {
          sb.append(' ');
       }

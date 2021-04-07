@@ -50,7 +50,7 @@ public class StatisticsCollector implements Consumer<SessionStatistics> {
                   existing.sequenceId = snapshot.sequenceId;
                   snapshots.put(snapshot.sequenceId, existing);
                }
-               snapshot.addInto(existing);
+               existing.add(snapshot);
             });
          }
       }

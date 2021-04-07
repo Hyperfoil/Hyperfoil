@@ -35,7 +35,6 @@ import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.clustering.util.PersistedBenchmarkData;
 import io.hyperfoil.clustering.webcli.WebCLI;
 import io.hyperfoil.controller.ApiService;
-import io.hyperfoil.controller.model.CustomStats;
 import io.hyperfoil.controller.model.Histogram;
 import io.hyperfoil.controller.model.RequestStats;
 import io.hyperfoil.controller.router.ApiRouter;
@@ -682,15 +681,6 @@ class ControllerServer implements ApiService {
       withStats(ctx, runId, run -> {
          List<RequestStats> stats = run.statisticsStore.totalSummary();
          ctx.response().end(Json.encodePrettily(statsToJson(run, stats)));
-      });
-   }
-
-   @Override
-   public void getCustomStats(RoutingContext ctx, String runId) {
-      withStats(ctx, runId, run -> {
-         List<CustomStats> stats = run.statisticsStore.customStats();
-         // TODO: add json response format based on 'Accept' header
-         ctx.response().end(new JsonArray(stats).encodePrettily());
       });
    }
 

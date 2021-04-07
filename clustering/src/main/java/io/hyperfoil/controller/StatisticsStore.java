@@ -1,10 +1,8 @@
 package io.hyperfoil.controller;
 
 import io.hyperfoil.api.config.Benchmark;
-import io.hyperfoil.api.statistics.CustomValue;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.api.statistics.StatisticsSummary;
-import io.hyperfoil.controller.model.CustomStats;
 import io.hyperfoil.controller.model.Histogram;
 import io.hyperfoil.controller.model.RequestStats;
 import io.hyperfoil.core.builders.SLA;
@@ -18,6 +16,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.OptionalInt;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -111,21 +110,20 @@ public class StatisticsStore {
          for (Data data : m.values()) {
             OptionalInt lastSequenceId = data.lastStats.values().stream()
                   .flatMapToInt(map -> map.keySet().stream().mapToInt(Integer::intValue)).max();
-            if (!lastSequenceId.isPresent()) {
+            if (lastSequenceId.isEmpty()) {
                continue;
             }
             // We'll use one id before the last one since the last one is likely not completed yet
             int penultimateId = lastSequenceId.getAsInt() - 1;
             StatisticsSnapshot sum = new StatisticsSnapshot();
             data.lastStats.values().stream().map(map -> map.get(penultimateId))
-                  .filter(snapshot -> snapshot != null)
-                  .forEach(snapshot -> snapshot.addInto(sum));
+                  .filter(Objects::nonNull).forEach(sum::add);
             if (sum.isEmpty() || sum.histogram.getStartTimeStamp() < minValidTimestamp) {
                continue;
             }
             List<String> failures = this.failures.stream()
                   .filter(f -> f.phase().equals(data.phase) && (f.metric() == null || f.metric().equals(data.metric)))
-                  .map(f -> f.message()).collect(Collectors.toList());
+                  .map(SLA.Failure::message).collect(Collectors.toList());
             result.add(new RequestStats(data.phase, data.stepId, data.metric, sum.summary(PERCENTILES), failures));
          }
       }
@@ -140,27 +138,12 @@ public class StatisticsStore {
             StatisticsSummary last = data.total.summary(PERCENTILES);
             List<String> failures = this.failures.stream()
                   .filter(f -> f.phase().equals(data.phase) && (f.metric() == null || f.metric().equals(data.metric)))
-                  .map(f -> f.message()).collect(Collectors.toList());
+                  .map(SLA.Failure::message).collect(Collectors.toList());
             result.add(new RequestStats(data.phase, data.stepId, data.metric, last, failures));
          }
       }
       result.sort(REQUEST_STATS_COMPARATOR);
       return result;
-   }
-
-   public List<CustomStats> customStats() {
-      ArrayList<CustomStats> list = new ArrayList<>();
-      for (Map<String, Data> m : this.data.values()) {
-         for (Data data : m.values()) {
-            for (Map.Entry<Object, CustomValue> entry : data.total.custom.entrySet()) {
-               list.add(new CustomStats(data.phase, data.stepId, data.metric, entry.getKey().toString(), entry.getValue().toString()));
-            }
-         }
-      }
-      Comparator<CustomStats> c = Comparator.comparing(s -> s.phase);
-      c = c.thenComparing(s -> s.stepId).thenComparing(s -> s.metric).thenComparing(s -> s.customName);
-      Collections.sort(list, c);
-      return list;
    }
 
    public Histogram histogram(String phase, int stepId, String metric) {
@@ -282,10 +265,10 @@ public class StatisticsStore {
 
       void add(StatisticsSnapshot stats) {
          if (ring[ptr] != null) {
-            ring[ptr].subtractFrom(sum);
+            sum.subtract(ring[ptr]);
          }
          ring[ptr] = stats;
-         stats.addInto(sum);
+         sum.add(stats);
          ptr = (ptr + 1) % ring.length;
       }
 

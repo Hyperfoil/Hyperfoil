@@ -21,6 +21,7 @@ import io.hyperfoil.api.config.Rewritable;
 import io.hyperfoil.api.config.SequenceBuilder;
 import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.connection.Request;
+import io.hyperfoil.http.statistics.HttpStats;
 import io.hyperfoil.http.api.HttpCache;
 import io.hyperfoil.http.api.HttpRequest;
 import io.hyperfoil.http.api.FollowRedirect;
@@ -120,7 +121,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
                break;
          }
 
-         request.statistics().addStatus(request.startTimestampMillis(), status);
+         HttpStats.addStatus(request.statistics(), request.startTimestampMillis(), status);
          if (statusHandlers != null) {
             for (StatusHandler handler : statusHandlers) {
                handler.handleStatus(request, status);

@@ -3,9 +3,9 @@ package io.hyperfoil.http.handlers;
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.Name;
+import io.hyperfoil.api.statistics.Counters;
 import io.hyperfoil.http.api.HttpRequest;
 import io.hyperfoil.http.api.StatusHandler;
-import io.hyperfoil.api.statistics.IntValue;
 
 public class StatusToStatsHandler implements StatusHandler {
    private static final int FIRST_STATUS = 100;
@@ -27,8 +27,7 @@ public class StatusToStatsHandler implements StatusHandler {
       } else {
          statusString = "status_" + status;
       }
-      IntValue custom = request.statistics().getCustom(request.startTimestampMillis(), statusString, IntValue::new);
-      custom.add(1);
+      request.statistics().update("exact_status", request.startTimestampMillis(), Counters::new, Counters::increment, statusString);
    }
 
    /**

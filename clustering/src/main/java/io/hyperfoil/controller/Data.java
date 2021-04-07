@@ -51,14 +51,14 @@ final class Data {
          log.warn("Ignoring statistics for completed {}/{}/{} (from {}, {} requests)", phase, stepId, metric, agentName, stats.requestCount);
          return;
       }
-      stats.addInto(total);
-      stats.addInto(perAgent.computeIfAbsent(agentName, a -> new StatisticsSnapshot()));
+      total.add(stats);
+      perAgent.computeIfAbsent(agentName, a -> new StatisticsSnapshot()).add(stats);
       IntObjectMap<StatisticsSnapshot> partialSnapshots = lastStats.computeIfAbsent(agentName, a -> new IntObjectHashMap<>());
       StatisticsSnapshot partialSnapshot = partialSnapshots.get(stats.sequenceId);
       if (partialSnapshot == null) {
          partialSnapshots.put(stats.sequenceId, stats);
       } else {
-         stats.addInto(partialSnapshot);
+         partialSnapshot.add(stats);
       }
       while (stats.sequenceId > highestSequenceId) {
          ++highestSequenceId;
@@ -75,7 +75,7 @@ final class Data {
       for (Map.Entry<String, IntObjectMap<StatisticsSnapshot>> entry : lastStats.entrySet()) {
          StatisticsSnapshot snapshot = entry.getValue().remove(sequenceId);
          if (snapshot != null) {
-            snapshot.addInto(sum);
+            sum.add(snapshot);
             agentSeries.computeIfAbsent(entry.getKey(), a -> new ArrayList<>()).add(snapshot.summary(StatisticsStore.PERCENTILES));
          }
       }

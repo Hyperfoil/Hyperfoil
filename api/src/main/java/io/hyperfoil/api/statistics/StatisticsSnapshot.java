@@ -19,29 +19,18 @@ public class StatisticsSnapshot implements Serializable {
    public int connectFailureCount;
    public int requestCount;
    public int responseCount;
-   public int status_2xx;
-   public int status_3xx;
-   public int status_4xx;
-   public int status_5xx;
-   public int status_other;
    public int invalid;
-   public int cacheHits;
    public int resetCount;
    public int timeouts;
    public int internalErrors;
    public int blockedCount;
    public long blockedTime;
-   public final Map<Object, CustomValue> custom = new HashMap<>();
-
-   public int[] statuses() {
-      return new int[]{ status_2xx, status_3xx, status_4xx, status_5xx, status_other };
-   }
+   public final Map<String, StatsExtension> extensions = new HashMap<>();
 
    public boolean isEmpty() {
       return connectFailureCount + requestCount + responseCount +
-            status_2xx + status_3xx + status_4xx + status_5xx + status_other +
-            invalid + cacheHits + resetCount + timeouts + internalErrors + blockedCount == 0 &&
-            custom.values().stream().allMatch(CustomValue::isNull);
+            invalid + resetCount + timeouts + internalErrors + blockedCount == 0 &&
+            extensions.values().stream().allMatch(StatsExtension::isNull);
    }
 
    public void reset() {
@@ -50,19 +39,13 @@ public class StatisticsSnapshot implements Serializable {
       connectFailureCount = 0;
       requestCount = 0;
       responseCount = 0;
-      status_2xx = 0;
-      status_3xx = 0;
-      status_4xx = 0;
-      status_5xx = 0;
-      status_other = 0;
       invalid = 0;
-      cacheHits = 0;
       resetCount = 0;
       timeouts = 0;
       internalErrors = 0;
       blockedCount = 0;
       blockedTime = 0;
-      for (CustomValue value : custom.values()) {
+      for (StatsExtension value : extensions.values()) {
          if (value != null) {
             value.reset();
          }
@@ -71,133 +54,76 @@ public class StatisticsSnapshot implements Serializable {
 
    public StatisticsSnapshot clone() {
       StatisticsSnapshot copy = new StatisticsSnapshot();
-      copyInto(copy);
+      copy.sequenceId = sequenceId;
+      copy.add(this);
       return copy;
    }
 
-   public void copyInto(StatisticsSnapshot target) {
-      copySequenceId(target);
-      histogram.copyInto(target.histogram);
-      target.totalSendTime = totalSendTime;
-      target.connectFailureCount = connectFailureCount;
-      target.requestCount = requestCount;
-      target.responseCount = responseCount;
-      target.status_2xx = status_2xx;
-      target.status_3xx = status_3xx;
-      target.status_4xx = status_4xx;
-      target.status_5xx = status_5xx;
-      target.status_other = status_other;
-      target.invalid = invalid;
-      target.cacheHits = cacheHits;
-      target.resetCount = resetCount;
-      target.timeouts = timeouts;
-      target.internalErrors = internalErrors;
-      target.blockedCount = blockedCount;
-      target.blockedTime = blockedTime;
-      for (Object key : custom.keySet()) {
-         CustomValue a = custom.get(key);
-         // We must make sure that the key is serializable
-         key = key.toString();
-         CustomValue b = target.custom.get(key);
-         if (a == null) {
-            if (b != null) {
-               b.reset();
-            }
-         } else if (b == null) {
-            target.custom.put(key, a.clone());
-         } else {
-            b.reset();
-            b.add(a);
-         }
-      }
-   }
-
-   public void addInto(StatisticsSnapshot target) {
-      target.histogram.add(histogram);
-      target.totalSendTime += totalSendTime;
-      target.connectFailureCount += connectFailureCount;
-      target.requestCount += requestCount;
-      target.responseCount += responseCount;
-      target.status_2xx += status_2xx;
-      target.status_3xx += status_3xx;
-      target.status_4xx += status_4xx;
-      target.status_5xx += status_5xx;
-      target.status_other += status_other;
-      target.invalid += invalid;
-      target.cacheHits += cacheHits;
-      target.resetCount += resetCount;
-      target.timeouts += timeouts;
-      target.internalErrors += internalErrors;
-      target.blockedCount += blockedCount;
-      target.blockedTime += blockedTime;
-      for (Object key : custom.keySet()) {
-         CustomValue a = custom.get(key);
-         // We must make sure that the key is serializable
-         key = key.toString();
-         CustomValue b = target.custom.get(key);
-         if (a == null) {
+   public void add(StatisticsSnapshot other) {
+      histogram.add(other.histogram);
+      totalSendTime += other.totalSendTime;
+      connectFailureCount += other.connectFailureCount;
+      requestCount += other.requestCount;
+      responseCount += other.responseCount;
+      invalid += other.invalid;
+      resetCount += other.resetCount;
+      timeouts += other.timeouts;
+      internalErrors += other.internalErrors;
+      blockedCount += other.blockedCount;
+      blockedTime += other.blockedTime;
+      for (String key : other.extensions.keySet()) {
+         StatsExtension their = other.extensions.get(key);
+         StatsExtension my = extensions.get(key);
+         if (their == null) {
             // noop
-         } else if (b == null) {
-            target.custom.put(key, a.clone());
+         } else if (my == null) {
+            extensions.put(key, their.clone());
          } else {
-            b.add(a);
+            my.add(their);
          }
       }
    }
 
-   private void copySequenceId(StatisticsSnapshot target) {
-      if (sequenceId >= 0) {
-         if (target.sequenceId >= 0 && sequenceId != target.sequenceId) {
-            throw new IllegalArgumentException("Snapshot sequence IDs don't match");
-         }
-         target.sequenceId = sequenceId;
-      }
-   }
-
-   public void subtractFrom(StatisticsSnapshot target) {
-      target.histogram.subtract(histogram);
-      target.totalSendTime -= totalSendTime;
-      target.connectFailureCount -= connectFailureCount;
-      target.requestCount -= requestCount;
-      target.responseCount -= responseCount;
-      target.status_2xx -= status_2xx;
-      target.status_3xx -= status_3xx;
-      target.status_4xx -= status_4xx;
-      target.status_5xx -= status_5xx;
-      target.status_other -= status_other;
-      target.invalid -= invalid;
-      target.cacheHits -= cacheHits;
-      target.resetCount -= resetCount;
-      target.timeouts -= timeouts;
-      target.internalErrors -= internalErrors;
-      target.blockedCount -= blockedCount;
-      target.blockedTime -= blockedTime;
-      for (Object key : custom.keySet()) {
-         CustomValue a = custom.get(key);
-         // We must make sure that the key is serializable
-         key = key.toString();
-         CustomValue b = target.custom.get(key);
-         if (a == null) {
+   public void subtract(StatisticsSnapshot other) {
+      histogram.subtract(other.histogram);
+      totalSendTime -= other.totalSendTime;
+      connectFailureCount -= other.connectFailureCount;
+      requestCount -= other.requestCount;
+      responseCount -= other.responseCount;
+      invalid -= other.invalid;
+      resetCount -= other.resetCount;
+      timeouts -= other.timeouts;
+      internalErrors -= other.internalErrors;
+      blockedCount -= other.blockedCount;
+      blockedTime -= other.blockedTime;
+      for (String key : other.extensions.keySet()) {
+         StatsExtension their = other.extensions.get(key);
+         StatsExtension my = extensions.get(key);
+         if (their == null) {
             // noop
-         } else if (b == null) {
-            b = a.clone();
-            b.reset();
-            b.substract(a);
-            target.custom.put(key, b);
+         } else if (my == null) {
+            my = their.clone();
+            my.reset();
+            my.subtract(their);
+            extensions.put(key, my);
          } else {
-            b.substract(a);
+            my.subtract(their);
          }
       }
    }
 
    public StatisticsSummary summary(double[] percentiles) {
-      TreeMap<Double, Long> percentilesMap = DoubleStream.of(percentiles).collect(TreeMap::new,
-            (map, p) -> map.put(p * 100, histogram.getValueAtPercentile(p * 100)), TreeMap::putAll);
+      TreeMap<Double, Long> percentilesMap = getPercentiles(percentiles);
       return new StatisticsSummary(histogram.getStartTimeStamp(), histogram.getEndTimeStamp(),
             histogram.getMinValue(), (long) histogram.getMean(), histogram.getMaxValue(),
             responseCount > 0 ? totalSendTime / responseCount : resetCount,
             percentilesMap, connectFailureCount, requestCount, responseCount,
-            status_2xx, status_3xx, status_4xx, status_5xx, status_other, invalid, cacheHits, resetCount, timeouts, internalErrors, blockedCount, blockedTime);
+            invalid, resetCount, timeouts, internalErrors, blockedCount, blockedTime, new TreeMap<>(extensions));
+   }
+
+   public TreeMap<Double, Long> getPercentiles(double[] percentiles) {
+      return DoubleStream.of(percentiles).collect(TreeMap::new,
+            (map, p) -> map.put(p * 100, histogram.getValueAtPercentile(p * 100)), TreeMap::putAll);
    }
 
    public long errors() {
@@ -214,19 +140,13 @@ public class StatisticsSnapshot implements Serializable {
             ", connectFailureCount=" + connectFailureCount +
             ", requestCount=" + requestCount +
             ", responseCount=" + responseCount +
-            ", status_2xx=" + status_2xx +
-            ", status_3xx=" + status_3xx +
-            ", status_4xx=" + status_4xx +
-            ", status_5xx=" + status_5xx +
-            ", status_other=" + status_other +
             ", invalid=" + invalid +
-            ", cacheHits=" + cacheHits +
             ", resetCount=" + resetCount +
             ", timeouts=" + timeouts +
-            ", internalErros=" + internalErrors +
+            ", internalErrors=" + internalErrors +
             ", blockedCount=" + blockedCount +
             ", blockedTime=" + blockedTime +
-            ", custom=" + custom +
-            '}';
+            ", extensions=" + extensions + '}';
    }
+
 }

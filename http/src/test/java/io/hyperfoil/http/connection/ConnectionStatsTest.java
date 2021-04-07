@@ -21,6 +21,7 @@ import io.hyperfoil.http.api.HttpMethod;
 import io.hyperfoil.http.config.ConnectionStrategy;
 import io.hyperfoil.http.config.HttpBuilder;
 import io.hyperfoil.http.config.HttpPluginBuilder;
+import io.hyperfoil.http.statistics.HttpStats;
 import io.hyperfoil.http.steps.HttpStepCatalog;
 import io.vertx.core.Future;
 import io.vertx.ext.unit.Async;
@@ -358,15 +359,16 @@ public class ConnectionStatsTest extends HttpScenarioTest {
       runner.run();
 
       StatisticsSnapshot snapshot = requestStats.stats().get("test");
+      HttpStats http = HttpStats.get(snapshot);
       assertThat(snapshot.requestCount).isGreaterThan(100);
       // When connection cancels requests from other sessions these are recorded as resets
       assertThat(snapshot.responseCount).isEqualTo(snapshot.requestCount - snapshot.resetCount);
-      assertThat(snapshot.resetCount).isEqualTo(snapshot.requestCount - snapshot.status_2xx - snapshot.status_4xx);
-      assertThat(snapshot.status_2xx).isGreaterThan(30);
+      assertThat(snapshot.resetCount).isEqualTo(snapshot.requestCount - http.status_2xx - http.status_4xx);
+      assertThat(http.status_2xx).isGreaterThan(30);
       if (errors) {
-         assertThat(snapshot.status_4xx).isGreaterThan(30);
+         assertThat(http.status_4xx).isGreaterThan(30);
       } else {
-         assertThat(snapshot.status_4xx).isEqualTo(0);
+         assertThat(http.status_4xx).isEqualTo(0);
       }
 
       connectionStats.stats.forEach((tag, lowHigh) -> assertThat(lowHigh.low).describedAs(tag).isLessThanOrEqualTo(lowHigh.high));

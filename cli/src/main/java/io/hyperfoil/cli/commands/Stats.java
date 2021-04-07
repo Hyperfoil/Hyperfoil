@@ -1,6 +1,7 @@
 package io.hyperfoil.cli.commands;
 
-import java.util.Collection;
+import java.util.Map;
+import java.util.stream.Stream;
 
 import org.aesh.command.CommandDefinition;
 import org.aesh.command.CommandException;
@@ -8,13 +9,14 @@ import org.aesh.command.CommandResult;
 import org.aesh.command.option.Option;
 import org.aesh.terminal.utils.ANSI;
 
+import io.hyperfoil.api.statistics.StatsExtension;
 import io.hyperfoil.cli.Table;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.controller.Client;
 import io.hyperfoil.client.RestClientException;
-import io.hyperfoil.controller.model.CustomStats;
 import io.hyperfoil.controller.model.RequestStatisticsResponse;
 import io.hyperfoil.controller.model.RequestStats;
+import io.hyperfoil.http.statistics.HttpStats;
 
 @CommandDefinition(name = "stats", description = "Show run statistics")
 public class Stats extends BaseRunIdCommand {
@@ -31,27 +33,17 @@ public class Stats extends BaseRunIdCommand {
          .columnNanos("p99", r -> r.summary.percentileResponseTime.get(99d))
          .columnNanos("p99.9", r -> r.summary.percentileResponseTime.get(99.9))
          .columnNanos("p99.99", r -> r.summary.percentileResponseTime.get(99.99))
-         .columnInt("2xx", r -> r.summary.status_2xx)
-         .columnInt("3xx", r -> r.summary.status_3xx)
-         .columnInt("4xx", r -> r.summary.status_4xx)
-         .columnInt("5xx", r -> r.summary.status_5xx)
-         .columnInt("CACHE", r -> r.summary.cacheHits)
          .columnInt("TIMEOUTS", r -> r.summary.timeouts)
-         .columnInt("ERRORS", r -> r.summary.resetCount + r.summary.connectFailureCount + r.summary.status_other + r.summary.internalErrors)
+         .columnInt("ERRORS", r -> r.summary.resetCount + r.summary.connectFailureCount + r.summary.internalErrors)
          .columnNanos("BLOCKED", r -> r.summary.blockedTime);
 
-   private static final Table<CustomStats> CUSTOM_STATS_TABLE = new Table<CustomStats>()
-         .column("PHASE", c -> c.phase)
-         .columnInt("STEP", c -> c.stepId)
-         .column("METRIC", c -> c.metric)
-         .column("NAME", c -> c.customName)
-         .column("VALUE", c -> c.value);
+   private static final String[] DIRECT_EXTENSIONS = { HttpStats.HTTP };
 
-   @Option(name = "total", shortName = 't', description = "Show total stats instead of recent.", hasValue = false)
+   @Option(shortName = 't', description = "Show total stats instead of recent.", hasValue = false)
    private boolean total;
 
-   @Option(name = "custom", shortName = 'c', description = "Show custom stats (total only)", hasValue = false)
-   private boolean custom;
+   @Option(shortName = 'e', description = "Show extensions for given key. Use 'all' or '*' to show all extensions not shown by default, or comma-separated list.", completer = ExtensionsCompleter.class)
+   private String extensions;
 
    private static String throughput(RequestStats r) {
       if (r.summary.endTime <= r.summary.startTime) {
@@ -71,26 +63,17 @@ public class Stats extends BaseRunIdCommand {
    @Override
    public CommandResult execute(HyperfoilCommandInvocation invocation) throws CommandException {
       Client.RunRef runRef = getRunRef(invocation);
-      if (custom) {
-         showCustomStats(invocation, runRef);
-      } else {
-         showStats(invocation, runRef);
-      }
-      return CommandResult.SUCCESS;
-   }
-
-   private void showStats(HyperfoilCommandInvocation invocation, Client.RunRef runRef) throws CommandException {
       boolean terminated = false;
       int prevLines = -2;
       for (; ; ) {
          RequestStatisticsResponse stats;
          try {
-            stats = total || terminated ? runRef.statsTotal() : runRef.statsRecent();
+            stats = total ? runRef.statsTotal() : runRef.statsRecent();
          } catch (RestClientException e) {
             if (e.getCause() instanceof InterruptedException) {
                clearLines(invocation, 1);
                invocation.println("");
-               return;
+               break;
             }
             invocation.error(e);
             throw new CommandException("Cannot fetch stats for run " + runRef.id(), e);
@@ -106,37 +89,93 @@ public class Stats extends BaseRunIdCommand {
          } else {
             invocation.println("Recent stats from run " + runRef.id());
          }
-         invocation.println(REQUEST_STATS_TABLE.print(stats.statistics.stream()));
-         prevLines = stats.statistics.size() + 2;
-         for (RequestStats rs : stats.statistics) {
-            for (String msg : rs.failedSLAs) {
-               invocation.println(String.format("%s/%s: %s", rs.phase, rs.metric == null ? "*" : rs.metric, msg));
-               prevLines++;
-            }
+         if (extensions == null || extensions.isEmpty()) {
+            prevLines = showGeneralStats(invocation, stats);
+         } else {
+            prevLines = showExtensions(invocation, stats);
          }
          if (terminated || interruptibleDelay(invocation)) {
-            return;
+            break;
          }
+      }
+      return CommandResult.SUCCESS;
+   }
+
+   private int showGeneralStats(HyperfoilCommandInvocation invocation, RequestStatisticsResponse stats) {
+      int prevLines = stats.statistics.size() + 2;
+      String[] extensions = extensions(stats).toArray(String[]::new);
+      if (extensions.length > 0) {
+         invocation.print("Extensions (use -e to show): ");
+         invocation.println(String.join(", ", extensions));
+         prevLines++;
+      }
+      Table<RequestStats> table = new Table<>(REQUEST_STATS_TABLE);
+      addDirectExtensions(stats, table);
+      invocation.println(table.print(stats.statistics.stream()));
+      for (RequestStats rs : stats.statistics) {
+         for (String msg : rs.failedSLAs) {
+            invocation.println(String.format("%s/%s: %s", rs.phase, rs.metric == null ? "*" : rs.metric, msg));
+            prevLines++;
+         }
+      }
+      return prevLines;
+   }
+
+   private int showExtensions(HyperfoilCommandInvocation invocation, RequestStatisticsResponse stats) {
+      Table<RequestStats> table = new Table<>();
+      table.column("PHASE", r -> r.phase).column("METRIC", r -> r.metric);
+      if (extensions.equalsIgnoreCase("all") || extensions.equals("*")) {
+         extensions(stats).flatMap(ext -> stats.statistics.stream().flatMap(rs -> {
+            StatsExtension extension = rs.summary.extensions.get(ext);
+            return extension == null ? Stream.empty() : Stream.of(extension.headers()).map(h -> Map.entry(ext, h));
+         })).distinct().forEach(extHeader ->
+               table.column(extHeader.getKey() + "." + extHeader.getValue(),
+                     rs -> rs.summary.extensions.get(extHeader.getKey()).byHeader(extHeader.getValue()), Table.Align.RIGHT)
+         );
+      } else if (!extensions.contains(",")) {
+         stats.statistics.stream().flatMap(rs -> {
+            StatsExtension extension = rs.summary.extensions.get(extensions);
+            return extension == null ? Stream.empty() : Stream.of(extension.headers());
+         }).distinct().forEach(header ->
+               table.column(header, rs -> rs.summary.extensions.get(extensions).byHeader(header), Table.Align.RIGHT));
+      } else {
+         String[] exts = extensions.split(",");
+         stats.statistics.stream().flatMap(rs -> Stream.of(exts).flatMap(ext -> {
+            StatsExtension extension = rs.summary.extensions.get(ext);
+            return extension == null ? Stream.empty() : Stream.of(extension.headers()).map(h -> Map.entry(ext, h));
+         })).distinct().forEach(extHeader ->
+               table.column(extHeader.getKey() + "." + extHeader.getValue(),
+                     rs -> rs.summary.extensions.get(extHeader.getKey()).byHeader(extHeader.getValue()), Table.Align.RIGHT)
+         );
+      }
+      invocation.println(table.print(stats.statistics.stream()));
+      return stats.statistics.size() + 2;
+   }
+
+   private static Stream<String> extensions(RequestStatisticsResponse stats) {
+      return stats.statistics.stream().flatMap(rs -> rs.summary.extensions.keySet().stream())
+            .sorted().distinct().filter(ext -> Stream.of(DIRECT_EXTENSIONS).noneMatch(de -> de.equals(ext)));
+   }
+
+   private void addDirectExtensions(RequestStatisticsResponse stats, Table<RequestStats> table) {
+      boolean hasHttp = stats.statistics.stream().anyMatch(rs -> rs.summary.extensions.containsKey(HttpStats.HTTP));
+      if (hasHttp) {
+          table.columnInt("2xx", r -> HttpStats.get(r.summary).status_2xx)
+               .columnInt("3xx", r -> HttpStats.get(r.summary).status_3xx)
+               .columnInt("4xx", r -> HttpStats.get(r.summary).status_4xx)
+               .columnInt("5xx", r -> HttpStats.get(r.summary).status_5xx)
+               .columnInt("CACHE", r -> HttpStats.get(r.summary).cacheHits);
       }
    }
 
-   private void showCustomStats(HyperfoilCommandInvocation invocation, Client.RunRef runRef) throws CommandException {
-      try {
-         Collection<CustomStats> customStats = runRef.customStats();
-         invocation.println(CUSTOM_STATS_TABLE.print(customStats.stream()));
-      } catch (RestClientException e) {
-         invocation.error(e);
-         throw new CommandException("Cannot fetch custom stats for run " + runRef.id(), e);
+   public static class ExtensionsCompleter extends HyperfoilOptionCompleter {
+      public ExtensionsCompleter() {
+         super(context -> {
+            if (context.serverRun() == null) {
+               return Stream.empty();
+            }
+            return Stream.concat(extensions(context.serverRun().statsTotal()), Stream.of("all"));
+         });
       }
-   }
-
-   private int numLines(String string) {
-      int lines = 0;
-      for (int i = 0; i < string.length(); ++i) {
-         if (string.charAt(i) == '\n') {
-            ++lines;
-         }
-      }
-      return lines;
    }
 }

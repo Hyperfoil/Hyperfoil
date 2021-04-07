@@ -11,6 +11,7 @@ import org.junit.runner.RunWith;
 import io.hyperfoil.http.HttpScenarioTest;
 import io.hyperfoil.http.api.HttpMethod;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
+import io.hyperfoil.http.statistics.HttpStats;
 import io.vertx.core.http.Cookie;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 
@@ -51,9 +52,11 @@ public class CookieTest extends HttpScenarioTest {
       Map<String, StatisticsSnapshot> stats = runScenario();
       StatisticsSnapshot test1 = stats.get("test1");
       StatisticsSnapshot test2 = stats.get("test1");
-      assertThat(test1.status_5xx).isEqualTo(0);
-      assertThat(test1.status_2xx).isEqualTo(1);
-      assertThat(test2.status_5xx).isEqualTo(0);
-      assertThat(test2.status_2xx).isEqualTo(1);
+      HttpStats http1 = HttpStats.get(test1);
+      HttpStats http2 = HttpStats.get(test2);
+      assertThat(http1.status_5xx).isEqualTo(0);
+      assertThat(http1.status_2xx).isEqualTo(1);
+      assertThat(http2.status_5xx).isEqualTo(0);
+      assertThat(http2.status_2xx).isEqualTo(1);
    }
 }

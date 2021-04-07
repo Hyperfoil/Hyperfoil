@@ -11,6 +11,7 @@ import org.junit.runner.RunWith;
 
 import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.api.session.Session;
+import io.hyperfoil.http.statistics.HttpStats;
 import io.hyperfoil.api.statistics.Statistics;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.core.VertxBaseTest;
@@ -186,14 +187,14 @@ public class HttpCacheTest extends VertxBaseTest {
    }
 
    private void assertCacheHits(TestContext ctx, HttpRequest req, int hits) {
-      assertStats(req, snapshot -> ctx.assertEquals(snapshot.cacheHits, hits));
+      assertStats(req, snapshot -> ctx.assertEquals(HttpStats.get(snapshot).cacheHits, hits));
    }
 
    private void assertStats(HttpRequest request, Consumer<StatisticsSnapshot> consumer) {
       Statistics statistics = request.statistics();
       statistics.end(System.currentTimeMillis());
       StatisticsSnapshot snapshot = new StatisticsSnapshot();
-      statistics.visitSnapshots(ss -> ss.addInto(snapshot));
+      statistics.visitSnapshots(snapshot::add);
       consumer.accept(snapshot);
    }
 

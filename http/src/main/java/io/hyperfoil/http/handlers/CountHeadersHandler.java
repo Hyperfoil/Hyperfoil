@@ -3,15 +3,15 @@ package io.hyperfoil.http.handlers;
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.Name;
+import io.hyperfoil.api.statistics.Counters;
 import io.hyperfoil.http.api.HttpRequest;
 import io.hyperfoil.http.api.HeaderHandler;
-import io.hyperfoil.api.statistics.IntValue;
 
 public class CountHeadersHandler implements HeaderHandler {
    @Override
    public void handleHeader(HttpRequest request, CharSequence header, CharSequence value) {
-      IntValue custom = request.statistics().getCustom(request.startTimestampMillis(), header, IntValue::new);
-      custom.add(1);
+      request.statistics().update("countHeaders", request.startTimestampMillis(),
+            Counters::new, Counters::increment, header);
    }
 
    /**

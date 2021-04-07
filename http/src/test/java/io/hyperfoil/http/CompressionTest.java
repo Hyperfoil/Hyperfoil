@@ -10,6 +10,7 @@ import org.junit.runner.RunWith;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
+import io.hyperfoil.http.statistics.HttpStats;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.ext.web.RoutingContext;
@@ -60,7 +61,7 @@ public class CompressionTest extends HttpScenarioTest {
 
    private void validateStats(StatisticsSnapshot snapshot) {
       assertThat(snapshot.requestCount).isEqualTo(1);
-      assertThat(snapshot.status_2xx).isEqualTo(1);
+      assertThat(HttpStats.get(snapshot).status_2xx).isEqualTo(1);
       assertThat(snapshot.invalid).isEqualTo(0);
    }
 }

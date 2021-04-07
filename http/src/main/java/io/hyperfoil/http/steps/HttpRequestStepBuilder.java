@@ -27,6 +27,7 @@ import io.hyperfoil.api.connection.Connection;
 import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.Session;
+import io.hyperfoil.http.statistics.HttpStats;
 import io.hyperfoil.api.statistics.Statistics;
 import io.hyperfoil.core.builders.BaseStepBuilder;
 import io.hyperfoil.core.builders.SLA;
@@ -887,7 +888,7 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
          long startTimeMs = holder.lastStartTime();
          statistics.incrementRequests(startTimeMs);
          if (request.cacheControl.wasCached) {
-            statistics.addCacheHit(startTimeMs);
+            HttpStats.addCacheHit(statistics, startTimeMs);
          } else {
             long now = System.currentTimeMillis();
             log.trace("#{} Session start {}, now {}, diff {}", session.uniqueId(), startTimeMs, now, now - startTimeMs);

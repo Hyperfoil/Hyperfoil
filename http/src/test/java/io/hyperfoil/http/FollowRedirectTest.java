@@ -15,6 +15,7 @@ import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.http.api.FollowRedirect;
 import io.hyperfoil.http.api.HttpMethod;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
+import io.hyperfoil.http.statistics.HttpStats;
 import io.hyperfoil.http.steps.HttpStepCatalog;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -116,11 +117,11 @@ public class FollowRedirectTest extends HttpScenarioTest {
       int users = benchmark.phases().stream().filter(p -> "testPhase".equals(p.name()))
             .map(Phase.AtOnce.class::cast).mapToInt(p -> p.users).findFirst().orElse(0);
       Map<String, StatisticsSnapshot> stats = runScenario(benchmark);
-      StatisticsSnapshot redirectMe = stats.get("redirectMe");
+      HttpStats redirectMe = HttpStats.get(stats.get("redirectMe"));
       assertThat(redirectMe.status_3xx).isEqualTo(redirects.get());
       assertThat(redirectMe.status_2xx).isEqualTo(users - redirects.get() - notFound.get());
       assertThat(redirectMe.status_4xx).isEqualTo(notFound.get());
-      StatisticsSnapshot redirectMe_redirect = stats.get("redirectMe_redirect");
+      HttpStats redirectMe_redirect = HttpStats.get(stats.get("redirectMe_redirect"));
       assertThat(redirectMe_redirect.status_2xx).isEqualTo(redirects.get());
    }
 
@@ -130,7 +131,7 @@ public class FollowRedirectTest extends HttpScenarioTest {
       int users = benchmark.phases().stream().filter(p -> "testPhase".equals(p.name()))
             .map(Phase.AtOnce.class::cast).mapToInt(p -> p.users).findFirst().orElse(0);
       Map<String, StatisticsSnapshot> stats = runScenario(benchmark);
-      StatisticsSnapshot redirectMe = stats.get("redirectMe");
+      HttpStats redirectMe = HttpStats.get(stats.get("redirectMe"));
       String redirectMetric = stats.keySet().stream().filter(m -> !m.equals("redirectMe")).findFirst().orElse(null);
       if (redirectMetric == null) {
          // rare case when we'd not get any redirects
@@ -139,7 +140,7 @@ public class FollowRedirectTest extends HttpScenarioTest {
          assertThat(redirectMe.status_4xx).isEqualTo(notFound.get());
          assertThat(redirects.get()).isEqualTo(0);
       } else {
-         StatisticsSnapshot redirectStats = stats.get(redirectMetric);
+         HttpStats redirectStats = HttpStats.get(stats.get(redirectMetric));
          assertThat(redirectMe.status_2xx + redirectStats.status_2xx).isEqualTo(users - notFound.get());
          assertThat(redirectMe.status_3xx + redirectStats.status_3xx).isEqualTo(redirects.get());
          assertThat(redirectMe.status_4xx + redirectStats.status_4xx).isEqualTo(notFound.get());
@@ -152,7 +153,7 @@ public class FollowRedirectTest extends HttpScenarioTest {
       int users = benchmark.phases().stream().filter(p -> "testPhase".equals(p.name()))
             .map(Phase.AtOnce.class::cast).mapToInt(p -> p.users).findFirst().orElse(0);
       Map<String, StatisticsSnapshot> stats = runScenario(benchmark);
-      StatisticsSnapshot redirectMe = stats.get("redirectMe");
+      HttpStats redirectMe = HttpStats.get(stats.get("redirectMe"));
       String redirectMetric = stats.keySet().stream().filter(m -> !m.equals("redirectMe")).findFirst().orElse(null);
       if (redirectMetric == null) {
          // rare case when we'd not get any redirects
@@ -160,7 +161,7 @@ public class FollowRedirectTest extends HttpScenarioTest {
          assertThat(redirectMe.status_2xx).isEqualTo(users - notFound.get());
          assertThat(redirectMe.status_4xx).isEqualTo(notFound.get());
       } else {
-         StatisticsSnapshot redirectStats = stats.get(redirectMetric);
+         HttpStats redirectStats = HttpStats.get(stats.get(redirectMetric));
          assertThat(redirectStats.status_2xx + redirectMe.status_2xx).isEqualTo(users + redirects.get() - notFound.get());
          assertThat(redirectStats.status_3xx).isEqualTo(0);
          assertThat(redirectStats.status_4xx + redirectMe.status_4xx).isEqualTo(notFound.get());
@@ -174,7 +175,7 @@ public class FollowRedirectTest extends HttpScenarioTest {
       int users = benchmark.phases().stream().filter(p -> "testPhase".equals(p.name()))
             .map(Phase.AtOnce.class::cast).mapToInt(p -> p.users).findFirst().orElse(0);
       Map<String, StatisticsSnapshot> stats = runScenario(benchmark);
-      StatisticsSnapshot redirectMe = stats.get("redirectMe");
+      HttpStats redirectMe = HttpStats.get(stats.get("redirectMe"));
       String redirectMetric = stats.keySet().stream().filter(m -> !m.equals("redirectMe")).findFirst().orElse(null);
       if (redirectMetric == null) {
          // rare case when we'd not get any redirects
@@ -183,7 +184,7 @@ public class FollowRedirectTest extends HttpScenarioTest {
          assertThat(redirectMe.status_4xx).isEqualTo(notFound.get());
          assertThat(redirects.get()).isEqualTo(0);
       } else {
-         StatisticsSnapshot redirectStats = stats.get(redirectMetric);
+         HttpStats redirectStats = HttpStats.get(stats.get(redirectMetric));
          assertThat(redirectMe.status_2xx + redirectMe.status_3xx).isLessThanOrEqualTo(users).isGreaterThanOrEqualTo(users - notFound.get());
          assertThat(redirectStats.status_2xx + redirectStats.status_3xx).isLessThanOrEqualTo(redirects.get()).isGreaterThanOrEqualTo(redirects.get() - notFound.get());
          assertThat(redirectStats.status_4xx + redirectMe.status_4xx).isEqualTo(notFound.get());
@@ -198,10 +199,10 @@ public class FollowRedirectTest extends HttpScenarioTest {
 
       Map<String, StatisticsSnapshot> stats = runScenario();
       StatisticsSnapshot testStats = stats.get("test");
-      assertThat(testStats.status_3xx).isEqualTo(1);
+      assertThat(HttpStats.get(testStats).status_3xx).isEqualTo(1);
       assertThat(testStats.responseCount).isEqualTo(1);
       StatisticsSnapshot otherStats = stats.entrySet().stream()
             .filter(e -> !e.getKey().equals("test")).map(Map.Entry::getValue).findFirst().orElse(null);
-      assertThat(otherStats.status_2xx).isEqualTo(2);
+      assertThat(HttpStats.get(otherStats).status_2xx).isEqualTo(2);
    }
 }
