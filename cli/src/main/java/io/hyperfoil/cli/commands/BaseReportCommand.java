@@ -23,13 +23,13 @@ import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 
 public abstract class BaseReportCommand extends BaseRunIdCommand {
-   private static final String TEMPLATE_URL = "https://hyperfoil.io/report-template.html";
+   private static final String TEMPLATE_URL = "https://hyperfoil.io/report-template-v3.0.html";
    @Option(shortName = 's', description = "Other file (in given run) to use as report input.")
    private String source;
 
    protected String getReport(HyperfoilCommandInvocation invocation) throws CommandException {
       String template = null;
-      File templateCache = new File("./.report-template.html.cached");
+      File templateCache = new File("./.report-template-v3.0.html.cached");
       if (templateCache.exists() && templateCache.isFile()) {
          try {
             template = Files.readString(templateCache.toPath(), StandardCharsets.UTF_8);
