@@ -16,6 +16,7 @@ import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 public class Runs extends ServerCommand {
    private static final SimpleDateFormat DATE_FORMATTER = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
    private static final Table<io.hyperfoil.controller.model.Run> RUN_TABLE = new Table<io.hyperfoil.controller.model.Run>()
+         .idColumns(2)
          .column("", run -> runIcon(run))
          .column("RUN_ID", run -> run.id)
          .column("BENCHMARK", run -> run.benchmark)
@@ -41,7 +42,7 @@ public class Runs extends ServerCommand {
    public CommandResult execute(HyperfoilCommandInvocation invocation) throws CommandException {
       ensureConnection(invocation);
       List<io.hyperfoil.controller.model.Run> runs = invocation.context().client().runs(true);
-      invocation.println(RUN_TABLE.print(runs.stream().sorted(Comparator.comparing(run -> run.id))));
+      RUN_TABLE.print(invocation, runs.stream().sorted(Comparator.comparing(run -> run.id)));
       return CommandResult.SUCCESS;
    }
 }

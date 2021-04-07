@@ -39,8 +39,8 @@ public class Help implements Command<HyperfoilCommandInvocation> {
                throw new IllegalStateException(e);
             }
          };
-         invocation.print(ALL_COMMANDS.print(invocation.context().commandRegistry().getAllCommandNames().stream()
-               .map(toProcessedCommand).sorted(COMMAND_COMPARATOR)));
+         ALL_COMMANDS.print(invocation, invocation.context().commandRegistry().getAllCommandNames().stream()
+               .map(toProcessedCommand).sorted(COMMAND_COMPARATOR));
          return CommandResult.SUCCESS;
       }
       String help = invocation.getHelpInfo(command);

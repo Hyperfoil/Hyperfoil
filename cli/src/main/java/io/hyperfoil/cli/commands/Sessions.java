@@ -32,12 +32,12 @@ public class Sessions extends BaseRunIdCommand {
                io.hyperfoil.controller.model.Run run = runRef.get();
                if (run.terminated != null) {
                   invocation.println("Run " + run.id + " has terminated.");
-                  invocation.print(SESSION_STATS.print("PHASE", CliUtil.toMapOfStreams(runRef.sessionStatsTotal())));
+                  SESSION_STATS.print(invocation, "PHASE", CliUtil.toMapOfStreams(runRef.sessionStatsTotal()));
                   return CommandResult.SUCCESS;
                }
             }
             if (sessionStats != null) {
-               invocation.print(SESSION_STATS.print("PHASE", CliUtil.toMapOfStreams(sessionStats)));
+               SESSION_STATS.print(invocation, "PHASE", CliUtil.toMapOfStreams(sessionStats));
             }
             if (interruptibleDelay(invocation)) {
                return CommandResult.SUCCESS;

@@ -115,7 +115,7 @@ public class Compare extends ServerCommand {
             comparisons.add(new Comparison(stats.phase, stats.metric).second(stats.summary));
          }
       }
-      invocation.print(TABLE.print(comparisons.stream()));
+      TABLE.print(invocation, comparisons.stream());
       return CommandResult.SUCCESS;
    }
 

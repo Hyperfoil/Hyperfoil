@@ -21,6 +21,7 @@ import io.hyperfoil.http.statistics.HttpStats;
 @CommandDefinition(name = "stats", description = "Show run statistics")
 public class Stats extends BaseRunIdCommand {
    private static final Table<RequestStats> REQUEST_STATS_TABLE = new Table<RequestStats>()
+         .idColumns(2)
          .rowPrefix(r -> r.failedSLAs.isEmpty() ? null : ANSI.RED_TEXT)
          .rowSuffix(r -> ANSI.RESET)
          .column("PHASE", r -> r.phase)
@@ -102,7 +103,7 @@ public class Stats extends BaseRunIdCommand {
    }
 
    private int showGeneralStats(HyperfoilCommandInvocation invocation, RequestStatisticsResponse stats) {
-      int prevLines = stats.statistics.size() + 2;
+      int prevLines = 0;
       String[] extensions = extensions(stats).toArray(String[]::new);
       if (extensions.length > 0) {
          invocation.print("Extensions (use -e to show): ");
@@ -111,7 +112,7 @@ public class Stats extends BaseRunIdCommand {
       }
       Table<RequestStats> table = new Table<>(REQUEST_STATS_TABLE);
       addDirectExtensions(stats, table);
-      invocation.println(table.print(stats.statistics.stream()));
+      prevLines += table.print(invocation, stats.statistics.stream());
       for (RequestStats rs : stats.statistics) {
          for (String msg : rs.failedSLAs) {
             invocation.println(String.format("%s/%s: %s", rs.phase, rs.metric == null ? "*" : rs.metric, msg));
@@ -122,7 +123,7 @@ public class Stats extends BaseRunIdCommand {
    }
 
    private int showExtensions(HyperfoilCommandInvocation invocation, RequestStatisticsResponse stats) {
-      Table<RequestStats> table = new Table<>();
+      Table<RequestStats> table = new Table<RequestStats>().idColumns(2);
       table.column("PHASE", r -> r.phase).column("METRIC", r -> r.metric);
       if (extensions.equalsIgnoreCase("all") || extensions.equals("*")) {
          extensions(stats).flatMap(ext -> stats.statistics.stream().flatMap(rs -> {
@@ -148,8 +149,7 @@ public class Stats extends BaseRunIdCommand {
                      rs -> rs.summary.extensions.get(extHeader.getKey()).byHeader(extHeader.getValue()), Table.Align.RIGHT)
          );
       }
-      invocation.println(table.print(stats.statistics.stream()));
-      return stats.statistics.size() + 2;
+      return table.print(invocation, stats.statistics.stream());
    }
 
    private static Stream<String> extensions(RequestStatisticsResponse stats) {

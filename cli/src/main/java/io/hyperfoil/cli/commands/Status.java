@@ -57,17 +57,20 @@ public class Status extends BaseRunIdCommand {
             invocation.println("");
          }
 
+         int lines = 3;
          io.hyperfoil.controller.model.Run r = run;
-         invocation.print(PHASE_TABLE.print(run.phases.stream().filter(p -> showPhase(r, p))));
+         lines += PHASE_TABLE.print(invocation, run.phases.stream().filter(p -> showPhase(r, p)));
          long cancelled = run.phases.stream().filter(p -> "CANCELLED".equals(p.status)).count();
          if (cancelled > 0) {
             invocation.println(cancelled + " phases were cancelled.");
+            lines++;
          }
          if (!run.errors.isEmpty()) {
             invocation.println("Errors:");
             for (String note : run.errors) {
                invocation.println(note);
             }
+            lines += 1 + run.errors.size();
          }
          if (run.terminated != null) {
             return CommandResult.SUCCESS;
@@ -86,10 +89,7 @@ public class Status extends BaseRunIdCommand {
             invocation.error(e);
             throw new CommandException("Cannot fetch status for run " + runRef.id(), e);
          }
-         int lines = 4;
-         lines += (int) r.phases.stream().filter(p -> showPhase(r, p)).count();
-         lines += cancelled > 0 ? 1 : 0;
-         lines += run.errors.isEmpty() ? 0 : run.errors.size() + 1;
+
          clearLines(invocation, lines);
       }
    }

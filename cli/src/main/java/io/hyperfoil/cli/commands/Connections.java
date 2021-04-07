@@ -38,12 +38,12 @@ public class Connections extends BaseRunIdCommand {
                var run = runRef.get();
                if (total || run.terminated != null) {
                   invocation.println("Run " + run.id + " has terminated.");
-                  invocation.print(CONNECTION_STATS.print("TARGET", CliUtil.toMapOfStreams(runRef.connectionStatsTotal())));
+                  CONNECTION_STATS.print(invocation, "TARGET", CliUtil.toMapOfStreams(runRef.connectionStatsTotal()));
                   return CommandResult.SUCCESS;
                }
             }
             if (connectionStats != null) {
-               invocation.print(CONNECTION_STATS.print("TARGET", CliUtil.toMapOfStreams(connectionStats)));
+               CONNECTION_STATS.print(invocation, "TARGET", CliUtil.toMapOfStreams(connectionStats));
             }
             if (interruptibleDelay(invocation)) {
                return CommandResult.SUCCESS;
