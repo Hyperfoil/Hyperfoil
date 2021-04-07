@@ -86,17 +86,6 @@ public class HttpRequest extends Request {
    }
 
    @Override
-   protected void handleThrowable(Throwable throwable) {
-      enter();
-      try {
-         handlers.handleThrowable(this, throwable);
-      } finally {
-         exit();
-      }
-      session.proceed();
-   }
-
-   @Override
    public String toString() {
       return super.toString() + " " + method + " " + authority + path;
    }

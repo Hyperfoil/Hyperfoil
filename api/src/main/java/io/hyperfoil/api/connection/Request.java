@@ -59,8 +59,6 @@ public abstract class Request implements Callable<Void>, GenericFutureListener<F
       return null;
    }
 
-   protected abstract void handleThrowable(Throwable throwable);
-
    public void start(SequenceInstance sequence, Statistics statistics) {
       this.startTimestampMillis = System.currentTimeMillis();
       this.startTimestampNanos = System.nanoTime();
