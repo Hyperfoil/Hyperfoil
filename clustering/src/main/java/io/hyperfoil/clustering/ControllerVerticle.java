@@ -201,14 +201,13 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                   SessionStatsMessage sessionStatsMessage = (SessionStatsMessage) statsMessage;
                   log.trace("Run {}: Received session pool stats from {}", sessionStatsMessage.runId, sessionStatsMessage.address);
                   for (Map.Entry<String, LowHigh> entry : sessionStatsMessage.sessionStats.entrySet()) {
-                     run.statisticsStore.recordSessionStats(sessionStatsMessage.address,
-                           sessionStatsMessage.timestamp, entry.getKey(), entry.getValue().low, entry.getValue().high);
+                     run.statisticsStore.recordSessionStats(agentName, sessionStatsMessage.timestamp,
+                           entry.getKey(), entry.getValue().low, entry.getValue().high);
                   }
                } else if (statsMessage instanceof ConnectionStatsMessage) {
                   ConnectionStatsMessage connectionStatsMessage = (ConnectionStatsMessage) statsMessage;
                   log.trace("Run {}: Received connection stats from {}", connectionStatsMessage.runId, connectionStatsMessage.address);
-                  run.statisticsStore.recordConnectionStats(connectionStatsMessage.address,
-                        connectionStatsMessage.timestamp, connectionStatsMessage.stats);
+                  run.statisticsStore.recordConnectionStats(agentName, connectionStatsMessage.timestamp, connectionStatsMessage.stats);
                }
             }
          } else {
