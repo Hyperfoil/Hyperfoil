@@ -197,6 +197,7 @@ public class WebCLI extends HyperfoilCli implements Handler<ServerWebSocket> {
       commands.remove(RunLocal.class);
       commands.remove(StartLocal.class);
       commands.remove(Upload.class);
+      commands.add(Plot.class);
       commands.add(WebEdit.class);
       commands.add(WebExport.class);
       commands.add(WebReport.class);

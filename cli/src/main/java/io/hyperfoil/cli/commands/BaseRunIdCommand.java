@@ -1,9 +1,5 @@
 package io.hyperfoil.cli.commands;
 
-import java.util.Comparator;
-import java.util.List;
-import java.util.stream.Collectors;
-
 import org.aesh.command.CommandException;
 import org.aesh.command.option.Argument;
 
@@ -20,10 +16,7 @@ public abstract class BaseRunIdCommand extends ServerCommand {
       if (runId == null || runId.isEmpty()) {
          runRef = invocation.context().serverRun();
          if (runRef == null) {
-            invocation.println("Command '" + getClass().getSimpleName().toLowerCase() + "' requires run ID as argument! Available runs:");
-            List<io.hyperfoil.controller.model.Run> runs = invocation.context().client().runs(false);
-            printList(invocation, runs.stream().map(r -> r.id).sorted(Comparator.reverseOrder()).collect(Collectors.toList()), 15);
-            throw new CommandException("Cannot run command without run ID.");
+            failMissingRunId(invocation);
          }
       } else {
          runRef = invocation.context().client().run(runId);
@@ -31,5 +24,4 @@ public abstract class BaseRunIdCommand extends ServerCommand {
       }
       return runRef;
    }
-
 }

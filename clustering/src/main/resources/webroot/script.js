@@ -6,6 +6,8 @@ const DOWNLOAD_MAGIC = "__HYPERFOIL_DOWNLOAD_MAGIC__"
 const DIRECT_DOWNLOAD_MAGIC = "__HYPERFOIL_DIRECT_DOWNLOAD_MAGIC__\n";
 const DIRECT_DOWNLOAD_END = "__HYPERFOIL_DIRECT_DOWNLOAD_END__\n";
 const SESSION_START = "__HYPERFOIL_SESSION_START__\n";
+const RAW_HTML_START = "__HYPERFOIL_RAW_HTML_START__"
+const RAW_HTML_END = "__HYPERFOIL_RAW_HTML_END__"
 
 const ansiUp = new AnsiUp();
 const resultWindow = document.getElementById("result");
@@ -227,7 +229,17 @@ function addResultToWindow(commandResult) {
          started = true;
       }
    } else {
-      const html = ansiUp.ansi_to_html(commandResult)
+      let output = commandResult
+      let html = ""
+      let rawIndex = output.indexOf(RAW_HTML_START)
+      while (rawIndex >= 0) {
+         html += ansiUp.ansi_to_html(output.slice(0, rawIndex))
+         const endIndex = output.indexOf(RAW_HTML_END, rawIndex)
+         html += output.slice(rawIndex + RAW_HTML_START.length, endIndex)
+         output = output.slice(endIndex + RAW_HTML_END.length)
+         rawIndex = output.indexOf(RAW_HTML_START)
+      }
+      html += ansiUp.ansi_to_html(output)
       const lines = html.split('\n')
       var firstLine = 0;
       var lastLine = resultWindow.lastChild
@@ -384,4 +396,22 @@ function cancelEdits() {
    resultWindow.appendChild(command)
    command.focus();
    sendCommand(INTERRUPT_SIGNAL)
+}
+
+function resizeFrame(self) {
+   self.style.height = self.contentWindow.document.documentElement.scrollHeight + "px";
+   setTimeout(() => window.scrollTo(0, document.body.scrollHeight), 100)
+}
+
+function togglePlot(self) {
+   const plot = self.previousSibling;
+   if (self.textContent === 'Collapse') {
+      plot.style.maxHeight = self.offsetHeight
+      plot.style.opacity = '50%'
+      self.textContent = 'Expand'
+   } else {
+      plot.style.maxHeight = 'unset'
+      plot.style.opacity = '100%'
+      self.textContent = 'Collapse'
+   }
 }

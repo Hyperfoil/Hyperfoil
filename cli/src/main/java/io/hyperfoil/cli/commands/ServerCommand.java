@@ -6,8 +6,11 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import javax.net.ssl.SSLHandshakeException;
 
@@ -24,6 +27,7 @@ import io.hyperfoil.cli.context.HyperfoilCliContext;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.client.RestClient;
 import io.hyperfoil.client.RestClientException;
+import io.hyperfoil.controller.model.Run;
 import io.hyperfoil.core.util.Util;
 
 public abstract class ServerCommand implements Command<HyperfoilCommandInvocation> {
@@ -216,5 +220,10 @@ public abstract class ServerCommand implements Command<HyperfoilCommandInvocatio
       return false;
    }
 
-
+   protected void failMissingRunId(HyperfoilCommandInvocation invocation) throws CommandException {
+      invocation.println("Command '" + getClass().getSimpleName().toLowerCase() + "' requires run ID as argument! Available runs:");
+      List<Run> runs = invocation.context().client().runs(false);
+      printList(invocation, runs.stream().map(r -> r.id).sorted(Comparator.reverseOrder()).collect(Collectors.toList()), 15);
+      throw new CommandException("Cannot run command without run ID.");
+   }
 }
