@@ -107,10 +107,10 @@ public class JsonWriter {
             Map<String, List<StatisticsStore.SessionPoolRecord>> records = sps != null ? sps.records : Collections.emptyMap();
             jGenerator.writeFieldName("sessions");
             jGenerator.writeStartArray();
-            WriterUtil.printInSync(records, (address, record) -> {
+            WriterUtil.printInSync(records, (agent, record) -> {
                jGenerator.writeStartObject();
                jGenerator.writeNumberField("timestamp", record.timestamp);
-               jGenerator.writeStringField("address", address);
+               jGenerator.writeStringField("agent", agent);
                jGenerator.writeNumberField("minSessions", record.low);
                jGenerator.writeNumberField("maxSessions", record.high);
                jGenerator.writeEndObject();
@@ -188,10 +188,10 @@ public class JsonWriter {
          jGenerator.writeObjectFieldStart(targetEntry.getKey());
          for (var typeEntry : targetEntry.getValue().entrySet()) {
             jGenerator.writeArrayFieldStart(typeEntry.getKey());
-            WriterUtil.printInSync(typeEntry.getValue(), (address, record) -> {
+            WriterUtil.printInSync(typeEntry.getValue(), (agent, record) -> {
                jGenerator.writeStartObject();
                jGenerator.writeNumberField("timestamp", record.timestamp);
-               jGenerator.writeStringField("address", address);
+               jGenerator.writeStringField("agent", agent);
                jGenerator.writeNumberField("min", record.low);
                jGenerator.writeNumberField("max", record.high);
                jGenerator.writeEndObject();

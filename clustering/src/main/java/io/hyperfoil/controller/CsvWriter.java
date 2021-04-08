@@ -140,11 +140,11 @@ public class CsvWriter {
       }
       for (Map.Entry<String, StatisticsStore.SessionPoolStats> entry : store.sessionPoolStats.entrySet()) {
          try (PrintWriter writer = new PrintWriter(dir + File.separator + sanitize(entry.getKey()) + ".sessions.csv")) {
-            writer.println("Timestamp,Address,MinSessions,MaxSessions");
-            WriterUtil.printInSync(entry.getValue().records, (address, record) -> {
+            writer.println("Timestamp,Agent,MinSessions,MaxSessions");
+            WriterUtil.printInSync(entry.getValue().records, (agent, record) -> {
                writer.print(record.timestamp);
                writer.print(',');
-               writer.print(address);
+               writer.print(agent);
                writer.print(',');
                writer.print(record.low);
                writer.print(',');
@@ -155,11 +155,11 @@ public class CsvWriter {
       for (var targetEntry : store.connectionPoolStats.entrySet()) {
          for (var typeEntry : targetEntry.getValue().entrySet()) {
             try (PrintWriter writer = new PrintWriter(dir + File.separator + sanitize(targetEntry.getKey()) + "." + sanitize(typeEntry.getKey()) + ".connections.csv")) {
-               writer.println("Timestamp,Address,MinConnections,MaxConnections");
-               WriterUtil.printInSync(typeEntry.getValue(), (address, record) -> {
+               writer.println("Timestamp,Agent,MinConnections,MaxConnections");
+               WriterUtil.printInSync(typeEntry.getValue(), (agent, record) -> {
                   writer.print(record.timestamp);
                   writer.print(',');
-                  writer.print(address);
+                  writer.print(agent);
                   writer.print(',');
                   writer.print(record.low);
                   writer.print(',');
