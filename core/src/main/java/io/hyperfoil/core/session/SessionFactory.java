@@ -16,10 +16,17 @@ import io.netty.util.concurrent.EventExecutorGroup;
 import io.netty.util.concurrent.ImmediateEventExecutor;
 
 public final class SessionFactory {
-   private static final SpecialAccess[] SPECIAL = new SpecialAccess[]{
+   private static final SpecialAccess[] SPECIAL = {
+         new SpecialAccess.Int("hyperfoil.agent.id", Session::agentId),
+         new SpecialAccess.Int("hyperfoil.agent.thread.id", Session::agentThreadId),
+         new SpecialAccess.Int("hyperfoil.agent.threads", Session::agentThreads),
+         new SpecialAccess.Int("hyperfoil.global.thread.id", Session::globalThreadId),
+         new SpecialAccess.Int("hyperfoil.global.threads", Session::globalThreads),
+         new SpecialAccess.Object("hyperfoil.phase.name", s -> s.phase().name),
          new SpecialAccess.Int("hyperfoil.phase.id", s -> s.phase().id),
          new SpecialAccess.Int("hyperfoil.phase.iteration", s -> s.phase().iteration),
-         new SpecialAccess.Object("hyperfoil.run.id", s -> (Object) s.runId()),
+         new SpecialAccess.Object("hyperfoil.run.id", Session::runId),
+         new SpecialAccess.Int("hyperfoil.session.id", Session::uniqueId),
          };
 
    public static Session create(Scenario scenario, int executorId, int uniqueId) {
