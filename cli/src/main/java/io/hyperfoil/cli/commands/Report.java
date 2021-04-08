@@ -2,7 +2,6 @@ package io.hyperfoil.cli.commands;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 
 import org.aesh.command.CommandDefinition;
@@ -11,18 +10,19 @@ import org.aesh.command.CommandResult;
 import org.aesh.command.option.Option;
 
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
+import io.hyperfoil.client.RestClientException;
 import io.hyperfoil.controller.Client;
 
 @CommandDefinition(name = "report", description = "Generate HTML report")
-public class Report extends BaseReportCommand {
+public class Report extends BaseRunIdCommand {
+   @Option(shortName = 's', description = "Other file (in given run) to use as report input.")
+   protected String source;
 
    @Option(shortName = 'd', description = "Destination path to the HTML report", required = true, askIfNotSet = true)
    private String destination;
 
    @Override
    public CommandResult execute(HyperfoilCommandInvocation invocation) throws CommandException {
-      String report = getReport(invocation);
-
       Client.RunRef runRef = getRunRef(invocation);
       File destination = new File(this.destination);
       if (destination.exists()) {
@@ -47,9 +47,14 @@ public class Report extends BaseReportCommand {
          }
       }
       try {
-         Files.write(destination.toPath(), report.getBytes(StandardCharsets.UTF_8));
+         byte[] report = runRef.report(source);
+         Files.write(destination.toPath(), report);
+      } catch (RestClientException e) {
+         invocation.error("Cannot fetch report for run " + runRef.id(), e);
+         return CommandResult.FAILURE;
       } catch (IOException e) {
-         throw new CommandException("Cannot write to '" + destination.toString() + "': ", e);
+         invocation.error("Cannot write to '" + destination.toString() + "': ", e);
+         return CommandResult.FAILURE;
       }
       invocation.println("Written to " + destination);
       if (!"true".equalsIgnoreCase(System.getenv("HYPERFOIL_CONTAINER"))) {

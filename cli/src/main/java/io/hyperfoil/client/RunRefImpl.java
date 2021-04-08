@@ -176,4 +176,12 @@ public class RunRefImpl implements Client.RunRef {
             response -> response.body().getBytes()
       );
    }
+
+   @Override
+   public byte[] report(String source) {
+      return client.sync(
+            handler -> client.request(HttpMethod.GET, "/run/" + id + "/report").send(handler), 200,
+            response -> response.body().getBytes()
+      );
+   }
 }

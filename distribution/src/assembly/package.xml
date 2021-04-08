@@ -14,6 +14,7 @@
         <mkdir dir="${dist.dir}/bin"/>
         <mkdir dir="${dist.dir}/lib"/>
         <mkdir dir="${dist.dir}/extensions"/>
+        <mkdir dir="${dist.dir}/templates"/>
 
         <copy-module module="api"/>
         <copy-module module="cli"/>
@@ -47,6 +48,10 @@
                 <include name="hyperfoil-distribution-*.jar"/>
             </fileset>
         </copy>
+
+        <get src="http://hyperfoil.io/report-template-v3.0.html"
+             dest="${dist.dir}/templates/report-template-v3.0.html"
+             usetimestamp="true"/>
     </target>
 
     <macrodef name="copy-module">

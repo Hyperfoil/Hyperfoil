@@ -140,4 +140,8 @@ public class HyperfoilCommandInvocation implements CommandInvocation<HyperfoilCo
    public void error(Throwable t) {
       error(Util.explainCauses(t));
    }
+
+   public void error(String message, Throwable t) {
+      error(message + ": " + Util.explainCauses(t));
+   }
 }

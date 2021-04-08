@@ -31,7 +31,7 @@ CP=$(find $ROOT/lib $ROOT/extensions | tr '\n' ':')
 JAVA_OPTS="$JAVA_OPTS \
    --add-opens java.base/java.lang=ALL-UNNAMED \
    -Djava.net.preferIPv4Stack=true \
-   -Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.Log4j2LogDelegateFactory"
+   -Dio.hyperfoil.distdir=$ROOT"
 
 # Code taken from https://stackoverflow.com/questions/7334754/correct-way-to-check-java-version-from-bash-script
 jdk_version() {

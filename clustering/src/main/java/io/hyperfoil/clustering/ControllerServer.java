@@ -96,6 +96,7 @@ class ControllerServer implements ApiService {
    private static final Comparator<ControllerPhase> PHASE_COMPARATOR =
          Comparator.<ControllerPhase, Long>comparing(ControllerPhase::absoluteStartTime).thenComparing(p -> p.definition().name);
    private static final BinaryOperator<Run> LAST_RUN_OPERATOR = (r1, r2) -> r1.id.compareTo(r2.id) > 0 ? r1 : r2;
+   private static final String DATAKEY = "[/**DATAKEY**/]";
 
    static {
       byte[] token = new byte[48];
@@ -530,6 +531,49 @@ class ControllerServer implements ApiService {
             ctx.response().setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code()).setStatusMessage(result.cause().getMessage()).end();
          }
       }));
+   }
+
+   @Override
+   public void createReport(RoutingContext ctx, String runId, String source) {
+      withRun(ctx, runId, run -> {
+         String template;
+         File templateFile = Path.of(Properties.get(Properties.DIST_DIR, "."), "templates", "report-template-v3.0.html").toFile();
+         if (templateFile.exists() && templateFile.isFile()) {
+            try {
+               template = Files.readString(templateFile.toPath(), StandardCharsets.UTF_8);
+            } catch (IOException e) {
+               log.error("Cannot read report template: ", e);
+               ctx.response().setStatusCode(500).end();
+               return;
+            }
+         } else {
+            log.error("Template file is not available.");
+            ctx.response().setStatusCode(500).end();
+            return;
+         }
+         String sourceFile = source != null ? source : "all.json";
+         Path runDir = controller.getRunDir(run).toAbsolutePath();
+         Path filePath = runDir.resolve(sourceFile).toAbsolutePath();
+         if (!filePath.startsWith(runDir)) {
+            ctx.response().setStatusCode(403).end("Requested file is not within the run directory!");
+         } else if (!filePath.toFile().exists()) {
+            ctx.response().setStatusCode(404).end("Requested file was not found");
+         } else {
+            try {
+               String json = Files.readString(filePath);
+               int placeholderIndex = template.indexOf(DATAKEY);
+               HttpServerResponse response = ctx.response()
+                     .putHeader(HttpHeaders.CONTENT_TYPE, "text/html").setChunked(true);
+               response.write(template.substring(0, placeholderIndex));
+               response.write(json);
+               response.write(template.substring(placeholderIndex + DATAKEY.length()));
+               response.end();
+            } catch (IOException e) {
+               log.error("Cannot read file " + filePath);
+               ctx.response().setStatusCode(500).end("Cannot fetch file " + sourceFile);
+            }
+         }
+      });
    }
 
    @Override

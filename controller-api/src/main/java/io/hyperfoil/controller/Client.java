@@ -94,6 +94,8 @@ public interface Client {
       Histogram histogram(String phase, int stepId, String metric);
 
       byte[] file(String filename);
+
+      byte[] report(String source);
    }
 
    class MinMax {
