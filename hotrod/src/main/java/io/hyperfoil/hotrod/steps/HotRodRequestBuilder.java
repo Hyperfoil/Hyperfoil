@@ -95,6 +95,12 @@ public class HotRodRequestBuilder extends BaseStepBuilder<HotRodRequestBuilder> 
       return this;
    }
 
+   /**
+    * Name of the cache used for the operation. This can be a <a href="https://hyperfoil.io/userguide/benchmark/variables.html#string-interpolation">pattern</a>.
+    *
+    * @param pattern Cache name (<code>my-cache</code>) or a pattern (<code>cache-${index}</code>).
+    * @return Self.
+    */
    public HotRodRequestBuilder cacheName(String pattern) {
       return cacheName().pattern(pattern).end();
    }
@@ -122,6 +128,12 @@ public class HotRodRequestBuilder extends BaseStepBuilder<HotRodRequestBuilder> 
       return this;
    }
 
+   /**
+    * Key used for the operation. This can be a <a href="https://hyperfoil.io/userguide/benchmark/variables.html#string-interpolation">pattern</a>.
+    *
+    * @param pattern The key.
+    * @return Self.
+    */
    public HotRodRequestBuilder key(String pattern) {
       return key().pattern(pattern).end();
    }
@@ -140,6 +152,12 @@ public class HotRodRequestBuilder extends BaseStepBuilder<HotRodRequestBuilder> 
       return this;
    }
 
+   /**
+    * Value for the operation. This can be a <a href="https://hyperfoil.io/userguide/benchmark/variables.html#string-interpolation">pattern</a>.
+    *
+    * @param pattern The value.
+    * @return Self.
+    */
    public HotRodRequestBuilder value(String pattern) {
       return value().pattern(pattern).end();
    }
@@ -147,7 +165,7 @@ public class HotRodRequestBuilder extends BaseStepBuilder<HotRodRequestBuilder> 
    /**
     * Adds or overrides each specified entry in the remote cache.
     *
-    * @param cacheName name of cache to put data
+    * @param cacheName Name of cache to put data. This can be a <a href="https://hyperfoil.io/userguide/benchmark/variables.html#string-interpolation">pattern</a>.
     * @return
     */
    public HotRodRequestBuilder put(String cacheName) {
@@ -157,7 +175,7 @@ public class HotRodRequestBuilder extends BaseStepBuilder<HotRodRequestBuilder> 
    /**
     * Get specified entry in the remote cache.
     *
-    * @param cacheName name of cache to put data
+    * @param cacheName Name of cache to put data. This can be a <a href="https://hyperfoil.io/userguide/benchmark/variables.html#string-interpolation">pattern</a>.
     * @return
     */
    public HotRodRequestBuilder get(String cacheName) {

@@ -554,7 +554,8 @@ public abstract class JsonParser implements Serializable, ResourceUtilizer {
       }
 
       /**
-       * Replace value of selected item with value generated through a pattern.
+       * Replace value of selected item with value generated through a
+       * <a href="https://hyperfoil.io/userguide/benchmark/variables.html#string-interpolation">pattern</a>.
        * Note that the result must contain quotes and be correctly escaped.
        *
        * @param pattern Pattern format.

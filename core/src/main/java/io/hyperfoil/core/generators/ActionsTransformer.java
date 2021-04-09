@@ -82,7 +82,8 @@ public class ActionsTransformer implements Transformer, ResourceUtilizer {
       }
 
       /**
-       * Pattern to use when fetching the transformed value.
+       * <a href="https://hyperfoil.io/userguide/benchmark/variables.html#string-interpolation">Pattern</a>
+       * to use when fetching the transformed value.
        *
        * @param pattern Pattern replacing `${myVar}` by the variable value.
        * @return Self.

@@ -36,7 +36,7 @@ public class TemplateStep implements Step, ResourceUtilizer {
    }
 
    /**
-    * Format pattern into session variable.
+    * Format <a href="https://hyperfoil.io/userguide/benchmark/variables.html#string-interpolation">pattern</a> into session variable.
     */
    @MetaInfServices(StepBuilder.class)
    @Name("template")
@@ -45,7 +45,8 @@ public class TemplateStep implements Step, ResourceUtilizer {
       private String toVar;
 
       /**
-       * Pattern to be encoded, e.g. <code>foo${variable}bar${another-variable}</code>
+       * <a href="https://hyperfoil.io/userguide/benchmark/variables.html#string-interpolation">Pattern</a>
+       * to be encoded, e.g. <code>foo${variable}bar${another-variable}</code>
        *
        * @param pattern Template pattern.
        * @return Self.

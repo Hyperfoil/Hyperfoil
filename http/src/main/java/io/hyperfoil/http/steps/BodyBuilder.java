@@ -38,7 +38,8 @@ public class BodyBuilder {
    }
 
    /**
-    * Pattern replacing <code>${sessionvar}</code> with variable contents in a string.
+    * <a href="https://hyperfoil.io/userguide/benchmark/variables.html#string-interpolation">Pattern</a>
+    * replacing <code>${sessionvar}</code> with variable contents in a string.
     *
     * @param pattern Pattern.
     * @return Self.
