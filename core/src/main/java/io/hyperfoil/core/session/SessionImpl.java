@@ -117,6 +117,11 @@ class SessionImpl implements Session {
    }
 
    @Override
+   public int agents() {
+      return phase.definition().benchmark().agents().length;
+   }
+
+   @Override
    public String runId() {
       return phase.runId();
    }

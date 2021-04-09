@@ -18,6 +18,7 @@ import io.netty.util.concurrent.ImmediateEventExecutor;
 public final class SessionFactory {
    private static final SpecialAccess[] SPECIAL = {
          new SpecialAccess.Int("hyperfoil.agent.id", Session::agentId),
+         new SpecialAccess.Int("hyperfoil.agents", Session::agents),
          new SpecialAccess.Int("hyperfoil.agent.thread.id", Session::agentThreadId),
          new SpecialAccess.Int("hyperfoil.agent.threads", Session::agentThreads),
          new SpecialAccess.Int("hyperfoil.global.thread.id", Session::globalThreadId),
@@ -40,7 +41,7 @@ public final class SessionFactory {
    public static Session forTesting(String[] objectVars, String[] intVars) {
       Scenario dummyScenario = new Scenario(new Sequence[0], new Sequence[0], objectVars, intVars, 16, 16);
       SessionImpl session = new SessionImpl(dummyScenario, 0, 0);
-      Phase dummyPhase = new Phase(() -> Benchmark.forTesting(), 0, 0, "dummy", dummyScenario, 0,
+      Phase dummyPhase = new Phase(Benchmark::forTesting, 0, 0, "dummy", dummyScenario, 0,
             Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), 0, -1, null) {
          @Override
          public String description() {
