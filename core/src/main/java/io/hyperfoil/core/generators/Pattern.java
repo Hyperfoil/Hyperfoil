@@ -22,6 +22,7 @@ import io.netty.buffer.ByteBuf;
 
 public class Pattern implements SerializableFunction<Session, String>, SerializableBiConsumer<Session, ByteBuf>, Transformer {
    private static final int VAR_LENGTH_ESTIMATE = 32;
+   private static final String REPLACE = "replace";
    private final Component[] components;
    @Visitor.Ignore
    private int lengthEstimate;
@@ -60,7 +61,33 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
                   if (urlEncode) {
                      throw new BenchmarkDefinitionException("It seems you're trying to URL-encode value twice.");
                   }
-                  components.add(new VarComponent(key, true));
+                  components.add(new VarComponent(key, Pattern::urlEncode));
+               } else if (format.startsWith(REPLACE)) {
+                  if (format.length() == REPLACE.length()) {
+                     throw new BenchmarkDefinitionException(wrongReplaceSyntax(str, format));
+                  }
+                  char separator = format.charAt(REPLACE.length());
+                  int regexpEnd = format.indexOf(separator, REPLACE.length() + 1);
+                  int replacementEnd = format.indexOf(separator, regexpEnd + 1);
+                  if (regexpEnd < 0 || replacementEnd < 0) {
+                     throw new BenchmarkDefinitionException(wrongReplaceSyntax(str, format));
+                  }
+                  java.util.regex.Pattern regex = java.util.regex.Pattern.compile(format.substring(REPLACE.length() + 1, regexpEnd));
+                  String replacement = format.substring(regexpEnd + 1, replacementEnd);
+                  boolean all = false;
+                  if (format.length() > replacementEnd + 1) {
+                     String flags = format.substring(replacementEnd + 1);
+                     if ("g".equals(flags)) {
+                        all = true;
+                     } else {
+                        throw new BenchmarkDefinitionException("Unknown flags '" + flags + "' in replace expression in '" + str + "'");
+                     }
+                  }
+                  if (all) {
+                     components.add(new VarComponent(key, value -> regex.matcher(value).replaceAll(replacement)));
+                  } else {
+                     components.add(new VarComponent(key, value -> regex.matcher(value).replaceFirst(replacement)));
+                  }
                } else if (format.endsWith("d") || format.endsWith("o") || format.endsWith("x") || format.endsWith("X")) {
                   components.add(new FormatIntComponent(format, key));
                } else {
@@ -68,12 +95,18 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
                }
             } else {
                Access key = SessionFactory.access(str.substring(openPar + 2, closePar).trim());
-               components.add(new VarComponent(key, urlEncode));
+               components.add(new VarComponent(key, urlEncode ? Pattern::urlEncode : null));
             }
             lastSearch = last = closePar + 1;
          }
       }
       this.components = components.toArray(new Component[0]);
+   }
+
+   private String wrongReplaceSyntax(String pattern, String expression) {
+      return "Wrong replace syntax: use ${replace/regexp/replacement/flags:my-variable} " +
+            "where '/' can be any character. The offending replace expression was '" +
+            expression + "' in '" + pattern + "'.";
    }
 
    private static String urlEncode(String string) {
@@ -185,11 +218,11 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
 
    private static class VarComponent implements Component {
       private final Access key;
-      private final boolean urlEncode;
+      private final SerializableFunction<String, String> transform;
 
-      VarComponent(Access key, boolean urlEncode) {
+      VarComponent(Access key, SerializableFunction<String, String> transform) {
          this.key = key;
-         this.urlEncode = urlEncode;
+         this.transform = transform;
       }
 
       @Override
@@ -201,8 +234,8 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
             switch (var.type()) {
                case OBJECT:
                   String str = String.valueOf(var.objectValue(session));
-                  if (urlEncode) {
-                     str = urlEncode(str);
+                  if (transform != null) {
+                     str = transform.apply(str);
                   }
                   sb.append(str);
                   break;
@@ -225,12 +258,11 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
                case OBJECT:
                   Object o = var.objectValue(session);
                   if (o != null) {
-                     if (urlEncode) {
-                        Util.urlEncode(o.toString(), buf);
-                     } else {
-                        CharSequence str = o instanceof CharSequence ? (CharSequence) o : o.toString();
-                        Util.string2byteBuf(str, buf);
+                     CharSequence str = o instanceof CharSequence ? (CharSequence) o : o.toString();
+                     if (transform != null) {
+                        str = transform.apply(str.toString());
                      }
+                     Util.string2byteBuf(str, buf);
                   }
                   break;
                case INTEGER:

@@ -82,7 +82,7 @@ public class HotRodRequestBuilder extends BaseStepBuilder<HotRodRequestBuilder> 
    }
 
    public StringGeneratorImplBuilder<HotRodRequestBuilder> cacheName() {
-      StringGeneratorImplBuilder<HotRodRequestBuilder> builder = new StringGeneratorImplBuilder<>(this, false);
+      StringGeneratorImplBuilder<HotRodRequestBuilder> builder = new StringGeneratorImplBuilder<>(this);
       cacheName(builder);
       return builder;
    }
@@ -115,7 +115,7 @@ public class HotRodRequestBuilder extends BaseStepBuilder<HotRodRequestBuilder> 
    }
 
    public StringGeneratorImplBuilder<HotRodRequestBuilder> key() {
-      StringGeneratorImplBuilder<HotRodRequestBuilder> builder = new StringGeneratorImplBuilder<>(this, false);
+      StringGeneratorImplBuilder<HotRodRequestBuilder> builder = new StringGeneratorImplBuilder<>(this);
       key(builder);
       return builder;
    }
@@ -139,7 +139,7 @@ public class HotRodRequestBuilder extends BaseStepBuilder<HotRodRequestBuilder> 
    }
 
    public StringGeneratorImplBuilder<HotRodRequestBuilder> value() {
-      StringGeneratorImplBuilder<HotRodRequestBuilder> builder = new StringGeneratorImplBuilder<>(this, false);
+      StringGeneratorImplBuilder<HotRodRequestBuilder> builder = new StringGeneratorImplBuilder<>(this);
       value(builder);
       return builder;
    }

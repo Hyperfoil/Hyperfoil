@@ -76,6 +76,20 @@ public class PatternTest {
       test(pattern, session, "foobar${var}bar$${var}");
    }
 
+   @Test
+   public void testReplaceFirst() {
+      Pattern pattern = new Pattern("foo${replace/[a-z]/X/:var}bar", false);
+      Session session = setObject("var", "xyz");
+      test(pattern, session, "fooXyzbar");
+   }
+
+   @Test
+   public void testReplaceAll() {
+      Pattern pattern = new Pattern("foo${replace#[a-z]#X#g:var}bar", false);
+      Session session = setObject("var", "xyz");
+      test(pattern, session, "fooXXXbar");
+   }
+
    private Session setObject(String name, String value) {
       Session session = SessionFactory.forTesting();
       Access var = SessionFactory.access(name);

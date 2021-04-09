@@ -305,7 +305,7 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
     * @return Builder.
     */
    public StringGeneratorImplBuilder<HttpRequestStepBuilder> authority() {
-      StringGeneratorImplBuilder<HttpRequestStepBuilder> builder = new StringGeneratorImplBuilder<>(this, false);
+      StringGeneratorImplBuilder<HttpRequestStepBuilder> builder = new StringGeneratorImplBuilder<>(this);
       authority(builder);
       return builder;
    }
@@ -335,7 +335,7 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
     * @return Builder.
     */
    public StringGeneratorImplBuilder<HttpRequestStepBuilder> path() {
-      StringGeneratorImplBuilder<HttpRequestStepBuilder> builder = new StringGeneratorImplBuilder<>(this, false);
+      StringGeneratorImplBuilder<HttpRequestStepBuilder> builder = new StringGeneratorImplBuilder<>(this);
       path(builder);
       return builder;
    }
