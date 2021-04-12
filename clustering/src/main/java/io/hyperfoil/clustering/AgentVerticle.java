@@ -223,7 +223,8 @@ public class AgentVerticle extends AbstractVerticle {
 
       Context context = vertx.getOrCreateContext();
 
-      runner = new SimulationRunner(benchmark, runId, agentId);
+      runner = new SimulationRunner(benchmark, runId, agentId,
+            error -> eb.send(Feeds.RESPONSE, new ErrorMessage(deploymentId, runId, error, false)));
       controlFeedConsumer = listenOnControl();
       requestStatsSender = new RequestStatsSender(benchmark, eb, deploymentId, runId);
       statisticsCountDown = new CountDown(1);
@@ -243,9 +244,6 @@ public class AgentVerticle extends AbstractVerticle {
             });
          }
          return Util.COMPLETED_VOID_FUTURE;
-      });
-      runner.setErrorHandler(error -> {
-         eb.send(Feeds.RESPONSE, new ErrorMessage(deploymentId, runId, error, false));
       });
       runner.init();
 

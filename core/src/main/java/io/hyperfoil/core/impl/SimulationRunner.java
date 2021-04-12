@@ -27,6 +27,7 @@ import io.hyperfoil.core.api.Plugin;
 import io.hyperfoil.core.api.PluginRunData;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.session.SharedDataImpl;
+import io.hyperfoil.core.util.CpuWatchdog;
 import io.hyperfoil.core.util.Util;
 import io.hyperfoil.internal.Properties;
 import io.netty.channel.EventLoop;
@@ -59,11 +60,12 @@ public class SimulationRunner {
    private final Queue<Phase> toPrune;
    private final PluginRunData[] runData;
    private PhaseChangeHandler phaseChangeHandler;
-   private Consumer<Throwable> errorHandler;
+   private final Consumer<Throwable> errorHandler;
    private boolean isDepletedMessageQuietened;
    private Thread jitterWatchdog;
+   private CpuWatchdog cpuWatchdog;
 
-   public SimulationRunner(Benchmark benchmark, String runId, int agentId) {
+   public SimulationRunner(Benchmark benchmark, String runId, int agentId, Consumer<Throwable> errorHandler) {
       this.eventLoopGroup = EventLoopFactory.INSTANCE.create(benchmark.threads(agentId));
       this.executors = StreamSupport.stream(eventLoopGroup.spliterator(), false).map(EventLoop.class::cast).toArray(EventLoop[]::new);
       this.benchmark = benchmark;
@@ -73,14 +75,11 @@ public class SimulationRunner {
       this.runData = benchmark.plugins().stream()
             .map(config -> Plugin.lookup(config).createRunData(benchmark, executors, agentId))
             .toArray(PluginRunData[]::new);
+      this.errorHandler = errorHandler;
    }
 
    public void setPhaseChangeHandler(PhaseChangeHandler phaseChangeHandler) {
       this.phaseChangeHandler = phaseChangeHandler;
-   }
-
-   public void setErrorHandler(Consumer<Throwable> errorHandler) {
-      this.errorHandler = errorHandler;
    }
 
    public void init() {
@@ -138,6 +137,9 @@ public class SimulationRunner {
       jitterWatchdog = new Thread(this::observeJitter, "jitter-watchdog");
       jitterWatchdog.setDaemon(true);
       jitterWatchdog.start();
+
+      cpuWatchdog = new CpuWatchdog(errorHandler);
+      cpuWatchdog.start();
    }
 
    public void openConnections(Handler<AsyncResult<Void>> handler) {
@@ -169,10 +171,9 @@ public class SimulationRunner {
          long currentTimestamp = System.nanoTime();
          long delay = TimeUnit.NANOSECONDS.toMillis(currentTimestamp - lastTimestamp);
          if (delay > threshold) {
-            log.error("Jitter watchdog was not invoked for {} ms (threshold is {} ms); please check your GC settings.", delay, threshold);
-            if (errorHandler != null) {
-               errorHandler.accept(new BenchmarkExecutionException("Jitter watchdog was not invoked for " + delay + " ms; check GC settings."));
-            }
+            String message = String.format("Jitter watchdog was not invoked for %d ms (threshold is %d ms); please check your GC settings.", delay, threshold);
+            log.error(message);
+            errorHandler.accept(new BenchmarkExecutionException(message));
          }
          lastTimestamp = currentTimestamp;
       }
@@ -227,6 +228,9 @@ public class SimulationRunner {
    public void shutdown() {
       if (jitterWatchdog != null) {
          jitterWatchdog.interrupt();
+      }
+      if (cpuWatchdog != null) {
+         cpuWatchdog.stop();
       }
       for (PluginRunData plugin : runData) {
          plugin.shutdown();

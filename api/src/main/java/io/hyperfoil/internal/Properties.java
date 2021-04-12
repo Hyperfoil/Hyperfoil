@@ -21,6 +21,8 @@ public interface Properties {
    String CONTROLLER_LOG = "io.hyperfoil.controller.log.file";
    String CONTROLLER_LOG_LEVEL = "io.hyperfoil.controller.log.level";
    String CONTROLLER_PORT = "io.hyperfoil.controller.port";
+   String CPU_WATCHDOG_PERIOD = "io.hyperfoil.cpu.watchdog.period";
+   String CPU_WATCHDOG_IDLE_THRESHOLD = "io.hyperfoil.cpu.watchdog.idle.threshold";
    String DEPLOYER = "io.hyperfoil.deployer";
    String DEPLOY_TIMEOUT = "io.hyperfoil.deploy.timeout";
    String DIST_DIR = "io.hyperfoil.distdir";

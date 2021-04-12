@@ -26,7 +26,7 @@ public class LocalSimulationRunner extends SimulationRunner {
    }
 
    public LocalSimulationRunner(Benchmark benchmark, StatisticsCollector.StatisticsConsumer statsConsumer, SessionStatsConsumer sessionPoolStatsConsumer, ConnectionStatsConsumer connectionsStatsConsumer) {
-      super(benchmark, "local-run", 0);
+      super(benchmark, "local-run", 0, error -> { });
       this.statsConsumer = statsConsumer;
       this.sessionPoolStatsConsumer = sessionPoolStatsConsumer;
       this.connectionsStatsConsumer = connectionsStatsConsumer;
