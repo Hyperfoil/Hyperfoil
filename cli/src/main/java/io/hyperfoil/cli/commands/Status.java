@@ -44,9 +44,11 @@ public class Status extends BaseRunIdCommand {
          invocation.println(run.description);
       }
       for (; ; ) {
+         int lines = 0;
          if (run.agents != null && !run.agents.isEmpty()) {
             invocation.print("Agents: ");
             invocation.println(String.join(", ", run.agents.stream().map(a -> a.name + "[" + a.status + "]").toArray(String[]::new)));
+            ++lines;
          }
          if (run.started != null) {
             invocation.print("Started: " + DATE_FORMATTER.format(run.started) + "    ");
@@ -56,8 +58,8 @@ public class Status extends BaseRunIdCommand {
          } else {
             invocation.println("");
          }
+         ++lines;
 
-         int lines = 3;
          io.hyperfoil.controller.model.Run r = run;
          lines += PHASE_TABLE.print(invocation, run.phases.stream().filter(p -> showPhase(r, p)));
          long cancelled = run.phases.stream().filter(p -> "CANCELLED".equals(p.status)).count();
@@ -78,6 +80,7 @@ public class Status extends BaseRunIdCommand {
          if (interruptibleDelay(invocation)) {
             return CommandResult.SUCCESS;
          }
+         ++lines;
          try {
             run = runRef.get();
          } catch (RestClientException e) {
