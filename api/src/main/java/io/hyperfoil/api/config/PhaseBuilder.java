@@ -36,11 +36,11 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
       parent.addPhase(name, this);
    }
 
-   public static Phase.Noop noop(SerializableSupplier<Benchmark> benchmark, int id, int iteration, String iterationName,
+   public static Phase.Noop noop(SerializableSupplier<Benchmark> benchmark, int id, int iteration, String iterationName, long duration,
                                  Collection<String> startAfter, Collection<String> startAfterStrict, Collection<String> terminateAfterStrict) {
       FutureSupplier<Phase> ps = new FutureSupplier<>();
       Scenario scenario = new Scenario(new Sequence[0], new Sequence[0], new String[0], new String[0], 0, 0);
-      Phase.Noop phase = new Phase.Noop(benchmark, id, iteration, iterationName, startAfter, startAfterStrict, terminateAfterStrict, scenario);
+      Phase.Noop phase = new Phase.Noop(benchmark, id, iteration, iterationName, startAfter, startAfterStrict, terminateAfterStrict, scenario, duration);
       ps.set(phase);
       return phase;
    }
@@ -148,16 +148,16 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
             IntStream.range(0, maxIterations).mapToObj(iteration -> {
                String iterationName = formatIteration(name, iteration);
                List<String> forks = this.forks.stream().map(f -> iterationName + "/" + f.name).collect(Collectors.toList());
-               return noop(benchmark, idCounter.getAndIncrement(), iteration, iterationName, forks, Collections.emptyList(), forks);
+               return noop(benchmark, idCounter.getAndIncrement(), iteration, iterationName, 0, forks, Collections.emptyList(), forks);
             }).forEach(phases::add);
          }
          // Referencing phase with iterations with RelativeIteration.NONE means that it starts after all its iterations
          List<String> lastIteration = Collections.singletonList(formatIteration(name, maxIterations - 1));
-         phases.add(noop(benchmark, idCounter.getAndIncrement(), 0, name, lastIteration, Collections.emptyList(), lastIteration));
+         phases.add(noop(benchmark, idCounter.getAndIncrement(), 0, name, 0, lastIteration, Collections.emptyList(), lastIteration));
       } else if (hasForks) {
          // add phase covering forks
          List<String> forks = this.forks.stream().map(f -> name + "/" + f.name).collect(Collectors.toList());
-         phases.add(noop(benchmark, idCounter.getAndIncrement(), 0, name, forks, Collections.emptyList(), forks));
+         phases.add(noop(benchmark, idCounter.getAndIncrement(), 0, name, 0, forks, Collections.emptyList(), forks));
       }
       return phases;
    }
@@ -251,7 +251,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
       public Collection<Phase> build(SerializableSupplier<Benchmark> benchmark, AtomicInteger idCounter) {
          List<Phase> phases = IntStream.range(0, maxIterations)
                .mapToObj(iteration -> PhaseBuilder.noop(benchmark, idCounter.getAndIncrement(),
-                     iteration, iterationName(iteration, null),
+                     iteration, iterationName(iteration, null), duration,
                      iterationReferences(startAfter, iteration, false),
                      iterationReferences(startAfterStrict, iteration, true),
                      iterationReferences(terminateAfterStrict, iteration, false)))
@@ -259,7 +259,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
          if (maxIterations > 1 || forceIterations) {
             // Referencing phase with iterations with RelativeIteration.NONE means that it starts after all its iterations
             List<String> lastIteration = Collections.singletonList(formatIteration(name, maxIterations - 1));
-            phases.add(noop(benchmark, idCounter.getAndIncrement(), 0, name, lastIteration, Collections.emptyList(), lastIteration));
+            phases.add(noop(benchmark, idCounter.getAndIncrement(), 0, name, duration, lastIteration, Collections.emptyList(), lastIteration));
          }
          return phases;
       }

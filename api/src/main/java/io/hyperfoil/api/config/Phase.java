@@ -234,8 +234,8 @@ public abstract class Phase implements Serializable {
    }
 
    public static class Noop extends Phase {
-      public Noop(SerializableSupplier<Benchmark> benchmark, int id, int iteration, String name, Collection<String> startAfter, Collection<String> startAfterStrict, Collection<String> terminateAfterStrict, Scenario scenario) {
-         super(benchmark, id, iteration, name, scenario, -1, startAfter, startAfterStrict, terminateAfterStrict, 0, -1, null);
+      public Noop(SerializableSupplier<Benchmark> benchmark, int id, int iteration, String name, Collection<String> startAfter, Collection<String> startAfterStrict, Collection<String> terminateAfterStrict, Scenario scenario, long duration) {
+         super(benchmark, id, iteration, name, scenario, -1, startAfter, startAfterStrict, terminateAfterStrict, duration, duration, null);
       }
 
       @Override

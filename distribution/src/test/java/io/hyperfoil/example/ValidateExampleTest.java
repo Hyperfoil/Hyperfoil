@@ -118,7 +118,7 @@ public class ValidateExampleTest {
       @Override
       protected Phase buildPhase(SerializableSupplier<Benchmark> benchmark, int phaseId, int iteration, PhaseForkBuilder f) {
          Scenario scenario = f.scenario().build();
-         return new Phase.Noop(null, 0, 0, name, null, null, null, scenario);
+         return new Phase.Noop(null, 0, 0, name, null, null, null, scenario, 0);
       }
    }
 }
