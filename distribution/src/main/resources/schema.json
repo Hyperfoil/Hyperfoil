@@ -128,8 +128,17 @@
                 }
               ]
             },
-            "increasingRate": {
+            "decreasingRate": {
+              "description": "Decreases new users arrival rate over its duration.",
               "$ref": "#/definitions/rampRatePhase"
+            },
+            "increasingRate": {
+              "description": "Increases new users arrival rate over its duration.",
+              "$ref": "#/definitions/rampRatePhase"
+            },
+            "noop": {
+              "description": "Does not execute anything. Useful for orchestrating phases or adding pauses.",
+              "$ref": "#/definitions/phase"
             }
           }
         }
@@ -219,6 +228,18 @@
         "userAgentFromSession": {
           "description": "Append session ID and client hostname as user agent",
           "type": "boolean"
+        },
+        "autoRangeCheck": {
+          "description": "Inject status handler that marks the request as invalid on status 4xx or 5xx. Default is true.",
+          "type": "boolean"
+        },
+        "stopOnInvalid": {
+          "description": "Inject completion handler that will stop the session if the request has been marked as invalid. Default is true.",
+          "type": "boolean"
+        },
+        "followRedirect": {
+          "description": "Automatically fire requests when the server responds with redirection. Default is NEVER.",
+          "enum" : [ "NEVER", "LOCATION_ONLY", "HTML_ONLY", "ALWAYS" ]
         }
       }
     },
@@ -257,9 +278,27 @@
           "description": "Allow using HTTP 2.0 connections. Default is true.",
           "type": "boolean"
         },
+        "connectionStrategy": {
+          "description": "Connection pooling model. Default is SHARED_POOL.",
+          "enum": [ "SHARED_POOL", "SESSION_POOLS", "OPEN_ON_REQUEST", "ALWAYS_NEW" ]
+        },
         "directHttp2": {
           "description": "Start HTTP 2.0 connections without HTTP 1.x -> 2.0 upgrade. Default is false.",
           "type": "boolean"
+        },
+        "keyManager": {
+          "description": "TLS key manager for setting up client certificates.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [],
+          "properties": {
+            "storeType" : { "type": "string" },
+            "storeFile" : { "type" : "string" },
+            "password" : { "type" : "string" },
+            "alias" : { "type" : "string" },
+            "certFile" : { "type" : "string" },
+            "keyFile" : { "type" : "string" }
+          }
         },
         "maxHttp2Streams": {
           "description": "Maximum number of concurrent HTTP 2.0 streams on single TCP connection. Default is 100.",
@@ -267,7 +306,20 @@
         },
         "sharedConnections":  {
           "description": "Maximum number of connections to the server, shared between all phases and sessions. Default is 1.",
-          "$ref": "#/definitions/positiveInteger"
+          "oneOf": [
+            { "$ref": "#/definitions/positiveInteger" },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [ "core", "max", "buffer" ],
+              "properties": {
+                "core" : { "$ref": "#/definitions/positiveInteger" },
+                "max" : { "$ref": "#/definitions/positiveInteger" },
+                "buffer" : { "$ref": "#/definitions/positiveInteger" },
+                "keepAliveTime" : { "type" : "integer" }
+              }
+            }
+          ]
         },
         "pipeliningLimit": {
           "description": "Maximum number of HTTP 1.1 requests pipelined on a connection. Default is 1.",
@@ -280,6 +332,18 @@
         "rawBytesHandlers": {
           "description": "Add handlers to support parsing raw HTTP responses. Default is true.",
           "type": "boolean"
+        },
+        "trustManager": {
+          "description": "TLS trust manager for setting up server certificates.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [],
+          "properties": {
+            "storeType" : { "type": "string" },
+            "storeFile" : { "type" : "string" },
+            "password" : { "type" : "string" },
+            "certFile" : { "type" : "string" }
+          }
         }
       }
     },
