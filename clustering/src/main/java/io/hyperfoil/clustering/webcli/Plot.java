@@ -14,12 +14,12 @@ import io.hyperfoil.controller.Client;
 
 @CommandDefinition(name = "plot", description = "Display chart for metric/connections/sessions")
 public class Plot extends ServerCommand {
-   @Arguments
+   @Arguments(description = "Run plot (without args) to see detailed help.")
    private List<String> args;
 
    @Override
    public CommandResult execute(HyperfoilCommandInvocation invocation) throws CommandException {
-      if (args.size() == 0) {
+      if (args == null || args.size() == 0) {
          invocation.println("Missing arguments, use " + ANSI.BOLD + "plot <type> [<name>] [<run id>]" + ANSI.RESET + "");
          invocation.println("where type is on of: metric, histogram, percentiles, connections (or conns), sessions");
          invocation.println("Examples:");
