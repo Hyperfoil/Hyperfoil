@@ -1,6 +1,7 @@
 package io.hyperfoil;
 
 import java.io.InputStream;
+import java.net.BindException;
 import java.net.InetSocketAddress;
 import java.util.Collections;
 
@@ -15,6 +16,7 @@ import io.hyperfoil.internal.Properties;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.jgroups.util.Util;
 
 public class HyperfoilChannelLookup implements JGroupsChannelLookup {
    private static final Logger log = LogManager.getLogger(HyperfoilChannelLookup.class);
@@ -41,6 +43,9 @@ public class HyperfoilChannelLookup implements JGroupsChannelLookup {
          System.setProperty(Properties.CONTROLLER_CLUSTER_PORT, String.valueOf(tcp.getBindPort()));
          log.info("Using {}:{} as clustering address", tcp.getBindAddress().getHostAddress(), tcp.getBindPort());
          return channel;
+      } catch (BindException e) {
+         log.error("Cannot start JChannel, available addresses are " + Util.getAllAvailableAddresses(null), e);
+         throw new RuntimeException(e);
       } catch (Exception e) {
          throw new RuntimeException(e);
       }

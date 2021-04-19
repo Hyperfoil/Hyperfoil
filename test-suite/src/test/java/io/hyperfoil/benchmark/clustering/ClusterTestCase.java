@@ -134,7 +134,6 @@ public class ClusterTestCase extends BaseClusteredTest {
          try {
             JsonObject status = new JsonObject(response.bodyAsString());
             assertThat(status.getString("benchmark")).isEqualTo("test");
-            System.out.println(status.encodePrettily());
             if (status.getString("terminated") != null) {
                JsonArray errors = status.getJsonArray("errors");
                assertThat(errors).isNotNull();

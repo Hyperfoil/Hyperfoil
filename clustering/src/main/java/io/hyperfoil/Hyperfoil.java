@@ -51,17 +51,22 @@ public class Hyperfoil {
       try {
          String clusterIp = Properties.get(Properties.CONTROLLER_CLUSTER_IP, null);
          InetAddress address;
-         if (isController && clusterIp != null) {
-            address = InetAddress.getByName(clusterIp);
+         if (isController) {
+            if (clusterIp == null) {
+               address = InetAddress.getLocalHost();
+            } else {
+               address = InetAddress.getByName(clusterIp);
+            }
          } else {
-            address = InetAddress.getLocalHost();
-            if (!isController && LOCALHOST_IPS.contains(address.getHostAddress())) {
-               InetAddress bestMatch = getAddressWithBestMatch(InetAddress.getByName(clusterIp));
-               if (bestMatch != null) {
-                  address = bestMatch;
-               } else {
-                  log.warn("No match found between controller IP and local addresses.");
-               }
+            if (clusterIp == null) {
+               return Future.failedFuture("Controller clustering IP was not set on agent/auxiliary node.");
+            }
+            InetAddress bestMatch = getAddressWithBestMatch(InetAddress.getByName(clusterIp));
+            if (bestMatch != null) {
+               address = bestMatch;
+            } else {
+               address = InetAddress.getLocalHost();
+               log.warn("No match found between controller IP ({}) and local addresses, using address {}", clusterIp, address);
             }
          }
          String hostName = address.getHostName();
@@ -238,5 +243,11 @@ public class Hyperfoil {
       log.info("           BENCHMARK_DIR: {}", io.hyperfoil.internal.Controller.BENCHMARK_DIR);
       log.info("           RUN_DIR:       {}", io.hyperfoil.internal.Controller.RUN_DIR);
       log.info("           HOOKS_DIR:     {}", io.hyperfoil.internal.Controller.HOOKS_DIR);
+      System.getProperties().forEach((n, value) -> {
+         String name = String.valueOf(n);
+         if (name.startsWith("io.hyperfoil.") || name.startsWith("jgroups.")) {
+            log.debug("System property {} = {}", name, value);
+         }
+      });
    }
 }
