@@ -48,6 +48,7 @@ class SessionImpl implements Session {
    private SequenceInstance currentSequence;
    private Request currentRequest;
    private boolean scheduled;
+   private boolean resetting = true;
 
    private EventExecutor executor;
    private SharedData sharedData;
@@ -356,8 +357,10 @@ class SessionImpl implements Session {
       if (trace) {
          log.trace("#{} Session finished", uniqueId);
       }
-      reset();
-      phase.notifyFinished(this);
+      if (!resetting) {
+         reset();
+         phase.notifyFinished(this);
+      }
    }
 
    private void releaseSequence(SequenceInstance sequence) {
@@ -396,6 +399,7 @@ class SessionImpl implements Session {
    }
 
    private Void deferredStart() {
+      resetting = false;
       for (Sequence sequence : phase.definition().scenario().initialSequences()) {
          startSequence(sequence, false, ConcurrencyPolicy.FAIL);
       }
@@ -497,6 +501,7 @@ class SessionImpl implements Session {
 
    @Override
    public void reset() {
+      resetting = true;
       for (int i = 0; i < allVars.size(); ++i) {
          allVars.get(i).unset();
       }
@@ -531,8 +536,10 @@ class SessionImpl implements Session {
       if (trace) {
          log.trace("#{} Session stopped.", uniqueId);
       }
-      reset();
-      phase.notifyFinished(this);
+      if (!resetting) {
+         reset();
+         phase.notifyFinished(this);
+      }
       throw SessionStopException.INSTANCE;
    }
 
