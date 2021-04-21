@@ -51,7 +51,7 @@ public class CpuWatchdog implements Runnable {
                   int cpuIndex = Integer.parseInt(parts[0], 3, parts[0].length(), 10);
                   long idle = Long.parseLong(parts[4]);
 
-                  if (cpuIndex < idleTime.length) {
+                  if (cpuIndex >= idleTime.length) {
                      idleTime = Arrays.copyOf(idleTime, Math.max(2 * idleTime.length, cpuIndex + 1));
                   }
                   long prevIdle = idleTime[cpuIndex];
