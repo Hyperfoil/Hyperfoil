@@ -73,7 +73,7 @@ class SharedConnectionPool extends ConnectionPoolStats implements HttpConnection
          for (; ; ) {
             HttpConnection connection = available.pollFirst();
             if (connection == null) {
-               log.debug("No connection to {} available", authority);
+               log.debug("No connection to {} available, currently used {}", authority, usedConnections.current());
                return null;
             } else if (!connection.isClosed()) {
                if (exclusiveConnection && connection.inFlight() > 0) {
@@ -321,7 +321,7 @@ class SharedConnectionPool extends ConnectionPoolStats implements HttpConnection
    private void onConnectFailure() {
       failures++;
       connecting--;
-      checkCreateConnections();
+      eventLoop.schedule(checkCreateConnections, 50, TimeUnit.MILLISECONDS);
    }
 
    @Override
