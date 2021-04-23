@@ -23,6 +23,7 @@ final class Data {
 
    private final StatisticsStore statisticsStore;
    final String phase;
+   final boolean isWarmup;
    final int stepId;
    final String metric;
    // for reporting
@@ -37,9 +38,10 @@ final class Data {
    private int highestSequenceId = 0;
    private boolean completed;
 
-   Data(StatisticsStore statisticsStore, String phase, int stepId, String metric, Map<SLA, StatisticsStore.Window> periodSlas, SLA[] totalSlas) {
+   Data(StatisticsStore statisticsStore, String phase, boolean isWarmup, int stepId, String metric, Map<SLA, StatisticsStore.Window> periodSlas, SLA[] totalSlas) {
       this.statisticsStore = statisticsStore;
       this.phase = phase;
+      this.isWarmup = isWarmup;
       this.stepId = stepId;
       this.metric = metric;
       this.windowSlas = periodSlas;

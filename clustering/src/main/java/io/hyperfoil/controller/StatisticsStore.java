@@ -1,6 +1,7 @@
 package io.hyperfoil.controller;
 
 import io.hyperfoil.api.config.Benchmark;
+import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.api.statistics.StatisticsSummary;
 import io.hyperfoil.controller.model.Histogram;
@@ -63,8 +64,8 @@ public class StatisticsStore {
                            sla -> new Window((int) (sla.window() / collectionPeriod))));
          SLA[] total = slaProvider == null || slaProvider.sla() == null ? new SLA[0] : Stream.of(slaProvider.sla())
                .filter(sla -> sla.window() <= 0).toArray(SLA[]::new);
-         String phase = benchmark.phases().stream().filter(p -> p.id() == phaseId).findFirst().get().name();
-         map.put(metric, data = new Data(this, phase, stepId, metric, rings, total));
+         Phase phase = benchmark.phases().stream().filter(p -> p.id() == phaseId).findFirst().get();
+         map.put(metric, data = new Data(this, phase.name, phase.isWarmup, stepId, metric, rings, total));
       }
       data.record(agentName, stats);
    }

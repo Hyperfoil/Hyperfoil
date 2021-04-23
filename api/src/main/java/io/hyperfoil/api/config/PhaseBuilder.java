@@ -28,6 +28,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
    protected int maxIterations = 1;
    protected boolean forceIterations = false;
    protected List<PhaseForkBuilder> forks = new ArrayList<>();
+   protected boolean isWarmup = false;
 
    protected PhaseBuilder(BenchmarkBuilder parent, String name) {
       this.name = name;
@@ -38,7 +39,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
    public static Phase noop(SerializableSupplier<Benchmark> benchmark, int id, int iteration, String iterationName, long duration,
                             Collection<String> startAfter, Collection<String> startAfterStrict, Collection<String> terminateAfterStrict) {
       Scenario scenario = new Scenario(new Sequence[0], new Sequence[0], new String[0], new String[0], 0, 0);
-      return new Phase(benchmark, id, iteration, iterationName, scenario, 0, startAfter, startAfterStrict, terminateAfterStrict, duration, duration, null, new Model.Noop());
+      return new Phase(benchmark, id, iteration, iterationName, scenario, 0, startAfter, startAfterStrict, terminateAfterStrict, duration, duration, null, true, new Model.Noop());
    }
 
    public BenchmarkBuilder endPhase() {
@@ -160,9 +161,11 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
 
    protected Phase buildPhase(SerializableSupplier<Benchmark> benchmark, int phaseId, int iteration, PhaseForkBuilder f) {
       return new Phase(benchmark, phaseId, iteration, iterationName(iteration, f.name), f.scenario.build(),
-            iterationStartTime(iteration), iterationReferences(startAfter, iteration, false),
-            iterationReferences(startAfterStrict, iteration, true), iterationReferences(terminateAfterStrict, iteration, false), duration,
-            maxDuration, sharedResources(f), createModel(iteration, f.weight));
+            iterationStartTime(iteration),
+            iterationReferences(startAfter, iteration, false),
+            iterationReferences(startAfterStrict, iteration, true),
+            iterationReferences(terminateAfterStrict, iteration, false), duration,
+            maxDuration, sharedResources(f), isWarmup, createModel(iteration, f.weight));
    }
 
    String iterationName(int iteration, String forkName) {
@@ -239,6 +242,11 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
 
    public PB forceIterations(boolean force) {
       this.forceIterations = force;
+      return self();
+   }
+
+   public PB isWarmup(boolean isWarmup) {
+      this.isWarmup = isWarmup;
       return self();
    }
 

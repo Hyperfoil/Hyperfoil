@@ -29,10 +29,12 @@ public final class Phase implements Serializable {
    // identifier for sharing resources across iterations
    public final String sharedResources;
    public final Model model;
+   public final boolean isWarmup;
 
    public Phase(SerializableSupplier<Benchmark> benchmark, int id, int iteration, String name, Scenario scenario, long startTime,
                 Collection<String> startAfter, Collection<String> startAfterStrict,
-                Collection<String> terminateAfterStrict, long duration, long maxDuration, String sharedResources, Model model) {
+                Collection<String> terminateAfterStrict, long duration, long maxDuration, String sharedResources,
+                boolean isWarmup, Model model) {
       this.benchmark = benchmark;
       this.id = id;
       this.iteration = iteration;
@@ -45,6 +47,7 @@ public final class Phase implements Serializable {
       this.startTime = startTime;
       this.duration = duration;
       this.sharedResources = sharedResources;
+      this.isWarmup = isWarmup;
       this.model = model;
       if (scenario == null) {
          throw new BenchmarkDefinitionException("Scenario was not set for phase '" + name + "'");

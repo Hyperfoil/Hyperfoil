@@ -68,6 +68,7 @@ public class JsonWriter {
          jGenerator.writeStringField("iteration", split[1]);
          jGenerator.writeStringField("fork", split[2]);
          jGenerator.writeStringField("metric", data.metric);
+         jGenerator.writeBooleanField("isWarmup", data.isWarmup);
 
          jGenerator.writeFieldName("total");
          long numFailures = failures.stream().filter(f -> f.phase().equals(data.phase) && (f.metric() == null || f.metric().equals(data.metric))).count();
@@ -146,6 +147,7 @@ public class JsonWriter {
                jGenerator.writeStringField("iteration", split[1]);
                jGenerator.writeStringField("fork", split[2]);
                jGenerator.writeStringField("metric", data.metric);
+               jGenerator.writeBooleanField("isWarmup", data.isWarmup);
 
                jGenerator.writeFieldName("total");
                writeTotalValue(

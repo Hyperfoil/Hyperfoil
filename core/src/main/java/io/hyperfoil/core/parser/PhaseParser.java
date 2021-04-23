@@ -15,6 +15,7 @@ abstract class PhaseParser extends AbstractParser<PhaseBuilder.Catalog, PhaseBui
       register("duration", new PropertyParser.TimeMillis<>(PhaseBuilder::duration));
       register("maxDuration", new PropertyParser.TimeMillis<>(PhaseBuilder::maxDuration));
       register("maxIterations", new PropertyParser.Int<>(PhaseBuilder::maxIterations));
+      register("isWarmup", new PropertyParser.Boolean<>(PhaseBuilder::isWarmup));
    }
 
    @Override
