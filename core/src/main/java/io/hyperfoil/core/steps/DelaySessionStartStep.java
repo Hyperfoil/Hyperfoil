@@ -3,6 +3,7 @@ package io.hyperfoil.core.steps;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
+import io.hyperfoil.api.config.Model;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.session.ResourceUtilizer;
@@ -14,7 +15,7 @@ import org.apache.logging.log4j.LogManager;
 
 public class DelaySessionStartStep implements Step, ResourceUtilizer {
    private static final Logger log = LogManager.getLogger(DelaySessionStartStep.class);
-   public static final Session.ResourceKey<Holder> KEY = new Session.ResourceKey<Holder>() {};
+   public static final Session.ResourceKey<Holder> KEY = new Session.ResourceKey<>() {};
 
    private final String[] sequences;
    private final double targetRate;
@@ -37,7 +38,7 @@ public class DelaySessionStartStep implements Step, ResourceUtilizer {
          holder.phase = session.phase();
       }
       if (holder.startTimeWithOffset == Long.MIN_VALUE) {
-         int users = ((Phase.Always) session.phase()).users;
+         int users = ((Model.Always) session.phase().model).users;
          double targetRate = this.targetRate + this.targetRateIncrement * session.phase().iteration;
          holder.period = users * 1000 / targetRate;
          holder.startTimeWithOffset = session.phaseStartTimestamp();

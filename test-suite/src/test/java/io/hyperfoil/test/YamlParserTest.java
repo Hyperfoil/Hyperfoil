@@ -19,6 +19,7 @@
 package io.hyperfoil.test;
 
 import io.hyperfoil.api.config.Benchmark;
+import io.hyperfoil.api.config.Model;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.Step;
@@ -80,25 +81,25 @@ public class YamlParserTest {
       assertThat(benchmark.agents().length).isEqualTo(3);
 
       double sumWeights = 0.2 + 0.8 + 0.1 + 1;
-      assertThat(phase(benchmark, "steadyState/invalidRegistration", Phase.ConstantRate.class).usersPerSec)
+      assertThat(model(benchmark, "steadyState/invalidRegistration", Model.ConstantRate.class).usersPerSec)
             .isCloseTo(100.0 / sumWeights * 0.2, withPercentage(1));
-      assertThat(phase(benchmark, "steadyState/validRegistration", Phase.ConstantRate.class).usersPerSec)
+      assertThat(model(benchmark, "steadyState/validRegistration", Model.ConstantRate.class).usersPerSec)
             .isCloseTo(100.0 / sumWeights * 0.8, withPercentage(1));
-      assertThat(phase(benchmark, "steadyState/unregister", Phase.ConstantRate.class).usersPerSec)
+      assertThat(model(benchmark, "steadyState/unregister", Model.ConstantRate.class).usersPerSec)
             .isCloseTo(100.0 / sumWeights * 0.1, withPercentage(1));
-      assertThat(phase(benchmark, "steadyState/viewUser", Phase.ConstantRate.class).usersPerSec)
+      assertThat(model(benchmark, "steadyState/viewUser", Model.ConstantRate.class).usersPerSec)
             .isCloseTo(100.0 / sumWeights * 1.0, withPercentage(1));
       assertThat(benchmark.phases().stream()
-            .filter(p -> p instanceof Phase.ConstantRate)
-            .mapToDouble(p -> ((Phase.ConstantRate) p).usersPerSec)
+            .filter(p -> p.model instanceof Model.ConstantRate)
+            .mapToDouble(p -> ((Model.ConstantRate) p.model).usersPerSec)
             .sum()).isCloseTo(100.0, withPercentage(1));
    }
 
-   private <T extends Phase> T phase(Benchmark benchmark, String name, Class<T> type) {
-      Phase phase = benchmark.phases().stream()
-            .filter(p -> p.name().equals(name)).findFirst().get();
-      assertThat(phase).isInstanceOf(type);
-      return type.cast(phase);
+   private <M extends Model> M model(Benchmark benchmark, String name, Class<M> type) {
+      Model model = benchmark.phases().stream()
+            .filter(p -> p.name().equals(name)).map(p -> p.model).findFirst().orElseThrow(AssertionError::new);
+      assertThat(model).isInstanceOf(type);
+      return type.cast(model);
    }
 
    @Test
@@ -106,12 +107,12 @@ public class YamlParserTest {
       Benchmark benchmark = buildBenchmark("scenarios/shortcut.hf.yaml");
       assertThat(benchmark.name()).isEqualTo("shortcut benchmark");
       assertThat(benchmark.phases().size()).isEqualTo(1);
-      Phase phase = benchmark.phases().stream().findFirst().get();
+      Phase phase = benchmark.phases().stream().findFirst().orElseThrow(AssertionError::new);
       assertThat(phase.name()).isEqualTo("main");
       assertThat(phase.duration()).isEqualTo(3000);
       assertThat(phase.maxDuration()).isEqualTo(5000);
-      assertThat(((Phase.ConstantRate) phase).usersPerSec).isEqualTo(100);
-      assertThat(((Phase.ConstantRate) phase).maxSessions).isEqualTo(1234);
+      assertThat(((Model.ConstantRate) phase.model).usersPerSec).isEqualTo(100);
+      assertThat(((Model.ConstantRate) phase.model).maxSessions).isEqualTo(1234);
       assertThat(phase.scenario().initialSequences().length).isEqualTo(1);
    }
 
@@ -169,10 +170,10 @@ public class YamlParserTest {
    @Test
    public void testStaircase() {
       Benchmark benchmark = buildBenchmark("scenarios/staircase.hf.yaml");
-      assertThat(benchmark.phases().stream().filter(Phase.RampRate.class::isInstance).count()).isEqualTo(3);
-      assertThat(benchmark.phases().stream().filter(Phase.ConstantRate.class::isInstance).count()).isEqualTo(3);
+      assertThat(benchmark.phases().stream().map(p -> p.model).filter(Model.RampRate.class::isInstance).count()).isEqualTo(3);
+      assertThat(benchmark.phases().stream().map(p -> p.model).filter(Model.ConstantRate.class::isInstance).count()).isEqualTo(3);
       for (Phase phase : benchmark.phases()) {
-         if (phase instanceof Phase.Noop) {
+         if (phase.model instanceof Model.Noop) {
             continue;
          }
          assertThat(phase.scenario.initialSequences().length).isEqualTo(1);

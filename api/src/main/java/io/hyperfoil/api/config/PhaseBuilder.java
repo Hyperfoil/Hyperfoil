@@ -11,7 +11,6 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import io.hyperfoil.function.SerializableSupplier;
-import io.hyperfoil.impl.FutureSupplier;
 
 /**
  * The builder creates a matrix of phases (not just single phase); we allow multiple iterations of a phase
@@ -36,13 +35,10 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
       parent.addPhase(name, this);
    }
 
-   public static Phase.Noop noop(SerializableSupplier<Benchmark> benchmark, int id, int iteration, String iterationName, long duration,
-                                 Collection<String> startAfter, Collection<String> startAfterStrict, Collection<String> terminateAfterStrict) {
-      FutureSupplier<Phase> ps = new FutureSupplier<>();
+   public static Phase noop(SerializableSupplier<Benchmark> benchmark, int id, int iteration, String iterationName, long duration,
+                            Collection<String> startAfter, Collection<String> startAfterStrict, Collection<String> terminateAfterStrict) {
       Scenario scenario = new Scenario(new Sequence[0], new Sequence[0], new String[0], new String[0], 0, 0);
-      Phase.Noop phase = new Phase.Noop(benchmark, id, iteration, iterationName, startAfter, startAfterStrict, terminateAfterStrict, scenario, duration);
-      ps.set(phase);
-      return phase;
+      return new Phase(benchmark, id, iteration, iterationName, scenario, 0, startAfter, startAfterStrict, terminateAfterStrict, duration, duration, null, new Model.Noop());
    }
 
    public BenchmarkBuilder endPhase() {
@@ -162,8 +158,12 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
       return phases;
    }
 
-
-   protected abstract Phase buildPhase(SerializableSupplier<Benchmark> benchmark, int phaseId, int iteration, PhaseForkBuilder f);
+   protected Phase buildPhase(SerializableSupplier<Benchmark> benchmark, int phaseId, int iteration, PhaseForkBuilder f) {
+      return new Phase(benchmark, phaseId, iteration, iterationName(iteration, f.name), f.scenario.build(),
+            iterationStartTime(iteration), iterationReferences(startAfter, iteration, false),
+            iterationReferences(startAfterStrict, iteration, true), iterationReferences(terminateAfterStrict, iteration, false), duration,
+            maxDuration, sharedResources(f), createModel(iteration, f.weight));
+   }
 
    String iterationName(int iteration, String forkName) {
       if (maxIterations == 1 && !forceIterations) {
@@ -242,6 +242,8 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
       return self();
    }
 
+   protected abstract Model createModel(int iteration, double weight);
+
    public static class Noop extends PhaseBuilder<Noop> {
       protected Noop(BenchmarkBuilder parent, String name) {
          super(parent, name);
@@ -265,7 +267,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
       }
 
       @Override
-      protected Phase buildPhase(SerializableSupplier<Benchmark> benchmark, int phaseId, int iteration, PhaseForkBuilder f) {
+      protected Model createModel(int iteration, double weight) {
          throw new UnsupportedOperationException();
       }
    }
@@ -291,15 +293,11 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
       }
 
       @Override
-      public Phase.AtOnce buildPhase(SerializableSupplier<Benchmark> benchmark, int id, int i, PhaseForkBuilder f) {
+      protected Model createModel(int iteration, double weight) {
          if (users <= 0) {
             throw new BenchmarkDefinitionException("Phase " + name + ".users must be positive.");
          }
-         return new Phase.AtOnce(benchmark, id, i, iterationName(i, f.name), f.scenario.build(),
-               iterationStartTime(i), iterationReferences(startAfter, i, false),
-               iterationReferences(startAfterStrict, i, true), iterationReferences(terminateAfterStrict, i, false), duration,
-               maxDuration,
-               sharedResources(f), (int) Math.round((users + usersIncrement * i) * f.weight));
+         return new Model.AtOnce((int) Math.round((users + usersIncrement * iteration) * weight));
       }
    }
 
@@ -313,15 +311,11 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
       }
 
       @Override
-      public Phase.Always buildPhase(SerializableSupplier<Benchmark> benchmark, int id, int i, PhaseForkBuilder f) {
+      protected Model createModel(int iteration, double weight) {
          if (users <= 0) {
             throw new BenchmarkDefinitionException("Phase " + name + ".users must be positive.");
          }
-         return new Phase.Always(benchmark, id, i, iterationName(i, f.name), f.scenario.build(),
-               iterationStartTime(i), iterationReferences(startAfter, i, false),
-               iterationReferences(startAfterStrict, i, true), iterationReferences(terminateAfterStrict, i, false),
-               duration, maxDuration, sharedResources(f),
-               (int) Math.round((this.users + usersIncrement * i) * f.weight));
+         return new Model.Always((int) Math.round((this.users + usersIncrement * iteration) * weight));
       }
 
       public Always users(int users) {
@@ -339,7 +333,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
    public abstract static class OpenModel<P extends PhaseBuilder<P>> extends PhaseBuilder<P> {
       protected int maxSessions;
       protected boolean variance = true;
-      protected Phase.SessionLimitPolicy sessionLimitPolicy = Phase.SessionLimitPolicy.FAIL;
+      protected SessionLimitPolicy sessionLimitPolicy = SessionLimitPolicy.FAIL;
 
       protected OpenModel(BenchmarkBuilder parent, String name) {
          super(parent, name);
@@ -358,7 +352,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
       }
 
       @SuppressWarnings("unchecked")
-      public P sessionLimitPolicy(Phase.SessionLimitPolicy sessionLimitPolicy) {
+      public P sessionLimitPolicy(SessionLimitPolicy sessionLimitPolicy) {
          this.sessionLimitPolicy = sessionLimitPolicy;
          return (P) this;
       }
@@ -369,7 +363,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
       private double initialUsersPerSecIncrement;
       private double targetUsersPerSec;
       private double targetUsersPerSecIncrement;
-      private Predicate<Phase.RampRate> constraint;
+      private Predicate<Model.RampRate> constraint;
       private String constraintMessage;
 
       RampRate(BenchmarkBuilder parent, String name, double initialUsersPerSec, double targetUsersPerSec) {
@@ -379,14 +373,14 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
       }
 
       @Override
-      public Phase.RampRate buildPhase(SerializableSupplier<Benchmark> benchmark, int id, int i, PhaseForkBuilder f) {
+      protected Model createModel(int iteration, double weight) {
          int maxSessions;
          if (this.maxSessions > 0) {
-            maxSessions = (int) Math.round(this.maxSessions * f.weight);
+            maxSessions = (int) Math.round(this.maxSessions * weight);
          } else {
             double maxInitialUsers = initialUsersPerSec + initialUsersPerSecIncrement * (maxIterations - 1);
             double maxTargetUsers = targetUsersPerSec + targetUsersPerSecIncrement * (maxIterations - 1);
-            maxSessions = (int) Math.ceil(Math.max(maxInitialUsers, maxTargetUsers) * f.weight);
+            maxSessions = (int) Math.ceil(Math.max(maxInitialUsers, maxTargetUsers) * weight);
          }
          if (initialUsersPerSec < 0) {
             throw new BenchmarkDefinitionException("Phase " + name + ".initialUsersPerSec must be non-negative");
@@ -397,17 +391,13 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
          if (initialUsersPerSec < 0.0001 && targetUsersPerSec < 0.0001) {
             throw new BenchmarkDefinitionException("In phase " + name + " both initialUsersPerSec and targetUsersPerSec are 0");
          }
-         Phase.RampRate rampRate = new Phase.RampRate(benchmark, id, i, iterationName(i, f.name),
-               f.scenario.build(), iterationStartTime(i),
-               iterationReferences(startAfter, i, false), iterationReferences(startAfterStrict, i, true),
-               iterationReferences(terminateAfterStrict, i, false), duration, maxDuration,
-               sharedResources(f),
-               (initialUsersPerSec + initialUsersPerSecIncrement * i) * f.weight,
-               (targetUsersPerSec + targetUsersPerSecIncrement * i) * f.weight, variance, maxSessions, sessionLimitPolicy);
-         if (constraint != null && !constraint.test(rampRate)) {
+         double initial = (this.initialUsersPerSec + initialUsersPerSecIncrement * iteration) * weight;
+         double target = (this.targetUsersPerSec + targetUsersPerSecIncrement * iteration) * weight;
+         Model.RampRate model = new Model.RampRate(initial, target, variance, maxSessions, sessionLimitPolicy);
+         if (constraint != null && !constraint.test(model)) {
             throw new BenchmarkDefinitionException("Phase " + name + " failed constraints: " + constraintMessage);
          }
-         return rampRate;
+         return model;
       }
 
       public RampRate initialUsersPerSec(double initialUsersPerSec) {
@@ -434,7 +424,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
          return this;
       }
 
-      public RampRate constraint(Predicate<Phase.RampRate> constraint, String constraintMessage) {
+      public RampRate constraint(Predicate<Model.RampRate> constraint, String constraintMessage) {
          this.constraint = constraint;
          this.constraintMessage = constraintMessage;
          return this;
@@ -451,21 +441,18 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
       }
 
       @Override
-      public Phase.ConstantRate buildPhase(SerializableSupplier<Benchmark> benchmark, int id, int i, PhaseForkBuilder f) {
+      protected Model createModel(int iteration, double weight) {
          int maxSessions;
          if (this.maxSessions <= 0) {
-            maxSessions = (int) Math.ceil(f.weight * (usersPerSec + usersPerSecIncrement * (maxIterations - 1)));
+            maxSessions = (int) Math.ceil(weight * (usersPerSec + usersPerSecIncrement * (maxIterations - 1)));
          } else {
-            maxSessions = (int) Math.round(this.maxSessions * f.weight);
+            maxSessions = (int) Math.round(this.maxSessions * weight);
          }
          if (usersPerSec <= 0) {
             throw new BenchmarkDefinitionException("Phase " + name + ".usersPerSec must be positive.");
          }
-         return new Phase.ConstantRate(benchmark, id, i, iterationName(i, f.name), f.scenario.build(),
-               iterationStartTime(i), iterationReferences(startAfter, i, false),
-               iterationReferences(startAfterStrict, i, true), iterationReferences(terminateAfterStrict, i, false), duration,
-               maxDuration,
-               sharedResources(f), (usersPerSec + usersPerSecIncrement * i) * f.weight, variance, maxSessions, sessionLimitPolicy);
+         double rate = (this.usersPerSec + usersPerSecIncrement * iteration) * weight;
+         return new Model.ConstantRate(rate, variance, maxSessions, sessionLimitPolicy);
       }
 
       public ConstantRate usersPerSec(double usersPerSec) {
@@ -489,14 +476,11 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
       }
 
       @Override
-      protected Phase buildPhase(SerializableSupplier<Benchmark> benchmark, int id, int i, PhaseForkBuilder f) {
+      protected Model createModel(int iteration, double weight) {
          if (repeats <= 0) {
             throw new BenchmarkDefinitionException("Phase " + name + ".repeats must be positive");
          }
-         return new Phase.Sequentially(benchmark, id, i, iterationName(i, f.name), f.scenario().build(),
-               iterationStartTime(i), iterationReferences(startAfter, i, false),
-               iterationReferences(startAfterStrict, i, true), iterationReferences(terminateAfterStrict, i, false), duration,
-               maxDuration, sharedResources(f), repeats);
+         return new Model.Sequentially(repeats);
       }
    }
 

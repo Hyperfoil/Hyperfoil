@@ -31,7 +31,7 @@ import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.BenchmarkData;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
-import io.hyperfoil.api.config.Phase;
+import io.hyperfoil.api.config.Model;
 import io.hyperfoil.clustering.util.PersistedBenchmarkData;
 import io.hyperfoil.clustering.webcli.WebCLI;
 import io.hyperfoil.controller.ApiService;
@@ -467,7 +467,7 @@ class ControllerServer implements ApiService {
       if (reportPhases) {
          long now = System.currentTimeMillis();
          phases = run.phases.values().stream()
-               .filter(p -> !(p.definition() instanceof Phase.Noop))
+               .filter(p -> !(p.definition().model instanceof Model.Noop))
                .sorted(PHASE_COMPARATOR)
                .map(phase -> {
                   Date phaseStarted = null, phaseTerminated = null;

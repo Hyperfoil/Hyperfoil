@@ -22,6 +22,7 @@ import org.junit.runners.Parameterized;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkBuilder;
+import io.hyperfoil.api.config.Model;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.config.PhaseBuilder;
 import io.hyperfoil.api.config.PhaseForkBuilder;
@@ -118,7 +119,12 @@ public class ValidateExampleTest {
       @Override
       protected Phase buildPhase(SerializableSupplier<Benchmark> benchmark, int phaseId, int iteration, PhaseForkBuilder f) {
          Scenario scenario = f.scenario().build();
-         return new Phase.Noop(null, 0, 0, name, null, null, null, scenario, 0);
+         return PhaseBuilder.noop(null, 0, 0, name, 0, null, null, null);
+      }
+
+      @Override
+      protected Model createModel(int iteration, double weight) {
+         throw new UnsupportedOperationException();
       }
    }
 }

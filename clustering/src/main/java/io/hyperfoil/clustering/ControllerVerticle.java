@@ -8,8 +8,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.hyperfoil.api.BenchmarkExecutionException;
 import io.hyperfoil.api.config.Agent;
 import io.hyperfoil.api.config.Benchmark;
+import io.hyperfoil.api.config.Model;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.config.RunHook;
+import io.hyperfoil.api.config.SessionLimitPolicy;
 import io.hyperfoil.api.deployment.DeployedAgent;
 import io.hyperfoil.api.deployment.Deployer;
 import io.hyperfoil.api.session.PhaseInstance;
@@ -285,8 +287,10 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       ControllerPhase controllerPhase = run.phases.get(phase);
       if (phaseChange.sessionLimitExceeded()) {
          Phase def = controllerPhase.definition();
-         if (def instanceof Phase.OpenModelPhase && ((Phase.OpenModelPhase) def).sessionLimitPolicy == Phase.SessionLimitPolicy.CONTINUE) {
-            log.warn("{} Phase {} session limit exceeded, continuing due to policy {}", run.id, def.name, ((Phase.OpenModelPhase) def).sessionLimitPolicy);
+         SessionLimitPolicy sessionLimitPolicy = def.model instanceof Model.OpenModel ?
+               ((Model.OpenModel) def.model).sessionLimitPolicy : null;
+         if (sessionLimitPolicy == SessionLimitPolicy.CONTINUE) {
+            log.warn("{} Phase {} session limit exceeded, continuing due to policy {}", run.id, def.name, sessionLimitPolicy);
             // We must not record this as a failure as StatisticsStore.validateSlas() would cancel the benchmark
          } else {
             run.statisticsStore.addFailure(def.name, null, controllerPhase.absoluteStartTime(), System.currentTimeMillis(), "Exceeded session limit");

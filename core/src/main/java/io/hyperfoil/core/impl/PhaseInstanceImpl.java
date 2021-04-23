@@ -1,6 +1,6 @@
 package io.hyperfoil.core.impl;
 
-import io.hyperfoil.api.BenchmarkExecutionException;
+import io.hyperfoil.api.config.Model;
 import io.netty.util.concurrent.EventExecutorGroup;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.collection.ElasticPool;
@@ -21,13 +21,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.IntStream;
 
-public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstance {
+public abstract class PhaseInstanceImpl implements PhaseInstance {
    protected static final Logger log = LogManager.getLogger(PhaseInstanceImpl.class);
    protected static final boolean trace = log.isTraceEnabled();
 
-   private static final Map<Class<? extends Phase>, PhaseCtor<?>> constructors = new HashMap<>();
+   private static final Map<Class<? extends Model>, PhaseCtor> constructors = new HashMap<>();
 
-   protected final D def;
+   protected final Phase def;
    private final String runId;
    private final int agentId;
    private final int agentThreads;
@@ -44,26 +44,25 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
    private volatile boolean sessionLimitExceeded;
 
    public static PhaseInstance newInstance(Phase def, String runId, int agentId) {
-      @SuppressWarnings("unchecked")
-      PhaseCtor<Phase> ctor = (PhaseCtor<Phase>) constructors.get(def.getClass());
-      if (ctor == null) throw new BenchmarkDefinitionException("Unknown phase type: " + def);
+      PhaseCtor ctor = constructors.get(def.model.getClass());
+      if (ctor == null) throw new BenchmarkDefinitionException("Unknown phase type: " + def.model);
       return ctor.create(def, runId, agentId);
    }
 
-   interface PhaseCtor<P extends Phase> {
-      PhaseInstance create(P phase, String runId, int agentId);
+   interface PhaseCtor {
+      PhaseInstance create(Phase phase, String runId, int agentId);
    }
 
    static {
-      constructors.put(Phase.AtOnce.class, (PhaseCtor<Phase.AtOnce>) AtOnce::new);
-      constructors.put(Phase.Always.class, (PhaseCtor<Phase.Always>) Always::new);
-      constructors.put(Phase.RampRate.class, (PhaseCtor<Phase.RampRate>) RampRate::new);
-      constructors.put(Phase.ConstantRate.class, (PhaseCtor<Phase.ConstantRate>) ConstantRate::new);
-      constructors.put(Phase.Sequentially.class, (PhaseCtor<Phase.Sequentially>) Sequentially::new);
-      constructors.put(Phase.Noop.class, (PhaseCtor<Phase.Noop>) Noop::new);
+      constructors.put(Model.AtOnce.class, AtOnce::new);
+      constructors.put(Model.Always.class, Always::new);
+      constructors.put(Model.RampRate.class, RampRate::new);
+      constructors.put(Model.ConstantRate.class, ConstantRate::new);
+      constructors.put(Model.Sequentially.class, Sequentially::new);
+      constructors.put(Model.Noop.class, Noop::new);
    }
 
-   protected PhaseInstanceImpl(D def, String runId, int agentId) {
+   protected PhaseInstanceImpl(Phase def, String runId, int agentId) {
       this.def = def;
       this.runId = runId;
       this.agentId = agentId;
@@ -72,7 +71,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
    }
 
    @Override
-   public D definition() {
+   public Phase definition() {
       return def;
    }
 
@@ -100,8 +99,7 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       assert status == Status.RUNNING : "Status is " + status;
       status = Status.FINISHED;
       log.debug("{} changing status to FINISHED", def.name);
-      BenchmarkExecutionException error = null;
-      phaseChangeHandler.onChange(def, Status.FINISHED, sessionLimitExceeded, error);
+      phaseChangeHandler.onChange(def, Status.FINISHED, sessionLimitExceeded, null);
    }
 
    @Override
@@ -234,12 +232,12 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       return false;
    }
 
-   public static class AtOnce extends PhaseInstanceImpl<Phase.AtOnce> {
+   public static class AtOnce extends PhaseInstanceImpl {
       private final int users;
 
-      public AtOnce(Phase.AtOnce def, String runId, int agentId) {
+      public AtOnce(Phase def, String runId, int agentId) {
          super(def, runId, agentId);
-         this.users = def.benchmark().slice(def.users, agentId);
+         this.users = def.benchmark().slice(((Model.AtOnce) def.model).users, agentId);
       }
 
       @Override
@@ -258,12 +256,12 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       }
    }
 
-   public static class Always extends PhaseInstanceImpl<Phase.Always> {
+   public static class Always extends PhaseInstanceImpl {
       final int users;
 
-      public Always(Phase.Always def, String runId, int agentId) {
+      public Always(Phase def, String runId, int agentId) {
          super(def, runId, agentId);
-         users = def.benchmark().slice(def.users, agentId);
+         users = def.benchmark().slice(((Model.Always) def.model).users, agentId);
       }
 
       @Override
@@ -291,16 +289,16 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       }
    }
 
-   protected abstract static class OpenModelPhase<P extends Phase.OpenModelPhase> extends PhaseInstanceImpl<P> {
+   protected abstract static class OpenModelPhase extends PhaseInstanceImpl {
       protected final int maxSessions;
       protected final Random random = new Random();
       protected double nextScheduled;
       protected AtomicLong throttledUsers = new AtomicLong(0);
       protected long startedOrThrottledUsers = 0;
 
-      protected OpenModelPhase(P def, String runId, int agentId) {
+      protected OpenModelPhase(Phase def, String runId, int agentId) {
          super(def, runId, agentId);
-         maxSessions = Math.max(1, def.benchmark().slice(def.maxSessions, agentId));
+         maxSessions = Math.max(1, def.benchmark().slice(((Model.OpenModel) def.model).maxSessions, agentId));
       }
 
       @Override
@@ -311,8 +309,9 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
          long now = System.currentTimeMillis();
          long delta = now - absoluteStartTime;
          long nextDelta;
+         Model.OpenModel model = (Model.OpenModel) def.model;
 
-         if (def.variance) {
+         if (model.variance) {
             while (delta > nextScheduled) {
                if (startNewSession()) {
                   throttledUsers.incrementAndGet();
@@ -371,15 +370,16 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       }
    }
 
-   public static class RampRate extends OpenModelPhase<Phase.RampRate> {
+   public static class RampRate extends OpenModelPhase {
       private final double initialUsersPerSec;
       private final double targetUsersPerSec;
 
-      public RampRate(Phase.RampRate def, String runId, int agentId) {
+      public RampRate(Phase def, String runId, int agentId) {
          super(def, runId, agentId);
-         initialUsersPerSec = def.benchmark().slice(def.initialUsersPerSec, agentId);
-         targetUsersPerSec = def.benchmark().slice(def.targetUsersPerSec, agentId);
-         nextScheduled = def.variance ? nextSessionRandomized() : 0;
+         Model.RampRate model = (Model.RampRate) def.model;
+         initialUsersPerSec = def.benchmark().slice(model.initialUsersPerSec, agentId);
+         targetUsersPerSec = def.benchmark().slice(model.targetUsersPerSec, agentId);
+         nextScheduled = model.variance ? nextSessionRandomized() : 0;
       }
 
       @Override
@@ -406,13 +406,14 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       }
    }
 
-   public static class ConstantRate extends OpenModelPhase<Phase.ConstantRate> {
+   public static class ConstantRate extends OpenModelPhase {
       private final double usersPerSec;
 
-      public ConstantRate(Phase.ConstantRate def, String runId, int agentId) {
+      public ConstantRate(Phase def, String runId, int agentId) {
          super(def, runId, agentId);
-         usersPerSec = def.benchmark().slice(def.usersPerSec, agentId);
-         nextScheduled = def.variance ? nextSessionRandomized() : 0;
+         Model.ConstantRate model = (Model.ConstantRate) def.model;
+         usersPerSec = def.benchmark().slice(model.usersPerSec, agentId);
+         nextScheduled = model.variance ? nextSessionRandomized() : 0;
       }
 
       @Override
@@ -428,10 +429,10 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       }
    }
 
-   public static class Sequentially extends PhaseInstanceImpl<Phase.Sequentially> {
+   public static class Sequentially extends PhaseInstanceImpl {
       private int counter = 0;
 
-      public Sequentially(Phase.Sequentially def, String runId, int agentId) {
+      public Sequentially(Phase def, String runId, int agentId) {
          super(def, runId, agentId);
       }
 
@@ -448,7 +449,8 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
 
       @Override
       public void notifyFinished(Session session) {
-         if (++counter >= def.repeats) {
+         Model.Sequentially model = (Model.Sequentially) def.model;
+         if (++counter >= model.repeats) {
             status = Status.TERMINATING;
             log.debug("{} changing status to TERMINATING", def.name);
             super.notifyFinished(session);
@@ -458,8 +460,8 @@ public abstract class PhaseInstanceImpl<D extends Phase> implements PhaseInstanc
       }
    }
 
-   public static class Noop extends PhaseInstanceImpl<Phase.Noop> {
-      protected Noop(Phase.Noop def, String runId, int agentId) {
+   public static class Noop extends PhaseInstanceImpl {
+      protected Noop(Phase def, String runId, int agentId) {
          super(def, runId, agentId);
       }
 

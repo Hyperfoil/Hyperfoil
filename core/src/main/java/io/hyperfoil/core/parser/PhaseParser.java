@@ -2,8 +2,9 @@ package io.hyperfoil.core.parser;
 
 import java.util.function.Predicate;
 
-import io.hyperfoil.api.config.Phase;
+import io.hyperfoil.api.config.Model;
 import io.hyperfoil.api.config.PhaseBuilder;
+import io.hyperfoil.api.config.SessionLimitPolicy;
 
 abstract class PhaseParser extends AbstractParser<PhaseBuilder.Catalog, PhaseBuilder<?>> {
 
@@ -63,12 +64,12 @@ abstract class PhaseParser extends AbstractParser<PhaseBuilder.Catalog, PhaseBui
       OpenModel() {
          register("maxSessions", new PropertyParser.Int<>((builder, sessions) -> ((PhaseBuilder.OpenModel<?>) builder).maxSessions(sessions)));
          register("variance", new PropertyParser.Boolean<>((builder, variance) -> ((PhaseBuilder.OpenModel<?>) builder).variance(variance)));
-         register("sessionLimitPolicy", new PropertyParser.Enum<>(Phase.SessionLimitPolicy.values(), (builder, policy) -> ((PhaseBuilder.OpenModel<?>) builder).sessionLimitPolicy(policy)));
+         register("sessionLimitPolicy", new PropertyParser.Enum<>(SessionLimitPolicy.values(), (builder, policy) -> ((PhaseBuilder.OpenModel<?>) builder).sessionLimitPolicy(policy)));
       }
    }
 
    static class RampRate extends OpenModel {
-      Predicate<Phase.RampRate> constraint;
+      Predicate<Model.RampRate> constraint;
       String constraintMessage;
 
       RampRate() {
@@ -81,7 +82,7 @@ abstract class PhaseParser extends AbstractParser<PhaseBuilder.Catalog, PhaseBui
          return catalog.rampRate(-1, -1).constraint(constraint, constraintMessage);
       }
 
-      RampRate constraint(Predicate<Phase.RampRate> constraint, String message) {
+      RampRate constraint(Predicate<Model.RampRate> constraint, String message) {
          this.constraint = constraint;
          this.constraintMessage = message;
          return this;

@@ -11,7 +11,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import io.hyperfoil.api.config.Benchmark;
-import io.hyperfoil.api.config.Phase;
+import io.hyperfoil.api.config.Model;
 import io.hyperfoil.http.api.FollowRedirect;
 import io.hyperfoil.http.api.HttpMethod;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
@@ -115,7 +115,7 @@ public class FollowRedirectTest extends HttpScenarioTest {
    public void testManual() {
       Benchmark benchmark = loadScenario("scenarios/FollowRedirectTest_manual.hf.yaml");
       int users = benchmark.phases().stream().filter(p -> "testPhase".equals(p.name()))
-            .map(Phase.AtOnce.class::cast).mapToInt(p -> p.users).findFirst().orElse(0);
+            .mapToInt(p -> ((Model.AtOnce) p.model).users).findFirst().orElse(0);
       Map<String, StatisticsSnapshot> stats = runScenario(benchmark);
       HttpStats redirectMe = HttpStats.get(stats.get("redirectMe"));
       assertThat(redirectMe.status_3xx).isEqualTo(redirects.get());
@@ -129,7 +129,7 @@ public class FollowRedirectTest extends HttpScenarioTest {
    public void testLocation() {
       Benchmark benchmark = loadScenario("scenarios/FollowRedirectTest_location.hf.yaml");
       int users = benchmark.phases().stream().filter(p -> "testPhase".equals(p.name()))
-            .map(Phase.AtOnce.class::cast).mapToInt(p -> p.users).findFirst().orElse(0);
+            .mapToInt(p -> ((Model.AtOnce) p.model).users).findFirst().orElse(0);
       Map<String, StatisticsSnapshot> stats = runScenario(benchmark);
       HttpStats redirectMe = HttpStats.get(stats.get("redirectMe"));
       String redirectMetric = stats.keySet().stream().filter(m -> !m.equals("redirectMe")).findFirst().orElse(null);
@@ -151,7 +151,7 @@ public class FollowRedirectTest extends HttpScenarioTest {
    public void testHtmlOnly() {
       Benchmark benchmark = loadScenario("scenarios/FollowRedirectTest_html.hf.yaml");
       int users = benchmark.phases().stream().filter(p -> "testPhase".equals(p.name()))
-            .map(Phase.AtOnce.class::cast).mapToInt(p -> p.users).findFirst().orElse(0);
+            .mapToInt(p -> ((Model.AtOnce) p.model).users).findFirst().orElse(0);
       Map<String, StatisticsSnapshot> stats = runScenario(benchmark);
       HttpStats redirectMe = HttpStats.get(stats.get("redirectMe"));
       String redirectMetric = stats.keySet().stream().filter(m -> !m.equals("redirectMe")).findFirst().orElse(null);
@@ -173,7 +173,7 @@ public class FollowRedirectTest extends HttpScenarioTest {
    public void testAlways() {
       Benchmark benchmark = loadScenario("scenarios/FollowRedirectTest_always.hf.yaml");
       int users = benchmark.phases().stream().filter(p -> "testPhase".equals(p.name()))
-            .map(Phase.AtOnce.class::cast).mapToInt(p -> p.users).findFirst().orElse(0);
+            .mapToInt(p -> ((Model.AtOnce) p.model).users).findFirst().orElse(0);
       Map<String, StatisticsSnapshot> stats = runScenario(benchmark);
       HttpStats redirectMe = HttpStats.get(stats.get("redirectMe"));
       String redirectMetric = stats.keySet().stream().filter(m -> !m.equals("redirectMe")).findFirst().orElse(null);
