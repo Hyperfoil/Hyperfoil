@@ -58,6 +58,7 @@ public class BenchmarkParser extends AbstractMappingParser<BenchmarkBuilder> {
       register("name", new PropertyParser.String<>(BenchmarkBuilder::name));
       register("agents", new AgentsParser());
       register("ergonomics", new ErgonomicsParser());
+      register("failurePolicy", new PropertyParser.Enum<>(Benchmark.FailurePolicy.values(), BenchmarkBuilder::failurePolicy));
       register("phases", new PhasesParser());
       register("threads", new PropertyParser.Int<>(BenchmarkBuilder::threads));
       register("statisticsCollectionPeriod", new PropertyParser.Int<>(BenchmarkBuilder::statisticsCollectionPeriod));

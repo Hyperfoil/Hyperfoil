@@ -192,7 +192,9 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                               log.info("SLA validation failed for {}", phase);
                               ControllerPhase controllerPhase = run.phases.get(phase);
                               controllerPhase.setFailed();
-                              failNotStartedPhases(run, controllerPhase);
+                              if (run.benchmark.failurePolicy() == Benchmark.FailurePolicy.CANCEL) {
+                                 failNotStartedPhases(run, controllerPhase);
+                              }
                            }
                         }
                      }
@@ -348,7 +350,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       }
       Benchmark benchmark = new Benchmark(info.getString("benchmark", "<unknown>"), null,
             Collections.emptyMap(), new Agent[0], 0, Collections.emptyMap(), Collections.emptyList(),
-            Collections.emptyMap(), 0, null, Collections.emptyList(), Collections.emptyList());
+            Collections.emptyMap(), 0, null, Collections.emptyList(), Collections.emptyList(), Benchmark.FailurePolicy.CANCEL);
       Run run = new Run(runId, runDir, benchmark);
       run.completed = true;
       run.startTime = info.getLong("startTime", 0L);

@@ -51,6 +51,7 @@ public class BenchmarkBuilder {
    private String triggerUrl;
    private final List<RunHook> preHooks = new ArrayList<>();
    private final List<RunHook> postHooks = new ArrayList<>();
+   private Benchmark.FailurePolicy failurePolicy = Benchmark.FailurePolicy.CANCEL;
 
    public static Collection<PhaseBuilder<?>> phasesForTesting(BenchmarkBuilder builder) {
       return builder.phaseBuilders.values();
@@ -122,6 +123,11 @@ public class BenchmarkBuilder {
       return this;
    }
 
+   public BenchmarkBuilder failurePolicy(Benchmark.FailurePolicy policy) {
+      failurePolicy = policy;
+      return this;
+   }
+
    public void prepareBuild() {
       plugins.values().forEach(PluginBuilder::prepareBuild);
       phaseBuilders.values().forEach(PhaseBuilder::prepareBuild);
@@ -156,7 +162,7 @@ public class BenchmarkBuilder {
       Map<Class<? extends PluginConfig>, PluginConfig> plugins = this.plugins.values().stream()
             .map(PluginBuilder::build).collect(Collectors.toMap(PluginConfig::getClass, Function.identity()));
       Benchmark benchmark = new Benchmark(name, originalSource, files, agents, threads, plugins,
-            new ArrayList<>(phases.values()), tags, statisticsCollectionPeriod, triggerUrl, preHooks, postHooks);
+            new ArrayList<>(phases.values()), tags, statisticsCollectionPeriod, triggerUrl, preHooks, postHooks, failurePolicy);
       bs.set(benchmark);
       return benchmark;
    }
