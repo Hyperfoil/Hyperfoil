@@ -136,14 +136,13 @@ public class SimulationRunner {
 
       jitterWatchdog = new Thread(this::observeJitter, "jitter-watchdog");
       jitterWatchdog.setDaemon(true);
-      jitterWatchdog.start();
 
       cpuWatchdog = new CpuWatchdog(errorHandler);
       cpuWatchdog.start();
    }
 
    public void openConnections(Handler<AsyncResult<Void>> handler) {
-      ArrayList<Future> futures = new ArrayList<>();
+      @SuppressWarnings("rawtypes") ArrayList<Future> futures = new ArrayList<>();
       for (PluginRunData plugin : runData) {
          plugin.openConnections(futures::add);
       }
@@ -154,6 +153,7 @@ public class SimulationRunner {
             log.error("One of the HTTP client pools failed to start.");
          }
          handler.handle(result.mapEmpty());
+         jitterWatchdog.start();
       });
    }
 
@@ -247,7 +247,7 @@ public class SimulationRunner {
       }
    }
 
-   // This method should be invoked only from vert.x eventpool thread
+   // This method should be invoked only from vert.x event-loop thread
    public void visitStatistics(Consumer<SessionStatistics> consumer) {
       for (SharedResources sharedResources : this.sharedResources.values()) {
          if (sharedResources.currentPhase == null) {
