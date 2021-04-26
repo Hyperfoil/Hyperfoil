@@ -38,12 +38,14 @@ public class Connect extends ServerCommand {
    public CommandResult execute(HyperfoilCommandInvocation invocation) throws CommandException {
       HyperfoilCliContext ctx = invocation.context();
       if (host != null && host.startsWith("http://")) {
-         host = host.substring(7);
+         int end = host.indexOf('/', 7);
+         host = host.substring(7, end < 0 ? host.length() : end);
          if (port == null) {
             port = 80;
          }
       } else if (host != null && host.startsWith("https://")) {
-         host = host.substring(8);
+         int end = host.indexOf('/', 8);
+         host = host.substring(8, end < 0 ? host.length() : end);
          if (port == null) {
             port = 443;
          }
@@ -54,11 +56,13 @@ public class Connect extends ServerCommand {
       if (host != null) {
          int colonIndex = host.indexOf(':');
          if (colonIndex >= 0) {
+            String portStr = host.substring(colonIndex + 1);
             try {
-               port = Integer.parseInt(host.substring(colonIndex + 1));
+               port = Integer.parseInt(portStr);
                host = host.substring(0, colonIndex);
             } catch (NumberFormatException e) {
-               // ignored
+               invocation.error("Cannot parse port '" + portStr + "'");
+               return CommandResult.FAILURE;
             }
          }
       }

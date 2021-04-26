@@ -347,22 +347,26 @@ public class RestClient implements Client, Closeable {
    <T> T sync(Consumer<Handler<AsyncResult<HttpResponse<Buffer>>>> invoker, int statusCode, Function<HttpResponse<Buffer>, T> f) {
       CompletableFuture<T> future = new CompletableFuture<>();
       vertx.runOnContext(ctx -> {
-         invoker.accept(rsp -> {
-            if (rsp.succeeded()) {
-               HttpResponse<Buffer> response = rsp.result();
-               if (statusCode != 0 && response.statusCode() != statusCode) {
-                  future.completeExceptionally(unexpected(response));
-                  return;
+         try {
+            invoker.accept(rsp -> {
+               if (rsp.succeeded()) {
+                  HttpResponse<Buffer> response = rsp.result();
+                  if (statusCode != 0 && response.statusCode() != statusCode) {
+                     future.completeExceptionally(unexpected(response));
+                     return;
+                  }
+                  try {
+                     future.complete(f.apply(response));
+                  } catch (Throwable t) {
+                     future.completeExceptionally(t);
+                  }
+               } else {
+                  future.completeExceptionally(rsp.cause());
                }
-               try {
-                  future.complete(f.apply(response));
-               } catch (Throwable t) {
-                  future.completeExceptionally(t);
-               }
-            } else {
-               future.completeExceptionally(rsp.cause());
-            }
-         });
+            });
+         } catch (Throwable t) {
+            future.completeExceptionally(t);
+         }
       });
       return waitFor(future);
    }
