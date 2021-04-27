@@ -29,7 +29,8 @@ class AgentInfo {
       STARTING,
       REGISTERED,
       READY,
+      STOPPING,
       STOPPED,
-      FAILED
+      FAILED;
    }
 }

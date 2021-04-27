@@ -6,22 +6,28 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.PrintStream;
-import java.util.ArrayList;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import org.apache.sshd.client.channel.ChannelShell;
+import org.apache.sshd.client.channel.ClientChannel;
 import org.apache.sshd.client.future.OpenFuture;
 import org.apache.sshd.client.scp.ScpClient;
 import org.apache.sshd.client.scp.ScpClientCreator;
 import org.apache.sshd.client.session.ClientSession;
 import org.apache.sshd.client.subsystem.sftp.SftpClient;
 import org.apache.sshd.client.subsystem.sftp.SftpClientFactory;
+import org.apache.sshd.common.io.IoOutputStream;
+import org.apache.sshd.common.io.IoReadFuture;
+import org.apache.sshd.common.util.buffer.ByteArrayBuffer;
 import org.apache.sshd.common.util.io.NullOutputStream;
 
+import io.hyperfoil.api.BenchmarkExecutionException;
 import io.hyperfoil.api.deployment.DeployedAgent;
 import io.hyperfoil.api.deployment.DeploymentException;
 import io.hyperfoil.internal.Properties;
@@ -52,7 +58,6 @@ public class SshDeployedAgent implements DeployedAgent {
    private Consumer<Throwable> exceptionHandler;
    private ScpClient scpClient;
    private PrintStream commandStream;
-   private BufferedReader reader;
 
    public SshDeployedAgent(String name, String runId, String username, String hostname, int port, String dir, String extras) {
       this.name = name;
@@ -67,13 +72,6 @@ public class SshDeployedAgent implements DeployedAgent {
    @Override
    public void stop() {
       log.info("Stopping agent " + name);
-      try {
-         if (reader != null) {
-            reader.close();
-         }
-      } catch (IOException e) {
-         log.error("Failed closing output reader", e);
-      }
       if (commandStream != null) {
          commandStream.close();
       }
@@ -99,6 +97,7 @@ public class SshDeployedAgent implements DeployedAgent {
 
       try {
          this.shellChannel = session.createShellChannel();
+         shellChannel.setStreaming(ClientChannel.Streaming.Async);
          shellChannel.setErr(new NullOutputStream());
          OpenFuture open = shellChannel.open();
          if (!open.await(SshDeployer.TIMEOUT)) {
@@ -111,8 +110,42 @@ public class SshDeployedAgent implements DeployedAgent {
          exceptionHandler.accept(new DeploymentException("Failed to open shell", e));
       }
 
-      reader = new BufferedReader(new InputStreamReader(shellChannel.getInvertedOut()));
-      commandStream = new PrintStream(shellChannel.getInvertedIn());
+      IoOutputStream inStream = shellChannel.getAsyncIn();
+      commandStream = new PrintStream(new OutputStream() {
+         ByteArrayBuffer buffer = new ByteArrayBuffer();
+
+         @Override
+         public void write(byte[] b) throws IOException {
+            buffer.clear(false);
+            buffer.putRawBytes(b, 0, b.length);
+            if (!inStream.writePacket(buffer).await()) {
+               throw new IOException("Failed waiting for the write");
+            }
+         }
+
+         @Override
+         public void write(byte[] b, int off, int len) throws IOException {
+            buffer.clear(false);
+            buffer.putRawBytes(b, off, len);
+            if (!inStream.writePacket(buffer).await()) {
+               throw new IOException("Failed waiting for the write");
+            }
+         }
+
+         @Override
+         public void write(int b) throws IOException {
+            buffer.clear(false);
+            buffer.putByte((byte) b);
+            if (!inStream.writePacket(buffer).await()) {
+               throw new IOException("Failed waiting for the write");
+            }
+         }
+
+         @Override
+         public void close() throws IOException {
+            inStream.close();
+         }
+      });
       runCommand("unset PROMPT_COMMAND; export PS1='" + PROMPT + "'", true);
 
       runCommand("mkdir -p " + dir + AGENTLIB, true);
@@ -181,32 +214,80 @@ public class SshDeployedAgent implements DeployedAgent {
       startAgentCommmand.append(" io.hyperfoil.Hyperfoil\\$Agent &> ")
             .append(dir).append(File.separatorChar).append("agent.").append(name).append(".log");
       String startAgent = startAgentCommmand.toString();
-      log.debug("Starting agent {}: {}", name, startAgent);
+      log.info("Starting agent {}", name);
+      log.debug("Command: {}", startAgent);
       runCommand(startAgent, false);
+      onPrompt(new StringBuilder(), new ByteArrayBuffer(),
+            () -> exceptionHandler.accept(new BenchmarkExecutionException("Agent process terminated prematurely. Hint: type 'log " + name + "' to see agent output.")));
    }
 
-   private List<String> runCommand(String cmd, boolean wait) {
+   private void onPrompt(StringBuilder sb, ByteArrayBuffer buffer, Runnable completion) {
+      buffer.clear(false);
+      shellChannel.getAsyncOut().read(buffer).addListener(future -> {
+         byte[] buf = new byte[future.getRead()];
+         future.getBuffer().getRawBytes(buf);
+         String str = new String(buf, StandardCharsets.UTF_8);
+         log.info("Read: " + str);
+         sb.append(str);
+         if (sb.indexOf(PROMPT) >= 0) {
+            completion.run();
+         } else {
+            if (sb.length() >= PROMPT.length()) {
+               sb.delete(0, sb.length() - PROMPT.length());
+            }
+            onPrompt(sb, buffer, completion);
+         }
+      });
+   }
+
+   private String runCommand(String cmd, boolean wait) {
       log.trace("Running command {}", cmd);
       commandStream.println(cmd);
       // add one more empty command so that we get PROMPT on the line alone
       commandStream.println();
       commandStream.flush();
-      ArrayList<String> lines = new ArrayList<>();
+      StringBuilder lines = new StringBuilder();
+      ByteArrayBuffer buffer = new ByteArrayBuffer();
+      byte[] buf = new byte[buffer.capacity()];
       try {
-         // first line should be echo of the command
-         String ignored = reader.readLine();
-         String line;
-         if (!wait) {
-            return null;
+         for (; ; ) {
+            buffer.clear(false);
+            IoReadFuture future = shellChannel.getAsyncOut().read(buffer);
+            if (!future.await(10, TimeUnit.SECONDS)) {
+               exceptionHandler.accept(new BenchmarkExecutionException("Timed out waiting for SSH output"));
+               return null;
+            }
+            buffer.getRawBytes(buf, 0, future.getRead());
+            String line = new String(buf, 0, future.getRead(), StandardCharsets.UTF_8);
+            int newLine = line.indexOf('\n');
+            if (newLine >= 0) {
+               if (!wait) {
+                  return null;
+               }
+               // first line should be echo of the command and we'll ignore that
+               lines.append(line.substring(newLine + 1));
+               break;
+            }
          }
-         while ((line = reader.readLine()) != null && !PROMPT.equals(line)) {
-            lines.add(line);
+         for (; ; ) {
+            int prompt = lines.lastIndexOf(PROMPT + "\r\n");
+            if (prompt >= 0) {
+               lines.delete(prompt, lines.length());
+               return lines.toString();
+            }
+            buffer.clear(false);
+            IoReadFuture future = shellChannel.getAsyncOut().read(buffer);
+            if (!future.await(10, TimeUnit.SECONDS)) {
+               exceptionHandler.accept(new BenchmarkExecutionException("Timed out waiting for SSH output"));
+               return null;
+            }
+            buffer.getRawBytes(buf, 0, future.getRead());
+            lines.append(new String(buf, 0, future.getRead(), StandardCharsets.UTF_8));
          }
       } catch (IOException e) {
          exceptionHandler.accept(new DeploymentException("Error reading from shell", e));
          return null;
       }
-      return lines;
    }
 
    private Map<String, String> getLocalMd5() {
@@ -247,10 +328,12 @@ public class SshDeployedAgent implements DeployedAgent {
    }
 
    private Map<String, String> getRemoteMd5() {
-      List<String> lines = runCommand("md5sum " + dir + AGENTLIB + "/*", true);
+      String[] lines = runCommand("md5sum " + dir + AGENTLIB + "/*", true).split("\r*\n");
       Map<String, String> md5map = new HashMap<>();
       for (String line : lines) {
-         if (line.endsWith("No such file or directory")) {
+         if (line.isEmpty()) {
+            continue;
+         } else if (line.endsWith("No such file or directory")) {
             break;
          }
          int space = line.indexOf(' ');

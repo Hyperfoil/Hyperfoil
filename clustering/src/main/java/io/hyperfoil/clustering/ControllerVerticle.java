@@ -477,9 +477,11 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             run.agents.add(agentInfo);
             log.debug("Starting agent {}", agent.name);
             vertx.executeBlocking(future -> agentInfo.deployedAgent = deployer.start(agent, run.id, run.benchmark, exception -> {
-               run.errors.add(new Run.Error(agentInfo, new BenchmarkExecutionException("Failed to deploy agent", exception)));
-               log.error("Failed to deploy agent " + agent.name, exception);
-               vertx.runOnContext(nil -> stopSimulation(run));
+               if (agentInfo.status.ordinal() < AgentInfo.Status.STOPPING.ordinal()) {
+                  run.errors.add(new Run.Error(agentInfo, new BenchmarkExecutionException("Failed to deploy agent", exception)));
+                  log.error("Failed to deploy agent " + agent.name, exception);
+                  vertx.runOnContext(nil -> stopSimulation(run));
+               }
             }), false, result -> {
                if (result.failed()) {
                   run.errors.add(new Run.Error(agentInfo, new BenchmarkExecutionException("Failed to start agent", result.cause())));
@@ -628,6 +630,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             }
             continue;
          }
+         agent.status = AgentInfo.Status.STOPPING;
          eb.request(agent.deploymentId, new AgentControlMessage(AgentControlMessage.Command.STOP, agent.id, null), reply -> {
             if (reply.succeeded() && !(reply.result() instanceof Throwable)) {
                agent.status = AgentInfo.Status.STOPPED;
