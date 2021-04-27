@@ -1,7 +1,9 @@
 package io.hyperfoil.core.impl;
 
+import java.text.SimpleDateFormat;
 import java.time.Clock;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -171,7 +173,8 @@ public class SimulationRunner {
          long currentTimestamp = System.nanoTime();
          long delay = TimeUnit.NANOSECONDS.toMillis(currentTimestamp - lastTimestamp);
          if (delay > threshold) {
-            String message = String.format("Jitter watchdog was not invoked for %d ms (threshold is %d ms); please check your GC settings.", delay, threshold);
+            String message = String.format("%s | Jitter watchdog was not invoked for %d ms (threshold is %d ms); please check your GC settings.",
+                  new SimpleDateFormat("HH:mm:ss.SSS").format(new Date()), delay, threshold);
             log.error(message);
             errorHandler.accept(new BenchmarkExecutionException(message));
          }

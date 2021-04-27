@@ -4,7 +4,9 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -58,8 +60,8 @@ public class CpuWatchdog implements Runnable {
                   if (prevIdle != 0 && prevIdle != Long.MAX_VALUE && lastTimestamp != now) {
                      double idleRatio = (double) (TICK_NANOS * (idle - prevIdle)) / (now - lastTimestamp);
                      if (idleRatio < IDLE_THRESHOLD) {
-                        String message = String.format("CPU %d was used for %.0f%% which is more than the threshold of %.0f%%",
-                              cpuIndex, 100 * (1 - idleRatio), 100 * (1 - IDLE_THRESHOLD));
+                        String message = String.format("%s | CPU %d was used for %.0f%% which is more than the threshold of %.0f%%",
+                              new SimpleDateFormat("HH:mm:ss.SSS").format(new Date()), cpuIndex, 100 * (1 - idleRatio), 100 * (1 - IDLE_THRESHOLD));
                         log.warn(message);
                         errorHandler.accept(new BenchmarkExecutionException(message));
                         idle = Long.MAX_VALUE;
