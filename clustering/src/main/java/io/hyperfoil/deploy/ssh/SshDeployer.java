@@ -54,7 +54,7 @@ public class SshDeployer implements Deployer {
    public DeployedAgent start(Agent agent, String runId, Benchmark benchmark, Consumer<Throwable> exceptionHandler) {
       String hostname = null, username = null;
       int port = -1;
-      String dir = null, extras = null;
+      String dir = null, extras = null, cpu = null;
       if (agent.inlineConfig != null) {
          URL url;
          try {
@@ -80,6 +80,7 @@ public class SshDeployer implements Deployer {
          }
          dir = agent.properties.get("dir");
          extras = agent.properties.get("extras");
+         cpu = agent.properties.get("cpu");
       }
       if (hostname == null) {
          hostname = agent.name;
@@ -94,7 +95,7 @@ public class SshDeployer implements Deployer {
          dir = Controller.ROOT_DIR.toString();
       }
       try {
-         SshDeployedAgent deployedAgent = new SshDeployedAgent(agent.name, runId, username, hostname, port, dir, extras);
+         SshDeployedAgent deployedAgent = new SshDeployedAgent(agent.name, runId, username, hostname, port, dir, extras, cpu);
          ClientSession session = connectAndLogin(username, hostname, port);
          deployedAgent.deploy(session, exceptionHandler);
          return deployedAgent;

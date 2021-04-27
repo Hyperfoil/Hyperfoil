@@ -52,6 +52,7 @@ public class SshDeployedAgent implements DeployedAgent {
    final int port;
    final String dir;
    final String extras;
+   final String cpu;
 
    private ClientSession session;
    private ChannelShell shellChannel;
@@ -59,7 +60,7 @@ public class SshDeployedAgent implements DeployedAgent {
    private ScpClient scpClient;
    private PrintStream commandStream;
 
-   public SshDeployedAgent(String name, String runId, String username, String hostname, int port, String dir, String extras) {
+   public SshDeployedAgent(String name, String runId, String username, String hostname, int port, String dir, String extras, String cpu) {
       this.name = name;
       this.runId = runId;
       this.username = username;
@@ -67,6 +68,7 @@ public class SshDeployedAgent implements DeployedAgent {
       this.port = port;
       this.dir = dir;
       this.extras = extras;
+      this.cpu = cpu;
    }
 
    @Override
@@ -156,8 +158,12 @@ public class SshDeployedAgent implements DeployedAgent {
          return;
       }
 
+      StringBuilder startAgentCommmand = new StringBuilder();
+      if (cpu != null) {
+         startAgentCommmand.append("taskset -c ").append(cpu).append(' ');
+      }
       String java = Properties.get(Properties.AGENT_JAVA_EXECUTABLE, "java");
-      StringBuilder startAgentCommmand = new StringBuilder().append(java).append(" -cp ");
+      startAgentCommmand.append(java).append(" -cp ");
 
       for (Map.Entry<String, String> entry : localMd5.entrySet()) {
          int lastSlash = entry.getKey().lastIndexOf("/");
