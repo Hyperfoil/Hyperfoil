@@ -48,12 +48,19 @@ public class Log extends ServerCommand {
       }
 
       String newLogId = invocation.context().client().downloadLog(node, logId, offset, logFile);
-      if (logId == null) {
-         invocation.context().addLog(node, logFile, newLogId);
-      } else if (!logId.equals(newLogId)) {
-         invocation.context().updateLogId(node, newLogId);
+      // when the agent did not start correctly the newLogId will be null (as we use deployment ID for that)
+      // and we won't store it at all.
+      if (newLogId != null) {
+         if (logId == null) {
+            invocation.context().addLog(node, logFile, newLogId);
+         } else if (!logId.equals(newLogId)) {
+            invocation.context().updateLogId(node, newLogId);
+         }
       }
       invocation.context().createPager(pager).open(invocation, logFile);
+      if (newLogId == null) {
+         logFile.delete();
+      }
       return CommandResult.SUCCESS;
    }
 
