@@ -176,7 +176,10 @@ public class BenchmarkBuilder {
          Phase p = toProcess.poll();
          Stream.concat(p.startAfter.stream(), p.startAfterStrict.stream()).forEach(name -> {
             Phase p2 = phases.get(name);
-            if (p2 == phase) {
+            if (p2 == null) {
+               // non-existent phase, will be reported later
+               return;
+            } else if (p2 == phase) {
                StringBuilder sb = new StringBuilder("Phase dependencies contain cycle: ").append(name).append(" > ");
                Phase p3 = p;
                do {
