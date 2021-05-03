@@ -8,8 +8,11 @@ const DIRECT_DOWNLOAD_END = "__HYPERFOIL_DIRECT_DOWNLOAD_END__\n";
 const SESSION_START = "__HYPERFOIL_SESSION_START__\n";
 const RAW_HTML_START = "__HYPERFOIL_RAW_HTML_START__"
 const RAW_HTML_END = "__HYPERFOIL_RAW_HTML_END__"
+const SET_TERM_SIZE = "__HYPERFOIL_SET_TERM_SIZE__"
+const PROMPT = "[hyperfoil]$ "
 
 const ansiUp = new AnsiUp();
+const gauge = document.getElementById("gauge")
 const resultWindow = document.getElementById("result");
 var logo = document.getElementById("logo");
 const command = document.getElementById("command");
@@ -25,6 +28,7 @@ tokenFrame.onload = () => {
    authToken = tokenFrame.contentDocument.body.innerText
 }
 document.onkeydown = event => defaultKeyDown(event)
+window.onresize = event => setTermSize()
 
 const sessionId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
     var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
@@ -51,6 +55,7 @@ function createWebSocket() {
          resultWindow.appendChild(command)
       }
       command.focus()
+      setTermSize()
    }
    s.onerror = (e) => {
       command.remove();
@@ -63,6 +68,14 @@ function sendCommand(command) {
    socket.send(command);
 }
 
+function setTermSize() {
+   const charWidth = (gauge.offsetWidth + 1) / 20
+   if (charWidth > 0) {
+      const width = Math.floor(window.innerWidth / charWidth) - 2
+      const height = Math.floor(window.innerHeight / gauge.offsetHeight) - 2
+      sendCommand(SET_TERM_SIZE + width + "x" + height)
+   }
+}
 
 command.addEventListener("keydown", (event) => {
    if (logo) {
@@ -86,8 +99,16 @@ command.addEventListener("keydown", (event) => {
    } else if (event.key === "Backspace" && command.selectionStart === 0) {
       command.remove();
       const lastLine = resultWindow.lastChild
-      if (lastLine.lastChild && lastLine.lastChild.nodeType === Node.TEXT_NODE) {
-         lastLine.lastChild.nodeValue = lastLine.lastChild.nodeValue.slice(0, -1)
+      const prev = lastLine.lastChild
+      if (prev) {
+         if (prev.nodeType === Node.TEXT_NODE) {
+            prev.nodeValue = prev.nodeValue.slice(0, -1)
+         } else if (prev.innerText !== PROMPT) {
+            prev.innerText = prev.innerText.slice(0, -1)
+            if (prev.innerText.length === 0) {
+               prev.remove()
+            }
+         }
       }
       lastLine.appendChild(command)
       command.focus();
@@ -99,10 +120,20 @@ command.addEventListener("keydown", (event) => {
    } else if (event.key === "ArrowLeft" && command.selectionStart === 0) {
       command.remove()
       const lastLine = resultWindow.lastChild
-      if (lastLine.lastChild && lastLine.lastChild.nodeType === Node.TEXT_NODE) {
-         let lastChar = lastLine.lastChild.nodeValue.slice(-1);
+      const prev = lastLine.lastChild
+      let lastChar = undefined
+      if (prev && prev.nodeType === Node.TEXT_NODE) {
+         lastChar = prev.nodeValue.slice(-1);
+         prev.nodeValue = prev.nodeValue.slice(0, -1);
+      } else if (prev.innerText !== PROMPT) {
+         lastChar = prev.innerText.slice(-1);
+         prev.innerText = prev.innerText.slice(0, -1);
+         if (prev.innerText.length === 0) {
+            prev.remove()
+         }
+      }
+      if (lastChar !== undefined) {
          command.value = lastChar + command.value;
-         lastLine.lastChild.nodeValue = lastLine.lastChild.nodeValue.slice(0, -1);
          sendCommand('\b');
          command.selectionStart = 0
       }
@@ -111,7 +142,13 @@ command.addEventListener("keydown", (event) => {
    } else if (event.key === "Escape" || (event.key == 'c' && event.ctrlKey)) {
       event.preventDefault();
       command.remove();
-      resultWindow.lastChild.innerHTML += '<span class="ctrl-c">' + command.value + "</span>"
+      const prev = resultWindow.lastChild?.lastChild
+      if (prev == null || prev.innerText === PROMPT) {
+         resultWindow.lastChild.innerHTML += '<span class="ctrl-c">' + command.value + "</span>"
+      } else {
+         prev.innerText += command.value
+         prev.classList.add("ctrl-c")
+      }
       command.value = ""
       warning.style.height = 0
       resultWindow.appendChild(command)
@@ -245,17 +282,37 @@ function addResultToWindow(commandResult) {
       var lastLine = resultWindow.lastChild
       // when last node is text, it's a newline
       if (lastLine && lastLine.nodeType !== Node.TEXT_NODE) {
-         lastLine.innerHTML += lines[0];
+         if (lastLine.lastChild && lastLine.lastChild.innerText !== PROMPT) {
+            lastLine.lastChild.innerText += lines[0];
+         } else {
+            lastLine.innerHTML += lines[0];
+         }
          firstLine = 1;
       }
+      wrapTextNodes(lastLine)
       for (var i = firstLine; i < lines.length; ++i) {
          lastLine = document.createElement("span")
          lastLine.classList.add("line")
          lastLine.innerHTML = lines[i]
+         wrapTextNodes(lastLine)
          resultWindow.appendChild(lastLine)
       }
       lastLine.appendChild(command)
       command.focus();
+   }
+}
+
+function wrapTextNodes(element) {
+   if (!element) {
+      return
+   }
+   for (var i = 0; i < element.childNodes.length; i++) {
+      var node = element.childNodes[i];
+      if (node.nodeType === Node.TEXT_NODE) {
+         var wrappingNode = document.createElement("span")
+         wrappingNode.innerText = node.nodeValue;
+         element.replaceChild(wrappingNode, node);
+      }
    }
 }
 

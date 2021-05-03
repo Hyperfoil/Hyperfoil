@@ -19,6 +19,8 @@ import org.aesh.AeshConsoleRunner;
 import org.aesh.command.Command;
 import org.aesh.command.registry.CommandRegistryException;
 import org.aesh.readline.ReadlineConsole;
+import org.aesh.readline.terminal.impl.ExternalTerminal;
+import org.aesh.readline.terminal.impl.LineDisciplineTerminal;
 import org.aesh.readline.tty.terminal.TerminalConnection;
 import org.aesh.terminal.tty.Signal;
 
@@ -38,6 +40,7 @@ import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.ServerWebSocket;
 
+import org.aesh.terminal.tty.Size;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.message.FormattedMessage;
@@ -49,6 +52,7 @@ public class WebCLI extends HyperfoilCli implements Handler<ServerWebSocket> {
    private static final String INTERRUPT_SIGNAL = "__HYPERFOIL_INTERRUPT_SIGNAL__";
    private static final String AUTH_TOKEN = "__HYPERFOIL_AUTH_TOKEN__";
    private static final String SET_BENCHMARK = "__HYPERFOIL_SET_BENCHMARK__";
+   private static final String SET_TERM_SIZE = "__HYPERFOIL_SET_TERM_SIZE__";
    private static final long SESSION_TIMEOUT = 60000;
 
    static final ScheduledExecutorService SCHEDULED_EXECUTOR = Executors.newScheduledThreadPool(1, Util.daemonThreadFactory("webcli-timer"));
@@ -123,6 +127,9 @@ public class WebCLI extends HyperfoilCli implements Handler<ServerWebSocket> {
             } else if (msg.startsWith(SET_BENCHMARK)) {
                context.setServerBenchmark(context.client().benchmark(msg.substring(SET_BENCHMARK.length())));
                return;
+            } else if (msg.startsWith(SET_TERM_SIZE)) {
+               setTermSize(context, msg.substring(SET_TERM_SIZE.length()));
+               return;
             }
          }
          try {
@@ -133,6 +140,25 @@ public class WebCLI extends HyperfoilCli implements Handler<ServerWebSocket> {
             webSocket.close();
          }
       });
+   }
+
+   private void setTermSize(WebCliContext context, String value) {
+      String[] dimensions = value.split("x");
+      if (dimensions.length == 2) {
+         try {
+            int width = Integer.parseInt(dimensions[0]);
+            int height = Integer.parseInt(dimensions[1]);
+            TerminalConnection connection = getConnection(context.runner);
+            if (connection != null) {
+               ExternalTerminal terminal = (ExternalTerminal) connection.getTerminal();
+               Field f = LineDisciplineTerminal.class.getDeclaredField("size");
+               f.setAccessible(true);
+               f.set(terminal, new Size(width, height));
+            }
+         } catch (NumberFormatException | NoSuchFieldException | IllegalAccessException e) {
+            // ignore
+         }
+      }
    }
 
    private WebCliContext createNewContext(ServerWebSocket webSocket) {
