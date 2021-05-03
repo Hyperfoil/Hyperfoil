@@ -172,9 +172,6 @@ public class Table<T> {
    private int print(HyperfoilCommandInvocation invocation, List<String> titles, List<String> prefixes, List<String[]> values, List<String> suffixes, List<Align> aligns, int[] width) {
       StringBuilder sb = new StringBuilder();
       int lines = 0;
-      if (boldHeader) {
-         sb.append(ANSI.BOLD);
-      }
       int prefixLength = prefixes == null ? 0 : prefixes.stream().filter(Objects::nonNull).mapToInt(Table::width).max().orElse(0);
       int suffixLength = prefixes == null ? 0 : prefixes.stream().filter(Objects::nonNull).mapToInt(Table::width).max().orElse(0);
       int totalWidth = IntStream.of(width).map(w -> w + 2).sum() - 2;
@@ -205,6 +202,9 @@ public class Table<T> {
             width[i] = width[i - stride];
          }
       }
+      if (boldHeader) {
+         sb.append(ANSI.BOLD);
+      }
       for (int i = 0; i < idColumns; ++i) {
          String title = titles.get(i);
          sb.append(title);
@@ -220,7 +220,13 @@ public class Table<T> {
             sb.append(titles.get(i + stride - 1));
          }
          if (i + stride < width.length) {
+            if (boldHeader) {
+               sb.append(ANSI.RESET);
+            }
             sb.append('\n');
+            if (boldHeader) {
+               sb.append(ANSI.BOLD);
+            }
             pad(sb, idsWidth, ' ');
             ++lines;
          }
