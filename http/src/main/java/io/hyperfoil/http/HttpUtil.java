@@ -57,12 +57,18 @@ public final class HttpUtil {
          log.warn("Cannot parse date {}", seq.subSequence(begin, end));
          return 0;
       }
-      int dayOfMonth = twoDigits(seq, i);
+      int dayOfMonth;
+      if (seq.charAt(i + 1) == ' ') {
+         dayOfMonth = seq.charAt(i) - '0';
+         i += 2; // single digit and ' '
+      } else {
+         dayOfMonth = twoDigits(seq, i);
+         i += 3; // two digits and ' '
+      }
       if (dayOfMonth < 1 || dayOfMonth > 31) {
          log.warn("Cannot parse date {}", seq.subSequence(begin, end));
          return 0;
       }
-      i += 3; // two digits and '-'
       if (i + 3 >= end) {
          log.warn("Cannot parse date {}", seq.subSequence(begin, end));
          return 0;
