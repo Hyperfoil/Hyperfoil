@@ -36,6 +36,7 @@ import io.hyperfoil.controller.StatisticsStore;
 import io.hyperfoil.core.util.CountDown;
 import io.hyperfoil.core.util.LowHigh;
 import io.hyperfoil.internal.Controller;
+import io.hyperfoil.internal.Properties;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.DeploymentOptions;
@@ -65,6 +66,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -78,6 +80,8 @@ import java.util.stream.Collectors;
 
 public class ControllerVerticle extends AbstractVerticle implements NodeListener {
    private static final Logger log = LogManager.getLogger(ControllerVerticle.class);
+   private static final int MAX_IN_MEMORY_RUNS = Properties.getInt(Properties.MAX_IN_MEMORY_RUNS, 20);
+   static final String DEFAULT_STATS_JSON = "all.json";
 
    private EventBus eb;
    private ControllerServer server;
@@ -352,7 +356,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       }
       Benchmark benchmark = Benchmark.empty(info.getString("benchmark", "<unknown>"));
       Run run = new Run(runId, runDir, benchmark);
-      run.statsSupplier = () -> loadStats(runDir.resolve("all.json"), benchmark);
+      run.statsSupplier = () -> loadStats(runDir.resolve(DEFAULT_STATS_JSON), benchmark);
       run.completed = true;
       run.startTime = info.getLong("startTime", 0L);
       run.terminateTime.complete(info.getLong("terminateTime", 0L));
@@ -374,6 +378,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
          log.error("Cannot load stats from {}", jsonPath);
          return null;
       }
+      log.info("Loading stats from {}", jsonPath);
       StatisticsStore store = new StatisticsStore(benchmark, f -> { });
       try {
          JsonLoader.read(Files.readString(jsonPath, StandardCharsets.UTF_8), store);
@@ -435,6 +440,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
    }
 
    Run createRun(Benchmark benchmark, String description) {
+      ensureMaxInMemoryRuns();
       String runId = String.format("%04X", runIds.getAndIncrement());
       Path runDir = Controller.RUN_DIR.resolve(runId);
       //noinspection ResultOfMethodCallIgnored
@@ -446,6 +452,21 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       runs.put(run.id, run);
       PersistenceUtil.store(run.benchmark, run.dir);
       return run;
+   }
+
+   private void ensureMaxInMemoryRuns() {
+      List<Run> loadedRuns = runs.values().stream().filter(Run::isLoaded)
+            .sorted(Comparator.comparing(r -> r.id)).collect(Collectors.toList());
+      if (loadedRuns.size() + 1 > MAX_IN_MEMORY_RUNS) {
+         loadedRuns.stream().limit(loadedRuns.size() + 1 - MAX_IN_MEMORY_RUNS).forEach(r -> {
+            log.info("Unloading run {}", r.id);
+            r.unload();
+            r.statsSupplier = () -> {
+               Path statsPath = Controller.RUN_DIR.resolve(r.id).resolve(DEFAULT_STATS_JSON);
+               return loadStats(statsPath, r.benchmark);
+            };
+         });
+      }
    }
 
    String startBenchmark(Run run) {
@@ -709,7 +730,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             log.error("Cannot write info file", e);
             future.fail(e);
          }
-         try (FileOutputStream stream = new FileOutputStream(run.dir.resolve("all.json").toFile())) {
+         try (FileOutputStream stream = new FileOutputStream(run.dir.resolve(DEFAULT_STATS_JSON).toFile())) {
             JsonFactory jfactory = new JsonFactory();
             jfactory.setCodec(new ObjectMapper());
             JsonGenerator jGenerator = jfactory.createGenerator(stream, JsonEncoding.UTF8);
@@ -718,7 +739,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             jGenerator.flush();
             jGenerator.close();
          } catch (IOException e) {
-            log.error("Cannot write all.json file", e);
+            log.error("Cannot write to " + DEFAULT_STATS_JSON, e);
             future.fail(e);
          }
          // combine shared and benchmark-private hooks

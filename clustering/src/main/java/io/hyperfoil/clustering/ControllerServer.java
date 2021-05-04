@@ -551,7 +551,7 @@ class ControllerServer implements ApiService {
             ctx.response().setStatusCode(500).end();
             return;
          }
-         String sourceFile = source != null ? source : "all.json";
+         String sourceFile = source != null ? source : ControllerVerticle.DEFAULT_STATS_JSON;
          Path runDir = controller.getRunDir(run).toAbsolutePath();
          Path filePath = runDir.resolve(sourceFile).toAbsolutePath();
          if (!filePath.startsWith(runDir)) {
@@ -688,7 +688,7 @@ class ControllerServer implements ApiService {
    public void getAllStatsJson(RoutingContext ctx, String runId) {
       withTerminatedRun(ctx, runId, run -> ctx.response()
             .putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_JSON)
-            .sendFile(controller.getRunDir(run).resolve("all.json").toString()));
+            .sendFile(controller.getRunDir(run).resolve(ControllerVerticle.DEFAULT_STATS_JSON).toString()));
    }
 
    private void withTerminatedRun(RoutingContext ctx, String runId, Consumer<Run> consumer) {

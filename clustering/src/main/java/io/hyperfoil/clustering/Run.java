@@ -78,6 +78,14 @@ class Run {
       }
    }
 
+   public boolean isLoaded() {
+      return statisticsStore != null;
+   }
+
+   public void unload() {
+      statisticsStore = null;
+   }
+
    public static class Error {
       public final AgentInfo agent;
       public final Throwable error;
