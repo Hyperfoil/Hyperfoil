@@ -21,6 +21,7 @@ package io.hyperfoil.api.config;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -82,6 +83,12 @@ public class Benchmark implements Serializable {
    private static UUID randomUUID() {
       ThreadLocalRandom random = ThreadLocalRandom.current();
       return new UUID(random.nextLong(), random.nextLong());
+   }
+
+   public static Benchmark empty(String name) {
+      return new Benchmark(name, null,
+            Collections.emptyMap(), new Agent[0], 0, Collections.emptyMap(), Collections.emptyList(),
+            Collections.emptyMap(), 0, null, Collections.emptyList(), Collections.emptyList(), FailurePolicy.CANCEL);
    }
 
    public String name() {

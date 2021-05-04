@@ -23,7 +23,7 @@ import java.util.Map;
 import java.util.function.Function;
 
 public class JsonWriter {
-   private static final String RUN_SCHEMA = "http://hyperfoil.io/run-schema/v3.0";
+   static final String RUN_SCHEMA = "http://hyperfoil.io/run-schema/v3.0";
 
    public static void writeArrayJsons(StatisticsStore store, JsonGenerator jGenerator, JsonObject info) throws IOException {
       Data[] sorted = store.data.values().stream().flatMap(map -> map.values().stream()).toArray(Data[]::new);

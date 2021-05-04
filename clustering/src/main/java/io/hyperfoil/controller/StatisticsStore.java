@@ -295,6 +295,10 @@ public class StatisticsStore {
       return Arrays.asList(rtrn);
    }
 
+   void addData(int id, String metric, Data data) {
+      this.data.computeIfAbsent(id, i -> new HashMap<>()).put(metric, data);
+   }
+
    public List<SLA.Failure> getFailures() {
       return failures;
    }
@@ -324,7 +328,7 @@ public class StatisticsStore {
    static class SessionPoolRecord extends LowHigh {
       final long timestamp;
 
-      private SessionPoolRecord(long timestamp, int min, int max) {
+      SessionPoolRecord(long timestamp, int min, int max) {
          super(min, max);
          this.timestamp = timestamp;
       }
@@ -333,7 +337,7 @@ public class StatisticsStore {
    static class ConnectionPoolStats extends LowHigh {
       final long timestamp;
 
-      private ConnectionPoolStats(long timestamp, int low, int high) {
+      ConnectionPoolStats(long timestamp, int low, int high) {
          super(low, high);
          this.timestamp = timestamp;
       }

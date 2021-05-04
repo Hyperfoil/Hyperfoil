@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.Phase;
@@ -28,13 +29,18 @@ class Run {
    Promise<Long> terminateTime = Promise.promise();
    boolean cancelled;
    boolean completed;
-   StatisticsStore statisticsStore;
+   Supplier<StatisticsStore> statsSupplier;
+   private StatisticsStore statisticsStore;
 
    Run(String id, Path dir, Benchmark benchmark) {
       this.id = id;
       this.dir = dir;
       this.benchmark = benchmark;
       this.phasesById = benchmark.phasesById();
+   }
+
+   void initStore(StatisticsStore store) {
+      this.statisticsStore = store;
    }
 
    long nextTimestamp() {
@@ -60,6 +66,16 @@ class Run {
 
    public String phase(int phaseId) {
       return phasesById[phaseId].name();
+   }
+
+   public StatisticsStore statisticsStore() {
+      if (statisticsStore != null) {
+         return statisticsStore;
+      } else if (statsSupplier != null) {
+         return statisticsStore = statsSupplier.get();
+      } else {
+         return null;
+      }
    }
 
    public static class Error {

@@ -28,6 +28,7 @@ import io.hyperfoil.clustering.messages.RequestStatsMessage;
 import io.hyperfoil.clustering.messages.SessionStatsMessage;
 import io.hyperfoil.clustering.messages.StatsMessage;
 import io.hyperfoil.clustering.util.PersistenceUtil;
+import io.hyperfoil.controller.JsonLoader;
 import io.hyperfoil.core.hooks.ExecRunHook;
 import io.hyperfoil.controller.CsvWriter;
 import io.hyperfoil.controller.JsonWriter;
@@ -164,55 +165,52 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             String agentName = run.agents.stream()
                   .filter(ai -> ai.deploymentId.equals(statsMessage.address))
                   .map(ai -> ai.name).findFirst().orElse("<unknown>");
-            // Agents start sending stats before the server processes the confirmation for initialization
-            if (run.statisticsStore != null) {
-               if (statsMessage instanceof RequestStatsMessage) {
-                  RequestStatsMessage requestStatsMessage = (RequestStatsMessage) statsMessage;
-                  String phase = run.phase(requestStatsMessage.phaseId);
-                  if (requestStatsMessage.statistics != null) {
-                     log.debug("Run {}: Received stats from {}({}): {}/{}/{}:{} ({} requests)",
-                           requestStatsMessage.runId, agentName, requestStatsMessage.address,
-                           phase, requestStatsMessage.stepId, requestStatsMessage.metric,
-                           requestStatsMessage.statistics.sequenceId, requestStatsMessage.statistics.requestCount);
-                     run.statisticsStore.record(agentName, requestStatsMessage.phaseId, requestStatsMessage.stepId,
-                           requestStatsMessage.metric, requestStatsMessage.statistics);
-                  }
-                  if (requestStatsMessage.isPhaseComplete) {
-                     log.debug("Run {}: Received stats completion for phase {} from {}", run.id, phase, requestStatsMessage.address);
-                     AgentInfo agent = run.agents.stream().filter(a -> a.deploymentId.equals(requestStatsMessage.address)).findFirst().orElse(null);
-                     if (agent == null) {
-                        log.error("Run {}: Cannot find agent {}", run.id, requestStatsMessage.address);
-                     } else {
-                        PhaseInstance.Status prevStatus = agent.phases.put(phase, PhaseInstance.Status.STATS_COMPLETE);
-                        if (prevStatus == PhaseInstance.Status.STATS_COMPLETE) {
-                           // TODO: the stats might be completed both regularly and when the agent receives STOP
-                           log.info("Run {}: stats for phase {} are already completed, ignoring.", run.id, phase);
-                        } else if (run.agents.stream().map(a -> a.phases.get(phase)).allMatch(s -> s == PhaseInstance.Status.STATS_COMPLETE)) {
-                           log.info("Run {}: completed stats for phase {}", run.id, phase);
-                           run.statisticsStore.completePhase(phase);
-                           if (!run.statisticsStore.validateSlas()) {
-                              log.info("SLA validation failed for {}", phase);
-                              ControllerPhase controllerPhase = run.phases.get(phase);
-                              controllerPhase.setFailed();
-                              if (run.benchmark.failurePolicy() == Benchmark.FailurePolicy.CANCEL) {
-                                 failNotStartedPhases(run, controllerPhase);
-                              }
+            if (statsMessage instanceof RequestStatsMessage) {
+               RequestStatsMessage requestStatsMessage = (RequestStatsMessage) statsMessage;
+               String phase = run.phase(requestStatsMessage.phaseId);
+               if (requestStatsMessage.statistics != null) {
+                  log.debug("Run {}: Received stats from {}({}): {}/{}/{}:{} ({} requests)",
+                        requestStatsMessage.runId, agentName, requestStatsMessage.address,
+                        phase, requestStatsMessage.stepId, requestStatsMessage.metric,
+                        requestStatsMessage.statistics.sequenceId, requestStatsMessage.statistics.requestCount);
+                  run.statisticsStore().record(agentName, requestStatsMessage.phaseId, requestStatsMessage.stepId,
+                        requestStatsMessage.metric, requestStatsMessage.statistics);
+               }
+               if (requestStatsMessage.isPhaseComplete) {
+                  log.debug("Run {}: Received stats completion for phase {} from {}", run.id, phase, requestStatsMessage.address);
+                  AgentInfo agent = run.agents.stream().filter(a -> a.deploymentId.equals(requestStatsMessage.address)).findFirst().orElse(null);
+                  if (agent == null) {
+                     log.error("Run {}: Cannot find agent {}", run.id, requestStatsMessage.address);
+                  } else {
+                     PhaseInstance.Status prevStatus = agent.phases.put(phase, PhaseInstance.Status.STATS_COMPLETE);
+                     if (prevStatus == PhaseInstance.Status.STATS_COMPLETE) {
+                        // TODO: the stats might be completed both regularly and when the agent receives STOP
+                        log.info("Run {}: stats for phase {} are already completed, ignoring.", run.id, phase);
+                     } else if (run.agents.stream().map(a -> a.phases.get(phase)).allMatch(s -> s == PhaseInstance.Status.STATS_COMPLETE)) {
+                        log.info("Run {}: completed stats for phase {}", run.id, phase);
+                        run.statisticsStore().completePhase(phase);
+                        if (!run.statisticsStore().validateSlas()) {
+                           log.info("SLA validation failed for {}", phase);
+                           ControllerPhase controllerPhase = run.phases.get(phase);
+                           controllerPhase.setFailed();
+                           if (run.benchmark.failurePolicy() == Benchmark.FailurePolicy.CANCEL) {
+                              failNotStartedPhases(run, controllerPhase);
                            }
                         }
                      }
                   }
-               } else if (statsMessage instanceof SessionStatsMessage) {
-                  SessionStatsMessage sessionStatsMessage = (SessionStatsMessage) statsMessage;
-                  log.trace("Run {}: Received session pool stats from {}", sessionStatsMessage.runId, sessionStatsMessage.address);
-                  for (Map.Entry<String, LowHigh> entry : sessionStatsMessage.sessionStats.entrySet()) {
-                     run.statisticsStore.recordSessionStats(agentName, sessionStatsMessage.timestamp,
-                           entry.getKey(), entry.getValue().low, entry.getValue().high);
-                  }
-               } else if (statsMessage instanceof ConnectionStatsMessage) {
-                  ConnectionStatsMessage connectionStatsMessage = (ConnectionStatsMessage) statsMessage;
-                  log.trace("Run {}: Received connection stats from {}", connectionStatsMessage.runId, connectionStatsMessage.address);
-                  run.statisticsStore.recordConnectionStats(agentName, connectionStatsMessage.timestamp, connectionStatsMessage.stats);
                }
+            } else if (statsMessage instanceof SessionStatsMessage) {
+               SessionStatsMessage sessionStatsMessage = (SessionStatsMessage) statsMessage;
+               log.trace("Run {}: Received session pool stats from {}", sessionStatsMessage.runId, sessionStatsMessage.address);
+               for (Map.Entry<String, LowHigh> entry : sessionStatsMessage.sessionStats.entrySet()) {
+                  run.statisticsStore().recordSessionStats(agentName, sessionStatsMessage.timestamp,
+                        entry.getKey(), entry.getValue().low, entry.getValue().high);
+               }
+            } else if (statsMessage instanceof ConnectionStatsMessage) {
+               ConnectionStatsMessage connectionStatsMessage = (ConnectionStatsMessage) statsMessage;
+               log.trace("Run {}: Received connection stats from {}", connectionStatsMessage.runId, connectionStatsMessage.address);
+               run.statisticsStore().recordConnectionStats(agentName, connectionStatsMessage.timestamp, connectionStatsMessage.stats);
             }
          } else {
             log.error("Unknown run {}", statsMessage.runId);
@@ -293,7 +291,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             log.warn("{} Phase {} session limit exceeded, continuing due to policy {}", run.id, def.name, sessionLimitPolicy);
             // We must not record this as a failure as StatisticsStore.validateSlas() would cancel the benchmark
          } else {
-            run.statisticsStore.addFailure(def.name, null, controllerPhase.absoluteStartTime(), System.currentTimeMillis(), "Exceeded session limit");
+            run.statisticsStore().addFailure(def.name, null, controllerPhase.absoluteStartTime(), System.currentTimeMillis(), "Exceeded session limit");
             log.info("{} Failing phase due to exceeded session limit.", run.id);
             controllerPhase.setFailed();
          }
@@ -352,10 +350,9 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             return;
          }
       }
-      Benchmark benchmark = new Benchmark(info.getString("benchmark", "<unknown>"), null,
-            Collections.emptyMap(), new Agent[0], 0, Collections.emptyMap(), Collections.emptyList(),
-            Collections.emptyMap(), 0, null, Collections.emptyList(), Collections.emptyList(), Benchmark.FailurePolicy.CANCEL);
+      Benchmark benchmark = Benchmark.empty(info.getString("benchmark", "<unknown>"));
       Run run = new Run(runId, runDir, benchmark);
+      run.statsSupplier = () -> loadStats(runDir.resolve("all.json"), benchmark);
       run.completed = true;
       run.startTime = info.getLong("startTime", 0L);
       run.terminateTime.complete(info.getLong("terminateTime", 0L));
@@ -369,6 +366,22 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       }
       run.cancelled = info.getBoolean("cancelled", Boolean.FALSE);
       runs.put(runId, run);
+   }
+
+   private StatisticsStore loadStats(Path jsonPath, Benchmark benchmark) {
+      File statsJson = jsonPath.toFile();
+      if (!statsJson.exists() || !statsJson.isFile() || !statsJson.canRead()) {
+         log.error("Cannot load stats from {}", jsonPath);
+         return null;
+      }
+      StatisticsStore store = new StatisticsStore(benchmark, f -> { });
+      try {
+         JsonLoader.read(Files.readString(jsonPath, StandardCharsets.UTF_8), store);
+      } catch (IOException e) {
+         log.error("Cannot load stats from " + jsonPath, e);
+         return null;
+      }
+      return store;
    }
 
    @Override
@@ -427,9 +440,9 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       //noinspection ResultOfMethodCallIgnored
       runDir.toFile().mkdirs();
       Run run = new Run(runId, runDir, benchmark);
+      run.initStore(new StatisticsStore(benchmark, failure -> log.warn("Failed verify SLA(s) for {}/{}: {}",
+            failure.phase(), failure.metric(), failure.message())));
       run.description = description;
-      run.statisticsStore = new StatisticsStore(run.benchmark,
-            failure -> log.warn("Failed verify SLA(s) for {}/{}: {}", failure.phase(), failure.metric(), failure.message()));
       runs.put(run.id, run);
       PersistenceUtil.store(run.benchmark, run.dir);
       return run;
@@ -657,7 +670,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
    private void checkAgentsStopped(Run run) {
       if (run.agents.stream().allMatch(a -> a.status.ordinal() >= AgentInfo.Status.STOPPED.ordinal())) {
          for (var phase : run.phases.values()) {
-            run.statisticsStore.adjustPhaseTimestamps(phase.definition().name(), phase.absoluteStartTime(), phase.absoluteCompletionTime());
+            run.statisticsStore().adjustPhaseTimestamps(phase.definition().name(), phase.absoluteStartTime(), phase.absoluteCompletionTime());
          }
          persistRun(run);
          log.info("Run {} completed", run.id);
@@ -667,7 +680,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
    private void persistRun(Run run) {
       vertx.executeBlocking(future -> {
          try {
-            CsvWriter.writeCsv(run.dir.resolve("stats"), run.statisticsStore);
+            CsvWriter.writeCsv(run.dir.resolve("stats"), run.statisticsStore());
          } catch (IOException e) {
             log.error("Failed to persist statistics", e);
             future.fail(e);
@@ -701,7 +714,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             jfactory.setCodec(new ObjectMapper());
             JsonGenerator jGenerator = jfactory.createGenerator(stream, JsonEncoding.UTF8);
             jGenerator.setCodec(new ObjectMapper());
-            JsonWriter.writeArrayJsons(run.statisticsStore, jGenerator, info);
+            JsonWriter.writeArrayJsons(run.statisticsStore(), jGenerator, info);
             jGenerator.flush();
             jGenerator.close();
          } catch (IOException e) {

@@ -612,12 +612,8 @@ class ControllerServer implements ApiService {
    }
 
    private void getSessionStats(RoutingContext ctx, String runId, Function<StatisticsStore, Map<String, Map<String, LowHigh>>> func) {
-      withRun(ctx, runId, run -> {
-         if (run.statisticsStore == null) {
-            ctx.response().end("{}");
-            return;
-         }
-         Map<String, Map<String, LowHigh>> stats = func.apply(run.statisticsStore);
+      withStats(ctx, runId, run -> {
+         Map<String, Map<String, LowHigh>> stats = func.apply(run.statisticsStore());
          JsonObject reply = new JsonObject();
          for (Map.Entry<String, Map<String, LowHigh>> entry : stats.entrySet()) {
             String phase = entry.getKey();
@@ -658,15 +654,11 @@ class ControllerServer implements ApiService {
    }
 
    private void connectionStats(RoutingContext ctx, String runId, Function<StatisticsStore, Map<String, Map<String, LowHigh>>> mapper) {
-      withRun(ctx, runId, run -> {
-         if (run.statisticsStore == null) {
-            ctx.response().end("{}");
-         } else {
-            Map<String, Map<String, LowHigh>> stats = mapper.apply(run.statisticsStore);
-            JsonObject result = stats.entrySet().stream().collect(JsonObject::new,
-                  (json, e) -> json.put(e.getKey(), lowHighMapToJson(e.getValue())), JsonObject::mergeIn);
-            ctx.response().end(JsonObject.mapFrom(result).encodePrettily());
-         }
+      withStats(ctx, runId, run -> {
+         Map<String, Map<String, LowHigh>> stats = mapper.apply(run.statisticsStore());
+         JsonObject result = stats.entrySet().stream().collect(JsonObject::new,
+               (json, e) -> json.put(e.getKey(), lowHighMapToJson(e.getValue())), JsonObject::mergeIn);
+         ctx.response().end(JsonObject.mapFrom(result).encodePrettily());
       });
    }
 
@@ -715,7 +707,7 @@ class ControllerServer implements ApiService {
    @Override
    public void getRecentStats(RoutingContext ctx, String runId) {
       withStats(ctx, runId, run -> {
-         List<RequestStats> stats = run.statisticsStore.recentSummary(System.currentTimeMillis() - 5000);
+         List<RequestStats> stats = run.statisticsStore().recentSummary(System.currentTimeMillis() - 5000);
          ctx.response().end(Json.encodePrettily(statsToJson(run, stats)));
       });
    }
@@ -723,7 +715,7 @@ class ControllerServer implements ApiService {
    @Override
    public void getTotalStats(RoutingContext ctx, String runId) {
       withStats(ctx, runId, run -> {
-         List<RequestStats> stats = run.statisticsStore.totalSummary();
+         List<RequestStats> stats = run.statisticsStore().totalSummary();
          ctx.response().end(Json.encodePrettily(statsToJson(run, stats)));
       });
    }
@@ -731,7 +723,7 @@ class ControllerServer implements ApiService {
    @Override
    public void getHistogramStats(RoutingContext ctx, String runId, String phase, int stepId, String metric) {
       withStats(ctx, runId, run -> {
-         Histogram histogram = run.statisticsStore.histogram(phase, stepId, metric);
+         Histogram histogram = run.statisticsStore().histogram(phase, stepId, metric);
          ctx.response().end(Json.encode(histogram));
       });
    }
@@ -753,7 +745,7 @@ class ControllerServer implements ApiService {
 
    private void withStats(RoutingContext ctx, String runId, Consumer<Run> consumer) {
       withRun(ctx, runId, run -> {
-         if (run.statisticsStore == null) {
+         if (run.statisticsStore() == null) {
             ctx.response().setStatusCode(HttpResponseStatus.NOT_FOUND.code()).end();
          } else {
             consumer.accept(run);
