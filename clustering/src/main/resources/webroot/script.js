@@ -9,6 +9,8 @@ const SESSION_START = "__HYPERFOIL_SESSION_START__\n";
 const RAW_HTML_START = "__HYPERFOIL_RAW_HTML_START__"
 const RAW_HTML_END = "__HYPERFOIL_RAW_HTML_END__"
 const SET_TERM_SIZE = "__HYPERFOIL_SET_TERM_SIZE__"
+const SEND_NOTIFICATIONS = "__HYPERFOIL_SEND_NOTIFICATIONS__"
+const NOTIFICATION = "__HYPERFOIL_NOTIFICATION__"
 const PROMPT = "[hyperfoil]$ "
 
 const ansiUp = new AnsiUp();
@@ -56,6 +58,9 @@ function createWebSocket() {
       }
       command.focus()
       setTermSize()
+      if (Notification.permission === 'granted') {
+         sendCommand(SEND_NOTIFICATIONS)
+      }
    }
    s.onerror = (e) => {
       command.remove();
@@ -184,11 +189,12 @@ function addResultToWindow(commandResult) {
       sendCommand("__HYPERFOIL_AUTH_TOKEN__" + authToken);
       authSent = true;
    }
+   const commandParent = command.parentNode
    command.remove();
    while (true) {
       if (typeof commandResult !== 'string') {
          break;
-      } else if (commandResult.startsWith('\u001b[160D')) {
+      } else if (commandResult.startsWith('\u001b[160D') || commandResult.startsWith('\u001b[196D')) {
          // arrow up, ignore
          commandResult = commandResult.slice(6);
       } else if (commandResult.startsWith('\u001b[2K') || commandResult.startsWith('\u001b[K')) {
@@ -201,32 +207,7 @@ function addResultToWindow(commandResult) {
           break
       }
    }
-   if (paging) {
-      document.getElementById('pager-content').innerHTML += commandResult;
-   } else if (editing) {
-      window.editor.setValue(window.editor.getValue() + commandResult)
-   } else if (receivingFileList) {
-      fileList += commandResult
-      checkFileList()
-   } else if (downloading) {
-      if (typeof commandResult === 'string') {
-         let endIndex = commandResult.indexOf(DIRECT_DOWNLOAD_END)
-         if (endIndex >= 0) {
-            downloadMeta += commandResult.slice(0, endIndex)
-            let lineEnd = downloadMeta.indexOf('\n')
-            let downloadFilename = downloadMeta.slice(0, lineEnd)
-            download(window.URL.createObjectURL(downloadContent), downloadFilename)
-            downloadMeta = undefined
-            downloadContent = undefined
-            downloading = false
-            addResultToWindow(commandResult.slice(endIndex + DIRECT_DOWNLOAD_END.length))
-         } else {
-            downloadMeta += commandResult
-         }
-      } else if (commandResult instanceof Blob) {
-         downloadContent = commandResult;
-      }
-   } else if (commandResult.startsWith("__HYPERFOIL_UPLOAD_MAGIC__")) {
+   if (commandResult.startsWith("__HYPERFOIL_UPLOAD_MAGIC__")) {
       resultWindow.appendChild(upload)
    } else if (commandResult.startsWith(PAGER_MAGIC)) {
       commandResult = commandResult.slice(PAGER_MAGIC.length);
@@ -264,6 +245,50 @@ function addResultToWindow(commandResult) {
          command.value = ''
       } else {
          started = true;
+      }
+   } else if (commandResult.startsWith(NOTIFICATION)) {
+      const notification = commandResult.slice(NOTIFICATION.length)
+      const titleEnd = notification.indexOf('\n')
+      let title = 'Hyperfoil'
+      let body = notification
+      if (titleEnd >= 0) {
+         title = notification.slice(0, titleEnd)
+         body = notification.slice(titleEnd + 1)
+      }
+      new Notification(title, {
+         body,
+         icon: '/favicon.ico',
+         requireInteraction: true,
+      })
+      if (commandParent) {
+         commandParent.appendChild(command)
+         command.focus();
+      }
+      blinkTitle()
+   } else if (paging) {
+      document.getElementById('pager-content').innerHTML += commandResult;
+   } else if (editing) {
+      window.editor.setValue(window.editor.getValue() + commandResult)
+   } else if (receivingFileList) {
+      fileList += commandResult
+      checkFileList()
+   } else if (downloading) {
+      if (typeof commandResult === 'string') {
+         let endIndex = commandResult.indexOf(DIRECT_DOWNLOAD_END)
+         if (endIndex >= 0) {
+            downloadMeta += commandResult.slice(0, endIndex)
+            let lineEnd = downloadMeta.indexOf('\n')
+            let downloadFilename = downloadMeta.slice(0, lineEnd)
+            download(window.URL.createObjectURL(downloadContent), downloadFilename)
+            downloadMeta = undefined
+            downloadContent = undefined
+            downloading = false
+            addResultToWindow(commandResult.slice(endIndex + DIRECT_DOWNLOAD_END.length))
+         } else {
+            downloadMeta += commandResult
+         }
+      } else if (commandResult instanceof Blob) {
+         downloadContent = commandResult;
       }
    } else {
       let output = commandResult
@@ -471,4 +496,40 @@ function togglePlot(self) {
       plot.style.opacity = '100%'
       self.textContent = 'Collapse'
    }
+}
+
+const isInsecureContext = window.location.protocol === 'http:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1'
+if (Notification.permission === 'granted' || isInsecureContext) {
+   document.getElementById('notifications').remove()
+}
+
+function requestNotifications() {
+   Notification.requestPermission().then(permission => {
+      if (permission === 'granted') {
+         sendCommand(SEND_NOTIFICATIONS)
+      }
+      document.getElementById('notifications').remove()
+   })
+}
+
+function blinkTitle() {
+   if (window.blinkTitleHandler) {
+      clearInterval(window.blinkTitleHandler)
+   }
+   if (!document.hidden) {
+      return
+   }
+   window.blinkTitleHandler = setInterval(() => {
+      if (document.title === '( ) WebCLI') {
+         document.title = '(!) WebCLI'
+      } else {
+         document.title = '( ) WebCLI'
+      }
+   } , 1000)
+   document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+         clearInterval(window.blinkTitleHandler)
+         document.title = 'WebCLI'
+      }
+   })
 }

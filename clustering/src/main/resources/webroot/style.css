@@ -206,3 +206,18 @@ body {
    right: 0;
    top: 8px;
 }
+
+#notifications {
+   position: fixed;
+   right: 0;
+   top: 0;
+   z-index: 1000;
+   filter: invert(50%);
+   cursor: pointer;
+   animation: pulse-filter 1s linear infinite alternate-reverse;
+}
+
+@keyframes pulse-filter {
+   0%   { filter: invert(50%); }
+   100% { filter: invert(80%); }
+}

@@ -8,6 +8,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.ServerWebSocket;
 
 class WebsocketOutputStream extends OutputStream implements Callable<Void> {
@@ -71,5 +72,17 @@ class WebsocketOutputStream extends OutputStream implements Callable<Void> {
       bytes.reset();
       future = null;
       return null;
+   }
+
+   public synchronized void writeSingleBinary(Buffer buffer) {
+      // We need to flush output to keep ordering of text and binary frames
+      flush();
+      webSocket.writeBinaryMessage(buffer);
+   }
+
+   public synchronized void writeSingleText(String text) {
+      // We need to flush output to keep ordering of text and binary frames
+      flush();
+      webSocket.writeTextMessage(text);
    }
 }

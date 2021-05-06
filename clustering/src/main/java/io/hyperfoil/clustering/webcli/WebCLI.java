@@ -53,6 +53,7 @@ public class WebCLI extends HyperfoilCli implements Handler<ServerWebSocket> {
    private static final String AUTH_TOKEN = "__HYPERFOIL_AUTH_TOKEN__";
    private static final String SET_BENCHMARK = "__HYPERFOIL_SET_BENCHMARK__";
    private static final String SET_TERM_SIZE = "__HYPERFOIL_SET_TERM_SIZE__";
+   private static final String SEND_NOTIFICATIONS = "__HYPERFOIL_SEND_NOTIFICATIONS__";
    private static final long SESSION_TIMEOUT = 60000;
 
    static final ScheduledExecutorService SCHEDULED_EXECUTOR = Executors.newScheduledThreadPool(1, Util.daemonThreadFactory("webcli-timer"));
@@ -85,6 +86,9 @@ public class WebCLI extends HyperfoilCli implements Handler<ServerWebSocket> {
          }
       });
       webSocket.closeHandler(nil -> {
+         if (context.runCompletionFuture != null) {
+            context.runCompletionFuture.cancel(false);
+         }
          ScheduledFuture<?> future = SCHEDULED_EXECUTOR.schedule(() -> {
             ClosedContext closedContext = closedRunners.get(context.sessionId);
             if (closedContext != null && closedContext.closed <= System.currentTimeMillis() - SESSION_TIMEOUT) {
@@ -129,6 +133,9 @@ public class WebCLI extends HyperfoilCli implements Handler<ServerWebSocket> {
                return;
             } else if (msg.startsWith(SET_TERM_SIZE)) {
                setTermSize(context, msg.substring(SET_TERM_SIZE.length()));
+               return;
+            } else if (msg.startsWith(SEND_NOTIFICATIONS)) {
+               context.startNotifications();
                return;
             }
          }

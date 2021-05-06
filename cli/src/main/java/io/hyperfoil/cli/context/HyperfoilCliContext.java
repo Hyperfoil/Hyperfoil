@@ -39,6 +39,7 @@ import io.hyperfoil.cli.Pager;
 import io.hyperfoil.cli.ProcessPager;
 import io.hyperfoil.controller.Client;
 import io.hyperfoil.client.RestClient;
+import io.hyperfoil.controller.model.Run;
 import io.vertx.core.Vertx;
 
 /**
@@ -224,5 +225,9 @@ public class HyperfoilCliContext {
 
    public Pager createPager(String pager) {
       return new ProcessPager(pager);
+   }
+
+   public synchronized void notifyRunCompleted(Run run) {
+      // not implemented in regular CLI
    }
 }

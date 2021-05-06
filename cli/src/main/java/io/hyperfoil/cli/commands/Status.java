@@ -75,6 +75,7 @@ public class Status extends BaseRunIdCommand {
             lines += 1 + run.errors.size();
          }
          if (run.terminated != null) {
+            invocation.context().notifyRunCompleted(run);
             return CommandResult.SUCCESS;
          }
          if (interruptibleDelay(invocation)) {
