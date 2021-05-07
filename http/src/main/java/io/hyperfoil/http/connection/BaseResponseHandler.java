@@ -15,7 +15,7 @@ public abstract class BaseResponseHandler extends ChannelInboundHandlerAdapter {
       this.connection = connection;
    }
 
-   protected void handleBuffer(ChannelHandlerContext ctx, ByteBuf buf, int streamId) throws Exception {
+   protected boolean handleBuffer(ChannelHandlerContext ctx, ByteBuf buf, int streamId) throws Exception {
       HttpRequest request = null;
       if (isRequestStream(streamId)) {
          request = connection.peekRequest(streamId);
@@ -26,7 +26,7 @@ public abstract class BaseResponseHandler extends ChannelInboundHandlerAdapter {
          onCompletion(request);
          onData(ctx, slice);
          responseBytes = 0;
-         channelRead(ctx, buf);
+         return true;
       } else {
          boolean isLastPart = buf.readableBytes() == responseBytes;
          if (request != null) {
@@ -37,6 +37,7 @@ public abstract class BaseResponseHandler extends ChannelInboundHandlerAdapter {
             onCompletion(request);
          }
          onData(ctx, buf);
+         return false;
       }
    }
 

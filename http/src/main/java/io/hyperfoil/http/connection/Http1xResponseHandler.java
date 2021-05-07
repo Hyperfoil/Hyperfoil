@@ -232,8 +232,7 @@ public class Http1xResponseHandler extends BaseResponseHandler {
          if (isLastPart) {
             reset();
          }
-         handleBuffer(ctx, buf, 0);
-         return -1;
+         return handleBuffer(ctx, buf, 0) ? buf.readerIndex() : -1;
       } else {
          // Body length is unknown and it is not chunked => the request is delimited by connection close
          // TODO: make sure we invoke this with isLastPart=true once
@@ -301,8 +300,7 @@ public class Http1xResponseHandler extends BaseResponseHandler {
                // empty line ends the trailers and whole message
                responseBytes = readerIndex + 1 - buf.readerIndex();
                reset();
-               handleBuffer(ctx, buf, 0);
-               return -1;
+               return handleBuffer(ctx, buf, 0) ? buf.readerIndex() : -1;
             }
             lineStartIndex = readerIndex + 1;
          } else {
