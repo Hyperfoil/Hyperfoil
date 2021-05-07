@@ -15,6 +15,7 @@ import io.hyperfoil.controller.model.Phase;
 
 @CommandDefinition(name = "status", description = "Prints information about executing or completed run.")
 public class Status extends BaseRunIdCommand {
+   private static final int MAX_ERRORS = 15;
    private static final SimpleDateFormat TIME_FORMATTER = new SimpleDateFormat("HH:mm:ss.SSS");
    private static final SimpleDateFormat DATE_FORMATTER = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
    private static final Table<Phase> PHASE_TABLE = new Table<Phase>()
@@ -28,6 +29,9 @@ public class Status extends BaseRunIdCommand {
 
    @Option(name = "all", shortName = 'a', description = "Show all phases", hasValue = false)
    boolean all;
+
+   @Option(name = "no-errors", shortName = 'E', description = "Do not list errors", hasValue = false)
+   boolean noErrors;
 
    @Override
    public CommandResult execute(HyperfoilCommandInvocation invocation) throws CommandException {
@@ -67,12 +71,17 @@ public class Status extends BaseRunIdCommand {
             invocation.println(cancelled + " phases were cancelled.");
             lines++;
          }
-         if (!run.errors.isEmpty()) {
+         if (!run.errors.isEmpty() && !noErrors) {
             invocation.println("Errors:");
-            for (String note : run.errors) {
-               invocation.println(note);
+            ++lines;
+            for (int i = 0; i < run.errors.size() && (all || i < MAX_ERRORS); ++i) {
+               invocation.println(run.errors.get(run.errors.size() - 1 - i));
+               ++lines;
             }
-            lines += 1 + run.errors.size();
+            if (run.errors.size() > MAX_ERRORS && !all) {
+               invocation.println("... " + (run.errors.size() - MAX_ERRORS) + " more errors ...");
+               ++lines;
+            }
          }
          if (run.terminated != null) {
             invocation.context().notifyRunCompleted(run);
