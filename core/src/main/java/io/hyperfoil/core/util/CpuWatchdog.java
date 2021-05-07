@@ -8,6 +8,7 @@ import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
 import org.apache.logging.log4j.LogManager;
@@ -27,13 +28,15 @@ public class CpuWatchdog implements Runnable {
 
    private final Consumer<Throwable> errorHandler;
    private final Thread thread;
+   private final BooleanSupplier warmupTest;
    private long[] idleTime = new long[8];
    private volatile boolean running = true;
 
-   public CpuWatchdog(Consumer<Throwable> errorHandler) {
+   public CpuWatchdog(Consumer<Throwable> errorHandler, BooleanSupplier warmupTest) {
       thread = new Thread(this, "cpu-watchdog");
       thread.setDaemon(true);
       this.errorHandler = errorHandler;
+      this.warmupTest = warmupTest;
    }
 
    public void run() {
@@ -63,8 +66,10 @@ public class CpuWatchdog implements Runnable {
                         String message = String.format("%s | CPU %d was used for %.0f%% which is more than the threshold of %.0f%%",
                               new SimpleDateFormat("HH:mm:ss.SSS").format(new Date()), cpuIndex, 100 * (1 - idleRatio), 100 * (1 - IDLE_THRESHOLD));
                         log.warn(message);
-                        errorHandler.accept(new BenchmarkExecutionException(message));
-                        idle = Long.MAX_VALUE;
+                        if (warmupTest.getAsBoolean()) {
+                           errorHandler.accept(new BenchmarkExecutionException(message));
+                           idle = Long.MAX_VALUE;
+                        }
                      }
                   }
                   if (prevIdle != Long.MAX_VALUE) {

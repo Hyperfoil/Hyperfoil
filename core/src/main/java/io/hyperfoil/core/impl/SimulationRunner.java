@@ -139,7 +139,7 @@ public class SimulationRunner {
       jitterWatchdog = new Thread(this::observeJitter, "jitter-watchdog");
       jitterWatchdog.setDaemon(true);
 
-      cpuWatchdog = new CpuWatchdog(errorHandler);
+      cpuWatchdog = new CpuWatchdog(errorHandler, () -> instances.values().stream().anyMatch(p -> !p.definition().isWarmup));
       cpuWatchdog.start();
    }
 
