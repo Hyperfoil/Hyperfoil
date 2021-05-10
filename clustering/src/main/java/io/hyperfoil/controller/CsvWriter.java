@@ -168,6 +168,25 @@ public class CsvWriter {
             }
          }
       }
+      try (PrintWriter writer = new PrintWriter(dir + File.separator + "agentCpu.csv")) {
+         String[] cpuAgents = store.cpuUsage.values().stream().flatMap(agentMap -> agentMap.keySet().stream()).sorted().distinct().toArray(String[]::new);
+         writer.print("phase,");
+         for (int i = 0; i < cpuAgents.length; ++i) {
+            writer.print(cpuAgents[i]);
+         }
+         writer.println();
+         for (var phaseEntry : store.cpuUsage.entrySet()) {
+            writer.print(phaseEntry.getKey());
+            for (String a : cpuAgents) {
+               writer.print(',');
+               String usage = phaseEntry.getValue().get(a);
+               if (usage != null) {
+                  writer.print(usage);
+               }
+            }
+            writer.println();
+         }
+      }
    }
 
    private static String sanitize(String phase) {

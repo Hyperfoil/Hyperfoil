@@ -27,13 +27,15 @@ public class PhaseChangeMessage extends AgentStatusMessage {
    private final String phase;
    private final PhaseInstance.Status status;
    private final boolean sessionLimitExceeded;
+   private final String cpuUsage;
    private final Throwable error;
 
-   public PhaseChangeMessage(String senderId, String runId, String phase, PhaseInstance.Status status, boolean sessionLimitExceeded, Throwable error) {
+   public PhaseChangeMessage(String senderId, String runId, String phase, PhaseInstance.Status status, boolean sessionLimitExceeded, String cpuUsage, Throwable error) {
       super(senderId, runId);
       this.phase = phase;
       this.status = status;
       this.sessionLimitExceeded = sessionLimitExceeded;
+      this.cpuUsage = cpuUsage;
       this.error = error;
    }
 
@@ -43,6 +45,7 @@ public class PhaseChangeMessage extends AgentStatusMessage {
       sb.append("senderId='").append(senderId).append('\'');
       sb.append(", phase=").append(phase);
       sb.append(", status=").append(status);
+      sb.append(", cpuUsage=").append(cpuUsage);
       sb.append(", error=").append(Util.explainCauses(error));
       sb.append('}');
       return sb.toString();
@@ -62,6 +65,10 @@ public class PhaseChangeMessage extends AgentStatusMessage {
 
    public Throwable getError() {
       return error;
+   }
+
+   public String cpuUsage() {
+      return cpuUsage;
    }
 
    public static class Codec extends ObjectCodec<PhaseChangeMessage> {}

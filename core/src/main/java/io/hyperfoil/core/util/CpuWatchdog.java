@@ -5,9 +5,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
 import java.util.Date;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
@@ -29,59 +30,38 @@ public class CpuWatchdog implements Runnable {
    private final Consumer<Throwable> errorHandler;
    private final Thread thread;
    private final BooleanSupplier warmupTest;
-   private long[] idleTime = new long[8];
+   private final int nCpu;
+   private final long[] idleTime;
    private volatile boolean running = true;
+   private long lastTimestamp;
+   private long now;
+   private final Map<String, PhaseRecord> phaseStart = new HashMap<>();
+   private final Map<String, String> phaseUsage = new HashMap<>();
 
    public CpuWatchdog(Consumer<Throwable> errorHandler, BooleanSupplier warmupTest) {
       thread = new Thread(this, "cpu-watchdog");
       thread.setDaemon(true);
       this.errorHandler = errorHandler;
       this.warmupTest = warmupTest;
+      AtomicInteger counter = new AtomicInteger();
+      if (readProcStat(ignored -> counter.incrementAndGet())) {
+         nCpu = counter.get();
+      } else {
+         nCpu = 0;
+      }
+      idleTime = new long[nCpu];
    }
 
    public void run() {
-      long lastTimestamp = System.nanoTime();
-      long now = lastTimestamp;
+      if (nCpu <= 0) {
+         log.error("Illegal number of CPUs");
+         return;
+      }
+      lastTimestamp = System.nanoTime();
+      now = lastTimestamp;
       while (running) {
-         try {
-            List<String> lines = Files.readAllLines(PROC_STAT);
-            for (String line : lines) {
-               if (!line.startsWith("cpu")) continue;
-               String[] parts = line.split(" ");
-               // ignore overall stats
-               if ("cpu".equals(parts[0])) continue;
-               // weird format?
-               if (parts.length < 5) continue;
-               try {
-                  int cpuIndex = Integer.parseInt(parts[0], 3, parts[0].length(), 10);
-                  long idle = Long.parseLong(parts[4]);
-
-                  if (cpuIndex >= idleTime.length) {
-                     idleTime = Arrays.copyOf(idleTime, Math.max(2 * idleTime.length, cpuIndex + 1));
-                  }
-                  long prevIdle = idleTime[cpuIndex];
-                  if (prevIdle != 0 && prevIdle != Long.MAX_VALUE && lastTimestamp != now) {
-                     double idleRatio = (double) (TICK_NANOS * (idle - prevIdle)) / (now - lastTimestamp);
-                     if (idleRatio < IDLE_THRESHOLD) {
-                        String message = String.format("%s | CPU %d was used for %.0f%% which is more than the threshold of %.0f%%",
-                              new SimpleDateFormat("HH:mm:ss.SSS").format(new Date()), cpuIndex, 100 * (1 - idleRatio), 100 * (1 - IDLE_THRESHOLD));
-                        log.warn(message);
-                        if (warmupTest.getAsBoolean()) {
-                           errorHandler.accept(new BenchmarkExecutionException(message));
-                           idle = Long.MAX_VALUE;
-                        }
-                     }
-                  }
-                  if (prevIdle != Long.MAX_VALUE) {
-                     idleTime[cpuIndex] = idle;
-                  }
-               } catch (NumberFormatException e) {
-                  log.error("CPU watchdog cannot parse stats, terminating.");
-                  return;
-               }
-            }
-         } catch (IOException e) {
-            log.error("Failed reading " + PROC_STAT + ", CPU watchog is terminating.", e);
+         if (!readProcStat(this::processCpuLine)) {
+            log.info("CPU watchdog is terminating.");
             return;
          }
          try {
@@ -92,6 +72,50 @@ public class CpuWatchdog implements Runnable {
          }
          lastTimestamp = now;
          now = System.nanoTime();
+      }
+   }
+
+   private boolean readProcStat(Consumer<String[]> consumer) {
+      try {
+         for (String line : Files.readAllLines(PROC_STAT)) {
+            if (!line.startsWith("cpu")) continue;
+            String[] parts = line.split(" ");
+            // ignore overall stats
+            if ("cpu".equals(parts[0])) continue;
+            // weird format?
+            if (parts.length < 5) continue;
+
+            consumer.accept(parts);
+         }
+         return true;
+      } catch (IOException e) {
+         log.error("CPU watchdog cannot read " + PROC_STAT, e);
+         return false;
+      } catch (NumberFormatException e) {
+         log.error("CPU watchdog cannot parse stats.", e);
+         return false;
+      }
+   }
+
+   private void processCpuLine(String[] parts) {
+      int cpuIndex = Integer.parseInt(parts[0], 3, parts[0].length(), 10);
+      long idle = Long.parseLong(parts[4]);
+
+      long prevIdle = idleTime[cpuIndex];
+      if (prevIdle != 0 && prevIdle != Long.MAX_VALUE && lastTimestamp != now) {
+         double idleRatio = (double) (TICK_NANOS * (idle - prevIdle)) / (now - lastTimestamp);
+         if (idleRatio < IDLE_THRESHOLD) {
+            String message = String.format("%s | CPU %d was used for %.0f%% which is more than the threshold of %.0f%%",
+                  new SimpleDateFormat("HH:mm:ss.SSS").format(new Date()), cpuIndex, 100 * (1 - idleRatio), 100 * (1 - IDLE_THRESHOLD));
+            log.warn(message);
+            if (warmupTest.getAsBoolean()) {
+               errorHandler.accept(new BenchmarkExecutionException(message));
+               idle = Long.MAX_VALUE;
+            }
+         }
+      }
+      if (prevIdle != Long.MAX_VALUE) {
+         idleTime[cpuIndex] = idle;
       }
    }
 
@@ -107,5 +131,59 @@ public class CpuWatchdog implements Runnable {
 
    public void stop() {
       running = false;
+   }
+
+   public synchronized void notifyPhaseStart(String name) {
+      if (nCpu <= 0) return;
+      PhaseRecord record = new PhaseRecord(System.nanoTime(), new long[nCpu]);
+      if (readProcStat(parts -> {
+         int cpuIndex = Integer.parseInt(parts[0], 3, parts[0].length(), 10);
+         record.cpuIdle[cpuIndex] = Long.parseLong(parts[4]);
+      })) {
+         phaseStart.putIfAbsent(name, record);
+      }
+   }
+
+   public synchronized void notifyPhaseEnd(String name) {
+      if (nCpu <= 0) {
+         return;
+      }
+      PhaseRecord start = phaseStart.get(name);
+      if (start == null || phaseUsage.containsKey(name)) {
+         return;
+      }
+      long now = System.nanoTime();
+      SumMin acc = new SumMin();
+      if (readProcStat(parts -> {
+         int cpuIndex = Integer.parseInt(parts[0], 3, parts[0].length(), 10);
+         long idle = Long.parseLong(parts[4]);
+         long diff = idle - start.cpuIdle[cpuIndex];
+         acc.sum += diff;
+         acc.min = Math.min(acc.min, diff);
+      })) {
+         double idleCores = (double) (TICK_NANOS * acc.sum) / (now - start.timestamp);
+         double minIdleRatio = (double) (TICK_NANOS * acc.min) / (now - start.timestamp);
+         phaseUsage.put(name, String.format("%.1f%% (%.1f/%d cores), 1 core max %.1f%%",
+               100 - 100 * idleCores / nCpu, nCpu - idleCores, nCpu, 100 - 100 * minIdleRatio));
+      }
+   }
+
+   public String getCpuUsage(String name) {
+      return phaseUsage.get(name);
+   }
+
+   private static class SumMin {
+      long sum;
+      long min = Long.MAX_VALUE;
+   }
+
+   private static class PhaseRecord {
+      final long timestamp;
+      final long[] cpuIdle;
+
+      private PhaseRecord(long timestamp, long[] cpuIdle) {
+         this.timestamp = timestamp;
+         this.cpuIdle = cpuIdle;
+      }
    }
 }

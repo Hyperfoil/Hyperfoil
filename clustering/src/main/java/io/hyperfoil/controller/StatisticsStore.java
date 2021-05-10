@@ -38,6 +38,7 @@ public class StatisticsStore {
    private final Map<Integer, SLA.Provider> slaProviders;
    final Map<String, SessionPoolStats> sessionPoolStats = new HashMap<>();
    final Map<String, Map<String, Map<String, List<ConnectionPoolStats>>>> connectionPoolStats = new HashMap<>();
+   final Map<String, Map<String, String>> cpuUsage = new HashMap<>();
 
    public StatisticsStore(Benchmark benchmark, Consumer<SLA.Failure> failureHandler) {
       this.benchmark = benchmark;
@@ -252,6 +253,14 @@ public class StatisticsStore {
          }
       }
       return summary;
+   }
+
+   public void recordCpuUsage(String phase, String agentName, String usage) {
+      cpuUsage.computeIfAbsent(phase, p -> new HashMap<>()).putIfAbsent(agentName, usage);
+   }
+
+   public Map<String, Map<String, String>> cpuUsage() {
+      return cpuUsage;
    }
 
    static final class Window {

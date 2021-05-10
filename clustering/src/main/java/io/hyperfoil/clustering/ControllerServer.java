@@ -450,6 +450,13 @@ class ControllerServer implements ApiService {
       withRun(ctx, runId, run -> ctx.response().end(Json.encodePrettily(runInfo(run, true))));
    }
 
+   @Override
+   public void agentCpu(RoutingContext ctx, String runId) {
+      withStats(ctx, runId, run -> ctx.response()
+            .putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_JSON)
+            .end(Json.encode(run.statisticsStore().cpuUsage())));
+   }
+
    private io.hyperfoil.controller.model.Run runInfo(Run run, boolean reportPhases) {
       String benchmark = null;
       if (run.benchmark != null) {

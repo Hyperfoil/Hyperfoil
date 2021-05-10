@@ -214,6 +214,24 @@ paths:
               schema:
                 $ref: '#/components/schemas/Run'
 
+  /run/{runId}/agentCpu:
+    get:
+      summary: Get agent CPU data
+      operationId: agentCpu
+      parameters:
+      - in: path
+        name: runId
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Run was killed.
+          content:
+            application/json:
+              schema:
+                type: object
+
   /run/{runId}/kill:
     get:
       summary: Kill this run

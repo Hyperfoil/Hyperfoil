@@ -233,7 +233,8 @@ public class AgentVerticle extends AbstractVerticle {
 
       runner.setPhaseChangeHandler((phase, status, sessionLimitExceeded, error) -> {
          log.debug("{} changed phase {} to {}", deploymentId, phase, status);
-         eb.send(Feeds.RESPONSE, new PhaseChangeMessage(deploymentId, runId, phase.name(), status, sessionLimitExceeded, error));
+         String cpuUsage = runner.getCpuUsage(phase.name());
+         eb.send(Feeds.RESPONSE, new PhaseChangeMessage(deploymentId, runId, phase.name(), status, sessionLimitExceeded, cpuUsage, error));
          if (status == PhaseInstance.Status.TERMINATED) {
             context.runOnContext(nil -> {
                if (runner != null) {

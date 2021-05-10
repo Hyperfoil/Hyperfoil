@@ -204,6 +204,16 @@ public class JsonWriter {
       }
       jGenerator.writeEndObject(); // connections
 
+      jGenerator.writeObjectFieldStart("agentCpu");
+      for (var phaseEntry : store.cpuUsage.entrySet()) {
+         jGenerator.writeObjectFieldStart(phaseEntry.getKey());
+         for (var agentEntry : phaseEntry.getValue().entrySet()) {
+            jGenerator.writeStringField(agentEntry.getKey(), agentEntry.getValue());
+         }
+         jGenerator.writeEndObject();
+      }
+      jGenerator.writeEndObject(); // agentCpu
+
       jGenerator.writeEndObject(); //root of object
    }
 

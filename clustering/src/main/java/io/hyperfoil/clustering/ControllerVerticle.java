@@ -283,10 +283,14 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
 
    private void handlePhaseChange(Run run, AgentInfo agent, PhaseChangeMessage phaseChange) {
       String phase = phaseChange.phase();
-      log.debug("{} Received phase change from {}: {} is {} (session limit exceeded={}, errors={})", run.id,
-            phaseChange.senderId(), phase, phaseChange.status(), phaseChange.sessionLimitExceeded(), phaseChange.getError());
+      log.debug("{} Received phase change from {}: {} is {} (session limit exceeded={}, CPU usage={} errors={})", run.id,
+            phaseChange.senderId(), phase, phaseChange.status(), phaseChange.sessionLimitExceeded(),
+            phaseChange.cpuUsage(), phaseChange.getError());
       agent.phases.put(phase, phaseChange.status());
       ControllerPhase controllerPhase = run.phases.get(phase);
+      if (phaseChange.cpuUsage() != null) {
+         run.statisticsStore().recordCpuUsage(phaseChange.phase(), agent.name, phaseChange.cpuUsage());
+      }
       if (phaseChange.sessionLimitExceeded()) {
          Phase def = controllerPhase.definition();
          SessionLimitPolicy sessionLimitPolicy = def.model instanceof Model.OpenModel ?

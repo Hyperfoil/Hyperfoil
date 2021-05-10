@@ -96,6 +96,8 @@ public interface Client {
       byte[] file(String filename);
 
       byte[] report(String source);
+
+      Map<String, Map<String, String>> agentCpu();
    }
 
    class MinMax {

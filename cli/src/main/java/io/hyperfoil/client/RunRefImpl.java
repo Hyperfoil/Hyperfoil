@@ -136,24 +136,24 @@ public class RunRefImpl implements Client.RunRef {
    public byte[] statsAll(String format) {
       CompletableFuture<byte[]> future = new CompletableFuture<>();
       client.vertx.runOnContext(ctx ->
-         client.request(HttpMethod.GET, "/run/" + id + "/stats/all")
-               .putHeader(HttpHeaders.ACCEPT.toString(), format)
-               .send(rsp -> {
-                  if (rsp.failed()) {
-                     future.completeExceptionally(rsp.cause());
-                     return;
-                  }
-                  HttpResponse<Buffer> response = rsp.result();
-                  if (response.statusCode() != 200) {
-                     future.completeExceptionally(unexpected(response));
-                     return;
-                  }
-                  try {
-                     future.complete(response.body().getBytes());
-                  } catch (Throwable t) {
-                     future.completeExceptionally(t);
-                  }
-               }));
+            client.request(HttpMethod.GET, "/run/" + id + "/stats/all")
+                  .putHeader(HttpHeaders.ACCEPT.toString(), format)
+                  .send(rsp -> {
+                     if (rsp.failed()) {
+                        future.completeExceptionally(rsp.cause());
+                        return;
+                     }
+                     HttpResponse<Buffer> response = rsp.result();
+                     if (response.statusCode() != 200) {
+                        future.completeExceptionally(unexpected(response));
+                        return;
+                     }
+                     try {
+                        future.complete(response.body().getBytes());
+                     } catch (Throwable t) {
+                        future.completeExceptionally(t);
+                     }
+                  }));
       return waitFor(future);
    }
 
@@ -182,6 +182,14 @@ public class RunRefImpl implements Client.RunRef {
       return client.sync(
             handler -> client.request(HttpMethod.GET, "/run/" + id + "/report").send(handler), 200,
             response -> response.body().getBytes()
+      );
+   }
+
+   @Override
+   public Map<String, Map<String, String>> agentCpu() {
+      return client.sync(
+            handler -> client.request(HttpMethod.GET, "/run/" + id + "/agentCpu").send(handler), 200,
+            response -> JacksonCodec.decodeValue(response.body(), new TypeReference<Map<String, Map<String, String>>>() {})
       );
    }
 }

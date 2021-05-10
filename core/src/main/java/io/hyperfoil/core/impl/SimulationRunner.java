@@ -183,6 +183,13 @@ public class SimulationRunner {
    }
 
    protected CompletableFuture<Void> phaseChanged(Phase phase, PhaseInstance.Status status, boolean sessionLimitExceeded, Throwable error) {
+      if (!phase.isWarmup) {
+         if (status == PhaseInstance.Status.RUNNING) {
+            cpuWatchdog.notifyPhaseStart(phase.name);
+         } else if (status.isFinished()) {
+            cpuWatchdog.notifyPhaseEnd(phase.name);
+         }
+      }
       if (status == PhaseInstance.Status.TERMINATED) {
          return terminateStatistics(phase).whenComplete(
                (nil, e) -> notifyAndScheduleForPruning(phase, status, sessionLimitExceeded, error != null ? error : e));
@@ -364,6 +371,10 @@ public class SimulationRunner {
          plugin.listConnections(list::add);
       }
       return list;
+   }
+
+   public String getCpuUsage(String name) {
+      return cpuWatchdog.getCpuUsage(name);
    }
 
    private static class SharedResources {
