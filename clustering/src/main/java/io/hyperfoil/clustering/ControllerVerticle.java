@@ -386,7 +386,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       StatisticsStore store = new StatisticsStore(benchmark, f -> { });
       try {
          JsonLoader.read(Files.readString(jsonPath, StandardCharsets.UTF_8), store);
-      } catch (IOException e) {
+      } catch (Exception e) {
          log.error("Cannot load stats from " + jsonPath, e);
          return null;
       }

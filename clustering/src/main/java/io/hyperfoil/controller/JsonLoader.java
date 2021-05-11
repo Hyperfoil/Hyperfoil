@@ -55,7 +55,10 @@ public class JsonLoader {
          for (Object r : ss.getJsonArray("sessions")) {
             JsonObject record = (JsonObject) r;
             String agent = record.getString("agent");
-            StatisticsStore.SessionPoolRecord ssRecord = new StatisticsStore.SessionPoolRecord(record.getLong("timestamp"), record.getInteger("minSessions"), record.getInteger("maxSesssions"));
+            long timestamp = record.getLong("timestamp");
+            int min = record.getInteger("minSessions");
+            int max = record.getInteger("maxSessions");
+            StatisticsStore.SessionPoolRecord ssRecord = new StatisticsStore.SessionPoolRecord(timestamp, min, max);
             sps.records.computeIfAbsent(agent, a -> new ArrayList<>()).add(ssRecord);
          }
       }
