@@ -39,6 +39,9 @@ public class Compare extends ServerCommand {
    @Option(name = "threshold", shortName = '\t', description = "Difference threshold for coloring.", defaultValue = "0.05")
    private double threshold;
 
+   @Option(shortName = 'w', description = "Include statistics from warm-up phases.", hasValue = false)
+   private boolean warmup;
+
    private String compare(Comparison c, ToIntFunction<StatisticsSummary> f) {
       if (c.first == null || c.second == null) {
          return "N/A";
@@ -104,9 +107,11 @@ public class Compare extends ServerCommand {
 
       List<Comparison> comparisons = new ArrayList<>();
       for (RequestStats stats : firstStats.statistics) {
+         if (stats.isWarmup && !warmup) continue;
          comparisons.add(new Comparison(stats.phase, stats.metric).first(stats.summary));
       }
       for (RequestStats stats : secondStats.statistics) {
+         if (stats.isWarmup && !warmup) continue;
          Optional<Comparison> maybeComparison = comparisons.stream()
                .filter(c -> c.phase.equals(stats.phase) && c.metric.equals(stats.metric)).findAny();
          if (maybeComparison.isPresent()) {

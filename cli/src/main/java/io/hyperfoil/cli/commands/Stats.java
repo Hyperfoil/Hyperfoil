@@ -46,6 +46,9 @@ public class Stats extends BaseRunIdCommand {
    @Option(shortName = 'e', description = "Show extensions for given key. Use 'all' or '*' to show all extensions not shown by default, or comma-separated list.", completer = ExtensionsCompleter.class)
    private String extensions;
 
+   @Option(shortName = 'w', description = "Include statistics from warmup phases.", hasValue = false)
+   private boolean warmup;
+
    private static String throughput(RequestStats r) {
       if (r.summary.endTime <= r.summary.startTime) {
          return "<none>";
@@ -112,8 +115,9 @@ public class Stats extends BaseRunIdCommand {
       }
       Table<RequestStats> table = new Table<>(REQUEST_STATS_TABLE);
       addDirectExtensions(stats, table);
-      prevLines += table.print(invocation, stats.statistics.stream());
+      prevLines += table.print(invocation, stream(stats));
       for (RequestStats rs : stats.statistics) {
+         if (rs.isWarmup && !warmup) continue;
          for (String msg : rs.failedSLAs) {
             invocation.println(String.format("%s/%s: %s", rs.phase, rs.metric == null ? "*" : rs.metric, msg));
             prevLines++;
@@ -122,11 +126,19 @@ public class Stats extends BaseRunIdCommand {
       return prevLines;
    }
 
+   private Stream<RequestStats> stream(RequestStatisticsResponse stats) {
+      Stream<RequestStats> stream = stats.statistics.stream();
+      if (!warmup) {
+         stream = stream.filter(rs -> !rs.isWarmup);
+      }
+      return stream;
+   }
+
    private int showExtensions(HyperfoilCommandInvocation invocation, RequestStatisticsResponse stats) {
       Table<RequestStats> table = new Table<RequestStats>().idColumns(2);
       table.column("PHASE", r -> r.phase).column("METRIC", r -> r.metric);
       if (extensions.equalsIgnoreCase("all") || extensions.equals("*")) {
-         extensions(stats).flatMap(ext -> stats.statistics.stream().flatMap(rs -> {
+         extensions(stats).flatMap(ext -> stream(stats).flatMap(rs -> {
             StatsExtension extension = rs.summary.extensions.get(ext);
             return extension == null ? Stream.empty() : Stream.of(extension.headers()).map(h -> Map.entry(ext, h));
          })).distinct().forEach(extHeader ->
@@ -134,14 +146,14 @@ public class Stats extends BaseRunIdCommand {
                      rs -> rs.summary.extensions.get(extHeader.getKey()).byHeader(extHeader.getValue()), Table.Align.RIGHT)
          );
       } else if (!extensions.contains(",")) {
-         stats.statistics.stream().flatMap(rs -> {
+         stream(stats).flatMap(rs -> {
             StatsExtension extension = rs.summary.extensions.get(extensions);
             return extension == null ? Stream.empty() : Stream.of(extension.headers());
          }).distinct().forEach(header ->
                table.column(header, rs -> rs.summary.extensions.get(extensions).byHeader(header), Table.Align.RIGHT));
       } else {
          String[] exts = extensions.split(",");
-         stats.statistics.stream().flatMap(rs -> Stream.of(exts).flatMap(ext -> {
+         stream(stats).flatMap(rs -> Stream.of(exts).flatMap(ext -> {
             StatsExtension extension = rs.summary.extensions.get(ext);
             return extension == null ? Stream.empty() : Stream.of(extension.headers()).map(h -> Map.entry(ext, h));
          })).distinct().forEach(extHeader ->
@@ -149,7 +161,7 @@ public class Stats extends BaseRunIdCommand {
                      rs -> rs.summary.extensions.get(extHeader.getKey()).byHeader(extHeader.getValue()), Table.Align.RIGHT)
          );
       }
-      return table.print(invocation, stats.statistics.stream());
+      return table.print(invocation, stream(stats));
    }
 
    private static Stream<String> extensions(RequestStatisticsResponse stats) {
@@ -158,7 +170,7 @@ public class Stats extends BaseRunIdCommand {
    }
 
    private void addDirectExtensions(RequestStatisticsResponse stats, Table<RequestStats> table) {
-      boolean hasHttp = stats.statistics.stream().anyMatch(rs -> rs.summary.extensions.containsKey(HttpStats.HTTP));
+      boolean hasHttp = stream(stats).anyMatch(rs -> rs.summary.extensions.containsKey(HttpStats.HTTP));
       if (hasHttp) {
          table.columnInt("2xx", r -> HttpStats.get(r.summary).status_2xx)
                .columnInt("3xx", r -> HttpStats.get(r.summary).status_3xx)

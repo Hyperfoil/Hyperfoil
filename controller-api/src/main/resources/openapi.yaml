@@ -754,6 +754,8 @@ components:
           type: array
           items:
             type: string
+        isWarmup:
+          type: boolean
     Histogram:
       type: object
       properties:

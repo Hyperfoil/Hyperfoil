@@ -126,7 +126,7 @@ public class StatisticsStore {
             List<String> failures = this.failures.stream()
                   .filter(f -> f.phase().equals(data.phase) && (f.metric() == null || f.metric().equals(data.metric)))
                   .map(SLA.Failure::message).collect(Collectors.toList());
-            result.add(new RequestStats(data.phase, data.stepId, data.metric, sum.summary(PERCENTILES), failures));
+            result.add(new RequestStats(data.phase, data.stepId, data.metric, sum.summary(PERCENTILES), failures, data.isWarmup));
          }
       }
       result.sort(REQUEST_STATS_COMPARATOR);
@@ -141,7 +141,7 @@ public class StatisticsStore {
             List<String> failures = this.failures.stream()
                   .filter(f -> f.phase().equals(data.phase) && (f.metric() == null || f.metric().equals(data.metric)))
                   .map(SLA.Failure::message).collect(Collectors.toList());
-            result.add(new RequestStats(data.phase, data.stepId, data.metric, last, failures));
+            result.add(new RequestStats(data.phase, data.stepId, data.metric, last, failures, data.isWarmup));
          }
       }
       result.sort(REQUEST_STATS_COMPARATOR);
