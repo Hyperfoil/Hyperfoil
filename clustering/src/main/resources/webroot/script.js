@@ -15,6 +15,7 @@ const PROMPT = "[hyperfoil]$ "
 
 const ansiUp = new AnsiUp();
 const gauge = document.getElementById("gauge")
+const waitForConnection = document.getElementById("waitForConnection")
 const resultWindow = document.getElementById("result");
 var logo = document.getElementById("logo");
 const command = document.getElementById("command");
@@ -50,6 +51,7 @@ function createWebSocket() {
       socket = createWebSocket();
    }
    s.onopen = () => {
+      waitForConnection.remove()
       reconnecting.style.visibility = 'hidden'
       if (resultWindow.lastChild) {
          resultWindow.lastChild.appendChild(command)

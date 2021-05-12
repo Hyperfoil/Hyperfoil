@@ -14,7 +14,7 @@
     <img id="logo" src="/web/logo_title.png" alt="Hyperfoil">
     <img id="notifications" src="/web/notifications_off.png" alt="Notifications OFF" title="Enable notifications" onclick="requestNotifications()">
     <span id="gauge" style="position: absolute">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
-    <div id="result"><input id="command" type="text" autofocus oninput="checkCommand()"/></div>
+    <div id="result"><span id="waitForConnection">Please wait a few moments, opening connection to the controller...</span><input id="command" type="text" autofocus oninput="checkCommand()"/></div>
     <div id="warning"></div>
     <div id="upload">
         <label id="upload-benchmark-label" for="upload-benchmark" class="hfbutton">Select benchmark file</label>
