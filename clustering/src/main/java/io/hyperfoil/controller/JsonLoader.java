@@ -95,6 +95,17 @@ public class JsonLoader {
          }
       }
 
+      JsonObject agentCpu = object.getJsonObject("agentCpu");
+      if (agentCpu != null) {
+         for (var phaseEntry : agentCpu) {
+            HashMap<String, String> phaseData = new HashMap<>();
+            store.cpuUsage.putIfAbsent(phaseEntry.getKey(), phaseData);
+            for (var agentEntry : (JsonObject) phaseEntry.getValue()) {
+               phaseData.put(agentEntry.getKey(), String.valueOf(agentEntry.getValue()));
+            }
+         }
+      }
+
       return store;
    }
 
