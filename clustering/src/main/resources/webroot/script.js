@@ -184,6 +184,10 @@ var receivingFileList = false;
 var downloading = false;
 var downloadContent = ""
 
+function isCommand(message, prefix) {
+   return typeof message === 'string' && message.startsWith(prefix)
+}
+
 function addResultToWindow(commandResult) {
    if (!authSent && authToken) {
       sendCommand("__HYPERFOIL_AUTH_TOKEN__" + authToken);
@@ -207,9 +211,9 @@ function addResultToWindow(commandResult) {
           break
       }
    }
-   if (commandResult.startsWith("__HYPERFOIL_UPLOAD_MAGIC__")) {
+   if (isCommand(commandResult, "__HYPERFOIL_UPLOAD_MAGIC__")) {
       resultWindow.appendChild(upload)
-   } else if (commandResult.startsWith(PAGER_MAGIC)) {
+   } else if (isCommand(commandResult, PAGER_MAGIC)) {
       commandResult = commandResult.slice(PAGER_MAGIC.length);
       paging = true;
       document.getElementById('pager-content').innerHTML = commandResult;
@@ -219,34 +223,34 @@ function addResultToWindow(commandResult) {
          event = event || window.event
          if (paging && (event.key === 'Escape' || event.key === 'q')) stopPaging();
       }
-   } else if (commandResult.startsWith(EDIT_MAGIC)) {
+   } else if (isCommand(commandResult, EDIT_MAGIC)) {
       commandResult = commandResult.slice(EDIT_MAGIC.length);
       command.remove()
       editing = true;
       editor.style.visibility = 'visible'
       window.editor.setValue(commandResult)
       window.editor.focus()
-   } else if (commandResult.startsWith(BENCHMARK_FILE_LIST)) {
+   } else if (isCommand(commandResult, BENCHMARK_FILE_LIST)) {
       fileList = commandResult.slice(BENCHMARK_FILE_LIST.length)
       receivingFileList = true
       checkFileList()
-   } else if (commandResult.startsWith(DOWNLOAD_MAGIC)) {
+   } else if (isCommand(commandResult, DOWNLOAD_MAGIC)) {
       let parts = commandResult.split(' ')
       download(window.location + parts[1], parts[2])
       resultWindow.appendChild(command)
       command.focus();
-   } else if (commandResult.startsWith(DIRECT_DOWNLOAD_MAGIC)) {
+   } else if (isCommand(commandResult, DIRECT_DOWNLOAD_MAGIC)) {
       downloading = true;
       downloadMeta = commandResult.slice(DIRECT_DOWNLOAD_MAGIC.length)
       downloadContent = undefined
-   } else if (commandResult.startsWith(SESSION_START)) {
+   } else if (isCommand(commandResult, SESSION_START)) {
       if (started) {
          resultWindow.innerHTML += '<span class="line" style="color: yellow">Warning: Controller has been restarted.</span><span class="line"></span>'
          command.value = ''
       } else {
          started = true;
       }
-   } else if (commandResult.startsWith(NOTIFICATION)) {
+   } else if (isCommand(commandResult, NOTIFICATION)) {
       const notification = commandResult.slice(NOTIFICATION.length)
       const titleEnd = notification.indexOf('\n')
       let title = 'Hyperfoil'
