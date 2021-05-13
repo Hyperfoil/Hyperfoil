@@ -31,8 +31,8 @@ import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.RequestOptions;
 import io.vertx.core.json.Json;
-import io.vertx.core.net.impl.SocketAddressImpl;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
@@ -108,8 +108,8 @@ public class RestClient implements Client, Closeable {
       return request;
    }
 
-   HttpRequest<Buffer> request(HttpMethod method, int port, String host, String path) {
-      return client.request(method, new SocketAddressImpl(port, host), path);
+   HttpRequest<Buffer> request(HttpMethod method, boolean ssl, String host, int port, String path) {
+      return client.request(method, new RequestOptions().setSsl(ssl).setHost(host).setPort(port).setURI(path));
    }
 
    @Override

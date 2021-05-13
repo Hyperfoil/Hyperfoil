@@ -167,7 +167,7 @@ class ControllerServer implements ApiService {
                   } else {
                      baseURL = CONTROLLER_EXTERNAL_URI;
                   }
-                  webCLI.setPort(serverResult.result().actualPort());
+                  webCLI.setConnectionOptions(serverResult.result().actualPort(), options.isSsl());
                   log.info("Hyperfoil controller listening on {}", baseURL);
                }
                countDown.handle(serverResult.mapEmpty());

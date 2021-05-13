@@ -62,6 +62,7 @@ public class WebCLI extends HyperfoilCli implements Handler<ServerWebSocket> {
    private final ConcurrentMap<String, WebCliContext> contextMap = new ConcurrentHashMap<>();
    private final ConcurrentMap<String, ClosedContext> closedRunners = new ConcurrentHashMap<>();
    private int port = 8090;
+   private boolean ssl = false;
 
    public WebCLI(Vertx vertx) {
       this.vertx = vertx;
@@ -182,7 +183,7 @@ public class WebCLI extends HyperfoilCli implements Handler<ServerWebSocket> {
       WebsocketOutputStream stream = new WebsocketOutputStream(webSocket);
 
       WebCliContext ctx = new WebCliContext(vertx, inputStream, stream, webSocket);
-      ctx.setClient(new RestClient(vertx, "localhost", port, false, false, null));
+      ctx.setClient(new RestClient(vertx, "localhost", port, ssl, true, null));
       ctx.setOnline(true);
 
       try {
@@ -238,8 +239,9 @@ public class WebCLI extends HyperfoilCli implements Handler<ServerWebSocket> {
       return commands;
    }
 
-   public void setPort(int port) {
+   public void setConnectionOptions(int port, boolean ssl) {
       this.port = port;
+      this.ssl = ssl;
    }
 
    private static class ClosedContext {

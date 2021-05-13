@@ -82,11 +82,13 @@ class BenchmarkRefImpl implements Client.BenchmarkRef {
                if (response.statusCode() == 202) {
                   if (location == null) {
                      future.completeExceptionally(new RestClientException("Server did not respond with run location!"));
+                  } else {
+                     future.complete(new RunRefImpl(client, location));
                   }
-                  future.complete(new RunRefImpl(client, location));
                } else if (response.statusCode() == 301) {
                   if (location == null) {
                      future.completeExceptionally(new RestClientException("Server did not respond with run location!"));
+                     return;
                   }
                   URL url;
                   try {
@@ -96,7 +98,7 @@ class BenchmarkRefImpl implements Client.BenchmarkRef {
                      return;
                   }
                   String runId = response.getHeader("x-run-id");
-                  client.request(HttpMethod.GET, url.getPort(), url.getHost(), url.getFile()).send(rsp2 -> {
+                  client.request(HttpMethod.GET, "https".equalsIgnoreCase(url.getProtocol()), url.getHost(), url.getPort(), url.getFile()).send(rsp2 -> {
                      if (rsp2.succeeded()) {
                         HttpResponse<Buffer> response2 = rsp2.result();
                         if (response2.statusCode() >= 200 && response2.statusCode() < 300) {
