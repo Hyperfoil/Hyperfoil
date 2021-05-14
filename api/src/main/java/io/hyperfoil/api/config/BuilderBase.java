@@ -77,25 +77,26 @@ public interface BuilderBase<S extends BuilderBase<S>> {
          return (S) this;
       }
       try {
-         BuilderBase<?> copy = null;
+         ThrowingSupplier<BuilderBase<?>> constructor = null;
          for (Constructor<?> ctor : getClass().getConstructors()) {
             if (ctor.getParameterCount() == 0) {
-               copy = (BuilderBase<?>) ctor.newInstance();
+               constructor = () -> (BuilderBase<?>) ctor.newInstance();
                // no break - copy constructor is preferred
             } else if (ctor.getParameterCount() == 1) {
                Class<?> parameterType = ctor.getParameterTypes()[0];
                if (parameterType == getClass()) {
                   // copy constructor
-                  copy = (BuilderBase<?>) ctor.newInstance(this);
+                  constructor = () -> (BuilderBase<?>) ctor.newInstance(this);
                   break;
                } else if (newParent != null && parameterType.isAssignableFrom(newParent.getClass())) {
-                  copy = (BuilderBase<?>) ctor.newInstance(newParent);
+                  constructor = () -> (BuilderBase<?>) ctor.newInstance(newParent);
                }
             }
          }
-         if (copy == null) {
+         if (constructor == null) {
             throw new NoSuchMethodException("No constructor for " + getClass().getName());
          }
+         BuilderBase<?> copy = constructor.get();
          Class<?> cls = getClass();
          while (cls != null && cls != BuilderBase.class) {
             for (Field f : cls.getDeclaredFields()) {
@@ -161,6 +162,10 @@ public interface BuilderBase<S extends BuilderBase<S>> {
       } catch (ReflectiveOperationException e) {
          throw new BenchmarkDefinitionException("Default deep copy failed", e);
       }
+   }
+
+   interface ThrowingSupplier<T> {
+      T get() throws ReflectiveOperationException;
    }
 
    class CopyUtil {

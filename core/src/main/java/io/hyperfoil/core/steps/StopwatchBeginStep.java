@@ -55,6 +55,7 @@ public class StopwatchBeginStep implements Step, ResourceUtilizer {
       // to find the @Name annotation
       public Builder() {
          super(null);
+         throw new UnsupportedOperationException();
       }
 
       public Builder(BaseSequenceBuilder<?> parent) {

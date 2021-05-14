@@ -79,7 +79,7 @@ public class LoopStep implements Step, ResourceUtilizer {
       // This constructor is going to be used only for service-loaded instantiation
       // to find the @Name annotation
       public Builder() {
-         steps = null;
+         throw new UnsupportedOperationException();
       }
 
       public Builder(BaseSequenceBuilder<?> parent) {
