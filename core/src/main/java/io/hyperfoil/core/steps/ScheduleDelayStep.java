@@ -268,7 +268,7 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
    @Name("thinkTime")
    public static class ThinkTimeBuilder extends Builder implements InitFromParam<ThinkTimeBuilder> {
       @Override
-      public ThinkTimeBuilder addTo(BaseSequenceBuilder parent) {
+      public ThinkTimeBuilder addTo(BaseSequenceBuilder<?> parent) {
          return (ThinkTimeBuilder) super.addTo(parent);
       }
 

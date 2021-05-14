@@ -37,7 +37,7 @@ public class TestUtil {
       }
 
       @Override
-      public BaseSequenceBuilder sequence() {
+      public BaseSequenceBuilder<?> sequence() {
          throw new UnsupportedOperationException();
       }
 

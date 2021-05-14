@@ -30,14 +30,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
-import io.hyperfoil.api.config.Rewritable;
+import io.hyperfoil.api.config.BuilderBase;
 import io.hyperfoil.core.util.Util;
 import io.hyperfoil.http.api.HttpVersion;
 
 /**
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
  */
-public class HttpBuilder implements Rewritable<HttpBuilder> {
+public class HttpBuilder implements BuilderBase<HttpBuilder> {
 
    private final HttpPluginBuilder parent;
    private Http http;
@@ -48,21 +48,21 @@ public class HttpBuilder implements Rewritable<HttpBuilder> {
    private List<String> addresses = new ArrayList<>();
    private boolean allowHttp1x = true;
    private boolean allowHttp2 = true;
-   private final ConnectionPoolConfig.Builder sharedConnections = new ConnectionPoolConfig.Builder(this);
+   private ConnectionPoolConfig.Builder sharedConnections = new ConnectionPoolConfig.Builder(this);
    private int maxHttp2Streams = 100;
    private int pipeliningLimit = 1;
    private boolean directHttp2 = false;
    private long requestTimeout = 30000;
    private boolean rawBytesHandlers = true;
-   private final KeyManagerBuilder keyManager = new KeyManagerBuilder();
-   private final TrustManagerBuilder trustManager = new TrustManagerBuilder();
+   private KeyManagerBuilder keyManager = new KeyManagerBuilder(this);
+   private TrustManagerBuilder trustManager = new TrustManagerBuilder(this);
    private ConnectionStrategy connectionStrategy = ConnectionStrategy.SHARED_POOL;
 
    public static HttpBuilder forTesting() {
       return new HttpBuilder(null);
    }
 
-   HttpBuilder(HttpPluginBuilder parent) {
+   public HttpBuilder(HttpPluginBuilder parent) {
       this.parent = parent;
    }
 
@@ -244,32 +244,18 @@ public class HttpBuilder implements Rewritable<HttpBuilder> {
             connectionStrategy);
    }
 
-   @Override
-   public void readFrom(HttpBuilder other) {
-      this.originalDestination = other.originalDestination;
-      this.protocol = other.protocol;
-      this.host = other.host;
-      this.port = other.port;
-      this.addresses = new ArrayList<>(addresses);
-      this.allowHttp1x = other.allowHttp1x;
-      this.allowHttp2 = other.allowHttp2;
-      this.sharedConnections.readFrom(other.sharedConnections);
-      this.maxHttp2Streams = other.maxHttp2Streams;
-      this.pipeliningLimit = other.pipeliningLimit;
-      this.directHttp2 = other.directHttp2;
-      this.requestTimeout = other.requestTimeout;
-      this.rawBytesHandlers = other.rawBytesHandlers;
-      this.keyManager.readFrom(other.keyManager);
-      this.trustManager.readFrom(other.trustManager);
-   }
-
-   public class KeyManagerBuilder implements Rewritable<KeyManagerBuilder> {
+   public static class KeyManagerBuilder implements BuilderBase<KeyManagerBuilder> {
+      private final HttpBuilder parent;
       private String storeType = "JKS";
       private byte[] storeBytes;
       private String password;
       private String alias;
       private byte[] certBytes;
       private byte[] keyBytes;
+
+      public KeyManagerBuilder(HttpBuilder parent) {
+         this.parent = parent;
+      }
 
       public KeyManagerBuilder storeType(String type) {
          this.storeType = type;
@@ -329,29 +315,24 @@ public class HttpBuilder implements Rewritable<HttpBuilder> {
       }
 
       public HttpBuilder end() {
-         return HttpBuilder.this;
+         return parent;
       }
 
       public Http.KeyManager build() {
          return new Http.KeyManager(storeType, storeBytes, password, alias, certBytes, keyBytes);
       }
-
-      @Override
-      public void readFrom(KeyManagerBuilder other) {
-         this.storeType = other.storeType;
-         this.storeBytes = other.storeBytes;
-         this.password = other.password;
-         this.alias = other.alias;
-         this.certBytes = other.certBytes;
-         this.keyBytes = other.keyBytes;
-      }
    }
 
-   public class TrustManagerBuilder implements Rewritable<TrustManagerBuilder> {
+   public static class TrustManagerBuilder implements BuilderBase<TrustManagerBuilder> {
+      private final HttpBuilder parent;
       private String storeType = "JKS";
       private byte[] storeBytes;
       private String password;
       private byte[] certBytes;
+
+      public TrustManagerBuilder(HttpBuilder parent) {
+         this.parent = parent;
+      }
 
       public TrustManagerBuilder storeType(String type) {
          this.storeType = type;
@@ -392,19 +373,11 @@ public class HttpBuilder implements Rewritable<HttpBuilder> {
       }
 
       public HttpBuilder end() {
-         return HttpBuilder.this;
+         return parent;
       }
 
       public Http.TrustManager build() {
          return new Http.TrustManager(storeType, storeBytes, password, certBytes);
-      }
-
-      @Override
-      public void readFrom(TrustManagerBuilder other) {
-         this.storeType = other.storeType;
-         this.storeBytes = other.storeBytes;
-         this.password = other.password;
-         this.certBytes = other.certBytes;
       }
    }
 

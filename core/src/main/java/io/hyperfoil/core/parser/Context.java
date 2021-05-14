@@ -5,6 +5,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Stack;
+import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -17,7 +18,6 @@ import org.yaml.snakeyaml.events.SequenceEndEvent;
 import org.yaml.snakeyaml.events.SequenceStartEvent;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
-import io.hyperfoil.api.config.Rewritable;
 
 public class Context {
    private final Map<String, Anchor> anchors = new HashMap<>();
@@ -186,7 +186,7 @@ public class Context {
       }
    }
 
-   public <A extends Rewritable<A>> void parseAliased(Class<A> aliasType, A target, Parser<A> parser) throws ParserException {
+   public <A> void parseAliased(Class<A> aliasType, A target, Parser<A> parser, BiConsumer<A, A> readFrom) throws ParserException {
       Event event = peek();
       try {
          if (event instanceof MappingStartEvent) {
@@ -198,7 +198,7 @@ public class Context {
          } else if (event instanceof AliasEvent) {
             String anchor = ((AliasEvent) event).getAnchor();
             A aliased = getAnchor(event, anchor, aliasType);
-            target.readFrom(aliased);
+            readFrom.accept(target, aliased);
             consumePeeked(event);
          } else {
             throw unexpectedEvent(event);

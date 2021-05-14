@@ -27,7 +27,7 @@ public class ServiceLoadedBuilderProvider<B> {
 
    private final Class<B> builderClazz;
    private final Consumer<B> consumer;
-   private final BaseSequenceBuilder parent;
+   private final BaseSequenceBuilder<?> parent;
 
    public static synchronized Map<String, BuilderInfo<?>> builders(Class<?> clazz) {
       return BUILDERS.computeIfAbsent(clazz, ServiceLoadedBuilderProvider::scanBuilders);
@@ -74,7 +74,7 @@ public class ServiceLoadedBuilderProvider<B> {
       this(builderClazz, consumer, null);
    }
 
-   public ServiceLoadedBuilderProvider(Class<B> builderClazz, Consumer<B> consumer, BaseSequenceBuilder parent) {
+   public ServiceLoadedBuilderProvider(Class<B> builderClazz, Consumer<B> consumer, BaseSequenceBuilder<?> parent) {
       this.builderClazz = builderClazz;
       this.consumer = consumer;
       this.parent = parent;
@@ -90,7 +90,7 @@ public class ServiceLoadedBuilderProvider<B> {
          Object instance = newInstance(builderInfo);
          if (param != null && !param.isEmpty()) {
             if (instance instanceof InitFromParam) {
-               ((InitFromParam) instance).init(param);
+               ((InitFromParam<?>) instance).init(param);
             } else {
                throw new BenchmarkDefinitionException(name + "(" + builderInfo.implClazz + ") cannot be initialized from an inline parameter");
             }

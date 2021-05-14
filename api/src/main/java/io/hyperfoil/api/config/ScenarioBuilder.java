@@ -29,7 +29,7 @@ import java.util.stream.Stream;
 /**
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
  */
-public class ScenarioBuilder implements Rewritable<ScenarioBuilder> {
+public class ScenarioBuilder {
 
    private final PhaseBuilder<?> phaseBuilder;
    private List<SequenceBuilder> initialSequences = new ArrayList<>();
@@ -49,11 +49,9 @@ public class ScenarioBuilder implements Rewritable<ScenarioBuilder> {
       return phaseBuilder;
    }
 
-   ScenarioBuilder initialSequence(SequenceBuilder sequence) {
+   private void initialSequence(SequenceBuilder sequence) {
       initialSequences.add(sequence);
-      sequence.id(sequences.size());
-      sequences.add(sequence);
-      return this;
+      sequence(sequence);
    }
 
    public List<SequenceBuilder> resetInitialSequences() {
@@ -62,20 +60,31 @@ public class ScenarioBuilder implements Rewritable<ScenarioBuilder> {
       return prev;
    }
 
+   public SequenceBuilder initialSequence(String name, SequenceBuilder copyFrom) {
+      SequenceBuilder sequenceBuilder = copyFrom == null ? new SequenceBuilder(this) : copyFrom.copy(this);
+      initialSequence(sequenceBuilder.name(name));
+      return sequenceBuilder;
+   }
+
    public SequenceBuilder initialSequence(String name) {
-      SequenceBuilder builder = new SequenceBuilder(this, name);
+      SequenceBuilder builder = new SequenceBuilder(this).name(name);
       initialSequence(builder);
       return builder;
    }
 
-   ScenarioBuilder sequence(SequenceBuilder sequence) {
+   private void sequence(SequenceBuilder sequence) {
       sequence.id(sequences.size());
       sequences.add(sequence);
-      return this;
+   }
+
+   public SequenceBuilder sequence(String name, SequenceBuilder copyFrom) {
+      SequenceBuilder sequenceBuilder = copyFrom == null ? new SequenceBuilder(this) : copyFrom.copy(this);
+      sequence(sequenceBuilder.name(name));
+      return sequenceBuilder;
    }
 
    public SequenceBuilder sequence(String name) {
-      SequenceBuilder builder = new SequenceBuilder(this, name);
+      SequenceBuilder builder = new SequenceBuilder(this).name(name);
       sequence(builder);
       return builder;
    }
@@ -150,10 +159,9 @@ public class ScenarioBuilder implements Rewritable<ScenarioBuilder> {
             maxSequences);
    }
 
-   @Override
    public void readFrom(ScenarioBuilder other) {
       this.sequences = other.sequences.stream()
-            .map(seq -> new SequenceBuilder(this, seq)).collect(Collectors.toList());
+            .map(seq -> seq.copy(this)).collect(Collectors.toList());
       this.initialSequences = other.initialSequences.stream()
             .map(seq -> findMatchingSequence(seq.name())).collect(Collectors.toList());
       this.intVars = other.intVars;
@@ -162,9 +170,5 @@ public class ScenarioBuilder implements Rewritable<ScenarioBuilder> {
 
    private SequenceBuilder findMatchingSequence(String name) {
       return this.sequences.stream().filter(s2 -> s2.name().equals(name)).findFirst().orElseThrow(IllegalStateException::new);
-   }
-
-   Collection<SequenceBuilder> sequences() {
-      return sequences;
    }
 }

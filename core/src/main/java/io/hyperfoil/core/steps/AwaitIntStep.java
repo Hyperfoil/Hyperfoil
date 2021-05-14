@@ -37,14 +37,14 @@ public class AwaitIntStep implements Step {
     */
    @MetaInfServices(StepBuilder.class)
    @Name("awaitInt")
-   public static class Builder extends IntConditionBuilder<Builder, BaseSequenceBuilder> implements StepBuilder<Builder> {
+   public static class Builder extends IntConditionBuilder<Builder, BaseSequenceBuilder<?>> implements StepBuilder<Builder> {
       private String var;
 
       public Builder() {
          super(null);
       }
 
-      public Builder(BaseSequenceBuilder parent) {
+      public Builder(BaseSequenceBuilder<?> parent) {
          super(parent);
       }
 
@@ -64,7 +64,7 @@ public class AwaitIntStep implements Step {
          return Collections.singletonList(new AwaitIntStep(SessionFactory.access(var), buildPredicate()));
       }
 
-      public BaseSequenceBuilder endStep() {
+      public BaseSequenceBuilder<?> endStep() {
          return parent;
       }
    }

@@ -105,7 +105,7 @@ public class ChunkedTransferTest extends HttpScenarioTest {
 
    @Test
    public void testRandomCutBuffers() {
-      BaseSequenceBuilder sequence = scenario(64).initialSequence("test")
+      BaseSequenceBuilder<?> sequence = scenario(64).initialSequence("test")
             .step(s -> {
                HttpDestinationTable.get(s).getConnectionPool(null).connections()
                      .forEach(c -> injectChannelHandler(c, new RandomLengthDecoder()));

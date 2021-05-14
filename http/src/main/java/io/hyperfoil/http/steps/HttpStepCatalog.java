@@ -12,7 +12,7 @@ import io.hyperfoil.impl.StepCatalogFactory;
 public class HttpStepCatalog extends StepCatalog {
    public static final Class<HttpStepCatalog> SC = HttpStepCatalog.class;
 
-   HttpStepCatalog(BaseSequenceBuilder parent) {
+   HttpStepCatalog(BaseSequenceBuilder<?> parent) {
       super(parent);
    }
 
@@ -31,7 +31,7 @@ public class HttpStepCatalog extends StepCatalog {
     *
     * @return This sequence.
     */
-   public BaseSequenceBuilder awaitAllResponses() {
+   public BaseSequenceBuilder<?> awaitAllResponses() {
       return parent.step(new AwaitAllResponsesStep());
    }
 
@@ -41,7 +41,7 @@ public class HttpStepCatalog extends StepCatalog {
     *
     * @return This sequence.
     */
-   public BaseSequenceBuilder clearHttpCache() {
+   public BaseSequenceBuilder<?> clearHttpCache() {
       return parent.step(new StepBuilder.ActionStep(new ClearHttpCacheAction()));
    }
 
@@ -53,7 +53,7 @@ public class HttpStepCatalog extends StepCatalog {
       }
 
       @Override
-      public Step.Catalog create(BaseSequenceBuilder sequenceBuilder) {
+      public Step.Catalog create(BaseSequenceBuilder<?> sequenceBuilder) {
          return new HttpStepCatalog(sequenceBuilder);
       }
    }

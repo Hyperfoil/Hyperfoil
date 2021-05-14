@@ -50,14 +50,14 @@ public class StopwatchBeginStep implements Step, ResourceUtilizer {
     */
    @MetaInfServices(StepBuilder.class)
    @Name("stopwatch")
-   public static class Builder extends BaseSequenceBuilder implements StepBuilder<Builder> {
+   public static class Builder extends BaseSequenceBuilder<Builder> implements StepBuilder<Builder> {
       // This constructor is going to be used only for service-loaded instantiation
       // to find the @Name annotation
       public Builder() {
          super(null);
       }
 
-      public Builder(BaseSequenceBuilder parent) {
+      public Builder(BaseSequenceBuilder<?> parent) {
          super(Objects.requireNonNull(parent));
       }
 
@@ -74,7 +74,7 @@ public class StopwatchBeginStep implements Step, ResourceUtilizer {
          return steps;
       }
 
-      public BaseSequenceBuilder endStep() {
+      public BaseSequenceBuilder<?> endStep() {
          return parent;
       }
    }

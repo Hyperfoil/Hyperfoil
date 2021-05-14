@@ -3,7 +3,7 @@ package io.hyperfoil.http.config;
 import java.io.Serializable;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
-import io.hyperfoil.api.config.Rewritable;
+import io.hyperfoil.api.config.BuilderBase;
 
 public class ConnectionPoolConfig implements Serializable {
    private final int core;
@@ -34,7 +34,7 @@ public class ConnectionPoolConfig implements Serializable {
       return keepAliveTime;
    }
 
-   public static class Builder implements Rewritable<Builder> {
+   public static class Builder implements BuilderBase<Builder> {
       private final HttpBuilder parent;
       private int core;
       private int max;
@@ -63,14 +63,6 @@ public class ConnectionPoolConfig implements Serializable {
       public Builder keepAliveTime(long keepAliveTime) {
          this.keepAliveTime = keepAliveTime;
          return this;
-      }
-
-      @Override
-      public void readFrom(Builder other) {
-         this.core = other.core;
-         this.max = other.max;
-         this.buffer = other.buffer;
-         this.keepAliveTime = other.keepAliveTime;
       }
 
       public ConnectionPoolConfig build() {

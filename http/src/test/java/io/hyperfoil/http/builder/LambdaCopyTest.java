@@ -10,6 +10,6 @@ public class LambdaCopyTest {
    public void test() {
       HttpRequestStepBuilder builder = new HttpRequestStepBuilder()
             .handler().status(new RangeStatusValidator(0, 666)).endHandler();
-      builder.copy();
+      builder.copy(null);
    }
 }

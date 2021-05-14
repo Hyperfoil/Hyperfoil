@@ -62,8 +62,8 @@ public interface StepBuilder<S extends StepBuilder<S>> extends BuilderBase<S> {
       }
 
       @Override
-      public ActionAdapter copy() {
-         return new ActionAdapter(builder.copy());
+      public ActionAdapter copy(Object newParent) {
+         return new ActionAdapter(builder.copy(null));
       }
 
       @Override

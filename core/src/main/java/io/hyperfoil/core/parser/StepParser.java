@@ -12,7 +12,7 @@ import io.hyperfoil.core.builders.ServiceLoadedContract;
 import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 
-class StepParser extends BaseReflectionParser implements Parser<BaseSequenceBuilder> {
+class StepParser extends BaseReflectionParser implements Parser<BaseSequenceBuilder<?>> {
    private static final StepParser INSTANCE = new StepParser();
 
    public static StepParser instance() {
@@ -22,8 +22,9 @@ class StepParser extends BaseReflectionParser implements Parser<BaseSequenceBuil
    private StepParser() {}
 
    @Override
-   public void parse(Context ctx, BaseSequenceBuilder target) throws ParserException {
+   public void parse(Context ctx, BaseSequenceBuilder<?> target) throws ParserException {
       Event firstEvent = ctx.next();
+      @SuppressWarnings("rawtypes")
       ServiceLoadedBuilderProvider<StepBuilder> provider = new ServiceLoadedBuilderProvider<>(StepBuilder.class, target::stepBuilder, target);
       if (firstEvent instanceof ScalarEvent) {
          ServiceLoadedContract slc;

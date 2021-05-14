@@ -21,8 +21,6 @@ package io.hyperfoil.core.parser;
 import io.hyperfoil.api.config.ScenarioBuilder;
 import io.hyperfoil.api.config.SequenceBuilder;
 
-import java.util.function.BiFunction;
-
 import org.yaml.snakeyaml.events.AliasEvent;
 import org.yaml.snakeyaml.events.Event;
 import org.yaml.snakeyaml.events.MappingEndEvent;
@@ -31,10 +29,10 @@ import org.yaml.snakeyaml.events.ScalarEvent;
 import org.yaml.snakeyaml.events.SequenceStartEvent;
 
 class SequenceParser implements Parser<ScenarioBuilder> {
-   private final BiFunction<ScenarioBuilder, String, SequenceBuilder> builderFunction;
+   private final Supplier supplier;
 
-   SequenceParser(BiFunction<ScenarioBuilder, String, SequenceBuilder> builderFunction) {
-      this.builderFunction = builderFunction;
+   SequenceParser(Supplier supplier) {
+      this.supplier = supplier;
    }
 
    @Override
@@ -45,15 +43,16 @@ class SequenceParser implements Parser<ScenarioBuilder> {
    private void parseSequence(Context ctx, ScenarioBuilder target) throws ParserException {
       ctx.expectEvent(MappingStartEvent.class);
       ScalarEvent sequenceNameEvent = ctx.expectEvent(ScalarEvent.class);
-      SequenceBuilder sequenceBuilder = builderFunction.apply(target, sequenceNameEvent.getValue());
-      parseSequence(ctx, sequenceBuilder);
+      parseSequence(ctx, sequenceNameEvent.getValue(), target, supplier);
       ctx.expectEvent(MappingEndEvent.class);
    }
 
-   static void parseSequence(Context ctx, SequenceBuilder sequenceBuilder) throws ParserException {
+   static SequenceBuilder parseSequence(Context ctx, String name, ScenarioBuilder scenario, Supplier supplier) throws ParserException {
       Event event = ctx.peek();
       if (event instanceof SequenceStartEvent) {
-         ctx.parseList(sequenceBuilder, StepParser.instance());
+         SequenceBuilder sequence = supplier.get(scenario, name, null);
+         ctx.parseList(sequence, StepParser.instance());
+         return sequence;
       } else if (event instanceof ScalarEvent) {
          String value = ((ScalarEvent) event).getValue();
          if (value == null || value.isEmpty()) {
@@ -63,12 +62,16 @@ class SequenceParser implements Parser<ScenarioBuilder> {
          }
       } else if (event instanceof AliasEvent) {
          String anchor = ((AliasEvent) event).getAnchor();
-         SequenceBuilder sequence = ctx.getAnchor(event, anchor, SequenceBuilder.class);
-         sequenceBuilder.readFrom(sequence);
+         SequenceBuilder other = ctx.getAnchor(event, anchor, SequenceBuilder.class);
          ctx.consumePeeked(event);
+         return supplier.get(scenario, name, other);
       } else {
          throw ctx.unexpectedEvent(event);
       }
+   }
+
+   interface Supplier {
+      SequenceBuilder get(ScenarioBuilder scenario, String name, SequenceBuilder copy);
    }
 
 }

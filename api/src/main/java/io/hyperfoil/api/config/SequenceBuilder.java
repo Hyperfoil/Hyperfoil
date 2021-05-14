@@ -25,9 +25,10 @@ import io.hyperfoil.api.session.Session;
 /**
  * @author <a href="mailto:stalep@gmail.com">Ståle Pedersen</a>
  */
-public class SequenceBuilder extends BaseSequenceBuilder {
+public class SequenceBuilder extends BaseSequenceBuilder<SequenceBuilder> {
+   @IgnoreCopy
    private final ScenarioBuilder scenario;
-   private final String name;
+   private String name;
    private int id;
    // Concurrency 0 means single instance (not allowing access to sequence-scoped vars)
    // while 1 would be a special case of concurrent instances with only one allowed.
@@ -37,9 +38,13 @@ public class SequenceBuilder extends BaseSequenceBuilder {
    // since that would break anchors - we can insert it only after parsing is complete.
    private String nextSequence;
 
-   SequenceBuilder(ScenarioBuilder scenario, String name) {
+   // this method is public for copy()
+   public SequenceBuilder(ScenarioBuilder scenario) {
       super(null);
       this.scenario = scenario;
+   }
+
+   SequenceBuilder name(String name) {
       int concurrencyIndex = name.indexOf('[');
       this.name = concurrencyIndex < 0 ? name : name.substring(0, concurrencyIndex).trim();
       if (concurrencyIndex >= 0) {
@@ -52,15 +57,7 @@ public class SequenceBuilder extends BaseSequenceBuilder {
             throw new BenchmarkDefinitionException("Malformed sequence name with concurrency: " + name);
          }
       }
-   }
-
-   SequenceBuilder(ScenarioBuilder scenario, SequenceBuilder other) {
-      super(null);
-      this.scenario = scenario;
-      this.name = other.name;
-      this.concurrency = other.concurrency;
-      readFrom(other);
-      this.nextSequence = other.nextSequence;
+      return this;
    }
 
    public SequenceBuilder concurrency(int concurrency) {

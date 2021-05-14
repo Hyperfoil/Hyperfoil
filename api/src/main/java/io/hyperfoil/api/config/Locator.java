@@ -6,7 +6,7 @@ public interface Locator {
 
    StepBuilder<?> step();
 
-   BaseSequenceBuilder sequence();
+   BaseSequenceBuilder<?> sequence();
 
    ScenarioBuilder scenario();
 
@@ -26,7 +26,7 @@ public interface Locator {
       Holder.CURRENT.get().push(locator);
    }
 
-   static void push(StepBuilder<?> stepBuilder, BaseSequenceBuilder sequenceBuilder) {
+   static void push(StepBuilder<?> stepBuilder, BaseSequenceBuilder<?> sequenceBuilder) {
       Stack<Locator> stack = Holder.CURRENT.get();
       stack.push(new Impl(stepBuilder, sequenceBuilder));
    }
@@ -41,9 +41,9 @@ public interface Locator {
 
    class Impl implements Locator {
       private final StepBuilder<?> step;
-      private final BaseSequenceBuilder sequence;
+      private final BaseSequenceBuilder<?> sequence;
 
-      private Impl(StepBuilder<?> step, BaseSequenceBuilder sequence) {
+      private Impl(StepBuilder<?> step, BaseSequenceBuilder<?> sequence) {
          this.step = step;
          this.sequence = sequence;
       }
@@ -52,7 +52,7 @@ public interface Locator {
          return step;
       }
 
-      public BaseSequenceBuilder sequence() {
+      public BaseSequenceBuilder<?> sequence() {
          return sequence;
       }
 

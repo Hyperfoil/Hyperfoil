@@ -58,7 +58,7 @@ public class JsonStep implements Step, ResourceUtilizer {
    @MetaInfServices(StepBuilder.class)
    @Name("json")
    public static class Builder extends JsonParser.BaseBuilder<Builder> implements StepBuilder<Builder> {
-      private BaseSequenceBuilder parent;
+      private BaseSequenceBuilder<?> parent;
       private String fromVar;
 
       /**
@@ -87,7 +87,7 @@ public class JsonStep implements Step, ResourceUtilizer {
          return Collections.singletonList(new JsonStep(SessionFactory.access(fromVar), query, delete, replace, processor));
       }
 
-      public Builder addTo(BaseSequenceBuilder parent) {
+      public Builder addTo(BaseSequenceBuilder<?> parent) {
          if (this.parent != null) {
             throw new UnsupportedOperationException("Cannot add builder " + getClass().getName() + " to another sequence!");
          }

@@ -6,5 +6,5 @@ import io.hyperfoil.api.config.Step;
 public interface StepCatalogFactory {
    Class<? extends Step.Catalog> clazz();
 
-   Step.Catalog create(BaseSequenceBuilder sequenceBuilder);
+   Step.Catalog create(BaseSequenceBuilder<?> sequenceBuilder);
 }

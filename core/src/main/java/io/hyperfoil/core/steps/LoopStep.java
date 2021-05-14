@@ -74,7 +74,7 @@ public class LoopStep implements Step, ResourceUtilizer {
    public static class Builder implements StepBuilder<Builder> {
       private String counterVar;
       private int repeats;
-      private final BaseSequenceBuilder steps;
+      private final LoopSequenceBuilder steps;
 
       // This constructor is going to be used only for service-loaded instantiation
       // to find the @Name annotation
@@ -82,8 +82,8 @@ public class LoopStep implements Step, ResourceUtilizer {
          steps = null;
       }
 
-      public Builder(BaseSequenceBuilder parent) {
-         steps = new BaseSequenceBuilder(Objects.requireNonNull(parent)) {};
+      public Builder(BaseSequenceBuilder<?> parent) {
+         steps = new LoopSequenceBuilder(parent);
       }
 
       /**
@@ -124,7 +124,7 @@ public class LoopStep implements Step, ResourceUtilizer {
        *
        * @return Builder.
        */
-      public BaseSequenceBuilder steps() {
+      public LoopSequenceBuilder steps() {
          return steps;
       }
 
@@ -149,6 +149,12 @@ public class LoopStep implements Step, ResourceUtilizer {
          allSteps.addAll(steps.buildSteps());
          allSteps.add(new LoopStep(counter, repeats));
          return allSteps;
+      }
+   }
+
+   public static class LoopSequenceBuilder extends BaseSequenceBuilder<LoopSequenceBuilder> {
+      public LoopSequenceBuilder(BaseSequenceBuilder<?> parent) {
+         super(Objects.requireNonNull(parent));
       }
    }
 }

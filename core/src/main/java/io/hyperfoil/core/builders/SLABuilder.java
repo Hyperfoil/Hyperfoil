@@ -7,13 +7,12 @@ import java.util.concurrent.TimeUnit;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.MappingListBuilder;
 import io.hyperfoil.api.config.PairBuilder;
-import io.hyperfoil.api.config.Rewritable;
 import io.hyperfoil.core.util.Util;
 
 /**
  * Defines a Service Level Agreement (SLA) - conditions that must hold for benchmark to be deemed successful.
  */
-public class SLABuilder<P> implements Rewritable<SLABuilder<P>> {
+public class SLABuilder<P> {
    public static final SLA[] DEFAULT = new SLA[]{ new SLABuilder<>(null).build() };
    private final P parent;
    private long window = -1;
@@ -119,17 +118,6 @@ public class SLABuilder<P> implements Rewritable<SLABuilder<P>> {
       return new LimitsBuilder();
    }
 
-   @Override
-   public void readFrom(SLABuilder<P> other) {
-      window = other.window;
-      errorRatio = other.errorRatio;
-      invalidRatio = other.invalidRatio;
-      meanResponseTime = other.meanResponseTime;
-      blockedRatio = other.blockedRatio;
-      limits.clear();
-      limits.addAll(limits);
-   }
-
    /**
     * Percentile limits.
     */
@@ -162,7 +150,7 @@ public class SLABuilder<P> implements Rewritable<SLABuilder<P>> {
    /**
     * Defines a list of Service Level Agreements (SLAs) - conditions that must hold for benchmark to be deemed successful.
     */
-   public static class ListBuilder<P> implements MappingListBuilder<SLABuilder<ListBuilder<P>>>, Rewritable<ListBuilder<P>> {
+   public static class ListBuilder<P> implements MappingListBuilder<SLABuilder<ListBuilder<P>>> {
       private final P parent;
       private final ArrayList<SLABuilder<ListBuilder<P>>> sla = new ArrayList<>();
 
@@ -193,14 +181,6 @@ public class SLABuilder<P> implements Rewritable<SLABuilder<P>> {
 
       public SLA[] build() {
          return sla.stream().map(SLABuilder::build).toArray(SLA[]::new);
-      }
-
-      @Override
-      public void readFrom(ListBuilder<P> other) {
-         sla.clear();
-         for (SLABuilder<ListBuilder<P>> builder : other.sla) {
-            addItem().readFrom(builder);
-         }
       }
    }
 }

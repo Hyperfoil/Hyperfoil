@@ -106,8 +106,8 @@ public interface Processor extends Serializable {
       }
 
       @Override
-      public Processor.Builder copy() {
-         return new ActionBuilderAdapter(builder.copy());
+      public Processor.Builder copy(Object newParent) {
+         return new ActionBuilderAdapter(builder.copy(null));
       }
 
       @Override

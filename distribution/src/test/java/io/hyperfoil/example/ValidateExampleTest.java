@@ -33,7 +33,6 @@ import io.hyperfoil.core.parser.ParserException;
 import io.hyperfoil.core.print.YamlVisitor;
 import io.hyperfoil.core.util.Util;
 import io.hyperfoil.function.SerializableSupplier;
-import io.hyperfoil.http.config.HttpBuilder;
 import io.hyperfoil.http.config.HttpPluginBuilder;
 
 @RunWith(Parameterized.class)
@@ -80,11 +79,7 @@ public class ValidateExampleTest {
          BenchmarkBuilder original = BenchmarkParser.instance().builder(source, new LocalBenchmarkData(Paths.get(exampleFile)));
          BenchmarkBuilder builder = new BenchmarkBuilder(null, new LocalBenchmarkData(Paths.get(exampleFile)));
          HttpPluginBuilder plugin = builder.addPlugin(HttpPluginBuilder::new);
-         HttpPluginBuilder.httpForTesting(original).forEach(http -> {
-            HttpBuilder newHttp = plugin.decoupledHttp();
-            newHttp.readFrom(http);
-            plugin.addHttp(newHttp);
-         });
+         HttpPluginBuilder.httpForTesting(original).forEach(http -> plugin.addHttp(http.copy(plugin)));
          builder.prepareBuild();
          for (PhaseBuilder<?> phase : BenchmarkBuilder.phasesForTesting(original)) {
             TestingPhaseBuilder copy = new TestingPhaseBuilder(builder);
@@ -119,6 +114,7 @@ public class ValidateExampleTest {
       @Override
       protected Phase buildPhase(SerializableSupplier<Benchmark> benchmark, int phaseId, int iteration, PhaseForkBuilder f) {
          Scenario scenario = f.scenario().build();
+         assert scenario != null;
          return PhaseBuilder.noop(null, 0, 0, name, 0, null, null, null);
       }
 

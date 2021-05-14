@@ -83,7 +83,7 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
    private boolean injectHostHeader = true;
    private MetricSelector metricSelector;
    private long timeout = Long.MIN_VALUE;
-   private final HttpResponseHandlersImpl.Builder handler = new HttpResponseHandlersImpl.Builder(this);
+   private HttpResponseHandlersImpl.Builder handler = new HttpResponseHandlersImpl.Builder(this);
    private boolean sync = true;
    private SLABuilder.ListBuilder<HttpRequestStepBuilder> sla = null;
    private CompensationBuilder compensation;

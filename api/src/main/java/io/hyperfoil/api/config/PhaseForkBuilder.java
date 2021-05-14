@@ -1,11 +1,11 @@
 package io.hyperfoil.api.config;
 
-public class PhaseForkBuilder implements Rewritable<PhaseForkBuilder> {
+public class PhaseForkBuilder {
    final String name;
    final ScenarioBuilder scenario;
    double weight = 1;
 
-   public PhaseForkBuilder(PhaseBuilder parent, String name) {
+   public PhaseForkBuilder(PhaseBuilder<?> parent, String name) {
       this.name = name;
       this.scenario = new ScenarioBuilder(parent);
    }
@@ -19,7 +19,6 @@ public class PhaseForkBuilder implements Rewritable<PhaseForkBuilder> {
       return scenario;
    }
 
-   @Override
    public void readFrom(PhaseForkBuilder other) {
       this.weight = other.weight;
       this.scenario.readFrom(other.scenario);

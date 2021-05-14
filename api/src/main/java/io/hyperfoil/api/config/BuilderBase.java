@@ -1,12 +1,16 @@
 package io.hyperfoil.api.config;
 
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * Intended base for all builders that might need relocation when the step is copied over.
@@ -38,7 +42,7 @@ public interface BuilderBase<S extends BuilderBase<S>> {
                } else if (BaseSequenceBuilder.class.isAssignableFrom(f.getType())) {
                   Object value = f.get(this);
                   if (value != null) {
-                     ((BaseSequenceBuilder) value).prepareBuild();
+                     ((BaseSequenceBuilder<?>) value).prepareBuild();
                   }
                } else if (f.getType().isArray()) {
                   throw new UnsupportedOperationException(clz.getName() + "." + f.getName() + " is an array (actual instance: " + this + ")");
@@ -60,13 +64,13 @@ public interface BuilderBase<S extends BuilderBase<S>> {
     * in that case the deep copy is not necessary and this method can return <code>this</code>.
     * <p>
     * The default implementation uses reflection to create a deep copy of all collections and maps,
-    * calling {@link #copy()} on all objects implementing {@link BuilderBase} and performing
-    * a manual copy on those implementing {@link Rewritable}.
+    * calling <code>copy()</code> on all objects implementing {@link BuilderBase}.
     *
+    * @param newParent Object passed to a matching constructor.
     * @return Deep copy of this object.
     */
    @SuppressWarnings("unchecked")
-   default S copy() {
+   default S copy(Object newParent) {
       if (getClass().isSynthetic()) {
          // This is most likely a lambda supplier of the instance (which should be immutable anyway)
          assert getClass().getSimpleName().contains("$$Lambda$");
@@ -77,12 +81,15 @@ public interface BuilderBase<S extends BuilderBase<S>> {
          for (Constructor<?> ctor : getClass().getConstructors()) {
             if (ctor.getParameterCount() == 0) {
                copy = (BuilderBase<?>) ctor.newInstance();
-               break;
+               // no break - copy constructor is preferred
             } else if (ctor.getParameterCount() == 1) {
-               if (ctor.getParameterTypes()[0] == getClass()) {
+               Class<?> parameterType = ctor.getParameterTypes()[0];
+               if (parameterType == getClass()) {
                   // copy constructor
                   copy = (BuilderBase<?>) ctor.newInstance(this);
                   break;
+               } else if (newParent != null && parameterType.isAssignableFrom(newParent.getClass())) {
+                  copy = (BuilderBase<?>) ctor.newInstance(newParent);
                }
             }
          }
@@ -94,36 +101,28 @@ public interface BuilderBase<S extends BuilderBase<S>> {
             for (Field f : cls.getDeclaredFields()) {
                f.setAccessible(true);
                if (Modifier.isStatic(f.getModifiers())) {
-                  continue;
-               } else if (Rewritable.class.isAssignableFrom(f.getType())) {
-                  Object thisRewritable = f.get(this);
-                  if (thisRewritable == null) {
-                     continue;
-                  }
-                  Rewritable<Object> copyRewritable = (Rewritable<Object>) f.get(copy);
-                  if (copyRewritable == null) {
-                     copyRewritable = (Rewritable<Object>) thisRewritable.getClass().getConstructor().newInstance();
-                     f.set(copy, copyRewritable);
-                  }
-                  copyRewritable.readFrom(thisRewritable);
+                  // do not copy static fields
+               } else if (f.isAnnotationPresent(IgnoreCopy.class)) {
+                  // field is intentionally omitted
                } else if (Modifier.isFinal(f.getModifiers())) {
                   Object thisValue = f.get(this);
                   Object copyValue = f.get(copy);
                   if (thisValue == copyValue) {
                      // usually happens when the value is null
-                     continue;
                   } else if (copyValue instanceof Collection) {
                      // final collections can only get the elements
                      Collection<Object> copyCollection = (Collection<Object>) copyValue;
                      copyCollection.clear();
-                     copyCollection.addAll((Collection<?>) CopyUtil.deepCopy(thisValue));
-                     continue;
+                     copyCollection.addAll((Collection<?>) CopyUtil.deepCopy(thisValue, copy));
                   } else if (f.getName().equals("parent")) {
                      // Fluent builders often require parent element reference; in YAML configuration these are not used.
-                     continue;
+                  } else if (copyValue instanceof BaseSequenceBuilder && thisValue instanceof BaseSequenceBuilder) {
+                     List<StepBuilder<?>> newSteps = ((BaseSequenceBuilder<?>) copyValue).steps;
+                     ((BaseSequenceBuilder<?>) thisValue).steps.forEach(sb -> newSteps.add(sb.copy(copyValue)));
+                  } else {
+                     // This could be e.g. final list and we wouldn't copy it
+                     throw new UnsupportedOperationException(cls.getName() + "." + f.getName() + " is final (actual instance: " + this + ")");
                   }
-                  // This could be e.g. final list and we wouldn't copy it
-                  throw new UnsupportedOperationException(cls.getName() + "." + f.getName() + " is final (actual instance: " + this + ")");
                } else if (f.getType().isPrimitive()) {
                   if (f.getType() == boolean.class) {
                      f.setBoolean(copy, f.getBoolean(this));
@@ -145,10 +144,15 @@ public interface BuilderBase<S extends BuilderBase<S>> {
                      throw new UnsupportedOperationException("Unknown primitive: " + f.getType());
                   }
                } else if (f.getType().isArray()) {
-                  // use list in builders
-                  throw new UnsupportedOperationException(cls.getName() + "." + f.getName() + " is an array (actual instance: " + this + ")");
+                  if (f.getType().getComponentType() == byte.class) {
+                     byte[] bytes = (byte[]) f.get(this);
+                     f.set(copy, bytes == null ? null : Arrays.copyOf(bytes, bytes.length));
+                  } else {
+                     // use list in builders
+                     throw new UnsupportedOperationException(cls.getName() + "." + f.getName() + " is an array (actual instance: " + this + ")");
+                  }
                } else {
-                  f.set(copy, CopyUtil.deepCopy(f.get(this)));
+                  f.set(copy, CopyUtil.deepCopy(f.get(this), copy));
                }
             }
             cls = cls.getSuperclass();
@@ -159,22 +163,18 @@ public interface BuilderBase<S extends BuilderBase<S>> {
       }
    }
 
-   static <T extends BuilderBase<T>> List<T> copy(Collection<T> builders) {
-      return builders.stream().map(b -> b.copy()).collect(Collectors.toList());
-   }
-
    class CopyUtil {
-      private static Object deepCopy(Object o) throws ReflectiveOperationException {
+      private static Object deepCopy(Object o, Object newParent) throws ReflectiveOperationException {
          if (o == null) {
             return null;
          } else if (BuilderBase.class.isAssignableFrom(o.getClass())) {
-            return ((BuilderBase<?>) o).copy();
+            return ((BuilderBase<?>) o).copy(newParent);
          } else if (Collection.class.isAssignableFrom(o.getClass())) {
             Collection<?> thisCollection = (Collection<?>) o;
             @SuppressWarnings("unchecked")
             Collection<Object> newCollection = thisCollection.getClass().getConstructor().newInstance();
             for (Object item : thisCollection) {
-               newCollection.add(deepCopy(item));
+               newCollection.add(deepCopy(item, newParent));
             }
             return newCollection;
          } else if (Map.class.isAssignableFrom(o.getClass())) {
@@ -182,12 +182,20 @@ public interface BuilderBase<S extends BuilderBase<S>> {
             @SuppressWarnings("unchecked")
             Map<Object, Object> newMap = thisMap.getClass().getConstructor().newInstance();
             for (Map.Entry<?, ?> entry : thisMap.entrySet()) {
-               newMap.put(deepCopy(entry.getKey()), deepCopy(entry.getValue()));
+               newMap.put(deepCopy(entry.getKey(), null), deepCopy(entry.getValue(), newParent));
             }
             return newMap;
          } else {
             return o;
          }
       }
+   }
+
+   /**
+    * Used to ignore copying the field (e.g. when it's final, or we don't want to call it 'parent').
+    */
+   @Target(ElementType.FIELD)
+   @Retention(RetentionPolicy.RUNTIME)
+   @interface IgnoreCopy {
    }
 }

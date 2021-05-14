@@ -15,9 +15,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 
-import io.hyperfoil.api.config.BuilderBase;
 import io.hyperfoil.api.config.Locator;
-import io.hyperfoil.api.config.Rewritable;
 import io.hyperfoil.api.config.SequenceBuilder;
 import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.connection.Request;
@@ -362,7 +360,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
    /**
     * Manages processing of HTTP responses.
     */
-   public static class Builder implements Rewritable<Builder> {
+   public static class Builder {
       private final HttpRequestStepBuilder parent;
       private Boolean autoRangeCheck;
       private Boolean stopOnInvalid;
@@ -599,13 +597,14 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
             // different method variable for current sequence and new sequence since these have incompatible
             // indices - had we used the same var one sequence would overwrite other's var.
             Unique newTempCoordsVar = new Unique(true);
-            HttpRequestStepBuilder.BodyGeneratorBuilder bodyBuilder = parent.bodyBuilder();
+            HttpRequestStepBuilder step = (HttpRequestStepBuilder) locator.step();
+            HttpRequestStepBuilder.BodyGeneratorBuilder bodyBuilder = step.bodyBuilder();
             HttpRequestStepBuilder httpRequest = new HttpRequestStepBuilder()
                   .method(() -> new Redirect.GetMethod(sequenceScopedAccess(coordsVar)))
                   .path(() -> new Location.GetPath(sequenceScopedAccess(coordsVar)))
                   .authority(() -> new Location.GetAuthority(sequenceScopedAccess(coordsVar)))
-                  .headerAppenders(parent.headerAppenders())
-                  .body(bodyBuilder == null ? null : bodyBuilder.copy())
+                  .headerAppenders(step.headerAppenders())
+                  .body(bodyBuilder == null ? null : bodyBuilder.copy(null))
                   .sync(false)
                   // we want to reuse the same sequence for subsequent requests
                   .handler().followRedirect(FollowRedirect.NEVER).endHandler();
@@ -731,18 +730,6 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          } else {
             return list.stream().map(build).toArray(generator);
          }
-      }
-
-      @Override
-      public void readFrom(Builder other) {
-         statusHandlers.addAll(BuilderBase.copy(other.statusHandlers));
-         headerHandlers.addAll(BuilderBase.copy(other.headerHandlers));
-         bodyHandlers.addAll(BuilderBase.copy(other.bodyHandlers));
-         completionHandlers.addAll(BuilderBase.copy(other.completionHandlers));
-         rawBytesHandlers.addAll(BuilderBase.copy(other.rawBytesHandlers));
-         autoRangeCheck = other.autoRangeCheck;
-         stopOnInvalid = other.stopOnInvalid;
-         followRedirect = other.followRedirect;
       }
    }
 

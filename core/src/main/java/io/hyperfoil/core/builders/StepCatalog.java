@@ -41,9 +41,9 @@ import io.hyperfoil.impl.StepCatalogFactory;
 public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.Owner<StepBuilder> {
    public static Class<StepCatalog> SC = StepCatalog.class;
 
-   protected final BaseSequenceBuilder parent;
+   protected final BaseSequenceBuilder<?> parent;
 
-   protected StepCatalog(BaseSequenceBuilder parent) {
+   protected StepCatalog(BaseSequenceBuilder<?> parent) {
       this.parent = parent;
    }
 
@@ -59,7 +59,7 @@ public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.O
     * @param name Name of the instantiated sequence.
     * @return This sequence.
     */
-   public BaseSequenceBuilder nextSequence(String name) {
+   public BaseSequenceBuilder<?> nextSequence(String name) {
       return parent.step(new NextSequenceStep(name));
    }
 
@@ -79,7 +79,7 @@ public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.O
     *
     * @return This sequence.
     */
-   public BaseSequenceBuilder stop() {
+   public BaseSequenceBuilder<?> stop() {
       return parent.step(new StopStep());
    }
 
@@ -103,7 +103,7 @@ public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.O
     * @param key Delay point created in <code>scheduleDelay.key</code>.
     * @return This sequence.
     */
-   public BaseSequenceBuilder awaitDelay(String key) {
+   public BaseSequenceBuilder<?> awaitDelay(String key) {
       return parent.step(() -> new AwaitDelayStep(SessionFactory.access(key)));
    }
 
@@ -145,7 +145,7 @@ public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.O
     * @param condition Condition predicate.
     * @return This sequence.
     */
-   public BaseSequenceBuilder awaitCondition(SerializablePredicate<Session> condition) {
+   public BaseSequenceBuilder<?> awaitCondition(SerializablePredicate<Session> condition) {
       return parent.step(new AwaitConditionStep(condition));
    }
 
@@ -166,11 +166,11 @@ public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.O
     * @param var Variable name or <code>!variable</code> if we are waiting for it to be unset.
     * @return This sequence.
     */
-   public BaseSequenceBuilder awaitVar(String var) {
+   public BaseSequenceBuilder<?> awaitVar(String var) {
       return parent.stepBuilder(new AwaitVarStep.Builder().var(var));
    }
 
-   public BaseSequenceBuilder action(Action.Builder builder) {
+   public BaseSequenceBuilder<?> action(Action.Builder builder) {
       return parent.stepBuilder(new StepBuilder.ActionAdapter(builder));
    }
 
@@ -263,7 +263,7 @@ public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.O
       }
 
       @Override
-      public Step.Catalog create(BaseSequenceBuilder sequenceBuilder) {
+      public Step.Catalog create(BaseSequenceBuilder<?> sequenceBuilder) {
          return new StepCatalog(sequenceBuilder);
       }
    }

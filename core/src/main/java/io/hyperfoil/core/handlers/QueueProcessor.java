@@ -184,8 +184,7 @@ public class QueueProcessor implements Processor, ResourceUtilizer {
          if (sequenceBuilder == null) {
             SequenceBuilder originalSequence = locator.scenario().findSequence(sequence);
             String generatedSeqName = String.format("%s_queue_%08x", this.sequence, ThreadLocalRandom.current().nextInt());
-            sequenceBuilder = locator.scenario().sequence(generatedSeqName);
-            sequenceBuilder.readFrom(originalSequence);
+            sequenceBuilder = locator.scenario().sequence(generatedSeqName, originalSequence);
          }
          Queue.Key myKey = key; // prevent capturing self reference
          if (sequenceCompletion == null) {

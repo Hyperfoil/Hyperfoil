@@ -33,7 +33,7 @@ public class AwaitConditionStep implements Step {
       }
 
       @Override
-      public Builder copy() {
+      public Builder copy(Object newParent) {
          return this;
       }
 

@@ -11,17 +11,17 @@ import java.util.stream.Collectors;
 
 import io.hyperfoil.impl.StepCatalogFactory;
 
-public abstract class BaseSequenceBuilder implements Rewritable<BaseSequenceBuilder> {
+public abstract class BaseSequenceBuilder<S extends BaseSequenceBuilder<S>> implements BuilderBase<S> {
    private static final Map<Class<? extends Step.Catalog>, StepCatalogFactory> factories = new HashMap<>();
 
-   protected final BaseSequenceBuilder parent;
+   protected final BaseSequenceBuilder<?> parent;
    protected final List<StepBuilder<?>> steps = new ArrayList<>();
 
    static {
       ServiceLoader.load(StepCatalogFactory.class).forEach(factory -> factories.put(factory.clazz(), factory));
    }
 
-   public BaseSequenceBuilder(BaseSequenceBuilder parent) {
+   public BaseSequenceBuilder(BaseSequenceBuilder<?> parent) {
       this.parent = parent;
    }
 
@@ -38,23 +38,28 @@ public abstract class BaseSequenceBuilder implements Rewritable<BaseSequenceBuil
       }
    }
 
-   public BaseSequenceBuilder step(Step step) {
-      steps.add(new ProvidedStepBuilder(step));
-      return this;
+   @SuppressWarnings("unchecked")
+   public S self() {
+      return (S) this;
    }
 
-   public BaseSequenceBuilder step(SimpleBuilder builder) {
+   public S step(Step step) {
+      steps.add(new ProvidedStepBuilder(step));
+      return self();
+   }
+
+   public S step(SimpleBuilder builder) {
       steps.add(new SimpleAdapter(builder));
-      return this;
+      return self();
    }
 
    // Calling this method step() would cause ambiguity with step(Step) defined through lambda
-   public BaseSequenceBuilder stepBuilder(StepBuilder<?> stepBuilder) {
+   public S stepBuilder(StepBuilder<?> stepBuilder) {
       steps.add(stepBuilder);
-      return this;
+      return self();
    }
 
-   public BaseSequenceBuilder end() {
+   public BaseSequenceBuilder<?> end() {
       return parent;
    }
 
@@ -66,25 +71,19 @@ public abstract class BaseSequenceBuilder implements Rewritable<BaseSequenceBuil
       return rootSequence().endSequence();
    }
 
-   @Override
-   public void readFrom(BaseSequenceBuilder other) {
-      assert steps.isEmpty();
-      other.steps.forEach(s -> stepBuilder(s.copy()));
-   }
-
    public String name() {
-      return parent.name();
+      return rootSequence().name();
    }
 
-   public BaseSequenceBuilder insertBefore(Locator locator) {
+   public BaseSequenceBuilder<?> insertBefore(Locator locator) {
       return insertWithOffset(locator, 0);
    }
 
-   public BaseSequenceBuilder insertAfter(Locator locator) {
+   public BaseSequenceBuilder<?> insertAfter(Locator locator) {
       return insertWithOffset(locator, 1);
    }
 
-   private BaseSequenceBuilder insertWithOffset(Locator locator, int offset) {
+   private StepInserter insertWithOffset(Locator locator, int offset) {
       for (int i = 0; i < steps.size(); ++i) {
          if (steps.get(i) == locator.step()) {
             StepInserter inserter = new StepInserter(this);
@@ -129,8 +128,8 @@ public abstract class BaseSequenceBuilder implements Rewritable<BaseSequenceBuil
       Step build();
    }
 
-   private static class StepInserter extends BaseSequenceBuilder implements StepBuilder<StepInserter> {
-      private StepInserter(BaseSequenceBuilder parent) {
+   private static class StepInserter extends BaseSequenceBuilder<StepInserter> implements StepBuilder<StepInserter> {
+      private StepInserter(BaseSequenceBuilder<?> parent) {
          super(parent);
       }
 
@@ -153,7 +152,7 @@ public abstract class BaseSequenceBuilder implements Rewritable<BaseSequenceBuil
       }
 
       @Override
-      public ProvidedStepBuilder copy() {
+      public ProvidedStepBuilder copy(Object newParent) {
          // This builder is immutable
          return this;
       }
