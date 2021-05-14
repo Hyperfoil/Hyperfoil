@@ -179,8 +179,9 @@ public class RunRefImpl implements Client.RunRef {
 
    @Override
    public byte[] report(String source) {
+      String path = "/run/" + id + "/report" + (source != null && !source.isEmpty() ? "?source=" + source : "");
       return client.sync(
-            handler -> client.request(HttpMethod.GET, "/run/" + id + "/report").send(handler), 200,
+            handler -> client.request(HttpMethod.GET, path).send(handler), 200,
             response -> response.body().getBytes()
       );
    }
