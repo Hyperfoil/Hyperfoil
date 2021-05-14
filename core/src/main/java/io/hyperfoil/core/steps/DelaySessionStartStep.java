@@ -4,8 +4,8 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 import io.hyperfoil.api.config.Model;
-import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.config.Step;
+import io.hyperfoil.api.session.PhaseInstance;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.netty.util.concurrent.ScheduledFuture;
@@ -38,8 +38,8 @@ public class DelaySessionStartStep implements Step, ResourceUtilizer {
          holder.phase = session.phase();
       }
       if (holder.startTimeWithOffset == Long.MIN_VALUE) {
-         int users = ((Model.Always) session.phase().model).users;
-         double targetRate = this.targetRate + this.targetRateIncrement * session.phase().iteration;
+         int users = ((Model.Always) session.phase().definition().model).users;
+         double targetRate = this.targetRate + this.targetRateIncrement * session.phase().definition().iteration;
          holder.period = users * 1000 / targetRate;
          holder.startTimeWithOffset = session.phaseStartTimestamp();
          if (randomize && holder.period >= 1) {
@@ -73,7 +73,7 @@ public class DelaySessionStartStep implements Step, ResourceUtilizer {
       public long startTimeWithOffset = Long.MIN_VALUE;
       public double period;
       public ScheduledFuture<Void> future;
-      public Phase phase;
+      public PhaseInstance phase;
 
       public long lastStartTime() {
          return startTimeWithOffset + (long) ((iteration - 1) * period);

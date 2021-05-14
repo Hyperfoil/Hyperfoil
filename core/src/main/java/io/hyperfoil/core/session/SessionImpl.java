@@ -138,8 +138,8 @@ class SessionImpl implements Session {
    }
 
    @Override
-   public Phase phase() {
-      return phase != null ? phase.definition() : null;
+   public PhaseInstance phase() {
+      return phase;
    }
 
    @Override
@@ -546,7 +546,7 @@ class SessionImpl implements Session {
    @Override
    public void fail(Throwable t) {
       try {
-         log.error(new FormattedMessage("#{} Failing phase {}", uniqueId, phase().name), t);
+         log.error(new FormattedMessage("#{} Failing phase {}", uniqueId, phase.definition().name), t);
          stop();
       } finally {
          phase.fail(t);

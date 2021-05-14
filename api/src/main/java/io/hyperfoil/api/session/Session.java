@@ -38,7 +38,7 @@ public interface Session extends Callable<Void> {
 
    SharedData sharedData();
 
-   Phase phase();
+   PhaseInstance phase();
 
    long phaseStartTimestamp();
 
