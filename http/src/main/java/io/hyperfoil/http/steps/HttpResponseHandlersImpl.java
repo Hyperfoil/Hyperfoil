@@ -15,6 +15,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 
+import io.hyperfoil.api.config.BuilderBase;
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.SequenceBuilder;
 import io.hyperfoil.api.config.StepBuilder;
@@ -360,7 +361,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
    /**
     * Manages processing of HTTP responses.
     */
-   public static class Builder {
+   public static class Builder implements BuilderBase<Builder> {
       private final HttpRequestStepBuilder parent;
       private Boolean autoRangeCheck;
       private Boolean stopOnInvalid;
@@ -375,7 +376,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
          return new Builder(null);
       }
 
-      Builder(HttpRequestStepBuilder parent) {
+      public Builder(HttpRequestStepBuilder parent) {
          this.parent = parent;
       }
 
