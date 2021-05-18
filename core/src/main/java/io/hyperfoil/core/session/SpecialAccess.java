@@ -26,6 +26,16 @@ abstract class SpecialAccess implements ReadAccess {
    }
 
    @Override
+   public void setIndex(int index) {
+      throw new UnsupportedOperationException();
+   }
+
+   @Override
+   public int index() {
+      throw new UnsupportedOperationException();
+   }
+
+   @Override
    public boolean isSet(Session session) {
       return true;
    }

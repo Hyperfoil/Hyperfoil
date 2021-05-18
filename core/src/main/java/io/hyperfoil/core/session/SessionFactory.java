@@ -10,10 +10,12 @@ import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.config.Scenario;
 import io.hyperfoil.api.config.Sequence;
+import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.session.ObjectAccess;
 import io.hyperfoil.api.session.IntAccess;
 import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
+import io.hyperfoil.api.session.WriteAccess;
 import io.hyperfoil.core.impl.PhaseInstanceImpl;
 import io.hyperfoil.core.util.Unique;
 import io.netty.util.concurrent.EventExecutorGroup;
@@ -38,8 +40,12 @@ public final class SessionFactory {
       return new SessionImpl(scenario, executorId, uniqueId);
    }
 
-   public static Session forTesting() {
-      Scenario dummyScenario = new Scenario(new Sequence[0], new Sequence[0], 16, 16);
+   public static Session forTesting(WriteAccess... accesses) {
+      Scenario dummyScenario = new Scenario(new Sequence[0], new Sequence[] {
+            new Sequence("dummy", 0, 1, 0, new Step[0]) {
+               WriteAccess[] dummyAccesses = accesses;
+            }
+      }, 16, 16);
       SessionImpl session = new SessionImpl(dummyScenario, 0, 0);
       Phase dummyPhase = new Phase(Benchmark::forTesting, 0, 0, "dummy", dummyScenario, 0,
             Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), 0, -1, null, false, () -> "dummy");

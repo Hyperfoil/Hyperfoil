@@ -36,11 +36,6 @@ public class ObjectVar implements Session.Var {
       set = false;
    }
 
-   public Object get() {
-      assert set;
-      return value;
-   }
-
    public void set(Object value) {
       this.value = value;
       this.set = true;

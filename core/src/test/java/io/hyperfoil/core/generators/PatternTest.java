@@ -92,22 +92,21 @@ public class PatternTest {
    }
 
    private Session setObject(String name, String value) {
-      Session session = SessionFactory.forTesting();
       ObjectAccess var = SessionFactory.objectAccess(name);
-      var.reserve(session);
+      Session session = SessionFactory.forTesting(var);
       var.setObject(session, value);
       return session;
    }
 
    private Session setInt(String name, int value) {
-      Session session = SessionFactory.forTesting();
       IntAccess var = SessionFactory.intAccess(name);
-      var.reserve(session);
+      Session session = SessionFactory.forTesting(var);
       var.setInt(session, value);
       return session;
    }
 
    private void test(Pattern pattern, Session session, String expected) {
+      TestUtil.resolveAccess(session, pattern);
       String str = pattern.apply(session);
       assertThat(str).isEqualTo(expected);
       ByteBuf buf = ByteBufAllocator.DEFAULT.buffer();

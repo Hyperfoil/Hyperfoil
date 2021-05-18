@@ -1,5 +1,8 @@
 package io.hyperfoil.core.session;
 
+import java.util.Arrays;
+
+import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.session.ObjectAccess;
 import io.hyperfoil.api.session.Session;
 
@@ -9,15 +12,32 @@ class SequenceScopedObjectAccess extends SequenceScopedReadAccess implements Obj
    }
 
    @Override
-   public void reserve(Session session) {
+   public Session.Var createVar(Session session, Session.Var existing) {
       // When a step/action sets a variable, it doesn't know if that's a global or sequence-scoped
       // and must declare it, just in case.
       SessionImpl impl = (SessionImpl) session;
-      impl.reserveObjectVar(key);
-      ObjectVar var = impl.getVar(key);
-      if (!var.isSet() && var.objectValue(session) == null) {
-         var.set(ObjectVar.newArray(session, maxConcurrency));
+      if (existing == null) {
+         existing = new ObjectVar(impl);
       }
+      if (!(existing instanceof ObjectVar)) {
+         throw new BenchmarkDefinitionException("Variable " + key + " should hold an object but it is defined to hold an integer elsewhere.");
+      }
+      Object contents = existing.objectValue(session);
+      if (contents == null) {
+         ((ObjectVar) existing).set(ObjectVar.newArray(session, maxConcurrency));
+      } else if (contents instanceof ObjectVar[]) {
+         ObjectVar[] oldArray = (ObjectVar[]) contents;
+         if (oldArray.length < maxConcurrency) {
+            ObjectVar[] newArray = Arrays.copyOf(oldArray, maxConcurrency);
+            for (int i = oldArray.length; i < newArray.length; ++i) {
+               newArray[i] = new ObjectVar(impl);
+            }
+            ((ObjectVar) existing).set(newArray);
+         }
+      } else {
+         throw new BenchmarkDefinitionException("Unexpected content in " + key + ": should hold array of ObjectVar but holds " + contents);
+      }
+      return existing;
    }
 
    @Override

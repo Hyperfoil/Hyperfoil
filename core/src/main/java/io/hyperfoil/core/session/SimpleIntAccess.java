@@ -1,5 +1,6 @@
 package io.hyperfoil.core.session;
 
+import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.session.IntAccess;
 import io.hyperfoil.api.session.Session;
 
@@ -9,8 +10,14 @@ public class SimpleIntAccess extends SimpleReadAccess implements IntAccess {
    }
 
    @Override
-   public void reserve(Session session) {
-      ((SessionImpl) session).reserveIntVar(key);
+   public Session.Var createVar(Session session, Session.Var existing) {
+      if (existing == null) {
+         return new IntVar((SessionImpl) session);
+      } else if (existing instanceof IntVar) {
+         return existing;
+      } else {
+         throw new BenchmarkDefinitionException("Variable " + key + " should hold an integer but it is defined to hold an object elsewhere.");
+      }
    }
 
    @Override
@@ -19,14 +26,14 @@ public class SimpleIntAccess extends SimpleReadAccess implements IntAccess {
       if (trace) {
          log.trace("#{} {} <- {}", impl.uniqueId(), key, value);
       }
-      impl.<IntVar>getVar(key).set(value);
+      impl.<IntVar>getVar(index).set(value);
    }
 
    @Override
    public int addToInt(Session session, int delta) {
       SessionImpl impl = (SessionImpl) session;
-      IntVar var = impl.requireSet(key);
-      int prev = var.get();
+      IntVar var = impl.requireSet(index, key);
+      int prev = var.intValue(session);
       if (trace) {
          log.trace("#{} {} <- {}", impl.uniqueId(), key, prev + delta);
       }
@@ -37,6 +44,6 @@ public class SimpleIntAccess extends SimpleReadAccess implements IntAccess {
    @Override
    public void unset(Session session) {
       SessionImpl impl = (SessionImpl) session;
-      impl.getVar(key).unset();
+      impl.getVar(index).unset();
    }
 }

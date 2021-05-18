@@ -3,6 +3,7 @@ package io.hyperfoil.http.handlers;
 import org.junit.Test;
 
 import io.hyperfoil.api.config.Locator;
+import io.hyperfoil.api.session.WriteAccess;
 import io.hyperfoil.core.handlers.ExpectProcessor;
 import io.hyperfoil.http.BaseMockConnection;
 import io.hyperfoil.http.api.HttpRequest;
@@ -22,6 +23,7 @@ public class FilterHeaderHandlerTest {
             .header().value("foo").end()
             .build();
       HttpRequest request = requestMock();
+      TestUtil.resolveAccess(request.session, handler);
       handler.beforeHeaders(request);
       handler.handleHeader(request, "Foo", "barxxx");
       handler.handleHeader(request, "moo", "xxx");
@@ -37,6 +39,7 @@ public class FilterHeaderHandlerTest {
             .header().startsWith("foo").end()
             .build();
       HttpRequest request = requestMock();
+      TestUtil.resolveAccess(request.session, handler);
       handler.beforeHeaders(request);
       handler.handleHeader(request, "FooBar", "barxxx");
       handler.handleHeader(request, "fo", "xxx");
@@ -53,6 +56,7 @@ public class FilterHeaderHandlerTest {
             .header().endsWith("bar").end()
             .build();
       HttpRequest request = requestMock();
+      TestUtil.resolveAccess(request.session, handler);
       handler.beforeHeaders(request);
       handler.handleHeader(request, "FooBar", "barxxx");
       handler.handleHeader(request, "ar", "xxx");
@@ -71,9 +75,9 @@ public class FilterHeaderHandlerTest {
             .matchVar("myVar")
             .end()
             .build();
-      HttpRequest request = requestMock();
       ObjectAccess access = SessionFactory.objectAccess("myVar");
-      access.reserve(request.session);
+      HttpRequest request = requestMock(access);
+      TestUtil.resolveAccess(request.session, handler);
       access.setObject(request.session, "Foo");
       Locator.pop();
 
@@ -84,8 +88,8 @@ public class FilterHeaderHandlerTest {
       expect.validate();
    }
 
-   private HttpRequest requestMock() {
-      HttpRequest request = new HttpRequest(SessionFactory.forTesting());
+   private HttpRequest requestMock(WriteAccess... accesses) {
+      HttpRequest request = new HttpRequest(SessionFactory.forTesting(accesses));
       request.attach(new BaseMockConnection() {
          @Override
          public ChannelHandlerContext context() {

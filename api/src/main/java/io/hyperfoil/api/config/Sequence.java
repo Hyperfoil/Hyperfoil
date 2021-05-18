@@ -1,14 +1,9 @@
 package io.hyperfoil.api.config;
 
 import java.io.Serializable;
-import java.util.Objects;
-import java.util.stream.Stream;
 
-import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.api.session.WriteAccess;
-import io.hyperfoil.impl.ResourceVisitor;
 
 /**
  * Sequences are a series of one or more {@link Step}'s that perform one logical unit of operation. Steps within a Sequence are executed in order.
@@ -23,8 +18,6 @@ public class Sequence implements Serializable {
    private final int concurrency;
    private final int offset;
    private final Step[] steps;
-   private final ReadAccess[] reads;
-   private final WriteAccess[] writes;
    private final ResourceUtilizer[] resourceUtilizers;
 
    public Sequence(String name, int id, int concurrency, int offset, Step[] steps) {
@@ -33,10 +26,9 @@ public class Sequence implements Serializable {
       this.concurrency = concurrency;
       this.offset = offset;
       this.steps = steps;
-      ResourceVisitor visitor = new ResourceVisitor(this);
+      ResourceUtilizer.Visitor visitor = new ResourceUtilizer.Visitor();
+      visitor.visit(this.steps);
       this.resourceUtilizers = visitor.resourceUtilizers();
-      this.reads = visitor.reads();
-      this.writes = visitor.writes();
    }
 
    public int id() {
@@ -55,9 +47,6 @@ public class Sequence implements Serializable {
    }
 
    public void reserve(Session session) {
-      for (WriteAccess access : writes) {
-         access.reserve(session);
-      }
       for (ResourceUtilizer ru : resourceUtilizers) {
          ru.reserve(session);
       }
@@ -69,13 +58,5 @@ public class Sequence implements Serializable {
 
    public Step[] steps() {
       return steps;
-   }
-
-   Stream<Object> readKeys() {
-      return Stream.of(reads).map(ReadAccess::key).filter(Objects::nonNull);
-   }
-
-   Stream<Object> writtenKeys() {
-      return Stream.of(writes).map(ReadAccess::key).filter(Objects::nonNull);
    }
 }

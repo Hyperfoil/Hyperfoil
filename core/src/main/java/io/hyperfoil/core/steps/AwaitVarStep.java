@@ -51,6 +51,16 @@ public class AwaitVarStep extends DependencyStep {
       }
 
       @Override
+      public void setIndex(int index) {
+         access.setIndex(index);
+      }
+
+      @Override
+      public int index() {
+         return access.index();
+      }
+
+      @Override
       public boolean isSequenceScoped() {
          return access.isSequenceScoped();
       }

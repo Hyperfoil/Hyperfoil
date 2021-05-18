@@ -3,22 +3,20 @@ package io.hyperfoil.core.session;
 import java.lang.reflect.Array;
 import java.util.List;
 
-import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
 
-class SequenceScopedReadAccess implements ReadAccess {
-   protected final Object key;
+class SequenceScopedReadAccess extends BaseAccess {
    protected final int maxConcurrency;
 
    public SequenceScopedReadAccess(Object key, int maxConcurrency) {
-      this.key = key;
+      super(key);
       this.maxConcurrency = maxConcurrency;
    }
 
    @Override
    public boolean isSet(Session session) {
       SessionImpl impl = (SessionImpl) session;
-      ObjectVar var = impl.getVar(key);
+      ObjectVar var = impl.getVar(index);
       if (!var.isSet()) {
          return false;
       }
@@ -79,11 +77,6 @@ class SequenceScopedReadAccess implements ReadAccess {
    }
 
    @Override
-   public Object key() {
-      return key;
-   }
-
-   @Override
    public boolean isSequenceScoped() {
       return true;
    }
@@ -95,7 +88,7 @@ class SequenceScopedReadAccess implements ReadAccess {
 
    protected Object getItem(Session session) {
       SessionImpl impl = (SessionImpl) session;
-      ObjectVar var = impl.getVar(key);
+      ObjectVar var = impl.getVar(index);
       if (!var.isSet()) {
          throw new IllegalStateException("Variable " + key + " is not set!");
       }
@@ -122,7 +115,7 @@ class SequenceScopedReadAccess implements ReadAccess {
 
    protected ObjectVar getVarToSet(Session session) {
       SessionImpl impl = (SessionImpl) session;
-      Session.Var var = impl.getVar(key);
+      Session.Var var = impl.getVar(index);
       if (var instanceof ObjectVar) {
          ObjectVar ov = (ObjectVar) var;
          ov.set = true;

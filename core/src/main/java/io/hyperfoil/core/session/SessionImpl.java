@@ -32,9 +32,7 @@ class SessionImpl implements Session {
    private static final Logger log = LogManager.getLogger(SessionImpl.class);
    private static final boolean trace = log.isTraceEnabled();
 
-   // Note: HashMap.get() is allocation-free, so we can use it for direct lookups. Replacing put() is also
-   // allocation-free, so vars are OK to write as long as we have them declared.
-   private final Map<Object, Var> vars = new HashMap<>();
+   private final Var[] vars;
    private final Map<ResourceKey<?>, Object> resources = new HashMap<>();
    private final List<Var> allVars = new ArrayList<>();
    private final List<Resource> allResources = new ArrayList<>();
@@ -64,6 +62,7 @@ class SessionImpl implements Session {
       this.runningSequences = new SequenceInstance[scenario.maxSequences()];
       this.usedSequences = new BitSet(scenario.sumConcurrency());
       this.uniqueId = uniqueId;
+      this.vars = scenario.createVars(this);
    }
 
    @Override
@@ -144,31 +143,6 @@ class SessionImpl implements Session {
       allVars.add(var);
    }
 
-   public Session reserveObjectVar(Object key) {
-      if (!vars.containsKey(key)) {
-         io.hyperfoil.core.session.ObjectVar var = new io.hyperfoil.core.session.ObjectVar(this);
-         vars.put(key, var);
-      }
-      return this;
-   }
-
-   public Object getObject(Object key) {
-      return ((io.hyperfoil.core.session.ObjectVar) requireSet(key)).get();
-   }
-
-   public Session reserveIntVar(Object key) {
-      if (!vars.containsKey(key)) {
-         IntVar var = new IntVar(this);
-         vars.put(key, var);
-      }
-      return this;
-   }
-
-   public int getInt(Object key) {
-      IntVar var = requireSet(key);
-      return var.get();
-   }
-
    @Override
    public <R extends Resource> void declareResource(ResourceKey<R> key, Supplier<R> resourceSupplier) {
       declareResource(key, resourceSupplier, false);
@@ -220,20 +194,14 @@ class SessionImpl implements Session {
    }
 
    @SuppressWarnings("unchecked")
-   public <V extends Var> V getVar(Object key) {
-      Var var = vars.get(key);
-      if (var == null) {
-         throw new IllegalStateException("Variable " + key + " was not defined!");
-      }
-      return (V) var;
+   <V extends Var> V getVar(int index) {
+      return (V) vars[index];
    }
 
    @SuppressWarnings("unchecked")
-   <V extends Var> V requireSet(Object key) {
-      Var var = vars.get(key);
-      if (var == null) {
-         throw new IllegalStateException("Variable " + key + " was not defined!");
-      } else if (!var.isSet()) {
+   <V extends Var> V requireSet(int index, Object key) {
+      Var var = vars[index];
+      if (!var.isSet()) {
          throw new IllegalStateException("Variable " + key + " was not set yet!");
       }
       return (V) var;

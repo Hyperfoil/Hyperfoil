@@ -68,7 +68,7 @@ public class Location {
       public void run(Session session) {
          LimitedPoolResource<T> pool = session.getResource(poolKey);
          ObjectVar var = (ObjectVar) locationVar.getVar(session);
-         Location location = (Location) var.get();
+         Location location = (Location) var.objectValue(session);
          if (trace) {
             log.trace("#{} releasing {} from {}[{}]", session.uniqueId(), location, locationVar, session.currentSequence().index());
          }

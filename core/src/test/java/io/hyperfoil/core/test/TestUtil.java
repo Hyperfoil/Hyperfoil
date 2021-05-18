@@ -1,9 +1,11 @@
 package io.hyperfoil.core.test;
 
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 
 import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.api.config.BenchmarkBuilder;
@@ -12,6 +14,9 @@ import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.ScenarioBuilder;
 import io.hyperfoil.api.config.StepBuilder;
+import io.hyperfoil.api.session.AccessVisitor;
+import io.hyperfoil.api.session.ReadAccess;
+import io.hyperfoil.api.session.Session;
 
 public class TestUtil {
    private static final BenchmarkData TESTING_DATA = new BenchmarkData() {
@@ -67,5 +72,18 @@ public class TestUtil {
 
    public static BenchmarkData benchmarkData() {
       return TESTING_DATA;
+   }
+
+   public static void resolveAccess(Session session, Object object) {
+      AccessVisitor scenarioVisitor = new AccessVisitor();
+      scenarioVisitor.visit(session.phase().definition().scenario);
+      Map<Object, Integer> indices = Arrays.stream(scenarioVisitor.reads())
+            .collect(Collectors.toMap(ReadAccess::key, ReadAccess::index));
+
+      AccessVisitor objectVisitor = new AccessVisitor();
+      objectVisitor.visit(object);
+      for (ReadAccess access : objectVisitor.reads()) {
+         access.setIndex(indices.get(access.key()));
+      }
    }
 }

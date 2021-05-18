@@ -10,8 +10,6 @@ import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.statistics.Statistics;
 import io.hyperfoil.core.builders.SLA;
 import io.hyperfoil.core.metric.MetricSelector;
-import io.hyperfoil.core.session.IntVar;
-import io.hyperfoil.core.session.ObjectVar;
 import io.hyperfoil.core.steps.StatisticsStep;
 import io.hyperfoil.function.SerializableFunction;
 import io.hyperfoil.hotrod.api.HotRodOperation;
@@ -111,15 +109,5 @@ public class HotRodRequestStep extends StatisticsStep implements ResourceUtilize
 
       Statistics statistics = session.statistics(id(), metric);
       statistics.recordResponse(startTimestampMillis, endTimestampNanos - startTimestampNanos);
-   }
-
-   private Object getValue(Session.Var sessionVar) {
-      if (sessionVar instanceof ObjectVar) {
-         return ((ObjectVar) sessionVar).get();
-      } else if (sessionVar instanceof IntVar) {
-         return ((IntVar) sessionVar).get();
-      } else {
-         throw new IllegalStateException(String.format("%s not implemented", sessionVar.getClass().getSimpleName()));
-      }
    }
 }

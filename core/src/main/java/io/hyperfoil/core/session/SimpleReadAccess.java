@@ -1,44 +1,35 @@
 package io.hyperfoil.core.session;
 
-import java.util.Objects;
-
-import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
 
-public class SimpleReadAccess implements ReadAccess {
-   protected final Object key;
-
+public class SimpleReadAccess extends BaseAccess {
    public SimpleReadAccess(Object key) {
-      this.key = Objects.requireNonNull(key);
+      super(key);
    }
 
    @Override
    public boolean isSet(Session session) {
       SessionImpl impl = (SessionImpl) session;
-      return impl.getVar(key).isSet();
+      return impl.getVar(index).isSet();
    }
 
    @Override
    public Object getObject(Session session) {
       SessionImpl impl = (SessionImpl) session;
-      return impl.getObject(key);
+      return impl.requireSet(index, key).objectValue(session);
    }
 
    @Override
    public int getInt(Session session) {
       SessionImpl impl = (SessionImpl) session;
-      return impl.getInt(key);
+      IntVar var = impl.requireSet(index, key);
+      return var.intValue(impl);
    }
 
    @Override
    public Session.Var getVar(Session session) {
       SessionImpl impl = (SessionImpl) session;
-      return impl.getVar(key);
-   }
-
-   @Override
-   public Object key() {
-      return key;
+      return impl.getVar(index);
    }
 
    @Override

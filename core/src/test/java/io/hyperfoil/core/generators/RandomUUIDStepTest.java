@@ -8,7 +8,7 @@ import org.junit.Test;
 
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Step;
-import io.hyperfoil.api.session.ReadAccess;
+import io.hyperfoil.api.session.ObjectAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.test.TestUtil;
@@ -27,15 +27,14 @@ public class RandomUUIDStepTest {
          // session
          Locator.push(TestUtil.locator());
          List<Step> steps = builder.build();
-         ReadAccess access = SessionFactory.readAccess(varName);
-         Session session = SessionFactory.forTesting();
-         SessionFactory.objectAccess(varName).reserve(session);
+         ObjectAccess access = SessionFactory.objectAccess(varName);
          Locator.pop();
 
-         // assert
-         Step step = steps.get(0);
+         Session session = SessionFactory.forTesting(access);
 
-         RandomUUIDStep randomStringStep = (RandomUUIDStep) step;
+         // assert
+         RandomUUIDStep randomStringStep = (RandomUUIDStep) steps.get(0);
+         TestUtil.resolveAccess(session, randomStringStep);
          randomStringStep.invoke(session);
          String value = access.getObject(session).toString();
          assertTrue(value.matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"));

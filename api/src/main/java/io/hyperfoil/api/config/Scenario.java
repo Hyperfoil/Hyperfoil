@@ -19,11 +19,19 @@
 package io.hyperfoil.api.config;
 
 import java.io.Serializable;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import io.hyperfoil.api.session.AccessVisitor;
+import io.hyperfoil.api.session.ReadAccess;
+import io.hyperfoil.api.session.Session;
+import io.hyperfoil.api.session.WriteAccess;
 
 public class Scenario implements Serializable {
    private final Sequence[] initialSequences;
@@ -32,6 +40,8 @@ public class Scenario implements Serializable {
    private final int maxRequests;
    private final int maxSequences;
    private final int sumConcurrency;
+   private final WriteAccess[] writes;
+   private final int uniqueVars;
 
    public Scenario(Sequence[] initialSequences, Sequence[] sequences, int maxRequests, int maxSequences) {
       this.initialSequences = initialSequences;
@@ -40,13 +50,28 @@ public class Scenario implements Serializable {
       this.maxSequences = maxSequences;
       sequenceMap = Stream.of(sequences).collect(Collectors.toMap(Sequence::name, Function.identity()));
       sumConcurrency = sequenceMap.values().stream().mapToInt(Sequence::concurrency).sum();
-      Set<Object> writtenKeys = Stream.of(sequences).flatMap(Sequence::writtenKeys).collect(Collectors.toSet());
-      Stream.of(sequences).flatMap(Sequence::readKeys).forEach(key -> {
+      AccessVisitor visitor = new AccessVisitor();
+      visitor.visit(sequences);
+      writes = visitor.writes();
+      ReadAccess[] reads = visitor.reads();
+      Set<Object> writtenKeys = Arrays.stream(writes).map(ReadAccess::key).collect(Collectors.toSet());
+      Set<Object> readKeys = Arrays.stream(reads).map(ReadAccess::key).filter(Objects::nonNull).collect(Collectors.toSet());
+      readKeys.forEach(key -> {
          if (!writtenKeys.contains(key)) {
             // TODO: calculate similar variable names using Levenshtein distance and hint
             throw new BenchmarkDefinitionException("Variable '" + key + "' is read but it is never written to.");
          }
       });
+      Map<Object, Integer> keyIndexMap = new HashMap<>();
+      for (Object key : readKeys) {
+         keyIndexMap.put(key, keyIndexMap.size());
+      }
+      uniqueVars = keyIndexMap.size();
+      for (ReadAccess access : reads) {
+         if (access.key() != null) {
+            access.setIndex(keyIndexMap.get(access.key()));
+         }
+      }
    }
 
    public Sequence[] initialSequences() {
@@ -75,6 +100,15 @@ public class Scenario implements Serializable {
          throw new IllegalArgumentException("Unknown sequence '" + name + "'");
       }
       return sequence;
+   }
+
+   public Session.Var[] createVars(Session session) {
+      Session.Var[] vars = new Session.Var[uniqueVars];
+      for (WriteAccess access : writes) {
+         int index = access.index();
+         vars[index] = access.createVar(session, vars[index]);
+      }
+      return vars;
    }
 }
 

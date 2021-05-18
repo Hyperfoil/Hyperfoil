@@ -9,5 +9,5 @@ public interface WriteAccess extends ReadAccess {
 
    void unset(Session session);
 
-   void reserve(Session session);
+   Session.Var createVar(Session session, Session.Var existing);
 }

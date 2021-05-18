@@ -1,5 +1,8 @@
 package io.hyperfoil.core.session;
 
+import java.util.Arrays;
+
+import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.session.IntAccess;
 import io.hyperfoil.api.session.Session;
 
@@ -9,13 +12,29 @@ class SequenceScopedIntAccess extends SequenceScopedReadAccess implements IntAcc
    }
 
    @Override
-   public void reserve(Session session) {
+   public Session.Var createVar(Session session, Session.Var existing) {
       SessionImpl impl = (SessionImpl) session;
-      impl.reserveObjectVar(key);
-      ObjectVar var = impl.getVar(key);
-      if (!var.isSet() && var.objectValue(session) == null) {
-         var.set(IntVar.newArray(session, maxConcurrency));
+      if (existing == null) {
+         existing = new ObjectVar(impl);
+      } else if (!(existing instanceof ObjectVar)) {
+         throw new BenchmarkDefinitionException("Variable " + key + " should hold an object but it is defined to hold an integer elsewhere.");
       }
+      Object contents = existing.objectValue(session);
+      if (contents == null) {
+         ((ObjectVar) existing).set(IntVar.newArray(session, maxConcurrency));
+      } else if (contents instanceof IntVar[]) {
+         IntVar[] oldArray = (IntVar[]) contents;
+         if (oldArray.length < maxConcurrency) {
+            IntVar[] newArray = Arrays.copyOf(oldArray, maxConcurrency);
+            for (int i = oldArray.length; i < newArray.length; ++i) {
+               newArray[i] = new IntVar(impl);
+            }
+            ((ObjectVar) existing).set(newArray);
+         }
+      } else {
+         throw new BenchmarkDefinitionException("Unexpected content in " + key + ": should hold array of IntVar but holds " + contents);
+      }
+      return existing;
    }
 
    @Override

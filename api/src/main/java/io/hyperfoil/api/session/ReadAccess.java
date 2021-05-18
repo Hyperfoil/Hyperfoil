@@ -14,4 +14,8 @@ public interface ReadAccess extends Serializable {
    Session.Var getVar(Session session);
 
    Object key();
+
+   void setIndex(int index);
+
+   int index();
 }
