@@ -1,6 +1,8 @@
 package io.hyperfoil.api.config;
 
 import java.io.Serializable;
+import java.util.Objects;
+import java.util.stream.Stream;
 
 import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.ResourceUtilizer;
@@ -46,8 +48,8 @@ public class Sequence implements Serializable {
    }
 
    /**
-       * @return Index for first instance for cases where we need an array of all concurrent instances.
-       */
+    * @return Index for first instance for cases where we need an array of all concurrent instances.
+    */
    public int offset() {
       return offset;
    }
@@ -67,5 +69,13 @@ public class Sequence implements Serializable {
 
    public Step[] steps() {
       return steps;
+   }
+
+   Stream<Object> readKeys() {
+      return Stream.of(reads).map(ReadAccess::key).filter(Objects::nonNull);
+   }
+
+   Stream<Object> writtenKeys() {
+      return Stream.of(writes).map(ReadAccess::key).filter(Objects::nonNull);
    }
 }

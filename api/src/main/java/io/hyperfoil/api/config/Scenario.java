@@ -20,6 +20,7 @@ package io.hyperfoil.api.config;
 
 import java.io.Serializable;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -39,6 +40,13 @@ public class Scenario implements Serializable {
       this.maxSequences = maxSequences;
       sequenceMap = Stream.of(sequences).collect(Collectors.toMap(Sequence::name, Function.identity()));
       sumConcurrency = sequenceMap.values().stream().mapToInt(Sequence::concurrency).sum();
+      Set<Object> writtenKeys = Stream.of(sequences).flatMap(Sequence::writtenKeys).collect(Collectors.toSet());
+      Stream.of(sequences).flatMap(Sequence::readKeys).forEach(key -> {
+         if (!writtenKeys.contains(key)) {
+            // TODO: calculate similar variable names using Levenshtein distance and hint
+            throw new BenchmarkDefinitionException("Variable '" + key + "' is read but it is never written to.");
+         }
+      });
    }
 
    public Sequence[] initialSequences() {

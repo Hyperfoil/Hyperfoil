@@ -24,6 +24,7 @@ phases:
                     var: testCounter
                     init: 0
                     add: 1
+          - set: foo <- bar
           - httpRequest:
               method: GET
               path: /foo

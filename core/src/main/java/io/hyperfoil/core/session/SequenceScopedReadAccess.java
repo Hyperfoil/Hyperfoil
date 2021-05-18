@@ -79,6 +79,11 @@ class SequenceScopedReadAccess implements ReadAccess {
    }
 
    @Override
+   public Object key() {
+      return key;
+   }
+
+   @Override
    public boolean isSequenceScoped() {
       return true;
    }

@@ -20,6 +20,12 @@ abstract class SpecialAccess implements ReadAccess {
    }
 
    @Override
+   public java.lang.Object key() {
+      // we return null instead of `name` to avoid the read-without-write check
+      return null;
+   }
+
+   @Override
    public boolean isSet(Session session) {
       return true;
    }

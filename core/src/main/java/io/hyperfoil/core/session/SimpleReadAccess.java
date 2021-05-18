@@ -37,6 +37,11 @@ public class SimpleReadAccess implements ReadAccess {
    }
 
    @Override
+   public Object key() {
+      return key;
+   }
+
+   @Override
    public boolean isSequenceScoped() {
       return false;
    }

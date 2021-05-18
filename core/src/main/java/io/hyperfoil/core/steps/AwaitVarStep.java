@@ -46,6 +46,11 @@ public class AwaitVarStep extends DependencyStep {
       }
 
       @Override
+      public Object key() {
+         return access.key();
+      }
+
+      @Override
       public boolean isSequenceScoped() {
          return access.isSequenceScoped();
       }

@@ -19,6 +19,7 @@ phases:
               handler:
                 status:
                   range: 2xx
+          - set: x <- y
           - httpRequest:
               PUT:
                 pattern: /foo?bar=${x}

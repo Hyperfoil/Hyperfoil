@@ -23,6 +23,7 @@ import io.hyperfoil.api.config.Model;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.Step;
+import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.core.util.Util;
 import io.hyperfoil.http.api.StatusHandler;
 import io.hyperfoil.http.config.HttpPluginConfig;
@@ -59,18 +60,25 @@ public class YamlParserTest {
       assertThat(benchmark.name()).isEqualTo("simple benchmark");
       Phase[] phases = benchmark.phases().toArray(new Phase[0]);
       assertThat(phases.length).isEqualTo(3);
+      @SuppressWarnings("unchecked")
+      Class<? extends Step>[] expectedSteps = new Class[]{
+            PrepareHttpRequestStep.class,
+            SendHttpRequestStep.class,
+            StepBuilder.ActionStep.class,
+            PrepareHttpRequestStep.class,
+            SendHttpRequestStep.class,
+            NoopStep.class,
+            AwaitIntStep.class,
+            ScheduleDelayStep.class
+      };
       for (Phase p : phases) {
          Sequence[] sequences = p.scenario().sequences();
          assertThat(sequences.length).isEqualTo(1);
          Step[] steps = sequences[0].steps();
-         assertThat(steps.length).isEqualTo(7);
-         assertThat(steps[0]).isInstanceOf(PrepareHttpRequestStep.class);
-         assertThat(steps[1]).isInstanceOf(SendHttpRequestStep.class);
-         assertThat(steps[2]).isInstanceOf(PrepareHttpRequestStep.class);
-         assertThat(steps[3]).isInstanceOf(SendHttpRequestStep.class);
-         assertThat(steps[4]).isInstanceOf(NoopStep.class);
-         assertThat(steps[5]).isInstanceOf(AwaitIntStep.class);
-         assertThat(steps[6]).isInstanceOf(ScheduleDelayStep.class);
+         assertThat(steps.length).isEqualTo(expectedSteps.length);
+         for (int i = 0; i < steps.length; ++i) {
+            assertThat(steps[i]).as("step %d: %s", i, steps[i]).isInstanceOf(expectedSteps[i]);
+         }
       }
    }
 
