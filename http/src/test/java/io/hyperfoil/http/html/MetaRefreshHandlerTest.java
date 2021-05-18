@@ -2,6 +2,7 @@ package io.hyperfoil.http.html;
 
 import org.junit.Test;
 
+import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.handlers.ExpectProcessor;
 import io.hyperfoil.core.session.SessionFactory;
@@ -19,7 +20,7 @@ public class MetaRefreshHandlerTest {
       HtmlHandler handler = html.build(true);
       Session session = SessionFactory.forTesting();
       HttpRunData.initForTesting(session);
-      handler.reserve(session);
+      ResourceUtilizer.reserveForTesting(session, handler);
       handler.before(session);
 
       ByteBuf content1 = buf("content1");

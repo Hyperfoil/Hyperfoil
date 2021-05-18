@@ -84,7 +84,6 @@ public class HttpRequestTest extends HttpScenarioTest {
    public void testStringFromVar(TestContext ctx) {
       // @formatter:off
       scenario()
-            .objectVar("x")
             .initialSequence("test")
                .step(SC).action(new SetAction.Builder()
                   .var("x")
@@ -109,7 +108,6 @@ public class HttpRequestTest extends HttpScenarioTest {
       String chineseStr = sb.toString();
       // @formatter:off
       scenario()
-            .objectVar("x")
             .initialSequence("test")
             .step(SC).action(new SetAction.Builder()
                .var("x")
@@ -127,7 +125,6 @@ public class HttpRequestTest extends HttpScenarioTest {
    public void testPattern(TestContext ctx) {
       // @formatter:off
       scenario()
-            .objectVar("x")
             .initialSequence("test")
                .step(SC).action(new SetAction.Builder()
                   .var("x")

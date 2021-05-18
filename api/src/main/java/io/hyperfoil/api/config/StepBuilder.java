@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.function.Function;
 
 import io.hyperfoil.api.session.Action;
-import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 
 /**
@@ -72,7 +71,7 @@ public interface StepBuilder<S extends StepBuilder<S>> extends BuilderBase<S> {
       }
    }
 
-   class ActionStep implements Step, ResourceUtilizer {
+   class ActionStep implements Step {
       private final Action action;
 
       public ActionStep(Action action) {
@@ -83,11 +82,6 @@ public interface StepBuilder<S extends StepBuilder<S>> extends BuilderBase<S> {
       public boolean invoke(Session session) {
          action.run(session);
          return true;
-      }
-
-      @Override
-      public void reserve(Session session) {
-         ResourceUtilizer.reserve(session, action);
       }
    }
 }

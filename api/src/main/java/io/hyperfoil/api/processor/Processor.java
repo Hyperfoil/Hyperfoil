@@ -6,7 +6,6 @@ import java.util.function.Function;
 import io.hyperfoil.api.config.BuilderBase;
 import io.hyperfoil.api.config.IncludeBuilders;
 import io.hyperfoil.api.session.Action;
-import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.netty.buffer.ByteBuf;
 
@@ -46,7 +45,7 @@ public interface Processor extends Serializable {
       Processor build(boolean fragmented);
    }
 
-   abstract class BaseDelegating implements Processor, ResourceUtilizer {
+   abstract class BaseDelegating implements Processor {
       protected final Processor delegate;
 
       protected BaseDelegating(Processor delegate) {
@@ -62,14 +61,9 @@ public interface Processor extends Serializable {
       public void after(Session session) {
          delegate.after(session);
       }
-
-      @Override
-      public void reserve(Session session) {
-         ResourceUtilizer.reserve(session, delegate);
-      }
    }
 
-   class ActionAdapter implements Processor, ResourceUtilizer {
+   class ActionAdapter implements Processor {
       private final Action action;
 
       public ActionAdapter(Action action) {
@@ -83,11 +77,6 @@ public interface Processor extends Serializable {
             return;
          }
          action.run(session);
-      }
-
-      @Override
-      public void reserve(Session session) {
-         ResourceUtilizer.reserve(session, action);
       }
    }
 

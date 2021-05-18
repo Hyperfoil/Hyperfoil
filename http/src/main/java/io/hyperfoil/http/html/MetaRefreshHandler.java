@@ -3,12 +3,11 @@ package io.hyperfoil.http.html;
 import java.nio.charset.StandardCharsets;
 
 import io.hyperfoil.api.processor.Processor;
-import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 
-public class MetaRefreshHandler implements HtmlHandler.TagHandler, ResourceUtilizer {
+public class MetaRefreshHandler implements HtmlHandler.TagHandler {
    private static final byte[] META = "meta".getBytes(StandardCharsets.UTF_8);
    private static final byte[] HTTP_EQUIV = "http-equiv".getBytes(StandardCharsets.UTF_8);
    private static final byte[] REFRESH = "refresh".getBytes(StandardCharsets.UTF_8);
@@ -28,11 +27,6 @@ public class MetaRefreshHandler implements HtmlHandler.TagHandler, ResourceUtili
    @Override
    public HtmlHandler.HandlerContext newContext() {
       return new Context();
-   }
-
-   @Override
-   public void reserve(Session session) {
-      ResourceUtilizer.reserve(session, processor);
    }
 
    class Context implements HtmlHandler.HandlerContext {

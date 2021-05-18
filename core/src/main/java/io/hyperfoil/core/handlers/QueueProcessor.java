@@ -10,7 +10,7 @@ import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.SequenceBuilder;
 import io.hyperfoil.api.processor.Processor;
-import io.hyperfoil.api.session.Access;
+import io.hyperfoil.api.session.ObjectAccess;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
@@ -22,7 +22,7 @@ import io.hyperfoil.core.session.SessionFactory;
 import io.netty.buffer.ByteBuf;
 
 public class QueueProcessor implements Processor, ResourceUtilizer {
-   private final Access var;
+   private final ObjectAccess var;
    private final int maxSize;
    private final DataFormat format;
    private final String sequence;
@@ -30,7 +30,7 @@ public class QueueProcessor implements Processor, ResourceUtilizer {
    private final Action onCompletion;
    private final Session.ResourceKey<Queue> key;
 
-   public QueueProcessor(Session.ResourceKey<Queue> key, Access var, int maxSize, DataFormat format, String sequence, int concurrency, Action onCompletion) {
+   public QueueProcessor(Session.ResourceKey<Queue> key, ObjectAccess var, int maxSize, DataFormat format, String sequence, int concurrency, Action onCompletion) {
       this.key = key;
       this.var = var;
       this.maxSize = maxSize;
@@ -62,14 +62,12 @@ public class QueueProcessor implements Processor, ResourceUtilizer {
 
    @Override
    public void reserve(Session session) {
-      var.declareObject(session);
       // If there are multiple concurrent requests all the data end up in single queue;
       // there's no way to set up different output var so merging them is the only useful behaviour.
       if (!var.isSet(session)) {
          var.setObject(session, ObjectVar.newArray(session, concurrency));
       }
       session.declareResource(key, () -> new Queue(var, maxSize, concurrency, sequence, onCompletion), true);
-      ResourceUtilizer.reserve(session, onCompletion);
    }
 
    /**
@@ -86,7 +84,7 @@ public class QueueProcessor implements Processor, ResourceUtilizer {
       private int concurrency;
       private String sequence;
       private Action.Builder onCompletion;
-      private Access varAccess;
+      private ObjectAccess varAccess;
       private Queue.Key key;
       private SequenceBuilder sequenceBuilder;
       private Consumer<Action.Builder> sequenceCompletion;
@@ -172,7 +170,7 @@ public class QueueProcessor implements Processor, ResourceUtilizer {
          if (var == null) {
             throw new BenchmarkDefinitionException("Missing 'var' to store the queue.");
          }
-         varAccess = SessionFactory.access(var);
+         varAccess = SessionFactory.objectAccess(var);
          key = new Queue.Key();
 
          Locator locator = Locator.current();

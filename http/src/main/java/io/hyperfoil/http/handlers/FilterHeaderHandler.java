@@ -6,7 +6,6 @@ import io.hyperfoil.api.config.Name;
 import io.hyperfoil.http.api.HttpRequest;
 import io.hyperfoil.http.api.HeaderHandler;
 import io.hyperfoil.api.processor.Processor;
-import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.builders.StringConditionBuilder;
 import io.hyperfoil.core.handlers.MultiProcessor;
@@ -17,7 +16,7 @@ import io.netty.buffer.Unpooled;
 
 import org.kohsuke.MetaInfServices;
 
-public class FilterHeaderHandler implements HeaderHandler, ResourceUtilizer {
+public class FilterHeaderHandler implements HeaderHandler {
    private final SerializableBiPredicate<Session, CharSequence> header;
    private final Processor processor;
 
@@ -50,11 +49,6 @@ public class FilterHeaderHandler implements HeaderHandler, ResourceUtilizer {
             }
          }
       }
-   }
-
-   @Override
-   public void reserve(Session session) {
-      ResourceUtilizer.reserve(session, processor);
    }
 
    /**

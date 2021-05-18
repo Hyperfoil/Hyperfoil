@@ -3,7 +3,7 @@ package io.hyperfoil.core.builders;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.BuilderBase;
 import io.hyperfoil.api.config.InitFromParam;
-import io.hyperfoil.api.session.Access;
+import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.util.Util;
@@ -75,7 +75,7 @@ public class StringConditionBuilder<B extends StringConditionBuilder<B, P>, P> i
                   : Util.regionMatchesIgnoreCase(myValue, 0, string, offset, valueLength);
          };
       } else if (matchVar != null) {
-         Access access = SessionFactory.access(matchVar);
+         ReadAccess access = SessionFactory.readAccess(matchVar);
          return (s, string) -> {
             Object value = access.getObject(s);
             if (value instanceof CharSequence) {

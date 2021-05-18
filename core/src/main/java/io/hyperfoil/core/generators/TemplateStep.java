@@ -9,17 +9,16 @@ import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.config.StepBuilder;
-import io.hyperfoil.api.session.Access;
+import io.hyperfoil.api.session.ObjectAccess;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.core.builders.BaseStepBuilder;
 import io.hyperfoil.core.session.SessionFactory;
 
-public class TemplateStep implements Step, ResourceUtilizer {
+public class TemplateStep implements Step {
    private final Pattern pattern;
-   private final Access toVar;
+   private final ObjectAccess toVar;
 
-   public TemplateStep(Pattern pattern, Access toVar) {
+   public TemplateStep(Pattern pattern, ObjectAccess toVar) {
       this.pattern = pattern;
       this.toVar = toVar;
    }
@@ -28,11 +27,6 @@ public class TemplateStep implements Step, ResourceUtilizer {
    public boolean invoke(Session session) {
       toVar.setObject(session, pattern.apply(session));
       return true;
-   }
-
-   @Override
-   public void reserve(Session session) {
-      toVar.declareObject(session);
    }
 
    /**
@@ -75,7 +69,7 @@ public class TemplateStep implements Step, ResourceUtilizer {
          if (toVar == null) {
             throw new BenchmarkDefinitionException("Missing target var for template.");
          }
-         return Collections.singletonList(new TemplateStep(new Pattern(pattern, false), SessionFactory.access(toVar)));
+         return Collections.singletonList(new TemplateStep(new Pattern(pattern, false), SessionFactory.objectAccess(toVar)));
       }
    }
 }

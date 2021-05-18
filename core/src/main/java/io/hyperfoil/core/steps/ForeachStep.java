@@ -8,20 +8,20 @@ import org.kohsuke.MetaInfServices;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.StepBuilder;
+import io.hyperfoil.api.session.IntAccess;
+import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.config.Step;
-import io.hyperfoil.api.session.Access;
-import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.core.builders.DependencyStepBuilder;
 import io.hyperfoil.core.session.SessionFactory;
 
-public class ForeachStep extends DependencyStep implements ResourceUtilizer {
-   private final Access fromVar;
-   private final Access counterVar;
+public class ForeachStep extends DependencyStep {
+   private final ReadAccess fromVar;
+   private final IntAccess counterVar;
    private final String sequence;
 
-   public ForeachStep(Access[] dependencies, Access fromVar, Access counterVar, String sequence) {
+   public ForeachStep(ReadAccess[] dependencies, ReadAccess fromVar, IntAccess counterVar, String sequence) {
       super(dependencies);
       this.fromVar = fromVar;
       this.counterVar = counterVar;
@@ -54,13 +54,6 @@ public class ForeachStep extends DependencyStep implements ResourceUtilizer {
          counterVar.setInt(session, i);
       }
       return true;
-   }
-
-   @Override
-   public void reserve(Session session) {
-      if (counterVar != null) {
-         counterVar.declareInt(session);
-      }
    }
 
    /**
@@ -113,7 +106,7 @@ public class ForeachStep extends DependencyStep implements ResourceUtilizer {
             throw new BenchmarkDefinitionException("Template sequence must be defined");
          }
          return Collections.singletonList(new ForeachStep(dependencies(),
-               SessionFactory.access(fromVar), SessionFactory.access(counterVar), this.sequence));
+               SessionFactory.readAccess(fromVar), SessionFactory.intAccess(counterVar), this.sequence));
       }
    }
 }

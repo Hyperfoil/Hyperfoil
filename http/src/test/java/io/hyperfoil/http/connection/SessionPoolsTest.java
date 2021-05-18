@@ -10,7 +10,8 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import io.hyperfoil.api.session.Access;
+import io.hyperfoil.api.session.ObjectAccess;
+import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.steps.ScheduleDelayStep;
@@ -46,13 +47,12 @@ public class SessionPoolsTest extends HttpScenarioTest {
       Set<Session> runningSessions = new HashSet<>();
       // @formatter:off
       benchmarkBuilder.addPhase("test").always(10).duration(2000).scenario()
-            .objectVar("connection")
             .initialSequence("test")
                .step(SC).httpRequest(HttpMethod.GET)
                   .path("/")
                   .handler()
                      .status(() -> {
-                        Access connection = SessionFactory.access("connection");
+                        ObjectAccess connection = SessionFactory.objectAccess("connection");
                         return (request, status) -> {
                            connection.setObject(request.session, request.connection());
                         };
@@ -70,7 +70,7 @@ public class SessionPoolsTest extends HttpScenarioTest {
                   .endHeaders()
                   .handler()
                      .status(() -> {
-                        Access connection = SessionFactory.access("connection");
+                        ReadAccess connection = SessionFactory.readAccess("connection");
                         return (request, status) -> {
                            ctx.assertEquals(connection.getObject(request.session), request.connection());
                            runningSessions.add(request.session);

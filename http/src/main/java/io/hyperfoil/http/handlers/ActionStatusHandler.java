@@ -13,12 +13,10 @@ import io.hyperfoil.api.config.PartialBuilder;
 import io.hyperfoil.http.api.HttpRequest;
 import io.hyperfoil.http.api.StatusHandler;
 import io.hyperfoil.api.session.Action;
-import io.hyperfoil.api.session.ResourceUtilizer;
-import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 
 // Note: maybe it would be better to just use multiplex and let actions convert to status handlers?
-public class ActionStatusHandler extends BaseRangeStatusHandler implements ResourceUtilizer {
+public class ActionStatusHandler extends BaseRangeStatusHandler {
    private final Action[][] actions;
    private final Action[] otherActions;
 
@@ -43,14 +41,6 @@ public class ActionStatusHandler extends BaseRangeStatusHandler implements Resou
             a.run(request.session);
          }
       }
-   }
-
-   @Override
-   public void reserve(Session session) {
-      for (Action[] as : actions) {
-         ResourceUtilizer.reserve(session, (Object[]) as);
-      }
-      ResourceUtilizer.reserve(session, (Object[]) otherActions);
    }
 
    /**

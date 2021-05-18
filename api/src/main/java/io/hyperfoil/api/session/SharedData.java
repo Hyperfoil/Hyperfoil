@@ -8,20 +8,20 @@ public interface SharedData {
 
    SharedMap pullMap(String key);
 
-   SharedMap pullMap(String key, Access match, Object value);
+   SharedMap pullMap(String key, WriteAccess match, Object value);
 
    void pushMap(String key, SharedMap sharedMap);
 
    void releaseMap(String key, SharedMap map);
 
-   void reserveMap(String key, Access match, int entries);
+   void reserveMap(String key, WriteAccess match, int entries);
 
    interface SharedMap {
-      void put(Access key, Object value);
+      void put(WriteAccess key, Object value);
 
       int size();
 
-      Access key(int i);
+      WriteAccess key(int i);
 
       Object value(int i);
 
@@ -29,6 +29,6 @@ public interface SharedData {
 
       void clear();
 
-      Object find(Access index);
+      Object find(WriteAccess index);
    }
 }

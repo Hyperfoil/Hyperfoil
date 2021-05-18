@@ -4,7 +4,6 @@ import java.util.concurrent.TimeUnit;
 
 import io.hyperfoil.api.config.Visitor;
 import io.hyperfoil.api.connection.Connection;
-import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.builders.SLA;
 import io.hyperfoil.core.steps.StatisticsStep;
@@ -17,7 +16,7 @@ import io.netty.buffer.ByteBuf;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 
-public class SendHttpRequestStep extends StatisticsStep implements ResourceUtilizer, SLA.Provider {
+public class SendHttpRequestStep extends StatisticsStep implements SLA.Provider {
    private static final Logger log = LogManager.getLogger(SendHttpRequestStep.class);
    private static final boolean trace = log.isTraceEnabled();
 
@@ -85,12 +84,6 @@ public class SendHttpRequestStep extends StatisticsStep implements ResourceUtili
          log.trace("#{} sent to {} request on {}", session.uniqueId(), request.path, request.connection());
       }
       return true;
-   }
-
-   @Override
-   public void reserve(Session session) {
-      ResourceUtilizer.reserve(session, bodyGenerator);
-      ResourceUtilizer.reserve(session, (Object[]) headerAppenders);
    }
 
    @Override

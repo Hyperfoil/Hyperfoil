@@ -10,7 +10,7 @@ import org.junit.Test;
 
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Step;
-import io.hyperfoil.api.session.Access;
+import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.test.TestUtil;
@@ -34,22 +34,23 @@ public class RandomCsvRowStepTest {
    }
 
    private void test(String[] vars) {
+      Session session = SessionFactory.forTesting();
+      Locator.push(TestUtil.locator());
       RandomCsvRowStep.Builder builder = new RandomCsvRowStep.Builder()
             .skipComments(true)
             .file("data/testdata.csv");
       for (int i = 0; i < vars.length; ++i) {
          if (vars[i] != null) {
             builder.columns().accept(String.valueOf(i), vars[i]);
+            SessionFactory.objectAccess(vars[i]).reserve(session);
          }
       }
 
-      Locator.push(TestUtil.locator());
       List<Step> steps = builder.build();
-      Access[] access = Stream.of(vars).map(var -> var != null ? SessionFactory.access(var) : null).toArray(Access[]::new);
+      ReadAccess[] access = Stream.of(vars).map(var -> var != null ? SessionFactory.readAccess(var) : null).toArray(ReadAccess[]::new);
       Locator.pop();
       RandomCsvRowStep csvRowStep = (RandomCsvRowStep) steps.get(0);
 
-      Session session = SessionFactory.forTesting(vars, new String[0]);
       OUTER:
       for (int i = 0; i < 10; ++i) {
          csvRowStep.invoke(session);

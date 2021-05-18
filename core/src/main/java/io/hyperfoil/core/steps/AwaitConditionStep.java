@@ -4,7 +4,7 @@ import java.util.Collections;
 import java.util.List;
 
 import io.hyperfoil.api.config.Step;
-import io.hyperfoil.api.session.Access;
+import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.builders.BaseStepBuilder;
 import io.hyperfoil.core.session.SessionFactory;
@@ -25,9 +25,9 @@ public class AwaitConditionStep implements Step {
 
    public static class Builder extends BaseStepBuilder<Builder> {
       private final String var;
-      private final SerializableBiPredicate<Session, Access> predicate;
+      private final SerializableBiPredicate<Session, ReadAccess> predicate;
 
-      public Builder(String var, SerializableBiPredicate<Session, Access> predicate) {
+      public Builder(String var, SerializableBiPredicate<Session, ReadAccess> predicate) {
          this.var = var;
          this.predicate = predicate;
       }
@@ -39,7 +39,7 @@ public class AwaitConditionStep implements Step {
 
       @Override
       public List<Step> build() {
-         Access access = SessionFactory.access(var);
+         ReadAccess access = SessionFactory.readAccess(var);
          return Collections.singletonList(new AwaitConditionStep(s -> predicate.test(s, access)));
       }
    }

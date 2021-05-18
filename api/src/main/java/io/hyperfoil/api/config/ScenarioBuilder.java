@@ -21,7 +21,6 @@
 package io.hyperfoil.api.config;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -34,8 +33,6 @@ public class ScenarioBuilder {
    private final PhaseBuilder<?> phaseBuilder;
    private List<SequenceBuilder> initialSequences = new ArrayList<>();
    private List<SequenceBuilder> sequences = new ArrayList<>();
-   private Collection<String> objectVars = new ArrayList<>();
-   private Collection<String> intVars = new ArrayList<>();
    private Scenario scenario;
    private int maxRequests = 16;
    // We don't use sum of concurrency because that could be excessively high
@@ -98,18 +95,6 @@ public class ScenarioBuilder {
             .orElseThrow(() -> new BenchmarkDefinitionException("No sequence " + name + " in phase " + endScenario().name()));
    }
 
-   public ScenarioBuilder objectVar(String var) {
-      assert scenario == null;
-      objectVars.add(var);
-      return this;
-   }
-
-   public ScenarioBuilder intVar(String var) {
-      assert scenario == null;
-      intVars.add(var);
-      return this;
-   }
-
    public ScenarioBuilder maxRequests(int maxRequests) {
       this.maxRequests = maxRequests;
       return this;
@@ -153,8 +138,6 @@ public class ScenarioBuilder {
       return scenario = new Scenario(
             initialSequences,
             sequences,
-            objectVars.toArray(new String[0]),
-            intVars.toArray(new String[0]),
             maxRequests,
             maxSequences);
    }
@@ -164,8 +147,6 @@ public class ScenarioBuilder {
             .map(seq -> seq.copy(this)).collect(Collectors.toList());
       this.initialSequences = other.initialSequences.stream()
             .map(seq -> findMatchingSequence(seq.name())).collect(Collectors.toList());
-      this.intVars = other.intVars;
-      this.objectVars = other.objectVars;
    }
 
    private SequenceBuilder findMatchingSequence(String name) {

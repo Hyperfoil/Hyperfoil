@@ -11,7 +11,6 @@ import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Visitor;
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.processor.Transformer;
-import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 import io.hyperfoil.core.data.DataFormat;
@@ -24,7 +23,7 @@ import io.netty.buffer.PooledByteBufAllocator;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 
-public abstract class JsonParser implements Serializable, ResourceUtilizer {
+public abstract class JsonParser implements Serializable {
    protected static final Logger log = LogManager.getLogger(JsonParser.class);
    protected static final int MAX_PARTS = 16;
 
@@ -103,11 +102,6 @@ public abstract class JsonParser implements Serializable, ResourceUtilizer {
             value *= 10;
          }
       }
-   }
-
-   @Override
-   public void reserve(Session session) {
-      ResourceUtilizer.reserve(session, processor, replace);
    }
 
    interface Selector extends Serializable {

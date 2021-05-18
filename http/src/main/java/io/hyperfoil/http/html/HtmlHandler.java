@@ -198,7 +198,6 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
    @Override
    public void reserve(Session session) {
       session.declareResource(this, Context::new);
-      ResourceUtilizer.reserve(session, (Object[]) handlers);
    }
 
    public interface TagHandlerBuilder<S extends TagHandlerBuilder<S>> extends BuilderBase<S> {
@@ -353,7 +352,7 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
       }
    }
 
-   static class BaseTagAttributeHandler implements TagHandler, ResourceUtilizer {
+   static class BaseTagAttributeHandler implements TagHandler {
       private final Trie trie;
       private final byte[][] attributes;
       private final Processor processor;
@@ -376,11 +375,6 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
       @Override
       public HandlerContext newContext() {
          return new Ctx();
-      }
-
-      @Override
-      public void reserve(Session session) {
-         ResourceUtilizer.reserve(session, processor);
       }
 
       protected class Ctx implements HandlerContext {

@@ -1,14 +1,14 @@
 package io.hyperfoil.core.steps;
 
-import io.hyperfoil.api.session.Access;
+import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.statistics.Statistics;
 
 public class StopwatchEndStep extends StatisticsStep {
-   private final Access key;
+   private final ReadAccess key;
    private final String metrics;
 
-   public StopwatchEndStep(Access key, String metrics) {
+   public StopwatchEndStep(ReadAccess key, String metrics) {
       super(StatisticsStep.nextId());
       this.key = key;
       this.metrics = metrics;

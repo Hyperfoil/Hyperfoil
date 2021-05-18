@@ -1,32 +1,15 @@
 package io.hyperfoil.api.session;
 
-import java.util.Collection;
+import io.hyperfoil.impl.ResourceVisitor;
 
 public interface ResourceUtilizer {
    void reserve(Session session);
 
-   static void reserve(Session session, Object object) {
-      if (object instanceof ResourceUtilizer) {
-         ((ResourceUtilizer) object).reserve(session);
-      }
-   }
-
-   static void reserve(Session session, Object... objects) {
-      if (objects == null) {
-         return;
-      }
-      for (Object o : objects) {
-         if (o instanceof ResourceUtilizer) {
-            ((ResourceUtilizer) o).reserve(session);
-         }
-      }
-   }
-
-   static void reserve(Session session, Collection<?> objects) {
-      for (Object o : objects) {
-         if (o instanceof ResourceUtilizer) {
-            ((ResourceUtilizer) o).reserve(session);
-         }
+   static void reserveForTesting(Session session, Object o) {
+      ResourceVisitor visitor = new ResourceVisitor();
+      visitor.visit(null, o, null);
+      for (ResourceUtilizer ru : visitor.resourceUtilizers()) {
+         ru.reserve(session);
       }
    }
 }

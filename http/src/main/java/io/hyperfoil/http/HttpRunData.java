@@ -77,7 +77,7 @@ public class HttpRunData implements PluginRunData {
    }
 
    public static void initForTesting(Session session, Clock clock) {
-      Scenario dummyScenario = new Scenario(new Sequence[0], new Sequence[0], null, null, 16, 16);
+      Scenario dummyScenario = new Scenario(new Sequence[0], new Sequence[0], 16, 16);
       session.declareSingletonResource(HttpDestinationTable.KEY, new HttpDestinationTableImpl(Collections.emptyMap()));
       session.declareSingletonResource(HttpCache.KEY, new HttpCacheImpl(clock));
       session.declareSingletonResource(HttpRequestPool.KEY, new HttpRequestPool(dummyScenario, session));

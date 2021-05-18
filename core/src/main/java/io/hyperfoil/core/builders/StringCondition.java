@@ -1,6 +1,6 @@
 package io.hyperfoil.core.builders;
 
-import io.hyperfoil.api.session.Access;
+import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.function.SerializableBiPredicate;
@@ -12,11 +12,11 @@ public class StringCondition implements Condition {
    private static final Logger log = LogManager.getLogger(StringCondition.class);
    private static final boolean trace = log.isTraceEnabled();
 
-   private final Access fromVar;
+   private final ReadAccess fromVar;
    private final boolean isSet;
    private final SerializableBiPredicate<Session, CharSequence> predicate;
 
-   public StringCondition(Access fromVar, boolean isSet, SerializableBiPredicate<Session, CharSequence> predicate) {
+   public StringCondition(ReadAccess fromVar, boolean isSet, SerializableBiPredicate<Session, CharSequence> predicate) {
       this.fromVar = fromVar;
       this.isSet = isSet;
       this.predicate = predicate;
@@ -94,7 +94,7 @@ public class StringCondition implements Condition {
       }
 
       public StringCondition buildCondition() {
-         return new StringCondition(SessionFactory.access(fromVar), isSet, isSet ? buildPredicate() : null);
+         return new StringCondition(SessionFactory.readAccess(fromVar), isSet, isSet ? buildPredicate() : null);
       }
    }
 }

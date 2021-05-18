@@ -4,28 +4,21 @@ import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Name;
+import io.hyperfoil.api.session.IntAccess;
 import io.hyperfoil.http.api.HttpRequest;
 import io.hyperfoil.http.api.StatusHandler;
-import io.hyperfoil.api.session.Access;
-import io.hyperfoil.api.session.ResourceUtilizer;
-import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
 
-public class StoreStatusHandler implements StatusHandler, ResourceUtilizer {
-   private final Access toVar;
+public class StoreStatusHandler implements StatusHandler {
+   private final IntAccess toVar;
 
-   public StoreStatusHandler(Access toVar) {
+   public StoreStatusHandler(IntAccess toVar) {
       this.toVar = toVar;
    }
 
    @Override
    public void handleStatus(HttpRequest request, int status) {
       toVar.setInt(request.session, status);
-   }
-
-   @Override
-   public void reserve(Session session) {
-      toVar.declareInt(session);
    }
 
    /**
@@ -58,7 +51,7 @@ public class StoreStatusHandler implements StatusHandler, ResourceUtilizer {
 
       @Override
       public StoreStatusHandler build() {
-         return new StoreStatusHandler(SessionFactory.access(toVar));
+         return new StoreStatusHandler(SessionFactory.intAccess(toVar));
       }
    }
 }

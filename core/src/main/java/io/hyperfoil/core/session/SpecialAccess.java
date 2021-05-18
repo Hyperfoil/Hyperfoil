@@ -2,12 +2,12 @@ package io.hyperfoil.core.session;
 
 import java.io.Serializable;
 
-import io.hyperfoil.api.session.Access;
+import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.function.SerializableFunction;
 import io.hyperfoil.function.SerializableToIntFunction;
 
-abstract class SpecialAccess implements Access {
+abstract class SpecialAccess implements ReadAccess {
    final String name;
 
    SpecialAccess(String name) {
@@ -20,38 +20,8 @@ abstract class SpecialAccess implements Access {
    }
 
    @Override
-   public void setInt(Session session, int value) {
-      throw new UnsupportedOperationException(name + " is read-only");
-   }
-
-   @Override
-   public int addToInt(Session session, int delta) {
-      throw new UnsupportedOperationException(name + " is read-only");
-   }
-
-   @Override
-   public void unset(Session session) {
-      throw new UnsupportedOperationException(name + " is read-only");
-   }
-
-   @Override
-   public void declareObject(Session session) {
-      throw new UnsupportedOperationException("Cannot declare read-only variable " + name);
-   }
-
-   @Override
-   public void declareInt(Session session) {
-      throw new UnsupportedOperationException("Cannot declare read-only variable " + name);
-   }
-
-   @Override
    public boolean isSet(Session session) {
       return true;
-   }
-
-   @Override
-   public void setObject(Session session, java.lang.Object value) {
-      throw new UnsupportedOperationException(name + " is read-only");
    }
 
    private abstract class BaseVar implements Session.Var, Serializable {
@@ -80,7 +50,6 @@ abstract class SpecialAccess implements Access {
          throw new UnsupportedOperationException("Cannot retrieve " + name + " as object");
       }
 
-
       @Override
       public int getInt(Session session) {
          return supplier.applyAsInt(session);
@@ -89,11 +58,6 @@ abstract class SpecialAccess implements Access {
       @Override
       public Session.Var getVar(Session session) {
          return var;
-      }
-
-      @Override
-      public Object activate(Session session) {
-         throw new UnsupportedOperationException("Cannot retrieve " + name + " as an object");
       }
 
       private class Var extends BaseVar {
@@ -136,11 +100,6 @@ abstract class SpecialAccess implements Access {
       @Override
       public Session.Var getVar(Session session) {
          return var;
-      }
-
-      @Override
-      public java.lang.Object activate(Session session) {
-         return supplier.apply(session);
       }
 
       private class Var extends BaseVar {

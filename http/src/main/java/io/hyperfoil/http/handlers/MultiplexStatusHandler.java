@@ -12,11 +12,9 @@ import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.PartialBuilder;
 import io.hyperfoil.http.api.HttpRequest;
 import io.hyperfoil.http.api.StatusHandler;
-import io.hyperfoil.api.session.ResourceUtilizer;
-import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 
-public class MultiplexStatusHandler extends BaseRangeStatusHandler implements ResourceUtilizer {
+public class MultiplexStatusHandler extends BaseRangeStatusHandler {
    private final StatusHandler[][] handlers;
    private final StatusHandler[] other;
 
@@ -40,14 +38,6 @@ public class MultiplexStatusHandler extends BaseRangeStatusHandler implements Re
             h.handleStatus(request, status);
          }
       }
-   }
-
-   @Override
-   public void reserve(Session session) {
-      for (StatusHandler[] hs : handlers) {
-         ResourceUtilizer.reserve(session, (Object[]) hs);
-      }
-      ResourceUtilizer.reserve(session, (Object[]) other);
    }
 
    /**

@@ -10,17 +10,16 @@ import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.config.StepBuilder;
-import io.hyperfoil.api.session.Access;
-import io.hyperfoil.api.session.ResourceUtilizer;
+import io.hyperfoil.api.session.ObjectAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.builders.BaseStepBuilder;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.util.LongFastUUID;
 
-public class RandomUUIDStep implements Step, ResourceUtilizer {
-   private final Access toVar;
+public class RandomUUIDStep implements Step {
+   private final ObjectAccess toVar;
 
-   public RandomUUIDStep(Access toVar) {
+   public RandomUUIDStep(ObjectAccess toVar) {
       this.toVar = toVar;
    }
 
@@ -28,11 +27,6 @@ public class RandomUUIDStep implements Step, ResourceUtilizer {
    public boolean invoke(Session session) {
       toVar.setObject(session, LongFastUUID.randomUUID());
       return true;
-   }
-
-   @Override
-   public void reserve(Session session) {
-      toVar.declareObject(session);
    }
 
    /**
@@ -68,7 +62,7 @@ public class RandomUUIDStep implements Step, ResourceUtilizer {
          if (toVar == null || toVar.isEmpty()) {
             throw new BenchmarkDefinitionException("Missing target var.");
          }
-         return Collections.singletonList(new RandomUUIDStep(SessionFactory.access(toVar)));
+         return Collections.singletonList(new RandomUUIDStep(SessionFactory.objectAccess(toVar)));
       }
    }
 }

@@ -6,20 +6,13 @@ import java.util.List;
 
 import io.hyperfoil.http.api.HttpRequest;
 import io.hyperfoil.http.api.HeaderHandler;
-import io.hyperfoil.api.session.ResourceUtilizer;
-import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 
-public abstract class BaseDelegatingHeaderHandler implements HeaderHandler, ResourceUtilizer {
+public abstract class BaseDelegatingHeaderHandler implements HeaderHandler {
    protected final HeaderHandler[] handlers;
 
    public BaseDelegatingHeaderHandler(HeaderHandler[] handlers) {
       this.handlers = handlers;
-   }
-
-   @Override
-   public void reserve(Session session) {
-      ResourceUtilizer.reserve(session, (Object[]) handlers);
    }
 
    @Override

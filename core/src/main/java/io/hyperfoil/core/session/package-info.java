@@ -40,8 +40,10 @@
  * <h2>Variables</h2>
  * <p>
  * The {@link io.hyperfoil.api.session.Session} is provided as a parameter to most calls and stores all state of the scenario.
- * The state is operated using {@link io.hyperfoil.api.session.Access accessors}; these can be retrieved from
- * {@link io.hyperfoil.core.session.SessionFactory#access(java.lang.Object)}.
+ * The state is operated using "accessors"; these can be retrieved from
+ * {@link io.hyperfoil.core.session.SessionFactory#readAccess(java.lang.Object)},
+ * {@link io.hyperfoil.core.session.SessionFactory#objectAccess(java.lang.Object)},
+ * {@link io.hyperfoil.core.session.SessionFactory#intAccess(java.lang.Object)}, and similar methods.
  * counterparts.
  * <p>
  * Initially all variables are in undefined state; reading such variable is considered an error. The unset/set state

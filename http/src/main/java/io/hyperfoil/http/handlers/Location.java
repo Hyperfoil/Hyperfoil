@@ -1,7 +1,8 @@
 package io.hyperfoil.http.handlers;
 
-import io.hyperfoil.api.session.Access;
+import io.hyperfoil.api.session.ObjectAccess;
 import io.hyperfoil.api.session.Action;
+import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.data.LimitedPoolResource;
 import io.hyperfoil.core.data.Queue;
@@ -25,9 +26,9 @@ public class Location {
    }
 
    public static class GetAuthority implements SerializableFunction<Session, String> {
-      private final Access locationVar;
+      private final ReadAccess locationVar;
 
-      public GetAuthority(Access locationVar) {
+      public GetAuthority(ReadAccess locationVar) {
          this.locationVar = locationVar;
       }
 
@@ -39,9 +40,9 @@ public class Location {
    }
 
    public static class GetPath implements SerializableFunction<Session, String> {
-      private final Access locationVar;
+      private final ReadAccess locationVar;
 
-      public GetPath(Access locationVar) {
+      public GetPath(ReadAccess locationVar) {
          this.locationVar = locationVar;
       }
 
@@ -55,9 +56,9 @@ public class Location {
    public static class Complete<T extends Location> implements Action {
       private final LimitedPoolResource.Key<T> poolKey;
       private final Session.ResourceKey<Queue> queueKey;
-      private final Access locationVar;
+      private final ObjectAccess locationVar;
 
-      public Complete(LimitedPoolResource.Key<T> poolKey, Queue.Key queueKey, Access locationVar) {
+      public Complete(LimitedPoolResource.Key<T> poolKey, Queue.Key queueKey, ObjectAccess locationVar) {
          this.poolKey = poolKey;
          this.queueKey = queueKey;
          this.locationVar = locationVar;

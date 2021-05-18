@@ -11,9 +11,9 @@ import io.hyperfoil.api.config.Embed;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.session.Action;
+import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.config.Step;
-import io.hyperfoil.api.session.Access;
 import io.hyperfoil.core.builders.Condition;
 import io.hyperfoil.core.builders.DependencyStepBuilder;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
@@ -23,7 +23,7 @@ public class BreakSequenceStep extends DependencyStep {
    private final SerializablePredicate<Session> condition;
    private final Action[] onBreak;
 
-   public BreakSequenceStep(Access[] dependencies, SerializablePredicate<Session> condition, Action[] onBreak) {
+   public BreakSequenceStep(ReadAccess[] dependencies, SerializablePredicate<Session> condition, Action[] onBreak) {
       super(dependencies);
       this.condition = condition;
       this.onBreak = onBreak;

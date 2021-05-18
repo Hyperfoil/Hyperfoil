@@ -5,10 +5,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
-import io.hyperfoil.api.session.Access;
+import io.hyperfoil.api.session.ObjectAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.config.Step;
-import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.core.builders.BaseStepBuilder;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.function.SerializableBiConsumer;
@@ -20,17 +19,17 @@ import io.hyperfoil.function.SerializablePredicate;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 
-public class PollStep<T> implements Step, ResourceUtilizer {
+public class PollStep<T> implements Step {
    private static final Logger log = LogManager.getLogger(PollStep.class);
 
    private final SerializableFunction<Session, T> provider;
-   private final Access toVar;
+   private final ObjectAccess toVar;
    private final SerializableBiPredicate<Session, T> filter;
    private final SerializableBiConsumer<Session, T> recycler;
    private final long periodMs;
    private final int maxRetries;
 
-   public PollStep(SerializableFunction<Session, T> provider, Access toVar, SerializableBiPredicate<Session, T> filter, SerializableBiConsumer<Session, T> recycler, long periodMs, int maxRetries) {
+   public PollStep(SerializableFunction<Session, T> provider, ObjectAccess toVar, SerializableBiPredicate<Session, T> filter, SerializableBiConsumer<Session, T> recycler, long periodMs, int maxRetries) {
       this.provider = provider;
       this.filter = filter;
       this.toVar = toVar;
@@ -59,11 +58,6 @@ public class PollStep<T> implements Step, ResourceUtilizer {
       log.trace("Not accepted, scheduling #{} in {}", session.uniqueId(), periodMs);
       session.executor().schedule((Runnable) session, periodMs, TimeUnit.MILLISECONDS);
       return false;
-   }
-
-   @Override
-   public void reserve(Session session) {
-      toVar.declareObject(session);
    }
 
    /**
@@ -120,7 +114,7 @@ public class PollStep<T> implements Step, ResourceUtilizer {
 
       @Override
       public List<Step> build() {
-         return Collections.singletonList(new PollStep<>(provider, SessionFactory.access(var), filter, recycler, periodMs, maxRetries));
+         return Collections.singletonList(new PollStep<>(provider, SessionFactory.objectAccess(var), filter, recycler, periodMs, maxRetries));
       }
    }
 }

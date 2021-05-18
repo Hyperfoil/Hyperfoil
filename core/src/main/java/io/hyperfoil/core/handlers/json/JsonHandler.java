@@ -8,11 +8,12 @@ import org.kohsuke.MetaInfServices;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.processor.Transformer;
+import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 import io.netty.buffer.ByteBuf;
 import io.hyperfoil.api.session.Session;
 
-public class JsonHandler extends JsonParser implements Processor, Session.ResourceKey<JsonHandler.Context> {
+public class JsonHandler extends JsonParser implements Processor, ResourceUtilizer, Session.ResourceKey<JsonHandler.Context> {
 
    public JsonHandler(String query, boolean delete, Transformer replace, Processor processor) {
       super(query.trim(), delete, replace, processor);
@@ -53,7 +54,6 @@ public class JsonHandler extends JsonParser implements Processor, Session.Resour
 
    @Override
    public void reserve(Session session) {
-      super.reserve(session);
       session.declareResource(this, Context::new);
    }
 

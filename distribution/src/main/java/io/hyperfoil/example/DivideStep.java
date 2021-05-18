@@ -10,8 +10,8 @@ import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.config.StepBuilder;
-import io.hyperfoil.api.session.Access;
-import io.hyperfoil.api.session.ResourceUtilizer;
+import io.hyperfoil.api.session.IntAccess;
+import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.builders.BaseStepBuilder;
 import io.hyperfoil.core.session.SessionFactory;
@@ -19,13 +19,13 @@ import io.hyperfoil.core.session.SessionFactory;
 /**
  * Example step for <a href="http://hyperfoil.io/quickstart/quickstart8">Custom steps tutorial</a>
  */
-public class DivideStep implements Step, ResourceUtilizer {
+public class DivideStep implements Step {
    // All fields in a step are immutable, any state must be stored in the Session
-   private final Access fromVar;
-   private final Access toVar;
+   private final ReadAccess fromVar;
+   private final IntAccess toVar;
    private final int divisor;
 
-   public DivideStep(Access fromVar, Access toVar, int divisor) {
+   public DivideStep(ReadAccess fromVar, IntAccess toVar, int divisor) {
       // Variables in session are not accessed directly using map lookup but
       // through the Access objects. This is necessary as the scenario can use
       // some simple expressions that are parsed when the scenario is built
@@ -47,15 +47,6 @@ public class DivideStep implements Step, ResourceUtilizer {
       int value = fromVar.getInt(session);
       toVar.setInt(session, value / divisor);
       return true;
-   }
-
-   @Override
-   public void reserve(Session session) {
-      // This method is invoked only once for each session and reserves space
-      // for the variable. By convention we reserve space only for the vars
-      // this step writes to, not those that are read (these must be reserved
-      // in some other step). It's ok to declare the variable multiple times.
-      toVar.declareInt(session);
    }
 
    // Make this builder loadable as service
@@ -119,7 +110,8 @@ public class DivideStep implements Step, ResourceUtilizer {
          }
          // The builder has a bit more flexibility and it can create more than
          // one step at once.
-         return Collections.singletonList(new DivideStep(SessionFactory.access(fromVar), SessionFactory.access(toVar), divisor));
+         return Collections.singletonList(new DivideStep(
+               SessionFactory.readAccess(fromVar), SessionFactory.intAccess(toVar), divisor));
       }
    }
 }

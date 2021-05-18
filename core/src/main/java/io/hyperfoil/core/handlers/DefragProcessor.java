@@ -9,7 +9,7 @@ import io.hyperfoil.api.session.ResourceUtilizer;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 
-public class DefragProcessor extends Processor.BaseDelegating implements Session.ResourceKey<DefragProcessor.Context> {
+public class DefragProcessor extends Processor.BaseDelegating implements ResourceUtilizer, Session.ResourceKey<DefragProcessor.Context> {
    private static final Logger log = LogManager.getLogger(DefragProcessor.class);
 
    public DefragProcessor(Processor delegate) {
@@ -37,7 +37,6 @@ public class DefragProcessor extends Processor.BaseDelegating implements Session
       // will be allocated only if needed (and only once). This is necessary since we don't know the type of allocator
       // that is used for the received buffers ahead.
       session.declareResource(this, Context::new);
-      ResourceUtilizer.reserve(session, delegate);
    }
 
    static class Context implements Session.Resource {

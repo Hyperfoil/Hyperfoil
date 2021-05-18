@@ -6,7 +6,7 @@ import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.core.handlers.ExpectProcessor;
 import io.hyperfoil.http.BaseMockConnection;
 import io.hyperfoil.http.api.HttpRequest;
-import io.hyperfoil.api.session.Access;
+import io.hyperfoil.api.session.ObjectAccess;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.test.TestUtil;
 import io.netty.channel.ChannelHandlerAdapter;
@@ -72,8 +72,8 @@ public class FilterHeaderHandlerTest {
             .end()
             .build();
       HttpRequest request = requestMock();
-      Access access = SessionFactory.access("myVar");
-      access.declareObject(request.session);
+      ObjectAccess access = SessionFactory.objectAccess("myVar");
+      access.reserve(request.session);
       access.setObject(request.session, "Foo");
       Locator.pop();
 

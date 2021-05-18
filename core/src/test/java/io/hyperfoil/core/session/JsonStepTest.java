@@ -7,7 +7,8 @@ import java.nio.charset.StandardCharsets;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import io.hyperfoil.api.session.Access;
+import io.hyperfoil.api.session.ObjectAccess;
+import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.core.data.DataFormat;
 import io.hyperfoil.core.steps.JsonStep;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -17,11 +18,9 @@ public class JsonStepTest extends BaseScenarioTest {
    @Test
    public void test() {
       scenario()
-            .objectVar("json")
-            .objectVar("output")
             .initialSequence("test")
             .step(() -> {
-               Access json = SessionFactory.access("json");
+               ObjectAccess json = SessionFactory.objectAccess("json");
                return s1 -> {
                   json.setObject(s1, "{ \"foo\" : \"bar\\nbar\" }".getBytes(StandardCharsets.UTF_8));
                   return true;
@@ -33,7 +32,7 @@ public class JsonStepTest extends BaseScenarioTest {
                   .toVar("output")
                   .format(DataFormat.STRING))
             .step(() -> {
-               Access output = SessionFactory.access("output");
+               ReadAccess output = SessionFactory.readAccess("output");
                return s -> {
                   assertThat(output.getObject(s)).isEqualTo("bar\nbar");
                   return true;

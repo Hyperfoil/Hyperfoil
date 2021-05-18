@@ -9,7 +9,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.hyperfoil.api.config.Locator;
-import io.hyperfoil.api.session.Access;
+import io.hyperfoil.api.session.ObjectAccess;
+import io.hyperfoil.api.session.IntAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.test.TestUtil;
@@ -92,16 +93,16 @@ public class PatternTest {
 
    private Session setObject(String name, String value) {
       Session session = SessionFactory.forTesting();
-      Access var = SessionFactory.access(name);
-      var.declareObject(session);
+      ObjectAccess var = SessionFactory.objectAccess(name);
+      var.reserve(session);
       var.setObject(session, value);
       return session;
    }
 
    private Session setInt(String name, int value) {
       Session session = SessionFactory.forTesting();
-      Access var = SessionFactory.access(name);
-      var.declareInt(session);
+      IntAccess var = SessionFactory.intAccess(name);
+      var.reserve(session);
       var.setInt(session, value);
       return session;
    }

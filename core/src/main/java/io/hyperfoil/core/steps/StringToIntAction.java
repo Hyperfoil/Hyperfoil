@@ -5,22 +5,22 @@ import org.kohsuke.MetaInfServices;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Name;
-import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Action;
-import io.hyperfoil.api.session.ResourceUtilizer;
+import io.hyperfoil.api.session.IntAccess;
+import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 
-public class StringToIntAction implements Action, ResourceUtilizer {
+public class StringToIntAction implements Action {
    private static final Logger log = LogManager.getLogger(StringToIntAction.class);
 
-   private final Access fromVar;
-   private final Access toVar;
+   private final ReadAccess fromVar;
+   private final IntAccess toVar;
 
-   public StringToIntAction(Access fromVar, Access toVar) {
+   public StringToIntAction(ReadAccess fromVar, IntAccess toVar) {
       this.fromVar = fromVar;
       this.toVar = toVar;
    }
@@ -38,11 +38,6 @@ public class StringToIntAction implements Action, ResourceUtilizer {
             log.error("#{} Cannot convert {} to integer", session.uniqueId(), value);
          }
       }
-   }
-
-   @Override
-   public void reserve(Session session) {
-      toVar.declareInt(session);
    }
 
    @MetaInfServices(Action.Builder.class)
@@ -98,7 +93,7 @@ public class StringToIntAction implements Action, ResourceUtilizer {
          } else if (fromVar.equals(toVar)) {
             throw new BenchmarkDefinitionException("Variable type is set statically; cannot use the same variable for both `fromVar` and `toVar`.");
          } else {
-            return new StringToIntAction(SessionFactory.access(fromVar), SessionFactory.access(toVar));
+            return new StringToIntAction(SessionFactory.readAccess(fromVar), SessionFactory.intAccess(toVar));
          }
       }
    }

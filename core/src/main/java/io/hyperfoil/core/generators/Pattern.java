@@ -11,7 +11,7 @@ import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Visitor;
 import io.hyperfoil.api.connection.Connection;
 import io.hyperfoil.api.processor.Transformer;
-import io.hyperfoil.api.session.Access;
+import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.util.Util;
@@ -54,7 +54,7 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
             int colon = str.indexOf(":", openPar);
             if (colon >= 0 && colon < closePar) {
                String format = str.substring(openPar + 2, colon).trim();
-               Access key = SessionFactory.access(str.substring(colon + 1, closePar).trim());
+               ReadAccess key = SessionFactory.readAccess(str.substring(colon + 1, closePar).trim());
                // TODO: we can't pre-allocate formatters here but we could cache them in the session
                // TODO: find a better place for this hack
                if (format.equalsIgnoreCase("urlencode")) {
@@ -94,7 +94,7 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
                   throw new IllegalArgumentException("Cannot use format string '" + format + "', only integers are supported");
                }
             } else {
-               Access key = SessionFactory.access(str.substring(openPar + 2, closePar).trim());
+               ReadAccess key = SessionFactory.readAccess(str.substring(openPar + 2, closePar).trim());
                components.add(new VarComponent(key, urlEncode ? Pattern::urlEncode : null));
             }
             lastSearch = last = closePar + 1;
@@ -188,9 +188,9 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
 
    private class FormatIntComponent implements Component {
       private final String format;
-      private final Access key;
+      private final ReadAccess key;
 
-      FormatIntComponent(String format, Access key) {
+      FormatIntComponent(String format, ReadAccess key) {
          this.format = format;
          this.key = key;
       }
@@ -217,10 +217,10 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
    }
 
    private static class VarComponent implements Component {
-      private final Access key;
+      private final ReadAccess key;
       private final SerializableFunction<String, String> transform;
 
-      VarComponent(Access key, SerializableFunction<String, String> transform) {
+      VarComponent(ReadAccess key, SerializableFunction<String, String> transform) {
          this.key = key;
          this.transform = transform;
       }

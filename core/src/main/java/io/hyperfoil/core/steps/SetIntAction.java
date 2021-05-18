@@ -5,9 +5,8 @@ import org.kohsuke.MetaInfServices;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Name;
-import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Action;
-import io.hyperfoil.api.session.ResourceUtilizer;
+import io.hyperfoil.api.session.IntAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.builders.IntCondition;
 import io.hyperfoil.core.session.SessionFactory;
@@ -15,16 +14,16 @@ import io.hyperfoil.core.session.SessionFactory;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 
-public class SetIntAction implements Action, ResourceUtilizer {
+public class SetIntAction implements Action {
    private static final Logger log = LogManager.getLogger(SetIntAction.class);
    private static final boolean trace = log.isTraceEnabled();
 
-   private final Access var;
+   private final IntAccess var;
    private final int value;
    private final boolean onlyIfNotSet;
    private final IntCondition condition;
 
-   public SetIntAction(Access var, int value, boolean onlyIfNotSet, IntCondition condition) {
+   public SetIntAction(IntAccess var, int value, boolean onlyIfNotSet, IntCondition condition) {
       this.var = var;
       this.value = value;
       this.onlyIfNotSet = onlyIfNotSet;
@@ -42,11 +41,6 @@ public class SetIntAction implements Action, ResourceUtilizer {
       if (condition == null || condition.test(session)) {
          var.setInt(session, value);
       }
-   }
-
-   @Override
-   public void reserve(Session session) {
-      var.declareInt(session);
    }
 
    /**
@@ -129,7 +123,7 @@ public class SetIntAction implements Action, ResourceUtilizer {
          if (var == null) {
             throw new BenchmarkDefinitionException("No variable set!");
          }
-         return new SetIntAction(SessionFactory.access(var), value, onlyIfNotSet, intCondition == null ? null : intCondition.build(var));
+         return new SetIntAction(SessionFactory.intAccess(var), value, onlyIfNotSet, intCondition == null ? null : intCondition.build(var));
       }
    }
 }

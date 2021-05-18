@@ -5,17 +5,17 @@ import org.kohsuke.MetaInfServices;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Name;
-import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Action;
+import io.hyperfoil.api.session.IntAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
 
 public class AddToIntAction implements Action {
-   protected final Access var;
+   protected final IntAccess var;
    protected final int value;
    protected final Integer orElseSetTo;
 
-   public AddToIntAction(Access var, int value, Integer orElseSetTo) {
+   public AddToIntAction(IntAccess var, int value, Integer orElseSetTo) {
       this.var = var;
       this.value = value;
       this.orElseSetTo = orElseSetTo;
@@ -112,7 +112,7 @@ public class AddToIntAction implements Action {
          if (value == 0) {
             throw new BenchmarkDefinitionException("It makes no sense to add 0.");
          }
-         return new AddToIntAction(SessionFactory.access(var), value, orElseSetTo);
+         return new AddToIntAction(SessionFactory.intAccess(var), value, orElseSetTo);
       }
    }
 }

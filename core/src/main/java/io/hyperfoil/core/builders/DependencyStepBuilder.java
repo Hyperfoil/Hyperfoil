@@ -3,7 +3,7 @@ package io.hyperfoil.core.builders;
 import java.util.ArrayList;
 import java.util.Collection;
 
-import io.hyperfoil.api.session.Access;
+import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.core.session.SessionFactory;
 
 public abstract class DependencyStepBuilder<S extends DependencyStepBuilder<S>> extends BaseStepBuilder<S> {
@@ -23,7 +23,7 @@ public abstract class DependencyStepBuilder<S extends DependencyStepBuilder<S>> 
       return (S) this;
    }
 
-   protected Access[] dependencies() {
-      return dependencies.stream().map(SessionFactory::access).toArray(Access[]::new);
+   protected ReadAccess[] dependencies() {
+      return dependencies.stream().map(SessionFactory::readAccess).toArray(ReadAccess[]::new);
    }
 }

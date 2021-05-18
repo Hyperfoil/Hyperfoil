@@ -5,12 +5,11 @@ import java.util.Collection;
 import java.util.List;
 
 import io.hyperfoil.api.processor.Processor;
-import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 import io.netty.buffer.ByteBuf;
 
-public class MultiProcessor implements Processor, ResourceUtilizer {
+public class MultiProcessor implements Processor {
    protected final Processor[] delegates;
 
    @SafeVarargs
@@ -37,11 +36,6 @@ public class MultiProcessor implements Processor, ResourceUtilizer {
       for (Processor p : delegates) {
          p.process(session, data, offset, length, isLastPart);
       }
-   }
-
-   @Override
-   public void reserve(Session session) {
-      ResourceUtilizer.reserve(session, (Object[]) delegates);
    }
 
    public static class Builder<S extends Builder<S>> implements Processor.Builder {

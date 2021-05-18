@@ -1,7 +1,6 @@
 package io.hyperfoil.test;
 
 import static io.hyperfoil.http.steps.HttpStepCatalog.SC;
-import static io.hyperfoil.core.session.SessionFactory.access;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -12,9 +11,11 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import io.hyperfoil.api.processor.Processor;
+import io.hyperfoil.api.session.IntAccess;
+import io.hyperfoil.api.session.ReadAccess;
+import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.http.HttpScenarioTest;
 import io.hyperfoil.http.api.HttpMethod;
-import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.data.DataFormat;
 import io.hyperfoil.core.handlers.ArrayRecorder;
@@ -87,7 +88,6 @@ public class FleetTest extends HttpScenarioTest {
 
       // @formatter:off
       scenario(2)
-            .intVar(NUMBER_OF_SUNK_SHIPS)
             .initialSequence("fleet")
                .step(SC).action(new SetIntAction.Builder().var(NUMBER_OF_SUNK_SHIPS).value(0))
                .step(SC).httpRequest(HttpMethod.GET)
@@ -139,7 +139,7 @@ public class FleetTest extends HttpScenarioTest {
                   .sync(false)
                   .handler()
                      .status(() -> {
-                        Access numberOfSunkShips = access(NUMBER_OF_SUNK_SHIPS);
+                        IntAccess numberOfSunkShips = SessionFactory.intAccess(NUMBER_OF_SUNK_SHIPS);
                         return (request, status) -> {
                            if (status == 204) {
                               numberOfSunkShips.addToInt(request.session, -1);
@@ -169,7 +169,7 @@ public class FleetTest extends HttpScenarioTest {
    }
 
    private SerializableFunction<Session, String> currentShipQuery() {
-      Access shipName = access("shipNames[.]");
+      ReadAccess shipName = SessionFactory.readAccess("shipNames[.]");
       return s1 -> "/ship?name=" + encode((String) shipName.getObject(s1));
    }
 

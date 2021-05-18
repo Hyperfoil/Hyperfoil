@@ -6,7 +6,7 @@ import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.processor.Processor;
-import io.hyperfoil.api.session.Access;
+import io.hyperfoil.api.session.ObjectAccess;
 import io.hyperfoil.core.data.DataFormat;
 import io.hyperfoil.core.session.SessionFactory;
 import io.netty.buffer.ByteBuf;
@@ -20,11 +20,11 @@ import org.apache.logging.log4j.LogManager;
 public class ArrayRecorder implements Processor, ResourceUtilizer {
    private static final Logger log = LogManager.getLogger(ArrayRecorder.class);
    private static final boolean trace = log.isTraceEnabled();
-   private final Access toVar;
+   private final ObjectAccess toVar;
    private final DataFormat format;
    private final int maxSize;
 
-   public ArrayRecorder(Access toVar, DataFormat format, int maxSize) {
+   public ArrayRecorder(ObjectAccess toVar, DataFormat format, int maxSize) {
       this.toVar = toVar;
       this.format = format;
       this.maxSize = maxSize;
@@ -55,7 +55,6 @@ public class ArrayRecorder implements Processor, ResourceUtilizer {
 
    @Override
    public void reserve(Session session) {
-      toVar.declareObject(session);
       toVar.setObject(session, ObjectVar.newArray(session, maxSize));
       toVar.unset(session);
    }
@@ -92,7 +91,7 @@ public class ArrayRecorder implements Processor, ResourceUtilizer {
 
       @Override
       public Processor build(boolean fragmented) {
-         ArrayRecorder arrayRecorder = new ArrayRecorder(SessionFactory.access(toVar), format, maxSize);
+         ArrayRecorder arrayRecorder = new ArrayRecorder(SessionFactory.objectAccess(toVar), format, maxSize);
          return fragmented ? new DefragProcessor(arrayRecorder) : arrayRecorder;
       }
 

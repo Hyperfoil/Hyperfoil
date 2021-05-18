@@ -104,7 +104,7 @@ public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.O
     * @return This sequence.
     */
    public BaseSequenceBuilder<?> awaitDelay(String key) {
-      return parent.step(() -> new AwaitDelayStep(SessionFactory.access(key)));
+      return parent.step(() -> new AwaitDelayStep(SessionFactory.readAccess(key)));
    }
 
    public AwaitDelayStep.Builder awaitDelay() {

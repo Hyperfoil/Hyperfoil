@@ -4,21 +4,24 @@ import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Name;
-import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Action;
+import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
 
 public class UnsetAction implements Action {
-   public final Access var;
+   public final ReadAccess var;
 
-   public UnsetAction(Access var) {
+   public UnsetAction(ReadAccess var) {
       this.var = var;
    }
 
    @Override
    public void run(Session session) {
-      var.unset(session);
+      // We are cheating here, pretending that we will only read the variable
+      // but then changing it. This is because we don't know the type of the variable
+      // and can't declare it.
+      var.getVar(session).unset();
    }
 
    /**
@@ -55,7 +58,8 @@ public class UnsetAction implements Action {
 
       @Override
       public UnsetAction build() {
-         return new UnsetAction(SessionFactory.access(var));
+         // Cheating with readAccess, see above
+         return new UnsetAction(SessionFactory.readAccess(var));
       }
    }
 }

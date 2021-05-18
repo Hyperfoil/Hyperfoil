@@ -1,7 +1,7 @@
 package io.hyperfoil.core.util;
 
 import io.hyperfoil.api.connection.Connection;
-import io.hyperfoil.api.session.Access;
+import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.function.SerializableBiFunction;
 import io.netty.buffer.ByteBuf;
@@ -13,9 +13,9 @@ import org.apache.logging.log4j.LogManager;
 public class FromVarBytesGenerator implements SerializableBiFunction<Session, Connection, ByteBuf> {
    private static final Logger log = LogManager.getLogger(FromVarBytesGenerator.class);
 
-   private final Access fromVar;
+   private final ReadAccess fromVar;
 
-   public FromVarBytesGenerator(Access fromVar) {
+   public FromVarBytesGenerator(ReadAccess fromVar) {
       this.fromVar = fromVar;
    }
 

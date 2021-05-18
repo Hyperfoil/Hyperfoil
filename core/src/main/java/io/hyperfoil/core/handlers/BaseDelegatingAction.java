@@ -5,11 +5,10 @@ import java.util.Collection;
 import java.util.List;
 
 import io.hyperfoil.api.session.Action;
-import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 
-public abstract class BaseDelegatingAction implements Action, ResourceUtilizer {
+public abstract class BaseDelegatingAction implements Action {
    protected final Action[] actions;
 
    public BaseDelegatingAction(Action[] actions) {
@@ -21,11 +20,6 @@ public abstract class BaseDelegatingAction implements Action, ResourceUtilizer {
       for (Action a : actions) {
          a.run(session);
       }
-   }
-
-   @Override
-   public void reserve(Session session) {
-      ResourceUtilizer.reserve(session, (Object[]) actions);
    }
 
    public abstract static class Builder<S extends Builder<S>> implements Action.Builder {

@@ -10,7 +10,8 @@ import org.kohsuke.MetaInfServices;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.processor.Processor;
-import io.hyperfoil.api.session.Access;
+import io.hyperfoil.api.session.ReadAccess;
+import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
 import io.netty.buffer.ByteBuf;
@@ -21,16 +22,16 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 
 // Based on java.util.zip.GZIPInputStream
-public class GzipInflatorProcessor extends MultiProcessor implements Session.ResourceKey<GzipInflatorProcessor.InflaterResource> {
+public class GzipInflatorProcessor extends MultiProcessor implements ResourceUtilizer, Session.ResourceKey<GzipInflatorProcessor.InflaterResource> {
    private static final Logger log = LogManager.getLogger(GzipInflatorProcessor.class);
    private static final int FHCRC = 2;    // Header CRC
    private static final int FEXTRA = 4;    // Extra field
    private static final int FNAME = 8;    // File name
    private static final int FCOMMENT = 16;   // File comment
 
-   private final Access encodingVar;
+   private final ReadAccess encodingVar;
 
-   public GzipInflatorProcessor(Processor[] processors, Access encodingVar) {
+   public GzipInflatorProcessor(Processor[] processors, ReadAccess encodingVar) {
       super(processors);
       this.encodingVar = encodingVar;
    }
@@ -60,7 +61,6 @@ public class GzipInflatorProcessor extends MultiProcessor implements Session.Res
 
    @Override
    public void reserve(Session session) {
-      super.reserve(session);
       session.declareResource(this, InflaterResource::new);
    }
 
@@ -280,7 +280,7 @@ public class GzipInflatorProcessor extends MultiProcessor implements Session.Res
       @Override
       public Processor build(boolean fragmented) {
          Processor[] processors = buildProcessors(fragmented);
-         return new GzipInflatorProcessor(processors, SessionFactory.access(encodingVar));
+         return new GzipInflatorProcessor(processors, SessionFactory.readAccess(encodingVar));
       }
 
       /**

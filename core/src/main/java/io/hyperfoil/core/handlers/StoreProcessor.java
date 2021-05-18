@@ -5,23 +5,22 @@ import org.kohsuke.MetaInfServices;
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.processor.Processor;
-import io.hyperfoil.api.session.Access;
+import io.hyperfoil.api.session.ObjectAccess;
 import io.hyperfoil.core.data.DataFormat;
 import io.hyperfoil.core.session.SessionFactory;
 import io.netty.buffer.ByteBuf;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.api.session.ResourceUtilizer;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 
-public class StoreProcessor implements Processor, ResourceUtilizer {
+public class StoreProcessor implements Processor {
    private static final Logger log = LogManager.getLogger(StoreProcessor.class);
 
-   private final Access toVar;
+   private final ObjectAccess toVar;
    private final DataFormat format;
 
-   public StoreProcessor(Access toVar, DataFormat format) {
+   public StoreProcessor(ObjectAccess toVar, DataFormat format) {
       this.toVar = toVar;
       this.format = format;
    }
@@ -40,11 +39,6 @@ public class StoreProcessor implements Processor, ResourceUtilizer {
          Object value = format.convert(data, offset, length);
          toVar.setObject(session, value);
       }
-   }
-
-   @Override
-   public void reserve(Session session) {
-      toVar.declareObject(session);
    }
 
    /**
@@ -86,7 +80,7 @@ public class StoreProcessor implements Processor, ResourceUtilizer {
 
       @Override
       public Processor build(boolean fragmented) {
-         StoreProcessor storeProcessor = new StoreProcessor(SessionFactory.access(toVar), format);
+         StoreProcessor storeProcessor = new StoreProcessor(SessionFactory.objectAccess(toVar), format);
          return fragmented ? new DefragProcessor(storeProcessor) : storeProcessor;
       }
    }

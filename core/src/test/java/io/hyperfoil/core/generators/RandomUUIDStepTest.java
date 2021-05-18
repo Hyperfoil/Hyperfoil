@@ -8,7 +8,7 @@ import org.junit.Test;
 
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Step;
-import io.hyperfoil.api.session.Access;
+import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.test.TestUtil;
@@ -27,9 +27,10 @@ public class RandomUUIDStepTest {
          // session
          Locator.push(TestUtil.locator());
          List<Step> steps = builder.build();
-         Access access = SessionFactory.access(varName);
+         ReadAccess access = SessionFactory.readAccess(varName);
+         Session session = SessionFactory.forTesting();
+         SessionFactory.objectAccess(varName).reserve(session);
          Locator.pop();
-         Session session = SessionFactory.forTesting(new String[]{varName}, new String[0]);
 
          // assert
          Step step = steps.get(0);

@@ -4,13 +4,14 @@ import java.util.Objects;
 import java.util.function.Supplier;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.http.HttpUtil;
 import io.hyperfoil.http.api.HttpRequest;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.http.api.HeaderHandler;
 import io.hyperfoil.http.api.HttpMethod;
 import io.hyperfoil.api.processor.Processor;
-import io.hyperfoil.api.session.Access;
+import io.hyperfoil.api.session.ObjectAccess;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.SequenceInstance;
@@ -32,12 +33,12 @@ public class Redirect {
    private static final Logger log = LogManager.getLogger(Redirect.class);
    private static final boolean trace = log.isTraceEnabled();
 
-   public static class StatusHandler extends BaseDelegatingStatusHandler {
-      private final Access coordsVar;
+   public static class StatusHandler extends BaseDelegatingStatusHandler implements ResourceUtilizer {
+      private final ObjectAccess coordsVar;
       private final LimitedPoolResource.Key<Coords> poolKey;
       private final int concurrency;
 
-      public StatusHandler(Access coordsVar, io.hyperfoil.http.api.StatusHandler[] handlers, LimitedPoolResource.Key<Coords> poolKey, int concurrency) {
+      public StatusHandler(ObjectAccess coordsVar, io.hyperfoil.http.api.StatusHandler[] handlers, LimitedPoolResource.Key<Coords> poolKey, int concurrency) {
          super(handlers);
          this.coordsVar = coordsVar;
          this.poolKey = poolKey;
@@ -69,8 +70,6 @@ public class Redirect {
 
       @Override
       public void reserve(Session session) {
-         super.reserve(session);
-         coordsVar.declareObject(session);
          session.declareResource(poolKey, () -> LimitedPoolResource.create(concurrency, Coords.class, Coords::new), true);
       }
 
@@ -96,7 +95,7 @@ public class Redirect {
 
          @Override
          public StatusHandler build() {
-            return new StatusHandler(SessionFactory.access(coordsVar), buildHandlers(), poolKey, concurrency);
+            return new StatusHandler(SessionFactory.objectAccess(coordsVar), buildHandlers(), poolKey, concurrency);
          }
       }
    }
@@ -126,12 +125,12 @@ public class Redirect {
 
       private final int concurrency;
       private final Session.ResourceKey<Queue> queueKey;
-      private final Access inputVar;
-      private final Access outputVar;
+      private final ReadAccess inputVar;
+      private final ObjectAccess outputVar;
       private final String sequence;
       private final SerializableFunction<Session, SequenceInstance> originalSequenceSupplier;
 
-      public LocationRecorder(int concurrency, Session.ResourceKey<Queue> queueKey, Access inputVar, Access outputVar, String sequence, SerializableFunction<Session, SequenceInstance> originalSequenceSupplier) {
+      public LocationRecorder(int concurrency, Session.ResourceKey<Queue> queueKey, ReadAccess inputVar, ObjectAccess outputVar, String sequence, SerializableFunction<Session, SequenceInstance> originalSequenceSupplier) {
          this.concurrency = concurrency;
          this.queueKey = queueKey;
          this.inputVar = inputVar;
@@ -184,7 +183,6 @@ public class Redirect {
 
       @Override
       public void reserve(Session session) {
-         outputVar.declareObject(session);
          if (!outputVar.isSet(session)) {
             outputVar.setObject(session, ObjectVar.newArray(session, concurrency));
          }
@@ -238,15 +236,15 @@ public class Redirect {
             assert inputVar != null;
             assert outputVar != null;
             assert sequence != null;
-            return new LocationRecorder(concurrency, queueKey, SessionFactory.access(inputVar), SessionFactory.access(outputVar), this.sequence, originalSequenceSupplier.get());
+            return new LocationRecorder(concurrency, queueKey, SessionFactory.readAccess(inputVar), SessionFactory.objectAccess(outputVar), this.sequence, originalSequenceSupplier.get());
          }
       }
    }
 
    public static class GetMethod implements SerializableFunction<Session, HttpMethod> {
-      private final Access coordVar;
+      private final ReadAccess coordVar;
 
-      public GetMethod(Access coordVar) {
+      public GetMethod(ReadAccess coordVar) {
          this.coordVar = coordVar;
       }
 
@@ -257,7 +255,7 @@ public class Redirect {
       }
    }
 
-   private static SequenceInstance pushCurrentSequence(Session session, Access coordsVar) {
+   private static SequenceInstance pushCurrentSequence(Session session, ReadAccess coordsVar) {
       Coords coords = (Coords) coordsVar.getObject(session);
       SequenceInstance currentSequence = session.currentSequence();
       session.currentSequence(coords.originalSequence);
@@ -277,9 +275,9 @@ public class Redirect {
    }
 
    public static class WrappingStatusHandler extends BaseDelegatingStatusHandler {
-      private final Access coordsVar;
+      private final ReadAccess coordsVar;
 
-      public WrappingStatusHandler(io.hyperfoil.http.api.StatusHandler[] handlers, Access coordsVar) {
+      public WrappingStatusHandler(io.hyperfoil.http.api.StatusHandler[] handlers, ReadAccess coordsVar) {
          super(handlers);
          this.coordsVar = coordsVar;
       }
@@ -304,15 +302,15 @@ public class Redirect {
 
          @Override
          public WrappingStatusHandler build() {
-            return new WrappingStatusHandler(buildHandlers(), SessionFactory.sequenceScopedAccess(coordsVar));
+            return new WrappingStatusHandler(buildHandlers(), SessionFactory.sequenceScopedReadAccess(coordsVar));
          }
       }
    }
 
    public static class WrappingHeaderHandler extends BaseDelegatingHeaderHandler {
-      private final Access coordsVar;
+      private final ReadAccess coordsVar;
 
-      public WrappingHeaderHandler(HeaderHandler[] handlers, Access coordsVar) {
+      public WrappingHeaderHandler(HeaderHandler[] handlers, ReadAccess coordsVar) {
          super(handlers);
          this.coordsVar = coordsVar;
       }
@@ -357,15 +355,15 @@ public class Redirect {
 
          @Override
          public WrappingHeaderHandler build() {
-            return new WrappingHeaderHandler(buildHandlers(), SessionFactory.sequenceScopedAccess(coordVar));
+            return new WrappingHeaderHandler(buildHandlers(), SessionFactory.sequenceScopedReadAccess(coordVar));
          }
       }
    }
 
    public static class WrappingProcessor extends MultiProcessor {
-      private final Access coordVar;
+      private final ReadAccess coordVar;
 
-      public WrappingProcessor(Processor[] processors, Access coordVar) {
+      public WrappingProcessor(Processor[] processors, ReadAccess coordVar) {
          super(processors);
          this.coordVar = coordVar;
       }
@@ -410,15 +408,15 @@ public class Redirect {
 
          @Override
          public WrappingProcessor build(boolean fragmented) {
-            return new WrappingProcessor(buildProcessors(fragmented), SessionFactory.sequenceScopedAccess(coordVar));
+            return new WrappingProcessor(buildProcessors(fragmented), SessionFactory.sequenceScopedReadAccess(coordVar));
          }
       }
    }
 
    public static class WrappingAction extends BaseDelegatingAction {
-      private final Access coordVar;
+      private final ReadAccess coordVar;
 
-      public WrappingAction(Action[] actions, Access coordVar) {
+      public WrappingAction(Action[] actions, ReadAccess coordVar) {
          super(actions);
          this.coordVar = coordVar;
       }
@@ -443,15 +441,15 @@ public class Redirect {
 
          @Override
          public WrappingAction build() {
-            return new WrappingAction(buildActions(), SessionFactory.sequenceScopedAccess(coordVar));
+            return new WrappingAction(buildActions(), SessionFactory.sequenceScopedReadAccess(coordVar));
          }
       }
    }
 
    public static class GetOriginalSequence implements SerializableFunction<Session, SequenceInstance> {
-      private final Access coordVar;
+      private final ReadAccess coordVar;
 
-      public GetOriginalSequence(Access coordVar) {
+      public GetOriginalSequence(ReadAccess coordVar) {
          this.coordVar = coordVar;
       }
 

@@ -8,11 +8,13 @@ import org.kohsuke.MetaInfServices;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.config.StepBuilder;
-import io.hyperfoil.api.session.Access;
+import io.hyperfoil.api.session.ObjectAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.SharedData;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.core.builders.BaseStepBuilder;
+import io.hyperfoil.core.session.IntVar;
+import io.hyperfoil.core.session.ObjectVar;
 import io.hyperfoil.core.session.SessionFactory;
 
 import org.apache.logging.log4j.Logger;
@@ -23,9 +25,9 @@ public class PullSharedMapStep implements Step, ResourceUtilizer {
    private static final boolean trace = log.isTraceEnabled();
 
    private final String key;
-   private final Access match;
+   private final ObjectAccess match;
 
-   public PullSharedMapStep(String key, Access match) {
+   public PullSharedMapStep(String key, ObjectAccess match) {
       this.key = key;
       this.match = match;
    }
@@ -52,7 +54,15 @@ public class PullSharedMapStep implements Step, ResourceUtilizer {
          }
       }
       for (int i = 0; i < sharedMap.size(); ++i) {
-         sharedMap.key(i).setObject(session, sharedMap.value(i));
+         Session.Var var = sharedMap.key(i).getVar(session);
+         switch (var.type()) {
+            case OBJECT:
+               ((ObjectVar) var).set(sharedMap.value(i));
+               break;
+            case INTEGER:
+               ((IntVar) var).set((Integer) sharedMap.value(i));
+               break;
+         }
       }
       session.sharedData().releaseMap(key, sharedMap);
       return true;
@@ -79,7 +89,7 @@ public class PullSharedMapStep implements Step, ResourceUtilizer {
 
       @Override
       public List<Step> build() {
-         return Collections.singletonList(new PullSharedMapStep(key, SessionFactory.access(match)));
+         return Collections.singletonList(new PullSharedMapStep(key, SessionFactory.objectAccess(match)));
       }
 
       /**

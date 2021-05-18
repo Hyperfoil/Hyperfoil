@@ -6,10 +6,8 @@ import java.util.List;
 
 import io.hyperfoil.http.api.HttpRequest;
 import io.hyperfoil.http.api.StatusHandler;
-import io.hyperfoil.api.session.ResourceUtilizer;
-import io.hyperfoil.api.session.Session;
 
-public abstract class BaseDelegatingStatusHandler implements StatusHandler, ResourceUtilizer {
+public abstract class BaseDelegatingStatusHandler implements StatusHandler {
    protected final StatusHandler[] handlers;
 
    public BaseDelegatingStatusHandler(StatusHandler[] handlers) {
@@ -21,11 +19,6 @@ public abstract class BaseDelegatingStatusHandler implements StatusHandler, Reso
       for (StatusHandler handler : handlers) {
          handler.handleStatus(request, status);
       }
-   }
-
-   @Override
-   public void reserve(Session session) {
-      ResourceUtilizer.reserve(session, (Object[]) handlers);
    }
 
    public abstract static class Builder<S extends Builder<S>> implements StatusHandler.Builder {

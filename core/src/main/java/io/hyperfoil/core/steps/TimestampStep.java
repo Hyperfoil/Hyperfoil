@@ -5,8 +5,7 @@ import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
-import io.hyperfoil.api.session.Access;
-import io.hyperfoil.api.session.ResourceUtilizer;
+import io.hyperfoil.api.session.ObjectAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.builders.BaseStepBuilder;
 import io.hyperfoil.core.session.SessionFactory;
@@ -18,10 +17,10 @@ import java.util.List;
 /**
  * This class implements a {@link Step} that bumps the current time in milliseconds as {@link String} to a variable.
  */
-public class TimestampStep implements Step, ResourceUtilizer {
-  private final Access toVar;
+public class TimestampStep implements Step {
+  private final ObjectAccess toVar;
 
-  public TimestampStep(Access toVar) {
+  public TimestampStep(ObjectAccess toVar) {
     this.toVar = toVar;
   }
 
@@ -29,11 +28,6 @@ public class TimestampStep implements Step, ResourceUtilizer {
   public boolean invoke(Session session) {
     toVar.setObject(session, String.valueOf(System.currentTimeMillis()));
     return true;
-  }
-
-  @Override
-  public void reserve(Session session) {
-    toVar.declareObject(session);
   }
 
   @MetaInfServices(StepBuilder.class)
@@ -62,7 +56,7 @@ public class TimestampStep implements Step, ResourceUtilizer {
       if (toVar == null) {
         throw new BenchmarkDefinitionException("Missing toVar attribute");
       }
-      return Collections.singletonList(new TimestampStep(SessionFactory.access(toVar)));
+      return Collections.singletonList(new TimestampStep(SessionFactory.objectAccess(toVar)));
     }
   }
 }

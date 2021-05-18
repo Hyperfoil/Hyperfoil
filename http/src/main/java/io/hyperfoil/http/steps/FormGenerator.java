@@ -8,8 +8,8 @@ import java.util.ArrayList;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.MappingListBuilder;
 import io.hyperfoil.api.connection.Connection;
+import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.http.api.HttpRequestWriter;
-import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.generators.Pattern;
 import io.hyperfoil.core.session.SessionFactory;
@@ -93,7 +93,7 @@ public class FormGenerator implements SerializableBiFunction<Session, Connection
                byte[] valueBytes = URLEncoder.encode(value, StandardCharsets.UTF_8.name()).getBytes(StandardCharsets.UTF_8);
                return new ConstantInput(nameBytes, valueBytes);
             } else if (fromVar != null) {
-               Access access = SessionFactory.access(fromVar);
+               ReadAccess access = SessionFactory.readAccess(fromVar);
                return new VariableInput(nameBytes, access);
             } else {
                Pattern pattern = new Pattern(this.pattern, true);
@@ -167,9 +167,9 @@ public class FormGenerator implements SerializableBiFunction<Session, Connection
 
       private static class VariableInput implements SerializableBiConsumer<Session, ByteBuf> {
          private final byte[] name;
-         private final Access fromVar;
+         private final ReadAccess fromVar;
 
-         public VariableInput(byte[] name, Access fromVar) {
+         public VariableInput(byte[] name, ReadAccess fromVar) {
             this.name = name;
             this.fromVar = fromVar;
          }

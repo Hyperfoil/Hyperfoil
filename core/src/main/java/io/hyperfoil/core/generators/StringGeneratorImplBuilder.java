@@ -4,7 +4,7 @@ import java.util.function.Supplier;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.InitFromParam;
-import io.hyperfoil.api.session.Access;
+import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.function.SerializableFunction;
@@ -66,7 +66,7 @@ public class StringGeneratorImplBuilder<T> implements StringGeneratorBuilder, In
          throw new BenchmarkDefinitionException("Variable must not be null");
       }
       set(() -> {
-         Access access = SessionFactory.access(var);
+         ReadAccess access = SessionFactory.readAccess(var);
          assert access != null;
          return session -> {
             Object value = access.getObject(session);

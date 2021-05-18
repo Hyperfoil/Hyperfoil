@@ -9,30 +9,20 @@ import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.config.StepBuilder;
+import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.api.session.Access;
 import io.hyperfoil.core.session.SessionFactory;
 
 public class AwaitVarStep extends DependencyStep {
-   public AwaitVarStep(Access var) {
-      super(new Access[]{ var });
+   public AwaitVarStep(ReadAccess var) {
+      super(new ReadAccess[]{ var });
    }
 
-   public static class NegatedAccess implements Access {
-      private final Access access;
+   public static class NegatedAccess implements ReadAccess {
+      private final ReadAccess access;
 
-      public NegatedAccess(Access access) {
+      public NegatedAccess(ReadAccess access) {
          this.access = access;
-      }
-
-      @Override
-      public void declareObject(Session session) {
-         access.declareObject(session);
-      }
-
-      @Override
-      public void declareInt(Session session) {
-         access.declareInt(session);
       }
 
       @Override
@@ -46,37 +36,12 @@ public class AwaitVarStep extends DependencyStep {
       }
 
       @Override
-      public void setObject(Session session, Object value) {
-         throw new UnsupportedOperationException();
-      }
-
-      @Override
       public int getInt(Session session) {
          throw new UnsupportedOperationException();
       }
 
       @Override
-      public void setInt(Session session, int value) {
-         throw new UnsupportedOperationException();
-      }
-
-      @Override
       public Session.Var getVar(Session Session) {
-         throw new UnsupportedOperationException();
-      }
-
-      @Override
-      public int addToInt(Session session, int delta) {
-         throw new UnsupportedOperationException();
-      }
-
-      @Override
-      public Object activate(Session session) {
-         throw new UnsupportedOperationException();
-      }
-
-      @Override
-      public void unset(Session session) {
          throw new UnsupportedOperationException();
       }
 
@@ -116,11 +81,11 @@ public class AwaitVarStep extends DependencyStep {
 
       @Override
       public List<Step> build() {
-         Access access;
+         ReadAccess access;
          if (var.startsWith("!")) {
-            access = new NegatedAccess(SessionFactory.access(var.substring(1).trim()));
+            access = new NegatedAccess(SessionFactory.readAccess(var.substring(1).trim()));
          } else {
-            access = SessionFactory.access(var);
+            access = SessionFactory.readAccess(var);
          }
          return Collections.singletonList(new AwaitVarStep(access));
       }

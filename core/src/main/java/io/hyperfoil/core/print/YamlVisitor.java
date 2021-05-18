@@ -22,6 +22,7 @@ import io.hyperfoil.api.config.Visitor;
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.processor.Transformer;
 import io.hyperfoil.api.session.Action;
+import io.hyperfoil.impl.ReflectionAcceptor;
 
 public class YamlVisitor implements Visitor {
    private static final Class<?> BYTE_ARRAY = byte[].class;

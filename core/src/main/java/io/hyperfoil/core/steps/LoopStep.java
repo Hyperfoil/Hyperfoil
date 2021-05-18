@@ -11,17 +11,16 @@ import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.StepBuilder;
-import io.hyperfoil.api.session.Access;
+import io.hyperfoil.api.session.IntAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.config.Step;
-import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.core.session.SessionFactory;
 
-public class LoopStep implements Step, ResourceUtilizer {
-   private final Access counterVar;
+public class LoopStep implements Step {
+   private final IntAccess counterVar;
    private final int repeats;
 
-   public LoopStep(Access counterVar, int repeats) {
+   public LoopStep(IntAccess counterVar, int repeats) {
       this.counterVar = counterVar;
       this.repeats = repeats;
    }
@@ -34,11 +33,6 @@ public class LoopStep implements Step, ResourceUtilizer {
          session.currentSequence().restart(session);
       }
       return true;
-   }
-
-   @Override
-   public void reserve(Session session) {
-      counterVar.declareInt(session);
    }
 
    /**
@@ -140,7 +134,7 @@ public class LoopStep implements Step, ResourceUtilizer {
          } else if (steps.isEmpty()) {
             throw new BenchmarkDefinitionException("The loop does not include any steps. Cannot construct empty loop.");
          }
-         Access counter = SessionFactory.access(counterVar);
+         IntAccess counter = SessionFactory.intAccess(counterVar);
          if (locator.sequence().rootSequence().concurrency() > 0 && !counter.isSequenceScoped()) {
             throw new BenchmarkDefinitionException("In concurrent sequences the counter var should be sequence-scoped.");
          }

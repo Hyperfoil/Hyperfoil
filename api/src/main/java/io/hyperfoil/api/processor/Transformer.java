@@ -3,7 +3,6 @@ package io.hyperfoil.api.processor;
 import java.io.Serializable;
 
 import io.hyperfoil.api.config.BuilderBase;
-import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.netty.buffer.ByteBuf;
 
@@ -18,7 +17,7 @@ public interface Transformer extends Serializable {
       Transformer build(boolean fragmented);
    }
 
-   class ProcessorAdapter implements Transformer, ResourceUtilizer {
+   class ProcessorAdapter implements Transformer {
       private final Processor delegate;
 
       public ProcessorAdapter(Processor delegate) {
@@ -39,14 +38,9 @@ public interface Transformer extends Serializable {
       public void after(Session session) {
          delegate.after(session);
       }
-
-      @Override
-      public void reserve(Session session) {
-         ResourceUtilizer.reserve(session, delegate);
-      }
    }
 
-   abstract class BaseDelegating implements Transformer, ResourceUtilizer {
+   abstract class BaseDelegating implements Transformer {
       protected final Transformer delegate;
 
       protected BaseDelegating(Transformer delegate) {
@@ -61,11 +55,6 @@ public interface Transformer extends Serializable {
       @Override
       public void after(Session session) {
          delegate.after(session);
-      }
-
-      @Override
-      public void reserve(Session session) {
-         ResourceUtilizer.reserve(session, delegate);
       }
    }
 }

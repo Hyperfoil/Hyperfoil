@@ -6,7 +6,6 @@ import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.session.SessionStopException;
 import io.hyperfoil.api.session.SharedData;
 import io.hyperfoil.api.statistics.SessionStatistics;
-import io.hyperfoil.core.util.Util;
 import io.netty.util.concurrent.EventExecutor;
 import io.hyperfoil.api.collection.LimitedPool;
 import io.hyperfoil.api.config.Phase;
@@ -78,12 +77,6 @@ class SessionImpl implements Session {
          sequencePool.release(currentSequence);
          currentSequence = null;
       }
-      for (String var : scenario.objectVars()) {
-         declareObject(var);
-      }
-      for (String var : scenario.intVars()) {
-         declareInt(var);
-      }
    }
 
    @Override
@@ -151,29 +144,19 @@ class SessionImpl implements Session {
       allVars.add(var);
    }
 
-   public Session declareObject(Object key) {
+   public Session reserveObjectVar(Object key) {
       if (!vars.containsKey(key)) {
-         ObjectVar var = new ObjectVar(this);
+         io.hyperfoil.core.session.ObjectVar var = new io.hyperfoil.core.session.ObjectVar(this);
          vars.put(key, var);
       }
       return this;
    }
 
    public Object getObject(Object key) {
-      return ((ObjectVar) requireSet(key)).get();
+      return ((io.hyperfoil.core.session.ObjectVar) requireSet(key)).get();
    }
 
-   public Session setObject(Object key, Object value) {
-      if (trace) {
-         log.trace("#{} {} <- {}", uniqueId, key, Util.prettyPrintObject(value));
-      }
-      ObjectVar var = getVar(key);
-      var.value = value;
-      var.set = true;
-      return this;
-   }
-
-   public Session declareInt(Object key) {
+   public Session reserveIntVar(Object key) {
       if (!vars.containsKey(key)) {
          IntVar var = new IntVar(this);
          vars.put(key, var);
@@ -184,23 +167,6 @@ class SessionImpl implements Session {
    public int getInt(Object key) {
       IntVar var = requireSet(key);
       return var.get();
-   }
-
-   public void setInt(Object key, int value) {
-      if (trace) {
-         log.trace("#{} {} <- {}", uniqueId, key, value);
-      }
-      this.<IntVar>getVar(key).set(value);
-   }
-
-   public int addToInt(Object key, int delta) {
-      IntVar var = requireSet(key);
-      int prev = var.get();
-      if (trace) {
-         log.trace("#{} {} <- {}", uniqueId, key, prev + delta);
-      }
-      var.set(prev + delta);
-      return prev;
    }
 
    @Override
@@ -263,7 +229,7 @@ class SessionImpl implements Session {
    }
 
    @SuppressWarnings("unchecked")
-   private <V extends Var> V requireSet(Object key) {
+   <V extends Var> V requireSet(Object key) {
       Var var = vars.get(key);
       if (var == null) {
          throw new IllegalStateException("Variable " + key + " was not defined!");

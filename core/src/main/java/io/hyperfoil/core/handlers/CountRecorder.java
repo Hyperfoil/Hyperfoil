@@ -1,15 +1,14 @@
 package io.hyperfoil.core.handlers;
 
 import io.hyperfoil.api.processor.Processor;
-import io.hyperfoil.api.session.Access;
+import io.hyperfoil.api.session.IntAccess;
 import io.netty.buffer.ByteBuf;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.api.session.ResourceUtilizer;
 
-public class CountRecorder implements Processor, ResourceUtilizer {
-   private final Access toVar;
+public class CountRecorder implements Processor {
+   private final IntAccess toVar;
 
-   public CountRecorder(Access toVar) {
+   public CountRecorder(IntAccess toVar) {
       this.toVar = toVar;
    }
 
@@ -23,10 +22,5 @@ public class CountRecorder implements Processor, ResourceUtilizer {
       if (isLastPart) {
          toVar.addToInt(session, 1);
       }
-   }
-
-   @Override
-   public void reserve(Session session) {
-      toVar.declareInt(session);
    }
 }

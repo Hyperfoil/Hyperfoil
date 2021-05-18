@@ -1,17 +1,17 @@
 package io.hyperfoil.core.builders;
 
-import io.hyperfoil.api.session.Access;
+import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.Session.VarType;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.function.SerializableIntPredicate;
 
 public class IntCondition implements Condition {
-   private final Access fromVar;
+   private final ReadAccess fromVar;
    private final boolean isSet;
    private final SerializableIntPredicate predicate;
 
-   public IntCondition(Access fromVar, boolean isSet, SerializableIntPredicate predicate) {
+   public IntCondition(ReadAccess fromVar, boolean isSet, SerializableIntPredicate predicate) {
       this.fromVar = fromVar;
       this.isSet = isSet;
       this.predicate = predicate;
@@ -77,7 +77,7 @@ public class IntCondition implements Condition {
 
       @Override
       public IntCondition buildCondition() {
-         return new IntCondition(SessionFactory.access(fromVar), isSet, buildPredicate());
+         return new IntCondition(SessionFactory.readAccess(fromVar), isSet, buildPredicate());
       }
    }
 
@@ -87,7 +87,7 @@ public class IntCondition implements Condition {
       }
 
       public IntCondition build(String var) {
-         return new IntCondition(SessionFactory.access(var), true, buildPredicate());
+         return new IntCondition(SessionFactory.readAccess(var), true, buildPredicate());
       }
    }
 

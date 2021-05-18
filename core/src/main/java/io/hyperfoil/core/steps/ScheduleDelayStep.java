@@ -14,7 +14,7 @@ import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.config.StepBuilder;
-import io.hyperfoil.api.session.Access;
+import io.hyperfoil.api.session.ObjectAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.config.BaseSequenceBuilder;
@@ -30,11 +30,11 @@ import org.apache.logging.log4j.LogManager;
 public class ScheduleDelayStep implements Step, ResourceUtilizer {
    private static final Logger log = LogManager.getLogger(ScheduleDelayStep.class);
 
-   private final Access key;
+   private final ObjectAccess key;
    private final Type type;
    private final SerializableToLongFunction<Session> duration;
 
-   public ScheduleDelayStep(Access key, Type type, SerializableToLongFunction<Session> duration) {
+   public ScheduleDelayStep(ObjectAccess key, Type type, SerializableToLongFunction<Session> duration) {
       this.key = key;
       this.type = type;
       this.duration = duration;
@@ -72,7 +72,6 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
 
    @Override
    public void reserve(Session session) {
-      key.declareObject(session);
       key.setObject(session, new Timestamp());
    }
 
@@ -108,7 +107,7 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
    @Name("scheduleDelay")
    public static class Builder extends BaseStepBuilder<Builder> {
       protected Object key;
-      protected Access keyAccess;
+      protected ObjectAccess keyAccess;
       private long duration;
       private Type type = Type.FROM_NOW;
       private RandomType randomType = RandomType.CONSTANT;
@@ -211,7 +210,7 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
          if (key == null) {
             throw new BenchmarkDefinitionException("Key was not defined.");
          }
-         keyAccess = SessionFactory.access(key);
+         keyAccess = SessionFactory.objectAccess(key);
       }
 
       @Override
@@ -276,9 +275,9 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
       public void prepareBuild() {
          key = new Unique();
          if (Locator.current().sequence().rootSequence().concurrency() > 0) {
-            keyAccess = SessionFactory.sequenceScopedAccess(key);
+            keyAccess = SessionFactory.sequenceScopedObjectAccess(key);
          } else {
-            keyAccess = SessionFactory.access(key);
+            keyAccess = SessionFactory.objectAccess(key);
          }
       }
 

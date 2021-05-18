@@ -24,8 +24,8 @@ import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.config.Visitor;
 import io.hyperfoil.api.connection.Connection;
-import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.Action;
+import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.http.statistics.HttpStats;
 import io.hyperfoil.api.statistics.Statistics;
@@ -740,7 +740,7 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
        */
       public PartialHeadersBuilder fromVar(String var) {
          ensureOnce();
-         parent.parent.headerAppenders.add(() -> new FromVarHeaderWriter(header, SessionFactory.access(var)));
+         parent.parent.headerAppenders.add(() -> new FromVarHeaderWriter(header, SessionFactory.readAccess(var)));
          return this;
       }
 
@@ -785,9 +785,9 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
 
    private static class FromVarHeaderWriter implements SerializableBiConsumer<Session, HttpRequestWriter> {
       private final CharSequence header;
-      private final Access fromVar;
+      private final ReadAccess fromVar;
 
-      public FromVarHeaderWriter(CharSequence header, Access fromVar) {
+      public FromVarHeaderWriter(CharSequence header, ReadAccess fromVar) {
          this.fromVar = fromVar;
          this.header = header;
       }

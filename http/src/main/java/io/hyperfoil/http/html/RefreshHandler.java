@@ -4,7 +4,7 @@ import java.nio.charset.StandardCharsets;
 
 import io.hyperfoil.http.api.HttpMethod;
 import io.hyperfoil.api.processor.Processor;
-import io.hyperfoil.api.session.Access;
+import io.hyperfoil.api.session.ObjectAccess;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.api.session.Session;
@@ -29,14 +29,14 @@ public class RefreshHandler implements Processor, ResourceUtilizer {
    private final Queue.Key delayedQueueKey;
    private final LimitedPoolResource.Key<Redirect.Coords> poolKey;
    private final int concurrency;
-   private final Access immediateQueueVar;
-   private final Access delayedQueueVar;
+   private final ObjectAccess immediateQueueVar;
+   private final ObjectAccess delayedQueueVar;
    private final String redirectSequence;
    private final String delaySequence;
-   private final Access tempCoordsVar;
+   private final ObjectAccess tempCoordsVar;
    private final SerializableFunction<Session, SequenceInstance> originalSequenceSupplier;
 
-   public RefreshHandler(Queue.Key immediateQueueKey, Queue.Key delayedQueueKey, LimitedPoolResource.Key<Redirect.Coords> poolKey, int concurrency, Access immediateQueueVar, Access delayedQueueVar, String redirectSequence, String delaySequence, Access tempCoordsVar, SerializableFunction<Session, SequenceInstance> originalSequenceSupplier) {
+   public RefreshHandler(Queue.Key immediateQueueKey, Queue.Key delayedQueueKey, LimitedPoolResource.Key<Redirect.Coords> poolKey, int concurrency, ObjectAccess immediateQueueVar, ObjectAccess delayedQueueVar, String redirectSequence, String delaySequence, ObjectAccess tempCoordsVar, SerializableFunction<Session, SequenceInstance> originalSequenceSupplier) {
       this.immediateQueueKey = immediateQueueKey;
       this.delayedQueueKey = delayedQueueKey;
       this.poolKey = poolKey;
@@ -132,7 +132,6 @@ public class RefreshHandler implements Processor, ResourceUtilizer {
 
    @Override
    public void reserve(Session session) {
-      tempCoordsVar.declareObject(session);
       session.declareResource(poolKey, () -> LimitedPoolResource.create(concurrency, Redirect.Coords.class, Redirect.Coords::new), true);
       session.declareResource(immediateQueueKey, () -> new Queue(immediateQueueVar, concurrency, concurrency, redirectSequence, null), true);
       session.declareResource(delayedQueueKey, () -> new Queue(delayedQueueVar, concurrency, concurrency, delaySequence, null), true);
@@ -140,12 +139,9 @@ public class RefreshHandler implements Processor, ResourceUtilizer {
       initQueueVar(session, delayedQueueVar);
    }
 
-   private void initQueueVar(Session session, Access var) {
-      var.declareObject(session);
+   private void initQueueVar(Session session, ObjectAccess var) {
       if (!var.isSet(session)) {
          var.setObject(session, ObjectVar.newArray(session, concurrency));
       }
    }
-
-
 }

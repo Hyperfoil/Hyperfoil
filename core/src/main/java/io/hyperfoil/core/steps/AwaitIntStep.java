@@ -8,7 +8,7 @@ import org.kohsuke.MetaInfServices;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.config.StepBuilder;
-import io.hyperfoil.api.session.Access;
+import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.core.builders.IntConditionBuilder;
@@ -16,10 +16,10 @@ import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.function.SerializableIntPredicate;
 
 public class AwaitIntStep implements Step {
-   private final Access var;
+   private final ReadAccess var;
    private final SerializableIntPredicate predicate;
 
-   public AwaitIntStep(Access var, SerializableIntPredicate predicate) {
+   public AwaitIntStep(ReadAccess var, SerializableIntPredicate predicate) {
       this.var = var;
       this.predicate = predicate;
    }
@@ -61,7 +61,7 @@ public class AwaitIntStep implements Step {
 
       @Override
       public List<Step> build() {
-         return Collections.singletonList(new AwaitIntStep(SessionFactory.access(var), buildPredicate()));
+         return Collections.singletonList(new AwaitIntStep(SessionFactory.readAccess(var), buildPredicate()));
       }
 
       public BaseSequenceBuilder<?> endStep() {

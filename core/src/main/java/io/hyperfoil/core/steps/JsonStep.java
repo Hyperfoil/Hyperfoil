@@ -15,7 +15,7 @@ import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.processor.Transformer;
-import io.hyperfoil.api.session.Access;
+import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.handlers.json.ByteStream;
@@ -23,11 +23,11 @@ import io.hyperfoil.core.handlers.json.JsonParser;
 import io.hyperfoil.core.handlers.json.JsonUnquotingTransformer;
 import io.hyperfoil.core.session.SessionFactory;
 
-public class JsonStep implements Step, ResourceUtilizer {
+public class JsonStep implements Step {
    private final ByteArrayParser byteArrayParser;
-   private final Access fromVar;
+   private final ReadAccess fromVar;
 
-   private JsonStep(Access fromVar, String query, boolean delete, Transformer replace, Processor processor) {
+   private JsonStep(ReadAccess fromVar, String query, boolean delete, Transformer replace, Processor processor) {
       this.fromVar = fromVar;
       this.byteArrayParser = new ByteArrayParser(query, delete, replace, processor);
    }
@@ -45,11 +45,6 @@ public class JsonStep implements Step, ResourceUtilizer {
          throw new IllegalStateException("Unexpected format of input: " + object);
       }
       return true;
-   }
-
-   @Override
-   public void reserve(Session session) {
-      byteArrayParser.reserve(session);
    }
 
    /**
@@ -84,7 +79,7 @@ public class JsonStep implements Step, ResourceUtilizer {
             processor = new JsonUnquotingTransformer(processor);
             replace = replace == null ? null : new JsonUnquotingTransformer(replace);
          }
-         return Collections.singletonList(new JsonStep(SessionFactory.access(fromVar), query, delete, replace, processor));
+         return Collections.singletonList(new JsonStep(SessionFactory.readAccess(fromVar), query, delete, replace, processor));
       }
 
       public Builder addTo(BaseSequenceBuilder<?> parent) {
@@ -97,14 +92,13 @@ public class JsonStep implements Step, ResourceUtilizer {
       }
    }
 
-   private static class ByteArrayParser extends JsonParser implements Session.ResourceKey<ByteArrayParser.Context> {
+   private static class ByteArrayParser extends JsonParser implements ResourceUtilizer, Session.ResourceKey<ByteArrayParser.Context> {
       public ByteArrayParser(String query, boolean delete, Transformer replace, Processor processor) {
          super(query, delete, replace, processor);
       }
 
       @Override
       public void reserve(Session session) {
-         super.reserve(session);
          session.declareResource(this, Context::new);
       }
 

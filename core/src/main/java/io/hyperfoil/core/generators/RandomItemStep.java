@@ -23,19 +23,19 @@ import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.config.StepBuilder;
-import io.hyperfoil.api.session.Access;
+import io.hyperfoil.api.session.ObjectAccess;
+import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.core.builders.BaseStepBuilder;
 import io.hyperfoil.core.session.ObjectVar;
 import io.hyperfoil.core.session.SessionFactory;
 
-public class RandomItemStep implements Step, ResourceUtilizer {
-   private final Access fromVar;
+public class RandomItemStep implements Step {
+   private final ReadAccess fromVar;
    private final WeightedGenerator generator;
-   private final Access toVar;
+   private final ObjectAccess toVar;
 
-   public RandomItemStep(Access fromVar, WeightedGenerator generator, Access toVar) {
+   public RandomItemStep(ReadAccess fromVar, WeightedGenerator generator, ObjectAccess toVar) {
       this.fromVar = fromVar;
       this.generator = generator;
       this.toVar = toVar;
@@ -90,11 +90,6 @@ public class RandomItemStep implements Step, ResourceUtilizer {
       }
       toVar.setObject(session, item);
       return true;
-   }
-
-   @Override
-   public void reserve(Session session) {
-      toVar.declareObject(session);
    }
 
    /**
@@ -162,7 +157,8 @@ public class RandomItemStep implements Step, ResourceUtilizer {
             generator = null;
          }
 
-         return Collections.singletonList(new RandomItemStep(SessionFactory.access(fromVar), generator, SessionFactory.access(toVar)));
+         return Collections.singletonList(new RandomItemStep(SessionFactory.readAccess(fromVar), generator,
+               SessionFactory.objectAccess(toVar)));
       }
 
       /**

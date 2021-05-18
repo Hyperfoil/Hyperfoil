@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Stream;
 
 import org.kohsuke.MetaInfServices;
 
@@ -13,7 +12,7 @@ import io.hyperfoil.api.config.ListBuilder;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.config.StepBuilder;
-import io.hyperfoil.api.session.Access;
+import io.hyperfoil.api.session.ObjectAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.SharedData;
 import io.hyperfoil.api.session.ResourceUtilizer;
@@ -22,9 +21,9 @@ import io.hyperfoil.core.session.SessionFactory;
 
 public class PushSharedMapStep implements Step, ResourceUtilizer {
    private final String key;
-   private final Access[] vars;
+   private final ObjectAccess[] vars;
 
-   public PushSharedMapStep(String key, Access[] vars) {
+   public PushSharedMapStep(String key, ObjectAccess[] vars) {
       this.key = key;
       this.vars = vars;
    }
@@ -62,8 +61,11 @@ public class PushSharedMapStep implements Step, ResourceUtilizer {
          if (vars.isEmpty()) {
             throw new BenchmarkDefinitionException("No variables pushed for key " + key);
          }
-         final String[] vars1 = vars.toArray(new String[0]);
-         return Collections.singletonList(new PushSharedMapStep(key, Stream.of(vars1).map(SessionFactory::access).toArray(Access[]::new)));
+         // While in this very step we will only read the session variables the Access instances are used
+         // later in PullSharedMapStep to write the vars, too.
+         // TODO: what it any of the vars is int?
+         ObjectAccess[] accesses = vars.stream().map(SessionFactory::objectAccess).toArray(ObjectAccess[]::new);
+         return Collections.singletonList(new PushSharedMapStep(key, accesses));
       }
 
       /**

@@ -4,7 +4,7 @@ import java.util.Arrays;
 import java.util.Objects;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
-import io.hyperfoil.api.session.Access;
+import io.hyperfoil.api.session.ObjectAccess;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.api.session.Session;
@@ -17,7 +17,7 @@ public class Queue implements Session.Resource {
    private static final Logger log = LogManager.getLogger(Queue.class);
    private static final boolean trace = log.isTraceEnabled();
 
-   private final Access var;
+   private final ObjectAccess var;
    private final Object[] data;
    private final int concurrency;
    private final String sequence;
@@ -26,7 +26,7 @@ public class Queue implements Session.Resource {
    private int head, tail, active, size;
    private boolean producerComplete;
 
-   public Queue(Access var, int size, int concurrency, String sequence, Action onCompletion) {
+   public Queue(ObjectAccess var, int size, int concurrency, String sequence, Action onCompletion) {
       if (var.isSequenceScoped()) {
          throw new BenchmarkDefinitionException("Queue variable should not be sequence-scoped for queue; use sequence-scoped access only for reading.");
       }

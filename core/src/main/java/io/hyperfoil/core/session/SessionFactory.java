@@ -1,6 +1,8 @@
 package io.hyperfoil.core.session;
 
 import java.util.Collections;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
@@ -8,7 +10,9 @@ import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.config.Scenario;
 import io.hyperfoil.api.config.Sequence;
-import io.hyperfoil.api.session.Access;
+import io.hyperfoil.api.session.ObjectAccess;
+import io.hyperfoil.api.session.IntAccess;
+import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.impl.PhaseInstanceImpl;
 import io.hyperfoil.core.util.Unique;
@@ -35,11 +39,7 @@ public final class SessionFactory {
    }
 
    public static Session forTesting() {
-      return forTesting(new String[0], new String[0]);
-   }
-
-   public static Session forTesting(String[] objectVars, String[] intVars) {
-      Scenario dummyScenario = new Scenario(new Sequence[0], new Sequence[0], objectVars, intVars, 16, 16);
+      Scenario dummyScenario = new Scenario(new Sequence[0], new Sequence[0], 16, 16);
       SessionImpl session = new SessionImpl(dummyScenario, 0, 0);
       Phase dummyPhase = new Phase(Benchmark::forTesting, 0, 0, "dummy", dummyScenario, 0,
             Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), 0, -1, null, false, () -> "dummy");
@@ -60,7 +60,30 @@ public final class SessionFactory {
    private SessionFactory() {
    }
 
-   public static Access access(Object key) {
+   public static ReadAccess readAccess(Object key) {
+      if (key instanceof String) {
+         String expression = (String) key;
+         if (expression.startsWith("hyperfoil.")) {
+            for (SpecialAccess access : SPECIAL) {
+               if (access.name.equals(expression)) {
+                  return access;
+               }
+            }
+            throw new BenchmarkDefinitionException("No special variable " + expression);
+         }
+      }
+      return access(key, SimpleReadAccess::new, SequenceScopedReadAccess::new);
+   }
+
+   public static ObjectAccess objectAccess(Object key) {
+      return access(key, SimpleObjectAccess::new, SequenceScopedObjectAccess::new);
+   }
+
+   public static IntAccess intAccess(Object key) {
+      return access(key, SimpleIntAccess::new, SequenceScopedIntAccess::new);
+   }
+
+   public static <A extends ReadAccess> A access(Object key, Function<Object, A> simple, BiFunction<Object, Integer, A> sequenceScoped) {
       // This should be invoked only from prepareBuild() or build()
       assert Locator.current() != null;
       if (key == null) {
@@ -68,29 +91,34 @@ public final class SessionFactory {
       } else if (key instanceof String) {
          String expression = (String) key;
          if (expression.endsWith("[.]")) {
-            return sequenceScopedAccess(expression.substring(0, expression.length() - 3));
-         } else if (expression.startsWith("hyperfoil.")) {
-            for (SpecialAccess access : SPECIAL) {
-               if (access.name.equals(expression)) {
-                  return access;
-               }
-            }
-            throw new BenchmarkDefinitionException("No special variable " + expression);
+            return sequenceScoped.apply(expression.substring(0, expression.length() - 3), getMaxConcurrency());
          } else {
-            return new SimpleAccess(key);
+            return simple.apply(key);
          }
       } else if (key instanceof Unique) {
          if (((Unique) key).isSequenceScoped()) {
-            return sequenceScopedAccess(key);
+            return sequenceScoped.apply(key, getMaxConcurrency());
          } else {
-            return new SimpleAccess(key);
+            return simple.apply(key);
          }
       } else {
-         return new SimpleAccess(key);
+         return simple.apply(key);
       }
    }
 
-   public static Access sequenceScopedAccess(Object key) {
+   public static ReadAccess sequenceScopedReadAccess(Object key) {
+      return sequenceScopedObjectAccess(key);
+   }
+
+   public static ObjectAccess sequenceScopedObjectAccess(Object key) {
+      return new SequenceScopedObjectAccess(key, getMaxConcurrency());
+   }
+
+   public static IntAccess sequenceScopedIntAccess(Object key) {
+      return new SequenceScopedIntAccess(key, getMaxConcurrency());
+   }
+
+   private static int getMaxConcurrency() {
       Locator locator = Locator.current();
       assert locator != null;
       int maxConcurrency = locator.sequence().rootSequence().concurrency();
@@ -98,6 +126,6 @@ public final class SessionFactory {
          throw new BenchmarkDefinitionException(locator.step() + " in sequence " + locator.sequence().name() +
                " uses sequence-scoped access but this sequence is not declared as concurrent.");
       }
-      return new SequenceScopedAccess(key, maxConcurrency);
+      return maxConcurrency;
    }
 }

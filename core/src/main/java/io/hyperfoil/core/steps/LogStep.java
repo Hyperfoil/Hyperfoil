@@ -11,7 +11,7 @@ import io.hyperfoil.api.config.ListBuilder;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.config.StepBuilder;
-import io.hyperfoil.api.session.Access;
+import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.Session.VarType;
 import io.hyperfoil.core.builders.BaseStepBuilder;
@@ -27,9 +27,9 @@ public class LogStep implements Step {
    private static final Logger log = LogManager.getLogger(LogStep.class);
 
    private final String message;
-   private final Access[] vars;
+   private final ReadAccess[] vars;
 
-   public LogStep(String message, Access[] vars) {
+   public LogStep(String message, ReadAccess[] vars) {
       this.message = message;
       this.vars = vars;
    }
@@ -98,7 +98,7 @@ public class LogStep implements Step {
          if (message == null) {
             throw new BenchmarkDefinitionException("Missing message");
          }
-         return Collections.singletonList(new LogStep(message, vars.stream().map(SessionFactory::access).toArray(Access[]::new)));
+         return Collections.singletonList(new LogStep(message, vars.stream().map(SessionFactory::readAccess).toArray(ReadAccess[]::new)));
       }
    }
 }

@@ -8,21 +8,20 @@ import org.kohsuke.MetaInfServices;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Name;
-import io.hyperfoil.api.session.Access;
+import io.hyperfoil.api.session.ObjectAccess;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.IntVar;
-import io.hyperfoil.core.session.ObjectVar;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.function.SerializableConsumer;
 import io.hyperfoil.function.SerializableFunction;
 
-public class SetAction implements Action, ResourceUtilizer {
-   private final Access var;
+public class SetAction implements Action {
+   private final ObjectAccess var;
    private final SerializableFunction<Session, Object> valueSupplier;
 
-   public SetAction(Access var, SerializableFunction<Session, Object> valueSupplier) {
+   public SetAction(ObjectAccess var, SerializableFunction<Session, Object> valueSupplier) {
       this.var = var;
       this.valueSupplier = valueSupplier;
    }
@@ -30,12 +29,6 @@ public class SetAction implements Action, ResourceUtilizer {
    @Override
    public void run(Session session) {
       var.setObject(session, valueSupplier.apply(session));
-   }
-
-   @Override
-   public void reserve(Session session) {
-      var.declareObject(session);
-      ResourceUtilizer.reserve(session, valueSupplier);
    }
 
    /**
@@ -118,11 +111,11 @@ public class SetAction implements Action, ResourceUtilizer {
          }
          if (value != null) {
             Object myValue = value;
-            return new SetAction(SessionFactory.access(var), new ConstantValue(myValue));
+            return new SetAction(SessionFactory.objectAccess(var), new ConstantValue(myValue));
          } else if (objectArray != null) {
-            return new SetAction(SessionFactory.access(var), objectArray.build());
+            return new SetAction(SessionFactory.objectAccess(var), objectArray.build());
          } else {
-            return new SetAction(SessionFactory.access(var), intArray.build());
+            return new SetAction(SessionFactory.objectAccess(var), intArray.build());
          }
       }
 
@@ -217,13 +210,13 @@ public class SetAction implements Action, ResourceUtilizer {
          super(parent);
       }
 
-      private ValueSupplier<ObjectVar[]> build() {
+      private ValueSupplier<io.hyperfoil.core.session.ObjectVar[]> build() {
          // prevent capturing this object reference in the lambda
          int mySize = ensurePositiveSize();
          return new ValueSupplier<>(new ObjectArraySupplier(mySize), BaseArrayBuilder::resetArray);
       }
 
-      private static class ObjectArraySupplier implements SerializableFunction<Session, ObjectVar[]> {
+      private static class ObjectArraySupplier implements SerializableFunction<Session, io.hyperfoil.core.session.ObjectVar[]> {
          private final int size;
 
          public ObjectArraySupplier(int size) {
@@ -231,8 +224,8 @@ public class SetAction implements Action, ResourceUtilizer {
          }
 
          @Override
-         public ObjectVar[] apply(Session session) {
-            return ObjectVar.newArray(session, size);
+         public io.hyperfoil.core.session.ObjectVar[] apply(Session session) {
+            return io.hyperfoil.core.session.ObjectVar.newArray(session, size);
          }
       }
    }

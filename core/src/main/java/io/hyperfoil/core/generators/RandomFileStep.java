@@ -13,19 +13,18 @@ import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.config.StepBuilder;
-import io.hyperfoil.api.session.Access;
-import io.hyperfoil.api.session.ResourceUtilizer;
+import io.hyperfoil.api.session.ObjectAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.util.Util;
 
-public class RandomFileStep implements Step, ResourceUtilizer {
+public class RandomFileStep implements Step {
    private final WeightedGenerator generator;
    private final byte[][] fileBytes;
-   private final Access toVar;
-   private final Access filenameVar;
+   private final ObjectAccess toVar;
+   private final ObjectAccess filenameVar;
 
-   public RandomFileStep(WeightedGenerator generator, byte[][] fileBytes, Access toVar, Access filenameVar) {
+   public RandomFileStep(WeightedGenerator generator, byte[][] fileBytes, ObjectAccess toVar, ObjectAccess filenameVar) {
       this.generator = generator;
       this.fileBytes = fileBytes;
       this.toVar = toVar;
@@ -40,14 +39,6 @@ public class RandomFileStep implements Step, ResourceUtilizer {
          filenameVar.setObject(session, generator.items()[index]);
       }
       return true;
-   }
-
-   @Override
-   public void reserve(Session session) {
-      toVar.declareObject(session);
-      if (filenameVar != null) {
-         filenameVar.declareObject(session);
-      }
    }
 
    /**
@@ -119,7 +110,8 @@ public class RandomFileStep implements Step, ResourceUtilizer {
                throw new BenchmarkDefinitionException("Cannot read bytes from file " + file);
             }
          }
-         return Collections.singletonList(new RandomFileStep(generator, fileBytes.toArray(new byte[0][]), SessionFactory.access(toVar), SessionFactory.access(filenameVar)));
+         return Collections.singletonList(new RandomFileStep(generator, fileBytes.toArray(new byte[0][]),
+               SessionFactory.objectAccess(toVar), SessionFactory.objectAccess(filenameVar)));
       }
    }
 }

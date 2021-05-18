@@ -9,7 +9,7 @@ import io.netty.buffer.CompositeByteBuf;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 
-public class DefragTransformer extends Transformer.BaseDelegating implements Session.ResourceKey<DefragTransformer.Context> {
+public class DefragTransformer extends Transformer.BaseDelegating implements ResourceUtilizer, Session.ResourceKey<DefragTransformer.Context> {
    private static final Logger log = LogManager.getLogger(DefragTransformer.class);
 
    public DefragTransformer(Transformer delegate) {
@@ -37,7 +37,6 @@ public class DefragTransformer extends Transformer.BaseDelegating implements Ses
       // will be allocated only if needed (and only once). This is necessary since we don't know the type of allocator
       // that is used for the received buffers ahead.
       session.declareResource(this, Context::new);
-      ResourceUtilizer.reserve(session, delegate);
    }
 
    static class Context implements Session.Resource {

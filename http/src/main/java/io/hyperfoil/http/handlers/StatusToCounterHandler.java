@@ -4,21 +4,19 @@ import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Name;
+import io.hyperfoil.api.session.IntAccess;
 import io.hyperfoil.http.api.HttpRequest;
 import io.hyperfoil.http.api.StatusHandler;
-import io.hyperfoil.api.session.Access;
-import io.hyperfoil.api.session.Session;
-import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.core.session.SessionFactory;
 
-public class StatusToCounterHandler implements StatusHandler, ResourceUtilizer {
+public class StatusToCounterHandler implements StatusHandler {
    private final Integer expectStatus;
-   private final Access var;
+   private final IntAccess var;
    private final int init;
    private final Integer add;
    private final Integer set;
 
-   public StatusToCounterHandler(int expectStatus, Access var, int init, Integer add, Integer set) {
+   public StatusToCounterHandler(int expectStatus, IntAccess var, int init, Integer add, Integer set) {
       this.expectStatus = expectStatus;
       this.var = var;
       this.init = init;
@@ -42,11 +40,6 @@ public class StatusToCounterHandler implements StatusHandler, ResourceUtilizer {
       } else {
          throw new IllegalStateException();
       }
-   }
-
-   @Override
-   public void reserve(Session session) {
-      var.declareInt(session);
    }
 
    /**
@@ -123,7 +116,7 @@ public class StatusToCounterHandler implements StatusHandler, ResourceUtilizer {
          } else if (add == null && set == null) {
             throw new BenchmarkDefinitionException("Use either 'add' or 'set'");
          }
-         return new StatusToCounterHandler(expectStatus, SessionFactory.access(var), init, add, set);
+         return new StatusToCounterHandler(expectStatus, SessionFactory.intAccess(var), init, add, set);
       }
    }
 }

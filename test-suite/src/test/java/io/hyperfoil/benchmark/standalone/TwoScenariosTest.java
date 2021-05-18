@@ -15,8 +15,8 @@ import org.junit.runner.RunWith;
 
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.Locator;
+import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.http.api.HttpMethod;
-import io.hyperfoil.api.session.Access;
 import io.hyperfoil.benchmark.BaseBenchmarkTest;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
 import io.hyperfoil.core.session.SessionFactory;
@@ -95,7 +95,7 @@ public class TwoScenariosTest extends BaseBenchmarkTest {
       ships.put(new ShipInfo("Victoria", SailsState.FURLED));
 
       Locator.push(TestUtil.locator());
-      Access ship = SessionFactory.access("ship");
+      ReadAccess ship = SessionFactory.readAccess("ship");
       Locator.pop();
 
       // @formatter:off

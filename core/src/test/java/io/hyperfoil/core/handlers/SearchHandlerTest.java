@@ -4,6 +4,7 @@ import java.nio.charset.StandardCharsets;
 
 import org.junit.Test;
 
+import io.hyperfoil.api.session.ResourceUtilizer;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.hyperfoil.api.session.Session;
@@ -61,7 +62,7 @@ public class SearchHandlerTest {
 
    private void runHandler(SearchHandler handler, ExpectProcessor processor, String... text) {
       Session session = SessionFactory.forTesting();
-      handler.reserve(session);
+      ResourceUtilizer.reserveForTesting(session, handler);
       handler.before(session);
 
       for (String t : text) {

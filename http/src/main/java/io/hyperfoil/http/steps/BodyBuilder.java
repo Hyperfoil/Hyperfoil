@@ -6,7 +6,7 @@ import java.nio.charset.StandardCharsets;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Locator;
-import io.hyperfoil.api.session.Access;
+import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.core.generators.Pattern;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.util.ConstantBytesGenerator;
@@ -31,7 +31,7 @@ public class BodyBuilder {
     */
    public BodyBuilder fromVar(String var) {
       parent.body(() -> {
-         Access access = SessionFactory.access(var);
+         ReadAccess access = SessionFactory.readAccess(var);
          return new FromVarBytesGenerator(access);
       });
       return this;

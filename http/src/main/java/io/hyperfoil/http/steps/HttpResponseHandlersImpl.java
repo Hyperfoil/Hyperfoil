@@ -1,7 +1,8 @@
 package io.hyperfoil.http.steps;
 
-import static io.hyperfoil.core.session.SessionFactory.access;
-import static io.hyperfoil.core.session.SessionFactory.sequenceScopedAccess;
+import static io.hyperfoil.core.session.SessionFactory.objectAccess;
+import static io.hyperfoil.core.session.SessionFactory.sequenceScopedObjectAccess;
+import static io.hyperfoil.core.session.SessionFactory.sequenceScopedReadAccess;
 
 import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
@@ -20,6 +21,7 @@ import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.SequenceBuilder;
 import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.connection.Request;
+import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.http.statistics.HttpStats;
 import io.hyperfoil.http.api.HttpCache;
 import io.hyperfoil.http.api.HttpRequest;
@@ -28,9 +30,8 @@ import io.hyperfoil.http.api.HeaderHandler;
 import io.hyperfoil.http.api.HttpResponseHandlers;
 import io.hyperfoil.api.processor.RawBytesHandler;
 import io.hyperfoil.api.processor.Processor;
-import io.hyperfoil.api.session.Access;
+import io.hyperfoil.api.session.ObjectAccess;
 import io.hyperfoil.api.session.Action;
-import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.SessionStopException;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
@@ -62,7 +63,7 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.message.FormattedMessage;
 
-public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceUtilizer, Serializable {
+public class HttpResponseHandlersImpl implements HttpResponseHandlers, Serializable {
    private static final Logger log = LogManager.getLogger(HttpResponseHandlersImpl.class);
    private static final boolean trace = log.isTraceEnabled();
 
@@ -187,7 +188,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
    public void handleThrowable(HttpRequest request, Throwable throwable) {
       Session session = request.session;
       if (log.isDebugEnabled()) {
-         log.debug("#{} {} Received exception", throwable, session.uniqueId(), request);
+         log.debug(new FormattedMessage("#{} {} Received exception", session.uniqueId(), request), throwable);
       }
       if (request.isCompleted()) {
          if (trace) {
@@ -349,15 +350,6 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
       }
    }
 
-   @Override
-   public void reserve(Session session) {
-      ResourceUtilizer.reserve(session, (Object[]) statusHandlers);
-      ResourceUtilizer.reserve(session, (Object[]) headerHandlers);
-      ResourceUtilizer.reserve(session, (Object[]) bodyHandlers);
-      ResourceUtilizer.reserve(session, (Object[]) completionHandlers);
-      ResourceUtilizer.reserve(session, (Object[]) rawBytesHandlers);
-   }
-
    /**
     * Manages processing of HTTP responses.
     */
@@ -486,8 +478,8 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
        * Default value depends on <code>ergonomics.stopOnInvalid</code>
        * (see <a href="https://hyperfoil.io/userguide/benchmark/ergonomics.html">User Guide</a>).
        *
-       * @param stopOnInvalid
-       * @return
+       * @param stopOnInvalid Do inject the handler.
+       * @return Self.
        */
       public Builder stopOnInvalid(boolean stopOnInvalid) {
          this.stopOnInvalid = stopOnInvalid;
@@ -571,14 +563,14 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
             SequenceBuilder delaySequence = locator.scenario().sequence(delaySequenceName);
             delaySequence.concurrency(Math.max(1, concurrency))
                   .step(() -> {
-                     Access inputVar = sequenceScopedAccess(delayedCoordVar);
-                     Access delayVar = sequenceScopedAccess(delay);
+                     ReadAccess inputVar = sequenceScopedReadAccess(delayedCoordVar);
+                     ObjectAccess delayVar = sequenceScopedObjectAccess(delay);
                      SerializableToLongFunction<Session> delayFunc = session -> TimeUnit.SECONDS.toMillis(((Redirect.Coords) inputVar.getObject(session)).delay);
                      return new ScheduleDelayStep(delayVar, ScheduleDelayStep.Type.FROM_NOW, delayFunc);
                   })
-                  .step(() -> new AwaitDelayStep(sequenceScopedAccess(delay)))
+                  .step(() -> new AwaitDelayStep(sequenceScopedReadAccess(delay)))
                   .stepBuilder(new StepBuilder.ActionAdapter(() -> new PushQueueAction(
-                        sequenceScopedAccess(delayedCoordVar), queueKey)))
+                        sequenceScopedReadAccess(delayedCoordVar), queueKey)))
                   .step(session -> {
                      session.getResource(delayedQueueKey).consumed(session);
                      return true;
@@ -601,9 +593,9 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
             HttpRequestStepBuilder step = (HttpRequestStepBuilder) locator.step();
             HttpRequestStepBuilder.BodyGeneratorBuilder bodyBuilder = step.bodyBuilder();
             HttpRequestStepBuilder httpRequest = new HttpRequestStepBuilder()
-                  .method(() -> new Redirect.GetMethod(sequenceScopedAccess(coordsVar)))
-                  .path(() -> new Location.GetPath(sequenceScopedAccess(coordsVar)))
-                  .authority(() -> new Location.GetAuthority(sequenceScopedAccess(coordsVar)))
+                  .method(() -> new Redirect.GetMethod(sequenceScopedReadAccess(coordsVar)))
+                  .path(() -> new Location.GetPath(sequenceScopedReadAccess(coordsVar)))
+                  .authority(() -> new Location.GetAuthority(sequenceScopedReadAccess(coordsVar)))
                   .headerAppenders(step.headerAppenders())
                   .body(bodyBuilder == null ? null : bodyBuilder.copy(null))
                   .sync(false)
@@ -614,7 +606,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
                      .status(new Redirect.StatusHandler.Builder()
                            .poolKey(poolKey).concurrency(redirectConcurrency).coordsVar(newTempCoordsVar).handlers(statusHandlers))
                      .header(new Redirect.LocationRecorder.Builder()
-                           .originalSequenceSupplier(() -> new Redirect.GetOriginalSequence(sequenceScopedAccess(coordsVar)))
+                           .originalSequenceSupplier(() -> new Redirect.GetOriginalSequence(sequenceScopedReadAccess(coordsVar)))
                            .concurrency(redirectConcurrency).inputVar(newTempCoordsVar).outputVar(coordsVar)
                            .queueKey(queueKey).sequence(redirectSequenceName));
             }
@@ -650,8 +642,8 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
                if (html) {
                   handlerConsumer.accept(new HtmlHandler.Builder().handler(new MetaRefreshHandler.Builder()
                         .processor(fragmented -> new RefreshHandler(
-                              queueKey, delayedQueueKey, poolKey, redirectConcurrency, access(coordsVar), access(delayedCoordVar),
-                              redirectSequenceName, delaySequenceName, access(newTempCoordsVar), new Redirect.GetOriginalSequence(sequenceScopedAccess(coordsVar))))));
+                              queueKey, delayedQueueKey, poolKey, redirectConcurrency, objectAccess(coordsVar), objectAccess(delayedCoordVar),
+                              redirectSequenceName, delaySequenceName, objectAccess(newTempCoordsVar), new Redirect.GetOriginalSequence(sequenceScopedReadAccess(coordsVar))))));
                }
             }
             if (!completionHandlers.isEmpty()) {
@@ -659,7 +651,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
                      .condition().stringCondition().fromVar(newTempCoordsVar).isSet(false).end()
                      .action(new Redirect.WrappingAction.Builder().coordVar(coordsVar).actions(completionHandlers)));
             }
-            httpRequest.handler().onCompletion(() -> new Location.Complete<>(poolKey, queueKey, sequenceScopedAccess(coordsVar)));
+            httpRequest.handler().onCompletion(() -> new Location.Complete<>(poolKey, queueKey, sequenceScopedObjectAccess(coordsVar)));
             SequenceBuilder redirectSequence = locator.scenario().sequence(redirectSequenceName)
                   .concurrency(redirectConcurrency)
                   .stepBuilder(httpRequest)
@@ -701,8 +693,8 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, ResourceU
             if (html) {
                handlerConsumer.accept(new HtmlHandler.Builder().handler(new MetaRefreshHandler.Builder()
                      .processor(fragmented -> new RefreshHandler(
-                           queueKey, delayedQueueKey, poolKey, redirectConcurrency, access(coordsVar), access(delayedCoordVar),
-                           redirectSequenceName, delaySequenceName, access(tempCoordsVar), Session::currentSequence))));
+                           queueKey, delayedQueueKey, poolKey, redirectConcurrency, objectAccess(coordsVar), objectAccess(delayedCoordVar),
+                           redirectSequenceName, delaySequenceName, objectAccess(tempCoordsVar), Session::currentSequence))));
             }
             if (location) {
                bodyHandlers = Collections.singletonList(conditionalBodyHandler);

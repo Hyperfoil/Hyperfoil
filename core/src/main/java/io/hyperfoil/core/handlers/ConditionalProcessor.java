@@ -10,13 +10,12 @@ import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Embed;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.processor.Processor;
-import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.builders.Condition;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 import io.netty.buffer.ByteBuf;
 
-public class ConditionalProcessor implements Processor, ResourceUtilizer {
+public class ConditionalProcessor implements Processor {
    private final Condition condition;
    private final Processor[] processors;
 
@@ -50,11 +49,6 @@ public class ConditionalProcessor implements Processor, ResourceUtilizer {
             p.after(session);
          }
       }
-   }
-
-   @Override
-   public void reserve(Session session) {
-      ResourceUtilizer.reserve(session, (Object[]) processors);
    }
 
    /**

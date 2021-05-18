@@ -6,14 +6,14 @@ import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
 
-import io.hyperfoil.api.session.Access;
 import io.hyperfoil.api.session.SharedData;
+import io.hyperfoil.api.session.WriteAccess;
 
 public class SharedDataImpl implements SharedData {
    private final Map<String, SharedMapSet> maps = new HashMap<>();
 
    @Override
-   public void reserveMap(String key, Access match, int entries) {
+   public void reserveMap(String key, WriteAccess match, int entries) {
       SharedMapSet existing = maps.get(key);
       if (existing != null) {
          if (match != null) {
@@ -46,7 +46,7 @@ public class SharedDataImpl implements SharedData {
    }
 
    @Override
-   public SharedMap pullMap(String key, Access match, Object value) {
+   public SharedMap pullMap(String key, WriteAccess match, Object value) {
       return maps.get(key).acquireRandom(match, value);
    }
 
@@ -113,7 +113,7 @@ public class SharedDataImpl implements SharedData {
          return map;
       }
 
-      public SharedMap acquireRandom(Access match, Object value) {
+      public SharedMap acquireRandom(WriteAccess match, Object value) {
          throw new UnsupportedOperationException("Cannot match " + match + ": not indexed");
       }
 
@@ -176,20 +176,20 @@ public class SharedDataImpl implements SharedData {
       private Positions[] unusedPositions = new Positions[16];
       private int unusedPositionsSize = 0;
       private Map<Object, Positions>[] positions;
-      private Access[] indices;
-      private Function<Object, Positions> acquirePosition = ignored -> acquirePosition();
+      private WriteAccess[] indices;
+      private final Function<Object, Positions> acquirePosition = ignored -> acquirePosition();
 
       @SuppressWarnings("unchecked")
-      IndexedSharedMapSet(Access index, int entries) {
+      IndexedSharedMapSet(WriteAccess index, int entries) {
          super(entries);
-         this.indices = new Access[]{ index };
+         this.indices = new WriteAccess[]{ index };
          this.positions = new Map[]{ new HashMap<>() };
       }
 
       @SuppressWarnings("unchecked")
-      IndexedSharedMapSet(SharedMapSet set, Access index, int entries) {
+      IndexedSharedMapSet(SharedMapSet set, WriteAccess index, int entries) {
          super(set, entries);
-         this.indices = new Access[]{ index };
+         this.indices = new WriteAccess[]{ index };
          this.positions = new Map[]{ new HashMap<>() };
       }
 
@@ -198,8 +198,8 @@ public class SharedDataImpl implements SharedData {
          return indices.length;
       }
 
-      IndexedSharedMapSet ensureIndex(Access index) {
-         for (Access i : indices) {
+      IndexedSharedMapSet ensureIndex(WriteAccess index) {
+         for (WriteAccess i : indices) {
             if (i.equals(index)) return this;
          }
          indices = Arrays.copyOf(indices, indices.length + 1);
@@ -218,7 +218,7 @@ public class SharedDataImpl implements SharedData {
       }
 
       @Override
-      public SharedMap acquireRandom(Access match, Object value) {
+      public SharedMap acquireRandom(WriteAccess match, Object value) {
          Positions ps = null;
          for (int i = 0; i < indices.length; ++i) {
             if (indices[i].equals(match)) {
@@ -238,7 +238,7 @@ public class SharedDataImpl implements SharedData {
          assert map.indexLocations.length == indices.length;
          // remove this map from indices
          for (int i = 0; i < indices.length; ++i) {
-            Access index = indices[i];
+            WriteAccess index = indices[i];
             Object value2 = map.find(index);
             if (value2 == null) {
                continue;
@@ -259,7 +259,7 @@ public class SharedDataImpl implements SharedData {
             MapImpl relocated = maps[mainIndex] = maps[currentSize];
             assert relocated != null;
             for (int i = 0; i < indices.length; ++i) {
-               Access index = indices[i];
+               WriteAccess index = indices[i];
                Object value3 = relocated.find(index);
                if (value3 == null) {
                   continue;
@@ -301,18 +301,18 @@ public class SharedDataImpl implements SharedData {
 
    private static class MapImpl implements SharedMap {
       int[] indexLocations;
-      Access[] keys;
+      WriteAccess[] keys;
       Object[] values;
       int size;
 
       MapImpl(int capacity, int indices) {
          indexLocations = indices > 0 ? new int[indices] : null;
-         keys = new Access[capacity];
+         keys = new WriteAccess[capacity];
          values = new Object[capacity];
       }
 
       @Override
-      public void put(Access key, Object value) {
+      public void put(WriteAccess key, Object value) {
          int pos = size++;
          keys[pos] = key;
          values[pos] = value;
@@ -324,7 +324,7 @@ public class SharedDataImpl implements SharedData {
       }
 
       @Override
-      public Access key(int i) {
+      public WriteAccess key(int i) {
          return keys[i];
       }
 
@@ -348,7 +348,7 @@ public class SharedDataImpl implements SharedData {
       }
 
       @Override
-      public Object find(Access index) {
+      public Object find(WriteAccess index) {
          for (int i = 0; i < size; ++i) {
             if (keys[i].equals(index)) {
                return values[i];

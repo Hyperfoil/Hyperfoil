@@ -7,7 +7,7 @@ import java.util.Objects;
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.Name;
-import io.hyperfoil.api.session.Access;
+import io.hyperfoil.api.session.ObjectAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.session.ResourceUtilizer;
@@ -16,9 +16,9 @@ import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.core.session.SessionFactory;
 
 public class StopwatchBeginStep implements Step, ResourceUtilizer {
-   private final Access key;
+   private final ObjectAccess key;
 
-   public StopwatchBeginStep(Access key) {
+   public StopwatchBeginStep(ObjectAccess key) {
       this.key = key;
    }
 
@@ -35,7 +35,6 @@ public class StopwatchBeginStep implements Step, ResourceUtilizer {
 
    @Override
    public void reserve(Session session) {
-      key.declareObject(session);
       key.setObject(session, new StartTime());
       key.unset(session);
    }
@@ -69,9 +68,9 @@ public class StopwatchBeginStep implements Step, ResourceUtilizer {
          // .step() as that is going to be shadowed for each step in buildSteps()
          List<Step> steps = new ArrayList<>();
          Object key = new Object();
-         steps.add(new StopwatchBeginStep(SessionFactory.access(key)));
+         steps.add(new StopwatchBeginStep(SessionFactory.objectAccess(key)));
          steps.addAll(super.buildSteps());
-         steps.add(new StopwatchEndStep(SessionFactory.access(key), name()));
+         steps.add(new StopwatchEndStep(SessionFactory.readAccess(key), name()));
          return steps;
       }
 

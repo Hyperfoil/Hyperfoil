@@ -2,7 +2,7 @@ package io.hyperfoil.core.generators;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.InitFromParam;
-import io.hyperfoil.api.session.Access;
+import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.function.SerializableToIntFunction;
@@ -66,7 +66,7 @@ public class IntValueProviderBuilder<P> implements InitFromParam<IntValueProvide
       } else if (value != null && fromVar != null) {
          throw new BenchmarkDefinitionException("Must set one of: 'value' or 'fromVar'.");
       } else if (fromVar != null) {
-         Access access = SessionFactory.access(fromVar);
+         ReadAccess access = SessionFactory.readAccess(fromVar);
          return access::getInt;
       } else {
          int unbox = value == null ? defaultValue : value;

@@ -1,4 +1,4 @@
-package io.hyperfoil.core.print;
+package io.hyperfoil.impl;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import io.hyperfoil.api.config.Visitor;
-import io.hyperfoil.api.session.Access;
+import io.hyperfoil.api.session.ReadAccess;
 
 public class ReflectionAcceptor {
    private static final Class<?>[] BOXING_TYPES = new Class[]{
@@ -20,24 +20,29 @@ public class ReflectionAcceptor {
    public static int accept(Object target, Visitor visitor) {
       int written = 0;
       for (Field f : getAllFields(target)) {
-         f.setAccessible(true);
-         try {
-            Visitor.Invoke invoke = f.getAnnotation(Visitor.Invoke.class);
-            if (invoke == null) {
-               Object value = f.get(target);
-               if (visitor.visit(f.getName(), value, f.getGenericType())) {
-                  written++;
+         if (f.getDeclaringClass().getModule() != ReflectionAcceptor.class.getModule()) {
+            // we have wandered astray
+            continue;
+         }
+         if (f.trySetAccessible()) {
+            try {
+               Visitor.Invoke invoke = f.getAnnotation(Visitor.Invoke.class);
+               if (invoke == null) {
+                  Object value = f.get(target);
+                  if (visitor.visit(f.getName(), value, f.getGenericType())) {
+                     written++;
+                  }
+               } else {
+                  Method method = f.getDeclaringClass().getMethod(invoke.method());
+                  method.setAccessible(true);
+                  Object value = method.invoke(target);
+                  if (visitor.visit(f.getName(), value, method.getGenericReturnType())) {
+                     written++;
+                  }
                }
-            } else {
-               Method method = f.getDeclaringClass().getMethod(invoke.method());
-               method.setAccessible(true);
-               Object value = method.invoke(target);
-               if (visitor.visit(f.getName(), value, method.getGenericReturnType())) {
-                  written++;
-               }
+            } catch (IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
+               throw new RuntimeException(e);
             }
-         } catch (IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
-            throw new RuntimeException(e);
          }
       }
       return written;
@@ -66,7 +71,7 @@ public class ReflectionAcceptor {
       if (value == null) {
          return true;
       }
-      if (value instanceof CharSequence || value instanceof Access) {
+      if (value instanceof CharSequence || value instanceof ReadAccess) {
          return true;
       }
       Class<?> cls = value.getClass();

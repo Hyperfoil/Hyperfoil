@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -20,8 +19,7 @@ import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.PairBuilder;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.config.StepBuilder;
-import io.hyperfoil.api.session.Access;
-import io.hyperfoil.api.session.ResourceUtilizer;
+import io.hyperfoil.api.session.ObjectAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.builders.BaseStepBuilder;
 import io.hyperfoil.core.session.SessionFactory;
@@ -30,11 +28,11 @@ import io.hyperfoil.core.session.SessionFactory;
  * A class that will initialise, build and randomly select a single row of data.
  * The row is exposed as columns.
  */
-public class RandomCsvRowStep implements Step, ResourceUtilizer {
+public class RandomCsvRowStep implements Step {
    private String[][] rows;
-   private final Access[] columnVars;
+   private final ObjectAccess[] columnVars;
 
-   public RandomCsvRowStep(String[][] rows, Access[] columnVars) {
+   public RandomCsvRowStep(String[][] rows, ObjectAccess[] columnVars) {
       this.rows = rows;
       this.columnVars = columnVars;
    }
@@ -48,11 +46,6 @@ public class RandomCsvRowStep implements Step, ResourceUtilizer {
          columnVars[j++].setObject(session, row[i]);
       }
       return true;
-   }
-
-   @Override
-   public void reserve(Session session) {
-      Arrays.asList(columnVars).forEach(var -> var.declareObject(session));
    }
 
    /**
@@ -98,7 +91,7 @@ public class RandomCsvRowStep implements Step, ResourceUtilizer {
                throw new BenchmarkDefinitionException("Missing CSV row data. Rows were not detected after initial processing of file.");
             }
 
-            Access[] columnVars = builderColumns.stream().filter(Objects::nonNull).map(SessionFactory::access).toArray(Access[]::new);
+            ObjectAccess[] columnVars = builderColumns.stream().filter(Objects::nonNull).map(SessionFactory::objectAccess).toArray(ObjectAccess[]::new);
             return Collections.singletonList(new RandomCsvRowStep(rows, columnVars));
          } catch (IOException ioe) {
             throw new BenchmarkDefinitionException("Failed to read file " + file, ioe);

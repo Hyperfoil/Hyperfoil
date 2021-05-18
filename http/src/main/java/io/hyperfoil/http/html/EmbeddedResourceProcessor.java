@@ -3,7 +3,6 @@ package io.hyperfoil.http.html;
 import java.nio.charset.StandardCharsets;
 
 import io.hyperfoil.api.processor.Processor;
-import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.util.Util;
 import io.hyperfoil.http.HttpUtil;
@@ -49,12 +48,6 @@ class EmbeddedResourceProcessor extends Processor.BaseDelegating {
       if (fetchResource != null) {
          fetchResource.after(session);
       }
-   }
-
-   @Override
-   public void reserve(Session session) {
-      super.reserve(session);
-      ResourceUtilizer.reserve(session, fetchResource);
    }
 
    @Override

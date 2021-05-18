@@ -8,9 +8,8 @@ import org.kohsuke.MetaInfServices;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.processor.Transformer;
-import io.hyperfoil.api.session.Access;
+import io.hyperfoil.api.session.ObjectAccess;
 import io.hyperfoil.api.session.Action;
-import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 import io.hyperfoil.core.data.DataFormat;
@@ -18,13 +17,13 @@ import io.hyperfoil.core.handlers.DefragTransformer;
 import io.hyperfoil.core.session.SessionFactory;
 import io.netty.buffer.ByteBuf;
 
-public class ActionsTransformer implements Transformer, ResourceUtilizer {
-   private final Access var;
+public class ActionsTransformer implements Transformer {
+   private final ObjectAccess var;
    private final DataFormat format;
    private final Action[] actions;
    private final Pattern pattern;
 
-   public ActionsTransformer(Access var, DataFormat format, Action[] actions, Pattern pattern) {
+   public ActionsTransformer(ObjectAccess var, DataFormat format, Action[] actions, Pattern pattern) {
       this.var = var;
       this.format = format;
       this.actions = actions;
@@ -39,12 +38,6 @@ public class ActionsTransformer implements Transformer, ResourceUtilizer {
          action.run(session);
       }
       pattern.accept(session, out);
-   }
-
-   @Override
-   public void reserve(Session session) {
-      var.declareObject(session);
-      ResourceUtilizer.reserve(session, (Object[]) actions);
    }
 
    /**
@@ -114,7 +107,7 @@ public class ActionsTransformer implements Transformer, ResourceUtilizer {
          } else if (actions.isEmpty()) {
             throw new BenchmarkDefinitionException("No actions; use `store` processor instead.");
          }
-         ActionsTransformer transformer = new ActionsTransformer(SessionFactory.access(var), format,
+         ActionsTransformer transformer = new ActionsTransformer(SessionFactory.objectAccess(var), format,
                actions.stream().map(Action.Builder::build).toArray(Action[]::new), new Pattern(pattern, false));
          return fragmented ? transformer : new DefragTransformer(transformer);
       }

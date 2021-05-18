@@ -1,15 +1,15 @@
 package io.hyperfoil.core.builders;
 
-import io.hyperfoil.api.session.Access;
+import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.util.Util;
 
 public class BoolCondition implements Condition {
-   private final Access fromVar;
+   private final ReadAccess fromVar;
    private final boolean value;
 
-   public BoolCondition(Access fromVar, boolean value) {
+   public BoolCondition(ReadAccess fromVar, boolean value) {
       this.fromVar = fromVar;
       this.value = value;
    }
@@ -55,7 +55,7 @@ public class BoolCondition implements Condition {
 
       @Override
       public BoolCondition buildCondition() {
-         return new BoolCondition(SessionFactory.access(fromVar), value);
+         return new BoolCondition(SessionFactory.readAccess(fromVar), value);
       }
 
       /**

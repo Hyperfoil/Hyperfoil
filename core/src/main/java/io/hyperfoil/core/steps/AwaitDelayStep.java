@@ -8,16 +8,16 @@ import org.kohsuke.MetaInfServices;
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.StepBuilder;
-import io.hyperfoil.api.session.Access;
+import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.core.builders.BaseStepBuilder;
 import io.hyperfoil.core.session.SessionFactory;
 
 public class AwaitDelayStep implements Step {
-   private final Access key;
+   private final ReadAccess key;
 
-   public AwaitDelayStep(Access key) {
+   public AwaitDelayStep(ReadAccess key) {
       this.key = key;
    }
 
@@ -57,7 +57,7 @@ public class AwaitDelayStep implements Step {
 
       @Override
       public List<Step> build() {
-         return Collections.singletonList(new AwaitDelayStep(SessionFactory.access(key)));
+         return Collections.singletonList(new AwaitDelayStep(SessionFactory.readAccess(key)));
       }
    }
 }

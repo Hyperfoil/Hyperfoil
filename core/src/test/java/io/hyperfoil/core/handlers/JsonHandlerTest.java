@@ -23,9 +23,9 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
 public class JsonHandlerTest {
-   private static byte[] ID418 = "418".getBytes(StandardCharsets.UTF_8);
-   private static byte[] ID420 = "420".getBytes(StandardCharsets.UTF_8);
-   private static byte[] ID450 = "450".getBytes(StandardCharsets.UTF_8);
+   private static final byte[] ID418 = "418".getBytes(StandardCharsets.UTF_8);
+   private static final byte[] ID420 = "420".getBytes(StandardCharsets.UTF_8);
+   private static final byte[] ID450 = "450".getBytes(StandardCharsets.UTF_8);
    private static final byte[] JSON = ("[\n" +
          "      { \"id\" : 418, \"product\" : \"Teapots\", \"units\" : 123 },\n" +
          "      { \"id\" : 420, \"product\" : \"Various herbs\", \"units\" : 321  },\n" +
@@ -44,10 +44,10 @@ public class JsonHandlerTest {
             .expect(-1, 3, true);
       JsonHandler handler = new JsonHandler(".[].id", false, null, expect);
       Session session = SessionFactory.forTesting();
+      ResourceUtilizer.reserveForTesting(session, handler);
 
       ByteBuf data = Unpooled.wrappedBuffer(JSON);
 
-      handler.reserve(session);
       handler.before(session);
       handler.process(session, data, data.readerIndex(), data.readableBytes(), true);
       handler.after(session);
@@ -60,7 +60,7 @@ public class JsonHandlerTest {
       ExpectProcessor expect = new ExpectProcessor();
       JsonHandler handler = new JsonHandler(".[].id", false, null, expect);
       Session session = SessionFactory.forTesting();
-      handler.reserve(session);
+      ResourceUtilizer.reserveForTesting(session, handler);
 
       for (int i = 0; i < JSON.length; ++i) {
          ByteBuf data1 = Unpooled.wrappedBuffer(JSON, 0, i);
@@ -90,10 +90,10 @@ public class JsonHandlerTest {
             .expect(9, 14, true);
       JsonHandler handler = new JsonHandler(".foo", false, null, expect);
       Session session = SessionFactory.forTesting();
+      ResourceUtilizer.reserveForTesting(session, handler);
 
       ByteBuf data = Unpooled.wrappedBuffer("{ \"foo\": { \"bar\" : 42 }}".getBytes(StandardCharsets.UTF_8));
 
-      handler.reserve(session);
       handler.before(session);
       handler.process(session, data, data.readerIndex(), data.readableBytes(), true);
       handler.after(session);
@@ -113,7 +113,7 @@ public class JsonHandlerTest {
       };
       JsonHandler handler = new JsonHandler(".[].foo", false, null, new JsonUnquotingTransformer(new DefragProcessor(expect)));
       Session session = SessionFactory.forTesting();
-      handler.reserve(session);
+      ResourceUtilizer.reserveForTesting(session, handler);
 
       for (int i = 0; i < ESCAPED.length; ++i) {
          handleSplit(handler, session, ESCAPED, i);
@@ -128,7 +128,7 @@ public class JsonHandlerTest {
       StringCollector stringCollector = new StringCollector();
       JsonHandler handler = new JsonHandler(".[].product", true, null, new DefragProcessor(stringCollector));
       Session session = SessionFactory.forTesting();
-      handler.reserve(session);
+      ResourceUtilizer.reserveForTesting(session, handler);
 
       for (int i = 0; i < JSON.length; ++i) {
          handleSplit(handler, session, JSON, i);
@@ -148,7 +148,7 @@ public class JsonHandlerTest {
       StringCollector stringCollector = new StringCollector();
       JsonHandler handler = new JsonHandler(".[1]", true, null, new DefragProcessor(stringCollector));
       Session session = SessionFactory.forTesting();
-      handler.reserve(session);
+      ResourceUtilizer.reserveForTesting(session, handler);
 
       for (int i = 0; i < JSON.length; ++i) {
          handleSplit(handler, session, JSON, i);
@@ -170,8 +170,7 @@ public class JsonHandlerTest {
       JsonUnquotingTransformer replace = new JsonUnquotingTransformer(new ObscuringTransformer());
       JsonHandler handler = new JsonHandler(".[].product", false, replace, new DefragProcessor(stringCollector));
       Session session = SessionFactory.forTesting();
-      handler.reserve(session);
-      replace.reserve(session);
+      ResourceUtilizer.reserveForTesting(session, handler);
 
       for (int i = 0; i < JSON.length; ++i) {
          handleSplit(handler, session, JSON, i);
@@ -195,7 +194,7 @@ public class JsonHandlerTest {
       JsonHandler handler = new JsonHandler(".[1]", false, (Transformer) (session, in, offset, length, lastFragment, out) -> {
       }, new DefragProcessor(stringCollector));
       Session session = SessionFactory.forTesting();
-      handler.reserve(session);
+      ResourceUtilizer.reserveForTesting(session, handler);
 
       for (int i = 0; i < JSON.length; ++i) {
          handleSplit(handler, session, JSON, i);

@@ -1,6 +1,7 @@
 package io.hyperfoil.http.html;
 
-import static io.hyperfoil.core.session.SessionFactory.sequenceScopedAccess;
+import static io.hyperfoil.core.session.SessionFactory.sequenceScopedObjectAccess;
+import static io.hyperfoil.core.session.SessionFactory.sequenceScopedReadAccess;
 
 import java.io.Serializable;
 import java.util.concurrent.ThreadLocalRandom;
@@ -9,7 +10,7 @@ import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.BuilderBase;
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.SequenceBuilder;
-import io.hyperfoil.api.session.Access;
+import io.hyperfoil.api.session.ObjectAccess;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
@@ -27,7 +28,7 @@ import io.hyperfoil.http.handlers.Location;
 import io.hyperfoil.http.steps.HttpRequestStepBuilder;
 
 public class FetchResourceHandler implements Serializable, ResourceUtilizer {
-   private final Access var;
+   private final ObjectAccess var;
    private final int maxResources;
    private final String sequence;
    private final int concurrency;
@@ -35,7 +36,7 @@ public class FetchResourceHandler implements Serializable, ResourceUtilizer {
    private final Queue.Key queueKey;
    private final LimitedPoolResource.Key<Location> locationPoolKey;
 
-   public FetchResourceHandler(Queue.Key queueKey, LimitedPoolResource.Key<Location> locationPoolKey, Access var, int maxResources, String sequence, int concurrency, Action onCompletion) {
+   public FetchResourceHandler(Queue.Key queueKey, LimitedPoolResource.Key<Location> locationPoolKey, ObjectAccess var, int maxResources, String sequence, int concurrency, Action onCompletion) {
       this.queueKey = queueKey;
       this.locationPoolKey = locationPoolKey;
       this.var = var;
@@ -66,7 +67,6 @@ public class FetchResourceHandler implements Serializable, ResourceUtilizer {
 
    @Override
    public void reserve(Session session) {
-      var.declareObject(session);
       // If there are multiple concurrent requests all the data end up in single queue;
       // there's no way to set up different output var so merging them is the only useful behaviour.
       if (!var.isSet(session)) {
@@ -74,7 +74,6 @@ public class FetchResourceHandler implements Serializable, ResourceUtilizer {
       }
       session.declareResource(queueKey, () -> new Queue(var, maxResources, concurrency, sequence, onCompletion), true);
       session.declareResource(locationPoolKey, () -> LimitedPoolResource.create(maxResources, Location.class, Location::new), true);
-      ResourceUtilizer.reserve(session, onCompletion);
    }
 
    /**
@@ -88,7 +87,7 @@ public class FetchResourceHandler implements Serializable, ResourceUtilizer {
 
       private Queue.Key queueKey;
       private LimitedPoolResource.Key<Location> locationPoolKey;
-      private Access varAccess;
+      private ObjectAccess varAccess;
       private String sequenceName;
 
       public Builder() {
@@ -156,13 +155,13 @@ public class FetchResourceHandler implements Serializable, ResourceUtilizer {
          Locator locator = Locator.current();
          sequenceName = String.format("%s_fetchResources_%08x", locator.sequence().name(), ThreadLocalRandom.current().nextInt());
          Unique locationVar = new Unique();
-         varAccess = SessionFactory.access(locationVar);
+         varAccess = SessionFactory.objectAccess(locationVar);
 
          // We'll keep the request synchronous to keep the session running while the resources are fetched
          // even if the benchmark did not specify any completion action.
          HttpRequestStepBuilder requestBuilder = new HttpRequestStepBuilder().sync(true).method(HttpMethod.GET);
-         requestBuilder.path(() -> new Location.GetPath(sequenceScopedAccess(locationVar)));
-         requestBuilder.authority(() -> new Location.GetAuthority(sequenceScopedAccess(locationVar)));
+         requestBuilder.path(() -> new Location.GetPath(sequenceScopedReadAccess(locationVar)));
+         requestBuilder.authority(() -> new Location.GetAuthority(sequenceScopedReadAccess(locationVar)));
          if (metricSelector != null) {
             requestBuilder.metric(metricSelector);
          } else {
@@ -173,7 +172,7 @@ public class FetchResourceHandler implements Serializable, ResourceUtilizer {
          sequence.stepBuilder(requestBuilder);
          var myQueueKey = queueKey; // prevent capturing self reference
          var myPoolKey = locationPoolKey;
-         requestBuilder.handler().onCompletion(() -> new Location.Complete<>(myPoolKey, myQueueKey, sequenceScopedAccess(locationVar)));
+         requestBuilder.handler().onCompletion(() -> new Location.Complete<>(myPoolKey, myQueueKey, sequenceScopedObjectAccess(locationVar)));
          // As we're preparing build, the list of sequences-to-be-prepared is already final and we need to prepare
          // this one manually
          sequence.prepareBuild();
