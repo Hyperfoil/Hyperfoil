@@ -19,7 +19,7 @@ public abstract class BaseAccess implements ReadAccess {
 
    @Override
    public void setIndex(int index) {
-      assert this.index < 0 || this.index == index;
+      assert this.index < 0 || this.index == index : "Current index " + this.index + ", suggested index " + index;
       this.index = index;
    }
 

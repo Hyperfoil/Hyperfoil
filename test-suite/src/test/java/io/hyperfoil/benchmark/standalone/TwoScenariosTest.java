@@ -95,7 +95,9 @@ public class TwoScenariosTest extends BaseBenchmarkTest {
       ships.put(new ShipInfo("Victoria", SailsState.FURLED));
 
       Locator.push(TestUtil.locator());
-      ReadAccess ship = SessionFactory.readAccess("ship");
+      // We need a different accessor per phase because the indices are assigned per scenario
+      ReadAccess rigShip = SessionFactory.readAccess("ship");
+      ReadAccess furlShip = SessionFactory.readAccess("ship");
       Locator.pop();
 
       // @formatter:off
@@ -128,10 +130,10 @@ public class TwoScenariosTest extends BaseBenchmarkTest {
                   .endSequence()
                   .sequence("rig")
                      .step(SC).httpRequest(HttpMethod.GET)
-                        .path(s -> "/rig?ship=" + encode(((ShipInfo) ship.getObject(s)).name))
+                        .path(s -> "/rig?ship=" + encode(((ShipInfo) rigShip.getObject(s)).name))
                         .handler().status(((request, status) -> {
                            if (status == 200) {
-                              ((ShipInfo) ship.getObject(request.session)).sailsState = SailsState.RIGGED;
+                              ((ShipInfo) rigShip.getObject(request.session)).sailsState = SailsState.RIGGED;
                            } else {
                               request.markInvalid();
                            }
@@ -142,7 +144,7 @@ public class TwoScenariosTest extends BaseBenchmarkTest {
                   .sequence("disembark")
                      .step(SC).httpRequest(HttpMethod.GET).path("/disembark").endStep()
                      .step(s -> {
-                        ships.put((ShipInfo) ship.getObject(s));
+                        ships.put((ShipInfo) rigShip.getObject(s));
                         return true;
                      })
                   .endSequence()
@@ -165,10 +167,10 @@ public class TwoScenariosTest extends BaseBenchmarkTest {
                .endSequence()
                .sequence("furl")
                   .step(SC).httpRequest(HttpMethod.GET)
-                     .path(s -> "/furl?ship=" + encode(((ShipInfo) ship.getObject(s)).name))
+                     .path(s -> "/furl?ship=" + encode(((ShipInfo) furlShip.getObject(s)).name))
                      .handler().status((request, status) -> {
                         if (status == 200) {
-                           ((ShipInfo) ship.getObject(request.session)).sailsState = SailsState.RIGGED;
+                           ((ShipInfo) furlShip.getObject(request.session)).sailsState = SailsState.RIGGED;
                         } else {
                            request.markInvalid();
                         }
@@ -179,7 +181,7 @@ public class TwoScenariosTest extends BaseBenchmarkTest {
                .sequence("disembark")
                   .step(SC).httpRequest(HttpMethod.GET).path("/disembark").endStep()
                   .step(s -> {
-                     ships.put((ShipInfo) ship.getObject(s));
+                     ships.put((ShipInfo) furlShip.getObject(s));
                      return true;
                   })
                .endSequence()
