@@ -94,7 +94,7 @@
         <version.metainf-services>1.8</version.metainf-services>
         <version.netty.tcnative.boringssl>2.0.34.Final</version.netty.tcnative.boringssl>
         <version.slf4j>1.7.12</version.slf4j>
-        <version.snakeyaml>1.22</version.snakeyaml>
+        <version.snakeyaml>1.26</version.snakeyaml>
         <version.vertx>4.0.3</version.vertx>
 
         <version.sonatype.nexus>1.6.8</version.sonatype.nexus>
