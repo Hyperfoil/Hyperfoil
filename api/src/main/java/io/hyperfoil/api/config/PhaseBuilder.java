@@ -39,7 +39,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
    public static Phase noop(SerializableSupplier<Benchmark> benchmark, int id, int iteration, String iterationName, long duration,
                             Collection<String> startAfter, Collection<String> startAfterStrict, Collection<String> terminateAfterStrict) {
       Scenario scenario = new Scenario(new Sequence[0], new Sequence[0], 0, 0);
-      return new Phase(benchmark, id, iteration, iterationName, scenario, 0, startAfter, startAfterStrict, terminateAfterStrict, duration, duration, null, true, new Model.Noop());
+      return new Phase(benchmark, id, iteration, iterationName, scenario, -1, startAfter, startAfterStrict, terminateAfterStrict, duration, duration, null, true, new Model.Noop());
    }
 
    public BenchmarkBuilder endPhase() {
