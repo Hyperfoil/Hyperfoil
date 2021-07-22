@@ -21,6 +21,7 @@ import io.hyperfoil.clustering.messages.AgentReadyMessage;
 import io.hyperfoil.clustering.messages.AgentStatusMessage;
 import io.hyperfoil.clustering.messages.AuxiliaryHello;
 import io.hyperfoil.clustering.messages.ConnectionStatsMessage;
+import io.hyperfoil.clustering.messages.DelayStatsCompletionMessage;
 import io.hyperfoil.clustering.messages.ErrorMessage;
 import io.hyperfoil.clustering.messages.PhaseChangeMessage;
 import io.hyperfoil.clustering.messages.PhaseControlMessage;
@@ -191,15 +192,14 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                         // TODO: the stats might be completed both regularly and when the agent receives STOP
                         log.info("Run {}: stats for phase {} are already completed, ignoring.", run.id, phase);
                      } else if (run.agents.stream().map(a -> a.phases.get(phase)).allMatch(s -> s == PhaseInstance.Status.STATS_COMPLETE)) {
-                        log.info("Run {}: completed stats for phase {}", run.id, phase);
-                        run.statisticsStore().completePhase(phase);
-                        if (!run.statisticsStore().validateSlas()) {
-                           log.info("SLA validation failed for {}", phase);
-                           ControllerPhase controllerPhase = run.phases.get(phase);
-                           controllerPhase.setFailed();
-                           if (run.benchmark.failurePolicy() == Benchmark.FailurePolicy.CANCEL) {
-                              failNotStartedPhases(run, controllerPhase);
-                           }
+                        ControllerPhase controllerPhase = run.phases.get(phase);
+                        long delay = controllerPhase.delayStatsCompletionUntil() == null ? -1 :
+                              controllerPhase.delayStatsCompletionUntil() - System.currentTimeMillis();
+                        if (delay <= 0) {
+                           completePhase(run, phase, controllerPhase);
+                        } else {
+                           log.info("Run {}: all agents completed stats for phase {} but delaying for {} ms", run.id, phase, delay);
+                           vertx.setTimer(delay, ignored -> completePhase(run, phase, controllerPhase));
                         }
                      }
                   }
@@ -215,6 +215,14 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                ConnectionStatsMessage connectionStatsMessage = (ConnectionStatsMessage) statsMessage;
                log.trace("Run {}: Received connection stats from {}", connectionStatsMessage.runId, connectionStatsMessage.address);
                run.statisticsStore().recordConnectionStats(agentName, connectionStatsMessage.timestamp, connectionStatsMessage.stats);
+            } else if (statsMessage instanceof DelayStatsCompletionMessage) {
+               DelayStatsCompletionMessage delayStatsCompletionMessage = (DelayStatsCompletionMessage) statsMessage;
+               String phase = run.phase(delayStatsCompletionMessage.phaseId);
+               log.trace("Run {}: Received request for extension from {} for phase {} by {} ms",
+                     delayStatsCompletionMessage.runId, delayStatsCompletionMessage.address,
+                     phase, delayStatsCompletionMessage.delay);
+               ControllerPhase controllerPhase = run.phases.get(phase);
+               controllerPhase.delayStatsCompletionUntil(System.currentTimeMillis() + delayStatsCompletionMessage.delay);
             }
          } else {
             log.error("Unknown run {}", statsMessage.runId);
@@ -246,6 +254,18 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       startCountDown.increment();
       loadBenchmarks(startCountDown);
       startCountDown.countDown();
+   }
+
+   private void completePhase(Run run, String phase, ControllerPhase controllerPhase) {
+      log.info("Run {}: completing stats for phase {}", run.id, phase);
+      run.statisticsStore().completePhase(phase);
+      if (!run.statisticsStore().validateSlas()) {
+         log.info("SLA validation failed for {}", phase);
+         controllerPhase.setFailed();
+         if (run.benchmark.failurePolicy() == Benchmark.FailurePolicy.CANCEL) {
+            failNotStartedPhases(run, controllerPhase);
+         }
+      }
    }
 
    private void handleAgentHello(Message<Object> message, AgentHello hello) {

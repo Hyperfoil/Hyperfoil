@@ -7,6 +7,7 @@ import io.hyperfoil.clustering.messages.AgentHello;
 import io.hyperfoil.clustering.messages.AgentReadyMessage;
 import io.hyperfoil.clustering.messages.AuxiliaryHello;
 import io.hyperfoil.clustering.messages.ConnectionStatsMessage;
+import io.hyperfoil.clustering.messages.DelayStatsCompletionMessage;
 import io.hyperfoil.clustering.messages.ErrorMessage;
 import io.hyperfoil.clustering.messages.ObjectCodec;
 import io.hyperfoil.clustering.messages.PhaseChangeMessage;
@@ -28,6 +29,7 @@ public final class Codecs {
       eb.registerDefaultCodec(ArrayList.class, new ObjectCodec.ArrayList());
       eb.registerDefaultCodec(AuxiliaryHello.class, new AuxiliaryHello.Codec());
       eb.registerDefaultCodec(ConnectionStatsMessage.class, new ConnectionStatsMessage.Codec());
+      eb.registerDefaultCodec(DelayStatsCompletionMessage.class, new DelayStatsCompletionMessage.Codec());
       eb.registerDefaultCodec(ErrorMessage.class, new ErrorMessage.Codec());
       eb.registerDefaultCodec(PhaseChangeMessage.class, new PhaseChangeMessage.Codec());
       eb.registerDefaultCodec(PhaseControlMessage.class, new PhaseControlMessage.Codec());

@@ -13,6 +13,7 @@ public class ControllerPhase {
    private long absoluteStartTime = Long.MIN_VALUE;
    private long absoluteCompletionTime = Long.MIN_VALUE;
    private boolean failed;
+   private Long delayStatsCompletionUntil = null;
 
    public ControllerPhase(Phase definition) {
       this.definition = definition;
@@ -49,12 +50,20 @@ public class ControllerPhase {
       this.absoluteCompletionTime = absoluteCompletionTime;
    }
 
+   public Long delayStatsCompletionUntil() {
+      return delayStatsCompletionUntil;
+   }
+
    public void setFailed() {
       this.failed = true;
    }
 
    public boolean isFailed() {
       return failed;
+   }
+
+   public void delayStatsCompletionUntil(long time) {
+      delayStatsCompletionUntil = delayStatsCompletionUntil == null ? time : Math.max(time, delayStatsCompletionUntil);
    }
 
    enum Status {

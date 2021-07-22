@@ -65,7 +65,11 @@ class Run {
    }
 
    public String phase(int phaseId) {
-      return phasesById[phaseId].name();
+      if (phaseId < phasesById.length) {
+         return phasesById[phaseId].name();
+      } else {
+         return null;
+      }
    }
 
    public StatisticsStore statisticsStore() {
