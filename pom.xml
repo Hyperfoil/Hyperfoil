@@ -80,7 +80,7 @@
         <maven.compiler.source>11</maven.compiler.source>
 
         <version.aesh>2.6</version.aesh>
-        <version.apache.sshd>2.2.0</version.apache.sshd>
+        <version.apache.sshd>2.7.0</version.apache.sshd>
         <version.assertj>3.10.0</version.assertj>
         <version.eddsa>0.3.0</version.eddsa>
         <version.fabric8.kubernetes-client>4.6.0</version.fabric8.kubernetes-client>
