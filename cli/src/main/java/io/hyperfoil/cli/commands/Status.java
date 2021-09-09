@@ -6,6 +6,7 @@ import org.aesh.command.CommandDefinition;
 import org.aesh.command.CommandException;
 import org.aesh.command.CommandResult;
 import org.aesh.command.option.Option;
+import org.aesh.terminal.utils.ANSI;
 
 import io.hyperfoil.cli.Table;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
@@ -72,7 +73,7 @@ public class Status extends BaseRunIdCommand {
             lines++;
          }
          if (!run.errors.isEmpty() && !noErrors) {
-            invocation.println("Errors:");
+            invocation.println(ANSI.RED_TEXT + ANSI.BOLD + "Errors:" + ANSI.RESET);
             ++lines;
             for (int i = 0; i < run.errors.size() && (all || i < MAX_ERRORS); ++i) {
                invocation.println(run.errors.get(run.errors.size() - 1 - i));
