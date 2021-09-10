@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.FormattedMessage;
+import org.infinispan.commons.dataconversion.MediaType;
 import org.infinispan.commons.util.FileLookupFactory;
 import org.infinispan.configuration.parsing.ConfigurationBuilderHolder;
 import org.infinispan.configuration.parsing.ParserRegistry;
@@ -144,7 +145,7 @@ public class Hyperfoil {
 
    private static DefaultCacheManager createCacheManager() {
       try (InputStream stream = FileLookupFactory.newInstance().lookupFile("infinispan.xml", Thread.currentThread().getContextClassLoader())) {
-         ConfigurationBuilderHolder holder = new ParserRegistry().parse(stream, null);
+         ConfigurationBuilderHolder holder = new ParserRegistry().parse(stream, null, MediaType.APPLICATION_XML);
          holder.getGlobalConfigurationBuilder().transport().defaultTransport()
                .addProperty(JGroupsTransport.CHANNEL_LOOKUP, HyperfoilChannelLookup.class.getName())
                .initialClusterSize(1);

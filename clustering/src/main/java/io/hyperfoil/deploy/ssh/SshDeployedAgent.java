@@ -17,11 +17,11 @@ import java.util.function.Consumer;
 import org.apache.sshd.client.channel.ChannelShell;
 import org.apache.sshd.client.channel.ClientChannel;
 import org.apache.sshd.client.future.OpenFuture;
-import org.apache.sshd.client.scp.ScpClient;
-import org.apache.sshd.client.scp.ScpClientCreator;
+import org.apache.sshd.scp.client.ScpClient;
+import org.apache.sshd.scp.client.ScpClientCreator;
 import org.apache.sshd.client.session.ClientSession;
-import org.apache.sshd.client.subsystem.sftp.SftpClient;
-import org.apache.sshd.client.subsystem.sftp.SftpClientFactory;
+import org.apache.sshd.sftp.client.SftpClient;
+import org.apache.sshd.sftp.client.SftpClientFactory;
 import org.apache.sshd.common.io.IoOutputStream;
 import org.apache.sshd.common.io.IoReadFuture;
 import org.apache.sshd.common.util.buffer.ByteArrayBuffer;
@@ -114,13 +114,13 @@ public class SshDeployedAgent implements DeployedAgent {
 
       IoOutputStream inStream = shellChannel.getAsyncIn();
       commandStream = new PrintStream(new OutputStream() {
-         ByteArrayBuffer buffer = new ByteArrayBuffer();
+         final ByteArrayBuffer buffer = new ByteArrayBuffer();
 
          @Override
          public void write(byte[] b) throws IOException {
             buffer.clear(false);
             buffer.putRawBytes(b, 0, b.length);
-            if (!inStream.writePacket(buffer).await()) {
+            if (!inStream.writeBuffer(buffer).await()) {
                throw new IOException("Failed waiting for the write");
             }
          }
@@ -129,7 +129,7 @@ public class SshDeployedAgent implements DeployedAgent {
          public void write(byte[] b, int off, int len) throws IOException {
             buffer.clear(false);
             buffer.putRawBytes(b, off, len);
-            if (!inStream.writePacket(buffer).await()) {
+            if (!inStream.writeBuffer(buffer).await()) {
                throw new IOException("Failed waiting for the write");
             }
          }
@@ -138,7 +138,7 @@ public class SshDeployedAgent implements DeployedAgent {
          public void write(int b) throws IOException {
             buffer.clear(false);
             buffer.putByte((byte) b);
-            if (!inStream.writePacket(buffer).await()) {
+            if (!inStream.writeBuffer(buffer).await()) {
                throw new IOException("Failed waiting for the write");
             }
          }
@@ -185,7 +185,7 @@ public class SshDeployedAgent implements DeployedAgent {
          // Drop those files that are not on classpath
          rmCommand.append("rm --interactive=never ");
          for (Map.Entry<String, String> entry : remoteMd5.entrySet()) {
-            rmCommand.append(' ' + dir + AGENTLIB + '/' + entry.getKey());
+            rmCommand.append(' ').append(dir).append(AGENTLIB).append('/').append(entry.getKey());
          }
          runCommand(rmCommand.toString(), true);
       }
@@ -318,7 +318,6 @@ public class SshDeployedAgent implements DeployedAgent {
                   log.warn("Wrong output for md5sum " + file + ": " + line);
                   continue;
                }
-               ;
                String checksum = line.substring(0, space);
                md5map.put(file, checksum);
             }
