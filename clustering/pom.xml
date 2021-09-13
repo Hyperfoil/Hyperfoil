@@ -89,6 +89,12 @@
             <artifactId>sshd-sftp</artifactId>
         </dependency>
 
+        <!-- SSHD has dependency on org/slf4j/event/Level -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>net.i2p.crypto</groupId>
             <artifactId>eddsa</artifactId>
