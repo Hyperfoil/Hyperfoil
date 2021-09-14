@@ -56,7 +56,7 @@ public class PollStep<T> implements Step {
       }
       // We did not have an accepting match
       log.trace("Not accepted, scheduling #{} in {}", session.uniqueId(), periodMs);
-      session.executor().schedule((Runnable) session, periodMs, TimeUnit.MILLISECONDS);
+      session.executor().schedule(session, periodMs, TimeUnit.MILLISECONDS);
       return false;
    }
 
