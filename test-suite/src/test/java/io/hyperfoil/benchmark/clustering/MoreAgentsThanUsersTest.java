@@ -2,6 +2,8 @@ package io.hyperfoil.benchmark.clustering;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Map;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -21,6 +23,9 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
 @RunWith(VertxUnitRunner.class)
 @Category(Benchmark.class)
 public class MoreAgentsThanUsersTest extends BaseClusteredTest {
+   private static final String TRACE_CONFIG = "-Dlog4j.configurationFile=file://" +
+         MoreAgentsThanUsersTest.class.getProtectionDomain().getCodeSource().getLocation().getPath() +
+         "/../../src/test/resources/log4j2.xml";
 
    @Before
    public void before(TestContext ctx) {
@@ -30,11 +35,12 @@ public class MoreAgentsThanUsersTest extends BaseClusteredTest {
 
    @Test
    public void test() throws InterruptedException {
+      Map<String, String> agentOptions = System.getProperty("agent.log.trace") != null ? Map.of("extras", TRACE_CONFIG) : null;
       //@formatter:off
       BenchmarkBuilder benchmark = BenchmarkBuilder.builder()
             .name("test")
-            .addAgent("a1", "localhost", null)
-            .addAgent("a2", "localhost", null)
+            .addAgent("a1", "localhost", agentOptions)
+            .addAgent("a2", "localhost", agentOptions)
             .threads(2)
             .addPlugin(HttpPluginBuilder::new)
                .http()

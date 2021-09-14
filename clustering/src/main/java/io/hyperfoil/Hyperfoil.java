@@ -231,12 +231,13 @@ public class Hyperfoil {
    }
 
    private static void logVersion() {
-      log.info("Java: {} {} {} {} ({})",
+      log.info("Java: {} {} {} {} ({}), CWD {}",
             System.getProperty("java.vm.vendor", "<unknown VM vendor>"),
             System.getProperty("java.vm.name", "<unknown VM name>"),
             System.getProperty("java.version", "<unknown version>"),
             System.getProperty("java.vm.version", "<unknown VM version>"),
-            System.getProperty("java.home", "<unknown Java home>"));
+            System.getProperty("java.home", "<unknown Java home>"),
+            System.getProperty("user.dir", "<unknown current dir>"));
       String path = new File(Hyperfoil.class.getProtectionDomain().getCodeSource().getLocation().getPath()).getParentFile().getParent();
       log.info("Hyperfoil: {} ({})", Version.VERSION, Version.COMMIT_ID);
       log.info("           DISTRIBUTION:  {}", path);
