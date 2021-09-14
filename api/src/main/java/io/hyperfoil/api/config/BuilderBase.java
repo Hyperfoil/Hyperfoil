@@ -79,14 +79,14 @@ public interface BuilderBase<S extends BuilderBase<S>> {
       try {
          ThrowingSupplier<BuilderBase<?>> constructor = null;
          for (Constructor<?> ctor : getClass().getConstructors()) {
-            if (ctor.getParameterCount() == 0) {
+            // parameterless constructor has lowest priority
+            if (ctor.getParameterCount() == 0 && constructor == null) {
                constructor = () -> (BuilderBase<?>) ctor.newInstance();
-               // no break - copy constructor is preferred
             } else if (ctor.getParameterCount() == 1) {
                Class<?> parameterType = ctor.getParameterTypes()[0];
                if (parameterType == getClass()) {
-                  // copy constructor
                   constructor = () -> (BuilderBase<?>) ctor.newInstance(this);
+                  // copy constructor has highest priority
                   break;
                } else if (newParent != null && parameterType.isAssignableFrom(newParent.getClass())) {
                   constructor = () -> (BuilderBase<?>) ctor.newInstance(newParent);
