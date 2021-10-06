@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -27,6 +28,7 @@ import io.fabric8.kubernetes.api.model.DoneablePod;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodSpecBuilder;
 import io.fabric8.kubernetes.api.model.Quantity;
+import io.fabric8.kubernetes.api.model.ResourceRequirements;
 import io.fabric8.kubernetes.api.model.Toleration;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
 import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
@@ -74,7 +76,7 @@ import okhttp3.Response;
 public class K8sDeployer implements Deployer {
    private static final Logger log = LogManager.getLogger(K8sDeployer.class);
    private static final String API_SERVER = Properties.get("io.hyperfoil.deployer.k8s.apiserver", "https://kubernetes.default.svc.cluster.local/");
-   private static final String DEFAULT_IMAGE = "quay.io/hyperfoil/hyperfoil:" + Version.VERSION;
+   private static final String DEFAULT_IMAGE = Properties.get("io.hyperfoil.deployer.k8s.defaultimage", "quay.io/hyperfoil/hyperfoil:" + Version.VERSION);
    private static final String CONTROLLER_POD_NAME = System.getenv("HOSTNAME");
    private static final String APP;
    private static final String NAMESPACE;
@@ -120,13 +122,34 @@ public class K8sDeployer implements Deployer {
       List<String> command = new ArrayList<>();
       command.add("java");
       int threads = agent.threads() < 0 ? benchmark.defaultThreads() : agent.threads();
+      ResourceRequirements resourceRequirements = new ResourceRequirements();
+      Map<String, Quantity> podResourceRequests = new LinkedHashMap<>();
+      podResourceRequests.put("cpu", new Quantity(String.valueOf(threads)));
+      String memoryRequest = agent.properties.getOrDefault(
+              "pod-memory",
+              Properties.get("io.hyperfoil.deployer.k8s.pod.memory", null)
+      );
+      if (memoryRequest != null) {
+         podResourceRequests.put("memory", new Quantity(memoryRequest));
+      }
+      String storageRequest = agent.properties.getOrDefault(
+              "pod-ephemeral-storage",
+              Properties.get("io.hyperfoil.deployer.k8s.pod.ephemeralstorage", null)
+      );
+      if (storageRequest != null) {
+         podResourceRequests.put("ephemeral-storage", new Quantity(storageRequest));
+      }
+      resourceRequirements.setRequests(podResourceRequests);
+      if (Boolean.parseBoolean(agent.properties.getOrDefault("pod-limits",
+              Properties.get("io.hyperfoil.deployer.k8s.pod.limits", "false")))) {
+         resourceRequirements.setLimits(podResourceRequests);
+      }
       ContainerBuilder containerBuilder = new ContainerBuilder()
             .withImage(agent.properties.getOrDefault("image", DEFAULT_IMAGE))
             .withImagePullPolicy(agent.properties.getOrDefault("imagePullPolicy", "Always"))
             .withName("hyperfoil-agent")
             .withPorts(new ContainerPort(7800, null, null, "jgroups", "TCP"))
-            .withNewResources()
-            .withRequests(Collections.singletonMap("cpu", new Quantity(String.valueOf(threads))))
+            .withNewResourcesLike(resourceRequirements)
             .endResources();
 
       String node = agent.properties.get("node");
