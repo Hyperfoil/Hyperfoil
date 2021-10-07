@@ -80,6 +80,19 @@ public class K8sDeployer implements Deployer {
    private static final String CONTROLLER_POD_NAME = System.getenv("HOSTNAME");
    private static final String APP;
    private static final String NAMESPACE;
+   /**
+    * The <a href="https://kubernetes.io/docs/concepts/overview/working-with-objects/common-labels/">recommended
+    * labels for use in Kubernetes</a>.
+    */
+   private static final String[] K8S_RECOMMENDED_LABELS = {
+           "app.kubernetes.io/name",
+           "app.kubernetes.io/instance",
+           "app.kubernetes.io/version",
+           "app.kubernetes.io/component",
+           "app.kubernetes.io/part-of",
+           "app.kubernetes.io/managed-by",
+           "app.kubernetes.io/created-by"
+   };
 
    private KubernetesClient client;
 
@@ -237,9 +250,26 @@ public class K8sDeployer implements Deployer {
       }
 
       Map<String, String> labels = new HashMap<>();
-      labels.put("role", "agent");
-      if (APP != null) {
-         labels.put("app", APP);
+      boolean usingRecommendedLabels = false;
+      for (String key : K8S_RECOMMENDED_LABELS) {
+         var slashIndex = key.indexOf('/');
+         var value = Properties.get("io.hyperfoil.deployer.k8s.label." + (key.substring(slashIndex + 1)), null);
+         if (value != null) {
+            usingRecommendedLabels = true;
+            labels.put(key, value);
+         }
+      }
+      if (usingRecommendedLabels) {
+         labels.putIfAbsent("app.kubernetes.io/name", "hyperfoil");
+         labels.putIfAbsent("app.kubernetes.io/version", Version.VERSION);
+         labels.putIfAbsent("app.kubernetes.io/component", "agent");
+         labels.putIfAbsent("app.kubernetes.io/managed-by", "hyperfoil");
+         labels.putIfAbsent("app.kubernetes.io/created-by", "hyperfoil");
+      } else {
+         labels.put("role", "agent");
+         if (APP != null) {
+            labels.put("app", APP);
+         }
       }
       // @formatter:off
       Pod pod = client.pods().inNamespace(NAMESPACE).createNew()
