@@ -58,7 +58,7 @@ public interface Properties {
       if (value != null) {
          return f.apply(value);
       }
-      value = System.getenv(property.replaceAll("\\.", "_").toUpperCase());
+      value = System.getenv(property.replaceAll("[^a-zA-Z0-9]", "_").toUpperCase());
       if (value != null) {
          return f.apply(value);
       }
