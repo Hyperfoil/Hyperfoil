@@ -97,12 +97,12 @@ public class K8sDeployer implements Deployer {
    private KubernetesClient client;
 
    static {
-      APP = System.getProperty("io.hyperfoil.deployer.k8s.app");
+      APP = Properties.get("io.hyperfoil.deployer.k8s.app", null);
       NAMESPACE = getPropertyOrLoad("io.hyperfoil.deployer.k8s.namespace", "namespace");
    }
 
    private static String getPropertyOrLoad(String property, String file) {
-      String value = System.getProperty(property);
+      String value = Properties.get(property, null);
       if (value != null) {
          return value;
       }
