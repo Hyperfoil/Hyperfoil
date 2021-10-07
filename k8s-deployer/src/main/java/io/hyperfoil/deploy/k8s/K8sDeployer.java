@@ -83,13 +83,13 @@ public class K8sDeployer implements Deployer {
     * labels for use in Kubernetes</a>.
     */
    private static final String[] K8S_RECOMMENDED_LABELS = {
-     "app.kubernetes.io/name",
-     "app.kubernetes.io/instance",
-     "app.kubernetes.io/version",
-     "app.kubernetes.io/component",
-     "app.kubernetes.io/part-of",
-     "app.kubernetes.io/managed-by",
-     "app.kubernetes.io/created-by"
+           "app.kubernetes.io/name",
+           "app.kubernetes.io/instance",
+           "app.kubernetes.io/version",
+           "app.kubernetes.io/component",
+           "app.kubernetes.io/part-of",
+           "app.kubernetes.io/managed-by",
+           "app.kubernetes.io/created-by"
    };
 
    private KubernetesClient client;
@@ -228,9 +228,9 @@ public class K8sDeployer implements Deployer {
 
       Map<String, String> labels = new HashMap<>();
       boolean usingRecommendedLabels = false;
-      for (String key: K8S_RECOMMENDED_LABELS) {
+      for (String key : K8S_RECOMMENDED_LABELS) {
          var slashIndex = key.indexOf('/');
-         var value = Properties.get("io.hyperfoil.deployer.k8s.label." + (key.substring(slashIndex+1)), null);
+         var value = Properties.get("io.hyperfoil.deployer.k8s.label." + (key.substring(slashIndex + 1)), null);
          if (value != null) {
             usingRecommendedLabels = true;
             labels.put(key, value);
