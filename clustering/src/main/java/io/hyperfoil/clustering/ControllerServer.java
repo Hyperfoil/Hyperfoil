@@ -397,6 +397,13 @@ class ControllerServer implements ApiService {
       if (triggerUrl != null) {
          if (xTriggerJob == null) {
             Run run = controller.createRun(benchmark, desc);
+            if (!triggerUrl.endsWith("&") && !triggerUrl.endsWith("?")) {
+               if (triggerUrl.contains("?")) {
+                  triggerUrl = triggerUrl + "&";
+               } else {
+                  triggerUrl = triggerUrl + "?";
+               }
+            }
             ctx.response()
                   .setStatusCode(HttpResponseStatus.MOVED_PERMANENTLY.code())
                   .putHeader(HttpHeaders.LOCATION, triggerUrl + "BENCHMARK=" + name + "&RUN_ID=" + run.id)
