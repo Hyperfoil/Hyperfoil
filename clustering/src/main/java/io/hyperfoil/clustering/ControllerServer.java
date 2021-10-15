@@ -297,7 +297,7 @@ class ControllerServer implements ApiService {
          ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end(uri.getScheme() + " scheme URIs are not supported.");
          return;
       }
-      var localPath = Paths.get(uri).toAbsolutePath();
+      var localPath = (uri.getScheme() == null ? Paths.get(uri.getPath()) : Paths.get(uri)).toAbsolutePath();
       if (!localPath.startsWith(loadDirPath) || !Files.isRegularFile(localPath)) {
          log.error("Unknown controller local benchmark {}.", localPath);
          ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end("Unknown controller local benchmark.");
