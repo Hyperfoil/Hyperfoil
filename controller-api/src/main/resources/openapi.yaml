@@ -63,6 +63,10 @@ paths:
             schema:
               type: string
               format: binary
+          text/uri-list:
+            schema:
+              type: string
+              format: binary
           text/vnd.yaml:
             schema:
               type: string
