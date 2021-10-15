@@ -158,20 +158,7 @@ public class RestClient implements Client, Closeable {
                }
                request.sendMultipartForm(multipart, handler);
             }, 0,
-            response -> {
-               if (response.statusCode() == 204) {
-                  String location = response.getHeader(HttpHeaders.LOCATION.toString());
-                  if (location == null) {
-                     throw new RestClientException("Expected location header.");
-                  }
-                  int lastSlash = location.lastIndexOf('/');
-                  return new BenchmarkRefImpl(this, location.substring(lastSlash + 1));
-               } else if (response.statusCode() == 409) {
-                  throw new EditConflictException();
-               } else {
-                  throw unexpected(response);
-               }
-            });
+              this::processRegisterResponse);
    }
 
    @Override
@@ -185,20 +172,22 @@ public class RestClient implements Client, Closeable {
                  request.putHeader(HttpHeaders.CONTENT_TYPE.toString(), "text/uri-list")
                          .sendBuffer(Buffer.buffer(benchmarkUri), handler);
               }, 0,
-              response -> {
-                 if (response.statusCode() == 204) {
-                    String location = response.getHeader(HttpHeaders.LOCATION.toString());
-                    if (location == null) {
-                       throw new RestClientException("Expected location header.");
-                    }
-                    int lastSlash = location.lastIndexOf('/');
-                    return new BenchmarkRefImpl(this, location.substring(lastSlash + 1));
-                 } else if (response.statusCode() == 409) {
-                    throw new EditConflictException();
-                 } else {
-                    throw unexpected(response);
-                 }
-              });
+              this::processRegisterResponse);
+   }
+
+   private BenchmarkRefImpl processRegisterResponse(HttpResponse<Buffer> response) {
+      if (response.statusCode() == 204) {
+         String location = response.getHeader(HttpHeaders.LOCATION.toString());
+         if (location == null) {
+            throw new RestClientException("Expected location header.");
+         }
+         int lastSlash = location.lastIndexOf('/');
+         return new BenchmarkRefImpl(this, location.substring(lastSlash + 1));
+      } else if (response.statusCode() == 409) {
+         throw new EditConflictException();
+      } else {
+         throw unexpected(response);
+      }
    }
 
    @Override
