@@ -217,7 +217,7 @@ public class K8sDeployer implements Deployer {
          command.addAll(Arrays.asList(agent.properties.get("extras").split(" ", 0)));
       }
       command.add("-cp");
-      command.add("/deployment/lib/*");
+      command.add("/deployment/lib/*:/deployment/extensions/*");
       command.add("io.hyperfoil.Hyperfoil$Agent");
 
       // Keep the agent running after benchmark, e.g. to inspect logs
