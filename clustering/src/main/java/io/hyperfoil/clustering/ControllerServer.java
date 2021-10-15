@@ -7,6 +7,8 @@ import java.io.InputStream;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URLEncoder;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
@@ -24,7 +26,9 @@ import java.util.Optional;
 import java.util.function.BinaryOperator;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import io.hyperfoil.api.Version;
 import io.hyperfoil.api.config.Benchmark;
@@ -35,10 +39,11 @@ import io.hyperfoil.api.config.Model;
 import io.hyperfoil.clustering.util.PersistedBenchmarkData;
 import io.hyperfoil.clustering.webcli.WebCLI;
 import io.hyperfoil.controller.ApiService;
+import io.hyperfoil.controller.StatisticsStore;
 import io.hyperfoil.controller.model.Histogram;
 import io.hyperfoil.controller.model.RequestStats;
 import io.hyperfoil.controller.router.ApiRouter;
-import io.hyperfoil.controller.StatisticsStore;
+import io.hyperfoil.core.impl.LocalBenchmarkData;
 import io.hyperfoil.core.parser.BenchmarkParser;
 import io.hyperfoil.core.parser.ParserException;
 import io.hyperfoil.core.print.YamlVisitor;
@@ -62,10 +67,6 @@ import io.vertx.core.impl.NoStackTraceThrowable;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
-
 import io.vertx.core.net.JksOptions;
 import io.vertx.core.net.PemKeyCertOptions;
 import io.vertx.ext.web.FileUpload;
@@ -73,6 +74,8 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.FaviconHandler;
 import io.vertx.ext.web.handler.StaticHandler;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 class ControllerServer implements ApiService {
    private static final Logger log = LogManager.getLogger(ControllerServer.class);
@@ -249,11 +252,79 @@ class ControllerServer implements ApiService {
    }
 
    @Override
+   public void addBenchmark$text_uri_list(RoutingContext ctx, String ifMatch, String storedFilesBenchmark) {
+      var loadDirProperty = Properties.get(Properties.LOAD_DIR, null);
+      if (loadDirProperty == null) {
+         log.error("Loading controller local benchmarks is not enabled, set the {} property to enable.",
+                 Properties.LOAD_DIR);
+         ctx.response().setStatusCode(HttpResponseStatus.SERVICE_UNAVAILABLE.code()).
+                 end("Loading controller local benchmarks is not enabled.");
+         return;
+      }
+      var loadDirPath = Paths.get(loadDirProperty).toAbsolutePath();
+      String source = ctx.getBodyAsString();
+      if (source == null || source.isEmpty()) {
+         log.error("Benchmark is empty, load failed.");
+         ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end("Benchmark is empty.");
+         return;
+      }
+      // text/uri-list ignores
+      var uris = source.lines()
+              .map(String::trim)
+              .filter(Predicate.not(String::isEmpty))
+              .filter(Predicate.not(l -> l.startsWith("#")))
+              .flatMap(l -> {
+                 try {
+                    return Stream.of(new URI(l));
+                 } catch (URISyntaxException e) {
+                    return Stream.empty();
+                 }
+              })
+              .collect(Collectors.toList());
+      if (uris.isEmpty()) {
+         log.error("No Benchmark URIs specified, load failed.");
+         ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end("No Benchmark URIs specified.");
+         return;
+      }
+      if (uris.size() > 1) {
+         log.error("Multiple Benchmark URIs specified, load failed.");
+         ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end("Multiple Benchmark URIs specified.");
+         return;
+      }
+      var uri = uris.get(0);
+      if (uri.getScheme() != null && !"file".equals(uri.getScheme())) {
+         log.error("Unsupported URI scheme of {} specified, load failed.", uri.getScheme());
+         ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end(uri.getScheme() + " scheme URIs are not supported.");
+         return;
+      }
+      var localPath = Paths.get(uri).toAbsolutePath();
+      if (!localPath.startsWith(loadDirPath) || !Files.isRegularFile(localPath)) {
+         log.error("Unknown controller local benchmark {}.", localPath);
+         ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end("Unknown controller local benchmark.");
+         return;
+      }
+      try {
+         BenchmarkBuilder builder = BenchmarkParser.instance().builder(
+                 Files.readString(localPath),
+                 new LocalBenchmarkData(localPath)
+         );
+         if (storedFilesBenchmark != null) {
+            storedFilesBenchmark = PersistedBenchmarkData.sanitize(storedFilesBenchmark);
+            builder.data(new PersistedBenchmarkData(Controller.BENCHMARK_DIR.resolve(storedFilesBenchmark + ".data")));
+         }
+         addBenchmarkAndReply(ctx, builder.build(), ifMatch);
+      } catch (ParserException | BenchmarkDefinitionException | IOException e) {
+         respondParsingError(ctx, e);
+      }
+   }
+
+   @Override
    public void addBenchmark$text_vnd_yaml(RoutingContext ctx, String ifMatch, String storedFilesBenchmark) {
       String source = ctx.getBodyAsString();
       if (source == null || source.isEmpty()) {
          log.error("Benchmark is empty, upload failed.");
          ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end("Benchmark is empty.");
+         return;
       }
       try {
          BenchmarkBuilder builder = BenchmarkParser.instance().builder(source, BenchmarkData.EMPTY);

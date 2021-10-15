@@ -23,6 +23,8 @@ public interface Client {
 
    BenchmarkRef register(String benchmarkFile, Map<String, Path> otherFiles, String prevVersion, String storedFilesBenchmark);
 
+   BenchmarkRef registerLocal(String benchmarkUri, String prevVersion, String storedFilesBenchmark);
+
    List<String> benchmarks();
 
    BenchmarkRef benchmark(String name);
