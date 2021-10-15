@@ -93,6 +93,7 @@ public class K8sDeployer implements Deployer {
            "app.kubernetes.io/managed-by",
            "app.kubernetes.io/created-by"
    };
+   protected static final String POD_LABEL_PROPERTY_PREFIX = "pod.label.";
 
    private KubernetesClient client;
 
@@ -271,6 +272,11 @@ public class K8sDeployer implements Deployer {
             labels.put("app", APP);
          }
       }
+      agent.properties.forEach((k, v) -> {
+         if (k.startsWith(POD_LABEL_PROPERTY_PREFIX)) {
+            labels.put(k.substring(POD_LABEL_PROPERTY_PREFIX.length()), v);
+         }
+      });
       // @formatter:off
       Pod pod = client.pods().inNamespace(NAMESPACE).createNew()
             .withNewMetadata()
