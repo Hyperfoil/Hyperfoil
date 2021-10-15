@@ -132,6 +132,11 @@ public class K8sDeployer implements Deployer {
       ensureClient();
 
       PodSpecBuilder spec = new PodSpecBuilder().withRestartPolicy("Never");
+      String serviceAccount = agent.properties.getOrDefault("pod-serviceaccount",
+              Properties.get("io.hyperfoil.deployer.k8s.pod.service-account", null));
+      if (serviceAccount != null) {
+         spec.withServiceAccount(serviceAccount);
+      }
       List<String> command = new ArrayList<>();
       command.add("java");
       int threads = agent.threads() < 0 ? benchmark.defaultThreads() : agent.threads();
