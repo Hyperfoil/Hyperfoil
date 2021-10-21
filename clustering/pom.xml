@@ -4,7 +4,7 @@
     <parent>
         <artifactId>hyperfoil-all</artifactId>
         <groupId>io.hyperfoil</groupId>
-        <version>0.17-SNAPSHOT</version>
+        <version>0.17</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -16,7 +16,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <io.hyperfoil.clustered>true</io.hyperfoil.clustered>
-        <io.hyperfoil.debug/>
+        <io.hyperfoil.debug />
     </properties>
 
     <dependencies>
@@ -139,7 +139,7 @@
                     <executable>java</executable>
                     <arguments>
                         <argument>-cp</argument>
-                        <classpath/>
+                        <classpath />
                         <argument>-Djava.net.preferIPv4Stack=true</argument>
                         <argument>-Dio.hyperfoil.clustered=${io.hyperfoil.clustered}</argument>
                         <argument>${io.hyperfoil.debug}</argument>

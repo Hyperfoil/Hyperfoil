@@ -4,7 +4,7 @@
     <parent>
         <artifactId>hyperfoil-all</artifactId>
         <groupId>io.hyperfoil</groupId>
-        <version>0.17-SNAPSHOT</version>
+        <version>0.17</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -150,7 +150,7 @@
                 <activeByDefault>false</activeByDefault>
             </activation>
             <properties>
-                <junit.excluded.categories/>
+                <junit.excluded.categories />
             </properties>
         </profile>
 
