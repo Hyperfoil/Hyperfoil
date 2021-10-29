@@ -39,6 +39,7 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
    // Reads are done without locks
    protected volatile Status status = Status.NOT_STARTED;
    protected long absoluteStartTime;
+   protected String absoluteStartTimeString;
    protected AtomicInteger activeSessions = new AtomicInteger(0);
    private volatile Throwable error;
    private volatile boolean sessionLimitExceeded;
@@ -86,10 +87,16 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
    }
 
    @Override
+   public String absoluteStartTimeAsString() {
+      return absoluteStartTimeString;
+   }
+
+   @Override
    public void start(EventExecutorGroup executorGroup) {
       assert status == Status.NOT_STARTED : "Status is " + status;
       status = Status.RUNNING;
       absoluteStartTime = System.currentTimeMillis();
+      absoluteStartTimeString = String.valueOf(absoluteStartTime);
       log.debug("{} changing status to RUNNING", def.name);
       phaseChangeHandler.onChange(def, Status.RUNNING, false, error).thenRun(() -> proceed(executorGroup));
    }

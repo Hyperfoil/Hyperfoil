@@ -32,6 +32,7 @@ public final class SessionFactory {
          new SpecialAccess.Object("hyperfoil.phase.name", s -> s.phase().definition().name),
          new SpecialAccess.Int("hyperfoil.phase.id", s -> s.phase().definition().id),
          new SpecialAccess.Int("hyperfoil.phase.iteration", s -> s.phase().definition().iteration),
+         new SpecialAccess.Object("hyperfoil.phase.start.time.as.string", s -> s.phase().absoluteStartTimeAsString()),
          new SpecialAccess.Object("hyperfoil.run.id", Session::runId),
          new SpecialAccess.Int("hyperfoil.session.id", Session::uniqueId),
          };
@@ -41,7 +42,7 @@ public final class SessionFactory {
    }
 
    public static Session forTesting(WriteAccess... accesses) {
-      Scenario dummyScenario = new Scenario(new Sequence[0], new Sequence[] {
+      Scenario dummyScenario = new Scenario(new Sequence[0], new Sequence[]{
             new Sequence("dummy", 0, 1, 0, new Step[0]) {
                WriteAccess[] dummyAccesses = accesses;
             }

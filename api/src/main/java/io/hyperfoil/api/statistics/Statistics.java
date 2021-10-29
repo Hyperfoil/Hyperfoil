@@ -59,6 +59,9 @@ public class Statistics {
          // we don't use auto-resize histograms
          log.warn("Response time {} exceeded maximum trackable response time {}", responseTime, highestTrackableValue);
          responseTime = highestTrackableValue;
+      } else if (responseTime < 0) {
+         log.warn("Response time {} is negative.", responseTime);
+         responseTime = 0;
       }
       long criticalValueAtEnter = recordingPhaser.writerCriticalSectionEnter();
       try {
