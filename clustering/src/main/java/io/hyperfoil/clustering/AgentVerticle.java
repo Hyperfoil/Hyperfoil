@@ -15,7 +15,7 @@ import io.hyperfoil.core.util.CountDown;
 import io.hyperfoil.core.impl.SimulationRunner;
 import io.hyperfoil.clustering.messages.PhaseChangeMessage;
 import io.hyperfoil.clustering.messages.PhaseControlMessage;
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.impl.Util;
 import io.hyperfoil.internal.Properties;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Context;

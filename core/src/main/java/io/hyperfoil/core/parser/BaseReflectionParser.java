@@ -31,7 +31,7 @@ import io.hyperfoil.api.config.PairBuilder;
 import io.hyperfoil.api.config.PartialBuilder;
 import io.hyperfoil.core.builders.ServiceLoadedContract;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.impl.Util;
 
 public class BaseReflectionParser {
 

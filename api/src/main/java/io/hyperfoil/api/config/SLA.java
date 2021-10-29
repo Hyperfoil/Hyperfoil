@@ -16,13 +16,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.hyperfoil.core.builders;
+package io.hyperfoil.api.config;
 
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Collections;
 
-import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 
 public class SLA implements Serializable {

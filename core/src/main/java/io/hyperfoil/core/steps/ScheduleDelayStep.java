@@ -21,7 +21,7 @@ import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.core.builders.BaseStepBuilder;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.util.Unique;
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.impl.Util;
 import io.hyperfoil.function.SerializableToLongFunction;
 
 import org.apache.logging.log4j.Logger;

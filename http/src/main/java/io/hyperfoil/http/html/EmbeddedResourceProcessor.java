@@ -4,7 +4,7 @@ import java.nio.charset.StandardCharsets;
 
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.impl.Util;
 import io.hyperfoil.http.HttpUtil;
 import io.hyperfoil.http.api.HttpDestinationTable;
 import io.hyperfoil.http.api.HttpRequest;

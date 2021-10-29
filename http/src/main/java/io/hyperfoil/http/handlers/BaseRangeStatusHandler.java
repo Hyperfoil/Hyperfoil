@@ -9,7 +9,7 @@ import java.util.function.Function;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.http.api.HttpRequest;
 import io.hyperfoil.http.api.StatusHandler;
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.impl.Util;
 
 public abstract class BaseRangeStatusHandler implements StatusHandler {
    protected final int[] statusRanges;

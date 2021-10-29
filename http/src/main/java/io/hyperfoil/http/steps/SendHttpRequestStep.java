@@ -5,7 +5,7 @@ import java.util.concurrent.TimeUnit;
 import io.hyperfoil.api.config.Visitor;
 import io.hyperfoil.api.connection.Connection;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.core.builders.SLA;
+import io.hyperfoil.api.config.SLA;
 import io.hyperfoil.core.steps.StatisticsStep;
 import io.hyperfoil.function.SerializableBiConsumer;
 import io.hyperfoil.function.SerializableBiFunction;

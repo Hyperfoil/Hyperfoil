@@ -28,7 +28,7 @@ import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.client.RestClient;
 import io.hyperfoil.client.RestClientException;
 import io.hyperfoil.controller.model.Run;
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.impl.Util;
 
 public abstract class ServerCommand implements Command<HyperfoilCommandInvocation> {
    protected static final String MOVE_LINE_UP = new String(new byte[]{ 27, 91, 49, 65 }, StandardCharsets.US_ASCII);

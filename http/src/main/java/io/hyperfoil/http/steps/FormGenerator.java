@@ -13,7 +13,7 @@ import io.hyperfoil.http.api.HttpRequestWriter;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.generators.Pattern;
 import io.hyperfoil.core.session.SessionFactory;
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.impl.Util;
 import io.hyperfoil.function.SerializableBiConsumer;
 import io.hyperfoil.function.SerializableBiFunction;
 import io.netty.buffer.ByteBuf;

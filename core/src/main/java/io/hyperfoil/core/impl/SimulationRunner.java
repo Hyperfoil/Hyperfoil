@@ -30,7 +30,7 @@ import io.hyperfoil.core.api.PluginRunData;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.session.SharedDataImpl;
 import io.hyperfoil.core.util.CpuWatchdog;
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.impl.Util;
 import io.hyperfoil.internal.Properties;
 import io.netty.channel.EventLoop;
 import io.netty.channel.EventLoopGroup;

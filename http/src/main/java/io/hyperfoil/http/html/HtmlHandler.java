@@ -15,7 +15,7 @@ import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.core.util.Trie;
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.impl.Util;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 

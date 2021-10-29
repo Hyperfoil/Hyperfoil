@@ -3,7 +3,7 @@ package io.hyperfoil.core.builders;
 import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.impl.Util;
 
 public class BoolCondition implements Condition {
    private final ReadAccess fromVar;

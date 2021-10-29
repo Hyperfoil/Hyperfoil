@@ -12,7 +12,7 @@ import io.hyperfoil.core.data.LimitedPoolResource;
 import io.hyperfoil.core.data.Queue;
 import io.hyperfoil.http.handlers.Redirect;
 import io.hyperfoil.core.session.ObjectVar;
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.impl.Util;
 import io.hyperfoil.function.SerializableFunction;
 import io.hyperfoil.http.HttpUtil;
 import io.hyperfoil.http.api.HttpRequest;

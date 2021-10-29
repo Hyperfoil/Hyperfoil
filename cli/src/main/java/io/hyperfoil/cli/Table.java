@@ -13,7 +13,7 @@ import java.util.stream.Stream;
 import org.aesh.terminal.utils.ANSI;
 
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.impl.Util;
 
 public class Table<T> {
    private boolean boldHeader = true;

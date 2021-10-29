@@ -31,7 +31,7 @@ import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.core.impl.ConnectionStatsConsumer;
 import io.hyperfoil.core.impl.EventLoopFactory;
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.impl.Util;
 import io.hyperfoil.http.config.ConnectionPoolConfig;
 import io.hyperfoil.http.config.Http;
 import io.hyperfoil.http.api.HttpVersion;

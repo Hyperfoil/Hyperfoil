@@ -17,7 +17,7 @@ import java.util.stream.Stream;
 import io.hyperfoil.api.statistics.StatsExtension;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.api.statistics.StatisticsSummary;
-import io.hyperfoil.core.builders.SLA;
+import io.hyperfoil.api.config.SLA;
 import io.hyperfoil.core.util.LowHigh;
 
 import org.apache.logging.log4j.Logger;

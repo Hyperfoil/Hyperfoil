@@ -36,7 +36,7 @@ import org.aesh.terminal.utils.ANSI;
 import java.io.IOException;
 
 import io.hyperfoil.cli.HyperfoilCli;
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.impl.Util;
 
 public class HyperfoilCommandInvocation implements CommandInvocation<HyperfoilCommandInvocation> {
 

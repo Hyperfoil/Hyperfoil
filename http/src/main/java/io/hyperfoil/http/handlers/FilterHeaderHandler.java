@@ -9,7 +9,7 @@ import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.builders.StringConditionBuilder;
 import io.hyperfoil.core.handlers.MultiProcessor;
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.impl.Util;
 import io.hyperfoil.function.SerializableBiPredicate;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;

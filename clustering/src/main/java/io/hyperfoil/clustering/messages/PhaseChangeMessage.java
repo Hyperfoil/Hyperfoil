@@ -21,7 +21,7 @@
 package io.hyperfoil.clustering.messages;
 
 import io.hyperfoil.api.session.PhaseInstance;
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.impl.Util;
 
 public class PhaseChangeMessage extends AgentStatusMessage {
    private final String phase;

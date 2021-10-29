@@ -10,7 +10,7 @@ import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkData;
 import io.hyperfoil.core.parser.BenchmarkParser;
 import io.hyperfoil.core.parser.ParserException;
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.impl.Util;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;

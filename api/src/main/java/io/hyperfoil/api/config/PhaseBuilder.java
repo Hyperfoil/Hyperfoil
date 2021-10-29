@@ -3,10 +3,13 @@ package io.hyperfoil.api.config;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -29,6 +32,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
    protected boolean forceIterations = false;
    protected List<PhaseForkBuilder> forks = new ArrayList<>();
    protected boolean isWarmup = false;
+   protected Map<String, List<SLABuilder<PB>>> customSlas = new HashMap<>();
 
    protected PhaseBuilder(BenchmarkBuilder parent, String name) {
       this.name = name;
@@ -39,7 +43,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
    public static Phase noop(SerializableSupplier<Benchmark> benchmark, int id, int iteration, String iterationName, long duration,
                             Collection<String> startAfter, Collection<String> startAfterStrict, Collection<String> terminateAfterStrict) {
       Scenario scenario = new Scenario(new Sequence[0], new Sequence[0], 0, 0);
-      return new Phase(benchmark, id, iteration, iterationName, scenario, -1, startAfter, startAfterStrict, terminateAfterStrict, duration, duration, null, true, new Model.Noop());
+      return new Phase(benchmark, id, iteration, iterationName, scenario, -1, startAfter, startAfterStrict, terminateAfterStrict, duration, duration, null, true, new Model.Noop(), Collections.emptyMap());
    }
 
    public BenchmarkBuilder endPhase() {
@@ -160,12 +164,15 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
    }
 
    protected Phase buildPhase(SerializableSupplier<Benchmark> benchmark, int phaseId, int iteration, PhaseForkBuilder f) {
+      Collector<Map.Entry<String, List<SLABuilder<PB>>>, ?, Map<String, SLA[]>> customSlaCollector =
+            Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().stream().map(SLABuilder::build).toArray(SLA[]::new));
       return new Phase(benchmark, phaseId, iteration, iterationName(iteration, f.name), f.scenario.build(),
             iterationStartTime(iteration),
             iterationReferences(startAfter, iteration, false),
             iterationReferences(startAfterStrict, iteration, true),
             iterationReferences(terminateAfterStrict, iteration, false), duration,
-            maxDuration, sharedResources(f), isWarmup, createModel(iteration, f.weight));
+            maxDuration, sharedResources(f), isWarmup, createModel(iteration, f.weight),
+            Collections.unmodifiableMap(customSlas.entrySet().stream().collect(customSlaCollector)));
    }
 
    String iterationName(int iteration, String forkName) {
@@ -240,6 +247,16 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
       }
    }
 
+   public void readCustomSlaFrom(PhaseBuilder<?> other) {
+      for (var entry: other.customSlas.entrySet()) {
+         customSlas.put(entry.getKey(), entry.getValue().stream().map(b -> {
+            @SuppressWarnings("unchecked")
+            SLABuilder<PB> copy = (SLABuilder<PB>) b.copy(PhaseBuilder.this);
+            return copy;
+         }).collect(Collectors.toList()));
+      }
+   }
+
    public PB forceIterations(boolean force) {
       this.forceIterations = force;
       return self();
@@ -248,6 +265,13 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
    public PB isWarmup(boolean isWarmup) {
       this.isWarmup = isWarmup;
       return self();
+   }
+
+   public SLABuilder<PB> customSla(String metric) {
+      List<SLABuilder<PB>> list = this.customSlas.computeIfAbsent(metric, m -> new ArrayList<>());
+      SLABuilder<PB> builder = new SLABuilder<>(self());
+      list.add(builder);
+      return builder;
    }
 
    protected abstract Model createModel(int iteration, double weight);

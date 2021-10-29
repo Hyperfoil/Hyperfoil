@@ -11,7 +11,7 @@ import io.hyperfoil.core.generators.Pattern;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.util.ConstantBytesGenerator;
 import io.hyperfoil.core.util.FromVarBytesGenerator;
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.impl.Util;
 
 /**
  * Allows building HTTP request body from session variables.

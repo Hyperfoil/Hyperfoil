@@ -4,6 +4,7 @@ import io.hyperfoil.api.connection.Connection;
 import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.function.SerializableBiFunction;
+import io.hyperfoil.impl.Util;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 

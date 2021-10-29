@@ -9,7 +9,7 @@ import io.hyperfoil.api.connection.Connection;
 import io.hyperfoil.http.api.HttpVersion;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.SessionStopException;
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.impl.Util;
 import io.hyperfoil.http.api.HttpCache;
 import io.hyperfoil.http.api.HttpConnection;
 import io.hyperfoil.http.api.HttpConnectionPool;

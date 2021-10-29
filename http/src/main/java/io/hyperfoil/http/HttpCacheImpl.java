@@ -13,7 +13,7 @@ import org.apache.logging.log4j.Logger;
 
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.util.Trie;
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.impl.Util;
 import io.hyperfoil.http.api.CacheControl;
 import io.hyperfoil.http.api.HttpCache;
 import io.hyperfoil.http.api.HttpMethod;

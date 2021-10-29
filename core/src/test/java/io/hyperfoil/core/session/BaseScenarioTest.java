@@ -21,7 +21,7 @@ import io.hyperfoil.core.parser.BenchmarkParser;
 import io.hyperfoil.core.parser.ParserException;
 import io.hyperfoil.core.test.TestUtil;
 import io.hyperfoil.core.util.CountDown;
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.impl.Util;
 import io.vertx.core.Vertx;
 
 import org.apache.logging.log4j.Logger;

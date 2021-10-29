@@ -6,7 +6,7 @@ import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.api.statistics.StatisticsSummary;
 import io.hyperfoil.controller.model.Histogram;
 import io.hyperfoil.controller.model.RequestStats;
-import io.hyperfoil.core.builders.SLA;
+import io.hyperfoil.api.config.SLA;
 import io.hyperfoil.core.util.LowHigh;
 
 import java.util.ArrayList;
@@ -58,14 +58,18 @@ public class StatisticsStore {
       Data data = map.get(metric);
       if (data == null) {
          long collectionPeriod = benchmark.statisticsCollectionPeriod();
-         SLA.Provider slaProvider = slaProviders.get(stepId);
-         Map<SLA, Window> rings = slaProvider == null || slaProvider.sla() == null ? Collections.emptyMap() :
-               Stream.of(slaProvider.sla()).filter(sla -> sla.window() > 0).collect(
-                     Collectors.toMap(Function.identity(),
-                           sla -> new Window((int) (sla.window() / collectionPeriod))));
-         SLA[] total = slaProvider == null || slaProvider.sla() == null ? new SLA[0] : Stream.of(slaProvider.sla())
-               .filter(sla -> sla.window() <= 0).toArray(SLA[]::new);
          Phase phase = benchmark.phases().stream().filter(p -> p.id() == phaseId).findFirst().get();
+         SLA[] sla;
+         if (stepId != 0) {
+            SLA.Provider slaProvider = slaProviders.get(stepId);
+            sla = slaProvider == null ? null : slaProvider.sla();
+         } else {
+            sla = phase.customSlas.get(metric);
+         }
+         Map<SLA, Window> rings = sla == null ? Collections.emptyMap() :
+               Stream.of(sla).filter(s -> s.window() > 0).collect(
+                     Collectors.toMap(Function.identity(), s -> new Window((int) (s.window() / collectionPeriod))));
+         SLA[] total = sla == null ? new SLA[0] : Stream.of(sla).filter(s -> s.window() <= 0).toArray(SLA[]::new);
          map.put(metric, data = new Data(this, phase.name, phase.isWarmup, stepId, metric, rings, total));
       }
       data.record(agentName, stats);

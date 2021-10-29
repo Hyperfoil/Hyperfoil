@@ -1,0 +1,17 @@
+name: customSla
+http:
+  host: http://localhost:8080
+# 10 users will be starting the scenario every second
+usersPerSec: 10
+duration: 5s
+customSla:
+  foo:
+    errorRatio: 0 # no errors allowed
+  bar: # We need to accept a list of SLAs for each metric, too
+  - meanResponseTime: 200ms
+  - window: 60s
+    meanResponseTime: 500ms
+scenario:
+- test:
+  - log:
+      message: "Hello world"

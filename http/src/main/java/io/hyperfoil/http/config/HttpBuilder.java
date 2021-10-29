@@ -31,7 +31,7 @@ import java.util.List;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.BuilderBase;
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.impl.Util;
 import io.hyperfoil.http.api.HttpVersion;
 
 /**

@@ -16,7 +16,7 @@ import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.processor.RawBytesHandler;
 import io.hyperfoil.core.test.TestUtil;
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.impl.Util;
 import io.hyperfoil.http.api.HttpConnection;
 import io.hyperfoil.http.api.HttpDestinationTable;
 import io.hyperfoil.http.api.HttpMethod;

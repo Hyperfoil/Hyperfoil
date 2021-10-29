@@ -21,10 +21,11 @@ package io.hyperfoil.test;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.Model;
 import io.hyperfoil.api.config.Phase;
+import io.hyperfoil.api.config.SLA;
 import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.config.StepBuilder;
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.impl.Util;
 import io.hyperfoil.http.api.StatusHandler;
 import io.hyperfoil.http.config.HttpPluginConfig;
 import io.hyperfoil.http.handlers.RangeStatusValidator;
@@ -211,6 +212,18 @@ public class YamlParserTest {
    @Test
    public void testLoop() {
       buildBenchmark("scenarios/loop.hf.yaml");
+   }
+
+   @Test
+   public void testCustomSla() {
+      Benchmark benchmark = buildBenchmark("scenarios/customSla.hf.yaml");
+      assertThat(benchmark.phases().size()).isEqualTo(1);
+      Phase phase = benchmark.phases().iterator().next();
+      assertThat(phase.customSlas.size()).isEqualTo(2);
+      SLA[] foo = phase.customSlas.get("foo");
+      SLA[] bar = phase.customSlas.get("bar");
+      assertThat(foo.length).isEqualTo(1);
+      assertThat(bar.length).isEqualTo(2);
    }
 
    private <T extends Step> T next(Class<T> stepClass, Iterator<Step> iterator) {

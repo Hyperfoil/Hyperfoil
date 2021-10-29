@@ -6,7 +6,7 @@ import io.hyperfoil.api.config.PhaseBuilder;
 import io.hyperfoil.api.config.PhaseReference;
 import io.hyperfoil.api.config.RelativeIteration;
 import io.hyperfoil.api.config.ScenarioBuilder;
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.impl.Util;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
@@ -27,6 +27,7 @@ class StaircaseParser extends AbstractParser<BenchmarkBuilder, StaircaseParser.S
       register("maxSessions", new PropertyParser.Int<>(StaircaseBuilder::maxSessions));
       register("scenario", new Adapter<>(StaircaseBuilder::scenario, new ScenarioParser()));
       register("forks", new Adapter<>(StaircaseBuilder::phase, new PhaseForkParser()));
+      register("customSla", new Adapter<>(StaircaseBuilder::phase, new PhaseParser.CustomSLAParser()));
    }
 
    @Override
@@ -130,6 +131,7 @@ class StaircaseParser extends AbstractParser<BenchmarkBuilder, StaircaseParser.S
             }
             steadyState.startAfter(initialRampUp.name());
             initialRampUp.readForksFrom(steadyState);
+            initialRampUp.readCustomSlaFrom(steadyState);
          }
          if (rampUpDuration > 0) {
             if (maxIterations > 1) {
@@ -149,6 +151,7 @@ class StaircaseParser extends AbstractParser<BenchmarkBuilder, StaircaseParser.S
                   steadyState.startAfter(new PhaseReference(rampUp.name(), RelativeIteration.PREVIOUS, null));
                }
                rampUp.readForksFrom(steadyState);
+               rampUp.readCustomSlaFrom(steadyState);
             }
          } else {
             log.warn("No 'rampUpDuration' defined. There won't be continuous load.");

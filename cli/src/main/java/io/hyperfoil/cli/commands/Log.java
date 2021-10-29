@@ -12,7 +12,7 @@ import org.aesh.command.option.Argument;
 import org.aesh.command.option.Option;
 
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.impl.Util;
 
 @CommandDefinition(name = "log", description = "Browse remote logs.", aliases = "logs")
 public class Log extends ServerCommand {

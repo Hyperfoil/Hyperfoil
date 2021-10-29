@@ -2,8 +2,15 @@ package io.hyperfoil.core.parser;
 
 import java.util.function.Predicate;
 
+import org.yaml.snakeyaml.events.Event;
+import org.yaml.snakeyaml.events.MappingEndEvent;
+import org.yaml.snakeyaml.events.MappingStartEvent;
+import org.yaml.snakeyaml.events.ScalarEvent;
+import org.yaml.snakeyaml.events.SequenceStartEvent;
+
 import io.hyperfoil.api.config.Model;
 import io.hyperfoil.api.config.PhaseBuilder;
+import io.hyperfoil.api.config.SLABuilder;
 import io.hyperfoil.api.config.SessionLimitPolicy;
 
 abstract class PhaseParser extends AbstractParser<PhaseBuilder.Catalog, PhaseBuilder<?>> {
@@ -16,6 +23,7 @@ abstract class PhaseParser extends AbstractParser<PhaseBuilder.Catalog, PhaseBui
       register("maxDuration", new PropertyParser.TimeMillis<>(PhaseBuilder::maxDuration));
       register("maxIterations", new PropertyParser.Int<>(PhaseBuilder::maxIterations));
       register("isWarmup", new PropertyParser.Boolean<>(PhaseBuilder::isWarmup));
+      register("customSla", new CustomSLAParser());
    }
 
    @Override
@@ -98,6 +106,38 @@ abstract class PhaseParser extends AbstractParser<PhaseBuilder.Catalog, PhaseBui
       @Override
       protected PhaseBuilder.ConstantRate type(PhaseBuilder.Catalog catalog) {
          return catalog.constantRate(-1);
+      }
+   }
+
+   static class CustomSLAParser implements Parser<PhaseBuilder<?>> {
+      @Override
+      public void parse(Context ctx, PhaseBuilder<?> target) throws ParserException {
+         ctx.expectEvent(MappingStartEvent.class);
+         while (ctx.hasNext()) {
+            Event next = ctx.next();
+            if (next instanceof MappingEndEvent) {
+               return;
+            } else if (next instanceof ScalarEvent) {
+               ScalarEvent event = (ScalarEvent) next;
+               String metricName = event.getValue();
+               Event peeked = ctx.peek();
+               if (peeked instanceof MappingStartEvent) {
+                  parseCustomSla(ctx, target, metricName);
+               } else if (peeked instanceof SequenceStartEvent) {
+                  ctx.parseList(target, (ctx2, target2) -> parseCustomSla(ctx2, target2, metricName));
+               } else {
+                  throw ctx.unexpectedEvent(peeked);
+               }
+            } else {
+               throw ctx.unexpectedEvent(next);
+            }
+         }
+         throw ctx.noMoreEvents(MappingEndEvent.class);
+      }
+
+      private void parseCustomSla(Context ctx, PhaseBuilder<?> target, String metricName) throws ParserException {
+         ReflectionParser<PhaseBuilder<?>, SLABuilder<?>> parser = new ReflectionParser<>(t -> t.customSla(metricName));
+         parser.parse(ctx, target);
       }
    }
 }

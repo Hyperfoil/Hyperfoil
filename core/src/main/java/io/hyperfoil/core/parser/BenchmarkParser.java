@@ -22,7 +22,7 @@ import io.hyperfoil.core.api.Plugin;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.BenchmarkData;
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.impl.Util;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
@@ -69,6 +69,7 @@ public class BenchmarkParser extends AbstractMappingParser<BenchmarkBuilder> {
       register("maxSessions", new PropertyParser.Int<>((bb, value) -> bb.singleConstantRatePhase().maxSessions(value)));
       register("scenario", (ctx, target) -> new ScenarioParser().parse(ctx, target.singleConstantRatePhase().scenario()));
       register("staircase", new StaircaseParser());
+      register("customSla", new Adapter<>(BenchmarkBuilder::singleConstantRatePhase, new PhaseParser.CustomSLAParser()));
       register("triggerUrl", new PropertyParser.String<>(BenchmarkBuilder::triggerUrl));
       register("pre", new RunHooksParser(BenchmarkBuilder::addPreHook));
       register("post", new RunHooksParser(BenchmarkBuilder::addPostHook));

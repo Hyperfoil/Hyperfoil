@@ -17,7 +17,7 @@ import io.hyperfoil.controller.Client;
 import io.hyperfoil.controller.model.Histogram;
 import io.hyperfoil.controller.model.RequestStatisticsResponse;
 import io.hyperfoil.controller.model.Run;
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.impl.Util;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;

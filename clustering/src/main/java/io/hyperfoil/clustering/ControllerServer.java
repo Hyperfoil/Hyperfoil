@@ -49,7 +49,7 @@ import io.hyperfoil.core.parser.ParserException;
 import io.hyperfoil.core.print.YamlVisitor;
 import io.hyperfoil.core.util.CountDown;
 import io.hyperfoil.core.util.LowHigh;
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.impl.Util;
 import io.hyperfoil.internal.Controller;
 import io.hyperfoil.internal.Properties;
 import io.netty.handler.codec.http.HttpResponseStatus;

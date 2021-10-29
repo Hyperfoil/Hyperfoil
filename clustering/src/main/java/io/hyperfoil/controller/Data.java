@@ -7,7 +7,7 @@ import java.util.Map;
 
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.api.statistics.StatisticsSummary;
-import io.hyperfoil.core.builders.SLA;
+import io.hyperfoil.api.config.SLA;
 import io.netty.util.collection.IntObjectHashMap;
 import io.netty.util.collection.IntObjectMap;
 

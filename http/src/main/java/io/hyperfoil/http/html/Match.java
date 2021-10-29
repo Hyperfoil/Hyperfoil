@@ -1,6 +1,6 @@
 package io.hyperfoil.http.html;
 
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.impl.Util;
 import io.netty.buffer.ByteBuf;
 
 class Match {

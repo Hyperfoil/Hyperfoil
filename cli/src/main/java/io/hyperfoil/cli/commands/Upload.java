@@ -22,7 +22,7 @@ import io.hyperfoil.controller.Client;
 import io.hyperfoil.core.impl.LocalBenchmarkData;
 import io.hyperfoil.core.parser.BenchmarkParser;
 import io.hyperfoil.core.parser.ParserException;
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.impl.Util;
 
 @CommandDefinition(name = "upload", description = "Uploads benchmark definition to Hyperfoil Controller server")
 public class Upload extends ServerCommand {

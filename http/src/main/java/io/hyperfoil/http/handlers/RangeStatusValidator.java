@@ -7,7 +7,7 @@ import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.http.api.HttpRequest;
 import io.hyperfoil.http.api.StatusHandler;
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.impl.Util;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;

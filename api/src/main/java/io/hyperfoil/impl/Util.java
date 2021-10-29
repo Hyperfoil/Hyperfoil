@@ -1,4 +1,4 @@
-package io.hyperfoil.core.util;
+package io.hyperfoil.impl;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

@@ -51,7 +51,7 @@ import io.hyperfoil.cli.context.HyperfoilCliContext;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocationProvider;
 import io.hyperfoil.cli.context.HyperfoilCompleterData;
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.impl.Util;
 
 import org.aesh.AeshConsoleRunner;
 import org.aesh.command.Command;

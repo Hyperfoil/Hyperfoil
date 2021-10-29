@@ -35,7 +35,7 @@ import io.hyperfoil.cli.commands.RunLocal;
 import io.hyperfoil.cli.commands.StartLocal;
 import io.hyperfoil.cli.commands.Upload;
 import io.hyperfoil.client.RestClient;
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.impl.Util;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.ServerWebSocket;

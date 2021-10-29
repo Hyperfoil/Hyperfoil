@@ -8,7 +8,7 @@ import java.util.TimeZone;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.impl.Util;
 import io.netty.buffer.ByteBuf;
 import io.netty.util.AsciiString;
 

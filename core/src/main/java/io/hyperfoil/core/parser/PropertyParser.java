@@ -23,7 +23,7 @@ import java.util.function.BiConsumer;
 
 import org.yaml.snakeyaml.events.ScalarEvent;
 
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.impl.Util;
 
 public class PropertyParser {
    private PropertyParser() {}

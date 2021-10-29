@@ -62,7 +62,7 @@ import io.hyperfoil.controller.HistogramConverter;
 import io.hyperfoil.controller.model.RequestStatisticsResponse;
 import io.hyperfoil.controller.model.RequestStats;
 import io.hyperfoil.core.handlers.TransferSizeRecorder;
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.impl.Util;
 import io.hyperfoil.http.api.HttpMethod;
 import io.hyperfoil.http.config.HttpPluginBuilder;
 import io.hyperfoil.http.config.Protocol;

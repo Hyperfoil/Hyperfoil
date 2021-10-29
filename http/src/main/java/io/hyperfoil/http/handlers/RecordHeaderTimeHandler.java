@@ -8,7 +8,7 @@ import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.Name;
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.impl.Util;
 import io.hyperfoil.http.api.HttpRequest;
 import io.hyperfoil.http.api.HeaderHandler;
 import io.hyperfoil.api.statistics.Statistics;
@@ -77,7 +77,7 @@ public class RecordHeaderTimeHandler implements HeaderHandler {
          if (metric == null) {
             metric = header;
          }
-         SerializableToLongFunction<CharSequence> transform = io.hyperfoil.core.util.Util::parseLong;
+         SerializableToLongFunction<CharSequence> transform = Util::parseLong;
          if (unit != null) {
             switch (unit) {
                case "ms":

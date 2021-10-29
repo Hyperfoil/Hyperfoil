@@ -17,7 +17,7 @@ import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.ListBuilder;
 import io.hyperfoil.api.config.MappingListBuilder;
 import io.hyperfoil.api.config.PartialBuilder;
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.impl.Util;
 
 class BaseGenerator {
    private static final Pattern END_REGEXP = Pattern.compile("^end(\\p{javaUpperCase}.*|$)");

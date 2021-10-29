@@ -11,7 +11,7 @@ import io.hyperfoil.core.parser.BenchmarkParser;
 import io.hyperfoil.core.parser.ParserException;
 import io.hyperfoil.core.session.BaseScenarioTest;
 import io.hyperfoil.core.test.TestUtil;
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.impl.Util;
 import io.hyperfoil.http.config.HttpBuilder;
 import io.hyperfoil.http.config.HttpPluginBuilder;
 import io.hyperfoil.http.config.Protocol;

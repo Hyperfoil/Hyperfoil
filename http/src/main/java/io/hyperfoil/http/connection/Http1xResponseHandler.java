@@ -4,7 +4,7 @@ import io.hyperfoil.api.session.SessionStopException;
 import io.hyperfoil.http.api.HttpRequest;
 import io.hyperfoil.http.api.HttpConnection;
 import io.hyperfoil.http.api.HttpResponseHandlers;
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.impl.Util;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;

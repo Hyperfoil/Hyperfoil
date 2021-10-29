@@ -14,7 +14,7 @@ import io.hyperfoil.api.processor.Transformer;
 import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.impl.Util;
 import io.hyperfoil.function.SerializableBiConsumer;
 import io.hyperfoil.function.SerializableBiFunction;
 import io.hyperfoil.function.SerializableFunction;

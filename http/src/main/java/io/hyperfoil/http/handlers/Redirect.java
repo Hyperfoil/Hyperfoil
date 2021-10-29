@@ -22,7 +22,7 @@ import io.hyperfoil.core.handlers.BaseDelegatingAction;
 import io.hyperfoil.core.handlers.MultiProcessor;
 import io.hyperfoil.core.session.ObjectVar;
 import io.hyperfoil.core.session.SessionFactory;
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.impl.Util;
 import io.hyperfoil.function.SerializableFunction;
 import io.netty.buffer.ByteBuf;
 

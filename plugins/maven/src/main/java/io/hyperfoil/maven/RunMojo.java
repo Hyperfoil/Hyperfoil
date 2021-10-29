@@ -6,7 +6,7 @@ import io.hyperfoil.core.impl.LocalBenchmarkData;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
 import io.hyperfoil.core.parser.BenchmarkParser;
 import io.hyperfoil.core.parser.ParserException;
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.impl.Util;
 import io.hyperfoil.http.statistics.HttpStats;
 
 import org.apache.logging.log4j.Logger;

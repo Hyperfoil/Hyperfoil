@@ -5,7 +5,7 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import io.hyperfoil.api.Version;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.api.statistics.StatisticsSummary;
-import io.hyperfoil.core.builders.SLA;
+import io.hyperfoil.api.config.SLA;
 import io.hyperfoil.core.util.LowHigh;
 
 import io.vertx.core.json.JsonObject;

@@ -49,7 +49,7 @@ public final class SessionFactory {
       }, 16, 16);
       SessionImpl session = new SessionImpl(dummyScenario, 0, 0);
       Phase dummyPhase = new Phase(Benchmark::forTesting, 0, 0, "dummy", dummyScenario, 0,
-            Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), 0, -1, null, false, () -> "dummy");
+            Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), 0, -1, null, false, () -> "dummy", Collections.emptyMap());
       session.resetPhase(new PhaseInstanceImpl(dummyPhase, "dummy", 0) {
          @Override
          public void proceed(EventExecutorGroup executorGroup) {

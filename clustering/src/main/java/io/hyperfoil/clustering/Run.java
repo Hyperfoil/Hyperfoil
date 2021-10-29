@@ -10,7 +10,7 @@ import java.util.function.Supplier;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.controller.StatisticsStore;
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.impl.Util;
 import io.vertx.core.Promise;
 
 class Run {

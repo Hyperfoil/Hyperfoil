@@ -13,7 +13,7 @@ import org.HdrHistogram.Histogram;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.api.statistics.StatisticsSummary;
 import io.hyperfoil.api.statistics.StatsExtension;
-import io.hyperfoil.core.builders.SLA;
+import io.hyperfoil.api.config.SLA;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 

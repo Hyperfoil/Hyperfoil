@@ -3,7 +3,7 @@ package io.hyperfoil.core.session;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.session.ObjectAccess;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.impl.Util;
 
 class SimpleObjectAccess extends SimpleReadAccess implements ObjectAccess {
 

@@ -23,7 +23,7 @@ import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.statistics.StatsExtension;
 import io.hyperfoil.controller.Client;
 import io.hyperfoil.controller.model.Version;
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.impl.Util;
 import io.hyperfoil.internal.Properties;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;

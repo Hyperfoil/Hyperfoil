@@ -10,7 +10,7 @@ import io.hyperfoil.http.api.HttpRequest;
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.http.api.HeaderHandler;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.impl.Util;
 import io.netty.buffer.ByteBuf;
 
 public class LogInvalidHandler implements Processor, HeaderHandler {

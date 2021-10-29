@@ -6,7 +6,7 @@ import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
-import io.hyperfoil.core.util.Util;
+import io.hyperfoil.impl.Util;
 import io.hyperfoil.function.SerializableBiPredicate;
 import io.hyperfoil.function.SerializableIntPredicate;
 

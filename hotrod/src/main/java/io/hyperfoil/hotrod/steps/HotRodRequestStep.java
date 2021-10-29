@@ -8,7 +8,7 @@ import org.infinispan.client.hotrod.exceptions.HotRodTimeoutException;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.statistics.Statistics;
-import io.hyperfoil.core.builders.SLA;
+import io.hyperfoil.api.config.SLA;
 import io.hyperfoil.core.metric.MetricSelector;
 import io.hyperfoil.core.steps.StatisticsStep;
 import io.hyperfoil.function.SerializableFunction;
