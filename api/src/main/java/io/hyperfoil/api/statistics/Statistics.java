@@ -18,6 +18,7 @@ import org.apache.logging.log4j.Logger;
 public class Statistics {
    private static final Logger log = LogManager.getLogger(Statistics.class);
    private static final long SAMPLING_PERIOD_MILLIS = TimeUnit.SECONDS.toMillis(1);
+   private static final ThreadLocal<Long> lastWarnThrottle = ThreadLocal.withInitial(() -> Long.MIN_VALUE);
 
    private static final AtomicIntegerFieldUpdater<Statistics> LU1 =
          AtomicIntegerFieldUpdater.newUpdater(Statistics.class, "lowestActive1");
@@ -57,7 +58,19 @@ public class Statistics {
    public void recordResponse(long startTimestamp, long responseTime) {
       if (responseTime > highestTrackableValue) {
          // we don't use auto-resize histograms
-         log.warn("Response time {} exceeded maximum trackable response time {}", responseTime, highestTrackableValue);
+         long lastWarn = lastWarnThrottle.get();
+         long warnings = lastWarn & 0xFFFF;
+         long now = System.currentTimeMillis();
+         if (now - (lastWarn >> 16) > 100) {
+            log.warn("Response time {} exceeded maximum trackable response time {}",
+                  responseTime, highestTrackableValue);
+            if (warnings > 0) {
+               log.warn("Response time was also exceeded {} times since last warning", warnings);
+            }
+            lastWarnThrottle.set(now << 16);
+         } else if (warnings < 0xFFFF) {
+            lastWarnThrottle.set(lastWarn + 1);
+         }
          responseTime = highestTrackableValue;
       } else if (responseTime < 0) {
          log.warn("Response time {} is negative.", responseTime);
