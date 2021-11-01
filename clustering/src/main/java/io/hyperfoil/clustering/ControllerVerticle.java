@@ -193,14 +193,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                         log.info("Run {}: stats for phase {} are already completed, ignoring.", run.id, phase);
                      } else if (run.agents.stream().map(a -> a.phases.get(phase)).allMatch(s -> s == PhaseInstance.Status.STATS_COMPLETE)) {
                         ControllerPhase controllerPhase = run.phases.get(phase);
-                        long delay = controllerPhase.delayStatsCompletionUntil() == null ? -1 :
-                              controllerPhase.delayStatsCompletionUntil() - System.currentTimeMillis();
-                        if (delay <= 0) {
-                           completePhase(run, phase, controllerPhase);
-                        } else {
-                           log.info("Run {}: all agents completed stats for phase {} but delaying for {} ms", run.id, phase, delay);
-                           vertx.setTimer(delay, ignored -> completePhase(run, phase, controllerPhase));
-                        }
+                        tryCompletePhase(run, phase, controllerPhase);
                      }
                   }
                }
@@ -256,15 +249,22 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       startCountDown.countDown();
    }
 
-   private void completePhase(Run run, String phase, ControllerPhase controllerPhase) {
-      log.info("Run {}: completing stats for phase {}", run.id, phase);
-      run.statisticsStore().completePhase(phase);
-      if (!run.statisticsStore().validateSlas()) {
-         log.info("SLA validation failed for {}", phase);
-         controllerPhase.setFailed();
-         if (run.benchmark.failurePolicy() == Benchmark.FailurePolicy.CANCEL) {
-            failNotStartedPhases(run, controllerPhase);
+   private void tryCompletePhase(Run run, String phase, ControllerPhase controllerPhase) {
+      long delay = controllerPhase.delayStatsCompletionUntil() == null ? -1 :
+            controllerPhase.delayStatsCompletionUntil() - System.currentTimeMillis();
+      if (delay <= 0) {
+         log.info("Run {}: completing stats for phase {}", run.id, phase);
+         run.statisticsStore().completePhase(phase);
+         if (!run.statisticsStore().validateSlas()) {
+            log.info("SLA validation failed for {}", phase);
+            controllerPhase.setFailed();
+            if (run.benchmark.failurePolicy() == Benchmark.FailurePolicy.CANCEL) {
+               failNotStartedPhases(run, controllerPhase);
+            }
          }
+      } else {
+         log.info("Run {}: all agents completed stats for phase {} but delaying for {} ms", run.id, phase, delay);
+         vertx.setTimer(delay, ignored -> tryCompletePhase(run, phase, controllerPhase));
       }
    }
 
