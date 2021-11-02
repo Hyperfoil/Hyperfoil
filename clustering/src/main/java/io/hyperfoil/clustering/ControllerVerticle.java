@@ -171,21 +171,26 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                   .filter(ai -> ai.deploymentId.equals(statsMessage.address))
                   .map(ai -> ai.name).findFirst().orElse("<unknown>");
             if (statsMessage instanceof RequestStatsMessage) {
-               RequestStatsMessage requestStatsMessage = (RequestStatsMessage) statsMessage;
-               String phase = run.phase(requestStatsMessage.phaseId);
-               if (requestStatsMessage.statistics != null) {
+               RequestStatsMessage rsm = (RequestStatsMessage) statsMessage;
+               String phase = run.phase(rsm.phaseId);
+               if (rsm.statistics != null) {
                   log.debug("Run {}: Received stats from {}({}): {}/{}/{}:{} ({} requests)",
-                        requestStatsMessage.runId, agentName, requestStatsMessage.address,
-                        phase, requestStatsMessage.stepId, requestStatsMessage.metric,
-                        requestStatsMessage.statistics.sequenceId, requestStatsMessage.statistics.requestCount);
-                  run.statisticsStore().record(agentName, requestStatsMessage.phaseId, requestStatsMessage.stepId,
-                        requestStatsMessage.metric, requestStatsMessage.statistics);
+                        rsm.runId, agentName, rsm.address, phase, rsm.stepId, rsm.metric,
+                        rsm.statistics.sequenceId, rsm.statistics.requestCount);
+                  boolean added = run.statisticsStore().record(agentName, rsm.phaseId, rsm.stepId, rsm.metric, rsm.statistics);
+                  if (!added) {
+                     // warning already logged
+                     String errorMessage = String.format(
+                           "Received statistics for %s/%d/%s:%d with %d requests but the statistics are already completed; these statistics won't be reported.",
+                           phase, rsm.stepId, rsm.metric, rsm.statistics.sequenceId, rsm.statistics.requestCount);
+                     run.errors.add(new Run.Error(null, new BenchmarkExecutionException(errorMessage)));
+                  }
                }
-               if (requestStatsMessage.isPhaseComplete) {
-                  log.debug("Run {}: Received stats completion for phase {} from {}", run.id, phase, requestStatsMessage.address);
-                  AgentInfo agent = run.agents.stream().filter(a -> a.deploymentId.equals(requestStatsMessage.address)).findFirst().orElse(null);
+               if (rsm.isPhaseComplete) {
+                  log.debug("Run {}: Received stats completion for phase {} from {}", run.id, phase, rsm.address);
+                  AgentInfo agent = run.agents.stream().filter(a -> a.deploymentId.equals(rsm.address)).findFirst().orElse(null);
                   if (agent == null) {
-                     log.error("Run {}: Cannot find agent {}", run.id, requestStatsMessage.address);
+                     log.error("Run {}: Cannot find agent {}", run.id, rsm.address);
                   } else {
                      PhaseInstance.Status prevStatus = agent.phases.put(phase, PhaseInstance.Status.STATS_COMPLETE);
                      if (prevStatus == PhaseInstance.Status.STATS_COMPLETE) {

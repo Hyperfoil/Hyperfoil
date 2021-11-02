@@ -53,7 +53,7 @@ public class StatisticsStore {
             }));
    }
 
-   public void record(String agentName, int phaseId, int stepId, String metric, StatisticsSnapshot stats) {
+   public boolean record(String agentName, int phaseId, int stepId, String metric, StatisticsSnapshot stats) {
       Map<String, Data> map = this.data.computeIfAbsent((phaseId << 16) + stepId, phaseStep -> new HashMap<>());
       Data data = map.get(metric);
       if (data == null) {
@@ -72,7 +72,7 @@ public class StatisticsStore {
          SLA[] total = sla == null ? new SLA[0] : Stream.of(sla).filter(s -> s.window() <= 0).toArray(SLA[]::new);
          map.put(metric, data = new Data(this, phase.name, phase.isWarmup, stepId, metric, rings, total));
       }
-      data.record(agentName, stats);
+      return data.record(agentName, stats);
    }
 
    public void addFailure(String phase, String metric, long startTimestamp, long endTimestamp, String cause) {

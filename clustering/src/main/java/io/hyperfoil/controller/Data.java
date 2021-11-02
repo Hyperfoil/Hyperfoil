@@ -48,10 +48,10 @@ final class Data {
       this.totalSlas = totalSlas;
    }
 
-   void record(String agentName, StatisticsSnapshot stats) {
+   boolean record(String agentName, StatisticsSnapshot stats) {
       if (completed) {
          log.warn("Ignoring statistics for completed {}/{}/{} (from {}, {} requests)", phase, stepId, metric, agentName, stats.requestCount);
-         return;
+         return false;
       }
       total.add(stats);
       perAgent.computeIfAbsent(agentName, a -> new StatisticsSnapshot()).add(stats);
@@ -70,6 +70,7 @@ final class Data {
          }
          mergeSnapshots(mergedSequenceId);
       }
+      return true;
    }
 
    private void mergeSnapshots(int sequenceId) {
