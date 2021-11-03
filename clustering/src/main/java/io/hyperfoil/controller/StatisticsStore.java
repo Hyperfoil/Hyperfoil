@@ -92,6 +92,19 @@ public class StatisticsStore {
       }
    }
 
+   public void completeAll(Consumer<String> errorHandler) {
+      for (Map<String, Data> m : this.data.values()) {
+         for (Data data : m.values()) {
+            if (!data.isCompleted()) {
+               String message = String.format("Data for %s/%d/%s were not completed when the phase terminated - was the data received after that?",
+                     data.phase, data.stepId, data.metric);
+               errorHandler.accept(message);
+               data.completePhase();
+            }
+         }
+      }
+   }
+
    // When there's only few requests during the phase we could use too short interval for throughput calculation.
    // We cannot do this in completePhase() because that's invoked from the STATS feed and the overall completion
    // is notified from the RESPONSE feed.

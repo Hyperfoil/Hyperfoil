@@ -722,6 +722,10 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
          for (var phase : run.phases.values()) {
             run.statisticsStore().adjustPhaseTimestamps(phase.definition().name(), phase.absoluteStartTime(), phase.absoluteCompletionTime());
          }
+         run.statisticsStore().completeAll(error -> {
+            log.warn("Run {}: {}", run.id, error);
+            run.errors.add(new Run.Error(null, new BenchmarkExecutionException(error)));
+         });
          persistRun(run);
          log.info("Run {} completed", run.id);
       }
