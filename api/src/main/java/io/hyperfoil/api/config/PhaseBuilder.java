@@ -67,7 +67,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
    }
 
    @SuppressWarnings("unchecked")
-   private PB self() {
+   protected PB self() {
       return (PB) this;
    }
 
@@ -248,7 +248,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
    }
 
    public void readCustomSlaFrom(PhaseBuilder<?> other) {
-      for (var entry: other.customSlas.entrySet()) {
+      for (var entry : other.customSlas.entrySet()) {
          customSlas.put(entry.getKey(), entry.getValue().stream().map(b -> {
             @SuppressWarnings("unchecked")
             SLABuilder<PB> copy = (SLABuilder<PB>) b.copy(PhaseBuilder.this);
@@ -304,61 +304,71 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
       }
    }
 
-   public static class AtOnce extends PhaseBuilder<AtOnce> {
-      private int users;
-      private int usersIncrement;
+   public static abstract class ClosedModel<T extends ClosedModel<T>> extends PhaseBuilder<T> {
+      protected int users;
+      protected int usersIncrement;
+      protected int usersPerAgent;
+      protected int usersPerThread;
 
-      AtOnce(BenchmarkBuilder parent, String name, int users) {
+      protected ClosedModel(BenchmarkBuilder parent, String name, int users) {
          super(parent, name);
          this.users = users;
       }
 
-      public AtOnce users(int users) {
+      public T users(int users) {
          this.users = users;
-         return this;
+         return self();
       }
 
-      public AtOnce users(int base, int increment) {
+      public T users(int base, int increment) {
          this.users = base;
          this.usersIncrement = increment;
-         return this;
+         return self();
       }
 
-      @Override
-      protected Model createModel(int iteration, double weight) {
-         if (users <= 0) {
-            throw new BenchmarkDefinitionException("Phase " + name + ".users must be positive.");
+      public T usersPerAgent(int usersPerAgent) {
+         this.usersPerAgent = usersPerAgent;
+         return self();
+      }
+
+      public T usersPerThread(int usersPerThread) {
+         this.usersPerThread = usersPerThread;
+         return self();
+      }
+
+      protected void validate() {
+         long propsSet = IntStream.of(users, usersPerAgent, usersPerThread).filter(u -> u > 0).count();
+         if (propsSet < 1) {
+            throw new BenchmarkDefinitionException("Phase " + name + ".users (or .usersPerAgent/.usersPerThread) must be positive.");
+         } else if (propsSet > 1) {
+            throw new BenchmarkDefinitionException("Phase " + name + ": you can set only one of .users, .usersPerAgent and .usersPerThread");
          }
-         return new Model.AtOnce((int) Math.round((users + usersIncrement * iteration) * weight));
       }
    }
 
-   public static class Always extends PhaseBuilder<Always> {
-      private int users;
-      private int usersIncrement;
-
-      Always(BenchmarkBuilder parent, String name, int users) {
-         super(parent, name);
-         this.users = users;
+   public static class AtOnce extends ClosedModel<AtOnce> {
+      AtOnce(BenchmarkBuilder parent, String name, int users) {
+         super(parent, name, users);
       }
 
       @Override
       protected Model createModel(int iteration, double weight) {
-         if (users <= 0) {
-            throw new BenchmarkDefinitionException("Phase " + name + ".users must be positive.");
-         }
-         return new Model.Always((int) Math.round((this.users + usersIncrement * iteration) * weight));
+         validate();
+         return new Model.AtOnce((int) Math.round((users + usersIncrement * iteration) * weight),
+               (int) Math.round(usersPerAgent * weight), (int) Math.round(usersPerThread * weight));
+      }
+   }
+
+   public static class Always extends ClosedModel<Always> {
+      Always(BenchmarkBuilder parent, String name, int users) {
+         super(parent, name, users);
       }
 
-      public Always users(int users) {
-         this.users = users;
-         return this;
-      }
-
-      public Always users(int base, int increment) {
-         this.users = base;
-         this.usersIncrement = increment;
-         return this;
+      @Override
+      protected Model createModel(int iteration, double weight) {
+         validate();
+         return new Model.Always((int) Math.round((this.users + usersIncrement * iteration) * weight),
+               (int) Math.round(this.usersPerAgent * weight), (int) Math.round(this.usersPerThread * weight));
       }
    }
 

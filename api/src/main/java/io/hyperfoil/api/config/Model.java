@@ -13,16 +13,16 @@ public interface Model extends Serializable {
    default void validate(Phase phase) {
    }
 
-   class AtOnce implements Model {
+   abstract class ClosedModel implements Model {
+
       public final int users;
+      public final int usersPerAgent;
+      public final int usersPerThread;
 
-      public AtOnce(int users) {
+      public ClosedModel(int users, int usersPerAgent, int usersPerThread) {
          this.users = users;
-      }
-
-      @Override
-      public String description() {
-         return users + " users at once";
+         this.usersPerAgent = usersPerAgent;
+         this.usersPerThread = usersPerThread;
       }
 
       @Override
@@ -31,27 +31,40 @@ public interface Model extends Serializable {
             log.warn("Duration for phase {} is ignored.", phase.duration);
          }
       }
+
+      protected String description(String suffix) {
+         if (users > 0) {
+            return users + " users " + suffix;
+         } else if (usersPerAgent > 0) {
+            return usersPerAgent + " users per agent " + suffix;
+         } else if (usersPerThread > 0) {
+            return usersPerThread + " users per thread " + suffix;
+         } else {
+            return "no users will be started";
+         }
+      }
    }
 
-   class Always implements Model {
-      public final int users;
-
-      public Always(int users) {
-         this.users = users;
+   class AtOnce extends ClosedModel {
+      public AtOnce(int users, int usersPerAgent, int usersPerThread) {
+         super(users, usersPerAgent, usersPerThread);
       }
 
       @Override
       public String description() {
-         return users + " users always";
+         return description("at once");
+      }
+   }
+
+   class Always extends ClosedModel {
+      public Always(int users, int usersPerAgent, int usersPerThread) {
+         super(users, usersPerAgent, usersPerThread);
       }
 
       @Override
-      public void validate(Phase phase) {
-         if (phase.duration < 0) {
-            throw new BenchmarkDefinitionException("Duration was not set for phase '" + phase.name + "'");
-         }
+      public String description() {
+         return description("always");
       }
-
    }
 
    abstract class OpenModel implements Model {

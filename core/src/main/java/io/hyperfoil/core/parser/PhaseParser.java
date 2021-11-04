@@ -50,6 +50,8 @@ abstract class PhaseParser extends AbstractParser<PhaseBuilder.Catalog, PhaseBui
    static class AtOnce extends BasePhaseParser {
       AtOnce() {
          register("users", new IncrementPropertyParser.Int<>((builder, base, inc) -> ((PhaseBuilder.AtOnce) builder).users(base, inc)));
+         register("usersPerAgent", new PropertyParser.Int<>((builder, users) -> ((PhaseBuilder.AtOnce) builder).usersPerAgent(users)));
+         register("usersPerThread", new PropertyParser.Int<>((builder, users) -> ((PhaseBuilder.AtOnce) builder).usersPerThread(users)));
       }
 
       @Override
@@ -61,6 +63,8 @@ abstract class PhaseParser extends AbstractParser<PhaseBuilder.Catalog, PhaseBui
    static class Always extends BasePhaseParser {
       Always() {
          register("users", new IncrementPropertyParser.Int<>((builder, base, inc) -> ((PhaseBuilder.Always) builder).users(base, inc)));
+         register("usersPerAgent", new PropertyParser.Int<>((builder, users) -> ((PhaseBuilder.Always) builder).usersPerAgent(users)));
+         register("usersPerThread", new PropertyParser.Int<>((builder, users) -> ((PhaseBuilder.Always) builder).usersPerThread(users)));
       }
 
       @Override

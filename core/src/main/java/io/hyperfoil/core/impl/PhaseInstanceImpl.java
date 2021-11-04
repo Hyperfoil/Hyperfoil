@@ -244,7 +244,16 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
 
       public AtOnce(Phase def, String runId, int agentId) {
          super(def, runId, agentId);
-         this.users = def.benchmark().slice(((Model.AtOnce) def.model).users, agentId);
+         Model.AtOnce model = (Model.AtOnce) def.model;
+         if (model.users > 0) {
+            this.users = def.benchmark().slice(model.users, agentId);
+         } else if (model.usersPerAgent > 0) {
+            this.users = model.usersPerAgent;
+         } else if (model.usersPerThread > 0) {
+            this.users = model.usersPerThread * def.benchmark().threads(agentId);
+         } else {
+            this.users = 0;
+         }
       }
 
       @Override
@@ -268,7 +277,16 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
 
       public Always(Phase def, String runId, int agentId) {
          super(def, runId, agentId);
-         users = def.benchmark().slice(((Model.Always) def.model).users, agentId);
+         Model.Always model = (Model.Always) def.model;
+         if (model.users > 0) {
+            users = def.benchmark().slice(model.users, agentId);
+         } else if (model.usersPerAgent > 0) {
+            users = model.usersPerAgent;
+         } else if (model.usersPerThread > 0) {
+            users = model.usersPerThread * def.benchmark().threads(agentId);
+         } else {
+            users = 0;
+         }
       }
 
       @Override
