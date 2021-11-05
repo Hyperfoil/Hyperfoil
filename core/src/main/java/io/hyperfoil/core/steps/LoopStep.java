@@ -139,7 +139,7 @@ public class LoopStep implements Step {
             throw new BenchmarkDefinitionException("In concurrent sequences the counter var should be sequence-scoped.");
          }
          ArrayList<Step> allSteps = new ArrayList<>();
-         allSteps.add(new ActionStep(new SetIntAction(counter, 0, true, null)));
+         allSteps.add(new ActionStep(new SetIntAction(counter, session -> 0, true, null)));
          allSteps.addAll(steps.buildSteps());
          allSteps.add(new LoopStep(counter, repeats));
          return allSteps;
