@@ -12,6 +12,10 @@ import org.apache.logging.log4j.LogManager;
 public class DefragProcessor extends Processor.BaseDelegating implements ResourceUtilizer, Session.ResourceKey<DefragProcessor.Context> {
    private static final Logger log = LogManager.getLogger(DefragProcessor.class);
 
+   public static Processor of(Processor delegate, boolean fragmented) {
+      return fragmented ? new DefragProcessor(delegate) : delegate;
+   }
+
    public DefragProcessor(Processor delegate) {
       super(delegate);
    }

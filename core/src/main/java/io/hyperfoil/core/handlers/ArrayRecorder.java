@@ -91,8 +91,7 @@ public class ArrayRecorder implements Processor, ResourceUtilizer {
 
       @Override
       public Processor build(boolean fragmented) {
-         ArrayRecorder arrayRecorder = new ArrayRecorder(SessionFactory.objectAccess(toVar), format, maxSize);
-         return fragmented ? new DefragProcessor(arrayRecorder) : arrayRecorder;
+         return DefragProcessor.of(new ArrayRecorder(SessionFactory.objectAccess(toVar), format, maxSize), fragmented);
       }
 
       /**
