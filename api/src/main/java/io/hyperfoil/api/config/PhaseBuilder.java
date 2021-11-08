@@ -304,7 +304,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
       }
    }
 
-   public static abstract class ClosedModel<T extends ClosedModel<T>> extends PhaseBuilder<T> {
+   public abstract static class ClosedModel<T extends ClosedModel<T>> extends PhaseBuilder<T> {
       protected int users;
       protected int usersIncrement;
       protected int usersPerAgent;
