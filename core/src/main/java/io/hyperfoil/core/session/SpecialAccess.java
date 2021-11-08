@@ -1,6 +1,7 @@
 package io.hyperfoil.core.session;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
@@ -11,7 +12,7 @@ abstract class SpecialAccess implements ReadAccess {
    final String name;
 
    SpecialAccess(String name) {
-      this.name = name;
+      this.name = Objects.requireNonNull(name);
    }
 
    @Override
@@ -38,6 +39,20 @@ abstract class SpecialAccess implements ReadAccess {
    @Override
    public boolean isSet(Session session) {
       return true;
+   }
+
+   @Override
+   public boolean equals(java.lang.Object obj) {
+      if (obj instanceof ReadAccess) {
+         return name.equals(((ReadAccess) obj).key());
+      } else {
+         return false;
+      }
+   }
+
+   @Override
+   public int hashCode() {
+      return Objects.hash(name);
    }
 
    private abstract class BaseVar implements Session.Var, Serializable {

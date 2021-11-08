@@ -27,5 +27,19 @@ public abstract class BaseAccess implements ReadAccess {
    public int index() {
       return index;
    }
+
+   @Override
+   public boolean equals(Object obj) {
+      if (obj instanceof ReadAccess) {
+         return key.equals(((ReadAccess) obj).key());
+      } else {
+         return false;
+      }
+   }
+
+   @Override
+   public int hashCode() {
+      return Objects.hash(key);
+   }
 }
 
