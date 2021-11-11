@@ -3,6 +3,7 @@ package io.hyperfoil.core.print;
 import java.io.PrintStream;
 import java.lang.invoke.SerializedLambda;
 import java.lang.reflect.Array;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
@@ -241,15 +242,32 @@ public class YamlVisitor implements Visitor {
    private String getName(Object value, Class<?> cls) {
       String suffix = Stream.of(Step.class, Action.class, Processor.class, Transformer.class)
             .filter(c -> c.isAssignableFrom(cls)).map(Class::getSimpleName).findFirst().orElse(null);
-      String name = value.getClass().getSimpleName();
-      if (value.getClass().isSynthetic()) {
-         name = lambdaName(value, value.getClass());
+      Class<?> clazz = value.getClass();
+      String name = clazz.getSimpleName();
+      if (clazz.isSynthetic()) {
+         return lambdaName(value, clazz);
       } else if (suffix != null && name.endsWith(suffix)) {
-         name = Character.toLowerCase(name.charAt(0)) + name.substring(1, name.length() - suffix.length());
+         return Character.toLowerCase(name.charAt(0)) + name.substring(1, name.length() - suffix.length());
+      } else if (clazz.isAnonymousClass()) {
+         return anonymousName(clazz);
+      } else if (name.isEmpty()) {
+         // shouldn't happen
+         return "(empty:" + clazz.getName() + ")";
       } else {
-         name = Character.toLowerCase(name.charAt(0)) + name.substring(1);
+         return Character.toLowerCase(name.charAt(0)) + name.substring(1);
       }
-      return name;
+   }
+
+   private String anonymousName(Class<?> clazz) {
+      Method method = clazz.getEnclosingMethod();
+      if (method != null) {
+         return clazz.getEnclosingClass().getSimpleName() + "." + method.getName() + "::(anonymous)";
+      }
+      Constructor<?> ctor = clazz.getEnclosingConstructor();
+      if (ctor != null) {
+         return clazz.getEnclosingClass().getSimpleName() + ".<init>::(anonymous)";
+      }
+      return clazz.getEnclosingClass().getSimpleName() + "::(anonymous)";
    }
 
    private boolean isOnlyImpl(Type fieldType, Class<?> cls) {
@@ -270,11 +288,11 @@ public class YamlVisitor implements Visitor {
          String implClass = serializedLambda.getImplClass();
          String methodName = serializedLambda.getImplMethodName();
          if (methodName.startsWith("lambda$")) {
-            methodName = "<lambda>";
+            methodName = "(lambda)";
          }
          return implClass.substring(implClass.lastIndexOf('/') + 1) + "::" + methodName;
       } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-         return "<lambda>";
+         return "(lambda)";
       }
    }
 
