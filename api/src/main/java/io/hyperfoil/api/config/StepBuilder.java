@@ -49,7 +49,7 @@ public interface StepBuilder<S extends StepBuilder<S>> extends BuilderBase<S> {
    }
 
    class ActionAdapter implements StepBuilder<ActionAdapter> {
-      private final Action.Builder builder;
+      final Action.Builder builder;
 
       public ActionAdapter(Action.Builder builder) {
          this.builder = builder;

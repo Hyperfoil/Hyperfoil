@@ -120,6 +120,10 @@ public abstract class BaseSequenceBuilder<S extends BaseSequenceBuilder<S>> impl
       return steps.isEmpty();
    }
 
+   public int size() {
+      return steps.size();
+   }
+
    /**
     * Simplified interface that works better with lambdas
     */

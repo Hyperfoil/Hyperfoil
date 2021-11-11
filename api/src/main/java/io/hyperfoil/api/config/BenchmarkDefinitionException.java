@@ -20,10 +20,39 @@ package io.hyperfoil.api.config;
 
 public class BenchmarkDefinitionException extends RuntimeException {
    public BenchmarkDefinitionException(String msg) {
-      super(msg);
+      super(getMessage(msg));
    }
 
    public BenchmarkDefinitionException(String msg, Throwable cause) {
-      super(msg, cause);
+      super(getMessage(msg), cause);
+   }
+
+   private static String getMessage(String msg) {
+      Locator locator = Locator.current();
+      String phase = locator.scenario().endScenario().name;
+      String sequence = locator.sequence().name();
+      String step = null;
+      if (locator.step() != null) {
+         Class<?> builderClass = locator.step().getClass();
+         if (locator.step() instanceof StepBuilder.ActionAdapter) {
+            builderClass = ((StepBuilder.ActionAdapter) locator.step()).builder.getClass();
+         }
+         Name nameAnnotation = builderClass.getAnnotation(Name.class);
+         if (nameAnnotation != null) {
+            step = nameAnnotation.value();
+         } else {
+            if ("Builder".equals(builderClass.getSimpleName()) && builderClass.getEnclosingClass() != null) {
+               builderClass = builderClass.getEnclosingClass();
+            }
+            step = builderClass.getSimpleName();
+            if (step.endsWith("Step")) {
+               step = step.substring(0, step.length() - 4);
+            } else if (step.endsWith("Action")) {
+               step = step.substring(0, step.length() - 6);
+            }
+         }
+         step = String.format(", step %s (%d/%d)", step, locator.sequence().indexOf(locator.step()), locator.sequence().size());
+      }
+      return String.format("Phase %s, sequence %s%s: %s", phase, sequence, step != null ? step : "", msg);
    }
 }
