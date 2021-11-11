@@ -1,4 +1,4 @@
-package io.hyperfoil.core.steps;
+package io.hyperfoil.core.steps.data;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -14,7 +14,7 @@ import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.session.ObjectAccess;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.api.session.SharedData;
+import io.hyperfoil.api.session.ThreadData;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.core.builders.BaseStepBuilder;
 import io.hyperfoil.core.session.SessionFactory;
@@ -30,12 +30,12 @@ public class PushSharedMapStep implements Step, ResourceUtilizer {
 
    @Override
    public boolean invoke(Session session) {
-      SharedData sharedData = session.sharedData();
-      SharedData.SharedMap sharedMap = sharedData.newMap(key);
+      ThreadData threadData = session.sharedData();
+      ThreadData.SharedMap sharedMap = threadData.newMap(key);
       for (int i = 0; i < vars.length; ++i) {
-         sharedMap.put(vars[i], vars[i].getObject(session));
+         sharedMap.put(vars[i].key(), vars[i].getObject(session));
       }
-      sharedData.pushMap(key, sharedMap);
+      threadData.pushMap(key, sharedMap);
       return true;
    }
 

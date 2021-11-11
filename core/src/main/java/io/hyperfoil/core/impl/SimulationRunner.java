@@ -3,6 +3,7 @@ package io.hyperfoil.core.impl;
 import java.text.SimpleDateFormat;
 import java.time.Clock;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -19,16 +20,18 @@ import java.util.stream.StreamSupport;
 import io.hyperfoil.api.BenchmarkExecutionException;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.Phase;
+import io.hyperfoil.api.session.GlobalData;
 import io.hyperfoil.api.session.PhaseChangeHandler;
 import io.hyperfoil.api.session.PhaseInstance;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.api.session.SharedData;
+import io.hyperfoil.api.session.ThreadData;
 import io.hyperfoil.api.statistics.SessionStatistics;
 import io.hyperfoil.api.statistics.Statistics;
 import io.hyperfoil.core.api.Plugin;
 import io.hyperfoil.core.api.PluginRunData;
+import io.hyperfoil.core.session.GlobalDataImpl;
 import io.hyperfoil.core.session.SessionFactory;
-import io.hyperfoil.core.session.SharedDataImpl;
+import io.hyperfoil.core.session.ThreadDataImpl;
 import io.hyperfoil.core.util.CpuWatchdog;
 import io.hyperfoil.impl.Util;
 import io.hyperfoil.internal.Properties;
@@ -85,6 +88,9 @@ public class SimulationRunner {
    }
 
    public void init() {
+      GlobalData globalData = new GlobalDataImpl();
+      ThreadData[] threadData = new ThreadData[executors.length];
+      Arrays.setAll(threadData, executorId -> new ThreadDataImpl());
       for (Phase def : benchmark.phases()) {
          SharedResources sharedResources;
          if (def.sharedResources == null) {
@@ -94,7 +100,6 @@ public class SimulationRunner {
             sharedResources = new SharedResources(executors.length);
             List<Session> phaseSessions = sharedResources.sessions = new ArrayList<>();
             SessionStatistics[] statistics = sharedResources.statistics;
-            SharedData[] data = sharedResources.data;
             Supplier<Session> sessionSupplier = () -> {
                Session session;
                int executorId;
@@ -107,7 +112,7 @@ public class SimulationRunner {
                   this.sessions.add(session);
                   phaseSessions.add(session);
                }
-               session.attach(executors[executorId], data[executorId], statistics[executorId]);
+               session.attach(executors[executorId], threadData[executorId], globalData, statistics[executorId]);
                for (int i = 0; i < runData.length; ++i) {
                   runData[i].initSession(session, executorId, def.scenario, DEFAULT_CLOCK);
                }
@@ -384,14 +389,11 @@ public class SimulationRunner {
       ElasticPoolImpl<Session> sessionPool;
       List<Session> sessions;
       SessionStatistics[] statistics;
-      SharedData[] data;
 
       SharedResources(int executorCount) {
          statistics = new SessionStatistics[executorCount];
-         data = new SharedData[executorCount];
          for (int executorId = 0; executorId < executorCount; ++executorId) {
             this.statistics[executorId] = new SessionStatistics();
-            this.data[executorId] = new SharedDataImpl();
          }
       }
    }

@@ -59,7 +59,7 @@ public final class SessionFactory {
          public void reserveSessions() {
          }
       });
-      session.attach(ImmediateEventExecutor.INSTANCE, null, null);
+      session.attach(ImmediateEventExecutor.INSTANCE, null, null, null);
       session.reserve(dummyScenario);
       return session;
    }

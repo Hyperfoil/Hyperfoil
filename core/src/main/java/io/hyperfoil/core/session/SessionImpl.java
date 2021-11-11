@@ -3,8 +3,9 @@ package io.hyperfoil.core.session;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.connection.Request;
+import io.hyperfoil.api.session.GlobalData;
 import io.hyperfoil.api.session.SessionStopException;
-import io.hyperfoil.api.session.SharedData;
+import io.hyperfoil.api.session.ThreadData;
 import io.hyperfoil.api.statistics.SessionStatistics;
 import io.netty.util.concurrent.EventExecutor;
 import io.hyperfoil.api.collection.LimitedPool;
@@ -48,7 +49,8 @@ class SessionImpl implements Session {
    private boolean resetting = true;
 
    private EventExecutor executor;
-   private SharedData sharedData;
+   private ThreadData threadData;
+   private GlobalData globalData;
    private SessionStatistics statistics;
 
    private final int threadId;
@@ -125,8 +127,13 @@ class SessionImpl implements Session {
    }
 
    @Override
-   public SharedData sharedData() {
-      return sharedData;
+   public ThreadData sharedData() {
+      return threadData;
+   }
+
+   @Override
+   public GlobalData globalData() {
+      return globalData;
    }
 
    @Override
@@ -316,10 +323,11 @@ class SessionImpl implements Session {
    }
 
    @Override
-   public void attach(EventExecutor executor, SharedData sharedData, SessionStatistics statistics) {
+   public void attach(EventExecutor executor, ThreadData threadData, GlobalData globalData, SessionStatistics statistics) {
       assert this.executor == null;
       this.executor = executor;
-      this.sharedData = sharedData;
+      this.threadData = threadData;
+      this.globalData = globalData;
       this.statistics = statistics;
    }
 
@@ -371,7 +379,7 @@ class SessionImpl implements Session {
                   log.info("Hint: maybe you intended only to restart the current sequence?");
                }
                sequencePool.release(instance);
-               fail(new IllegalStateException("Sequence is not concurrent"));
+               fail(new IllegalStateException("Cannot start sequence '" + sequence.name() + "' as it is not concurrent"));
             }
          } else if (index >= sequence.concurrency()) {
             if (instance != null) {

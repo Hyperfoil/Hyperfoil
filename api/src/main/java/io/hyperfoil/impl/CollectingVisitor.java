@@ -3,15 +3,14 @@ package io.hyperfoil.impl;
 import java.lang.reflect.Array;
 import java.lang.reflect.Type;
 import java.util.Collection;
-import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.Map;
-import java.util.Set;
 
 import io.hyperfoil.api.config.Visitor;
 
 public abstract class CollectingVisitor<T> implements Visitor {
 
-   private final Set<Object> seen = new HashSet<>();
+   private final Map<Object, Object> seen = new IdentityHashMap<>();
    private final Class<T> clazz;
 
    public CollectingVisitor(Class<T> clazz) {
@@ -26,7 +25,7 @@ public abstract class CollectingVisitor<T> implements Visitor {
    public boolean visit(String name, Object value, Type fieldType) {
       if (value == null) {
          return false;
-      } else if (!seen.add(value)) {
+      } else if (seen.put(value, value) != null) {
          return false;
       } else if (clazz.isInstance(value)) {
          if (process(clazz.cast(value))) {
