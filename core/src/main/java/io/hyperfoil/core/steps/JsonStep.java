@@ -73,10 +73,10 @@ public class JsonStep implements Step {
          if (fromVar == null) {
             throw new BenchmarkDefinitionException("jsonQuery missing 'fromVar'");
          }
-         Processor processor = this.processor.build(unquote);
+         Processor processor = buildProcessor(unquote);
          Transformer replace = this.replace == null ? null : this.replace.build(unquote);
          if (unquote) {
-            processor = new JsonUnquotingTransformer(processor);
+            processor = processor == null ? null : new JsonUnquotingTransformer(processor);
             replace = replace == null ? null : new JsonUnquotingTransformer(replace);
          }
          return Collections.singletonList(new JsonStep(SessionFactory.readAccess(fromVar), query, delete, replace, processor));
@@ -159,16 +159,6 @@ public class JsonStep implements Step {
       ByteArrayByteStream(Function<ByteStream, ByteStream> retain, Consumer<ByteStream> release) {
          this.retain = retain;
          this.release = release;
-      }
-
-      @Override
-      public boolean isReadable() {
-         return readerIndex < array.length;
-      }
-
-      @Override
-      public byte readByte() {
-         return array[readerIndex++];
       }
 
       @Override

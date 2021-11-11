@@ -4,6 +4,7 @@ import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.function.Function;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
@@ -16,6 +17,7 @@ import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 import io.hyperfoil.core.data.DataFormat;
 import io.hyperfoil.core.generators.Pattern;
 import io.hyperfoil.core.handlers.ArrayRecorder;
+import io.hyperfoil.core.handlers.MultiProcessor;
 import io.hyperfoil.core.handlers.StoreProcessor;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
@@ -174,7 +176,7 @@ public abstract class JsonParser implements Serializable {
       int lastOutputIndex; // last byte we have written out
       int safeOutputIndex; // last byte we could definitely write out
       ByteStream[] pool = new ByteStream[MAX_PARTS];
-      protected ByteBuf replaceBuffer = PooledByteBufAllocator.DEFAULT.buffer();
+      protected final ByteBuf replaceBuffer = PooledByteBufAllocator.DEFAULT.buffer();
       final StreamQueue.Consumer<Void, Session> replaceConsumer = this::replaceConsumer;
 
       protected Context(Function<Context, ByteStream> byteStreamSupplier) {
@@ -340,6 +342,8 @@ public abstract class JsonParser implements Serializable {
                      if (valueStartIndex < 0) {
                         safeOutputIndex = readerIndex;
                      }
+                     keyStartIndex = -1;
+                     inKey = false;
                      --level;
                   }
                   break;
@@ -463,7 +467,7 @@ public abstract class JsonParser implements Serializable {
    public abstract static class BaseBuilder<S extends BaseBuilder<S>> implements InitFromParam<S> {
       protected String query;
       protected boolean unquote = true;
-      protected Processor.Builder processor;
+      protected List<Processor.Builder> processors;
       protected DataFormat format = DataFormat.STRING;
       protected boolean delete;
       protected Transformer.Builder replace;
@@ -580,10 +584,10 @@ public abstract class JsonParser implements Serializable {
       }
 
       public S processor(Processor.Builder processor) {
-         if (this.processor != null) {
-            throw new BenchmarkDefinitionException("Processor already set!");
+         if (this.processors == null) {
+            this.processors = new ArrayList<>();
          }
-         this.processor = processor;
+         this.processors.add(processor);
          return self();
       }
 
@@ -601,9 +605,21 @@ public abstract class JsonParser implements Serializable {
       protected void validate() {
          if (query == null) {
             throw new BenchmarkDefinitionException("Missing 'query'");
-         } else if (processor == null) {
+         } else if (processors == null) {
             throw new BenchmarkDefinitionException("Missing processor - use 'processor', 'toVar' or 'toArray'");
          }
+      }
+
+      protected Processor buildProcessor(boolean fragmented) {
+         Processor processor = null;
+         if (processors != null && !processors.isEmpty()) {
+            if (processors.size() > 1) {
+               processor = new MultiProcessor(processors.stream().map(b -> b.build(fragmented)).toArray(Processor[]::new));
+            } else {
+               processor = processors.get(0).build(unquote);
+            }
+         }
+         return processor;
       }
    }
 }

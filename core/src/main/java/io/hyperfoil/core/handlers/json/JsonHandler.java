@@ -73,6 +73,7 @@ public class JsonHandler extends JsonParser implements Processor, ResourceUtiliz
       public ByteStream wrap(ByteBuf data, int offset, int length) {
          actualStream.buffer = data;
          actualStream.readerIndex = offset;
+         actualStream.writerIndex = offset + length;
          return actualStream;
       }
 
@@ -90,7 +91,7 @@ public class JsonHandler extends JsonParser implements Processor, ResourceUtiliz
    public static class Builder extends BaseBuilder<Builder> implements Processor.Builder {
       @Override
       public JsonHandler build(boolean fragmented) {
-         Processor processor = this.processor.build(fragmented);
+         Processor processor = buildProcessor(fragmented || unquote);
          Transformer replace = this.replace == null ? null : this.replace.build(fragmented);
          if (unquote) {
             processor = new JsonUnquotingTransformer(processor);
@@ -119,22 +120,11 @@ public class JsonHandler extends JsonParser implements Processor, ResourceUtiliz
       private final Function<ByteStream, ByteStream> retain;
       private final Consumer<ByteStream> release;
       private ByteBuf buffer;
-      private int readerIndex;
+      private int readerIndex, writerIndex;
 
       ByteBufByteStream(Function<ByteStream, ByteStream> retain, Consumer<ByteStream> release) {
          this.retain = retain;
          this.release = release;
-      }
-
-      @Override
-      public boolean isReadable() {
-         return readerIndex < buffer.writerIndex();
-      }
-
-      @Override
-      public byte readByte() {
-         assert isReadable();
-         return buffer.getByte(readerIndex++);
       }
 
       @Override
@@ -144,7 +134,7 @@ public class JsonHandler extends JsonParser implements Processor, ResourceUtiliz
 
       @Override
       public int writerIndex() {
-         return buffer.writerIndex();
+         return writerIndex;
       }
 
       @Override
@@ -172,8 +162,10 @@ public class JsonHandler extends JsonParser implements Processor, ResourceUtiliz
          assert o.buffer == null;
          o.buffer = buffer;
          o.readerIndex = readerIndex;
+         o.writerIndex = writerIndex;
          buffer = null;
          readerIndex = -1;
       }
+
    }
 }
