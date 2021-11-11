@@ -144,7 +144,7 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
    }
 
    public Generator generator() {
-      return new Generator();
+      return new Generator(this);
    }
 
    interface Component extends Serializable {
@@ -153,11 +153,17 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
       void accept(Session session, ByteBuf buf);
    }
 
-   private class Generator implements SerializableBiFunction<Session, Connection, ByteBuf> {
+   private static class Generator implements SerializableBiFunction<Session, Connection, ByteBuf> {
+      private final Pattern pattern;
+
+      private Generator(Pattern pattern) {
+         this.pattern = pattern;
+      }
+
       @Override
       public ByteBuf apply(Session session, Connection connection) {
-         ByteBuf buffer = connection.context().alloc().buffer(lengthEstimate);
-         accept(session, buffer);
+         ByteBuf buffer = connection.context().alloc().buffer(pattern.lengthEstimate);
+         pattern.accept(session, buffer);
          return buffer;
       }
    }

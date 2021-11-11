@@ -50,7 +50,6 @@ public class RandomItemStep implements Step {
          item = generator.randomItem();
       } else {
          Object data = fromVar.getObject(session);
-         Object element;
          if (data instanceof ObjectVar[]) {
             // Assume that first unset variable denotes end of set variables
             ObjectVar[] array = (ObjectVar[]) data;
@@ -62,30 +61,25 @@ public class RandomItemStep implements Step {
                }
             }
             if (length > 0) {
-               element = array[random.nextInt(length)];
+               item = array[random.nextInt(length)].objectValue(session);
             } else {
                throw new IllegalStateException("Collection " + fromVar + " is empty, can not select a random item");
             }
          } else if (data != null && data.getClass().isArray()) {
             int length = Array.getLength(data);
-            element = Array.get(data, random.nextInt(length));
+            item = Array.get(data, random.nextInt(length));
          } else if (data instanceof List) {
             List<?> dataList = (List<?>) data;
-            element = dataList.get(random.nextInt(dataList.size()));
+            item = dataList.get(random.nextInt(dataList.size()));
          } else if (data instanceof Collection) {
             Collection<?> dataCollection = (Collection<?>) data;
             Iterator<?> iterator = dataCollection.iterator();
             for (int i = random.nextInt(dataCollection.size()) - 1; i > 0; --i) {
                iterator.next();
             }
-            element = iterator.next();
+            item = iterator.next();
          } else {
             throw new IllegalStateException("Cannot fetch random item from collection stored under " + fromVar + ": " + data);
-         }
-         if (element instanceof ObjectVar) {
-            item = ((ObjectVar) element).objectValue(session);
-         } else {
-            throw new IllegalStateException("Collection in " + fromVar + " should store ObjectVars, but it stores " + element);
          }
       }
       toVar.setObject(session, item);
