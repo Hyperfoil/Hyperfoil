@@ -25,33 +25,45 @@ public interface BuilderBase<S extends BuilderBase<S>> {
             }
             f.setAccessible(true);
             try {
-               if (BuilderBase.class.isAssignableFrom(f.getType())) {
-                  Object value = f.get(this);
-                  if (value != null) {
-                     ((BuilderBase<?>) value).prepareBuild();
-                  }
-               } else if (Collection.class.isAssignableFrom(f.getType())) {
-                  Object value = f.get(this);
-                  if (value != null) {
-                     for (Object item : (Collection<?>) value) {
-                        if (item instanceof BuilderBase) {
-                           ((BuilderBase<?>) item).prepareBuild();
-                        }
-                     }
-                  }
-               } else if (BaseSequenceBuilder.class.isAssignableFrom(f.getType())) {
-                  Object value = f.get(this);
-                  if (value != null) {
-                     ((BaseSequenceBuilder<?>) value).prepareBuild();
-                  }
-               } else if (f.getType().isArray()) {
-                  throw new UnsupportedOperationException(clz.getName() + "." + f.getName() + " is an array (actual instance: " + this + ")");
-               }
+               tryPrepare(clz, f.getName(), f.getType(), f.get(this));
             } catch (IllegalAccessException e) {
                throw new UnsupportedOperationException("Cannot get value of " + clz.getName() + "." + f.getName() + " (actual instance: " + this + ")");
             }
          }
          clz = clz.getSuperclass();
+      }
+   }
+
+   private void tryPrepare(Class<?> clz, String name, Class<?> type, Object value) throws IllegalAccessException {
+      if (BuilderBase.class.isAssignableFrom(type)) {
+         if (value != null) {
+            ((BuilderBase<?>) value).prepareBuild();
+         }
+      } else if (Collection.class.isAssignableFrom(type)) {
+         if (value != null) {
+            for (Object item : (Collection<?>) value) {
+               if (item != null) {
+                  tryPrepare(clz, name, item.getClass(), item);
+               }
+            }
+         }
+      } else if (BaseSequenceBuilder.class.isAssignableFrom(type)) {
+         if (value != null) {
+            ((BaseSequenceBuilder<?>) value).prepareBuild();
+         }
+      } else if (Map.class.isAssignableFrom(type)) {
+         if (value != null) {
+            for (Map.Entry<?, ?> entry : ((Map<?, ?>) value).entrySet()) {
+               if (entry.getKey() != null) {
+                  tryPrepare(clz, name, entry.getKey().getClass(), entry.getKey());
+               }
+               if (entry.getValue() != null) {
+                  tryPrepare(clz, name, entry.getValue().getClass(), entry.getValue());
+               }
+            }
+         }
+      } else if (type.isArray()) {
+         throw new UnsupportedOperationException(clz.getName() + "." + name + " is an array (actual instance: " + this + ")");
       }
    }
 
