@@ -7,6 +7,7 @@ import io.hyperfoil.api.config.Step;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.message.FormattedMessage;
 
 public class SequenceInstance {
    private static final Logger log = LogManager.getLogger(SequenceInstance.class);
@@ -45,7 +46,7 @@ public class SequenceInstance {
             // just rethrow
             throw e;
          } catch (Throwable t) {
-            log.error("#{} {}[{}] failure invoking step {}", t, session.uniqueId(), sequence.name(), index, step);
+            log.error(new FormattedMessage("#{} {}[{}] failure invoking step {}", session.uniqueId(), sequence.name(), index, step), t);
             session.fail(t);
             return false;
          } finally {
