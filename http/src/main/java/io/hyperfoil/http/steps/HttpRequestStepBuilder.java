@@ -541,14 +541,15 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
       if (ergonomics.userAgentFromSession()) {
          headerAppender(new UserAgentAppender());
       }
+      BeforeSyncRequestStep beforeSyncRequestStep = null;
       if (sync) {
          // We need to perform this in prepareBuild() because the completion handlers must not be modified
          // in the build() method. Alternative would be caching the key and returning the wrapping steps
          // in the list.
-         BeforeSyncRequestStep beforeSyncRequestStep = new BeforeSyncRequestStep();
+         beforeSyncRequestStep = new BeforeSyncRequestStep();
          locator.sequence().insertBefore(locator).step(beforeSyncRequestStep);
          handler.onCompletion(new ReleaseSyncAction(beforeSyncRequestStep));
-         locator.sequence().insertAfter(locator).step(new AfterSyncRequestStep(beforeSyncRequestStep));
+         // AfterSyncRequestStep must be inserted only after all handlers are prepared
       }
       if (metricSelector == null) {
          String sequenceName = Locator.current().sequence().name();
@@ -560,6 +561,13 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
       }
       compression.prepareBuild();
       handler.prepareBuild();
+
+      // We insert the AfterSyncRequestStep only after preparing all the handlers to ensure
+      // that this is added immediately after the SendHttpRequestStep, in case some of the handlers
+      // insert their own steps after current step. (We could do this in the build() method, too).
+      if (sync) {
+         locator.sequence().insertAfter(locator).step(new AfterSyncRequestStep(beforeSyncRequestStep));
+      }
    }
 
    @Override
