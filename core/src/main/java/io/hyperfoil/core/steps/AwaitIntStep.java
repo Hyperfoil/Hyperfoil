@@ -11,15 +11,15 @@ import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.config.BaseSequenceBuilder;
+import io.hyperfoil.core.builders.IntCondition;
 import io.hyperfoil.core.builders.IntConditionBuilder;
 import io.hyperfoil.core.session.SessionFactory;
-import io.hyperfoil.function.SerializableIntPredicate;
 
 public class AwaitIntStep implements Step {
    private final ReadAccess var;
-   private final SerializableIntPredicate predicate;
+   private final IntCondition.Predicate predicate;
 
-   public AwaitIntStep(ReadAccess var, SerializableIntPredicate predicate) {
+   public AwaitIntStep(ReadAccess var, IntCondition.Predicate predicate) {
       this.var = var;
       this.predicate = predicate;
    }
@@ -27,7 +27,7 @@ public class AwaitIntStep implements Step {
    @Override
    public boolean invoke(Session session) {
       if (var.isSet(session)) {
-         return predicate == null || predicate.test(var.getInt(session));
+         return predicate == null || predicate.test(session, var.getInt(session));
       }
       return false;
    }

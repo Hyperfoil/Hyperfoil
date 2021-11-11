@@ -14,13 +14,26 @@ import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.function.SerializableToIntFunction;
 
-public class IntSourceBuilder implements BuilderBase<IntSourceBuilder>, InitFromParam<IntSourceBuilder> {
+public class IntSourceBuilder<P> implements BuilderBase<IntSourceBuilder<P>>, InitFromParam<IntSourceBuilder<P>> {
+   private final P parent;
    private Integer value;
    private String fromVar;
 
+   public IntSourceBuilder(P parent) {
+      this.parent = parent;
+   }
+
+   public P end() {
+      return parent;
+   }
+
    @Override
-   public IntSourceBuilder init(String param) {
-      return value(Integer.parseInt(param));
+   public IntSourceBuilder<P> init(String param) {
+      try {
+         return value(Integer.parseInt(param));
+      } catch (NumberFormatException e) {
+         throw new BenchmarkDefinitionException("Cannot parse value '" + param + "' as an integer.");
+      }
    }
 
    /**
@@ -29,7 +42,7 @@ public class IntSourceBuilder implements BuilderBase<IntSourceBuilder>, InitFrom
     * @param value Value.
     * @return Self.
     */
-   public IntSourceBuilder value(int value) {
+   public IntSourceBuilder<P> value(int value) {
       this.value = value;
       return this;
    }
@@ -40,7 +53,7 @@ public class IntSourceBuilder implements BuilderBase<IntSourceBuilder>, InitFrom
     * @param fromVar Input variable name.
     * @return Self.
     */
-   public IntSourceBuilder fromVar(String fromVar) {
+   public IntSourceBuilder<P> fromVar(String fromVar) {
       this.fromVar = fromVar;
       return this;
    }
@@ -50,21 +63,18 @@ public class IntSourceBuilder implements BuilderBase<IntSourceBuilder>, InitFrom
          throw new BenchmarkDefinitionException("Must set either 'value' or 'fromVar'");
       }
       if (value != null) {
-         int capture = value;
-         return session -> capture;
-      } else if (fromVar != null) {
-         ReadAccess access = SessionFactory.readAccess(fromVar);
-         return access::getInt;
+         return new ProvidedValue(value);
+      } else {
+         return new ValueFromVar(SessionFactory.readAccess(fromVar));
       }
-      throw new IllegalStateException();
    }
 
-   public static class ListBuilder implements MappingListBuilder<IntSourceBuilder>, BuilderBase<IntSourceBuilder> {
-      private final List<IntSourceBuilder> list = new ArrayList<>();
+   public static class ListBuilder implements MappingListBuilder<IntSourceBuilder<Void>>, BuilderBase<IntSourceBuilder<Void>> {
+      private final List<IntSourceBuilder<Void>> list = new ArrayList<>();
 
       @Override
-      public IntSourceBuilder addItem() {
-         IntSourceBuilder item = new IntSourceBuilder();
+      public IntSourceBuilder<Void> addItem() {
+         IntSourceBuilder<Void> item = new IntSourceBuilder<>(null);
          list.add(item);
          return item;
       }
@@ -72,6 +82,42 @@ public class IntSourceBuilder implements BuilderBase<IntSourceBuilder>, InitFrom
       public SerializableToIntFunction<Session>[] build() {
          //noinspection unchecked
          return list.stream().map(IntSourceBuilder::build).toArray(SerializableToIntFunction[]::new);
+      }
+   }
+
+   public static class ProvidedValue implements SerializableToIntFunction<Session> {
+      private final int value;
+
+      public ProvidedValue(int value) {
+         this.value = value;
+      }
+
+      @Override
+      public int applyAsInt(Session session) {
+         return value;
+      }
+   }
+
+   public static class ValueFromVar implements SerializableToIntFunction<Session> {
+      private final ReadAccess fromVar;
+
+      public ValueFromVar(ReadAccess fromVar) {
+         this.fromVar = fromVar;
+      }
+
+      @Override
+      public int applyAsInt(Session session) {
+         Session.Var var = fromVar.getVar(session);
+         if (var.type() == Session.VarType.INTEGER) {
+            return fromVar.getInt(session);
+         } else {
+            Object value = fromVar.getObject(session);
+            if (value instanceof String) {
+               return Integer.parseInt((String) value);
+            } else {
+               throw new IllegalStateException("Cannot implicitly convert " + value + " to integer.");
+            }
+         }
       }
    }
 }

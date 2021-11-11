@@ -15,7 +15,7 @@ public class ManualLoopTest extends BaseScenarioTest {
       scenario()
             .initialSequence("test")
             .step(SC).breakSequence()
-            .condition().intCondition().fromVar("counter").equalTo(1).end()
+            .condition().intCondition().fromVar("counter").equalTo().value(1).end().end()
             .endStep()
             .step(SC).action(new SetIntAction.Builder().var("counter").value(1))
             .step(SC).nextSequence("test");

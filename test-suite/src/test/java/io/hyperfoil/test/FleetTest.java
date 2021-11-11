@@ -131,7 +131,7 @@ public class FleetTest extends HttpScenarioTest {
                   // TODO: since previous step is async we might observe a situation when crewCount[.]
                   //  is lower than the size of crew. It doesn't matter here as we're just comparing > 0.
                   //  We could use separate variable (array) for body processing completion.
-                  .condition().intCondition().fromVar("crewCount[.]").greaterThan(0).end()
+                  .condition().intCondition().fromVar("crewCount[.]").greaterThan().value(0).end().end()
                   .onBreak(new AddToIntAction.Builder().var(NUMBER_OF_SHIPS).value(-1))
                .endStep()
                .step(SC).httpRequest(HttpMethod.DELETE)

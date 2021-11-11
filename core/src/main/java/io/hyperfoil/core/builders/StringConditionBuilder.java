@@ -8,7 +8,6 @@ import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.impl.Util;
 import io.hyperfoil.function.SerializableBiPredicate;
-import io.hyperfoil.function.SerializableIntPredicate;
 
 public class StringConditionBuilder<B extends StringConditionBuilder<B, P>, P> implements InitFromParam<StringConditionBuilder<B, P>>, BuilderBase<B> {
    private final P parent;
@@ -33,9 +32,9 @@ public class StringConditionBuilder<B extends StringConditionBuilder<B, P>, P> i
       }
       SerializableBiPredicate<Session, CharSequence> predicate = contentPredicate();
       if (length != null) {
-         SerializableIntPredicate lengthPredicate = length.buildPredicate();
+         IntCondition.Predicate lengthPredicate = length.buildPredicate();
          SerializableBiPredicate<Session, CharSequence> strLengthPredicate =
-               (session, string) -> lengthPredicate.test(string == null ? 0 : string.length());
+               (session, string) -> lengthPredicate.test(session, string == null ? 0 : string.length());
          if (predicate == null) {
             predicate = strLengthPredicate;
          } else {
@@ -217,7 +216,7 @@ public class StringConditionBuilder<B extends StringConditionBuilder<B, P>, P> i
       if (length == null) {
          length = new LengthBuilder<>(this);
       }
-      length.equalTo(exactLength);
+      length.equalTo().value(exactLength);
       return self();
    }
 

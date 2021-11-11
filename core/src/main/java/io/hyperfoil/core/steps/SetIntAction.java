@@ -166,9 +166,9 @@ public class SetIntAction implements Action {
          }
          SerializableToIntFunction<Session> input;
          if (value != null) {
-            input = session -> value;
+            input = new IntSourceBuilder.ProvidedValue(value);
          } else if (fromVar != null) {
-            input = SessionFactory.readAccess(fromVar)::getInt;
+            input = new IntSourceBuilder.ValueFromVar(SessionFactory.readAccess(fromVar));
          } else if (min != null) {
             SerializableToIntFunction<Session>[] items = min.build();
             if (items.length == 0) {
@@ -200,4 +200,5 @@ public class SetIntAction implements Action {
                intCondition == null ? null : intCondition.build(var));
       }
    }
+
 }

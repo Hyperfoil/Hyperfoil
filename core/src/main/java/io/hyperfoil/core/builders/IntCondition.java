@@ -1,17 +1,18 @@
 package io.hyperfoil.core.builders;
 
+import java.io.Serializable;
+
 import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.Session.VarType;
 import io.hyperfoil.core.session.SessionFactory;
-import io.hyperfoil.function.SerializableIntPredicate;
 
 public class IntCondition implements Condition {
    private final ReadAccess fromVar;
    private final boolean isSet;
-   private final SerializableIntPredicate predicate;
+   private final Predicate predicate;
 
-   public IntCondition(ReadAccess fromVar, boolean isSet, SerializableIntPredicate predicate) {
+   public IntCondition(ReadAccess fromVar, boolean isSet, Predicate predicate) {
       this.fromVar = fromVar;
       this.isSet = isSet;
       this.predicate = predicate;
@@ -35,7 +36,7 @@ public class IntCondition implements Condition {
       } else {
          throw new IllegalStateException("Unknown type of var: " + var);
       }
-      return predicate.test(value);
+      return predicate.test(session, value);
    }
 
    /**
@@ -91,4 +92,7 @@ public class IntCondition implements Condition {
       }
    }
 
+   public interface Predicate extends Serializable {
+      boolean test(Session session, int value);
+   }
 }
