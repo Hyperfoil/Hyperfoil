@@ -1,5 +1,6 @@
 package io.hyperfoil.clustering.webcli;
 
+import java.io.ByteArrayOutputStream;
 import java.io.OutputStreamWriter;
 import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
@@ -29,6 +30,8 @@ class WebCliContext extends HyperfoilCliContext {
    AeshConsoleRunner runner;
    CountDownLatch latch;
    StringBuilder editBenchmark;
+   int binaryLength;
+   ByteArrayOutputStream binaryContent;
    String prevId = null;
    String notifiedId = null;
 

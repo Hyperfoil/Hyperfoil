@@ -78,17 +78,6 @@ public class HyperfoilCliContext {
       this.providedVertx = providedVertx;
    }
 
-   /**
-    * @return the current running benchmark instance
-    */
-   public Benchmark benchmark() {
-      return benchmark;
-   }
-
-   public void setBenchmark(Benchmark benchmark) {
-      this.benchmark = benchmark;
-   }
-
    public RestClient client() {
       return client;
    }

@@ -45,28 +45,24 @@ public class WebUpload implements Command<HyperfoilCommandInvocation> {
          context.editBenchmark = null;
       }
       WebBenchmarkData filesData = new WebBenchmarkData();
-      Benchmark benchmark;
-      try {
-         benchmark = BenchmarkParser.instance().buildBenchmark(updatedSource, filesData);
-      } catch (ParserException | BenchmarkDefinitionException e) {
-         invocation.error(e);
-         return CommandResult.FAILURE;
+      for (; ; ) {
+         try {
+            Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(updatedSource, filesData);
+            context.setServerBenchmark(context.client().register(benchmark, null));
+            invocation.println("Benchmark " + benchmark.name() + " uploaded.");
+            return CommandResult.SUCCESS;
+         } catch (ParserException | BenchmarkDefinitionException e) {
+            invocation.error(e);
+            return CommandResult.FAILURE;
+         } catch (MissingFileException e) {
+            try {
+               filesData.loadFile(invocation, context, e.file);
+            } catch (InterruptedException interruptedException) {
+               invocation.println("Benchmark upload cancelled.");
+               return CommandResult.FAILURE;
+            }
+         }
       }
-      synchronized (context) {
-         latch = context.latch = new CountDownLatch(1);
-      }
-      invocation.println("__HYPERFOIL_BENCHMARK_FILE_LIST__");
-      invocation.println(benchmark.name());
-      invocation.println(""); // no version
-      for (String file : filesData.files) {
-         invocation.println(file);
-      }
-      invocation.println("__HYPERFOIL_BENCHMARK_END_OF_FILES__");
-      try {
-         latch.await();
-      } catch (InterruptedException e) {
-      }
-      context.latch = null;
-      return CommandResult.SUCCESS;
    }
+
 }

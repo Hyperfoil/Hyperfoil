@@ -22,6 +22,9 @@ public class WebEdit extends BaseEditCommand {
       Client.BenchmarkSource source = ensureSource(invocation, benchmarkRef);
       WebCliContext context = (WebCliContext) invocation.context();
       WebBenchmarkData filesData = new WebBenchmarkData();
+      for (var existing : benchmarkRef.get().files().entrySet()) {
+         filesData.files.put(existing.getKey(), existing.getValue());
+      }
       Benchmark updated;
       String updatedSource = source.source;
       for (; ; ) {
@@ -61,6 +64,13 @@ public class WebEdit extends BaseEditCommand {
                invocation.println("Edits cancelled.");
                return CommandResult.FAILURE;
             }
+         } catch (MissingFileException e) {
+            try {
+               filesData.loadFile(invocation, context, e.file);
+            } catch (InterruptedException interruptedException) {
+               invocation.println("Edits cancelled.");
+               return CommandResult.FAILURE;
+            }
          }
       }
       String prevVersion = source.version;
@@ -75,7 +85,7 @@ public class WebEdit extends BaseEditCommand {
       invocation.println("__HYPERFOIL_BENCHMARK_FILE_LIST__");
       invocation.println(benchmark);
       invocation.println(prevVersion == null ? "" : prevVersion);
-      for (String file : filesData.files) {
+      for (String file : filesData.files.keySet()) {
          invocation.println(file);
       }
       invocation.println("__HYPERFOIL_BENCHMARK_END_OF_FILES__");

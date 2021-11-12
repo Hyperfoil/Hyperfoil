@@ -11,6 +11,7 @@ const RAW_HTML_END = "__HYPERFOIL_RAW_HTML_END__"
 const SET_TERM_SIZE = "__HYPERFOIL_SET_TERM_SIZE__"
 const SEND_NOTIFICATIONS = "__HYPERFOIL_SEND_NOTIFICATIONS__"
 const NOTIFICATION = "__HYPERFOIL_NOTIFICATION__"
+const LOAD_FILE = "__HYPERFOIL_LOAD_FILE__"
 const PROMPT = "[hyperfoil]$ "
 
 const ansiUp = new AnsiUp();
@@ -65,6 +66,7 @@ function createWebSocket() {
       }
    }
    s.onerror = (e) => {
+      console.error(e)
       command.remove();
       reconnecting.style.visibility = 'visible'
    }
@@ -72,7 +74,11 @@ function createWebSocket() {
 }
 
 function sendCommand(command) {
-   socket.send(command);
+   if (socket && socket.readyState == 1) {
+      socket.send(command);
+   } else {
+      setTimeout(() => sendCommand(command), 1000)
+   }
 }
 
 function setTermSize() {
@@ -296,6 +302,9 @@ function addResultToWindow(commandResult) {
       } else if (commandResult instanceof Blob) {
          downloadContent = commandResult;
       }
+   } else if (isCommand(commandResult, LOAD_FILE)) {
+      let file = commandResult.slice(LOAD_FILE.length)
+      addFileRequest(file.trim())
    } else {
       let output = commandResult
       let html = ""
@@ -352,7 +361,7 @@ function defaultKeyDown(event) {
       upload.remove();
       sendCommand(INTERRUPT_SIGNAL);
    }
-   if (!event.ctrlKey && !event.altKey) {
+   if (!event.ctrlKey && !event.altKey && event.key !== "Control") {
       command.focus();
    }
 }
@@ -443,6 +452,28 @@ function addUploadFile(name, fileInput) {
           break
       }
    }
+}
+
+function addFileRequest(file) {
+   let fileRequest = document.createElement('div')
+   fileRequest.id = "file-request"
+   resultWindow.appendChild(fileRequest)
+   fileRequest.innerHTML += `<label class="hfbutton" style="margin: 2px 0 2px 0">
+       <input class="hidden-upload" type="file" onchange="sendFile('${file}', this)">
+       Upload file ${file}
+   </label>&nbsp;<input type="button" class="hfbutton" value="Cancel upload" onclick="this.parentNode.remove(); sendCommand(INTERRUPT_SIGNAL)" />`
+}
+
+function sendFile(name, fileInput) {
+   benchmarkForm.append(name, fileInput.files[0], name)
+   sendCommand("__HYPERFOIL_FILE_TRANSFER__" + fileInput.files[0].size)
+   // for some reason we need to chunk the file - otherwise it wouldn't be delivered at all
+   for (var offset = 0; offset < fileInput.files[0].size; ) {
+      let chunk = Math.min(fileInput.files[0].size, 65535)
+      socket.send(fileInput.files[0].slice(offset, offset + chunk))
+      offset += chunk
+   }
+   fileInput.parentNode.parentNode.remove()
 }
 
 function uploadBenchmark() {

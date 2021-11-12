@@ -1,5 +1,6 @@
 package io.hyperfoil.clustering.webcli;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PipedInputStream;
@@ -54,6 +55,7 @@ public class WebCLI extends HyperfoilCli implements Handler<ServerWebSocket> {
    private static final String SET_BENCHMARK = "__HYPERFOIL_SET_BENCHMARK__";
    private static final String SET_TERM_SIZE = "__HYPERFOIL_SET_TERM_SIZE__";
    private static final String SEND_NOTIFICATIONS = "__HYPERFOIL_SEND_NOTIFICATIONS__";
+   private static final String FILE_TRANSFER = "__HYPERFOIL_FILE_TRANSFER__";
    private static final long SESSION_TIMEOUT = 60000;
 
    static final ScheduledExecutorService SCHEDULED_EXECUTOR = Executors.newScheduledThreadPool(1, Util.daemonThreadFactory("webcli-timer"));
@@ -138,6 +140,17 @@ public class WebCLI extends HyperfoilCli implements Handler<ServerWebSocket> {
             } else if (msg.startsWith(SEND_NOTIFICATIONS)) {
                context.startNotifications();
                return;
+            } else if (msg.startsWith(FILE_TRANSFER)) {
+               try {
+                  synchronized (context) {
+                     context.binaryLength = Integer.parseInt(msg.substring(FILE_TRANSFER.length()));
+                     // we don't initalize binaryContent here to prevent risk of receiving 'empty' file on interrupt.
+                  }
+               } catch (NumberFormatException e) {
+                  context.outputStream.writeSingleText("Failed to parse file transfer length: closing.");
+                  webSocket.close();
+               }
+               return;
             }
          }
          try {
@@ -146,6 +159,29 @@ public class WebCLI extends HyperfoilCli implements Handler<ServerWebSocket> {
          } catch (IOException e) {
             log.error(new FormattedMessage("Failed to write '{}' to Aesh input", msg), e);
             webSocket.close();
+         }
+      });
+      webSocket.binaryMessageHandler(buffer -> {
+         try {
+            byte[] bytes = buffer.getBytes();
+            synchronized (context) {
+               if (context.binaryContent == null) {
+                  context.binaryContent = new ByteArrayOutputStream();
+               }
+               context.binaryContent.write(bytes);
+               context.binaryLength -= bytes.length;
+            }
+            if (context.binaryLength == 0) {
+               synchronized (context) {
+                  context.latch.countDown();
+               }
+            } else if (context.binaryLength < 0) {
+               log.error("Expected binary input underflow");
+               context.outputStream.writeSingleText("ERROR: Expected binary input underflow.");
+               webSocket.close();
+            }
+         } catch (IOException e) {
+            log.error("Failed to append bytes", e);
          }
       });
    }
