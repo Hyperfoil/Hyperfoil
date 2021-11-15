@@ -150,6 +150,9 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
          body = Unpooled.EMPTY_BUFFER;
       }
       if (body.readableBytes() > 0) {
+         if (trace) {
+            log.trace("Sending HTTP request body: {}\n", Util.toString(body, body.readerIndex(), body.readableBytes()));
+         }
          buf.writeBytes(HttpHeaderNames.CONTENT_LENGTH.array()).writeByte(':').writeByte(' ');
          Util.intAsText2byteBuf(body.readableBytes(), buf);
          buf.writeByte('\r').writeByte('\n');

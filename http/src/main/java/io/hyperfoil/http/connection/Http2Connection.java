@@ -18,6 +18,7 @@ import io.hyperfoil.http.api.HttpRequest;
 import io.hyperfoil.http.api.HttpRequestWriter;
 import io.hyperfoil.http.api.HttpResponseHandlers;
 import io.hyperfoil.http.config.Http;
+import io.hyperfoil.impl.Util;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
@@ -193,6 +194,9 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
       ChannelPromise writePromise = context.newPromise();
       encoder.writeHeaders(context, id, headers, 0, buf == null, writePromise);
       if (buf != null) {
+         if (trace) {
+            log.trace("Sending HTTP request body: {}\n", Util.toString(buf, buf.readerIndex(), buf.readableBytes()));
+         }
          writePromise = context.newPromise();
          encoder.writeData(context, id, buf, 0, true, writePromise);
       }
