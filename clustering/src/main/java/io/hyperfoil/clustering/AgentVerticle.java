@@ -118,7 +118,7 @@ public class AgentVerticle extends AbstractVerticle {
                message.reply("OK");
             } catch (Throwable e) {
                log.error("Failed to initialize agent", e);
-               message.reply(e);
+               message.fail(1, Util.explainCauses(e));
             }
             break;
          case STOP:

@@ -46,6 +46,7 @@ import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.eventbus.Message;
+import io.vertx.core.eventbus.ReplyException;
 import io.vertx.core.impl.VertxInternal;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -579,13 +580,17 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                   cause = reply.cause();
                   log.error("{} Agent {}({}) failed to initialize", run.id, agent.name, agent.deploymentId);
                   log.error("Failure thrown on the controller (this node): ", cause);
-               } else if (reply.result() instanceof Throwable) {
-                  cause = (Throwable) reply.result();
-                  log.error("{} Agent {}({}) failed to initialize", run.id, agent.name, agent.deploymentId);
-                  log.error("Failure thrown on the agent node (see agent log for details): ", cause);
                } else {
-                  log.debug("{} Agent {}({}) was initialized.", run.id, agent.name, agent.deploymentId);
-                  return;
+                  Message<Object> message = reply.result();
+                  if (message.body() instanceof ReplyException) {
+                     String msg = ((ReplyException) message.body()).getMessage();
+                     log.error("{} Agent {}({}) failed to initialize", run.id, agent.name, agent.deploymentId);
+                     log.error("Failure thrown on the agent node (see agent log for details): {}", msg);
+                     cause = new BenchmarkExecutionException(msg);
+                  } else {
+                     log.debug("{} Agent {}({}) was initialized.", run.id, agent.name, agent.deploymentId);
+                     return;
+                  }
                }
                agent.status = AgentInfo.Status.FAILED;
                run.errors.add(new Run.Error(agent, cause));
