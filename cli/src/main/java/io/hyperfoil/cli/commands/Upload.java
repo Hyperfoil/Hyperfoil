@@ -10,6 +10,7 @@ import org.aesh.command.CommandDefinition;
 import org.aesh.command.CommandException;
 import org.aesh.command.CommandResult;
 import org.aesh.command.option.Argument;
+import org.aesh.command.option.Option;
 import org.aesh.io.Resource;
 
 import io.hyperfoil.api.config.Benchmark;
@@ -30,6 +31,9 @@ public class Upload extends ServerCommand {
    @Argument(description = "YAML benchmark definition file", required = true)
    Resource benchmarkResource;
 
+   @Option(name = "print-stack-trace", hasValue = false)
+   boolean printStackTrace;
+
    @Override
    public CommandResult execute(HyperfoilCommandInvocation invocation) throws CommandException {
       ensureConnection(invocation);
@@ -40,6 +44,11 @@ public class Upload extends ServerCommand {
          benchmark = BenchmarkParser.instance().buildBenchmark(Util.toString(sanitizedResource.read()), new LocalBenchmarkData(Paths.get(sanitizedResource.getAbsolutePath())));
       } catch (ParserException | BenchmarkDefinitionException e) {
          invocation.error(e);
+         if (printStackTrace) {
+            invocation.printStackTrace(e);
+         } else {
+            invocation.println("Use --print-stack-trace to display the whole stack trace of this error.");
+         }
          throw new CommandException("Failed to parse the benchmark.", e);
       } catch (IOException e) {
          invocation.error(e);

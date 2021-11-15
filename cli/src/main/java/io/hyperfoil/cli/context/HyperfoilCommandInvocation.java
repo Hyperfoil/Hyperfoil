@@ -34,6 +34,7 @@ import org.aesh.readline.action.KeyAction;
 import org.aesh.terminal.utils.ANSI;
 
 import java.io.IOException;
+import java.util.HashSet;
 
 import io.hyperfoil.cli.HyperfoilCli;
 import io.hyperfoil.impl.Util;
@@ -143,5 +144,30 @@ public class HyperfoilCommandInvocation implements CommandInvocation<HyperfoilCo
 
    public void error(String message, Throwable t) {
       error(message + ": " + Util.explainCauses(t));
+   }
+
+   public void printStackTrace(Throwable t) {
+      print(ANSI.RED_TEXT);
+      printStackTrace(t, new HashSet<>());
+      print(ANSI.RESET);
+   }
+
+   private void printStackTrace(Throwable t, HashSet<Throwable> set) {
+      if (!set.add(t)) {
+         println("[CIRCULAR REFERENCE]");
+         return;
+      }
+      for (StackTraceElement traceElement : t.getStackTrace()) {
+         println("\tat " + traceElement);
+      }
+      for (Throwable se : t.getSuppressed()) {
+         println("SUPPRESSED: " + se.getMessage());
+         printStackTrace(se, set);
+      }
+      Throwable cause = t.getCause();
+      if (cause != null) {
+         println("CAUSED BY: " + cause.getMessage());
+         printStackTrace(cause, set);
+      }
    }
 }
