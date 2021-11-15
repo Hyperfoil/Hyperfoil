@@ -50,4 +50,13 @@ public class IntVar implements Session.Var {
       assert set;
       this.value += delta;
    }
+
+   @Override
+   public String toString() {
+      if (set) {
+         return "(int:" + value + ")";
+      } else {
+         return "(int:unset)";
+      }
+   }
 }

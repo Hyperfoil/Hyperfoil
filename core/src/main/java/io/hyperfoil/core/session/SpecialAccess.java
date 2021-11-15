@@ -65,6 +65,11 @@ abstract class SpecialAccess implements ReadAccess {
       public void unset() {
          throw new UnsupportedOperationException("Cannot unset " + name + "; it is read-only.");
       }
+
+      @Override
+      public String toString() {
+         return "(special:" + name + ")";
+      }
    }
 
    static class Int extends SpecialAccess {

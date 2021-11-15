@@ -40,4 +40,13 @@ public class ObjectVar implements Session.Var {
       this.value = value;
       this.set = true;
    }
+
+   @Override
+   public String toString() {
+      if (set) {
+         return "(object:" + value + ")";
+      } else {
+         return "(object:unset)";
+      }
+   }
 }

@@ -11,6 +11,7 @@ import java.nio.CharBuffer;
 import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CoderResult;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashSet;
 import java.util.Set;
@@ -223,6 +224,8 @@ public class Util {
             sb.append("...");
          }
          return sb.toString();
+      } else if (value instanceof Object[]) {
+         return Arrays.toString((Object[]) value);
       } else {
          return String.valueOf(value);
       }
