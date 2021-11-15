@@ -22,7 +22,9 @@ public class GlobalPublishAction implements Action {
 
    @Override
    public void run(Session session) {
-      session.globalData().push(session, name, fromVar.getObject(session));
+      Object object = fromVar.getObject(session);
+      object = SharedDataHelper.unwrapVars(session, object);
+      session.globalData().push(session, name, object);
    }
 
    @MetaInfServices(Action.Builder.class)

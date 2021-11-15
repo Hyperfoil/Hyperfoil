@@ -33,7 +33,9 @@ public class PushSharedMapStep implements Step, ResourceUtilizer {
       ThreadData threadData = session.sharedData();
       ThreadData.SharedMap sharedMap = threadData.newMap(key);
       for (int i = 0; i < vars.length; ++i) {
-         sharedMap.put(vars[i].key(), vars[i].getObject(session));
+         Object value = vars[i].getObject(session);
+         value = SharedDataHelper.unwrapVars(session, value);
+         sharedMap.put(vars[i].key(), value);
       }
       threadData.pushMap(key, sharedMap);
       return true;
