@@ -18,6 +18,7 @@
  */
 package io.hyperfoil.core.parser;
 
+import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.ScenarioBuilder;
 import io.hyperfoil.api.config.SequenceBuilder;
 
@@ -51,7 +52,12 @@ class SequenceParser implements Parser<ScenarioBuilder> {
       Event event = ctx.peek();
       if (event instanceof SequenceStartEvent) {
          SequenceBuilder sequence = supplier.get(scenario, name, null);
-         ctx.parseList(sequence, StepParser.instance());
+         Locator.push(null, sequence);
+         try {
+            ctx.parseList(sequence, StepParser.instance());
+         } finally {
+            Locator.pop();
+         }
          return sequence;
       } else if (event instanceof ScalarEvent) {
          String value = ((ScalarEvent) event).getValue();

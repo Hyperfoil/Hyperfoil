@@ -223,7 +223,7 @@ public class BaseReflectionParser {
       }
    }
 
-   private void applyMapping(Context ctx, Object builder) throws ParserException {
+   protected void applyMapping(Context ctx, Object builder) throws ParserException {
       while (ctx.hasNext()) {
          Event event = ctx.next();
          if (event instanceof MappingEndEvent) {

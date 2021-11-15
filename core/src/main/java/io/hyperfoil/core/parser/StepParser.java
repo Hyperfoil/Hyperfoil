@@ -8,6 +8,7 @@ import org.yaml.snakeyaml.events.SequenceStartEvent;
 
 import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.core.builders.ServiceLoadedContract;
 import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
@@ -48,4 +49,18 @@ class StepParser extends BaseReflectionParser implements Parser<BaseSequenceBuil
       ctx.expectEvent(MappingEndEvent.class);
    }
 
+   @Override
+   protected void applyMapping(Context ctx, Object builder) throws ParserException {
+      if (builder instanceof StepBuilder) {
+         Locator current = Locator.current();
+         Locator.push((StepBuilder<?>) builder, current.sequence());
+         try {
+            super.applyMapping(ctx, builder);
+         } finally {
+            Locator.pop();
+         }
+      } else {
+         super.applyMapping(ctx, builder);
+      }
+   }
 }
