@@ -1,18 +1,24 @@
 package io.hyperfoil.core.steps;
 
+import java.lang.reflect.Array;
+import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
 
 import org.kohsuke.MetaInfServices;
 
+import io.hyperfoil.api.BenchmarkExecutionException;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.api.config.BuilderBase;
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.session.ObjectAccess;
 import io.hyperfoil.api.session.Action;
+import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.IntVar;
+import io.hyperfoil.core.session.ObjectVar;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.function.SerializableConsumer;
 import io.hyperfoil.function.SerializableFunction;
@@ -56,8 +62,7 @@ public class SetAction implements Action {
             throw new BenchmarkDefinitionException("Invalid inline definition '" + param + "': should be 'var <- value'");
          }
          this.var = param.substring(0, sep).trim();
-         Object value = param.substring(sep + 2).trim();
-         this.value = value;
+         this.value = param.substring(sep + 2).trim();
          return this;
       }
 
@@ -134,38 +139,40 @@ public class SetAction implements Action {
    }
 
    private static class ValueResource<T> implements Session.Resource {
-      private T object;
-
-      public ValueResource(T o) {
-         this.object = o;
-      }
-   }
-
-   private static class ValueSupplier<T> implements SerializableFunction<Session, Object>, Session.ResourceKey<ValueResource<T>>, ResourceUtilizer {
-      private final SerializableFunction<Session, T> supplier;
+      private final T object;
       private final SerializableConsumer<T> reset;
 
-      private ValueSupplier(SerializableFunction<Session, T> supplier, SerializableConsumer<T> reset) {
-         this.supplier = supplier;
+      public ValueResource(T o, SerializableConsumer<T> reset) {
+         this.object = o;
          this.reset = reset;
       }
 
       @Override
-      public Object apply(Session session) {
-         T object = session.getResource(this).object;
+      public void onSessionReset(Session session) {
          reset.accept(object);
-         return object;
+      }
+   }
+
+   private abstract static class ValueSupplier<T> implements SerializableFunction<Session, Object>, Session.ResourceKey<ValueResource<T>>, ResourceUtilizer {
+      @Override
+      public T apply(Session session) {
+         return session.getResource(this).object;
       }
 
       @Override
       public void reserve(Session session) {
-         session.declareResource(this, () -> new ValueResource<>(supplier.apply(session)));
+         session.declareResource(this, () -> new ValueResource<>(create(session), this::reset));
       }
+
+      protected abstract T create(Session session);
+
+      protected abstract void reset(T object);
    }
 
-   public abstract static class BaseArrayBuilder<S extends BaseArrayBuilder<S>> {
+   public abstract static class BaseArrayBuilder<S extends BaseArrayBuilder<S>> implements BuilderBase<BaseArrayBuilder<S>> {
       protected final Builder parent;
       protected int size;
+      protected String fromVar;
 
       BaseArrayBuilder(Builder parent) {
          this.parent = parent;
@@ -177,9 +184,26 @@ public class SetAction implements Action {
        * @param size Array size.
        * @return Self.
        */
-      @SuppressWarnings("unchecked")
       public S size(int size) {
          this.size = size;
+         return self();
+      }
+
+      /**
+       * Contents of the new array. If the variable contains an array or a list, items will be copied
+       * to the elements with the same index up to the size of this array.
+       * If the variable contains a different value all elements will be initialized to this value.
+       *
+       * @param fromVar Variable name.
+       * @return Self.
+       */
+      public S fromVar(String fromVar) {
+         this.fromVar = fromVar;
+         return self();
+      }
+
+      @SuppressWarnings("unchecked")
+      protected S self() {
          return (S) this;
       }
 
@@ -187,9 +211,9 @@ public class SetAction implements Action {
          return parent;
       }
 
-      protected int ensurePositiveSize() {
-         if (size <= 0) {
-            throw new BenchmarkDefinitionException("Size must be positive!");
+      protected int ensureNonNegativeSize() {
+         if (size < 0) {
+            throw new BenchmarkDefinitionException("Size must not be negative!");
          }
          return size;
       }
@@ -205,28 +229,69 @@ public class SetAction implements Action {
     * Creates object arrays to be stored in the session.
     */
    public static class ObjectArrayBuilder extends BaseArrayBuilder<ObjectArrayBuilder> {
-
       public ObjectArrayBuilder(Builder parent) {
          super(parent);
       }
 
-      private ValueSupplier<io.hyperfoil.core.session.ObjectVar[]> build() {
-         // prevent capturing this object reference in the lambda
-         int mySize = ensurePositiveSize();
-         return new ValueSupplier<>(new ObjectArraySupplier(mySize), BaseArrayBuilder::resetArray);
+      private ValueSupplier<ObjectVar[]> build() {
+         int mySize = ensureNonNegativeSize();
+         return new ObjectArraySupplier(mySize, SessionFactory.readAccess(fromVar));
+      }
+   }
+
+   private static class ObjectArraySupplier extends ValueSupplier<ObjectVar[]> {
+      private final int size;
+      private final ReadAccess fromVar;
+
+      public ObjectArraySupplier(int size, ReadAccess fromVar) {
+         this.size = size;
+         this.fromVar = fromVar;
       }
 
-      private static class ObjectArraySupplier implements SerializableFunction<Session, io.hyperfoil.core.session.ObjectVar[]> {
-         private final int size;
+      @Override
+      protected ObjectVar[] create(Session session) {
+         return ObjectVar.newArray(session, size);
+      }
 
-         public ObjectArraySupplier(int size) {
-            this.size = size;
+      @Override
+      public ObjectVar[] apply(Session session) {
+         ObjectVar[] newArray = super.apply(session);
+         if (fromVar != null) {
+            Object value = fromVar.getObject(session);
+            if (value == null) {
+               // ignore
+            } else if (value instanceof ObjectVar[]) {
+               ObjectVar[] vars = (ObjectVar[]) value;
+               for (int i = 0; i < Math.min(size, vars.length); ++i) {
+                  if (vars[i].isSet()) {
+                     newArray[i].set(vars[i].objectValue(session));
+                  }
+               }
+            } else if (value instanceof IntVar[]) {
+               session.fail(new BenchmarkExecutionException("Type mismatch - are you trying to copy integers into objects?"));
+            } else if (value.getClass().isArray()) {
+               int length = Math.min(size, Array.getLength(value));
+               for (int i = 0; i < length; ++i) {
+                  newArray[i].set(Array.get(value, i));
+               }
+            } else if (value instanceof List) {
+               List<?> list = (List<?>) value;
+               int length = Math.min(size, list.size());
+               for (int i = 0; i < length; ++i) {
+                  newArray[i].set(list.get(i));
+               }
+            } else {
+               for (int i = 0; i < size; ++i) {
+                  newArray[i].set(value);
+               }
+            }
          }
+         return newArray;
+      }
 
-         @Override
-         public io.hyperfoil.core.session.ObjectVar[] apply(Session session) {
-            return io.hyperfoil.core.session.ObjectVar.newArray(session, size);
-         }
+      @Override
+      protected void reset(ObjectVar[] object) {
+         BaseArrayBuilder.resetArray(object);
       }
    }
 
@@ -240,21 +305,71 @@ public class SetAction implements Action {
 
       private ValueSupplier<IntVar[]> build() {
          // prevent capturing this object reference in the lambda
-         int mySize = ensurePositiveSize();
-         return new ValueSupplier<>(new IntArraySupplier(mySize), BaseArrayBuilder::resetArray);
+         int mySize = ensureNonNegativeSize();
+         return new IntArraySupplier(mySize, SessionFactory.readAccess(fromVar));
       }
 
-      private static class IntArraySupplier implements SerializableFunction<Session, IntVar[]> {
-         private final int size;
+   }
 
-         public IntArraySupplier(int size) {
-            this.size = size;
-         }
+   private static class IntArraySupplier extends ValueSupplier<IntVar[]> {
+      private final int size;
+      private final ReadAccess fromVar;
 
-         @Override
-         public IntVar[] apply(Session session) {
-            return IntVar.newArray(session, size);
+      public IntArraySupplier(int size, ReadAccess fromVar) {
+         this.size = size;
+         this.fromVar = fromVar;
+      }
+
+      @Override
+      protected IntVar[] create(Session session) {
+         return IntVar.newArray(session, size);
+      }
+
+      @Override
+      public IntVar[] apply(Session session) {
+         IntVar[] newArray = super.apply(session);
+         if (fromVar != null) {
+            Session.Var var = fromVar.getVar(session);
+            if (var.type() == Session.VarType.OBJECT) {
+               Object value = var.objectValue(session);
+               if (value == null) {
+                  // ignore
+               } else if (value instanceof ObjectVar[]) {
+                  session.fail(new BenchmarkExecutionException("Type mismatch - are you trying to copy integers into objects?"));
+               } else if (value instanceof IntVar[]) {
+                  IntVar[] vars = (IntVar[]) value;
+                  for (int i = 0; i < Math.min(size, vars.length); ++i) {
+                     if (vars[i].isSet()) {
+                        newArray[i].set(vars[i].intValue(session));
+                     }
+                  }
+               } else if (value.getClass().isArray()) {
+                  int length = Math.min(size, Array.getLength(value));
+                  for (int i = 0; i < length; ++i) {
+                     newArray[i].set(Array.getInt(value, i));
+                  }
+               } else if (value instanceof List) {
+                  List<?> list = (List<?>) value;
+                  int length = Math.min(size, list.size());
+                  for (int i = 0; i < length; ++i) {
+                     newArray[i].set((int) list.get(i));
+                  }
+               } else {
+                  session.fail(new IllegalArgumentException("Cannot use " + value + " to initialize an integer array"));
+               }
+            } else {
+               int value = var.intValue(session);
+               for (int i = 0; i < size; ++i) {
+                  newArray[i].set(value);
+               }
+            }
          }
+         return newArray;
+      }
+
+      @Override
+      protected void reset(IntVar[] object) {
+         // TODO: Customise this generated block
       }
    }
 }
