@@ -7,7 +7,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.kohsuke.MetaInfServices;
+
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.api.config.InitFromParam;
+import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.Visitor;
 import io.hyperfoil.api.connection.Connection;
 import io.hyperfoil.api.processor.Transformer;
@@ -278,6 +282,42 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
                   throw new IllegalArgumentException("Unknown var type: " + var);
             }
          }
+      }
+   }
+
+   /**
+    * Use <a href="https://hyperfoil.io/userguide/benchmark/variables.html#string-interpolation">pattern</a> replacing session variables.
+    */
+   @MetaInfServices(Transformer.Builder.class)
+   @Name("pattern")
+   public static class TransformerBuilder implements Transformer.Builder, InitFromParam<TransformerBuilder> {
+      public String pattern;
+
+      /**
+       * Use <a href="https://hyperfoil.io/userguide/benchmark/variables.html#string-interpolation">pattern</a> replacing session variables.
+       *
+       * @param param The pattern formatting string.
+       * @return Self.
+       */
+      @Override
+      public TransformerBuilder init(String param) {
+         return pattern(param);
+      }
+
+      /**
+       * Use <a href="https://hyperfoil.io/userguide/benchmark/variables.html#string-interpolation">pattern</a> replacing session variables.
+       *
+       * @param pattern The pattern formatting string.
+       * @return Self.
+       */
+      public TransformerBuilder pattern(String pattern) {
+         this.pattern = pattern;
+         return this;
+      }
+
+      @Override
+      public Pattern build(boolean fragmented) {
+         return new Pattern(pattern, false);
       }
    }
 }
