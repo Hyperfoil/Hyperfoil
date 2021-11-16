@@ -49,7 +49,7 @@ public class ActionStatusHandler extends BaseRangeStatusHandler {
    @MetaInfServices(StatusHandler.Builder.class)
    @Name("action")
    public static class Builder implements StatusHandler.Builder, PartialBuilder {
-      private final Map<String, List<Action.Builder>> actions = new HashMap<>();
+      private Map<String, List<Action.Builder>> actions = new HashMap<>();
 
       /**
        * Perform a sequence of actions if the range matches. Use range as the key and action in the mapping.
