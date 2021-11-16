@@ -42,7 +42,7 @@ public class JsonStep implements Step {
          byteArrayParser.after(session);
          ctx.reset();
       } else {
-         throw new IllegalStateException("Unexpected format of input: " + object);
+         throw new IllegalStateException("Unexpected format of input (expecting byte[]): " + object);
       }
       return true;
    }
