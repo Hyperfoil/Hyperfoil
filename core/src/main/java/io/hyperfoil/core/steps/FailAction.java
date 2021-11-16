@@ -34,7 +34,7 @@ public class FailAction implements Action {
       private String message;
 
       @Embed
-      public final Condition.TypesBuilder<Builder> condition = new Condition.TypesBuilder<>(this);
+      public Condition.TypesBuilder<Builder> condition = new Condition.TypesBuilder<>(this);
 
       /**
        * Message attached to the failure exception.

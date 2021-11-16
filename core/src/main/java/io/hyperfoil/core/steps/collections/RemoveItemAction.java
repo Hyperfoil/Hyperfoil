@@ -45,7 +45,7 @@ public class RemoveItemAction implements Action {
    @Name("removeItem")
    public static class Builder implements Action.Builder {
       private String fromVar;
-      private final IntSourceBuilder<Builder> index = new IntSourceBuilder<>(this);
+      private IntSourceBuilder<Builder> index = new IntSourceBuilder<>(this);
 
       /**
        * Variable containing an existing array of object variables.
