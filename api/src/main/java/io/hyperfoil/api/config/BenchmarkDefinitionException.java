@@ -51,7 +51,12 @@ public class BenchmarkDefinitionException extends RuntimeException {
                step = step.substring(0, step.length() - 6);
             }
          }
-         step = String.format(", step %s (%d/%d)", step, locator.sequence().indexOf(locator.step()), locator.sequence().size());
+         int stepIndex = locator.sequence().indexOf(locator.step());
+         if (stepIndex >= 0) {
+            step = String.format(", step %s (%d/%d)", step, stepIndex, locator.sequence().size());
+         } else {
+            step = ", step " + step;
+         }
       }
       return String.format("Phase %s, sequence %s%s: %s", phase, sequence, step != null ? step : "", msg);
    }
