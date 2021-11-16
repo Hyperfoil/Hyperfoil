@@ -65,6 +65,7 @@ public class ScenarioBuilder {
 
    public SequenceBuilder initialSequence(String name, SequenceBuilder copyFrom) {
       SequenceBuilder sequenceBuilder = copyFrom == null ? new SequenceBuilder(this) : copyFrom.copy(this);
+      sequenceBuilder.nextSequence(null);
       initialSequence(sequenceBuilder.name(name));
       return sequenceBuilder;
    }
@@ -82,6 +83,7 @@ public class ScenarioBuilder {
 
    public SequenceBuilder sequence(String name, SequenceBuilder copyFrom) {
       SequenceBuilder sequenceBuilder = copyFrom == null ? new SequenceBuilder(this) : copyFrom.copy(this);
+      sequenceBuilder.nextSequence(null);
       sequence(sequenceBuilder.name(name));
       return sequenceBuilder;
    }
