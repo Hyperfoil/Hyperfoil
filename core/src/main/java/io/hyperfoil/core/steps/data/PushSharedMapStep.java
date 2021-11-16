@@ -30,7 +30,7 @@ public class PushSharedMapStep implements Step, ResourceUtilizer {
 
    @Override
    public boolean invoke(Session session) {
-      ThreadData threadData = session.sharedData();
+      ThreadData threadData = session.threadData();
       ThreadData.SharedMap sharedMap = threadData.newMap(key);
       for (int i = 0; i < vars.length; ++i) {
          Object value = vars[i].getObject(session);
@@ -43,7 +43,7 @@ public class PushSharedMapStep implements Step, ResourceUtilizer {
 
    @Override
    public void reserve(Session session) {
-      session.sharedData().reserveMap(key, null, vars.length);
+      session.threadData().reserveMap(key, null, vars.length);
    }
 
    /**

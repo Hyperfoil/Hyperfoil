@@ -1,41 +1,37 @@
 package io.hyperfoil.core.steps.data;
 
-import java.util.Objects;
-
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.session.Action;
-import io.hyperfoil.api.session.ReadAccess;
+import io.hyperfoil.api.session.ObjectAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
 
-public class GlobalPublishAction implements Action {
+public class ReadAgentDataAction implements Action {
    private final String name;
-   private final ReadAccess fromVar;
+   private final ObjectAccess toVar;
 
-   public GlobalPublishAction(String name, ReadAccess fromVar) {
+   public ReadAgentDataAction(String name, ObjectAccess toVar) {
       this.name = name;
-      this.fromVar = fromVar;
+      this.toVar = toVar;
    }
 
    @Override
    public void run(Session session) {
-      Object object = fromVar.getObject(session);
-      object = SharedDataHelper.unwrapVars(session, object);
-      session.globalData().push(session, name, object);
+      session.agentData().pull(session, name, toVar);
    }
 
    @MetaInfServices(Action.Builder.class)
-   @Name("globalPublish")
+   @Name("readAgentData")
    public static class Builder implements Action.Builder, InitFromParam<Builder> {
       private String name;
-      private String fromVar;
+      private String toVar;
 
       @Override
       public Builder init(String param) {
-         return name(param).fromVar(param);
+         return name(param).toVar(param);
       }
 
       public Builder name(String name) {
@@ -43,14 +39,14 @@ public class GlobalPublishAction implements Action {
          return this;
       }
 
-      public Builder fromVar(String fromVar) {
-         this.fromVar = fromVar;
+      public Builder toVar(String toVar) {
+         this.toVar = toVar;
          return this;
       }
 
       @Override
-      public GlobalPublishAction build() {
-         return new GlobalPublishAction(Objects.requireNonNull(name), SessionFactory.readAccess(Objects.requireNonNull(fromVar)));
+      public ReadAgentDataAction build() {
+         return new ReadAgentDataAction(name, SessionFactory.objectAccess(toVar));
       }
    }
 }

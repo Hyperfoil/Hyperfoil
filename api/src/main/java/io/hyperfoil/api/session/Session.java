@@ -36,9 +36,9 @@ public interface Session extends Callable<Void> {
 
    EventExecutor executor();
 
-   ThreadData sharedData();
+   ThreadData threadData();
 
-   GlobalData globalData();
+   AgentData agentData();
 
    PhaseInstance phase();
 
@@ -82,7 +82,7 @@ public interface Session extends Callable<Void> {
 
    SequenceInstance currentSequence();
 
-   void attach(EventExecutor executor, ThreadData threadData, GlobalData globalData, SessionStatistics statistics);
+   void attach(EventExecutor executor, ThreadData threadData, AgentData agentData, SessionStatistics statistics);
 
    void start(PhaseInstance phase);
 

@@ -3,7 +3,7 @@ package io.hyperfoil.core.session;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.connection.Request;
-import io.hyperfoil.api.session.GlobalData;
+import io.hyperfoil.api.session.AgentData;
 import io.hyperfoil.api.session.SessionStopException;
 import io.hyperfoil.api.session.ThreadData;
 import io.hyperfoil.api.statistics.SessionStatistics;
@@ -50,7 +50,7 @@ class SessionImpl implements Session {
 
    private EventExecutor executor;
    private ThreadData threadData;
-   private GlobalData globalData;
+   private AgentData agentData;
    private SessionStatistics statistics;
 
    private final int threadId;
@@ -127,13 +127,13 @@ class SessionImpl implements Session {
    }
 
    @Override
-   public ThreadData sharedData() {
+   public ThreadData threadData() {
       return threadData;
    }
 
    @Override
-   public GlobalData globalData() {
-      return globalData;
+   public AgentData agentData() {
+      return agentData;
    }
 
    @Override
@@ -323,11 +323,11 @@ class SessionImpl implements Session {
    }
 
    @Override
-   public void attach(EventExecutor executor, ThreadData threadData, GlobalData globalData, SessionStatistics statistics) {
+   public void attach(EventExecutor executor, ThreadData threadData, AgentData agentData, SessionStatistics statistics) {
       assert this.executor == null;
       this.executor = executor;
       this.threadData = threadData;
-      this.globalData = globalData;
+      this.agentData = agentData;
       this.statistics = statistics;
    }
 

@@ -4,11 +4,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import io.hyperfoil.api.BenchmarkExecutionException;
-import io.hyperfoil.api.session.GlobalData;
+import io.hyperfoil.api.session.AgentData;
 import io.hyperfoil.api.session.ObjectAccess;
 import io.hyperfoil.api.session.Session;
 
-public class GlobalDataImpl implements GlobalData {
+public class AgentDataImpl implements AgentData {
    private ConcurrentMap<String, Object> map = new ConcurrentHashMap<>();
 
    @Override

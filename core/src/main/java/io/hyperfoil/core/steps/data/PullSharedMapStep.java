@@ -39,7 +39,7 @@ public class PullSharedMapStep implements Step, ResourceUtilizer {
    public boolean invoke(Session session) {
       ThreadData.SharedMap sharedMap;
       if (match == null) {
-         sharedMap = session.sharedData().pullMap(key);
+         sharedMap = session.threadData().pullMap(key);
          if (sharedMap == null) {
             if (trace) {
                log.trace("Did not find any shared map for key {}", key);
@@ -48,7 +48,7 @@ public class PullSharedMapStep implements Step, ResourceUtilizer {
          }
       } else {
          Object value = match.getObject(session);
-         sharedMap = session.sharedData().pullMap(key, match, value);
+         sharedMap = session.threadData().pullMap(key, match, value);
          if (sharedMap == null) {
             if (trace) {
                log.trace("Did not find any shared map for key {} matching {}={}", key, match, value);
@@ -60,13 +60,13 @@ public class PullSharedMapStep implements Step, ResourceUtilizer {
          Object value = sharedMap.get(access.key());
          access.setObject(session, value);
       }
-      session.sharedData().releaseMap(key, sharedMap);
+      session.threadData().releaseMap(key, sharedMap);
       return true;
    }
 
    @Override
    public void reserve(Session session) {
-      session.sharedData().reserveMap(key, match, 0);
+      session.threadData().reserveMap(key, match, 0);
    }
 
    /**

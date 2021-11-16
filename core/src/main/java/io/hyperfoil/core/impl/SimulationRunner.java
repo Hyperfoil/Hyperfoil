@@ -20,7 +20,7 @@ import java.util.stream.StreamSupport;
 import io.hyperfoil.api.BenchmarkExecutionException;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.Phase;
-import io.hyperfoil.api.session.GlobalData;
+import io.hyperfoil.api.session.AgentData;
 import io.hyperfoil.api.session.PhaseChangeHandler;
 import io.hyperfoil.api.session.PhaseInstance;
 import io.hyperfoil.api.session.Session;
@@ -29,7 +29,7 @@ import io.hyperfoil.api.statistics.SessionStatistics;
 import io.hyperfoil.api.statistics.Statistics;
 import io.hyperfoil.core.api.Plugin;
 import io.hyperfoil.core.api.PluginRunData;
-import io.hyperfoil.core.session.GlobalDataImpl;
+import io.hyperfoil.core.session.AgentDataImpl;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.session.ThreadDataImpl;
 import io.hyperfoil.core.util.CpuWatchdog;
@@ -88,7 +88,7 @@ public class SimulationRunner {
    }
 
    public void init() {
-      GlobalData globalData = new GlobalDataImpl();
+      AgentData agentData = new AgentDataImpl();
       ThreadData[] threadData = new ThreadData[executors.length];
       Arrays.setAll(threadData, executorId -> new ThreadDataImpl());
       for (Phase def : benchmark.phases()) {
@@ -112,7 +112,7 @@ public class SimulationRunner {
                   this.sessions.add(session);
                   phaseSessions.add(session);
                }
-               session.attach(executors[executorId], threadData[executorId], globalData, statistics[executorId]);
+               session.attach(executors[executorId], threadData[executorId], agentData, statistics[executorId]);
                for (int i = 0; i < runData.length; ++i) {
                   runData[i].initSession(session, executorId, def.scenario, DEFAULT_CLOCK);
                }
