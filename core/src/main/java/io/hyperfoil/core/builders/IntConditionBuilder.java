@@ -6,12 +6,12 @@ import io.hyperfoil.function.SerializableToIntFunction;
 
 public class IntConditionBuilder<B extends IntConditionBuilder<B, P>, P> implements BuilderBase<B> {
    protected final P parent;
-   protected IntSourceBuilder<IntConditionBuilder<B, P>> equalTo;
-   protected IntSourceBuilder<IntConditionBuilder<B, P>> notEqualTo;
-   protected IntSourceBuilder<IntConditionBuilder<B, P>> greaterThan;
-   protected IntSourceBuilder<IntConditionBuilder<B, P>> greaterOrEqualTo;
-   protected IntSourceBuilder<IntConditionBuilder<B, P>> lessThan;
-   protected IntSourceBuilder<IntConditionBuilder<B, P>> lessOrEqualTo;
+   protected IntSourceBuilder<B> equalTo;
+   protected IntSourceBuilder<B> notEqualTo;
+   protected IntSourceBuilder<B> greaterThan;
+   protected IntSourceBuilder<B> greaterOrEqualTo;
+   protected IntSourceBuilder<B> lessThan;
+   protected IntSourceBuilder<B> lessOrEqualTo;
 
    protected static IntCondition.Predicate and(IntCondition.Predicate p1, IntCondition.Predicate p2) {
       return p1 == null ? p2 : (p2 == null ? null : new And(p1, p2));
@@ -35,8 +35,8 @@ public class IntConditionBuilder<B extends IntConditionBuilder<B, P>, P> impleme
     *
     * @return Builder.
     */
-   public IntSourceBuilder<IntConditionBuilder<B, P>> equalTo() {
-      return equalTo = new IntSourceBuilder<>(this);
+   public IntSourceBuilder<B> equalTo() {
+      return equalTo = new IntSourceBuilder<>(self());
    }
 
    /**
@@ -44,8 +44,8 @@ public class IntConditionBuilder<B extends IntConditionBuilder<B, P>, P> impleme
     *
     * @return Builder.
     */
-   public IntSourceBuilder<IntConditionBuilder<B, P>> notEqualTo() {
-      return notEqualTo = new IntSourceBuilder<>(this);
+   public IntSourceBuilder<B> notEqualTo() {
+      return notEqualTo = new IntSourceBuilder<>(self());
    }
 
    /**
@@ -53,8 +53,8 @@ public class IntConditionBuilder<B extends IntConditionBuilder<B, P>, P> impleme
     *
     * @return Builder.
     */
-   public IntSourceBuilder<IntConditionBuilder<B, P>> greaterThan() {
-      return greaterThan = new IntSourceBuilder<>(this);
+   public IntSourceBuilder<B> greaterThan() {
+      return greaterThan = new IntSourceBuilder<>(self());
    }
 
    /**
@@ -62,8 +62,8 @@ public class IntConditionBuilder<B extends IntConditionBuilder<B, P>, P> impleme
     *
     * @return Builder.
     */
-   public IntSourceBuilder<IntConditionBuilder<B, P>> greaterOrEqualTo() {
-      return greaterOrEqualTo = new IntSourceBuilder<>(this);
+   public IntSourceBuilder<B> greaterOrEqualTo() {
+      return greaterOrEqualTo = new IntSourceBuilder<>(self());
    }
 
    /**
@@ -71,8 +71,8 @@ public class IntConditionBuilder<B extends IntConditionBuilder<B, P>, P> impleme
     *
     * @return Builder.
     */
-   public IntSourceBuilder<IntConditionBuilder<B, P>> lessThan() {
-      return lessThan = new IntSourceBuilder<>(this);
+   public IntSourceBuilder<B> lessThan() {
+      return lessThan = new IntSourceBuilder<>(self());
    }
 
    /**
@@ -80,8 +80,8 @@ public class IntConditionBuilder<B extends IntConditionBuilder<B, P>, P> impleme
     *
     * @return Builder.
     */
-   public IntSourceBuilder<IntConditionBuilder<B, P>> lessOrEqualTo() {
-      return lessOrEqualTo = new IntSourceBuilder<>(this);
+   public IntSourceBuilder<B> lessOrEqualTo() {
+      return lessOrEqualTo = new IntSourceBuilder<>(self());
    }
 
    protected IntCondition.Predicate buildPredicate() {

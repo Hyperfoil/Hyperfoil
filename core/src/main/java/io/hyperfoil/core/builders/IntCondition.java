@@ -1,7 +1,10 @@
 package io.hyperfoil.core.builders;
 
 import java.io.Serializable;
+import java.util.function.Supplier;
 
+import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.Session.VarType;
@@ -42,7 +45,7 @@ public class IntCondition implements Condition {
    /**
     * Condition comparing integer in session variable.
     */
-   public static class Builder<P> extends IntConditionBuilder<Builder<P>, P> implements Condition.Builder<Builder<P>> {
+   public static class Builder<P> extends IntConditionBuilder<Builder<P>, P> implements Condition.Builder<Builder<P>>, InitFromParam<Builder<P>> {
       private Object fromVar;
       private boolean isSet = true;
 
@@ -52,6 +55,38 @@ public class IntCondition implements Condition {
 
       public Builder(P parent) {
          super(parent);
+      }
+
+      @Override
+      public Builder<P> init(String param) {
+         if (tryOp(param, "==", this::equalTo) ||
+               tryOp(param, "!=", this::notEqualTo) ||
+               tryOp(param, "<>", this::notEqualTo) ||
+               tryOp(param, ">=", this::greaterOrEqualTo) ||
+               tryOp(param, ">", this::greaterThan) ||
+               tryOp(param, "<=", this::lessOrEqualTo) ||
+               tryOp(param, "<", this::lessThan)) {
+            return this;
+         } else {
+            throw new BenchmarkDefinitionException("Cannot parse intCondition: " + param);
+         }
+      }
+
+      private boolean tryOp(String param, String operator, Supplier<IntSourceBuilder<Builder<P>>> mutator) {
+         if (param.contains(operator)) {
+            String[] parts = param.split(operator);
+            if (parts.length == 2) {
+               try {
+                  int value = Integer.parseInt(parts[1].trim());
+                  fromVar(parts[0].trim());
+                  mutator.get().value(value);
+                  return true;
+               } catch (NumberFormatException e) {
+                  throw new BenchmarkDefinitionException("Cannot parse intCondition: " + param);
+               }
+            }
+         }
+         return false;
       }
 
       /**
