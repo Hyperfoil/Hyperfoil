@@ -31,6 +31,7 @@ import java.util.stream.Stream;
 public class ScenarioBuilder {
 
    private final PhaseBuilder<?> phaseBuilder;
+   private final PhaseForkBuilder forkBuilder;
    private List<SequenceBuilder> initialSequences = new ArrayList<>();
    private List<SequenceBuilder> sequences = new ArrayList<>();
    private Scenario scenario;
@@ -38,8 +39,13 @@ public class ScenarioBuilder {
    // We don't use sum of concurrency because that could be excessively high
    private int maxSequences = 16;
 
-   ScenarioBuilder(PhaseBuilder<?> phaseBuilder) {
+   ScenarioBuilder(PhaseBuilder<?> phaseBuilder, PhaseForkBuilder forkBuilder) {
       this.phaseBuilder = phaseBuilder;
+      this.forkBuilder = forkBuilder;
+   }
+
+   public PhaseForkBuilder fork() {
+      return forkBuilder;
    }
 
    public PhaseBuilder<?> endScenario() {
@@ -110,36 +116,41 @@ public class ScenarioBuilder {
    }
 
    public Scenario build() {
-      if (scenario != null) {
-         return scenario;
-      }
-      if (initialSequences.isEmpty()) {
-         throw new BenchmarkDefinitionException("No initial sequences in phase " + endScenario().name());
-      }
+      Locator.push(this);
+      try {
+         if (scenario != null) {
+            return scenario;
+         }
+         if (initialSequences.isEmpty()) {
+            throw new BenchmarkDefinitionException("No initial sequences in phase " + endScenario().name());
+         }
 
-      Sequence[] initialSequences = new Sequence[this.initialSequences.size()];
-      int offset = 0;
-      for (int i = 0; i < this.initialSequences.size(); i++) {
-         Sequence sequence = this.initialSequences.get(i).build(offset);
-         initialSequences[i] = sequence;
-         offset += sequence.concurrency() > 0 ? sequence.concurrency() : 1;
-      }
-      Sequence[] sequences = new Sequence[this.sequences.size()];
-      for (int i = 0; i < this.sequences.size(); i++) {
-         Sequence sequence = this.sequences.get(i).build(offset);
-         sequences[i] = sequence;
-         offset += sequence.concurrency() > 0 ? sequence.concurrency() : 1;
-      }
+         Sequence[] initialSequences = new Sequence[this.initialSequences.size()];
+         int offset = 0;
+         for (int i = 0; i < this.initialSequences.size(); i++) {
+            Sequence sequence = this.initialSequences.get(i).build(offset);
+            initialSequences[i] = sequence;
+            offset += sequence.concurrency() > 0 ? sequence.concurrency() : 1;
+         }
+         Sequence[] sequences = new Sequence[this.sequences.size()];
+         for (int i = 0; i < this.sequences.size(); i++) {
+            Sequence sequence = this.sequences.get(i).build(offset);
+            sequences[i] = sequence;
+            offset += sequence.concurrency() > 0 ? sequence.concurrency() : 1;
+         }
 
-      int maxSequences = Math.max(Stream.of(sequences).mapToInt(sequence -> {
-         boolean isInitial = Stream.of(initialSequences).anyMatch(s -> s == sequence);
-         return isInitial ? sequence.concurrency() : sequence.concurrency() + 1;
-      }).max().orElse(1), this.maxSequences);
-      return scenario = new Scenario(
-            initialSequences,
-            sequences,
-            maxRequests,
-            maxSequences);
+         int maxSequences = Math.max(Stream.of(sequences).mapToInt(sequence -> {
+            boolean isInitial = Stream.of(initialSequences).anyMatch(s -> s == sequence);
+            return isInitial ? sequence.concurrency() : sequence.concurrency() + 1;
+         }).max().orElse(1), this.maxSequences);
+         return scenario = new Scenario(
+               initialSequences,
+               sequences,
+               maxRequests,
+               maxSequences);
+      } finally {
+         Locator.pop();
+      }
    }
 
    public void readFrom(ScenarioBuilder other) {

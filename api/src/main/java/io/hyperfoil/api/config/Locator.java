@@ -14,6 +14,8 @@ public interface Locator {
       return scenario().endScenario().endPhase();
    }
 
+   String locationMessage();
+
    static Locator current() {
       Stack<Locator> stack = Holder.CURRENT.get();
       if (stack.isEmpty()) {
@@ -22,13 +24,23 @@ public interface Locator {
       return stack.peek();
    }
 
+   static boolean isAvailable() {
+      Stack<Locator> stack = Holder.CURRENT.get();
+      return !stack.isEmpty();
+   }
+
    static void push(Locator locator) {
       Holder.CURRENT.get().push(locator);
    }
 
    static void push(StepBuilder<?> stepBuilder, BaseSequenceBuilder<?> sequenceBuilder) {
       Stack<Locator> stack = Holder.CURRENT.get();
-      stack.push(new Impl(stepBuilder, sequenceBuilder));
+      stack.push(new Impl(stepBuilder, sequenceBuilder, sequenceBuilder.endSequence()));
+   }
+
+   static void push(ScenarioBuilder scenarioBuilder) {
+      Stack<Locator> stack = Holder.CURRENT.get();
+      stack.push(new Impl(null, null, scenarioBuilder));
    }
 
    static void pop() {
@@ -42,10 +54,12 @@ public interface Locator {
    class Impl implements Locator {
       private final StepBuilder<?> step;
       private final BaseSequenceBuilder<?> sequence;
+      private final ScenarioBuilder scenario;
 
-      private Impl(StepBuilder<?> step, BaseSequenceBuilder<?> sequence) {
+      private Impl(StepBuilder<?> step, BaseSequenceBuilder<?> sequence, ScenarioBuilder scenario) {
          this.step = step;
          this.sequence = sequence;
+         this.scenario = scenario;
       }
 
       public StepBuilder<?> step() {
@@ -57,7 +71,46 @@ public interface Locator {
       }
 
       public ScenarioBuilder scenario() {
-         return sequence.endSequence();
+         return scenario;
+      }
+
+      @Override
+      public String locationMessage() {
+         StringBuilder sb = new StringBuilder("Phase ").append(scenario().endScenario().name);
+         String forkName = scenario().fork().name;
+         if (forkName != null) {
+            sb.append("/").append(forkName);
+         }
+         if (sequence != null) {
+            sb.append(", sequence ").append(sequence.name());
+         }
+         if (step != null) {
+            sb.append(", step ");
+            Class<?> builderClass = step.getClass();
+            if (step instanceof StepBuilder.ActionAdapter) {
+               builderClass = ((StepBuilder.ActionAdapter) step).builder.getClass();
+            }
+            Name nameAnnotation = builderClass.getAnnotation(Name.class);
+            if (nameAnnotation != null) {
+               sb.append(nameAnnotation.value());
+            } else {
+               if ("Builder".equals(builderClass.getSimpleName()) && builderClass.getEnclosingClass() != null) {
+                  builderClass = builderClass.getEnclosingClass();
+               }
+               String name = builderClass.getSimpleName();
+               if (name.endsWith("Step")) {
+                  name = name.substring(0, name.length() - 4);
+               } else if (name.endsWith("Action")) {
+                  name = name.substring(0, name.length() - 6);
+               }
+               sb.append(name);
+            }
+            int stepIndex = sequence.indexOf(step);
+            if (stepIndex >= 0) {
+               sb.append(" (").append(stepIndex).append("/").append(sequence.size()).append(")");
+            }
+         }
+         return sb.toString();
       }
    }
 }

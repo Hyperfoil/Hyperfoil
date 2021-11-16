@@ -55,6 +55,11 @@ public class TestUtil {
       public BenchmarkBuilder benchmark() {
          return new BenchmarkBuilder(null, TESTING_DATA);
       }
+
+      @Override
+      public String locationMessage() {
+         throw new UnsupportedOperationException();
+      }
    };
 
    public static String randomString(ThreadLocalRandom rand, int maxLength) {

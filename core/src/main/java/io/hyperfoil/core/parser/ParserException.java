@@ -20,13 +20,15 @@ package io.hyperfoil.core.parser;
 
 import org.yaml.snakeyaml.events.Event;
 
+import io.hyperfoil.api.config.Locator;
+
 public class ParserException extends Exception {
    public ParserException(String msg) {
-      super(msg);
+      this(msg, null);
    }
 
    public ParserException(String msg, Exception e) {
-      super(msg, e);
+      super(Locator.isAvailable() ? Locator.current().locationMessage() + ": " + msg : msg, e);
    }
 
    public ParserException(Event event, String msg) {
@@ -38,6 +40,10 @@ public class ParserException extends Exception {
    }
 
    static String location(Event event) {
-      return "line " + (event.getStartMark().getLine() + 1) + ", column " + (event.getStartMark().getColumn() + 1);
+      String lineInfo = "line " + (event.getStartMark().getLine() + 1) + ", column " + (event.getStartMark().getColumn() + 1);
+      if (Locator.isAvailable()) {
+         lineInfo += ": " + Locator.current().locationMessage();
+      }
+      return lineInfo;
    }
 }
