@@ -28,6 +28,7 @@ import io.hyperfoil.impl.ReflectionAcceptor;
 public class YamlVisitor implements Visitor {
    private static final Class<?> BYTE_ARRAY = byte[].class;
    private static final Class<?> CHAR_ARRAY = char[].class;
+   private static final int MAX_COLLECTION_SIZE = 20;
    private int indent = 0;
    private boolean skipIndent = false;
    private boolean addLine = false;
@@ -171,9 +172,22 @@ public class YamlVisitor implements Visitor {
       if (collection.isEmpty()) {
          stream.println("[]");
       } else {
+         int size = collection.size();
+         if (size > MAX_COLLECTION_SIZE) {
+            printIndent();
+            stream.printf("# Collection has %d elements, printing first %d...%n", size, MAX_COLLECTION_SIZE);
+         }
          stream.println();
+         int counter = 0;
          for (Object item : collection) {
             printItem(item, itemType);
+            if (counter++ >= MAX_COLLECTION_SIZE) {
+               break;
+            }
+         }
+         if (size > MAX_COLLECTION_SIZE) {
+            printIndent();
+            stream.printf("# Collection has %d elements, truncated %d elements...%n", size, size - MAX_COLLECTION_SIZE);
          }
       }
    }
