@@ -9,6 +9,7 @@ import java.util.function.Supplier;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.Phase;
+import io.hyperfoil.api.session.GlobalData;
 import io.hyperfoil.controller.StatisticsStore;
 import io.hyperfoil.impl.Util;
 import io.vertx.core.Promise;
@@ -31,6 +32,7 @@ class Run {
    boolean completed;
    Supplier<StatisticsStore> statsSupplier;
    private StatisticsStore statisticsStore;
+   Map<String, GlobalData.Element> newGlobalData = new HashMap<>();
 
    Run(String id, Path dir, Benchmark benchmark) {
       this.id = id;

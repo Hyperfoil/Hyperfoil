@@ -14,6 +14,7 @@ import io.hyperfoil.api.config.RunHook;
 import io.hyperfoil.api.config.SessionLimitPolicy;
 import io.hyperfoil.api.deployment.DeployedAgent;
 import io.hyperfoil.api.deployment.Deployer;
+import io.hyperfoil.api.session.GlobalData;
 import io.hyperfoil.api.session.PhaseInstance;
 import io.hyperfoil.clustering.messages.AgentControlMessage;
 import io.hyperfoil.clustering.messages.AgentHello;
@@ -336,6 +337,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
          controllerPhase.setFailed();
          run.errors.add(new Run.Error(agent, phaseChange.getError()));
       }
+      controllerPhase.addGlobalData(phaseChange.globalData());
       tryProgressStatus(run, phase);
       runSimulation(run);
    }
@@ -451,8 +453,10 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             controllerPhase.status(run.id, ControllerPhase.Status.FINISHED);
             break;
          case TERMINATED:
+         case STATS_COMPLETE: // not sure if this can happen
             controllerPhase.status(run.id, ControllerPhase.Status.TERMINATED);
             controllerPhase.absoluteCompletionTime(System.currentTimeMillis());
+            run.newGlobalData.putAll(run.phases.get(phase).completeGlobalData());
             break;
       }
       if (controllerPhase.isFailed()) {
@@ -643,21 +647,25 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       long now = System.currentTimeMillis();
       for (ControllerPhase phase : run.phases.values()) {
          if (phase.status() == ControllerPhase.Status.RUNNING && phase.absoluteStartTime() + phase.definition().duration() <= now) {
-            eb.publish(Feeds.CONTROL, new PhaseControlMessage(PhaseControlMessage.Command.FINISH, phase.definition().name));
+            eb.publish(Feeds.CONTROL, new PhaseControlMessage(PhaseControlMessage.Command.FINISH, phase.definition().name, null));
             phase.status(run.id, ControllerPhase.Status.FINISHING);
          }
          if (phase.status() == ControllerPhase.Status.FINISHED) {
             if (phase.definition().maxDuration() >= 0 && phase.absoluteStartTime() + phase.definition().maxDuration() <= now) {
-               eb.publish(Feeds.CONTROL, new PhaseControlMessage(PhaseControlMessage.Command.TERMINATE, phase.definition().name));
+               eb.publish(Feeds.CONTROL, new PhaseControlMessage(PhaseControlMessage.Command.TERMINATE, phase.definition().name, null));
                phase.status(run.id, ControllerPhase.Status.TERMINATING);
             } else if (phase.definition().terminateAfterStrict().stream().map(run.phases::get).allMatch(p -> p.status().isTerminated())) {
-               eb.publish(Feeds.CONTROL, new PhaseControlMessage(PhaseControlMessage.Command.TRY_TERMINATE, phase.definition().name));
+               eb.publish(Feeds.CONTROL, new PhaseControlMessage(PhaseControlMessage.Command.TRY_TERMINATE, phase.definition().name, null));
             }
          }
       }
       ControllerPhase[] availablePhases = run.getAvailablePhases();
       for (ControllerPhase phase : availablePhases) {
-         eb.publish(Feeds.CONTROL, new PhaseControlMessage(PhaseControlMessage.Command.RUN, phase.definition().name));
+         Map<String, GlobalData.Element> newGlobalData = run.newGlobalData;
+         if (!newGlobalData.isEmpty()) {
+            run.newGlobalData = new HashMap<>();
+         }
+         eb.publish(Feeds.CONTROL, new PhaseControlMessage(PhaseControlMessage.Command.RUN, phase.definition().name, newGlobalData));
          phase.absoluteStartTime(now);
          phase.status(run.id, ControllerPhase.Status.STARTING);
       }
@@ -851,7 +859,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                   entry.getValue().status(run.id, ControllerPhase.Status.CANCELLED);
                } else {
                   entry.getValue().status(run.id, ControllerPhase.Status.TERMINATING);
-                  eb.publish(Feeds.CONTROL, new PhaseControlMessage(PhaseControlMessage.Command.TERMINATE, entry.getKey()));
+                  eb.publish(Feeds.CONTROL, new PhaseControlMessage(PhaseControlMessage.Command.TERMINATE, entry.getKey(), null));
                }
             }
          }

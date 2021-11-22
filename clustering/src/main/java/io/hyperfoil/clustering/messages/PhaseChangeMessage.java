@@ -20,6 +20,9 @@
 
 package io.hyperfoil.clustering.messages;
 
+import java.util.Map;
+
+import io.hyperfoil.api.session.GlobalData;
 import io.hyperfoil.api.session.PhaseInstance;
 import io.hyperfoil.impl.Util;
 
@@ -29,14 +32,16 @@ public class PhaseChangeMessage extends AgentStatusMessage {
    private final boolean sessionLimitExceeded;
    private final String cpuUsage;
    private final Throwable error;
+   private final Map<String, GlobalData.Element> globalData;
 
-   public PhaseChangeMessage(String senderId, String runId, String phase, PhaseInstance.Status status, boolean sessionLimitExceeded, String cpuUsage, Throwable error) {
+   public PhaseChangeMessage(String senderId, String runId, String phase, PhaseInstance.Status status, boolean sessionLimitExceeded, String cpuUsage, Throwable error, Map<String, GlobalData.Element> globalData) {
       super(senderId, runId);
       this.phase = phase;
       this.status = status;
       this.sessionLimitExceeded = sessionLimitExceeded;
       this.cpuUsage = cpuUsage;
       this.error = error;
+      this.globalData = globalData;
    }
 
    @Override
@@ -47,6 +52,7 @@ public class PhaseChangeMessage extends AgentStatusMessage {
       sb.append(", status=").append(status);
       sb.append(", cpuUsage=").append(cpuUsage);
       sb.append(", error=").append(Util.explainCauses(error));
+      sb.append(", globalData=").append(globalData);
       sb.append('}');
       return sb.toString();
    }
@@ -69,6 +75,10 @@ public class PhaseChangeMessage extends AgentStatusMessage {
 
    public String cpuUsage() {
       return cpuUsage;
+   }
+
+   public Map<String, GlobalData.Element> globalData() {
+      return globalData;
    }
 
    public static class Codec extends ObjectCodec<PhaseChangeMessage> {}

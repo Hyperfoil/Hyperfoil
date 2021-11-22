@@ -194,6 +194,9 @@ public class AgentVerticle extends AbstractVerticle {
          PhaseControlMessage controlMessage = (PhaseControlMessage) message.body();
          switch (controlMessage.command()) {
             case RUN:
+               if (controlMessage.globalData() != null) {
+                  runner.addGlobalData(controlMessage.globalData());
+               }
                runner.startPhase(controlMessage.phase());
                break;
             case FINISH:
@@ -231,10 +234,10 @@ public class AgentVerticle extends AbstractVerticle {
       sessionStatsSender = new SessionStatsSender(eb, deploymentId, runId);
       connectionStatsSender = new ConnectionStatsSender(eb, deploymentId, runId);
 
-      runner.setPhaseChangeHandler((phase, status, sessionLimitExceeded, error) -> {
+      runner.setControllerListener((phase, status, sessionLimitExceeded, error, globalData) -> {
          log.debug("{} changed phase {} to {}", deploymentId, phase, status);
          String cpuUsage = runner.getCpuUsage(phase.name());
-         eb.send(Feeds.RESPONSE, new PhaseChangeMessage(deploymentId, runId, phase.name(), status, sessionLimitExceeded, cpuUsage, error));
+         eb.send(Feeds.RESPONSE, new PhaseChangeMessage(deploymentId, runId, phase.name(), status, sessionLimitExceeded, cpuUsage, error, globalData));
          if (status == PhaseInstance.Status.TERMINATED) {
             context.runOnContext(nil -> {
                if (runner != null) {

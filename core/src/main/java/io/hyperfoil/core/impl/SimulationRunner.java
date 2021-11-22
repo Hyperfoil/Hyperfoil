@@ -21,7 +21,8 @@ import io.hyperfoil.api.BenchmarkExecutionException;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.session.AgentData;
-import io.hyperfoil.api.session.PhaseChangeHandler;
+import io.hyperfoil.api.session.ControllerListener;
+import io.hyperfoil.api.session.GlobalData;
 import io.hyperfoil.api.session.PhaseInstance;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.ThreadData;
@@ -30,6 +31,7 @@ import io.hyperfoil.api.statistics.Statistics;
 import io.hyperfoil.core.api.Plugin;
 import io.hyperfoil.core.api.PluginRunData;
 import io.hyperfoil.core.session.AgentDataImpl;
+import io.hyperfoil.core.session.GlobalDataImpl;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.core.session.ThreadDataImpl;
 import io.hyperfoil.core.util.CpuWatchdog;
@@ -64,11 +66,13 @@ public class SimulationRunner {
    protected final EventLoop[] executors;
    private final Queue<Phase> toPrune;
    private final PluginRunData[] runData;
-   private PhaseChangeHandler phaseChangeHandler;
+   private ControllerListener controllerListener;
    private final Consumer<Throwable> errorHandler;
    private boolean isDepletedMessageQuietened;
    private Thread jitterWatchdog;
    private CpuWatchdog cpuWatchdog;
+   private final GlobalDataImpl[] globalData;
+   private final GlobalDataImpl.Collector globalCollector = new GlobalDataImpl.Collector();
 
    public SimulationRunner(Benchmark benchmark, String runId, int agentId, Consumer<Throwable> errorHandler) {
       this.eventLoopGroup = EventLoopFactory.INSTANCE.create(benchmark.threads(agentId));
@@ -81,10 +85,11 @@ public class SimulationRunner {
             .map(config -> Plugin.lookup(config).createRunData(benchmark, executors, agentId))
             .toArray(PluginRunData[]::new);
       this.errorHandler = errorHandler;
+      this.globalData = Arrays.stream(executors).map(GlobalDataImpl::new).toArray(GlobalDataImpl[]::new);
    }
 
-   public void setPhaseChangeHandler(PhaseChangeHandler phaseChangeHandler) {
-      this.phaseChangeHandler = phaseChangeHandler;
+   public void setControllerListener(ControllerListener controllerListener) {
+      this.controllerListener = controllerListener;
    }
 
    public void init() {
@@ -112,7 +117,7 @@ public class SimulationRunner {
                   this.sessions.add(session);
                   phaseSessions.add(session);
                }
-               session.attach(executors[executorId], threadData[executorId], agentData, statistics[executorId]);
+               session.attach(executors[executorId], threadData[executorId], agentData, globalData[executorId], statistics[executorId]);
                for (int i = 0; i < runData.length; ++i) {
                   runData[i].initSession(session, executorId, def.scenario, DEFAULT_CLOCK);
                }
@@ -196,17 +201,16 @@ public class SimulationRunner {
          }
       }
       if (status == PhaseInstance.Status.TERMINATED) {
-         return terminateStatistics(phase).whenComplete(
-               (nil, e) -> notifyAndScheduleForPruning(phase, status, sessionLimitExceeded, error != null ? error : e));
+         return completePhase(phase).whenComplete((nil, e) -> notifyAndScheduleForPruning(phase, status, sessionLimitExceeded, error != null ? error : e, globalCollector.extract()));
       } else {
-         notifyAndScheduleForPruning(phase, status, sessionLimitExceeded, error);
+         notifyAndScheduleForPruning(phase, status, sessionLimitExceeded, error, null);
          return Util.COMPLETED_VOID_FUTURE;
       }
    }
 
-   private CompletableFuture<Void> terminateStatistics(Phase phase) {
+   private CompletableFuture<Void> completePhase(Phase phase) {
       SharedResources resources = this.sharedResources.get(phase.sharedResources);
-      if (resources == null || resources.statistics == null) {
+      if (resources == null) {
          return Util.COMPLETED_VOID_FUTURE;
       }
       List<CompletableFuture<Void>> futures = new ArrayList<>(executors.length);
@@ -214,13 +218,20 @@ public class SimulationRunner {
       for (int i = 0; i < executors.length; ++i) {
          SessionStatistics statistics = resources.statistics[i];
          if (executors[i].inEventLoop()) {
-            applyToPhase(statistics, phase, now, Statistics::end);
+            if (statistics != null) {
+               applyToPhase(statistics, phase, now, Statistics::end);
+            }
+            globalCollector.collect(phase.name, globalData[i]);
          } else {
             CompletableFuture<Void> cf = new CompletableFuture<>();
             futures.add(cf);
+            GlobalDataImpl gd = globalData[i];
             executors[i].execute(() -> {
                try {
-                  applyToPhase(statistics, phase, now, Statistics::end);
+                  globalCollector.collect(phase.name, gd);
+                  if (statistics != null) {
+                     applyToPhase(statistics, phase, now, Statistics::end);
+                  }
                   cf.complete(null);
                } catch (Throwable t) {
                   cf.completeExceptionally(t);
@@ -231,9 +242,9 @@ public class SimulationRunner {
       return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
    }
 
-   private void notifyAndScheduleForPruning(Phase phase, PhaseInstance.Status status, boolean sessionLimitExceeded, Throwable error) {
-      if (phaseChangeHandler != null) {
-         phaseChangeHandler.onChange(phase, status, sessionLimitExceeded, error);
+   private void notifyAndScheduleForPruning(Phase phase, PhaseInstance.Status status, boolean sessionLimitExceeded, Throwable error, Map<String, GlobalData.Element> globalData) {
+      if (controllerListener != null) {
+         controllerListener.onPhaseChange(phase, status, sessionLimitExceeded, error, globalData);
       }
       if (status == PhaseInstance.Status.TERMINATED) {
          toPrune.add(phase);
@@ -380,6 +391,15 @@ public class SimulationRunner {
 
    public String getCpuUsage(String name) {
       return cpuWatchdog.getCpuUsage(name);
+   }
+
+   public void addGlobalData(Map<String, GlobalData.Element> globalData) {
+      for (int i = 0; i < executors.length; ++i) {
+         GlobalDataImpl data = this.globalData[i];
+         executors[i].execute(() -> {
+            data.add(globalData);
+         });
+      }
    }
 
    private static class SharedResources {

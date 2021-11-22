@@ -4,6 +4,7 @@ import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.connection.Request;
 import io.hyperfoil.api.session.AgentData;
+import io.hyperfoil.api.session.GlobalData;
 import io.hyperfoil.api.session.SessionStopException;
 import io.hyperfoil.api.session.ThreadData;
 import io.hyperfoil.api.statistics.SessionStatistics;
@@ -51,6 +52,7 @@ class SessionImpl implements Session {
    private EventExecutor executor;
    private ThreadData threadData;
    private AgentData agentData;
+   private GlobalData globalData;
    private SessionStatistics statistics;
 
    private final int threadId;
@@ -134,6 +136,11 @@ class SessionImpl implements Session {
    @Override
    public AgentData agentData() {
       return agentData;
+   }
+
+   @Override
+   public GlobalData globalData() {
+      return globalData;
    }
 
    @Override
@@ -323,11 +330,12 @@ class SessionImpl implements Session {
    }
 
    @Override
-   public void attach(EventExecutor executor, ThreadData threadData, AgentData agentData, SessionStatistics statistics) {
+   public void attach(EventExecutor executor, ThreadData threadData, AgentData agentData, GlobalData globalData, SessionStatistics statistics) {
       assert this.executor == null;
       this.executor = executor;
       this.threadData = threadData;
       this.agentData = agentData;
+      this.globalData = globalData;
       this.statistics = statistics;
    }
 

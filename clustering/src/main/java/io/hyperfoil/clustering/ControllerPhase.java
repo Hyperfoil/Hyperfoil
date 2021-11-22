@@ -1,6 +1,11 @@
 package io.hyperfoil.clustering;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import io.hyperfoil.api.config.Phase;
+import io.hyperfoil.api.session.GlobalData;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
@@ -14,6 +19,7 @@ public class ControllerPhase {
    private long absoluteCompletionTime = Long.MIN_VALUE;
    private boolean failed;
    private Long delayStatsCompletionUntil = null;
+   private Map<String, GlobalData.Accumulator> globalData = new HashMap<>();
 
    public ControllerPhase(Phase definition) {
       this.definition = definition;
@@ -64,6 +70,23 @@ public class ControllerPhase {
 
    public void delayStatsCompletionUntil(long time) {
       delayStatsCompletionUntil = delayStatsCompletionUntil == null ? time : Math.max(time, delayStatsCompletionUntil);
+   }
+
+   public void addGlobalData(Map<String, GlobalData.Element> data) {
+      if (data == null) {
+         return;
+      }
+      for (var entry : data.entrySet()) {
+         GlobalData.Accumulator accumulator = globalData.get(entry.getKey());
+         if (accumulator == null) {
+            globalData.put(entry.getKey(), accumulator = entry.getValue().newAccumulator());
+         }
+         accumulator.add(entry.getValue());
+      }
+   }
+
+   public Map<String, GlobalData.Element> completeGlobalData() {
+      return globalData.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().complete()));
    }
 
    enum Status {
