@@ -10,6 +10,7 @@ import io.hyperfoil.api.session.ThreadData;
 
 public class ThreadDataImpl implements ThreadData {
    private final Map<String, SharedMapSet> maps = new HashMap<>();
+   private final Map<String, SharedCounterImpl> counters = new HashMap<>();
 
    @Override
    public void reserveMap(String key, Object match, int entries) {
@@ -58,6 +59,21 @@ public class ThreadDataImpl implements ThreadData {
    public void releaseMap(String key, SharedMap map) {
       map.clear();
       maps.get(key).release(map);
+   }
+
+   @Override
+   public SharedCounter reserveCounter(String key) {
+      SharedCounterImpl counter = counters.get(key);
+      if (counter == null) {
+         counter = new SharedCounterImpl();
+         counters.put(key, counter);
+      }
+      return counter;
+   }
+
+   @Override
+   public SharedCounter getCounter(String key) {
+      return counters.get(key);
    }
 
    private static class SharedMapSet {
@@ -344,6 +360,28 @@ public class ThreadDataImpl implements ThreadData {
             }
          }
          throw new IllegalArgumentException("Looking for variable '" + key + "' but this is not set; Available: " + Arrays.asList(keys));
+      }
+   }
+
+   private static class SharedCounterImpl implements SharedCounter {
+      private long value;
+
+      @Override
+      public long get() {
+         return value;
+      }
+
+      @Override
+      public long set(long value) {
+         long prev = this.value;
+         this.value = value;
+         return prev;
+      }
+
+      @Override
+      public long add(long value) {
+         this.value += value;
+         return this.value;
       }
    }
 }

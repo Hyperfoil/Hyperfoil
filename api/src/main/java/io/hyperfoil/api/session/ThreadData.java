@@ -16,6 +16,10 @@ public interface ThreadData {
 
    void reserveMap(String key, Object match, int entries);
 
+   SharedCounter reserveCounter(String key);
+
+   SharedCounter getCounter(String key);
+
    interface SharedMap {
       void put(Object key, Object value);
 
@@ -26,5 +30,27 @@ public interface ThreadData {
       int capacity();
 
       void clear();
+   }
+
+   /**
+    * Counter shared by multiple sessions.
+    */
+   interface SharedCounter {
+      /**
+       * @return Current value.
+       */
+      long get();
+
+      /**
+       * @param value Number.
+       * @return Previous value.
+       */
+      long set(long value);
+
+      /**
+       * @param value Number.
+       * @return Sum of previous value and the parameter.
+       */
+      long add(long value);
    }
 }
