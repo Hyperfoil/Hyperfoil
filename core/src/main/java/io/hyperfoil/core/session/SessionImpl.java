@@ -495,12 +495,11 @@ class SessionImpl implements Session {
 
    @Override
    public void fail(Throwable t) {
-      try {
-         log.error(new FormattedMessage("#{} Failing phase {}", uniqueId, phase.definition().name), t);
-         stop();
-      } finally {
-         phase.fail(t);
-      }
+      log.error(new FormattedMessage("#{} Failing phase {}", uniqueId, phase.definition().name), t);
+      // we need to fail the phase before stopping as stop() could cause termination
+      // without recording the error on its own.
+      phase.fail(t);
+      stop();
    }
 
    @Override
