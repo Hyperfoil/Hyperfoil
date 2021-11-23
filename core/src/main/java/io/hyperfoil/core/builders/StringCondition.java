@@ -1,25 +1,24 @@
 package io.hyperfoil.core.builders;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
 import io.hyperfoil.function.SerializableBiPredicate;
 
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
-
-public class StringCondition implements Condition {
+public class StringCondition extends StringConditionBase implements Condition {
    private static final Logger log = LogManager.getLogger(StringCondition.class);
    private static final boolean trace = log.isTraceEnabled();
 
    private final ReadAccess fromVar;
    private final boolean isSet;
-   private final SerializableBiPredicate<Session, CharSequence> predicate;
 
    public StringCondition(ReadAccess fromVar, boolean isSet, SerializableBiPredicate<Session, CharSequence> predicate) {
+      super(predicate);
       this.fromVar = fromVar;
       this.isSet = isSet;
-      this.predicate = predicate;
    }
 
    @Override
@@ -35,29 +34,8 @@ public class StringCondition implements Condition {
             log.trace("#{} Variable {} is set, condition result: false", session.uniqueId(), fromVar);
          }
          return false;
-      } else if (predicate == null) {
-         if (trace) {
-            log.trace("#{} No predicate on variable {}, condition result: true", session.uniqueId(), fromVar);
-         }
-         return true;
       }
-      CharSequence value;
-      if (var.type() == Session.VarType.INTEGER) {
-         value = String.valueOf(var.intValue(session));
-      } else if (var.type() == Session.VarType.OBJECT) {
-         Object obj = var.objectValue(session);
-         if (!(obj instanceof CharSequence)) {
-            return false;
-         }
-         value = (CharSequence) obj;
-      } else {
-         throw new IllegalStateException("Unknown type of var: " + var);
-      }
-      boolean result = predicate.test(session, value);
-      if (trace) {
-         log.trace("#{} Variable {} = {}, condition result: {}", session.uniqueId(), fromVar, value, result);
-      }
-      return result;
+      return testVar(session, var);
    }
 
    /**

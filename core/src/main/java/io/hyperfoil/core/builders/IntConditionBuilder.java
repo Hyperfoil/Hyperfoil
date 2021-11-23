@@ -17,10 +17,6 @@ public class IntConditionBuilder<B extends IntConditionBuilder<B, P>, P> impleme
       return p1 == null ? p2 : (p2 == null ? null : new And(p1, p2));
    }
 
-   public IntConditionBuilder() {
-      this(null);
-   }
-
    public IntConditionBuilder(P parent) {
       this.parent = parent;
    }

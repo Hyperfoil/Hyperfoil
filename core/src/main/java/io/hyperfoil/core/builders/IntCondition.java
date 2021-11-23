@@ -7,18 +7,16 @@ import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.api.session.Session.VarType;
 import io.hyperfoil.core.session.SessionFactory;
 
-public class IntCondition implements Condition {
+public class IntCondition extends IntConditionBase implements Condition {
    private final ReadAccess fromVar;
    private final boolean isSet;
-   private final Predicate predicate;
 
    public IntCondition(ReadAccess fromVar, boolean isSet, Predicate predicate) {
+      super(predicate);
       this.fromVar = fromVar;
       this.isSet = isSet;
-      this.predicate = predicate;
    }
 
    @Override
@@ -28,18 +26,8 @@ public class IntCondition implements Condition {
          return !isSet;
       } else if (!isSet) {
          return false;
-      } else if (predicate == null) {
-         return true;
       }
-      int value;
-      if (var.type() == VarType.INTEGER) {
-         value = var.intValue(session);
-      } else if (var.type() == VarType.OBJECT) {
-         value = Integer.parseInt(var.objectValue(session).toString());
-      } else {
-         throw new IllegalStateException("Unknown type of var: " + var);
-      }
-      return predicate.test(session, value);
+      return testVar(session, var);
    }
 
    /**

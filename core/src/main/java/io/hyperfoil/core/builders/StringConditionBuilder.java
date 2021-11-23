@@ -6,8 +6,8 @@ import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.session.SessionFactory;
-import io.hyperfoil.impl.Util;
 import io.hyperfoil.function.SerializableBiPredicate;
+import io.hyperfoil.impl.Util;
 
 public class StringConditionBuilder<B extends StringConditionBuilder<B, P>, P> implements InitFromParam<StringConditionBuilder<B, P>>, BuilderBase<B> {
    private final P parent;
@@ -17,10 +17,6 @@ public class StringConditionBuilder<B extends StringConditionBuilder<B, P>, P> i
    private CompareMode compareMode;
    private boolean negate;
    private LengthBuilder<B, P> length;
-
-   public StringConditionBuilder() {
-      this(null);
-   }
 
    public StringConditionBuilder(P parent) {
       this.parent = parent;

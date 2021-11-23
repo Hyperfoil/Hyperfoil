@@ -169,7 +169,7 @@ public class SetAction implements Action {
       protected abstract void reset(T object);
    }
 
-   public abstract static class BaseArrayBuilder<S extends BaseArrayBuilder<S>> implements BuilderBase<BaseArrayBuilder<S>> {
+   public abstract static class BaseArrayBuilder<S extends BaseArrayBuilder<S>> implements BuilderBase<S> {
       protected final Builder parent;
       protected int size;
       protected String fromVar;
