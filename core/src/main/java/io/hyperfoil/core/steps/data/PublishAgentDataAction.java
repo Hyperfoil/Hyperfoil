@@ -1,9 +1,8 @@
 package io.hyperfoil.core.steps.data;
 
-import java.util.Objects;
-
 import org.kohsuke.MetaInfServices;
 
+import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.session.Action;
@@ -50,7 +49,12 @@ public class PublishAgentDataAction implements Action {
 
       @Override
       public PublishAgentDataAction build() {
-         return new PublishAgentDataAction(Objects.requireNonNull(name), SessionFactory.readAccess(Objects.requireNonNull(fromVar)));
+         if (name == null || name.isEmpty()) {
+            throw new BenchmarkDefinitionException("Invalid name: " + name);
+         } else if (fromVar == null) {
+            throw new BenchmarkDefinitionException("Must set 'fromVar'");
+         }
+         return new PublishAgentDataAction(name, SessionFactory.readAccess(fromVar));
       }
    }
 }

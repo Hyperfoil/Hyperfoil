@@ -4,6 +4,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.kohsuke.MetaInfServices;
 
+import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.session.Action;
@@ -87,6 +88,11 @@ public class GetSharedCounterAction implements Action, ResourceUtilizer {
 
       @Override
       public GetSharedCounterAction build() {
+         if (key == null || key.isEmpty()) {
+            throw new BenchmarkDefinitionException("Invalid key: " + key);
+         } else if (toVar == null) {
+            throw new BenchmarkDefinitionException("Must set 'toVar'");
+         }
          return new GetSharedCounterAction(key, SessionFactory.intAccess(toVar));
       }
    }

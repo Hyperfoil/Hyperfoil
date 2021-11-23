@@ -9,6 +9,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.kohsuke.MetaInfServices;
 
+import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.ListBuilder;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.config.PairBuilder;
@@ -105,6 +106,11 @@ public class PublishGlobalCountersAction implements Action {
 
       @Override
       public Action build() {
+         if (key == null || key.isEmpty()) {
+            throw new BenchmarkDefinitionException("Invalid key: " + key);
+         } else if (names.isEmpty() || vars.isEmpty()) {
+            throw new BenchmarkDefinitionException("No counters!");
+         }
          return new PublishGlobalCountersAction(key, names.toArray(new String[0]),
                vars.stream().map(SessionFactory::readAccess).toArray(ReadAccess[]::new));
       }

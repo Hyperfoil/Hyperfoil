@@ -60,7 +60,9 @@ public class PushSharedMapStep implements Step, ResourceUtilizer {
 
       @Override
       public List<Step> build() {
-         if (vars.isEmpty()) {
+         if (key == null || key.isEmpty()) {
+            throw new BenchmarkDefinitionException("Invalid key: " + key);
+         } else if (vars.isEmpty()) {
             throw new BenchmarkDefinitionException("No variables pushed for key " + key);
          }
          // While in this very step we will only read the session variables the Access instances are used

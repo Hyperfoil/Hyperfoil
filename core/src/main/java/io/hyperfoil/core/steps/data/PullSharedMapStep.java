@@ -87,7 +87,9 @@ public class PullSharedMapStep implements Step, ResourceUtilizer {
 
       @Override
       public List<Step> build() {
-         if (vars.isEmpty()) {
+         if (key == null || key.isEmpty()) {
+            throw new BenchmarkDefinitionException("Invalid key: " + key);
+         } else if (vars.isEmpty()) {
             throw new BenchmarkDefinitionException("You have to set at least one variable.");
          }
          return Collections.singletonList(new PullSharedMapStep(key, SessionFactory.objectAccess(match),

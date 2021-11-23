@@ -2,6 +2,7 @@ package io.hyperfoil.core.steps.data;
 
 import org.kohsuke.MetaInfServices;
 
+import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.session.Action;
@@ -46,6 +47,9 @@ public class ReadAgentDataAction implements Action {
 
       @Override
       public ReadAgentDataAction build() {
+         if (name == null || name.isEmpty()) {
+            throw new BenchmarkDefinitionException("Invalid key: " + name);
+         }
          return new ReadAgentDataAction(name, SessionFactory.objectAccess(toVar));
       }
    }

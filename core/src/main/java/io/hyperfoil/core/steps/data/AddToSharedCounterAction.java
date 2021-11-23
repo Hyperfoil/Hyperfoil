@@ -79,6 +79,9 @@ public class AddToSharedCounterAction implements Action, ResourceUtilizer {
 
       @Override
       public AddToSharedCounterAction build() {
+         if (key == null || key.isEmpty()) {
+            throw new BenchmarkDefinitionException("Invalid key: " + key);
+         }
          return new AddToSharedCounterAction(key, input.build());
       }
    }

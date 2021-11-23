@@ -2,6 +2,7 @@ package io.hyperfoil.core.steps.data;
 
 import org.kohsuke.MetaInfServices;
 
+import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Embed;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.session.Action;
@@ -54,6 +55,9 @@ public class SetSharedCounterAction implements Action, ResourceUtilizer {
 
       @Override
       public SetSharedCounterAction build() {
+         if (key == null || key.isEmpty()) {
+            throw new BenchmarkDefinitionException("Invalid key: " + key);
+         }
          return new SetSharedCounterAction(key, input.build());
       }
    }
