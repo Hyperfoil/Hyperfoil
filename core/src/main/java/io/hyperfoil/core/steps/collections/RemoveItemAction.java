@@ -34,7 +34,7 @@ public class RemoveItemAction implements Action {
          }
          vars[lastIndex].unset();
       } else {
-         session.fail(new IllegalStateException("Variable " + fromVar + " should contain a writable array."));
+         throw new IllegalStateException("Variable " + fromVar + " should contain a writable array.");
       }
    }
 

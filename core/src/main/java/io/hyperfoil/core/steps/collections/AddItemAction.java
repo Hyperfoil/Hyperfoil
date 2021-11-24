@@ -29,8 +29,7 @@ public class AddItemAction implements Action {
    @Override
    public void run(Session session) {
       if (!toVar.isSet(session)) {
-         log.error("#{}: Destination variable {} is not set (should contain array)", session.uniqueId(), toVar);
-         return;
+         throw new IllegalStateException("Destination variable " + toVar + " is not set (should contain array)");
       }
       Object item = this.item.apply(session);
       Object dest = toVar.getObject(session);
@@ -44,7 +43,7 @@ public class AddItemAction implements Action {
          }
          log.warn("#{} The array in variable {} is full ({} items), cannot add {}", session.uniqueId(), toVar, array.length, item);
       } else {
-         log.error("#{} Variable {} should contain ObjectVar array but it contains {}", session.uniqueId(), toVar, dest);
+         throw new IllegalStateException("Variable " + toVar + " should contain ObjectVar array but it contains " + dest);
       }
    }
 
