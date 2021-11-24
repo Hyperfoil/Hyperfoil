@@ -11,21 +11,24 @@ import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.ThreadData;
 import io.hyperfoil.core.builders.IntSourceBuilder;
+import io.hyperfoil.function.SerializableLongBinaryOperator;
 import io.hyperfoil.function.SerializableToIntFunction;
 
 public class AddToSharedCounterAction implements Action, ResourceUtilizer {
    private final String key;
    private final SerializableToIntFunction<Session> input;
+   private final SerializableLongBinaryOperator operator;
 
-   public AddToSharedCounterAction(String key, SerializableToIntFunction<Session> input) {
+   public AddToSharedCounterAction(String key, SerializableToIntFunction<Session> input, SerializableLongBinaryOperator operator) {
       this.key = key;
       this.input = input;
+      this.operator = operator;
    }
 
    @Override
    public void run(Session session) {
       ThreadData.SharedCounter counter = session.threadData().getCounter(key);
-      counter.add(input.applyAsInt(session));
+      counter.apply(operator, input.applyAsInt(session));
    }
 
    @Override
@@ -40,6 +43,7 @@ public class AddToSharedCounterAction implements Action, ResourceUtilizer {
    @Name("addToSharedCounter")
    public static class Builder implements Action.Builder, InitFromParam<Builder> {
       private String key;
+      private Operator operator = Operator.ADD;
       @Embed
       public IntSourceBuilder<Builder> input = new IntSourceBuilder<>(this);
 
@@ -77,12 +81,27 @@ public class AddToSharedCounterAction implements Action, ResourceUtilizer {
          return this;
       }
 
+      public Builder operator(Operator operator) {
+         this.operator = operator;
+         return this;
+      }
+
       @Override
       public AddToSharedCounterAction build() {
          if (key == null || key.isEmpty()) {
             throw new BenchmarkDefinitionException("Invalid key: " + key);
          }
-         return new AddToSharedCounterAction(key, input.build());
+         return new AddToSharedCounterAction(key, input.build(), operator.operator);
+      }
+   }
+
+   public enum Operator {
+      ADD(Long::sum),
+      SUBTRACT((a, b) -> a - b);
+      final SerializableLongBinaryOperator operator;
+
+      Operator(SerializableLongBinaryOperator operator) {
+         this.operator = operator;
       }
    }
 }

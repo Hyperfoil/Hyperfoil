@@ -4,6 +4,7 @@ import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Embed;
+import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.ResourceUtilizer;
@@ -37,10 +38,15 @@ public class SetSharedCounterAction implements Action, ResourceUtilizer {
     */
    @MetaInfServices(Action.Builder.class)
    @Name("setSharedCounter")
-   public static class Builder implements Action.Builder {
+   public static class Builder implements Action.Builder, InitFromParam<Builder> {
       private String key;
       @Embed
       public IntSourceBuilder<Builder> input = new IntSourceBuilder<>(this);
+
+      @Override
+      public Builder init(String param) {
+         return key(param).input.fromVar(param).end();
+      }
 
       /**
        * Identifier for the counter.

@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
+import java.util.function.LongBinaryOperator;
 
 import io.hyperfoil.api.session.ThreadData;
 
@@ -379,8 +380,8 @@ public class ThreadDataImpl implements ThreadData {
       }
 
       @Override
-      public long add(long value) {
-         this.value += value;
+      public long apply(LongBinaryOperator operator, long value) {
+         this.value = operator.applyAsLong(this.value, value);
          return this.value;
       }
    }

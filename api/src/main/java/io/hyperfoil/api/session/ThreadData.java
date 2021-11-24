@@ -1,5 +1,7 @@
 package io.hyperfoil.api.session;
 
+import java.util.function.LongBinaryOperator;
+
 /**
  * Data shared among sessions bound to the same {@link Session#executor() executor thread}.
  */
@@ -51,6 +53,6 @@ public interface ThreadData {
        * @param value Number.
        * @return Sum of previous value and the parameter.
        */
-      long add(long value);
+      long apply(LongBinaryOperator operator, long value);
    }
 }
