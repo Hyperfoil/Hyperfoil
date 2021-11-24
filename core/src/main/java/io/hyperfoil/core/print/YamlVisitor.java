@@ -28,15 +28,16 @@ import io.hyperfoil.impl.ReflectionAcceptor;
 public class YamlVisitor implements Visitor {
    private static final Class<?> BYTE_ARRAY = byte[].class;
    private static final Class<?> CHAR_ARRAY = char[].class;
-   private static final int MAX_COLLECTION_SIZE = 20;
+   private int maxCollectionSize = 20;
    private int indent = 0;
    private boolean skipIndent = false;
    private boolean addLine = false;
    private final PrintStream stream;
    private Stack<Object> path = new Stack<>();
 
-   public YamlVisitor(PrintStream stream) {
+   public YamlVisitor(PrintStream stream, int maxCollectionSize) {
       this.stream = stream;
+      this.maxCollectionSize = maxCollectionSize;
    }
 
    public void walk(Benchmark benchmark) {
@@ -154,8 +155,16 @@ public class YamlVisitor implements Visitor {
          stream.println("[]");
       } else {
          stream.println();
-         for (int i = 0; i < length; ++i) {
+         if (length > maxCollectionSize) {
+            printIndent();
+            stream.printf("# Array has %d elements, printing first %d...%n", length, maxCollectionSize);
+         }
+         for (int i = 0; i < Math.min(length, maxCollectionSize); ++i) {
             printItem(Array.get(value, i), cls.getComponentType());
+         }
+         if (length > maxCollectionSize) {
+            printIndent();
+            stream.printf("# ... another %d/%d elements were truncated.%n", length - maxCollectionSize, length);
          }
       }
    }
@@ -173,21 +182,21 @@ public class YamlVisitor implements Visitor {
          stream.println("[]");
       } else {
          int size = collection.size();
-         if (size > MAX_COLLECTION_SIZE) {
-            printIndent();
-            stream.printf("# Collection has %d elements, printing first %d...%n", size, MAX_COLLECTION_SIZE);
-         }
          stream.println();
+         if (size > maxCollectionSize) {
+            printIndent();
+            stream.printf("# Collection has %d elements, printing first %d...%n", size, maxCollectionSize);
+         }
          int counter = 0;
          for (Object item : collection) {
             printItem(item, itemType);
-            if (counter++ >= MAX_COLLECTION_SIZE) {
+            if (counter++ >= maxCollectionSize) {
                break;
             }
          }
-         if (size > MAX_COLLECTION_SIZE) {
+         if (size > maxCollectionSize) {
             printIndent();
-            stream.printf("# Collection has %d elements, truncated %d elements...%n", size, size - MAX_COLLECTION_SIZE);
+            stream.printf("# ... another %d/%d elements were truncated.%n", size - maxCollectionSize, size);
          }
       }
    }

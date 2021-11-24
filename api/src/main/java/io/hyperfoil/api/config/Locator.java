@@ -86,25 +86,7 @@ public interface Locator {
          }
          if (step != null) {
             sb.append(", step ");
-            Class<?> builderClass = step.getClass();
-            if (step instanceof StepBuilder.ActionAdapter) {
-               builderClass = ((StepBuilder.ActionAdapter) step).builder.getClass();
-            }
-            Name nameAnnotation = builderClass.getAnnotation(Name.class);
-            if (nameAnnotation != null) {
-               sb.append(nameAnnotation.value());
-            } else {
-               if ("Builder".equals(builderClass.getSimpleName()) && builderClass.getEnclosingClass() != null) {
-                  builderClass = builderClass.getEnclosingClass();
-               }
-               String name = builderClass.getSimpleName();
-               if (name.endsWith("Step")) {
-                  name = name.substring(0, name.length() - 4);
-               } else if (name.endsWith("Action")) {
-                  name = name.substring(0, name.length() - 6);
-               }
-               sb.append(name);
-            }
+            sb.append(StepBuilder.nameOf(step));
             int stepIndex = sequence.indexOf(step);
             if (stepIndex >= 0) {
                sb.append(" (").append(stepIndex).append("/").append(sequence.size()).append(")");
@@ -112,5 +94,6 @@ public interface Locator {
          }
          return sb.toString();
       }
+
    }
 }

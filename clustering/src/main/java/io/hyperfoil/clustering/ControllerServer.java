@@ -74,6 +74,7 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.FaviconHandler;
 import io.vertx.ext.web.handler.StaticHandler;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -256,9 +257,9 @@ class ControllerServer implements ApiService {
       var loadDirProperty = Properties.get(Properties.LOAD_DIR, null);
       if (loadDirProperty == null) {
          log.error("Loading controller local benchmarks is not enabled, set the {} property to enable.",
-                 Properties.LOAD_DIR);
+               Properties.LOAD_DIR);
          ctx.response().setStatusCode(HttpResponseStatus.SERVICE_UNAVAILABLE.code()).
-                 end("Loading controller local benchmarks is not enabled.");
+               end("Loading controller local benchmarks is not enabled.");
          return;
       }
       var loadDirPath = Paths.get(loadDirProperty).toAbsolutePath();
@@ -270,17 +271,17 @@ class ControllerServer implements ApiService {
       }
       // text/uri-list ignores
       var uris = source.lines()
-              .map(String::trim)
-              .filter(Predicate.not(String::isEmpty))
-              .filter(Predicate.not(l -> l.startsWith("#")))
-              .flatMap(l -> {
-                 try {
-                    return Stream.of(new URI(l));
-                 } catch (URISyntaxException e) {
-                    return Stream.empty();
-                 }
-              })
-              .collect(Collectors.toList());
+            .map(String::trim)
+            .filter(Predicate.not(String::isEmpty))
+            .filter(Predicate.not(l -> l.startsWith("#")))
+            .flatMap(l -> {
+               try {
+                  return Stream.of(new URI(l));
+               } catch (URISyntaxException e) {
+                  return Stream.empty();
+               }
+            })
+            .collect(Collectors.toList());
       if (uris.isEmpty()) {
          log.error("No Benchmark URIs specified, load failed.");
          ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end("No Benchmark URIs specified.");
@@ -305,8 +306,8 @@ class ControllerServer implements ApiService {
       }
       try {
          BenchmarkBuilder builder = BenchmarkParser.instance().builder(
-                 Files.readString(localPath),
-                 new LocalBenchmarkData(localPath)
+               Files.readString(localPath),
+               new LocalBenchmarkData(localPath)
          );
          if (storedFilesBenchmark != null) {
             storedFilesBenchmark = PersistedBenchmarkData.sanitize(storedFilesBenchmark);
@@ -505,11 +506,11 @@ class ControllerServer implements ApiService {
    }
 
    @Override
-   public void getBenchmarkStructure(RoutingContext ctx, String name) {
+   public void getBenchmarkStructure(RoutingContext ctx, String name, int maxCollectionSize) {
       withBenchmark(ctx, name, benchmark -> {
          ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
          try (PrintStream stream = new PrintStream(byteStream)) {
-            new YamlVisitor(stream).walk(benchmark);
+            new YamlVisitor(stream, maxCollectionSize).walk(benchmark);
          }
          ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_YAML).end(Buffer.buffer(byteStream.toByteArray()));
       });

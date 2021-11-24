@@ -14,13 +14,16 @@ public class Inspect extends BenchmarkCommand {
    @Option(name = "pager", shortName = 'p', description = "Pager used.")
    private String pager;
 
+   @Option(name = "max-collection-size", shortName = 'm', description = "Maximum printed size for collections and arrays.")
+   private Integer maxCollectionSize;
+
    @Override
    public CommandResult execute(HyperfoilCommandInvocation invocation) throws CommandException, InterruptedException {
       ensureConnection(invocation);
       String structure;
       try {
          Client.BenchmarkRef benchmarkRef = ensureBenchmark(invocation);
-         structure = benchmarkRef.structure();
+         structure = benchmarkRef.structure(maxCollectionSize);
       } catch (RestClientException e) {
          invocation.error(e);
          throw new CommandException("Cannot get benchmark " + benchmark);

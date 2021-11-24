@@ -122,9 +122,10 @@ class BenchmarkRefImpl implements Client.BenchmarkRef {
    }
 
    @Override
-   public String structure() {
+   public String structure(Integer maxCollectionSize) {
       return client.sync(
-            handler -> client.request(HttpMethod.GET, "/benchmark/" + encode(name) + "/structure")
+            handler -> client.request(HttpMethod.GET, "/benchmark/" + encode(name) + "/structure" +
+                  (maxCollectionSize == null ? "" : "?maxCollectionSize=" + maxCollectionSize))
                   .putHeader(HttpHeaders.ACCEPT.toString(), "text/vnd.yaml")
                   .send(handler), 200,
             HttpResponse::bodyAsString);

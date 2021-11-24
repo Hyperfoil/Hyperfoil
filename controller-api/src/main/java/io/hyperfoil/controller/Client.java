@@ -52,7 +52,7 @@ public interface Client {
 
       RunRef start(String description);
 
-      String structure();
+      String structure(Integer maxCollectionSize);
    }
 
    class BenchmarkSource {

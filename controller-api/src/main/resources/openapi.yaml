@@ -172,6 +172,11 @@ paths:
         allowEmptyValue: false
         schema:
           type: string
+      - in: query
+        name: maxCollectionSize
+        schema:
+          type: integer
+          default: 20
       responses:
         '200':
           description: Benchmark structure.

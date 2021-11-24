@@ -4,6 +4,7 @@ import java.util.function.Consumer;
 
 import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.Step;
+import io.hyperfoil.api.config.StepBuilder;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
@@ -25,13 +26,13 @@ public class SequenceInstance {
       while (currentStep < steps.length) {
          Step step = steps[currentStep];
          if (trace) {
-            log.trace("#{} {}[{}] invoking step {}", session.uniqueId(), sequence.name(), index, step);
+            log.trace("#{} {}[{}] invoking step {}", session.uniqueId(), sequence.name(), index, StepBuilder.nameOf(step));
          }
          session.currentSequence(this);
          try {
             if (!step.invoke(session)) {
                if (trace) {
-                  log.trace("#{} {}[{}] step {} is blocked", session.uniqueId(), sequence.name(), index, step);
+                  log.trace("#{} {}[{}] step {} is blocked", session.uniqueId(), sequence.name(), index, StepBuilder.nameOf(step));
                }
                if (currentStep >= steps.length) {
                   log.warn("#{} Last step reported being blocked but it has also interrupted the sequence.", session.uniqueId());
@@ -46,7 +47,7 @@ public class SequenceInstance {
             // just rethrow
             throw e;
          } catch (Throwable t) {
-            log.error(new FormattedMessage("#{} {}[{}] failure invoking step {}", session.uniqueId(), sequence.name(), index, step), t);
+            log.error(new FormattedMessage("#{} {}[{}] failure invoking step {}", session.uniqueId(), sequence.name(), index, StepBuilder.nameOf(step)), t);
             session.fail(t);
             return false;
          } finally {

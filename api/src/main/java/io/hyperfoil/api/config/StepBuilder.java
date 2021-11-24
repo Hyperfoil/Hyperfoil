@@ -35,6 +35,52 @@ import io.hyperfoil.api.session.Session;
 )
 public interface StepBuilder<S extends StepBuilder<S>> extends BuilderBase<S> {
 
+   static String nameOf(StepBuilder<?> builder) {
+      Class<?> builderClass = builder.getClass();
+      if (builder instanceof ActionAdapter) {
+         builderClass = ((ActionAdapter) builder).builder.getClass();
+      }
+      Name nameAnnotation = builderClass.getAnnotation(Name.class);
+      if (nameAnnotation != null) {
+         return nameAnnotation.value();
+      } else {
+         if ("Builder".equals(builderClass.getSimpleName()) && builderClass.getEnclosingClass() != null) {
+            return simpleName(builderClass.getEnclosingClass());
+         } else {
+            return simpleName(builderClass);
+         }
+      }
+   }
+
+   static String nameOf(Step step) {
+      if (step == null) {
+         return null;
+      }
+      Object instance = step;
+      if (step instanceof ActionStep) {
+         instance = ((ActionStep) step).action;
+      }
+      Class<?> instanceClass = instance.getClass();
+      for (Class<?> maybeBuilder : instanceClass.getClasses()) {
+         if ("Builder".equals(maybeBuilder.getSimpleName()) && maybeBuilder.isAnnotationPresent(Name.class)) {
+            return maybeBuilder.getAnnotation(Name.class).value();
+         }
+      }
+      return simpleName(instanceClass);
+   }
+
+   private static String simpleName(Class<?> builderClass) {
+      String name = builderClass.getSimpleName();
+      name = Character.toLowerCase(name.charAt(0)) + name.substring(1);
+      if (name.endsWith("Step")) {
+         return name.substring(0, name.length() - 4);
+      } else if (name.endsWith("Action")) {
+         return name.substring(0, name.length() - 6);
+      } else {
+         return name;
+      }
+   }
+
    List<Step> build();
 
    default int id() {
