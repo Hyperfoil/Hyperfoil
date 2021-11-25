@@ -104,8 +104,10 @@ public class GlobalDataImpl implements GlobalData {
       }
 
       public synchronized Map<String, GlobalData.Element> extract() {
-         return accumulators.entrySet().stream()
+         Map<String, Element> newData = accumulators.entrySet().stream()
                .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().complete()));
+         accumulators.clear();
+         return newData;
       }
    }
 

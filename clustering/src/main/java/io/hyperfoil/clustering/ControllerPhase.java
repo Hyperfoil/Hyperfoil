@@ -77,6 +77,7 @@ public class ControllerPhase {
          return;
       }
       for (var entry : data.entrySet()) {
+         log.debug("Received global data {} -> {}", entry.getKey(), entry.getValue());
          GlobalData.Accumulator accumulator = globalData.get(entry.getKey());
          if (accumulator == null) {
             globalData.put(entry.getKey(), accumulator = entry.getValue().newAccumulator());

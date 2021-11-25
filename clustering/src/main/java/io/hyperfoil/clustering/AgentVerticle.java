@@ -236,6 +236,7 @@ public class AgentVerticle extends AbstractVerticle {
 
       runner.setControllerListener((phase, status, sessionLimitExceeded, error, globalData) -> {
          log.debug("{} changed phase {} to {}", deploymentId, phase, status);
+         log.debug("New global data is {}", globalData);
          String cpuUsage = runner.getCpuUsage(phase.name());
          eb.send(Feeds.RESPONSE, new PhaseChangeMessage(deploymentId, runId, phase.name(), status, sessionLimitExceeded, cpuUsage, error, globalData));
          if (status == PhaseInstance.Status.TERMINATED) {
