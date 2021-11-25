@@ -78,6 +78,11 @@ public class MetaRefreshHandler implements HtmlHandler.TagHandler {
          refresh.reset();
          valueBuffer.clear();
       }
+
+      @Override
+      public void destroy() {
+         valueBuffer.release();
+      }
    }
 
    public static class Builder implements HtmlHandler.TagHandlerBuilder<Builder> {

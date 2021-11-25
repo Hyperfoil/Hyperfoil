@@ -135,6 +135,8 @@ public interface Session extends Callable<Void> {
 
    interface Resource {
       default void onSessionReset(Session session) {}
+
+      default void destroy() {}
    }
 
    interface ResourceKey<R extends Resource> extends Serializable {}

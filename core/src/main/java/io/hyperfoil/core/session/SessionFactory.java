@@ -135,4 +135,8 @@ public final class SessionFactory {
       }
       return maxConcurrency;
    }
+
+   public static void destroy(Session session) {
+      ((SessionImpl) session).destroy();
+   }
 }

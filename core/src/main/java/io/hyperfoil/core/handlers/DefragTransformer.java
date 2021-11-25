@@ -62,5 +62,12 @@ public class DefragTransformer extends Transformer.BaseDelegating implements Res
          composite.readerIndex(composite.writerIndex());
          composite.discardReadComponents();
       }
+
+      @Override
+      public void destroy() {
+         if (composite != null) {
+            composite.release();
+         }
+      }
    }
 }

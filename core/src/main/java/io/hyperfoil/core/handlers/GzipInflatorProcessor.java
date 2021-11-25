@@ -79,6 +79,11 @@ public class GzipInflatorProcessor extends MultiProcessor implements ResourceUti
          nioOutput = output.nioBuffer();
       }
 
+      @Override
+      public void destroy() {
+         output.release();
+      }
+
       public void process(Session session, ByteBuf data, int offset, int length) {
          int read;
          while (length > 0) {

@@ -242,6 +242,13 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
          handlerCtx = Stream.of(handlers).map(TagHandler::newContext).toArray(HandlerContext[]::new);
       }
 
+      @Override
+      public void destroy() {
+         for (HandlerContext ctx : handlerCtx) {
+            ctx.destroy();
+         }
+      }
+
       void onTag(Session session, ByteBuf data, int tagEnd, boolean isLast) {
          assert tagStart >= 0;
          scriptMatch.shift(data, tagStart, tagEnd - tagStart, isLast, SCRIPT);
@@ -316,6 +323,8 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
        * @param closing Set to true if this is closing or self-closing tag.
        */
       void endTag(Session session, boolean closing);
+
+      void destroy();
    }
 
    /**
@@ -438,6 +447,11 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
             trieState.reset();
             tagMatched = -1;
             attrMatchedIndex = -1;
+         }
+
+         @Override
+         public void destroy() {
+            valueBuffer.release();
          }
       }
    }

@@ -165,6 +165,13 @@ public class ChunkedTransferTest extends HttpScenarioTest {
             super.channelRead(ctx, msg);
          }
       }
+
+      @Override
+      public void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
+         if (composite != null) {
+            composite.release();
+         }
+      }
    }
 
    private static class RandomLengthDecoder extends ChannelInboundHandlerAdapter {

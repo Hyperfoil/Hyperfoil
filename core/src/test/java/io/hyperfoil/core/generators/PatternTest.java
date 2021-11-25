@@ -115,5 +115,6 @@ public class PatternTest {
       buf.readBytes(bytes);
       String bufString = new String(bytes, StandardCharsets.UTF_8);
       assertThat(bufString).isEqualTo(expected);
+      buf.release();
    }
 }

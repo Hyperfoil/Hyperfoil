@@ -208,6 +208,12 @@ public abstract class JsonParser implements Serializable {
          replaceBuffer.clear();
       }
 
+      @Override
+      public void destroy() {
+         replaceBuffer.release();
+         stream.reset();
+      }
+
       private Selector.Context current() {
          return selectorContext[selector];
       }

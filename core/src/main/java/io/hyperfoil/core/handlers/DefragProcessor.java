@@ -66,5 +66,12 @@ public class DefragProcessor extends Processor.BaseDelegating implements Resourc
          composite.readerIndex(composite.writerIndex());
          composite.discardReadComponents();
       }
+
+      @Override
+      public void destroy() {
+         if (composite != null) {
+            composite.release();
+         }
+      }
    }
 }

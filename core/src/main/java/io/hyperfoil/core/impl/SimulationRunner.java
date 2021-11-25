@@ -262,6 +262,9 @@ public class SimulationRunner {
          plugin.shutdown();
       }
       eventLoopGroup.shutdownGracefully(0, 10, TimeUnit.SECONDS);
+      for (Session session : sessions) {
+         SessionFactory.destroy(session);
+      }
    }
 
    public void visitSessions(Consumer<Session> consumer) {

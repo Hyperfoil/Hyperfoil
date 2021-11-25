@@ -121,20 +121,23 @@ class EmbeddedResourceProcessor extends Processor.BaseDelegating {
          }
          if (delegate != null) {
             ByteBuf buffer = ByteBufAllocator.DEFAULT.buffer(request.path.length() + length);
-            Util.string2byteBuf(request.path, buffer);
-            for (int i = buffer.writerIndex() - 1; i >= 0; --i) {
-               if (buffer.getByte(i) == '/') {
-                  buffer.writerIndex(i + 1);
-                  break;
+            try {
+               Util.string2byteBuf(request.path, buffer);
+               for (int i = buffer.writerIndex() - 1; i >= 0; --i) {
+                  if (buffer.getByte(i) == '/') {
+                     buffer.writerIndex(i + 1);
+                     break;
+                  }
                }
+               buffer.ensureWritable(length);
+               buffer.writeBytes(data, offset, length);
+               if (trace) {
+                  log.trace("#{} Rewritten relative URL to {}", session.uniqueId(), Util.toString(buffer, buffer.readerIndex(), buffer.readableBytes()));
+               }
+               delegate.process(session, buffer, buffer.readerIndex(), buffer.readableBytes(), true);
+            } finally {
+               buffer.release();
             }
-            buffer.ensureWritable(length);
-            buffer.writeBytes(data, offset, length);
-            if (trace) {
-               log.trace("#{} Rewritten relative URL to {}", session.uniqueId(), Util.toString(buffer, buffer.readerIndex(), buffer.readableBytes()));
-            }
-            delegate.process(session, buffer, buffer.readerIndex(), buffer.readableBytes(), true);
-            buffer.release();
          }
       }
    }

@@ -529,4 +529,9 @@ class SessionImpl implements Session {
       return sb.toString();
    }
 
+   public void destroy() {
+      for (var resource : allResources) {
+         resource.destroy();
+      }
+   }
 }
