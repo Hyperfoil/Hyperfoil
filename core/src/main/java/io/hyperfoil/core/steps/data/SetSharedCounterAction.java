@@ -43,6 +43,10 @@ public class SetSharedCounterAction implements Action, ResourceUtilizer {
       @Embed
       public IntSourceBuilder<Builder> input = new IntSourceBuilder<>(this);
 
+      /**
+       * @param param Both the name of the counter and variable name.
+       * @return Self.
+       */
       @Override
       public Builder init(String param) {
          return key(param).input.fromVar(param).end();

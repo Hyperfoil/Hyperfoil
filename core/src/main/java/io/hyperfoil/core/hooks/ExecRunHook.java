@@ -52,11 +52,25 @@ public class ExecRunHook extends RunHook {
       }
    }
 
+   /**
+    * Executes provided command in shell. You can use these environment variables:
+    * <ul>
+    * <li>RUN_ID
+    * <li>RUN_DIR
+    * <li>RUN_DESCRIPTION
+    * <li>BENCHMARK
+    * <li>BENCHMARK_PATH
+    * </ul>
+    */
    @MetaInfServices(RunHook.Builder.class)
    @Name("exec")
    public static class Builder implements RunHook.Builder, InitFromParam<Builder> {
       private String cmd;
 
+      /**
+       * @param param Command to run in shell.
+       * @return Self.
+       */
       @Override
       public Builder init(String param) {
          this.cmd = param;

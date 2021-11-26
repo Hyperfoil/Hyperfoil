@@ -24,22 +24,42 @@ public class ReadAgentDataAction implements Action {
       session.agentData().pull(session, name, toVar);
    }
 
+   /**
+    * Reads data from agent-wide scope into session variable. The data must be published in a phase that has terminated
+    * before this phase starts: usually this is achieved using the <code>startAfterStrict</code> property on the phase.
+    */
    @MetaInfServices(Action.Builder.class)
    @Name("readAgentData")
    public static class Builder implements Action.Builder, InitFromParam<Builder> {
       private String name;
       private String toVar;
 
+      /**
+       * @param param Both the identifier and destination session variable.
+       * @return Self.
+       */
       @Override
       public Builder init(String param) {
          return name(param).toVar(param);
       }
 
+      /**
+       * Unique identifier for the data.
+       *
+       * @param name Identifier.
+       * @return Self.
+       */
       public Builder name(String name) {
          this.name = name;
          return this;
       }
 
+      /**
+       * Destination session variable name.
+       *
+       * @param toVar Variable name.
+       * @return Self.
+       */
       public Builder toVar(String toVar) {
          this.toVar = toVar;
          return this;

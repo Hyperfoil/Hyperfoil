@@ -38,7 +38,7 @@ public class CountRecorder implements Processor {
       private String toVar;
 
       /**
-       * @param param Name of variable for the number of occurences.
+       * @param param Name of variable for the number of occurrences.
        * @return Self.
        */
       @Override

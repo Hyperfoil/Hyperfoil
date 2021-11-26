@@ -26,22 +26,41 @@ public class PublishAgentDataAction implements Action {
       session.agentData().push(session, name, object);
    }
 
+   /**
+    * Makes the data available to all sessions in the same agent, including those using different executors.
+    */
    @MetaInfServices(Action.Builder.class)
    @Name("publishAgentData")
    public static class Builder implements Action.Builder, InitFromParam<Builder> {
       private String name;
       private String fromVar;
 
+      /**
+       * @param param Both name of source variable and the key used to read the data.
+       * @return Self.
+       */
       @Override
       public Builder init(String param) {
          return name(param).fromVar(param);
       }
 
+      /**
+       * Arbitrary unique identifier for the data.
+       *
+       * @param name Identifier.
+       * @return Self.
+       */
       public Builder name(String name) {
          this.name = name;
          return this;
       }
 
+      /**
+       * Source session variable name.
+       *
+       * @param fromVar Variable name.
+       * @return Self.
+       */
       public Builder fromVar(String fromVar) {
          this.fromVar = fromVar;
          return this;

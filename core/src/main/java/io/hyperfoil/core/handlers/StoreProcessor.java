@@ -50,6 +50,10 @@ public class StoreProcessor implements Processor {
       private Object toVar;
       private DataFormat format = DataFormat.STRING;
 
+      /**
+       * @param param Variable name.
+       * @return Self.
+       */
       @Override
       public Builder init(String param) {
          this.toVar = param;

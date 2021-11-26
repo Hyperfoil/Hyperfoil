@@ -141,6 +141,7 @@ public class DocsGenerator extends BaseGenerator {
       for (Map.Entry<String, List<Docs>> entry : docs.get(builderClazz).params.entrySet()) {
          Path filePath = output.resolve(type + "_" + entry.getKey() + ".md");
          try (PrintStream out = new PrintStream(new FileOutputStream(filePath.toFile()))) {
+            out.println("---\n---");
             out.printf("# %s%n%n", entry.getKey());
             printDocs(entry.getValue().iterator().next(), out);
          } catch (FileNotFoundException e) {

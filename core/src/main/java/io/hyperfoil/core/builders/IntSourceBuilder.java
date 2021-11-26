@@ -27,6 +27,10 @@ public class IntSourceBuilder<P> implements BuilderBase<IntSourceBuilder<P>>, In
       return parent;
    }
 
+   /**
+    * @param param Uses the argument as a constant value.
+    * @return Self.
+    */
    @Override
    public IntSourceBuilder<P> init(String param) {
       try {
@@ -79,8 +83,8 @@ public class IntSourceBuilder<P> implements BuilderBase<IntSourceBuilder<P>>, In
          return item;
       }
 
+      @SuppressWarnings("unchecked")
       public SerializableToIntFunction<Session>[] build() {
-         //noinspection unchecked
          return list.stream().map(IntSourceBuilder::build).toArray(SerializableToIntFunction[]::new);
       }
    }

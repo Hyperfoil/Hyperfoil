@@ -53,6 +53,10 @@ public class CollectionRecorder implements Processor {
       private String toVar;
       private DataFormat format = DataFormat.STRING;
 
+      /**
+       * @param param Variable name to store the list.
+       * @return Self.
+       */
       @Override
       public Builder init(String param) {
          return toVar(param);

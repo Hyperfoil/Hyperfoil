@@ -47,6 +47,11 @@ public class AddToSharedCounterAction implements Action, ResourceUtilizer {
       @Embed
       public IntSourceBuilder<Builder> input = new IntSourceBuilder<>(this);
 
+      /**
+       * @param param Use on of: <code>counter++</code>, <code>counter--</code>, <code>counter += &lt;value&gt;</code>,
+       *              <code>counter -= &lt;value&gt;</code>
+       * @return
+       */
       @Override
       public Builder init(String param) {
          param = param.trim();
@@ -81,6 +86,12 @@ public class AddToSharedCounterAction implements Action, ResourceUtilizer {
          return this;
       }
 
+      /**
+       * Operation to perform on the counter. Default is <code>ADD</code>.
+       *
+       * @param operator The operator.
+       * @return Self.
+       */
       public Builder operator(Operator operator) {
          this.operator = operator;
          return this;

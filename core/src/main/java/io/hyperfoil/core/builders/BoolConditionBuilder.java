@@ -17,6 +17,10 @@ public class BoolConditionBuilder<B extends BoolConditionBuilder<B, P>, P> imple
       return (B) this;
    }
 
+   /**
+    * @param param Empty or <code>true</code> for true, <code>false</code> for false.
+    * @return Self.
+    */
    @Override
    public B init(String param) {
       if (param.isEmpty()) {

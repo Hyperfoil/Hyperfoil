@@ -37,13 +37,13 @@ public class RandomUUIDStep implements Step {
    public static class Builder extends BaseStepBuilder<Builder> implements InitFromParam<Builder> {
       private String toVar;
 
+      /**
+       * @param toVar Variable name to store the result.
+       * @return
+       */
       @Override
-      public Builder init(String rangeToVar) {
-         if (rangeToVar == null) {
-            return this;
-         }
-         toVar = rangeToVar.trim();
-         return this;
+      public Builder init(String toVar) {
+         return toVar(toVar);
       }
 
       /**

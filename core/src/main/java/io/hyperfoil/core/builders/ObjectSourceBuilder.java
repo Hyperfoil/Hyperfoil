@@ -21,9 +21,7 @@ public class ObjectSourceBuilder<P> implements BuilderBase<ObjectSourceBuilder<P
    }
 
    /**
-    * Verbatim value.
-    *
-    * @param param String value.
+    * @param param Verbatim value.
     * @return Self.
     */
    @Override
