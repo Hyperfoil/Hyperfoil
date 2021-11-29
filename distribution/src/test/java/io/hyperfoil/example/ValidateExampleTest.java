@@ -98,9 +98,9 @@ public class ValidateExampleTest {
       Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(loadOrFail(), new LocalBenchmarkData(Paths.get(exampleFile)));
       ByteArrayOutputStream output = new ByteArrayOutputStream();
       try (PrintStream stream = new PrintStream(output, false, StandardCharsets.UTF_8.name())) {
-         new YamlVisitor(stream).walk(benchmark);
+         new YamlVisitor(stream, 20).walk(benchmark);
       }
-      String str = new String(output.toByteArray(), StandardCharsets.UTF_8);
+      String str = output.toString(StandardCharsets.UTF_8);
       // We want the common stuff properly named
       assertThat(str).doesNotContain("<recursion detected>");
       assertThat(str).doesNotContain("<lambda>");
