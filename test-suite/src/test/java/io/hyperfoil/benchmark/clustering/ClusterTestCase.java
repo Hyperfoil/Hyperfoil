@@ -94,8 +94,8 @@ public class ClusterTestCase extends BaseClusteredTest {
    }
 
    @Test(timeout = 120_000)
-   public void startClusteredBenchmarkTest(TestContext ctx) throws IOException, InterruptedException {
-      WebClientOptions options = new WebClientOptions().setDefaultHost("localhost").setDefaultPort(8090);
+   public void startClusteredBenchmarkTest(TestContext ctx) {
+      WebClientOptions options = new WebClientOptions().setDefaultHost("localhost").setDefaultPort(controllerPort);
       WebClient client = WebClient.create(this.vertx, options.setFollowRedirects(false));
       Async termination = ctx.async();
 
@@ -108,7 +108,7 @@ public class ClusterTestCase extends BaseClusteredTest {
       Promise<HttpResponse<Buffer>> benchmarkPromise = Promise.promise();
       uploadPromise.future().onSuccess(response -> {
          ctx.assertEquals(response.statusCode(), 204);
-         ctx.assertEquals(response.getHeader(HttpHeaders.LOCATION.toString()), "http://localhost:8090/benchmark/test");
+         ctx.assertEquals(response.getHeader(HttpHeaders.LOCATION.toString()), "http://localhost:" + controllerPort + "/benchmark/test");
          // list benchmarks
          client.get("/benchmark").send(ctx.asyncAssertSuccess(benchmarkPromise::complete));
       });
