@@ -26,6 +26,7 @@ import io.hyperfoil.clustering.messages.DelayStatsCompletionMessage;
 import io.hyperfoil.clustering.messages.ErrorMessage;
 import io.hyperfoil.clustering.messages.PhaseChangeMessage;
 import io.hyperfoil.clustering.messages.PhaseControlMessage;
+import io.hyperfoil.clustering.messages.PhaseStatsCompleteMessage;
 import io.hyperfoil.clustering.messages.RequestStatsMessage;
 import io.hyperfoil.clustering.messages.SessionStatsMessage;
 import io.hyperfoil.clustering.messages.StatsMessage;
@@ -188,20 +189,20 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                      run.errors.add(new Run.Error(null, new BenchmarkExecutionException(errorMessage)));
                   }
                }
-               if (rsm.isPhaseComplete) {
-                  log.debug("Run {}: Received stats completion for phase {} from {}", run.id, phase, rsm.address);
-                  AgentInfo agent = run.agents.stream().filter(a -> a.deploymentId.equals(rsm.address)).findFirst().orElse(null);
-                  if (agent == null) {
-                     log.error("Run {}: Cannot find agent {}", run.id, rsm.address);
-                  } else {
-                     PhaseInstance.Status prevStatus = agent.phases.put(phase, PhaseInstance.Status.STATS_COMPLETE);
-                     if (prevStatus == PhaseInstance.Status.STATS_COMPLETE) {
-                        // TODO: the stats might be completed both regularly and when the agent receives STOP
-                        log.info("Run {}: stats for phase {} are already completed, ignoring.", run.id, phase);
-                     } else if (run.agents.stream().map(a -> a.phases.get(phase)).allMatch(s -> s == PhaseInstance.Status.STATS_COMPLETE)) {
-                        ControllerPhase controllerPhase = run.phases.get(phase);
-                        tryCompletePhase(run, phase, controllerPhase);
-                     }
+            } else if (statsMessage instanceof PhaseStatsCompleteMessage) {
+               PhaseStatsCompleteMessage pscm = (PhaseStatsCompleteMessage) statsMessage;
+               log.debug("Run {}: Received stats completion for phase {} from {}", run.id, pscm.phase, pscm.address);
+               AgentInfo agent = run.agents.stream().filter(a -> a.deploymentId.equals(pscm.address)).findFirst().orElse(null);
+               if (agent == null) {
+                  log.error("Run {}: Cannot find agent {}", run.id, pscm.address);
+               } else {
+                  PhaseInstance.Status prevStatus = agent.phases.put(pscm.phase, PhaseInstance.Status.STATS_COMPLETE);
+                  if (prevStatus == PhaseInstance.Status.STATS_COMPLETE) {
+                     // TODO: the stats might be completed both regularly and when the agent receives STOP
+                     log.info("Run {}: stats for phase {} are already completed, ignoring.", run.id, pscm.phase);
+                  } else if (run.agents.stream().map(a -> a.phases.get(pscm.phase)).allMatch(s -> s == PhaseInstance.Status.STATS_COMPLETE)) {
+                     ControllerPhase controllerPhase = run.phases.get(pscm.phase);
+                     tryCompletePhase(run, pscm.phase, controllerPhase);
                   }
                }
             } else if (statsMessage instanceof SessionStatsMessage) {

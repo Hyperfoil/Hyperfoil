@@ -3,6 +3,7 @@ package io.hyperfoil.clustering;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
+import io.hyperfoil.clustering.messages.PhaseStatsCompleteMessage;
 import io.hyperfoil.core.util.CountDown;
 import io.hyperfoil.core.impl.statistics.StatisticsCollector;
 import io.hyperfoil.clustering.messages.RequestStatsMessage;
@@ -38,7 +39,7 @@ public class RequestStatsSender extends StatisticsCollector {
          // (on a local eventbus we'd have to do a copy in transform() anyway)
          StatisticsSnapshot copy = statistics.clone();
          countDown.increment();
-         eb.request(Feeds.STATS, new RequestStatsMessage(address, runId, phase.id(), false, stepId, metric, copy),
+         eb.request(Feeds.STATS, new RequestStatsMessage(address, runId, phase.id(), stepId, metric, copy),
                reply -> countDown.countDown());
       }
    }
@@ -50,8 +51,16 @@ public class RequestStatsSender extends StatisticsCollector {
          }
 
          countDown.increment();
-         eb.request(Feeds.STATS, new RequestStatsMessage(address, runId, phaseAndStepId >> 16, true, -1, null, null),
+         eb.request(Feeds.STATS, new RequestStatsMessage(address, runId, phaseAndStepId >> 16, -1, null, null),
                reply -> countDown.countDown());
+      }
+      if (phase == null) {
+         // TODO: it would be better to not send this for those phases that are already complete
+         for (Phase p : phases) {
+            eb.request(Feeds.STATS, new PhaseStatsCompleteMessage(address, runId, p.name()));
+         }
+      } else {
+         eb.request(Feeds.STATS, new PhaseStatsCompleteMessage(address, runId, phase.name()));
       }
    }
 }

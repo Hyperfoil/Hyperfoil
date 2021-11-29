@@ -12,6 +12,7 @@ import io.hyperfoil.clustering.messages.ErrorMessage;
 import io.hyperfoil.clustering.messages.ObjectCodec;
 import io.hyperfoil.clustering.messages.PhaseChangeMessage;
 import io.hyperfoil.clustering.messages.PhaseControlMessage;
+import io.hyperfoil.clustering.messages.PhaseStatsCompleteMessage;
 import io.hyperfoil.clustering.messages.RequestStatsMessage;
 import io.hyperfoil.clustering.messages.SessionStatsMessage;
 import io.vertx.core.Vertx;
@@ -33,6 +34,7 @@ public final class Codecs {
       eb.registerDefaultCodec(ErrorMessage.class, new ErrorMessage.Codec());
       eb.registerDefaultCodec(PhaseChangeMessage.class, new PhaseChangeMessage.Codec());
       eb.registerDefaultCodec(PhaseControlMessage.class, new PhaseControlMessage.Codec());
+      eb.registerDefaultCodec(PhaseStatsCompleteMessage.class, new PhaseStatsCompleteMessage.Codec());
       eb.registerDefaultCodec(RequestStatsMessage.class, new RequestStatsMessage.Codec());
       eb.registerDefaultCodec(SessionStatsMessage.class, new SessionStatsMessage.Codec());
    }
