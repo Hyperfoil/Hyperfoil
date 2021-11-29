@@ -77,6 +77,7 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
    private int stepId = -1;
    private HttpMethod.Builder method;
    private StringGeneratorBuilder authority;
+   private StringGeneratorBuilder endpoint;
    private StringGeneratorBuilder path;
    private BodyGeneratorBuilder body;
    private final List<Supplier<SerializableBiConsumer<Session, HttpRequestWriter>>> headerAppenders = new ArrayList<>();
@@ -96,7 +97,7 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
     * @return Self.
     */
    public HttpRequestStepBuilder method(HttpMethod method) {
-      return method(() -> new HttpMethod.Provided(method));
+      return method(new HttpMethod.ProvidedBuilder(method));
    }
 
    public HttpRequestStepBuilder method(HttpMethod.Builder method) {
@@ -292,7 +293,7 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
     * @return Self.
     */
    public HttpRequestStepBuilder authority(String authority) {
-      return authority(() -> new Pattern(authority, false));
+      return authority().pattern(authority).end();
    }
 
    public HttpRequestStepBuilder authority(SerializableFunction<Session, String> authorityGenerator) {
@@ -315,8 +316,15 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
       return this;
    }
 
-   StringGeneratorBuilder getAuthority() {
-      return authority;
+   /**
+    * HTTP endpoint this request should target. Must match to the <code>name</code> of the entries in <code>http</code> section.
+    *
+    * @return Builder.
+    */
+   public StringGeneratorImplBuilder<HttpRequestStepBuilder> endpoint() {
+      var builder = new StringGeneratorImplBuilder<>(this);
+      this.endpoint = builder;
+      return builder;
    }
 
    /**
@@ -574,14 +582,36 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
    public List<Step> build() {
       String guessedAuthority = null;
       boolean checkAuthority = true;
+      HttpPluginBuilder httpPlugin = Locator.current().benchmark().plugin(HttpPluginBuilder.class);
       SerializableFunction<Session, String> authority = this.authority != null ? this.authority.build() : null;
+      SerializableFunction<Session, String> endpoint = this.endpoint != null ? this.endpoint.build() : null;
+      HttpBuilder http = null;
+      if (authority != null && endpoint != null) {
+         throw new BenchmarkDefinitionException("You have set both endpoint (abstract name) and authority (host:port) as the request target; use only one.");
+      }
+      if (endpoint != null) {
+         checkAuthority = false;
+         try {
+            String guessedEndpoint = endpoint.apply(null);
+            if (guessedEndpoint != null) {
+               if (!httpPlugin.validateEndpoint(guessedEndpoint)) {
+                  throw new BenchmarkDefinitionException("There is no HTTP endpoint '" + guessedEndpoint + "'");
+               }
+               http = httpPlugin.getHttpByName(guessedEndpoint);
+            }
+         } catch (Throwable e) {
+            // errors are allowed here
+         }
+      }
       SerializableFunction<Session, String> pathGenerator = this.path != null ? this.path.build() : null;
       try {
          guessedAuthority = authority == null ? null : authority.apply(null);
       } catch (Throwable e) {
          checkAuthority = false;
       }
-      HttpPluginBuilder httpPlugin = Locator.current().benchmark().plugin(HttpPluginBuilder.class);
+      if (checkAuthority) {
+         http = httpPlugin.getHttp(guessedAuthority);
+      }
       if (checkAuthority && !httpPlugin.validateAuthority(guessedAuthority)) {
          String guessedPath = "<unknown path>";
          try {
@@ -589,6 +619,7 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
                guessedPath = pathGenerator.apply(null);
             }
          } catch (Throwable e) {
+            // errors are allowed here
          }
          if (authority == null) {
             throw new BenchmarkDefinitionException(String.format("%s to <default route>%s is invalid as we don't have a default route set.", method, guessedPath));
@@ -598,7 +629,6 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
             throw new BenchmarkDefinitionException(String.format("%s to %s%s is invalid - no HTTP configuration defined.", method, guessedAuthority, guessedPath));
          }
       }
-      HttpBuilder http = checkAuthority ? httpPlugin.getHttp(guessedAuthority) : null;
       if (sla == null && http != null && (http.connectionStrategy() == ConnectionStrategy.OPEN_ON_REQUEST || http.connectionStrategy() == ConnectionStrategy.ALWAYS_NEW)) {
          this.sla = new SLABuilder.ListBuilder<>(this).addItem().blockedRatio(1.01).endSLA();
       }
@@ -611,7 +641,7 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
       SerializableBiFunction<Session, Connection, ByteBuf> bodyGenerator = this.body != null ? this.body.build() : null;
 
       HttpRequestContext.Key contextKey = new HttpRequestContext.Key();
-      PrepareHttpRequestStep prepare = new PrepareHttpRequestStep(stepId, contextKey, method.build(), authority, pathGenerator, metricSelector, handler.build());
+      PrepareHttpRequestStep prepare = new PrepareHttpRequestStep(stepId, contextKey, method.build(), endpoint, authority, pathGenerator, metricSelector, handler.build());
       SendHttpRequestStep step = new SendHttpRequestStep(stepId, contextKey, bodyGenerator, headerAppenders, injectHostHeader, timeout, sla);
       return Arrays.asList(prepare, step);
    }

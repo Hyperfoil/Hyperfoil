@@ -3,10 +3,9 @@ package io.hyperfoil.http.config;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
@@ -69,12 +68,6 @@ public class HttpPluginBuilder extends PluginBuilder<HttpErgonomics> {
          }
          httpList.add(defaultHttp);
       }
-      HashSet<String> authorities = new HashSet<>();
-      for (HttpBuilder http : httpList) {
-         if (!authorities.add(http.authority())) {
-            throw new BenchmarkDefinitionException("Duplicit HTTP definition for " + http.authority());
-         }
-      }
       httpList.forEach(HttpBuilder::prepareBuild);
    }
 
@@ -89,13 +82,29 @@ public class HttpPluginBuilder extends PluginBuilder<HttpErgonomics> {
 
    @Override
    public PluginConfig build() {
-      Map<String, Http> httpMap = httpList.stream()
-            .collect(Collectors.toMap(HttpBuilder::authority, http -> http.build(http == defaultHttp)));
-      return new HttpPluginConfig(httpMap);
+      Map<String, Http> byName = new HashMap<>();
+      Map<String, Http> byAuthority = new HashMap<>();
+      for (HttpBuilder builder : httpList) {
+         Http http = builder.build(builder == defaultHttp);
+         Http previous = builder.name() == null ? null : byName.put(builder.name(), http);
+         if (previous != null) {
+            throw new BenchmarkDefinitionException("Duplicate HTTP endpoint name " + builder.name() + ": used both for "
+                  + http.originalDestination() + " and " + previous.originalDestination());
+         }
+         previous = byAuthority.put(builder.authority(), http);
+         if (previous != null) {
+            throw new BenchmarkDefinitionException("Duplicate HTTP endpoint for authority " + builder.authority());
+         }
+      }
+      return new HttpPluginConfig(byAuthority);
    }
 
    public boolean validateAuthority(String authority) {
       return authority == null && defaultHttp != null || httpList.stream().anyMatch(http -> http.authority().equals(authority));
+   }
+
+   public boolean validateEndpoint(String endpoint) {
+      return httpList.stream().anyMatch(http -> endpoint.equals(http.name()));
    }
 
    public HttpBuilder getHttp(String authority) {
@@ -104,6 +113,13 @@ public class HttpPluginBuilder extends PluginBuilder<HttpErgonomics> {
       } else {
          return httpList.stream().filter(http -> http.authority().equals(authority)).findFirst().orElse(null);
       }
+   }
+
+   public HttpBuilder getHttpByName(String endpoint) {
+      if (endpoint == null) {
+         throw new IllegalArgumentException();
+      }
+      return httpList.stream().filter(http -> http.name().equals(endpoint)).findFirst().orElse(null);
    }
 
    public HttpBuilder decoupledHttp() {

@@ -49,4 +49,26 @@ public enum HttpMethod {
          return method;
       }
    }
+
+   public static class ProvidedBuilder implements HttpMethod.Builder {
+      private HttpMethod method;
+
+      public ProvidedBuilder(ProvidedBuilder other) {
+         this.method = other.method;
+      }
+
+      public ProvidedBuilder(HttpMethod method) {
+         this.method = method;
+      }
+
+      @Override
+      public SerializableFunction<Session, HttpMethod> build() {
+         return new Provided(method);
+      }
+
+      @Override
+      public String toString() {
+         return method.name();
+      }
+   }
 }

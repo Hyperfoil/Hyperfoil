@@ -69,7 +69,7 @@ public class ChunkedTransferTest extends HttpScenarioTest {
       // @formatter:off
       scenario().initialSequence("test")
             .step(s -> {
-               HttpDestinationTable.get(s).getConnectionPool(null).connections()
+               HttpDestinationTable.get(s).getConnectionPoolByAuthority(null).connections()
                      .forEach(c -> injectChannelHandler(c, new BufferingDecoder()));
                return true;
             })
@@ -107,7 +107,7 @@ public class ChunkedTransferTest extends HttpScenarioTest {
    public void testRandomCutBuffers() {
       BaseSequenceBuilder<?> sequence = scenario(64).initialSequence("test")
             .step(s -> {
-               HttpDestinationTable.get(s).getConnectionPool(null).connections()
+               HttpDestinationTable.get(s).getConnectionPoolByAuthority(null).connections()
                      .forEach(c -> injectChannelHandler(c, new RandomLengthDecoder()));
                return true;
             });

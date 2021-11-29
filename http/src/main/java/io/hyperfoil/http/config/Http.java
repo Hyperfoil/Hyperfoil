@@ -29,6 +29,7 @@ import io.hyperfoil.http.api.HttpVersion;
  */
 public class Http implements Serializable {
 
+   private final String name;
    private final boolean isDefault;
    private final String originalDestination;
    private final Protocol protocol;
@@ -46,10 +47,11 @@ public class Http implements Serializable {
    private final TrustManager trustManager;
    private final ConnectionStrategy connectionStrategy;
 
-   public Http(boolean isDefault, String originalDestination, Protocol protocol, String host, int port, String[] addresses,
+   public Http(String name, boolean isDefault, String originalDestination, Protocol protocol, String host, int port, String[] addresses,
                HttpVersion[] versions, int maxHttp2Streams, int pipeliningLimit, ConnectionPoolConfig sharedConnections,
                boolean directHttp2, long requestTimeout, boolean rawBytesHandlers,
                KeyManager keyManager, TrustManager trustManager, ConnectionStrategy connectionStrategy) {
+      this.name = name;
       this.isDefault = isDefault;
       this.originalDestination = originalDestination;
       this.protocol = protocol;
@@ -66,6 +68,10 @@ public class Http implements Serializable {
       this.keyManager = keyManager;
       this.trustManager = trustManager;
       this.connectionStrategy = connectionStrategy;
+   }
+
+   public String name() {
+      return name;
    }
 
    /**

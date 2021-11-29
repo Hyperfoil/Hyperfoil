@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import io.hyperfoil.api.session.Session;
@@ -12,28 +13,33 @@ import io.hyperfoil.http.api.HttpConnectionPool;
 import io.hyperfoil.http.api.HttpDestinationTable;
 
 public class HttpDestinationTableImpl implements HttpDestinationTable {
-   private final Map<String, HttpConnectionPool> pools;
+   private final Map<String, HttpConnectionPool> byAuthority;
+   private final Map<String, HttpConnectionPool> byName;
    private final String[] authorities;
    private final byte[][] authorityBytes;
 
-   public HttpDestinationTableImpl(Map<String, HttpConnectionPool> pools) {
-      this.pools = pools;
-      this.authorities = pools.keySet().stream().filter(Objects::nonNull).toArray(String[]::new);
+   public HttpDestinationTableImpl(Map<String, HttpConnectionPool> byAuthority) {
+      this.byAuthority = byAuthority;
+      this.byName = byAuthority.values().stream().filter(http -> http.clientPool().config().name() != null)
+            .collect(Collectors.toMap(http -> http.clientPool().config().name(), Function.identity()));
+      this.authorities = byAuthority.keySet().stream().filter(Objects::nonNull).toArray(String[]::new);
       this.authorityBytes = Stream.of(authorities).map(url -> url.getBytes(StandardCharsets.UTF_8)).toArray(byte[][]::new);
    }
 
    public HttpDestinationTableImpl(HttpDestinationTable other, Function<HttpConnectionPool, HttpConnectionPool> replacePool) {
       this.authorities = other.authorities();
       this.authorityBytes = other.authorityBytes();
-      this.pools = new HashMap<>();
-      HttpConnectionPool defaultPool = other.getConnectionPool(null);
+      this.byAuthority = new HashMap<>();
+      this.byName = new HashMap<>();
+      HttpConnectionPool defaultPool = other.getConnectionPoolByAuthority(null);
       for (String authority : authorities) {
-         HttpConnectionPool pool = other.getConnectionPool(authority);
+         HttpConnectionPool pool = other.getConnectionPoolByAuthority(authority);
          HttpConnectionPool newPool = replacePool.apply(pool);
-         pools.put(authority, newPool);
+         byAuthority.put(authority, newPool);
          if (pool == defaultPool) {
-            pools.put(null, newPool);
+            byAuthority.put(null, newPool);
          }
+         byName.put(pool.clientPool().config().name(), newPool);
       }
    }
 
@@ -49,7 +55,7 @@ public class HttpDestinationTableImpl implements HttpDestinationTable {
 
    @Override
    public void onSessionReset(Session session) {
-      pools.values().forEach(HttpConnectionPool::onSessionReset);
+      byAuthority.values().forEach(HttpConnectionPool::onSessionReset);
    }
 
    @Override
@@ -58,11 +64,16 @@ public class HttpDestinationTableImpl implements HttpDestinationTable {
    }
 
    @Override
-   public HttpConnectionPool getConnectionPool(String authority) {
-      return pools.get(authority);
+   public HttpConnectionPool getConnectionPoolByName(String endpoint) {
+      return byName.get(endpoint);
+   }
+
+   @Override
+   public HttpConnectionPool getConnectionPoolByAuthority(String authority) {
+      return byAuthority.get(authority);
    }
 
    public Iterable<Map.Entry<String, HttpConnectionPool>> iterable() {
-      return pools.entrySet();
+      return byAuthority.entrySet();
    }
 }

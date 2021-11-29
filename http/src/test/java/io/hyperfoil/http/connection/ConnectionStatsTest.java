@@ -302,7 +302,7 @@ public class ConnectionStatsTest extends HttpScenarioTest {
       benchmarkBuilder.addPhase("test").atOnce(1).duration(10).scenario()
             .initialSequence("test")
             .step(session -> {
-               connectionPoolRef.set(HttpDestinationTable.get(session).getConnectionPool(null));
+               connectionPoolRef.set(HttpDestinationTable.get(session).getConnectionPoolByAuthority(null));
                return true;
             })
             .step(HttpStepCatalog.SC).httpRequest(HttpMethod.GET).path(path).endStep();

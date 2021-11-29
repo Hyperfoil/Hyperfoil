@@ -40,6 +40,7 @@ import io.hyperfoil.http.api.HttpVersion;
 public class HttpBuilder implements BuilderBase<HttpBuilder> {
 
    private final HttpPluginBuilder parent;
+   private String name;
    private Http http;
    private String originalDestination;
    private Protocol protocol;
@@ -64,6 +65,15 @@ public class HttpBuilder implements BuilderBase<HttpBuilder> {
 
    public HttpBuilder(HttpPluginBuilder parent) {
       this.parent = parent;
+   }
+
+   public HttpBuilder name(String name) {
+      this.name = name;
+      return this;
+   }
+
+   String name() {
+      return name;
    }
 
    String authority() {
@@ -238,7 +248,7 @@ public class HttpBuilder implements BuilderBase<HttpBuilder> {
          }
       }
       Protocol protocol = this.protocol != null ? this.protocol : Protocol.fromPort(port);
-      return http = new Http(isDefault, originalDestination, protocol, host, protocol.portOrDefault(port), addresses.toArray(new String[0]),
+      return http = new Http(name, isDefault, originalDestination, protocol, host, protocol.portOrDefault(port), addresses.toArray(new String[0]),
             httpVersions.toArray(new HttpVersion[0]), maxHttp2Streams, pipeliningLimit,
             sharedConnections.build(), directHttp2, requestTimeout, rawBytesHandlers, keyManager.build(), trustManager.build(),
             connectionStrategy);

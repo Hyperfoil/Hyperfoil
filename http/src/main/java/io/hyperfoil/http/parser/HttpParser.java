@@ -19,6 +19,7 @@ public class HttpParser extends AbstractParser<BenchmarkBuilder, HttpBuilder> {
    private static final AddressParser ADDRESS_PARSER = new AddressParser();
 
    public HttpParser() {
+      register("name", new PropertyParser.String<>(HttpBuilder::name));
       register("protocol", new PropertyParser.String<>((builder, scheme) -> builder.protocol(Protocol.fromScheme(scheme))));
       register("host", new PropertyParser.String<>(HttpBuilder::host));
       register("port", new PropertyParser.Int<>(HttpBuilder::port));

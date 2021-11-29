@@ -25,6 +25,7 @@ public class PrepareHttpRequestStep extends StatisticsStep implements ResourceUt
 
    final HttpRequestContext.Key contextKey;
    final SerializableFunction<Session, HttpMethod> method;
+   final SerializableFunction<Session, String> endpoint;
    final SerializableFunction<Session, String> authority;
    final SerializableFunction<Session, String> pathGenerator;
    final MetricSelector metricSelector;
@@ -32,6 +33,7 @@ public class PrepareHttpRequestStep extends StatisticsStep implements ResourceUt
 
    public PrepareHttpRequestStep(int stepId, HttpRequestContext.Key contextKey,
                                  SerializableFunction<Session, HttpMethod> method,
+                                 SerializableFunction<Session, String> endpoint,
                                  SerializableFunction<Session, String> authority,
                                  SerializableFunction<Session, String> pathGenerator,
                                  MetricSelector metricSelector,
@@ -39,6 +41,7 @@ public class PrepareHttpRequestStep extends StatisticsStep implements ResourceUt
       super(stepId);
       this.contextKey = contextKey;
       this.method = method;
+      this.endpoint = endpoint;
       this.authority = authority;
       this.pathGenerator = pathGenerator;
       this.metricSelector = metricSelector;
@@ -74,36 +77,16 @@ public class PrepareHttpRequestStep extends StatisticsStep implements ResourceUt
             request.path = path;
          }
 
-         String authority = this.authority == null ? null : this.authority.apply(session);
-         if (authority == null && isUrl) {
-            for (String hostPort : destinations.authorities()) {
-               if (HttpUtil.authorityMatch(path, hostPort, isHttp)) {
-                  authority = hostPort;
-                  break;
-               }
-            }
-            if (authority == null) {
-               session.fail(new BenchmarkExecutionException("Cannot access " + path + ": no destination configured"));
-               return false; // never executed - SessionStopException invoked in session.fail()
-            }
-         }
-         HttpConnectionPool connectionPool = destinations.getConnectionPool(authority);
+         HttpConnectionPool connectionPool = getConnectionPool(session, destinations, path, isHttp, isUrl);
          if (connectionPool == null) {
-            if (authority == null) {
-               session.fail(new BenchmarkExecutionException("There is no default authority and it was not set neither explicitly nor through URL in path."));
-            } else {
-               session.fail(new BenchmarkExecutionException("There is no connection pool with authority '" + authority +
-                     "', available pools are: " + Arrays.asList(destinations.authorities())));
-            }
             return false; // never executed - SessionStopException invoked in session.fail()
-         } else {
-            request.authority = connectionPool.clientPool().authority();
-            String metric = destinations.hasSingleDestination() ?
-                  metricSelector.apply(null, request.path) : metricSelector.apply(request.authority, request.path);
-            Statistics statistics = session.statistics(id(), metric);
-            request.start(connectionPool, handler, session.currentSequence(), statistics);
-            connectionPool.acquire(false, context);
          }
+         request.authority = connectionPool.clientPool().authority();
+         String metric = destinations.hasSingleDestination() ?
+               metricSelector.apply(null, request.path) : metricSelector.apply(request.authority, request.path);
+         Statistics statistics = session.statistics(id(), metric);
+         request.start(connectionPool, handler, session.currentSequence(), statistics);
+         connectionPool.acquire(false, context);
       } catch (Throwable t) {
          // If any error happens we still need to release the request
          // The request is either IDLE or RUNNING - we need to make it running, otherwise we could not release it
@@ -116,6 +99,41 @@ public class PrepareHttpRequestStep extends StatisticsStep implements ResourceUt
          throw t;
       }
       return true;
+   }
+
+   private HttpConnectionPool getConnectionPool(Session session, HttpDestinationTable destinations, String path, boolean isHttp, boolean isUrl) {
+      String endpoint = this.endpoint == null ? null : this.endpoint.apply(session);
+      if (endpoint != null) {
+         HttpConnectionPool connectionPool = destinations.getConnectionPoolByName(endpoint);
+         if (connectionPool == null) {
+            session.fail(new BenchmarkExecutionException("There is no HTTP destination '" + endpoint + "'"));
+            return null;
+         }
+      }
+      String authority = this.authority == null ? null : this.authority.apply(session);
+      if (authority == null && isUrl) {
+         for (String hostPort : destinations.authorities()) {
+            if (HttpUtil.authorityMatch(path, hostPort, isHttp)) {
+               authority = hostPort;
+               break;
+            }
+         }
+         if (authority == null) {
+            session.fail(new BenchmarkExecutionException("Cannot access " + path + ": no destination configured"));
+            return null;
+         }
+      }
+      HttpConnectionPool connectionPool = destinations.getConnectionPoolByAuthority(authority);
+      if (connectionPool == null) {
+         if (authority == null) {
+            session.fail(new BenchmarkExecutionException("There is no default authority and it was not set neither explicitly nor through URL in path."));
+         } else {
+            session.fail(new BenchmarkExecutionException("There is no connection pool with authority '" + authority +
+                  "', available pools are: " + Arrays.asList(destinations.authorities())));
+         }
+         return null;
+      }
+      return connectionPool;
    }
 
    @Override

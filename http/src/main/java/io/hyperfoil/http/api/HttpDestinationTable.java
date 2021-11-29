@@ -8,7 +8,9 @@ import io.hyperfoil.api.session.Session;
 public interface HttpDestinationTable extends Session.Resource {
    Session.ResourceKey<HttpDestinationTable> KEY = new Session.ResourceKey<>() {};
 
-   HttpConnectionPool getConnectionPool(String authority);
+   HttpConnectionPool getConnectionPoolByName(String endpoint);
+
+   HttpConnectionPool getConnectionPoolByAuthority(String authority);
 
    String[] authorities();
 
