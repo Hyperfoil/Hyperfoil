@@ -7,13 +7,10 @@ import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
-import io.hyperfoil.api.config.BaseSequenceBuilder;
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.BenchmarkData;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Locator;
-import io.hyperfoil.api.config.ScenarioBuilder;
-import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.session.AccessVisitor;
 import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
@@ -35,21 +32,7 @@ public class TestUtil {
       }
    };
 
-   private static final Locator TESTING_MOCK = new Locator() {
-      @Override
-      public StepBuilder<?> step() {
-         throw new UnsupportedOperationException();
-      }
-
-      @Override
-      public BaseSequenceBuilder<?> sequence() {
-         throw new UnsupportedOperationException();
-      }
-
-      @Override
-      public ScenarioBuilder scenario() {
-         throw new UnsupportedOperationException();
-      }
+   private static final Locator TESTING_MOCK = new Locator.Abstract() {
 
       @Override
       public BenchmarkBuilder benchmark() {

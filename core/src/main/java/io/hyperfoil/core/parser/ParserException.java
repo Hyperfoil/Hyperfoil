@@ -36,13 +36,39 @@ public class ParserException extends Exception {
    }
 
    public ParserException(Event event, String msg, Throwable cause) {
-      super(location(event) + ": " + msg, cause);
+      super(location(event, msg), cause);
    }
 
-   static String location(Event event) {
-      String lineInfo = "line " + (event.getStartMark().getLine() + 1) + ", column " + (event.getStartMark().getColumn() + 1);
+   static String location(Event event, String msg) {
+      StringBuilder lineInfo = location(event);
+      lineInfo.append(": ").append(msg);
+      String source = null;
       if (Locator.isAvailable()) {
-         lineInfo += ": " + Locator.current().locationMessage();
+         source = Locator.current().benchmark().source();
+      }
+      if (source != null) {
+         lineInfo.append("; See below: \n");
+         String[] lines = source.split("\n");
+         int current = event.getStartMark().getLine() + 1;
+         int min = Math.max(1, current - 2);
+         for (int i = min; i <= current; ++i) {
+            lineInfo.append(lines[i - 1]).append('\n');
+         }
+         for (int i = event.getStartMark().getColumn(); i > 0; --i) {
+            lineInfo.append(' ');
+         }
+         lineInfo.append("^ HERE\n");
+         for (int i = 0; i < 2; ++i) {
+            lineInfo.append(lines[current + i]).append('\n');
+         }
+      }
+      return lineInfo.toString();
+   }
+
+   static StringBuilder location(Event event) {
+      StringBuilder lineInfo = new StringBuilder("line ").append(event.getStartMark().getLine() + 1).append(", column ").append(event.getStartMark().getColumn() + 1);
+      if (Locator.isAvailable()) {
+         lineInfo.append(": ").append(Locator.current().locationMessage());
       }
       return lineInfo;
    }

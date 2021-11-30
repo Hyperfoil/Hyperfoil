@@ -10,9 +10,7 @@ public interface Locator {
 
    ScenarioBuilder scenario();
 
-   default BenchmarkBuilder benchmark() {
-      return scenario().endScenario().endPhase();
-   }
+   BenchmarkBuilder benchmark();
 
    String locationMessage();
 
@@ -75,6 +73,11 @@ public interface Locator {
       }
 
       @Override
+      public BenchmarkBuilder benchmark() {
+         return scenario().endScenario().endPhase();
+      }
+
+      @Override
       public String locationMessage() {
          StringBuilder sb = new StringBuilder("Phase ").append(scenario().endScenario().name);
          String forkName = scenario().fork().name;
@@ -94,6 +97,32 @@ public interface Locator {
          }
          return sb.toString();
       }
+   }
 
+   abstract class Abstract implements Locator {
+      @Override
+      public StepBuilder<?> step() {
+         throw new UnsupportedOperationException();
+      }
+
+      @Override
+      public BaseSequenceBuilder<?> sequence() {
+         throw new UnsupportedOperationException();
+      }
+
+      @Override
+      public ScenarioBuilder scenario() {
+         throw new UnsupportedOperationException();
+      }
+
+      @Override
+      public BenchmarkBuilder benchmark() {
+         throw new UnsupportedOperationException();
+      }
+
+      @Override
+      public String locationMessage() {
+         return "";
+      }
    }
 }

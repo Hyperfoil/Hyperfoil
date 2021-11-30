@@ -66,6 +66,10 @@ public class BenchmarkBuilder {
       return new BenchmarkBuilder(null, BenchmarkData.EMPTY);
    }
 
+   public String source() {
+      return originalSource;
+   }
+
    public BenchmarkBuilder name(String name) {
       this.name = name;
       return this;

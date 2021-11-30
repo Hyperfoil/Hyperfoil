@@ -18,6 +18,7 @@
  */
 package io.hyperfoil.core.parser;
 
+import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.core.api.Plugin;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkBuilder;
@@ -101,7 +102,17 @@ public class BenchmarkParser extends AbstractMappingParser<BenchmarkBuilder> {
 
       //instantiate new benchmark builder
       BenchmarkBuilder benchmarkBuilder = new BenchmarkBuilder(source, data);
-      parse(ctx, benchmarkBuilder);
+      Locator.push(new Locator.Abstract() {
+         @Override
+         public BenchmarkBuilder benchmark() {
+            return benchmarkBuilder;
+         }
+      });
+      try {
+         parse(ctx, benchmarkBuilder);
+      } finally {
+         Locator.pop();
+      }
 
       ctx.expectEvent(DocumentEndEvent.class);
       ctx.expectEvent(StreamEndEvent.class);
