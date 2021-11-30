@@ -4,6 +4,7 @@ import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.BenchmarkExecutionException;
 import io.hyperfoil.api.config.Embed;
+import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.Session;
@@ -30,11 +31,20 @@ public class FailAction implements Action {
     */
    @MetaInfServices(Action.Builder.class)
    @Name("fail")
-   public static class Builder implements Action.Builder {
+   public static class Builder implements Action.Builder, InitFromParam<Builder> {
       private String message;
 
       @Embed
       public Condition.TypesBuilder<Builder> condition = new Condition.TypesBuilder<>(this);
+
+      /**
+       * @param param Message to fail with (unconditionally).
+       * @return Self.
+       */
+      @Override
+      public Builder init(String param) {
+         return message(param);
+      }
 
       /**
        * Message attached to the failure exception.
