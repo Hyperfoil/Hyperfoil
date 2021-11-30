@@ -27,6 +27,8 @@ public abstract class BaseClusteredTest extends BaseBenchmarkTest {
    }
 
    protected void startController(TestContext ctx) {
+      // Some clustered tests time out in GitHub Actions because the agents don't cluster soon enough.
+      System.setProperty("jgroups.join_timeout", "15000");
       //configure multi node vert.x cluster
       System.setProperty(Properties.CONTROLLER_HOST, "localhost");
       System.setProperty(Properties.CONTROLLER_PORT, "0");
