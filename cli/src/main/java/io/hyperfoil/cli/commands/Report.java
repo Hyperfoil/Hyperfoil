@@ -21,6 +21,9 @@ public class Report extends BaseRunIdCommand {
    @Option(shortName = 'd', description = "Destination path to the HTML report", required = true, askIfNotSet = true)
    private String destination;
 
+   @Option(shortName = 'y', description = "Assume yes for all interactive questions.", hasValue = false)
+   public boolean assumeYes;
+
    @Override
    public CommandResult execute(HyperfoilCommandInvocation invocation) throws CommandException {
       Client.RunRef runRef = getRunRef(invocation);
@@ -53,17 +56,20 @@ public class Report extends BaseRunIdCommand {
          invocation.error("Cannot fetch report for run " + runRef.id(), e);
          return CommandResult.FAILURE;
       } catch (IOException e) {
-         invocation.error("Cannot write to '" + destination.toString() + "': ", e);
+         invocation.error("Cannot write to '" + destination + "': ", e);
          return CommandResult.FAILURE;
       }
       invocation.println("Written to " + destination);
       if (!"true".equalsIgnoreCase(System.getenv("HYPERFOIL_CONTAINER"))) {
-         openInBrowser("file://" + destination.toString());
+         openInBrowser("file://" + destination);
       }
       return CommandResult.SUCCESS;
    }
 
    private boolean askForOverwrite(HyperfoilCommandInvocation invocation, File destination) {
+      if (assumeYes) {
+         return true;
+      }
       invocation.print("File " + destination + " already exists, overwrite? [y/N]: ");
       boolean overwrite = false;
       try {
