@@ -2,7 +2,6 @@ package io.hyperfoil.http.steps;
 
 import java.util.Arrays;
 
-import io.hyperfoil.api.BenchmarkExecutionException;
 import io.hyperfoil.api.session.ResourceUtilizer;
 import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.api.session.Session;
@@ -79,7 +78,8 @@ public class PrepareHttpRequestStep extends StatisticsStep implements ResourceUt
 
          HttpConnectionPool connectionPool = getConnectionPool(session, destinations, path, isHttp, isUrl);
          if (connectionPool == null) {
-            return false; // never executed - SessionStopException invoked in session.fail()
+            session.fail(new IllegalStateException("Connection pool must not be null."));
+            return false;
          }
          request.authority = connectionPool.clientPool().authority();
          String metric = destinations.hasSingleDestination() ?
@@ -106,9 +106,9 @@ public class PrepareHttpRequestStep extends StatisticsStep implements ResourceUt
       if (endpoint != null) {
          HttpConnectionPool connectionPool = destinations.getConnectionPoolByName(endpoint);
          if (connectionPool == null) {
-            session.fail(new BenchmarkExecutionException("There is no HTTP destination '" + endpoint + "'"));
-            return null;
+            throw new IllegalStateException("There is no HTTP destination '" + endpoint + "'");
          }
+         return connectionPool;
       }
       String authority = this.authority == null ? null : this.authority.apply(session);
       if (authority == null && isUrl) {
@@ -119,19 +119,17 @@ public class PrepareHttpRequestStep extends StatisticsStep implements ResourceUt
             }
          }
          if (authority == null) {
-            session.fail(new BenchmarkExecutionException("Cannot access " + path + ": no destination configured"));
-            return null;
+            throw new IllegalStateException("Cannot access " + path + ": no destination configured");
          }
       }
       HttpConnectionPool connectionPool = destinations.getConnectionPoolByAuthority(authority);
       if (connectionPool == null) {
          if (authority == null) {
-            session.fail(new BenchmarkExecutionException("There is no default authority and it was not set neither explicitly nor through URL in path."));
+            throw new IllegalStateException("There is no default authority and it was not set neither explicitly nor through URL in path.");
          } else {
-            session.fail(new BenchmarkExecutionException("There is no connection pool with authority '" + authority +
-                  "', available pools are: " + Arrays.asList(destinations.authorities())));
+            throw new IllegalStateException("There is no connection pool with authority '" + authority +
+                  "', available pools are: " + Arrays.asList(destinations.authorities()));
          }
-         return null;
       }
       return connectionPool;
    }

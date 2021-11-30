@@ -47,7 +47,8 @@ public class SequenceInstance {
             // just rethrow
             throw e;
          } catch (Throwable t) {
-            log.error(new FormattedMessage("#{} {}[{}] failure invoking step {}", session.uniqueId(), sequence.name(), index, StepBuilder.nameOf(step)), t);
+            log.error(new FormattedMessage("#{} phase {}, seq {}[{}] failure invoking step {}", session.uniqueId(),
+                  session.phase().definition().name(), sequence.name(), index, StepBuilder.nameOf(step)), t);
             session.fail(t);
             return false;
          } finally {
