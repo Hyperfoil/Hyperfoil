@@ -202,7 +202,11 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                      log.info("Run {}: stats for phase {} are already completed, ignoring.", run.id, pscm.phase);
                   } else if (run.agents.stream().map(a -> a.phases.get(pscm.phase)).allMatch(s -> s == PhaseInstance.Status.STATS_COMPLETE)) {
                      ControllerPhase controllerPhase = run.phases.get(pscm.phase);
-                     tryCompletePhase(run, pscm.phase, controllerPhase);
+                     if (controllerPhase != null) {
+                        tryCompletePhase(run, pscm.phase, controllerPhase);
+                     } else {
+                        log.error("Run {}: Cannot find phase {}!", run.id, pscm.phase);
+                     }
                   }
                }
             } else if (statsMessage instanceof SessionStatsMessage) {
