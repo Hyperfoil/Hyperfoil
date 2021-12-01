@@ -23,11 +23,13 @@ public class ArrayRecorder implements Processor, ResourceUtilizer {
    private final ObjectAccess toVar;
    private final DataFormat format;
    private final int maxSize;
+   private final boolean silent;
 
-   public ArrayRecorder(ObjectAccess toVar, DataFormat format, int maxSize) {
+   public ArrayRecorder(ObjectAccess toVar, DataFormat format, int maxSize, boolean silent) {
       this.toVar = toVar;
       this.format = format;
       this.maxSize = maxSize;
+      this.silent = silent;
    }
 
    public void before(Session session) {
@@ -50,7 +52,13 @@ public class ArrayRecorder implements Processor, ResourceUtilizer {
          array[i].set(value);
          return;
       }
-      log.warn("Exceed maximum size of the array {} ({}), dropping value {}", toVar, maxSize, value);
+      if (silent) {
+         if (trace) {
+            log.trace("Exceeded maximum size of the array {} ({}), dropping value {}", toVar, maxSize, value);
+         }
+      } else {
+         log.warn("Exceeded maximum size of the array {} ({}), dropping value {}", toVar, maxSize, value);
+      }
    }
 
    @Override
@@ -68,6 +76,7 @@ public class ArrayRecorder implements Processor, ResourceUtilizer {
       private String toVar;
       private DataFormat format = DataFormat.STRING;
       private int maxSize;
+      private boolean silent;
 
       /**
        * @param param Use format <code>toVar[maxSize]</code>.
@@ -91,7 +100,7 @@ public class ArrayRecorder implements Processor, ResourceUtilizer {
 
       @Override
       public Processor build(boolean fragmented) {
-         return DefragProcessor.of(new ArrayRecorder(SessionFactory.objectAccess(toVar), format, maxSize), fragmented);
+         return DefragProcessor.of(new ArrayRecorder(SessionFactory.objectAccess(toVar), format, maxSize, silent), fragmented);
       }
 
       /**
@@ -113,6 +122,17 @@ public class ArrayRecorder implements Processor, ResourceUtilizer {
        */
       public Builder maxSize(int maxSize) {
          this.maxSize = maxSize;
+         return this;
+      }
+
+      /**
+       * Do not log warnings when the maximum size is exceeded.
+       *
+       * @param silent Boolean value.
+       * @return Self.
+       */
+      public Builder silent(boolean silent) {
+         this.silent = silent;
          return this;
       }
 
