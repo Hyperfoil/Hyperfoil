@@ -1,7 +1,6 @@
 package io.hyperfoil.core.steps;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import org.kohsuke.MetaInfServices;
@@ -9,12 +8,10 @@ import org.kohsuke.MetaInfServices;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.ListBuilder;
 import io.hyperfoil.api.config.Name;
-import io.hyperfoil.api.config.Step;
-import io.hyperfoil.api.config.StepBuilder;
+import io.hyperfoil.api.session.Action;
 import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.Session.VarType;
-import io.hyperfoil.core.builders.BaseStepBuilder;
 import io.hyperfoil.core.session.SessionFactory;
 
 import org.apache.logging.log4j.Logger;
@@ -23,19 +20,19 @@ import org.apache.logging.log4j.LogManager;
 /**
  * This is a debugging step.
  */
-public class LogStep implements Step {
-   private static final Logger log = LogManager.getLogger(LogStep.class);
+public class LogAction implements Action {
+   private static final Logger log = LogManager.getLogger(LogAction.class);
 
    private final String message;
    private final ReadAccess[] vars;
 
-   public LogStep(String message, ReadAccess[] vars) {
+   public LogAction(String message, ReadAccess[] vars) {
       this.message = message;
       this.vars = vars;
    }
 
    @Override
-   public boolean invoke(Session session) {
+   public void run(Session session) {
       // Normally we wouldn't allocate objects but since this should be used for debugging...
       if (vars.length == 0) {
          log.info(message);
@@ -55,17 +52,29 @@ public class LogStep implements Step {
          }
          log.info(message, objects);
       }
-      return true;
    }
 
    /**
     * Log a message and variable values.
     */
-   @MetaInfServices(StepBuilder.class)
+   @MetaInfServices(Action.Builder.class)
    @Name("log")
-   public static class Builder extends BaseStepBuilder<Builder> {
+   public static class Builder<P> implements Action.Builder {
+      private final P parent;
       String message;
       List<String> vars = new ArrayList<>();
+
+      public Builder(P parent) {
+         this.parent = parent;
+      }
+
+      public Builder() {
+         this(null);
+      }
+
+      public P end() {
+         return parent;
+      }
 
       /**
        * Message format pattern. Use <code>{}</code> to mark the positions for variables in the logged message.
@@ -73,7 +82,7 @@ public class LogStep implements Step {
        * @param message Message format pattern.
        * @return Self.
        */
-      public Builder message(String message) {
+      public Builder<P> message(String message) {
          this.message = message;
          return this;
       }
@@ -88,17 +97,17 @@ public class LogStep implements Step {
       }
 
       // the ignored parameter removes this method from YAML-based configuration
-      public Builder addVar(String var, Void ignored) {
+      public Builder<P> addVar(String var, Void ignored) {
          vars.add(var);
          return this;
       }
 
       @Override
-      public List<Step> build() {
+      public LogAction build() {
          if (message == null) {
             throw new BenchmarkDefinitionException("Missing message");
          }
-         return Collections.singletonList(new LogStep(message, vars.stream().map(SessionFactory::readAccess).toArray(ReadAccess[]::new)));
+         return new LogAction(message, vars.stream().map(SessionFactory::readAccess).toArray(ReadAccess[]::new));
       }
    }
 }

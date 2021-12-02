@@ -22,7 +22,7 @@ import io.hyperfoil.core.steps.AwaitVarStep;
 import io.hyperfoil.core.steps.BreakSequenceStep;
 import io.hyperfoil.core.steps.ForeachStep;
 import io.hyperfoil.core.steps.JsonStep;
-import io.hyperfoil.core.steps.LogStep;
+import io.hyperfoil.core.steps.LogAction;
 import io.hyperfoil.core.steps.LoopStep;
 import io.hyperfoil.core.steps.NextSequenceStep;
 import io.hyperfoil.core.steps.PollStep;
@@ -251,8 +251,10 @@ public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.O
 
    // utility
 
-   public LogStep.Builder log() {
-      return new LogStep.Builder().addTo(parent);
+   public LogAction.Builder<BaseSequenceBuilder<?>> log() {
+      LogAction.Builder<BaseSequenceBuilder<?>> builder = new LogAction.Builder<>(parent);
+      parent.stepBuilder(new StepBuilder.ActionAdapter(builder));
+      return builder;
    }
 
    @MetaInfServices(StepCatalogFactory.class)
