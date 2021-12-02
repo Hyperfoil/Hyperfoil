@@ -36,7 +36,7 @@ public class InvalidBenchmarkTest {
       thrown.expectMessage("Variable 'foo' is read but it is never written to");
       BenchmarkBuilder builder = BenchmarkBuilder.builder();
       builder.addPhase("test").atOnce(1).scenario().initialSequence("test")
-            .step(StepCatalog.SC).log().addVar("foo", null).message("Blabla");
+            .step(StepCatalog.SC).log("Blabla: ${foo}");
       builder.build();
    }
 

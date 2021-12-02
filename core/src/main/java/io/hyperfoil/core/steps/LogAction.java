@@ -6,13 +6,12 @@ import java.util.List;
 import org.kohsuke.MetaInfServices;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.ListBuilder;
 import io.hyperfoil.api.config.Name;
 import io.hyperfoil.api.session.Action;
-import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.api.session.Session.VarType;
-import io.hyperfoil.core.session.SessionFactory;
+import io.hyperfoil.core.generators.Pattern;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
@@ -23,35 +22,15 @@ import org.apache.logging.log4j.LogManager;
 public class LogAction implements Action {
    private static final Logger log = LogManager.getLogger(LogAction.class);
 
-   private final String message;
-   private final ReadAccess[] vars;
+   private final Pattern message;
 
-   public LogAction(String message, ReadAccess[] vars) {
+   public LogAction(Pattern message) {
       this.message = message;
-      this.vars = vars;
    }
 
    @Override
    public void run(Session session) {
-      // Normally we wouldn't allocate objects but since this should be used for debugging...
-      if (vars.length == 0) {
-         log.info(message);
-      } else {
-         Object[] objects = new Object[vars.length];
-         for (int i = 0; i < vars.length; ++i) {
-            Session.Var var = vars[i].getVar(session);
-            if (!var.isSet()) {
-               objects[i] = "<not set>";
-            } else if (var.type() == VarType.OBJECT) {
-               objects[i] = var.objectValue(session);
-            } else if (var.type() == VarType.INTEGER) {
-               objects[i] = var.intValue(session);
-            } else {
-               objects[i] = "<unknown type>";
-            }
-         }
-         log.info(message, objects);
-      }
+      log.info(message.apply(session));
    }
 
    /**
@@ -59,25 +38,22 @@ public class LogAction implements Action {
     */
    @MetaInfServices(Action.Builder.class)
    @Name("log")
-   public static class Builder<P> implements Action.Builder {
-      private final P parent;
+   public static class Builder<P> implements Action.Builder, InitFromParam<Builder<P>> {
       String message;
       List<String> vars = new ArrayList<>();
 
-      public Builder(P parent) {
-         this.parent = parent;
-      }
-
-      public Builder() {
-         this(null);
-      }
-
-      public P end() {
-         return parent;
+      /**
+       * @param param A pattern for <a href="https://hyperfoil.io/userguide/benchmark/variables.html#string-interpolation">string interpolation</a>.
+       * @return Self.
+       */
+      @Override
+      public Builder<P> init(String param) {
+         return message(param);
       }
 
       /**
-       * Message format pattern. Use <code>{}</code> to mark the positions for variables in the logged message.
+       * Message format pattern. Use <a href="https://hyperfoil.io/userguide/benchmark/variables.html#string-interpolation">string interpolation</a>
+       * for variables.
        *
        * @param message Message format pattern.
        * @return Self.
@@ -92,6 +68,7 @@ public class LogAction implements Action {
        *
        * @return Builder.
        */
+      @Deprecated
       public ListBuilder vars() {
          return vars::add;
       }
@@ -106,8 +83,23 @@ public class LogAction implements Action {
       public LogAction build() {
          if (message == null) {
             throw new BenchmarkDefinitionException("Missing message");
+         } else if (vars.isEmpty()) {
+            return new LogAction(new Pattern(message, false, true));
          }
-         return new LogAction(message, vars.stream().map(SessionFactory::readAccess).toArray(ReadAccess[]::new));
+         StringBuilder msgBuilder = new StringBuilder();
+         int from = 0;
+         for (String var : vars) {
+            int index = message.indexOf("{}", from);
+            if (index >= 0) {
+               msgBuilder.append(message, from, index);
+               msgBuilder.append("${").append(var).append("}");
+               from = index + 2;
+            } else {
+               throw new BenchmarkDefinitionException("Missing position for variable " + var + " ('{}') in log message '" + message + "'");
+            }
+         }
+         msgBuilder.append(message.substring(from));
+         return new LogAction(new Pattern(msgBuilder.toString(), false, true));
       }
    }
 }

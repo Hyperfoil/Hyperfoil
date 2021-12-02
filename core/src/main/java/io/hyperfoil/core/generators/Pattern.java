@@ -33,6 +33,10 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
    private final boolean urlEncode;
 
    public Pattern(String str, boolean urlEncode) {
+      this(str, urlEncode, false);
+   }
+
+   public Pattern(String str, boolean urlEncode, boolean allowUnset) {
       this.urlEncode = urlEncode;
       List<Component> components = new ArrayList<>();
       int last = 0, lastSearch = 0;
@@ -65,7 +69,7 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
                   if (urlEncode) {
                      throw new BenchmarkDefinitionException("It seems you're trying to URL-encode value twice.");
                   }
-                  components.add(new VarComponent(key, Pattern::urlEncode));
+                  components.add(new VarComponent(key, allowUnset, Pattern::urlEncode));
                } else if (format.startsWith(REPLACE)) {
                   if (format.length() == REPLACE.length()) {
                      throw new BenchmarkDefinitionException(wrongReplaceSyntax(str, format));
@@ -88,9 +92,9 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
                      }
                   }
                   if (all) {
-                     components.add(new VarComponent(key, value -> regex.matcher(value).replaceAll(replacement)));
+                     components.add(new VarComponent(key, allowUnset, value -> regex.matcher(value).replaceAll(replacement)));
                   } else {
-                     components.add(new VarComponent(key, value -> regex.matcher(value).replaceFirst(replacement)));
+                     components.add(new VarComponent(key, allowUnset, value -> regex.matcher(value).replaceFirst(replacement)));
                   }
                } else if (format.endsWith("d") || format.endsWith("o") || format.endsWith("x") || format.endsWith("X")) {
                   components.add(new FormatIntComponent(format, key));
@@ -99,7 +103,7 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
                }
             } else {
                ReadAccess key = SessionFactory.readAccess(str.substring(openPar + 2, closePar).trim());
-               components.add(new VarComponent(key, urlEncode ? Pattern::urlEncode : null));
+               components.add(new VarComponent(key, allowUnset, urlEncode ? Pattern::urlEncode : null));
             }
             lastSearch = last = closePar + 1;
          }
@@ -228,10 +232,12 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
 
    private static class VarComponent implements Component {
       private final ReadAccess key;
+      private final boolean allowUnset;
       private final SerializableFunction<String, String> transform;
 
-      VarComponent(ReadAccess key, SerializableFunction<String, String> transform) {
+      VarComponent(ReadAccess key, boolean allowUnset, SerializableFunction<String, String> transform) {
          this.key = key;
+         this.allowUnset = allowUnset;
          this.transform = transform;
       }
 
@@ -239,7 +245,11 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
       public void accept(Session session, StringBuilder sb) {
          Session.Var var = key.getVar(session);
          if (!var.isSet()) {
-            throw new IllegalArgumentException("Variable " + key + " is not set!");
+            if (allowUnset) {
+               sb.append("<not set>");
+            } else {
+               throw new IllegalArgumentException("Variable " + key + " is not set!");
+            }
          } else {
             switch (var.type()) {
                case OBJECT:

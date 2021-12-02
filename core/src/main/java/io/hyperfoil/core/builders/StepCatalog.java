@@ -251,10 +251,10 @@ public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.O
 
    // utility
 
-   public LogAction.Builder<BaseSequenceBuilder<?>> log() {
-      LogAction.Builder<BaseSequenceBuilder<?>> builder = new LogAction.Builder<>(parent);
+   public BaseSequenceBuilder<?> log(String message) {
+      var builder = new LogAction.Builder<>().message(message);
       parent.stepBuilder(new StepBuilder.ActionAdapter(builder));
-      return builder;
+      return parent;
    }
 
    @MetaInfServices(StepCatalogFactory.class)
