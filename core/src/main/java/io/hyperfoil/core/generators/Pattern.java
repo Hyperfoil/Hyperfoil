@@ -255,7 +255,7 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
          } else {
             switch (var.type()) {
                case OBJECT:
-                  String str = String.valueOf(var.objectValue(session));
+                  String str = Util.prettyPrintObject(var.objectValue(session));
                   if (transform != null) {
                      str = transform.apply(str);
                   }
@@ -280,11 +280,13 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
                case OBJECT:
                   Object o = var.objectValue(session);
                   if (o != null) {
-                     CharSequence str = o instanceof CharSequence ? (CharSequence) o : o.toString();
+                     CharSequence str = o instanceof CharSequence ? (CharSequence) o : Util.prettyPrintObject(o);
                      if (transform != null) {
                         str = transform.apply(str.toString());
                      }
                      Util.string2byteBuf(str, buf);
+                  } else {
+                     Util.string2byteBuf("null", buf);
                   }
                   break;
                case INTEGER:
