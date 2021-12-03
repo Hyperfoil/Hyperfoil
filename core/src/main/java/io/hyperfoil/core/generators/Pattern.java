@@ -101,6 +101,8 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
                } else {
                   throw new IllegalArgumentException("Cannot use format string '" + format + "', only integers are supported");
                }
+            } else if (closePar < 0) {
+               throw new BenchmarkDefinitionException("Missing closing parentheses (}) in '" + str + "'");
             } else {
                ReadAccess key = SessionFactory.readAccess(str.substring(openPar + 2, closePar).trim());
                components.add(new VarComponent(key, allowUnset, urlEncode ? Pattern::urlEncode : null));
