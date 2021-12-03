@@ -43,16 +43,14 @@ public class Upload extends ServerCommand {
       try {
          benchmark = BenchmarkParser.instance().buildBenchmark(Util.toString(sanitizedResource.read()), new LocalBenchmarkData(Paths.get(sanitizedResource.getAbsolutePath())));
       } catch (ParserException | BenchmarkDefinitionException e) {
-         invocation.error(e);
-         if (printStackTrace) {
-            invocation.printStackTrace(e);
-         } else {
-            invocation.println("Use --print-stack-trace to display the whole stack trace of this error.");
-         }
+         logError(invocation, e);
          throw new CommandException("Failed to parse the benchmark.", e);
       } catch (IOException e) {
-         invocation.error(e);
+         logError(invocation, e);
          throw new CommandException("Failed to load the benchmark.", e);
+      } catch (Exception e) {
+         logError(invocation, e);
+         throw new CommandException("Unknown error.", e);
       }
       invocation.println("Loaded benchmark " + benchmark.name() + ", uploading...");
       // Note: we are loading and serializing the benchmark here just to fail fast - actual upload
@@ -77,6 +75,15 @@ public class Upload extends ServerCommand {
       } catch (RestClientException e) {
          invocation.error(e);
          throw new CommandException("Failed to upload the benchmark.", e);
+      }
+   }
+
+   private void logError(HyperfoilCommandInvocation invocation, Exception e) {
+      invocation.error(e);
+      if (printStackTrace) {
+         invocation.printStackTrace(e);
+      } else {
+         invocation.println("Use --print-stack-trace to display the whole stack trace of this error.");
       }
    }
 
