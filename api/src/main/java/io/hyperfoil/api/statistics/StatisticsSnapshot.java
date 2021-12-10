@@ -15,7 +15,6 @@ import org.HdrHistogram.Histogram;
 public class StatisticsSnapshot implements Serializable {
    public int sequenceId = -1;
    public final Histogram histogram = new Histogram(TimeUnit.MINUTES.toNanos(1), 2);
-   public int connectFailureCount;
    public int requestCount;
    public int responseCount;
    public int invalid;
