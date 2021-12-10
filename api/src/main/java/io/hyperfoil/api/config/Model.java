@@ -25,13 +25,6 @@ public interface Model extends Serializable {
          this.usersPerThread = usersPerThread;
       }
 
-      @Override
-      public void validate(Phase phase) {
-         if (phase.duration > 0) {
-            log.warn("Duration for phase {} is ignored.", phase.duration);
-         }
-      }
-
       protected String description(String suffix) {
          if (users > 0) {
             return users + " users " + suffix;
@@ -48,6 +41,13 @@ public interface Model extends Serializable {
    class AtOnce extends ClosedModel {
       public AtOnce(int users, int usersPerAgent, int usersPerThread) {
          super(users, usersPerAgent, usersPerThread);
+      }
+
+      @Override
+      public void validate(Phase phase) {
+         if (phase.duration > 0) {
+            log.warn("Duration ({} ms) for atOnce phase {} is ignored.", phase.duration, phase.name);
+         }
       }
 
       @Override
