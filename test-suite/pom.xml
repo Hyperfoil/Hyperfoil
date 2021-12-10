@@ -10,7 +10,7 @@
 
     <artifactId>hyperfoil-test-suite</artifactId>
     <name>Hyperfoil Test-Suite</name>
-
+    <packaging>pom</packaging>
     <url>https://github.com/RedHatPerf/Hyperfoil</url>
 
     <properties>
@@ -113,14 +113,6 @@
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-install-plugin</artifactId>
-                <configuration>
-                    <skip>true</skip>
-                </configuration>
-            </plugin>
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-gpg-plugin</artifactId>
                 <configuration>
                     <skip>true</skip>
@@ -150,7 +142,7 @@
                 <activeByDefault>false</activeByDefault>
             </activation>
             <properties>
-                <junit.excluded.categories />
+                <junit.excluded.categories/>
             </properties>
         </profile>
 
