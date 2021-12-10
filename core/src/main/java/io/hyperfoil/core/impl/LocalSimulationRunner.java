@@ -2,6 +2,8 @@ package io.hyperfoil.core.impl;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -19,6 +21,8 @@ public class LocalSimulationRunner extends SimulationRunner {
    private final ConnectionStatsConsumer connectionsStatsConsumer;
    private final Lock statusLock = new ReentrantLock();
    private final Condition statusCondition = statusLock.newCondition();
+   private final StatisticsCollector statisticsCollector;
+   private final ScheduledExecutorService statsExecutor = Executors.newSingleThreadScheduledExecutor();
    private long startTime;
 
    public LocalSimulationRunner(Benchmark benchmark) {
@@ -27,6 +31,7 @@ public class LocalSimulationRunner extends SimulationRunner {
 
    public LocalSimulationRunner(Benchmark benchmark, StatisticsCollector.StatisticsConsumer statsConsumer, SessionStatsConsumer sessionPoolStatsConsumer, ConnectionStatsConsumer connectionsStatsConsumer) {
       super(benchmark, "local-run", 0, error -> { });
+      statisticsCollector = new StatisticsCollector(benchmark);
       this.statsConsumer = statsConsumer;
       this.sessionPoolStatsConsumer = sessionPoolStatsConsumer;
       this.connectionsStatsConsumer = connectionsStatsConsumer;
@@ -42,6 +47,7 @@ public class LocalSimulationRunner extends SimulationRunner {
       openConnections(result -> latch.countDown());
       try {
          latch.await();
+         statsExecutor.scheduleAtFixedRate(this::collectStats, 0, benchmark.statisticsCollectionPeriod(), TimeUnit.MILLISECONDS);
          // Exec is blocking and therefore must not run on the event-loop thread
          exec();
          for (PhaseInstance phase : instances.values()) {
@@ -52,6 +58,7 @@ public class LocalSimulationRunner extends SimulationRunner {
       } catch (InterruptedException e) {
          throw new RuntimeException(e);
       } finally {
+         statsExecutor.shutdown();
          shutdown();
       }
    }
@@ -121,11 +128,10 @@ public class LocalSimulationRunner extends SimulationRunner {
       });
    }
 
-   private void publishStats(Phase phase) {
+   private synchronized void publishStats(Phase phase) {
       if (statsConsumer != null) {
-         StatisticsCollector collector = new StatisticsCollector(benchmark);
-         visitStatistics(phase, collector);
-         collector.visitStatistics(statsConsumer, null);
+         visitStatistics(phase, statisticsCollector);
+         statisticsCollector.visitStatistics(statsConsumer, null);
       }
       if (sessionPoolStatsConsumer != null) {
          visitSessionPoolStats(phase, sessionPoolStatsConsumer);
@@ -133,6 +139,10 @@ public class LocalSimulationRunner extends SimulationRunner {
       if (connectionsStatsConsumer != null) {
          visitConnectionStats(connectionsStatsConsumer);
       }
+   }
+
+   private synchronized void collectStats() {
+      visitStatistics(statisticsCollector);
    }
 
    private PhaseInstance[] getAvailablePhases() {
