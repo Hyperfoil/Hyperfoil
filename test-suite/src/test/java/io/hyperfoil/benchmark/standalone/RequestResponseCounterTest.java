@@ -34,7 +34,6 @@ import org.junit.runner.RunWith;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkBuilder;
-import io.hyperfoil.api.config.BenchmarkData;
 import io.hyperfoil.benchmark.BaseBenchmarkTest;
 import io.hyperfoil.core.handlers.TransferSizeRecorder;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
@@ -71,14 +70,13 @@ public class RequestResponseCounterTest extends BaseBenchmarkTest {
    @Test
    public void testNumberOfRequestsAndResponsesMatch() {
       // @formatter:off
-      BenchmarkBuilder builder =
-            new BenchmarkBuilder(null, BenchmarkData.EMPTY)
-                  .name("requestResponseCounter " + new SimpleDateFormat("YY/MM/dd HH:mm:ss").format(new Date()))
-                  .addPlugin(HttpPluginBuilder::new).http()
-                     .host("localhost").port(httpServer.actualPort())
-                     .sharedConnections(50)
-                  .endHttp().endPlugin()
-                  .threads(2);
+      BenchmarkBuilder builder = BenchmarkBuilder.builder()
+            .name("requestResponseCounter " + new SimpleDateFormat("yy/MM/dd HH:mm:ss").format(new Date()))
+            .addPlugin(HttpPluginBuilder::new).http()
+               .host("localhost").port(httpServer.actualPort())
+               .sharedConnections(50)
+            .endHttp().endPlugin()
+            .threads(2);
 
       builder.addPhase("run").constantRate(500)
             .duration(5000)

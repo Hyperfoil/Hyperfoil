@@ -21,11 +21,15 @@ import io.hyperfoil.controller.model.Version;
 public interface Client {
    BenchmarkRef register(Benchmark benchmark, String prevVersion);
 
-   BenchmarkRef register(String benchmarkFile, Map<String, Path> otherFiles, String prevVersion, String storedFilesBenchmark);
+   BenchmarkRef register(String yaml, Map<String, byte[]> otherFiles, String prevVersion, String storedFilesBenchmark);
+
+   BenchmarkRef register(Path benchmarkFile, Map<String, Path> otherFiles, String prevVersion, String storedFilesBenchmark);
 
    BenchmarkRef registerLocal(String benchmarkUri, String prevVersion, String storedFilesBenchmark);
 
    List<String> benchmarks();
+
+   List<String> templates();
 
    BenchmarkRef benchmark(String name);
 
@@ -50,9 +54,11 @@ public interface Client {
 
       Benchmark get();
 
-      RunRef start(String description);
+      RunRef start(String description, Map<String, String> templateParams);
 
-      String structure(Integer maxCollectionSize);
+      BenchmarkStructure structure(Integer maxCollectionSize, Map<String, String> templateParams);
+
+      Map<String, byte[]> files();
    }
 
    class BenchmarkSource {
@@ -62,6 +68,17 @@ public interface Client {
       public BenchmarkSource(String source, String version) {
          this.source = source;
          this.version = version;
+      }
+   }
+
+   class BenchmarkStructure {
+      public final Map<String, String> params;
+      public final String content;
+
+      @JsonCreator
+      public BenchmarkStructure(@JsonProperty("params") Map<String, String> params, @JsonProperty("content") String content) {
+         this.params = params;
+         this.content = content;
       }
    }
 

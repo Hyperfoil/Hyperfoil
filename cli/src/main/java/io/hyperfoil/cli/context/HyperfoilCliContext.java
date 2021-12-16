@@ -34,7 +34,6 @@ import java.util.concurrent.TimeUnit;
 import org.aesh.command.CommandException;
 import org.aesh.command.registry.CommandRegistry;
 
-import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.cli.Pager;
 import io.hyperfoil.cli.ProcessPager;
 import io.hyperfoil.controller.Client;
@@ -48,9 +47,9 @@ import io.vertx.core.Vertx;
 public class HyperfoilCliContext {
    private final Vertx vertx;
    private final boolean providedVertx;
-   private Benchmark benchmark;
    private RestClient client;
    private Client.BenchmarkRef serverBenchmark;
+   private Map<String, String> currentParams = Collections.emptyMap();
    private Client.RunRef serverRun;
    private Map<String, File> logFiles = new HashMap<>();
    private Map<String, String> logIds = new HashMap<>();
@@ -92,6 +91,14 @@ public class HyperfoilCliContext {
 
    public Client.BenchmarkRef serverBenchmark() {
       return serverBenchmark;
+   }
+
+   public void setCurrentParams(Map<String, String> currentParams) {
+      this.currentParams = currentParams;
+   }
+
+   public Map<String, String> currentParams() {
+      return currentParams;
    }
 
    public void setServerRun(Client.RunRef ref) {

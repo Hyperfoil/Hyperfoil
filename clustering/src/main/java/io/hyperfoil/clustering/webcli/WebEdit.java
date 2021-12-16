@@ -1,5 +1,7 @@
 package io.hyperfoil.clustering.webcli;
 
+import java.io.IOException;
+import java.util.Collections;
 import java.util.concurrent.CountDownLatch;
 
 import org.aesh.command.CommandDefinition;
@@ -8,11 +10,13 @@ import org.aesh.command.CommandResult;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.api.config.BenchmarkSource;
 import io.hyperfoil.cli.commands.BaseEditCommand;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.controller.Client;
 import io.hyperfoil.core.parser.BenchmarkParser;
 import io.hyperfoil.core.parser.ParserException;
+import io.hyperfoil.impl.Util;
 
 @CommandDefinition(name = "edit", description = "Edit benchmark definition.")
 public class WebEdit extends BaseEditCommand {
@@ -22,17 +26,27 @@ public class WebEdit extends BaseEditCommand {
       Client.BenchmarkSource source = ensureSource(invocation, benchmarkRef);
       WebCliContext context = (WebCliContext) invocation.context();
       WebBenchmarkData filesData = new WebBenchmarkData();
-      for (var existing : benchmarkRef.get().files().entrySet()) {
+      for (var existing : benchmarkRef.files().entrySet()) {
          filesData.files.put(existing.getKey(), existing.getValue());
       }
-      Benchmark updated;
+      if (extraFiles != null) {
+         for (String extraFile : extraFiles) {
+            try {
+               filesData.loadFile(invocation, context, extraFile);
+            } catch (InterruptedException e) {
+               invocation.println("Benchmark upload cancelled.");
+               return CommandResult.FAILURE;
+            }
+         }
+      }
       String updatedSource = source.source;
+      String updatedName;
       for (; ; ) {
          CountDownLatch latch;
          synchronized (context) {
             latch = context.latch = new CountDownLatch(1);
          }
-         invocation.println("__HYPERFOIL_EDIT_MAGIC__");
+         invocation.println("__HYPERFOIL_EDIT_MAGIC__" + benchmarkRef.name());
          invocation.println(updatedSource);
          try {
             latch.await();
@@ -49,7 +63,17 @@ public class WebEdit extends BaseEditCommand {
             context.editBenchmark = null;
          }
          try {
-            updated = BenchmarkParser.instance().buildBenchmark(updatedSource, filesData);
+            BenchmarkSource newSource = BenchmarkParser.instance().createSource(updatedSource, filesData);
+            updatedName = newSource.name;
+            if (!newSource.isTemplate()) {
+               Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(newSource, Collections.emptyMap());
+               try {
+                  Util.serialize(benchmark);
+               } catch (IOException e) {
+                  invocation.error("Benchmark is not serializable.", e);
+                  return CommandResult.FAILURE;
+               }
+            }
             break;
          } catch (ParserException | BenchmarkDefinitionException e) {
             invocation.error(e);
@@ -74,8 +98,8 @@ public class WebEdit extends BaseEditCommand {
          }
       }
       String prevVersion = source.version;
-      if (!updated.name().equals(benchmarkRef.name())) {
-         invocation.println("NOTE: Renamed benchmark " + benchmarkRef.name() + " to " + updated.name() + "; old benchmark won't be deleted.");
+      if (!updatedName.equals(benchmarkRef.name())) {
+         invocation.println("NOTE: Renamed benchmark " + benchmarkRef.name() + " to " + updatedName + "; old benchmark won't be deleted.");
          prevVersion = null;
       }
       CountDownLatch latch;

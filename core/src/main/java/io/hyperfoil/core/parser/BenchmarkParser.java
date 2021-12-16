@@ -18,6 +18,8 @@
  */
 package io.hyperfoil.core.parser;
 
+import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.api.config.BenchmarkSource;
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.core.api.Plugin;
 import io.hyperfoil.api.config.Benchmark;
@@ -29,20 +31,21 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 
 import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.events.CollectionEndEvent;
+import org.yaml.snakeyaml.events.CollectionStartEvent;
 import org.yaml.snakeyaml.events.DocumentEndEvent;
 import org.yaml.snakeyaml.events.DocumentStartEvent;
 import org.yaml.snakeyaml.events.Event;
-import org.yaml.snakeyaml.events.MappingEndEvent;
-import org.yaml.snakeyaml.events.MappingStartEvent;
-import org.yaml.snakeyaml.events.SequenceEndEvent;
-import org.yaml.snakeyaml.events.SequenceStartEvent;
+import org.yaml.snakeyaml.events.ScalarEvent;
 import org.yaml.snakeyaml.events.StreamEndEvent;
 import org.yaml.snakeyaml.events.StreamStartEvent;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.ServiceLoader;
 
 public class BenchmarkParser extends AbstractMappingParser<BenchmarkBuilder> {
@@ -84,14 +87,23 @@ public class BenchmarkParser extends AbstractMappingParser<BenchmarkBuilder> {
       }
    }
 
-   public Benchmark buildBenchmark(String source, BenchmarkData data) throws ParserException {
-      return builder(source, data).build();
+   public Benchmark buildBenchmark(BenchmarkSource source, Map<String, String> templateParams) throws ParserException {
+      return builder(source, templateParams).build();
    }
 
-   public BenchmarkBuilder builder(String source, BenchmarkData data) throws ParserException {
+   public Benchmark buildBenchmark(InputStream inputStream, BenchmarkData data, Map<String, String> templateParams) throws ParserException, IOException {
+      return builder(createSource(Util.toString(inputStream), data), templateParams).build();
+   }
+
+   public BenchmarkBuilder builder(InputStream inputStream, BenchmarkData data, Map<String, String> templateParams) throws ParserException, IOException {
+      return builder(createSource(Util.toString(inputStream), data), templateParams);
+   }
+
+   public BenchmarkBuilder builder(BenchmarkSource source, Map<String, String> templateParams) throws ParserException {
       Yaml yaml = new Yaml();
 
-      Iterator<Event> events = yaml.parse(new StringReader(source)).iterator();
+      Iterator<Event> events = yaml.parse(new StringReader(source.yaml)).iterator();
+      events = new TemplateIterator(events, templateParams);
       if (DEBUG_PARSER) {
          events = new DebugIterator<>(events);
       }
@@ -101,7 +113,7 @@ public class BenchmarkParser extends AbstractMappingParser<BenchmarkBuilder> {
       ctx.expectEvent(DocumentStartEvent.class);
 
       //instantiate new benchmark builder
-      BenchmarkBuilder benchmarkBuilder = new BenchmarkBuilder(source, data);
+      BenchmarkBuilder benchmarkBuilder = new BenchmarkBuilder(source, templateParams);
       Locator.push(new Locator.Abstract() {
          @Override
          public BenchmarkBuilder benchmark() {
@@ -110,6 +122,13 @@ public class BenchmarkParser extends AbstractMappingParser<BenchmarkBuilder> {
       });
       try {
          parse(ctx, benchmarkBuilder);
+      } catch (RuntimeException e) {
+         // parser exceptions from the iterator are wrapped
+         if (e.getCause() instanceof ParserException) {
+            throw (ParserException) e.getCause();
+         } else {
+            throw e;
+         }
       } finally {
          Locator.pop();
       }
@@ -120,35 +139,39 @@ public class BenchmarkParser extends AbstractMappingParser<BenchmarkBuilder> {
       return benchmarkBuilder;
    }
 
-   public Benchmark buildBenchmark(InputStream inputStream, BenchmarkData data) throws ParserException, IOException {
-      return buildBenchmark(Util.toString(inputStream), data);
-   }
+   public BenchmarkSource createSource(String source, BenchmarkData data) throws ParserException {
+      Yaml yaml = new Yaml();
 
-   private static class DebugIterator<T> implements Iterator<T> {
-      private final Iterator<T> it;
-      private String indent = "";
-
-      private DebugIterator(Iterator<T> it) {
-         this.it = it;
-      }
-
-      @Override
-      public boolean hasNext() {
-         return it.hasNext();
-      }
-
-      @Override
-      public T next() {
-         T event = it.next();
-         if (event instanceof MappingEndEvent || event instanceof SequenceEndEvent) {
-            indent = indent.substring(2);
+      Map<String, String> paramsWithDefaults = new HashMap<>();
+      String name = null;
+      int depth = 0;
+      boolean isValue = false;
+      boolean isName = false;
+      for (Event event : yaml.parse(new StringReader(source))) {
+         if (event instanceof ScalarEvent) {
+            ScalarEvent se = (ScalarEvent) event;
+            if ("!param".equalsIgnoreCase((se.getTag()))) {
+               String value = se.getValue();
+               if (value.isEmpty()) {
+                  throw new ParserException(event, "Cannot use !param with empty value!");
+               }
+               String[] parts = value.split(" +", 2);
+               paramsWithDefaults.put(parts[0], parts.length > 1 ? parts[1] : null);
+            } else if (isName) {
+               name = se.getValue();
+            }
+            isValue = !isValue;
+            isName = depth == 1 && isValue && "name".equals(se.getValue());
+         } else if (event instanceof CollectionStartEvent) {
+            ++depth;
+         } else if (event instanceof CollectionEndEvent) {
+            --depth;
+            isValue = false;
          }
-         StackTraceElement[] stackTrace = new Exception().fillInStackTrace().getStackTrace();
-         System.out.println(indent + event + " fetched from " + stackTrace[1] + "\t" + stackTrace[2] + "\t" + stackTrace[3]);
-         if (event instanceof MappingStartEvent || event instanceof SequenceStartEvent) {
-            indent += "| ";
-         }
-         return event;
       }
+      if (name == null) {
+         throw new BenchmarkDefinitionException("Cannot find name for this benchmark");
+      }
+      return new BenchmarkSource(name, source, data, paramsWithDefaults);
    }
 }

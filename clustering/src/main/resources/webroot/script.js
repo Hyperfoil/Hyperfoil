@@ -1,6 +1,6 @@
 const INTERRUPT_SIGNAL = "__HYPERFOIL_INTERRUPT_SIGNAL__"
 const PAGER_MAGIC = "__HYPERFOIL_PAGER_MAGIC__\n"
-const EDIT_MAGIC = "__HYPERFOIL_EDIT_MAGIC__\n"
+const EDIT_MAGIC = "__HYPERFOIL_EDIT_MAGIC__"
 const BENCHMARK_FILE_LIST = "__HYPERFOIL_BENCHMARK_FILE_LIST__\n"
 const DOWNLOAD_MAGIC = "__HYPERFOIL_DOWNLOAD_MAGIC__"
 const DIRECT_DOWNLOAD_MAGIC = "__HYPERFOIL_DIRECT_DOWNLOAD_MAGIC__\n";
@@ -170,7 +170,8 @@ command.addEventListener("keydown", (event) => {
 });
 
 function checkCommand() {
-   if (command.value.startsWith('upload') && !command.value.trim().endsWith('upload')) {
+   let checkedValue = command.value.replace("--print-stack-trace", "").trim();
+   if (checkedValue.startsWith('upload') && !checkedValue.endsWith('upload') && !checkedValue.includes("-f")) {
       warning.innerText = "Benchmark filename cannot be passed as an argument; use 'upload' without arguments."
       // we can't set size to 'auto', so the message must be single-line:
       // see https://css-tricks.com/using-css-transitions-auto-dimensions/
@@ -185,6 +186,7 @@ var authToken;
 var authSent = false;
 var benchmarkForm = undefined;
 var benchmarkVersion = ""
+var benchmarkName = undefined
 var paging = false;
 var editing = false;
 var fileList = "";
@@ -233,6 +235,9 @@ function addResultToWindow(commandResult) {
       }
    } else if (isCommand(commandResult, EDIT_MAGIC)) {
       commandResult = commandResult.slice(EDIT_MAGIC.length);
+      let lineEnd = commandResult.indexOf('\n')
+      benchmarkName = commandResult.slice(0, lineEnd)
+      commandResult = commandResult.slice(lineEnd + 1)
       command.remove()
       editing = true;
       editor.style.visibility = 'visible'
@@ -482,7 +487,7 @@ function uploadBenchmark() {
       headers["if-match"] = benchmarkVersion;
    }
    resultWindow.innerHTML += "Uploading... "
-   return fetch(window.location + "/benchmark", {
+   return fetch(window.location + "/benchmark?storedFilesBenchmark=" + benchmarkName, {
       method: 'POST',
       headers: Object.assign(headers, { Authorization: 'Bearer ' + authToken }),
       body: benchmarkForm,
@@ -502,6 +507,7 @@ function uploadBenchmark() {
    }).finally(() => {
       benchmarkForm = undefined
       benchmarkVersion = ""
+      benchmarkName = undefined
       document.getElementById("upload-entries").remove()
       sendCommand(INTERRUPT_SIGNAL)
    })

@@ -1,11 +1,15 @@
 package io.hyperfoil.client;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
@@ -15,6 +19,8 @@ import io.hyperfoil.impl.Util;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.json.Json;
+import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 
 class BenchmarkRefImpl implements Client.BenchmarkRef {
@@ -65,17 +71,17 @@ class BenchmarkRefImpl implements Client.BenchmarkRef {
    }
 
    @Override
-   public Client.RunRef start(String description) {
+   public Client.RunRef start(String description, Map<String, String> templateParams) {
       CompletableFuture<Client.RunRef> future = new CompletableFuture<>();
       client.vertx.runOnContext(ctx -> {
-         String query = "/benchmark/" + encode(name) + "/start";
+         HttpRequest<Buffer> request = client.request(HttpMethod.GET, "/benchmark/" + encode(name) + "/start");
          if (description != null) {
-            try {
-               query += "?desc=" + URLEncoder.encode(description, StandardCharsets.UTF_8.name());
-            } catch (UnsupportedEncodingException e) {
-            }
+            request.addQueryParam("desc", description);
          }
-         client.request(HttpMethod.GET, query).send(rsp -> {
+         for (var param : templateParams.entrySet()) {
+            request.addQueryParam("templateParam", param.getKey() + "=" + param.getValue());
+         }
+         request.send(rsp -> {
             if (rsp.succeeded()) {
                HttpResponse<Buffer> response = rsp.result();
                String location = response.getHeader(HttpHeaders.LOCATION.toString());
@@ -122,13 +128,103 @@ class BenchmarkRefImpl implements Client.BenchmarkRef {
    }
 
    @Override
-   public String structure(Integer maxCollectionSize) {
+   public Client.BenchmarkStructure structure(Integer maxCollectionSize, Map<String, String> templateParams) {
       return client.sync(
-            handler -> client.request(HttpMethod.GET, "/benchmark/" + encode(name) + "/structure" +
-                  (maxCollectionSize == null ? "" : "?maxCollectionSize=" + maxCollectionSize))
-                  .putHeader(HttpHeaders.ACCEPT.toString(), "text/vnd.yaml")
-                  .send(handler), 200,
-            HttpResponse::bodyAsString);
+            handler -> {
+               HttpRequest<Buffer> request = client.request(HttpMethod.GET, "/benchmark/" + encode(name) + "/structure");
+               if (maxCollectionSize != null) {
+                  request.addQueryParam("maxCollectionSize", maxCollectionSize.toString());
+               }
+               for (var param : templateParams.entrySet()) {
+                  request.addQueryParam("templateParam", param.getKey() + "=" + param.getValue());
+               }
+               request
+                     .putHeader(HttpHeaders.ACCEPT.toString(), "application/json")
+                     .send(handler);
+            }, 200,
+            response -> Json.decodeValue(response.body(), Client.BenchmarkStructure.class));
+   }
+
+   @Override
+   public Map<String, byte[]> files() {
+      return client.sync(
+            handler -> {
+               client.request(HttpMethod.GET, "/benchmark/" + encode(name) + "/files")
+                     .putHeader(HttpHeaders.ACCEPT.toString(), "multipart/form-data")
+                     .send(handler);
+            }, 200,
+            response -> {
+               String contentType = response.getHeader(HttpHeaders.CONTENT_TYPE.toString());
+               if (contentType == null) {
+                  throw new RestClientException("Missing response content-type.");
+               }
+               String[] parts = contentType.split(";");
+               if (!"multipart/form-data".equals(parts[0].trim()) || parts.length < 2 ||
+                     !parts[1].trim().startsWith("boundary=\"") || !parts[1].trim().endsWith("\"")) {
+                  throw new RestClientException("Unexpected content-type: " + contentType);
+               }
+               String param = parts[1].trim();
+               String boundary = param.substring(10, param.length() - 1);
+               Map<String, byte[]> files = new HashMap<>();
+               try (ByteArrayInputStream stream = new ByteArrayInputStream(response.bodyAsBuffer().getBytes())) {
+                  int length = -1;
+                  String filename = null;
+                  byte[] buffer = new byte[2048];
+                  for (; ; ) {
+                     int b, pos = 0;
+                     while (pos < buffer.length && (b = stream.read()) >= 0 && b != '\n') {
+                        buffer[pos++] = (byte) b;
+                     }
+                     if (pos == buffer.length) {
+                        throw new RestClientException("Too long line; probably protocol error.");
+                     }
+                     String line = new String(buffer, 0, pos, StandardCharsets.US_ASCII);
+                     String lower = line.toLowerCase(Locale.ENGLISH);
+                     if (line.startsWith("--" + boundary)) {
+                        if (line.endsWith("--")) {
+                           break;
+                        }
+                     } else if (lower.startsWith("content-type: ")) {
+                        // ignore
+                     } else if (lower.startsWith("content-length: ")) {
+                        try {
+                           length = Integer.parseInt(lower.substring("content-length: ".length()).trim());
+                        } catch (NumberFormatException e) {
+                           throw new RestClientException("Cannot parse content-length: " + line);
+                        }
+                     } else if (lower.startsWith("content-disposition: ")) {
+                        String[] disposition = line.substring("content-disposition: ".length()).split(";");
+                        for (int i = 0; i < disposition.length; ++i) {
+                           String d = disposition[i].trim();
+                           if (d.startsWith("filename=\"") && d.endsWith("\"")) {
+                              filename = d.substring(10, d.length() - 1);
+                           }
+                        }
+                     } else if (line.isEmpty()) {
+                        if (length < 0) {
+                           throw new RestClientException("Missing content-length!");
+                        } else {
+                           byte[] bytes = new byte[length];
+                           if (stream.readNBytes(bytes, 0, length) != length) {
+                              throw new RestClientException("Cannot read all bytes for file " + filename);
+                           }
+                           if (filename == null) {
+                              throw new RestClientException("No filename in content-disposition");
+                           }
+                           files.put(filename, bytes);
+                           if (stream.read() != '\n') {
+                              throw new RestClientException("Expected newline after file " + filename);
+                           }
+                           filename = null;
+                           length = -1;
+                        }
+                     }
+                  }
+               } catch (IOException e) {
+                  throw new RestClientException(e);
+               }
+               return files;
+            });
    }
 
    private String encode(String name) {

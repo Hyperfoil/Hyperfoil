@@ -1,6 +1,5 @@
 package io.hyperfoil.cli.commands;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -21,6 +20,7 @@ import org.aesh.command.option.Option;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkData;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.api.config.BenchmarkSource;
 import io.hyperfoil.cli.CliUtil;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.controller.Client;
@@ -36,11 +36,12 @@ public class Edit extends BaseEditCommand {
    @Option(name = "editor", shortName = 'e', description = "Editor used.")
    private String editor;
 
+   @SuppressWarnings("ResultOfMethodCallIgnored")
    @Override
    public CommandResult execute(HyperfoilCommandInvocation invocation) throws CommandException {
       Client.BenchmarkRef benchmarkRef = ensureBenchmark(invocation);
       Client.BenchmarkSource source = ensureSource(invocation, benchmarkRef);
-      Benchmark updated;
+      String updatedName;
       File sourceFile;
       Map<String, Path> filesToUpload = new HashMap<>();
       try {
@@ -64,10 +65,27 @@ public class Edit extends BaseEditCommand {
          }
          AtomicBoolean cancelled = new AtomicBoolean(false);
          filesToUpload.clear();
+         if (extraFiles != null) {
+            for (String extraFile : extraFiles) {
+               filesToUpload.put(extraFile, Path.of(extraFile));
+            }
+         }
          BenchmarkData askingData = new AskingBenchmarkData(invocation, cancelled, filesToUpload);
          try {
             byte[] updatedSource = Files.readAllBytes(sourceFile.toPath());
-            updated = BenchmarkParser.instance().buildBenchmark(new ByteArrayInputStream(updatedSource), askingData);
+            BenchmarkSource newSource = BenchmarkParser.instance().createSource(new String(updatedSource, StandardCharsets.UTF_8), askingData);
+            if (!newSource.isTemplate()) {
+               Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(newSource, Collections.emptyMap());
+               try {
+                  Util.serialize(benchmark);
+               } catch (IOException e) {
+                  invocation.error("Benchmark is not serializable.", e);
+                  sourceFile.delete();
+                  // This is a bug in Hyperfoil; there isn't anything the user could do about that (no need to retry).
+                  return CommandResult.FAILURE;
+               }
+            }
+            updatedName = newSource.name;
             break;
          } catch (ParserException | BenchmarkDefinitionException e) {
             if (cancelled.get()) {
@@ -95,13 +113,13 @@ public class Edit extends BaseEditCommand {
       }
       try {
          String prevVersion = source.version;
-         if (!updated.name().equals(benchmarkRef.name())) {
-            invocation.println("NOTE: Renamed benchmark " + benchmarkRef.name() + " to " + updated.name() + "; old benchmark won't be deleted.");
+         if (!updatedName.equals(benchmarkRef.name())) {
+            invocation.println("NOTE: Renamed benchmark " + benchmarkRef.name() + " to " + updatedName + "; old benchmark won't be deleted.");
             prevVersion = null;
          }
-         invocation.println("Uploading benchmark " + updated.name() + "...");
+         invocation.println("Uploading benchmark " + updatedName + "...");
          filesToUpload.entrySet().removeIf(entry -> entry.getValue() == SKIP);
-         invocation.context().client().register(sourceFile.getAbsolutePath(), filesToUpload, prevVersion, benchmarkRef.name());
+         invocation.context().client().register(sourceFile.toPath(), filesToUpload, prevVersion, benchmarkRef.name());
          sourceFile.delete();
       } catch (RestClientException e) {
          if (e.getCause() instanceof Client.EditConflictException) {
@@ -117,7 +135,7 @@ public class Edit extends BaseEditCommand {
                   }
                   return CommandResult.SUCCESS;
                case OVERWRITE:
-                  invocation.context().client().register(updated, null);
+                  invocation.context().client().register(sourceFile.toPath(), filesToUpload, null, benchmarkRef.name());
             }
          } else {
             invocation.println(Util.explainCauses(e));
@@ -125,7 +143,7 @@ public class Edit extends BaseEditCommand {
             throw new CommandException("Failed to upload the benchmark", e);
          }
       }
-      invocation.println("Benchmark " + updated.name() + " updated.");
+      invocation.println("Benchmark " + updatedName + " updated.");
       return CommandResult.SUCCESS;
    }
 

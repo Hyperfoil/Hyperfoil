@@ -39,7 +39,8 @@ import io.hyperfoil.impl.FutureSupplier;
  */
 public class BenchmarkBuilder {
 
-   private final String originalSource;
+   private final BenchmarkSource source;
+   private final Map<String, String> params;
    private BenchmarkData data;
    private String name;
    private Map<String, String> defaultAgentProperties = Collections.emptyMap();
@@ -57,17 +58,18 @@ public class BenchmarkBuilder {
       return builder.phaseBuilders.values();
    }
 
-   public BenchmarkBuilder(String originalSource, BenchmarkData data) {
-      this.originalSource = originalSource;
-      this.data = data;
+   public BenchmarkBuilder(BenchmarkSource source, Map<String, String> params) {
+      this.source = source;
+      this.params = params;
+      this.data = source == null ? BenchmarkData.EMPTY : source.data;
    }
 
    public static BenchmarkBuilder builder() {
-      return new BenchmarkBuilder(null, BenchmarkData.EMPTY);
+      return new BenchmarkBuilder(null, Collections.emptyMap());
    }
 
-   public String source() {
-      return originalSource;
+   public BenchmarkSource source() {
+      return source;
    }
 
    public BenchmarkBuilder name(String name) {
@@ -165,7 +167,7 @@ public class BenchmarkBuilder {
       }).toArray(Agent[]::new);
       Map<Class<? extends PluginConfig>, PluginConfig> plugins = this.plugins.values().stream()
             .map(PluginBuilder::build).collect(Collectors.toMap(PluginConfig::getClass, Function.identity()));
-      Benchmark benchmark = new Benchmark(name, originalSource, files, agents, threads, plugins,
+      Benchmark benchmark = new Benchmark(name, Benchmark.randomUUID(), source, params, files, agents, threads, plugins,
             new ArrayList<>(phases.values()), tags, statisticsCollectionPeriod, triggerUrl, preHooks, postHooks, failurePolicy);
       bs.set(benchmark);
       return benchmark;

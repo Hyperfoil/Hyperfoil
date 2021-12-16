@@ -141,11 +141,33 @@ public class RestClient implements Client, Closeable {
    }
 
    @Override
-   public BenchmarkRef register(String benchmarkFile, Map<String, Path> otherFiles, String prevVersion, String storedFilesBenchmark) {
+   public BenchmarkRef register(String yaml, Map<String, byte[]> otherFiles, String prevVersion, String storedFilesBenchmark) {
       return sync(
             handler -> {
-               MultipartForm multipart = MultipartForm.create()
-                     .textFileUpload("benchmark", "benchmark.yaml", benchmarkFile, "text/vnd.yaml");
+               MultipartForm multipart = MultipartForm.create();
+               multipart.textFileUpload("benchmark", "benchmark.yaml", Buffer.buffer(yaml), "text/vnd.yaml");
+               for (var entry : otherFiles.entrySet()) {
+                  multipart.binaryFileUpload(entry.getKey(), entry.getKey(), Buffer.buffer(entry.getValue()), "application/octet-stream");
+               }
+               HttpRequest<Buffer> request = request(HttpMethod.POST, "/benchmark");
+               if (storedFilesBenchmark != null) {
+                  request.addQueryParam("storedFilesBenchmark", storedFilesBenchmark);
+               }
+               if (prevVersion != null) {
+                  request.putHeader(HttpHeaders.IF_MATCH.toString(), prevVersion);
+               }
+               request.sendMultipartForm(multipart, handler);
+            }, 0,
+            this::processRegisterResponse);
+   }
+
+   @Override
+   public BenchmarkRef register(Path benchmarkFile, Map<String, Path> otherFiles, String prevVersion,
+                                String storedFilesBenchmark) {
+      return sync(
+            handler -> {
+               MultipartForm multipart = MultipartForm.create();
+               multipart.textFileUpload("benchmark", "benchmark.yaml", benchmarkFile.toString(), "text/vnd.yaml");
                for (Map.Entry<String, Path> entry : otherFiles.entrySet()) {
                   multipart.binaryFileUpload(entry.getKey(), entry.getKey(), entry.getValue().toString(), "application/octet-stream");
                }
@@ -158,21 +180,21 @@ public class RestClient implements Client, Closeable {
                }
                request.sendMultipartForm(multipart, handler);
             }, 0,
-              this::processRegisterResponse);
+            this::processRegisterResponse);
    }
 
    @Override
    public BenchmarkRef registerLocal(String benchmarkUri, String prevVersion, String storedFilesBenchmark) {
       return sync(
-              handler -> {
-                 HttpRequest<Buffer> request = request(HttpMethod.POST, "/benchmark");
-                 if (prevVersion != null) {
-                    request.putHeader(HttpHeaders.IF_MATCH.toString(), prevVersion);
-                 }
-                 request.putHeader(HttpHeaders.CONTENT_TYPE.toString(), "text/uri-list")
-                         .sendBuffer(Buffer.buffer(benchmarkUri), handler);
-              }, 0,
-              this::processRegisterResponse);
+            handler -> {
+               HttpRequest<Buffer> request = request(HttpMethod.POST, "/benchmark");
+               if (prevVersion != null) {
+                  request.putHeader(HttpHeaders.IF_MATCH.toString(), prevVersion);
+               }
+               request.putHeader(HttpHeaders.CONTENT_TYPE.toString(), "text/uri-list")
+                     .sendBuffer(Buffer.buffer(benchmarkUri), handler);
+            }, 0,
+            this::processRegisterResponse);
    }
 
    private BenchmarkRefImpl processRegisterResponse(HttpResponse<Buffer> response) {
@@ -194,6 +216,13 @@ public class RestClient implements Client, Closeable {
    public List<String> benchmarks() {
       return sync(
             handler -> request(HttpMethod.GET, "/benchmark").send(handler), 200,
+            response -> Arrays.asList(Json.decodeValue(response.body(), String[].class)));
+   }
+
+   @Override
+   public List<String> templates() {
+      return sync(
+            handler -> request(HttpMethod.GET, "/template").send(handler), 200,
             response -> Arrays.asList(Json.decodeValue(response.body(), String[].class)));
    }
 

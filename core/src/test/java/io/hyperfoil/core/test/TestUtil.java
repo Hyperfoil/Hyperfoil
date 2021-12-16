@@ -36,7 +36,7 @@ public class TestUtil {
 
       @Override
       public BenchmarkBuilder benchmark() {
-         return new BenchmarkBuilder(null, TESTING_DATA);
+         return new BenchmarkBuilder(null, Collections.emptyMap()).data(TESTING_DATA);
       }
 
       @Override

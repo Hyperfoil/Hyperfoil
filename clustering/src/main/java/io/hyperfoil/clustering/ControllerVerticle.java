@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.hyperfoil.api.BenchmarkExecutionException;
 import io.hyperfoil.api.config.Agent;
 import io.hyperfoil.api.config.Benchmark;
+import io.hyperfoil.api.config.BenchmarkSource;
 import io.hyperfoil.api.config.Model;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.config.RunHook;
@@ -36,6 +37,8 @@ import io.hyperfoil.core.hooks.ExecRunHook;
 import io.hyperfoil.controller.CsvWriter;
 import io.hyperfoil.controller.JsonWriter;
 import io.hyperfoil.controller.StatisticsStore;
+import io.hyperfoil.core.parser.BenchmarkParser;
+import io.hyperfoil.core.parser.ParserException;
 import io.hyperfoil.core.util.CountDown;
 import io.hyperfoil.core.util.LowHigh;
 import io.hyperfoil.internal.Controller;
@@ -92,6 +95,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
    private Deployer deployer;
    private final AtomicInteger runIds = new AtomicInteger();
    private final Map<String, Benchmark> benchmarks = new HashMap<>();
+   private final Map<String, BenchmarkSource> templates = new HashMap<>();
    private long timerId = -1;
 
    Map<String, Run> runs = new HashMap<>();
@@ -391,7 +395,10 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             return;
          }
       }
-      Benchmark benchmark = Benchmark.empty(info.getString("benchmark", "<unknown>"));
+      String name = info.getString("benchmark", "<unknown>");
+      Map<String, String> templateParams = info.getJsonObject("params").getMap().entrySet().stream()
+            .collect(Collectors.toMap(Map.Entry::getKey, entry -> String.valueOf(entry.getValue())));
+      Benchmark benchmark = Benchmark.empty(name, templateParams);
       Run run = new Run(runId, runDir, benchmark);
       run.statsSupplier = () -> loadStats(runDir.resolve(DEFAULT_STATS_JSON), benchmark);
       run.completed = true;
@@ -489,7 +496,9 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
             failure.phase(), failure.metric(), failure.message())));
       run.description = description;
       runs.put(run.id, run);
-      PersistenceUtil.store(run.benchmark, run.dir);
+      if (run.benchmark.source() != null) {
+         PersistenceUtil.store(run.benchmark.source(), run.dir);
+      }
       return run;
    }
 
@@ -761,6 +770,8 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
          JsonObject info = new JsonObject()
                .put("id", run.id)
                .put("benchmark", run.benchmark.name())
+               .put("params", new JsonObject(run.benchmark.params().entrySet().stream()
+                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue))))
                .put("startTime", run.startTime)
                .put("terminateTime", run.terminateTime.future().result())
                .put("cancelled", run.cancelled)
@@ -874,29 +885,56 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       }
    }
 
-   public boolean addBenchmark(Benchmark benchmark, String prevVersion, Handler<AsyncResult<Void>> handler) {
+   public Future<Void> addBenchmark(Benchmark benchmark, String prevVersion) {
       if (prevVersion != null) {
          Benchmark prev = benchmarks.get(benchmark.name());
          if (prev == null || !prevVersion.equals(prev.version())) {
             log.info("Updating benchmark {}, version {} but current version is {}",
                   benchmark.name(), prevVersion, prev != null ? prev.version() : "<non-existent>");
-            return false;
+            return Future.failedFuture(new VersionConflictException());
          }
       }
       benchmarks.put(benchmark.name(), benchmark);
-      vertx.executeBlocking(future -> {
-         PersistenceUtil.store(benchmark, Controller.BENCHMARK_DIR);
-         future.complete();
-      }, handler);
-      return true;
+      templates.remove(benchmark.name());
+      return vertx.executeBlocking(promise -> {
+         if (benchmark.source() != null) {
+            PersistenceUtil.store(benchmark.source(), Controller.BENCHMARK_DIR);
+         }
+         promise.complete();
+      });
+   }
+
+   public Future<Void> addTemplate(BenchmarkSource template, String prevVersion) {
+      if (prevVersion != null) {
+         BenchmarkSource prev = templates.get(template.name);
+         if (prev == null || !prevVersion.equals(prev.version)) {
+            log.info("Updating template {}, version {} but current version is {}",
+                  template.name, prevVersion, prev != null ? prev.version : "<non-existent>");
+            return Future.failedFuture(new VersionConflictException());
+         }
+      }
+      templates.put(template.name, template);
+      benchmarks.remove(template.name);
+      return vertx.executeBlocking(promise -> {
+         PersistenceUtil.store(template, Controller.BENCHMARK_DIR);
+         promise.complete();
+      });
    }
 
    public Collection<String> getBenchmarks() {
       return benchmarks.keySet();
    }
 
+   public Collection<String> getTemplates() {
+      return templates.keySet();
+   }
+
    public Benchmark getBenchmark(String name) {
       return benchmarks.get(name);
+   }
+
+   public BenchmarkSource getTemplate(String name) {
+      return templates.get(name);
    }
 
    private void loadBenchmarks(Handler<AsyncResult<Void>> handler) {
@@ -904,9 +942,14 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
          try {
             Files.list(Controller.BENCHMARK_DIR).forEach(file -> {
                try {
-                  Benchmark benchmark = PersistenceUtil.load(file);
-                  if (benchmark != null) {
-                     benchmarks.put(benchmark.name(), benchmark);
+                  BenchmarkSource source = PersistenceUtil.load(file);
+                  if (source != null) {
+                     if (source.isTemplate()) {
+                        templates.put(source.name, source);
+                     } else {
+                        Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(source, Collections.emptyMap());
+                        benchmarks.put(benchmark.name(), benchmark);
+                     }
                   }
                } catch (Exception e) {
                   log.error("Failed to load a benchmark from " + file, e);
@@ -1017,17 +1060,15 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       });
    }
 
-   public Benchmark ensureBenchmark(Run run) {
+   public Benchmark ensureBenchmark(Run run) throws ParserException {
       if (run.benchmark.source() == null) {
-         File serializedSource = Controller.RUN_DIR.resolve(run.id).resolve(run.benchmark.name() + ".serialized").toFile();
-         if (serializedSource.exists() && serializedSource.isFile()) {
-            run.benchmark = PersistenceUtil.load(serializedSource.toPath());
-            return run.benchmark;
-         }
          File yamlSource = Controller.RUN_DIR.resolve(run.id).resolve(run.benchmark.name() + ".yaml").toFile();
          if (yamlSource.exists() && yamlSource.isFile()) {
-            run.benchmark = PersistenceUtil.load(yamlSource.toPath());
-            return run.benchmark;
+            BenchmarkSource source = PersistenceUtil.load(yamlSource.toPath());
+            if (source != null) {
+               run.benchmark = BenchmarkParser.instance().buildBenchmark(source, run.benchmark.params());
+               return run.benchmark;
+            }
          }
          log.warn("Cannot find benchmark source for run " + run.id + ", benchmark " + run.benchmark.name());
       }

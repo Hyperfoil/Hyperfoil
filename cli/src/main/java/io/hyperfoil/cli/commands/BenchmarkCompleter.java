@@ -1,7 +1,9 @@
 package io.hyperfoil.cli.commands;
 
+import java.util.stream.Stream;
+
 public class BenchmarkCompleter extends ServerOptionCompleter {
    public BenchmarkCompleter() {
-      super(client -> client.benchmarks().stream());
+      super(client -> Stream.concat(client.benchmarks().stream(), client.templates().stream()));
    }
 }

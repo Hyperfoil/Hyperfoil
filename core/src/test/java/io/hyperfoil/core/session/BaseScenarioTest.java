@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -67,7 +68,7 @@ public abstract class BaseScenarioTest {
    }
 
    protected Benchmark loadBenchmark(InputStream config) throws IOException, ParserException {
-      return BenchmarkParser.instance().buildBenchmark(config, TestUtil.benchmarkData());
+      return BenchmarkParser.instance().buildBenchmark(config, TestUtil.benchmarkData(), Collections.emptyMap());
    }
 
    @After

@@ -38,8 +38,9 @@ public class Benchmark implements Serializable {
 
    private final String name;
    private final String version;
+   private final Map<String, String> params;
    @Visitor.Ignore
-   private final String originalSource;
+   private final BenchmarkSource source;
    @Visitor.Ignore
    private final Map<String, byte[]> files;
    private final Agent[] agents;
@@ -59,12 +60,14 @@ public class Benchmark implements Serializable {
       return BenchmarkBuilder.builder().build();
    }
 
-   public Benchmark(String name, String originalSource, Map<String, byte[]> files, Agent[] agents, int defaultThreads,
+   public Benchmark(String name, String version, BenchmarkSource source, Map<String, String> params, Map<String, byte[]> files,
+                    Agent[] agents, int defaultThreads,
                     Map<Class<? extends PluginConfig>, PluginConfig> plugins, Collection<Phase> phases,
                     Map<String, Object> tags, long statisticsCollectionPeriod, String triggerUrl,
                     List<RunHook> preHooks, List<RunHook> postHooks, FailurePolicy failurePolicy) {
       this.name = name;
-      this.originalSource = originalSource;
+      this.params = params;
+      this.source = source;
       this.files = files;
       this.agents = agents;
       this.defaultThreads = defaultThreads;
@@ -77,16 +80,16 @@ public class Benchmark implements Serializable {
       this.triggerUrl = triggerUrl;
       this.preHooks = preHooks;
       this.postHooks = postHooks;
-      this.version = randomUUID().toString();
+      this.version = version;
    }
 
-   private static UUID randomUUID() {
+   static String randomUUID() {
       ThreadLocalRandom random = ThreadLocalRandom.current();
-      return new UUID(random.nextLong(), random.nextLong());
+      return new UUID(random.nextLong(), random.nextLong()).toString();
    }
 
-   public static Benchmark empty(String name) {
-      return new Benchmark(name, null,
+   public static Benchmark empty(String name, Map<String, String> templateParams) {
+      return new Benchmark(name, randomUUID(), null, templateParams,
             Collections.emptyMap(), new Agent[0], 0, Collections.emptyMap(), Collections.emptyList(),
             Collections.emptyMap(), 0, null, Collections.emptyList(), Collections.emptyList(), FailurePolicy.CANCEL);
    }
@@ -109,8 +112,12 @@ public class Benchmark implements Serializable {
     *
     * @return Source YAML for the benchmark.
     */
-   public String source() {
-      return originalSource;
+   public BenchmarkSource source() {
+      return source;
+   }
+
+   public Map<String, String> params() {
+      return params;
    }
 
    public Map<String, byte[]> files() {
@@ -148,7 +155,7 @@ public class Benchmark implements Serializable {
    @Override
    public String toString() {
       return "Benchmark{name='" + name + '\'' +
-            ", originalSource='" + originalSource + '\'' +
+            ", source='" + source + '\'' +
             ", agents=" + Arrays.toString(agents) +
             ", threads=" + defaultThreads +
             ", plugins=" + plugins +

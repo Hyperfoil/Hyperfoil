@@ -2,6 +2,7 @@ package io.hyperfoil.hotrod;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Map;
 
 import org.assertj.core.util.Files;
 import org.infinispan.client.hotrod.test.HotRodClientTestingUtil;
@@ -20,7 +21,6 @@ import io.hyperfoil.core.parser.BenchmarkParser;
 import io.hyperfoil.core.parser.ParserException;
 import io.hyperfoil.core.session.BaseScenarioTest;
 import io.hyperfoil.core.test.TestUtil;
-import io.hyperfoil.impl.Util;
 import io.vertx.ext.unit.TestContext;
 
 public abstract class BaseHotRodTest extends BaseScenarioTest {
@@ -64,9 +64,7 @@ public abstract class BaseHotRodTest extends BaseScenarioTest {
 
    @Override
    protected Benchmark loadBenchmark(InputStream config) throws IOException, ParserException {
-      String configString = Util.toString(config)
-            .replaceAll("hotrod://localhost:11222", "hotrod://localhost:" + hotrodServers[0].getPort());
-      Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(configString, TestUtil.benchmarkData());
-      return benchmark;
+      return BenchmarkParser.instance().buildBenchmark(
+            config, TestUtil.benchmarkData(), Map.of("PORT", String.valueOf(hotrodServers[0].getPort())));
    }
 }

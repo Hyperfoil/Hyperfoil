@@ -8,6 +8,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -23,6 +24,7 @@ import org.aesh.readline.terminal.formatting.TerminalString;
 import org.aesh.terminal.utils.ANSI;
 
 import io.hyperfoil.cli.CliUtil;
+import io.hyperfoil.cli.Table;
 import io.hyperfoil.cli.context.HyperfoilCliContext;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.client.RestClient;
@@ -225,5 +227,41 @@ public abstract class ServerCommand implements Command<HyperfoilCommandInvocatio
       List<Run> runs = invocation.context().client().runs(false);
       printList(invocation, runs.stream().map(r -> r.id).sorted(Comparator.reverseOrder()).collect(Collectors.toList()), 15);
       throw new CommandException("Cannot run command without run ID.");
+   }
+
+   protected void printTemplateParams(HyperfoilCommandInvocation invocation, Map<String, String> params) {
+      Table<ParamRow> table = new Table<>();
+      table.column("NAME", row -> row.name).column("DEFAULT", row -> row.defaultValue).column("CURRENT (CONTEXT)", row -> row.currentValue);
+      Map<String, String> current = invocation.context().currentParams();
+      table.print(invocation, params.entrySet().stream()
+            .map(entry -> {
+               String defaultValue = entry.getValue();
+               String currentValue = current.get(entry.getKey());
+               return new ParamRow(entry.getKey(),
+                     defaultValue == null ? "(no default value)" : defaultValue,
+                     currentValue == null ? "(not set)" : currentValue);
+            }));
+   }
+
+   protected boolean readYes(HyperfoilCommandInvocation invocation) throws InterruptedException {
+      switch (invocation.getShell().readLine().trim().toLowerCase()) {
+         case "y":
+         case "yes":
+            return true;
+         default:
+            return false;
+      }
+   }
+
+   private static class ParamRow {
+      String name;
+      String defaultValue;
+      String currentValue;
+
+      public ParamRow(String name, String defaultValue, String currentValue) {
+         this.name = name;
+         this.defaultValue = defaultValue;
+         this.currentValue = currentValue;
+      }
    }
 }

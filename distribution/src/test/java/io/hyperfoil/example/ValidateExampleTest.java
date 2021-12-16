@@ -12,6 +12,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -63,7 +64,7 @@ public class ValidateExampleTest {
    @Test
    public void testSerializable() {
       try {
-         Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(loadOrFail(), new LocalBenchmarkData(Paths.get(exampleFile)));
+         Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(loadOrFail(), new LocalBenchmarkData(Paths.get(exampleFile)), Collections.emptyMap());
          assertThat(benchmark.name()).isEqualTo(exampleFile.replace(".hf.yaml", "").replaceFirst("[^" + File.separatorChar + "]*.", ""));
          byte[] bytes = Util.serialize(benchmark);
          assertThat(bytes).isNotNull();
@@ -75,9 +76,9 @@ public class ValidateExampleTest {
    @Test
    public void testCopy() {
       try {
-         String source = Util.toString(loadOrFail());
-         BenchmarkBuilder original = BenchmarkParser.instance().builder(source, new LocalBenchmarkData(Paths.get(exampleFile)));
-         BenchmarkBuilder builder = new BenchmarkBuilder(null, new LocalBenchmarkData(Paths.get(exampleFile)));
+         LocalBenchmarkData data = new LocalBenchmarkData(Paths.get(exampleFile));
+         BenchmarkBuilder original = BenchmarkParser.instance().builder(loadOrFail(), data, Collections.emptyMap());
+         BenchmarkBuilder builder = new BenchmarkBuilder(null, Collections.emptyMap()).data(data);
          HttpPluginBuilder plugin = builder.addPlugin(HttpPluginBuilder::new);
          HttpPluginBuilder.httpForTesting(original).forEach(http -> plugin.addHttp(http.copy(plugin)));
          builder.prepareBuild();
@@ -95,7 +96,7 @@ public class ValidateExampleTest {
 
    @Test
    public void testPrint() throws IOException, ParserException {
-      Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(loadOrFail(), new LocalBenchmarkData(Paths.get(exampleFile)));
+      Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(loadOrFail(), new LocalBenchmarkData(Paths.get(exampleFile)), Collections.emptyMap());
       ByteArrayOutputStream output = new ByteArrayOutputStream();
       try (PrintStream stream = new PrintStream(output, false, StandardCharsets.UTF_8.name())) {
          new YamlVisitor(stream, 20).walk(benchmark);

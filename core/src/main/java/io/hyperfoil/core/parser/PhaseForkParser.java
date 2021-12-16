@@ -32,7 +32,7 @@ class PhaseForkParser implements Parser<PhaseBuilder<?>> {
       ctx.expectEvent(MappingStartEvent.class);
       ScalarEvent forkNameEvent = ctx.expectEvent(ScalarEvent.class);
       PhaseForkBuilder forkBuilder = phaseBuilder.fork(forkNameEvent.getValue());
-      ctx.parseAliased(PhaseForkBuilder.class, forkBuilder, ForkParser.INSTANCE, PhaseForkBuilder::readFrom);
+      ForkParser.INSTANCE.parse(ctx, forkBuilder);
       // this belongs to the outer list
       ctx.expectEvent(MappingEndEvent.class);
    }
@@ -56,7 +56,7 @@ class PhaseForkParser implements Parser<PhaseBuilder<?>> {
       @Override
       public void parse(Context ctx, PhaseBuilder<?> target) throws ParserException {
          PhaseForkBuilder forkBuilder = target.fork(forkNameEvent.getValue());
-         ctx.parseAliased(PhaseForkBuilder.class, forkBuilder, ForkParser.INSTANCE, PhaseForkBuilder::readFrom);
+         ForkParser.INSTANCE.parse(ctx, forkBuilder);
       }
    }
 }

@@ -30,6 +30,7 @@ import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.HashMap;
 
 @Mojo(name = "run", defaultPhase = LifecyclePhase.INTEGRATION_TEST, requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME)
@@ -85,8 +86,7 @@ public class RunMojo extends AbstractMojo {
          log.error("Could not find benchmark configuration");
 
       try {
-         String source = Util.toString(inputStream);
-         Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(source, new LocalBenchmarkData(path));
+         Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(inputStream, new LocalBenchmarkData(path), Collections.emptyMap());
 
          if (benchmark == null)
             log.info("Failed to parse benchmark configuration");

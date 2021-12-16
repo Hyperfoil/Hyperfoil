@@ -1,6 +1,6 @@
 name: CompressionTest
 http:
-  host: http://localhost:8080
+  host: !concat [ "http://localhost:", !param PORT 8080 ]
 phases:
 - testPhase:
     atOnce:

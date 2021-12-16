@@ -1,5 +1,7 @@
 package io.hyperfoil.cli.commands;
 
+import java.util.Collections;
+
 import org.aesh.command.CommandException;
 import org.aesh.command.option.Argument;
 
@@ -28,6 +30,9 @@ public abstract class BenchmarkCommand extends ServerCommand {
             invocation.println("Available benchmarks: ");
             printList(invocation, invocation.context().client().benchmarks(), 15);
             throw new CommandException("No such benchmark: '" + benchmark + "'");
+         }
+         if (ctx.serverBenchmark() != null && !ctx.serverBenchmark().name().equals(benchmark)) {
+            ctx.setCurrentParams(Collections.emptyMap());
          }
       }
       ctx.setServerBenchmark(benchmarkRef);

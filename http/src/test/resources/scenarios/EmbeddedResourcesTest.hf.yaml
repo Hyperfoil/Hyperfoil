@@ -1,7 +1,7 @@
 # For parser testing
 name: download embedded resources
 http:
-  host: http://localhost:8080
+  host: !concat [ "http://localhost:", !param PORT 8080 ]
   # Do not limit concurrency through default connection limits
   sharedConnections: 17
 phases:

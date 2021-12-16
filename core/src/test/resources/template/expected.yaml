@@ -1,0 +1,21 @@
+withoutDefault: foo
+withDefault: bar
+giveMeString: abcd
+giveMeList: [ a, b, c ]
+giveMeComplexList:
+- foo: x
+  bar: [ a, b ]
+- foo: y
+  bar: [ a, b ]
+inList:
+- bar
+- xxx
+- - - ax
+    - ay
+  - - bx
+    - by
+copyOne: foo
+copyTwo: [ a, b, c ]
+copyToLoop: [ bar, goo ]
+checkUnsetAfterLoop: foo
+emptyLoop: [ ]

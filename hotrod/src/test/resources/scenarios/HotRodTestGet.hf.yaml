@@ -1,13 +1,13 @@
 name: hotrod-example
 hotrod:
-  - uri: hotrod://localhost:11222
-    caches:
-    - my-cache
+- uri: !concat [ "hotrod://localhost:", !param PORT 11222 ]
+  caches:
+  - my-cache
 usersPerSec: 1
 duration: 5s
 scenario:
-  - example:
-      - randomInt: cacheKey <- 1 .. 999
-      - hotrodRequest:
-          get: my-cache
-          key: ${cacheKey}
+- example:
+  - randomInt: cacheKey <- 1 .. 999
+  - hotrodRequest:
+      get: my-cache
+      key: ${cacheKey}

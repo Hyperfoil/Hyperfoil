@@ -41,7 +41,7 @@ class ScenarioParser extends AbstractParser<ScenarioBuilder, ScenarioBuilder> {
       if (ctx.peek() instanceof SequenceStartEvent) {
          new OrderedSequenceParser().parse(ctx, target);
       } else {
-         ctx.parseAliased(ScenarioBuilder.class, target, this::callSubBuilders, ScenarioBuilder::readFrom);
+         callSubBuilders(ctx, target);
       }
    }
 }

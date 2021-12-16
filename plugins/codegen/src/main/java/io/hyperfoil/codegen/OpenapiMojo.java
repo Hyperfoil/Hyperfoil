@@ -144,6 +144,8 @@ public class OpenapiMojo extends AbstractMojo {
       CompilationUnit unit = new CompilationUnit(routerPackage);
       unit.addImport("java.util.Date");
       unit.addImport("java.util.List");
+      unit.addImport("java.util.Map");
+      unit.addImport("java.util.Collections");
       unit.addImport("io.vertx.core.json.Json");
       unit.addImport("io.vertx.ext.web.handler.BodyHandler");
       unit.addImport("io.vertx.ext.web.Router");
@@ -199,7 +201,7 @@ public class OpenapiMojo extends AbstractMojo {
                      "return; }");
             }
             body.addStatement(new StringBuilder().append(param.type).append(" ").append(param.varName)
-                  .append(" = convert(_").append(param.varName).append(", ").append(param.type).append(".class);").toString());
+                  .append(" = convert(_").append(param.varName).append(", ").append(param.type.replaceAll("<.*>", "")).append(".class);").toString());
             invocation.append(", ").append(param.varName);
          }
          invocation.append(");");
@@ -238,6 +240,8 @@ public class OpenapiMojo extends AbstractMojo {
       convertBody.addStatement("if (type == String.class) return (T) value;");
       convertBody.addStatement("if (type == boolean.class) return (T) Boolean.valueOf(value);");
       convertBody.addStatement("if (type == int.class) return (T) Integer.valueOf(value);");
+      convertBody.addStatement("if (type == List.class) { if (value == null) return (T) Collections.emptyList(); if (value instanceof String) return (T) Collections.singletonList(value); }");
+      convertBody.addStatement("if (value == null) { if (type == Map.class) return (T) Collections.emptyMap(); return null; }");
       convertBody.addStatement("return Json.decodeValue(value, type);");
 
       writeUnit(unit, routerPackage, "ApiRouter.java");
@@ -247,6 +251,7 @@ public class OpenapiMojo extends AbstractMojo {
       CompilationUnit unit = new CompilationUnit(servicePackage);
       unit.addImport(modelPackage, false, true);
       unit.addImport("io.vertx.ext.web.RoutingContext");
+      unit.addImport("java.util", false, true);
       ClassOrInterfaceDeclaration clazz = unit.addClass("ApiService");
       clazz.setInterface(true);
       for (Operation operation : operations) {

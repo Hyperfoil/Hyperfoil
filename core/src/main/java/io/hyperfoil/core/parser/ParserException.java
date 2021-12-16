@@ -20,6 +20,7 @@ package io.hyperfoil.core.parser;
 
 import org.yaml.snakeyaml.events.Event;
 
+import io.hyperfoil.api.config.BenchmarkSource;
 import io.hyperfoil.api.config.Locator;
 
 public class ParserException extends Exception {
@@ -44,7 +45,8 @@ public class ParserException extends Exception {
       lineInfo.append(": ").append(msg);
       String source = null;
       if (Locator.isAvailable()) {
-         source = Locator.current().benchmark().source();
+         BenchmarkSource bs = Locator.current().benchmark().source();
+         source = bs == null ? null : bs.yaml;
       }
       if (source != null) {
          lineInfo.append("; See below: \n");

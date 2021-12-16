@@ -139,6 +139,13 @@ paths:
         description: Run ID of run that was already requested but not started.
         schema:
           type: string
+      - in: query
+        name: templateParam
+        description: Template parameter in format KEY=VALUE
+        schema:
+          type: array
+          items:
+            type: string
       responses:
         '202':
           description: Run was successfully started.
@@ -161,6 +168,28 @@ paths:
           description: There is an ongoing run. Try later.
         '404':
           description: Requested benchmark is not defined.
+  /benchmark/{name}/files:
+    get:
+      summary: Get data files for the benchmark
+      operationId: getBenchmarkFiles
+      parameters:
+      - in: path
+        name: name
+        required: true
+        allowEmptyValue: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: List of files
+          content:
+            multipart/form-data:
+              schema:
+                type: object
+        '404':
+          description: Benchmark is not defined.
+        '406':
+          description: Benchmark does not preserve the original source.
   /benchmark/{name}/structure:
     get:
       summary: Inspect the rendered structure of the benchmark.
@@ -177,11 +206,18 @@ paths:
         schema:
           type: integer
           default: 20
+      - in: query
+        name: templateParam
+        description: Template parameters in format KEY=VALUE for resolving benchmark without running that.
+        schema:
+          type: array
+          items:
+            type: string
       responses:
         '200':
           description: Benchmark structure.
           content:
-            text/vnd.yaml:
+            application/json:
               schema:
                 type: object
         '404':
@@ -642,6 +678,19 @@ paths:
           description: Shutting down
         '403':
           description: Some runs are in progress and force=false
+  /template:
+    get:
+      summary: List defined template names.
+      operationId: listTemplates
+      responses:
+        '200':
+          description: Benchmark template names.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
   /token:
     get:
       summary: Get authorization token

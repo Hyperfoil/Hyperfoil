@@ -233,12 +233,14 @@ public class WebCLI extends HyperfoilCli implements Handler<ServerWebSocket> {
       } catch (CommandRegistryException e) {
          throw new IllegalStateException(e);
       }
+
+      webSocket.writeTextMessage("__HYPERFOIL_SESSION_START__\n");
+      webSocket.writeTextMessage("Welcome to Hyperfoil! Type 'help' for commands overview.\n");
+
       Thread cliThread = new Thread(ctx.runner::start, "webcli-" + webSocket.remoteAddress());
       cliThread.setDaemon(true);
       cliThread.start();
 
-      webSocket.writeTextMessage("__HYPERFOIL_SESSION_START__\n");
-      webSocket.writeTextMessage("Welcome to Hyperfoil! Type 'help' for commands overview.\n");
       return ctx;
    }
 

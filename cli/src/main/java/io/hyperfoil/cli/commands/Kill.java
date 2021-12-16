@@ -32,14 +32,9 @@ public class Kill extends BaseRunIdCommand {
             }
          }
          invocation.print("(phases: " + running + " running, " + finished + " finished, " + terminated + " terminated) [y/N]: ");
-         String confirmation = invocation.getShell().readLine();
-         switch (confirmation.trim().toLowerCase()) {
-            case "y":
-            case "yes":
-               break;
-            default:
-               invocation.println("Kill cancelled.");
-               return CommandResult.SUCCESS;
+         if (!readYes(invocation)) {
+            invocation.println("Kill cancelled.");
+            return CommandResult.SUCCESS;
          }
       }
       try {

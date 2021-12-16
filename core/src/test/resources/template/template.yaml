@@ -1,0 +1,38 @@
+# FOO=foo
+# BAR=bar
+# C=c
+# NOT_SET is not set :-)
+# LIST_OF_ITEMS=x;y
+withoutDefault: &first !param FOO
+withDefault: !param BAR some default
+giveMeString: !concat [ a, "b", !param C, !param NOT_SET d ]
+giveMeList: &second !foreach
+  items: a,b,c
+  do: !param ITEM
+giveMeComplexList: !foreach
+  items: !param LIST_OF_ITEMS
+  separator: ";"
+  do:
+    foo: !param ITEM
+    bar: [ a, b ]
+inList:
+- !param BAR another default
+- !param NOT_SET xxx
+- !foreach
+  items: a,b
+  do: !foreach
+    items: x,y
+    param: ITEM2
+    do: !concat [ !param ITEM, !param ITEM2 ]
+copyOne: *first
+copyTwo: *second
+copyToLoop: !foreach
+  items: bar,goo
+  param: FOO
+  do: *first
+checkUnsetAfterLoop: *first
+emptyLoop: !foreach
+  items:
+  do: anything
+
+

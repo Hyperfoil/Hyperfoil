@@ -73,12 +73,8 @@ public class Report extends BaseRunIdCommand {
       invocation.print("File " + destination + " already exists, overwrite? [y/N]: ");
       boolean overwrite = false;
       try {
-         String confirmation = invocation.getShell().readLine();
-         switch (confirmation.trim().toLowerCase()) {
-            case "y":
-            case "yes":
-               overwrite = true;
-               break;
+         if (readYes(invocation)) {
+            overwrite = true;
          }
       } catch (InterruptedException e) {
          // ignore

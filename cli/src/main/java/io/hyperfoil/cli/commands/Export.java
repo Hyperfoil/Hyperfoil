@@ -36,14 +36,10 @@ public class Export extends BaseExportCommand {
          destinationFile = destination + File.separator + defaultFilename;
       }
       if (destination.exists() && !assumeYes) {
-         invocation.print("File " + destinationFile + " already exists, override? [y/N] ");
-         switch (invocation.getShell().readLine().trim().toLowerCase()) {
-            case "y":
-            case "yes":
-               break;
-            default:
-               invocation.println("Export cancelled.");
-               return CommandResult.SUCCESS;
+         invocation.print("File " + destinationFile + " already exists, override? [y/N]: ");
+         if (!readYes(invocation)) {
+            invocation.println("Export cancelled.");
+            return CommandResult.SUCCESS;
          }
       }
       byte[] bytes = runRef.statsAll(acceptFormat);
@@ -54,5 +50,4 @@ public class Export extends BaseExportCommand {
       }
       return CommandResult.SUCCESS;
    }
-
 }

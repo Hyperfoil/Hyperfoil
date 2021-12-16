@@ -1,15 +1,10 @@
 package io.hyperfoil.core.parser;
 
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Map;
-import java.util.Objects;
 import java.util.Stack;
-import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.yaml.snakeyaml.events.AliasEvent;
 import org.yaml.snakeyaml.events.Event;
 import org.yaml.snakeyaml.events.MappingEndEvent;
 import org.yaml.snakeyaml.events.MappingStartEvent;
@@ -17,10 +12,7 @@ import org.yaml.snakeyaml.events.ScalarEvent;
 import org.yaml.snakeyaml.events.SequenceEndEvent;
 import org.yaml.snakeyaml.events.SequenceStartEvent;
 
-import io.hyperfoil.api.config.BenchmarkDefinitionException;
-
 public class Context {
-   private final Map<String, Anchor> anchors = new HashMap<>();
    private final Iterator<Event> events;
    private Event peeked;
    private final Stack<Object> vars = new Stack<>();
@@ -91,41 +83,6 @@ public class Context {
       assert peekedEvent == event;
    }
 
-
-   public void setAnchor(Event event, String anchor, Object object) throws ParserException {
-      Objects.requireNonNull(anchor);
-      Objects.requireNonNull(object);
-      Anchor prev = anchors.putIfAbsent(anchor + ":" + object.getClass().getName(), new Anchor(event, object));
-      if (prev != null) {
-         throw new ParserException(event, "Anchor '" + anchor + "' already defined on '" + ParserException.location(prev.source) + "'");
-      }
-   }
-
-   public <T> T getAnchor(Event event, String alias, Class<T> clazz) throws ParserException {
-      Objects.requireNonNull(alias);
-      Anchor anchor = anchors.get(alias + ":" + clazz.getName());
-      if (anchor == null) {
-         String prefix = alias + ":";
-         for (String key : anchors.keySet()) {
-            if (key.startsWith(prefix)) {
-               Anchor similar = anchors.get(key);
-               throw new ParserException(event, "There is no anchor for '" + alias + "' with type '" + clazz +
-                     "' but there is another anchor '" + key + "' on '" + ParserException.location(similar.source) + "'");
-            }
-         }
-         throw new ParserException(event, "There's no anchor for '" + alias + "', available are '"
-               + anchors.keySet().stream().sorted().collect(Collectors.toList()) + "'");
-      }
-      if (!clazz.isInstance(anchor.object)) {
-         throw new ParserException(event, "'" + alias + "' is anchored to unexpected type '"
-               + anchor.object.getClass() + "' while we expect '" + clazz + "'; anchor is defined on '"
-               + ParserException.location(anchor.source) + "'");
-      }
-      @SuppressWarnings("unchecked")
-      T object = (T) anchor.object;
-      return object;
-   }
-
    public <E extends Event> E expectEvent(Class<E> eventClazz) throws ParserException {
       if (hasNext()) {
          Event event = next();
@@ -156,10 +113,6 @@ public class Context {
       }
       Event event = next();
       if (event instanceof SequenceStartEvent) {
-         String anchor = ((SequenceStartEvent) event).getAnchor();
-         if (anchor != null) {
-            setAnchor(event, anchor, target);
-         }
          while (hasNext()) {
             Event itemEvent = peek();
             if (itemEvent instanceof SequenceEndEvent) {
@@ -183,28 +136,6 @@ public class Context {
          }
       } else {
          throw unexpectedEvent(event);
-      }
-   }
-
-   public <A> void parseAliased(Class<A> aliasType, A target, Parser<A> parser, BiConsumer<A, A> readFrom) throws ParserException {
-      Event event = peek();
-      try {
-         if (event instanceof MappingStartEvent) {
-            String anchor = ((MappingStartEvent) event).getAnchor();
-            if (anchor != null) {
-               setAnchor(event, anchor, target);
-            }
-            parser.parse(this, target);
-         } else if (event instanceof AliasEvent) {
-            String anchor = ((AliasEvent) event).getAnchor();
-            A aliased = getAnchor(event, anchor, aliasType);
-            readFrom.accept(target, aliased);
-            consumePeeked(event);
-         } else {
-            throw unexpectedEvent(event);
-         }
-      } catch (BenchmarkDefinitionException e) {
-         throw new ParserException(event, "Error in benchmark builders", e);
       }
    }
 

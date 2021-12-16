@@ -24,6 +24,7 @@ import static io.hyperfoil.http.steps.HttpStepCatalog.SC;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Handler;
@@ -49,7 +50,6 @@ import org.aesh.terminal.utils.ANSI;
 import org.aesh.terminal.utils.Config;
 
 import io.hyperfoil.api.config.BenchmarkBuilder;
-import io.hyperfoil.api.config.BenchmarkData;
 import io.hyperfoil.api.config.PhaseBuilder;
 import io.hyperfoil.http.statistics.HttpStats;
 import io.hyperfoil.api.statistics.StatisticsSummary;
@@ -196,7 +196,7 @@ public abstract class WrkAbstract {
 
          Protocol protocol = Protocol.fromScheme(uri.getScheme());
          // @formatter:off
-         BenchmarkBuilder builder = new BenchmarkBuilder(null, BenchmarkData.EMPTY)
+         BenchmarkBuilder builder = BenchmarkBuilder.builder()
                .name(getCommand())
                .addPlugin(HttpPluginBuilder::new)
                   .ergonomics()
@@ -240,7 +240,7 @@ public abstract class WrkAbstract {
          }
          Client.BenchmarkRef benchmark = client.register(builder.build(), null);
          invocation.context().setServerBenchmark(benchmark);
-         Client.RunRef run = benchmark.start(null);
+         Client.RunRef run = benchmark.start(null, Collections.emptyMap());
          invocation.context().setServerRun(run);
 
          invocation.println("Running for " + duration + " test @ " + url);

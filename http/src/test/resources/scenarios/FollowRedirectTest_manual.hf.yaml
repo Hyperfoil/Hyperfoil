@@ -1,7 +1,7 @@
 # For parser testing
 name: follow redirects manual
 http:
-  host: http://localhost:8080
+  host: !concat [ "http://localhost:", !param PORT 8080 ]
   # Do not limit concurrency through default connection limits
   sharedConnections: 10
 phases:

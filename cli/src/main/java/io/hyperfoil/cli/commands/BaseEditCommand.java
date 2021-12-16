@@ -1,8 +1,10 @@
 package io.hyperfoil.cli.commands;
 
 import java.io.InputStream;
+import java.util.List;
 
 import org.aesh.command.CommandException;
+import org.aesh.command.option.OptionList;
 
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.client.RestClientException;
@@ -15,6 +17,9 @@ public abstract class BaseEditCommand extends BenchmarkCommand {
          return -1;
       }
    };
+
+   @OptionList(name = "extra-files", shortName = 'f', description = "Extra files for upload (comma-separated) in case this benchmark is a template and files won't be auto-detected. Example: --extra-files foo.txt,bar.txt")
+   protected List<String> extraFiles;
 
    protected ConflictResolution askForConflictResolution(HyperfoilCommandInvocation invocation) {
       invocation.println("Conflict: the benchmark was modified while being edited.");

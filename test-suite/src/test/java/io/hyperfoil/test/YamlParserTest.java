@@ -46,6 +46,7 @@ import org.junit.Test;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.function.Predicate;
@@ -250,7 +251,7 @@ public class YamlParserTest {
          fail("Could not find benchmark configuration");
 
       try {
-         Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(inputStream, TestUtil.benchmarkData());
+         Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(inputStream, TestUtil.benchmarkData(), Collections.emptyMap());
          Assert.assertNotNull(benchmark);
          try {
             byte[] bytes = Util.serialize(benchmark);

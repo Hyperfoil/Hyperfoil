@@ -18,11 +18,15 @@ import java.nio.file.Paths;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.BinaryOperator;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -32,13 +36,14 @@ import java.util.stream.Stream;
 
 import io.hyperfoil.api.Version;
 import io.hyperfoil.api.config.Benchmark;
-import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.BenchmarkData;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.api.config.BenchmarkSource;
 import io.hyperfoil.api.config.Model;
 import io.hyperfoil.clustering.util.PersistedBenchmarkData;
 import io.hyperfoil.clustering.webcli.WebCLI;
 import io.hyperfoil.controller.ApiService;
+import io.hyperfoil.controller.Client;
 import io.hyperfoil.controller.StatisticsStore;
 import io.hyperfoil.controller.model.Histogram;
 import io.hyperfoil.controller.model.RequestStats;
@@ -211,37 +216,60 @@ class ControllerServer implements ApiService {
    }
 
    @Override
+   public void listTemplates(RoutingContext ctx) {
+      ctx.response().end(Json.encodePrettily(controller.getTemplates()));
+   }
+
+   @Override
    public void addBenchmark$application_json(RoutingContext ctx, String ifMatch, String storedFilesBenchmark) {
       addBenchmark$text_vnd_yaml(ctx, ifMatch, storedFilesBenchmark);
    }
 
-   private void addBenchmarkAndReply(RoutingContext ctx, Benchmark benchmark, String prevVersion) {
-      if (benchmark != null) {
-         if (benchmark.agents().length == 0 && controller.getVertx().isClustered()) {
-            ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
-                  .end("Hyperfoil controller is clustered but the benchmark does not define any agents.");
-            return;
-         } else if (benchmark.agents().length != 0 && !controller.getVertx().isClustered()) {
-            ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
-                  .end("Hyperfoil runs in standalone mode but the benchmark defines agents for clustering");
-            return;
-         }
-         String location = baseURL + "/benchmark/" + encode(benchmark.name());
-         if (!controller.addBenchmark(benchmark, prevVersion, event -> {
-            if (event.succeeded()) {
-               ctx.response()
-                     .setStatusCode(HttpResponseStatus.NO_CONTENT.code())
-                     .putHeader(HttpHeaders.LOCATION, location).end();
-            } else {
-               ctx.response().setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code()).end();
-            }
-         })) {
-            ctx.response().setStatusCode(HttpResponseStatus.CONFLICT.code()).end();
-         }
-
-      } else {
+   private void addBenchmarkAndReply(RoutingContext ctx, String source, BenchmarkData data, String prevVersion) throws ParserException {
+      if (source == null || data == null) {
          ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end("Cannot read benchmark.");
+         return;
       }
+      BenchmarkSource benchmarkSource = BenchmarkParser.instance().createSource(source, data);
+      if (benchmarkSource.isTemplate()) {
+         Future<Void> future = controller.addTemplate(benchmarkSource, prevVersion);
+         sendReply(ctx, future, benchmarkSource.name);
+      } else {
+         Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(benchmarkSource, Collections.emptyMap());
+         addBenchmarkAndReply(ctx, benchmark, prevVersion);
+      }
+   }
+
+   private void sendReply(RoutingContext ctx, Future<Void> future, String name) {
+      String location = baseURL + "/benchmark/" + encode(name);
+      future.onSuccess(nil -> {
+         ctx.response()
+               .setStatusCode(HttpResponseStatus.NO_CONTENT.code())
+               .putHeader(HttpHeaders.LOCATION, location).end();
+      }).onFailure(throwable -> {
+         if (throwable instanceof VersionConflictException) {
+            ctx.response().setStatusCode(HttpResponseStatus.CONFLICT.code()).end();
+         } else {
+            ctx.response().setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code()).end();
+         }
+      });
+   }
+
+   private void addBenchmarkAndReply(RoutingContext ctx, Benchmark benchmark, String prevVersion) {
+      if (benchmark == null) {
+         ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end("Cannot read benchmark.");
+         return;
+      }
+      if (benchmark.agents().length == 0 && controller.getVertx().isClustered()) {
+         ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
+               .end("Hyperfoil controller is clustered but the benchmark does not define any agents.");
+         return;
+      } else if (benchmark.agents().length != 0 && !controller.getVertx().isClustered()) {
+         ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
+               .end("Hyperfoil runs in standalone mode but the benchmark defines agents for clustering");
+         return;
+      }
+      sendReply(ctx, controller.addBenchmark(benchmark, prevVersion), benchmark.name());
    }
 
    private static String encode(String string) {
@@ -263,14 +291,14 @@ class ControllerServer implements ApiService {
          return;
       }
       var loadDirPath = Paths.get(loadDirProperty).toAbsolutePath();
-      String source = ctx.getBodyAsString();
-      if (source == null || source.isEmpty()) {
+      String body = ctx.getBodyAsString();
+      if (body == null || body.isEmpty()) {
          log.error("Benchmark is empty, load failed.");
          ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end("Benchmark is empty.");
          return;
       }
       // text/uri-list ignores
-      var uris = source.lines()
+      var uris = body.lines()
             .map(String::trim)
             .filter(Predicate.not(String::isEmpty))
             .filter(Predicate.not(l -> l.startsWith("#")))
@@ -305,15 +333,13 @@ class ControllerServer implements ApiService {
          return;
       }
       try {
-         BenchmarkBuilder builder = BenchmarkParser.instance().builder(
-               Files.readString(localPath),
-               new LocalBenchmarkData(localPath)
-         );
+         String source = Files.readString(localPath);
+         BenchmarkData data = new LocalBenchmarkData(localPath);
          if (storedFilesBenchmark != null) {
             storedFilesBenchmark = PersistedBenchmarkData.sanitize(storedFilesBenchmark);
-            builder.data(new PersistedBenchmarkData(Controller.BENCHMARK_DIR.resolve(storedFilesBenchmark + ".data")));
+            data = new PersistedBenchmarkData(Controller.BENCHMARK_DIR.resolve(storedFilesBenchmark + ".data"));
          }
-         addBenchmarkAndReply(ctx, builder.build(), ifMatch);
+         addBenchmarkAndReply(ctx, source, data, ifMatch);
       } catch (ParserException | BenchmarkDefinitionException | IOException e) {
          respondParsingError(ctx, e);
       }
@@ -328,12 +354,12 @@ class ControllerServer implements ApiService {
          return;
       }
       try {
-         BenchmarkBuilder builder = BenchmarkParser.instance().builder(source, BenchmarkData.EMPTY);
+         BenchmarkData data = BenchmarkData.EMPTY;
          if (storedFilesBenchmark != null) {
             storedFilesBenchmark = PersistedBenchmarkData.sanitize(storedFilesBenchmark);
-            builder.data(new PersistedBenchmarkData(Controller.BENCHMARK_DIR.resolve(storedFilesBenchmark + ".data")));
+            data = new PersistedBenchmarkData(Controller.BENCHMARK_DIR.resolve(storedFilesBenchmark + ".data"));
          }
-         addBenchmarkAndReply(ctx, builder.build(), ifMatch);
+         addBenchmarkAndReply(ctx, source, data, ifMatch);
       } catch (ParserException | BenchmarkDefinitionException e) {
          respondParsingError(ctx, e);
       }
@@ -371,7 +397,7 @@ class ControllerServer implements ApiService {
    @Override
    public void addBenchmark$multipart_form_data(RoutingContext ctx, String ifMatch, String storedFilesBenchmark) {
       String source = null;
-      RequestBenchmarkData data = new RequestBenchmarkData();
+      BenchmarkData data = new RequestBenchmarkData();
       for (FileUpload upload : ctx.fileUploads()) {
          byte[] bytes;
          try {
@@ -388,7 +414,7 @@ class ControllerServer implements ApiService {
                source = new String(bytes, StandardCharsets.UTF_8);
             }
          } else {
-            data.addFile(upload.fileName(), bytes);
+            ((RequestBenchmarkData) data).addFile(upload.fileName(), bytes);
          }
       }
       if (source == null) {
@@ -396,7 +422,6 @@ class ControllerServer implements ApiService {
          return;
       }
       try {
-         BenchmarkBuilder builder = BenchmarkParser.instance().builder(source, data);
          if (storedFilesBenchmark != null) {
             // sanitize to prevent directory escape
             storedFilesBenchmark = PersistedBenchmarkData.sanitize(storedFilesBenchmark);
@@ -415,9 +440,9 @@ class ControllerServer implements ApiService {
                   }
                }
             }
-            builder.data(new PersistedBenchmarkData(dataDirPath));
+            data = new PersistedBenchmarkData(dataDirPath);
          }
-         addBenchmarkAndReply(ctx, builder.build(), ifMatch);
+         addBenchmarkAndReply(ctx, source, data, ifMatch);
       } catch (ParserException | BenchmarkDefinitionException e) {
          respondParsingError(ctx, e);
       }
@@ -425,19 +450,29 @@ class ControllerServer implements ApiService {
 
    @Override
    public void getBenchmark$text_vnd_yaml(RoutingContext ctx, String name) {
-      withBenchmark(ctx, name, benchmark -> sendYamlBenchmark(ctx, benchmark));
+      Benchmark benchmark = controller.getBenchmark(name);
+      if (benchmark == null) {
+         BenchmarkSource template = controller.getTemplate(name);
+         if (template == null) {
+            ctx.response().setStatusCode(HttpResponseStatus.NOT_FOUND.code()).end("No benchmark or template '" + name + "'.");
+         } else {
+            sendYamlBenchmark(ctx, template, template.version);
+         }
+      } else {
+         sendYamlBenchmark(ctx, benchmark.source(), benchmark.version());
+      }
    }
 
-   private void sendYamlBenchmark(RoutingContext ctx, Benchmark benchmark) {
-      if (benchmark.source() == null) {
+   private void sendYamlBenchmark(RoutingContext ctx, BenchmarkSource source, String version) {
+      if (source == null) {
          ctx.response()
                .setStatusCode(HttpResponseStatus.NOT_ACCEPTABLE.code())
                .setStatusMessage("Benchmark does not preserve the original source.");
       } else {
          ctx.response()
                .putHeader(HttpHeaders.CONTENT_TYPE, "text/vnd.yaml; charset=UTF-8")
-               .putHeader(HttpHeaders.ETAG.toString(), benchmark.version())
-               .end(benchmark.source());
+               .putHeader(HttpHeaders.ETAG.toString(), version)
+               .end(source.yaml);
       }
    }
 
@@ -459,11 +494,18 @@ class ControllerServer implements ApiService {
    }
 
    @Override
-   public void startBenchmark(RoutingContext ctx, String name, String desc, String xTriggerJob, String runId) {
+   public void startBenchmark(RoutingContext ctx, String name, String desc, String xTriggerJob, String runId, List<String> templateParam) {
       Benchmark benchmark = controller.getBenchmark(name);
       if (benchmark == null) {
-         ctx.response().setStatusCode(HttpResponseStatus.NOT_FOUND.code()).end("Benchmark not found");
-         return;
+         BenchmarkSource template = controller.getTemplate(name);
+         if (template == null) {
+            ctx.response().setStatusCode(HttpResponseStatus.NOT_FOUND.code()).end("Benchmark not found");
+            return;
+         }
+         benchmark = templateToBenchmark(ctx, template, templateParam);
+         if (benchmark == null) {
+            return;
+         }
       }
       String triggerUrl = benchmark.triggerUrl() != null ? benchmark.triggerUrl() : TRIGGER_URL;
       if (triggerUrl != null) {
@@ -505,15 +547,99 @@ class ControllerServer implements ApiService {
       }
    }
 
-   @Override
-   public void getBenchmarkStructure(RoutingContext ctx, String name, int maxCollectionSize) {
-      withBenchmark(ctx, name, benchmark -> {
-         ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
-         try (PrintStream stream = new PrintStream(byteStream)) {
-            new YamlVisitor(stream, maxCollectionSize).walk(benchmark);
+   private Benchmark templateToBenchmark(RoutingContext ctx, BenchmarkSource template, List<String> templateParam) {
+      Map<String, String> paramMap1 = new HashMap<>();
+      for (String item : templateParam) {
+         int index = item.indexOf("=");
+         if (index < 0) {
+            paramMap1.put(item, "");
+         } else {
+            paramMap1.put(item.substring(0, index), item.substring(index + 1));
          }
-         ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_YAML).end(Buffer.buffer(byteStream.toByteArray()));
-      });
+      }
+      Map<String, String> paramMap = paramMap1;
+      List<String> missingParams = template.paramsWithDefaults.entrySet().stream()
+            .filter(entry -> entry.getValue() == null).map(Map.Entry::getKey)
+            .filter(param -> !paramMap.containsKey(param)).collect(Collectors.toList());
+      if (missingParams.isEmpty()) {
+         try {
+            return BenchmarkParser.instance().buildBenchmark(template, paramMap);
+         } catch (ParserException | BenchmarkDefinitionException e) {
+            ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end(Util.explainCauses(e));
+            return null;
+         }
+      } else {
+         ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end(
+               "Benchmark " + template.name + " is missing these mandatory parameters: " + missingParams);
+         return null;
+      }
+   }
+
+   @Override
+   public void getBenchmarkStructure(RoutingContext ctx, String name, int maxCollectionSize, List<String> templateParam) {
+      Benchmark benchmark = controller.getBenchmark(name);
+      if (benchmark == null) {
+         BenchmarkSource template = controller.getTemplate(name);
+         if (template == null) {
+            ctx.response().setStatusCode(HttpResponseStatus.NOT_FOUND.code()).end("No benchmark or template'" + name + "'.");
+         } else {
+            String content = null;
+            if (!templateParam.isEmpty()) {
+               benchmark = templateToBenchmark(ctx, template, templateParam);
+               if (benchmark == null) {
+                  return;
+               } else {
+                  content = createStructure(maxCollectionSize, benchmark);
+               }
+            }
+            ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_JSON)
+                  .end(Json.encode(new Client.BenchmarkStructure(template.paramsWithDefaults, content)));
+         }
+      } else {
+         String content = createStructure(maxCollectionSize, benchmark);
+         ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_JSON)
+               .end(Json.encode(new Client.BenchmarkStructure(Collections.emptyMap(), content)));
+      }
+   }
+
+   @Override
+   public void getBenchmarkFiles(RoutingContext ctx, String name) {
+      Benchmark benchmark = controller.getBenchmark(name);
+      Map<String, byte[]> files;
+      if (benchmark == null) {
+         BenchmarkSource template = controller.getTemplate(name);
+         if (template == null) {
+            ctx.response().setStatusCode(HttpResponseStatus.NOT_FOUND.code()).end("No benchmark or template '" + name + "'");
+            return;
+         } else {
+            files = template.data.files();
+         }
+      } else {
+         files = benchmark.files();
+      }
+      ThreadLocalRandom random = ThreadLocalRandom.current();
+      String boundary = new UUID(random.nextLong(), random.nextLong()).toString();
+      ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, "multipart/form-data; boundary=\"" + boundary + "\"");
+      ctx.response().setChunked(true);
+      ctx.response().write("--" + boundary);
+      for (var file : files.entrySet()) {
+         ctx.response().write("\n");
+         ctx.response().write(HttpHeaders.CONTENT_TYPE + ": application/octet-stream\n");
+         ctx.response().write(HttpHeaders.CONTENT_LENGTH + ": " + file.getValue().length + "\n");
+         ctx.response().write(HttpHeaders.CONTENT_DISPOSITION + ": form-data; name=\"file\"; filename=\"" + file.getKey() + "\"\n\n");
+         ctx.response().write(Buffer.buffer(file.getValue()));
+         ctx.response().write("\n--" + boundary);
+      }
+      ctx.response().write("--");
+      ctx.response().end();
+   }
+
+   private String createStructure(int maxCollectionSize, Benchmark benchmark) {
+      ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+      try (PrintStream stream = new PrintStream(byteStream, true, StandardCharsets.UTF_8)) {
+         new YamlVisitor(stream, maxCollectionSize).walk(benchmark);
+      }
+      return byteStream.toString(StandardCharsets.UTF_8);
    }
 
    @Override
@@ -853,12 +979,25 @@ class ControllerServer implements ApiService {
 
    @Override
    public void getBenchmarkForRun$text_vnd_yaml(RoutingContext ctx, String runId) {
-      withRun(ctx, runId, run -> sendYamlBenchmark(ctx, controller.ensureBenchmark(run)));
+      withRun(ctx, runId, run -> {
+         try {
+            Benchmark benchmark = controller.ensureBenchmark(run);
+            sendYamlBenchmark(ctx, benchmark.source(), benchmark.version());
+         } catch (ParserException e) {
+            ctx.response().setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code()).end(Util.explainCauses(e));
+         }
+      });
    }
 
    @Override
    public void getBenchmarkForRun$application_java_serialized_object(RoutingContext ctx, String runId) {
-      withRun(ctx, runId, run -> sendSerializedBenchmark(ctx, controller.ensureBenchmark(run)));
+      withRun(ctx, runId, run -> {
+         try {
+            sendSerializedBenchmark(ctx, controller.ensureBenchmark(run));
+         } catch (ParserException e) {
+            ctx.response().setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code()).end(Util.explainCauses(e));
+         }
+      });
    }
 
    @Override
@@ -1008,7 +1147,12 @@ class ControllerServer implements ApiService {
    public void withBenchmark(RoutingContext ctx, String name, Consumer<Benchmark> consumer) {
       Benchmark benchmark = controller.getBenchmark(name);
       if (benchmark == null) {
-         ctx.response().setStatusCode(HttpResponseStatus.NOT_FOUND.code()).setStatusMessage("No benchmark '" + name + "'").end();
+         String message = "No benchmark '" + name + "'.";
+         BenchmarkSource template = controller.getTemplate(name);
+         if (template != null) {
+            message += " There is an existing template with this name, though.";
+         }
+         ctx.response().setStatusCode(HttpResponseStatus.NOT_FOUND.code()).end(message);
          return;
       }
       consumer.accept(benchmark);

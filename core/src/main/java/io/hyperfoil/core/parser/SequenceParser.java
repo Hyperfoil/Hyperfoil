@@ -22,7 +22,6 @@ import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.ScenarioBuilder;
 import io.hyperfoil.api.config.SequenceBuilder;
 
-import org.yaml.snakeyaml.events.AliasEvent;
 import org.yaml.snakeyaml.events.Event;
 import org.yaml.snakeyaml.events.MappingEndEvent;
 import org.yaml.snakeyaml.events.MappingStartEvent;
@@ -66,11 +65,6 @@ class SequenceParser implements Parser<ScenarioBuilder> {
          } else {
             throw new ParserException(event, "Expected sequence of steps but got '" + value + "'");
          }
-      } else if (event instanceof AliasEvent) {
-         String anchor = ((AliasEvent) event).getAnchor();
-         SequenceBuilder other = ctx.getAnchor(event, anchor, SequenceBuilder.class);
-         ctx.consumePeeked(event);
-         return supplier.get(scenario, name, other);
       } else {
          throw ctx.unexpectedEvent(event);
       }

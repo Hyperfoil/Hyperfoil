@@ -2,24 +2,22 @@ package io.hyperfoil.clustering.webcli;
 
 import java.util.concurrent.CountDownLatch;
 
-import org.aesh.command.Command;
 import org.aesh.command.CommandDefinition;
+import org.aesh.command.CommandException;
 import org.aesh.command.CommandResult;
 import org.aesh.command.option.Argument;
 
-import io.hyperfoil.api.config.Benchmark;
-import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.api.config.BenchmarkSource;
+import io.hyperfoil.cli.commands.BaseUploadCommand;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
-import io.hyperfoil.core.parser.BenchmarkParser;
-import io.hyperfoil.core.parser.ParserException;
 
 @CommandDefinition(name = "upload", description = "Uploads benchmark definition to Hyperfoil Controller server")
-public class WebUpload implements Command<HyperfoilCommandInvocation> {
+public class WebUpload extends BaseUploadCommand {
    @Argument(description = "Argument ignored (provided only for compatibility).")
    String dummy;
 
    @Override
-   public CommandResult execute(HyperfoilCommandInvocation invocation) {
+   public CommandResult execute(HyperfoilCommandInvocation invocation) throws CommandException {
       if (dummy != null && !dummy.isEmpty()) {
          invocation.println("Argument '" + dummy + "' ignored: you must open file dialogue in WebCLI using the button below.");
       }
@@ -38,30 +36,44 @@ public class WebUpload implements Command<HyperfoilCommandInvocation> {
       synchronized (context) {
          context.latch = null;
          if (context.editBenchmark == null) {
-            invocation.println("Edits cancelled.");
+            invocation.println("Upload cancelled.");
             return CommandResult.SUCCESS;
          }
          updatedSource = context.editBenchmark.toString();
          context.editBenchmark = null;
       }
       WebBenchmarkData filesData = new WebBenchmarkData();
-      for (; ; ) {
-         try {
-            Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(updatedSource, filesData);
-            context.setServerBenchmark(context.client().register(benchmark, null));
-            invocation.println("Benchmark " + benchmark.name() + " uploaded.");
-            return CommandResult.SUCCESS;
-         } catch (ParserException | BenchmarkDefinitionException e) {
-            invocation.error(e);
-            return CommandResult.FAILURE;
-         } catch (MissingFileException e) {
+      if (extraFiles != null) {
+         for (String extraFile : extraFiles) {
             try {
-               filesData.loadFile(invocation, context, e.file);
-            } catch (InterruptedException interruptedException) {
+               filesData.loadFile(invocation, context, extraFile);
+            } catch (InterruptedException e) {
                invocation.println("Benchmark upload cancelled.");
                return CommandResult.FAILURE;
             }
          }
+      }
+      for (; ; ) {
+         BenchmarkSource source;
+         try {
+            source = loadBenchmarkSource(invocation, updatedSource, filesData);
+         } catch (CommandException e) {
+            throw e;
+         } catch (MissingFileException e) {
+            try {
+               filesData.loadFile(invocation, context, e.file);
+               continue;
+            } catch (InterruptedException interruptedException) {
+               invocation.println("Benchmark upload cancelled.");
+               return CommandResult.FAILURE;
+            }
+         } catch (Exception e) {
+            logError(invocation, e);
+            return CommandResult.FAILURE;
+         }
+         context.setServerBenchmark(context.client().register(source.yaml, filesData.files(), null, null));
+         invocation.println("Benchmark " + source.name + " uploaded.");
+         return CommandResult.SUCCESS;
       }
    }
 
