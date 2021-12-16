@@ -25,7 +25,7 @@
         <groupId>org.jboss</groupId>
         <artifactId>jboss-parent</artifactId>
         <version>19</version>
-        <relativePath />
+        <relativePath/>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
@@ -400,8 +400,8 @@
                         </goals>
                         <configuration>
                             <target>
-                                <copy file="${project.basedir}/config/pre-commit" todir="${project.basedir}/.git/hooks" />
-                                <chmod file="${project.basedir}/.git/hooks/pre-commit" perm="a+x" />
+                                <copy file="${project.basedir}/config/pre-commit" todir="${project.basedir}/.git/hooks"/>
+                                <chmod file="${project.basedir}/.git/hooks/pre-commit" perm="a+x"/>
                             </target>
                         </configuration>
                     </execution>
@@ -593,7 +593,7 @@
                                     <goal>jar</goal>
                                 </goals>
                                 <configuration>
-                                    <source>8</source>
+                                    <source>11</source>
                                     <detectJavaApiLink>false</detectJavaApiLink>
                                 </configuration>
                             </execution>
