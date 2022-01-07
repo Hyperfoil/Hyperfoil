@@ -1,0 +1,3 @@
+foo: [ A, B ]
+bar: [ [ A, B ], C ]
+result: [ [ [ A, B ], C ], D ]

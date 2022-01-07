@@ -120,7 +120,7 @@ public class TemplateIterator implements Iterator<Event> {
                newReplayList.add(event);
             }
          }
-         if (nodeEvent instanceof CollectionStartEvent) {
+         if (event instanceof CollectionStartEvent) {
             ++depth;
          }
       }
