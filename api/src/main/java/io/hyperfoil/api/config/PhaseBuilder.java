@@ -135,6 +135,9 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
       }
       boolean hasForks = forks.size() > 1;
       forks.removeIf(fork -> fork.weight <= 0);
+      if (forks.isEmpty()) {
+         throw new BenchmarkDefinitionException("Phase " + name + " does not have any forks with positive weight.");
+      }
 
       double sumWeight = forks.stream().mapToDouble(f -> f.weight).sum();
       forks.forEach(f -> f.weight /= sumWeight);
