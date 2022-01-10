@@ -2,6 +2,7 @@ package io.hyperfoil.benchmark.clustering;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Collections;
 import java.util.Map;
 
 import org.junit.Before;
@@ -60,7 +61,7 @@ public class MoreAgentsThanUsersTest extends BaseClusteredTest {
 
       RestClient client = new RestClient(vertx, "localhost", controllerPort, false, false, null);
       Client.BenchmarkRef ref = client.register(benchmark.build(), null);
-      Client.RunRef run = ref.start(null);
+      Client.RunRef run = ref.start(null, Collections.emptyMap());
 
       Run info;
       do {

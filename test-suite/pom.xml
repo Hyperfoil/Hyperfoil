@@ -10,7 +10,6 @@
 
     <artifactId>hyperfoil-test-suite</artifactId>
     <name>Hyperfoil Test-Suite</name>
-    <packaging>pom</packaging>
     <url>https://github.com/RedHatPerf/Hyperfoil</url>
 
     <properties>
@@ -109,6 +108,30 @@
                 <configuration>
                     <skipIfEmpty>true</skipIfEmpty>
                 </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-install-plugin</artifactId>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>install-pom</id>
+                        <phase>install</phase>
+                        <goals>
+                            <goal>install-file</goal>
+                        </goals>
+                        <configuration>
+                            <file>${project.basedir}/pom.xml</file>
+                            <groupId>${project.groupId}</groupId>
+                            <artifactId>${project.artifactId}</artifactId>
+                            <version>${project.version}</version>
+                            <packaging>pom</packaging>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
 
             <plugin>
