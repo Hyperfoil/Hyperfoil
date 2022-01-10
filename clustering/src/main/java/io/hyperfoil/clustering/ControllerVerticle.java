@@ -396,7 +396,8 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
          }
       }
       String name = info.getString("benchmark", "<unknown>");
-      Map<String, String> templateParams = info.getJsonObject("params").getMap().entrySet().stream()
+      JsonObject paramsObject = info.getJsonObject("params");
+      Map<String, String> templateParams = paramsObject == null ? Collections.emptyMap() : paramsObject.getMap().entrySet().stream()
             .collect(Collectors.toMap(Map.Entry::getKey, entry -> String.valueOf(entry.getValue())));
       Benchmark benchmark = Benchmark.empty(name, templateParams);
       Run run = new Run(runId, runDir, benchmark);
