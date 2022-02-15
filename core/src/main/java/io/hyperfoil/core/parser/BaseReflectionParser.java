@@ -240,13 +240,13 @@ public class BaseReflectionParser {
       List<Invocable> matchingName = new ArrayList<>();
       Queue<Invocable> todo = new ArrayDeque<>();
       Set<Class<?>> visited = new HashSet<>();
-      todo.add(new Invocable(target.getClass(), () -> target, null));
+      todo.add(new Invocable(target.getClass(), () -> target, null, 0));
       while (!todo.isEmpty()) {
          Invocable inv = todo.poll();
          visited.add(inv.builderType);
          for (Method m : inv.builderType.getMethods()) {
             if (m.getName().equals(name)) {
-               matchingName.add(new Invocable(inv.builderType, inv.targetSupplier, m));
+               matchingName.add(new Invocable(inv.builderType, inv.targetSupplier, m, inv.depth + 1));
             }
          }
          for (Field f : inv.builderType.getFields()) {
@@ -261,7 +261,7 @@ public class BaseReflectionParser {
                   } catch (IllegalAccessException e) {
                      throw new BenchmarkDefinitionException("Cannot access " + inv.builderType.getName() + "." + f.getName(), e);
                   }
-               }, null));
+               }, null, inv.depth + 1));
             }
          }
          for (Method m : inv.builderType.getMethods()) {
@@ -275,7 +275,7 @@ public class BaseReflectionParser {
                   } catch (IllegalAccessException | InvocationTargetException e) {
                      throw new BenchmarkDefinitionException("Cannot access " + inv.builderType.getName() + "." + m.getName(), e);
                   }
-               }, null));
+               }, null, inv.depth + 1));
             }
          }
       }
@@ -290,7 +290,11 @@ public class BaseReflectionParser {
       }
       if (candidates.length == 0) {
          return new Invocable(new ParserException(event, "Cannot find method '" + name + "' on '" + target + "'"));
-      } else if (candidates.length == 1) {
+      } else {
+         int lowestDepth = Arrays.stream(candidates).mapToInt(c -> c.depth).min().orElse(0);
+         candidates = Arrays.stream(candidates).filter(c -> c.depth == lowestDepth).toArray(Invocable[]::new);
+      }
+      if (candidates.length == 1) {
          return candidates[0];
       } else { // candidates.length > 1
          return new Invocable(new ParserException(event, "Ambiguous candidates for '" + name + "' on '" + target + "': " + Arrays.asList(candidates)));
@@ -329,11 +333,13 @@ public class BaseReflectionParser {
       final Supplier<Object> targetSupplier;
       final Method method;
       final ParserException exception;
+      final int depth;
 
-      private Invocable(Class<?> builderType, Supplier<Object> targetSupplier, Method method) {
+      private Invocable(Class<?> builderType, Supplier<Object> targetSupplier, Method method, int depth) {
          this.builderType = builderType;
          this.targetSupplier = targetSupplier;
          this.method = method;
+         this.depth = depth;
          this.exception = null;
       }
 
@@ -342,6 +348,17 @@ public class BaseReflectionParser {
          this.targetSupplier = null;
          this.method = null;
          this.exception = exception;
+         this.depth = 0;
+      }
+
+      @Override
+      public String toString() {
+         if (exception != null) {
+            return exception.toString();
+         } else if (builderType == null || method == null) {
+            return "<null>";
+         }
+         return builderType.getName() + "." + method.getName() + "(" + Arrays.toString(method.getParameterTypes()) + ")(" + depth + ")";
       }
    }
 }
