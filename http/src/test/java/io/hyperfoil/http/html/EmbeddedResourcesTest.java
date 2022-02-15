@@ -2,8 +2,6 @@ package io.hyperfoil.http.html;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.Map;
 
 import org.junit.Test;
@@ -11,7 +9,6 @@ import org.junit.runner.RunWith;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
-import io.hyperfoil.impl.Util;
 import io.hyperfoil.http.HttpScenarioTest;
 import io.hyperfoil.http.statistics.HttpStats;
 import io.vertx.core.http.HttpHeaders;
@@ -25,21 +22,7 @@ public class EmbeddedResourcesTest extends HttpScenarioTest {
          ctx.response().putHeader(HttpHeaders.CACHE_CONTROL, "no-store");
          ctx.next();
       });
-      router.route("/foobar/index.html").handler(ctx -> {
-         try {
-            InputStream index = getClass().getClassLoader().getResourceAsStream("data/EmbeddedResourcesTest_index.html");
-            String html = Util.toString(index);
-            // We'll send the body in two chunks to make sure the code works even if the body is not delivered in one row
-            ctx.response().setChunked(true);
-            int bodyStartIndex = html.indexOf("<body>");
-            ctx.response().write(html.substring(0, bodyStartIndex), result -> vertx.setTimer(100, ignores -> {
-               ctx.response().write(html.substring(bodyStartIndex));
-               ctx.response().end();
-            }));
-         } catch (IOException e) {
-            ctx.response().setStatusCode(500).end();
-         }
-      });
+      router.route("/foobar/index.html").handler(ctx -> serveResourceChunked(ctx, "data/EmbeddedResourcesTest_index.html"));
       router.route("/styles/style.css").handler(ctx -> ctx.response().end("You've got style!"));
       router.route("/foobar/stuff.js").handler(ctx -> ctx.response().end("alert('Hello world!')"));
       router.route("/generate.php").handler(ctx -> ctx.response().end());

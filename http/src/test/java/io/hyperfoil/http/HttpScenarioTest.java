@@ -15,6 +15,7 @@ import io.hyperfoil.core.test.TestUtil;
 import io.hyperfoil.http.config.HttpBuilder;
 import io.hyperfoil.http.config.HttpPluginBuilder;
 import io.hyperfoil.http.config.Protocol;
+import io.hyperfoil.impl.Util;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.http.HttpServer;
@@ -81,5 +82,21 @@ public abstract class HttpScenarioTest extends BaseScenarioTest {
    protected Benchmark loadBenchmark(InputStream config) throws IOException, ParserException {
       return BenchmarkParser.instance().buildBenchmark(
             config, TestUtil.benchmarkData(), Map.of("PORT", String.valueOf(server.actualPort())));
+   }
+
+   protected void serveResourceChunked(io.vertx.ext.web.RoutingContext ctx, String resource) {
+      try {
+         InputStream index = getClass().getClassLoader().getResourceAsStream(resource);
+         String html = Util.toString(index);
+         // We'll send the body in two chunks to make sure the code works even if the body is not delivered in one row
+         ctx.response().setChunked(true);
+         int bodyStartIndex = html.indexOf("<body>");
+         ctx.response().write(html.substring(0, bodyStartIndex), result -> vertx.setTimer(100, ignores -> {
+            ctx.response().write(html.substring(bodyStartIndex));
+            ctx.response().end();
+         }));
+      } catch (IOException e) {
+         ctx.response().setStatusCode(500).end();
+      }
    }
 }

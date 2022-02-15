@@ -1,0 +1,43 @@
+# For parser testing
+name: fetch form action
+http:
+  host: !concat [ "http://localhost:", !param PORT 8080 ]
+phases:
+- testPhase:
+    atOnce:
+      users: 1
+      duration: 0
+      scenario:
+      - test:
+        - httpRequest:
+            GET: /foobar/index.html
+            handler:
+              body:
+                parseHtml:
+                  onTagAttribute:
+                    tag: FORM
+                    attribute: action
+                    toArray: actions[3]
+        - getSize:
+            fromVar: actions
+            toVar: length
+        - fail:
+            intCondition:
+              fromVar: length
+              notEqualTo: 2
+        - getItem:
+            fromVar: actions
+            index: 0
+            toVar: first
+        - fail:
+            stringCondition:
+              fromVar: first
+              notEqualTo: run_some.php
+        - getItem:
+            fromVar: actions
+            index: 1
+            toVar: second
+        - fail:
+            stringCondition:
+              fromVar: second
+              notEqualTo: no_content.php

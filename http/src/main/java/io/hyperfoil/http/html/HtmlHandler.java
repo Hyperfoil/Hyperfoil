@@ -3,7 +3,9 @@ package io.hyperfoil.http.html;
 import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Stream;
 
 import org.kohsuke.MetaInfServices;
@@ -349,6 +351,12 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
          return builder;
       }
 
+      public TagAttributeHandlerBuilder onTagAttribute() {
+         TagAttributeHandlerBuilder builder = new TagAttributeHandlerBuilder();
+         handler(builder);
+         return builder;
+      }
+
       public Builder handler(TagHandlerBuilder<?> handler) {
          handlers.add(handler);
          return this;
@@ -371,9 +379,9 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
          if (tags.length != attributes.length) {
             throw new IllegalArgumentException();
          }
-         this.trie = new Trie(tags);
+         this.trie = new Trie(Arrays.stream(tags).map(tag -> tag.toLowerCase(Locale.ROOT)).toArray(String[]::new));
          this.attributes = Stream.of(attributes)
-               .map(s -> s.getBytes(StandardCharsets.UTF_8)).toArray(byte[][]::new);
+               .map(s -> s.toLowerCase(Locale.ROOT).getBytes(StandardCharsets.UTF_8)).toArray(byte[][]::new);
       }
 
       @Override
@@ -413,7 +421,7 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
                   if (attrMatchedIndex >= attributes[tagMatched].length) {
                      attrMatchedIndex = -1;
                      break;
-                  } else if (attributes[tagMatched][attrMatchedIndex] == data.getByte(offset + i)) {
+                  } else if (attributes[tagMatched][attrMatchedIndex] == Util.toLowerCase(data.getByte(offset + i))) {
                      attrMatchedIndex++;
                   } else {
                      attrMatchedIndex = -1;

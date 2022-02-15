@@ -96,7 +96,7 @@ public class FleetTest extends HttpScenarioTest {
                   .handler()
                      .body(new JsonHandler.Builder()
                            .query(".ships[].name")
-                           .processor(shipAssertion.processor(new ArrayRecorder.Builder()
+                           .processors().processor(shipAssertion.processor(new ArrayRecorder.Builder()
                                  .toVar("shipNames")
                                  .format(DataFormat.STRING)
                                  .maxSize(MAX_SHIPS))))
@@ -117,7 +117,7 @@ public class FleetTest extends HttpScenarioTest {
                   .handler()
                      .body(new JsonHandler.Builder()
                            .query(".crew[]")
-                           .processor(crewAssertion.processor(
+                           .processors().processor(crewAssertion.processor(
                                  Processor.adapt(new AddToIntAction.Builder()
                                        .var("crewCount[.]")
                                        .value(1)

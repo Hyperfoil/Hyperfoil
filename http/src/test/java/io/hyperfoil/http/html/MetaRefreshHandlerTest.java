@@ -16,7 +16,7 @@ public class MetaRefreshHandlerTest {
    public void test() {
       HtmlHandler.Builder html = new HtmlHandler.Builder();
       ExpectProcessor expect = new ExpectProcessor();
-      html.handler(new HandlerBuilder(expect)).prepareBuild();
+      html.handler(new MetaRefreshHandler.Builder().processor(fragmented -> expect)).prepareBuild();
       HtmlHandler handler = html.build(true);
       Session session = SessionFactory.forTesting();
       HttpRunData.initForTesting(session);
@@ -62,19 +62,5 @@ public class MetaRefreshHandlerTest {
 
    private ByteBuf buf(String string) {
       return Util.string2byteBuf(string, ByteBufAllocator.DEFAULT.buffer());
-   }
-
-   // We cannot use lambda because of generics...
-   private static class HandlerBuilder implements HtmlHandler.TagHandlerBuilder<HandlerBuilder> {
-      private final ExpectProcessor expect;
-
-      public HandlerBuilder(ExpectProcessor expect) {
-         this.expect = expect;
-      }
-
-      @Override
-      public HtmlHandler.TagHandler build() {
-         return new MetaRefreshHandler(expect);
-      }
    }
 }
