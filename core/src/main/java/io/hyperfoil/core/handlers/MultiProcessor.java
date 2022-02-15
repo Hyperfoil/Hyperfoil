@@ -12,7 +12,6 @@ import io.netty.buffer.ByteBuf;
 public class MultiProcessor implements Processor {
    protected final Processor[] delegates;
 
-   @SafeVarargs
    public MultiProcessor(Processor... delegates) {
       this.delegates = delegates;
    }
@@ -72,9 +71,9 @@ public class MultiProcessor implements Processor {
       }
 
       /**
-       * Add one or more delegated processors.
+       * Add one or more processors.
        *
-       * @return Builder;
+       * @return Builder.
        */
       public ServiceLoadedBuilderProvider<Processor.Builder> processor() {
          return new ServiceLoadedBuilderProvider<>(Processor.Builder.class, this::processor);

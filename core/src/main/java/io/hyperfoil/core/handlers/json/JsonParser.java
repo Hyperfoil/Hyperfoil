@@ -4,21 +4,19 @@ import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.function.Function;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.api.config.Embed;
 import io.hyperfoil.api.config.InitFromParam;
 import io.hyperfoil.api.config.Visitor;
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.api.processor.Transformer;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
-import io.hyperfoil.core.data.DataFormat;
 import io.hyperfoil.core.generators.Pattern;
-import io.hyperfoil.core.handlers.ArrayRecorder;
 import io.hyperfoil.core.handlers.MultiProcessor;
-import io.hyperfoil.core.handlers.StoreProcessor;
+import io.hyperfoil.core.handlers.StoreShortcuts;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
 
@@ -470,13 +468,17 @@ public abstract class JsonParser implements Serializable {
       protected abstract void replaceConsumer(Void ignored, Session session, ByteStream data, int offset, int length, boolean lastFragment);
    }
 
-   public abstract static class BaseBuilder<S extends BaseBuilder<S>> implements InitFromParam<S> {
+   public abstract static class BaseBuilder<S extends BaseBuilder<S>> implements InitFromParam<S>, StoreShortcuts.Host {
       protected String query;
       protected boolean unquote = true;
-      protected List<Processor.Builder> processors;
-      protected DataFormat format = DataFormat.STRING;
       protected boolean delete;
       protected Transformer.Builder replace;
+      protected MultiProcessor.Builder<?> processors = new MultiProcessor.Builder<>();
+      protected StoreShortcuts<S> storeShortcuts = new StoreShortcuts<>(self());
+
+      public void accept(Processor.Builder storeProcessor) {
+         processors.processor(storeProcessor);
+      }
 
       /**
        * @param param Either <code>query -&gt; variable</code> or <code>variable &lt;- query</code>.
@@ -497,7 +499,8 @@ public abstract class JsonParser implements Serializable {
          } else {
             throw new BenchmarkDefinitionException("Cannot parse json query specification: '" + param + "', use 'query -> var' or 'var <- query'");
          }
-         return query(query.trim()).toVar(var.trim());
+         storeShortcuts.toVar(var.trim());
+         return query(query.trim());
       }
 
       @SuppressWarnings("unchecked")
@@ -569,63 +572,22 @@ public abstract class JsonParser implements Serializable {
          return replace(fragmented -> new Pattern(pattern, false)).unquote(false);
       }
 
-      /**
-       * Shortcut to store selected parts in an array in the session. Must follow the pattern <code>variable[maxSize]</code>
-       *
-       * @param varAndSize Array name.
-       * @return Self.
-       */
-      public S toArray(String varAndSize) {
-         return processor(new ArrayRecorder.Builder().init(varAndSize).format(format));
+      @Embed
+      public MultiProcessor.Builder<?> processors() {
+         return processors;
       }
 
-      /**
-       * Shortcut to store first match in given variable. Further matches are ignored.
-       *
-       * @param var Variable name.
-       * @return Self.
-       */
-      public S toVar(String var) {
-         return processor(new StoreProcessor.Builder().toVar(var).format(format));
-      }
-
-      public S processor(Processor.Builder processor) {
-         if (this.processors == null) {
-            this.processors = new ArrayList<>();
-         }
-         this.processors.add(processor);
-         return self();
-      }
-
-      /**
-       * Conversion to apply on the matching parts with 'toVar' or 'toArray' shortcuts.
-       *
-       * @param format Data format.
-       * @return Self.
-       */
-      public S format(DataFormat format) {
-         this.format = format;
-         return self();
+      @Embed
+      public StoreShortcuts<S> storeShortcuts() {
+         return storeShortcuts;
       }
 
       protected void validate() {
          if (query == null) {
             throw new BenchmarkDefinitionException("Missing 'query'");
-         } else if (processors == null) {
+         } else if (processors.delegates.isEmpty()) {
             throw new BenchmarkDefinitionException("Missing processor - use 'processor', 'toVar' or 'toArray'");
          }
-      }
-
-      protected Processor buildProcessor(boolean fragmented) {
-         Processor processor = null;
-         if (processors != null && !processors.isEmpty()) {
-            if (processors.size() > 1) {
-               processor = new MultiProcessor(processors.stream().map(b -> b.build(fragmented)).toArray(Processor[]::new));
-            } else {
-               processor = processors.get(0).build(unquote);
-            }
-         }
-         return processor;
       }
    }
 }

@@ -73,7 +73,7 @@ public class JsonStep implements Step {
          if (fromVar == null) {
             throw new BenchmarkDefinitionException("jsonQuery missing 'fromVar'");
          }
-         Processor processor = buildProcessor(unquote);
+         Processor processor = processors.build(unquote);
          Transformer replace = this.replace == null ? null : this.replace.build(unquote);
          if (unquote) {
             processor = processor == null ? null : new JsonUnquotingTransformer(processor);

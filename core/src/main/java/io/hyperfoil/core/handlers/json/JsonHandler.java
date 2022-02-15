@@ -91,7 +91,7 @@ public class JsonHandler extends JsonParser implements Processor, ResourceUtiliz
    public static class Builder extends BaseBuilder<Builder> implements Processor.Builder {
       @Override
       public JsonHandler build(boolean fragmented) {
-         Processor processor = buildProcessor(fragmented || unquote);
+         Processor processor = processors.build(fragmented || unquote);
          Transformer replace = this.replace == null ? null : this.replace.build(fragmented);
          if (unquote) {
             processor = new JsonUnquotingTransformer(processor);
@@ -112,7 +112,7 @@ public class JsonHandler extends JsonParser implements Processor, ResourceUtiliz
        * @return Builder.
        */
       public ServiceLoadedBuilderProvider<Processor.Builder> processor() {
-         return new ServiceLoadedBuilderProvider<>(Processor.Builder.class, this::processor);
+         return new ServiceLoadedBuilderProvider<>(Processor.Builder.class, processors::processor);
       }
    }
 

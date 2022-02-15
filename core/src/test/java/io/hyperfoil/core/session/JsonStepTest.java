@@ -29,8 +29,7 @@ public class JsonStepTest extends BaseScenarioTest {
             .stepBuilder(new JsonStep.Builder()
                   .fromVar("json")
                   .query(".foo")
-                  .toVar("output")
-                  .format(DataFormat.STRING))
+                  .storeShortcuts().format(DataFormat.STRING).toVar("output").end())
             .step(() -> {
                ReadAccess output = SessionFactory.readAccess("output");
                return s -> {
