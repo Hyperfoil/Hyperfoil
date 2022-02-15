@@ -473,7 +473,7 @@ public abstract class JsonParser implements Serializable {
       protected boolean unquote = true;
       protected boolean delete;
       protected Transformer.Builder replace;
-      protected MultiProcessor.Builder<?> processors = new MultiProcessor.Builder<>();
+      protected MultiProcessor.Builder<S, ?> processors = new MultiProcessor.Builder<>(self());
       protected StoreShortcuts<S> storeShortcuts = new StoreShortcuts<>(self());
 
       public void accept(Processor.Builder storeProcessor) {
@@ -573,7 +573,7 @@ public abstract class JsonParser implements Serializable {
       }
 
       @Embed
-      public MultiProcessor.Builder<?> processors() {
+      public MultiProcessor.Builder<S, ?> processors() {
          return processors;
       }
 
@@ -585,7 +585,7 @@ public abstract class JsonParser implements Serializable {
       protected void validate() {
          if (query == null) {
             throw new BenchmarkDefinitionException("Missing 'query'");
-         } else if (processors.delegates.isEmpty()) {
+         } else if (processors.isEmpty()) {
             throw new BenchmarkDefinitionException("Missing processor - use 'processor', 'toVar' or 'toArray'");
          }
       }

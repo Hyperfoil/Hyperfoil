@@ -9,12 +9,12 @@ public class TagAttributeHandlerBuilder implements HtmlHandler.TagHandlerBuilder
    private String tag;
    private String attribute;
    @SuppressWarnings("FieldMayBeFinal")
-   private MultiProcessor.Builder<?> processors = new MultiProcessor.Builder<>();
+   private MultiProcessor.Builder<TagAttributeHandlerBuilder, ?> processors = new MultiProcessor.Builder<>(this);
    @SuppressWarnings("FieldMayBeFinal")
    private StoreShortcuts<TagAttributeHandlerBuilder> storeShortcuts = new StoreShortcuts<>(this);
 
    @Embed
-   public MultiProcessor.Builder<?> processors() {
+   public MultiProcessor.Builder<TagAttributeHandlerBuilder, ?> processors() {
       return processors;
    }
 

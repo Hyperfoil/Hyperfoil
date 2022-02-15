@@ -1,6 +1,7 @@
 package io.hyperfoil.http.html;
 
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
+import io.hyperfoil.api.config.Embed;
 import io.hyperfoil.api.processor.Processor;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
 import io.hyperfoil.core.handlers.MultiProcessor;
@@ -18,7 +19,7 @@ public class EmbeddedResourceHandlerBuilder implements HtmlHandler.TagHandlerBui
    private static final String[] ATTRS = { "src", "href", "src", "src", "src", "data", "src" };
 
    private boolean ignoreExternal = true;
-   private Processor.Builder processor;
+   private MultiProcessor.Builder<EmbeddedResourceHandlerBuilder, ?> processors = new MultiProcessor.Builder<>(this);
    private FetchResourceHandler.Builder fetchResource;
 
    /**
@@ -41,18 +42,6 @@ public class EmbeddedResourceHandlerBuilder implements HtmlHandler.TagHandlerBui
       return this.fetchResource = new FetchResourceHandler.Builder();
    }
 
-   public EmbeddedResourceHandlerBuilder processor(Processor.Builder processor) {
-      if (this.processor == null) {
-         this.processor = processor;
-      } else if (this.processor instanceof MultiProcessor.Builder) {
-         MultiProcessor.Builder<?> multiprocessor = (MultiProcessor.Builder<?>) this.processor;
-         multiprocessor.processor(processor);
-      } else {
-         this.processor = new MultiProcessor.Builder<>().processor(this.processor).processor(processor);
-      }
-      return this;
-   }
-
    /**
     * Custom processor invoked pointing to attribute data - e.g. in case of <code>&lt;img&gt;</code> tag
     * the processor gets contents of the <code>src</code> attribute.
@@ -60,15 +49,20 @@ public class EmbeddedResourceHandlerBuilder implements HtmlHandler.TagHandlerBui
     * @return Builder.
     */
    public ServiceLoadedBuilderProvider<Processor.Builder> processor() {
-      return new ServiceLoadedBuilderProvider<>(Processor.Builder.class, this::processor);
+      return processors().processor();
+   }
+
+   @Embed
+   public MultiProcessor.Builder<EmbeddedResourceHandlerBuilder, ?> processors() {
+      return processors;
    }
 
    @Override
    public HtmlHandler.BaseTagAttributeHandler build() {
-      if (processor == null && fetchResource == null) {
+      if (processors.isEmpty() && fetchResource == null) {
          throw new BenchmarkDefinitionException("embedded resource handler must define either processor or fetchResource!");
       }
-      Processor processor = this.processor != null ? this.processor.build(false) : null;
+      Processor processor = processors.isEmpty() ? null : processors.build(false);
       FetchResourceHandler fetchResource = this.fetchResource != null ? this.fetchResource.build() : null;
       return new HtmlHandler.BaseTagAttributeHandler(TAGS, ATTRS, new EmbeddedResourceProcessor(ignoreExternal, processor, fetchResource));
    }

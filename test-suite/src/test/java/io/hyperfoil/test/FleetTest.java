@@ -60,7 +60,7 @@ public class FleetTest extends HttpScenarioTest {
       router.route("/ship").handler(routingContext -> {
          String shipName = routingContext.queryParam("name").stream().findFirst().orElse("");
          Optional<Ship> ship = FLEET.getShips().stream().filter(s -> s.getName().equals(shipName)).findFirst();
-         if (!ship.isPresent()) {
+         if (ship.isEmpty()) {
             routingContext.response().setStatusCode(404).end();
             return;
          }
@@ -99,7 +99,7 @@ public class FleetTest extends HttpScenarioTest {
                            .processors().processor(shipAssertion.processor(new ArrayRecorder.Builder()
                                  .toVar("shipNames")
                                  .format(DataFormat.STRING)
-                                 .maxSize(MAX_SHIPS))))
+                                 .maxSize(MAX_SHIPS))).end())
                   .endHandler()
                .endStep()
                .step(SC).action(new SetAction.Builder().var("crewCount").intArray().size(MAX_SHIPS).end())
@@ -121,7 +121,7 @@ public class FleetTest extends HttpScenarioTest {
                                  Processor.adapt(new AddToIntAction.Builder()
                                        .var("crewCount[.]")
                                        .value(1)
-                                       .orElseSetTo(1)))))
+                                       .orElseSetTo(1)))).end())
                      // We need to make sure crewCount is set even if there's no crew
                      .onCompletion(new SetIntAction.Builder().var("crewCount[.]").value(0).onlyIfNotSet(true))
                   .endHandler()

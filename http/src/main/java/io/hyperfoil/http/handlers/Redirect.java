@@ -398,8 +398,12 @@ public class Redirect {
          }
       }
 
-      public static class Builder extends MultiProcessor.Builder<Builder> {
+      public static class Builder extends MultiProcessor.Builder<Void, Builder> {
          private Object coordVar;
+
+         public Builder() {
+            super(null);
+         }
 
          public Builder coordVar(Object coordVar) {
             this.coordVar = coordVar;

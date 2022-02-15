@@ -279,8 +279,12 @@ public class GzipInflatorProcessor extends MultiProcessor implements ResourceUti
     */
    @MetaInfServices(Processor.Builder.class)
    @Name("gzipInflator")
-   public static class Builder extends MultiProcessor.Builder<Builder> implements Processor.Builder {
+   public static class Builder extends MultiProcessor.Builder<Void, Builder> implements Processor.Builder {
       private Object encodingVar;
+
+      public Builder() {
+         super(null);
+      }
 
       @Override
       public Processor build(boolean fragmented) {

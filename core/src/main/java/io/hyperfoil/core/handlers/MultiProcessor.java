@@ -37,8 +37,13 @@ public class MultiProcessor implements Processor {
       }
    }
 
-   public static class Builder<S extends Builder<S>> implements Processor.Builder {
+   public static class Builder<P, S extends Builder<P, S>> implements Processor.Builder {
+      public final P parent;
       public final List<Processor.Builder> delegates = new ArrayList<>();
+
+      public Builder(P parent) {
+         this.parent = parent;
+      }
 
       @SuppressWarnings("unchecked")
       @Override
@@ -82,6 +87,10 @@ public class MultiProcessor implements Processor {
       @SuppressWarnings("unchecked")
       protected S self() {
          return (S) this;
+      }
+
+      public P end() {
+         return parent;
       }
 
       public boolean isEmpty() {

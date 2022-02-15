@@ -60,7 +60,7 @@ public class FilterHeaderHandler implements HeaderHandler {
    public static class Builder implements HeaderHandler.Builder {
       private StringConditionBuilder<?, Builder> header = new StringConditionBuilder<>(this).caseSensitive(false);
       @Embed
-      public MultiProcessor.Builder<?> processors = new MultiProcessor.Builder<>();
+      public MultiProcessor.Builder<Builder, ?> processors = new MultiProcessor.Builder<>(this);
 
       @Override
       public FilterHeaderHandler build() {
