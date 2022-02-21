@@ -28,6 +28,7 @@
             <groupId>io.hyperfoil</groupId>
             <artifactId>hyperfoil-test-suite</artifactId>
             <type>pom</type>
+            <scope>provided</scope>
         </dependency>
 
         <dependency>
