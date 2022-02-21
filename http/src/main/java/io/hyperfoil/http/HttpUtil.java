@@ -239,7 +239,7 @@ public final class HttpUtil {
       if (!AsciiString.regionMatches(path, true, prefixLength, authority, 0, colonIndex)) {
          return false;
       }
-      if (path.charAt(prefixLength + colonIndex) == ':') {
+      if (prefixLength + colonIndex < path.length() && path.charAt(prefixLength + colonIndex) == ':') {
          // path uses explicit port
          CharSequence port;
          int portOffset, portLength;
@@ -252,7 +252,7 @@ public final class HttpUtil {
             portOffset = colonIndex + 1;
             portLength = authority.length() - colonIndex - 1;
          }
-         return AsciiString.regionMatches(path, false, prefixLength + colonIndex, port, portOffset, portLength);
+         return AsciiString.regionMatches(path, false, prefixLength + colonIndex + 1, port, portOffset, portLength);
       } else {
          return colonIndex == authority.length() ||
                colonIndex == authority.length() - defaultPort.length() - 1 &&
