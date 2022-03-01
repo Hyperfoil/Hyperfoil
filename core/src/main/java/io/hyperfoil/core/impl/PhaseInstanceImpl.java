@@ -434,9 +434,9 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
       protected double nextSessionRandomized() {
          // we're solving quadratic equation coming from t = (duration * -log(rand))/(((t + now) * (target - initial)) + initial * duration)
          double aCoef = (targetUsersPerSec - initialUsersPerSec);
-         if (aCoef < 0.000001) {
+         if (Math.abs(aCoef) < 0.000001) {
             // prevent division 0f/0f
-            return 1000 * -Math.log(Math.max(1e-20, random.nextDouble())) / initialUsersPerSec;
+            return nextScheduled + 1000 * -Math.log(Math.max(1e-20, random.nextDouble())) / initialUsersPerSec;
          }
          double bCoef = nextScheduled * (targetUsersPerSec - initialUsersPerSec) + initialUsersPerSec * def.duration;
          double cCoef = def.duration * 1000 * Math.log(random.nextDouble());
