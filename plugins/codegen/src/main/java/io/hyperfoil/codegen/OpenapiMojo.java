@@ -186,14 +186,20 @@ public class OpenapiMojo extends AbstractMojo {
          method.setBody(body);
          StringBuilder invocation = new StringBuilder("service.").append(operation.name()).append("(ctx");
          for (Param param : operation.params) {
-            StringBuilder raw = new StringBuilder().append("String _").append(param.varName).append(" = ")
-                  .append(param.in).append("Param(ctx, \"").append(param.originalName).append("\", ");
-            if (param.defaultValue == null) {
-               raw.append("null");
+            StringBuilder raw = new StringBuilder();
+            if (param.in.equals("query") && param.type.replaceAll("<.*>", "").equals("List")) {
+               raw.append("List<String> _").append(param.varName).append(" = ")
+                     .append(param.in).append("Params(ctx, \"").append(param.originalName).append("\");");
             } else {
-               raw.append('"').append(param.defaultValue).append('"');
+               raw.append("String _").append(param.varName).append(" = ")
+                     .append(param.in).append("Param(ctx, \"").append(param.originalName).append("\", ");
+               if (param.defaultValue == null) {
+                  raw.append("null");
+               } else {
+                  raw.append('"').append(param.defaultValue).append('"');
+               }
+               raw.append(");");
             }
-            raw.append(");");
             body.addStatement(raw.toString());
             if (param.required) {
                body.addStatement("if (_" + param.varName + " == null) {" +
@@ -224,6 +230,14 @@ public class OpenapiMojo extends AbstractMojo {
             .addStatement("return list.iterator().next();");
       queryParam.setBody(queryParamBody);
 
+      MethodDeclaration queryParams = clazz.addMethod("queryParams", Modifier.Keyword.PRIVATE).setType("List<String>")
+            .addParameter("RoutingContext", "ctx")
+            .addParameter("String", "name");
+      BlockStmt queryParamsBody = new BlockStmt()
+            .addStatement("List<String> list = ctx.queryParam(name);")
+            .addStatement("return list;");
+      queryParams.setBody(queryParamsBody);
+
       MethodDeclaration headerParam = clazz.addMethod("headerParam", Modifier.Keyword.PRIVATE).setType("String")
             .addParameter("RoutingContext", "ctx")
             .addParameter("String", "name")
@@ -243,6 +257,14 @@ public class OpenapiMojo extends AbstractMojo {
       convertBody.addStatement("if (type == List.class) { if (value == null) return (T) Collections.emptyList(); if (value instanceof String) return (T) Collections.singletonList(value); }");
       convertBody.addStatement("if (value == null) { if (type == Map.class) return (T) Collections.emptyMap(); return null; }");
       convertBody.addStatement("return Json.decodeValue(value, type);");
+
+      MethodDeclaration convertList = clazz.addMethod("convert");
+      convertList.addAnnotation(new SingleMemberAnnotationExpr(new Name("SuppressWarnings"), new StringLiteralExpr("unchecked")));
+      convertList.addParameter("List<String>", "value").addParameter("Class<T>", "type").addTypeParameter("T").setType("T");
+      BlockStmt convertListBody = new BlockStmt();
+      convertList.setBody(convertListBody);
+      convertListBody.addStatement("if (value == null) return (T) Collections.emptyList();");
+      convertListBody.addStatement("return (T) value;");
 
       writeUnit(unit, routerPackage, "ApiRouter.java");
    }
