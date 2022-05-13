@@ -11,7 +11,7 @@
     <name>Hyperfoil Hot Rod Client</name>
 
     <properties>
-        <version.infinispan>12.1.0.CR1</version.infinispan>
+        <version.infinispan>13.0.8.Final</version.infinispan>
     </properties>
 
     <dependencies>
