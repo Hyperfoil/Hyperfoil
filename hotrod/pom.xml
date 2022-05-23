@@ -10,10 +10,6 @@
     <artifactId>hyperfoil-hotrod</artifactId>
     <name>Hyperfoil Hot Rod Client</name>
 
-    <properties>
-        <version.infinispan>13.0.8.Final</version.infinispan>
-    </properties>
-
     <dependencies>
         <dependency>
             <groupId>io.hyperfoil</groupId>
@@ -65,6 +61,12 @@
             <version>${version.infinispan}</version>
             <type>test-jar</type>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.infinispan</groupId>
+            <artifactId>infinispan-core</artifactId>
+            <version>${version.infinispan}</version>
+            <type>test-jar</type>
         </dependency>
         <dependency>
             <groupId>org.infinispan</groupId>

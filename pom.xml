@@ -96,6 +96,7 @@
         <version.slf4j>1.7.32</version.slf4j>
         <version.snakeyaml>1.26</version.snakeyaml>
         <version.vertx>4.3.0</version.vertx>
+        <version.infinispan>13.0.8.Final</version.infinispan>
 
         <version.sonatype.nexus>1.6.8</version.sonatype.nexus>
         <version.maven.source>3.0.1</version.maven.source>
@@ -263,6 +264,12 @@
                 <version>${version.vertx}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.infinispan</groupId>
+                <artifactId>infinispan-core</artifactId>
+                <version>${version.infinispan}</version>
             </dependency>
 
             <dependency>
