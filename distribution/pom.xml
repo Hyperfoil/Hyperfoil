@@ -14,6 +14,7 @@
 
     <properties>
         <module.skipCopyDependencies>true</module.skipCopyDependencies>
+        <container.registry.repository>quay.io/hyperfoil</container.registry.repository>
     </properties>
 
     <dependencies>
@@ -320,7 +321,7 @@
                             </access>
                             <images>
                                 <image>
-                                    <name>quay.io/hyperfoil/hyperfoil:${project.version}</name>
+                                    <name>${container.registry.repository}/hyperfoil:${project.version}</name>
                                     <build>
                                         <contextDir>${project.basedir}/src/main/docker/</contextDir>
                                         <tags>

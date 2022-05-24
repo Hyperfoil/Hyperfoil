@@ -50,6 +50,14 @@
                     <groupId>org.jboss.marshalling</groupId>
                     <artifactId>jboss-marshalling-osgi</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>org.jboss.logging</groupId>
+                    <artifactId>jboss-logging</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.wildfly.common</groupId>
+                    <artifactId>wildfly-common</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
 
