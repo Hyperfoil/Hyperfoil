@@ -62,6 +62,12 @@
         </dependency>
 
         <dependency>
+            <groupId>org.jboss.logging</groupId>
+            <artifactId>jboss-logging</artifactId>
+            <scope>compile</scope>
+        </dependency>
+
+        <dependency>
             <groupId>io.hyperfoil</groupId>
             <artifactId>hyperfoil-core</artifactId>
         </dependency>

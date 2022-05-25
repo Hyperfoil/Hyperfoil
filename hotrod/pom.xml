@@ -23,7 +23,6 @@
         <dependency>
             <groupId>org.jboss.logging</groupId>
             <artifactId>jboss-logging</artifactId>
-            <version>3.4.3.Final</version>
         </dependency>
         <dependency>
             <groupId>org.infinispan</groupId>
@@ -199,6 +198,7 @@
                                     <include>org.infinispan.protostream:*</include>
                                     <include>org.wildfly.common:*</include>
                                     <include>org.wildfly.security:*</include>
+                                    <include>org.jboss.logging:*</include>
                                 </includes>
                             </artifactSet>
                             <relocations>
