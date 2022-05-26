@@ -95,7 +95,11 @@
         <version.netty.tcnative.boringssl>2.0.42.Final</version.netty.tcnative.boringssl>
         <version.slf4j>1.7.32</version.slf4j>
         <version.snakeyaml>1.26</version.snakeyaml>
-        <version.vertx>4.1.3</version.vertx>
+        <version.vertx>4.3.0</version.vertx>
+        <version.infinispan>13.0.8.Final</version.infinispan>
+        <version.jboss-threads>3.4.2.Final</version.jboss-threads>
+        <version.jboss-logging>3.4.1.Final</version.jboss-logging>
+        <version.wildfly-common>1.5.4.Final</version.wildfly-common>
 
         <version.sonatype.nexus>1.6.8</version.sonatype.nexus>
         <version.maven.source>3.0.1</version.maven.source>
@@ -266,6 +270,12 @@
             </dependency>
 
             <dependency>
+                <groupId>org.infinispan</groupId>
+                <artifactId>infinispan-core</artifactId>
+                <version>${version.infinispan}</version>
+            </dependency>
+
+            <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-databind</artifactId>
                 <version>${version.jackson}</version>
@@ -378,6 +388,30 @@
                 <artifactId>jboss-marshalling-serial</artifactId>
                 <version>${version.marshalling}</version>
             </dependency>
+
+            <dependency>
+                <groupId>org.jboss.threads</groupId>
+                <artifactId>jboss-threads</artifactId>
+                <version>${version.jboss-threads}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.wildfly.common</groupId>
+                        <artifactId>wildfly-common</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
+            <dependency>
+                <groupId>org.jboss.logging</groupId>
+                <artifactId>jboss-logging</artifactId>
+                <version>${version.jboss-logging}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.wildfly.common</groupId>
+                <artifactId>wildfly-common</artifactId>
+                <version>${version.wildfly-common}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -386,6 +420,29 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>enforce-maven</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <dependencyConvergence/>
+                                <requireReleaseDeps>
+                                    <excludes>io.hyperfoil:*</excludes>
+                                    <failWhenParentIsSnapshot>false</failWhenParentIsSnapshot>
+                                </requireReleaseDeps>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
 
             <plugin>

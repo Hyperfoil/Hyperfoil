@@ -7,8 +7,10 @@ import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
+import io.netty.channel.socket.SocketChannel;
 import org.infinispan.client.hotrod.RemoteCache;
 import org.infinispan.client.hotrod.RemoteCacheManager;
+import org.infinispan.client.hotrod.TransportFactory;
 import org.infinispan.client.hotrod.configuration.ConfigurationBuilder;
 import org.infinispan.client.hotrod.impl.ConfigurationProperties;
 import org.infinispan.client.hotrod.impl.HotRodURI;
@@ -39,7 +41,11 @@ public class HotRodRemoteCachePoolImpl implements HotRodRemoteCachePool {
          Properties properties = new Properties();
          properties.setProperty(ConfigurationProperties.DEFAULT_EXECUTOR_FACTORY_POOL_SIZE, "1");
          cb.asyncExecutorFactory().withExecutorProperties(properties);
+
+         // We must use the same event loop group for every execution as expected by validateEventLoop.
          cb.asyncExecutorFactory().factory(p -> eventLoop);
+         cb.transportFactory(new FixedEventLoopGroupTransportFactory(eventLoop));
+
          RemoteCacheManager remoteCacheManager = new RemoteCacheManager(cb.build());
          this.remoteCacheManagers.put(cluster.uri(), remoteCacheManager);
          validateEventLoop(remoteCacheManager);
@@ -95,6 +101,29 @@ public class HotRodRemoteCachePoolImpl implements HotRodRemoteCachePool {
 
       public CompletableFuture<V> getAsync(K key) {
          return remoteCache.getAsync(key);
+      }
+   }
+
+   /**
+    * {@link FixedEventLoopGroupTransportFactory} is a {@link TransportFactory} that always provides the same given
+    * event loop.
+    */
+   private static class FixedEventLoopGroupTransportFactory implements TransportFactory {
+
+      private final EventLoopGroup eventLoop;
+
+      private FixedEventLoopGroupTransportFactory(final EventLoopGroup eventLoop) {
+         this.eventLoop = eventLoop;
+      }
+
+      @Override
+      public Class<? extends SocketChannel> socketChannelClass() {
+         return TransportFactory.DEFAULT.socketChannelClass();
+      }
+
+      @Override
+      public EventLoopGroup createEventLoopGroup(final int maxExecutors, final ExecutorService executorService) {
+         return eventLoop;
       }
    }
 }
