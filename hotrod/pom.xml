@@ -198,7 +198,6 @@
                                     <include>org.infinispan.protostream:*</include>
                                     <include>org.wildfly.common:*</include>
                                     <include>org.wildfly.security:*</include>
-                                    <include>org.jboss.logging:*</include>
                                 </includes>
                             </artifactSet>
                             <relocations>
