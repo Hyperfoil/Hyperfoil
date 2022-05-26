@@ -86,7 +86,10 @@ public class DocsGenerator extends BaseGenerator {
    private void run() {
       for (Map.Entry<String, BuilderInfo<?>> entry : ServiceLoadedBuilderProvider.builders(StepBuilder.class).entrySet()) {
          @SuppressWarnings("unchecked")
-         Class<? extends StepBuilder> newBuilder = (Class<? extends StepBuilder>) entry.getValue().implClazz;
+         Class<? extends StepBuilder<?>> newBuilder = (Class<? extends StepBuilder<?>>) entry.getValue().implClazz;
+         if (newBuilder.isAnnotationPresent(Deprecated.class)) {
+            continue;
+         }
          ClassOrInterfaceDeclaration cd = findClass(newBuilder);
          if (cd != null) {
             String inlineParamDocs = findInlineParamDocs(cd);
@@ -706,6 +709,9 @@ public class DocsGenerator extends BaseGenerator {
       implementations.typeDescription = getJavadocDescription(fd);
       for (Map.Entry<String, BuilderInfo<?>> entry : ServiceLoadedBuilderProvider.builders(builderClazz).entrySet()) {
          Class<?> newBuilder = entry.getValue().implClazz;
+         if (newBuilder.isAnnotationPresent(Deprecated.class)) {
+            continue;
+         }
          Docs docs = describeBuilder(newBuilder, true);
          if (docs == null) {
             continue;
