@@ -22,6 +22,7 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ParseResult;
@@ -130,6 +131,7 @@ public class DocsGenerator extends BaseGenerator {
       for (Map.Entry<String, Docs> step : steps.entrySet()) {
          Path filePath = output.resolve("step_" + step.getKey() + ".md");
          try (PrintStream out = new PrintStream(new FileOutputStream(filePath.toFile()))) {
+            printFrontMatter(out, step.getValue());
             out.printf("# %s%n%n", step.getKey());
             printDocs(step.getValue(), out);
          } catch (FileNotFoundException e) {
@@ -144,13 +146,22 @@ public class DocsGenerator extends BaseGenerator {
       for (Map.Entry<String, List<Docs>> entry : docs.get(builderClazz).params.entrySet()) {
          Path filePath = output.resolve(type + "_" + entry.getKey() + ".md");
          try (PrintStream out = new PrintStream(new FileOutputStream(filePath.toFile()))) {
-            out.println("---\n---");
+            Docs docs = entry.getValue().iterator().next();
+            printFrontMatter(out, docs);
             out.printf("# %s%n%n", entry.getKey());
-            printDocs(entry.getValue().iterator().next(), out);
+            printDocs(docs, out);
          } catch (FileNotFoundException e) {
             System.err.printf("Cannot write file %s: %s%n", filePath, e);
          }
       }
+   }
+
+   private void printFrontMatter(PrintStream out, Docs docs) {
+      out.println("---");
+      if (docs != null && docs.ownerDescription != null) {
+         out.printf("excerpt: \"%s\"%n", docs.ownerDescription.replaceAll("\"", "\\\\\""));
+      }
+      out.println("---");
    }
 
    private void printLink(String type, String name, Docs docs, PrintStream out) {
@@ -459,7 +470,13 @@ public class DocsGenerator extends BaseGenerator {
    }
 
    private String firstLine(String text) {
-      return text == null ? null : text.replaceFirst("(\n|<br>|<p>).*", "");
+      if (text == null) {
+         return null;
+      }
+      text = text.trim();
+      int endOfLine = IntStream.of(text.indexOf('\n'), text.indexOf("<br"), text.indexOf("<p>"))
+            .filter(index -> index >= 0).min().orElse(-1);
+      return endOfLine >= 0 ? text.substring(0, endOfLine) : text;
    }
 
    private Docs describeBuilder(Class<?> builder, boolean addParamsFromType) {
@@ -596,7 +613,7 @@ public class DocsGenerator extends BaseGenerator {
          Docs inner = describeBuilder(builder, false);
          ClassOrInterfaceDeclaration cd = findClass(builder);
          if (cd != null) {
-            inner.ownerDescription = getMethodJavadoc(cd, "accept", 2);
+            inner.ownerDescription = firstLine(getMethodJavadoc(cd, "accept", 2));
          }
          docs.type = inner.type = getRawClass(getGenericParams(genericType, PairBuilder.class)[0]).getSimpleName();
          docs.addParam("&lt;any&gt;", inner);
@@ -632,7 +649,7 @@ public class DocsGenerator extends BaseGenerator {
          if (inner == null) {
             inner = new Docs(null);
          } else if (inner.ownerDescription == null) {
-            inner.ownerDescription = inner.typeDescription;
+            inner.ownerDescription = firstLine(inner.typeDescription);
          }
          docs.type = inner.type = "&lt;list of strings&gt;";
          docs.addParam("&lt;list of strings&gt;", inner);
@@ -642,7 +659,7 @@ public class DocsGenerator extends BaseGenerator {
             Docs inner = describeBuilder(builder.getMethod("addItem").getReturnType(), false);
             ClassOrInterfaceDeclaration cd = findClass(builder);
             if (cd != null) {
-               inner.ownerDescription = getMethodJavadoc(cd, "addItem", 0);
+               inner.ownerDescription = firstLine(getMethodJavadoc(cd, "addItem", 0));
             }
             docs.type = inner.type = "&lt;list of builders&gt;";
             docs.addParam("&lt;list of mappings&gt;", inner);
@@ -716,7 +733,7 @@ public class DocsGenerator extends BaseGenerator {
          if (docs == null) {
             continue;
          }
-         docs.ownerDescription = docs.typeDescription;
+         docs.ownerDescription = firstLine(docs.typeDescription);
          docs.type = builderType(newBuilder);
          implementations.addParam(entry.getKey(), docs);
       }
