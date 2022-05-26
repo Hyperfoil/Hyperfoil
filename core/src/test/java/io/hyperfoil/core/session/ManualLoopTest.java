@@ -5,6 +5,7 @@ import static io.hyperfoil.core.builders.StepCatalog.SC;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import io.hyperfoil.core.steps.RestartSequenceAction;
 import io.hyperfoil.core.steps.SetIntAction;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 
@@ -18,7 +19,7 @@ public class ManualLoopTest extends BaseScenarioTest {
             .condition().intCondition().fromVar("counter").equalTo().value(1).end().end()
             .endStep()
             .step(SC).action(new SetIntAction.Builder().var("counter").value(1))
-            .step(SC).nextSequence("test");
+            .step(SC).action(new RestartSequenceAction.Builder());
 
       runScenario();
    }

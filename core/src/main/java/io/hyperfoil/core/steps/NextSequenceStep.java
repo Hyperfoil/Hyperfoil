@@ -12,6 +12,7 @@ import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.api.session.Session;
 
+@Deprecated
 public class NextSequenceStep implements Step {
    private final String name;
 
@@ -32,7 +33,10 @@ public class NextSequenceStep implements Step {
 
    /**
     * Schedules a new sequence instance to be executed.
+    *
+    * @deprecated Use <code>newSequence</code> or <code>restartSequence</code> instead.
     */
+   @Deprecated
    @MetaInfServices(StepBuilder.class)
    @Name("nextSequence")
    public static class Builder implements StepBuilder<Builder>, InitFromParam<Builder> {

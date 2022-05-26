@@ -68,7 +68,7 @@ scenario:
         fromVar: movies
         sequence: addComment
     # Schedule one more sequence
-    - nextSequence: watchMovie
+    - newSequence: watchMovie
   # These sequences are defined but don't get scheduled at session start. We activate
   # them explicitly (and multiple times in parallel) in foreach step above.
   sequences:
@@ -116,7 +116,7 @@ scenario:
   - watchMovie:
     # This sequence is blocked in its first step until the variable gets
     # set. Therefore we could define it in `initialSequences` and omit
-    # the `nextSequence` step at the end of `home` sequence.
+    # the `newSequence` step at the end of `home` sequence.
     - awaitVar: commented
     # Choose one of the movies (including the bad ones, for simplicity)
     - randomItem: selectedMovie <- movies

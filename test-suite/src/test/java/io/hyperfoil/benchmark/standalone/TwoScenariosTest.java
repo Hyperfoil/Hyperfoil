@@ -16,6 +16,7 @@ import org.junit.runner.RunWith;
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.session.ReadAccess;
+import io.hyperfoil.core.handlers.NewSequenceAction;
 import io.hyperfoil.http.api.HttpMethod;
 import io.hyperfoil.benchmark.BaseBenchmarkTest;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
@@ -34,7 +35,7 @@ import io.vertx.ext.web.Router;
 public class TwoScenariosTest extends BaseBenchmarkTest {
 
    protected Router router;
-   private ConcurrentMap<String, SailsState> serverState = new ConcurrentHashMap<>();
+   private final ConcurrentMap<String, SailsState> serverState = new ConcurrentHashMap<>();
 
    @Override
    protected Handler<HttpServerRequest> getRequestHandler() {
@@ -122,11 +123,11 @@ public class TwoScenariosTest extends BaseBenchmarkTest {
                            .filter(shipInfo -> shipInfo.sailsState == SailsState.FURLED, ships::put)
                         .endStep()
                      .end()
-                     .step(SC).nextSequence("board")
+                     .step(SC).action(new NewSequenceAction.Builder().sequence("board"))
                   .endSequence()
                   .sequence("board")
                      .step(SC).httpRequest(HttpMethod.GET).path("/board").endStep()
-                     .step(SC).nextSequence("rig")
+                     .step(SC).action(new NewSequenceAction.Builder().sequence("rig"))
                   .endSequence()
                   .sequence("rig")
                      .step(SC).httpRequest(HttpMethod.GET)
@@ -139,7 +140,7 @@ public class TwoScenariosTest extends BaseBenchmarkTest {
                            }
                         })).endHandler()
                      .endStep()
-                     .step(SC).nextSequence("disembark")
+                     .step(SC).action(new NewSequenceAction.Builder().sequence("disembark"))
                   .endSequence()
                   .sequence("disembark")
                      .step(SC).httpRequest(HttpMethod.GET).path("/disembark").endStep()
@@ -159,11 +160,11 @@ public class TwoScenariosTest extends BaseBenchmarkTest {
                         .filter(shipInfo -> shipInfo.sailsState == SailsState.RIGGED, ships::put)
                      .endStep()
                   .end()
-                  .step(SC).nextSequence("board")
+                  .step(SC).action(new NewSequenceAction.Builder().sequence("board"))
                .endSequence()
                .sequence("board")
                   .step(SC).httpRequest(HttpMethod.GET).path("/board").endStep()
-                  .step(SC).nextSequence("furl")
+                  .step(SC).action(new NewSequenceAction.Builder().sequence("furl"))
                .endSequence()
                .sequence("furl")
                   .step(SC).httpRequest(HttpMethod.GET)
@@ -176,7 +177,7 @@ public class TwoScenariosTest extends BaseBenchmarkTest {
                         }
                      }).endHandler()
                   .endStep()
-                  .step(SC).nextSequence("disembark")
+                  .step(SC).action(new NewSequenceAction.Builder().sequence("disembark"))
                .endSequence()
                .sequence("disembark")
                   .step(SC).httpRequest(HttpMethod.GET).path("/disembark").endStep()

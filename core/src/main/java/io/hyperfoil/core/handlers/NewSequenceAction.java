@@ -57,7 +57,7 @@ public class NewSequenceAction implements Action {
       @Deprecated
       @SuppressWarnings("unused")
       public Builder maxSequences(int maxSequences) {
-         log.warn("Property nextSequence.maxSequences is deprecated. Use concurrency setting in target sequence instead.");
+         log.warn("Property newSequence.maxSequences is deprecated. Use concurrency setting in target sequence instead.");
          return this;
       }
 

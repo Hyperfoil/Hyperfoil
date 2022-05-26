@@ -24,7 +24,6 @@ import io.hyperfoil.core.steps.ForeachStep;
 import io.hyperfoil.core.steps.JsonStep;
 import io.hyperfoil.core.steps.LogAction;
 import io.hyperfoil.core.steps.LoopStep;
-import io.hyperfoil.core.steps.NextSequenceStep;
 import io.hyperfoil.core.steps.PollStep;
 import io.hyperfoil.core.steps.data.PullSharedMapStep;
 import io.hyperfoil.core.steps.data.PushSharedMapStep;
@@ -51,16 +50,6 @@ public class StepCatalog implements Step.Catalog, ServiceLoadedBuilderProvider.O
 
    public BreakSequenceStep.Builder breakSequence() {
       return new BreakSequenceStep.Builder().addTo(parent);
-   }
-
-   /**
-    * Schedules a new sequence instance to be executed.
-    *
-    * @param name Name of the instantiated sequence.
-    * @return This sequence.
-    */
-   public BaseSequenceBuilder<?> nextSequence(String name) {
-      return parent.step(new NextSequenceStep(name));
    }
 
    public LoopStep.Builder loop(String counterVar, int repeats) {
