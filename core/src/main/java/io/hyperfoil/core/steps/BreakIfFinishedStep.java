@@ -25,6 +25,11 @@ public class BreakIfFinishedStep implements Step {
       return true;
    }
 
+   /**
+    * Stop execution of current sequence if the phase is in finished state.
+    * <p>
+    * This is useful for a long-running (looping) sequence that should not extend the duration of its phase.
+    */
    @MetaInfServices(StepBuilder.class)
    @Name("breakIfFinished")
    public static class Builder implements StepBuilder<Builder> {

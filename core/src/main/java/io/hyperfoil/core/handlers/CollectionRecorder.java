@@ -44,7 +44,7 @@ public class CollectionRecorder implements Processor {
    }
 
    /**
-    * Collects results of processor invocation into a unbounded list.
+    * Collects results of processor invocation into a unbounded list. <br>
     * WARNING: This processor should be used rarely as it allocates memory during the benchmark.
     */
    @MetaInfServices(Processor.Builder.class)

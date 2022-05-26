@@ -32,7 +32,7 @@ public class TimestampStep implements Step {
    }
 
    /**
-    * Stores the current time in milliseconds as {@link String} to a session variable.
+    * Stores the current time in milliseconds as string to a session variable.
     */
    @MetaInfServices(StepBuilder.class)
    @Name("timestamp")

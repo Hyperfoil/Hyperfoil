@@ -18,6 +18,9 @@ public class CloseConnectionHandler implements Processor {
       session.currentRequest().connection().close();
    }
 
+   /**
+    * Prevents reuse connection after the response has been handled.
+    */
    @MetaInfServices(Processor.Builder.class)
    @Name("closeConnection")
    public static class Builder implements Processor.Builder {

@@ -94,5 +94,6 @@ public class StoreProcessor implements Processor {
     */
    @MetaInfServices(Processor.Builder.class)
    @Name("simple")
+   @Deprecated
    public static class LegacyBuilder extends Builder {}
 }

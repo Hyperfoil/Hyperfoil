@@ -42,8 +42,8 @@ public class RandomFileStep implements Step {
    }
 
    /**
-    * Reads bytes from a randomly chosen file into a variable.
-    * Two formats are supported:
+    * Reads bytes from a randomly chosen file into a variable. <br>
+    * Two formats are supported: <br>
     * Example 1 - without weights:
     * <pre>
     * toVar: myVar

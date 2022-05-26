@@ -25,8 +25,9 @@ public class ReadAgentDataAction implements Action {
    }
 
    /**
-    * Reads data from agent-wide scope into session variable. The data must be published in a phase that has terminated
-    * before this phase starts: usually this is achieved using the <code>startAfterStrict</code> property on the phase.
+    * Reads data from agent-wide scope into session variable.<br>
+    * The data must be published in a phase that has terminated before this phase starts:
+    * usually this is achieved using the <code>startAfterStrict</code> property on the phase.
     */
    @MetaInfServices(Action.Builder.class)
    @Name("readAgentData")

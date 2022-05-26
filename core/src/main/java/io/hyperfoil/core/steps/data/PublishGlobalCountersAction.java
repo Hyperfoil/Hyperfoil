@@ -61,21 +61,21 @@ public class PublishGlobalCountersAction implements Action {
    }
 
    /**
-    * Gathers values from session variables and publishes them globally (to all agents). You can name the counters
-    * individually (example 1) or use the variable names (example 2):
+    * Gathers values from session variables and publishes them globally (to all agents). <br>
+    * You can name the counters individually (example 1) or use the variable names (example 2):
     *
-    * <code>
+    * <pre><code>
     * # Example 1:
     * - publishGlobalCounters:
-    * key: myKey
-    * vars: [ foo, bar ]
+    *     key: myKey
+    *     vars: [ foo, bar ]
     * # Example 2:
     * - publishGlobalCounters:
-    * key: someOtherKey
-    * vars:
-    * - foo: myFoo
-    * - bar: bbb
-    * </code>
+    *     key: someOtherKey
+    *     vars:
+    *     - foo: myFoo
+    *     - bar: bbb
+    * </code></pre>
     */
    @MetaInfServices(Action.Builder.class)
    @Name("publishGlobalCounters")

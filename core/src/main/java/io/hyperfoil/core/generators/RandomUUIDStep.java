@@ -39,7 +39,7 @@ public class RandomUUIDStep implements Step {
 
       /**
        * @param toVar Variable name to store the result.
-       * @return
+       * @return Self.
        */
       @Override
       public Builder init(String toVar) {

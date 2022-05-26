@@ -40,6 +40,11 @@ public class StringToIntAction implements Action {
       }
    }
 
+   /**
+    * Parse string into integer and store it in a variable.
+    * <p>
+    * If the parsing fails the target variable is not modified.
+    */
    @MetaInfServices(Action.Builder.class)
    @Name("stringToInt")
    public static class Builder implements Action.Builder, InitFromParam<Builder> {

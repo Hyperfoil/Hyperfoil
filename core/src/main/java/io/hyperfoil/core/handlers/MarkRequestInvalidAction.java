@@ -23,6 +23,9 @@ public class MarkRequestInvalidAction implements Action {
       }
    }
 
+   /**
+    * Unconditionally mark currently processed request as invalid.
+    */
    @MetaInfServices(Action.Builder.class)
    @Name("markRequestInvalid")
    public static class Builder implements Action.Builder {

@@ -50,7 +50,7 @@ public class AddToSharedCounterAction implements Action, ResourceUtilizer {
       /**
        * @param param Use on of: <code>counter++</code>, <code>counter--</code>, <code>counter += &lt;value&gt;</code>,
        *              <code>counter -= &lt;value&gt;</code>
-       * @return
+       * @return Self.
        */
       @Override
       public Builder init(String param) {
