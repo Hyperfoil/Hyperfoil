@@ -210,14 +210,26 @@ class ControllerServer implements ApiService {
       }
    }
 
+   private void respondWithJson(RoutingContext ctx, boolean pretty, Object entity) {
+      ctx.response()
+            .putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_JSON)
+            .end(pretty ? Json.encodePrettily(entity) : Json.encode(entity));
+   }
+
+   private void respondWithJson(RoutingContext ctx, JsonObject entity) {
+      ctx.response()
+            .putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_JSON)
+            .end(entity.encodePrettily());
+   }
+
    @Override
    public void listBenchmarks(RoutingContext ctx) {
-      ctx.response().end(Json.encodePrettily(controller.getBenchmarks()));
+      respondWithJson(ctx, true, controller.getBenchmarks());
    }
 
    @Override
    public void listTemplates(RoutingContext ctx) {
-      ctx.response().end(Json.encodePrettily(controller.getTemplates()));
+      respondWithJson(ctx, true, controller.getTemplates());
    }
 
    @Override
@@ -538,8 +550,9 @@ class ControllerServer implements ApiService {
       }
       String error = controller.startBenchmark(run);
       if (error == null) {
-         ctx.response().setStatusCode(HttpResponseStatus.ACCEPTED.code()).
-               putHeader(HttpHeaders.LOCATION, baseURL + "/run/" + run.id)
+         ctx.response().setStatusCode(HttpResponseStatus.ACCEPTED.code())
+               .putHeader(HttpHeaders.LOCATION, baseURL + "/run/" + run.id)
+               .putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_JSON)
                .end(Json.encodePrettily(runInfo(run, false)));
       } else {
          ctx.response()
@@ -548,16 +561,15 @@ class ControllerServer implements ApiService {
    }
 
    private Benchmark templateToBenchmark(RoutingContext ctx, BenchmarkSource template, List<String> templateParam) {
-      Map<String, String> paramMap1 = new HashMap<>();
+      Map<String, String> paramMap = new HashMap<>();
       for (String item : templateParam) {
          int index = item.indexOf("=");
          if (index < 0) {
-            paramMap1.put(item, "");
+            paramMap.put(item, "");
          } else {
-            paramMap1.put(item.substring(0, index), item.substring(index + 1));
+            paramMap.put(item.substring(0, index), item.substring(index + 1));
          }
       }
-      Map<String, String> paramMap = paramMap1;
       List<String> missingParams = template.paramsWithDefaults.entrySet().stream()
             .filter(entry -> entry.getValue() == null).map(Map.Entry::getKey)
             .filter(param -> !paramMap.containsKey(param)).collect(Collectors.toList());
@@ -592,13 +604,11 @@ class ControllerServer implements ApiService {
                   content = createStructure(maxCollectionSize, benchmark);
                }
             }
-            ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_JSON)
-                  .end(Json.encode(new Client.BenchmarkStructure(template.paramsWithDefaults, content)));
+            respondWithJson(ctx, false, new Client.BenchmarkStructure(template.paramsWithDefaults, content));
          }
       } else {
          String content = createStructure(maxCollectionSize, benchmark);
-         ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_JSON)
-               .end(Json.encode(new Client.BenchmarkStructure(Collections.emptyMap(), content)));
+         respondWithJson(ctx, false, new Client.BenchmarkStructure(Collections.emptyMap(), content));
       }
    }
 
@@ -619,19 +629,20 @@ class ControllerServer implements ApiService {
       }
       ThreadLocalRandom random = ThreadLocalRandom.current();
       String boundary = new UUID(random.nextLong(), random.nextLong()).toString();
-      ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, "multipart/form-data; boundary=\"" + boundary + "\"");
-      ctx.response().setChunked(true);
-      ctx.response().write("--" + boundary);
+      HttpServerResponse response = ctx.response();
+      response.putHeader(HttpHeaders.CONTENT_TYPE, "multipart/form-data; boundary=\"" + boundary + "\"");
+      response.setChunked(true);
+      response.write("--" + boundary);
       for (var file : files.entrySet()) {
-         ctx.response().write("\n");
-         ctx.response().write(HttpHeaders.CONTENT_TYPE + ": application/octet-stream\n");
-         ctx.response().write(HttpHeaders.CONTENT_LENGTH + ": " + file.getValue().length + "\n");
-         ctx.response().write(HttpHeaders.CONTENT_DISPOSITION + ": form-data; name=\"file\"; filename=\"" + file.getKey() + "\"\n\n");
-         ctx.response().write(Buffer.buffer(file.getValue()));
-         ctx.response().write("\n--" + boundary);
+         response.write("\n");
+         response.write(HttpHeaders.CONTENT_TYPE + ": application/octet-stream\n");
+         response.write(HttpHeaders.CONTENT_LENGTH + ": " + file.getValue().length + "\n");
+         response.write(HttpHeaders.CONTENT_DISPOSITION + ": form-data; name=\"file\"; filename=\"" + file.getKey() + "\"\n\n");
+         response.write(Buffer.buffer(file.getValue()));
+         response.write("\n--" + boundary);
       }
-      ctx.response().write("--");
-      ctx.response().end();
+      response.write("--");
+      response.end();
    }
 
    private String createStructure(int maxCollectionSize, Benchmark benchmark) {
@@ -647,19 +658,17 @@ class ControllerServer implements ApiService {
       io.hyperfoil.controller.model.Run[] runs = controller.runs().stream()
             .map(r -> details ? runInfo(r, false) : new io.hyperfoil.controller.model.Run(r.id, null, null, null, r.cancelled, r.completed, null, null, null, null))
             .toArray(io.hyperfoil.controller.model.Run[]::new);
-      ctx.response().end(Json.encodePrettily(runs));
+      respondWithJson(ctx, true, runs);
    }
 
    @Override
    public void getRun(RoutingContext ctx, String runId) {
-      withRun(ctx, runId, run -> ctx.response().end(Json.encodePrettily(runInfo(run, true))));
+      withRun(ctx, runId, run -> respondWithJson(ctx, true, runInfo(run, true)));
    }
 
    @Override
    public void agentCpu(RoutingContext ctx, String runId) {
-      withStats(ctx, runId, run -> ctx.response()
-            .putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_JSON)
-            .end(Json.encode(run.statisticsStore().cpuUsage())));
+      withStats(ctx, runId, run -> respondWithJson(ctx, false, run.statisticsStore().cpuUsage()));
    }
 
    private io.hyperfoil.controller.model.Run runInfo(Run run, boolean reportPhases) {
@@ -837,7 +846,7 @@ class ControllerServer implements ApiService {
                phaseStats.put(agent, new JsonObject().put("min", lowHigh.low).put("max", lowHigh.high));
             });
          }
-         ctx.response().end(reply.encodePrettily());
+         respondWithJson(ctx, reply);
       });
    }
 
@@ -870,7 +879,7 @@ class ControllerServer implements ApiService {
          Map<String, Map<String, LowHigh>> stats = mapper.apply(run.statisticsStore());
          JsonObject result = stats.entrySet().stream().collect(JsonObject::new,
                (json, e) -> json.put(e.getKey(), lowHighMapToJson(e.getValue())), JsonObject::mergeIn);
-         ctx.response().end(JsonObject.mapFrom(result).encodePrettily());
+         respondWithJson(ctx, JsonObject.mapFrom(result));
       });
    }
 
@@ -920,7 +929,7 @@ class ControllerServer implements ApiService {
    public void getRecentStats(RoutingContext ctx, String runId) {
       withStats(ctx, runId, run -> {
          List<RequestStats> stats = run.statisticsStore().recentSummary(System.currentTimeMillis() - 5000);
-         ctx.response().end(Json.encodePrettily(statsToJson(run, stats)));
+         respondWithJson(ctx, false, statsToJson(run, stats));
       });
    }
 
@@ -928,7 +937,7 @@ class ControllerServer implements ApiService {
    public void getTotalStats(RoutingContext ctx, String runId) {
       withStats(ctx, runId, run -> {
          List<RequestStats> stats = run.statisticsStore().totalSummary();
-         ctx.response().end(Json.encodePrettily(statsToJson(run, stats)));
+         respondWithJson(ctx, false, statsToJson(run, stats));
       });
    }
 
@@ -936,7 +945,7 @@ class ControllerServer implements ApiService {
    public void getHistogramStats(RoutingContext ctx, String runId, String phase, int stepId, String metric) {
       withStats(ctx, runId, run -> {
          Histogram histogram = run.statisticsStore().histogram(phase, stepId, metric);
-         ctx.response().end(Json.encode(histogram));
+         respondWithJson(ctx, false, histogram);
       });
    }
 
@@ -1002,9 +1011,9 @@ class ControllerServer implements ApiService {
 
    @Override
    public void listAgents(RoutingContext ctx) {
-      ctx.response().end(new JsonArray(controller.runs.values().stream()
+      respondWithJson(ctx, true, new JsonArray(controller.runs.values().stream()
             .flatMap(run -> run.agents.stream().map(agentInfo -> agentInfo.name))
-            .distinct().collect(Collectors.toList())).encodePrettily());
+            .distinct().collect(Collectors.toList())));
    }
 
    @Override
@@ -1141,7 +1150,7 @@ class ControllerServer implements ApiService {
 
    @Override
    public void getVersion(RoutingContext ctx) {
-      ctx.response().end(Json.encodePrettily(new io.hyperfoil.controller.model.Version(Version.VERSION, Version.COMMIT_ID, controller.deploymentID(), new Date())));
+      respondWithJson(ctx, true, new io.hyperfoil.controller.model.Version(Version.VERSION, Version.COMMIT_ID, controller.deploymentID(), new Date()));
    }
 
    public void withBenchmark(RoutingContext ctx, String name, Consumer<Benchmark> consumer) {
