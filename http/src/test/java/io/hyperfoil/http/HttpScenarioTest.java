@@ -69,6 +69,7 @@ public abstract class HttpScenarioTest extends BaseScenarioTest {
       HttpPluginBuilder httpPlugin = benchmarkBuilder.plugin(HttpPluginBuilder.class);
       HttpBuilder http = httpPlugin.http();
       http.protocol(tls ? Protocol.HTTPS : Protocol.HTTP)
+            .name("myhost")
             .host("localhost").port(server.actualPort());
       initHttp(http);
    }
