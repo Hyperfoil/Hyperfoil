@@ -39,10 +39,19 @@ public class CpuWatchdog implements Runnable {
    private final Map<String, String> phaseUsage = new HashMap<>();
 
    public CpuWatchdog(Consumer<Throwable> errorHandler, BooleanSupplier warmupTest) {
-      thread = new Thread(this, "cpu-watchdog");
-      thread.setDaemon(true);
       this.errorHandler = errorHandler;
       this.warmupTest = warmupTest;
+      File stat = PROC_STAT.toFile();
+      if (!stat.exists() || !stat.isFile() || !stat.canRead()) {
+         log.warn("Not starting CPU watchdog as {} is not available (exists: {}, file: {}, readable: {})",
+               PROC_STAT, stat.exists(), stat.isFile(), stat.canRead());
+         thread = null;
+         nCpu = 0;
+         idleTime = null;
+         return;
+      }
+      thread = new Thread(this, "cpu-watchdog");
+      thread.setDaemon(true);
       AtomicInteger counter = new AtomicInteger();
       if (readProcStat(ignored -> counter.incrementAndGet())) {
          nCpu = counter.get();
@@ -120,13 +129,9 @@ public class CpuWatchdog implements Runnable {
    }
 
    public void start() {
-      File stat = PROC_STAT.toFile();
-      if (!stat.exists() || !stat.isFile() || !stat.canRead()) {
-         log.warn("Not starting CPU watchdog as {} is not available (exists: {}, file: {}, readable: {})",
-               PROC_STAT, stat.exists(), stat.isFile(), stat.canRead());
-         return;
+      if (thread != null) {
+         thread.start();
       }
-      thread.start();
    }
 
    public void stop() {
