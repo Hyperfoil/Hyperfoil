@@ -60,6 +60,7 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
       constructors.put(Model.RampRate.class, RampRate::new);
       constructors.put(Model.ConstantRate.class, ConstantRate::new);
       constructors.put(Model.Sequentially.class, Sequentially::new);
+      //noinspection StaticInitializerReferencesSubClass
       constructors.put(Model.Noop.class, Noop::new);
    }
 
@@ -123,6 +124,7 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
          setTerminated();
       } else if (sessionList != null && status == Status.TERMINATING) {
          // We need to force blocked sessions to check the termination status
+         //noinspection SynchronizeOnNonFinalField
          synchronized (sessionList) {
             for (int i = 0; i < sessionList.size(); i++) {
                Session session = sessionList.get(i);
@@ -423,10 +425,10 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
       @Override
       protected long nextSessionMetronome(long delta) {
          double progress = (targetUsersPerSec - initialUsersPerSec) / (def.duration * 1000);
-         long required = (long) (((progress * (delta + 1)) / 2 + initialUsersPerSec / 1000) * delta);
+         long required = (long) ((progress * delta / 2 + initialUsersPerSec / 1000) * delta) + 1;
          // Next time is the root of quadratic equation
-         double bCoef = progress + initialUsersPerSec / 500;
-         nextScheduled = Math.ceil((-bCoef + Math.sqrt(bCoef * bCoef + 8 * progress * (startedOrThrottledUsers + 1))) / (2 * progress));
+         double bCoef = initialUsersPerSec / 1000;
+         nextScheduled = Math.ceil((-bCoef + Math.sqrt(bCoef * bCoef + 2 * progress * required)) / progress);
          return required;
       }
 
@@ -456,8 +458,8 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
 
       @Override
       protected long nextSessionMetronome(long delta) {
-         long required = (long) (delta * usersPerSec / 1000);
-         nextScheduled = (1000 * (startedOrThrottledUsers + 1) + usersPerSec) / usersPerSec;
+         long required = (long) (delta * usersPerSec / 1000) + 1;
+         nextScheduled = 1000 * required / usersPerSec;
          return required;
       }
 
@@ -494,7 +496,7 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
                   status = Status.TERMINATING;
                   log.debug("{} changing status to TERMINATING", def.name);
                } else {
-                  log.warn("{} not terminating because it is already ", def.name, status);
+                  log.warn("{} not terminating because it is already {}", def.name, status);
                }
             }
             super.notifyFinished(session);
