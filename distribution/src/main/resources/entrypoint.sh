@@ -8,6 +8,12 @@ case ${1,,} in
 "standalone")
   shift
   $DIR/standalone.sh $@ ;;
+"wrk")
+  shift
+  $DIR/wrk.sh $@ ;;
+"wrk2")
+  shift
+  $DIR/wrk2.sh $@ ;;
 "sh" | "bash")
   bash ;;
 *)

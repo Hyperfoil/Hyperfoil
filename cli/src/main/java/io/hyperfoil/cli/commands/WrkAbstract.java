@@ -22,15 +22,21 @@ package io.hyperfoil.cli.commands;
 
 import static io.hyperfoil.http.steps.HttpStepCatalog.SC;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.DoubleSummaryStatistics;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import org.HdrHistogram.AbstractHistogram;
@@ -47,7 +53,6 @@ import org.aesh.command.option.Option;
 import org.aesh.command.option.OptionGroup;
 import org.aesh.command.option.OptionList;
 import org.aesh.terminal.utils.ANSI;
-import org.aesh.terminal.utils.Config;
 
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.PhaseBuilder;
@@ -93,7 +98,7 @@ public abstract class WrkAbstract {
          cr = runtime.build();
          try {
             cr.executeCommand("start-local --quiet");
-            cr.executeCommand(getCommand() + " " + String.join(" ", args));
+            cr.executeCommand(getCommand() + " " + Stream.of(args).map(arg -> arg.replaceAll(" ", "\\\\ ")).collect(Collectors.joining(" ")));
          } finally {
             cr.executeCommand("exit");
          }
@@ -171,6 +176,9 @@ public abstract class WrkAbstract {
             return CommandResult.FAILURE;
          }
          path = uri.getPath();
+         if (path == null || path.isEmpty()) {
+            path = "/";
+         }
          if (uri.getQuery() != null) {
             path = path + "?" + uri.getQuery();
          }
@@ -243,8 +251,8 @@ public abstract class WrkAbstract {
          Client.RunRef run = benchmark.start(null, Collections.emptyMap());
          invocation.context().setServerRun(run);
 
-         invocation.println("Running for " + duration + " test @ " + url);
-         invocation.println(threads + " threads and " + connections + " connections");
+         invocation.println("Running " + duration + " test @ " + url);
+         invocation.println("  " + threads + " threads and " + connections + " connections");
 
          while (true) {
             RequestStatisticsResponse recent = run.statsRecent();
@@ -260,12 +268,12 @@ public abstract class WrkAbstract {
                run.kill();
             }
          }
-         invocation.println(Config.getLineSeparator() + "benchmark finished");
          RequestStatisticsResponse total = run.statsTotal();
          RequestStats testStats = total.statistics.stream().filter(rs -> "test".equals(rs.phase))
                .findFirst().orElseThrow(() -> new IllegalStateException("Missing stats for phase 'test'"));
          AbstractHistogram histogram = HistogramConverter.convert(run.histogram(testStats.phase, testStats.stepId, testStats.metric));
-         printStats(testStats.summary, histogram, invocation);
+         List<StatisticsSummary> series = run.series(testStats.phase, testStats.stepId, testStats.metric);
+         printStats(testStats.summary, histogram, series, invocation);
          return CommandResult.SUCCESS;
       }
 
@@ -301,34 +309,68 @@ public abstract class WrkAbstract {
          // @formatter:on
       }
 
-      private void printStats(StatisticsSummary stats, AbstractHistogram histogram, CommandInvocation<?> invocation) {
+      private void printStats(StatisticsSummary stats, AbstractHistogram histogram, List<StatisticsSummary> series, CommandInvocation<?> invocation) {
          TransferSizeRecorder.Stats transferStats = (TransferSizeRecorder.Stats) stats.extensions.get("transfer");
          HttpStats httpStats = HttpStats.get(stats);
          double durationSeconds = (stats.endTime - stats.startTime) / 1000d;
-         invocation.println("                  Avg     Stdev       Max");
-         invocation.println("Latency:    " + Util.prettyPrintNanosFixed(stats.meanResponseTime) + " "
-               + Util.prettyPrintNanosFixed((long) histogram.getStdDeviation()) + " " + Util.prettyPrintNanosFixed(stats.maxResponseTime));
+         invocation.println(String.format("  Thread Stats%6s%11s%8s%12s", "Avg", "Stdev", "Max", "+/- Stdev"));
+         invocation.println("    Latency   " +
+               Util.prettyPrintNanos(stats.meanResponseTime, "6", false) +
+               Util.prettyPrintNanos((long) histogram.getStdDeviation(), "8", false) +
+               Util.prettyPrintNanos(stats.maxResponseTime, "7", false) +
+               String.format("%8.2f%%", statsWithinStdev(stats, histogram)));
+         // Note: wrk samples #requests every 100 ms, Hyperfoil every 1s
+         DoubleSummaryStatistics requestsStats = series.stream().mapToDouble(s -> s.requestCount).summaryStatistics();
+         double requestsStdDev = series.size() > 0 ? Math.sqrt(series.stream().mapToDouble(s -> Math.pow(s.requestCount - requestsStats.getAverage(), 2)).sum() / series.size()) : 0;
+         invocation.println("    Req/Sec   " +
+               String.format("%6.2f  ", requestsStats.getAverage()) +
+               String.format("%8.2f  ", requestsStdDev) +
+               String.format("%7.2f  ", requestsStats.getMax()) +
+               String.format("%8.2f", statsWithinStdev(requestsStats, requestsStdDev, series.stream().mapToInt(s -> s.requestCount), series.size())));
          if (latency) {
-            invocation.println("Latency Distribution");
-            for (Map.Entry<Double, Long> entry : stats.percentileResponseTime.entrySet()) {
-               invocation.println(String.format("%7.3f", entry.getKey()) + " " + Util.prettyPrintNanosFixed(entry.getValue()));
+            invocation.println("  Latency Distribution");
+            for (double percentile : Arrays.asList(50.0, 75.0, 90.0, 99.0, 99.9, 99.99, 99.999, 100.0)) {
+               invocation.println(String.format("    %7.3f%%", percentile) + " " + Util.prettyPrintNanos(histogram.getValueAtPercentile(percentile), "9", false));
             }
-            invocation.println("----------------------------------------------------------");
-            invocation.println("Detailed Percentile Spectrum");
-            invocation.println("    Value  Percentile  TotalCount  1/(1-Percentile)");
-            for (HistogramIterationValue value : histogram.percentiles(5)) {
-               invocation.println(Util.prettyPrintNanosFixed(value.getValueIteratedTo()) + " " + String.format("%9.5f%%  %10d  %15.2f",
-                     value.getPercentile(), value.getTotalCountToThisValue(), 100 / (100 - value.getPercentile())));
-            }
+            invocation.println("");
+            invocation.println("  Detailed Percentile Spectrum");
+            histogram.outputPercentileDistribution(new PrintStream(new OutputStream() {
+               @Override
+               public void write(int b) throws IOException {
+                  invocation.print(String.valueOf((char) b));
+               }
+            }), 5, 1000_000.0);
             invocation.println("----------------------------------------------------------");
          }
-         invocation.println(stats.requestCount + " requests in " + durationSeconds + "s, " + Util.prettyPrintData(transferStats.sent + transferStats.received) + " read");
+         invocation.println("  " + stats.requestCount + " requests in " + durationSeconds + "s, " + Util.prettyPrintData(transferStats.sent + transferStats.received) + " read");
          invocation.println("Requests/sec: " + String.format("%.02f", stats.requestCount / durationSeconds));
-         if (stats.connectionErrors + stats.requestTimeouts + stats.internalErrors + httpStats.status_4xx + httpStats.status_5xx > 0) {
-            invocation.println("Socket errors: connectionErrors " + stats.connectionErrors + ", requestTimeouts " + stats.requestTimeouts);
-            invocation.println("Non-2xx or 3xx responses: " + httpStats.status_4xx + httpStats.status_5xx + httpStats.status_other);
-         }
          invocation.println("Transfer/sec: " + Util.prettyPrintData((transferStats.sent + transferStats.received) / durationSeconds));
+         if (stats.connectionErrors + stats.requestTimeouts + stats.internalErrors > 0) {
+            invocation.println("Socket errors: connectionErrors " + stats.connectionErrors + ", requestTimeouts " + stats.requestTimeouts);
+         }
+         if (httpStats.status_4xx + httpStats.status_5xx + httpStats.status_other > 0) {
+            invocation.println("Non-2xx or 3xx responses: " + (httpStats.status_4xx + httpStats.status_5xx + httpStats.status_other));
+         }
+      }
+
+      private double statsWithinStdev(DoubleSummaryStatistics stats, double stdDev, IntStream stream, int count) {
+         double lower = stats.getAverage() - stdDev;
+         double upper = stats.getAverage() + stdDev;
+         return 100d * stream.filter(reqs -> reqs >= lower && reqs <= upper).count() / count;
+      }
+
+      private double statsWithinStdev(StatisticsSummary stats, AbstractHistogram histogram) {
+         double stdDev = histogram.getStdDeviation();
+         double lower = stats.meanResponseTime - stdDev;
+         double upper = stats.meanResponseTime + stdDev;
+         long sum = 0;
+         for (var it = histogram.allValues().iterator(); it.hasNext(); ) {
+            HistogramIterationValue value = it.next();
+            if (value.getValueIteratedFrom() >= lower && value.getValueIteratedTo() <= upper) {
+               sum += value.getCountAddedInThisIterationStep();
+            }
+         }
+         return 100d * sum / stats.requestCount;
       }
 
    }

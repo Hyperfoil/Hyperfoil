@@ -43,34 +43,40 @@ public class Util {
       return b >= 'a' && b <= 'z' ? (byte) (b - 32) : b;
    }
 
+
    /**
-    * Pretty prints time in 9 spaces
+    * Pretty prints timeNanos in 9 spaces
     *
-    * @param meanResponseTime Time in nanoseconds.
+    * @param timeNanos Time in nanoseconds.
     * @return Formatted string.
     */
-   public static String prettyPrintNanosFixed(long meanResponseTime) {
-      if (meanResponseTime < 1000) {
-         return String.format("%6d ns", meanResponseTime);
-      } else if (meanResponseTime < 1000_000) {
-         return String.format("%6.2f μs", meanResponseTime / 1000d);
-      } else if (meanResponseTime < 1000_000_000) {
-         return String.format("%6.2f ms", meanResponseTime / 1000_000d);
+   public static String prettyPrintNanosFixed(long timeNanos) {
+      return prettyPrintNanos(timeNanos, "6", true);
+   }
+
+   /**
+    * Pretty prints time
+    *
+    * @param timeNanos       Time in nanoseconds.
+    * @param width           Number of characters in the number, as string
+    * @param spaceBeforeUnit Separate number and unit with a space.
+    * @return Formatted string.
+    */
+   public static String prettyPrintNanos(long timeNanos, String width, boolean spaceBeforeUnit) {
+      String space = spaceBeforeUnit ? " " : "";
+      if (timeNanos < 1000) {
+         return String.format("%" + width + "d%sns", timeNanos, space);
+      } else if (timeNanos < 1000_000) {
+         return String.format("%" + width + ".2f%sμs", timeNanos / 1000d, space);
+      } else if (timeNanos < 1000_000_000) {
+         return String.format("%" + width + ".2f%sms", timeNanos / 1000_000d, space);
       } else {
-         return String.format("%6.2f s ", meanResponseTime / 1000_000_000d);
+         return String.format("%" + width + ".2f%ss ", timeNanos / 1000_000_000d, space);
       }
    }
 
-   public static String prettyPrintNanos(long meanResponseTime) {
-      if (meanResponseTime < 1000) {
-         return String.format("%d ns", meanResponseTime);
-      } else if (meanResponseTime < 1000_000) {
-         return String.format("%.2f μs", meanResponseTime / 1000d);
-      } else if (meanResponseTime < 1000_000_000) {
-         return String.format("%.2f ms", meanResponseTime / 1000_000d);
-      } else {
-         return String.format("%.2f s ", meanResponseTime / 1000_000_000d);
-      }
+   public static String prettyPrintNanos(long timeNanos) {
+      return prettyPrintNanos(timeNanos, "", true);
    }
 
    public static String toString(ByteBuf buf, int offset, int length) {
