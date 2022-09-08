@@ -4,18 +4,18 @@ DIR=$(dirname $0)
 case ${1,,} in
 "cli")
   shift
-  $DIR/cli.sh $@ ;;
+  $DIR/cli.sh "$@" ;;
 "standalone")
   shift
-  $DIR/standalone.sh $@ ;;
+  $DIR/standalone.sh "$@" ;;
 "wrk")
   shift
-  $DIR/wrk.sh $@ ;;
+  $DIR/wrk.sh "$@" ;;
 "wrk2")
   shift
-  $DIR/wrk2.sh $@ ;;
+  $DIR/wrk2.sh "$@" ;;
 "sh" | "bash")
   bash ;;
 *)
-  $DIR/controller.sh $@ ;;
+  $DIR/controller.sh "$@" ;;
 esac

@@ -98,7 +98,12 @@ public abstract class WrkAbstract {
          cr = runtime.build();
          try {
             cr.executeCommand("start-local --quiet");
-            cr.executeCommand(getCommand() + " " + Stream.of(args).map(arg -> arg.replaceAll(" ", "\\\\ ")).collect(Collectors.joining(" ")));
+            // As -H option could contain a whitespace we have to either escape the space or quote the argument.
+            // However quoting would not work well if the argument contains a quote.
+            String optionsCollected = Stream.of(args).limit(args.length - 1).map(arg -> arg.replaceAll(" ", "\\\\ ")).collect(Collectors.joining(" "));
+            // See - https://github.com/aeshell/aesh/issues/339
+            String argument = args.length > 0 ? " --script this-is-a-dirty-hack " + args[args.length - 1] : "";
+            cr.executeCommand(getCommand() + " " + optionsCollected + argument);
          } finally {
             cr.executeCommand("exit");
          }
@@ -147,7 +152,7 @@ public abstract class WrkAbstract {
       @OptionGroup(shortName = 'A', description = "Inline definition of agent executing the test. By default assuming non-clustered mode.")
       Map<String, String> agent;
 
-      @Option(description = "HTTP2 is not supported in wrk/wrk2: you can enable that for Hyperfoil.", defaultValue = "false")
+      @Option(name = "enable-http2", description = "HTTP2 is not supported in wrk/wrk2: you can enable that for Hyperfoil.", defaultValue = "false")
       boolean enableHttp2;
 
       @Argument(description = "URL that should be accessed", required = true)
@@ -162,7 +167,7 @@ public abstract class WrkAbstract {
             invocation.println(invocation.getHelpInfo(getCommand()));
             return CommandResult.SUCCESS;
          }
-         if (script != null) {
+         if (script != null && !"this-is-a-dirty-hack".equals(script)) {
             invocation.println("Scripting is not supported at this moment.");
          }
          if (!url.startsWith("http://") && !url.startsWith("https://")) {
