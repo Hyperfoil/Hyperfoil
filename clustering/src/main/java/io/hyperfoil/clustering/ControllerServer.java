@@ -480,7 +480,7 @@ class ControllerServer implements ApiService {
       if (source == null) {
          ctx.response()
                .setStatusCode(HttpResponseStatus.NOT_ACCEPTABLE.code())
-               .setStatusMessage("Benchmark does not preserve the original source.");
+               .end("Benchmark does not preserve the original source.");
       } else {
          ctx.response()
                .putHeader(HttpHeaders.CONTENT_TYPE, "text/vnd.yaml; charset=UTF-8")

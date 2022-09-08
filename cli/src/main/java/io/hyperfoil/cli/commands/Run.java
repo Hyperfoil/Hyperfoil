@@ -27,7 +27,8 @@ public class Run extends ParamsCommand {
       Map<String, String> currentParams = getParams(invocation);
 
       try {
-         String yaml = benchmarkRef.source().source;
+         Client.BenchmarkSource benchmarkSource = benchmarkRef.source();
+         String yaml = benchmarkSource != null ? benchmarkSource.source : null;
          if (yaml != null) {
             BenchmarkSource source = BenchmarkParser.instance().createSource(yaml, BenchmarkData.EMPTY);
             List<String> missingParams = getMissingParams(source.paramsWithDefaults, currentParams);
