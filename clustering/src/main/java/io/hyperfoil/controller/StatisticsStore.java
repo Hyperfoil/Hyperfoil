@@ -166,16 +166,28 @@ public class StatisticsStore {
    }
 
    public Histogram histogram(String phase, int stepId, String metric) {
+      Data data = getData(phase, stepId, metric);
+      if (data == null) {
+         return null;
+      }
+      return HistogramConverter.convert(phase, metric, data.total.histogram);
+   }
+
+   public List<StatisticsSummary> series(String phase, int stepId, String metric) {
+      Data data = getData(phase, stepId, metric);
+      if (data == null) {
+         return null;
+      }
+      return data.series;
+   }
+
+   private Data getData(String phase, int stepId, String metric) {
       int phaseId = benchmark.phases().stream().filter(p -> p.name.equals(phase)).mapToInt(p -> p.id).findFirst().orElse(-1);
       Map<String, Data> phaseStepData = data.get((phaseId << 16) + stepId);
       if (phaseStepData == null) {
          return null;
       }
-      Data data = phaseStepData.get(metric);
-      if (data == null) {
-         return null;
-      }
-      return HistogramConverter.convert(phase, metric, data.total.histogram);
+      return phaseStepData.get(metric);
    }
 
    public void recordSessionStats(String address, long timestamp, String phase, int minSessions, int maxSessions) {

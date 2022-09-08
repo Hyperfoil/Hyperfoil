@@ -6,6 +6,7 @@ import static io.hyperfoil.client.RestClient.waitFor;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -13,6 +14,7 @@ import java.util.concurrent.CompletionException;
 import com.fasterxml.jackson.core.type.TypeReference;
 
 import io.hyperfoil.api.config.Benchmark;
+import io.hyperfoil.api.statistics.StatisticsSummary;
 import io.hyperfoil.controller.Client;
 import io.hyperfoil.controller.model.Histogram;
 import io.hyperfoil.controller.model.RequestStatisticsResponse;
@@ -167,6 +169,16 @@ public class RunRefImpl implements Client.RunRef {
                   .putHeader(HttpHeaders.ACCEPT.toString(), "application/json").send(handler), 200,
             response -> Json.decodeValue(response.body(), Histogram.class)
       );
+   }
+
+   @Override
+   public List<StatisticsSummary> series(String phase, int stepId, String metric) {
+      return client.sync(handler -> client.request(HttpMethod.GET, "/run/" + id + "/stats/series")
+                  .addQueryParam("phase", phase)
+                  .addQueryParam("stepId", String.valueOf(stepId))
+                  .addQueryParam("metric", metric)
+                  .putHeader(HttpHeaders.ACCEPT.toString(), "application/json").send(handler), 200,
+            response -> JacksonCodec.decodeValue(response.body(), new TypeReference<>() {}));
    }
 
    @Override

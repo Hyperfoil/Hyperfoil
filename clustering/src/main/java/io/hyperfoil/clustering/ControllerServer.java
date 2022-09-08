@@ -40,6 +40,7 @@ import io.hyperfoil.api.config.BenchmarkData;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.BenchmarkSource;
 import io.hyperfoil.api.config.Model;
+import io.hyperfoil.api.statistics.StatisticsSummary;
 import io.hyperfoil.clustering.util.PersistedBenchmarkData;
 import io.hyperfoil.clustering.webcli.WebCLI;
 import io.hyperfoil.controller.ApiService;
@@ -946,6 +947,14 @@ class ControllerServer implements ApiService {
       withStats(ctx, runId, run -> {
          Histogram histogram = run.statisticsStore().histogram(phase, stepId, metric);
          respondWithJson(ctx, false, histogram);
+      });
+   }
+
+   @Override
+   public void getSeries(RoutingContext ctx, String runId, String phase, int stepId, String metric) {
+      withStats(ctx, runId, run -> {
+         List<StatisticsSummary> series = run.statisticsStore().series(phase, stepId, metric);
+         respondWithJson(ctx, false, series);
       });
    }
 

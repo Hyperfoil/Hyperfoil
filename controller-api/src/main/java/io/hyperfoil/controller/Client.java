@@ -10,6 +10,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.hyperfoil.api.config.Benchmark;
+import io.hyperfoil.api.statistics.StatisticsSummary;
 import io.hyperfoil.controller.model.Histogram;
 import io.hyperfoil.controller.model.RequestStatisticsResponse;
 import io.hyperfoil.controller.model.Run;
@@ -111,6 +112,8 @@ public interface Client {
       byte[] statsAll(String format);
 
       Histogram histogram(String phase, int stepId, String metric);
+
+      List<StatisticsSummary> series(String phase, int stepId, String metric);
 
       byte[] file(String filename);
 
