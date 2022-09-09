@@ -1051,7 +1051,7 @@ class ControllerServer implements ApiService {
             ctx.response().setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code()).end();
          }
       } else {
-         if (logPath == null) {
+         if (logPath == null || "/dev/null".equals(logPath)) {
             ctx.response()
                   .setStatusCode(HttpResponseStatus.NOT_FOUND.code())
                   .setStatusMessage("Log file not defined.").end();

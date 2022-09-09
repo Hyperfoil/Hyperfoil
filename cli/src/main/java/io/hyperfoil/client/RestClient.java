@@ -41,6 +41,7 @@ import io.vertx.ext.web.multipart.MultipartForm;
 
 public class RestClient implements Client, Closeable {
    private static final long REQUEST_TIMEOUT = Properties.getLong(Properties.CLI_REQUEST_TIMEOUT, 30000);
+   protected static final byte[] EMPTY_LOG_FILE = "<empty log file>".getBytes(StandardCharsets.UTF_8);
 
    final Vertx vertx;
    final WebClientOptions options;
@@ -316,7 +317,7 @@ public class RestClient implements Client, Closeable {
                   try {
                      byte[] bytes;
                      if (response.body() == null) {
-                        bytes = "<empty log file>".getBytes(StandardCharsets.UTF_8);
+                        bytes = EMPTY_LOG_FILE;
                      } else {
                         bytes = response.body().getBytes();
                      }
@@ -365,7 +366,8 @@ public class RestClient implements Client, Closeable {
             return;
          }
          try {
-            Files.write(destinationFile.toPath(), response.body().getBytes());
+            Buffer body = response.body();
+            Files.write(destinationFile.toPath(), body != null ? body.getBytes() : EMPTY_LOG_FILE);
             future.complete(response.getHeader(HttpHeaders.ETAG.toString()));
          } catch (Throwable t) {
             future.completeExceptionally(t);

@@ -2,8 +2,9 @@
 
 DEBUG_MODE="${DEBUG:-false}"
 DEBUG_PORT="${DEBUG_PORT:-8000}"
+DEBUG_SUSPEND="n"
 GREP="grep"
-if [ "$#" -gt 0 ]; then
+while [ "$#" -gt 0 ]; do
     case "$1" in
       --debug)
           DEBUG_MODE=true
@@ -13,14 +14,32 @@ if [ "$#" -gt 0 ]; then
           fi
           shift
           ;;
+      --suspend)
+          DEBUG_SUSPEND="y"
+          shift
+          ;;
+      --log-file)
+          if [ "$2" = "off" -o "$2" = "-" ]; then
+            LOG_FILE="/dev/null"
+            LOG_LEVEL="OFF"
+          elif [ -n "$2" ]; then
+            LOG_FILE="$2"
+            LOG_LEVEL="TRACE"
+          fi
+          shift
+          shift
+          ;;
+        *)
+          echo "Unknown argument '$1'"
+          break
     esac
-fi
+done
 
 # Set debug settings if not already set
 if [ "$DEBUG_MODE" = "true" ]; then
     DEBUG_OPT=`echo $JAVA_OPTS | $GREP "\-agentlib:jdwp"`
     if [ "x$DEBUG_OPT" = "x" ]; then
-        JAVA_OPTS="$JAVA_OPTS -agentlib:jdwp=transport=dt_socket,address=$DEBUG_PORT,server=y,suspend=n"
+        JAVA_OPTS="$JAVA_OPTS -agentlib:jdwp=transport=dt_socket,address=$DEBUG_PORT,server=y,suspend=$DEBUG_SUSPEND"
     else
         echo "Debug already enabled in JAVA_OPTS, ignoring --debug argument"
     fi
@@ -28,7 +47,11 @@ fi
 
 ROOT=$(dirname $0)/..
 CP=$(find $ROOT/lib $ROOT/extensions | tr '\n' ':')
-JAVA_OPTS="$JAVA_OPTS \
+if [ -n "$LOG_FILE" ]; then
+  mkdir -p $(dirname $LOG_FILE)
+  LOG_OPTS="-Dio.hyperfoil.controller.log.file=$LOG_FILE -Dio.hyperfoil.controller.log.file.level=$LOG_LEVEL"
+fi
+JAVA_OPTS="$JAVA_OPTS $LOG_OPTS \
    --add-opens java.base/java.lang=ALL-UNNAMED \
    -Djava.net.preferIPv4Stack=true \
    -Dio.hyperfoil.distdir=$ROOT"
