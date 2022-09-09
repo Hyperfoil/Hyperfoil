@@ -61,24 +61,4 @@ You can now commit and push the documentation.
 $ git commit -a -m 'Release X.Y.Z' && git push
 ```
 
-Last step would be publishing a new version of operator; Major and minor version of operator should match the version of Hyperfoil, micro version can be independent (used for enhancements of the operator itself). It's not necessary to release the operator in sync with main release; publishing it through Marketplace requires a PR with peer review anyway and therefore it lags.
-
-Go to the operator directory and create new Cluster Service Version:
-```
-$ cd ~/go/src/github.com/Hyperfoil/hyperfoil-operator/
-$ export PREVIOUS=X.(Y-1).Z
-$ export NEXT=X.Y.Z
-$ cp -r deploy/olm-catalog/hyperfoil-operator/$PREVIOUS deploy/olm-catalog/hyperfoil-operator/$NEXT
-$ mv deploy/olm-catalog/hyperfoil-operator/$NEXT/hyperfoil-operator.v$PREVIOUS.clusterserviceversion.yaml deploy/olm-catalog/hyperfoil-operator/hyperfoil-operator.v$NEXT.clusterserviceversion.yaml
-```
-
-You should edit `deploy/olm-catalog/hyperfoil-operator/$NEXT/hyperfoil-operator.v$NEXT.clusterserviceversion.yaml` and replace all versions appropriatelly (don't forget the `replaces: `, too), and change most recent version in `deploy/olm-catalog/hyperfoil-operator/hyperfoil-bundle.package.yaml`. Also change the default versions in `version/version.go`.
-
-Build the operator and push it to Quay:
-
-```
-$ operator-sdk build quay.io/example/memcached-operator:$NEXT
-$ docker push quay.io/hyperfoil/hyperfoil-operator:$NEXT
-```
-
-Once that you verify that the operator works (you can apply the CRD and CSV manually), you can issue a PR to [Community operators GitHub](https://github.com/operator-framework/community-operators/tree/master/community-operators/hyperfoil).
+Note that while the operator synchronizes to the latest Hyperfoil versions on release (we'll probably drop this practice after 1.0 as it is confusing for some users) we don't have to release the operator for every release of the project. Therefore there will be gaps in operator versions, and older version of operator will most likely work with most recent Hyperfoil.
