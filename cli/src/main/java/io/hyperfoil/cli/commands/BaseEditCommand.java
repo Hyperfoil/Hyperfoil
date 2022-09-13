@@ -1,6 +1,5 @@
 package io.hyperfoil.cli.commands;
 
-import java.io.InputStream;
 import java.util.List;
 
 import org.aesh.command.CommandException;
@@ -11,12 +10,6 @@ import io.hyperfoil.client.RestClientException;
 import io.hyperfoil.controller.Client;
 
 public abstract class BaseEditCommand extends BenchmarkCommand {
-   public static final InputStream EMPTY_INPUT_STREAM = new InputStream() {
-      @Override
-      public int read() {
-         return -1;
-      }
-   };
 
    @OptionList(name = "extra-files", shortName = 'f', description = "Extra files for upload (comma-separated) in case this benchmark is a template and files won't be auto-detected. Example: --extra-files foo.txt,bar.txt")
    protected List<String> extraFiles;

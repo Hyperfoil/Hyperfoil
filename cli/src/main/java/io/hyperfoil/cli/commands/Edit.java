@@ -2,15 +2,12 @@ package io.hyperfoil.cli.commands;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.aesh.command.CommandDefinition;
 import org.aesh.command.CommandException;
@@ -25,13 +22,13 @@ import io.hyperfoil.cli.CliUtil;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.controller.Client;
 import io.hyperfoil.client.RestClientException;
+import io.hyperfoil.core.impl.ProvidedBenchmarkData;
 import io.hyperfoil.core.parser.BenchmarkParser;
 import io.hyperfoil.core.parser.ParserException;
 import io.hyperfoil.impl.Util;
 
 @CommandDefinition(name = "edit", description = "Edit benchmark definition.")
 public class Edit extends BaseEditCommand {
-   private static final Path SKIP = Paths.get(".SKIP");
 
    @Option(name = "editor", shortName = 'e', description = "Editor used.")
    private String editor;
@@ -41,9 +38,7 @@ public class Edit extends BaseEditCommand {
    public CommandResult execute(HyperfoilCommandInvocation invocation) throws CommandException {
       Client.BenchmarkRef benchmarkRef = ensureBenchmark(invocation);
       Client.BenchmarkSource source = ensureSource(invocation, benchmarkRef);
-      String updatedName;
       File sourceFile;
-      Map<String, Path> filesToUpload = new HashMap<>();
       try {
          sourceFile = File.createTempFile(benchmarkRef.name() + "-", ".yaml");
          Files.write(sourceFile.toPath(), source.source.getBytes(StandardCharsets.UTF_8));
@@ -51,6 +46,18 @@ public class Edit extends BaseEditCommand {
          throw new CommandException("Cannot create temporary file for edits.", e);
       }
       long modifiedTimestamp = sourceFile.lastModified();
+      Map<String, byte[]> extraData = new HashMap<>();
+      if (extraFiles != null) {
+         for (String extraFile : extraFiles) {
+            try {
+               extraData.put(extraFile, Files.readAllBytes(Path.of(extraFile)));
+            } catch (IOException e) {
+               invocation.error("Cannot read file " + extraFile + " (current directory is " + new File("").getAbsolutePath() + ")", e);
+            }
+         }
+      }
+      ProvidedBenchmarkData data = new ProvidedBenchmarkData(extraData);
+      BenchmarkSource newSource;
       for (; ; ) {
          try {
             CliUtil.execProcess(invocation, true, this.editor == null ? EDITOR : this.editor, sourceFile.getAbsolutePath());
@@ -63,19 +70,33 @@ public class Edit extends BaseEditCommand {
             sourceFile.delete();
             return CommandResult.SUCCESS;
          }
-         AtomicBoolean cancelled = new AtomicBoolean(false);
-         filesToUpload.clear();
-         if (extraFiles != null) {
-            for (String extraFile : extraFiles) {
-               filesToUpload.put(extraFile, Path.of(extraFile));
-            }
-         }
-         BenchmarkData askingData = new AskingBenchmarkData(invocation, cancelled, filesToUpload);
          try {
             byte[] updatedSource = Files.readAllBytes(sourceFile.toPath());
-            BenchmarkSource newSource = BenchmarkParser.instance().createSource(new String(updatedSource, StandardCharsets.UTF_8), askingData);
+            newSource = BenchmarkParser.instance().createSource(new String(updatedSource, StandardCharsets.UTF_8), data);
             if (!newSource.isTemplate()) {
-               Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(newSource, Collections.emptyMap());
+               Benchmark benchmark;
+               for (;;) {
+                  try {
+                     benchmark = BenchmarkParser.instance().buildBenchmark(newSource, Collections.emptyMap());
+                     break;
+                  } catch (BenchmarkData.MissingFileException e) {
+                     Path path = Path.of("<none>");
+                     try {
+                        path = CliUtil.getLocalFileForUpload(invocation, e.file);
+                        if (path != null) {
+                           data.files().put(e.file, Files.readAllBytes(path));
+                        } else {
+                           data.ignoredFiles.add(e.file);
+                        }
+                     } catch (InterruptedException e2) {
+                        invocation.println("Edits cancelled.");
+                        sourceFile.delete();
+                        return CommandResult.FAILURE;
+                     } catch (IOException e2) {
+                        invocation.error("Cannot read file " + path, e2);
+                     }
+                  }
+               }
                try {
                   Util.serialize(benchmark);
                } catch (IOException e) {
@@ -85,16 +106,10 @@ public class Edit extends BaseEditCommand {
                   return CommandResult.FAILURE;
                }
             }
-            updatedName = newSource.name;
             break;
          } catch (ParserException | BenchmarkDefinitionException e) {
-            if (cancelled.get()) {
-               invocation.println("Edits cancelled.");
-               sourceFile.delete();
-               return CommandResult.FAILURE;
-            }
             invocation.error(e);
-            invocation.println("Retry edits? [Y/n] ");
+            invocation.print("Retry edits? [Y/n] ");
             try {
                switch (invocation.inputLine().trim().toLowerCase()) {
                   case "n":
@@ -106,6 +121,7 @@ public class Edit extends BaseEditCommand {
                sourceFile.delete();
                return CommandResult.FAILURE;
             }
+            data = new ProvidedBenchmarkData(extraData);
          } catch (IOException e) {
             invocation.error(e);
             throw new CommandException("Failed to load the benchmark.", e);
@@ -113,13 +129,12 @@ public class Edit extends BaseEditCommand {
       }
       try {
          String prevVersion = source.version;
-         if (!updatedName.equals(benchmarkRef.name())) {
-            invocation.println("NOTE: Renamed benchmark " + benchmarkRef.name() + " to " + updatedName + "; old benchmark won't be deleted.");
+         if (!newSource.name.equals(benchmarkRef.name())) {
+            invocation.println("NOTE: Renamed benchmark " + benchmarkRef.name() + " to " + newSource.name + "; old benchmark won't be deleted.");
             prevVersion = null;
          }
-         invocation.println("Uploading benchmark " + updatedName + "...");
-         filesToUpload.entrySet().removeIf(entry -> entry.getValue() == SKIP);
-         invocation.context().client().register(sourceFile.toPath(), filesToUpload, prevVersion, benchmarkRef.name());
+         invocation.println("Uploading benchmark " + newSource.name + "...");
+         invocation.context().client().register(newSource.yaml, data.files(), prevVersion, benchmarkRef.name());
          sourceFile.delete();
       } catch (RestClientException e) {
          if (e.getCause() instanceof Client.EditConflictException) {
@@ -135,7 +150,7 @@ public class Edit extends BaseEditCommand {
                   }
                   return CommandResult.SUCCESS;
                case OVERWRITE:
-                  invocation.context().client().register(sourceFile.toPath(), filesToUpload, null, benchmarkRef.name());
+                  invocation.context().client().register(newSource.yaml, data.files(), null, benchmarkRef.name());
             }
          } else {
             invocation.println(Util.explainCauses(e));
@@ -143,69 +158,8 @@ public class Edit extends BaseEditCommand {
             throw new CommandException("Failed to upload the benchmark", e);
          }
       }
-      invocation.println("Benchmark " + updatedName + " updated.");
+      invocation.println("Benchmark " + newSource.name + " updated.");
       return CommandResult.SUCCESS;
    }
 
-   private static class AskingBenchmarkData implements BenchmarkData {
-      private final AtomicBoolean cancelled;
-      private final Map<String, Path> filesToUpload;
-      private final HyperfoilCommandInvocation invocation;
-
-      public AskingBenchmarkData(HyperfoilCommandInvocation invocation, AtomicBoolean cancelled, Map<String, Path> filesToUpload) {
-         this.cancelled = cancelled;
-         this.filesToUpload = filesToUpload;
-         this.invocation = invocation;
-      }
-
-      @Override
-      public InputStream readFile(String file) {
-         if (cancelled.get() || filesToUpload.containsKey(file)) {
-            return EMPTY_INPUT_STREAM;
-         }
-         File ff = new File(file);
-         try {
-            if (ff.exists()) {
-               invocation.print("Re-upload file " + file + "? [y/N] ");
-               switch (invocation.inputLine().trim().toLowerCase()) {
-                  case "y":
-                  case "yes":
-                     filesToUpload.put(file, ff.toPath());
-                     break;
-                  default:
-                     filesToUpload.put(file, SKIP);
-               }
-            } else if (!ff.isAbsolute()) {
-               invocation.println("Non-absolute path " + file + ", set absolute path or leave empty to skip: ");
-               for (; ; ) {
-                  String path = invocation.inputLine().trim();
-                  if (path.isEmpty()) {
-                     invocation.println("Ignoring file " + file + ".");
-                     break;
-                  }
-                  ff = new File(path);
-                  if (!ff.exists()) {
-                     invocation.println("Invalid path " + path + ", retry or leave empty to skip: ");
-                  } else {
-                     filesToUpload.put(file, ff.toPath());
-                     break;
-                  }
-               }
-            } else {
-               invocation.println("Ignoring file " + file + " as it doesn't exist on local file system.");
-            }
-         } catch (InterruptedException ie) {
-            cancelled.set(true);
-            throw new BenchmarkDefinitionException("interrupted");
-         }
-         // The benchmark is ignored, does not need to read the file
-         return EMPTY_INPUT_STREAM;
-      }
-
-      @Override
-      public Map<String, byte[]> files() {
-         // not used
-         return Collections.emptyMap();
-      }
-   }
 }

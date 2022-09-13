@@ -1,6 +1,5 @@
 package io.hyperfoil.clustering.util;
 
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -12,7 +11,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import io.hyperfoil.api.config.BenchmarkData;
-import io.hyperfoil.api.config.BenchmarkDefinitionException;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
@@ -23,7 +21,7 @@ public class PersistedBenchmarkData implements BenchmarkData {
 
    public static void store(Map<String, byte[]> files, Path dir) throws IOException {
       for (Map.Entry<String, byte[]> entry : files.entrySet()) {
-         Files.write(dir.resolve(sanitize(entry.getKey())), entry.getValue());
+         Files.write(dir.resolve(BenchmarkData.sanitize(entry.getKey())), entry.getValue());
       }
    }
 
@@ -33,11 +31,11 @@ public class PersistedBenchmarkData implements BenchmarkData {
 
    @Override
    public InputStream readFile(String file) {
-      String sanitized = sanitize(file);
+      String sanitized = BenchmarkData.sanitize(file);
       try {
          return new FileInputStream(dir.resolve(sanitized).toFile());
       } catch (FileNotFoundException e) {
-         throw new BenchmarkDefinitionException("Cannot load file " + file + "(" + sanitized + ") from directory " + dir, e);
+         throw new MissingFileException("Cannot load file " + file + "(" + sanitized + ") from directory " + dir, file, e);
       }
    }
 
@@ -60,7 +58,4 @@ public class PersistedBenchmarkData implements BenchmarkData {
       }
    }
 
-   public static String sanitize(String file) {
-      return file.replace(File.separatorChar, '_').replace(File.pathSeparatorChar, '_');
-   }
 }

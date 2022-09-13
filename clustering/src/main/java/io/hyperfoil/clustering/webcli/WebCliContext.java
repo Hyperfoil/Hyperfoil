@@ -13,6 +13,7 @@ import org.apache.logging.log4j.Logger;
 
 import io.hyperfoil.cli.Pager;
 import io.hyperfoil.cli.context.HyperfoilCliContext;
+import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.client.RestClient;
 import io.hyperfoil.controller.model.Run;
 import io.vertx.core.Vertx;
@@ -41,6 +42,25 @@ class WebCliContext extends HyperfoilCliContext {
       this.inputStream = inputStream;
       this.webSocket = webSocket;
       this.outputStream = outputStream;
+   }
+
+   public byte[] loadFile(HyperfoilCommandInvocation invocation, String file) throws InterruptedException {
+      CountDownLatch latch;
+      synchronized (this) {
+         latch = this.latch = new CountDownLatch(1);
+      }
+      invocation.println("__HYPERFOIL_LOAD_FILE__" + file);
+      latch.await();
+      synchronized (this) {
+         this.latch = null;
+         if (binaryContent == null) {
+            throw new InterruptedException();
+         }
+         byte[] bytes = binaryContent.toByteArray();
+         binaryContent = null;
+         invocation.println("File " + file + " uploaded.");
+         return bytes;
+      }
    }
 
    public void reattach(ServerWebSocket webSocket) {

@@ -50,6 +50,7 @@ import io.hyperfoil.controller.model.Histogram;
 import io.hyperfoil.controller.model.RequestStats;
 import io.hyperfoil.controller.router.ApiRouter;
 import io.hyperfoil.core.impl.LocalBenchmarkData;
+import io.hyperfoil.core.impl.ProvidedBenchmarkData;
 import io.hyperfoil.core.parser.BenchmarkParser;
 import io.hyperfoil.core.parser.ParserException;
 import io.hyperfoil.core.print.YamlVisitor;
@@ -349,7 +350,7 @@ class ControllerServer implements ApiService {
          String source = Files.readString(localPath);
          BenchmarkData data = new LocalBenchmarkData(localPath);
          if (storedFilesBenchmark != null) {
-            storedFilesBenchmark = PersistedBenchmarkData.sanitize(storedFilesBenchmark);
+            storedFilesBenchmark = BenchmarkData.sanitize(storedFilesBenchmark);
             data = new PersistedBenchmarkData(Controller.BENCHMARK_DIR.resolve(storedFilesBenchmark + ".data"));
          }
          addBenchmarkAndReply(ctx, source, data, ifMatch);
@@ -369,7 +370,7 @@ class ControllerServer implements ApiService {
       try {
          BenchmarkData data = BenchmarkData.EMPTY;
          if (storedFilesBenchmark != null) {
-            storedFilesBenchmark = PersistedBenchmarkData.sanitize(storedFilesBenchmark);
+            storedFilesBenchmark = BenchmarkData.sanitize(storedFilesBenchmark);
             data = new PersistedBenchmarkData(Controller.BENCHMARK_DIR.resolve(storedFilesBenchmark + ".data"));
          }
          addBenchmarkAndReply(ctx, source, data, ifMatch);
@@ -410,7 +411,7 @@ class ControllerServer implements ApiService {
    @Override
    public void addBenchmark$multipart_form_data(RoutingContext ctx, String ifMatch, String storedFilesBenchmark) {
       String source = null;
-      BenchmarkData data = new RequestBenchmarkData();
+      BenchmarkData data = new ProvidedBenchmarkData();
       for (FileUpload upload : ctx.fileUploads()) {
          byte[] bytes;
          try {
@@ -427,7 +428,7 @@ class ControllerServer implements ApiService {
                source = new String(bytes, StandardCharsets.UTF_8);
             }
          } else {
-            ((RequestBenchmarkData) data).addFile(upload.fileName(), bytes);
+            ((ProvidedBenchmarkData) data).files.put(upload.fileName(), bytes);
          }
       }
       if (source == null) {
@@ -437,7 +438,7 @@ class ControllerServer implements ApiService {
       try {
          if (storedFilesBenchmark != null) {
             // sanitize to prevent directory escape
-            storedFilesBenchmark = PersistedBenchmarkData.sanitize(storedFilesBenchmark);
+            storedFilesBenchmark = BenchmarkData.sanitize(storedFilesBenchmark);
             Path dataDirPath = Controller.BENCHMARK_DIR.resolve(storedFilesBenchmark + ".data");
             log.info("Trying to use stored files from {}, adding files from request: {}", dataDirPath, data.files().keySet());
             if (!data.files().isEmpty()) {
@@ -482,10 +483,11 @@ class ControllerServer implements ApiService {
                .setStatusCode(HttpResponseStatus.NOT_ACCEPTABLE.code())
                .end("Benchmark does not preserve the original source.");
       } else {
-         ctx.response()
+         HttpServerResponse response = ctx.response()
                .putHeader(HttpHeaders.CONTENT_TYPE, "text/vnd.yaml; charset=UTF-8")
-               .putHeader(HttpHeaders.ETAG.toString(), version)
-               .end(source.yaml);
+               .putHeader(HttpHeaders.ETAG.toString(), version);
+         source.data.files().keySet().forEach(file -> response.putHeader("x-file", file));
+         response.end(source.yaml);
       }
    }
 
@@ -577,6 +579,10 @@ class ControllerServer implements ApiService {
       if (missingParams.isEmpty()) {
          try {
             return BenchmarkParser.instance().buildBenchmark(template, paramMap);
+         } catch (BenchmarkData.MissingFileException e) {
+            ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
+                  .end("This benchmark is a template; external files are not uploaded for templates and the run command must append them when the benchmark is first run.");
+            return null;
          } catch (ParserException | BenchmarkDefinitionException e) {
             ctx.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end(Util.explainCauses(e));
             return null;

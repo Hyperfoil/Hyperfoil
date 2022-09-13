@@ -889,9 +889,16 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
    public Future<Void> addBenchmark(Benchmark benchmark, String prevVersion) {
       if (prevVersion != null) {
          Benchmark prev = benchmarks.get(benchmark.name());
-         if (prev == null || !prevVersion.equals(prev.version())) {
+         String currentVersion;
+         if (prev == null) {
+            BenchmarkSource template = templates.get(benchmark.name());
+            currentVersion = template != null ? template.version : null;
+         } else {
+            currentVersion = prev.version();
+         }
+         if (!prevVersion.equals(currentVersion)) {
             log.info("Updating benchmark {}, version {} but current version is {}",
-                  benchmark.name(), prevVersion, prev != null ? prev.version() : "<non-existent>");
+                  benchmark.name(), prevVersion, currentVersion != null ? currentVersion : "<non-existent>");
             return Future.failedFuture(new VersionConflictException());
          }
       }
@@ -908,9 +915,16 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
    public Future<Void> addTemplate(BenchmarkSource template, String prevVersion) {
       if (prevVersion != null) {
          BenchmarkSource prev = templates.get(template.name);
-         if (prev == null || !prevVersion.equals(prev.version)) {
+         String currentVersion;
+         if (prev == null) {
+            Benchmark benchmark = benchmarks.get(template.name);
+            currentVersion = benchmark != null ? benchmark.version() : null;
+         } else {
+            currentVersion = prev.version;
+         }
+         if (!prevVersion.equals(currentVersion)) {
             log.info("Updating template {}, version {} but current version is {}",
-                  template.name, prevVersion, prev != null ? prev.version : "<non-existent>");
+                  template.name, prevVersion, currentVersion != null ? currentVersion : "<non-existent>");
             return Future.failedFuture(new VersionConflictException());
          }
       }

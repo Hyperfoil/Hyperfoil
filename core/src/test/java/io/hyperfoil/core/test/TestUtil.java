@@ -9,7 +9,6 @@ import java.util.stream.Collectors;
 
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.BenchmarkData;
-import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.session.AccessVisitor;
 import io.hyperfoil.api.session.ReadAccess;
@@ -21,7 +20,7 @@ public class TestUtil {
       public InputStream readFile(String file) {
          InputStream stream = getClass().getClassLoader().getResourceAsStream(file);
          if (stream == null) {
-            throw new BenchmarkDefinitionException("Cannot load file " + file + " from current classloader.");
+            throw new MissingFileException("Cannot load file " + file + " from current classloader.");
          }
          return stream;
       }

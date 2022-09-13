@@ -27,6 +27,7 @@ import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Map;
@@ -106,5 +107,49 @@ public final class CliUtil {
 
    private static BinaryOperator<Stream<Map.Entry<String, Client.MinMax>>> throwingMerger() {
       return (u, v) -> { throw new IllegalStateException(); };
+   }
+
+   public static Path getLocalFileForUpload(HyperfoilCommandInvocation invocation, String file) throws InterruptedException {
+      File ff = new File(file);
+      if (ff.exists()) {
+         if (!ff.canRead()) {
+            invocation.print("File " + file + " cannot be read, set another or leave empty to skip: ");
+            return askForFile(invocation, file);
+         } else {
+            invocation.print("Upload file " + file + "? [y/N] ");
+            switch (invocation.inputLine().trim().toLowerCase()) {
+               case "y":
+               case "yes":
+                  return ff.toPath();
+               default:
+                  return null;
+            }
+         }
+      } else if (!ff.isAbsolute()) {
+         invocation.println("Non-absolute path " + file + ", set absolute path or leave empty to skip: ");
+         return askForFile(invocation, file);
+      } else {
+         invocation.println("Ignoring file " + file + " as it doesn't exist on local file system.");
+      }
+      return null;
+   }
+
+   private static Path askForFile(HyperfoilCommandInvocation invocation, String file) throws InterruptedException {
+      File ff;
+      for (; ; ) {
+         String path = invocation.inputLine().trim();
+         if (path.isEmpty()) {
+            invocation.println("Ignoring file " + file + ".");
+            return null;
+         }
+         ff = new File(path);
+         if (!ff.exists()) {
+            invocation.println("Invalid path " + path + ", retry or leave empty to skip: ");
+         } else if (!ff.canRead()) {
+            invocation.println("Cannot read file " + path + ", retry or leave empty to skip: ");
+         } else {
+            return ff.toPath();
+         }
+      }
    }
 }

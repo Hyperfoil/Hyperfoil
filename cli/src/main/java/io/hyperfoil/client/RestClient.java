@@ -143,35 +143,28 @@ public class RestClient implements Client, Closeable {
 
    @Override
    public BenchmarkRef register(String yaml, Map<String, byte[]> otherFiles, String prevVersion, String storedFilesBenchmark) {
-      return sync(
-            handler -> {
-               MultipartForm multipart = MultipartForm.create();
-               multipart.textFileUpload("benchmark", "benchmark.yaml", Buffer.buffer(yaml), "text/vnd.yaml");
-               for (var entry : otherFiles.entrySet()) {
-                  multipart.binaryFileUpload(entry.getKey(), entry.getKey(), Buffer.buffer(entry.getValue()), "application/octet-stream");
-               }
-               HttpRequest<Buffer> request = request(HttpMethod.POST, "/benchmark");
-               if (storedFilesBenchmark != null) {
-                  request.addQueryParam("storedFilesBenchmark", storedFilesBenchmark);
-               }
-               if (prevVersion != null) {
-                  request.putHeader(HttpHeaders.IF_MATCH.toString(), prevVersion);
-               }
-               request.sendMultipartForm(multipart, handler);
-            }, 0,
-            this::processRegisterResponse);
+      MultipartForm multipart = MultipartForm.create();
+      multipart.textFileUpload("benchmark", "benchmark.yaml", Buffer.buffer(yaml), "text/vnd.yaml");
+      for (var entry : otherFiles.entrySet()) {
+         multipart.binaryFileUpload(entry.getKey(), entry.getKey(), Buffer.buffer(entry.getValue()), "application/octet-stream");
+      }
+      return multipartUpload(prevVersion, storedFilesBenchmark, multipart);
    }
 
    @Override
    public BenchmarkRef register(Path benchmarkFile, Map<String, Path> otherFiles, String prevVersion,
                                 String storedFilesBenchmark) {
+      MultipartForm multipart = MultipartForm.create();
+      multipart.textFileUpload("benchmark", "benchmark.yaml", benchmarkFile.toString(), "text/vnd.yaml");
+      for (Map.Entry<String, Path> entry : otherFiles.entrySet()) {
+         multipart.binaryFileUpload(entry.getKey(), entry.getKey(), entry.getValue().toString(), "application/octet-stream");
+      }
+      return multipartUpload(prevVersion, storedFilesBenchmark, multipart);
+   }
+
+   private BenchmarkRef multipartUpload(String prevVersion, String storedFilesBenchmark, MultipartForm multipart) {
       return sync(
             handler -> {
-               MultipartForm multipart = MultipartForm.create();
-               multipart.textFileUpload("benchmark", "benchmark.yaml", benchmarkFile.toString(), "text/vnd.yaml");
-               for (Map.Entry<String, Path> entry : otherFiles.entrySet()) {
-                  multipart.binaryFileUpload(entry.getKey(), entry.getKey(), entry.getValue().toString(), "application/octet-stream");
-               }
                HttpRequest<Buffer> request = request(HttpMethod.POST, "/benchmark");
                if (storedFilesBenchmark != null) {
                   request.addQueryParam("storedFilesBenchmark", storedFilesBenchmark);

@@ -65,10 +65,12 @@ public interface Client {
    class BenchmarkSource {
       public final String source;
       public final String version;
+      public final Collection<String> files;
 
-      public BenchmarkSource(String source, String version) {
+      public BenchmarkSource(String source, String version, Collection<String> files) {
          this.source = source;
          this.version = version;
+         this.files = files;
       }
    }
 

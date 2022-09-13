@@ -45,7 +45,7 @@ class BenchmarkRefImpl implements Client.BenchmarkRef {
                   .send(handler), 0,
             response -> {
                if (response.statusCode() == 200) {
-                  return new Client.BenchmarkSource(response.bodyAsString(), response.getHeader(HttpHeaders.ETAG.toString()));
+                  return new Client.BenchmarkSource(response.bodyAsString(), response.getHeader(HttpHeaders.ETAG.toString()), response.headers().getAll("x-file"));
                } else if (response.statusCode() == 406) {
                   return null;
                } else {

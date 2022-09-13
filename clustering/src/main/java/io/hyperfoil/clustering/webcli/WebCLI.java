@@ -32,6 +32,7 @@ import io.hyperfoil.cli.commands.Exit;
 import io.hyperfoil.cli.commands.Export;
 import io.hyperfoil.cli.commands.Oc;
 import io.hyperfoil.cli.commands.Report;
+import io.hyperfoil.cli.commands.Run;
 import io.hyperfoil.cli.commands.RunLocal;
 import io.hyperfoil.cli.commands.StartLocal;
 import io.hyperfoil.cli.commands.Upload;
@@ -266,6 +267,7 @@ public class WebCLI extends HyperfoilCli implements Handler<ServerWebSocket> {
       commands.remove(Export.class);
       commands.remove(Oc.class);
       commands.remove(Report.class);
+      commands.remove(Run.class);
       commands.remove(RunLocal.class);
       commands.remove(StartLocal.class);
       commands.remove(Upload.class);
@@ -273,6 +275,7 @@ public class WebCLI extends HyperfoilCli implements Handler<ServerWebSocket> {
       commands.add(WebEdit.class);
       commands.add(WebExport.class);
       commands.add(WebReport.class);
+      commands.add(WebRun.class);
       commands.add(WebUpload.class);
       return commands;
    }

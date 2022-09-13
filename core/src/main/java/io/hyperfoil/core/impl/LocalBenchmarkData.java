@@ -1,7 +1,6 @@
 package io.hyperfoil.core.impl;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -11,11 +10,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 import io.hyperfoil.api.config.BenchmarkData;
-import io.hyperfoil.api.config.BenchmarkDefinitionException;
 
 public class LocalBenchmarkData implements BenchmarkData {
-   private final Path benchmarkPath;
-   private final Map<String, byte[]> readFiles = new HashMap<>();
+   protected final Path benchmarkPath;
+   protected final Map<String, byte[]> files = new HashMap<>();
 
    public LocalBenchmarkData(Path benchmarkPath) {
       this.benchmarkPath = benchmarkPath;
@@ -23,24 +21,27 @@ public class LocalBenchmarkData implements BenchmarkData {
 
    @Override
    public InputStream readFile(String file) {
-      Path path = Paths.get(file);
-      if (!path.isAbsolute()) {
-         path = benchmarkPath.getParent().resolve(file);
+      byte[] bytes = files.get(file);
+      if (bytes == null) {
+         Path path = Paths.get(file);
+         if (!path.isAbsolute()) {
+            if (benchmarkPath == null) {
+               throw new MissingFileException(file, "Cannot load relative path " + file, null);
+            }
+            path = benchmarkPath.getParent().resolve(file);
+         }
+         try {
+            bytes = Files.readAllBytes(path);
+            files.put(file, bytes);
+         } catch (IOException e) {
+            throw new MissingFileException(file, "Local file " + file + " (" + path.toAbsolutePath() + ") cannot be read.", e);
+         }
       }
-      try {
-         readFiles.put(file, Files.readAllBytes(path));
-      } catch (IOException e) {
-         throw new BenchmarkDefinitionException("Local file " + file + " (" + path.toAbsolutePath() + ") cannot be read.", e);
-      }
-      try {
-         return new FileInputStream(path.toFile());
-      } catch (FileNotFoundException e) {
-         throw new BenchmarkDefinitionException("Local file " + file + " (" + path.toAbsolutePath() + ") was not found.", e);
-      }
+      return new ByteArrayInputStream(bytes);
    }
 
    @Override
    public Map<String, byte[]> files() {
-      return readFiles;
+      return files;
    }
 }

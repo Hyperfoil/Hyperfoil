@@ -2,6 +2,8 @@ package io.hyperfoil.clustering.webcli;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
 import org.aesh.command.CommandDefinition;
@@ -9,11 +11,13 @@ import org.aesh.command.CommandException;
 import org.aesh.command.CommandResult;
 
 import io.hyperfoil.api.config.Benchmark;
+import io.hyperfoil.api.config.BenchmarkData;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.BenchmarkSource;
 import io.hyperfoil.cli.commands.BaseEditCommand;
 import io.hyperfoil.cli.context.HyperfoilCommandInvocation;
 import io.hyperfoil.controller.Client;
+import io.hyperfoil.core.impl.ProvidedBenchmarkData;
 import io.hyperfoil.core.parser.BenchmarkParser;
 import io.hyperfoil.core.parser.ParserException;
 import io.hyperfoil.impl.Util;
@@ -25,48 +29,56 @@ public class WebEdit extends BaseEditCommand {
       Client.BenchmarkRef benchmarkRef = ensureBenchmark(invocation);
       Client.BenchmarkSource source = ensureSource(invocation, benchmarkRef);
       WebCliContext context = (WebCliContext) invocation.context();
-      WebBenchmarkData filesData = new WebBenchmarkData();
-      for (var existing : benchmarkRef.files().entrySet()) {
-         filesData.files.put(existing.getKey(), existing.getValue());
-      }
+      Map<String, byte[]> extraData = new HashMap<>();
       if (extraFiles != null) {
          for (String extraFile : extraFiles) {
             try {
-               filesData.loadFile(invocation, context, extraFile);
+               extraData.put(extraFile, context.loadFile(invocation, extraFile));
             } catch (InterruptedException e) {
                invocation.println("Benchmark upload cancelled.");
                return CommandResult.FAILURE;
             }
          }
       }
+      ProvidedBenchmarkData filesData = new ProvidedBenchmarkData(extraData);
       String updatedSource = source.source;
       String updatedName;
       for (; ; ) {
-         CountDownLatch latch;
-         synchronized (context) {
-            latch = context.latch = new CountDownLatch(1);
+         updatedSource = edit(invocation, context, benchmarkRef, updatedSource);
+         if (updatedSource == null) {
+            return CommandResult.FAILURE;
          }
-         invocation.println("__HYPERFOIL_EDIT_MAGIC__" + benchmarkRef.name());
-         invocation.println(updatedSource);
-         try {
-            latch.await();
-         } catch (InterruptedException e) {
-            // interruption is cancel
-         }
-         synchronized (context) {
-            context.latch = null;
-            if (context.editBenchmark == null) {
-               invocation.println("Edits cancelled.");
-               return CommandResult.SUCCESS;
-            }
-            updatedSource = context.editBenchmark.toString();
-            context.editBenchmark = null;
-         }
+
          try {
             BenchmarkSource newSource = BenchmarkParser.instance().createSource(updatedSource, filesData);
             updatedName = newSource.name;
             if (!newSource.isTemplate()) {
-               Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(newSource, Collections.emptyMap());
+               Benchmark benchmark;
+               for (;;) {
+                  try {
+                     benchmark = BenchmarkParser.instance().buildBenchmark(newSource, Collections.emptyMap());
+                     break;
+                  } catch (BenchmarkData.MissingFileException e) {
+                     try {
+                        if (source.files.contains(BenchmarkData.sanitize(e.file))) {
+                           invocation.print("Re-upload file " + e.file + "? [y/N] ");
+                           switch (invocation.inputLine().trim().toLowerCase()) {
+                              case "y":
+                              case "yes":
+                                 filesData.files.put(e.file, context.loadFile(invocation, e.file));
+                                 break;
+                              default:
+                                 filesData.ignoredFiles.add(e.file);
+                           }
+                        } else {
+                           filesData.files.put(e.file, context.loadFile(invocation, e.file));
+                        }
+                     } catch (InterruptedException interruptedException) {
+                        invocation.println("Edits cancelled.");
+                        return CommandResult.FAILURE;
+                     }
+                  }
+               }
                try {
                   Util.serialize(benchmark);
                } catch (IOException e) {
@@ -88,13 +100,7 @@ public class WebEdit extends BaseEditCommand {
                invocation.println("Edits cancelled.");
                return CommandResult.FAILURE;
             }
-         } catch (MissingFileException e) {
-            try {
-               filesData.loadFile(invocation, context, e.file);
-            } catch (InterruptedException interruptedException) {
-               invocation.println("Edits cancelled.");
-               return CommandResult.FAILURE;
-            }
+            filesData = new ProvidedBenchmarkData(extraData);
          }
       }
       String prevVersion = source.version;
@@ -119,6 +125,30 @@ public class WebEdit extends BaseEditCommand {
       }
       context.latch = null;
       return CommandResult.SUCCESS;
+   }
+
+   private String edit(HyperfoilCommandInvocation invocation, WebCliContext context, Client.BenchmarkRef benchmarkRef, String source) {
+      CountDownLatch latch;
+      synchronized (context) {
+         latch = context.latch = new CountDownLatch(1);
+      }
+      invocation.println("__HYPERFOIL_EDIT_MAGIC__" + benchmarkRef.name());
+      invocation.println(source);
+      try {
+         latch.await();
+      } catch (InterruptedException e) {
+         // interruption is cancel
+      }
+      synchronized (context) {
+         context.latch = null;
+         if (context.editBenchmark == null) {
+            invocation.println("Edits cancelled.");
+            return null;
+         }
+         source = context.editBenchmark.toString();
+         context.editBenchmark = null;
+      }
+      return source;
    }
 
 }
