@@ -32,7 +32,6 @@ import io.hyperfoil.cli.commands.Info;
 import io.hyperfoil.cli.commands.Inspect;
 import io.hyperfoil.cli.commands.Kill;
 import io.hyperfoil.cli.commands.Load;
-import io.hyperfoil.cli.commands.Oc;
 import io.hyperfoil.cli.commands.Log;
 import io.hyperfoil.cli.commands.Report;
 import io.hyperfoil.cli.commands.Run;
@@ -158,7 +157,6 @@ public class HyperfoilCli {
             Kill.class,
             Load.class,
             Log.class,
-            Oc.class,
             Report.class,
             RunLocal.class,
             Run.class,
