@@ -60,6 +60,10 @@ public interface Client {
       BenchmarkStructure structure(Integer maxCollectionSize, Map<String, String> templateParams);
 
       Map<String, byte[]> files();
+
+      boolean exists();
+
+      boolean forget();
    }
 
    class BenchmarkSource {

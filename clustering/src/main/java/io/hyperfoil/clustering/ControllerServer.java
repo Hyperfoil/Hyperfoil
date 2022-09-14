@@ -496,6 +496,19 @@ class ControllerServer implements ApiService {
       withBenchmark(ctx, name, benchmark -> sendSerializedBenchmark(ctx, benchmark));
    }
 
+   @Override
+   public void deleteBenchmark(RoutingContext ctx, String name) {
+      try {
+         if (controller.deleteBenchmark(name)) {
+            ctx.response().setStatusCode(204).end();
+         } else {
+            ctx.response().setStatusCode(404).end("Could not find benchmark " + name);
+         }
+      } catch (Throwable t) {
+         ctx.response().setStatusCode(500).end(t.getMessage());
+      }
+   }
+
    private void sendSerializedBenchmark(RoutingContext ctx, Benchmark benchmark) {
       try {
          byte[] bytes = Util.serialize(benchmark);

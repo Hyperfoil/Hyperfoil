@@ -1111,4 +1111,16 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
    public JsonObject getConfig() {
       return context.config();
    }
+
+   public boolean deleteBenchmark(String name) {
+      Benchmark oldBenchmark = benchmarks.remove(name);
+      BenchmarkSource oldTemplate = templates.remove(name);
+      if (oldBenchmark != null || oldTemplate != null) {
+         if (!PersistenceUtil.delete(name, Controller.BENCHMARK_DIR)) {
+            throw new RuntimeException("Cannot delete benchmark " + name);
+         }
+         return true;
+      }
+      return false;
+   }
 }

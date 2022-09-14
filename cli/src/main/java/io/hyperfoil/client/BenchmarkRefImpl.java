@@ -24,6 +24,11 @@ import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 
 class BenchmarkRefImpl implements Client.BenchmarkRef {
+   protected static final String YAML = "text/vnd.yaml";
+   protected static final String SERIALIZED = "application/java-serialized-object";
+   protected static final String JSON = "application/json";
+   protected static final String MULTIPART_FORM_DATA = "multipart/form-data";
+
    private final RestClient client;
    private final String name;
 
@@ -41,7 +46,7 @@ class BenchmarkRefImpl implements Client.BenchmarkRef {
    public Client.BenchmarkSource source() {
       return client.sync(
             handler -> client.request(HttpMethod.GET, "/benchmark/" + encode(name))
-                  .putHeader(HttpHeaders.ACCEPT.toString(), "text/vnd.yaml")
+                  .putHeader(HttpHeaders.ACCEPT.toString(), YAML)
                   .send(handler), 0,
             response -> {
                if (response.statusCode() == 200) {
@@ -59,7 +64,7 @@ class BenchmarkRefImpl implements Client.BenchmarkRef {
    public Benchmark get() {
       return client.sync(
             handler -> client.request(HttpMethod.GET, "/benchmark/" + encode(name))
-                  .putHeader(HttpHeaders.ACCEPT.toString(), "application/java-serialized-object")
+                  .putHeader(HttpHeaders.ACCEPT.toString(), SERIALIZED)
                   .send(handler), 200,
             response -> {
                try {
@@ -139,7 +144,7 @@ class BenchmarkRefImpl implements Client.BenchmarkRef {
                   request.addQueryParam("templateParam", param.getKey() + "=" + param.getValue());
                }
                request
-                     .putHeader(HttpHeaders.ACCEPT.toString(), "application/json")
+                     .putHeader(HttpHeaders.ACCEPT.toString(), JSON)
                      .send(handler);
             }, 200,
             response -> Json.decodeValue(response.body(), Client.BenchmarkStructure.class));
@@ -148,18 +153,16 @@ class BenchmarkRefImpl implements Client.BenchmarkRef {
    @Override
    public Map<String, byte[]> files() {
       return client.sync(
-            handler -> {
-               client.request(HttpMethod.GET, "/benchmark/" + encode(name) + "/files")
-                     .putHeader(HttpHeaders.ACCEPT.toString(), "multipart/form-data")
-                     .send(handler);
-            }, 200,
+            handler -> client.request(HttpMethod.GET, "/benchmark/" + encode(name) + "/files")
+                  .putHeader(HttpHeaders.ACCEPT.toString(), MULTIPART_FORM_DATA)
+                  .send(handler), 200,
             response -> {
                String contentType = response.getHeader(HttpHeaders.CONTENT_TYPE.toString());
                if (contentType == null) {
                   throw new RestClientException("Missing response content-type.");
                }
                String[] parts = contentType.split(";");
-               if (!"multipart/form-data".equals(parts[0].trim()) || parts.length < 2 ||
+               if (!MULTIPART_FORM_DATA.equals(parts[0].trim()) || parts.length < 2 ||
                      !parts[1].trim().startsWith("boundary=\"") || !parts[1].trim().endsWith("\"")) {
                   throw new RestClientException("Unexpected content-type: " + contentType);
                }
@@ -224,6 +227,38 @@ class BenchmarkRefImpl implements Client.BenchmarkRef {
                   throw new RestClientException(e);
                }
                return files;
+            });
+   }
+
+   @Override
+   public boolean exists() {
+      return client.sync(
+            handler -> client.request(HttpMethod.GET, "/benchmark/" + encode(name))
+                  .putHeader(HttpHeaders.ACCEPT.toString(), YAML)
+                  .send(handler), 0,
+            response -> {
+               if (response.statusCode() == 200) {
+                  return true;
+               } else if (response.statusCode() == 404) {
+                  return false;
+               } else {
+                  throw new RestClientException(response.bodyAsString());
+               }
+            });
+   }
+
+   @Override
+   public boolean forget() {
+      return client.sync(
+            handler -> client.request(HttpMethod.DELETE, "/benchmark/" + encode(name))
+                  .send(handler), 0, response -> {
+               if (response.statusCode() == 204) {
+                  return true;
+               } else if (response.statusCode() == 404) {
+                  return false;
+               } else {
+                  throw new RestClientException(response.bodyAsString());
+               }
             });
    }
 

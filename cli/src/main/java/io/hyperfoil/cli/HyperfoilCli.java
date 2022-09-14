@@ -27,12 +27,14 @@ import io.hyperfoil.cli.commands.Cpu;
 import io.hyperfoil.cli.commands.Edit;
 import io.hyperfoil.cli.commands.Exit;
 import io.hyperfoil.cli.commands.Export;
+import io.hyperfoil.cli.commands.Forget;
 import io.hyperfoil.cli.commands.Help;
 import io.hyperfoil.cli.commands.Info;
 import io.hyperfoil.cli.commands.Inspect;
 import io.hyperfoil.cli.commands.Kill;
 import io.hyperfoil.cli.commands.Load;
 import io.hyperfoil.cli.commands.Log;
+import io.hyperfoil.cli.commands.New;
 import io.hyperfoil.cli.commands.Report;
 import io.hyperfoil.cli.commands.Run;
 import io.hyperfoil.cli.commands.RunLocal;
@@ -151,12 +153,14 @@ public class HyperfoilCli {
             Edit.class,
             Exit.class,
             Export.class,
+            Forget.class,
             Help.class,
             Info.class,
             Inspect.class,
             Kill.class,
             Load.class,
             Log.class,
+            New.class,
             Report.class,
             RunLocal.class,
             Run.class,

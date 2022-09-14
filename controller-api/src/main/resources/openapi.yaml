@@ -113,6 +113,21 @@ paths:
           description: Benchmark is not defined.
         '406':
           description: Benchmark does not preserve the original source.
+    delete:
+      summary: Remove existing benchmark
+      operationId: deleteBenchmark
+      parameters:
+      - in: path
+        name: name
+        required: true
+        allowEmptyValue: false
+        schema:
+          type: string
+      responses:
+        '204':
+          description: Benchmark was deleted
+        '404':
+          description: Benchmark is not defined.
   /benchmark/{name}/start:
     get:
       summary: Start a new run of this benchmark.

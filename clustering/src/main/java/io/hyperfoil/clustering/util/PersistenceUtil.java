@@ -25,14 +25,15 @@ public class PersistenceUtil {
             log.error("Failed to create directory {}", dir);
          }
       }
-      Path path = dir.resolve(source.name + ".yaml");
+      String name = BenchmarkData.sanitize(source.name);
+      Path path = dir.resolve(name + ".yaml");
       try {
          Files.write(path, source.yaml.getBytes(StandardCharsets.UTF_8));
          log.info("Stored benchmark '{}' in {}", source.name, path);
       } catch (IOException e) {
          log.error(new FormattedMessage("Failed to persist benchmark {} to {}", source.name, path), e);
       }
-      Path dataDirPath = dir.resolve(source.name + ".data");
+      Path dataDirPath = dir.resolve(name + ".data");
       File dataDir = dataDirPath.toFile();
       Map<String, byte[]> files = source.data.files();
       if (dataDir.exists()) {
@@ -97,5 +98,31 @@ public class PersistenceUtil {
          log.warn("Unknown benchmark file format: {}", file);
       }
       return null;
+   }
+
+   public static boolean delete(String name, Path dir) {
+      name = BenchmarkData.sanitize(name);
+      if (dir.resolve(name + ".yaml").toFile().delete()) {
+         log.debug("Benchmark YAML was deleted");
+      }
+      if (dir.resolve(name + ".serialized").toFile().delete()) {
+         log.debug("Serialized benchmark was deleted");
+      }
+      File dataDir = dir.resolve(name + ".data").toFile();
+      if (dataDir.exists()) {
+         if (dataDir.isDirectory()) {
+            for (File file : dataDir.listFiles()) {
+               if (!file.delete()) {
+                  log.warn("Could not delete file {}", file);
+                  return false;
+               }
+            }
+         }
+         if (!dataDir.delete()) {
+            log.error("Couldn't delete/create data dir {}", dataDir);
+            return false;
+         }
+      }
+      return true;
    }
 }

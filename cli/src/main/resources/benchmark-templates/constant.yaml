@@ -1,0 +1,14 @@
+name: !param NAME
+threads: 1
+http:
+  host: http://example.com
+  sharedConnections: 1
+phases:
+- main:
+    constantRate:
+      usersPerSec: 1
+      duration: 10s
+      scenario:
+      - test:
+        - httpRequest:
+            GET: /

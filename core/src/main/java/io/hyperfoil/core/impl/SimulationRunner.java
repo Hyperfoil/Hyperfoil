@@ -19,6 +19,7 @@ import java.util.stream.StreamSupport;
 
 import io.hyperfoil.api.BenchmarkExecutionException;
 import io.hyperfoil.api.config.Benchmark;
+import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.session.AgentData;
 import io.hyperfoil.api.session.ControllerListener;
@@ -80,6 +81,9 @@ public class SimulationRunner {
       this.benchmark = benchmark;
       this.runId = runId;
       this.agentId = agentId;
+      if (benchmark.phases().isEmpty()) {
+         throw new BenchmarkDefinitionException("This benchmark does not have any phases, nothing to do!");
+      }
       this.toPrune = new ArrayBlockingQueue<>(benchmark.phases().size());
       this.runData = benchmark.plugins().stream()
             .map(config -> Plugin.lookup(config).createRunData(benchmark, executors, agentId))
