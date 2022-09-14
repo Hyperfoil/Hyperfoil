@@ -249,6 +249,9 @@ public class WebCLI extends HyperfoilCli implements Handler<ServerWebSocket> {
          Field consoleField = AeshConsoleRunner.class.getDeclaredField("console");
          consoleField.setAccessible(true);
          ReadlineConsole console = (ReadlineConsole) consoleField.get(runner);
+         if (console == null) {
+            return null;
+         }
          Field connectionField = ReadlineConsole.class.getDeclaredField("connection");
          connectionField.setAccessible(true);
          return (TerminalConnection) connectionField.get(console);
