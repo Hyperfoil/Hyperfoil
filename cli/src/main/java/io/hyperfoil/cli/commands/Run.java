@@ -45,7 +45,7 @@ public class Run extends ParamsCommand {
             }
             if (source.isTemplate()) {
                boolean firstMissing = true;
-               for (;;) {
+               for (; ; ) {
                   try {
                      BenchmarkParser.instance().buildBenchmark(source, currentParams);
                      if (!data.files().isEmpty()) {
@@ -79,12 +79,7 @@ public class Run extends ParamsCommand {
          invocation.error(e);
          throw new CommandException("Failed to start benchmark " + benchmarkRef.name(), e);
       }
-      try {
-         invocation.executeCommand("status");
-      } catch (Exception e) {
-         invocation.error(e);
-         throw new CommandException(e);
-      }
+      invocation.executeSwitchable("status");
       return CommandResult.SUCCESS;
    }
 

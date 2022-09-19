@@ -38,6 +38,7 @@ import java.util.HashSet;
 import java.util.concurrent.TimeUnit;
 
 import io.hyperfoil.cli.HyperfoilCli;
+import io.hyperfoil.cli.commands.ServerCommand;
 import io.hyperfoil.impl.Util;
 
 public class HyperfoilCommandInvocation implements CommandInvocation {
@@ -173,6 +174,34 @@ public class HyperfoilCommandInvocation implements CommandInvocation {
       if (cause != null) {
          println("CAUSED BY: " + cause.getMessage());
          printStackTrace(cause, set);
+      }
+   }
+
+   public void executeSwitchable(String input) throws CommandException {
+      context.setSwitchable(true);
+      try {
+         while (true) {
+            try {
+               executeCommand(input);
+               break;
+            } catch (RuntimeException e) {
+               Throwable cause = e.getCause();
+               while (cause instanceof RuntimeException && cause != cause.getCause() && !(cause instanceof ServerCommand.SwitchCommandException)) {
+                  cause = cause.getCause();
+               }
+               if (cause instanceof ServerCommand.SwitchCommandException) {
+                  input = ((ServerCommand.SwitchCommandException) cause).newCommand;
+               } else {
+                  error(e);
+                  throw new CommandException(e);
+               }
+            } catch (Exception e) {
+               error(e);
+               throw new CommandException(e);
+            }
+         }
+      } finally {
+         context.setSwitchable(false);
       }
    }
 }

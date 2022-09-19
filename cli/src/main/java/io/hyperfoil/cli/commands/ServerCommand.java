@@ -18,6 +18,7 @@ import javax.net.ssl.SSLHandshakeException;
 import org.aesh.command.Command;
 import org.aesh.command.CommandException;
 import org.aesh.readline.Prompt;
+import org.aesh.readline.action.KeyAction;
 import org.aesh.readline.terminal.formatting.Color;
 import org.aesh.readline.terminal.formatting.TerminalColor;
 import org.aesh.readline.terminal.formatting.TerminalString;
@@ -211,15 +212,51 @@ public abstract class ServerCommand implements Command<HyperfoilCommandInvocatio
    }
 
    protected boolean interruptibleDelay(HyperfoilCommandInvocation invocation) {
-      invocation.println("Press " + invocation.context().interruptKey() + " to stop watching...");
+      invocation.println("Press [" + bold("s") + "] for status, [" + bold("t") + "] for stats, [" + bold("e") + "] for sessions, [" + bold("c") + "] for connections or " + invocation.context().interruptKey() + " to stop watching...");
       try {
-         Thread.sleep(1000);
-      } catch (InterruptedException e) {
+         KeyAction action = invocation.input(1, TimeUnit.SECONDS);
+         if (action != null) {
+            String command = null;
+            clearLines(invocation, 1);
+            switch (action.name()) {
+               case "s":
+                  command = "status";
+                  break;
+               case "t":
+                  command = "stats";
+                  break;
+               case "e":
+                  command = "sessions";
+                  break;
+               case "c":
+                  command = "connections";
+                  break;
+            }
+            if (command == null) {
+               return false;
+            }
+            invocation.println("");
+            for (int i = invocation.getShell().size().getWidth(); i > 0; --i) {
+               invocation.print("—");
+            }
+            invocation.println("");
+            if (invocation.context().isSwitchable()) {
+               throw new SwitchCommandException(command);
+            } else {
+               invocation.executeSwitchable(command);
+               return true;
+            }
+         }
+      } catch (InterruptedException | CommandException e) {
          clearLines(invocation, 1);
          invocation.println("");
          return true;
       }
       return false;
+   }
+
+   private String bold(String bold) {
+      return ANSI.BOLD + bold + ANSI.RESET;
    }
 
    protected void failMissingRunId(HyperfoilCommandInvocation invocation) throws CommandException {
@@ -262,6 +299,15 @@ public abstract class ServerCommand implements Command<HyperfoilCommandInvocatio
          this.name = name;
          this.defaultValue = defaultValue;
          this.currentValue = currentValue;
+      }
+   }
+
+   public static class SwitchCommandException extends RuntimeException {
+      public final String newCommand;
+
+      public SwitchCommandException(String newCommand) {
+         super("Switch to " + newCommand, null, false, false);
+         this.newCommand = newCommand;
       }
    }
 }

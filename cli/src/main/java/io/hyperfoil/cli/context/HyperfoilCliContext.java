@@ -67,6 +67,7 @@ public class HyperfoilCliContext {
    private boolean online = true;
    private CommandRegistry<HyperfoilCommandInvocation> commandRegistry;
    private List<String> suggestedControllerHosts = Collections.emptyList();
+   private boolean switchable;
 
    public HyperfoilCliContext() {
       this(Vertx.vertx(), false);
@@ -225,5 +226,13 @@ public class HyperfoilCliContext {
 
    public synchronized void notifyRunCompleted(Run run) {
       // not implemented in regular CLI
+   }
+
+   public void setSwitchable(boolean switchable) {
+      this.switchable = switchable;
+   }
+
+   public boolean isSwitchable() {
+      return this.switchable;
    }
 }
