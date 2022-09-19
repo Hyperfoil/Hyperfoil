@@ -29,8 +29,8 @@ while [ "$#" -gt 0 ]; do
           shift
           shift
           ;;
-        *)
-          echo "Unknown argument '$1'"
+      *)
+          # No error messages - we're leaving the other arguments to the running script
           break
     esac
 done

@@ -35,16 +35,17 @@ import org.aesh.terminal.utils.ANSI;
 
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.concurrent.TimeUnit;
 
 import io.hyperfoil.cli.HyperfoilCli;
 import io.hyperfoil.impl.Util;
 
-public class HyperfoilCommandInvocation implements CommandInvocation<HyperfoilCommandInvocation> {
+public class HyperfoilCommandInvocation implements CommandInvocation {
 
    private final CommandInvocation commandInvocation;
    private final HyperfoilCliContext context;
 
-   HyperfoilCommandInvocation(HyperfoilCliContext context, CommandInvocation<?> commandInvocation) {
+   HyperfoilCommandInvocation(HyperfoilCliContext context, CommandInvocation commandInvocation) {
       this.context = context;
       this.commandInvocation = commandInvocation;
    }
@@ -92,6 +93,11 @@ public class HyperfoilCommandInvocation implements CommandInvocation<HyperfoilCo
    }
 
    @Override
+   public KeyAction input(long timeout, TimeUnit unit) throws InterruptedException {
+      return commandInvocation.input(timeout, unit);
+   }
+
+   @Override
    public String inputLine() throws InterruptedException {
       return commandInvocation.inputLine();
    }
@@ -118,9 +124,8 @@ public class HyperfoilCommandInvocation implements CommandInvocation<HyperfoilCo
       commandInvocation.println(msg, paging);
    }
 
-   @SuppressWarnings("unchecked")
    @Override
-   public Executor<HyperfoilCommandInvocation> buildExecutor(String line) throws CommandNotFoundException,
+   public Executor<? extends CommandInvocation> buildExecutor(String line) throws CommandNotFoundException,
          CommandLineParserException, OptionValidatorException, CommandValidatorException, IOException {
       return commandInvocation.buildExecutor(line);
    }
