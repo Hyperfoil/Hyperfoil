@@ -46,7 +46,7 @@ public class HyperfoilCommandInvocation implements CommandInvocation {
    private final CommandInvocation commandInvocation;
    private final HyperfoilCliContext context;
 
-   HyperfoilCommandInvocation(HyperfoilCliContext context, CommandInvocation commandInvocation) {
+   protected HyperfoilCommandInvocation(HyperfoilCliContext context, CommandInvocation commandInvocation) {
       this.context = context;
       this.commandInvocation = commandInvocation;
    }

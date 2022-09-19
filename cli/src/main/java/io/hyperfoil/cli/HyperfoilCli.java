@@ -61,6 +61,7 @@ import org.aesh.command.activator.OptionActivator;
 import org.aesh.command.completer.CompleterInvocation;
 import org.aesh.command.converter.ConverterInvocation;
 import org.aesh.command.impl.registry.AeshCommandRegistryBuilder;
+import org.aesh.command.invocation.CommandInvocationProvider;
 import org.aesh.command.registry.CommandRegistryException;
 import org.aesh.command.settings.Settings;
 import org.aesh.command.settings.SettingsBuilder;
@@ -100,7 +101,7 @@ public class HyperfoilCli {
 
    public void run() throws CommandRegistryException {
       HyperfoilCliContext context = new HyperfoilCliContext();
-      AeshConsoleRunner runner = configureRunner(context, settingsBuilder(context).build(), System.getenv(CLI_PROMPT));
+      AeshConsoleRunner runner = configureRunner(context, settingsBuilder(context, new HyperfoilCommandInvocationProvider(context)).build(), System.getenv(CLI_PROMPT));
 
       CompletableFuture<List<String>> endpoints = suggestedEndpoints();
       endpoints.whenComplete((list, e) -> {
@@ -112,7 +113,7 @@ public class HyperfoilCli {
       runner.start();
    }
 
-   protected AeshConsoleRunner configureRunner(HyperfoilCliContext context, Settings<HyperfoilCommandInvocation, ConverterInvocation, CompleterInvocation, ValidatorInvocation<?, ?>, OptionActivator, CommandActivator> settings, String cliPrompt) {
+   protected AeshConsoleRunner configureRunner(HyperfoilCliContext context, Settings<? extends HyperfoilCommandInvocation, ConverterInvocation, CompleterInvocation, ValidatorInvocation<?, ?>, OptionActivator, CommandActivator> settings, String cliPrompt) {
       context.commandRegistry(settings.commandRegistry());
 
       AeshConsoleRunner runner = AeshConsoleRunner.builder().settings(settings);
@@ -125,7 +126,7 @@ public class HyperfoilCli {
       return runner;
    }
 
-   protected SettingsBuilder<HyperfoilCommandInvocation, ConverterInvocation, CompleterInvocation, ValidatorInvocation<?, ?>, OptionActivator, CommandActivator> settingsBuilder(HyperfoilCliContext context) throws CommandRegistryException {
+   protected <CI extends HyperfoilCommandInvocation> SettingsBuilder<HyperfoilCommandInvocation, ConverterInvocation, CompleterInvocation, ValidatorInvocation<?, ?>, OptionActivator, CommandActivator> settingsBuilder(HyperfoilCliContext context, CommandInvocationProvider<CI> commandInvocationProvider) throws CommandRegistryException {
       AeshCommandRegistryBuilder<HyperfoilCommandInvocation> commandRegistryBuilder = AeshCommandRegistryBuilder.builder();
       for (Class<? extends Command> command : getCommands()) {
          commandRegistryBuilder.command(command);
@@ -139,7 +140,7 @@ public class HyperfoilCli {
             .enableSearchInPaging(true)
             .readInputrc(true)
             .commandRegistry(commandRegistryBuilder.create())
-            .commandInvocationProvider(new HyperfoilCommandInvocationProvider(context))
+            .commandInvocationProvider(commandInvocationProvider)
             .completerInvocationProvider(completerInvocation -> new HyperfoilCompleterData(completerInvocation, context))
             .setConnectionClosedHandler(nil -> context.stop());
    }

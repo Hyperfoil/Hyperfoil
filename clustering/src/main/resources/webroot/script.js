@@ -6,6 +6,8 @@ const DOWNLOAD_MAGIC = "__HYPERFOIL_DOWNLOAD_MAGIC__"
 const DIRECT_DOWNLOAD_MAGIC = "__HYPERFOIL_DIRECT_DOWNLOAD_MAGIC__\n";
 const DIRECT_DOWNLOAD_END = "__HYPERFOIL_DIRECT_DOWNLOAD_END__\n";
 const SESSION_START = "__HYPERFOIL_SESSION_START__\n";
+const TIMED_INPUT = "__HYPERFOIL_TIMED_INPUT__\n";
+const TIMED_INPUT_OFF = "__HYPERFOIL_TIMED_INPUT_OFF__\n";
 const RAW_HTML_START = "__HYPERFOIL_RAW_HTML_START__"
 const RAW_HTML_END = "__HYPERFOIL_RAW_HTML_END__"
 const SET_TERM_SIZE = "__HYPERFOIL_SET_TERM_SIZE__"
@@ -33,6 +35,7 @@ tokenFrame.onload = () => {
 }
 document.onkeydown = event => defaultKeyDown(event)
 window.onresize = event => setTermSize()
+var timedInput = false
 
 const sessionId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
     var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
@@ -166,6 +169,9 @@ command.addEventListener("keydown", (event) => {
       warning.style.height = 0
       resultWindow.appendChild(command)
       sendCommand(INTERRUPT_SIGNAL)
+   } else if (timedInput) {
+      event.preventDefault();
+      sendCommand(event.key);
    }
 });
 
@@ -205,6 +211,14 @@ function addResultToWindow(commandResult) {
    }
    const commandParent = command.parentNode
    command.remove();
+
+   function addCommandBack() {
+      if (commandParent) {
+         commandParent.appendChild(command)
+         command.focus();
+      }
+   }
+
    while (true) {
       if (typeof commandResult !== 'string') {
          break;
@@ -277,11 +291,14 @@ function addResultToWindow(commandResult) {
          icon: '/favicon.ico',
          requireInteraction: true,
       })
-      if (commandParent) {
-         commandParent.appendChild(command)
-         command.focus();
-      }
+      addCommandBack()
       blinkTitle()
+   } else if (isCommand(commandResult, TIMED_INPUT)) {
+      timedInput = true
+      addCommandBack()
+   } else if (isCommand(commandResult, TIMED_INPUT_OFF)) {
+      timedInput = false
+      addCommandBack()
    } else if (paging) {
       document.getElementById('pager-content').innerHTML += commandResult;
    } else if (editing) {

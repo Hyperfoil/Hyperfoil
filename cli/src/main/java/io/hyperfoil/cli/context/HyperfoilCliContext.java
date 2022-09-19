@@ -65,7 +65,7 @@ public class HyperfoilCliContext {
    private List<Runnable> cleanup = new ArrayList<>();
    // We'll start with online set to true to not say 'we're back online' when connecting the first time
    private boolean online = true;
-   private CommandRegistry<HyperfoilCommandInvocation> commandRegistry;
+   private CommandRegistry<? extends HyperfoilCommandInvocation> commandRegistry;
    private List<String> suggestedControllerHosts = Collections.emptyList();
    private boolean switchable;
 
@@ -196,11 +196,11 @@ public class HyperfoilCliContext {
       return online;
    }
 
-   public void commandRegistry(CommandRegistry<HyperfoilCommandInvocation> commandRegistry) {
+   public void commandRegistry(CommandRegistry<? extends HyperfoilCommandInvocation> commandRegistry) {
       this.commandRegistry = commandRegistry;
    }
 
-   public CommandRegistry<HyperfoilCommandInvocation> commandRegistry() {
+   public CommandRegistry<? extends HyperfoilCommandInvocation> commandRegistry() {
       return commandRegistry;
    }
 

@@ -223,7 +223,7 @@ public class WebCLI extends HyperfoilCli implements Handler<ServerWebSocket> {
       ctx.setOnline(true);
 
       try {
-         var settingsBuilder = settingsBuilder(ctx);
+         var settingsBuilder = settingsBuilder(ctx, new WebCliCommandInvocation.Provider(ctx));
          settingsBuilder.inputStream(pis)
                .persistHistory(false)
                .historySize(Integer.MAX_VALUE)
