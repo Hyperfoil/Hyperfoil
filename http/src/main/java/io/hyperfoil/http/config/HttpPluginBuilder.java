@@ -92,7 +92,7 @@ public class HttpPluginBuilder extends PluginBuilder<HttpErgonomics> {
                   + http.originalDestination() + " and " + previous.originalDestination());
          }
          previous = byAuthority.put(builder.authority(), http);
-         if (previous != null) {
+         if (previous != null && builder.name() == null) {
             throw new BenchmarkDefinitionException("Duplicate HTTP endpoint for authority " + builder.authority());
          }
       }

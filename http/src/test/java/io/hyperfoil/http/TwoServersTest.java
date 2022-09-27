@@ -7,6 +7,8 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import io.hyperfoil.api.config.BenchmarkDefinitionException;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -48,7 +50,7 @@ public class TwoServersTest extends HttpScenarioTest {
    }
 
    @Test
-   public void test() {
+   public void testTwoServers() {
       // @formatter:off
       scenario().initialSequence("test")
             .step(SC).httpRequest(HttpMethod.GET)
@@ -72,5 +74,38 @@ public class TwoServersTest extends HttpScenarioTest {
       assertThat(HttpStats.get(s1).status_2xx).isEqualTo(1);
       StatisticsSnapshot s2 = stats.get("server2");
       assertThat(HttpStats.get(s2).status_3xx).isEqualTo(1);
+   }
+
+   @Test
+   public void testServersWithSameHostAndPortAndDifferentName() {
+      benchmarkBuilder.plugin(HttpPluginBuilder.class)
+            .http("http://localhost:8080")
+            .name("myhost1");
+      benchmarkBuilder.plugin(HttpPluginBuilder.class)
+            .http("http://localhost:8080")
+            .name("myhost2");
+      benchmarkBuilder.build();
+   }
+
+   @Test(expected = BenchmarkDefinitionException.class)
+   public void testServersWithSameHostAndPortAndSameName() {
+      benchmarkBuilder.plugin(HttpPluginBuilder.class)
+            .http("http://localhost:8080")
+            .name("myhost1");
+      benchmarkBuilder.plugin(HttpPluginBuilder.class)
+            .http("http://localhost:8080")
+            .name("myhost1");
+      benchmarkBuilder.build();
+   }
+
+   @Test(expected = BenchmarkDefinitionException.class)
+   public void testServersWithSameHostAndPortAndNoName() {
+      benchmarkBuilder.plugin(HttpPluginBuilder.class)
+            .http("http://localhost:8080")
+            .name(null);
+      benchmarkBuilder.plugin(HttpPluginBuilder.class)
+            .http("http://localhost:8080")
+            .name(null);
+      benchmarkBuilder.build();
    }
 }
