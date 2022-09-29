@@ -1,0 +1,42 @@
+name: valid-authorities
+http:
+- host: http://example.com
+  sharedConnections: 100
+- host: https://hyperfoil.io
+  sharedConnections: 10
+- host: http://foobar.com
+  sharedConnections: 30
+  addresses:
+  - proxy.my-locally-defined-domain.test
+  - 192.168.1.10
+  - 192.168.1.11:8080
+- host: http://myhost
+  name: myhost-1
+  sharedConnections: 10
+- host: http://myhost
+  name: myhost-2
+  sharedConnections: 10
+usersPerSec: 1
+duration: 1
+scenario:
+- test:
+  - httpRequest:
+      authority: hyperfoil.io:443
+      GET: /docs
+  - httpRequest:
+      authority: hyperfoil.io
+      GET: /docs
+  - randomItem:
+      toVar: hostname
+      list:
+      - example.com
+      - foobar.com
+  - httpRequest:
+      authority: ${hostname}:80
+      GET: /foo
+  - httpRequest:
+      authority: ${hostname}
+      GET: /foo
+  - httpRequest:
+      authority: myhost
+      GET: /path

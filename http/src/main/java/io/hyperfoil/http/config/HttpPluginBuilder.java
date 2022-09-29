@@ -6,6 +6,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 import io.hyperfoil.api.config.BenchmarkBuilder;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
@@ -100,7 +103,20 @@ public class HttpPluginBuilder extends PluginBuilder<HttpErgonomics> {
    }
 
    public boolean validateAuthority(String authority) {
-      return authority == null && defaultHttp != null || httpList.stream().anyMatch(http -> http.authority().equals(authority));
+      return authority == null && defaultHttp != null || isValidAuthority(authority);
+   }
+
+   private boolean isValidAuthority(String authority) {
+      long matches = httpList.stream()
+            .filter(distinctByKey(http -> http.protocol() + http.authority())) // skip potential duplicate authorities
+            .filter(http -> http.authority().contains(authority))
+            .count();
+      return matches == 1; // only one authority should match
+   }
+
+   private static <T> Predicate<T> distinctByKey(Function<? super T, Object> keyExtractor) {
+      Map<Object, Boolean> map = new ConcurrentHashMap<>();
+      return t -> map.putIfAbsent(keyExtractor.apply(t), Boolean.TRUE) == null;
    }
 
    public boolean validateEndpoint(String endpoint) {

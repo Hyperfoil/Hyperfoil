@@ -1,0 +1,13 @@
+name: ambiguous-authority-url
+http:
+- host: http://hyperfoil.io
+  sharedConnections: 10
+- host: https://hyperfoil.io
+  sharedConnections: 10
+usersPerSec: 1
+duration: 1
+scenario:
+- test:
+  - httpRequest:
+      authority: hyperfoil.io
+      GET: /docs
