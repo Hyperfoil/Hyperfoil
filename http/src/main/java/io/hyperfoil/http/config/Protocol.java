@@ -36,4 +36,9 @@ public enum Protocol {
    public boolean secure() {
       return secure;
    }
+
+   @Override
+   public String toString() {
+      return secure ? "http://" : "https://";
+   }
 }

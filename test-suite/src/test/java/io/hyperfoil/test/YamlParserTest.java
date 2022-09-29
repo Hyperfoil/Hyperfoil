@@ -19,6 +19,7 @@
 package io.hyperfoil.test;
 
 import io.hyperfoil.api.config.Benchmark;
+import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Model;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.config.SLA;
@@ -175,6 +176,22 @@ public class YamlParserTest {
    public void testAgents2() {
       Benchmark benchmark = buildBenchmark("scenarios/agents2.hf.yaml");
       assertThat(benchmark.agents().length).isEqualTo(3);
+   }
+
+   @Test
+   public void testValidAuthorities() {
+      Benchmark benchmark = buildBenchmark("scenarios/valid-authorities.hf.yaml");
+      assertThat(benchmark.plugin(HttpPluginConfig.class).http()).hasSize(4);
+   }
+
+   @Test(expected = BenchmarkDefinitionException.class)
+   public void testWrongAuthorities() {
+      buildBenchmark("scenarios/wrong-authority.hf.yaml");
+   }
+
+   @Test(expected = BenchmarkDefinitionException.class)
+   public void testAmbiguousAuthorities() {
+      buildBenchmark("scenarios/ambiguous-authority.hf.yaml");
    }
 
    @Test

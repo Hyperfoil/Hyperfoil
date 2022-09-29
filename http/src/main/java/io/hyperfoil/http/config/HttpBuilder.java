@@ -77,12 +77,10 @@ public class HttpBuilder implements BuilderBase<HttpBuilder> {
    }
 
    String authority() {
-      if (host == null) {
+      if (host() == null) {
          return null;
-      } else if (protocol != null) {
-         return host + ":" + protocol.portOrDefault(port);
       } else {
-         return host + ":" + Protocol.fromPort(port).portOrDefault(port);
+         return host() + ":" + port();
       }
    }
 
@@ -94,8 +92,22 @@ public class HttpBuilder implements BuilderBase<HttpBuilder> {
       return this;
    }
 
+   public Protocol protocol() {
+      return protocol;
+   }
+
    public String host() {
       return host;
+   }
+
+   public int port() {
+      if (port != -1) {
+         return port;
+      } else if (protocol != null) {
+         return protocol.portOrDefault(port);
+      } else {
+         throw new BenchmarkDefinitionException("No port nor protocol has been defined");
+      }
    }
 
    public HttpBuilder host(String destination) {

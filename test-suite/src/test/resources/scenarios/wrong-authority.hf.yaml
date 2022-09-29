@@ -1,0 +1,11 @@
+name: wrong-authority-url
+http:
+- host: http://hyperfoil.io
+  sharedConnections: 10
+usersPerSec: 1
+duration: 1
+scenario:
+- test:
+  - httpRequest:
+      authority: hyperfoil.io:443
+      GET: /docs
