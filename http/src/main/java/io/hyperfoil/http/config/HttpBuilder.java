@@ -79,8 +79,10 @@ public class HttpBuilder implements BuilderBase<HttpBuilder> {
    String authority() {
       if (host() == null) {
          return null;
+      } else if (port == -1) {
+         return host();
       } else {
-         return host() + ":" + port();
+         return host() + ":" + portOrDefault();
       }
    }
 
@@ -100,7 +102,7 @@ public class HttpBuilder implements BuilderBase<HttpBuilder> {
       return host;
    }
 
-   public int port() {
+   public int portOrDefault() {
       if (port != -1) {
          return port;
       } else if (protocol != null) {

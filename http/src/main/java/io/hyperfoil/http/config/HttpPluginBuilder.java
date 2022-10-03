@@ -109,7 +109,7 @@ public class HttpPluginBuilder extends PluginBuilder<HttpErgonomics> {
    private boolean isValidAuthority(String authority) {
       long matches = httpList.stream()
             .filter(distinctByKey(http -> http.protocol() + http.authority())) // skip potential duplicate authorities
-            .filter(http -> http.authority().contains(authority))
+            .filter(http -> compareAuthorities(http, authority))
             .count();
       return matches == 1; // only one authority should match
    }
@@ -117,6 +117,17 @@ public class HttpPluginBuilder extends PluginBuilder<HttpErgonomics> {
    private static <T> Predicate<T> distinctByKey(Function<? super T, Object> keyExtractor) {
       Map<Object, Boolean> map = new ConcurrentHashMap<>();
       return t -> map.putIfAbsent(keyExtractor.apply(t), Boolean.TRUE) == null;
+   }
+
+   private static boolean compareAuthorities(HttpBuilder http, String authority) {
+      final StringBuilder auth1 = new StringBuilder(http.authority()), auth2 = new StringBuilder(authority);
+      if (!http.authority().contains(":")) {
+         auth1.append(":").append(http.portOrDefault());
+      }
+      if (!authority.contains(":")) {
+         auth2.append(":").append(http.portOrDefault());
+      }
+      return auth1.toString().equals(auth2.toString());
    }
 
    public boolean validateEndpoint(String endpoint) {
