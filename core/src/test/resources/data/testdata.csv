@@ -1,5 +1,8 @@
-# Ignored line
-one,two,three,four
-five,six,seven,eight
-# another ignored line
-nine,ten,eleven,twelve
+# This comment is ignored. On the first line we test proper single-line unquoting
+# and on the second line dealing with spaces.
+# Note that seven and ten are missing, testing empty fields
+one,"two two","three, three","four""four"
+     five,six ,,eight
+# The next two lines constitute single record broken through quotes
+nine,"",eleven,"twelve
+ ends here"

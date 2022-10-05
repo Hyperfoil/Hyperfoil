@@ -5,11 +5,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.stream.Stream;
 
 import org.kohsuke.MetaInfServices;
 
@@ -56,7 +56,7 @@ public class RandomCsvRowStep implements Step {
    public static class Builder extends BaseStepBuilder<Builder> {
       private String file;
       private boolean skipComments;
-      private boolean removeQuotes;
+      private char separator = ',';
       private List<String> builderColumns = new ArrayList<>();
 
       @Override
@@ -72,21 +72,69 @@ public class RandomCsvRowStep implements Step {
 
          try (InputStream inputStream = Locator.current().benchmark().data().readFile(file)) {
             BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
-            Stream<String> lines = reader.lines();
-            if (skipComments) {
-               lines = lines.filter(line -> !line.trim().startsWith("#"));
+            ArrayList<String[]> records = new ArrayList<>();
+            String line;
+            ArrayList<String> currentRecord = new ArrayList<>();
+            StringBuilder sb = new StringBuilder();
+            boolean quoted = false;
+            boolean maybeClosingQuote = false;
+            int lineNumber = 1;
+            while ((line = reader.readLine()) != null) {
+               if (!quoted && skipComments && line.stripLeading().startsWith("#")) {
+                  continue;
+               }
+               for (int i = 0; i < line.length(); ++i) {
+                  char c = line.charAt(i);
+                  if (!quoted) {
+                     if (c == separator) {
+                        currentRecord.add(sb.toString());
+                        sb.setLength(0);
+                     } else if (c == '"') {
+                        if (sb.length() != 0) {
+                           throw new BenchmarkDefinitionException("The CSV file " + file + " is invalid; line " +
+                                 lineNumber + " uses quote but it's quoting correctly (check preceding whitespaces?)");
+                        }
+                        quoted = true;
+                     } else {
+                        sb.append(c);
+                     }
+                  } else {
+                     if (c == '"') {
+                        if (maybeClosingQuote) {
+                           sb.append(c); // quoted quote
+                           maybeClosingQuote = false;
+                        } else {
+                           maybeClosingQuote = true;
+                        }
+                     } else if (maybeClosingQuote) {
+                        quoted = false;
+                        maybeClosingQuote = false;
+                        if (c == separator) {
+                           currentRecord.add(sb.toString());
+                           sb.setLength(0);
+                        } else {
+                           throw new BenchmarkDefinitionException("The CSV file " + file + " is invalid; line " +
+                                 lineNumber + " uses quote but it's quoting correctly (check characters after?)");
+                        }
+                     } else {
+                        sb.append(c);
+                     }
+                  }
+               }
+               if (maybeClosingQuote) {
+                  quoted = false;
+                  maybeClosingQuote = false;
+               }
+               if (!quoted) {
+                  currentRecord.add(sb.toString());
+                  sb.setLength(0);
+                  String[] arr = new String[srcIndex.length];
+                  Arrays.setAll(arr, i -> srcIndex[i] < currentRecord.size() ? currentRecord.get(srcIndex[i]) : null);
+                  records.add(arr);
+               }
+               ++lineNumber;
             }
-            String[][] rows = lines.map(line -> {
-               if (removeQuotes) {
-                  line = line.replaceAll("\"", "");
-               }
-               String[] cols = line.split(",");
-               String[] arr = new String[srcIndex.length];
-               for (int i = 0; i < arr.length; ++i) {
-                  arr[i] = cols[srcIndex[i]];
-               }
-               return arr;
-            }).toArray(String[][]::new);
+            String[][] rows = records.toArray(new String[0][]);
             if (rows.length == 0) {
                throw new BenchmarkDefinitionException("Missing CSV row data. Rows were not detected after initial processing of file.");
             }
@@ -130,13 +178,14 @@ public class RandomCsvRowStep implements Step {
       }
 
       /**
-       * Automatically unquote the columns.
+       * DEPRECATED. Quotes are removed automatically.
        *
        * @param removeQuotes Remove?
        * @return Self.
+       * @deprecated
        */
+      @Deprecated
       public Builder removeQuotes(boolean removeQuotes) {
-         this.removeQuotes = removeQuotes;
          return this;
       }
 

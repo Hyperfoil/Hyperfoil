@@ -18,9 +18,9 @@ import io.hyperfoil.core.test.TestUtil;
 public class RandomCsvRowStepTest {
 
    private static final String[][] DATA = new String[][]{
-         { "one", "two", "three", "four" },
-         { "five", "six", "seven", "eight" },
-         { "nine", "ten", "eleven", "twelve" }
+         { "one", "two two", "three, three", "four\"four" },
+         { "     five", "six ", "", "eight" },
+         { "nine", "", "eleven", "twelve\n ends here" }
    };
 
    @Test
