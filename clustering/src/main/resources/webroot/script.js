@@ -15,6 +15,7 @@ const SEND_NOTIFICATIONS = "__HYPERFOIL_SEND_NOTIFICATIONS__"
 const NOTIFICATION = "__HYPERFOIL_NOTIFICATION__"
 const LOAD_FILE = "__HYPERFOIL_LOAD_FILE__"
 const PROMPT = "[hyperfoil]$ "
+const UPLOAD_URL = "__HYPERFOIL_UPLOAD_URL__"
 
 const ansiUp = new AnsiUp();
 const gauge = document.getElementById("gauge")
@@ -108,6 +109,7 @@ command.addEventListener("keydown", (event) => {
       sendCommand(command.value + '\n');
       command.value = "";
       warning.style.height = 0
+      warning.innerText = ""
    } else if (event.key === "Tab") {
       event.preventDefault();
       sendCommand(command.value + '\t');
@@ -167,6 +169,7 @@ command.addEventListener("keydown", (event) => {
       }
       command.value = ""
       warning.style.height = 0
+      warning.innerText = ""
       resultWindow.appendChild(command)
       sendCommand(INTERRUPT_SIGNAL)
    } else if (timedInput) {
@@ -184,6 +187,7 @@ function checkCommand() {
       warning.style.height = '1.2em';
    } else {
       warning.style.height = 0;
+      warning.innerText = ""
    }
 }
 
@@ -404,6 +408,14 @@ function sendBenchmarkForFiles() {
    upload.remove()
 }
 
+function sendBenchmarkUrl() {
+   const url = document.getElementById("upload-url").value
+   sendCommand(UPLOAD_URL + url)
+   upload.remove()
+   resultWindow.appendChild(command)
+   command.focus();
+}
+
 function stopPaging() {
    document.getElementById('pager-content').innerHTML = ""
    pager.style.visibility = 'hidden'
@@ -592,4 +604,13 @@ function blinkTitle() {
          document.title = 'WebCLI'
       }
    })
+}
+
+function pasteUrl(element) {
+   if (!element.value && text && (text.startsWith("http://") || text.startsWith("https://"))) {
+      element.focus()
+      document.execCommand("paste")
+   } else {
+      element.select()
+   }
 }

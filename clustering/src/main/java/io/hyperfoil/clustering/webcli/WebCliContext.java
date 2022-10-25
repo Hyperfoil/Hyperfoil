@@ -31,6 +31,7 @@ class WebCliContext extends HyperfoilCliContext {
    AeshConsoleRunner runner;
    CountDownLatch latch;
    StringBuilder editBenchmark;
+   String uploadUrl;
    int binaryLength;
    ByteArrayOutputStream binaryContent;
    String prevId = null;

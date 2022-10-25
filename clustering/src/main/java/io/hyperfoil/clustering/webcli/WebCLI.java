@@ -52,6 +52,7 @@ public class WebCLI extends HyperfoilCli implements Handler<ServerWebSocket> {
    private static final String EDITS_END = "__HYPERFOIL_EDITS_END__\n";
    private static final String INTERRUPT_SIGNAL = "__HYPERFOIL_INTERRUPT_SIGNAL__";
    private static final String AUTH_TOKEN = "__HYPERFOIL_AUTH_TOKEN__";
+   private static final String UPLOAD_URL = "__HYPERFOIL_UPLOAD_URL__";
    private static final String SET_BENCHMARK = "__HYPERFOIL_SET_BENCHMARK__";
    private static final String SET_TERM_SIZE = "__HYPERFOIL_SET_TERM_SIZE__";
    private static final String SEND_NOTIFICATIONS = "__HYPERFOIL_SEND_NOTIFICATIONS__";
@@ -150,6 +151,10 @@ public class WebCLI extends HyperfoilCli implements Handler<ServerWebSocket> {
                   context.outputStream.writeSingleText("Failed to parse file transfer length: closing.");
                   webSocket.close();
                }
+               return;
+            } else if (msg.startsWith(UPLOAD_URL)) {
+               context.uploadUrl = msg.substring(UPLOAD_URL.length());
+               context.latch.countDown();
                return;
             }
          }

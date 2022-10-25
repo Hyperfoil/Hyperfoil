@@ -19,6 +19,13 @@
     <div id="upload">
         <label id="upload-benchmark-label" for="upload-benchmark" class="hfbutton">Select benchmark file</label>
         <input id="upload-benchmark" type="file" class="hidden-upload" onchange="sendBenchmarkForFiles()" />
+        or
+        <span style="display: inline-flex">
+            <input id="upload-url" type="url" size="60" placeholder="https://example.com/benchmark.hf.yaml" onfocus="pasteUrl(this)"
+                   class="hfinputtext" style="border-radius: 10px 0 0 10px"/>
+            <input type="button" value="Upload from URL" onclick="sendBenchmarkUrl()"
+                   class="hfbutton" style="border-radius: 0 10px 10px 0"/>
+        </span>
         <input type="button" class="hfbutton" value="Cancel upload" onclick="upload.remove(); sendCommand(INTERRUPT_SIGNAL)" />
     </div>
     <div id="pager" style="visibility: hidden">

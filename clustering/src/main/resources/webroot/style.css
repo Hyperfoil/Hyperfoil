@@ -92,7 +92,8 @@ body {
    white-space: normal;
    margin-top: 10px;
 }
-.hfbutton {
+
+.hfbutton, .hfinputtext {
    white-space: normal;
    background: linear-gradient(to bottom, #eee, #ccc);
    border-width: 2px;
@@ -106,12 +107,26 @@ body {
    cursor: pointer;
    display: inline-block;
 }
-.hfbutton:hover {
+
+.hfbutton:hover, .hfinputtext:hover {
    background: linear-gradient(to bottom, #ccc, #eee);
 }
+
 .hfbutton:active {
    position: relative;
    top: 1px;
+}
+
+.hfinputtext:focus {
+   outline: none;
+}
+
+.hfinputtext::placeholder {
+   color: #444;
+}
+
+.hfinputtext:focus::placeholder {
+   color: transparent;
 }
 
 .hidden-upload {

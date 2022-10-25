@@ -46,6 +46,13 @@ public final class CliUtil {
    private CliUtil() {
    }
 
+   public static String sanitize(String path) {
+      if (path.startsWith("~/")) {
+         return System.getProperty("user.home") + path.substring(1);
+      }
+      return path;
+   }
+
    public static Resource sanitize(Resource resource) {
       if (resource instanceof FileResource) {
          File file = ((FileResource) resource).getFile();
