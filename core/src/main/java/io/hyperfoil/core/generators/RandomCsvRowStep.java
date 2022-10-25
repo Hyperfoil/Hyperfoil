@@ -29,7 +29,7 @@ import io.hyperfoil.core.session.SessionFactory;
  * The row is exposed as columns.
  */
 public class RandomCsvRowStep implements Step {
-   private String[][] rows;
+   private final String[][] rows;
    private final ObjectAccess[] columnVars;
 
    public RandomCsvRowStep(String[][] rows, ObjectAccess[] columnVars) {
@@ -39,6 +39,9 @@ public class RandomCsvRowStep implements Step {
 
    @Override
    public boolean invoke(Session session) {
+      if (rows.length == 0) {
+         throw new RuntimeException("No rows available - was the CSV file empty?");
+      }
       // columns provided by csv
       ThreadLocalRandom random = ThreadLocalRandom.current();
       String[] row = rows[random.nextInt(rows.length)];
@@ -57,7 +60,7 @@ public class RandomCsvRowStep implements Step {
       private String file;
       private boolean skipComments;
       private char separator = ',';
-      private List<String> builderColumns = new ArrayList<>();
+      private final List<String> builderColumns = new ArrayList<>();
 
       @Override
       public List<Step> build() {
@@ -135,9 +138,8 @@ public class RandomCsvRowStep implements Step {
                ++lineNumber;
             }
             String[][] rows = records.toArray(new String[0][]);
-            if (rows.length == 0) {
-               throw new BenchmarkDefinitionException("Missing CSV row data. Rows were not detected after initial processing of file.");
-            }
+            // We won't throw an error even if the CSV is empty - this can happen during edit in CLI when we expect
+            // to reuse the data on server side.
 
             ObjectAccess[] columnVars = builderColumns.stream().filter(Objects::nonNull).map(SessionFactory::objectAccess).toArray(ObjectAccess[]::new);
             return Collections.singletonList(new RandomCsvRowStep(rows, columnVars));
@@ -167,7 +169,7 @@ public class RandomCsvRowStep implements Step {
       }
 
       /**
-       * Skip lines starting with character '#'.
+       * Skip lines starting with character '#'. By default set to false.
        *
        * @param skipComments Skip?
        * @return Self.
@@ -185,7 +187,18 @@ public class RandomCsvRowStep implements Step {
        * @deprecated
        */
       @Deprecated
-      public Builder removeQuotes(boolean removeQuotes) {
+      public Builder removeQuotes(@SuppressWarnings("unused") boolean removeQuotes) {
+         return this;
+      }
+
+      /**
+       * Set character used for column separation. By default it is comma (<code>,</code>).
+       *
+       * @param separator Separator character.
+       * @return Self.
+       */
+      public Builder separator(char separator) {
+         this.separator = separator;
          return this;
       }
 
