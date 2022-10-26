@@ -130,9 +130,12 @@ public class TimestampStep implements Step, ResourceUtilizer {
          if (localeCountry != null && pattern == null) {
             throw new BenchmarkDefinitionException("Country code is used only when the formatter pattern is set.");
          }
+         // prevent capturing the builder in the lambda
+         String myPattern = pattern;
+         String myLocaleCountry = localeCountry;
          return Collections.singletonList(new TimestampStep(SessionFactory.objectAccess(toVar),
                pattern != null ? new Session.ResourceKey<>() {} : null,
-               pattern != null ? () -> new FormatterResource(pattern, localeCountry) : null));
+               pattern != null ? () -> new FormatterResource(myPattern, myLocaleCountry) : null));
       }
    }
 }
