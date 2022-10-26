@@ -20,6 +20,9 @@ import io.netty.handler.codec.http2.Http2ClientUpgradeCodec;
 import io.netty.handler.ssl.ApplicationProtocolNames;
 import io.netty.handler.ssl.ApplicationProtocolNegotiationHandler;
 import io.hyperfoil.http.api.HttpConnection;
+import io.netty.handler.ssl.SslHandler;
+import io.netty.handler.ssl.SslMasterKeyHandler;
+import io.netty.util.internal.SystemPropertyUtil;
 
 class HttpChannelInitializer extends ChannelInitializer<Channel> {
    private final HttpClientPoolImpl clientPool;
@@ -58,8 +61,17 @@ class HttpChannelInitializer extends ChannelInitializer<Channel> {
    protected void initChannel(Channel ch) {
       ChannelPipeline pipeline = ch.pipeline();
       if (clientPool.sslContext != null) {
-         pipeline.addLast(clientPool.sslContext.newHandler(ch.alloc(), clientPool.host, clientPool.port));
+         boolean logMasterKey = SystemPropertyUtil.getBoolean(SslMasterKeyHandler.SYSTEM_PROP_KEY, false);
+         SslHandler sslHandler = clientPool.sslContext.newHandler(ch.alloc(), clientPool.host, clientPool.port);
+         if (logMasterKey) {
+            // the handler works only with TLSv1.2: https://github.com/netty/netty/issues/10957
+            sslHandler.engine().setEnabledProtocols(new String[]{ "TLSv1.2" });
+         }
+         pipeline.addLast(sslHandler);
          pipeline.addLast(alpnHandler);
+         if (logMasterKey) {
+            pipeline.addLast(SslMasterKeyHandler.newWireSharkSslMasterKeyHandler());
+         }
       } else if (clientPool.forceH2c) {
          io.netty.handler.codec.http2.Http2Connection connection = new DefaultHttp2Connection(false);
          CustomHttp2ConnectionHandler clientHandler = http2ConnectionHandlerBuilder.build(connection);
