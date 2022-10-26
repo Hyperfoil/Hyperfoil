@@ -201,7 +201,9 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
          encoder.writeData(context, id, buf, 0, true, writePromise);
       }
       writePromise.addListener(request);
-      context.flush();
+      // We need to flush the channel - context.flush() would skip (?) the uppermost handler
+      // and the request body would not be sent.
+      context.channel().flush();
       dispatchedRequest = null;
       pool.afterRequestSent(this);
    }
