@@ -120,7 +120,7 @@ public final class CliUtil {
       File ff = new File(file);
       if (ff.exists()) {
          if (!ff.canRead()) {
-            invocation.print("File " + file + " cannot be read, set another or leave empty to skip: ");
+            invocation.print("File " + file + " cannot be read, provide another path or leave empty to skip: ");
             return askForFile(invocation, file);
          } else {
             invocation.print("Upload file " + file + "? [y/N] ");
@@ -133,7 +133,7 @@ public final class CliUtil {
             }
          }
       } else if (!ff.isAbsolute()) {
-         invocation.println("Non-absolute path " + file + ", set absolute path or leave empty to skip: ");
+         invocation.print("Non-absolute path " + file + ", provide absolute path or leave empty to skip: ");
          return askForFile(invocation, file);
       } else {
          invocation.println("Ignoring file " + file + " as it doesn't exist on local file system.");
