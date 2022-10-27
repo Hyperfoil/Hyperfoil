@@ -5,6 +5,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 
 import org.kohsuke.MetaInfServices;
@@ -70,6 +71,11 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
                      throw new BenchmarkDefinitionException("It seems you're trying to URL-encode value twice.");
                   }
                   components.add(new VarComponent(key, allowUnset, Pattern::urlEncode));
+                  // TODO: More efficient encoding/decoding: we're converting object to string, then to byte array and then allocating another string
+               } else if (format.equalsIgnoreCase("base64encode")) {
+                  components.add(new VarComponent(key, allowUnset, s -> Base64.getEncoder().encodeToString(s.getBytes(StandardCharsets.UTF_8))));
+               } else if (format.equalsIgnoreCase("base64decode")) {
+                  components.add(new VarComponent(key, allowUnset, s -> new String(Base64.getDecoder().decode(s), StandardCharsets.UTF_8)));
                } else if (format.startsWith(REPLACE)) {
                   if (format.length() == REPLACE.length()) {
                      throw new BenchmarkDefinitionException(wrongReplaceSyntax(str, format));
