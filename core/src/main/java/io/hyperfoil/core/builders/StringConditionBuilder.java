@@ -87,14 +87,12 @@ public class StringConditionBuilder<B extends StringConditionBuilder<B, P>, P> i
    }
 
    /**
-    * @param param String that should be matched.
+    * @param param Literal value the string should match.
     * @return Self.
     */
    @Override
    public StringConditionBuilder<B, P> init(String param) {
-      ensureNotSet();
-      this.value = param;
-      return this;
+      return value(param);
    }
 
    @SuppressWarnings("unchecked")
