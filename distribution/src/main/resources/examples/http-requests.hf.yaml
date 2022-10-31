@@ -3,6 +3,8 @@
 name: http-requests
 http:
   host: http://example.com
+ergonomics: # Disable stopping the scenario on 4xx or 5xx response
+  autoRangeCheck: false
 usersPerSec: 1
 duration: 1
 scenario:

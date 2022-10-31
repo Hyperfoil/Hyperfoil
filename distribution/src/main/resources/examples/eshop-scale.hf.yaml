@@ -36,7 +36,7 @@ phases:
       # We'll use the same scenario as in eshop.hf.yaml
       - browse:
         - httpRequest:
-            GET: /items
+            GET: /quickstarts/eshop/items
 - browsingUserSteady:
     constantRate:
       duration: 10s
@@ -76,7 +76,7 @@ phases:
       scenario: &buyingUser
       - browse:
         - httpRequest:
-            GET: /items
+            GET: /quickstarts/eshop/items
             handler:
               body:
                 json:
@@ -85,7 +85,7 @@ phases:
       - buy:
         - randomItem: itemId <- itemIds
         - httpRequest:
-            POST: /items/${itemId}/buy
+            POST: /quickstarts/eshop/items/${itemId}/buy
 - buyingUserSteady:
     constantRate:
       duration: 10s

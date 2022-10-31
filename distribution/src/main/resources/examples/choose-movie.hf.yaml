@@ -25,12 +25,14 @@ scenario:
         toVar: username
     # The page would load a profile, e.g. to display full name.
     - httpRequest:
-        GET: /profile?user=${username}
+        GET: /quickstarts/choose-movie/profile?user=${username}
         sync: false
+        metric: profile
     # Fetch movies user could watch
     - httpRequest:
-        GET: /movies
+        GET: /quickstarts/choose-movie/movies
         sync: false
+        metric: movies
         handler:
           body:
             # Parse the returned JSON that is an array and for each
@@ -102,7 +104,7 @@ scenario:
     - httpRequest:
         # URLs with spaces and other characters don't work well;
         # let's encode it (e.g. space -> %20)
-        POST: /movie/${urlencode:movieNames[.]}/comments
+        POST: /quickstarts/choose-movie/movie/${urlencode:movieNames[.]}/comments
         body:
           text: This movie sucks.
         # The sync shortcut actually sets up a bit in the session state
@@ -127,5 +129,5 @@ scenario:
         toVar: movieName
     # Finally, go watch the movie!
     - httpRequest:
-        GET: /movie/${urlencode:movieName}/watch
+        GET: /quickstarts/choose-movie/movie/${urlencode:movieName}/watch
         sync: true

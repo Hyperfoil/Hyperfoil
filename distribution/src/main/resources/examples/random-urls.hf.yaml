@@ -1,6 +1,7 @@
 name: random-urls
 http:
   host: http://localhost:8080
+  sharedConnections: 10
 # 10 users will be starting the scenario every second
 usersPerSec: 10
 duration: 5s
@@ -18,7 +19,7 @@ scenario:
   - httpRequest:
       # HTTP request will read the variable from the session and format
       # the path for the GET request
-      GET: /example/${my-random-path}
+      GET: /quickstarts/random-urls/${my-random-path}
       # We'll use different statistics metric for webpages and images
       metric:
       - .*\.html -> pages
@@ -33,7 +34,7 @@ scenario:
         # in the session.
         onCompletion:
           set: completed <- yes
-      # For demonstration purposes we'lll set `sync: false`.
+      # For demonstration purposes we will set `sync: false`.
       # Next step is executed immediately after we fire the request, not
       # waiting for the response.
       sync: false

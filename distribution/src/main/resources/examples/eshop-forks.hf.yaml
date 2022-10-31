@@ -24,13 +24,13 @@ phases:
           scenario: &browsingUser
           - browse:
             - httpRequest:
-                GET: /items
+                GET: /quickstarts/eshop/items
         buyingUser:
           weight: 1
           scenario: &buyingUser
           - browse:
             - httpRequest:
-                GET: /items
+                GET: /quickstarts/eshop/items
                 handler:
                   body:
                     json:
@@ -39,7 +39,7 @@ phases:
           - buy:
             - randomItem: itemId <- itemIds
             - httpRequest:
-                POST: /items/${itemId}/buy
+                POST: /quickstarts/eshop/items/${itemId}/buy
 - steadyState:
     constantRate:
       duration: 10s

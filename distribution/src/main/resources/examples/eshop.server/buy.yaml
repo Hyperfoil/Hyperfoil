@@ -1,5 +1,0 @@
-request:
-  method: POST
-  path: /items/:id/buy
-response:
-  statusCode: 200

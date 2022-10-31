@@ -18,7 +18,7 @@ phases:
       # random data for browsing for the sake of brevity.
       - browse:
         - httpRequest:
-            GET: /items
+            GET: /quickstarts/eshop/items
 # Workload simulating users that are going to buy something
 - buyingUser:
     constantRate:
@@ -29,7 +29,7 @@ phases:
       scenario:
       - browse:
         - httpRequest:
-            GET: /items
+            GET: /quickstarts/eshop/items
             handler:
               body:
                 json:
@@ -41,7 +41,7 @@ phases:
         # Pick id for a random item
         - randomItem: itemId <- itemIds
         - httpRequest:
-            POST: /items/${itemId}/buy
+            POST: /quickstarts/eshop/items/${itemId}/buy
 - operator:
     # This is a different type of phase, running fixed number of users.
     # It is what most benchmarks do when you set number of threads; here we use
@@ -57,7 +57,7 @@ phases:
         - randomInt: itemId <- 1 .. 999
         - randomInt: units <- 1 .. 10
         - httpRequest:
-            POST: /items/${itemId}/restock
+            POST: /quickstarts/eshop/items/${itemId}/restock
             body:
               # We are using url-encoded form data
               form:
