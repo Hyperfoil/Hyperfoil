@@ -217,7 +217,6 @@ public abstract class ServerCommand implements Command<HyperfoilCommandInvocatio
          KeyAction action = invocation.input(1, TimeUnit.SECONDS);
          if (action != null) {
             String command = null;
-            clearLines(invocation, 1);
             switch (action.name()) {
                case "s":
                   command = "status";
@@ -235,6 +234,7 @@ public abstract class ServerCommand implements Command<HyperfoilCommandInvocatio
             if (command == null) {
                return false;
             }
+            clearLines(invocation, 1);
             invocation.println("");
             for (int i = invocation.getShell().size().getWidth(); i > 0; --i) {
                invocation.print("—");
