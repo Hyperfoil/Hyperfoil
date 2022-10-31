@@ -33,14 +33,14 @@
     <groupId>io.hyperfoil</groupId>
     <artifactId>hyperfoil-all</artifactId>
     <packaging>pom</packaging>
-    <version>0.23-SNAPSHOT</version>
+    <version>0.23</version>
     <name>Hyperfoil</name>
     <description>Hyperfoil will rock your application with load</description>
     <scm>
         <connection>scm:git:git://github.com/Hyperfoil/Hyperfoil.git</connection>
         <developerConnection>scm:git:ssh://git@github.com/Hyperfoil/Hyperfoil.git</developerConnection>
         <url>https://github.com/Hyperfoil/Hyperfoil</url>
-        <tag>HEAD</tag>
+        <tag>release-0.23</tag>
     </scm>
 
     <distributionManagement>
