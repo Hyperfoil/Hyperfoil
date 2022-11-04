@@ -54,6 +54,8 @@ public class TimestampStep implements Step, ResourceUtilizer {
       }
    }
 
+   private static final class FormatterKey implements Session.ResourceKey<FormatterResource> {}
+
    private static class FormatterResource implements Session.Resource {
       private final SimpleDateFormat format;
 
@@ -134,7 +136,7 @@ public class TimestampStep implements Step, ResourceUtilizer {
          String myPattern = pattern;
          String myLocaleCountry = localeCountry;
          return Collections.singletonList(new TimestampStep(SessionFactory.objectAccess(toVar),
-               pattern != null ? new Session.ResourceKey<>() {} : null,
+               pattern != null ? new FormatterKey() : null,
                pattern != null ? () -> new FormatterResource(myPattern, myLocaleCountry) : null));
       }
    }
