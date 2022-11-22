@@ -21,6 +21,12 @@ To run without test cases do
 mvn -DskipTests=true package
 ```
 
+Then the distribution is either in `distribution/target/hyperfoil-<version>-SNAPSHOT.zip` or in
+
+``` bash
+cd distribution/target/distribution/
+```
+
 ## Image
 
 We publish the image at [quay.io/hyperfoil/hyperfoil](https://quay.io/repository/hyperfoil/hyperfoil?tab=tags).
