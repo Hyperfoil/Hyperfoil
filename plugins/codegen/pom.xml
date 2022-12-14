@@ -28,6 +28,10 @@
                 </exclusion>
                 <exclusion>
                     <groupId>org.codehaus.plexus</groupId>
+                    <artifactId>plexus-classworlds</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.codehaus.plexus</groupId>
                     <artifactId>plexus-utils</artifactId>
                 </exclusion>
             </exclusions>
