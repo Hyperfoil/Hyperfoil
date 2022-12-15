@@ -3,15 +3,16 @@
 
 if [ "x$IDEA_HOME" == "x" ]; then
    echo "IDEA_HOME is not configured; cannot reformat code"
-   exit 1;
+else
+   HYPERFOIL_ROOT=$(dirname $0)/../../
+   export IDEA_PROPERTIES=$HYPERFOIL_ROOT/config/idea.properties
+
+   git diff-index --cached --name-only HEAD > $HYPERFOIL_ROOT/.modified.log
+   MODIFIED=$(cat $HYPERFOIL_ROOT/.modified.log | wc -l)
+   echo "Formatting $MODIFIED modified files..."
+   cat $HYPERFOIL_ROOT/.modified.log | xargs $IDEA_HOME/bin/format.sh -s $HYPERFOIL_ROOT/config/codestyle.xml -m '*.java,*.xml,*.yml,*.yaml' > /dev/null 2> /dev/null
+   cat $HYPERFOIL_ROOT/.modified.log | xargs git add 
+   rm $HYPERFOIL_ROOT/.modified.log 
 fi
 
-HYPERFOIL_ROOT=$(dirname $0)/../../
-export IDEA_PROPERTIES=$HYPERFOIL_ROOT/config/idea.properties
-
-git diff-index --cached --name-only HEAD > $HYPERFOIL_ROOT/.modified.log
-MODIFIED=$(cat $HYPERFOIL_ROOT/.modified.log | wc -l)
-echo "Formatting $MODIFIED modified files..."
-cat $HYPERFOIL_ROOT/.modified.log | xargs $IDEA_HOME/bin/format.sh -s $HYPERFOIL_ROOT/config/codestyle.xml -m '*.java,*.xml,*.yml,*.yaml' > /dev/null 2> /dev/null
-cat $HYPERFOIL_ROOT/.modified.log | xargs git add 
-rm $HYPERFOIL_ROOT/.modified.log 
+exit 0
