@@ -3,7 +3,7 @@
     <parent>
         <artifactId>hyperfoil-all</artifactId>
         <groupId>io.hyperfoil</groupId>
-        <version>0.24-SNAPSHOT</version>
+        <version>0.24</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -227,7 +227,7 @@
                                  to the correct folder within the JAR. We're going to fix it up in the Ant tasks below. -->
                             <finalName>hyperfoil-hotrod-shaded</finalName>
                             <transformers>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
                             </transformers>
                         </configuration>
                     </execution>
@@ -242,12 +242,12 @@
                             <tasks>
                                 <!-- We will just take the JDK11-specific classes and move them to regular locations
                                      as Hyperfoil is JDK11+ only anyway. We won't need to mess with multi-release JAR then -->
-                                <unzip src="${project.build.directory}/hyperfoil-hotrod-shaded.jar" dest="${project.build.directory}/shaded"/>
+                                <unzip src="${project.build.directory}/hyperfoil-hotrod-shaded.jar" dest="${project.build.directory}/shaded" />
                                 <move todir="${project.build.directory}/shaded/shaded">
-                                    <fileset dir="${project.build.directory}/shaded/META-INF/versions/11/"/>
+                                    <fileset dir="${project.build.directory}/shaded/META-INF/versions/11/" />
                                 </move>
                                 <jar destfile="${project.build.directory}/${project.build.finalName}.jar">
-                                    <fileset dir="${project.build.directory}/shaded"/>
+                                    <fileset dir="${project.build.directory}/shaded" />
                                 </jar>
                             </tasks>
                         </configuration>
