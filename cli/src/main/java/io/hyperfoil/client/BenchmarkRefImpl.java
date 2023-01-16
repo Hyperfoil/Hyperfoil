@@ -77,6 +77,10 @@ class BenchmarkRefImpl implements Client.BenchmarkRef {
 
    @Override
    public Client.RunRef start(String description, Map<String, String> templateParams) {
+      return this.start(description, templateParams, Boolean.FALSE);
+   }
+
+   public Client.RunRef start(String description, Map<String, String> templateParams, Boolean validate) {
       CompletableFuture<Client.RunRef> future = new CompletableFuture<>();
       client.vertx.runOnContext(ctx -> {
          HttpRequest<Buffer> request = client.request(HttpMethod.GET, "/benchmark/" + encode(name) + "/start");
@@ -86,6 +90,7 @@ class BenchmarkRefImpl implements Client.BenchmarkRef {
          for (var param : templateParams.entrySet()) {
             request.addQueryParam("templateParam", param.getKey() + "=" + param.getValue());
          }
+         request.addQueryParam("validate", validate.toString());
          request.send(rsp -> {
             if (rsp.succeeded()) {
                HttpResponse<Buffer> response = rsp.result();

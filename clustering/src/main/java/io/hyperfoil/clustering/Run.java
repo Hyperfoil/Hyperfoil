@@ -30,15 +30,21 @@ class Run {
    Promise<Long> terminateTime = Promise.promise();
    boolean cancelled;
    boolean completed;
+   boolean validation;
    Supplier<StatisticsStore> statsSupplier;
    private StatisticsStore statisticsStore;
    Map<String, GlobalData.Element> newGlobalData = new HashMap<>();
 
    Run(String id, Path dir, Benchmark benchmark) {
+      this (id, dir, benchmark, false);
+   }
+
+   Run(String id, Path dir, Benchmark benchmark, Boolean validation) {
       this.id = id;
       this.dir = dir;
       this.benchmark = benchmark;
       this.phasesById = benchmark.phasesById();
+      this.validation = validation;
    }
 
    void initStore(StatisticsStore store) {

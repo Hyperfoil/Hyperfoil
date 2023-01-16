@@ -157,9 +157,14 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
                stopSimulation(run);
             }
          } else if (msg instanceof AgentReadyMessage) {
-            agent.status = AgentInfo.Status.READY;
-            if (run.agents.stream().allMatch(a -> a.status == AgentInfo.Status.READY)) {
-               startSimulation(run);
+            if (!run.validation) {
+               agent.status = AgentInfo.Status.READY;
+               if (run.agents.stream().allMatch(a -> a.status == AgentInfo.Status.READY)) {
+                  startSimulation(run);
+               }
+            } else { //stop simulation from running if a validation run
+               agent.status = AgentInfo.Status.STOPPED;
+               stopSimulation(run);
             }
          } else {
             log.error("Unexpected type of message: {}", msg);
@@ -486,13 +491,13 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       }
    }
 
-   Run createRun(Benchmark benchmark, String description) {
+   Run createRun(Benchmark benchmark, String description, Boolean validate) {
       ensureMaxInMemoryRuns();
       String runId = String.format("%04X", runIds.getAndIncrement());
       Path runDir = Controller.RUN_DIR.resolve(runId);
       //noinspection ResultOfMethodCallIgnored
       runDir.toFile().mkdirs();
-      Run run = new Run(runId, runDir, benchmark);
+      Run run = new Run(runId, runDir, benchmark, validate);
       run.initStore(new StatisticsStore(benchmark, failure -> log.warn("Failed verify SLA(s) for {}/{}: {}",
             failure.phase(), failure.metric(), failure.message())));
       run.description = description;
@@ -518,7 +523,7 @@ public class ControllerVerticle extends AbstractVerticle implements NodeListener
       }
    }
 
-   String startBenchmark(Run run) {
+   String startBenchmark(Run run, Boolean validation) {
       Set<String> activeAgents = new HashSet<>();
       for (Run r : runs.values()) {
          if (!r.terminateTime.future().isComplete()) {

@@ -522,7 +522,7 @@ class ControllerServer implements ApiService {
    }
 
    @Override
-   public void startBenchmark(RoutingContext ctx, String name, String desc, String xTriggerJob, String runId, List<String> templateParam) {
+   public void startBenchmark(RoutingContext ctx, String name, String desc, String xTriggerJob, String runId, List<String> templateParam, boolean validate) {
       Benchmark benchmark = controller.getBenchmark(name);
       if (benchmark == null) {
          BenchmarkSource template = controller.getTemplate(name);
@@ -538,7 +538,7 @@ class ControllerServer implements ApiService {
       String triggerUrl = benchmark.triggerUrl() != null ? benchmark.triggerUrl() : TRIGGER_URL;
       if (triggerUrl != null) {
          if (xTriggerJob == null) {
-            Run run = controller.createRun(benchmark, desc);
+            Run run = controller.createRun(benchmark, desc, validate);
             if (!triggerUrl.endsWith("&") && !triggerUrl.endsWith("?")) {
                if (triggerUrl.contains("?")) {
                   triggerUrl = triggerUrl + "&";
@@ -556,7 +556,7 @@ class ControllerServer implements ApiService {
       }
       Run run;
       if (runId == null) {
-         run = controller.createRun(benchmark, desc);
+         run = controller.createRun(benchmark, desc, validate);
       } else {
          run = controller.run(runId);
          if (run == null || run.startTime != Long.MIN_VALUE) {
@@ -564,7 +564,7 @@ class ControllerServer implements ApiService {
             return;
          }
       }
-      String error = controller.startBenchmark(run);
+      String error = controller.startBenchmark(run, validate);
       if (error == null) {
          ctx.response().setStatusCode(HttpResponseStatus.ACCEPTED.code())
                .putHeader(HttpHeaders.LOCATION, baseURL + "/run/" + run.id)
