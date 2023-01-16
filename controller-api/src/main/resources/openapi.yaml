@@ -161,6 +161,11 @@ paths:
           type: array
           items:
             type: string
+      - in: query
+        name: validate
+        description: Validate benchmark without running simulation
+        schema:
+          type: boolean
       responses:
         '202':
           description: Run was successfully started.

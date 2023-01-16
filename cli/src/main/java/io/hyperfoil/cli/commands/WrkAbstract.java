@@ -251,12 +251,45 @@ public abstract class WrkAbstract {
          }
          Client.BenchmarkRef benchmark = client.register(builder.build(), null);
          invocation.context().setServerBenchmark(benchmark);
-         Client.RunRef run = benchmark.start(null, Collections.emptyMap());
+
+         //validate benchmark
+         Client.RunRef run = benchmark.start(null, Collections.emptyMap(), Boolean.TRUE);
+
+         boolean result = awaitBenchmarkResult(run, invocation);
+
+         if (result) {
+            if (run.get().errors.size() > 0) {
+               invocation.println("ERROR: " + run.get().errors.stream().collect(Collectors.joining(", ")));
+               return CommandResult.FAILURE;
+            }
+         } else {
+            return CommandResult.FAILURE;
+
+         }
+
+         run = benchmark.start(null, Collections.emptyMap());
          invocation.context().setServerRun(run);
 
          invocation.println("Running " + duration + " test @ " + url);
          invocation.println("  " + threads + " threads and " + connections + " connections");
 
+         result = awaitBenchmarkResult(run, invocation);
+
+         if (result) {
+            RequestStatisticsResponse total = run.statsTotal();
+            RequestStats testStats = total.statistics.stream().filter(rs -> "test".equals(rs.phase))
+                  .findFirst().orElseThrow(() -> new IllegalStateException("Error running command: Missing Statistics"));
+            AbstractHistogram histogram = HistogramConverter.convert(run.histogram(testStats.phase, testStats.stepId, testStats.metric));
+            List<StatisticsSummary> series = run.series(testStats.phase, testStats.stepId, testStats.metric);
+            printStats(testStats.summary, histogram, series, invocation);
+            return CommandResult.SUCCESS;
+         } else {
+            return CommandResult.FAILURE;
+         }
+
+      }
+
+      private boolean awaitBenchmarkResult(Client.RunRef run, HyperfoilCommandInvocation invocation) {
          while (true) {
             RequestStatisticsResponse recent = run.statsRecent();
             if ("TERMINATED".equals(recent.status)) {
@@ -269,15 +302,11 @@ public abstract class WrkAbstract {
             } catch (InterruptedException e) {
                invocation.println("Interrupt received, trying to abort run...");
                run.kill();
+               return false;
             }
          }
-         RequestStatisticsResponse total = run.statsTotal();
-         RequestStats testStats = total.statistics.stream().filter(rs -> "test".equals(rs.phase))
-               .findFirst().orElseThrow(() -> new IllegalStateException("Missing stats for phase 'test'"));
-         AbstractHistogram histogram = HistogramConverter.convert(run.histogram(testStats.phase, testStats.stepId, testStats.metric));
-         List<StatisticsSummary> series = run.series(testStats.phase, testStats.stepId, testStats.metric);
-         printStats(testStats.summary, histogram, series, invocation);
-         return CommandResult.SUCCESS;
+
+         return true;
       }
 
       protected abstract PhaseBuilder<?> phaseConfig(PhaseBuilder.Catalog catalog);
