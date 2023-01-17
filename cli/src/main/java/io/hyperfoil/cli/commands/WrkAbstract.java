@@ -85,8 +85,9 @@ public abstract class WrkAbstract {
 
    protected abstract String getCommand();
 
-   public void mainMethod(String[] args, Class<? extends AbstractWrkCommand> wrkClass) {
+   public int mainMethod(String[] args, Class<? extends AbstractWrkCommand> wrkClass) {
       CommandRuntime<HyperfoilCommandInvocation> cr = null;
+      CommandResult result = null;
       try {
          AeshCommandRuntimeBuilder<HyperfoilCommandInvocation> runtime = AeshCommandRuntimeBuilder.builder();
          runtime.commandInvocationProvider(new HyperfoilCommandInvocationProvider(new HyperfoilCliContext()));
@@ -101,7 +102,7 @@ public abstract class WrkAbstract {
             // As -H option could contain a whitespace we have to either escape the space or quote the argument.
             // However quoting would not work well if the argument contains a quote.
             String optionsCollected = Stream.of(args).map(arg -> arg.replaceAll(" ", "\\\\ ")).collect(Collectors.joining(" "));
-            cr.executeCommand(getCommand() + " " + optionsCollected);
+            result = cr.executeCommand(getCommand() + " " + optionsCollected);
          } finally {
             cr.executeCommand("exit");
          }
@@ -119,6 +120,7 @@ public abstract class WrkAbstract {
          }
          //todo: should provide help info here, will be added in newer version of æsh
       }
+      return result == null ? CommandResult.FAILURE.getResultValue() : result.getResultValue();
    }
 
    //   @CommandDefinition(name = "wrk", description = "Runs a workload simulation against one endpoint using the same vm")
