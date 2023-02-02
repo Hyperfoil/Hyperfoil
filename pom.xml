@@ -44,10 +44,10 @@
     </scm>
 
     <distributionManagement>
-        <snapshotRepository>
+        <repository>
             <id>ossrh</id>
             <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
-        </snapshotRepository>
+        </repository>
     </distributionManagement>
 
     <modules>
@@ -102,6 +102,7 @@
         <version.wildfly-common>1.6.0.Final</version.wildfly-common>
 
         <version.sonatype.nexus>1.6.13</version.sonatype.nexus>
+        <version.maven.compiler>3.10.1</version.maven.compiler>
         <version.maven.source>3.2.1</version.maven.source>
         <version.maven.javadoc>3.4.1</version.maven.javadoc>
         <version.maven.gpg>3.0.1</version.maven.gpg>
@@ -534,7 +535,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
-                    <version>3.8.1</version>
+                    <version>${version.maven.compiler}</version>
                     <configuration>
                         <source>${maven.compiler.source}</source>
                         <target>${maven.compiler.target}</target>
