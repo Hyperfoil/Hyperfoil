@@ -14,6 +14,9 @@ import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.util.AsciiString;
 
+import io.netty.util.ByteProcessor;
+import io.netty.util.CharsetUtil;
+
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 
@@ -145,64 +148,72 @@ public class Http1xResponseHandler extends BaseResponseHandler {
    private int readHeaders(ChannelHandlerContext ctx, ByteBuf buf, int readerIndex) throws Exception {
       int lineStartIndex = readerIndex;
       int lineEndIndex;
-      for (; readerIndex < buf.writerIndex(); ++readerIndex) {
-         byte val = buf.getByte(readerIndex);
-         if (val == CR) {
+      for (; readerIndex < buf.writerIndex(); ) {
+         if (!crRead) {
+            final int indexOfCr = buf.indexOf(readerIndex, buf.writerIndex(), CR);
+            if (indexOfCr == -1) {
+               readerIndex = buf.writerIndex();
+               break;
+            }
             crRead = true;
-         } else if (val == LF && crRead) {
-            crRead = false;
-            ByteBuf lineBuf;
-            // lineStartIndex is valid only if lastLine is empty - otherwise we would ignore an incomplete line
-            // in the buffer
-            if (readerIndex - lineStartIndex == 1 && lastLine.writerIndex() == 0
-                  || lastLine.writerIndex() == 1 && readerIndex == buf.readerIndex()) {
-               // empty line ends the headers
-               HttpRequest httpRequest = connection.peekRequest(0);
-               // Unsolicited response 408 may not have a matching request
-               if (httpRequest != null) {
-                  switch (httpRequest.method) {
-                     case HEAD:
-                     case CONNECT:
-                        contentLength = 0;
-                        chunked = false;
+            readerIndex = indexOfCr + 1;
+         } else {
+            byte val = buf.getByte(readerIndex);
+            if (val == LF) {
+               crRead = false;
+               ByteBuf lineBuf;
+               // lineStartIndex is valid only if lastLine is empty - otherwise we would ignore an incomplete line
+               // in the buffer
+               if (readerIndex - lineStartIndex == 1 && lastLine.writerIndex() == 0
+                     || lastLine.writerIndex() == 1 && readerIndex == buf.readerIndex()) {
+                  // empty line ends the headers
+                  HttpRequest httpRequest = connection.peekRequest(0);
+                  // Unsolicited response 408 may not have a matching request
+                  if (httpRequest != null) {
+                     switch (httpRequest.method) {
+                        case HEAD:
+                        case CONNECT:
+                           contentLength = 0;
+                           chunked = false;
+                     }
                   }
+                  state = State.BODY;
+                  lastLine.writerIndex(0);
+                  if (contentLength >= 0) {
+                     responseBytes = readerIndex - buf.readerIndex() + contentLength + 1;
+                  }
+                  return readerIndex + 1;
+               } else if (lastLine.isReadable()) {
+                  copyLastLine(buf, lineStartIndex, readerIndex);
+                  lineBuf = lastLine;
+                  lineEndIndex = lastLine.readableBytes() + readerIndex - lineStartIndex - 1; // account the CR
+                  lineStartIndex = 0;
+               } else {
+                  lineBuf = buf;
+                  lineEndIndex = readerIndex - 1; // account the CR
                }
-               state = State.BODY;
-               lastLine.writerIndex(0);
-               if (contentLength >= 0) {
-                  responseBytes = readerIndex - buf.readerIndex() + contentLength + 1;
+               if (matches(lineBuf, lineStartIndex, HttpHeaderNames.CONTENT_LENGTH)) {
+                  contentLength = readDecNumber(lineBuf, lineStartIndex + HttpHeaderNames.CONTENT_LENGTH.length() + 1);
+               } else if (matches(lineBuf, lineStartIndex, HttpHeaderNames.TRANSFER_ENCODING)) {
+                  chunked = matches(lineBuf, lineStartIndex + HttpHeaderNames.TRANSFER_ENCODING.length() + 1, HttpHeaderValues.CHUNKED);
+                  skipChunkBytes = 0;
                }
-               return readerIndex + 1;
-            } else if (lastLine.isReadable()) {
-               copyLastLine(buf, lineStartIndex, readerIndex);
-               lineBuf = lastLine;
-               lineEndIndex = lastLine.readableBytes() + readerIndex - lineStartIndex - 1; // account the CR
-               lineStartIndex = 0;
-            } else {
-               lineBuf = buf;
-               lineEndIndex = readerIndex - 1; // account the CR
-            }
-            if (matches(lineBuf, lineStartIndex, HttpHeaderNames.CONTENT_LENGTH)) {
-               contentLength = readDecNumber(lineBuf, lineStartIndex + HttpHeaderNames.CONTENT_LENGTH.length() + 1);
-            } else if (matches(lineBuf, lineStartIndex, HttpHeaderNames.TRANSFER_ENCODING)) {
-               chunked = matches(lineBuf, lineStartIndex + HttpHeaderNames.TRANSFER_ENCODING.length() + 1, HttpHeaderValues.CHUNKED);
-               skipChunkBytes = 0;
-            }
-            int endOfNameIndex = lineStartIndex, startOfValueIndex = lineStartIndex;
-            for (int i = lineStartIndex + 1; i < lineEndIndex; ++i) {
-               if (lineBuf.getByte(i) == ':') {
+               int endOfNameIndex = lineEndIndex, startOfValueIndex = lineStartIndex;
+               final int indexOfColon = lineBuf.indexOf(lineStartIndex, lineEndIndex, (byte) ':');
+               if (indexOfColon != -1) {
+                  final int i = indexOfColon;
                   for (endOfNameIndex = i - 1; endOfNameIndex >= lineStartIndex && lineBuf.getByte(endOfNameIndex) == ' '; --endOfNameIndex)
                      ;
                   for (startOfValueIndex = i + 1; startOfValueIndex < lineEndIndex && lineBuf.getByte(startOfValueIndex) == ' '; ++startOfValueIndex)
                      ;
-                  break;
                }
+               onHeaderRead(lineBuf, lineStartIndex, endOfNameIndex + 1, startOfValueIndex, lineEndIndex);
+               lastLine.writerIndex(0);
+               lineStartIndex = readerIndex + 1;
+            } else if (val != CR) {
+               crRead = false;
             }
-            onHeaderRead(lineBuf, lineStartIndex, endOfNameIndex + 1, startOfValueIndex, lineEndIndex);
-            lastLine.writerIndex(0);
-            lineStartIndex = readerIndex + 1;
-         } else {
-            crRead = false;
+            ++readerIndex;
          }
       }
       copyLastLine(buf, lineStartIndex, readerIndex);
@@ -340,7 +351,7 @@ public class Http1xResponseHandler extends BaseResponseHandler {
       onData(ctx, buf);
    }
 
-   private boolean matches(ByteBuf buf, int bufOffset, AsciiString string) {
+   private static boolean matches(ByteBuf buf, int bufOffset, AsciiString string) {
       bufOffset = skipWhitespaces(buf, bufOffset);
       if (bufOffset + string.length() > buf.writerIndex()) {
          return false;
@@ -386,7 +397,7 @@ public class Http1xResponseHandler extends BaseResponseHandler {
       }
    }
 
-   private int readDecNumber(ByteBuf buf, int index) {
+   private static int readDecNumber(ByteBuf buf, int index) {
       index = skipWhitespaces(buf, index);
       int value = 0;
       for (; index < buf.writerIndex(); ++index) {
@@ -400,12 +411,12 @@ public class Http1xResponseHandler extends BaseResponseHandler {
       throw new IllegalStateException();
    }
 
-   private int skipWhitespaces(ByteBuf buf, int index) {
-      for (; index < buf.writerIndex(); ++index) {
-         byte b = buf.getByte(index);
-         if (b != ' ' && b != '\t') break;
+   private static int skipWhitespaces(ByteBuf buf, int index) {
+      final int i = buf.forEachByte(index, buf.writerIndex() - index, ByteProcessor.FIND_NON_LINEAR_WHITESPACE);
+      if (i != -1) {
+         return i;
       }
-      return index;
+      return buf.writerIndex();
    }
 
    @Override
@@ -457,7 +468,7 @@ public class Http1xResponseHandler extends BaseResponseHandler {
       HttpRequest request = connection.peekRequest(0);
       if (request == null) {
          if (trace) {
-            String name = Util.toString(buf, startOfName, endOfName - startOfName);
+            AsciiString name = Util.toAsciiString(buf, startOfName, endOfName - startOfName);
             String value = Util.toString(buf, startOfValue, endOfValue - startOfValue);
             log.trace("No request, received headers: {}: {}", name, value);
          }
@@ -467,8 +478,19 @@ public class Http1xResponseHandler extends BaseResponseHandler {
          HttpResponseHandlers handlers = request.handlers();
          request.enter();
          try {
-            String name = Util.toString(buf, startOfName, endOfName - startOfName);
-            String value = Util.toString(buf, startOfValue, endOfValue - startOfValue);
+            AsciiString name = Util.toAsciiString(buf, startOfName, endOfName - startOfName);
+            final int valueLen = endOfValue - startOfValue;
+            // HTTP 1.1 RFC admit just latin header values, but still; better be safe and check it
+            final CharSequence value;
+            // Java Compact strings already perform this check, why doing it again?
+            // AsciiString allocate the backed byte[] just once, saving to create/cache
+            // a tmp one just to read buf content, if it won't be backed by a byte[] as well.
+            if (Util.isAscii(buf, startOfValue, valueLen)) {
+               value = Util.toAsciiString(buf, startOfValue, valueLen);
+            } else {
+               // the built-in method has the advantage vs Util.toString that the backing byte[] is cached, if ever happen
+               value = buf.toString(startOfName, valueLen, CharsetUtil.UTF_8);
+            }
             handlers.handleHeader(request, name, value);
          } finally {
             request.exit();

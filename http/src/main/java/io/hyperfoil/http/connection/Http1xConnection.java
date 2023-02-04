@@ -23,6 +23,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.util.AsciiString;
+import io.netty.util.CharsetUtil;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
@@ -340,18 +341,31 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
 
       @Override
       public void putHeader(CharSequence header, CharSequence value) {
+         final ByteBuf buf = this.buf;
+         buf.ensureWritable(header.length() + value.length() + 4);
          if (header instanceof AsciiString) {
-            buf.writeBytes(((AsciiString) header).array());
+            final AsciiString ascii = (AsciiString) header;
+            // remove this when https://github.com/netty/netty/pull/13197 will be merged
+            buf.writeBytes(ascii.array(), ascii.arrayOffset(), ascii.length());
          } else {
-            Util.string2byteBuf(header, buf);
+            // header name CANNOT be anything but US-ASCII: latin is already wider
+            buf.writeCharSequence(header, CharsetUtil.ISO_8859_1);
          }
-         buf.writeByte(':').writeByte(' ');
+         buf.writeByte(':');
+         buf.writeByte(' ');
          if (value instanceof AsciiString) {
-            buf.writeBytes(((AsciiString) value).array());
+            final AsciiString ascii = (AsciiString) value;
+            // remove this when https://github.com/netty/netty/pull/13197 will be merged
+            buf.writeBytes(ascii.array(), ascii.arrayOffset(), ascii.length());
          } else {
-            Util.string2byteBuf(value, buf);
+            if (Util.isLatin(value)) {
+               buf.writeCharSequence(value, CharsetUtil.ISO_8859_1);
+            } else {
+               buf.writeCharSequence(value, CharsetUtil.UTF_8);
+            }
          }
-         buf.writeByte('\r').writeByte('\n');
+         buf.writeByte('\r');
+         buf.writeByte('\n');
          HttpCache.get(request.session).requestHeader(request, header, value);
       }
    }
