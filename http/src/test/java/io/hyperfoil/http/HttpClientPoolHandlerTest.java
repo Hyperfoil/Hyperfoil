@@ -95,8 +95,8 @@ public class HttpClientPoolHandlerTest {
                   latch.countDown();
                })
                .header((req, header, value) -> {
-                  if ("foo".equals(header)) {
-                     assertThat(value).isEqualTo("bar");
+                  if ("foo".contentEquals(header)) {
+                     assertThat("bar").asString().isEqualTo("bar");
                      latch.countDown();
                   }
                })

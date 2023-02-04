@@ -7,6 +7,7 @@ import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.CharBuffer;
 import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CoderResult;
@@ -23,6 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.netty.buffer.ByteBuf;
+import io.netty.util.AsciiString;
 
 public class Util {
    public static final CompletableFuture<Void> COMPLETED_VOID_FUTURE = CompletableFuture.completedFuture(null);
@@ -87,6 +89,77 @@ public class Util {
          buf.getBytes(offset, strBytes, 0, length);
          return new String(strBytes, StandardCharsets.UTF_8);
       }
+   }
+
+   public static boolean isLatin(CharSequence cs) {
+      final int len = cs.length();
+      if (len == 0 || cs instanceof AsciiString) {
+         return true;
+      }
+      // TODO in a future JDK it can read the coder bits of String
+      final int longRounds = len >>> 3;
+      int off = 0;
+      for (int i = 0; i < longRounds; i++) {
+         final long batch1 = (((long) cs.charAt(off)) << 48) |
+               (((long) cs.charAt(off + 2)) << 32) |
+               cs.charAt(off + 4) << 16 |
+               cs.charAt(off + 6);
+         final long batch2 = (((long) cs.charAt(off + 1)) << 48) |
+               (((long) cs.charAt(off + 3)) << 32) |
+               cs.charAt(off + 5) << 16 |
+               cs.charAt(off + 7);
+         // 0xFF00 is 0b1111111100000000: it masks whatever exceed 255
+         // Biggest latin is 255 -> 0b11111111
+         if (((batch1 | batch2) & 0xff00_ff00_ff00_ff00L) != 0) {
+            return false;
+         }
+         off += Long.BYTES;
+      }
+      final int byteRounds = len & 7;
+      if (byteRounds > 0) {
+         for (int i = 0; i < byteRounds; i++) {
+            final char c = cs.charAt(off + i);
+            if (c > 255) {
+               return false;
+            }
+         }
+      }
+      return true;
+   }
+
+   public static boolean isAscii(ByteBuf cs, int offset, int len) {
+      if (len == 0) {
+         return true;
+      }
+      // maybe in a future JDK we can read the coder bits of String
+      final int longRounds = len >>> 3;
+      int off = offset;
+      final boolean usLE = ByteOrder.nativeOrder() == ByteOrder.LITTLE_ENDIAN;
+      for (int i = 0; i < longRounds; i++) {
+         final long batch = usLE ? cs.getLongLE(off) : cs.getLong(off);
+         // 0x80 is 0b1000000: it masks whatever exceed 127
+         // Biggest US-ASCII is 127 -> 0b01111111
+         if ((batch & 0x80_80_80_80_80_80_80_80L) != 0) {
+            return false;
+         }
+         off += Long.BYTES;
+      }
+      final int byteRounds = len & 7;
+      if (byteRounds > 0) {
+         for (int i = 0; i < byteRounds; i++) {
+            final byte c = cs.getByte(off + i);
+            if (c < 0) {
+               return false;
+            }
+         }
+      }
+      return true;
+   }
+
+   public static AsciiString toAsciiString(ByteBuf buf, int offset, int length) {
+      final byte[] bytes = new byte[length];
+      buf.getBytes(offset, bytes);
+      return new AsciiString(bytes, false);
    }
 
    public static ByteBuf string2byteBuf(CharSequence str, ByteBuf buffer) {
