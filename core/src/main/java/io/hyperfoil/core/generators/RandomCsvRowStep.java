@@ -10,6 +10,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.IntUnaryOperator;
 
 import org.kohsuke.MetaInfServices;
 
@@ -32,9 +33,23 @@ public class RandomCsvRowStep implements Step {
    private final String[][] rows;
    private final ObjectAccess[] columnVars;
 
-   public RandomCsvRowStep(String[][] rows, ObjectAccess[] columnVars) {
+   // Use just for testing
+   private final transient IntUnaryOperator rowSelector;
+
+   public RandomCsvRowStep(String[][] rows, ObjectAccess[] columnVars, IntUnaryOperator rowSelector) {
       this.rows = rows;
       this.columnVars = columnVars;
+      this.rowSelector = rowSelector;
+   }
+
+   // Visible for testing
+   String[][] rows() {
+      return rows;
+   }
+
+   // Visible for testing
+   IntUnaryOperator rowSelector() {
+      return rowSelector;
    }
 
    @Override
@@ -43,10 +58,17 @@ public class RandomCsvRowStep implements Step {
          throw new RuntimeException("No rows available - was the CSV file empty?");
       }
       // columns provided by csv
-      ThreadLocalRandom random = ThreadLocalRandom.current();
-      String[] row = rows[random.nextInt(rows.length)];
-      for (int i = 0, j = 0; i < columnVars.length; i += 1) {
-         columnVars[j++].setObject(session, row[i]);
+      final var rowSelector = this.rowSelector;
+      final int rndRow;
+      if (rowSelector == null) {
+         rndRow = ThreadLocalRandom.current().nextInt(rows.length);
+      } else {
+         rndRow = rowSelector.applyAsInt(rows.length);
+      }
+      final var row = rows[rndRow];
+      final var columnVars = this.columnVars;
+      for (int i = 0; i < columnVars.length; i++) {
+         columnVars[i].setObject(session, row[i]);
       }
       return true;
    }
@@ -61,6 +83,7 @@ public class RandomCsvRowStep implements Step {
       private boolean skipComments;
       private char separator = ',';
       private final List<String> builderColumns = new ArrayList<>();
+      private transient IntUnaryOperator customRowSelector = null;
 
       @Override
       public List<Step> build() {
@@ -102,6 +125,10 @@ public class RandomCsvRowStep implements Step {
                         sb.append(c);
                      }
                   } else {
+                     if (i == 0) {
+                        assert lineNumber > 1;
+                        sb.append('\n');
+                     }
                      if (c == '"') {
                         if (maybeClosingQuote) {
                            sb.append(c); // quoted quote
@@ -133,6 +160,7 @@ public class RandomCsvRowStep implements Step {
                   sb.setLength(0);
                   String[] arr = new String[srcIndex.length];
                   Arrays.setAll(arr, i -> srcIndex[i] < currentRecord.size() ? currentRecord.get(srcIndex[i]) : null);
+                  currentRecord.clear();
                   records.add(arr);
                }
                ++lineNumber;
@@ -142,10 +170,16 @@ public class RandomCsvRowStep implements Step {
             // to reuse the data on server side.
 
             ObjectAccess[] columnVars = builderColumns.stream().filter(Objects::nonNull).map(SessionFactory::objectAccess).toArray(ObjectAccess[]::new);
-            return Collections.singletonList(new RandomCsvRowStep(rows, columnVars));
+            return Collections.singletonList(new RandomCsvRowStep(rows, columnVars, customRowSelector));
          } catch (IOException ioe) {
             throw new BenchmarkDefinitionException("Failed to read file " + file, ioe);
          }
+      }
+
+      // Visible For Testing
+      Builder customSelector(IntUnaryOperator selector) {
+         this.customRowSelector = Objects.requireNonNull(selector);
+         return this;
       }
 
       /**
