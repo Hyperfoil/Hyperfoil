@@ -1,6 +1,7 @@
 # Hyperfoil
 
-Hyperfoil is microservice-oriented distributed benchmark framework.
+Hyperfoil is microservice-oriented distributed benchmark framework
+that solves the [coordinated-omission fallacy](https://www.slideshare.net/InfoQ/how-not-to-measure-latency-60111840).
 
 Project website: [https://hyperfoil.io](https://hyperfoil.io).
 
