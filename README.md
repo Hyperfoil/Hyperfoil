@@ -1,4 +1,13 @@
-# Hyperfoil
+<div align="center">
+
+ ![hyperfoil_logo](https://user-images.githubusercontent.com/91419219/228698725-f281b5cc-7a36-4a21-b86f-995a3bddd205.png)
+
+
+<a href="https://github.com/Hyperfoil/Hyperfoil/issues"><img alt="GitHub issues" src="https://img.shields.io/github/issues/Hyperfoil/Hyperfoil"></a>
+<a href="https://github.com/Hyperfoil/Horreum/fork"><img alt="GitHub forks" src="https://img.shields.io/github/forks/Hyperfoil/Hyperfoil"></a>
+<a href="https://github.com/Hyperfoil/Hyperfoil/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/Hyperfoil/Hyperfoil"></a>
+<a href="https://github.com/Hyperfoil/Hyperfoil//blob/main/LICENSE"><img alt="GitHub license" src="https://img.shields.io/github/license/Hyperfoil/Hyperfoil"></a> 
+</div>
 
 Hyperfoil is microservice-oriented distributed benchmark framework
 that solves the [coordinated-omission fallacy](https://www.slideshare.net/InfoQ/how-not-to-measure-latency-60111840).
