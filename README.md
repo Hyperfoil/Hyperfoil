@@ -41,18 +41,18 @@ cd distribution/target/distribution/
 
 We publish the image at [quay.io/hyperfoil/hyperfoil](https://quay.io/repository/hyperfoil/hyperfoil?tab=tags).
 
-## Contributing
+## 🧑‍💻 Contributing
 
-Contributions to `Hyperfoil` are managed on [GitHub.com](https://github.com/Hyperfoil/Hyperfoil/)
+Contributions to `Horreum` Please check our [CONTRIBUTING.md](https://github.com/Hyperfoil/Horreum/blob/master/CONTRIBUTING.md)
+
+### If you have any idea or doubt 👇
 
 * [Ask a question](https://github.com/Hyperfoil/Hyperfoil/discussions)
 * [Raise an issue](https://github.com/Hyperfoil/Hyperfoil/issues)
 * [Feature request](https://github.com/Hyperfoil/Hyperfoil/issues)
 * [Code submission](https://github.com/Hyperfoil/Hyperfoil/pulls)
 
-Contributions are most welcome !
-
-You can reach the community on [Zulip](http://hyperfoil.zulipchat.com).
+Contribution is the best way to support and get involved in community !
 
 Please, consult our [Code of Conduct](./CODE_OF_CONDUCT.md) policies for interacting in our
 community.
