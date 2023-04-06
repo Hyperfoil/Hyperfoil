@@ -43,7 +43,7 @@ We publish the image at [quay.io/hyperfoil/hyperfoil](https://quay.io/repository
 
 ## 🧑‍💻 Contributing
 
-Contributions to `Horreum` Please check our [CONTRIBUTING.md](https://github.com/Hyperfoil/Horreum/blob/master/CONTRIBUTING.md)
+Contributions to `Hyperfoil` Please check our [CONTRIBUTING.md](https://github.com/Hyperfoil/Horreum/blob/master/CONTRIBUTING.md)
 
 ### If you have any idea or doubt 👇
 
