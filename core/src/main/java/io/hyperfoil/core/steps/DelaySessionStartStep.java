@@ -51,7 +51,7 @@ public class DelaySessionStartStep implements Step, ResourceUtilizer {
       if (now < next) {
          if (holder.future == null) {
             log.trace("#{} scheduling in {} ms", session.uniqueId(), next - now);
-            holder.future = session.executor().schedule(session, next - now, TimeUnit.MILLISECONDS);
+            holder.future = session.executor().schedule(session.runTask(), next - now, TimeUnit.MILLISECONDS);
          }
          return false;
       }
@@ -72,7 +72,7 @@ public class DelaySessionStartStep implements Step, ResourceUtilizer {
       public int iteration = 0;
       public long startTimeWithOffset = Long.MIN_VALUE;
       public double period;
-      public ScheduledFuture<Void> future;
+      public ScheduledFuture<?> future;
       public PhaseInstance phase;
 
       public long lastStartTime() {

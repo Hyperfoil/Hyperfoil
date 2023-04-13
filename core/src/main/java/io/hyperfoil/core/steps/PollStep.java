@@ -45,7 +45,7 @@ public class PollStep<T> implements Step {
          if (object == null) {
             // Note: it's possible that we'll try to poll earlier
             log.trace("Did not fetch object, scheduling #{} in {}", session.uniqueId(), periodMs);
-            session.executor().schedule(session, periodMs, TimeUnit.MILLISECONDS);
+            session.executor().schedule(session.runTask(), periodMs, TimeUnit.MILLISECONDS);
             return false;
          } else if (filter.test(session, object)) {
             toVar.setObject(session, object);
@@ -56,7 +56,7 @@ public class PollStep<T> implements Step {
       }
       // We did not have an accepting match
       log.trace("Not accepted, scheduling #{} in {}", session.uniqueId(), periodMs);
-      session.executor().schedule(session, periodMs, TimeUnit.MILLISECONDS);
+      session.executor().schedule(session.runTask(), periodMs, TimeUnit.MILLISECONDS);
       return false;
    }
 

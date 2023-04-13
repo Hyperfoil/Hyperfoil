@@ -26,7 +26,6 @@ import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -58,7 +57,9 @@ class SessionImpl implements Session {
    private final int threadId;
    private final int uniqueId;
 
-   private final Callable<Void> deferredStart = this::deferredStart;
+   private final Runnable deferredStart = this::deferredStart;
+
+   private final Runnable runTask = this::run;
 
    SessionImpl(Scenario scenario, int threadId, int uniqueId) {
       this.sequencePool = new LimitedPool<>(scenario.maxSequences(), SequenceInstance::new);
@@ -80,6 +81,11 @@ class SessionImpl implements Session {
          sequencePool.release(currentSequence);
          currentSequence = null;
       }
+   }
+
+   @Override
+   public Runnable runTask() {
+      return runTask;
    }
 
    @Override
@@ -199,7 +205,7 @@ class SessionImpl implements Session {
       Object res = resources.get(key);
       if (res == null) {
          return null;
-      } else if (res instanceof Resource[]) {
+      } else if (res.getClass().isArray() && res instanceof Resource[]) {
          Resource[] array = (Resource[]) res;
          return (R) array[currentSequence.index()];
       } else {
@@ -221,8 +227,7 @@ class SessionImpl implements Session {
       return (V) var;
    }
 
-   @Override
-   public Void call() {
+   private void run() {
       scheduled = false;
       try {
          runSession();
@@ -235,7 +240,6 @@ class SessionImpl implements Session {
             phase.fail(t);
          }
       }
-      return null;
    }
 
    public void runSession() {
@@ -345,7 +349,7 @@ class SessionImpl implements Session {
          log.trace("#{} Session starting in {}", uniqueId, phase.definition().name);
       }
       resetPhase(phase);
-      executor.submit(deferredStart);
+      executor.execute(deferredStart);
    }
 
    private Void deferredStart() {
@@ -353,7 +357,7 @@ class SessionImpl implements Session {
       for (Sequence sequence : phase.definition().scenario().initialSequences()) {
          startSequence(sequence, false, ConcurrencyPolicy.FAIL);
       }
-      call();
+      run();
       return null;
    }
 
@@ -435,7 +439,7 @@ class SessionImpl implements Session {
    public void proceed() {
       if (!scheduled) {
          scheduled = true;
-         executor.submit(this);
+         executor.execute(runTask);
       }
    }
 

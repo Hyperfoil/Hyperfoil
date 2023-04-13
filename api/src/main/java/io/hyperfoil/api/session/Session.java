@@ -1,7 +1,6 @@
 package io.hyperfoil.api.session;
 
 import java.io.Serializable;
-import java.util.concurrent.Callable;
 import java.util.function.Supplier;
 
 import io.hyperfoil.api.config.Scenario;
@@ -11,7 +10,9 @@ import io.netty.util.concurrent.EventExecutor;
 import io.hyperfoil.api.statistics.Statistics;
 import io.hyperfoil.api.config.Phase;
 
-public interface Session extends Callable<Void> {
+public interface Session {
+
+   Runnable runTask();
 
    void reserve(Scenario scenario);
 
