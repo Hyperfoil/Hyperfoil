@@ -226,7 +226,7 @@ function addResultToWindow(commandResult) {
    while (true) {
       if (typeof commandResult !== 'string') {
          break;
-      } else if (commandResult.startsWith('\u001b[160D') || commandResult.startsWith('\u001b[196D')) {
+      } else if (commandResult.startsWith('\u001b[160D') || commandResult.startsWith('\u001b[175D') || commandResult.startsWith('\u001b[196D')) {
          // arrow up, ignore
          commandResult = commandResult.slice(6);
       } else if (commandResult.startsWith('\u001b[2K') || commandResult.startsWith('\u001b[K')) {
