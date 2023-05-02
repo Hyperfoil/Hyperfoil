@@ -1,10 +1,10 @@
-require.config({ paths: { 'vs': 'https://cdn.jsdelivr.net/npm/monaco-editor@0.22.3/min/vs' }});
+require.config({ paths: { 'vs': 'https://cdn.jsdelivr.net/npm/monaco-editor@0.37.1/min/vs' }});
 window.MonacoEnvironment = { getWorkerUrl: () => proxy };
 let proxy = URL.createObjectURL(new Blob([`
    self.MonacoEnvironment = {
-      baseUrl: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.22.3/min'
+      baseUrl: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.37.1/min'
    };
-   importScripts('https://cdn.jsdelivr.net/npm/monaco-editor@0.22.3/min/vs/base/worker/workerMain.min.js');
+   importScripts('https://cdn.jsdelivr.net/npm/monaco-editor@0.37.1/min/vs/base/worker/workerMain.min.js');
 `], { type: 'text/javascript' }));
 
 require(["vs/editor/editor.main"], function () {
