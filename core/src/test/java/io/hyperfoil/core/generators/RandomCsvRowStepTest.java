@@ -41,6 +41,7 @@ public class RandomCsvRowStepTest {
          cols.accept(pos, pos);
       }
       String[][] rows = ((RandomCsvRowStep) builder.build().get(0)).rows();
+      Locator.pop();
       Assert.assertEquals(rows.length, DATA.length);
       for (int i = 0; i < DATA.length; i++) {
          Assert.assertArrayEquals(DATA[i], rows[i]);
