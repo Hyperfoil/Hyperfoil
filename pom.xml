@@ -96,7 +96,7 @@
         <version.slf4j>2.0.6</version.slf4j>
         <version.snakeyaml>1.33</version.snakeyaml>
         <version.vertx>4.3.7</version.vertx>
-        <version.infinispan>13.0.8.Final</version.infinispan>
+        <version.infinispan>14.0.9.Final</version.infinispan>
         <version.jboss-threads>3.5.0.Final</version.jboss-threads>
         <version.jboss-logging>3.5.0.Final</version.jboss-logging>
         <version.wildfly-common>1.6.0.Final</version.wildfly-common>

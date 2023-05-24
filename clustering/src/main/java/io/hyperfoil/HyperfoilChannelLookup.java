@@ -36,7 +36,7 @@ public class HyperfoilChannelLookup implements JGroupsChannelLookup {
          } else {
             log.info("Reducing join timeout.");
             GMS gms = channel.getProtocolStack().findProtocol(GMS.class);
-            gms.joinTimeout(0);
+            gms.setJoinTimeout(0);
          }
          TCP tcp = channel.getProtocolStack().findProtocol(TCP.class);
          System.setProperty(Properties.CONTROLLER_CLUSTER_IP, tcp.getBindAddress().getHostAddress());

@@ -91,7 +91,7 @@ public class HotRodRemoteCachePoolImpl implements HotRodRemoteCachePool {
     */
    public static class RemoteCacheWithoutToString<K, V> {
       private RemoteCache<K, V> remoteCache;
-      public RemoteCacheWithoutToString(RemoteCache remoteCache) {
+      public RemoteCacheWithoutToString(RemoteCache<K, V> remoteCache) {
          this.remoteCache = remoteCache;
       }
 
