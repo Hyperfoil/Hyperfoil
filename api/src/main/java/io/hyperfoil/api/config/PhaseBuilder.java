@@ -33,6 +33,7 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
    protected List<PhaseForkBuilder> forks = new ArrayList<>();
    protected boolean isWarmup = false;
    protected Map<String, List<SLABuilder<PB>>> customSlas = new HashMap<>();
+   protected PhaseReferenceDelay startWith;
 
    protected PhaseBuilder(BenchmarkBuilder parent, String name) {
       this.name = name;
@@ -40,10 +41,9 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
       parent.addPhase(name, this);
    }
 
-   public static Phase noop(SerializableSupplier<Benchmark> benchmark, int id, int iteration, String iterationName, long duration,
-                            Collection<String> startAfter, Collection<String> startAfterStrict, Collection<String> terminateAfterStrict) {
+   public static Phase noop(SerializableSupplier<Benchmark> benchmark, int id, int iteration, String iterationName, long duration, Collection<String> startAfter, Collection<String> startAfterStrict, Collection<String> terminateAfterStrict) {
       Scenario scenario = new Scenario(new Sequence[0], new Sequence[0], 0, 0);
-      return new Phase(benchmark, id, iteration, iterationName, scenario, -1, startAfter, startAfterStrict, terminateAfterStrict, duration, duration, null, true, new Model.Noop(), Collections.emptyMap());
+      return new Phase(benchmark, id, iteration, iterationName, scenario, -1, startAfter, startAfterStrict, terminateAfterStrict, duration, duration, null, true, new Model.Noop(), Collections.emptyMap(), null);
    }
 
    public BenchmarkBuilder endPhase() {
@@ -104,6 +104,23 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
 
    public PB startAfterStrict(PhaseReference phase) {
       this.startAfterStrict.add(phase);
+      return self();
+   }
+
+
+   public PB startWith(String phase) {
+      if (this.startWith != null) {
+         throw new BenchmarkDefinitionException("Start with " + this.startWith.phase + " already defined, cannot set multiple startWith clauses");
+      }
+      this.startWith = new PhaseReferenceDelay(phase, RelativeIteration.NONE, null, 0);
+      return self();
+   }
+
+   public PB startWith(PhaseReferenceDelay startWith) {
+      if (this.startWith != null) {
+         throw new BenchmarkDefinitionException("Start with " + this.startWith.phase + " already defined, cannot set multiple startWith clauses");
+      }
+      this.startWith = startWith;
       return self();
    }
 
@@ -170,12 +187,12 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
       Collector<Map.Entry<String, List<SLABuilder<PB>>>, ?, Map<String, SLA[]>> customSlaCollector =
             Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().stream().map(SLABuilder::build).toArray(SLA[]::new));
       return new Phase(benchmark, phaseId, iteration, iterationName(iteration, f.name), f.scenario.build(),
-            iterationStartTime(iteration),
-            iterationReferences(startAfter, iteration, false),
+            iterationStartTime(iteration), iterationReferences(startAfter, iteration, false),
             iterationReferences(startAfterStrict, iteration, true),
-            iterationReferences(terminateAfterStrict, iteration, false), duration,
-            maxDuration, sharedResources(f), isWarmup, createModel(iteration, f.weight),
-            Collections.unmodifiableMap(customSlas.entrySet().stream().collect(customSlaCollector)));
+            iterationReferences(terminateAfterStrict, iteration, false), duration, maxDuration,
+            sharedResources(f), isWarmup, createModel(iteration, f.weight),
+            Collections.unmodifiableMap(customSlas.entrySet().stream().collect(customSlaCollector)),
+            iterationStartWith(startWith, iteration));
    }
 
    String iterationName(int iteration, String forkName) {
@@ -242,6 +259,35 @@ public abstract class PhaseBuilder<PB extends PhaseBuilder<PB>> {
          names.add(formatIteration(name, iteration - 1));
       }
       return names;
+   }
+
+   StartWithDelay iterationStartWith(PhaseReferenceDelay startWith, int iteration) {
+      if (startWith == null) {
+         return null;
+      }
+
+      if (startWith.iteration != RelativeIteration.NONE && maxIterations <= 1 && !forceIterations) {
+         String msg = "Phase " + name + " tries to reference " + startWith.phase + "/" + startWith.iteration + " but this phase does not have any iterations (cannot determine relative iteration).";
+         throw new BenchmarkDefinitionException(msg);
+      }
+
+      String phase = null;
+      switch (startWith.iteration) {
+         case NONE:
+            phase = startWith.phase;
+            break;
+         case PREVIOUS:
+            if (iteration > 0) {
+               phase = formatIteration(startWith.phase, iteration - 1);
+            }
+            break;
+         case SAME:
+            phase = formatIteration(startWith.phase, iteration - 1);
+            break;
+         default:
+            throw new IllegalArgumentException();
+      }
+      return phase != null ? new StartWithDelay(phase, startWith.delay) : null;
    }
 
    public void readForksFrom(PhaseBuilder<?> other) {

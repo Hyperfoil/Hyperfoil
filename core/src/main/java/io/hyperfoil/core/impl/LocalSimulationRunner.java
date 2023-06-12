@@ -1,5 +1,6 @@
 package io.hyperfoil.core.impl;
 
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
@@ -149,7 +150,18 @@ public class LocalSimulationRunner extends SimulationRunner {
       return instances.values().stream().filter(phase -> phase.status() == PhaseInstance.Status.NOT_STARTED &&
             startTime + phase.definition().startTime() <= System.currentTimeMillis() &&
             phase.definition().startAfter().stream().allMatch(dep -> instances.get(dep).status().isFinished()) &&
-            phase.definition().startAfterStrict().stream().allMatch(dep -> instances.get(dep).status().isTerminated()))
+            phase.definition().startAfterStrict().stream().allMatch(dep -> instances.get(dep).status().isTerminated()) &&
+            (phase.definition().startWithDelay() == null ||
+                  instances.get(phase.definition().startWithDelay().phase).status().isStarted() &&
+                  instances.get(phase.definition().startWithDelay().phase).absoluteStartTime() + phase.definition().startWithDelay().delay <= System.currentTimeMillis()))
             .toArray(PhaseInstance[]::new);
+   }
+
+   /**
+    * More for testing purposes, allow internal phases inspection
+    * @return the phase instances map
+    */
+   public Map<String, PhaseInstance> instances() {
+      return instances;
    }
 }

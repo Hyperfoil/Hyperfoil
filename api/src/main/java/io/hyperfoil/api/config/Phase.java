@@ -3,11 +3,13 @@ package io.hyperfoil.api.config;
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import io.hyperfoil.function.SerializableSupplier;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 
 public final class Phase implements Serializable {
    protected static final Logger log = LogManager.getLogger(Phase.class);
@@ -32,11 +34,9 @@ public final class Phase implements Serializable {
    public final Model model;
    public final boolean isWarmup;
    public final Map<String, SLA[]> customSlas;
+   public final StartWithDelay startWithDelay;
 
-   public Phase(SerializableSupplier<Benchmark> benchmark, int id, int iteration, String name, Scenario scenario, long startTime,
-                Collection<String> startAfter, Collection<String> startAfterStrict,
-                Collection<String> terminateAfterStrict, long duration, long maxDuration, String sharedResources,
-                boolean isWarmup, Model model, Map<String, SLA[]> customSlas) {
+   public Phase(SerializableSupplier<Benchmark> benchmark, int id, int iteration, String name, Scenario scenario, long startTime, Collection<String> startAfter, Collection<String> startAfterStrict, Collection<String> terminateAfterStrict, long duration, long maxDuration, String sharedResources, boolean isWarmup, Model model, Map<String, SLA[]> customSlas, StartWithDelay startWithDelay) {
       this.benchmark = benchmark;
       this.id = id;
       this.iteration = iteration;
@@ -52,6 +52,7 @@ public final class Phase implements Serializable {
       this.isWarmup = isWarmup;
       this.model = model;
       this.customSlas = customSlas;
+      this.startWithDelay = startWithDelay;
       if (scenario == null) {
          throw new BenchmarkDefinitionException("Scenario was not set for phase '" + name + "'");
       }
@@ -120,5 +121,25 @@ public final class Phase implements Serializable {
 
    public String description() {
       return model.description();
+   }
+
+   /**
+    * @return Start with delay object defining the phase to which it is coupled, the current phase will start after a
+    * fixed time (delay) from the start of the coupled phase.
+    */
+   public StartWithDelay startWithDelay() {
+      return startWithDelay;
+   }
+
+   /**
+    * Compute and return all phase's dependencies
+    * @return list of phase names
+    */
+   public Collection<String> getDependencies() {
+      Stream<String> dependencies = Stream.concat(startAfter().stream(), startAfterStrict().stream());
+      if (startWithDelay() != null) {
+         dependencies = Stream.concat(dependencies, Stream.of(startWithDelay().phase));
+      }
+      return dependencies.collect(Collectors.toList());
    }
 }

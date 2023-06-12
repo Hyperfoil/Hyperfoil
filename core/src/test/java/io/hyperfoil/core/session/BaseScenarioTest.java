@@ -1,13 +1,10 @@
 package io.hyperfoil.core.session;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.junit.After;
 import org.junit.Before;
 
@@ -18,19 +15,11 @@ import io.hyperfoil.api.config.ScenarioBuilder;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.core.impl.LocalSimulationRunner;
 import io.hyperfoil.core.impl.statistics.StatisticsCollector;
-import io.hyperfoil.core.parser.BenchmarkParser;
-import io.hyperfoil.core.parser.ParserException;
-import io.hyperfoil.core.test.TestUtil;
 import io.hyperfoil.core.util.CountDown;
-import io.hyperfoil.impl.Util;
 import io.vertx.core.Vertx;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
-
 import io.vertx.ext.unit.TestContext;
 
-public abstract class BaseScenarioTest {
+public abstract class BaseScenarioTest extends BaseBenchmarkParserTest {
    protected final Logger log = LogManager.getLogger(getClass());
 
    protected Vertx vertx;
@@ -52,23 +41,6 @@ public abstract class BaseScenarioTest {
       benchmarkBuilder = BenchmarkBuilder.builder();
       benchmarkBuilder.threads(threads());
       vertx = Vertx.vertx();
-   }
-
-   protected Benchmark loadScenario(String name) {
-      try {
-         InputStream config = getClass().getClassLoader().getResourceAsStream(name);
-         Benchmark benchmark = loadBenchmark(config);
-         // Serialization here is solely for the purpose of asserting serializability for all the components
-         byte[] bytes = Util.serialize(benchmark);
-         assertThat(bytes).isNotNull();
-         return benchmark;
-      } catch (IOException | ParserException e) {
-         throw new AssertionError(e);
-      }
-   }
-
-   protected Benchmark loadBenchmark(InputStream config) throws IOException, ParserException {
-      return BenchmarkParser.instance().buildBenchmark(config, TestUtil.benchmarkData(), Collections.emptyMap());
    }
 
    @After

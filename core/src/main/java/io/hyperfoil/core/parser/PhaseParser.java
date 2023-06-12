@@ -24,6 +24,7 @@ abstract class PhaseParser extends AbstractParser<PhaseBuilder.Catalog, PhaseBui
       register("maxIterations", new PropertyParser.Int<>(PhaseBuilder::maxIterations));
       register("isWarmup", new PropertyParser.Boolean<>(PhaseBuilder::isWarmup));
       register("customSla", new CustomSLAParser());
+      register("startWith", new StartWithParser(PhaseBuilder::startWith));
    }
 
    @Override

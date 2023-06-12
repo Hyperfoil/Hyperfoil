@@ -11,7 +11,7 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 
 public class ControllerPhase {
-   private static Logger log = LogManager.getLogger(ControllerPhase.class);
+   private static final Logger log = LogManager.getLogger(ControllerPhase.class);
 
    private final Phase definition;
    private Status status = Status.NOT_STARTED;
@@ -106,6 +106,10 @@ public class ControllerPhase {
 
       public boolean isTerminated() {
          return ordinal() >= TERMINATED.ordinal();
+      }
+
+      public boolean isStarted() {
+         return ordinal() >= RUNNING.ordinal();
       }
    }
 }

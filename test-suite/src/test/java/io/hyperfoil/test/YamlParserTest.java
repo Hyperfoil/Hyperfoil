@@ -18,6 +18,17 @@
  */
 package io.hyperfoil.test;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.data.Percentage.withPercentage;
+
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
+import java.util.function.Predicate;
+
+import org.assertj.core.api.Condition;
+import org.junit.Test;
+
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Model;
@@ -26,40 +37,21 @@ import io.hyperfoil.api.config.SLA;
 import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.Step;
 import io.hyperfoil.api.config.StepBuilder;
-import io.hyperfoil.impl.Util;
-import io.hyperfoil.http.api.StatusHandler;
-import io.hyperfoil.http.config.HttpPluginConfig;
-import io.hyperfoil.http.handlers.RangeStatusValidator;
-import io.hyperfoil.core.parser.BenchmarkParser;
-import io.hyperfoil.core.parser.ParserException;
+import io.hyperfoil.core.session.BaseBenchmarkParserTest;
 import io.hyperfoil.core.steps.AwaitIntStep;
 import io.hyperfoil.core.steps.NoopStep;
 import io.hyperfoil.core.steps.ScheduleDelayStep;
-import io.hyperfoil.core.test.TestUtil;
-import io.hyperfoil.http.steps.SendHttpRequestStep;
+import io.hyperfoil.http.api.StatusHandler;
+import io.hyperfoil.http.config.HttpPluginConfig;
+import io.hyperfoil.http.handlers.RangeStatusValidator;
 import io.hyperfoil.http.steps.HttpRequestStepUtil;
 import io.hyperfoil.http.steps.PrepareHttpRequestStep;
+import io.hyperfoil.http.steps.SendHttpRequestStep;
 
-import org.assertj.core.api.Condition;
-import org.junit.Assert;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.NoSuchElementException;
-import java.util.function.Predicate;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.data.Percentage.withPercentage;
-import static org.junit.Assert.fail;
-
-public class YamlParserTest {
+public class YamlParserTest extends BaseBenchmarkParserTest {
    @Test
    public void testSimpleYaml() {
-      Benchmark benchmark = buildBenchmark("scenarios/simple.hf.yaml");
+      Benchmark benchmark = loadScenario("scenarios/simple.hf.yaml");
       assertThat(benchmark.name()).isEqualTo("simple benchmark");
       Phase[] phases = benchmark.phases().toArray(new Phase[0]);
       assertThat(phases.length).isEqualTo(3);
@@ -87,7 +79,7 @@ public class YamlParserTest {
 
    @Test
    public void testComplexYaml() {
-      Benchmark benchmark = buildBenchmark("scenarios/complex.hf.yaml");
+      Benchmark benchmark = loadScenario("scenarios/complex.hf.yaml");
       assertThat(benchmark.name()).isEqualTo("complex benchmark");
       assertThat(benchmark.agents().length).isEqualTo(3);
 
@@ -115,7 +107,7 @@ public class YamlParserTest {
 
    @Test
    public void testShortcutYaml() {
-      Benchmark benchmark = buildBenchmark("scenarios/shortcut.hf.yaml");
+      Benchmark benchmark = loadScenario("scenarios/shortcut.hf.yaml");
       assertThat(benchmark.name()).isEqualTo("shortcut benchmark");
       assertThat(benchmark.phases().size()).isEqualTo(1);
       Phase phase = benchmark.phases().stream().findFirst().orElseThrow(AssertionError::new);
@@ -129,24 +121,24 @@ public class YamlParserTest {
 
    @Test
    public void testIterationYaml() {
-      Benchmark benchmark = buildBenchmark("scenarios/iteration.hf.yaml");
+      Benchmark benchmark = loadScenario("scenarios/iteration.hf.yaml");
       assertThat(benchmark.name()).isEqualTo("iteration benchmark");
    }
 
    @Test
    public void testAwaitDelayYaml() {
-      Benchmark benchmark = buildBenchmark("scenarios/awaitDelay.hf.yaml");
+      Benchmark benchmark = loadScenario("scenarios/awaitDelay.hf.yaml");
       assertThat(benchmark.name()).isEqualTo("await delay benchmark");
    }
 
    @Test
    public void testGeneratorsYaml() {
-      buildBenchmark("scenarios/generators.hf.yaml");
+      loadScenario("scenarios/generators.hf.yaml");
    }
 
    @Test
    public void testHttpRequestYaml() {
-      Benchmark benchmark = buildBenchmark("scenarios/httpRequest.hf.yaml");
+      Benchmark benchmark = loadScenario("scenarios/httpRequest.hf.yaml");
       Phase testPhase = benchmark.phases().iterator().next();
       Sequence testSequence = testPhase.scenario().sequences()[0];
       Iterator<Step> iterator = Arrays.asList(testSequence.steps()).iterator();
@@ -168,35 +160,35 @@ public class YamlParserTest {
 
    @Test
    public void testAgents1() {
-      Benchmark benchmark = buildBenchmark("scenarios/agents1.hf.yaml");
+      Benchmark benchmark = loadScenario("scenarios/agents1.hf.yaml");
       assertThat(benchmark.agents().length).isEqualTo(2);
    }
 
    @Test
    public void testAgents2() {
-      Benchmark benchmark = buildBenchmark("scenarios/agents2.hf.yaml");
+      Benchmark benchmark = loadScenario("scenarios/agents2.hf.yaml");
       assertThat(benchmark.agents().length).isEqualTo(3);
    }
 
    @Test
    public void testValidAuthorities() {
-      Benchmark benchmark = buildBenchmark("scenarios/valid-authorities.hf.yaml");
+      Benchmark benchmark = loadScenario("scenarios/valid-authorities.hf.yaml");
       assertThat(benchmark.plugin(HttpPluginConfig.class).http()).hasSize(4);
    }
 
    @Test(expected = BenchmarkDefinitionException.class)
    public void testWrongAuthorities() {
-      buildBenchmark("scenarios/wrong-authority.hf.yaml");
+      loadScenario("scenarios/wrong-authority.hf.yaml");
    }
 
    @Test(expected = BenchmarkDefinitionException.class)
    public void testAmbiguousAuthorities() {
-      buildBenchmark("scenarios/ambiguous-authority.hf.yaml");
+      loadScenario("scenarios/ambiguous-authority.hf.yaml");
    }
 
    @Test
    public void testStaircase() {
-      Benchmark benchmark = buildBenchmark("scenarios/staircase.hf.yaml");
+      Benchmark benchmark = loadScenario("scenarios/staircase.hf.yaml");
       assertThat(benchmark.phases().stream().map(p -> p.model).filter(Model.RampRate.class::isInstance).count()).isEqualTo(3);
       assertThat(benchmark.phases().stream().map(p -> p.model).filter(Model.ConstantRate.class::isInstance).count()).isEqualTo(3);
       for (Phase phase : benchmark.phases()) {
@@ -209,32 +201,32 @@ public class YamlParserTest {
 
    @Test
    public void testMutualTls() {
-      Benchmark benchmark = buildBenchmark("scenarios/mutualTls.hf.yaml");
+      Benchmark benchmark = loadScenario("scenarios/mutualTls.hf.yaml");
       assertThat(benchmark.plugin(HttpPluginConfig.class).defaultHttp().keyManager().password()).isEqualTo("foobar");
       assertThat(benchmark.plugin(HttpPluginConfig.class).defaultHttp().trustManager().storeType()).isEqualTo("FOO");
    }
 
    @Test
    public void testHooks() {
-      Benchmark benchmark = buildBenchmark("scenarios/hooks.hf.yaml");
+      Benchmark benchmark = loadScenario("scenarios/hooks.hf.yaml");
       assertThat(benchmark.preHooks().size()).isEqualTo(2);
       assertThat(benchmark.postHooks().size()).isEqualTo(1);
    }
 
    @Test
    public void testSpecialVars() {
-      Benchmark benchmark = buildBenchmark("scenarios/specialvars.hf.yaml");
+      Benchmark benchmark = loadScenario("scenarios/specialvars.hf.yaml");
       assertThat(benchmark.phases().size()).isEqualTo(10 + 1 /* one noop */);
    }
 
    @Test
    public void testLoop() {
-      buildBenchmark("scenarios/loop.hf.yaml");
+      loadScenario("scenarios/loop.hf.yaml");
    }
 
    @Test
    public void testCustomSla() {
-      Benchmark benchmark = buildBenchmark("scenarios/customSla.hf.yaml");
+      Benchmark benchmark = loadScenario("scenarios/customSla.hf.yaml");
       assertThat(benchmark.phases().size()).isEqualTo(1);
       Phase phase = benchmark.phases().iterator().next();
       assertThat(phase.customSlas.size()).isEqualTo(2);
@@ -242,6 +234,34 @@ public class YamlParserTest {
       SLA[] bar = phase.customSlas.get("bar");
       assertThat(foo.length).isEqualTo(1);
       assertThat(bar.length).isEqualTo(2);
+   }
+
+   @Test
+   public void testStartWithDelayYaml() {
+      Benchmark benchmark = loadScenario("scenarios/start-with-delay.hf.yaml");
+      assertThat(benchmark.name()).isEqualTo("benchmark using start with delay");
+      Phase[] phases = benchmark.phases().toArray(new Phase[0]);
+      assertThat(phases.length).isEqualTo(2);
+      @SuppressWarnings("unchecked")
+      Class<? extends Step>[] expectedSteps = new Class[]{
+            PrepareHttpRequestStep.class,
+            SendHttpRequestStep.class,
+            StepBuilder.ActionStep.class,
+            PrepareHttpRequestStep.class,
+            SendHttpRequestStep.class,
+            NoopStep.class,
+            AwaitIntStep.class,
+            ScheduleDelayStep.class
+      };
+      for (Phase p : phases) {
+         Sequence[] sequences = p.scenario().sequences();
+         assertThat(sequences.length).isEqualTo(1);
+         Step[] steps = sequences[0].steps();
+         assertThat(steps.length).isEqualTo(expectedSteps.length);
+         for (int i = 0; i < steps.length; ++i) {
+            assertThat(steps[i]).as("step %d: %s", i, steps[i]).isInstanceOf(expectedSteps[i]);
+         }
+      }
    }
 
    private <T extends Step> T next(Class<T> stepClass, Iterator<Step> iterator) {
@@ -258,27 +278,4 @@ public class YamlParserTest {
       assertThat(object).has(new Condition<>(predicate, ""));
    }
 
-   private Benchmark buildBenchmark(String s) {
-      ClassLoader classLoader = this.getClass().getClassLoader();
-      return buildBenchmark(classLoader.getResourceAsStream(s));
-   }
-
-   private Benchmark buildBenchmark(InputStream inputStream) {
-      if (inputStream == null)
-         fail("Could not find benchmark configuration");
-
-      try {
-         Benchmark benchmark = BenchmarkParser.instance().buildBenchmark(inputStream, TestUtil.benchmarkData(), Collections.emptyMap());
-         Assert.assertNotNull(benchmark);
-         try {
-            byte[] bytes = Util.serialize(benchmark);
-            assertThat(bytes).isNotNull();
-         } catch (IOException e) {
-            throw new AssertionError(e);
-         }
-         return benchmark;
-      } catch (ParserException | IOException e) {
-         throw new AssertionError("Error occurred during parsing", e);
-      }
-   }
 }

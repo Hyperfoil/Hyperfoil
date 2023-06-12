@@ -11,8 +11,8 @@ import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.config.Scenario;
 import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.config.Step;
-import io.hyperfoil.api.session.ObjectAccess;
 import io.hyperfoil.api.session.IntAccess;
+import io.hyperfoil.api.session.ObjectAccess;
 import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.WriteAccess;
@@ -49,7 +49,7 @@ public final class SessionFactory {
       }, 16, 16);
       SessionImpl session = new SessionImpl(dummyScenario, 0, 0);
       Phase dummyPhase = new Phase(Benchmark::forTesting, 0, 0, "dummy", dummyScenario, 0,
-            Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), 0, -1, null, false, () -> "dummy", Collections.emptyMap());
+            Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), 0, -1, null, false, () -> "dummy", Collections.emptyMap(), null);
       session.resetPhase(new PhaseInstanceImpl(dummyPhase, "dummy", 0) {
          @Override
          public void proceed(EventExecutorGroup executorGroup) {

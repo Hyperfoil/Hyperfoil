@@ -30,7 +30,6 @@ import java.util.Queue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import io.hyperfoil.impl.FutureSupplier;
 
@@ -147,9 +146,14 @@ public class BenchmarkBuilder {
       Map<String, Phase> phases = phaseBuilders.values().stream()
             .flatMap(builder -> builder.build(bs, phaseIdCounter).stream()).collect(Collectors.toMap(Phase::name, p -> p));
       for (Phase phase : phases.values()) {
+         // check if referenced dependencies exist
          checkDependencies(phase, phase.startAfter, phases);
          checkDependencies(phase, phase.startAfterStrict, phases);
          checkDependencies(phase, phase.terminateAfterStrict, phases);
+         if (phase.startWithDelay != null) {
+            checkDependencies(phase, Collections.singletonList(phase.startWithDelay.phase), phases);
+         }
+         checkStartWith(phase);
          checkDeadlock(phase, phases);
       }
       Map<String, Object> tags = new HashMap<>();
@@ -180,7 +184,9 @@ public class BenchmarkBuilder {
       toProcess.add(phase);
       while (!toProcess.isEmpty()) {
          Phase p = toProcess.poll();
-         Stream.concat(p.startAfter.stream(), p.startAfterStrict.stream()).forEach(name -> {
+         // consider all referenced dependencies (startAfter, startAfterStrict and startWithDelay)
+         // ensure there are no cyclic references.
+         p.getDependencies().forEach(name -> {
             Phase p2 = phases.get(name);
             if (p2 == null) {
                // non-existent phase, will be reported later
@@ -210,6 +216,17 @@ public class BenchmarkBuilder {
                   .map(name -> " Did you mean " + name + "?").orElse("");
             throw new BenchmarkDefinitionException("Phase " + dep + " referenced from " + phase.name() + " is not defined." + suggestion);
          }
+      }
+   }
+
+   /**
+    * Check that a phase does not have both startWith and any other start* set
+    *
+    * @param phase phase to check
+    */
+   private void checkStartWith(Phase phase) {
+      if (phase.startWithDelay != null && (!phase.startAfter.isEmpty() || !phase.startAfterStrict.isEmpty() || phase.startTime > 0)) {
+         throw new BenchmarkDefinitionException("Phase " + phase.name + " has both startWith and one of startAfter, startAfterStrict and startTime set.");
       }
    }
 

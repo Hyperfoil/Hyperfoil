@@ -65,5 +65,9 @@ public interface PhaseInstance {
       public boolean isTerminated() {
          return this.ordinal() >= TERMINATED.ordinal();
       }
+
+      public boolean isStarted() {
+         return this.ordinal() >= RUNNING.ordinal();
+      }
    }
 }
