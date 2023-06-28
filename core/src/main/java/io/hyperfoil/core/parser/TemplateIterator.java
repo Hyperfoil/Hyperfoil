@@ -317,7 +317,7 @@ public class TemplateIterator implements Iterator<Event> {
       private Iterator<Event> currentEventsIterator;
       private boolean started = false, atEnd = false;
 
-      public ForeachIterator(List<String> items, List<Event> events, String param, SequenceEndEvent endEvent) {
+      ForeachIterator(List<String> items, List<Event> events, String param, SequenceEndEvent endEvent) {
          this.itemsIterator = items.iterator();
          this.events = events;
          this.endEvent = endEvent;

@@ -15,7 +15,7 @@ class AgentInfo {
    Map<String, PhaseInstance.Status> phases = new HashMap<>();
    DeployedAgent deployedAgent;
 
-   public AgentInfo(String name, int id) {
+   AgentInfo(String name, int id) {
       this.name = name;
       this.id = id;
    }

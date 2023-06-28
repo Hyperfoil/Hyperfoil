@@ -146,7 +146,7 @@ public abstract class BaseSequenceBuilder<S extends BaseSequenceBuilder<S>> impl
    private static class ProvidedStepBuilder implements StepBuilder<ProvidedStepBuilder> {
       private final Step step;
 
-      public ProvidedStepBuilder(Step step) {
+      ProvidedStepBuilder(Step step) {
          this.step = step;
       }
 

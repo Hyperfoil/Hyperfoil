@@ -16,7 +16,7 @@ import io.hyperfoil.core.hooks.ExecRunHook;
 class RunHooksParser implements Parser<BenchmarkBuilder> {
    private final BiConsumer<BenchmarkBuilder, RunHook> consumer;
 
-   public RunHooksParser(BiConsumer<BenchmarkBuilder, RunHook> consumer) {
+   RunHooksParser(BiConsumer<BenchmarkBuilder, RunHook> consumer) {
       this.consumer = consumer;
    }
 
@@ -40,7 +40,7 @@ class RunHooksParser implements Parser<BenchmarkBuilder> {
    private class RunHookParser extends BaseReflectionParser implements Parser<BenchmarkBuilder> {
       private final String name;
 
-      public RunHookParser(String name) {
+      RunHookParser(String name) {
          this.name = name;
       }
 

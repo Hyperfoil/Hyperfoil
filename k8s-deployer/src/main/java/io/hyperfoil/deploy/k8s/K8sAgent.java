@@ -24,7 +24,7 @@ class K8sAgent implements DeployedAgent {
    final FileOutputStream output;
    LogWatch logWatch;
 
-   public K8sAgent(Agent def, KubernetesClient client, Pod pod, boolean stop, Path outputPath, FileOutputStream output) {
+   K8sAgent(Agent def, KubernetesClient client, Pod pod, boolean stop, Path outputPath, FileOutputStream output) {
       this.def = def;
       this.client = client;
       this.pod = pod;

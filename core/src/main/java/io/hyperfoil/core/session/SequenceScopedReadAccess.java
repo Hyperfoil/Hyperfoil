@@ -8,7 +8,7 @@ import io.hyperfoil.api.session.Session;
 class SequenceScopedReadAccess extends BaseAccess {
    protected final int maxConcurrency;
 
-   public SequenceScopedReadAccess(Object key, int maxConcurrency) {
+   SequenceScopedReadAccess(Object key, int maxConcurrency) {
       super(key);
       this.maxConcurrency = maxConcurrency;
    }

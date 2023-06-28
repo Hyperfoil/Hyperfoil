@@ -16,7 +16,7 @@ class WebsocketOutputStream extends OutputStream implements Callable<Void> {
    private final ByteArrayOutputStream bytes = new ByteArrayOutputStream();
    private ScheduledFuture<Void> future;
 
-   public WebsocketOutputStream(ServerWebSocket webSocket) {
+   WebsocketOutputStream(ServerWebSocket webSocket) {
       this.webSocket = webSocket;
    }
 

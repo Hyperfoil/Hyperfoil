@@ -380,7 +380,7 @@ public class K8sDeployer implements Deployer {
       private final String podName;
       private final K8sAgent agent;
 
-      public AgentWatcher(String podName, K8sAgent agent) {
+      AgentWatcher(String podName, K8sAgent agent) {
          this.podName = podName;
          this.agent = agent;
       }

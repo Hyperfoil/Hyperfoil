@@ -17,7 +17,7 @@ import org.apache.logging.log4j.LogManager;
 class StaircaseParser extends AbstractParser<BenchmarkBuilder, StaircaseParser.StaircaseBuilder> {
    private static final Logger log = LogManager.getLogger(StaircaseParser.class);
 
-   public StaircaseParser() {
+   StaircaseParser() {
       register("initialRampUpDuration", new PropertyParser.String<>(StaircaseBuilder::initialRampUpDuration));
       register("steadyStateDuration", new PropertyParser.String<>(StaircaseBuilder::steadyStateDuration));
       register("rampUpDuration", new PropertyParser.String<>(StaircaseBuilder::rampUpDuration));
@@ -49,7 +49,7 @@ class StaircaseParser extends AbstractParser<BenchmarkBuilder, StaircaseParser.S
       private int maxIterations;
       private int maxSessions;
 
-      public StaircaseBuilder(BenchmarkBuilder benchmark) {
+      StaircaseBuilder(BenchmarkBuilder benchmark) {
          this.benchmark = benchmark;
          steadyState = benchmark.addPhase("steadyState").constantRate(0);
       }

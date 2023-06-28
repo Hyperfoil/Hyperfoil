@@ -32,7 +32,7 @@ class BenchmarkRefImpl implements Client.BenchmarkRef {
    private final RestClient client;
    private final String name;
 
-   public BenchmarkRefImpl(RestClient client, String name) {
+   BenchmarkRefImpl(RestClient client, String name) {
       this.client = client;
       this.name = name;
    }

@@ -154,7 +154,7 @@ public class FormGenerator implements SerializableBiFunction<Session, Connection
          private final byte[] name;
          private final byte[] value;
 
-         public ConstantInput(byte[] name, byte[] value) {
+         ConstantInput(byte[] name, byte[] value) {
             this.name = name;
             this.value = value;
          }
@@ -169,7 +169,7 @@ public class FormGenerator implements SerializableBiFunction<Session, Connection
          private final byte[] name;
          private final ReadAccess fromVar;
 
-         public VariableInput(byte[] name, ReadAccess fromVar) {
+         VariableInput(byte[] name, ReadAccess fromVar) {
             this.name = name;
             this.fromVar = fromVar;
          }
@@ -202,7 +202,7 @@ public class FormGenerator implements SerializableBiFunction<Session, Connection
          private final byte[] name;
          private final Pattern pattern;
 
-         public PatternInput(byte[] name, Pattern pattern) {
+         PatternInput(byte[] name, Pattern pattern) {
             this.name = name;
             this.pattern = pattern;
          }

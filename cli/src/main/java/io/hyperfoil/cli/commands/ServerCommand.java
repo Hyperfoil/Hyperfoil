@@ -295,7 +295,7 @@ public abstract class ServerCommand implements Command<HyperfoilCommandInvocatio
       String defaultValue;
       String currentValue;
 
-      public ParamRow(String name, String defaultValue, String currentValue) {
+      ParamRow(String name, String defaultValue, String currentValue) {
          this.name = name;
          this.defaultValue = defaultValue;
          this.currentValue = currentValue;

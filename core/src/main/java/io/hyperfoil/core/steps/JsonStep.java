@@ -93,7 +93,7 @@ public class JsonStep implements Step {
    }
 
    private static class ByteArrayParser extends JsonParser implements ResourceUtilizer, Session.ResourceKey<ByteArrayParser.Context> {
-      public ByteArrayParser(String query, boolean delete, Transformer replace, Processor processor) {
+      ByteArrayParser(String query, boolean delete, Transformer replace, Processor processor) {
          super(query, delete, replace, processor);
       }
 

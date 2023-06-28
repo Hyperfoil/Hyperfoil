@@ -300,7 +300,7 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
    private static class ConstantDuration implements SerializableToLongFunction<Session> {
       private final long duration;
 
-      public ConstantDuration(long duration) {
+      ConstantDuration(long duration) {
          this.duration = duration;
       }
 
@@ -314,7 +314,7 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
       private final long min;
       private final long max;
 
-      public RandomLinearDuration(long min, long max) {
+      RandomLinearDuration(long min, long max) {
          this.min = min;
          this.max = max;
       }
@@ -330,7 +330,7 @@ public class ScheduleDelayStep implements Step, ResourceUtilizer {
       private final long max;
       private final long min;
 
-      public RandomNegExpDuration(long duration, long max, long min) {
+      RandomNegExpDuration(long duration, long max, long min) {
          this.duration = duration;
          this.max = max;
          this.min = min;

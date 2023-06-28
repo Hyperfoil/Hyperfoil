@@ -127,7 +127,7 @@ public class SetAction implements Action {
       private static class ConstantValue implements SerializableFunction<Session, Object> {
          private final Object value;
 
-         public ConstantValue(Object value) {
+         ConstantValue(Object value) {
             this.value = value;
          }
 
@@ -142,7 +142,7 @@ public class SetAction implements Action {
       private final T object;
       private final SerializableConsumer<T> reset;
 
-      public ValueResource(T o, SerializableConsumer<T> reset) {
+      ValueResource(T o, SerializableConsumer<T> reset) {
          this.object = o;
          this.reset = reset;
       }
@@ -243,7 +243,7 @@ public class SetAction implements Action {
       private final int size;
       private final ReadAccess fromVar;
 
-      public ObjectArraySupplier(int size, ReadAccess fromVar) {
+      ObjectArraySupplier(int size, ReadAccess fromVar) {
          this.size = size;
          this.fromVar = fromVar;
       }
@@ -315,7 +315,7 @@ public class SetAction implements Action {
       private final int size;
       private final ReadAccess fromVar;
 
-      public IntArraySupplier(int size, ReadAccess fromVar) {
+      IntArraySupplier(int size, ReadAccess fromVar) {
          this.size = size;
          this.fromVar = fromVar;
       }

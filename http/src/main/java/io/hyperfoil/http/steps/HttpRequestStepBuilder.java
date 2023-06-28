@@ -678,7 +678,7 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
       @Visitor.Ignore
       private final BeforeSyncRequestStep beforeSyncRequestStep;
 
-      public ReleaseSyncAction(BeforeSyncRequestStep beforeSyncRequestStep) {
+      ReleaseSyncAction(BeforeSyncRequestStep beforeSyncRequestStep) {
          this.beforeSyncRequestStep = beforeSyncRequestStep;
       }
 
@@ -807,7 +807,7 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
          private final String header;
          private final Pattern pattern;
 
-         public PatternHeaderWriter(String header, Pattern pattern) {
+         PatternHeaderWriter(String header, Pattern pattern) {
             this.header = header;
             this.pattern = pattern;
          }
@@ -823,7 +823,7 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
       private final CharSequence header;
       private final ReadAccess fromVar;
 
-      public FromVarHeaderWriter(CharSequence header, ReadAccess fromVar) {
+      FromVarHeaderWriter(CharSequence header, ReadAccess fromVar) {
          this.fromVar = fromVar;
          this.header = header;
       }

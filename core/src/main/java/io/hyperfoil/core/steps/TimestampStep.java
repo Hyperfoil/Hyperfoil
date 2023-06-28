@@ -59,7 +59,7 @@ public class TimestampStep implements Step, ResourceUtilizer {
    private static class FormatterResource implements Session.Resource {
       private final SimpleDateFormat format;
 
-      public FormatterResource(String pattern, String localeCountry) {
+      FormatterResource(String pattern, String localeCountry) {
          Locale locale;
          if (localeCountry == null || localeCountry.isBlank()) {
             locale = Locale.US; // we need a deterministic choice

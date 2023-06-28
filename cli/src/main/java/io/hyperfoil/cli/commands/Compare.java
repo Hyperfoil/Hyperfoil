@@ -138,7 +138,7 @@ public class Compare extends ServerCommand {
       StatisticsSummary first;
       StatisticsSummary second;
 
-      public Comparison(String phase, String metric) {
+      Comparison(String phase, String metric) {
          this.phase = phase;
          this.metric = metric;
       }

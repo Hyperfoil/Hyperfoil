@@ -111,7 +111,7 @@ public class IntConditionBuilder<B extends IntConditionBuilder<B, P>, P> impleme
       private final IntCondition.Predicate p1;
       private final IntCondition.Predicate p2;
 
-      public And(IntCondition.Predicate p1, IntCondition.Predicate p2) {
+      And(IntCondition.Predicate p1, IntCondition.Predicate p2) {
          this.p1 = p1;
          this.p2 = p2;
       }
@@ -125,7 +125,7 @@ public class IntConditionBuilder<B extends IntConditionBuilder<B, P>, P> impleme
    private static class EqualTo implements IntCondition.Predicate {
       private final SerializableToIntFunction<Session> supplier;
 
-      public EqualTo(SerializableToIntFunction<Session> supplier) {
+      EqualTo(SerializableToIntFunction<Session> supplier) {
          this.supplier = supplier;
       }
 
@@ -138,7 +138,7 @@ public class IntConditionBuilder<B extends IntConditionBuilder<B, P>, P> impleme
    private static class NotEqualTo implements IntCondition.Predicate {
       private final SerializableToIntFunction<Session> supplier;
 
-      public NotEqualTo(SerializableToIntFunction<Session> supplier) {
+      NotEqualTo(SerializableToIntFunction<Session> supplier) {
          this.supplier = supplier;
       }
 
@@ -151,7 +151,7 @@ public class IntConditionBuilder<B extends IntConditionBuilder<B, P>, P> impleme
    private static class GreaterThan implements IntCondition.Predicate {
       private final SerializableToIntFunction<Session> supplier;
 
-      public GreaterThan(SerializableToIntFunction<Session> supplier) {
+      GreaterThan(SerializableToIntFunction<Session> supplier) {
          this.supplier = supplier;
       }
 
@@ -164,7 +164,7 @@ public class IntConditionBuilder<B extends IntConditionBuilder<B, P>, P> impleme
    private static class GreaterOrEqualTo implements IntCondition.Predicate {
       private final SerializableToIntFunction<Session> supplier;
 
-      public GreaterOrEqualTo(SerializableToIntFunction<Session> supplier) {
+      GreaterOrEqualTo(SerializableToIntFunction<Session> supplier) {
          this.supplier = supplier;
       }
 
@@ -177,7 +177,7 @@ public class IntConditionBuilder<B extends IntConditionBuilder<B, P>, P> impleme
    private static class LessThan implements IntCondition.Predicate {
       private final SerializableToIntFunction<Session> supplier;
 
-      public LessThan(SerializableToIntFunction<Session> supplier) {
+      LessThan(SerializableToIntFunction<Session> supplier) {
          this.supplier = supplier;
       }
 
@@ -190,7 +190,7 @@ public class IntConditionBuilder<B extends IntConditionBuilder<B, P>, P> impleme
    private static class LessOrEqualTo implements IntCondition.Predicate {
       private final SerializableToIntFunction<Session> supplier;
 
-      public LessOrEqualTo(SerializableToIntFunction<Session> supplier) {
+      LessOrEqualTo(SerializableToIntFunction<Session> supplier) {
          this.supplier = supplier;
       }
 

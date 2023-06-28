@@ -54,7 +54,7 @@ public class PathMetricSelector implements ListBuilder, MetricSelector {
       @Visitor.Invoke(method = "pattern")
       private final Pattern pattern;
 
-      public SimpleMatch(Pattern pattern) {
+      SimpleMatch(Pattern pattern) {
          this.pattern = pattern;
       }
 
@@ -71,7 +71,7 @@ public class PathMetricSelector implements ListBuilder, MetricSelector {
    private static class Fallback implements SerializableFunction<String, String> {
       private final String metric;
 
-      public Fallback(String metric) {
+      Fallback(String metric) {
          this.metric = metric;
       }
 
@@ -86,7 +86,7 @@ public class PathMetricSelector implements ListBuilder, MetricSelector {
       private final Pattern pattern;
       private final String replacement;
 
-      public ReplaceMatch(Pattern pattern, String replacement) {
+      ReplaceMatch(Pattern pattern, String replacement) {
          this.pattern = pattern;
          this.replacement = replacement;
       }

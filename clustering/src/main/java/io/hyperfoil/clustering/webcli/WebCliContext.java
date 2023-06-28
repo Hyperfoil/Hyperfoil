@@ -37,7 +37,7 @@ class WebCliContext extends HyperfoilCliContext {
    String prevId = null;
    String notifiedId = null;
 
-   public WebCliContext(Vertx vertx, OutputStreamWriter inputStream, WebsocketOutputStream outputStream, ServerWebSocket webSocket) {
+   WebCliContext(Vertx vertx, OutputStreamWriter inputStream, WebsocketOutputStream outputStream, ServerWebSocket webSocket) {
       super(vertx, true);
       this.sessionId = webSocket.query();
       this.inputStream = inputStream;

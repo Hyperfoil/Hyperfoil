@@ -76,7 +76,7 @@ abstract class SpecialAccess implements ReadAccess {
       private final SerializableToIntFunction<Session> supplier;
       private final Var var = new Var();
 
-      public Int(String name, SerializableToIntFunction<Session> supplier) {
+      Int(String name, SerializableToIntFunction<Session> supplier) {
          super(name);
          this.supplier = supplier;
       }

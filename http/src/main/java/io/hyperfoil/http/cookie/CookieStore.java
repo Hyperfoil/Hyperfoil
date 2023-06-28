@@ -20,7 +20,7 @@ class CookieStore implements Session.Resource {
    private static final int MAX_SITES = 16;
    private final Cookie[] cookies = new Cookie[MAX_SITES];
 
-   public CookieStore() {
+   CookieStore() {
       for (int i = 0; i < cookies.length; ++i) {
          cookies[i] = new Cookie();
       }

@@ -105,7 +105,7 @@ class Run {
       public final AgentInfo agent;
       public final Throwable error;
 
-      public Error(AgentInfo agent, Throwable error) {
+      Error(AgentInfo agent, Throwable error) {
          this.agent = agent;
          this.error = error;
       }
@@ -120,7 +120,7 @@ class Run {
       public final String name;
       public final String output;
 
-      public RunHookOutput(String name, String output) {
+      RunHookOutput(String name, String output) {
          this.name = name;
          this.output = output;
       }

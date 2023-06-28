@@ -18,7 +18,7 @@ class ConnectionPoolStats {
    protected final Watermarks blockedSessions = new Watermarks();
    protected final Map<String, Watermarks> typeStats = new HashMap<>();
 
-   public ConnectionPoolStats(String authority) {
+   ConnectionPoolStats(String authority) {
       this.authority = authority;
    }
 
