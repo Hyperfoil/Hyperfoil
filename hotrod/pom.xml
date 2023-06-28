@@ -239,7 +239,7 @@
                     <execution>
                         <phase>package</phase>
                         <configuration>
-                            <tasks>
+                            <target>
                                 <!-- We will just take the JDK11-specific classes and move them to regular locations
                                      as Hyperfoil is JDK11+ only anyway. We won't need to mess with multi-release JAR then -->
                                 <unzip src="${project.build.directory}/hyperfoil-hotrod-shaded.jar" dest="${project.build.directory}/shaded" />
@@ -249,7 +249,7 @@
                                 <jar destfile="${project.build.directory}/${project.build.finalName}.jar">
                                     <fileset dir="${project.build.directory}/shaded" />
                                 </jar>
-                            </tasks>
+                            </target>
                         </configuration>
                         <goals>
                             <goal>run</goal>
