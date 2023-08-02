@@ -25,14 +25,14 @@
     <groupId>io.hyperfoil</groupId>
     <artifactId>hyperfoil-all</artifactId>
     <packaging>pom</packaging>
-    <version>0.25.1-SNAPSHOT</version>
+    <version>0.25.1</version>
     <name>Hyperfoil</name>
     <description>Hyperfoil will rock your application with load</description>
     <scm>
         <connection>scm:git:git://github.com/Hyperfoil/Hyperfoil.git</connection>
         <developerConnection>scm:git:ssh://git@github.com/Hyperfoil/Hyperfoil.git</developerConnection>
         <url>https://github.com/Hyperfoil/Hyperfoil</url>
-        <tag>hyperfoil-all-0.25.1-SNAPSHOT</tag>
+        <tag>hyperfoil-all-0.25.1</tag>
     </scm>
     <url>https://hyperfoil.io</url>
 
@@ -439,7 +439,7 @@
                         </goals>
                         <configuration>
                             <rules>
-                                <dependencyConvergence/>
+                                <dependencyConvergence />
                                 <requireReleaseDeps>
                                     <excludes>io.hyperfoil:*</excludes>
                                     <failWhenParentIsSnapshot>false</failWhenParentIsSnapshot>
@@ -463,8 +463,8 @@
                         </goals>
                         <configuration>
                             <target>
-                                <copy file="${project.basedir}/config/pre-commit" todir="${project.basedir}/.git/hooks"/>
-                                <chmod file="${project.basedir}/.git/hooks/pre-commit" perm="a+x"/>
+                                <copy file="${project.basedir}/config/pre-commit" todir="${project.basedir}/.git/hooks" />
+                                <chmod file="${project.basedir}/.git/hooks/pre-commit" perm="a+x" />
                             </target>
                         </configuration>
                     </execution>
