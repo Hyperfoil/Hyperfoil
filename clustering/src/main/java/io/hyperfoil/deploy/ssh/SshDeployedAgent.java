@@ -17,6 +17,7 @@ import java.util.function.Consumer;
 import org.apache.sshd.client.channel.ChannelShell;
 import org.apache.sshd.client.channel.ClientChannel;
 import org.apache.sshd.client.future.OpenFuture;
+import org.apache.sshd.common.util.io.output.NullOutputStream;
 import org.apache.sshd.scp.client.ScpClient;
 import org.apache.sshd.scp.client.ScpClientCreator;
 import org.apache.sshd.client.session.ClientSession;
@@ -25,7 +26,6 @@ import org.apache.sshd.sftp.client.SftpClientFactory;
 import org.apache.sshd.common.io.IoOutputStream;
 import org.apache.sshd.common.io.IoReadFuture;
 import org.apache.sshd.common.util.buffer.ByteArrayBuffer;
-import org.apache.sshd.common.util.io.NullOutputStream;
 
 import io.hyperfoil.api.BenchmarkExecutionException;
 import io.hyperfoil.api.deployment.DeployedAgent;
