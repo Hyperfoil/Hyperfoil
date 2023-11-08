@@ -143,7 +143,13 @@ public class K8sDeployer implements Deployer {
       int threads = agent.threads() < 0 ? benchmark.defaultThreads() : agent.threads();
       ResourceRequirements resourceRequirements = new ResourceRequirements();
       Map<String, Quantity> podResourceRequests = new LinkedHashMap<>();
-      podResourceRequests.put("cpu", new Quantity(String.valueOf(threads)));
+      String cpuRequest = agent.properties.getOrDefault(
+              "pod-cpu",
+              Properties.get("io.hyperfoil.deployer.k8s.pod.cpu", null)
+      );
+      if (cpuRequest != null) {
+         podResourceRequests.put("cpu", new Quantity(cpuRequest));
+      }
       String memoryRequest = agent.properties.getOrDefault(
               "pod-memory",
               Properties.get("io.hyperfoil.deployer.k8s.pod.memory", null)
