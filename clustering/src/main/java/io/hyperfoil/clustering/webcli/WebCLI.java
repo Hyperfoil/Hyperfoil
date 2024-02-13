@@ -24,6 +24,10 @@ import org.aesh.readline.terminal.impl.ExternalTerminal;
 import org.aesh.readline.terminal.impl.LineDisciplineTerminal;
 import org.aesh.readline.tty.terminal.TerminalConnection;
 import org.aesh.terminal.tty.Signal;
+import org.aesh.terminal.tty.Size;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.message.FormattedMessage;
 
 import io.hyperfoil.cli.HyperfoilCli;
 import io.hyperfoil.cli.commands.Connect;
@@ -40,11 +44,6 @@ import io.hyperfoil.impl.Util;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.ServerWebSocket;
-
-import org.aesh.terminal.tty.Size;
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.message.FormattedMessage;
 
 public class WebCLI extends HyperfoilCli implements Handler<ServerWebSocket> {
    private static final Logger log = LogManager.getLogger(WebCLI.class);
@@ -64,6 +63,7 @@ public class WebCLI extends HyperfoilCli implements Handler<ServerWebSocket> {
    private final Vertx vertx;
    private final ConcurrentMap<String, WebCliContext> contextMap = new ConcurrentHashMap<>();
    private final ConcurrentMap<String, ClosedContext> closedRunners = new ConcurrentHashMap<>();
+   private String hostname = "localhost";
    private int port = 8090;
    private boolean ssl = false;
 
@@ -224,7 +224,7 @@ public class WebCLI extends HyperfoilCli implements Handler<ServerWebSocket> {
       WebsocketOutputStream stream = new WebsocketOutputStream(webSocket);
 
       WebCliContext ctx = new WebCliContext(vertx, inputStream, stream, webSocket);
-      ctx.setClient(new RestClient(vertx, "localhost", port, ssl, true, null));
+      ctx.setClient(new RestClient(vertx, hostname, port, ssl, true, null));
       ctx.setOnline(true);
 
       try {
@@ -286,7 +286,8 @@ public class WebCLI extends HyperfoilCli implements Handler<ServerWebSocket> {
       return commands;
    }
 
-   public void setConnectionOptions(int port, boolean ssl) {
+   public void setConnectionOptions(String hostname, int port, boolean ssl) {
+      this.hostname = hostname;
       this.port = port;
       this.ssl = ssl;
    }
