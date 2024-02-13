@@ -34,6 +34,9 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import io.hyperfoil.api.Version;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkData;
@@ -81,9 +84,6 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.FaviconHandler;
 import io.vertx.ext.web.handler.StaticHandler;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 class ControllerServer implements ApiService {
    private static final Logger log = LogManager.getLogger(ControllerServer.class);
@@ -164,21 +164,21 @@ class ControllerServer implements ApiService {
             .webSocketHandler(webCLI)
             .listen(controllerPort, controllerHost, serverResult -> {
                if (serverResult.succeeded()) {
-                  if (CONTROLLER_EXTERNAL_URI == null) {
-                     String host = controllerHost;
-                     // Can't advertise 0.0.0.0 as
-                     if (host.equals("0.0.0.0")) {
-                        try {
-                           host = InetAddress.getLocalHost().getHostName();
-                        } catch (UnknownHostException e) {
-                           host = "localhost";
-                        }
+                  String host = controllerHost;
+                  // Can't advertise 0.0.0.0 as
+                  if (host.equals("0.0.0.0")) {
+                     try {
+                        host = InetAddress.getLocalHost().getHostName();
+                     } catch (UnknownHostException e) {
+                        host = "localhost";
                      }
+                  }
+                  if (CONTROLLER_EXTERNAL_URI == null) {
                      baseURL = (options.isSsl() ? "https://" : "http://") + host + ":" + serverResult.result().actualPort();
                   } else {
                      baseURL = CONTROLLER_EXTERNAL_URI;
                   }
-                  webCLI.setConnectionOptions(serverResult.result().actualPort(), options.isSsl());
+                  webCLI.setConnectionOptions(host, serverResult.result().actualPort(), options.isSsl());
                   log.info("Hyperfoil controller listening on {}", baseURL);
                }
                countDown.handle(serverResult.mapEmpty());
