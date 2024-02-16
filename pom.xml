@@ -88,11 +88,11 @@
         <version.junit>4.13.2</version.junit>
         <version.log4j2>2.19.0</version.log4j2>
         <version.metainf-services>1.8</version.metainf-services>
-        <version.netty.tcnative.boringssl>2.0.56.Final</version.netty.tcnative.boringssl>
+        <version.netty.tcnative.boringssl>2.0.61.Final</version.netty.tcnative.boringssl>
         <version.slf4j>2.0.6</version.slf4j>
         <version.snakeyaml>2.0</version.snakeyaml>
-        <version.vertx>4.3.8</version.vertx>
-        <version.infinispan>13.0.8.Final</version.infinispan>
+        <version.vertx>4.5.3</version.vertx>
+        <version.infinispan>13.0.17.Final</version.infinispan>
         <version.jboss-threads>3.5.0.Final</version.jboss-threads>
         <version.jboss-logging>3.5.0.Final</version.jboss-logging>
         <version.wildfly-common>1.6.0.Final</version.wildfly-common>
