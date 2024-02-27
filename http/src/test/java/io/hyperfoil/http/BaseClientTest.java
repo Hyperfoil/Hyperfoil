@@ -58,8 +58,32 @@ public class BaseClientTest extends VertxBaseTest {
       return HttpClientPoolImpl.forTesting(builder.build(true), 1);
    }
 
-   protected void test(TestContext ctx, boolean ssl, io.hyperfoil.http.api.HttpVersion[] clientVersions, List<HttpVersion> serverVersions, Handler<HttpServerRequest> requestHandler, ClientAction clientAction) {
-      Async async = ctx.async();
+    protected void test(TestContext ctx, boolean ssl, io.hyperfoil.http.api.HttpVersion[] clientVersions, List<HttpVersion> serverVersions, Handler<HttpServerRequest> requestHandler, ClientAction clientAction) {
+        Async async = ctx.async();
+        server(ssl, serverVersions, requestHandler, event -> {
+            if (event.failed()) {
+                ctx.fail(event.cause());
+            } else {
+                HttpServer server = event.result();
+                cleanup.add(server::close);
+                try {
+                    HttpClientPool client = client(server.actualPort(), ssl, clientVersions);
+                    client.start(result -> {
+                        if (result.failed()) {
+                            ctx.fail(result.cause());
+                            return;
+                        }
+                        cleanup.add(client::shutdown);
+                        clientAction.run(client, async);
+                    });
+                } catch (Exception e) {
+                    ctx.fail(e);
+                }
+            }
+        });
+    }
+
+   protected void test(TestContext ctx, boolean ssl, io.hyperfoil.http.api.HttpVersion[] clientVersions, List<HttpVersion> serverVersions, Handler<HttpServerRequest> requestHandler, Handler<AsyncResult<Void>> clientStartHandler) {
       server(ssl, serverVersions, requestHandler, event -> {
          if (event.failed()) {
             ctx.fail(event.cause());
@@ -68,14 +92,7 @@ public class BaseClientTest extends VertxBaseTest {
             cleanup.add(server::close);
             try {
                HttpClientPool client = client(server.actualPort(), ssl, clientVersions);
-               client.start(result -> {
-                  if (result.failed()) {
-                     ctx.fail(result.cause());
-                     return;
-                  }
-                  cleanup.add(client::shutdown);
-                  clientAction.run(client, async);
-               });
+               client.start(clientStartHandler);
             } catch (Exception e) {
                ctx.fail(e);
             }

@@ -162,7 +162,10 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
             .path(request.path).authority(httpClientPool.authority());
       // HTTPS selects host via SNI headers, duplicate Host header could confuse the server/proxy
       if (injectHostHeader && !pool.clientPool().config().protocol().secure()) {
-         headers.add(HttpHeaderNames.HOST, httpClientPool.config().originalDestination());
+         // https://www.rfc-editor.org/rfc/rfc9113#section-8.3.1-2.3.3
+         // Clients MUST NOT generate a request with a Host header field that differs
+         // from the ":authority" pseudo-header field.
+         headers.add(HttpHeaderNames.HOST, httpClientPool.authority());
       }
       if (buf != null && buf.readableBytes() > 0) {
          headers.add(HttpHeaderNames.CONTENT_LENGTH, String.valueOf(buf.readableBytes()));

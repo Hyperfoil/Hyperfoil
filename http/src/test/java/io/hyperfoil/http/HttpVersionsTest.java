@@ -30,12 +30,12 @@ public class HttpVersionsTest extends BaseClientTest {
 
    @Test
    public void testAlpnForceHttp2ServerKeep(TestContext ctx) {
-      test(ctx, true, new HttpVersion[]{ HttpVersion.HTTP_2_0 }, HTTP1x_ONLY, 500);
+      test(ctx, true, new HttpVersion[]{HttpVersion.HTTP_2_0}, HTTP1x_ONLY, HttpVersionsTest::requireHttp2, ctx.asyncAssertFailure());
    }
 
    @Test
    public void testAlpnForceHttp1x(TestContext ctx) {
-      test(ctx, true, new HttpVersion[]{ HttpVersion.HTTP_1_1 }, HTTP2_ONLY, 500);
+      test(ctx, true, new HttpVersion[]{HttpVersion.HTTP_1_1}, HTTP2_ONLY, HttpVersionsTest::requireHttp2, ctx.asyncAssertFailure());
    }
 
    @Test
