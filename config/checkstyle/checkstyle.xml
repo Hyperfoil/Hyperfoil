@@ -24,6 +24,8 @@
         "http://www.puppycrawl.com/dtds/configuration_1_2.dtd">
 
 <module name="Checker">
+    <property name="cacheFile" value="${checkstyle.cache.file}"/>
+
     <module name="FileTabCharacter">
         <property name="eachLine" value="true"/>
     </module>
@@ -35,8 +37,6 @@
     </module>
 
     <module name="TreeWalker">
-
-        <property name="cacheFile" value="${checkstyle.cache.file}"/>
 
         <!-- Checks for imports                              -->
         <module name="AvoidStarImport">
