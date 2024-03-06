@@ -49,6 +49,7 @@ public class SshDeployedAgent implements DeployedAgent {
    final String runId;
    final String username;
    final String hostname;
+   final String sshKey;
    final int port;
    final String dir;
    final String extras;
@@ -60,11 +61,12 @@ public class SshDeployedAgent implements DeployedAgent {
    private ScpClient scpClient;
    private PrintStream commandStream;
 
-   public SshDeployedAgent(String name, String runId, String username, String hostname, int port, String dir, String extras, String cpu) {
+   public SshDeployedAgent(String name, String runId, String username, String hostname, String sshKey, int port, String dir, String extras, String cpu) {
       this.name = name;
       this.runId = runId;
       this.username = username;
       this.hostname = hostname;
+      this.sshKey = sshKey;
       this.port = port;
       this.dir = dir;
       this.extras = extras;
