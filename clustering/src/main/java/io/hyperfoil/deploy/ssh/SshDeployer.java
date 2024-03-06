@@ -8,6 +8,8 @@ import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
 import java.util.function.Consumer;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.sshd.client.SshClient;
 import org.apache.sshd.client.future.AuthFuture;
 import org.apache.sshd.client.future.ConnectFuture;
@@ -30,9 +32,6 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
-
 public class SshDeployer implements Deployer {
    private static final Logger log = LogManager.getLogger(SshDeployer.class);
    static final long TIMEOUT = 10000;
@@ -53,6 +52,7 @@ public class SshDeployer implements Deployer {
    @Override
    public DeployedAgent start(Agent agent, String runId, Benchmark benchmark, Consumer<Throwable> exceptionHandler) {
       String hostname = null, username = null;
+      String sshKey = "id_rsa";
       int port = -1;
       String dir = null, extras = null, cpu = null;
       if (agent.inlineConfig != null) {
@@ -70,6 +70,7 @@ public class SshDeployer implements Deployer {
       if (agent.properties != null) {
          hostname = agent.properties.getOrDefault("host", hostname);
          username = agent.properties.getOrDefault("user", username);
+         sshKey = agent.properties.getOrDefault("sshKey", sshKey);
          String portString = agent.properties.get("port");
          if (portString != null) {
             try {
@@ -95,8 +96,8 @@ public class SshDeployer implements Deployer {
          dir = Controller.ROOT_DIR.toString();
       }
       try {
-         SshDeployedAgent deployedAgent = new SshDeployedAgent(agent.name, runId, username, hostname, port, dir, extras, cpu);
-         ClientSession session = connectAndLogin(username, hostname, port);
+         SshDeployedAgent deployedAgent = new SshDeployedAgent(agent.name, runId, username, hostname, sshKey, port, dir, extras, cpu);
+         ClientSession session = connectAndLogin(sshKey, username, hostname, port);
          deployedAgent.deploy(session, exceptionHandler);
          return deployedAgent;
       } catch (IOException | GeneralSecurityException e) {
@@ -122,20 +123,20 @@ public class SshDeployer implements Deployer {
    public void downloadAgentLog(DeployedAgent deployedAgent, long offset, String destinationFile, Handler<AsyncResult<Void>> handler) {
       SshDeployedAgent sshAgent = (SshDeployedAgent) deployedAgent;
       try {
-         ClientSession session = connectAndLogin(sshAgent.username, sshAgent.hostname, sshAgent.port);
+         ClientSession session = connectAndLogin(sshAgent.sshKey, sshAgent.username, sshAgent.hostname, sshAgent.port);
          sshAgent.downloadLog(session, offset, destinationFile, handler);
       } catch (IOException | DeploymentException | GeneralSecurityException e) {
          handler.handle(Future.failedFuture(e));
       }
    }
 
-   private ClientSession connectAndLogin(String username, String hostname, int port) throws IOException, GeneralSecurityException, DeploymentException {
+   private ClientSession connectAndLogin(String sshKey, String username, String hostname, int port) throws IOException, GeneralSecurityException, DeploymentException {
       ConnectFuture connect = client.connect(username, hostname, port).verify(15000);
       ClientSession session = connect.getSession();
 
       String userHome = System.getProperty("user.home");
       URLResource identity;
-      identity = new URLResource(Paths.get(userHome, ".ssh", "id_rsa").toUri().toURL());
+      identity = new URLResource(Paths.get(userHome, ".ssh", sshKey).toUri().toURL());
 
       try (InputStream inputStream = identity.openInputStream()) {
          session.addPublicKeyIdentity(GenericUtils.head(SecurityUtils.loadKeyPairIdentities(
