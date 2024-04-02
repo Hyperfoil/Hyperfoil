@@ -10,12 +10,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.StreamSupport;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import io.hyperfoil.api.BenchmarkExecutionException;
 import io.hyperfoil.api.config.Benchmark;
@@ -44,9 +49,6 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
@@ -157,10 +159,10 @@ public class SimulationRunner {
       cpuWatchdog.start();
    }
 
-   public void openConnections(Handler<AsyncResult<Void>> handler) {
+   public void openConnections(Function<Callable<Void>, Future<Void>> blockingHandler, Handler<AsyncResult<Void>> handler) {
       @SuppressWarnings("rawtypes") ArrayList<Future> futures = new ArrayList<>();
       for (PluginRunData plugin : runData) {
-         plugin.openConnections(futures::add);
+         plugin.openConnections(blockingHandler, futures::add);
       }
 
       CompositeFuture composite = CompositeFuture.join(futures);

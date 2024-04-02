@@ -4,6 +4,9 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import io.hyperfoil.Hyperfoil;
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.session.PhaseInstance;
@@ -11,10 +14,10 @@ import io.hyperfoil.clustering.messages.AgentControlMessage;
 import io.hyperfoil.clustering.messages.AgentHello;
 import io.hyperfoil.clustering.messages.AgentReadyMessage;
 import io.hyperfoil.clustering.messages.ErrorMessage;
-import io.hyperfoil.core.util.CountDown;
-import io.hyperfoil.core.impl.SimulationRunner;
 import io.hyperfoil.clustering.messages.PhaseChangeMessage;
 import io.hyperfoil.clustering.messages.PhaseControlMessage;
+import io.hyperfoil.core.impl.SimulationRunner;
+import io.hyperfoil.core.util.CountDown;
 import io.hyperfoil.impl.Util;
 import io.hyperfoil.internal.Properties;
 import io.vertx.core.AbstractVerticle;
@@ -25,9 +28,6 @@ import io.vertx.core.eventbus.MessageConsumer;
 import io.vertx.core.eventbus.ReplyException;
 import io.vertx.core.eventbus.ReplyFailure;
 import io.vertx.core.impl.VertxInternal;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 
 public class AgentVerticle extends AbstractVerticle {
    private static Logger log = LogManager.getLogger(AgentVerticle.class);
@@ -262,7 +262,7 @@ public class AgentVerticle extends AbstractVerticle {
          connectionStatsSender.send();
       });
 
-      runner.openConnections(result -> {
+      runner.openConnections(vertx::executeBlocking, result -> {
          if (result.succeeded()) {
             eb.send(Feeds.RESPONSE, new AgentReadyMessage(deploymentID(), runId));
          } else {

@@ -15,6 +15,7 @@ import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.config.Phase;
 import io.hyperfoil.api.session.PhaseInstance;
 import io.hyperfoil.core.impl.statistics.StatisticsCollector;
+import io.vertx.core.Future;
 
 public class LocalSimulationRunner extends SimulationRunner {
    private final StatisticsCollector.StatisticsConsumer statsConsumer;
@@ -45,7 +46,15 @@ public class LocalSimulationRunner extends SimulationRunner {
 
       CountDownLatch latch = new CountDownLatch(1);
       init();
-      openConnections(result -> latch.countDown());
+      openConnections(callable -> {
+               try {
+                  callable.call();
+               } catch (Exception e) {
+                  return Future.failedFuture(e);
+               }
+               return Future.succeededFuture();
+            },
+            result -> latch.countDown());
       try {
          latch.await();
          statsExecutor.scheduleAtFixedRate(this::collectStats, 0, benchmark.statisticsCollectionPeriod(), TimeUnit.MILLISECONDS);

@@ -5,8 +5,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import javax.net.ssl.SSLException;
 
@@ -108,7 +110,7 @@ public class HttpRunData implements PluginRunData {
    }
 
    @Override
-   public void openConnections(Consumer<Future<Void>> promiseCollector) {
+   public void openConnections(Function<Callable<Void>, Future<Void>> blockingHandler, Consumer<Future<Void>> promiseCollector) {
       for (Map.Entry<String, HttpClientPool> entry : clientPools.entrySet()) {
          // default client pool is initialized by name
          if (entry.getKey() != null) {
