@@ -3,7 +3,9 @@ package io.hyperfoil.hotrod;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.BenchmarkDefinitionException;
@@ -50,9 +52,12 @@ public class HotRodRunData implements PluginRunData {
    }
 
    @Override
-   public void openConnections(Consumer<Future<Void>> promiseCollector) {
+   public void openConnections(Function<Callable<Void>, Future<Void>> blockingHandler, Consumer<Future<Void>> promiseCollector) {
       for (HotRodRemoteCachePool p : this.pool) {
-         p.start();
+         promiseCollector.accept(blockingHandler.apply(() -> {
+            p.start();
+            return null;
+         }));
       }
    }
 
