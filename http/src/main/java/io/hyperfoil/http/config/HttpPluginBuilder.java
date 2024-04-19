@@ -17,8 +17,8 @@ import io.hyperfoil.api.config.PluginConfig;
 
 public class HttpPluginBuilder extends PluginBuilder<HttpErgonomics> {
    private HttpBuilder defaultHttp;
-   private List<HttpBuilder> httpList = new ArrayList<>();
-   private HttpErgonomics ergonomics = new HttpErgonomics(this);
+   private final List<HttpBuilder> httpList = new ArrayList<>();
+   private final HttpErgonomics ergonomics = new HttpErgonomics(this);
 
    public HttpPluginBuilder(BenchmarkBuilder parent) {
       super(parent);
@@ -103,7 +103,8 @@ public class HttpPluginBuilder extends PluginBuilder<HttpErgonomics> {
    }
 
    public boolean validateAuthority(String authority) {
-      return authority == null && defaultHttp != null || isValidAuthority(authority);
+      if (authority == null) return defaultHttp != null;
+      return isValidAuthority(authority);
    }
 
    private boolean isValidAuthority(String authority) {

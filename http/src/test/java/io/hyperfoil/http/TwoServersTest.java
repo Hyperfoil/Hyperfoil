@@ -7,11 +7,11 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import io.hyperfoil.api.config.BenchmarkDefinitionException;
-
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import io.hyperfoil.api.config.BenchmarkBuilder;
+import io.hyperfoil.api.config.BenchmarkDefinitionException;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.http.api.HttpMethod;
 import io.hyperfoil.http.config.HttpPluginBuilder;
@@ -74,6 +74,35 @@ public class TwoServersTest extends HttpScenarioTest {
       assertThat(HttpStats.get(s1).status_2xx).isEqualTo(1);
       StatisticsSnapshot s2 = stats.get("server2");
       assertThat(HttpStats.get(s2).status_3xx).isEqualTo(1);
+   }
+
+   @Test(expected = BenchmarkDefinitionException.class)
+   public void testMultiHostWithoutAuthorityFail() {
+      // Test that a multi-host HTTP configuration is not accepted when steps does not define a host to run.
+      // See: https://github.com/Hyperfoil/Hyperfoil/issues/315
+
+      // Override the default builder creation by the test.
+      benchmarkBuilder = BenchmarkBuilder.builder();
+      benchmarkBuilder.threads(threads());
+      benchmarkBuilder.addPlugin(HttpPluginBuilder::new);
+
+      // Define hosts *without* default HTTP server.
+      // Note that, utilizing the YAML configuration there is no way to define the default host.
+      benchmarkBuilder.plugin(HttpPluginBuilder.class)
+            .http("http://localhost:" + server.actualPort())
+            .name("host-1");
+      benchmarkBuilder.plugin(HttpPluginBuilder.class)
+            .http("http://localhost:" + secondServer.actualPort())
+            .name("host-2");
+
+      // A single step is enough.
+      scenario().initialSequence("test")
+            .step(SC).httpRequest(HttpMethod.GET)
+               .path("/test")
+            .endStep();
+
+      // Fails to build since we haven't defined the authority for which server to utilize in the step.
+      benchmarkBuilder.build();
    }
 
    @Test
