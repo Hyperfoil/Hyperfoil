@@ -7,7 +7,6 @@ import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
-import io.netty.channel.socket.SocketChannel;
 import org.infinispan.client.hotrod.RemoteCache;
 import org.infinispan.client.hotrod.RemoteCacheManager;
 import org.infinispan.client.hotrod.TransportFactory;
@@ -20,6 +19,7 @@ import io.hyperfoil.hotrod.api.HotRodRemoteCachePool;
 import io.hyperfoil.hotrod.config.HotRodCluster;
 import io.netty.channel.EventLoop;
 import io.netty.channel.EventLoopGroup;
+import io.netty.channel.socket.SocketChannel;
 
 public class HotRodRemoteCachePoolImpl implements HotRodRemoteCachePool {
 
@@ -80,7 +80,11 @@ public class HotRodRemoteCachePoolImpl implements HotRodRemoteCachePool {
 
    @Override
    public RemoteCacheWithoutToString<?, ?> getRemoteCache(String cacheName) {
-      return new RemoteCacheWithoutToString(this.remoteCaches.get(cacheName));
+      RemoteCache<?, ?> cache = this.remoteCaches.get(cacheName);
+      if (cache == null) {
+         throw new IllegalArgumentException(String.format("Cache '%s' is not a defined cache", cacheName));
+      }
+      return new RemoteCacheWithoutToString<>(cache);
    }
 
    /*
@@ -90,8 +94,8 @@ public class HotRodRemoteCachePoolImpl implements HotRodRemoteCachePool {
     * This prevent us of configuring each IDE in order to debug a code
     */
    public static class RemoteCacheWithoutToString<K, V> {
-      private RemoteCache<K, V> remoteCache;
-      public RemoteCacheWithoutToString(RemoteCache remoteCache) {
+      private final RemoteCache<K, V> remoteCache;
+      public RemoteCacheWithoutToString(RemoteCache<K, V> remoteCache) {
          this.remoteCache = remoteCache;
       }
 

@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
+import java.util.Map;
 
 import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.core.parser.BenchmarkParser;
@@ -31,4 +32,7 @@ public abstract class BaseBenchmarkParserTest {
       return BenchmarkParser.instance().buildBenchmark(config, TestUtil.benchmarkData(), Collections.emptyMap());
    }
 
+   protected Benchmark loadBenchmark(InputStream config, Map<String, String> arguments) throws IOException, ParserException {
+      return BenchmarkParser.instance().buildBenchmark(config, TestUtil.benchmarkData(), arguments);
+   }
 }
