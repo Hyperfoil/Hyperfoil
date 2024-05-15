@@ -192,7 +192,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>3.2.4</version>
+                <version>3.5.2</version>
                 <executions>
                     <execution>
                         <phase>package</phase>
@@ -241,7 +241,7 @@
                         <configuration>
                             <target>
                                 <!-- We will just take the JDK11-specific classes and move them to regular locations
-                                     as Hyperfoil is JDK11+ only anyway. We won't need to mess with multi-release JAR then -->
+                                     as Hyperfoil is JDK17+ only anyway. We won't need to mess with multi-release JAR then -->
                                 <unzip src="${project.build.directory}/hyperfoil-hotrod-shaded.jar" dest="${project.build.directory}/shaded" />
                                 <move todir="${project.build.directory}/shaded/shaded">
                                     <fileset dir="${project.build.directory}/shaded/META-INF/versions/11/" />
@@ -274,7 +274,6 @@
                         <configuration>
                             <skip>${module.skipCopyDependencies}</skip>
                             <includeScope>runtime</includeScope>
-                            <excludeScope>test</excludeScope>
                             <excludeGroupIds>com.github.ben-manes.caffeine,org.infinispan,org.infinispan.protostream,org.wildfly</excludeGroupIds>
                             <silent>true</silent>
                         </configuration>
