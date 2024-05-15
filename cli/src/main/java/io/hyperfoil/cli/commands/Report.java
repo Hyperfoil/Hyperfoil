@@ -24,6 +24,9 @@ public class Report extends BaseRunIdCommand {
    @Option(shortName = 'y', description = "Assume yes for all interactive questions.", hasValue = false)
    public boolean assumeYes;
 
+   @Option(description = "Do not open the HTML report automatically", hasValue = false)
+   public boolean silent;
+
    @Override
    public CommandResult execute(HyperfoilCommandInvocation invocation) throws CommandException {
       Client.RunRef runRef = getRunRef(invocation);
@@ -60,7 +63,7 @@ public class Report extends BaseRunIdCommand {
          return CommandResult.FAILURE;
       }
       invocation.println("Written to " + destination);
-      if (!"true".equalsIgnoreCase(System.getenv("HYPERFOIL_CONTAINER"))) {
+      if (!"true".equalsIgnoreCase(System.getenv("HYPERFOIL_CONTAINER")) && !silent) {
          openInBrowser("file://" + destination);
       }
       return CommandResult.SUCCESS;
