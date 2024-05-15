@@ -1,7 +1,6 @@
 package io.hyperfoil.core.handlers;
 
 import io.hyperfoil.api.processor.Processor;
-import io.hyperfoil.api.processor.Processor.Builder;
 import io.hyperfoil.api.session.Session;
 import io.netty.buffer.ByteBuf;
 import io.vertx.ext.unit.TestContext;
