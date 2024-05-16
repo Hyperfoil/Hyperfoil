@@ -207,7 +207,6 @@ public class SshDeployedAgent implements DeployedAgent {
          }
       }
 
-      startAgentCommmand.append(" -Djava.net.preferIPv4Stack=true");
       startAgentCommmand.append(" -Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.Log4j2LogDelegateFactory");
       startAgentCommmand.append(" -D").append(Properties.AGENT_NAME).append('=').append(name);
       startAgentCommmand.append(" -D").append(Properties.RUN_ID).append('=').append(runId);
