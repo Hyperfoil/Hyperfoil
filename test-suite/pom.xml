@@ -96,9 +96,6 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
                     <excludedGroups>${junit.excluded.categories}</excludedGroups>
-                    <systemPropertyVariables>
-                        <java.net.preferIPv4Stack>true</java.net.preferIPv4Stack>
-                    </systemPropertyVariables>
                 </configuration>
             </plugin>
 

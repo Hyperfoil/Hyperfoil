@@ -53,7 +53,6 @@ if [ -n "$LOG_FILE" ]; then
 fi
 JAVA_OPTS="$JAVA_OPTS $LOG_OPTS \
    --add-opens java.base/java.lang=ALL-UNNAMED \
-   -Djava.net.preferIPv4Stack=true \
    -Dio.hyperfoil.distdir=$ROOT"
 
 # Code taken from https://stackoverflow.com/questions/7334754/correct-way-to-check-java-version-from-bash-script

@@ -219,7 +219,6 @@ public class K8sDeployer implements Deployer {
       }
 
 
-      command.add("-Djava.net.preferIPv4Stack=true");
       command.add("-Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.Log4j2LogDelegateFactory");
       command.add("-D" + Properties.AGENT_NAME + "=" + agent.name);
       command.add("-D" + Properties.RUN_ID + "=" + runId);
