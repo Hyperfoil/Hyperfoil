@@ -15,10 +15,7 @@ import org.apache.logging.log4j.LogManager;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.IntStream;
 
 public abstract class PhaseInstanceImpl implements PhaseInstance {
@@ -57,8 +54,8 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
    static {
       constructors.put(Model.AtOnce.class, AtOnce::new);
       constructors.put(Model.Always.class, Always::new);
-      constructors.put(Model.RampRate.class, RampRate::new);
-      constructors.put(Model.ConstantRate.class, ConstantRate::new);
+      constructors.put(Model.RampRate.class, OpenModel::rampRate);
+      constructors.put(Model.ConstantRate.class, OpenModel::constantRate);
       constructors.put(Model.Sequentially.class, Sequentially::new);
       //noinspection StaticInitializerReferencesSubClass
       constructors.put(Model.Noop.class, Noop::new);
@@ -98,10 +95,27 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
          assert status == Status.NOT_STARTED : "Status is " + status;
          status = Status.RUNNING;
       }
+      recordAbsoluteStartTime();
+      log.debug("{} changing status to RUNNING", def.name);
+      phaseChangeHandler.onChange(def, Status.RUNNING, false, error)
+            .thenRun(() -> proceedOnStarted(executorGroup));
+   }
+
+   /**
+    * This method is called when the phase is started and the status is set to RUNNING.<br>
+    * It should be overridden by the subclasses to handle the very first call to {@link #proceed(EventExecutorGroup)}.
+    */
+   protected void proceedOnStarted(EventExecutorGroup executorGroup) {
+      proceed(executorGroup);
+   }
+
+   /**
+    * This method can be overridden (but still need to call super) to create additional timestamps
+    * other than {@link #absoluteStartTime}.
+    */
+   protected void recordAbsoluteStartTime() {
       absoluteStartTime = System.currentTimeMillis();
       absoluteStartTimeString = String.valueOf(absoluteStartTime);
-      log.debug("{} changing status to RUNNING", def.name);
-      phaseChangeHandler.onChange(def, Status.RUNNING, false, error).thenRun(() -> proceed(executorGroup));
    }
 
    @Override
@@ -229,11 +243,14 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
       log.debug("{} changing status to STATS_COMPLETE", def.name);
    }
 
+   /**
+    * @return {@code true} if the new {@link Session} was started, {@code false} otherwise.
+    */
    protected boolean startNewSession() {
       int numActive = activeSessions.incrementAndGet();
       if (numActive < 0) {
          // finished
-         return true;
+         return false;
       }
       if (trace) {
          log.trace("{} has {} active sessions", def.name, numActive);
@@ -244,14 +261,14 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
       } catch (Throwable t) {
          log.error("Error during session acquisition", t);
          notifyFinished(null);
-         return true;
+         return false;
       }
       if (session == null) {
          notifyFinished(null);
-         return true;
+         return false;
       }
       session.start(this);
-      return false;
+      return true;
    }
 
    public static class AtOnce extends PhaseInstanceImpl {
@@ -326,146 +343,6 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
          } else {
             session.start(this);
          }
-      }
-   }
-
-   protected abstract static class OpenModelPhase extends PhaseInstanceImpl {
-      protected final int maxSessions;
-      protected final Random random = new Random();
-      protected double nextScheduled;
-      protected AtomicLong throttledUsers = new AtomicLong(0);
-      protected long startedOrThrottledUsers = 0;
-
-      protected OpenModelPhase(Phase def, String runId, int agentId) {
-         super(def, runId, agentId);
-         maxSessions = Math.max(1, def.benchmark().slice(((Model.OpenModel) def.model).maxSessions, agentId));
-      }
-
-      @Override
-      public void proceed(EventExecutorGroup executorGroup) {
-         if (status.isFinished()) {
-            return;
-         }
-         long now = System.currentTimeMillis();
-         long delta = now - absoluteStartTime;
-         long nextDelta;
-         Model.OpenModel model = (Model.OpenModel) def.model;
-
-         if (model.variance) {
-            while (delta > nextScheduled) {
-               if (startNewSession()) {
-                  throttledUsers.incrementAndGet();
-               }
-               startedOrThrottledUsers++;
-               // TODO: after many iterations there will be some skew due to imprecise double calculations
-               // Maybe we could restart from the expected rate every 1000th session?
-               nextScheduled = nextSessionRandomized();
-            }
-         } else {
-            long required = nextSessionMetronome(delta);
-            for (long i = required - startedOrThrottledUsers; i > 0; --i) {
-               if (startNewSession()) {
-                  throttledUsers.addAndGet(i);
-                  break;
-               }
-            }
-            startedOrThrottledUsers = Math.max(required, startedOrThrottledUsers);
-         }
-         nextDelta = (long) Math.ceil(nextScheduled);
-
-         if (trace) {
-            log.trace("{}: {} after start, {} started ({} throttled), next user in {} ms", def.name, delta,
-                  startedOrThrottledUsers, throttledUsers.get(), nextDelta - delta);
-         }
-         executorGroup.schedule(() -> proceed(executorGroup), nextDelta - delta, TimeUnit.MILLISECONDS);
-      }
-
-      protected abstract long nextSessionMetronome(long delta);
-
-      protected abstract double nextSessionRandomized();
-
-      @Override
-      public void reserveSessions() {
-         log.debug("Phase {} reserving {} sessions", def.name, maxSessions);
-         sessionPool.reserve(maxSessions);
-      }
-
-      @Override
-      public void notifyFinished(Session session) {
-         if (session != null && !status.isFinished()) {
-            long throttled = throttledUsers.get();
-            while (throttled != 0) {
-               if (throttledUsers.compareAndSet(throttled, throttled - 1)) {
-                  // TODO: it would be nice to compensate response times
-                  // in these invocations for the fact that we're applying
-                  // SUT feedback, but that would be imprecise anyway.
-                  session.start(this);
-                  return;
-               } else {
-                  throttled = throttledUsers.get();
-               }
-            }
-         }
-         super.notifyFinished(session);
-      }
-   }
-
-   public static class RampRate extends OpenModelPhase {
-      private final double initialUsersPerSec;
-      private final double targetUsersPerSec;
-
-      public RampRate(Phase def, String runId, int agentId) {
-         super(def, runId, agentId);
-         Model.RampRate model = (Model.RampRate) def.model;
-         initialUsersPerSec = def.benchmark().slice(model.initialUsersPerSec, agentId);
-         targetUsersPerSec = def.benchmark().slice(model.targetUsersPerSec, agentId);
-         nextScheduled = model.variance ? nextSessionRandomized() : 0;
-      }
-
-      @Override
-      protected long nextSessionMetronome(long delta) {
-         double progress = (targetUsersPerSec - initialUsersPerSec) / (def.duration * 1000);
-         long required = (long) ((progress * delta / 2 + initialUsersPerSec / 1000) * delta) + 1;
-         // Next time is the root of quadratic equation
-         double bCoef = initialUsersPerSec / 1000;
-         nextScheduled = Math.ceil((-bCoef + Math.sqrt(bCoef * bCoef + 2 * progress * required)) / progress);
-         return required;
-      }
-
-      @Override
-      protected double nextSessionRandomized() {
-         // we're solving quadratic equation coming from t = (duration * -log(rand))/(((t + now) * (target - initial)) + initial * duration)
-         double aCoef = (targetUsersPerSec - initialUsersPerSec);
-         if (Math.abs(aCoef) < 0.000001) {
-            // prevent division 0f/0f
-            return nextScheduled + 1000 * -Math.log(Math.max(1e-20, random.nextDouble())) / initialUsersPerSec;
-         }
-         double bCoef = nextScheduled * (targetUsersPerSec - initialUsersPerSec) + initialUsersPerSec * def.duration;
-         double cCoef = def.duration * 1000 * Math.log(random.nextDouble());
-         return nextScheduled + (-bCoef + Math.sqrt(bCoef * bCoef - 4 * aCoef * cCoef)) / (2 * aCoef);
-      }
-   }
-
-   public static class ConstantRate extends OpenModelPhase {
-      private final double usersPerSec;
-
-      public ConstantRate(Phase def, String runId, int agentId) {
-         super(def, runId, agentId);
-         Model.ConstantRate model = (Model.ConstantRate) def.model;
-         usersPerSec = def.benchmark().slice(model.usersPerSec, agentId);
-         nextScheduled = model.variance ? nextSessionRandomized() : 0;
-      }
-
-      @Override
-      protected long nextSessionMetronome(long delta) {
-         long required = (long) (delta * usersPerSec / 1000) + 1;
-         nextScheduled = 1000 * required / usersPerSec;
-         return required;
-      }
-
-      @Override
-      protected double nextSessionRandomized() {
-         return nextScheduled + (1000 * -Math.log(Math.max(1e-20, random.nextDouble())) / usersPerSec);
       }
    }
 
