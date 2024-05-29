@@ -20,17 +20,18 @@
 
 package io.hyperfoil.clustering.messages;
 
-import io.vertx.core.buffer.Buffer;
-import io.vertx.core.eventbus.MessageCodec;
-import io.vertx.core.eventbus.impl.codecs.ByteArrayMessageCodec;
-
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
+
+import org.infinispan.commons.io.LazyByteArrayOutputStream;
+
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.eventbus.MessageCodec;
+import io.vertx.core.eventbus.impl.codecs.ByteArrayMessageCodec;
 
 public class ObjectCodec<T> implements MessageCodec<T, T> {
 
@@ -38,15 +39,15 @@ public class ObjectCodec<T> implements MessageCodec<T, T> {
    public void encodeToWire(Buffer buffer, T object) {
 
 
-      ByteArrayOutputStream bos = new ByteArrayOutputStream();
-      ByteArrayMessageCodec byteArrayMessageCodec = new ByteArrayMessageCodec();
+      LazyByteArrayOutputStream bos = new LazyByteArrayOutputStream();
 
       try {
          ObjectOutput out = new ObjectOutputStream(bos);
          out.writeObject(object);
          out.flush();
 
-         byteArrayMessageCodec.encodeToWire(buffer, bos.toByteArray());
+         buffer.appendInt(bos.size());
+         buffer.appendBytes(bos.getRawBuffer(), 0, bos.size());
 
       } catch (IOException e) {
          e.printStackTrace();
