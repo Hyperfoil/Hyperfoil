@@ -92,7 +92,7 @@
         <version.slf4j>2.0.6</version.slf4j>
         <version.snakeyaml>2.0</version.snakeyaml>
         <version.vertx>4.5.4</version.vertx>
-        <version.infinispan>13.0.21.Final</version.infinispan>
+        <version.infinispan>15.0.4.Final</version.infinispan>
         <version.jboss-threads>3.5.0.Final</version.jboss-threads>
         <version.jboss-logging>3.5.0.Final</version.jboss-logging>
         <version.wildfly-common>1.6.0.Final</version.wildfly-common>
@@ -276,33 +276,10 @@
 
             <dependency>
                 <groupId>org.infinispan</groupId>
-                <artifactId>infinispan-core</artifactId>
+                <artifactId>infinispan-bom</artifactId>
                 <version>${version.infinispan}</version>
-            </dependency>
-
-            <!-- Overriding vertx clustering deps -->
-            <dependency>
-                <groupId>org.infinispan</groupId>
-                <artifactId>infinispan-multimap</artifactId>
-                <version>${version.infinispan}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.infinispan</groupId>
-                <artifactId>infinispan-clustered-lock</artifactId>
-                <version>${version.infinispan}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.infinispan</groupId>
-                <artifactId>infinispan-clustered-counter</artifactId>
-                <version>${version.infinispan}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.infinispan</groupId>
-                <artifactId>infinispan-component-annotations</artifactId>
-                <version>${version.infinispan}</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
 
             <dependency>
