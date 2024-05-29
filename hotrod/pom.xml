@@ -191,74 +191,6 @@
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <version>3.5.2</version>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
-                        <configuration>
-                            <artifactSet>
-                                <includes>
-                                    <include>com.github.ben-manes.caffeine:*</include>
-                                    <include>org.infinispan:*</include>
-                                    <include>org.infinispan.protostream:*</include>
-                                    <include>org.wildfly.common:*</include>
-                                    <include>org.wildfly.security:*</include>
-                                </includes>
-                            </artifactSet>
-                            <relocations>
-                                <relocation>
-                                    <pattern>org.infinispan</pattern>
-                                    <shadedPattern>shaded.org.infinispan</shadedPattern>
-                                </relocation>
-                            </relocations>
-                            <filters>
-                                <filter>
-                                    <artifact>*:*</artifact>
-                                    <excludes>
-                                        <exclude>org/infinispan/client/hotrod/impl/transport/netty/TransportHelper.class</exclude>
-                                    </excludes>
-                                </filter>
-                            </filters>
-                            <!-- Maven Shade did relocate classes in META-INF/versions/11 but it did not place them
-                                 to the correct folder within the JAR. We're going to fix it up in the Ant tasks below. -->
-                            <finalName>hyperfoil-hotrod-shaded</finalName>
-                            <transformers>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
-                            </transformers>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <artifactId>maven-antrun-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <configuration>
-                            <target>
-                                <!-- We will just take the JDK11-specific classes and move them to regular locations
-                                     as Hyperfoil is JDK17+ only anyway. We won't need to mess with multi-release JAR then -->
-                                <unzip src="${project.build.directory}/hyperfoil-hotrod-shaded.jar" dest="${project.build.directory}/shaded" />
-                                <move todir="${project.build.directory}/shaded/shaded">
-                                    <fileset dir="${project.build.directory}/shaded/META-INF/versions/11/" />
-                                </move>
-                                <jar destfile="${project.build.directory}/${project.build.finalName}.jar">
-                                    <fileset dir="${project.build.directory}/shaded" />
-                                </jar>
-                            </target>
-                        </configuration>
-                        <goals>
-                            <goal>run</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
             </plugin>
             <plugin>
@@ -274,7 +206,7 @@
                         <configuration>
                             <skip>${module.skipCopyDependencies}</skip>
                             <includeScope>runtime</includeScope>
-                            <excludeGroupIds>com.github.ben-manes.caffeine,org.infinispan,org.infinispan.protostream,org.wildfly</excludeGroupIds>
+                            <excludeGroupIds>com.github.ben-manes.caffeine,org.infinispan.protostream</excludeGroupIds>
                             <silent>true</silent>
                         </configuration>
                     </execution>

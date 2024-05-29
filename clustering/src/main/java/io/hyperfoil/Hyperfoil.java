@@ -145,7 +145,7 @@ public class Hyperfoil {
 
    private static DefaultCacheManager createCacheManager() {
       try (InputStream stream = FileLookupFactory.newInstance().lookupFile("infinispan.xml", Thread.currentThread().getContextClassLoader())) {
-         ConfigurationBuilderHolder holder = new ParserRegistry().parse(stream, null, MediaType.APPLICATION_XML);
+         ConfigurationBuilderHolder holder = new ParserRegistry().parse(stream, MediaType.APPLICATION_XML);
          holder.getGlobalConfigurationBuilder().transport().defaultTransport()
                .addProperty(JGroupsTransport.CHANNEL_LOOKUP, HyperfoilChannelLookup.class.getName())
                .initialClusterSize(1);
