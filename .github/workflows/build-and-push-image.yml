@@ -1,11 +1,25 @@
-name: Upload to quay.io
+# This workflow will trigger the container image build and push to quay.io
+# If that is triggered by a push on master branch, it will simply push to quay
+# as -SNAPSHOT version, on the other hand if that is a tag it will push both
+# the tag itself and :latest.
+name: Build image and push to quay.io
 
 on:
-  schedule:
-    - cron: '0 0 * * 1'
+  push:
+    branches:
+      - master
+    tags:
+      - '*'
+    paths-ignore:
+      - "LICENSE*"
+      - "**.gitignore"
+      - "**.md"
+      - "**.txt"
+      - ".github/ISSUE_TEMPLATE/**"
+      - ".github/dependabot.yml"
 
 jobs:
-  build:
+  build-image:
     env:
       QUAY_BOT_LOGIN: ${{secrets.QUAY_BOT_LOGIN}}
       NO_DOWNLOAD_MESSAGE: "-B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn"
@@ -24,6 +38,8 @@ jobs:
         path: ~/.m2
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-m2
+
+    # Setup local SSH service, required by benchmark profile tests
     - name: Generate SSH keys
       run: ssh-keygen -t rsa -b 4096 -C "github@hyperfoil.io" -f ~/.ssh/id_rsa
     - name: Authorize SSH key on localhost
@@ -32,6 +48,8 @@ jobs:
       run: ssh-keyscan localhost >> ~/.ssh/known_hosts
     - name: Fix home dir permissions
       run: chmod go-w /home/$USER && chmod 700 /home/$USER/.ssh && chmod 600 /home/$USER/.ssh/authorized_keys
+
+    # Build the container image using build-image maven profile
     - name: Build with Maven
       run: mvn clean -B package --file pom.xml -Pbenchmark -Pbuild-image -Dio.hyperfoil.agent.java.executable=$JAVA_HOME/bin/java $NO_DOWNLOAD_MESSAGE -Dagent.log.trace
     - name: Upload artifact for failed workflow
@@ -42,39 +60,41 @@ jobs:
         path: |
           */target/surefire-reports/*
           test-suite/target/hyperfoil/*.log
+
+    # Retrieve current version from the root pom
     - name: Get version
-      run: echo PROJECT_VERSION=$( mvn org.apache.maven.plugins:maven-help-plugin:3.1.0:evaluate -Dexpression=project.version -q -DforceStdout ) >> $GITHUB_ENV
+      run: echo PROJECT_VERSION=$(mvn org.apache.maven.plugins:maven-help-plugin:3.4.0:evaluate -Dexpression=project.version -q -DforceStdout) >> $GITHUB_ENV
+
+    # Login using Hyperfoil robot account
     - name: Login to Quay.io
       if: env.QUAY_BOT_LOGIN != '' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/hyperfoil-all-'))
-      uses: docker/login-action@v2
+      uses: docker/login-action@v3
       with:
         registry: quay.io
         username: ${{ secrets.QUAY_BOT_LOGIN }}
         password: ${{ secrets.QUAY_BOT_PASSWORD }}
-    - name: Push to Docker Hub
+
+    # Push the current version to quay.io, either the tag or snapshot version
+    - name: Push image version ${{ env.PROJECT_VERSION }}
       if: env.QUAY_BOT_LOGIN != '' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/hyperfoil-all-'))
       run: docker push quay.io/hyperfoil/hyperfoil:${{ env.PROJECT_VERSION }}
-    - name: Push the tag latest to Docker Hub
+
+    # Push the latest tag if and only if the workflow is triggered by a tag push
+    - name: Push the latest tag
       if: env.QUAY_BOT_LOGIN != ''  && startsWith(github.ref, 'refs/tags/hyperfoil-all-')
       run: docker push quay.io/hyperfoil/hyperfoil:latest
+
+    # Create a release if triggered by a tag push
     - name: Create Release
       if: startsWith(github.ref, 'refs/tags/hyperfoil-all-')
       id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: softprops/action-gh-release@v2
       with:
+        token: ${{ secrets.GITHUB_TOKEN }}
         tag_name: ${{ github.ref }}
-        release_name: Release ${{ env.PROJECT_VERSION }}
+        name: Release ${{ env.PROJECT_VERSION }}
         draft: false
         prerelease: false
-    - name: Upload distribution ZIP file
-      if: startsWith(github.ref, 'refs/tags/hyperfoil-all-')
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: distribution/target/hyperfoil-${{ env.PROJECT_VERSION }}.zip
-        asset_name: hyperfoil-${{ env.PROJECT_VERSION }}.zip
-        asset_content_type: application/zip
+        generate_release_notes: true
+        # Additional distribution zip asset
+        files: distribution/target/hyperfoil-${{ env.PROJECT_VERSION }}.zip
