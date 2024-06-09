@@ -28,6 +28,8 @@ public interface PhaseInstance {
    // TODO better name
    void setComponents(ElasticPool<Session> sessionPool, List<Session> sessionList, PhaseChangeHandler phaseChangeHandler);
 
+   void runOnFailedSessionAcquisition(Runnable action);
+
    void reserveSessions();
 
    void notifyFinished(Session session);
@@ -35,8 +37,6 @@ public interface PhaseInstance {
    void setTerminated();
 
    void fail(Throwable error);
-
-   void setSessionLimitExceeded();
 
    Throwable getError();
 

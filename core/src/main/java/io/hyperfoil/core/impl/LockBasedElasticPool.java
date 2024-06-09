@@ -1,5 +1,6 @@
 package io.hyperfoil.core.impl;
 
+import java.util.Objects;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -8,7 +9,7 @@ import java.util.function.Supplier;
 
 import io.hyperfoil.api.collection.ElasticPool;
 
-public class ElasticPoolImpl<T> implements ElasticPool<T> {
+public class LockBasedElasticPool<T> implements ElasticPool<T> {
    protected final LongAdder used = new LongAdder();
    private final Supplier<T> initSupplier;
    private final Supplier<T> depletionSupplier;
@@ -17,15 +18,13 @@ public class ElasticPoolImpl<T> implements ElasticPool<T> {
    private ArrayBlockingQueue<T> primaryQueue;
    private final BlockingQueue<T> secondaryQueue = new LinkedBlockingQueue<>();
 
-   public ElasticPoolImpl(Supplier<T> initSupplier, Supplier<T> depletionSupplier) {
+   public LockBasedElasticPool(Supplier<T> initSupplier, Supplier<T> depletionSupplier) {
       this.initSupplier = initSupplier;
       this.depletionSupplier = depletionSupplier;
    }
 
    @Override
    public T acquire() {
-      // TODO: there's quite some contention on the primary queue.
-      //  Try to use queue per executor with work-stealing pattern.
       T object = primaryQueue.poll();
       if (object != null) {
          incrementUsed();
@@ -45,6 +44,7 @@ public class ElasticPoolImpl<T> implements ElasticPool<T> {
 
    @Override
    public void release(T object) {
+      Objects.requireNonNull(primaryQueue);
       decrementUsed();
       if (primaryQueue.offer(object)) {
          return;
@@ -83,14 +83,17 @@ public class ElasticPoolImpl<T> implements ElasticPool<T> {
       assert currentlyUsed >= 0;
    }
 
+   @Override
    public int minUsed() {
       return minUsed;
    }
 
+   @Override
    public int maxUsed() {
       return maxUsed;
    }
 
+   @Override
    public void resetStats() {
       int current = used.intValue();
       minUsed = current;

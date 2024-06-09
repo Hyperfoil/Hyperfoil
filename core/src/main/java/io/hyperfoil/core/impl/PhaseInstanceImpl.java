@@ -40,6 +40,7 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
    protected AtomicInteger activeSessions = new AtomicInteger(0);
    private volatile Throwable error;
    private volatile boolean sessionLimitExceeded;
+   private Runnable failedSessionAcquisitionAction;
 
    public static PhaseInstance newInstance(Phase def, String runId, int agentId) {
       PhaseCtor ctor = constructors.get(def.model.getClass());
@@ -161,6 +162,11 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
       tryTerminate();
    }
 
+   @Override
+   public void runOnFailedSessionAcquisition(final Runnable action) {
+      this.failedSessionAcquisitionAction = action;
+   }
+
    // TODO better name
    @Override
    public void setComponents(ElasticPool<Session> sessionPool, List<Session> sessionList, PhaseChangeHandler phaseChangeHandler) {
@@ -199,11 +205,6 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
    public void fail(Throwable error) {
       this.error = error;
       terminate();
-   }
-
-   @Override
-   public void setSessionLimitExceeded() {
-      sessionLimitExceeded = true;
    }
 
    @Override
@@ -264,11 +265,21 @@ public abstract class PhaseInstanceImpl implements PhaseInstance {
          return false;
       }
       if (session == null) {
-         notifyFinished(null);
+         noSessionsAvailable();
          return false;
       }
       session.start(this);
       return true;
+   }
+
+   private void noSessionsAvailable() {
+      if (failedSessionAcquisitionAction != null) {
+          failedSessionAcquisitionAction.run();
+      }
+      if (!sessionLimitExceeded) {
+         sessionLimitExceeded = true;
+      }
+      notifyFinished(null);
    }
 
    public static class AtOnce extends PhaseInstanceImpl {
