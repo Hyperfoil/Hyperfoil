@@ -21,6 +21,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.StreamSupport;
 
+import io.hyperfoil.api.collection.ElasticPool;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -133,22 +134,20 @@ public class SimulationRunner {
                session.reserve(def.scenario);
                return session;
             };
-            SharedResources finalSharedResources = sharedResources;
-            sharedResources.sessionPool = new ElasticPoolImpl<>(sessionSupplier, () -> {
-               if (!isDepletedMessageQuietened) {
-                  log.warn("Pool depleted, throttling execution! Enable trace logging to see subsequent pool depletion messages.");
-                  isDepletedMessageQuietened = true;
-               } else {
-                  log.trace("Pool depleted, throttling execution!");
-               }
-               finalSharedResources.currentPhase.setSessionLimitExceeded();
-               return null;
-            });
+            sharedResources.sessionPool = new AffinityAwareSessionPool(executors, sessionSupplier);
             this.sharedResources.put(def.sharedResources, sharedResources);
          }
          PhaseInstance phase = PhaseInstanceImpl.newInstance(def, runId, agentId);
          instances.put(def.name(), phase);
          phase.setComponents(sharedResources.sessionPool, sharedResources.sessions, this::phaseChanged);
+         phase.runOnFailedSessionAcquisition(() -> {
+            if (!isDepletedMessageQuietened) {
+               log.warn("Pool depleted, throttling execution! Enable trace logging to see subsequent pool depletion messages.");
+               isDepletedMessageQuietened = true;
+            } else {
+               log.trace("Pool depleted, throttling execution!");
+            }
+         });
          phase.reserveSessions();
          // at this point all session resources should be reserved
       }
@@ -341,7 +340,7 @@ public class SimulationRunner {
       }
    }
 
-   private void recordSessionStats(ElasticPoolImpl<Session> sessionPool, String phaseName, SessionStatsConsumer consumer) {
+   private void recordSessionStats(ElasticPool<Session> sessionPool, String phaseName, SessionStatsConsumer consumer) {
       int minUsed = sessionPool.minUsed();
       int maxUsed = sessionPool.maxUsed();
       sessionPool.resetStats();
@@ -531,7 +530,7 @@ public class SimulationRunner {
       static final SharedResources NONE = new SharedResources(0);
 
       PhaseInstance currentPhase;
-      ElasticPoolImpl<Session> sessionPool;
+      ElasticPool<Session> sessionPool;
       List<Session> sessions;
       SessionStatistics[] statistics;
 
