@@ -60,6 +60,7 @@
         <module>plugins/maven</module>
         <module>test-suite</module>
         <module>hotrod</module>
+        <module>benchmarks</module>
     </modules>
 
     <!-- Licenses -->
@@ -96,6 +97,7 @@
         <version.jboss-threads>3.5.0.Final</version.jboss-threads>
         <version.jboss-logging>3.5.0.Final</version.jboss-logging>
         <version.wildfly-common>1.6.0.Final</version.wildfly-common>
+        <version.jctools>4.0.5</version.jctools>
 
         <version.sonatype.nexus>1.6.13</version.sonatype.nexus>
         <version.maven.source>3.3.0</version.maven.source>
@@ -435,6 +437,12 @@
                 <groupId>org.wildfly.common</groupId>
                 <artifactId>wildfly-common</artifactId>
                 <version>${version.wildfly-common}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.jctools</groupId>
+                <artifactId>jctools-core</artifactId>
+                <version>${version.jctools}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
