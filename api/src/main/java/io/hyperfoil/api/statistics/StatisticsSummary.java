@@ -11,6 +11,7 @@ public class StatisticsSummary {
    public final long endTime;
    public final long minResponseTime;
    public final long meanResponseTime;
+   public final long stdDevResponseTime;
    public final long maxResponseTime;
    public final SortedMap<Double, Long> percentileResponseTime; // the percentiles depend on configuration
    public final int requestCount;
@@ -27,6 +28,7 @@ public class StatisticsSummary {
                             @JsonProperty("endTime") long endTime,
                             @JsonProperty("minResponseTime") long minResponseTime,
                             @JsonProperty("meanResponseTime") long meanResponseTime,
+                            @JsonProperty("stdDevResponseTime") long stdDevResponseTime,
                             @JsonProperty("maxResponseTime") long maxResponseTime,
                             @JsonProperty("percentileResponseTime") SortedMap<Double, Long> percentileResponseTime,
                             @JsonProperty("requestCount") int requestCount,
@@ -41,6 +43,7 @@ public class StatisticsSummary {
       this.endTime = endTime;
       this.minResponseTime = minResponseTime;
       this.meanResponseTime = meanResponseTime;
+      this.stdDevResponseTime = stdDevResponseTime;
       this.maxResponseTime = maxResponseTime;
       this.percentileResponseTime = percentileResponseTime;
       this.requestCount = requestCount;
@@ -54,7 +57,7 @@ public class StatisticsSummary {
    }
 
    public static void printHeader(PrintWriter writer, double[] percentiles) {
-      writer.print("Requests,Responses,Mean,Min,");
+      writer.print("Requests,Responses,Mean,StdDev,Min,");
       for (double p : percentiles) {
          writer.print('p');
          writer.print(p * 100);
@@ -69,6 +72,8 @@ public class StatisticsSummary {
       writer.print(responseCount);
       writer.print(',');
       writer.print(meanResponseTime);
+      writer.print(',');
+      writer.print(stdDevResponseTime);
       writer.print(',');
       writer.print(minResponseTime);
       writer.print(',');

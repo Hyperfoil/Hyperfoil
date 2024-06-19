@@ -102,7 +102,7 @@ public class StatisticsSnapshot implements Serializable {
    public StatisticsSummary summary(double[] percentiles) {
       TreeMap<Double, Long> percentilesMap = getPercentiles(percentiles);
       return new StatisticsSummary(histogram.getStartTimeStamp(), histogram.getEndTimeStamp(),
-            histogram.getMinValue(), (long) histogram.getMean(), histogram.getMaxValue(),
+            histogram.getMinValue(), (long) histogram.getMean(), (long) histogram.getStdDeviation(), histogram.getMaxValue(),
             percentilesMap, requestCount, responseCount,
             invalid, connectionErrors, requestTimeouts, internalErrors, blockedTime, new TreeMap<>(extensions));
    }

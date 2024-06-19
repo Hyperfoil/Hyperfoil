@@ -29,6 +29,7 @@ public class Stats extends BaseRunIdCommand {
          .column("THROUGHPUT", Stats::throughput, Table.Align.RIGHT)
          .columnInt("REQUESTS", r -> r.summary.requestCount)
          .columnNanos("MEAN", r -> r.summary.meanResponseTime)
+         .columnNanos("STD_DEV", r -> r.summary.stdDevResponseTime)
          .columnNanos("p50", r -> r.summary.percentileResponseTime.get(50d))
          .columnNanos("p90", r -> r.summary.percentileResponseTime.get(90d))
          .columnNanos("p99", r -> r.summary.percentileResponseTime.get(99d))
