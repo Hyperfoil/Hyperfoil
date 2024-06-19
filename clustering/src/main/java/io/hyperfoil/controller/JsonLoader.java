@@ -145,6 +145,7 @@ public class JsonLoader {
          long endTime = object.getLong("endTime");
          long minResponseTime = object.getLong("minResponseTime");
          long meanResponseTime = object.getLong("meanResponseTime");
+         long stdDevResponseTime = object.getLong("stdDevResponseTime");
          long maxResponseTime = object.getLong("maxResponseTime");
          int requestCount = object.getInteger("requestCount");
          int responseCount = object.getInteger("responseCount");
@@ -156,7 +157,7 @@ public class JsonLoader {
 
          SortedMap<String, StatsExtension> extensions = Collections.emptySortedMap(); // TODO
          SortedMap<Double, Long> percentiles = toMap(object.getJsonObject("percentileResponseTime"));
-         series.add(new StatisticsSummary(startTime, endTime, minResponseTime, meanResponseTime, maxResponseTime, percentiles, requestCount, responseCount, invalid, connectionErrors, requestTimeouts, internalErrors, blockedTime, extensions));
+         series.add(new StatisticsSummary(startTime, endTime, minResponseTime, meanResponseTime, stdDevResponseTime, maxResponseTime, percentiles, requestCount, responseCount, invalid, connectionErrors, requestTimeouts, internalErrors, blockedTime, extensions));
       }
    }
 

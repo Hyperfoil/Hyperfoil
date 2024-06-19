@@ -778,7 +778,7 @@ class ControllerServer implements ApiService {
    public void createReport(RoutingContext ctx, String runId, String source) {
       withRun(ctx, runId, run -> {
          String template;
-         File templateFile = Path.of(Properties.get(Properties.DIST_DIR, "."), "templates", "report-template-v3.0.html").toFile();
+         File templateFile = Path.of(Properties.get(Properties.DIST_DIR, "."), "templates", "report-template-v3.1.html").toFile();
          if (templateFile.exists() && templateFile.isFile()) {
             try {
                template = Files.readString(templateFile.toPath(), StandardCharsets.UTF_8);

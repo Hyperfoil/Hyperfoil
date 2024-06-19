@@ -49,8 +49,8 @@
             </fileset>
         </copy>
 
-        <get src="http://hyperfoil.io/report-template-v3.0.html"
-             dest="${dist.dir}/templates/report-template-v3.0.html"
+        <get src="http://hyperfoil.io/report-template-v3.1.html"
+             dest="${dist.dir}/templates/report-template-v3.1.html"
              usetimestamp="true"/>
     </target>
 
