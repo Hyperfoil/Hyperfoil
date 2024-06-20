@@ -5,18 +5,17 @@ import java.net.BindException;
 import java.net.InetSocketAddress;
 import java.util.Collections;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.infinispan.commons.util.FileLookupFactory;
 import org.infinispan.remoting.transport.jgroups.JGroupsChannelLookup;
 import org.jgroups.JChannel;
 import org.jgroups.protocols.TCP;
 import org.jgroups.protocols.TCPPING;
 import org.jgroups.protocols.pbcast.GMS;
+import org.jgroups.util.Util;
 
 import io.hyperfoil.internal.Properties;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
-import org.jgroups.util.Util;
 
 public class HyperfoilChannelLookup implements JGroupsChannelLookup {
    private static final Logger log = LogManager.getLogger(HyperfoilChannelLookup.class);
@@ -36,7 +35,7 @@ public class HyperfoilChannelLookup implements JGroupsChannelLookup {
          } else {
             log.info("Reducing join timeout.");
             GMS gms = channel.getProtocolStack().findProtocol(GMS.class);
-            gms.joinTimeout(0);
+            gms.setJoinTimeout(0);
          }
          TCP tcp = channel.getProtocolStack().findProtocol(TCP.class);
          System.setProperty(Properties.CONTROLLER_CLUSTER_IP, tcp.getBindAddress().getHostAddress());
