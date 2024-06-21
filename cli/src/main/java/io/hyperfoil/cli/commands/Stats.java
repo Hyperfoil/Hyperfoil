@@ -30,11 +30,12 @@ public class Stats extends BaseRunIdCommand {
          .columnInt("REQUESTS", r -> r.summary.requestCount)
          .columnNanos("MEAN", r -> r.summary.meanResponseTime)
          .columnNanos("STD_DEV", r -> r.summary.stdDevResponseTime)
+         .columnNanos("MAX", r -> r.summary.maxResponseTime)
          .columnNanos("p50", r -> r.summary.percentileResponseTime.get(50d))
          .columnNanos("p90", r -> r.summary.percentileResponseTime.get(90d))
          .columnNanos("p99", r -> r.summary.percentileResponseTime.get(99d))
          .columnNanos("p99.9", r -> r.summary.percentileResponseTime.get(99.9))
-         .columnNanos("MAX", r -> r.summary.maxResponseTime)
+         .columnNanos("p99.99", r -> r.summary.percentileResponseTime.get(99.99))
          .columnInt("TIMEOUTS", r -> r.summary.requestTimeouts)
          .columnInt("ERRORS", r -> r.summary.connectionErrors + r.summary.internalErrors)
          .columnNanos("BLOCKED", r -> r.summary.blockedTime);
