@@ -155,6 +155,9 @@ public abstract class WrkAbstract {
       @Option(name = "enable-http2", description = "HTTP2 is not supported in wrk/wrk2: you can enable that for Hyperfoil.", defaultValue = "false")
       boolean enableHttp2;
 
+      @Option(name = "use-http-cache", description = "By default the HTTP cache is disabled, providing this option you can enable it.", hasValue = false)
+      boolean useHttpCache;
+
       @Argument(description = "URL that should be accessed", required = true)
       String url;
 
@@ -220,6 +223,7 @@ public abstract class WrkAbstract {
                      .protocol(protocol).host(uri.getHost()).port(protocol.portOrDefault(uri.getPort()))
                      .allowHttp2(enableHttp2)
                      .sharedConnections(connections)
+                     .useHttpCache(useHttpCache)
                   .endHttp()
                .endPlugin()
                .threads(this.threads);

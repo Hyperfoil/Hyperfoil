@@ -46,11 +46,13 @@ public class Http implements Serializable {
    private final KeyManager keyManager;
    private final TrustManager trustManager;
    private final ConnectionStrategy connectionStrategy;
+   private final boolean useHttpCache;
 
-   public Http(String name, boolean isDefault, String originalDestination, Protocol protocol, String host, int port, String[] addresses,
-               HttpVersion[] versions, int maxHttp2Streams, int pipeliningLimit, ConnectionPoolConfig sharedConnections,
-               boolean directHttp2, long requestTimeout, boolean rawBytesHandlers,
-               KeyManager keyManager, TrustManager trustManager, ConnectionStrategy connectionStrategy) {
+   public Http(String name, boolean isDefault, String originalDestination, Protocol protocol, String host, int port,
+               String[] addresses, HttpVersion[] versions, int maxHttp2Streams, int pipeliningLimit,
+               ConnectionPoolConfig sharedConnections, boolean directHttp2, long requestTimeout,
+               boolean rawBytesHandlers, KeyManager keyManager, TrustManager trustManager,
+               ConnectionStrategy connectionStrategy, boolean useHttpCache) {
       this.name = name;
       this.isDefault = isDefault;
       this.originalDestination = originalDestination;
@@ -68,6 +70,7 @@ public class Http implements Serializable {
       this.keyManager = keyManager;
       this.trustManager = trustManager;
       this.connectionStrategy = connectionStrategy;
+      this.useHttpCache = useHttpCache;
    }
 
    public String name() {
@@ -141,6 +144,10 @@ public class Http implements Serializable {
 
    public ConnectionStrategy connectionStrategy() {
       return connectionStrategy;
+   }
+
+   public boolean enableHttpCache() {
+      return useHttpCache;
    }
 
    public static class KeyManager implements Serializable {

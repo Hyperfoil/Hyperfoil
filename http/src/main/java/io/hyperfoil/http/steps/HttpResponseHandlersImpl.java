@@ -16,22 +16,20 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.message.FormattedMessage;
+
 import io.hyperfoil.api.config.BuilderBase;
 import io.hyperfoil.api.config.Locator;
 import io.hyperfoil.api.config.SequenceBuilder;
 import io.hyperfoil.api.config.StepBuilder;
 import io.hyperfoil.api.connection.Request;
-import io.hyperfoil.api.session.ReadAccess;
-import io.hyperfoil.http.statistics.HttpStats;
-import io.hyperfoil.http.api.HttpCache;
-import io.hyperfoil.http.api.HttpRequest;
-import io.hyperfoil.http.api.FollowRedirect;
-import io.hyperfoil.http.api.HeaderHandler;
-import io.hyperfoil.http.api.HttpResponseHandlers;
-import io.hyperfoil.api.processor.RawBytesHandler;
 import io.hyperfoil.api.processor.Processor;
-import io.hyperfoil.api.session.ObjectAccess;
+import io.hyperfoil.api.processor.RawBytesHandler;
 import io.hyperfoil.api.session.Action;
+import io.hyperfoil.api.session.ObjectAccess;
+import io.hyperfoil.api.session.ReadAccess;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.SessionStopException;
 import io.hyperfoil.core.builders.ServiceLoadedBuilderProvider;
@@ -39,29 +37,31 @@ import io.hyperfoil.core.data.LimitedPoolResource;
 import io.hyperfoil.core.data.Queue;
 import io.hyperfoil.core.handlers.ConditionalAction;
 import io.hyperfoil.core.handlers.ConditionalProcessor;
-import io.hyperfoil.http.api.StatusHandler;
-import io.hyperfoil.http.config.HttpErgonomics;
-import io.hyperfoil.http.config.HttpPluginBuilder;
-import io.hyperfoil.http.html.HtmlHandler;
-import io.hyperfoil.http.html.MetaRefreshHandler;
-import io.hyperfoil.http.html.RefreshHandler;
-import io.hyperfoil.http.handlers.ConditionalHeaderHandler;
-import io.hyperfoil.http.handlers.Location;
-import io.hyperfoil.http.handlers.RangeStatusValidator;
-import io.hyperfoil.http.handlers.Redirect;
 import io.hyperfoil.core.steps.AwaitDelayStep;
 import io.hyperfoil.core.steps.PushQueueAction;
 import io.hyperfoil.core.steps.ScheduleDelayStep;
 import io.hyperfoil.core.util.Unique;
 import io.hyperfoil.function.SerializableToLongFunction;
+import io.hyperfoil.http.api.FollowRedirect;
+import io.hyperfoil.http.api.HeaderHandler;
+import io.hyperfoil.http.api.HttpCache;
+import io.hyperfoil.http.api.HttpRequest;
+import io.hyperfoil.http.api.HttpResponseHandlers;
+import io.hyperfoil.http.api.StatusHandler;
+import io.hyperfoil.http.config.HttpErgonomics;
+import io.hyperfoil.http.config.HttpPluginBuilder;
 import io.hyperfoil.http.cookie.CookieRecorder;
+import io.hyperfoil.http.handlers.ConditionalHeaderHandler;
+import io.hyperfoil.http.handlers.Location;
+import io.hyperfoil.http.handlers.RangeStatusValidator;
+import io.hyperfoil.http.handlers.Redirect;
+import io.hyperfoil.http.html.HtmlHandler;
+import io.hyperfoil.http.html.MetaRefreshHandler;
+import io.hyperfoil.http.html.RefreshHandler;
+import io.hyperfoil.http.statistics.HttpStats;
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.util.AsciiString;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.message.FormattedMessage;
 
 public class HttpResponseHandlersImpl implements HttpResponseHandlers, Serializable {
    private static final Logger log = LogManager.getLogger(HttpResponseHandlersImpl.class);
@@ -105,7 +105,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, Serializa
             case HEAD:
                // TODO: should we store 203, 300, 301 and 410?
                // TODO: partial response 206
-               if (status != 200) {
+               if (status != 200 && request.hasCacheControl()) {
                   request.cacheControl.noStore = true;
                }
                break;
@@ -113,11 +113,13 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, Serializa
             case PUT:
             case DELETE:
             case PATCH:
-               if (status >= 200 && status <= 399) {
-                  HttpCache.get(request.session).invalidate(request.authority, request.path);
-                  request.cacheControl.invalidate = true;
+               if (request.hasCacheControl()) {
+                  if (status >= 200 && status <= 399) {
+                     HttpCache.get(request.session).invalidate(request.authority, request.path);
+                     request.cacheControl.invalidate = true;
+                  }
+                  request.cacheControl.noStore = true;
                }
-               request.cacheControl.noStore = true;
                break;
          }
 
@@ -161,8 +163,8 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, Serializa
          log.trace("#{} Received header {}: {}", session.uniqueId(), header, value);
       }
       try {
-         HttpCache httpCache = HttpCache.get(session);
-         if (request.cacheControl.invalidate) {
+         HttpCache httpCache = request.hasCacheControl() ? HttpCache.get(session) : null;
+         if (httpCache != null && request.cacheControl.invalidate) {
             if (AsciiString.contentEqualsIgnoreCase(header, HttpHeaderNames.LOCATION)
                   || AsciiString.contentEqualsIgnoreCase(header, HttpHeaderNames.CONTENT_LOCATION)) {
                httpCache.invalidate(request.authority, value);
@@ -173,7 +175,9 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, Serializa
                handler.handleHeader(request, header, value);
             }
          }
-         httpCache.responseHeader(request, header, value);
+         if (httpCache != null) {
+            httpCache.responseHeader(request, header, value);
+         }
       } catch (SessionStopException e) {
          throw e;
       } catch (Throwable t) {
@@ -286,7 +290,9 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, Serializa
                      handler.after(request.session);
                   }
                }
-               HttpCache.get(request.session).tryStore(request);
+               if (request.hasCacheControl()) {
+                  HttpCache.get(request.session).tryStore(request);
+               }
             }
 
             if (completionHandlers != null) {

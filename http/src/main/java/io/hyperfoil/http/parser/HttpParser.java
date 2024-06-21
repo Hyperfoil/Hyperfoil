@@ -35,6 +35,7 @@ public class HttpParser extends AbstractParser<BenchmarkBuilder, HttpBuilder> {
       register("keyManager", new ReflectionParser<>(HttpBuilder::keyManager));
       register("trustManager", new ReflectionParser<>(HttpBuilder::trustManager));
       register("connectionStrategy", new PropertyParser.Enum<>(ConnectionStrategy.values(), HttpBuilder::connectionStrategy));
+      register("useHttpCache", new PropertyParser.Boolean<>(HttpBuilder::useHttpCache));
    }
 
    @Override

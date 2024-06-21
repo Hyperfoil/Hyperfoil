@@ -5,17 +5,20 @@ import java.util.Deque;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import io.hyperfoil.api.connection.Connection;
-import io.hyperfoil.http.api.HttpVersion;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.SessionStopException;
-import io.hyperfoil.impl.Util;
 import io.hyperfoil.http.api.HttpCache;
 import io.hyperfoil.http.api.HttpConnection;
 import io.hyperfoil.http.api.HttpConnectionPool;
 import io.hyperfoil.http.api.HttpRequest;
 import io.hyperfoil.http.api.HttpRequestWriter;
+import io.hyperfoil.http.api.HttpVersion;
 import io.hyperfoil.http.config.Http;
+import io.hyperfoil.impl.Util;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelDuplexHandler;
@@ -24,9 +27,6 @@ import io.netty.channel.ChannelPromise;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.util.AsciiString;
 import io.netty.util.CharsetUtil;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
@@ -159,8 +159,12 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
          buf.writeByte('\r').writeByte('\n');
       }
 
-      HttpCache httpCache = HttpCache.get(request.session);
-      httpCache.beforeRequestHeaders(request);
+      HttpCache httpCache = null;
+      if (request.hasCacheControl()) {
+         httpCache = HttpCache.get(request.session);
+         httpCache.beforeRequestHeaders(request);
+      }
+
       // TODO: if headers are strings, UTF-8 conversion creates a lot of trash
       HttpRequestWriterImpl writer = new HttpRequestWriterImpl(request, buf);
       if (headerAppenders != null) {
@@ -171,7 +175,8 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
       }
       buf.writeByte('\r').writeByte('\n');
       assert ctx.executor().inEventLoop();
-      if (httpCache.isCached(request, writer)) {
+      // here the httpCache is guaranteed to be not null if request.hasCacheControl is true
+      if (httpCache != null && httpCache.isCached(request, writer)) {
          if (trace) {
             log.trace("#{} Request is completed from cache", request.session.uniqueId());
          }
@@ -366,7 +371,9 @@ class Http1xConnection extends ChannelDuplexHandler implements HttpConnection {
          }
          buf.writeByte('\r');
          buf.writeByte('\n');
-         HttpCache.get(request.session).requestHeader(request, header, value);
+         if (request.hasCacheControl()) {
+            HttpCache.get(request.session).requestHeader(request, header, value);
+         }
       }
    }
 }
