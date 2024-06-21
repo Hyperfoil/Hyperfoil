@@ -177,17 +177,21 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
             headerAppender.accept(request.session, writer);
          }
       }
-      if (HttpCache.get(request.session).isCached(request, writer)) {
-         if (trace) {
-            log.trace("#{} Request is completed from cache", request.session.uniqueId());
+
+      if (request.hasCacheControl()) {
+         HttpCache httpCache = HttpCache.get(request.session);
+         if (httpCache.isCached(request, writer)) {
+            if (trace) {
+               log.trace("#{} Request is completed from cache", request.session.uniqueId());
+            }
+            // prevent adding to available list twice
+            if (streams.size() != maxStreams - 1) {
+               pool.afterRequestSent(this);
+            }
+            request.handleCached();
+            tryReleaseToPool();
+            return;
          }
-         // prevent adding to available list twice
-         if (streams.size() != maxStreams - 1) {
-            pool.afterRequestSent(this);
-         }
-         request.handleCached();
-         tryReleaseToPool();
-         return;
       }
 
       assert context.executor().inEventLoop();
@@ -435,7 +439,9 @@ class Http2Connection extends Http2EventAdapter implements HttpConnection {
       @Override
       public void putHeader(CharSequence header, CharSequence value) {
          headers.add(header, value);
-         HttpCache.get(request.session).requestHeader(request, header, value);
+         if (request.hasCacheControl()) {
+            HttpCache.get(request.session).requestHeader(request, header, value);
+         }
       }
    }
 }

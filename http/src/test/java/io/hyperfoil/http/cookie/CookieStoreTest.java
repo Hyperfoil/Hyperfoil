@@ -168,7 +168,7 @@ public class CookieStoreTest {
 
       @Override
       public HttpRequest request() {
-         HttpRequest httpRequest = new HttpRequest(null);
+         HttpRequest httpRequest = new HttpRequest(null, true);
          httpRequest.path = path;
          return httpRequest;
       }

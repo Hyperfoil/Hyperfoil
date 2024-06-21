@@ -10,7 +10,10 @@ import io.hyperfoil.http.api.HttpCache;
 public class ClearHttpCacheAction implements Action {
    @Override
    public void run(Session session) {
-      HttpCache.get(session).clear();
+      HttpCache httpCache = HttpCache.get(session);
+      if (httpCache != null) {
+         httpCache.clear();
+      }
    }
 
    /**

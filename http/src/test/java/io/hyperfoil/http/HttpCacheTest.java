@@ -6,12 +6,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import io.hyperfoil.api.session.SequenceInstance;
 import io.hyperfoil.api.session.Session;
-import io.hyperfoil.http.statistics.HttpStats;
 import io.hyperfoil.api.statistics.Statistics;
 import io.hyperfoil.api.statistics.StatisticsSnapshot;
 import io.hyperfoil.core.VertxBaseTest;
@@ -25,14 +26,11 @@ import io.hyperfoil.http.api.HttpRequest;
 import io.hyperfoil.http.api.HttpRequestWriter;
 import io.hyperfoil.http.config.HttpBuilder;
 import io.hyperfoil.http.connection.HttpClientPoolImpl;
+import io.hyperfoil.http.statistics.HttpStats;
 import io.hyperfoil.http.steps.HttpResponseHandlersImpl;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerRequest;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
-
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -97,7 +95,7 @@ public class HttpCacheTest extends VertxBaseTest {
          async.countDown();
       });
 
-      test(ctx, context);
+      test(ctx, context, true);
    }
 
    @Test
@@ -136,7 +134,7 @@ public class HttpCacheTest extends VertxBaseTest {
          async.countDown();
       });
 
-      test(ctx, context);
+      test(ctx, context, true);
    }
 
    @Test
@@ -183,7 +181,60 @@ public class HttpCacheTest extends VertxBaseTest {
          async.countDown();
       });
 
-      test(ctx, context);
+      test(ctx, context, true);
+   }
+
+   @Test
+   public void testWithoutCache(TestContext ctx) {
+      // applies the same test logic of #testSimpleRequest but with cache disabled
+      Async async = ctx.async();
+      Context context = new Context();
+
+      // First request
+      context.requests.add(() -> doRequest(context, GET_TEST, null));
+      context.serverQueue.add(req -> req.response().end());
+      context.handlers.add(req -> {
+         ctx.assertEquals(context.serverRequests.get(), 1);
+         assertCacheHits(ctx, req, 0);
+      });
+
+      // Second request, cached but cache is disabled, hence still 0 hits
+      context.requests.add(() -> doRequest(context, GET_TEST, null));
+      context.serverQueue.add(req -> req.response().end());
+      context.handlers.add(req -> {
+         ctx.assertEquals(context.serverRequests.get(), 2);
+         assertCacheHits(ctx, req, 0);
+      });
+
+      // POST it would have invalidated the cache, but no cache, hence still 0
+      context.requests.add(() -> doRequest(context, POST_TEST, null));
+      context.serverQueue.add(req -> req.response().end());
+      context.handlers.add(req -> {
+         ctx.assertEquals(context.serverRequests.get(), 3);
+         ctx.assertNull(HttpCache.get(context.session));
+         assertCacheHits(ctx, req, 0);
+      });
+
+      // 4th request is not cached as the cache is disabled
+      context.requests.add(() -> doRequest(context, GET_TEST, null));
+      context.serverQueue.add(req -> req.response().end());
+      context.handlers.add(req -> {
+         ctx.assertEquals(context.serverRequests.get(), 4);
+         assertCacheHits(ctx, req, 0);
+      });
+
+      // 5th request, it would have been cached if cache was  enabled, hence still 0 hits
+      context.requests.add(() -> doRequest(context, GET_TEST, null));
+      context.serverQueue.add(req -> req.response().end());
+      context.handlers.add(req -> {
+         ctx.assertEquals(context.serverRequests.get(), 5);
+         ctx.assertNull(HttpCache.get(context.session));
+         ctx.assertTrue(context.serverQueue.isEmpty());
+         assertCacheHits(ctx, req, 0);
+         async.countDown();
+      });
+
+      test(ctx, context, false);
    }
 
    private void assertCacheHits(TestContext ctx, HttpRequest req, int hits) {
@@ -198,7 +249,7 @@ public class HttpCacheTest extends VertxBaseTest {
       consumer.accept(snapshot);
    }
 
-   private void test(TestContext ctx, Context context) {
+   private void test(TestContext ctx, Context context, boolean cacheEnabled) {
       assert !context.requests.isEmpty();
       vertx.createHttpServer().requestHandler(req -> {
          Consumer<HttpServerRequest> handler = context.serverQueue.poll();
@@ -226,7 +277,7 @@ public class HttpCacheTest extends VertxBaseTest {
                   }
                   cleanup.add(client::shutdown);
                   context.session = SessionFactory.forTesting();
-                  HttpRunData.initForTesting(context.session, CLOCK);
+                  HttpRunData.initForTesting(context.session, CLOCK, cacheEnabled);
                   context.pool = client;
                   context.requests.poll().run();
                });
@@ -261,7 +312,7 @@ public class HttpCacheTest extends VertxBaseTest {
       pool.acquire(false, connection -> request.send(connection, headerAppenders, true, null));
    }
 
-   private class Context {
+   private static class Context {
       Session session;
       HttpClientPool pool;
       Queue<Runnable> requests = new LinkedList<>();
