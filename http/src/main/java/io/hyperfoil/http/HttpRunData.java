@@ -12,11 +12,11 @@ import java.util.function.Function;
 
 import javax.net.ssl.SSLException;
 
+import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.api.config.Scenario;
 import io.hyperfoil.api.config.Sequence;
 import io.hyperfoil.api.session.Session;
 import io.hyperfoil.core.api.PluginRunData;
-import io.hyperfoil.api.config.Benchmark;
 import io.hyperfoil.core.impl.ConnectionStatsConsumer;
 import io.hyperfoil.http.api.HttpCache;
 import io.hyperfoil.http.api.HttpClientPool;
@@ -38,9 +38,12 @@ public class HttpRunData implements PluginRunData {
    private final HttpDestinationTableImpl[] destinations;
    private final Map<String, HttpClientPool> clientPools = new HashMap<>();
    private final boolean hasSessionPools;
+   private final boolean hasHttpCacheEnabled;
 
    public HttpRunData(Benchmark benchmark, EventLoop[] executors, int agentId) {
       plugin = benchmark.plugin(HttpPluginConfig.class);
+      // either all http configs disable the cache or keep it enabled
+      hasHttpCacheEnabled = plugin.http().values().stream().anyMatch(Http::enableHttpCache);
       hasSessionPools = plugin.http().values().stream().anyMatch(http -> http.connectionStrategy() != ConnectionStrategy.SHARED_POOL);
       @SuppressWarnings("unchecked")
       Map<String, HttpConnectionPool>[] connectionPools = new Map[executors.length];
@@ -75,14 +78,16 @@ public class HttpRunData implements PluginRunData {
    }
 
    public static void initForTesting(Session session) {
-      initForTesting(session, Clock.systemDefaultZone());
+      initForTesting(session, Clock.systemDefaultZone(), true);
    }
 
-   public static void initForTesting(Session session, Clock clock) {
+   public static void initForTesting(Session session, Clock clock, boolean cacheEnabled) {
       Scenario dummyScenario = new Scenario(new Sequence[0], new Sequence[0], 16, 16);
       session.declareSingletonResource(HttpDestinationTable.KEY, new HttpDestinationTableImpl(Collections.emptyMap()));
-      session.declareSingletonResource(HttpCache.KEY, new HttpCacheImpl(clock));
-      session.declareSingletonResource(HttpRequestPool.KEY, new HttpRequestPool(dummyScenario, session));
+      if (cacheEnabled) {
+         session.declareSingletonResource(HttpCache.KEY, new HttpCacheImpl(clock));
+      }
+      session.declareSingletonResource(HttpRequestPool.KEY, new HttpRequestPool(dummyScenario, session, cacheEnabled));
    }
 
    @Override
@@ -105,8 +110,10 @@ public class HttpRunData implements PluginRunData {
                });
       }
       session.declareSingletonResource(HttpDestinationTable.KEY, destinations);
-      session.declareSingletonResource(HttpCache.KEY, new HttpCacheImpl(clock));
-      session.declareSingletonResource(HttpRequestPool.KEY, new HttpRequestPool(scenario, session));
+      if (hasHttpCacheEnabled) {
+         session.declareSingletonResource(HttpCache.KEY, new HttpCacheImpl(clock));
+      }
+      session.declareSingletonResource(HttpRequestPool.KEY, new HttpRequestPool(scenario, session, hasHttpCacheEnabled));
    }
 
    @Override
