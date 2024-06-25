@@ -1,5 +1,7 @@
 package io.hyperfoil.core.impl;
 
+import java.lang.management.GarbageCollectorMXBean;
+import java.lang.management.ManagementFactory;
 import java.text.SimpleDateFormat;
 import java.time.Clock;
 import java.util.ArrayList;
@@ -99,6 +101,7 @@ public class SimulationRunner {
    }
 
    public void init() {
+      long initSimulationStartTime = System.currentTimeMillis();
       AgentData agentData = new AgentDataImpl();
       ThreadData[] threadData = new ThreadData[executors.length];
       Arrays.setAll(threadData, executorId -> new ThreadDataImpl());
@@ -150,13 +153,15 @@ public class SimulationRunner {
          // at this point all session resources should be reserved
       }
       // hint the GC to tenure sessions
-      System.gc();
+      this.runGC();
 
       jitterWatchdog = new Thread(this::observeJitter, "jitter-watchdog");
       jitterWatchdog.setDaemon(true);
 
       cpuWatchdog = new CpuWatchdog(errorHandler, () -> instances.values().stream().anyMatch(p -> !p.definition().isWarmup));
       cpuWatchdog.start();
+
+      log.info("Simulation initialization took {} ms", System.currentTimeMillis() - initSimulationStartTime);
    }
 
    public void openConnections(Function<Callable<Void>, Future<Void>> blockingHandler, Handler<AsyncResult<Void>> handler) {
@@ -409,6 +414,117 @@ public class SimulationRunner {
             data.add(globalData);
          });
       }
+   }
+
+   /**
+    * It forces the garbage collection process.
+    * If the JVM arg {@link Properties#GC_CHECK} is set, it will also perform an additional check to ensure that the
+    * GC actually occurred.
+    *
+    * <p>Note: This method uses {@link ManagementFactory#getGarbageCollectorMXBeans()} to gather GC bean information
+    * and checks if at least one GC cycle has completed. It waits for the GC to stabilize within a maximum wait time.
+    * If GC beans are not available, it waits pessimistically for a defined period after invoking {@code System.gc()}.
+    * </p>
+    *
+    * @see #runSystemGC()
+    * @see ManagementFactory#getGarbageCollectorMXBeans()
+    */
+   private void runGC() {
+      long start = System.currentTimeMillis();
+
+      if (!Properties.getBoolean(Properties.GC_CHECK)) {
+         this.runSystemGC();
+      } else {
+         // Heavily inspired by
+         // https://github.com/openjdk/jmh/blob/6d6ce6315dc39d1d3abd0e3ac9eca9c38f767112/jmh-core/src/main/java/org/openjdk/jmh/runner/BaseRunner.java#L309
+         log.info("Running additional GC check!");
+         // Collect GC beans
+         List<GarbageCollectorMXBean> enabledBeans = new ArrayList<>();
+
+         long beforeGcCount = 0;
+         for (GarbageCollectorMXBean bean : ManagementFactory.getGarbageCollectorMXBeans()) {
+            long count = bean.getCollectionCount();
+            if (count != -1) {
+               enabledBeans.add(bean);
+               beforeGcCount += bean.getCollectionCount();
+            }
+         }
+
+         // Run the GC
+         this.runSystemGC();
+
+         // Make sure the GC actually happened
+         //   a) That at least two collections happened, indicating GC work.
+         //   b) That counter updates have not happened for a while, indicating GC work had ceased.
+
+         final int MAX_WAIT_MS = 10 * 1000;
+
+         if (enabledBeans.isEmpty()) {
+            log.warn("MXBeans can not report GC info. System.gc() invoked, but cannot check whether GC actually happened!");
+            return;
+         }
+
+         boolean gcHappened = false;
+         boolean stable = false;
+
+         long checkStart = System.nanoTime();
+         while (TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - checkStart) < MAX_WAIT_MS) {
+            long afterGcCount = 0;
+            for (GarbageCollectorMXBean bean : enabledBeans) {
+               afterGcCount += bean.getCollectionCount();
+            }
+
+            if (!gcHappened) {
+               if (afterGcCount - beforeGcCount >= 2) {
+                  gcHappened = true;
+               }
+            } else {
+               if (afterGcCount == beforeGcCount) {
+                  // Stable!
+                  stable = true;
+                  break;
+               }
+               beforeGcCount = afterGcCount;
+            }
+
+            try {
+               TimeUnit.MILLISECONDS.sleep(20);
+            } catch (InterruptedException e) {
+               Thread.currentThread().interrupt();
+            }
+         }
+
+         if (!stable) {
+            if (gcHappened) {
+               log.warn("System.gc() was invoked but unable to wait while GC stopped, is GC too asynchronous?");
+            } else {
+               log.warn("System.gc() was invoked but couldn't detect a GC occurring, is System.gc() disabled?");
+            }
+         }
+      }
+
+      log.info("Overall GC run took {} ms", (System.currentTimeMillis() - start));
+   }
+
+   /**
+    * Executes the garbage collector (GC) and forces object finalization before each GC run.
+    * The method runs the garbage collector twice to ensure maximum garbage collection,
+    * and forces finalization of objects before each GC execution. It logs the time taken
+    * to complete the garbage collection process.
+    *
+    * @see System#runFinalization()
+    * @see System#gc()
+    */
+   private void runSystemGC() {
+      long actualGCRun = System.currentTimeMillis();
+
+      // Run the GC twice and force finalization before every GC run
+      System.runFinalization();
+      System.gc();
+      System.runFinalization();
+      System.gc();
+
+      log.info("GC execution took {} ms", (System.currentTimeMillis() - actualGCRun));
    }
 
    private static class SharedResources {

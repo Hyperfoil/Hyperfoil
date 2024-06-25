@@ -75,7 +75,7 @@ final class OpenModelPhase extends PhaseInstanceImpl implements FireTimeListener
         // given that both computeNextFireTime and onFireTimes can take some time, we need to adjust the fire time
         long scheduledFireDelayMs = Math.max(0, (expectedNextFireTimeMs - elapsedTimeMs) - rateGenerationDelayMs);
         if (trace) {
-            log.trace("{}: {} after start, {} started ({} throttled), next user in {} ms, scheduling decisions tooks {} ms", def.name, elapsedTimeMs,
+            log.trace("{}: {} after start, {} started ({} throttled), next user in {} ms, scheduling decisions took {} ms", def.name, elapsedTimeMs,
                     rateGenerator.fireTimes(), throttledUsers, scheduledFireDelayMs, rateGenerationDelayMs);
         }
         if (scheduledFireDelayMs <= 0) {
