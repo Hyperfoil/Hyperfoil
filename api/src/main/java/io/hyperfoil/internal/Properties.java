@@ -37,6 +37,7 @@ public interface Properties {
    String RUN_ID = "io.hyperfoil.runid";
    String TRIGGER_URL = "io.hyperfoil.trigger.url";
    String CLI_REQUEST_TIMEOUT = "io.hyperfoil.cli.request.timeout";
+   String GC_CHECK = "io.hyperfoil.gc.check.enabled";
 
    static String get(String property, String def) {
       return get(property, Function.identity(), def);
