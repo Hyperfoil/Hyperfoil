@@ -60,6 +60,7 @@
         <module>plugins/maven</module>
         <module>test-suite</module>
         <module>hotrod</module>
+        <module>grpc</module>
     </modules>
 
     <!-- Licenses -->

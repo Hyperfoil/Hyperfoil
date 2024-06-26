@@ -18,6 +18,21 @@ import org.apache.logging.log4j.LogManager;
  * Generic builder for generating a string.
  */
 public class StringGeneratorImplBuilder<T> implements StringGeneratorBuilder, InitFromParam<StringGeneratorImplBuilder<T>> {
+
+   private static final class ConstantPatternSupplier implements Supplier<SerializableFunction<Session, String>> {
+
+      private final Pattern pattern;
+
+      private ConstantPatternSupplier(Pattern pattern) {
+         this.pattern = pattern;
+      }
+
+      @Override
+      public Pattern get() {
+         return pattern;
+      }
+   }
+
    private static final Logger log = LogManager.getLogger(StringGeneratorImplBuilder.class);
 
    private final T parent;
@@ -81,6 +96,16 @@ public class StringGeneratorImplBuilder<T> implements StringGeneratorBuilder, In
       return this;
    }
 
+   public boolean isConstantPattern() {
+      if (supplier == null) {
+         return false;
+      }
+      if (supplier instanceof StringGeneratorImplBuilder.ConstantPatternSupplier) {
+         return ((ConstantPatternSupplier) supplier).get().isConstant();
+      }
+      return false;
+   }
+
    /**
     * Use <a href="https://hyperfoil.io/userguide/benchmark/variables.html#string-interpolation">pattern</a> replacing session variables.
     *
@@ -88,7 +113,12 @@ public class StringGeneratorImplBuilder<T> implements StringGeneratorBuilder, In
     * @return Self.
     */
    public StringGeneratorImplBuilder<T> pattern(String pattern) {
-      set(() -> new Pattern(pattern, false));
+      try {
+         set(new ConstantPatternSupplier(new Pattern(pattern, false)));
+      } catch (Throwable ignore) {
+         log.debug("Cannot parse pattern eagerly '{}': trying lazily", pattern, ignore);
+         set(() -> new Pattern(pattern, false));
+      }
       return this;
    }
 

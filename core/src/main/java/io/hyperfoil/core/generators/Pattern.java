@@ -119,6 +119,10 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
       this.components = components.toArray(new Component[0]);
    }
 
+   public boolean isConstant() {
+      return components.length == 1 && components[0] instanceof StringComponent;
+   }
+
    private String wrongReplaceSyntax(String pattern, String expression) {
       return "Wrong replace syntax: use ${replace/regexp/replacement/flags:my-variable} " +
             "where '/' can be any character. The offending replace expression was '" +
@@ -135,7 +139,7 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
 
    @Override
    public String apply(Session session) {
-      if (components.length == 1 && components[0] instanceof StringComponent) {
+      if (isConstant()) {
          return ((StringComponent) components[0]).substring;
       }
       StringBuilder sb = new StringBuilder(lengthEstimate);
