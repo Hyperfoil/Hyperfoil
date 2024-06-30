@@ -3,7 +3,6 @@ package io.hyperfoil.schema;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.PrintStream;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
@@ -105,34 +104,15 @@ public class DocsGenerator extends BaseGenerator {
       File outputDir = output.toFile();
       if (outputDir.exists()) {
          if (!outputDir.isDirectory()) {
-            System.err.println("Output paramater " + output.toString() + " must be a folder");
+            System.err.println("Output parameter " + output + " must be a folder");
          }
       } else {
          outputDir.mkdirs();
       }
-      Path indexPath = output.resolve("index.md");
-      try (PrintStream out = new PrintStream(new FileOutputStream(indexPath.toFile()))) {
-         out.println("# Hyperfoil reference\n");
-         out.println("\n\n## Steps");
-         for (Map.Entry<String, Docs> step : steps.entrySet()) {
-            printLink("step", step.getKey(), step.getValue(), out);
-         }
-         out.println("\n\n## Actions");
-         for (Map.Entry<String, List<Docs>> action : docs.get(Action.Builder.class).params.entrySet()) {
-            printLink("action", action.getKey(), action.getValue().iterator().next(), out);
-         }
-         out.println("\n\n## Processors");
-         for (Map.Entry<String, List<Docs>> processor : docs.get(Processor.Builder.class).params.entrySet()) {
-            printLink("processor", processor.getKey(), processor.getValue().iterator().next(), out);
-         }
-      } catch (IOException e) {
-         System.err.printf("Cannot write index file %s: %s%n", indexPath, e);
-      }
       for (Map.Entry<String, Docs> step : steps.entrySet()) {
          Path filePath = output.resolve("step_" + step.getKey() + ".md");
          try (PrintStream out = new PrintStream(new FileOutputStream(filePath.toFile()))) {
-            printFrontMatter(out, step.getValue());
-            out.printf("# %s%n%n", step.getKey());
+            printFrontMatter(out, step.getValue(), step.getKey());
             printDocs(step.getValue(), out);
          } catch (FileNotFoundException e) {
             System.err.printf("Cannot write file %s: %s%n", filePath, e);
@@ -147,8 +127,7 @@ public class DocsGenerator extends BaseGenerator {
          Path filePath = output.resolve(type + "_" + entry.getKey() + ".md");
          try (PrintStream out = new PrintStream(new FileOutputStream(filePath.toFile()))) {
             Docs docs = entry.getValue().iterator().next();
-            printFrontMatter(out, docs);
-            out.printf("# %s%n%n", entry.getKey());
+            printFrontMatter(out, docs, entry.getKey());
             printDocs(docs, out);
          } catch (FileNotFoundException e) {
             System.err.printf("Cannot write file %s: %s%n", filePath, e);
@@ -156,10 +135,16 @@ public class DocsGenerator extends BaseGenerator {
       }
    }
 
-   private void printFrontMatter(PrintStream out, Docs docs) {
+   private void printFrontMatter(PrintStream out, Docs docs, String title) {
       out.println("---");
+      if (title == null && docs != null && docs.type != null) {
+         title = docs.type;
+      }
+      if (title != null) {
+         out.printf("title: \"%s\"%n", title);
+      }
       if (docs != null && docs.ownerDescription != null) {
-         out.printf("excerpt: \"%s\"%n", docs.ownerDescription.replaceAll("\"", "\\\\\""));
+         out.printf("description: \"%s\"%n", docs.ownerDescription.replaceAll("\"", "\\\\\""));
       }
       out.println("---");
    }
