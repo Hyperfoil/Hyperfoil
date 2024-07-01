@@ -1,0 +1,111 @@
+# This example should demonstrate various ways to configure one of the most important
+# steps - the httpRequest.
+name: http-requests
+http:
+  host: http://example.com
+ergonomics: # Disable stopping the scenario on 4xx or 5xx response
+  autoRangeCheck: false
+usersPerSec: 1
+duration: 1
+scenario:
+- jsonBody:
+  - httpRequest:
+      POST: /foo/bar
+      # Hyperfoil doesn't know what's the content of the body string, if the server
+      # requires correct content-type header you have to provide it yourselves
+      headers:
+        content-type: application/json
+      # Here we specify a multi-line string. For more info about multiline strings,
+      # compacting/chopping of newlines etc. please check out https://yaml-multiline.info/
+      body: |
+        {
+           "foo" : "bar"
+        }
+- formBody:
+  - set: myVar <- foobar
+  - httpRequest:
+      POST: /myform
+      # Here we don't need to add any headers as the form: knows that you're sending
+      # a HTML form and it can add 'content-type: application/x-www-form-urlencoded'
+      # automatically.
+      body:
+        # This will generate body 'foo=bar&bar=foobar&goo=foofoobarbar'. Any non-ascii
+        # or otherwise illegal characters are correctly URL-encoded.
+        form:
+        - name: foo
+          value: bar
+        - name: bar
+          fromVar: myVar
+        - name: goo
+          pattern: foo${myVar}bar
+- bodyFromFile:
+  - httpRequest:
+      POST: /foo/bar
+      body:
+        # This simply loads the file and sends it as the body without any conversion.
+        # It does not add any headers nor make it a multipart upload as the browser would do.
+        fromFile: usernames.txt
+- customHeaders:
+  - set: token <- dGhpcyBpcyBhIG5pY2UgYW5kIHNlY3VyZSB0b2tlbgo=
+  - set: etag <- "ETag received in some previous request"
+  - httpRequest:
+      GET: /secured/page
+      # Note that HTTP headers are case-insensitive (use your preferred capitalization)
+      headers:
+        # Headers can be set inline
+        accept: text/html
+        # Session variables are replaced using the pattern syntax
+        authorization: Bearer ${token}
+        # Values from session variables can be also loaded using fromVar
+        if-match:
+          fromVar: etag
+- nonDefaultMetric:
+  - httpRequest:
+      GET: /cats
+      # By default the metric name equals to name of the sequence ('nonDefaultMetric' here).
+      # We can override that either with a constant value...
+      metric: mammals
+  - randomItem:
+      toVar: animal
+      list:
+      - cats
+      - dogs
+      - locusts
+  - httpRequest:
+      GET: /foo/${animal}
+      # ... or a regexp switch on the actual authority+path (e.g. example.com:8080/foo/cats).
+      # If the benchmark uses single (default) HTTP target the authority is omitted.
+      metric:
+      - .*cats -> mammals
+      - .*dogs -> mammals
+      - -> insects
+- toughSLAs:
+  - httpRequest:
+      GET: /index.html
+      handler:
+        status:
+          # Any request that is not responded with status code will be marked as invalid.
+          range: 200
+      # When you need only one SLA you can use mapping without the list (just forget the dash).
+      sla:
+      # This first SLA is evaluated when the phase completes from all requests that happened
+      # during the phase.
+      # Errors are connection failures, timeouts, 4xx and 5xx responses
+      - errorRatio: 0.1
+        # You can set custom criteria for what is considered valid/invalid as with the status
+        # handler above. By default any response with status that is not within 200-399
+        # is deemed invalid (as well as error).
+        invalidRatio: 0.2
+        blockedRatio: 0.0
+        meanResponseTime: 10 ms
+        # 90% requests should be under 100 ms, only 1% can be over 1 second
+        limits:
+          0.9: 100 ms
+          0.99: 1 s
+      # Following SLA is evaluated when all the statistics for the past second arrive,
+      # accumulating results from the window (last 10 seconds). Therefore it can detect shorter
+      # peaks of degraded performance.
+      - window: 10s
+        meanResponseTime: 50 ms
+
+

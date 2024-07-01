@@ -44,7 +44,8 @@ After that, it will push both `master` and the new _tag_.
 At the end you should see some un-versioned backup POM files and a release text file, do not remove them as they will
 be required by the [Push maven artifacts step](#push-maven-artifacts-to-sonatype).
 
-> **NOTE:** Command `mvn release:prepare` triggers the tests, therefore the process might fail if there is any failure.
+> [!NOTE]
+> Command `mvn release:prepare` triggers the tests, therefore the process might fail if there is any failure.
 
 ### Push maven artifacts to sonatype
 
@@ -72,7 +73,8 @@ If, for any reason, the GitHub workflow does not work you could manually follow 
    docker push quay.io/hyperfoil/hyperfoil:<VERSION>
    docker push quay.io/hyperfoil/hyperfoil:latest
    ```
-   > **NOTE:** To run this command you need to have [quay.io/Hyperfoil](https://quay.io/organization/hyperfoil) push rights
+   > [!NOTE]
+   > To run this command you need to have [quay.io/Hyperfoil](https://quay.io/organization/hyperfoil) push rights
 4. Create a new GitHub release
    1. Start drafting the release using [GitHub web UI](https://github.com/Hyperfoil/Hyperfoil/releases/new).
    2. Auto-generate the release note
@@ -80,46 +82,62 @@ If, for any reason, the GitHub workflow does not work you could manually follow 
 
 ## Website Update
 
-Now you have to update documentation on website. 
-Clone [hyperfoil.github.io](https://github.com/Hyperfoil/hyperfoil.github.io) repository, drop the generated steps and replace them with the new ones.
+By default the documentation hosted at https://hyperfoil.io points to the latest stable branch on this repository, e.g., `0.26.x`.
 
-```bash
-# local clone of the hyperfoil.github.io repository 
-cd ../hyperfoil.github.io
+The deployment is managed by [github.com/Hyperfoil/Hyperfoil.github.io](https://github.com/Hyperfoil/Hyperfoil.github.io).
 
-# Remove and replace old steps docs with the latest generated steps files
-rm docs/steps/*
-cp ../Hyperfoil/distribution/target/steps/* docs/steps/
 
-# Update the benchmark JSON schema
-cp ../Hyperfoil/distribution/target/distribution/docs/schema.json schema.json
-```
+All changes should be already in place at the time a new release is being performed, but to be sure these are the changes that have to be applied:
 
-It's recommended to review changes in the generated docs using `git diff` at this point.
-In order to properly redirect from http://hyperfoil.io/schema to the JSON file we need to add this Front Matter to the 
-beginning of the schema.json file:
+1. Drop the generated steps and replace them with the new ones.
 
-```
----
-redirect_from: /schema
----
-(here follows the actual JSON)
-```
+   ```bash
+   # Remove and replace old steps docs with the latest generated steps files
+   rm docs/site/content/en/docs/reference/steps/step_*
+   rm docs/site/content/en/docs/reference/processors/processor_*
+   rm docs/site/content/en/docs/reference/actions/action_*
 
-Then you need to edit `_config.yml` and update the release tags - check out this section:
-```
-last_release:
-  zip: hyperfoil-X.Y.Z.zip
-  dir: hyperfoil-X.Y.Z
-  tag: hyperfoil-all-X.Y.Z
-  galaxy_version: "X.Y.Z"
-  url: https://github.com/Hyperfoil/Hyperfoil/releases/download/release-X.Y.Z/hyperfoil-X.Y.Z.zip
-```
+   cp distribution/target/steps/step_* docs/site/content/en/docs/reference/steps
+   cp distribution/target/steps/processor_* docs/site/content/en/docs/reference/processors
+   cp distribution/target/steps/action_* docs/site/content/en/docs/reference/actions
+   ```
+   > [!NOTE]
+   > It's recommended to review changes in the generated docs using `git diff` at this point.
 
-You can now commit and push the documentation (or open a pull request).
-```
-$ git commit -a -m 'Release X.Y.Z' && git push
-```
+2. Update the JSON schema
+   ```bash
+   # Update the benchmark JSON schema
+   cp distribution/target/distribution/docs/schema.json docs/site/static/schema.json
+   ```
+
+   In order to properly redirect from http://hyperfoil.io/schema to the JSON file we need to add this Front Matter to the 
+   beginning of the schema.json file:
+
+   ```
+   ---
+   redirect_from: /schema
+   ---
+   (here follows the actual JSON)
+   ```
+
+3. Update the latest release branch in the `hugo.yaml`
+   
+   ```yaml
+   params:
+      version: X.Y.Z
+      github_branch: X.Y.x
+      url_latest_distribution: https://github.com/Hyperfoil/Hyperfoil/releases/download/hyperfoil-all-X.Y.Z/hyperfoil-X.Y.Z.zip
+   ```
+
+4. [Optional] If you had to do some of the previous changes, most likely bullet #3, commit the new changes
+   ```sh
+   git commit -a -m 'Update documentation for X.Y.Z' && git push
+   ```
+
+   > [!NOTE]
+   > Remember to backport the same change to the latest stable branch, e.g., `0.26.x`.
+
+## Hyperfoil Operator
 
 Note that while the operator synchronizes to the latest Hyperfoil versions on release (we'll probably drop this practice
 after 1.0 as it is confusing for some users) we don't have to release the operator for every release of the project.
@@ -128,7 +146,8 @@ Hyperfoil.
 
 ## Update Ansible Scripts
 
-> **NOTE**: This section refers to an old automation process that might be no more applicable!
+> [!NOTE]
+> This section refers to an old automation process that might be no more applicable!
 
 ### Prerequisites
 

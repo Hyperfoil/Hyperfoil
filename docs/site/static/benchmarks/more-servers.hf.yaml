@@ -1,0 +1,44 @@
+# This example manifests running a benchmark against multiple domains
+name: more-servers
+http:
+- host: http://example.com
+  sharedConnections: 100
+- host: https://hyperfoil.io
+  # With HTTPS, most modern servers will negotiate HTTP 2.0 as the application protocol.
+  # Since HTTP 2.0 uses multiple streams over single TCP (TLS in this case) connection
+  # you can usually set lower number of connections.
+  sharedConnections: 10
+# You may want to route requests through a proxy/load balancer or simply use a domain
+# that is not resolvable. Configuration below will actually send the requests to addresses
+# set below, but the requests will use in the 'host: foobar.com' in the headers
+# and in SNI if this goes over TLS (HTTPS).
+- host: http://foobar.com
+  # Hyperfoil will split the connections evenly to the defined addresses
+  # (an entry is considered single address for this purpose even if DNS registers
+  # multiple IP addresses for the hostname).
+  sharedConnections: 30
+  addresses:
+  # Both hostnames and IP addresses are allowed
+  - proxy.my-locally-defined-domain.test
+  - 192.168.1.10
+  # You can set a custom port as well
+  - 192.168.1.11:8080
+usersPerSec: 1
+duration: 1
+scenario:
+- test:
+  - httpRequest:
+      # Authority is the combination of hostname and port.
+      authority: hyperfoil.io:443
+      GET: /docs
+  - randomItem:
+      toVar: hostname
+      list:
+      - example.com
+      - foobar.com
+  - httpRequest:
+      # The target must be configured in the 'http' section above; the correctness
+      # is usually validated when parsing/building the benchmark but sometimes it is
+      # only possible at runtime, potentially resulting in errors during execution.
+      authority: ${hostname}:80
+      GET: /foo

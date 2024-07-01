@@ -1,0 +1,11 @@
+name: k8s-hello-world
+agents:
+  agent-one:
+http:
+  host: https://kubernetes.default.svc.cluster.local
+duration: 5s
+usersPerSec: 5
+scenario:
+- test:
+  - httpRequest:
+      GET: /

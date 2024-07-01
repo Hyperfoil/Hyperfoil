@@ -1,0 +1,25 @@
+# This is the name of the benchmark. It's recommended to keep this in sync with
+# name of this file, adding extension `.hf.yaml`.
+name: single-request
+# We must define at least one HTTP target, in this case it becomes a default
+# for all HTTP requests.
+http:
+  host: http://hyperfoil.io
+# Simulation consists of phases - potentially independent workloads.
+# We'll discuss phases more in detail in next quickstarts.
+phases:
+# `example` is the name of the single phase in this benchmark.
+- example:
+    # `atOnce` with `users: 1` results in running the scenario below just once
+    atOnce:
+      users: 1
+      scenario:
+      # The only sequence in this scenario is called `test`.
+      - test:
+        # In the only step in this sequence we'll do a HTTP GET request
+        # to `http://hyperfoil.io/`
+        - httpRequest:
+            GET: /
+            # Inject helpers to make this request synchronous, i.e. keep
+            # the sequence blocked until Hyperfoil processes the response.
+            sync: true

@@ -1,0 +1,133 @@
+name: choose-movie
+http:
+  host: http://localhost:8080
+  # Use 80 concurrent HTTP connections to the server. Default is 1,
+  # therefore we couldn't issue two concurrent requests (as HTTP pipelining
+  # is disabled by default and we use HTTP 1.1 connections).
+  sharedConnections: 80
+usersPerSec: 10
+duration: 5s
+# Each session will take at least 3 seconds (see the sleep time below),
+# and we'll be running ~10 per second. That makes 30, let's give it
+# some margin and set this to 40.
+maxSessions: 40
+scenario:
+  # In previous scenarios we have used only single sequence and we could
+  # define the list of sequences right away. In this scenario, we're going
+  # to be using 3 different sequences.
+  # Initial sequences are scheduled at session start and are not linked
+  # to the other sessions.
+  initialSequences:
+  - home:
+    # Pick a random username from a file
+    - randomItem:
+        file: usernames.txt
+        toVar: username
+    # The page would load a profile, e.g. to display full name.
+    - httpRequest:
+        GET: /quickstarts/choose-movie/profile?user=${username}
+        sync: false
+        metric: profile
+    # Fetch movies user could watch
+    - httpRequest:
+        GET: /quickstarts/choose-movie/movies
+        sync: false
+        metric: movies
+        handler:
+          body:
+            # Parse the returned JSON that is an array and for each
+            # element fire the processor.
+            json:
+              query: .[]
+              processor:
+                # Store each element in a collection `movies`
+                array:
+                  toVar: movies
+                  # Store as byte[] to avoid encoding UTF-8 into String
+                  format: BYTES
+                  # Every data structure in session has maximum size.
+                  # This space is pre-allocated.
+                  maxSize: 10
+    # This step waits until responses for all sent requests are received and processed.
+    - awaitAllResponses
+    # Wait 3 seconds to simulate user-interaction
+    - thinkTime:
+        duration: 3s
+    # Set variable `quality` and `movieNames` to an uninitialized array
+    # of 10 elements. We will use them later on.
+    - set:
+        var: quality
+        objectArray:
+          size: 10
+    - set:
+        var: movieNames
+        objectArray:
+          size: 10
+    # For each element in variable `movies` schedule one (new) instance
+    # of sequence `movies`, defined below. These instances differ in
+    # one intrinsic "variable" - their index.
+    - foreach:
+        fromVar: movies
+        sequence: addComment
+    # Schedule one more sequence
+    - newSequence: watchMovie
+  # These sequences are defined but don't get scheduled at session start. We activate
+  # them explicitly (and multiple times in parallel) in foreach step above.
+  sequences:
+  # Sequences that can run multiple instances concurrently must declare the maximum
+  # concurrency level explicitly using the brackets.
+  - addComment[10]:
+    # Variables `movies` hosts an array, and in the foreach step
+    # we've created one sequence for each element. We'll access
+    # the element through the '[.]' notation below.
+    - json:
+        fromVar: movies[.]
+        query: .quality
+        # We'll extract quality to another collection under
+        # this sequence's index. We shouldn't use global variable
+        # as the execution of sequences may interleave.
+        toVar: quality[.]
+    # For high-quality movies we won't post insults (we haven't seen
+    # the movie yet anyway). Therefore, we'll stop executing
+    # the sequence prematurely.
+    - breakSequence:
+        intCondition:
+          fromVar: quality[.]
+          # Note: ideally we could filter the JSON directly using query
+          #     .[] | select(.quality >= 80)
+          # but this feature is not implemented yet.
+          greaterOrEqualTo: 80
+    - json:
+        fromVar: movies[.]
+        query: .name
+        toVar: movieNames[.]
+    - httpRequest:
+        # URLs with spaces and other characters don't work well;
+        # let's encode it (e.g. space -> %20)
+        POST: /quickstarts/choose-movie/movie/${urlencode:movieNames[.]}/comments
+        body:
+          text: This movie sucks.
+        # The sync shortcut actually sets up a bit in the session state
+        # cleared before the request and set when the request is complete,
+        # automatically waiting it after this step.
+        # You can write your own handlers (using sequence-scoped vars)
+        # to change this behaviour.
+        sync: true
+    # Set value to variable `commented`. The actual value does not matter.
+    - set: commented <- true
+  - watchMovie:
+    # This sequence is blocked in its first step until the variable gets
+    # set. Therefore we could define it in `initialSequences` and omit
+    # the `newSequence` step at the end of `home` sequence.
+    - awaitVar: commented
+    # Choose one of the movies (including the bad ones, for simplicity)
+    - randomItem: selectedMovie <- movies
+    - json:
+        fromVar: selectedMovie
+        query: .name
+        # This sequence is executed only once so we can use global var.
+        toVar: movieName
+    # Finally, go watch the movie!
+    - httpRequest:
+        GET: /quickstarts/choose-movie/movie/${urlencode:movieName}/watch
+        sync: true

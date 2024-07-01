@@ -1,0 +1,14 @@
+# This benchmark demonstrates custom steps
+name: divide
+http:
+  host: http://localhost:8080
+usersPerSec: 1
+duration: 5s
+scenario:
+- test:
+  - setInt: foo <- 33
+  - divide: foo /= 3
+  - log:
+      message: Foo is {}
+      vars:
+      - foo

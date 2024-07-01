@@ -1,6 +1,7 @@
 <project name="hyperfoil-package" basedir="." default="package">
     <property name="root.dir" value=".."/>
     <property name="dist.dir" value="${project.build.directory}/distribution"/>
+    <property name="docs.dir" value="../docs/site/static"/>
 
     <target name="package" depends="clean, all"/>
 
@@ -49,9 +50,11 @@
             </fileset>
         </copy>
 
-        <get src="http://hyperfoil.io/report-template-v3.1.html"
-             dest="${dist.dir}/templates/report-template-v3.1.html"
-             usetimestamp="true"/>
+        <copy tofile="${dist.dir}/templates/report-template-v3.1.html" failonerror="true">
+            <fileset dir="${docs.dir}">
+                <include name="report-template-v3.1.html"/>
+            </fileset>
+        </copy>
     </target>
 
     <macrodef name="copy-module">
