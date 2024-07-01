@@ -4,7 +4,6 @@ title: "Beginner's Guide to Hyperfoil: part 2"
 linkTitle: "Beginner's Guide 2"
 description: >
   In this post we will focus on processing of responses and user workflow through the site.
-author: TODO
 ---
 
 > This article is intended to be published on other sites, too - therefore it contains introduction to concepts this blog’s readers are probably familiar with.

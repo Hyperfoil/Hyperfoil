@@ -2,10 +2,10 @@
 date: 2021-01-25
 title: "Beginner's Guide to Hyperfoil: part 3"
 linkTitle: "Beginner's Guide 3"
+type: blog
 description: >
   In this article we'll show how to run Hyperfoil inside an Openshift cluster,
   benchmarking workload within the same cluster.
-author: TODO
 ---
 
 In this article we'll show how to run Hyperfoil inside an Openshift cluster, benchmarking workload within the same cluster. This assumes that you have sufficient privileges to install operators and create new namespaces (projects).
@@ -32,7 +32,8 @@ This will deploy 5 pods, 5 services and 4 routes in the `vehicle-market` namespa
 
 You can install Hyperfoil Operator either through web-console, or on command-line using `oc`. For the web-console installation switch to the 'Administrator view' and go to Operators/OperatorHub. Filter 'Hyperfoil' and you should see the operator:
 
-<img src="/assets/posts_images/hf-beginner-guide-3-operator.png">
+{{% imgproc hf-beginner-guide-3-operator Fit "1800x450" %}}
+{{% /imgproc %}}
 
 Click on Hyperfoil and go through the wizard with all settings on default values (install to all namespaces with automatic approval).
 
@@ -53,7 +54,8 @@ spec:
 
 In any case you should end up with Hyperfoil listed amongst the installed operators:
 
-<img src="/assets/posts_images/hf-beginner-guide-3-installed.png">
+{{% imgproc hf-beginner-guide-3-installed Fit "700x200" %}}
+{{% /imgproc %}}
 
 Now you can create a new namespace for Hyperfoil and add the custom resource. In web-console open the dropdown on top and create a new namespace `hyperfoil`. When the page reloads with all operators (that can take a couple of seconds) click on 'Hyperfoil' in the Provided APIs column (highlighted with red ellipse above). Press the 'Create Hyperfoil' button on the right side and switch to YAML View, filling the definition below and push 'Create' button below the editor.
 
@@ -149,7 +151,8 @@ Configuration options such as securing the controller with password, persistence
 
 You are already familiar with Hyperfoil CLI but starting it up in Podman might not be the most convenient way (and neither is keeping Hyperfoil distribution locally). There’s an easy solution for that: just use your browser. Since Hyperfoil 0.14 the controller exposes a CLI — let’s navigate to `https://hyperfoil.apps.your.domain.com:`
 
-<img src="/assets/posts_images/hf-beginner-guide-3-webcli.png">
+{{% imgproc hf-beginner-guide-3-webcli Fit "1800x200" %}}
+{{% /imgproc %}}
 
 This CLI is automatically connected to the controller where it is running and cannot connect to any other controller (the command `connect` is missing, as well as `exit` and few other ones). Some commands are altered, e.g. `upload` cannot accept path on your machine while in browser — type just `upload` and then press a button that lets you select the benchmark file. `edit` does not open vi/vim/your favorite editor but displays a Monaco editor inside the browser. `export` and `report` cannot take `--destination`, instead these commands open download dialogue in the browser.
 

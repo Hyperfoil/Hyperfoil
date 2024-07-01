@@ -3,8 +3,7 @@ date: 2020-11-16
 title: Automatic follow of redirects
 linkTitle: Follow redirects
 description: >
-  TODO
-author: TODO
+  Simulate realistic user navigation with Hyperfoil's support for HTTP and HTML redirects
 ---
 
 Hyperfoil is trying to imitate how users will hit your site with requests as realistically as possible. Therefore it supports one of the browser features: redirections.

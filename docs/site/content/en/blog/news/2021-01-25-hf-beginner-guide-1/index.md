@@ -5,7 +5,6 @@ linkTitle: "Beginner's Guide 1"
 description: >
   Meet Hyperfoil, a swiss-army knife of web benchmark driver.
   You'll learn how to write a simple benchmark and run it straight from the CLI.
-author: TODO
 ---
 
 ## TLDR
@@ -122,7 +121,9 @@ Written to /tmp/reports/0000.html
 
 The front page shows only one rather wide column as we've used only one phase, but when you switch to details in the top navbar you can see the progression of requests:
 
-<img src="/assets/posts_images/hf-beginner-guide-1-report-details.png" alt="Report details example">
+{{% imgproc hf-beginner-guide-1-report-details Fit "1800x400" %}}
+Report details example
+{{% /imgproc %}}
 
 ## Set phasers to kill
 

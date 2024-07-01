@@ -65,9 +65,7 @@ News
   and run it straight from the CLI.
 {{% /blocks/feature %}}
 
-<!-- TODO: reduce width -->
-<!-- TODO: change font color -->
-<!-- <a class="btn btn-lg me-3 mt-5" href="/docs/">
-  Show Older Posts
-</a> -->
+<p class="lead mt-5 position-relative">
+  <a class="position-absolute top-50 start-50 translate-middle" href="/blog/news/">See all posts</a>
+</p>
 {{% /blocks/section %}}

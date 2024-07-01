@@ -3,8 +3,8 @@ date: 2020-11-16
 title: Fetch embedded resources
 linkTitle: Fetch embedded
 description: >
-  TODO
-author: TODO
+  Simulate realistic website browsing with Hyperfoil's support for automated downloading 
+  and managing of embedded resources like images, stylesheets, and scripts
 ---
 
 When browsing a website it's not only the main page the webserver needs to serve - usually there are static resources such as images, stylesheets, scripts and more. Hyperfoil can automatically download these.

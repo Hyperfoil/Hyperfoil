@@ -1,5 +1,6 @@
 ---
 title: Blog
+type: docs
 menu: {main: {weight: 30}}
 ---
 

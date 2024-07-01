@@ -3,8 +3,7 @@ date: 2020-12-09
 title: Compensation for coordinated omission
 linkTitle: Compensation
 description: >
-  TODO
-author: TODO
+  Measure true performance with Hyperfoil: compare actual and compensated latencies in closed-model benchmarks
 ---
 
 Results for [closed-model](/docs/user-guide/benchmark/phases/) tests show maximum throughput your SUT can achieve; the response times are skewed though due to the coordinated omission. There are still cases where you'd like to run in this mode and check the size of the error you're accumulating.
