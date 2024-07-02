@@ -24,11 +24,12 @@ public class HttpRequest extends Request {
    public HttpMethod method;
    public String authority;
    public String path;
-   public CacheControl cacheControl = new CacheControl();
+   public final CacheControl cacheControl;
    private HttpConnectionPool pool;
 
-   public HttpRequest(Session session) {
+   public HttpRequest(Session session, boolean httpCacheEnabled) {
       super(session);
+      this.cacheControl = httpCacheEnabled ? new CacheControl() : null;
    }
 
    public static HttpRequest ensure(Request request) {
@@ -56,7 +57,7 @@ public class HttpRequest extends Request {
          // Handlers must not block anyway, so this is illegal way to run request
          // and happens only with programmatic configuration in testsuite.
          throw new IllegalStateException(String.format(
-               "#{} Invoking request directly from a request handler; current: {}, requested {}",
+               "#%d Invoking request directly from a request handler; current: %s, requested %s",
                session.uniqueId(), session.currentRequest(), this));
       }
 
@@ -78,7 +79,9 @@ public class HttpRequest extends Request {
       this.authority = null;
       this.path = null;
       this.pool = null;
-      cacheControl.reset();
+      if (this.cacheControl != null) {
+         this.cacheControl.reset();
+      }
    }
 
    public HttpResponseHandlers handlers() {
@@ -128,4 +131,16 @@ public class HttpRequest extends Request {
          session.proceed();
       }
    }
+
+   /**
+    * Checks if the cache control is set.
+    * Worth to note that, if this is true the tool guarantees that HttpCache.get(request.session) is not null.
+    *
+    * @return {@code true} if {@code cacheControl} is not {@code null},
+    *         indicating that HTTP cache is enabled; {@code false} otherwise.
+    */
+   public boolean hasCacheControl() {
+      return this.cacheControl != null;
+   }
+
 }

@@ -14,8 +14,8 @@ public class HttpRequestPool extends LimitedPoolResource<HttpRequest> {
    private static final boolean trace = log.isTraceEnabled();
    public static final Session.ResourceKey<LimitedPoolResource<HttpRequest>> KEY = new Key<>();
 
-   public HttpRequestPool(Scenario scenario, Session session) {
-      super(scenario.maxRequests(), HttpRequest.class, () -> new HttpRequest(session));
+   public HttpRequestPool(Scenario scenario, Session session, boolean httpCacheEnabled) {
+      super(scenario.maxRequests(), HttpRequest.class, () -> new HttpRequest(session, httpCacheEnabled));
    }
 
    public static LimitedPool<HttpRequest> get(Session session) {

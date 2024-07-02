@@ -58,6 +58,7 @@ public class HttpBuilder implements BuilderBase<HttpBuilder> {
    private KeyManagerBuilder keyManager = new KeyManagerBuilder(this);
    private TrustManagerBuilder trustManager = new TrustManagerBuilder(this);
    private ConnectionStrategy connectionStrategy = ConnectionStrategy.SHARED_POOL;
+   private boolean useHttpCache = true;
 
    public static HttpBuilder forTesting() {
       return new HttpBuilder(null);
@@ -233,6 +234,15 @@ public class HttpBuilder implements BuilderBase<HttpBuilder> {
       return connectionStrategy;
    }
 
+   public HttpBuilder useHttpCache(boolean useHttpCache) {
+      this.useHttpCache = useHttpCache;
+      return this;
+   }
+
+   public boolean useHttpCache() {
+      return useHttpCache;
+   }
+
    public void prepareBuild() {
    }
 
@@ -262,10 +272,10 @@ public class HttpBuilder implements BuilderBase<HttpBuilder> {
          }
       }
       Protocol protocol = this.protocol != null ? this.protocol : Protocol.fromPort(port);
-      return http = new Http(name, isDefault, originalDestination, protocol, host, protocol.portOrDefault(port), addresses.toArray(new String[0]),
-            httpVersions.toArray(new HttpVersion[0]), maxHttp2Streams, pipeliningLimit,
-            sharedConnections.build(), directHttp2, requestTimeout, rawBytesHandlers, keyManager.build(), trustManager.build(),
-            connectionStrategy);
+      return http = new Http(name, isDefault, originalDestination, protocol, host, protocol.portOrDefault(port),
+            addresses.toArray(new String[0]), httpVersions.toArray(new HttpVersion[0]), maxHttp2Streams,
+            pipeliningLimit, sharedConnections.build(), directHttp2, requestTimeout, rawBytesHandlers,
+            keyManager.build(), trustManager.build(), connectionStrategy, useHttpCache);
    }
 
    public static class KeyManagerBuilder implements BuilderBase<KeyManagerBuilder> {

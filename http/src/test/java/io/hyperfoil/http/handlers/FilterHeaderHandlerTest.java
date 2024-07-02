@@ -89,7 +89,7 @@ public class FilterHeaderHandlerTest {
    }
 
    private HttpRequest requestMock(WriteAccess... accesses) {
-      HttpRequest request = new HttpRequest(SessionFactory.forTesting(accesses));
+      HttpRequest request = new HttpRequest(SessionFactory.forTesting(accesses), true);
       request.attach(new BaseMockConnection() {
          @Override
          public ChannelHandlerContext context() {
