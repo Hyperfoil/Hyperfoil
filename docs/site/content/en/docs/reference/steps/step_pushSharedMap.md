@@ -11,7 +11,7 @@ Store values from session variables into a map shared across all sessions using 
 | key | String | Key identifying the shared map. |
 | vars | [&lt;list of strings&gt;](#vars) | List of variable names that should be stored in the entry. |
 
-### <a id="vars"></a>vars
+### vars
 
 List of variable names that should be stored in the entry.
 

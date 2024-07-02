@@ -10,7 +10,7 @@ Stores random (linearly distributed) integer into session variable.
 | min | [Builder](#min) | Lowest possible value (inclusive). Default is 0. |
 | toVar | String | Variable name to store the result. |
 
-### <a id="max"></a>max
+### max
 
 
 | Inline definition |
@@ -22,7 +22,7 @@ Stores random (linearly distributed) integer into session variable.
 | fromVar | String | Initialize with a value from session variable. |
 | value | int | Initialize with a constant value. |
 
-### <a id="min"></a>min
+### min
 
 
 | Inline definition |

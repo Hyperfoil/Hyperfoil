@@ -26,7 +26,7 @@ files:
 | files | [Builder](#files) | Potentially weighted list of files to choose from. |
 | toVar | String | Variable where the chosen byte array should be stored. |
 
-### <a id="files"></a>files
+### files
 
 | Property | Type | Description |
 | ------- | ------- | ------- |

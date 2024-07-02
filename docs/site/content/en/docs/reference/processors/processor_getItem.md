@@ -10,7 +10,7 @@ Retrieves n-th item from an array or collection.
 | index | [Builder](#index) | Source for index into the array/list. |
 | toVar | String | Destination variable for the n-th element. |
 
-### <a id="index"></a>index
+### index
 
 
 | Inline definition |

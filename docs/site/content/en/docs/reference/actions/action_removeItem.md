@@ -9,7 +9,7 @@ Removes element from an array of variables.
 | fromVar | String | Variable containing an existing array of object variables. |
 | index | [Builder](#index) | Set index at which the item should be removed. Elements to the right of this are moved to the left. |
 
-### <a id="index"></a>index
+### index
 
 
 | Inline definition |

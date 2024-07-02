@@ -13,13 +13,13 @@ Calculates size of an array/collection held in variable into another variable
 | toVar | String | Variable storing the size. |
 | undefinedValue | int | Value to use when <code>fromVar</code> is unset or it does not contain any array/collection. |
 
-### <a id="boolFilter"></a>boolFilter
+### boolFilter
 
 | Property | Type | Description |
 | ------- | ------- | ------- |
 | value | boolean | Expected value. |
 
-### <a id="intFilter"></a>intFilter
+### intFilter
 
 | Property | Type | Description |
 | ------- | ------- | ------- |
@@ -30,7 +30,7 @@ Calculates size of an array/collection held in variable into another variable
 | lessThan | [Builder](#intfilterlessthan) | Compared variable must be lower than this value. |
 | notEqualTo | [Builder](#intfilternotequalto) | Compared variable must not be equal to this value. |
 
-### <a id="intFilter.equalTo"></a>intFilter.equalTo
+### intFilter.equalTo
 
 
 | Inline definition |
@@ -42,7 +42,7 @@ Calculates size of an array/collection held in variable into another variable
 | fromVar | String | Input variable name. |
 | value | int | Value (integer). |
 
-### <a id="intFilter.greaterOrEqualTo"></a>intFilter.greaterOrEqualTo
+### intFilter.greaterOrEqualTo
 
 
 | Inline definition |
@@ -54,7 +54,7 @@ Calculates size of an array/collection held in variable into another variable
 | fromVar | String | Input variable name. |
 | value | int | Value (integer). |
 
-### <a id="intFilter.greaterThan"></a>intFilter.greaterThan
+### intFilter.greaterThan
 
 
 | Inline definition |
@@ -66,7 +66,7 @@ Calculates size of an array/collection held in variable into another variable
 | fromVar | String | Input variable name. |
 | value | int | Value (integer). |
 
-### <a id="intFilter.lessOrEqualTo"></a>intFilter.lessOrEqualTo
+### intFilter.lessOrEqualTo
 
 
 | Inline definition |
@@ -78,7 +78,7 @@ Calculates size of an array/collection held in variable into another variable
 | fromVar | String | Input variable name. |
 | value | int | Value (integer). |
 
-### <a id="intFilter.lessThan"></a>intFilter.lessThan
+### intFilter.lessThan
 
 
 | Inline definition |
@@ -90,7 +90,7 @@ Calculates size of an array/collection held in variable into another variable
 | fromVar | String | Input variable name. |
 | value | int | Value (integer). |
 
-### <a id="intFilter.notEqualTo"></a>intFilter.notEqualTo
+### intFilter.notEqualTo
 
 
 | Inline definition |
@@ -102,7 +102,7 @@ Calculates size of an array/collection held in variable into another variable
 | fromVar | String | Input variable name. |
 | value | int | Value (integer). |
 
-### <a id="stringFilter"></a>stringFilter
+### stringFilter
 
 | Property | Type | Description |
 | ------- | ------- | ------- |
@@ -117,7 +117,7 @@ Calculates size of an array/collection held in variable into another variable
 | startsWith | CharSequence | Prefix for the string. |
 | value | CharSequence | Literal value the string should match. |
 
-### <a id="stringFilter.length"></a>stringFilter.length
+### stringFilter.length
 
 | Property | Type | Description |
 | ------- | ------- | ------- |
@@ -128,7 +128,7 @@ Calculates size of an array/collection held in variable into another variable
 | lessThan | [Builder](#stringfilterlengthlessthan) | Compared variable must be lower than this value. |
 | notEqualTo | [Builder](#stringfilterlengthnotequalto) | Compared variable must not be equal to this value. |
 
-### <a id="stringFilter.length.equalTo"></a>stringFilter.length.equalTo
+### stringFilter.length.equalTo
 
 
 | Inline definition |
@@ -140,7 +140,7 @@ Calculates size of an array/collection held in variable into another variable
 | fromVar | String | Input variable name. |
 | value | int | Value (integer). |
 
-### <a id="stringFilter.length.greaterOrEqualTo"></a>stringFilter.length.greaterOrEqualTo
+### stringFilter.length.greaterOrEqualTo
 
 
 | Inline definition |
@@ -152,7 +152,7 @@ Calculates size of an array/collection held in variable into another variable
 | fromVar | String | Input variable name. |
 | value | int | Value (integer). |
 
-### <a id="stringFilter.length.greaterThan"></a>stringFilter.length.greaterThan
+### stringFilter.length.greaterThan
 
 
 | Inline definition |
@@ -164,7 +164,7 @@ Calculates size of an array/collection held in variable into another variable
 | fromVar | String | Input variable name. |
 | value | int | Value (integer). |
 
-### <a id="stringFilter.length.lessOrEqualTo"></a>stringFilter.length.lessOrEqualTo
+### stringFilter.length.lessOrEqualTo
 
 
 | Inline definition |
@@ -176,7 +176,7 @@ Calculates size of an array/collection held in variable into another variable
 | fromVar | String | Input variable name. |
 | value | int | Value (integer). |
 
-### <a id="stringFilter.length.lessThan"></a>stringFilter.length.lessThan
+### stringFilter.length.lessThan
 
 
 | Inline definition |
@@ -188,7 +188,7 @@ Calculates size of an array/collection held in variable into another variable
 | fromVar | String | Input variable name. |
 | value | int | Value (integer). |
 
-### <a id="stringFilter.length.notEqualTo"></a>stringFilter.length.notEqualTo
+### stringFilter.length.notEqualTo
 
 
 | Inline definition |

@@ -14,6 +14,6 @@ Adds value to a counter shared by all sessions in the same executor.
 | ------- | ------- | -------- |
 | fromVar | String | Input variable name. |
 | key | String | Identifier for the counter. |
-| operator | enum | Operation to perform on the counter. Default is <code>ADD</code>.<br>Options:{::nomarkdown}<ul><li><code>ADD</code></li><li><code>SUBTRACT</code></li></ul>{:/} |
+| operator | enum | Operation to perform on the counter. Default is <code>ADD</code>.<br>Options:<ul><li><code>ADD</code></li><li><code>SUBTRACT</code></li></ul> |
 | value | int | Value (integer). |
 

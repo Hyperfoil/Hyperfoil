@@ -12,6 +12,6 @@ Define a point in future until which we should wait. Does not cause waiting.
 | key | String | Key that is referenced later in `awaitDelay` step. If you're introducing the delay through `thinkTime` do not use this property. |
 | max | String | Upper cap on the duration (if randomized). |
 | min | String | Lower cap on the duration (if randomized). |
-| random | enum | Randomize the duration.<br>Options:{::nomarkdown}<ul><li><code>CONSTANT</code>: {:/}Do not randomize; use constant duration.{::nomarkdown}</li><li><code>LINEAR</code>: {:/}Use linearly random duration between <code>min</code> and <code>max</code> (inclusively).{::nomarkdown}</li><li><code>NEGATIVE_EXPONENTIAL</code>: {:/}Use negative-exponential duration with expected value of <code>duration</code>, capped at <code>min</code> and <code>max</code> (inclusively).{::nomarkdown}</li></ul>{:/} |
-| type | enum | Alternative way to set delay reference point. See `fromNow` and `fromLast` property setters.<br>Options:{::nomarkdown}<ul><li><code>FROM_LAST</code></li><li><code>FROM_NOW</code></li></ul>{:/} |
+| random | enum | Randomize the duration.<br>Options:<ul><li><code>CONSTANT</code>Do not randomize; use constant duration.</li><li><code>LINEAR</code>Use linearly random duration between <code>min</code> and <code>max</code> (inclusively).</li><li><code>NEGATIVE_EXPONENTIAL</code>Use negative-exponential duration with expected value of <code>duration</code>, capped at <code>min</code> and <code>max</code> (inclusively).</li></ul> |
+| type | enum | Alternative way to set delay reference point. See `fromNow` and `fromLast` property setters.<br>Options:<ul><li><code>FROM_LAST</code></li><li><code>FROM_NOW</code></li></ul> |
 

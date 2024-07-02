@@ -12,7 +12,7 @@ Move values from a map shared across all sessions using the same executor into s
 | match | String | Name of the session variable that stores value identifying the entry in the shared map. |
 | vars | [&lt;list of strings&gt;](#vars) | List of variables the map should be pulled into. |
 
-### <a id="vars"></a>vars
+### vars
 
 List of variables the map should be pulled into.
 

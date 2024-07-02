@@ -10,7 +10,7 @@ Lookup index of an item in an array/collection.
 | item | [Builder](#item) | Item that should be looked up (using equality). |
 | toVar | String | Integer variable to store the index, or -1 if the item is not found. |
 
-### <a id="item"></a>item
+### item
 
 
 | Inline definition |

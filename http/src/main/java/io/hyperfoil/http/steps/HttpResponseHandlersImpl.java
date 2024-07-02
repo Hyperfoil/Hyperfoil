@@ -463,7 +463,7 @@ public class HttpResponseHandlersImpl implements HttpResponseHandlers, Serializa
       /**
        * Inject status handler that marks the request as invalid on status 4xx or 5xx.
        * Default value depends on <code>ergonomics.autoRangeCheck</code>
-       * (see <a href="https://hyperfoil.io/userguide/benchmark/ergonomics.html">User Guide</a>).
+       * (see <a href="https://hyperfoil.io/docs/user-guide/benchmark/ergonomics">User Guide</a>).
        *
        * @param autoRangeCheck True for inserting the handler, false otherwise.
        * @return Self.

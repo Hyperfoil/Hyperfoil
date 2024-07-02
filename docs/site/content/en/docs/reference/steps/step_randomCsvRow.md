@@ -11,7 +11,7 @@ Stores random row from a CSV-formatted file to variables.
 | separator | char | Set character used for column separation. By default it is comma (<code>,</code>). |
 | skipComments | boolean | Skip lines starting with character '#'. By default set to false. |
 
-### <a id="columns"></a>columns
+### columns
 
 | Property | Type | Description |
 | ------- | ------- | ------- |

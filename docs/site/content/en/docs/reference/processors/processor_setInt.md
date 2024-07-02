@@ -19,7 +19,7 @@ Set session variable to an integral value.
 | value | int | Value (integer). |
 | var | String | Variable name. |
 
-### <a id="intCondition"></a>intCondition
+### intCondition
 
 | Property | Type | Description |
 | ------- | ------- | ------- |
@@ -30,7 +30,7 @@ Set session variable to an integral value.
 | lessThan | [Builder](#intconditionlessthan) | Compared variable must be lower than this value. |
 | notEqualTo | [Builder](#intconditionnotequalto) | Compared variable must not be equal to this value. |
 
-### <a id="intCondition.equalTo"></a>intCondition.equalTo
+### intCondition.equalTo
 
 
 | Inline definition |
@@ -42,7 +42,7 @@ Set session variable to an integral value.
 | fromVar | String | Input variable name. |
 | value | int | Value (integer). |
 
-### <a id="intCondition.greaterOrEqualTo"></a>intCondition.greaterOrEqualTo
+### intCondition.greaterOrEqualTo
 
 
 | Inline definition |
@@ -54,7 +54,7 @@ Set session variable to an integral value.
 | fromVar | String | Input variable name. |
 | value | int | Value (integer). |
 
-### <a id="intCondition.greaterThan"></a>intCondition.greaterThan
+### intCondition.greaterThan
 
 
 | Inline definition |
@@ -66,7 +66,7 @@ Set session variable to an integral value.
 | fromVar | String | Input variable name. |
 | value | int | Value (integer). |
 
-### <a id="intCondition.lessOrEqualTo"></a>intCondition.lessOrEqualTo
+### intCondition.lessOrEqualTo
 
 
 | Inline definition |
@@ -78,7 +78,7 @@ Set session variable to an integral value.
 | fromVar | String | Input variable name. |
 | value | int | Value (integer). |
 
-### <a id="intCondition.lessThan"></a>intCondition.lessThan
+### intCondition.lessThan
 
 
 | Inline definition |
@@ -90,7 +90,7 @@ Set session variable to an integral value.
 | fromVar | String | Input variable name. |
 | value | int | Value (integer). |
 
-### <a id="intCondition.notEqualTo"></a>intCondition.notEqualTo
+### intCondition.notEqualTo
 
 
 | Inline definition |
@@ -102,13 +102,13 @@ Set session variable to an integral value.
 | fromVar | String | Input variable name. |
 | value | int | Value (integer). |
 
-### <a id="max"></a>max
+### max
 
 | Property | Type | Description |
 | ------- | ------- | ------- |
-| &lt;list of mappings&gt; | [&lt;list of builders&gt;](#maxlist-of-mappings) | <font color="#606060">&lt;no description&gt;</font> |
+| &lt;list of mappings&gt; | [&lt;list of builders&gt;](#maxltlist-of-mappingsgt) | <font color="#606060">&lt;no description&gt;</font> |
 
-### <a id="max.&lt;list of mappings&gt;"></a>max.&lt;list of mappings&gt;
+### max.&lt;list of mappings&gt;
 
 
 | Inline definition |
@@ -120,9 +120,9 @@ Set session variable to an integral value.
 | fromVar | String | Input variable name. |
 | value | int | Value (integer). |
 
-### <a id="min"></a>min
+### min
 
 | Property | Type | Description |
 | ------- | ------- | ------- |
-| &lt;list of mappings&gt; | [&lt;list of builders&gt;](#maxlist-of-mappings) | <font color="#606060">&lt;no description&gt;</font> |
+| &lt;list of mappings&gt; | [&lt;list of builders&gt;](#maxltlist-of-mappingsgt) | <font color="#606060">&lt;no description&gt;</font> |
 

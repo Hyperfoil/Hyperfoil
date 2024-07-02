@@ -43,7 +43,7 @@ public class LogAction implements Action {
       List<String> vars = new ArrayList<>();
 
       /**
-       * @param param A pattern for <a href="https://hyperfoil.io/userguide/benchmark/variables.html#string-interpolation">string interpolation</a>.
+       * @param param A pattern for <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">string interpolation</a>.
        * @return Self.
        */
       @Override
@@ -52,7 +52,7 @@ public class LogAction implements Action {
       }
 
       /**
-       * Message format pattern. Use <a href="https://hyperfoil.io/userguide/benchmark/variables.html#string-interpolation">string interpolation</a>
+       * Message format pattern. Use <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">string interpolation</a>
        * for variables.
        *
        * @param message Message format pattern.

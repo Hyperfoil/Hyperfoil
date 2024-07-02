@@ -11,7 +11,7 @@ Set element in a collection on given position.
 | toVar | String | Session variable with the collection. |
 | value | String | Verbatim value. |
 
-### <a id="index"></a>index
+### index
 
 
 | Inline definition |

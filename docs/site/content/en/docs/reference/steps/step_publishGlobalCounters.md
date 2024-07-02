@@ -22,7 +22,7 @@ Gathers values from session variables and publishes them globally (to all agents
 | key | String | Identifier of the global record. |
 | vars | [Builder](#vars) | List of names and session variables. |
 
-### <a id="vars"></a>vars
+### vars
 
 | Property | Type | Description |
 | ------- | ------- | ------- |

@@ -14,7 +14,7 @@ Block current sequence until condition becomes true.
 | notEqualTo | [Builder](#notequalto) | Compared variable must not be equal to this value. |
 | var | String | Variable name storing the compared value. |
 
-### <a id="equalTo"></a>equalTo
+### equalTo
 
 
 | Inline definition |
@@ -26,7 +26,7 @@ Block current sequence until condition becomes true.
 | fromVar | String | Input variable name. |
 | value | int | Value (integer). |
 
-### <a id="greaterOrEqualTo"></a>greaterOrEqualTo
+### greaterOrEqualTo
 
 
 | Inline definition |
@@ -38,7 +38,7 @@ Block current sequence until condition becomes true.
 | fromVar | String | Input variable name. |
 | value | int | Value (integer). |
 
-### <a id="greaterThan"></a>greaterThan
+### greaterThan
 
 
 | Inline definition |
@@ -50,7 +50,7 @@ Block current sequence until condition becomes true.
 | fromVar | String | Input variable name. |
 | value | int | Value (integer). |
 
-### <a id="lessOrEqualTo"></a>lessOrEqualTo
+### lessOrEqualTo
 
 
 | Inline definition |
@@ -62,7 +62,7 @@ Block current sequence until condition becomes true.
 | fromVar | String | Input variable name. |
 | value | int | Value (integer). |
 
-### <a id="lessThan"></a>lessThan
+### lessThan
 
 
 | Inline definition |
@@ -74,7 +74,7 @@ Block current sequence until condition becomes true.
 | fromVar | String | Input variable name. |
 | value | int | Value (integer). |
 
-### <a id="notEqualTo"></a>notEqualTo
+### notEqualTo
 
 
 | Inline definition |

@@ -12,34 +12,34 @@ Passes the data to nested processor if the condition holds. <br> Note that the c
 | processor | [Processor.Builder](index.html#processors) | One or more processors that should be invoked if the condition holds. |
 | stringCondition | [Builder](#stringcondition) | Condition comparing string variables. |
 
-### <a id="allConditions"></a>allConditions
+### allConditions
 
 Test more conditions and combine the results using AND logic.
 
 | Property | Type | Description |
 | ------- | ------- | ------- |
-| &lt;list of mappings&gt; | [&lt;list of builders&gt;](#allconditionslist-of-mappings) | List of conditions. |
+| &lt;list of mappings&gt; | [&lt;list of builders&gt;](#allconditionsltlist-of-mappingsgt) | List of conditions. |
 
-### <a id="allConditions.&lt;list of mappings&gt;"></a>allConditions.&lt;list of mappings&gt;
+### allConditions.&lt;list of mappings&gt;
 
 Selector for condition type.
 
 | Property | Type | Description |
 | ------- | ------- | ------- |
-| allConditions | [Builder](#allconditionslist-of-mappingsallconditions) | Condition combining multiple other conditions with 'AND' logic. |
-| boolCondition | [Builder](#allconditionslist-of-mappingsboolcondition) | Condition comparing boolean variables. |
-| intCondition | [Builder](#allconditionslist-of-mappingsintcondition) | Condition comparing integer variables. |
-| stringCondition | [Builder](#allconditionslist-of-mappingsstringcondition) | Condition comparing string variables. |
+| allConditions | [Builder](#allconditionsltlist-of-mappingsgtallconditions) | Condition combining multiple other conditions with 'AND' logic. |
+| boolCondition | [Builder](#allconditionsltlist-of-mappingsgtboolcondition) | Condition comparing boolean variables. |
+| intCondition | [Builder](#allconditionsltlist-of-mappingsgtintcondition) | Condition comparing integer variables. |
+| stringCondition | [Builder](#allconditionsltlist-of-mappingsgtstringcondition) | Condition comparing string variables. |
 
-### <a id="allConditions.&lt;list of mappings&gt;.allConditions"></a>allConditions.&lt;list of mappings&gt;.allConditions
+### allConditions.&lt;list of mappings&gt;.allConditions
 
 Test more conditions and combine the results using AND logic.
 
 | Property | Type | Description |
 | ------- | ------- | ------- |
-| &lt;list of mappings&gt; | [&lt;list of builders&gt;](#allconditionslist-of-mappings) | List of conditions. |
+| &lt;list of mappings&gt; | [&lt;list of builders&gt;](#allconditionsltlist-of-mappingsgt) | List of conditions. |
 
-### <a id="allConditions.&lt;list of mappings&gt;.boolCondition"></a>allConditions.&lt;list of mappings&gt;.boolCondition
+### allConditions.&lt;list of mappings&gt;.boolCondition
 
 Tests session variable containing boolean value.
 
@@ -48,7 +48,7 @@ Tests session variable containing boolean value.
 | fromVar | String | Variable name. |
 | value | boolean | Expected value. |
 
-### <a id="allConditions.&lt;list of mappings&gt;.intCondition"></a>allConditions.&lt;list of mappings&gt;.intCondition
+### allConditions.&lt;list of mappings&gt;.intCondition
 
 Condition comparing integer in session variable.
 
@@ -71,7 +71,7 @@ Condition comparing integer in session variable.
 | lessThan | [Builder](#intconditionlessthan) | Compared variable must be lower than this value. |
 | notEqualTo | [Builder](#intconditionnotequalto) | Compared variable must not be equal to this value. |
 
-### <a id="allConditions.&lt;list of mappings&gt;.stringCondition"></a>allConditions.&lt;list of mappings&gt;.stringCondition
+### allConditions.&lt;list of mappings&gt;.stringCondition
 
 Condition comparing string in session variable.
 
@@ -90,7 +90,7 @@ Condition comparing string in session variable.
 | startsWith | CharSequence | Prefix for the string. |
 | value | CharSequence | Literal value the string should match. |
 
-### <a id="boolCondition"></a>boolCondition
+### boolCondition
 
 Tests session variable containing boolean value.
 
@@ -99,7 +99,7 @@ Tests session variable containing boolean value.
 | fromVar | String | Variable name. |
 | value | boolean | Expected value. |
 
-### <a id="intCondition"></a>intCondition
+### intCondition
 
 Condition comparing integer in session variable.
 
@@ -122,7 +122,7 @@ Condition comparing integer in session variable.
 | lessThan | [Builder](#intconditionlessthan) | Compared variable must be lower than this value. |
 | notEqualTo | [Builder](#intconditionnotequalto) | Compared variable must not be equal to this value. |
 
-### <a id="intCondition.equalTo"></a>intCondition.equalTo
+### intCondition.equalTo
 
 
 | Inline definition |
@@ -134,7 +134,7 @@ Condition comparing integer in session variable.
 | fromVar | String | Input variable name. |
 | value | int | Value (integer). |
 
-### <a id="intCondition.greaterOrEqualTo"></a>intCondition.greaterOrEqualTo
+### intCondition.greaterOrEqualTo
 
 
 | Inline definition |
@@ -146,7 +146,7 @@ Condition comparing integer in session variable.
 | fromVar | String | Input variable name. |
 | value | int | Value (integer). |
 
-### <a id="intCondition.greaterThan"></a>intCondition.greaterThan
+### intCondition.greaterThan
 
 
 | Inline definition |
@@ -158,7 +158,7 @@ Condition comparing integer in session variable.
 | fromVar | String | Input variable name. |
 | value | int | Value (integer). |
 
-### <a id="intCondition.lessOrEqualTo"></a>intCondition.lessOrEqualTo
+### intCondition.lessOrEqualTo
 
 
 | Inline definition |
@@ -170,7 +170,7 @@ Condition comparing integer in session variable.
 | fromVar | String | Input variable name. |
 | value | int | Value (integer). |
 
-### <a id="intCondition.lessThan"></a>intCondition.lessThan
+### intCondition.lessThan
 
 
 | Inline definition |
@@ -182,7 +182,7 @@ Condition comparing integer in session variable.
 | fromVar | String | Input variable name. |
 | value | int | Value (integer). |
 
-### <a id="intCondition.notEqualTo"></a>intCondition.notEqualTo
+### intCondition.notEqualTo
 
 
 | Inline definition |
@@ -194,7 +194,7 @@ Condition comparing integer in session variable.
 | fromVar | String | Input variable name. |
 | value | int | Value (integer). |
 
-### <a id="stringCondition"></a>stringCondition
+### stringCondition
 
 Condition comparing string in session variable.
 
@@ -213,7 +213,7 @@ Condition comparing string in session variable.
 | startsWith | CharSequence | Prefix for the string. |
 | value | CharSequence | Literal value the string should match. |
 
-### <a id="stringCondition.length"></a>stringCondition.length
+### stringCondition.length
 
 | Property | Type | Description |
 | ------- | ------- | ------- |
@@ -224,7 +224,7 @@ Condition comparing string in session variable.
 | lessThan | [Builder](#stringconditionlengthlessthan) | Compared variable must be lower than this value. |
 | notEqualTo | [Builder](#stringconditionlengthnotequalto) | Compared variable must not be equal to this value. |
 
-### <a id="stringCondition.length.equalTo"></a>stringCondition.length.equalTo
+### stringCondition.length.equalTo
 
 
 | Inline definition |
@@ -236,7 +236,7 @@ Condition comparing string in session variable.
 | fromVar | String | Input variable name. |
 | value | int | Value (integer). |
 
-### <a id="stringCondition.length.greaterOrEqualTo"></a>stringCondition.length.greaterOrEqualTo
+### stringCondition.length.greaterOrEqualTo
 
 
 | Inline definition |
@@ -248,7 +248,7 @@ Condition comparing string in session variable.
 | fromVar | String | Input variable name. |
 | value | int | Value (integer). |
 
-### <a id="stringCondition.length.greaterThan"></a>stringCondition.length.greaterThan
+### stringCondition.length.greaterThan
 
 
 | Inline definition |
@@ -260,7 +260,7 @@ Condition comparing string in session variable.
 | fromVar | String | Input variable name. |
 | value | int | Value (integer). |
 
-### <a id="stringCondition.length.lessOrEqualTo"></a>stringCondition.length.lessOrEqualTo
+### stringCondition.length.lessOrEqualTo
 
 
 | Inline definition |
@@ -272,7 +272,7 @@ Condition comparing string in session variable.
 | fromVar | String | Input variable name. |
 | value | int | Value (integer). |
 
-### <a id="stringCondition.length.lessThan"></a>stringCondition.length.lessThan
+### stringCondition.length.lessThan
 
 
 | Inline definition |
@@ -284,7 +284,7 @@ Condition comparing string in session variable.
 | fromVar | String | Input variable name. |
 | value | int | Value (integer). |
 
-### <a id="stringCondition.length.notEqualTo"></a>stringCondition.length.notEqualTo
+### stringCondition.length.notEqualTo
 
 
 | Inline definition |

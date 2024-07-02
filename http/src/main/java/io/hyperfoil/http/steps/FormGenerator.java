@@ -139,7 +139,7 @@ public class FormGenerator implements SerializableBiFunction<Session, Connection
 
       /**
        * Input field value replacing session variables in a
-       * <a href="https://hyperfoil.io/userguide/benchmark/variables.html#string-interpolation">pattern</a>,
+       * <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">pattern</a>,
        * e.g. <code>foo${myvariable}var</code>
        *
        * @param pattern Template pattern.

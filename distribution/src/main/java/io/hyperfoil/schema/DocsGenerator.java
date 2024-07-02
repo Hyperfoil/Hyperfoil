@@ -211,7 +211,7 @@ public class DocsGenerator extends BaseGenerator {
 
          Collections.sort(children, Comparator.comparing(t -> t.name, String.CASE_INSENSITIVE_ORDER));
          for (Tuple t : children) {
-            out.printf("### <a id=\"%s\"></a>%s%n%n", reverseLookup.get(t.docs), t.name);
+            out.printf("### %s%n%n", reverseLookup.get(t.docs), t.name);
             if (t.docs.typeDescription != null) {
                out.println(t.docs.typeDescription);
                out.println();
@@ -247,7 +247,7 @@ public class DocsGenerator extends BaseGenerator {
             out.printf("| %s ", d.type);
          } else {
             out.printf("| [%s](#%s) ", d.type, reverseLookup.get(d)
-                  .replaceAll("&lt;", "").replaceAll("&gt;", "").replaceAll(" ", "-").replaceAll("[^a-zA-Z0-9-_]", "").toLowerCase());
+                  .replaceAll("&lt;", "lt").replaceAll("&gt;", "gt").replaceAll(" ", "-").replaceAll("[^a-zA-Z0-9-_]", "").toLowerCase());
          }
          out.printf("| %s |%n", d.ownerDescription == null ? NO_DESCRIPTION : d.ownerDescription);
          ++printed;
@@ -388,7 +388,6 @@ public class DocsGenerator extends BaseGenerator {
       return declaration == null ? null : declaration.getJavadoc()
             .map(javadoc -> trimEmptyLines(javadoc.getDescription().toText()))
             .map(DocsGenerator::javadocToMarkdown)
-            .map(text -> text.contains("<ul>") ? "{::nomarkdown}" + text + "{:/}" : text)
             .orElse(null);
    }
 
@@ -519,9 +518,7 @@ public class DocsGenerator extends BaseGenerator {
       if (m.getReturnType().isAssignableFrom(builder)) {
          String type = "&lt;none&gt;";
          if (m.getParameterCount() == 0) {
-            if (description != null) {
-               description.append("<br>Note: property does not have any value");
-            }
+            description.append("<br>Note: property does not have any value");
          } else if (m.getParameterCount() == 1) {
             Class<?> singleParam = m.getParameters()[0].getType();
             if (singleParam.isEnum()) {
@@ -530,28 +527,28 @@ public class DocsGenerator extends BaseGenerator {
                if (cd != null) {
                   List<EnumConstantDeclaration> constants = cd.findAll(EnumConstantDeclaration.class);
                   if (constants != null) {
-                     description.append("<br>Options:{::nomarkdown}<ul>");
+                     description.append("<br>Options:<ul>");
                      for (EnumConstantDeclaration c : constants) {
                         description.append("<li><code>").append(c.getNameAsString()).append("</code>");
                         String optionDescription = getJavadocDescription(c);
                         if (optionDescription != null) {
-                           description.append(": {:/}").append(optionDescription).append("{::nomarkdown}");
+                           description.append(optionDescription);
                         }
                         description.append("</li>");
                      }
-                     description.append("</ul>{:/}");
+                     description.append("</ul>");
                   }
                }
             } else {
                type = singleParam.getSimpleName();
             }
          }
-         Docs docs = new Docs(description.length() == 0 ? null : description.toString());
+         Docs docs = new Docs(description.isEmpty() ? null : description.toString());
          docs.type = type;
          return docs;
       }
 
-      Docs param = new Docs(description.length() == 0 ? null : description.toString());
+      Docs param = new Docs(description.isEmpty() ? null : description.toString());
 
       if (BaseSequenceBuilder.class.isAssignableFrom(m.getReturnType())) {
          param.addParam("&lt;list of steps&gt;", EMPTY_DOCS);

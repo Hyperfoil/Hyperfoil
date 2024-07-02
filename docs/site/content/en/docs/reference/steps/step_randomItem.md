@@ -11,7 +11,7 @@ Stores random item from a list or array into session variable.
 | list | [Builder](#list) | Potentially weighted list of items to choose from. |
 | toVar | String | Variable where the chosen item should be stored. |
 
-### <a id="list"></a>list
+### list
 
 | Property | Type | Description |
 | ------- | ------- | ------- |
