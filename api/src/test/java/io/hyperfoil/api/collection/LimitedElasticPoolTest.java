@@ -5,7 +5,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import org.junit.Test;
 
-public class LimitedPoolTest {
+public class LimitedElasticPoolTest {
    @Test
    public void test() {
       final int size = 16;

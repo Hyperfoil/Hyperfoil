@@ -54,7 +54,6 @@ final class OpenModelPhase extends PhaseInstanceImpl implements FireTimeListener
         if (remainingMsToFirstFireTime > 0) {
             executorGroup.schedule(() -> proceed(executorGroup), remainingMsToFirstFireTime, TimeUnit.MILLISECONDS);
         } else {
-            // we are not enforcing to be called from an event loop thread here, and indeed tests uses the main thread:
             proceed(executorGroup);
         }
     }
