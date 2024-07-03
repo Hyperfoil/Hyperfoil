@@ -2,7 +2,8 @@
 title: Hyperfoil
 ---
 
-{{< blocks/cover title="Microservice-oriented distributed benchmark framework." height="auto" color="primary" >}}
+{{< blocks/cover title="Microservice-oriented distributed benchmark framework." image_anchor="top" height="auto" color="primary" >}}
+
 <a class="btn btn-lg btn-dark me-3 mb-4" href="https://github.com/Hyperfoil/Hyperfoil">
   GitHub <i class="fab fa-github ms-2 "></i>
 </a>
