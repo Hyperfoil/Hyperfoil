@@ -323,10 +323,15 @@ public abstract class WrkAbstract {
          String[][] parsedHeaders = this.parsedHeaders;
          long duration = Util.parseToMillis(durationStr);
          // @formatter:off
-         return phaseConfig(benchmarkBuilder.addPhase(phase))
+         var scenarioBuilder = phaseConfig(benchmarkBuilder.addPhase(phase))
                  .duration(duration)
                  .maxDuration(duration + Util.parseToMillis(timeout))
-                 .scenario()
+                 .scenario();
+         if (!enableHttp2) {
+            // given that we don't support pipelining we can just safely limit the maxRequests to 1
+            scenarioBuilder.maxRequests(1);
+         }
+         return scenarioBuilder
                   .initialSequence("request")
                      .step(SC).httpRequest(HttpMethod.GET)
                         .path(path)
