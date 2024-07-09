@@ -330,6 +330,8 @@ public abstract class WrkAbstract {
          if (!enableHttp2) {
             // given that we don't support pipelining we can just safely limit the maxRequests to 1
             scenarioBuilder.maxRequests(1);
+            // each session can have only one sequence
+            scenarioBuilder.maxSequences(1);
          }
          return scenarioBuilder
                   .initialSequence("request")
