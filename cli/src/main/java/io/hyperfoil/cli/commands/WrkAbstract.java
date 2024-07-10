@@ -327,12 +327,13 @@ public abstract class WrkAbstract {
                  .duration(duration)
                  .maxDuration(duration + Util.parseToMillis(timeout))
                  .scenario();
-         if (!enableHttp2) {
-            // given that we don't support pipelining we can just safely limit the maxRequests to 1
-            scenarioBuilder.maxRequests(1);
-            // each session can have only one sequence
-            scenarioBuilder.maxSequences(1);
-         }
+         // even with pipelining or HTTP 2 multiplexing
+         // each session lifecycle requires to fully complete (with response)
+         // before being reused, hence the number of requests which can use is just 1
+         scenarioBuilder.maxRequests(1);
+         // same reasoning here: given that the default concurrency of sequence is 0 for initialSequences
+         // and there's a single sequence too, there's no point to have more than 1 per session
+         scenarioBuilder.maxSequences(1);
          return scenarioBuilder
                   .initialSequence("request")
                      .step(SC).httpRequest(HttpMethod.GET)
