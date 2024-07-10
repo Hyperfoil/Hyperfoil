@@ -16,6 +16,6 @@ class BeforeSyncRequestStep implements Step, ResourceUtilizer, Session.ResourceK
    @Override
    public void reserve(Session session) {
       int concurrency = session.currentSequence().definition().concurrency();
-      session.declareResource(this, () -> new BitSetResource(concurrency), true);
+      session.declareResource(this, () -> BitSetResource.with(concurrency), true);
    }
 }
