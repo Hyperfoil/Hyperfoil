@@ -38,6 +38,7 @@ public interface Properties {
    String TRIGGER_URL = "io.hyperfoil.trigger.url";
    String CLI_REQUEST_TIMEOUT = "io.hyperfoil.cli.request.timeout";
    String GC_CHECK = "io.hyperfoil.gc.check.enabled";
+   String CLUSTER_JGROUPS_STACK = "io.hyperfoil.cluster.jgroups_stack";
 
    static String get(String property, String def) {
       return get(property, Function.identity(), def);

@@ -19,7 +19,7 @@
             xmlns="urn:infinispan:config:11.0">
 
     <jgroups>
-        <stack-file name="jgroups" path="jgroups-tcp.xml"/>
+        <stack-file name="jgroups" path="${io.hyperfoil.cluster.jgroups_stack:jgroups-tcp.xml}"/>
     </jgroups>
 
     <cache-container default-cache="distributed-cache" statistics="false">
