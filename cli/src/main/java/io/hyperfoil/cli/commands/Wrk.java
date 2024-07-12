@@ -43,7 +43,8 @@ public class Wrk extends WrkAbstract {
    public class WrkCommand extends WrkAbstract.AbstractWrkCommand {
 
       @Override
-      protected PhaseBuilder<?> phaseConfig(PhaseBuilder.Catalog catalog) {
+      protected PhaseBuilder<?> phaseConfig(PhaseBuilder.Catalog catalog, PhaseType phaseType, long durationMs) {
+         // there's no need of sessions != connections
          return catalog.always(connections);
       }
    }

@@ -243,10 +243,10 @@ public abstract class WrkAbstract {
             }
          }
 
-         addPhase(builder, "calibration", "6s");
+         addPhase(builder, PhaseType.calibration, "6s");
          // We can start only after calibration has full completed because otherwise some sessions
          // would not have connection available from the beginning.
-         addPhase(builder, "test", duration).startAfterStrict("calibration").maxDuration(Util.parseToMillis(duration));
+         addPhase(builder, PhaseType.test, duration).startAfterStrict(PhaseType.calibration.name()).maxDuration(Util.parseToMillis(duration));
 
          RestClient client = invocation.context().client();
          if (client == null) {
@@ -283,7 +283,7 @@ public abstract class WrkAbstract {
 
          if (result) {
             RequestStatisticsResponse total = run.statsTotal();
-            RequestStats testStats = total.statistics.stream().filter(rs -> "test".equals(rs.phase))
+            RequestStats testStats = total.statistics.stream().filter(rs -> PhaseType.test.name().equals(rs.phase))
                   .findFirst().orElseThrow(() -> new IllegalStateException("Error running command: Missing Statistics"));
             AbstractHistogram histogram = HistogramConverter.convert(run.histogram(testStats.phase, testStats.stepId, testStats.metric));
             List<StatisticsSummary> series = run.series(testStats.phase, testStats.stepId, testStats.metric);
@@ -315,15 +315,18 @@ public abstract class WrkAbstract {
          return true;
       }
 
-      protected abstract PhaseBuilder<?> phaseConfig(PhaseBuilder.Catalog catalog);
+      protected abstract PhaseBuilder<?> phaseConfig(PhaseBuilder.Catalog catalog, PhaseType phaseType, long durationMs);
 
+      public enum PhaseType {
+         calibration, test
+      }
 
-      private PhaseBuilder<?> addPhase(BenchmarkBuilder benchmarkBuilder, String phase, String durationStr) {
+      private PhaseBuilder<?> addPhase(BenchmarkBuilder benchmarkBuilder, PhaseType phaseType, String durationStr) {
          // prevent capturing WrkCommand in closure
          String[][] parsedHeaders = this.parsedHeaders;
          long duration = Util.parseToMillis(durationStr);
          // @formatter:off
-         var scenarioBuilder = phaseConfig(benchmarkBuilder.addPhase(phase))
+         var scenarioBuilder = phaseConfig(benchmarkBuilder.addPhase(phaseType.name()), phaseType, duration)
                  .duration(duration)
                  .maxDuration(duration + Util.parseToMillis(timeout))
                  .scenario();
