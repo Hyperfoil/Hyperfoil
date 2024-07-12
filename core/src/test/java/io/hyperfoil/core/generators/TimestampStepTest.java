@@ -20,6 +20,7 @@ public class TimestampStepTest {
          ObjectAccess foo = SessionFactory.objectAccess("foo");
          Session session = SessionFactory.forTesting(foo);
          step.reserve(session);
+         session.declareResources().build();
          TestUtil.resolveAccess(session, step);
 
          assertThat(step.invoke(session)).isTrue();

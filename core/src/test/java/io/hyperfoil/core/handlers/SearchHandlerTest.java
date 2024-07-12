@@ -63,6 +63,7 @@ public class SearchHandlerTest {
    private void runHandler(SearchHandler handler, ExpectProcessor processor, String... text) {
       Session session = SessionFactory.forTesting();
       ResourceUtilizer.reserveForTesting(session, handler);
+      session.declareResources().build();
       handler.before(session);
 
       for (String t : text) {
