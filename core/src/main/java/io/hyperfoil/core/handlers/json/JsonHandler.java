@@ -54,7 +54,7 @@ public class JsonHandler extends JsonParser implements Processor, ResourceUtiliz
 
    @Override
    public void reserve(Session session) {
-      session.declareResource(this, Context::new);
+      session.declareResources().add(this, Context::new);
    }
 
    @Override

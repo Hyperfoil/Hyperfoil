@@ -71,6 +71,7 @@ public class SearchValidatorTest {
       Session session = SessionFactory.forTesting();
       ResourceUtilizer.reserveForTesting(session, validator);
       HttpRunData.initForTesting(session);
+      session.declareResources().build();
       HttpRequest request = HttpRequestPool.get(session).acquire();
       request.start(new SequenceInstance(), null);
       session.currentRequest(request);

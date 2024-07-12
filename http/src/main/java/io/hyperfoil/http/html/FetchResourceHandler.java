@@ -72,8 +72,8 @@ public class FetchResourceHandler implements Serializable, ResourceUtilizer {
       if (!var.isSet(session)) {
          var.setObject(session, ObjectVar.newArray(session, concurrency));
       }
-      session.declareResource(queueKey, () -> new Queue(var, maxResources, concurrency, sequence, onCompletion), true);
-      session.declareResource(locationPoolKey, () -> LimitedPoolResource.create(maxResources, Location.class, Location::new), true);
+      session.declareResources().add(queueKey, () -> new Queue(var, maxResources, concurrency, sequence, onCompletion), true);
+      session.declareResources().add(locationPoolKey, () -> LimitedPoolResource.create(maxResources, Location.class, Location::new), true);
    }
 
    /**

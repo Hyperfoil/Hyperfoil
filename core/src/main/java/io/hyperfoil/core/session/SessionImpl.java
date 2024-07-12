@@ -34,9 +34,10 @@ class SessionImpl implements Session {
    private static final boolean trace = log.isTraceEnabled();
 
    private final Var[] vars;
-   private final Map<ResourceKey<?>, Object> resources = new HashMap<>();
    private final List<Var> allVars = new ArrayList<>();
-   private final List<Resource> allResources = new ArrayList<>();
+   private ResourceBuilder resourceBuilder = new ResourceBuilderImpl();
+   private Map<ResourceKey<?>, Object> resources;
+   private Resource[] allResources;
    private final LimitedPool<SequenceInstance> sequencePool;
    private final SequenceInstance[] runningSequences;
    private final BitSet usedSequences;
@@ -163,45 +164,12 @@ class SessionImpl implements Session {
       allVars.add(var);
    }
 
-   @Override
-   public <R extends Resource> void declareResource(ResourceKey<R> key, Supplier<R> resourceSupplier) {
-      declareResource(key, resourceSupplier, false);
-   }
-
-   @Override
-   public <R extends Resource> void declareResource(ResourceKey<R> key, Supplier<R> resourceSupplier, boolean singleton) {
-      if (resources.containsKey(key)) {
-         return;
-      }
-      // Current sequence should be null only during unit testing
-      int concurrency = currentSequence == null ? 0 : currentSequence.definition().concurrency();
-      if (!singleton && concurrency > 0) {
-         Resource[] array = new Resource[concurrency];
-         for (int i = 0; i < concurrency; ++i) {
-            R resource = resourceSupplier.get();
-            array[i] = resource;
-            allResources.add(resource);
-         }
-         resources.put(key, array);
-      } else {
-         R resource = resourceSupplier.get();
-         resources.put(key, resource);
-         allResources.add(resource);
-      }
-   }
-
-   @Override
-   public <R extends Resource> void declareSingletonResource(ResourceKey<R> key, R resource) {
-      if (resources.containsKey(key)) {
-         return;
-      }
-      resources.put(key, resource);
-      allResources.add(resource);
-   }
-
    @SuppressWarnings("unchecked")
    @Override
    public <R extends Resource> R getResource(ResourceKey<R> key) {
+      if (resourceBuilder != null) {
+         throw new IllegalStateException("Resource builder not built yet!");
+      }
       Object res = resources.get(key);
       if (res == null) {
          return null;
@@ -329,6 +297,7 @@ class SessionImpl implements Session {
       currentSequence = current;
    }
 
+   @Override
    public SequenceInstance currentSequence() {
       return currentSequence;
    }
@@ -454,13 +423,23 @@ class SessionImpl implements Session {
    }
 
    @Override
+   public ResourceBuilder declareResources() {
+      if (resourceBuilder == null) {
+         throw new IllegalStateException("Resource builder already built!");
+      }
+      return resourceBuilder;
+   }
+
+   @Override
    public void reset() {
+      if (resourceBuilder != null) {
+         throw new IllegalStateException("Resource builder not built yet!");
+      }
       resetting = true;
       for (int i = 0; i < allVars.size(); ++i) {
          allVars.get(i).unset();
       }
-      for (int i = 0; i < allResources.size(); i++) {
-         Resource r = allResources.get(i);
+      for (var r : allResources) {
          r.onSessionReset(this);
       }
       assert usedSequences.isEmpty();
@@ -534,8 +513,231 @@ class SessionImpl implements Session {
    }
 
    public void destroy() {
-      for (var resource : allResources) {
-         resource.destroy();
+      if (resourceBuilder != null) {
+         throw new IllegalStateException("Resource builder not built yet!");
+      }
+      for (var r : allResources) {
+         r.destroy();
+      }
+   }
+
+   private final class ResourceBuilderImpl implements ResourceBuilder {
+
+      private static final Resource[] EMPTY_RESOURCES = new Resource[0];
+      private Object[] keyAndResources;
+      private int keys;
+      private int resourcesCount;
+      private boolean built;
+
+      ResourceBuilderImpl() {
+      }
+
+      @Override
+      public ResourceBuilder ensureCapacity(int capacity) {
+         if (built) {
+            throw new IllegalStateException("Already built!");
+         }
+         int remaining = keyAndResources == null ? 0 : (keyAndResources.length / 2) - keys;
+         if (remaining < capacity) {
+            // we prefer to be conservative with the capacity, here, hoping the users will do the "right" thing
+            // by calling the API properly
+            int requiredCapacity = capacity - remaining;
+            int totalCapacity = keys + requiredCapacity;
+            int requiredSlots = totalCapacity * 2;
+            Object[] newArray = new Object[requiredSlots];
+            if (keyAndResources != null) {
+               System.arraycopy(keyAndResources, 0, newArray, 0, keyAndResources.length);
+            }
+            keyAndResources = newArray;
+         }
+         return this;
+      }
+
+      private boolean containsKey(ResourceKey<?> key) {
+         var keyAndResources = this.keyAndResources;
+         if (keyAndResources == null) {
+            return false;
+         }
+         for (int i = 0; i < keys; ++i) {
+            if (key.equals(keyAndResources[i * 2])) {
+               return true;
+            }
+         }
+         return false;
+      }
+
+      @Override
+      public <R extends Resource> ResourceBuilder add(ResourceKey<R> key, Supplier<R> resourceSupplier) {
+         return add(key, resourceSupplier, false);
+      }
+
+      @Override
+      public <R extends Resource> ResourceBuilder add(ResourceKey<R> key, Supplier<R> resourceSupplier, boolean singleton) {
+         if (built) {
+            throw new IllegalStateException("Already built!");
+         }
+         if (containsKey(key)) {
+            return this;
+         }
+         ensureCapacity(1);
+         // Current sequence should be null only during unit testing
+         int concurrency = currentSequence == null ? 0 : currentSequence.definition().concurrency();
+         final Object resourceToAdd;
+         if (!singleton && concurrency > 0) {
+            Resource[] array = new Resource[concurrency];
+            for (int i = 0; i < concurrency; ++i) {
+               R resource = resourceSupplier.get();
+               array[i] = resource;
+            }
+            resourceToAdd = array;
+            resourcesCount += concurrency;
+         } else {
+            resourceToAdd = resourceSupplier.get();
+            resourcesCount++;
+         }
+         int index = keys * 2;
+         keyAndResources[index] = key;
+         keyAndResources[index + 1] = resourceToAdd;
+         keys++;
+         return this;
+      }
+
+      @Override
+      public <R extends Resource> ResourceBuilder addSingleton(ResourceKey<R> key, R resource) {
+         if (built) {
+            throw new IllegalStateException("Already built!");
+         }
+         if (containsKey(key)) {
+            return this;
+         }
+         ensureCapacity(1);
+         keyAndResources[keys * 2] = key;
+         keyAndResources[keys * 2 + 1] = resource;
+         keys++;
+         resourcesCount++;
+         return this;
+      }
+
+      @Override
+      public void build() {
+         if (built) {
+            throw new IllegalStateException("Already built!");
+         }
+         // from now on we can't add more resources to the Session it belongs
+         resourceBuilder = null;
+         built = true;
+         if (keys == 0) {
+            resources = Map.of();
+            allResources = EMPTY_RESOURCES;
+         } else {
+            assert keyAndResources != null;
+            buildResourcesMap();
+            buildAllResourcesArray();
+         }
+      }
+
+      private void buildAllResourcesArray() {
+         allResources = new Resource[resourcesCount];
+         int index = 0;
+         for (int i = 0; i < keys; i++) {
+            Object value = keyAndResources[i * 2 + 1];
+            if (value.getClass().isArray()) {
+               Resource[] array = (Resource[]) value;
+               System.arraycopy(array, 0, allResources, index, array.length);
+               index += array.length;
+            } else {
+               allResources[index++] = (Resource) value;
+            }
+         }
+      }
+
+      private void buildResourcesMap() {
+         // TODO sadly the case with more than 1 key is still pretty memory hungry
+         //      because Map::of still allocate too much space here
+         int keys = this.keys;
+         var keyAndResources = this.keyAndResources;
+         switch (keys) {
+            case 1:
+               resources = Map.of((ResourceKey<?>) keyAndResources[0], keyAndResources[1]);
+               break;
+            case 2:
+               resources = Map.of((ResourceKey<?>) keyAndResources[0], keyAndResources[1],
+                     (ResourceKey<?>) keyAndResources[2], keyAndResources[3]);
+               break;
+            case 3:
+               resources = Map.of((ResourceKey<?>) keyAndResources[0], keyAndResources[1],
+                     (ResourceKey<?>) keyAndResources[2], keyAndResources[3],
+                     (ResourceKey<?>) keyAndResources[4], keyAndResources[5]);
+               break;
+            case 4:
+               resources = Map.of((ResourceKey<?>) keyAndResources[0], keyAndResources[1],
+                     (ResourceKey<?>) keyAndResources[2], keyAndResources[3],
+                     (ResourceKey<?>) keyAndResources[4], keyAndResources[5],
+                     (ResourceKey<?>) keyAndResources[6], keyAndResources[7]);
+               break;
+            case 5:
+               resources = Map.of((ResourceKey<?>) keyAndResources[0], keyAndResources[1],
+                     (ResourceKey<?>) keyAndResources[2], keyAndResources[3],
+                     (ResourceKey<?>) keyAndResources[4], keyAndResources[5],
+                     (ResourceKey<?>) keyAndResources[6], keyAndResources[7],
+                     (ResourceKey<?>) keyAndResources[8], keyAndResources[9]);
+               break;
+            case 6:
+               resources = Map.of((ResourceKey<?>) keyAndResources[0], keyAndResources[1],
+                     (ResourceKey<?>) keyAndResources[2], keyAndResources[3],
+                     (ResourceKey<?>) keyAndResources[4], keyAndResources[5],
+                     (ResourceKey<?>) keyAndResources[6], keyAndResources[7],
+                     (ResourceKey<?>) keyAndResources[8], keyAndResources[9],
+                     (ResourceKey<?>) keyAndResources[10], keyAndResources[11]);
+               break;
+            case 7:
+               resources = Map.of((ResourceKey<?>) keyAndResources[0], keyAndResources[1],
+                     (ResourceKey<?>) keyAndResources[2], keyAndResources[3],
+                     (ResourceKey<?>) keyAndResources[4], keyAndResources[5],
+                     (ResourceKey<?>) keyAndResources[6], keyAndResources[7],
+                     (ResourceKey<?>) keyAndResources[8], keyAndResources[9],
+                     (ResourceKey<?>) keyAndResources[10], keyAndResources[11],
+                     (ResourceKey<?>) keyAndResources[12], keyAndResources[13]);
+               break;
+            case 8:
+               resources = Map.of((ResourceKey<?>) keyAndResources[0], keyAndResources[1],
+                     (ResourceKey<?>) keyAndResources[2], keyAndResources[3],
+                     (ResourceKey<?>) keyAndResources[4], keyAndResources[5],
+                     (ResourceKey<?>) keyAndResources[6], keyAndResources[7],
+                     (ResourceKey<?>) keyAndResources[8], keyAndResources[9],
+                     (ResourceKey<?>) keyAndResources[10], keyAndResources[11],
+                     (ResourceKey<?>) keyAndResources[12], keyAndResources[13],
+                     (ResourceKey<?>) keyAndResources[14], keyAndResources[15]);
+               break;
+            case 9:
+               resources = Map.of((ResourceKey<?>) keyAndResources[0], keyAndResources[1],
+                     (ResourceKey<?>) keyAndResources[2], keyAndResources[3],
+                     (ResourceKey<?>) keyAndResources[4], keyAndResources[5],
+                     (ResourceKey<?>) keyAndResources[6], keyAndResources[7],
+                     (ResourceKey<?>) keyAndResources[8], keyAndResources[9],
+                     (ResourceKey<?>) keyAndResources[10], keyAndResources[11],
+                     (ResourceKey<?>) keyAndResources[12], keyAndResources[13],
+                     (ResourceKey<?>) keyAndResources[14], keyAndResources[15],
+                     (ResourceKey<?>) keyAndResources[16], keyAndResources[17]);
+               break;
+            case 10:
+               resources = Map.of((ResourceKey<?>) keyAndResources[0], keyAndResources[1],
+                     (ResourceKey<?>) keyAndResources[2], keyAndResources[3],
+                     (ResourceKey<?>) keyAndResources[4], keyAndResources[5],
+                     (ResourceKey<?>) keyAndResources[6], keyAndResources[7],
+                     (ResourceKey<?>) keyAndResources[8], keyAndResources[9],
+                     (ResourceKey<?>) keyAndResources[10], keyAndResources[11],
+                     (ResourceKey<?>) keyAndResources[12], keyAndResources[13],
+                     (ResourceKey<?>) keyAndResources[14], keyAndResources[15],
+                     (ResourceKey<?>) keyAndResources[16], keyAndResources[17],
+                     (ResourceKey<?>) keyAndResources[18], keyAndResources[19]);
+               break;
+            default:
+               resources = new HashMap<>(keys);
+               for (int i = 0; i < keys; ++i) {
+                  resources.put((ResourceKey<?>) keyAndResources[i * 2], keyAndResources[i * 2 + 1]);
+               }
+         }
       }
    }
 }

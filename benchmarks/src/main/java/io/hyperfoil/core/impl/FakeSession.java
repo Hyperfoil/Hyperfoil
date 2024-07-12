@@ -117,18 +117,8 @@ public class FakeSession implements Session {
     }
 
     @Override
-    public <R extends Resource> void declareResource(ResourceKey<R> key, Supplier<R> resourceSupplier) {
-
-    }
-
-    @Override
-    public <R extends Resource> void declareResource(ResourceKey<R> key, Supplier<R> resourceSupplier, boolean singleton) {
-
-    }
-
-    @Override
-    public <R extends Resource> void declareSingletonResource(ResourceKey<R> key, R resource) {
-
+    public ResourceBuilder declareResources() {
+        return null;
     }
 
     @Override

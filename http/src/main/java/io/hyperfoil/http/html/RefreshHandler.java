@@ -132,9 +132,11 @@ public class RefreshHandler implements Processor, ResourceUtilizer {
 
    @Override
    public void reserve(Session session) {
-      session.declareResource(poolKey, () -> LimitedPoolResource.create(concurrency, Redirect.Coords.class, Redirect.Coords::new), true);
-      session.declareResource(immediateQueueKey, () -> new Queue(immediateQueueVar, concurrency, concurrency, redirectSequence, null), true);
-      session.declareResource(delayedQueueKey, () -> new Queue(delayedQueueVar, concurrency, concurrency, delaySequence, null), true);
+      session.declareResources()
+                  .ensureCapacity(3)
+                  .add(poolKey, () -> LimitedPoolResource.create(concurrency, Redirect.Coords.class, Redirect.Coords::new), true)
+                  .add(immediateQueueKey, () -> new Queue(immediateQueueVar, concurrency, concurrency, redirectSequence, null), true)
+                  .add(delayedQueueKey, () -> new Queue(delayedQueueVar, concurrency, concurrency, delaySequence, null), true);
       initQueueVar(session, immediateQueueVar);
       initQueueVar(session, delayedQueueVar);
    }

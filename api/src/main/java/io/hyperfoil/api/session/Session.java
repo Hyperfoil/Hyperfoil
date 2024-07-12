@@ -53,30 +53,44 @@ public interface Session {
 
    // Resources
 
-   /**
-    * See {@link #declareResource(ResourceKey, Supplier, boolean)}, with <code>singleton</code> defaulting to <code>false</code>
-    *
-    * @param key              Unique key (usually the step or handler itself)
-    * @param resourceSupplier Supplier creating the resource, possible multiple times.
-    * @param <R>              Resource type.
-    */
-   <R extends Session.Resource> void declareResource(ResourceKey<R> key, Supplier<R> resourceSupplier);
+   interface ResourceBuilder {
 
-   /**
-    * Reserve space in the session for a resource, stored under given key. If this is executed within
-    * a {@link io.hyperfoil.api.config.Sequence sequence} with non-zero
-    * {@link io.hyperfoil.api.config.Sequence#concurrency() concurrency} the session
-    * stores one resource for each concurrent instance. If this behaviour should be avoided set
-    * <code>singleton</code> to true.
-    *
-    * @param key              Unique key (usually the step or handler itself)
-    * @param resourceSupplier Supplier creating the resource, possible multiple times.
-    * @param singleton        Is the resource shared amongst concurrent sequences?
-    * @param <R>              Resource type.
-    */
-   <R extends Session.Resource> void declareResource(ResourceKey<R> key, Supplier<R> resourceSupplier, boolean singleton);
+      /**
+       * Ensure that the session has capacity for at least <code>capacity</code> resources.
+       *
+       * @param capacity Number of resources.
+       */
+      ResourceBuilder ensureCapacity(int capacity);
 
-   <R extends Session.Resource> void declareSingletonResource(ResourceKey<R> key, R resource);
+      /**
+       * See {@link #add(ResourceKey, Supplier, boolean)}, with <code>singleton</code> defaulting to <code>false</code>
+       *
+       * @param key              Unique key (usually the step or handler itself)
+       * @param resourceSupplier Supplier creating the resource, possible multiple times.
+       * @param <R>              Resource type.
+       */
+      <R extends Session.Resource> ResourceBuilder add(ResourceKey<R> key, Supplier<R> resourceSupplier);
+
+      /**
+       * Reserve space in the session for a resource, stored under given key. If this is executed within
+       * a {@link io.hyperfoil.api.config.Sequence sequence} with non-zero
+       * {@link io.hyperfoil.api.config.Sequence#concurrency() concurrency} the session
+       * stores one resource for each concurrent instance. If this behaviour should be avoided set
+       * <code>singleton</code> to true.
+       *
+       * @param key              Unique key (usually the step or handler itself)
+       * @param resourceSupplier Supplier creating the resource, possible multiple times.
+       * @param singleton        Is the resource shared amongst concurrent sequences?
+       * @param <R>              Resource type.
+       */
+      <R extends Session.Resource> ResourceBuilder add(ResourceKey<R> key, Supplier<R> resourceSupplier, boolean singleton);
+
+      <R extends Session.Resource> ResourceBuilder addSingleton(ResourceKey<R> key, R resource);
+
+      void build();
+   }
+
+   ResourceBuilder declareResources();
 
    <R extends Session.Resource> R getResource(ResourceKey<R> key);
 

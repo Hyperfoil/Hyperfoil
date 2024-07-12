@@ -199,7 +199,7 @@ public class HtmlHandler implements Processor, ResourceUtilizer, Session.Resourc
 
    @Override
    public void reserve(Session session) {
-      session.declareResource(this, Context::new);
+      session.declareResources().add(this, Context::new);
    }
 
    public interface TagHandlerBuilder<S extends TagHandlerBuilder<S>> extends BuilderBase<S> {

@@ -161,7 +161,7 @@ public class SetAction implements Action {
 
       @Override
       public void reserve(Session session) {
-         session.declareResource(this, () -> new ValueResource<>(create(session), this::reset));
+         session.declareResources().add(this, () -> new ValueResource<>(create(session), this::reset));
       }
 
       protected abstract T create(Session session);

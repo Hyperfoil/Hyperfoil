@@ -157,6 +157,7 @@ public class CertificatesTest {
    private static void sendPingAndReceiveStatus(TestContext context, HttpServer server, HttpClientPool client, Async async, Integer expectedStatus) {
       Session session = SessionFactory.forTesting();
       HttpRunData.initForTesting(session);
+      session.declareResources().build();
       HttpRequest request = HttpRequestPool.get(session).acquire();
       AtomicBoolean statusReceived = new AtomicBoolean(false);
       HttpResponseHandlers handlers = HttpResponseHandlersImpl.Builder.forTesting()

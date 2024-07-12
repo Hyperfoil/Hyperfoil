@@ -83,11 +83,13 @@ public class HttpRunData implements PluginRunData {
 
    public static void initForTesting(Session session, Clock clock, boolean cacheEnabled) {
       Scenario dummyScenario = new Scenario(new Sequence[0], new Sequence[0], 16, 16);
-      session.declareSingletonResource(HttpDestinationTable.KEY, new HttpDestinationTableImpl(Collections.emptyMap()));
+      var resources = session.declareResources();
+      resources.ensureCapacity(cacheEnabled ? 3 : 2);
+      resources.addSingleton(HttpDestinationTable.KEY, new HttpDestinationTableImpl(Collections.emptyMap()));
       if (cacheEnabled) {
-         session.declareSingletonResource(HttpCache.KEY, new HttpCacheImpl(clock));
+         resources.addSingleton(HttpCache.KEY, new HttpCacheImpl(clock));
       }
-      session.declareSingletonResource(HttpRequestPool.KEY, new HttpRequestPool(dummyScenario, session, cacheEnabled));
+      resources.addSingleton(HttpRequestPool.KEY, new HttpRequestPool(dummyScenario, session, cacheEnabled));
    }
 
    @Override
@@ -109,11 +111,13 @@ public class HttpRunData implements PluginRunData {
                   }
                });
       }
-      session.declareSingletonResource(HttpDestinationTable.KEY, destinations);
+      var resources = session.declareResources();
+      resources.ensureCapacity(hasHttpCacheEnabled ? 3 : 2);
+      resources.addSingleton(HttpDestinationTable.KEY, destinations);
       if (hasHttpCacheEnabled) {
-         session.declareSingletonResource(HttpCache.KEY, new HttpCacheImpl(clock));
+         resources.addSingleton(HttpCache.KEY, new HttpCacheImpl(clock));
       }
-      session.declareSingletonResource(HttpRequestPool.KEY, new HttpRequestPool(scenario, session, hasHttpCacheEnabled));
+      resources.addSingleton(HttpRequestPool.KEY, new HttpRequestPool(scenario, session, hasHttpCacheEnabled));
    }
 
    @Override

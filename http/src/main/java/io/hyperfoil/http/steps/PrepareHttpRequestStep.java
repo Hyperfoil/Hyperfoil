@@ -136,6 +136,6 @@ public class PrepareHttpRequestStep extends StatisticsStep implements ResourceUt
 
    @Override
    public void reserve(Session session) {
-      session.declareResource(contextKey, HttpRequestContext::new);
+      session.declareResources().add(contextKey, HttpRequestContext::new);
    }
 }

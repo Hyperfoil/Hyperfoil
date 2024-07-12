@@ -61,7 +61,7 @@ public class GzipInflatorProcessor extends MultiProcessor implements ResourceUti
 
    @Override
    public void reserve(Session session) {
-      session.declareResource(this, InflaterResource::new);
+      session.declareResources().add(this, InflaterResource::new);
    }
 
    public class InflaterResource implements Session.Resource {
