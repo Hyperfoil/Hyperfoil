@@ -1,5 +1,7 @@
 package io.hyperfoil;
 
+import static io.hyperfoil.internal.Properties.CLUSTER_JGROUPS_STACK;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -22,13 +24,17 @@ import org.infinispan.commons.dataconversion.MediaType;
 import org.infinispan.commons.util.FileLookupFactory;
 import org.infinispan.configuration.parsing.ConfigurationBuilderHolder;
 import org.infinispan.configuration.parsing.ParserRegistry;
+import org.infinispan.factories.GlobalComponentRegistry;
 import org.infinispan.manager.DefaultCacheManager;
+import org.infinispan.remoting.transport.Transport;
 import org.infinispan.remoting.transport.jgroups.JGroupsTransport;
+import org.jgroups.JChannel;
+import org.jgroups.protocols.TP;
 
 import io.hyperfoil.api.Version;
-import io.hyperfoil.clustering.ControllerVerticle;
 import io.hyperfoil.clustering.AgentVerticle;
 import io.hyperfoil.clustering.Codecs;
+import io.hyperfoil.clustering.ControllerVerticle;
 import io.hyperfoil.internal.Properties;
 import io.netty.util.ResourceLeakDetector;
 import io.vertx.core.DeploymentOptions;
@@ -92,18 +98,39 @@ public class Hyperfoil {
          if (isController && clusterPort != null && System.getProperty("jgroups.tcp.port") == null) {
             System.setProperty("jgroups.tcp.port", clusterPort);
          }
+
+         if (!isController) {
+            String initialHosts = clusterIp;
+            if (clusterPort != null) initialHosts = String.format("%s[%s]", initialHosts, clusterPort);
+
+            log.info("Starting agent with controller: {}", initialHosts);
+            System.setProperty("jgroups.tcpping.initial_hosts", initialHosts);
+            System.setProperty(CLUSTER_JGROUPS_STACK, "jgroups-tcp-agent.xml");
+         }
       } catch (UnknownHostException e) {
          log.error("Cannot lookup hostname", e);
          return Future.failedFuture("Cannot lookup hostname");
       }
       DefaultCacheManager cacheManager = createCacheManager();
-      options.setClusterManager(new InfinispanClusterManager(cacheManager));
-      return Vertx.clusteredVertx(options)
+      populateProperties(cacheManager);
+      return Vertx.builder()
+            .with(options)
+            .withClusterManager(new InfinispanClusterManager(cacheManager))
+            .buildClustered()
             .onSuccess(vertx -> {
                Codecs.register(vertx);
                ensureNettyResourceLeakDetection();
             })
             .onFailure(error -> log.error("Cannot start Vert.x", error));
+   }
+
+   private static void populateProperties(DefaultCacheManager dcm) {
+      JGroupsTransport transport = (JGroupsTransport) GlobalComponentRegistry.componentOf(dcm, Transport.class);
+      JChannel channel = transport.getChannel();
+      TP tp = channel.getProtocolStack().getTransport();
+      System.setProperty(Properties.CONTROLLER_CLUSTER_IP, tp.getBindAddress().getHostAddress());
+      System.setProperty(Properties.CONTROLLER_CLUSTER_PORT, String.valueOf(tp.getBindPort()));
+      log.info("Using {}:{} as clustering address", tp.getBindAddress().getHostAddress(), tp.getBindPort());
    }
 
    private static InetAddress getAddressWithBestMatch(InetAddress controllerAddress) {
@@ -147,7 +174,7 @@ public class Hyperfoil {
       try (InputStream stream = FileLookupFactory.newInstance().lookupFile("infinispan.xml", Thread.currentThread().getContextClassLoader())) {
          ConfigurationBuilderHolder holder = new ParserRegistry().parse(stream, MediaType.APPLICATION_XML);
          holder.getGlobalConfigurationBuilder().transport().defaultTransport()
-               .addProperty(JGroupsTransport.CHANNEL_LOOKUP, HyperfoilChannelLookup.class.getName())
+               .withProperties(System.getProperties())
                .initialClusterSize(1);
          return new DefaultCacheManager(holder, true);
       } catch (IOException e) {

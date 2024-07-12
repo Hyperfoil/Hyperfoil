@@ -21,7 +21,7 @@
          use_virtual_threads="${jgroups.thread.virtual,org.infinispan.threads.virtual:true}"
     />
     <RED/>
-    <TCPPING send_cache_on_join="true"/>
+    <TCPPING send_cache_on_join="false" initial_hosts="${jgroups.tcpping.initial_hosts:}"/>
 
     <!-- MERGE3 interval reduced to 1-3 seconds: that gives better chance to cluster the agents
          in cases when the GET_MBRS_REQ send by FIND_INIT_MBRS is lost. -->
@@ -47,7 +47,9 @@
     <pbcast.STABLE desired_avg_gossip="5000"
                    max_bytes="1M"
     />
-    <pbcast.GMS print_local_addr="false" join_timeout="0"/>
+    <pbcast.GMS print_local_addr="false"
+                join_timeout="${jgroups.join_timeout:2000}"
+    />
     <UFC max_credits="${jgroups.max_credits:4m}"
          min_threshold="0.40"
     />
