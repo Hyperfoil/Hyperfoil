@@ -64,3 +64,9 @@ src/main/java/io/vertx/java/**/*.java
 *.swp
 /bin/
 /eclipsebin/
+
+# docs
+docs/site/.hugo_build.lock
+docs/site/public/
+docs/site/resources/
+docs/site/node_modules/

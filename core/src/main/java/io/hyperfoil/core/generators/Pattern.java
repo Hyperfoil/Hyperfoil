@@ -306,7 +306,7 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
    }
 
    /**
-    * Use <a href="https://hyperfoil.io/userguide/benchmark/variables.html#string-interpolation">pattern</a> replacing session variables.
+    * Use <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">pattern</a> replacing session variables.
     */
    @MetaInfServices(Transformer.Builder.class)
    @Name("pattern")
@@ -314,7 +314,7 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
       public String pattern;
 
       /**
-       * Use <a href="https://hyperfoil.io/userguide/benchmark/variables.html#string-interpolation">pattern</a> replacing session variables.
+       * Use <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">pattern</a> replacing session variables.
        *
        * @param param The pattern formatting string.
        * @return Self.
@@ -325,7 +325,7 @@ public class Pattern implements SerializableFunction<Session, String>, Serializa
       }
 
       /**
-       * Use <a href="https://hyperfoil.io/userguide/benchmark/variables.html#string-interpolation">pattern</a> replacing session variables.
+       * Use <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">pattern</a> replacing session variables.
        *
        * @param pattern The pattern formatting string.
        * @return Self.

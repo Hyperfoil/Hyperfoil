@@ -1,0 +1,69 @@
+# This benchmark simulates operations in an eshop, with browsing/shopping users
+# and operators restocking the warehouse.
+name: eshop
+http:
+  host: http://localhost:8080
+  sharedConnections: 80
+phases:
+# This defines a workload where users just look through the pages.
+- browsingUser:
+    # This is the default type of workload, starting constant number of users
+    # each second. Note that we don't speak about 'requests per second' as
+    # the scenario may issue any number of requests.
+    constantRate:
+      duration: 10s
+      usersPerSec: 10
+      scenario:
+      # Browse is the name of our only sequence. We will avoid steps generating
+      # random data for browsing for the sake of brevity.
+      - browse:
+        - httpRequest:
+            GET: /quickstarts/eshop/items
+# Workload simulating users that are going to buy something
+- buyingUser:
+    constantRate:
+      # The length of this phase is not synchronized with other phases.
+      # You might think that this is too flexible at first.
+      duration: 10s
+      usersPerSec: 5
+      scenario:
+      - browse:
+        - httpRequest:
+            GET: /quickstarts/eshop/items
+            handler:
+              body:
+                json:
+                  query: .[].id
+                  # This is a shortcut to store in array-typed variable
+                  # `itemIds` holding at most 10 elements.
+                  toArray: itemIds[10]
+      - buy:
+        # Pick id for a random item
+        - randomItem: itemId <- itemIds
+        - httpRequest:
+            POST: /quickstarts/eshop/items/${itemId}/buy
+- operator:
+    # This is a different type of phase, running fixed number of users.
+    # It is what most benchmarks do when you set number of threads; here we use
+    # that as we know that we have fixed number of employees (operators) who
+    # are restocking the warehouse.
+    always:
+      users: 5
+      duration: 10s
+      scenario:
+      - restock:
+        # Select an id for random item to restock
+        # Variables in different scenarios are completely unrelated.
+        - randomInt: itemId <- 1 .. 999
+        - randomInt: units <- 1 .. 10
+        - httpRequest:
+            POST: /quickstarts/eshop/items/${itemId}/restock
+            body:
+              # We are using url-encoded form data
+              form:
+              - name: addUnits
+                fromVar: units
+        # Operators need some pauses - otherwise we would start another
+        # scenario execution (and fire another request) right away.
+        - thinkTime:
+            duration: 2s
