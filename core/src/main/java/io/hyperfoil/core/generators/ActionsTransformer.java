@@ -75,7 +75,7 @@ public class ActionsTransformer implements Transformer {
       }
 
       /**
-       * <a href="https://hyperfoil.io/userguide/benchmark/variables.html#string-interpolation">Pattern</a>
+       * <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">Pattern</a>
        * to use when fetching the transformed value.
        *
        * @param pattern Pattern replacing `${myVar}` by the variable value.

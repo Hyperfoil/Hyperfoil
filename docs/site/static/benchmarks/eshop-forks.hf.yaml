@@ -1,0 +1,60 @@
+name: eshop-forks
+http:
+  host: http://localhost:8080
+  sharedConnections: 80
+phases:
+- rampUp:
+    increasingRate:
+      duration: 5s
+      maxIterations: 10
+      # Note that we have increased both the base and increment from 10 and 5
+      # to 15. This value is split between the forks based on their weight.
+      initialUsersPerSec:
+        base: 0
+        increment: 15
+      targetUsersPerSec:
+        base: 15
+        increment: 15
+      startAfter:
+        phase: steadyState
+        iteration: previous
+      forks:
+        browsingUser:
+          weight: 2
+          scenario: &browsingUser
+          - browse:
+            - httpRequest:
+                GET: /quickstarts/eshop/items
+        buyingUser:
+          weight: 1
+          scenario: &buyingUser
+          - browse:
+            - httpRequest:
+                GET: /quickstarts/eshop/items
+                handler:
+                  body:
+                    json:
+                      query: .[].id
+                      toArray: itemIds[10]
+          - buy:
+            - randomItem: itemId <- itemIds
+            - httpRequest:
+                POST: /quickstarts/eshop/items/${itemId}/buy
+- steadyState:
+    constantRate:
+      duration: 10s
+      maxIterations: 10
+      usersPerSec:
+        base: 15
+        increment: 15
+      startAfter:
+        phase: rampUp
+        iteration: same
+      forks:
+        browsingUser:
+          weight: 2
+          scenario: *browsingUser
+        buyingUser:
+          weight: 1
+          scenario: *buyingUser
+# Operator phase is omitted for brevity as we wouldn't scale that up

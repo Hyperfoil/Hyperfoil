@@ -107,7 +107,7 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
 
    /**
     * Issue HTTP GET request to given path. This can be a
-    * <a href="https://hyperfoil.io/userguide/benchmark/variables.html#string-interpolation">pattern</a>.
+    * <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">pattern</a>.
     *
     * @param path HTTP path, a pattern replacing <code>${sessionvar}</code> with variable contents.
     * @return Self.
@@ -127,7 +127,7 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
 
    /**
     * Issue HTTP HEAD request to given path. This can be a
-    * <a href="https://hyperfoil.io/userguide/benchmark/variables.html#string-interpolation">pattern</a>.
+    * <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">pattern</a>.
     *
     * @param path HTTP path, a pattern replacing <code>${sessionvar}</code> with variable contents.
     * @return Self.
@@ -147,7 +147,7 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
 
    /**
     * Issue HTTP POST request to given path. This can be a
-    * <a href="https://hyperfoil.io/userguide/benchmark/variables.html#string-interpolation">pattern</a>.
+    * <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">pattern</a>.
     *
     * @param path HTTP path, a pattern replacing <code>${sessionvar}</code> with variable contents.
     * @return Self.
@@ -167,7 +167,7 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
 
    /**
     * Issue HTTP PUT request to given path. This can be a
-    * <a href="https://hyperfoil.io/userguide/benchmark/variables.html#string-interpolation">pattern</a>.
+    * <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">pattern</a>.
     *
     * @param path HTTP path, a pattern replacing <code>${sessionvar}</code> with variable contents.
     * @return Self.
@@ -187,7 +187,7 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
 
    /**
     * Issue HTTP DELETE request to given path. This can be a
-    * <a href="https://hyperfoil.io/userguide/benchmark/variables.html#string-interpolation">pattern</a>.
+    * <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">pattern</a>.
     *
     * @param path HTTP path, a pattern replacing <code>${sessionvar}</code> with variable contents.
     * @return Self.
@@ -207,7 +207,7 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
 
    /**
     * Issue HTTP OPTIONS request to given path. This can be a
-    * <a href="https://hyperfoil.io/userguide/benchmark/variables.html#string-interpolation">pattern</a>.
+    * <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">pattern</a>.
     *
     * @param path HTTP path, a pattern replacing <code>${sessionvar}</code> with variable contents.
     * @return Self.
@@ -227,7 +227,7 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
 
    /**
     * Issue HTTP PATCH request to given path. This can be a
-    * <a href="https://hyperfoil.io/userguide/benchmark/variables.html#string-interpolation">pattern</a>.
+    * <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">pattern</a>.
     *
     * @param path HTTP path, a pattern replacing <code>${sessionvar}</code> with variable contents.
     * @return Self.
@@ -247,7 +247,7 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
 
    /**
     * Issue HTTP TRACE request to given path. This can be a
-    * <a href="https://hyperfoil.io/userguide/benchmark/variables.html#string-interpolation">pattern</a>.
+    * <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">pattern</a>.
     *
     * @param path HTTP path, a pattern replacing <code>${sessionvar}</code> with variable contents.
     * @return Self.
@@ -267,7 +267,7 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
 
    /**
     * Issue HTTP CONNECT request to given path. This can be a
-    * <a href="https://hyperfoil.io/userguide/benchmark/variables.html#string-interpolation">pattern</a>.
+    * <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">pattern</a>.
     *
     * @param path HTTP path, a pattern replacing <code>${sessionvar}</code> with variable contents.
     * @return Self.
@@ -287,7 +287,7 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
 
    /**
     * HTTP authority (host:port) this request should target. Must match one of the entries in <code>http</code> section.
-    * The string can use <a href="https://hyperfoil.io/userguide/benchmark/variables.html#string-interpolation">string interpolation</a>.
+    * The string can use <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">string interpolation</a>.
     *
     * @param authority Host:port.
     * @return Self.
@@ -329,7 +329,7 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
 
    /**
     * HTTP path (absolute or relative), including query and fragment.
-    * The string can use <a href="https://hyperfoil.io/userguide/benchmark/variables.html#string-interpolation">string interpolation</a>.
+    * The string can use <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">string interpolation</a>.
     *
     * @return Self.
     */
@@ -361,7 +361,7 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
    }
 
    /**
-    * HTTP request body (possibly a <a href="https://hyperfoil.io/userguide/benchmark/variables.html#string-interpolation">pattern</a>).
+    * HTTP request body (possibly a <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">pattern</a>).
     *
     * @param string Request body.
     * @return Self.
@@ -703,7 +703,7 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
 
       /**
        * Use header name (e.g. <code>Content-Type</code>) as key and value (possibly a
-       * <a href="https://hyperfoil.io/userguide/benchmark/variables.html#string-interpolation">pattern</a>).
+       * <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">pattern</a>).
        */
       @Override
       public void accept(String header, String value) {
@@ -760,7 +760,7 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
       }
 
       /**
-       * @param param The value. This can be a <a href="https://hyperfoil.io/userguide/benchmark/variables.html#string-interpolation">pattern</a>.
+       * @param param The value. This can be a <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">pattern</a>.
        * @return Self.
        */
       @Override
@@ -781,7 +781,7 @@ public class HttpRequestStepBuilder extends BaseStepBuilder<HttpRequestStepBuild
       }
 
       /**
-       * Load header value using a <a href="https://hyperfoil.io/userguide/benchmark/variables.html#string-interpolation">pattern</a>.
+       * Load header value using a <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">pattern</a>.
        *
        * @param patternString Pattern to be encoded, e.g. <code>foo${variable}bar${another-variable}</code>
        * @return Builder.

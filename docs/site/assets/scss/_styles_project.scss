@@ -1,0 +1,14 @@
+/*
+The Hugo project that uses this theme can override Bootstrap by adding a file to:
+    assets/scss/_styles_project.scss
+*/
+
+// The name is already contained in the logo
+.td-navbar .navbar-brand__name {
+    display: none;
+}
+
+// Increse the height from 30px to 50px
+.td-navbar .navbar-brand svg {
+    height: 50px; 
+}
