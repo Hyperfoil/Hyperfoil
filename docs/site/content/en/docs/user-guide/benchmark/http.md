@@ -45,6 +45,7 @@ HTTP configuration has these properties:
 | rawBytesHandlers  | true    | Enable or disable using handlers that process HTTP response raw bytes. |
 | [keyManager](#keymanager-configuration) |         | TLS key manager for setting up client certificates. |
 | [trustManager](#trustmanager-configuration) |         | TLS trust manager for setting up server certificates. |
+| useHttpCache      | true    | Make use of HTTP cache on client-side. If multiple authorities are involved, disable the HTTP cache for all of them to achieve the desired outcomes. The default is `true` except for wrk/wrk2 wrappers where it is set to `false`. |
 
 ## Shared connections
 
