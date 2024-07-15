@@ -29,7 +29,7 @@ public class StringGeneratorImplBuilder<T> implements StringGeneratorBuilder, In
    }
 
    /**
-    * @param param A pattern for <a href="https://hyperfoil.io/userguide/benchmark/variables.html#string-interpolation">string interpolation</a>.
+    * @param param A pattern for <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">string interpolation</a>.
     * @return Self.
     */
    @Override
@@ -82,7 +82,7 @@ public class StringGeneratorImplBuilder<T> implements StringGeneratorBuilder, In
    }
 
    /**
-    * Use <a href="https://hyperfoil.io/userguide/benchmark/variables.html#string-interpolation">pattern</a> replacing session variables.
+    * Use <a href="https://hyperfoil.io/docs/user-guide/benchmark/variables#string-interpolation">pattern</a> replacing session variables.
     *
     * @param pattern Template pattern.
     * @return Self.

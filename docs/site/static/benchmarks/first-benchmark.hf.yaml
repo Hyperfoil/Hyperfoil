@@ -1,0 +1,11 @@
+name: first-benchmark
+http:
+  host: https://hyperfoil.io
+  sharedConnections: 5
+duration: 10s
+usersPerSec: 10
+scenario:
+- fetchIndex:
+  - httpRequest:
+      GET: /
+      

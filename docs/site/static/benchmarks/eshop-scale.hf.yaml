@@ -1,0 +1,102 @@
+name: eshop-scale
+http:
+  host: http://localhost:8080
+  sharedConnections: 80
+phases:
+- browsingUserRampUp:
+    # This type of phase is similar to constantRate in the way how new users
+    # are started but gradually increases the rate from `initialUsersPerSec`
+    # to `targetUsersPerSec`.
+    increasingRate:
+      duration: 5s
+      # In Hyperfoil, everything is pre-allocated = limited in size. Here we'll
+      # set that we won't run more than 10 iterations of this phase.
+      maxIterations: 10
+      # Number of started users per sec increases with the iteration; in first
+      # iteration we'll go from 0 to 10 users/second, in second from 10 to 20
+      # and in last (10th) we'll reach 100 users/second.
+      initialUsersPerSec:
+        base: 0
+        increment: 10
+      targetUsersPerSec:
+        base: 10
+        increment: 10
+      # Nth iteration of this phase will start when (N-1)th iteration of other
+      # steady-state phases are finished. First iteration can start
+      # immediatelly, of course.
+      startAfter:
+      - phase: browsingUserSteady
+        iteration: previous
+      - phase: buyingUserSteady
+        iteration: previous
+      # The &browsingUser syntax below creates YAML alias: we can later
+      # reference this scenario and it will be used verbatim in another phase.
+      # It is possible to use aliases for both scenarios and sequences.
+      scenario: &browsingUser
+      # We'll use the same scenario as in eshop.hf.yaml
+      - browse:
+        - httpRequest:
+            GET: /quickstarts/eshop/items
+- browsingUserSteady:
+    constantRate:
+      duration: 10s
+      maxIterations: 10
+      usersPerSec:
+        base: 10
+        increment: 10
+      # Nth iteration of this phase will start when Nth iteration of ramp-up
+      # phases is finished.
+      # Note that there's implicit rule that Nth iteration of given phase will
+      # start only after (N-1)th iteration terminates.
+      startAfter:
+      - phase: browsingUserRampUp
+        iteration: same
+      - phase: buyingUserRampUp
+        iteration: same
+      # This refers to the alias created above; in steady state we'll use the
+      # same scenario.
+      scenario: *browsingUser
+# These two phases will be very similar to browsingUserSteady and RampUp
+- buyingUserRampUp:
+    increasingRate:
+      duration: 5s
+      maxIterations: 10
+      initialUsersPerSec:
+        base: 0
+        increment: 5
+      targetUsersPerSec:
+        base: 5
+        increment: 5
+      startAfter:
+      - phase: browsingUserSteady
+        iteration: previous
+      - phase: buyingUserSteady
+        iteration: previous
+      # Again we'll use the same scenario as in eshop.hf.yaml
+      scenario: &buyingUser
+      - browse:
+        - httpRequest:
+            GET: /quickstarts/eshop/items
+            handler:
+              body:
+                json:
+                  query: .[].id
+                  toArray: itemIds[10]
+      - buy:
+        - randomItem: itemId <- itemIds
+        - httpRequest:
+            POST: /quickstarts/eshop/items/${itemId}/buy
+- buyingUserSteady:
+    constantRate:
+      duration: 10s
+      maxIterations: 10
+      usersPerSec:
+        base: 5
+        increment: 5
+      startAfter:
+      - phase: browsingUserRampUp
+        iteration: same
+      - phase: buyingUserRampUp
+        iteration: same
+      scenario: *buyingUser
+# Operator phase is omitted for brevity as we wouldn't scale that up
