@@ -1,5 +1,5 @@
 ---
-date: 2021-01-25
+date: 2021-02-16
 title: "Beginner's Guide to Hyperfoil: part 3"
 linkTitle: "Beginner's Guide 3"
 type: blog
