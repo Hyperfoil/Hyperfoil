@@ -6,6 +6,14 @@ on:
     tags: [ "*" ]
   pull_request:
     branches: [ master ]
+    paths-ignore:
+    - "LICENSE*"
+    - "**.gitignore"
+    - "**.md"
+    - "**.txt"
+    - ".github/ISSUE_TEMPLATE/**"
+    - ".github/dependabot.yml"
+    - "docs/**"
 
 jobs:
   build:
