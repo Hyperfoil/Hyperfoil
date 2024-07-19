@@ -21,7 +21,7 @@ public final class HistogramConverter {
       writer.outputIntervalHistogram(source);
       writer.close();
       return new Histogram(phase, metric, source.getStartTimeStamp(), source.getEndTimeStamp(),
-            new String(bos.toByteArray(), StandardCharsets.UTF_8));
+            bos.toString(StandardCharsets.UTF_8));
    }
 
    public static AbstractHistogram convert(Histogram source) {

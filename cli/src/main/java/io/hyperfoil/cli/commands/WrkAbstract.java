@@ -163,6 +163,8 @@ public abstract class WrkAbstract {
 
       String path;
       String[][] parsedHeaders;
+      boolean started = false;
+      boolean initialized = false;
 
       @Override
       public CommandResult execute(HyperfoilCommandInvocation invocation) {
@@ -246,7 +248,9 @@ public abstract class WrkAbstract {
          addPhase(builder, PhaseType.calibration, "6s");
          // We can start only after calibration has full completed because otherwise some sessions
          // would not have connection available from the beginning.
-         addPhase(builder, PhaseType.test, duration).startAfterStrict(PhaseType.calibration.name()).maxDuration(Util.parseToMillis(duration));
+         addPhase(builder, PhaseType.test, duration)
+               .startAfterStrict(PhaseType.calibration.name())
+               .maxDuration(Util.parseToMillis(duration));
 
          RestClient client = invocation.context().client();
          if (client == null) {
@@ -258,30 +262,18 @@ public abstract class WrkAbstract {
          Client.BenchmarkRef benchmark = client.register(builder.build(), null);
          invocation.context().setServerBenchmark(benchmark);
 
-         //validate benchmark
-         Client.RunRef run = benchmark.start(null, Collections.emptyMap(), Boolean.TRUE);
+         Client.RunRef run = benchmark.start(null, Collections.emptyMap());
+         invocation.context().setServerRun(run);
 
          boolean result = awaitBenchmarkResult(run, invocation);
 
          if (result) {
-            if (run.get().errors.size() > 0) {
-               invocation.println("ERROR: " + run.get().errors.stream().collect(Collectors.joining(", ")));
+            if (!started && !run.get().errors.isEmpty()) {
+               // here the benchmark simulation did not start, it failed during initialization
+               // print the error that is returned by the controller, e.g., cannot connect
+               invocation.println("ERROR: " + String.join(", ", run.get().errors));
                return CommandResult.FAILURE;
             }
-         } else {
-            return CommandResult.FAILURE;
-
-         }
-
-         run = benchmark.start(null, Collections.emptyMap());
-         invocation.context().setServerRun(run);
-
-         invocation.println("Running " + duration + " test @ " + url);
-         invocation.println("  " + threads + " threads and " + connections + " connections");
-
-         result = awaitBenchmarkResult(run, invocation);
-
-         if (result) {
             RequestStatisticsResponse total = run.statsTotal();
             RequestStats testStats = total.statistics.stream().filter(rs -> PhaseType.test.name().equals(rs.phase))
                   .findFirst().orElseThrow(() -> new IllegalStateException("Error running command: Missing Statistics"));
@@ -292,7 +284,6 @@ public abstract class WrkAbstract {
          } else {
             return CommandResult.FAILURE;
          }
-
       }
 
       private boolean awaitBenchmarkResult(Client.RunRef run, HyperfoilCommandInvocation invocation) {
@@ -300,7 +291,18 @@ public abstract class WrkAbstract {
             RequestStatisticsResponse recent = run.statsRecent();
             if ("TERMINATED".equals(recent.status)) {
                break;
+            } else if ("INITIALIZING".equals(recent.status) && !initialized) {
+               initialized = true;
+            } else if ("RUNNING".equals(recent.status) && !started) {
+               // here the benchmark simulation started, so we can print wrk/wrk2 messages
+               invocation.println("Running " + duration + " test @ " + url);
+               invocation.println("  " + threads + " threads and " + connections + " connections");
+               started = true;
+               // if started, it is also initialized
+               // this ensure initialized is set to true if for some reason we did not catch the "INITIALIZING" status
+               initialized = true;
             }
+
             invocation.getShell().write(ANSI.CURSOR_START);
             invocation.getShell().write(ANSI.ERASE_WHOLE_LINE);
             try {
@@ -370,7 +372,7 @@ public abstract class WrkAbstract {
                String.format("%8.2f%%", statsWithinStdev(stats, histogram)));
          // Note: wrk samples #requests every 100 ms, Hyperfoil every 1s
          DoubleSummaryStatistics requestsStats = series.stream().mapToDouble(s -> s.requestCount).summaryStatistics();
-         double requestsStdDev = series.size() > 0 ? Math.sqrt(series.stream().mapToDouble(s -> Math.pow(s.requestCount - requestsStats.getAverage(), 2)).sum() / series.size()) : 0;
+         double requestsStdDev = !series.isEmpty() ? Math.sqrt(series.stream().mapToDouble(s -> Math.pow(s.requestCount - requestsStats.getAverage(), 2)).sum() / series.size()) : 0;
          invocation.println("    Req/Sec   " +
                String.format("%6.2f  ", requestsStats.getAverage()) +
                String.format("%8.2f  ", requestsStdDev) +
