@@ -44,6 +44,17 @@ jobs:
       run: chmod go-w /home/$USER && chmod 700 /home/$USER/.ssh && chmod 600 /home/$USER/.ssh/authorized_keys
     - name: Build with Maven
       run: mvn clean -B package --file pom.xml -Pbenchmark -Pbuild-image -Dio.hyperfoil.agent.java.executable=$JAVA_HOME/bin/java $NO_DOWNLOAD_MESSAGE -Dagent.log.trace
+    - name: Check uncommitted changes
+      if: matrix.os.name == 'ubuntu-latest'
+      run: |
+        clean=$(git status --porcelain)
+        if [[ -z "$clean" ]]; then
+          echo "Empty git status --porcelain: $clean"
+        else
+          echo "Uncommitted file changes detected: $clean"
+          git diff
+          exit 1
+        fi
     - name: Upload artifact for failed workflow
       if: failure()
       uses: actions/upload-artifact@v3

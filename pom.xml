@@ -72,10 +72,12 @@
     </licenses>
 
     <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <!-- maven-compiler-plugin -->
         <maven.compiler.target>17</maven.compiler.target>
         <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.release>17</maven.compiler.release>
 
         <version.aesh>2.7</version.aesh>
         <version.apache.sshd>2.10.0</version.apache.sshd>
@@ -112,6 +114,10 @@
 
         <exec.skip>true</exec.skip>
         <module.skipCopyDependencies>false</module.skipCopyDependencies>
+        <!-- code formatting -->
+        <format.skip>false</format.skip>
+        <formatter-maven-plugin.version>2.24.1</formatter-maven-plugin.version>
+        <impsort-maven-plugin.version>1.10.0</impsort-maven-plugin.version>
     </properties>
 
     <developers>
@@ -479,6 +485,14 @@
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>buildnumber-maven-plugin</artifactId>
             </plugin>
+            <plugin>
+                <groupId>net.revelc.code.formatter</groupId>
+                <artifactId>formatter-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>net.revelc.code</groupId>
+                <artifactId>impsort-maven-plugin</artifactId>
+            </plugin>
         </plugins>
 
         <pluginManagement>
@@ -618,21 +632,43 @@
                 </plugin>
 
                 <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-checkstyle-plugin</artifactId>
-                    <version>3.3.1</version>
+                    <groupId>net.revelc.code.formatter</groupId>
+                    <artifactId>formatter-maven-plugin</artifactId>
+                    <version>${formatter-maven-plugin.version}</version>
+                    <configuration>
+                        <skip>${format.skip}</skip>
+                        <!--suppress UnresolvedMavenProperty -->
+                        <configFile>${session.executionRootDirectory}/config/eclipse-formatting.xml</configFile>
+                        <!-- store outside of target to speed up formatting when mvn clean is used -->
+                        <cachedir>.cache/formatter-maven-plugin-${formatter-maven-plugin.version}</cachedir>
+                        <lineEnding>LF</lineEnding>
+                    </configuration>
                     <executions>
                         <execution>
-                            <id>validate</id>
-                            <phase>validate</phase>
-                            <configuration>
-                                <configLocation>${project.basedir}/../config/checkstyle/checkstyle.xml</configLocation>
-                                <consoleOutput>true</consoleOutput>
-                                <failsOnError>true</failsOnError>
-                                <includeTestSourceDirectory>true</includeTestSourceDirectory>
-                            </configuration>
+                            <id>apply-formatter</id>
                             <goals>
-                                <goal>check</goal>
+                                <goal>format</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <groupId>net.revelc.code</groupId>
+                    <artifactId>impsort-maven-plugin</artifactId>
+                    <version>${impsort-maven-plugin.version}</version>
+                    <configuration>
+                        <skip>${format.skip}</skip>
+                        <!-- store outside of target to speed up formatting when mvn clean is used -->
+                        <cachedir>.cache/impsort-maven-plugin-${impsort-maven-plugin.version}</cachedir>
+                        <groups>java.,javax.,jakarta.,org.,com.</groups>
+                        <staticGroups>*</staticGroups>
+                        <removeUnused>true</removeUnused>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>sort-imports</id>
+                            <goals>
+                                <goal>sort</goal>
                             </goals>
                         </execution>
                     </executions>

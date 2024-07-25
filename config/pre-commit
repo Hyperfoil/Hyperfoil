@@ -1,18 +1,18 @@
 #!/bin/bash
 
+echo "Running mvn formatter:format to ensure the code is properly formatted"
 
-if [ "x$IDEA_HOME" == "x" ]; then
-   echo "IDEA_HOME is not configured; cannot reformat code"
-else
-   HYPERFOIL_ROOT=$(dirname $0)/../../
-   export IDEA_PROPERTIES=$HYPERFOIL_ROOT/config/idea.properties
-
-   git diff-index --cached --name-only HEAD > $HYPERFOIL_ROOT/.modified.log
-   MODIFIED=$(cat $HYPERFOIL_ROOT/.modified.log | wc -l)
-   echo "Formatting $MODIFIED modified files..."
-   cat $HYPERFOIL_ROOT/.modified.log | xargs $IDEA_HOME/bin/format.sh -s $HYPERFOIL_ROOT/config/codestyle.xml -m '*.java,*.xml,*.yml,*.yaml' > /dev/null 2> /dev/null
-   cat $HYPERFOIL_ROOT/.modified.log | xargs git add 
-   rm $HYPERFOIL_ROOT/.modified.log 
+# running maven clean test
+MVN_RESULT=$(mvn formatter:format impsort:sort 2>&1)
+if [ $? -ne 0 ]; then
+  echo
+  echo "${MVN_RESULT}"
+  echo
+  echo "Error while formating the code"
+  exit 1
 fi
+
+# add all modified files
+git add -u
 
 exit 0
