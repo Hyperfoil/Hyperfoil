@@ -93,6 +93,7 @@ public class BigResponseParsingTest extends VertxBaseTest {
          HttpClientPool client = result.result();
          Session session = SessionFactory.forTesting();
          HttpRunData.initForTesting(session);
+         session.declareResources().build();
          HttpResponseHandlers handlers = HttpResponseHandlersImpl.Builder.forTesting()
                .rawBytes(new RawBytesHandler() {
                   @Override

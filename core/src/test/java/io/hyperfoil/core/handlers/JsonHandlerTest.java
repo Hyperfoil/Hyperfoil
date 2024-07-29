@@ -45,7 +45,7 @@ public class JsonHandlerTest {
       JsonHandler handler = new JsonHandler(".[].id", false, null, expect);
       Session session = SessionFactory.forTesting();
       ResourceUtilizer.reserveForTesting(session, handler);
-
+      session.declareResources().build();
       ByteBuf data = Unpooled.wrappedBuffer(JSON);
 
       handler.before(session);
@@ -61,7 +61,7 @@ public class JsonHandlerTest {
       JsonHandler handler = new JsonHandler(".[].id", false, null, expect);
       Session session = SessionFactory.forTesting();
       ResourceUtilizer.reserveForTesting(session, handler);
-
+      session.declareResources().build();
       for (int i = 0; i < JSON.length; ++i) {
          ByteBuf data1 = Unpooled.wrappedBuffer(JSON, 0, i);
          ByteBuf data2 = Unpooled.wrappedBuffer(JSON, i, JSON.length - i);
@@ -91,7 +91,7 @@ public class JsonHandlerTest {
       JsonHandler handler = new JsonHandler(".foo", false, null, expect);
       Session session = SessionFactory.forTesting();
       ResourceUtilizer.reserveForTesting(session, handler);
-
+      session.declareResources().build();
       ByteBuf data = Unpooled.wrappedBuffer("{ \"foo\": { \"bar\" : 42 }}".getBytes(StandardCharsets.UTF_8));
 
       handler.before(session);
@@ -114,7 +114,7 @@ public class JsonHandlerTest {
       JsonHandler handler = new JsonHandler(".[].foo", false, null, new JsonUnquotingTransformer(new DefragProcessor(expect)));
       Session session = SessionFactory.forTesting();
       ResourceUtilizer.reserveForTesting(session, handler);
-
+      session.declareResources().build();
       for (int i = 0; i < ESCAPED.length; ++i) {
          handleSplit(handler, session, ESCAPED, i);
 
@@ -129,7 +129,7 @@ public class JsonHandlerTest {
       JsonHandler handler = new JsonHandler(".[].product", true, null, new DefragProcessor(stringCollector));
       Session session = SessionFactory.forTesting();
       ResourceUtilizer.reserveForTesting(session, handler);
-
+      session.declareResources().build();
       for (int i = 0; i < JSON.length; ++i) {
          handleSplit(handler, session, JSON, i);
 
@@ -149,7 +149,7 @@ public class JsonHandlerTest {
       JsonHandler handler = new JsonHandler(".[1]", true, null, new DefragProcessor(stringCollector));
       Session session = SessionFactory.forTesting();
       ResourceUtilizer.reserveForTesting(session, handler);
-
+      session.declareResources().build();
       for (int i = 0; i < JSON.length; ++i) {
          handleSplit(handler, session, JSON, i);
 
@@ -171,7 +171,7 @@ public class JsonHandlerTest {
       JsonHandler handler = new JsonHandler(".[].product", false, replace, new DefragProcessor(stringCollector));
       Session session = SessionFactory.forTesting();
       ResourceUtilizer.reserveForTesting(session, handler);
-
+      session.declareResources().build();
       for (int i = 0; i < JSON.length; ++i) {
          handleSplit(handler, session, JSON, i);
 
@@ -195,7 +195,7 @@ public class JsonHandlerTest {
       }, new DefragProcessor(stringCollector));
       Session session = SessionFactory.forTesting();
       ResourceUtilizer.reserveForTesting(session, handler);
-
+      session.declareResources().build();
       for (int i = 0; i < JSON.length; ++i) {
          handleSplit(handler, session, JSON, i);
 
@@ -268,7 +268,7 @@ public class JsonHandlerTest {
 
       @Override
       public void reserve(Session session) {
-         session.declareResource(this, Context::new);
+         session.declareResources().add(this, Context::new);
       }
 
       public static class Context implements Session.Resource {

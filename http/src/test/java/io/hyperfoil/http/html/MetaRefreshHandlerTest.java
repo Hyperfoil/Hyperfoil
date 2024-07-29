@@ -21,6 +21,7 @@ public class MetaRefreshHandlerTest {
       Session session = SessionFactory.forTesting();
       HttpRunData.initForTesting(session);
       ResourceUtilizer.reserveForTesting(session, handler);
+      session.declareResources().build();
       handler.before(session);
 
       ByteBuf content1 = buf("content1");

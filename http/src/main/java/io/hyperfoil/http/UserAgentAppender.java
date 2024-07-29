@@ -31,7 +31,7 @@ public class UserAgentAppender implements SerializableBiConsumer<Session, HttpRe
    @Override
    public void reserve(Session session) {
       SessionId sessionId = new SessionId(new AsciiString("#" + session.uniqueId() + "@" + HOSTNAME));
-      session.declareResource(this, () -> sessionId);
+      session.declareResources().add(this, () -> sessionId);
    }
 
    public static final class SessionId implements Session.Resource {

@@ -69,6 +69,7 @@ public class MemoryUsageTest {
             client.start(context.asyncAssertSuccess(nil -> {
                Session session = SessionFactory.forTesting();
                HttpRunData.initForTesting(session);
+               session.declareResources().build();
                HttpConnectionPool pool = client.next();
                doRequest(pool, session, context, async, seenMemoryUsage);
             }));

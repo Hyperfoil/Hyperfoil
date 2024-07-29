@@ -149,8 +149,9 @@ public class SimulationRunner {
             }
          });
          phase.reserveSessions();
-         // at this point all session resources should be reserved
       }
+      // at this point all session resources should be reserved, let's stop the session's resource declaration
+      sessions.forEach(session ->  session.declareResources().build());
       // hint the GC to tenure sessions
       this.runGC();
 

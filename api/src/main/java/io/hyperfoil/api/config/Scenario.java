@@ -34,6 +34,7 @@ import io.hyperfoil.api.session.Session;
 import io.hyperfoil.api.session.WriteAccess;
 
 public class Scenario implements Serializable {
+   private static final Session.Var[] EMPTY_VARS = new Session.Var[0];
    private final Sequence[] initialSequences;
    private final Sequence[] sequences;
    private final Map<String, Sequence> sequenceMap;
@@ -103,6 +104,9 @@ public class Scenario implements Serializable {
    }
 
    public Session.Var[] createVars(Session session) {
+      if (uniqueVars == 0) {
+         return EMPTY_VARS;
+      }
       Session.Var[] vars = new Session.Var[uniqueVars];
       for (WriteAccess access : writes) {
          int index = access.index();

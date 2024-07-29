@@ -99,7 +99,7 @@ public class JsonStep implements Step {
 
       @Override
       public void reserve(Session session) {
-         session.declareResource(this, Context::new);
+         session.declareResources().add(this, Context::new);
       }
 
       @Override

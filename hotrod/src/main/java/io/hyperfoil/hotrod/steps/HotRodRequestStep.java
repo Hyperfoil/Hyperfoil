@@ -88,7 +88,7 @@ public class HotRodRequestStep extends StatisticsStep implements ResourceUtilize
 
    @Override
    public void reserve(Session session) {
-      session.declareResource(futureWrapperKey, HotRodResource::new);
+      session.declareResources().add(futureWrapperKey, HotRodResource::new);
    }
 
    private void trackResponseError(Session session, String metric, Object ex) {

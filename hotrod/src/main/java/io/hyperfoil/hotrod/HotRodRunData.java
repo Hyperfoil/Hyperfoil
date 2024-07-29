@@ -48,7 +48,7 @@ public class HotRodRunData implements PluginRunData {
    @Override
    public void initSession(Session session, int executorId, Scenario scenario, Clock clock) {
       HotRodRemoteCachePool pollById = this.pool[executorId];
-      session.declareSingletonResource(HotRodRemoteCachePool.KEY, pollById);
+      session.declareResources().addSingleton(HotRodRemoteCachePool.KEY, pollById);
    }
 
    @Override

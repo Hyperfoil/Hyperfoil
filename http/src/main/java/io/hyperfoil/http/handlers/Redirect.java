@@ -70,7 +70,7 @@ public class Redirect {
 
       @Override
       public void reserve(Session session) {
-         session.declareResource(poolKey, () -> LimitedPoolResource.create(concurrency, Coords.class, Coords::new), true);
+         session.declareResources().add(poolKey, () -> LimitedPoolResource.create(concurrency, Coords.class, Coords::new), true);
       }
 
       public static class Builder extends BaseDelegatingStatusHandler.Builder<Builder> {
@@ -186,7 +186,7 @@ public class Redirect {
          if (!outputVar.isSet(session)) {
             outputVar.setObject(session, ObjectVar.newArray(session, concurrency));
          }
-         session.declareResource(queueKey, () -> new Queue(outputVar, concurrency, concurrency, sequence, null));
+         session.declareResources().add(queueKey, () -> new Queue(outputVar, concurrency, concurrency, sequence, null));
       }
 
       public static class Builder implements HeaderHandler.Builder {

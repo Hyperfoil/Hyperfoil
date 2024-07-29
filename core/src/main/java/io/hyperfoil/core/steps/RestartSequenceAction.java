@@ -23,7 +23,7 @@ public class RestartSequenceAction implements Action, ResourceUtilizer {
 
    @Override
    public void reserve(Session session) {
-      session.declareResource(triggerKey, RestartSequenceStep.Trigger::new);
+      session.declareResources().add(triggerKey, RestartSequenceStep.Trigger::new);
    }
 
    /**

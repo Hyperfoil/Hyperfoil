@@ -88,6 +88,7 @@ public class HttpClientPoolHandlerTest {
       pool.executor().execute(() -> {
          Session session = SessionFactory.forTesting();
          HttpRunData.initForTesting(session);
+         session.declareResources().build();
          HttpRequest request = HttpRequestPool.get(session).acquire();
          HttpResponseHandlersImpl handlers = HttpResponseHandlersImpl.Builder.forTesting()
                .status((r, code) -> {

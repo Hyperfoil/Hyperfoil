@@ -75,7 +75,7 @@ public class SearchValidator implements Processor, ResourceUtilizer, Session.Res
 
    @Override
    public void reserve(Session session) {
-      session.declareResource(this, Context::new);
+      session.declareResources().add(this, Context::new);
    }
 
    static class Context extends BaseSearchContext {

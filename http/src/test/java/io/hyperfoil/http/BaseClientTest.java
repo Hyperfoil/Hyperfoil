@@ -103,6 +103,7 @@ public class BaseClientTest extends VertxBaseTest {
    protected void sendRequestAndAssertStatus(TestContext ctx, HttpClientPool client, Async async, HttpMethod method, String path, int expectedStatus) {
       Session session = SessionFactory.forTesting();
       HttpRunData.initForTesting(session);
+      session.declareResources().build();
       HttpRequest request = HttpRequestPool.get(session).acquire();
       AtomicBoolean statusReceived = new AtomicBoolean(false);
       HttpResponseHandlers handlers = HttpResponseHandlersImpl.Builder.forTesting()

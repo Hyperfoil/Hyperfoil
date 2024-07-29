@@ -67,7 +67,7 @@ public class QueueProcessor implements Processor, ResourceUtilizer {
       if (!var.isSet(session)) {
          var.setObject(session, ObjectVar.newArray(session, concurrency));
       }
-      session.declareResource(key, () -> new Queue(var, maxSize, concurrency, sequence, onCompletion), true);
+      session.declareResources().add(key, () -> new Queue(var, maxSize, concurrency, sequence, onCompletion), true);
    }
 
    /**

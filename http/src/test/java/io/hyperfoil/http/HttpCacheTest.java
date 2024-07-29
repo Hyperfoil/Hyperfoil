@@ -278,6 +278,7 @@ public class HttpCacheTest extends VertxBaseTest {
                   cleanup.add(client::shutdown);
                   context.session = SessionFactory.forTesting();
                   HttpRunData.initForTesting(context.session, CLOCK, cacheEnabled);
+                  context.session.declareResources().build();
                   context.pool = client;
                   context.requests.poll().run();
                });

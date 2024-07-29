@@ -50,7 +50,7 @@ public class TimestampStep implements Step, ResourceUtilizer {
    @Override
    public void reserve(Session session) {
       if (formatterKey != null) {
-         session.declareResource(formatterKey, formatterSupplier);
+         session.declareResources().add(formatterKey, formatterSupplier);
       }
    }
 

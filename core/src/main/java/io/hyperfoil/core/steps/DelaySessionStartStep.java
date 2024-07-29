@@ -65,7 +65,7 @@ public class DelaySessionStartStep implements Step, ResourceUtilizer {
 
    @Override
    public void reserve(Session session) {
-      session.declareResource(KEY, Holder::new, true);
+      session.declareResources().add(KEY, Holder::new, true);
    }
 
    public static class Holder implements Session.Resource {
